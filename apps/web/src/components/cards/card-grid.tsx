@@ -318,6 +318,31 @@ export function CardGrid({
     overscan: 3,
   });
 
+  // DEBUG: log estimate vs measured deltas to find what's causing scroll stops.
+  // Remove after debugging.
+  useEffect(() => {
+    let prevTotal = 0;
+    const check = () => {
+      const total = virtualizer.getTotalSize();
+      if (prevTotal && Math.abs(total - prevTotal) > 1) {
+        console.log(`[virt] totalSize jumped ${prevTotal} → ${total} (Δ${total - prevTotal})`);
+        // Log per-item deltas for currently rendered items
+        for (const item of virtualizer.getVirtualItems()) {
+          const est = estimateSize(item.index);
+          const delta = item.size - est;
+          if (Math.abs(delta) > 1) {
+            const row = virtualRows[item.index];
+            const label = row?.kind === "header" ? `header:${row.set.code}` : "cards";
+            console.log(`  row[${item.index}] ${label}: est=${est} meas=${item.size} Δ${delta}`);
+          }
+        }
+      }
+      prevTotal = total;
+    };
+    globalThis.addEventListener("scroll", check, { passive: true });
+    return () => globalThis.removeEventListener("scroll", check);
+  });
+
   // Keep a ref so the scroll handler always reads the virtualizer's current
   // measured item positions rather than estimated ones (which drift at scale).
   const virtualizerRef = useRef(virtualizer);
