@@ -220,8 +220,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               <DrawerTitle>What&apos;s new</DrawerTitle>
               <DrawerDescription>
                 Recent changes and improvements to OpenRift.{" "}
-                <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>
-                {" · "}
+                <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>{" "}
                 <button
                   type="button"
                   className="inline-flex cursor-pointer items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
