@@ -20,7 +20,6 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -222,29 +221,40 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               <DrawerDescription>
                 Recent changes and improvements to OpenRift.{" "}
                 <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>{" "}
-                <button
-                  type="button"
-                  className="inline-flex cursor-pointer items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                  onClick={async () => {
-                    setChecking(true);
-                    setSpinning(true);
-                    const updateAvailable = await checkForUpdate();
-                    setChecking(false);
-                    if (!updateAvailable) {
-                      toast("You're on the latest version");
-                    }
-                  }}
-                >
-                  <RefreshCw
-                    className={`size-2.5 self-center ${spinning ? "animate-spin" : ""}`}
-                    onAnimationIteration={() => {
-                      if (!checking) {
-                        setSpinning(false);
+                {needRefresh ? (
+                  <button
+                    type="button"
+                    className="inline-flex cursor-pointer items-baseline gap-1 text-[10px] font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
+                    onClick={() => applyUpdate()}
+                  >
+                    <RefreshCw className="size-2.5 self-center" />
+                    Update available — reload
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="inline-flex cursor-pointer items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                    onClick={async () => {
+                      setChecking(true);
+                      setSpinning(true);
+                      const updateAvailable = await checkForUpdate();
+                      setChecking(false);
+                      if (!updateAvailable) {
+                        toast("You're on the latest version");
                       }
                     }}
-                  />
-                  Check for updates
-                </button>
+                  >
+                    <RefreshCw
+                      className={`size-2.5 self-center ${spinning ? "animate-spin" : ""}`}
+                      onAnimationIteration={() => {
+                        if (!checking) {
+                          setSpinning(false);
+                        }
+                      }}
+                    />
+                    Check for updates
+                  </button>
+                )}
               </DrawerDescription>
             </DrawerHeader>
             {changelogGroups.map((group) => (
@@ -277,14 +287,6 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               </div>
             ))}
           </div>
-          {needRefresh && (
-            <DrawerFooter className="border-t">
-              <Button size="sm" onClick={() => applyUpdate()} className="w-full">
-                <RefreshCw className="size-3.5" />
-                Update available — reload
-              </Button>
-            </DrawerFooter>
-          )}
         </DrawerContent>
       </Drawer>
     </>
