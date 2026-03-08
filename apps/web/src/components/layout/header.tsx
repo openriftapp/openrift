@@ -138,11 +138,8 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                   {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
                   {darkMode ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setChangelogOpen(true)}
-                  className="text-xs text-muted-foreground"
-                >
-                  <Sparkles className="size-3" />
+                <DropdownMenuItem onClick={() => setChangelogOpen(true)}>
+                  <Sparkles className="size-4" />
                   What&apos;s new
                 </DropdownMenuItem>
                 {session?.user && (
@@ -171,7 +168,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
             <DrawerTitle>What&apos;s new</DrawerTitle>
             <DrawerDescription>
               Recent changes and improvements to OpenRift.{" "}
-              <span className="text-[10px] tabular-nums">v{__COMMIT_HASH__}</span>
+              <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>
             </DrawerDescription>
           </DrawerHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
