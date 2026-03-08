@@ -202,7 +202,7 @@ export function CardGrid({
     let acc = 0;
     for (let i = 0; i < virtualRows.length; i++) {
       starts.push(acc);
-      acc += estimateSize(i);
+      acc += estimateSize(i) + GAP;
     }
     return starts;
   })();
@@ -269,7 +269,7 @@ export function CardGrid({
       const threshold = globalThis.scrollY - scrollMarginRef.current + APP_HEADER_HEIGHT;
 
       // Build a map of measured start positions for currently-rendered items.
-      // rowStarts uses estimated sizes and can drift significantly with many rows
+      // rowStarts uses estimated sizes and can still drift with many rows
       // (Math.ceil rounding accumulates). The virtualizer's own positions are
       // accurate for rendered items, so we prefer those at boundaries.
       const measuredStarts = new Map(
@@ -638,8 +638,8 @@ export function CardGrid({
     const trackBottom = viewportH - halfH - INDICATOR_PAD;
 
     // Prefer the virtualizer's measured positions over rowStarts (estimated).
-    // rowStarts accumulates Math.ceil rounding across many rows, so ghost badges
-    // computed from it drift away from the indicator (which uses real scrollY).
+    // rowStarts can still drift from rounding across many rows, so ghost badges
+    // computed from it may drift from the indicator (which uses real scrollY).
     const measuredStarts = new Map(
       virtualizerRef.current
         .getVirtualItems()
