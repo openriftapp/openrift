@@ -171,7 +171,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>
             </DrawerDescription>
           </DrawerHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-4 pb-4">
             {changelogGroups.map((group) => (
               <div key={group.date} className="mb-6">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">{group.date}</p>
