@@ -55,13 +55,13 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
   const [checking, setChecking] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
-  // Work around base-ui drawer blocking vertical scroll in right-swipe drawers.
-  // Base-ui's Viewport registers a document-level touchmove handler (capture, non-passive)
-  // that calls preventDefault() when it finds no horizontally-scrollable element — but our
-  // content only scrolls vertically. By stopping touchstart propagation on the scroll area,
-  // the Viewport's React onTouchStart never fires, its internal touchScrollStateRef stays
-  // null, and the document handler returns early without blocking scroll.
-  // Trade-off: swipe-to-dismiss doesn't work from inside the scroll area (header/footer still work).
+  // HACK: work around base-ui#4180 — side drawers block vertical touch scroll.
+  // Fixed upstream in base-ui#4187 (merged 2026-03-04, not yet in a stable release).
+  // Remove this workaround after upgrading @base-ui/react past 1.2.0.
+  // How it works: stopping touchstart/touchmove propagation prevents the Viewport's
+  // React handler from setting its internal touchScrollStateRef, so the document-level
+  // capture handler returns early without calling preventDefault().
+  // Trade-off: swipe-to-dismiss doesn't work from inside the scroll area.
   const scrollCleanupRef = useRef<(() => void) | null>(null);
   const scrollRef = (el: HTMLDivElement | null) => {
     scrollCleanupRef.current?.();
