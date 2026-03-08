@@ -357,7 +357,13 @@ export function CardGrid({
       statusLines.push(`compact=${compact} aboveSm=${aboveSm} thumbW=${thumbWidth.toFixed(1)}`);
       const firstCard = items.find((it) => virtualRows[it.index]?.kind === "cards");
       if (firstCard) {
+        const row = virtualRows[firstCard.index];
         statusLines.push(`meas[${firstCard.index}]=${firstCard.size}`);
+        // Check if first card in row has a price
+        if (row?.kind === "cards") {
+          const c0 = row.items[0];
+          statusLines.push(`card0.price=${c0?.price ? "yes" : "null"}`);
+        }
         const rowEl = document.querySelector(`[data-index="${firstCard.index}"]`);
         if (rowEl) {
           const gridEl = rowEl.firstElementChild;
@@ -374,7 +380,24 @@ export function CardGrid({
                 )
                 .join(" ");
               statusLines.push(`btn=${btnRect.height.toFixed(1)} ${childInfo}`);
+              // Drill into label wrapper (ch1) children
+              const labelWrapper = firstBtn.children[1];
+              if (labelWrapper) {
+                const lwChildren = [...labelWrapper.children];
+                const lwInfo = lwChildren
+                  .map(
+                    (c, i) =>
+                      `lw${i}=${c.getBoundingClientRect().height.toFixed(1)}(${c.tagName}.${[...c.classList].join(".")})`,
+                  )
+                  .join(" ");
+                statusLines.push(`labelWrapper: ${lwInfo}`);
+              }
             }
+          }
+          // Check computed paddingBottom on grid div
+          if (gridEl instanceof HTMLElement) {
+            const cs = getComputedStyle(gridEl);
+            statusLines.push(`grid pB=${cs.paddingBottom} gap=${cs.gap}`);
           }
           statusLines.push(`rowEl.offsetH=${(rowEl as HTMLElement).offsetHeight}`);
         }
