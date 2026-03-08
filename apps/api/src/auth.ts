@@ -131,7 +131,7 @@ export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       sameSite: process.env.AUTH_COOKIE_CROSS_ORIGIN === "true" ? "none" : "lax",
-      secure: process.env.AUTH_COOKIE_CROSS_ORIGIN === "true",
+      secure: true,
     },
   },
   trustedOrigins: (request) => {
