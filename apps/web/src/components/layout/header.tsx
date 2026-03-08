@@ -219,7 +219,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
             <DrawerHeader className="px-0 pb-4 pt-2">
               <DrawerTitle>What&apos;s new</DrawerTitle>
               <DrawerDescription>
-                Recent changes and improvements to OpenRift.{" "}
+                Recent changes and improvements.{" "}
                 <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>{" "}
                 {needRefresh ? (
                   <button
