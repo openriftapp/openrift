@@ -334,16 +334,47 @@ export function CardGrid({
       const items = virtualizer.getVirtualItems();
       const prevTotal = debugPrevTotalRef.current;
 
-      // Always show current status
-      const statusLines: string[] = [];
-      statusLines.push(
+      // Always show estimate breakdown for first card row
+      const containerWidth = containerRef.current?.offsetWidth ?? 0;
+      const cardWidth = (containerWidth - GAP * (columns - 1)) / columns;
+      const imgW = cardWidth - BUTTON_PAD * 2;
+      const imgH = imgW * CARD_ASPECT;
+      const estTotal = Math.ceil(imgH + labelHeight + BUTTON_PAD * 2);
+      const statusLines = [
         `scroll=${Math.round(globalThis.scrollY)} total=${total} items=${items.length}`,
-      );
+        `cols=${columns} ctnW=${containerWidth} cardW=${cardWidth.toFixed(1)}`,
+        `imgW=${imgW.toFixed(1)} imgH=${imgH.toFixed(2)} label=${labelHeight} pad=${BUTTON_PAD * 2}`,
+        `est=${estTotal} (ceil of ${(imgH + labelHeight + BUTTON_PAD * 2).toFixed(2)})`,
+      ];
+
+      // Show first measured card row for comparison
+      const firstCard = items.find((it) => virtualRows[it.index]?.kind === "cards");
+      if (firstCard) {
+        statusLines.push(`meas[${firstCard.index}]=${firstCard.size}`);
+        // Measure child elements of the first card row
+        const rowEl = document.querySelector(`[data-index="${firstCard.index}"]`);
+        if (rowEl) {
+          const gridEl = rowEl.firstElementChild;
+          if (gridEl) {
+            const firstBtn = gridEl.querySelector("button");
+            if (firstBtn) {
+              const btnRect = firstBtn.getBoundingClientRect();
+              const img = firstBtn.querySelector("img, .aspect-card");
+              const imgRect = img?.getBoundingClientRect();
+              const labelEl = firstBtn.querySelector("[class*='mt-']");
+              const labelRect = labelEl?.getBoundingClientRect();
+              statusLines.push(
+                `btn=${btnRect.height.toFixed(1)} img=${imgRect?.height.toFixed(1) ?? "?"} lbl=${labelRect?.height.toFixed(1) ?? "?"}`,
+              );
+            }
+          }
+          statusLines.push(`rowEl.offsetH=${(rowEl as HTMLElement).offsetHeight}`);
+        }
+      }
 
       // Log jumps
       if (prevTotal && Math.abs(total - prevTotal) > 1) {
-        const jumpLine = `JUMP ${prevTotal}→${total} (Δ${total - prevTotal})`;
-        debugLinesRef.current.push(jumpLine);
+        debugLinesRef.current.push(`JUMP ${prevTotal}→${total} (Δ${total - prevTotal})`);
         for (const item of items) {
           const est = estimateSize(item.index);
           const delta = item.size - est;
@@ -361,8 +392,7 @@ export function CardGrid({
       }
       debugPrevTotalRef.current = total;
 
-      // Show status + history
-      el.textContent = statusLines.concat(debugLinesRef.current).join("\n");
+      el.textContent = [...statusLines, ...debugLinesRef.current].join("\n");
     };
     check();
     globalThis.addEventListener("scroll", check, { passive: true });
