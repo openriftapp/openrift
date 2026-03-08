@@ -57,6 +57,7 @@ function buildVirtualRows(groups: CardGroup[], columns: number, showHeaders: boo
 
 const CARD_ASPECT = 1039 / 744;
 const GAP = 16; // gap-4
+const BUTTON_PAD = 6; // p-1.5 (top + bottom = 12px total)
 const APP_HEADER_HEIGHT = 56; // h-14
 const HIDE_DELAY = 3000;
 const POST_DRAG_HIDE_DELAY = IS_COARSE_POINTER ? 1500 : 600;
@@ -122,9 +123,47 @@ export function CardGrid({
 
   const virtualRows = buildVirtualRows(groups, columns, multipleGroups);
 
-  const hasLabel = cardFields
-    ? cardFields.number || cardFields.title || cardFields.type || cardFields.rarity
-    : true;
+  // Compute the label area height that CardThumbnail actually renders.
+  // The wrapper (<div class="mt-2.5">) appears when ANY field is enabled.
+  // Inside it, CardMetaLabel renders when number/title/type/rarity are on,
+  // and the price <p> renders when cardFields.price is on.
+  const labelHeight = (() => {
+    const f = cardFields ?? { number: true, title: true, type: true, rarity: true, price: true };
+    const hasMetaFields = f.number || f.title || f.type || f.rarity;
+    const hasPrice = f.price;
+    if (!hasMetaFields && !hasPrice) {
+      return 0;
+    }
+
+    // mt-2.5 on the wrapper
+    let h = 10;
+
+    if (hasMetaFields) {
+      // CardMetaLabel: py-0.5 = 4px vertical padding
+      h += 4;
+      const hasLine1 = f.number || f.title;
+      const hasLine2 = f.type || f.rarity;
+      // text-xs = 16px line-height (mobile); sm:text-sm = 20px only on
+      // line 1 in non-compact mode, but we can't know screen width here
+      // so we use 16 which matches mobile (the main jank scenario).
+      if (hasLine1) {
+        h += 16;
+      }
+      if (hasLine1 && hasLine2) {
+        h += 2; // space-y-0.5
+      }
+      if (hasLine2) {
+        h += 16;
+      }
+    }
+
+    if (hasPrice) {
+      // mt-0.5 = 2px, text-xs = 16px line-height
+      h += 2 + 16;
+    }
+
+    return h;
+  })();
 
   const estimateSize = (index: number): number => {
     const row = virtualRows[index];
@@ -136,9 +175,9 @@ export function CardGrid({
     }
     const containerWidth = containerRef.current?.offsetWidth ?? 400;
     const cardWidth = (containerWidth - GAP * (columns - 1)) / columns;
-    const imgHeight = cardWidth * CARD_ASPECT;
-    const labelHeight = hasLabel ? 50 : 0;
-    return Math.ceil(imgHeight + labelHeight) + GAP;
+    // Image sits inside the button's p-1.5, so its width is cardWidth - 12.
+    const imgHeight = (cardWidth - BUTTON_PAD * 2) * CARD_ASPECT;
+    return Math.ceil(imgHeight + labelHeight + BUTTON_PAD * 2) + GAP;
   };
 
   // Precompute cumulative start offsets (within the virtual list) for each row.
