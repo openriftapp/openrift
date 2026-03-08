@@ -2,6 +2,8 @@
 
 ## 2026-03-08
 
+- feat: Profile menu now includes dark mode, what's new, and update controls — the separate settings gear icon is gone
+- feat: Card display settings (show images, rich effects, visible fields) now live in the card browser next to sort and view controls
 - fix: Scrolling up on the card grid no longer stutters after jumping to a distant position
 
 ## 2026-03-06
