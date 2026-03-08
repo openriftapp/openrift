@@ -295,7 +295,14 @@ export function CardGrid({
           active = row;
         }
       }
-      setActiveHeaderRow(active);
+      // Compare by set code to avoid re-renders from new object references.
+      // virtualRows is rebuilt each render, so `active` is always a new object
+      // even when the same header is active — Object.is would always differ.
+      setActiveHeaderRow((prev) => {
+        const prevCode = prev?.set.code ?? null;
+        const nextCode = active?.set.code ?? null;
+        return prevCode === nextCode ? prev : active;
+      });
     };
 
     update();
@@ -362,6 +369,7 @@ export function CardGrid({
   }, []);
 
   useEffect(() => {
+    let rafId = 0;
     const update = () => {
       const threshold = globalThis.scrollY + APP_HEADER_HEIGHT + 1;
       const vItems = virtualizerRef.current.getVirtualItems();
@@ -420,21 +428,32 @@ export function CardGrid({
 
       globalThis.clearTimeout(hideTimerRef.current);
       dragTopRef.current = indicatorTop;
-      setIndicator((prev) => ({
-        ...prev,
-        cardId: firstCard.sourceId,
-        indicatorTop,
-        visible: true,
-      }));
+      // Skip the state update when nothing meaningful changed — avoids
+      // re-rendering the entire grid on every scroll frame.
+      setIndicator((prev) => {
+        const sameCard = prev.cardId === firstCard.sourceId;
+        const sameTop = Math.abs(prev.indicatorTop - indicatorTop) < 0.5;
+        if (prev.visible && sameCard && sameTop) {
+          return prev;
+        }
+        return { ...prev, cardId: firstCard.sourceId, indicatorTop, visible: true };
+      });
       hideTimerRef.current = globalThis.setTimeout(() => {
         if (!isHoveredRef.current) {
           setIndicator((prev) => ({ ...prev, visible: false }));
         }
       }, HIDE_DELAY);
     };
-    globalThis.addEventListener("scroll", update, { passive: true });
+    // Throttle to once per animation frame so scroll events don't trigger
+    // multiple React re-renders within the same frame.
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(update);
+    };
+    globalThis.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      globalThis.removeEventListener("scroll", update);
+      globalThis.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
       globalThis.clearTimeout(hideTimerRef.current);
     };
   }, []);
