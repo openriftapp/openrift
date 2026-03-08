@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-03-08
 ---
 
@@ -25,11 +25,9 @@ The web app manages client-side state through several independent mechanisms: a 
 
 ## Decision Outcome
 
-*Pending team decision.*
+Adopt Zustand for user preferences, with three separate stores: `useThemeStore` (app-wide theme), `useDisplayStore` (card browser display settings), and `useSearchScopeStore` (search field scope).
 
 ### Consequences
-
-If Zustand is adopted for user preferences:
 
 - Good, because the `DisplaySettingsContext` provider, `createContext`, and `useContext` null-check are replaced by a single `useDisplayStore` hook — any component can read settings without provider nesting.
 - Good, because Zustand's `persist` middleware replaces the four manual `useLocalStorage` calls and their custom serializers with a declarative `partialize` config.
@@ -84,25 +82,25 @@ Scope: also move `selectedCard`/`detailOpen` from `CardBrowser` useState, and po
 
 ### Current state inventory
 
-| State category | Current mechanism | Zustand candidate? |
-|---|---|---|
-| Display settings (showImages, richEffects, cardFields, maxColumns) | `DisplaySettingsContext` + `useLocalStorage` | Yes — primary target |
-| Theme (light/dark) | `useTheme` + localStorage | Yes — own `useThemeStore` (app-wide, separate domain from card display) |
-| Search scope (searchable fields) | `useSearchScope` + localStorage | Yes — own store or alongside display settings |
-| Card filters (20+ params) | `nuqs` (URL query params) | No — URL sync is the purpose |
-| Server data (cards, prices) | React Query | No — purpose-built for server state |
-| Browser APIs (gyroscope, online status) | `useSyncExternalStore` | No — already idiomatic |
-| Selected card / detail panel | `useState` in `CardBrowser` | No — correctly scoped as local |
-| Grid layout (column counts) | `useState` in `CardBrowser` | No — derived from ResizeObserver |
-| SW update state | `SWUpdateContext` | No — single consumer |
+| State category                                                     | Current mechanism                            | Zustand candidate?                                                      |
+| ------------------------------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------- |
+| Display settings (showImages, richEffects, cardFields, maxColumns) | `DisplaySettingsContext` + `useLocalStorage` | Yes — primary target                                                    |
+| Theme (light/dark)                                                 | `useTheme` + localStorage                    | Yes — own `useThemeStore` (app-wide, separate domain from card display) |
+| Search scope (searchable fields)                                   | `useSearchScope` + localStorage              | Yes — own store or alongside display settings                           |
+| Card filters (20+ params)                                          | `nuqs` (URL query params)                    | No — URL sync is the purpose                                            |
+| Server data (cards, prices)                                        | React Query                                  | No — purpose-built for server state                                     |
+| Browser APIs (gyroscope, online status)                            | `useSyncExternalStore`                       | No — already idiomatic                                                  |
+| Selected card / detail panel                                       | `useState` in `CardBrowser`                  | No — correctly scoped as local                                          |
+| Grid layout (column counts)                                        | `useState` in `CardBrowser`                  | No — derived from ResizeObserver                                        |
+| SW update state                                                    | `SWUpdateContext`                            | No — single consumer                                                    |
 
 ### Store boundaries
 
 Theme and display settings are separate domains despite both being "user preferences":
 
-| Store | State | Scope |
-|---|---|---|
-| `useThemeStore` | `theme`, `setTheme` | App-wide — affects layout shell, every themed component |
+| Store             | State                                                   | Scope                                                        |
+| ----------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| `useThemeStore`   | `theme`, `setTheme`                                     | App-wide — affects layout shell, every themed component      |
 | `useDisplayStore` | `showImages`, `richEffects`, `cardFields`, `maxColumns` | Card browser — affects `CardGrid`, `CardDetail`, `FilterBar` |
 
 Grouping by organizational category ("preferences") rather than by domain would couple unrelated consumers. A theme toggle shouldn't trigger selectors in card grid components, and card display settings shouldn't live in a global theme store.
