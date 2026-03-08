@@ -192,6 +192,11 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                 <DropdownMenuItem onClick={() => setChangelogOpen(true)}>
                   <Sparkles className="size-4" />
                   What&apos;s new
+                  {needRefresh && ( // custom: update-available indicator on menu item
+                    <span className="ml-auto rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
+                      Update
+                    </span>
+                  )}
                 </DropdownMenuItem>
                 {session?.user && (
                   <>
