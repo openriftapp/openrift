@@ -137,13 +137,9 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                   {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
                   {darkMode ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setChangelogOpen(true)}
-                  className="flex justify-between"
-                >
+                <DropdownMenuItem onClick={() => setChangelogOpen(true)}>
                   <Sparkles className="size-4" />
-                  <span className="flex-1">What&apos;s new</span>
-                  <span className="text-xs text-muted-foreground">v{__COMMIT_HASH__}</span>
+                  What&apos;s new
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {needRefresh ? (
@@ -195,7 +191,10 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
         <DrawerContent className="flex flex-col gap-0 overflow-hidden">
           <DrawerHeader className="pb-4">
             <DrawerTitle>What&apos;s new</DrawerTitle>
-            <DrawerDescription>Recent changes and improvements to OpenRift.</DrawerDescription>
+            <DrawerDescription>
+              Recent changes and improvements to OpenRift.{" "}
+              <span className="text-[10px] tabular-nums">v{__COMMIT_HASH__}</span>
+            </DrawerDescription>
           </DrawerHeader>
           <div className="overflow-y-auto px-4 pb-4">
             {changelogGroups.map((group) => (
