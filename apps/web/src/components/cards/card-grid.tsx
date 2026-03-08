@@ -348,10 +348,16 @@ export function CardGrid({
       ];
 
       // Show first measured card row for comparison
+      const f = cardFields ?? { number: true, title: true, type: true, rarity: true, price: true };
+      const compact = thumbWidth < COMPACT_THRESHOLD;
+      const aboveSm = globalThis.innerWidth >= SM_BREAKPOINT;
+      statusLines.push(
+        `fields: n=${f.number ? 1 : 0} t=${f.title ? 1 : 0} tp=${f.type ? 1 : 0} r=${f.rarity ? 1 : 0} p=${f.price ? 1 : 0}`,
+      );
+      statusLines.push(`compact=${compact} aboveSm=${aboveSm} thumbW=${thumbWidth.toFixed(1)}`);
       const firstCard = items.find((it) => virtualRows[it.index]?.kind === "cards");
       if (firstCard) {
         statusLines.push(`meas[${firstCard.index}]=${firstCard.size}`);
-        // Measure child elements of the first card row
         const rowEl = document.querySelector(`[data-index="${firstCard.index}"]`);
         if (rowEl) {
           const gridEl = rowEl.firstElementChild;
@@ -359,13 +365,15 @@ export function CardGrid({
             const firstBtn = gridEl.querySelector("button");
             if (firstBtn) {
               const btnRect = firstBtn.getBoundingClientRect();
-              const img = firstBtn.querySelector("img, .aspect-card");
-              const imgRect = img?.getBoundingClientRect();
-              const labelEl = firstBtn.querySelector("[class*='mt-']");
-              const labelRect = labelEl?.getBoundingClientRect();
-              statusLines.push(
-                `btn=${btnRect.height.toFixed(1)} img=${imgRect?.height.toFixed(1) ?? "?"} lbl=${labelRect?.height.toFixed(1) ?? "?"}`,
-              );
+              // Measure every direct child of the button
+              const children = [...firstBtn.children];
+              const childInfo = children
+                .map(
+                  (c, i) =>
+                    `ch${i}=${c.getBoundingClientRect().height.toFixed(1)}(${c.tagName}.${[...c.classList].join(".")})`,
+                )
+                .join(" ");
+              statusLines.push(`btn=${btnRect.height.toFixed(1)} ${childInfo}`);
             }
           }
           statusLines.push(`rowEl.offsetH=${(rowEl as HTMLElement).offsetHeight}`);
