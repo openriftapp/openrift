@@ -70,6 +70,9 @@ const META_LINE_HEIGHT = 16; // text-xs line-height (see note about sm:text-sm b
 const META_LINE_GAP = 2; // space-y-0.5 between CardMetaLabel lines
 const PRICE_MT = 2; // mt-0.5 on price <p>
 const PRICE_LINE_HEIGHT = 16; // text-xs line-height on price <p>
+const META_LINE_HEIGHT_SM = 20; // sm:text-sm line-height (line 1, non-compact only)
+const SM_BREAKPOINT = 640; // Tailwind sm: breakpoint (px)
+const COMPACT_THRESHOLD = 190; // cardWidth below which CardThumbnail uses compact layout
 const HEADER_PT = 16; // pt-4 on header row
 const HEADER_PB = 8; // pb-2 on header row
 const HEADER_CONTENT_HEIGHT = 20; // text-sm line-height (tallest child)
@@ -158,9 +161,9 @@ export function CardGrid({
       // Line 1 in non-compact mode uses sm:text-sm (20px line-height)
       // on viewports ≥ 640px, otherwise text-xs (16px). Compact mode
       // (cardWidth < 190) always uses text-xs for both lines.
-      const compact = thumbWidth < 190;
-      const isDesktop = globalThis.innerWidth >= 640;
-      const line1Height = !compact && isDesktop && hasLine1 ? 20 : META_LINE_HEIGHT;
+      const compact = thumbWidth < COMPACT_THRESHOLD;
+      const aboveSm = globalThis.innerWidth >= SM_BREAKPOINT;
+      const line1Height = !compact && aboveSm ? META_LINE_HEIGHT_SM : META_LINE_HEIGHT;
       if (hasLine1) {
         h += line1Height;
       }
