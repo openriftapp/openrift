@@ -39,6 +39,33 @@ import { useGravatarUrl } from "@/lib/gravatar";
 
 const changelogGroups = parseChangelog(changelogMd);
 
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00`);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((today.getTime() - date.getTime()) / 86_400_000);
+
+  if (diffDays === 0) {
+    return "Today";
+  }
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+  if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  }
+  if (diffDays < 14) {
+    return "Last week";
+  }
+  if (diffDays < 30) {
+    return `${Math.floor(diffDays / 7)} weeks ago`;
+  }
+  if (diffDays < 60) {
+    return "Last month";
+  }
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}
+
 interface HeaderProps {
   darkMode: boolean;
   onDarkModeChange: () => void;
@@ -197,8 +224,15 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
           </DrawerHeader>
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
             {changelogGroups.map((group) => (
-              <div key={group.date} className="mb-6">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">{group.date}</p>
+              <div key={group.date} className="mb-4">
+                <div className="sticky top-0 z-10 -mx-4 mb-2 flex items-center gap-3 border-b border-border bg-background px-4 py-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    {formatRelativeDate(group.date)}
+                  </span>
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {group.date}
+                  </span>
+                </div>
                 <ul className="space-y-2">
                   {group.entries.map((entry, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
