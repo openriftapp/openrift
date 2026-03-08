@@ -1,5 +1,14 @@
 import { Link, useMatch, useRouter } from "@tanstack/react-router";
-import { LogOut, Moon, RefreshCw, Shield, Sparkles, Sun, User } from "lucide-react";
+import {
+  EllipsisVertical,
+  LogOut,
+  Moon,
+  RefreshCw,
+  Shield,
+  Sparkles,
+  Sun,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -80,11 +89,11 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                 Sign in
               </Button>
             )}
-            {session?.user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<Button variant="ghost" size="icon-sm" aria-label="User menu" />}
-                >
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon-sm" aria-label="Menu" />}
+              >
+                {session?.user ? (
                   <Avatar size="sm">
                     {gravatarUrl && (
                       <AvatarImage
@@ -99,70 +108,80 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                       <AvatarBadge className="bg-blue-500" /> // custom: update-available indicator
                     )}
                   </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem render={<Link to="/profile" />}>
-                    <User className="size-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem render={<Link to="/admin" />}>
-                      <Shield className="size-4" />
-                      Admin
+                ) : (
+                  <EllipsisVertical className="size-5" />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {session?.user && (
+                  <>
+                    <DropdownMenuItem render={<Link to="/profile" />}>
+                      <User className="size-4" />
+                      Profile
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onDarkModeChange}>
-                    {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-                    {darkMode ? "Light mode" : "Dark mode"}
-                  </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem render={<Link to="/admin" />}>
+                        <Shield className="size-4" />
+                        Admin
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={onDarkModeChange}>
+                  {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                  {darkMode ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setChangelogOpen(true)}
+                  className="flex justify-between"
+                >
+                  <Sparkles className="size-4" />
+                  <span className="flex-1">What&apos;s new</span>
+                  <span className="text-xs text-muted-foreground">v{__COMMIT_HASH__}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {needRefresh ? (
                   <DropdownMenuItem
-                    onClick={() => setChangelogOpen(true)}
-                    className="flex justify-between"
+                    onClick={() => applyUpdate()}
+                    className="text-blue-600 dark:text-blue-400"
                   >
-                    <Sparkles className="size-4" />
-                    <span className="flex-1">What&apos;s new</span>
-                    <span className="text-xs text-muted-foreground">v{__COMMIT_HASH__}</span>
+                    <RefreshCw className="size-4" />
+                    Update available — reload
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {needRefresh ? (
-                    <DropdownMenuItem
-                      onClick={() => applyUpdate()}
-                      className="text-blue-600 dark:text-blue-400"
-                    >
-                      <RefreshCw className="size-4" />
-                      Update available — reload
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        setChecking(true);
-                        const updateAvailable = await checkForUpdate();
-                        setChecking(false);
-                        if (!updateAvailable) {
-                          toast("You're on the latest version");
-                        }
-                      }}
-                      className="text-xs text-muted-foreground"
-                    >
-                      <RefreshCw className={`size-3 ${checking ? "animate-spin" : ""}`} />
-                      Check for updates
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
+                ) : (
                   <DropdownMenuItem
-                    onClick={async () => {
-                      await signOut();
-                      void router.navigate({ to: "/" });
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      setChecking(true);
+                      const updateAvailable = await checkForUpdate();
+                      setChecking(false);
+                      if (!updateAvailable) {
+                        toast("You're on the latest version");
+                      }
                     }}
+                    className="text-xs text-muted-foreground"
                   >
-                    <LogOut className="size-4" />
-                    Sign out
+                    <RefreshCw className={`size-3 ${checking ? "animate-spin" : ""}`} />
+                    Check for updates
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                )}
+                {session?.user && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await signOut();
+                        void router.navigate({ to: "/" });
+                      }}
+                    >
+                      <LogOut className="size-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
