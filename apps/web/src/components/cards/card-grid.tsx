@@ -993,7 +993,7 @@ export function CardGrid({
                   }}
                 >
                   {row.kind === "header" ? (
-                    {/* ⚠ pt-4 / pb-2 are mirrored as HEADER_PT / HEADER_PB above — update both together */}
+                    // ⚠ pt-4 / pb-2 are mirrored as HEADER_PT / HEADER_PB above — update both together
                     <div className="flex items-center gap-3 pt-4 pb-2">
                       <div className="h-px flex-1 bg-border" />
                       <button

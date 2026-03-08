@@ -91,7 +91,7 @@ export function CardMetaLabel({
       ) : (
         <>
           {(showNumber || showTitle) && (
-            {/* ⚠ text-xs / sm:text-sm are mirrored as META_LINE_HEIGHT / META_LINE_HEIGHT_SM in card-grid.tsx — update both together */}
+            // ⚠ text-xs / sm:text-sm are mirrored as META_LINE_HEIGHT / META_LINE_HEIGHT_SM in card-grid.tsx — update both together
             <p className="truncate text-xs font-medium sm:text-sm">
               {showNumber && <span className="text-muted-foreground">{sourceId}</span>}
               {showNumber && showTitle && " "}
@@ -99,7 +99,7 @@ export function CardMetaLabel({
             </p>
           )}
           {(showType || showRarity) && (
-            {/* ⚠ text-xs is mirrored as META_LINE_HEIGHT in card-grid.tsx — update both together */}
+            // ⚠ text-xs is mirrored as META_LINE_HEIGHT in card-grid.tsx — update both together
             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
               {showType && (
                 <>

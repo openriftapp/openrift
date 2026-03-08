@@ -186,7 +186,7 @@ export function CardThumbnail({
         cardFields.type ||
         cardFields.rarity ||
         cardFields.price) && (
-        {/* ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together */}
+        // ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together
         <div className="relative z-10 mt-2.5">
           <CardMetaLabel
             sourceId={card.sourceId}
@@ -198,7 +198,7 @@ export function CardThumbnail({
             cardFields={cardFields}
           />
           {cardFields.price && card.price && (
-            {/* ⚠ mt-0.5 and text-xs are mirrored as PRICE_MT / PRICE_LINE_HEIGHT in card-grid.tsx — update both together */}
+            // ⚠ mt-0.5 / text-xs are mirrored as PRICE_MT / PRICE_LINE_HEIGHT in card-grid.tsx — update both together
             <p className="mt-0.5 flex flex-wrap items-center gap-1 px-1.5 text-xs font-medium">
               {view === "cards" && priceRange && priceRange.min !== priceRange.max ? (
                 <>
