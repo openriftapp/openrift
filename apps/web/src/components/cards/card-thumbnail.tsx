@@ -58,6 +58,7 @@ export function CardThumbnail({
   const { richEffects } = useDisplaySettings();
   const isFoilCard = card.finish === "foil";
   const tilt = useCardTilt({ mode: "pointer", enabled: !IS_COARSE_POINTER });
+  // ⚠ 190 is mirrored as COMPACT_THRESHOLD in card-grid.tsx — update both together
   const compact = cardWidth !== undefined && cardWidth < 190;
   const otherPrintings = siblings ? siblings.filter((s) => s.id !== card.id).toReversed() : [];
   const fanStep = cardWidth === undefined ? 2 : Math.max(1, cardWidth * 0.01);
@@ -69,6 +70,7 @@ export function CardThumbnail({
     <button
       type="button"
       className={cn(
+        // ⚠ p-1.5 is mirrored as BUTTON_PAD in card-grid.tsx — update both together
         "group relative w-full cursor-pointer rounded-lg p-1.5 text-left transition-all hover:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         otherPrintings.length > 0 && "hover:[--fan:1]",
       )}
@@ -184,6 +186,7 @@ export function CardThumbnail({
         cardFields.type ||
         cardFields.rarity ||
         cardFields.price) && (
+        {/* ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together */}
         <div className="relative z-10 mt-2.5">
           <CardMetaLabel
             sourceId={card.sourceId}
@@ -195,6 +198,7 @@ export function CardThumbnail({
             cardFields={cardFields}
           />
           {cardFields.price && card.price && (
+            {/* ⚠ mt-0.5 and text-xs are mirrored as PRICE_MT / PRICE_LINE_HEIGHT in card-grid.tsx — update both together */}
             <p className="mt-0.5 flex flex-wrap items-center gap-1 px-1.5 text-xs font-medium">
               {view === "cards" && priceRange && priceRange.min !== priceRange.max ? (
                 <>
