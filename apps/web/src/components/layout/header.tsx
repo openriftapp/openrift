@@ -20,6 +20,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -137,36 +138,13 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                   {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
                   {darkMode ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setChangelogOpen(true)}>
-                  <Sparkles className="size-4" />
+                <DropdownMenuItem
+                  onClick={() => setChangelogOpen(true)}
+                  className="text-xs text-muted-foreground"
+                >
+                  <Sparkles className="size-3" />
                   What&apos;s new
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {needRefresh ? (
-                  <DropdownMenuItem
-                    onClick={() => applyUpdate()}
-                    className="text-blue-600 dark:text-blue-400"
-                  >
-                    <RefreshCw className="size-4" />
-                    Update available — reload
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      setChecking(true);
-                      const updateAvailable = await checkForUpdate();
-                      setChecking(false);
-                      if (!updateAvailable) {
-                        toast("You're on the latest version");
-                      }
-                    }}
-                    className="text-xs text-muted-foreground"
-                  >
-                    <RefreshCw className={`size-3 ${checking ? "animate-spin" : ""}`} />
-                    Check for updates
-                  </DropdownMenuItem>
-                )}
                 {session?.user && (
                   <>
                     <DropdownMenuSeparator />
@@ -196,7 +174,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               <span className="text-[10px] tabular-nums">v{__COMMIT_HASH__}</span>
             </DrawerDescription>
           </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
             {changelogGroups.map((group) => (
               <div key={group.date} className="mb-6">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">{group.date}</p>
@@ -219,6 +197,31 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
               </div>
             ))}
           </div>
+          <DrawerFooter className="border-t">
+            {needRefresh ? (
+              <Button size="sm" onClick={() => applyUpdate()} className="w-full">
+                <RefreshCw className="size-3.5" />
+                Update available — reload
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-muted-foreground"
+                onClick={async () => {
+                  setChecking(true);
+                  const updateAvailable = await checkForUpdate();
+                  setChecking(false);
+                  if (!updateAvailable) {
+                    toast("You're on the latest version");
+                  }
+                }}
+              >
+                <RefreshCw className={`size-3 ${checking ? "animate-spin" : ""}`} />
+                Check for updates
+              </Button>
+            )}
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </>
