@@ -6,6 +6,25 @@ import { useResponsiveColumns } from "@/hooks/use-responsive-columns";
 import type { CardFields } from "@/lib/card-fields";
 import { IS_COARSE_POINTER } from "@/lib/pointer";
 
+import {
+  APP_HEADER_HEIGHT,
+  BUTTON_PAD,
+  CARD_ASPECT,
+  COMPACT_THRESHOLD,
+  GAP,
+  HEADER_CONTENT_HEIGHT,
+  HEADER_PB,
+  HEADER_PT,
+  LABEL_WRAPPER_MT,
+  META_LABEL_PY,
+  META_LINE_GAP,
+  META_LINE_HEIGHT,
+  META_LINE_HEIGHT_SM,
+  PRICE_LINE_HEIGHT,
+  PRICE_MT,
+  SM_BREAKPOINT,
+} from "./card-grid-constants";
+import { CardGridDebug } from "./card-grid-debug";
 import { CardThumbnail } from "./card-thumbnail";
 
 export interface SetInfo {
@@ -55,27 +74,6 @@ function buildVirtualRows(groups: CardGroup[], columns: number, showHeaders: boo
   return rows;
 }
 
-const CARD_ASPECT = 1039 / 744;
-const GAP = 16; // gap-4
-const BUTTON_PAD = 6; // p-1.5 on CardThumbnail <button>
-const APP_HEADER_HEIGHT = 56; // h-14
-
-// ── Size-estimate constants (keep in sync with CardThumbnail / CardMetaLabel) ──
-// These mirror Tailwind classes used in the rendered DOM so estimateSize()
-// can predict row heights without measuring. When a class changes, update
-// the matching constant here.
-const LABEL_WRAPPER_MT = 10; // mt-2.5 on CardThumbnail label wrapper
-const META_LABEL_PY = 2; // py-0.5 on CardMetaLabel root — measured as 2px total (browser rounds 0.125rem per side)
-const META_LINE_HEIGHT = 16; // text-xs line-height (see note about sm:text-sm below)
-const META_LINE_GAP = 2; // space-y-0.5 between CardMetaLabel lines
-const PRICE_MT = 2; // mt-0.5 on price <p>
-const PRICE_LINE_HEIGHT = 16; // min-h-4 on price <p> (always rendered when cardFields.price is on)
-const META_LINE_HEIGHT_SM = 20; // sm:text-sm line-height (line 1, non-compact only)
-const SM_BREAKPOINT = 640; // Tailwind sm: breakpoint (px)
-const COMPACT_THRESHOLD = 190; // cardWidth below which CardThumbnail uses compact layout
-const HEADER_PT = 16; // pt-4 on header row
-const HEADER_PB = 8; // pb-2 on header row
-const HEADER_CONTENT_HEIGHT = 20; // text-sm line-height (tallest child)
 const HIDE_DELAY = 3000;
 const POST_DRAG_HIDE_DELAY = IS_COARSE_POINTER ? 1500 : 600;
 const INDICATOR_H_FALLBACK = 48;
@@ -317,114 +315,6 @@ export function CardGrid({
     scrollMargin,
     scrollPaddingStart: APP_HEADER_HEIGHT,
     overscan: 3,
-  });
-
-  // DEBUG: on-screen overlay showing estimate vs measured deltas.
-  // Remove after debugging.
-  const debugRef = useRef<HTMLDivElement>(null);
-  const debugLinesRef = useRef<string[]>([]);
-  const debugPrevTotalRef = useRef(0);
-  useEffect(() => {
-    const diff = (label: string, exp: number | string, meas: number | string) => {
-      const e = typeof exp === "number" ? exp.toFixed(1) : exp;
-      const m = typeof meas === "number" ? meas.toFixed(1) : meas;
-      const ok = e === m ? "✓" : "✗";
-      return `${ok} ${label}: exp=${e} meas=${m}`;
-    };
-    const check = () => {
-      const el = debugRef.current;
-      if (!el) {
-        return;
-      }
-      const total = virtualizer.getTotalSize();
-      const items = virtualizer.getVirtualItems();
-      const prevTotal = debugPrevTotalRef.current;
-
-      // Expected values from constants
-      const containerWidth = containerRef.current?.offsetWidth ?? 0;
-      const cardWidth = (containerWidth - GAP * (columns - 1)) / columns;
-      const expImgW = cardWidth - BUTTON_PAD * 2;
-      const expImgH = expImgW * CARD_ASPECT;
-      const expRow = estimateSize(items[0]?.index ?? 0);
-
-      const lines = [
-        `scroll=${Math.round(globalThis.scrollY)} total=${total} items=${items.length}`,
-      ];
-
-      // Find first card row and measure its DOM
-      const f = cardFields ?? { number: true, title: true, type: true, rarity: true, price: true };
-      const hasMetaFields = f.number || f.title || f.type || f.rarity;
-      const hasLabel = hasMetaFields || f.price;
-      const firstCard = items.find((it) => virtualRows[it.index]?.kind === "cards");
-      if (firstCard) {
-        const rowEl = document.querySelector(`[data-index="${firstCard.index}"]`);
-        const gridEl = rowEl?.firstElementChild;
-        const btn = gridEl?.querySelector("button");
-        const imgDiv = btn?.children[0]; // image wrapper
-        const lblDiv = hasLabel ? btn?.children[1] : undefined; // label wrapper (mt-2.5) — only exists when fields are on
-        const metaEl = hasMetaFields && lblDiv ? lblDiv.children[0] : undefined;
-        // price <p> is children[1] when meta exists, children[0] when only price is on
-        const priceEl = f.price && lblDiv ? lblDiv.children[hasMetaFields ? 1 : 0] : undefined;
-        const gridStyle = gridEl instanceof HTMLElement ? getComputedStyle(gridEl) : null;
-
-        const measRow = firstCard.size;
-        const measBtn = btn?.getBoundingClientRect().height ?? 0;
-        const measImg = imgDiv?.getBoundingClientRect().height ?? 0;
-        const measPadB = Number.parseFloat(gridStyle?.paddingBottom ?? "0");
-
-        lines.push(
-          diff("row", expRow, measRow),
-          diff("  imgH", expImgH, measImg),
-          diff("  pad*2", BUTTON_PAD * 2, BUTTON_PAD * 2),
-        );
-
-        if (hasLabel) {
-          const measLblMt = lblDiv ? Number.parseFloat(getComputedStyle(lblDiv).marginTop) : 0;
-          lines.push(diff("  lblMt", LABEL_WRAPPER_MT, measLblMt));
-        }
-        if (hasMetaFields) {
-          const measMeta = metaEl?.getBoundingClientRect().height ?? 0;
-          // Compute expected meta height using same logic as labelHeight
-          const compact = thumbWidth < COMPACT_THRESHOLD;
-          const aboveSm = globalThis.innerWidth >= SM_BREAKPOINT;
-          const hasLine1 = f.number || f.title;
-          const hasLine2 = f.type || f.rarity;
-          const line1Height = !compact && aboveSm ? META_LINE_HEIGHT_SM : META_LINE_HEIGHT;
-          let expMeta = META_LABEL_PY;
-          if (hasLine1) expMeta += line1Height;
-          if (hasLine1 && hasLine2) expMeta += META_LINE_GAP;
-          if (hasLine2) expMeta += META_LINE_HEIGHT;
-          lines.push(diff("  meta", expMeta, measMeta));
-        }
-        if (f.price) {
-          const measPriceMt = priceEl ? Number.parseFloat(getComputedStyle(priceEl).marginTop) : 0;
-          const measPrice = priceEl?.getBoundingClientRect().height ?? 0;
-          lines.push(
-            diff("  priceMt", PRICE_MT, measPriceMt),
-            diff("  priceH", PRICE_LINE_HEIGHT, measPrice),
-          );
-        }
-
-        lines.push(
-          diff("  padBot", GAP, measPadB),
-          diff("  btn", Math.ceil(expImgH) + BUTTON_PAD * 2 + labelHeight, measBtn),
-        );
-      }
-
-      // Log jumps
-      if (prevTotal && Math.abs(total - prevTotal) > 1) {
-        debugLinesRef.current.push(`JUMP ${prevTotal}→${total} (Δ${total - prevTotal})`);
-        if (debugLinesRef.current.length > 6) {
-          debugLinesRef.current.splice(0, debugLinesRef.current.length - 6);
-        }
-      }
-      debugPrevTotalRef.current = total;
-
-      el.textContent = [...lines, ...debugLinesRef.current].join("\n");
-    };
-    check();
-    globalThis.addEventListener("scroll", check, { passive: true });
-    return () => globalThis.removeEventListener("scroll", check);
   });
 
   // Keep a ref so the scroll handler always reads the virtualizer's current
@@ -970,26 +860,16 @@ export function CardGrid({
 
   return (
     <div ref={containerRef}>
-      {/* DEBUG overlay — remove after debugging */}
-      <div
-        ref={debugRef}
-        style={{
-          position: "fixed",
-          top: 60,
-          left: 4,
-          right: 4,
-          zIndex: 9999,
-          background: "rgba(0,0,0,0.85)",
-          color: "#0f0",
-          fontSize: 10,
-          fontFamily: "monospace",
-          padding: 6,
-          borderRadius: 6,
-          whiteSpace: "pre",
-          pointerEvents: "none",
-          maxHeight: "40vh",
-          overflow: "hidden",
-        }}
+      <CardGridDebug
+        enabled={false}
+        virtualizer={virtualizer}
+        virtualRows={virtualRows}
+        containerRef={containerRef}
+        columns={columns}
+        labelHeight={labelHeight}
+        thumbWidth={thumbWidth}
+        cardFields={cardFields}
+        estimateSize={estimateSize}
       />
       {cards.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 py-16 text-center">
