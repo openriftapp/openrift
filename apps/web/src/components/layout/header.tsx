@@ -80,6 +80,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
 
   const { needRefresh, applyUpdate, checkForUpdate } = useSWUpdate();
   const [checking, setChecking] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
   // HACK: work around base-ui#4180 — side drawers block vertical touch scroll.
@@ -226,6 +227,7 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                   className="inline-flex cursor-pointer items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
                   onClick={async () => {
                     setChecking(true);
+                    setSpinning(true);
                     const updateAvailable = await checkForUpdate();
                     setChecking(false);
                     if (!updateAvailable) {
@@ -233,7 +235,14 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
                     }
                   }}
                 >
-                  <RefreshCw className={`size-2.5 self-center ${checking ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`size-2.5 self-center ${spinning ? "animate-spin" : ""}`}
+                    onAnimationIteration={() => {
+                      if (!checking) {
+                        setSpinning(false);
+                      }
+                    }}
+                  />
                   Check for updates
                 </button>
               </DrawerDescription>
