@@ -321,31 +321,49 @@ export function CardGrid({
   // DEBUG: on-screen overlay showing estimate vs measured deltas.
   // Remove after debugging.
   const debugRef = useRef<HTMLDivElement>(null);
+  const debugLinesRef = useRef<string[]>([]);
+  const debugPrevTotalRef = useRef(0);
   useEffect(() => {
-    let prevTotal = 0;
-    const lines: string[] = [];
-    const MAX_LINES = 20;
-    const log = (msg: string) => {
-      lines.push(msg);
-      if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES);
-      if (debugRef.current) debugRef.current.textContent = lines.join("\n");
-    };
     const check = () => {
+      const el = debugRef.current;
+      if (!el) {
+        return;
+      }
       const total = virtualizer.getTotalSize();
+      const items = virtualizer.getVirtualItems();
+      const prevTotal = debugPrevTotalRef.current;
+
+      // Always show current status
+      const statusLines: string[] = [];
+      statusLines.push(
+        `scroll=${Math.round(globalThis.scrollY)} total=${total} items=${items.length}`,
+      );
+
+      // Log jumps
       if (prevTotal && Math.abs(total - prevTotal) > 1) {
-        log(`totalSize ${prevTotal}→${total} (Δ${total - prevTotal})`);
-        for (const item of virtualizer.getVirtualItems()) {
+        const jumpLine = `JUMP ${prevTotal}→${total} (Δ${total - prevTotal})`;
+        debugLinesRef.current.push(jumpLine);
+        for (const item of items) {
           const est = estimateSize(item.index);
           const delta = item.size - est;
           if (Math.abs(delta) > 1) {
             const row = virtualRows[item.index];
             const label = row?.kind === "header" ? `hdr:${row.set.code}` : "cards";
-            log(`  [${item.index}] ${label}: est=${est} meas=${item.size} Δ${delta}`);
+            debugLinesRef.current.push(
+              `  [${item.index}] ${label}: est=${est} meas=${item.size} Δ${delta}`,
+            );
           }
         }
+        if (debugLinesRef.current.length > 15) {
+          debugLinesRef.current.splice(0, debugLinesRef.current.length - 15);
+        }
       }
-      prevTotal = total;
+      debugPrevTotalRef.current = total;
+
+      // Show status + history
+      el.textContent = statusLines.concat(debugLinesRef.current).join("\n");
     };
+    check();
     globalThis.addEventListener("scroll", check, { passive: true });
     return () => globalThis.removeEventListener("scroll", check);
   });
