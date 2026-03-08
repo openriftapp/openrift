@@ -215,14 +215,14 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
 
       <Drawer swipeDirection="right" open={changelogOpen} onOpenChange={setChangelogOpen}>
         <DrawerContent className="flex flex-col gap-0 overflow-hidden">
-          <DrawerHeader className="pb-4">
-            <DrawerTitle>What&apos;s new</DrawerTitle>
-            <DrawerDescription>
-              Recent changes and improvements to OpenRift.{" "}
-              <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>
-            </DrawerDescription>
-          </DrawerHeader>
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            <DrawerHeader className="px-0 pb-4 pt-2">
+              <DrawerTitle>What&apos;s new</DrawerTitle>
+              <DrawerDescription>
+                Recent changes and improvements to OpenRift.{" "}
+                <span className="text-[10px] tabular-nums">{__COMMIT_HASH__}</span>
+              </DrawerDescription>
+            </DrawerHeader>
             {changelogGroups.map((group) => (
               <div key={group.date} className="mb-4">
                 <div className="sticky top-0 z-10 -mx-4 flex items-baseline gap-3 border-b border-border bg-background px-4 pb-2 pt-3 shadow-[0_2px_4px_-2px_var(--color-border)]">
