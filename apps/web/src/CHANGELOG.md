@@ -2,6 +2,7 @@
 
 ## 2026-03-08
 
+- feat: The menu now shows an "Update" badge on "What's new" so you know where to go when the blue dot appears
 - feat: Changelog date headers now stick as you scroll, showing relative dates like "Today" or "3 days ago"
 - feat: The changelog header scrolls away to give more room for entries
 - feat: Check for updates now lives inline in the changelog panel instead of taking up footer space
