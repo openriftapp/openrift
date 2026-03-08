@@ -9,7 +9,7 @@ import {
   Sun,
   User,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import changelogMd from "@/CHANGELOG.md?raw";
@@ -55,43 +55,46 @@ export function Header({ darkMode, onDarkModeChange }: HeaderProps) {
   const [checking, setChecking] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
-  // DEBUG: touch scroll debugging for iOS
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // DEBUG: touch scroll debugging for iOS — uses callback ref because
+  // base-ui delays drawer mount (internal `mounted` state), so useEffect
+  // with changelogOpen fires before the DOM exists.
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const addDebug = (msg: string) => setDebugLog((prev) => [...prev.slice(-15), msg]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
+  const cleanupRef = useRef<(() => void) | null>(null);
+  const scrollRef = (el: HTMLDivElement | null) => {
+    cleanupRef.current?.();
+    cleanupRef.current = null;
     if (!el) {
       return;
     }
 
-    const info = () => {
-      const style = globalThis.getComputedStyle(el);
-      addDebug(
-        `scroll: ${el.scrollHeight}/${el.clientHeight} overflow-y: ${style.overflowY} touch: ${style.touchAction}`,
-      );
-    };
+    const style = globalThis.getComputedStyle(el);
+    addDebug(
+      `MOUNT scroll: ${el.scrollHeight}/${el.clientHeight} overflow-y: ${style.overflowY} touch: ${style.touchAction}`,
+    );
 
     const onStart = (e: TouchEvent) => {
-      info();
+      const s = globalThis.getComputedStyle(el);
+      addDebug(
+        `scroll: ${el.scrollHeight}/${el.clientHeight} ov-y: ${s.overflowY} touch: ${s.touchAction}`,
+      );
       addDebug(
         `touchstart: target=${(e.target as HTMLElement)?.tagName} touches=${e.touches.length}`,
       );
     };
     const onMove = (e: TouchEvent) => {
       addDebug(
-        `touchmove: cancelable=${e.cancelable} defaultPrevented=${e.defaultPrevented} y=${e.touches[0]?.clientY.toFixed(0)}`,
+        `touchmove: cancelable=${e.cancelable} prevented=${e.defaultPrevented} y=${e.touches[0]?.clientY.toFixed(0)}`,
       );
     };
 
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: true });
-    return () => {
+    cleanupRef.current = () => {
       el.removeEventListener("touchstart", onStart);
       el.removeEventListener("touchmove", onMove);
     };
-  }, [changelogOpen]);
+  };
 
   return (
     <>
