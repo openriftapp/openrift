@@ -56,7 +56,7 @@ export function CardMetaLabel({
       {compact ? (
         <>
           {(showNumber || showType || showRarity) && (
-            <div className="flex items-center justify-between gap-1 text-xs text-muted-foreground">
+            <div className="flex min-h-4 items-center justify-between gap-1 text-xs text-muted-foreground">
               {showNumber && (
                 <span className="truncate font-medium">
                   #{sourceId.slice(sourceId.lastIndexOf("-") + 1)}
@@ -86,13 +86,16 @@ export function CardMetaLabel({
               )}
             </div>
           )}
-          {showTitle && <p className="truncate text-xs font-medium">{name}</p>}
+          {showTitle && <p className="min-h-4 truncate text-xs font-medium">{name}</p>}
         </>
       ) : (
         <>
           {(showNumber || showTitle) && (
             // ⚠ text-xs / sm:text-sm are mirrored as META_LINE_HEIGHT / META_LINE_HEIGHT_SM in card-grid.tsx — update both together
-            <p className="truncate text-xs font-medium sm:text-sm">
+            // min-h-4 / sm:min-h-5: WebKit computes block height from font metrics instead of line-height
+            // when overflow:hidden is set (via truncate), causing 1px shorter elements on iOS Safari.
+            // See https://bugs.webkit.org/show_bug.cgi?id=225695, https://iamvdo.me/en/blog/css-font-metrics-line-height-and-vertical-align
+            <p className="min-h-4 truncate text-xs font-medium sm:min-h-5 sm:text-sm">
               {showNumber && <span className="text-muted-foreground">{sourceId}</span>}
               {showNumber && showTitle && " "}
               {showTitle && name}
@@ -100,7 +103,8 @@ export function CardMetaLabel({
           )}
           {(showType || showRarity) && (
             // ⚠ text-xs is mirrored as META_LINE_HEIGHT in card-grid.tsx — update both together
-            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+            // min-h-4: same WebKit workaround as above
+            <p className="flex min-h-4 items-center gap-1 truncate text-xs text-muted-foreground">
               {showType && (
                 <>
                   <img
