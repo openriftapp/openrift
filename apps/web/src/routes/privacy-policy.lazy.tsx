@@ -146,12 +146,12 @@ function PrivacyPolicyPage() {
         providers.
       </p>
 
-      <h2>11. Card images</h2>
+      <h2>11. External content</h2>
       <p>
-        Card images are loaded from external servers operated by Riot Games. Your browser
-        establishes a direct connection to these servers when displaying card images, transmitting
-        your IP address. This processing is based on Art. 6(1)(f) GDPR (legitimate interest in
-        displaying the card data that constitutes the core functionality of this service).
+        Some content, such as card images, is loaded from external servers. Your browser establishes
+        a direct connection to these servers when displaying the content, transmitting your IP
+        address. This processing is based on Art. 6(1)(f) GDPR (legitimate interest in displaying
+        the content that constitutes the core functionality of this service).
       </p>
 
       <h2>12. Your rights</h2>
