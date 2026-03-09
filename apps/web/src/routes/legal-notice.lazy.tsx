@@ -22,7 +22,7 @@ function LegalNoticePage() {
       <p>
         USt-ID: DE308816328
         <br />
-        E-Mail: <a href="mailto:web@eikowagenknecht.com">web@eikowagenknecht.com</a>
+        E-Mail: <a href="mailto:support@openrift.app">support@openrift.app</a>
       </p>
 
       <h2>Disclaimer</h2>

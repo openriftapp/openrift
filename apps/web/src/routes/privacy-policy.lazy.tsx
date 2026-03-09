@@ -21,7 +21,7 @@ function PrivacyPolicyPage() {
         Germany
       </p>
       <p>
-        E-Mail: <a href="mailto:web@eikowagenknecht.com">web@eikowagenknecht.com</a>
+        E-Mail: <a href="mailto:support@openrift.app">support@openrift.app</a>
       </p>
 
       <h2>2. General information on data processing</h2>
