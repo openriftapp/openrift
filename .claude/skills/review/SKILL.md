@@ -4,7 +4,16 @@ description: Review code changes for common AI-generated code smells
 disable-model-invocation: true
 ---
 
-Review the current diff for AI-generated code smells. Run `git diff` (unstaged) and `git diff --cached` (staged). If `$ARGUMENTS` is a file path, scope to that file. If it's a PR number, use `gh pr diff $ARGUMENTS`.
+Review code changes for AI-generated code smells.
+
+How to get the diff based on `$ARGUMENTS`:
+
+- Empty → `git diff` (unstaged) + `git diff --cached` (staged)
+- `staged` → `git diff --cached` only
+- `unstaged` → `git diff` only
+- File path → scope `git diff` to that file
+- PR number → `gh pr diff $ARGUMENTS`
+- Commit SHA or ref (e.g. `abc1234`, `HEAD~3`) → `git show $ARGUMENTS`
 
 For each violation, quote the offending line(s) and state what's wrong. At the end, list clean categories as "All clear".
 
