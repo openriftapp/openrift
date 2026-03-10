@@ -189,16 +189,7 @@ export function LoginForm({
                   control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <div className="flex items-center">
-                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                        <Link
-                          to="/reset-password"
-                          search={{ email: watchedEmail }}
-                          className="ml-auto text-sm underline-offset-2 hover:underline"
-                        >
-                          Forgot your password?
-                        </Link>
-                      </div>
+                      <FieldLabel htmlFor={field.name}>Password</FieldLabel>
                       <Input
                         {...field}
                         id={field.name}
@@ -206,6 +197,13 @@ export function LoginForm({
                         aria-invalid={fieldState.invalid}
                       />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      <Link
+                        to="/reset-password"
+                        search={{ email: watchedEmail }}
+                        className="ml-auto text-sm underline-offset-2 hover:underline"
+                      >
+                        Forgot your password?
+                      </Link>
                     </Field>
                   )}
                 />
