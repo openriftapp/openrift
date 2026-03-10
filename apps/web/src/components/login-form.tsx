@@ -197,13 +197,6 @@ export function LoginForm({
                         aria-invalid={fieldState.invalid}
                       />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      <Link
-                        to="/reset-password"
-                        search={{ email: watchedEmail }}
-                        className="ml-auto text-sm underline-offset-2 hover:underline"
-                      >
-                        Forgot your password?
-                      </Link>
                     </Field>
                   )}
                 />
@@ -212,6 +205,13 @@ export function LoginForm({
                     {loading ? "Signing in..." : "Login"}
                   </Button>
                 </Field>
+                <Link
+                  to="/reset-password"
+                  search={{ email: watchedEmail }}
+                  className="text-muted-foreground text-center text-sm underline-offset-2 hover:underline"
+                >
+                  Forgot your password?
+                </Link>
                 <button
                   type="button"
                   className="text-muted-foreground text-center text-sm underline underline-offset-2"
