@@ -185,13 +185,16 @@ export function LoginForm({
                         render={({ field, fieldState }) => (
                           <Field data-invalid={fieldState.invalid}>
                             <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                            {/* oxlint-disable jsx-a11y/tabindex-no-positive -- intentional: enforce email → password → login → forgot-password tab order */}
                             <Input
                               {...field}
                               id={field.name}
+                              tabIndex={1}
                               type="email"
                               placeholder={emailPlaceholder}
                               aria-invalid={fieldState.invalid}
                             />
+                            {/* oxlint-enable jsx-a11y/tabindex-no-positive */}
                             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                           </Field>
                         )}
@@ -201,29 +204,39 @@ export function LoginForm({
                         control={form.control}
                         render={({ field, fieldState }) => (
                           <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                            <div className="flex items-center justify-between">
+                              <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                              {/* oxlint-disable jsx-a11y/tabindex-no-positive -- intentional: tab after login button */}
+                              <Link
+                                to="/reset-password"
+                                search={{ email: watchedEmail }}
+                                tabIndex={4}
+                                className="text-muted-foreground text-sm underline-offset-2 hover:underline"
+                              >
+                                Forgot your password?
+                              </Link>
+                              {/* oxlint-enable jsx-a11y/tabindex-no-positive */}
+                            </div>
+                            {/* oxlint-disable jsx-a11y/tabindex-no-positive -- intentional: enforce email → password → login → forgot-password tab order */}
                             <Input
                               {...field}
                               id={field.name}
+                              tabIndex={2}
                               type="password"
                               aria-invalid={fieldState.invalid}
                             />
+                            {/* oxlint-enable jsx-a11y/tabindex-no-positive */}
                             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                           </Field>
                         )}
                       />
                       <Field>
-                        <Button type="submit" disabled={loading}>
+                        {/* oxlint-disable jsx-a11y/tabindex-no-positive -- intentional: enforce email → password → login → forgot-password tab order */}
+                        <Button type="submit" tabIndex={3} disabled={loading}>
                           {loading ? "Signing in..." : "Login"}
                         </Button>
+                        {/* oxlint-enable jsx-a11y/tabindex-no-positive */}
                       </Field>
-                      <Link
-                        to="/reset-password"
-                        search={{ email: watchedEmail }}
-                        className="text-muted-foreground text-right text-sm underline-offset-2 hover:underline"
-                      >
-                        Forgot your password?
-                      </Link>
                     </FieldGroup>
                   </form>
                 </TabsContent>
