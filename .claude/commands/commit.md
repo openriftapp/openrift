@@ -19,7 +19,7 @@ Based on `$ARGUMENTS`:
    - Any files being excluded (default mode) and why
 6. **Changelog check:** If any planned commit is `feat:` or `fix:`, check whether `apps/web/src/CHANGELOG.md` already has a corresponding entry. If not, add one (following the rules in CLAUDE.md and MEMORY.md) and include the changelog file in the relevant commit.
 7. **Run `bun lint`** on the files being committed. If it fails, fix the issues and re-check. Never skip linting.
-8. **Wait for approval of the plan.** Do not proceed until I confirm which files go in which commits. Commit messages do NOT need approval — write good Conventional Commit messages and just use them. When asking me write "READY TO COMMIT - CONFIRM (+123 lines / -234 lines)" to confirm the plan, including the number of lines being added/removed in total across all commits.
+8. **Wait for approval of the plan.** Do not proceed until I confirm which files go in which commits. Commit messages do NOT need approval — write good Conventional Commit messages and just use them. When asking me write "READY TO COMMIT - CONFIRM (+123 lines / -234 lines)" to confirm the plan, including the number of lines being added/removed in total across all commits. Also show me the changelog entry to approve if applicable.
 9. **Execute the commits** in order. For each commit:
    - `git add` only the specific files (or specific hunks via `git add -p` / patch files) for that commit
    - Write a concise Conventional Commit message (`feat:`, `fix:`, `refactor:`, etc.)
