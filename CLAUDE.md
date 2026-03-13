@@ -88,14 +88,14 @@ rm .claude-locks/*.lock 2>/dev/null
 - If you need a file that's locked, don't ask the user — just recheck the lock every 60 seconds until it clears, then proceed. Mention once that you're waiting.
 - Lock files older than 5 minutes can be assumed stale and overwritten. If your task takes longer, re-touch the lock file periodically to keep it fresh.
 - Never `git stash` or discard changes in files you don't own or where another agent is working on. This can cause data loss!
-- **Scoped lint/test:** When other agents may be working in parallel, do NOT run `bun lint` or `bun run test` globally — it will pick up other agents' incomplete work and fail. Instead, lint and test only the files you touched:
+- **Lint/test timing:** Do NOT run lint or tests mid-task — wait until you are completely done with all code changes. Then **ask the user for permission** before running lint or tests. When you do run them, scope to only the files you touched (never run `bun lint` or `bun run test` globally — it will pick up other agents' incomplete work and fail):
 
 ```bash
-# Lint only your files
+# Lint only your files (only after asking the user)
 bunx oxlint file1.ts file2.ts
 bunx oxfmt file1.ts file2.ts
 
-# Run only relevant test files
+# Run only relevant test files (only after asking the user)
 bun run --cwd apps/web vitest run src/path/to/relevant.test.ts
 bun run --cwd apps/api vitest run src/path/to/relevant.test.ts
 ```
