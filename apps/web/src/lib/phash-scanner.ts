@@ -24,8 +24,10 @@ const HASH_W = 17;
 const HASH_H = 16;
 const HASH_BITS = (HASH_W - 1) * HASH_H; // 256
 
-// Percentage to crop from each edge to remove card border/frame
-const BORDER_INSET = 0.12;
+// Percentage to crop from each edge to remove the uniform card border/frame.
+// Kept small (4%) to preserve promo symbols, set icons, and other distinguishing
+// elements near the edges while still removing the shared outer frame.
+const BORDER_INSET = 0.04;
 
 /**
  * Crop the inner region of a card image, removing the border/frame.
