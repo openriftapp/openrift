@@ -200,47 +200,88 @@ The Core Rules use a **numbered rule system** (similar to MTG's Comprehensive Ru
 
 ## 5. GitHub & Structured Data Sources
 
-### 5a. Aplexion/Riftbound — Markdown Rulebook
+### 5a. benediktwerner/riftbound-archive — Versioned Text Rules (KEY RESOURCE)
+
+- **URL:** [github.com/benediktwerner/riftbound-archive](https://github.com/benediktwerner/riftbound-archive)
+- **Format:** PDF + plain text (`.txt`) for each version, plus a `unnumber.py` utility script
+- **Content:** Multiple dated versions of Core Rules and Tournament Rules, purpose-built for diffing:
+  - `Core-Rules-2025-06-02.pdf` / `.txt` / unnumbered `.txt`
+  - `Core-Rules-2025-10-01.pdf` / `.txt` / unnumbered `.txt`
+  - `Core-Rules-2025-12-01.pdf` / `.txt` / unnumbered `.txt`
+  - `Tournament-Rules-v1.1.pdf` / `.txt`
+  - `Tournament-Rules-2025-12.txt`, `Tournament-Rules-2026-01.txt`
+  - `FAQ.pdf` / `FAQ.txt`
+- **Activity:** 12 commits
+- **Usefulness:** **This is the single most valuable resource.** Already has the rules in `.txt` format across all versions, ready for parsing. The `unnumber.py` script strips rule numbers for clean diffing. This eliminates the need for PDF parsing entirely.
+
+### 5b. Aplexion/Riftbound — Markdown Rulebook
 
 - **URL:** [github.com/Aplexion/Riftbound](https://github.com/Aplexion/Riftbound/blob/main/riftbound_rulebook.md)
 - **Format:** Markdown (`riftbound_rulebook.md`)
-- **Content:** Numbered rules in markdown format. Appears to be a partial extraction (fragment covering 600s section visible). Uses hierarchical decimal notation (627.1, 627.1.a, etc.)
-- **Completeness:** Appears incomplete — truncated, lacks intro sections
-- **Usefulness:** Shows that the rules CAN be structured in markdown. Good reference for formatting approach.
+- **Content:** Numbered rules in markdown format. Uses hierarchical decimal notation (627.1, 627.1.a, etc.). Cross-references other rules (e.g., "See rule 616").
+- **Completeness:** Partial — appears to cover 600s section. Small repo (3 commits, 2 files).
+- **Usefulness:** Shows markdown formatting approach. Combined with the `.txt` files from riftbound-archive, we could build a complete markdown version.
 
-### 5b. ApiTCG/riftbound-tcg-data
+### 5c. ApiTCG/riftbound-tcg-data
 
 - **URL:** [github.com/apitcg](https://github.com/apitcg)
 - **Format:** Likely JSON (consistent with how ApiTCG handles other TCGs)
-- **Content:** Card data (not rules)
+- **Content:** Card data (not rules). Updated Feb 2026.
 - **API docs:** [docs.apitcg.com](https://docs.apitcg.com/)
 - **Usefulness:** Could be used to cross-reference card names mentioned in rules with actual card data.
 
-### 5c. OwenMelbz/Riftbound v1 Cards (Gist)
+### 5d. OwenMelbz/Riftbound v1 Cards (Gist)
 
 - **URL:** [gist.github.com/OwenMelbz/e04dadf641cc9b81cb882b4612343112](https://gist.github.com/OwenMelbz/e04dadf641cc9b81cb882b4612343112)
-- **Content:** Card data for v1
+- **Content:** Card data for v1 in JSON
 - **Usefulness:** Card data reference, not rules
 
-### 5d. Piltover-Archive/RiftboundDeckCodes
+### 5e. Piltover-Archive/RiftboundDeckCodes
 
 - **URL:** [github.com/Piltover-Archive/RiftboundDeckCodes](https://github.com/Piltover-Archive/RiftboundDeckCodes)
-- **Content:** Deck code encoder/decoder
+- **Content:** Deck code encoder/decoder (card codes = 3-char set + 3-digit number + optional variant suffix)
 - **Usefulness:** Could integrate for linking rules to deck examples
 
-### 5e. Riot Developer Portal
+### 5f. Other Riftbound GitHub Projects
+
+- [NewtonGluten/riftboundbot](https://github.com/NewtonGluten/riftboundbot) — Discord bot for card info
+- [Riftbound.build](https://github.com/Riftbound-build/) — Deck building tool
+- [DR34M3R-T/Riftbound_print](https://github.com/DR34M3R-T/Riftbound_print) — Printable card layout generator
+- [riftbound-tcg GitHub topic](https://github.com/topics/riftbound-tcg) — Aggregation page
+
+### 5g. Riot Developer Portal
 
 - **URL:** [developer.riotgames.com/docs/riftbound](https://developer.riotgames.com/docs/riftbound)
 - **Access:** Requires API key / written license for select assets including card art, rulesets, and other materials
 - **Restriction:** "No automated rule enforcement" — Riot does not want apps that enforce rules during gameplay
 - **Usefulness:** Official data source, but displaying/referencing rules (not enforcing them) should be fine under their content policy
 
-### 5f. Scribd PDFs
+### 5h. Scribd PDFs
 
 - [Core Rules v1.0 (2025-06-02)](https://www.scribd.com/document/883173099/Riftbound-Core-Rules-2025-06-02)
 - [Core Rules v1.1 (2025-10-25)](https://www.scribd.com/document/938535952/Riftbound-Core-Rules-v1-1-100125)
 - [Core Rules v1.0 alternate upload](https://www.scribd.com/document/992230883/Riftbound-Core-Rules-2025-06-02-2)
 - **Usefulness:** Can be used to extract text via PDF parsing tools
+
+### 5i. PDF/TXT-to-Structured-Data Tools (Reference)
+
+| Tool | URL | Approach |
+|------|-----|----------|
+| **SethCurry/mtg-html-rules** | [GitHub](https://github.com/SethCurry/mtg-html-rules) | Go tool: converts MTG `.txt` rules → HTML with anchor links per rule. **Most directly applicable.** |
+| **EthanJWright/pdfparse** | [GitHub](https://github.com/EthanJWright/pdfparse) | PDF → JSON preserving hierarchy via font size/color. Built for D&D modules. |
+| **axa-group/Parsr** | [GitHub](https://github.com/axa-group/Parsr) | PDF → JSON/Markdown/CSV/TXT. Detects headings, tables, lists, TOC. |
+| **ChrizH/pdfstructure** | [GitHub](https://github.com/ChrizH/pdfstructure) | Font style analysis → tree structure from PDFs. |
+| **jstockwin/py-pdf-parser** | [GitHub](https://github.com/jstockwin/py-pdf-parser) | Python tool for structured PDF extraction. |
+
+### 5j. Other TCG Rules on GitHub (Format References)
+
+| TCG | Repo | Format |
+|-----|------|--------|
+| MTG | [pit142857/mtg-cr](https://github.com/pit142857/mtg-cr) | Every version of Comprehensive Rules in plain text. Gold standard for versioned archives. |
+| Flesh and Blood | [rules.fabtcg.com](https://rules.fabtcg.com/en/) | Provides `en-fab-cr.txt` alongside PDF. |
+| Lorcana | [hexastix/disney-lorcana-tcg-resources](https://github.com/hexastix/disney-lorcana-tcg-resources) | All official docs aggregated, multi-language. |
+| Yu-Gi-Oh! | [DawnbrandBots/yaml-yugi](https://github.com/DawnbrandBots/yaml-yugi) | YAML + JSON, machine-readable card data. |
+| General | [jeffreality/cardgame-json-spec](https://github.com/jeffreality/cardgame-json-spec) | JSON schema for any card game, uses `rules_url` for external rules. |
 
 ---
 
@@ -355,11 +396,10 @@ Taking inspiration from the best implementations above and thinking about what w
 
 ## 8. Data Extraction Strategy
 
-### Option A: PDF Parsing (Primary)
+### Option A: Use riftbound-archive .txt Files (RECOMMENDED — Primary)
 
-1. Download the official Core Rules PDF from the Riftbound site
-2. Use a PDF-to-text tool (e.g., `pdf-parse`, `pdfjs-dist`, or Python `pdfplumber`)
-3. Parse the numbered rule structure into a JSON/structured format:
+1. Use the existing `.txt` files from [benediktwerner/riftbound-archive](https://github.com/benediktwerner/riftbound-archive) — all 3 Core Rules versions already extracted to plain text
+2. Write a parser (TypeScript or Python script) to convert numbered rules into structured JSON:
    ```json
    {
      "version": "1.2",
@@ -379,22 +419,32 @@ Taking inspiration from the best implementations above and thinking about what w
      ]
    }
    ```
-4. Store as JSON in the repo (or a lightweight DB table)
-5. When a new version drops, re-parse and diff
+3. Store as versioned JSON files in the repo
+4. Reference [SethCurry/mtg-html-rules](https://github.com/SethCurry/mtg-html-rules) parser approach for rule number detection and cross-linking
+5. When a new version drops, obtain the `.txt` and re-parse
 
-**Pros:** Authoritative source, always up-to-date with official releases
+**Pros:** Text already extracted (no PDF parsing needed!), all 3 versions available, designed for diffing, includes `unnumber.py` utility
+**Cons:** Depends on a third-party repo for new versions (but we can also extract from PDF as fallback)
+
+### Option B: PDF Parsing (Fallback)
+
+1. Download the official Core Rules PDF from the Riftbound site
+2. Use a PDF-to-text tool (e.g., `pdf-parse`, `pdfjs-dist`, `pdfplumber`, or [Parsr](https://github.com/axa-group/Parsr))
+3. Parse the numbered rule structure into JSON (same format as above)
+4. Store as JSON in the repo
+
+**Pros:** Authoritative source, doesn't depend on third-party repo
 **Cons:** PDF parsing can be fragile, formatting may vary between versions
 
-### Option B: Leverage Existing Markdown (Supplementary)
+### Option C: Leverage Existing Markdown (Supplementary)
 
-- Use [Aplexion/Riftbound](https://github.com/Aplexion/Riftbound/blob/main/riftbound_rulebook.md) as a starting point
+- Use [Aplexion/Riftbound](https://github.com/Aplexion/Riftbound/blob/main/riftbound_rulebook.md) as a formatting reference
 - Markdown is already structured and easy to render
-- Would need to verify completeness and keep updated
 
-**Pros:** Already in a good format
-**Cons:** Appears incomplete, may lag behind official releases
+**Pros:** Shows a good formatting approach
+**Cons:** Incomplete (only covers 600s), small individual project
 
-### Option C: Web Scraping riftbound.gg or Fextralife Wiki
+### Option D: Web Scraping riftbound.gg or Fextralife Wiki
 
 - Scrape the already-web-formatted rules from community sites
 - Parse HTML into structured data
@@ -411,14 +461,16 @@ Taking inspiration from the best implementations above and thinking about what w
 **Pros:** Full control, community engagement
 **Cons:** Labor-intensive initial effort, risk of errors
 
-### Recommended: Hybrid Approach (A + D)
+### Recommended: Hybrid Approach (A + B)
 
-1. **Parse the PDF** to get the initial structured data (JSON)
-2. **Manual review** to fix any parsing artifacts
-3. **Store in repo** as versioned JSON files (`rules/cr-v1.0.json`, `rules/cr-v1.1.json`, etc.)
-4. **Render in React** with full search, linking, and navigation
-5. **Diff engine** to compute and display changes between versions
-6. **Community contributions** via PRs for corrections and annotations
+1. **Start with riftbound-archive `.txt` files** — all 3 versions already extracted
+2. **Write a TXT→JSON parser** (reference `mtg-html-rules` approach) to produce structured, versioned JSON
+3. **Manual review** to fix any parsing artifacts
+4. **Store in repo** as versioned JSON files (`rules/cr-v1.0.json`, `rules/cr-v1.1.json`, etc.)
+5. **Render in React** with full search, linking, and navigation
+6. **Diff engine** to compute and display changes between versions
+7. **PDF parsing as fallback** when riftbound-archive hasn't been updated yet for a new version
+8. **Community contributions** via PRs for corrections and annotations
 
 ---
 
@@ -466,6 +518,7 @@ Taking inspiration from the best implementations above and thinking about what w
 - [riftbound.gg Core Rules](https://riftbound.gg/core-rules/)
 - [runesandrift.com Rules Guide](https://runesandrift.com/riftbound-rules/)
 - [Fextralife Wiki — Core Rules](https://riftbound.wiki.fextralife.com/Core+Rules)
+- [benediktwerner/riftbound-archive (GitHub TXT — KEY RESOURCE)](https://github.com/benediktwerner/riftbound-archive) — All versions in `.txt` format
 - [Aplexion/Riftbound (GitHub Markdown)](https://github.com/Aplexion/Riftbound/blob/main/riftbound_rulebook.md)
 - [ApiTCG (GitHub)](https://github.com/apitcg)
 - [Yawgatog — MTG Hyperlinked Rules (gold standard)](https://yawgatog.com/resources/magic-rules/)
