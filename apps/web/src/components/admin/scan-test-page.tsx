@@ -339,7 +339,7 @@ export function ScanTestPage() {
                       matches={phashResult.matches.map((m) => ({
                         printing: m.printing,
                         score: m.similarity,
-                        detail: `distance ${m.distance}/64`,
+                        detail: `distance ${m.distance}/256`,
                       }))}
                     />
                   </div>
