@@ -27,14 +27,19 @@ Based on `$ARGUMENTS`:
    | 2 | test: dark mode toggle tests | 1 | +80 / -0 |
 
    Excluded: `src/unrelated.ts` (not part of this task)
-   Changelog: "Dark mode is now available from the settings menu"
+
+   Changelog:
+   - feat: Dark mode is now available from the settings menu
+   - fix: Theme no longer resets on page reload
 
    **READY TO COMMIT (+125 / -12) — CONFIRM?**
    ```
 
    - The `+/-` column shows per-commit totals (sum of `git diff --stat` for those files).
    - The bold line at the bottom shows the grand total across all commits.
-   - Omit the "Excluded" line if nothing is excluded. Omit "Changelog" if no entry is needed.
+   - Omit the "Excluded" line if nothing is excluded.
+   - Always show the "Changelog" section. If no entries are needed, write `Changelog: none`.
+   - List each changelog entry on its own line, prefixed with `feat:` or `fix:` to match the commit type. These are the exact lines that will be written to `apps/web/src/CHANGELOG.md`.
    - Do not proceed until the user confirms (unless `yolo` mode — then skip straight to step 6).
 
 6. **Execute the commits.** For each: `git add` the specific files, write a Conventional Commit message, never use `--no-verify`. Always stage whole files — never use `git add -p`. If a file contains changes for multiple commits, include it in whichever commit it fits best.
