@@ -10,6 +10,7 @@ Based on `$ARGUMENTS`:
 
 - **Empty (default):** Only commit changes that are part of the current task. Inspect `git status` and `git diff` to determine which files are relevant. Exclude files that look unrelated to the work done in this conversation.
 - **`all`:** Commit everything — all staged, unstaged, and untracked files.
+- **`yolo`:** Same as default scope, but skip the approval step — present the table and immediately execute the commits without waiting for confirmation.
 
 ## Steps
 
@@ -34,7 +35,7 @@ Based on `$ARGUMENTS`:
    - The `+/-` column shows per-commit totals (sum of `git diff --stat` for those files).
    - The bold line at the bottom shows the grand total across all commits.
    - Omit the "Excluded" line if nothing is excluded. Omit "Changelog" if no entry is needed.
-   - Do not proceed until the user confirms.
+   - Do not proceed until the user confirms (unless `yolo` mode — then skip straight to step 6).
 
 6. **Execute the commits.** For each: `git add` the specific files, write a Conventional Commit message, never use `--no-verify`. Always stage whole files — never use `git add -p`. If a file contains changes for multiple commits, include it in whichever commit it fits best.
 7. Run `git status` to confirm the result.
