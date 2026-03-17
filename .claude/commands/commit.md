@@ -1,7 +1,3 @@
----
-model: sonnet
----
-
 Create git commits for the current changes.
 
 ## Scope
