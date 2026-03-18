@@ -11,7 +11,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { SWUpdateProvider } from "@/hooks/use-sw-update";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 
-const TanStackRouterDevtools = import.meta.env.PROD
+import { PROD } from "@/lib/env";
+
+const TanStackRouterDevtools = PROD
   ? () => null
   : lazy(async () => {
       const mod = await import("@tanstack/react-router-devtools");
