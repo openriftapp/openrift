@@ -80,7 +80,7 @@ export const PRINTING_SOURCE_FIELDS: FieldDef[] = [
   { key: "rarity", label: "Rarity", options: RARITY_ORDER },
   { key: "artVariant", label: "Art Variant", options: ART_VARIANT_ORDER },
   { key: "isSigned", label: "Signed", type: "boolean" },
-  { key: "isPromo", label: "Promo", type: "boolean" },
+  { key: "promoTypeId", label: "Promo Type" },
   { key: "finish", label: "Finish", options: FINISH_ORDER },
   { key: "artist", label: "Artist" },
   { key: "publicCode", label: "Public Code" },
@@ -115,7 +115,7 @@ export interface PrintingGroup {
     collectorNumber: number | null;
     artVariant: string;
     isSigned: boolean;
-    isPromo: boolean;
+    promoTypeId: string | null;
     rarity: string;
     finish: string;
   };
@@ -127,7 +127,7 @@ export function groupPrintingSources(printingSources: PrintingSourceResponse[]):
   for (const ps of printingSources) {
     const variant = ps.artVariant || ("normal" satisfies ArtVariant);
     const finish = resolveFinish(ps.finish, ps.rarity);
-    const key = `${ps.setId ?? ""}|${variant}|${ps.isSigned}|${ps.isPromo}|${ps.rarity}|${finish}`;
+    const key = `${ps.setId ?? ""}|${variant}|${ps.isSigned}|${ps.promoTypeId ?? ""}|${ps.rarity}|${finish}`;
     const group = groups.get(key) ?? [];
     group.push(ps);
     groups.set(key, group);
@@ -149,7 +149,7 @@ export function groupPrintingSources(printingSources: PrintingSourceResponse[]):
     if (ps.isSigned) {
       parts.push("signed");
     }
-    if (ps.isPromo) {
+    if (ps.promoTypeId) {
       parts.push("promo");
     }
     return {
@@ -160,7 +160,7 @@ export function groupPrintingSources(printingSources: PrintingSourceResponse[]):
         collectorNumber: ps.collectorNumber,
         artVariant: variant,
         isSigned: ps.isSigned,
-        isPromo: ps.isPromo,
+        promoTypeId: ps.promoTypeId,
         rarity: ps.rarity,
         finish,
       },

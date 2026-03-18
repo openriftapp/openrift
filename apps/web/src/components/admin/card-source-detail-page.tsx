@@ -258,7 +258,7 @@ export function CardSourceDetailPage({ mode, identifier }: CardSourceDetailPageP
           (isWild || pVariant === d.artVariant) &&
           (!d.rarity || (p.rarity as string) === d.rarity) &&
           (p.isSigned as boolean) === d.isSigned &&
-          (p.isPromo as boolean) === d.isPromo &&
+          (p.promoTypeId as string | null) === (d.promoTypeId ?? null) &&
           (!d.finish || (p.finish as string) === d.finish)
         );
       });
@@ -691,7 +691,7 @@ export function CardSourceDetailPage({ mode, identifier }: CardSourceDetailPageP
             const expectedId = buildPrintingId(
               printing.sourceId as string,
               printing.rarity as string,
-              printing.isPromo as boolean,
+              (printing.promoTypeSlug as string | null) ?? null,
               printing.finish as string,
             );
             const isStale = printingSlug !== expectedId;
@@ -1030,7 +1030,7 @@ export function CardSourceDetailPage({ mode, identifier }: CardSourceDetailPageP
             const guessedId = buildPrintingId(
               guessedSourceId,
               group.sources[0]?.rarity ?? ("Common" satisfies Rarity),
-              group.differentiators.isPromo,
+              null,
               group.differentiators.finish,
             );
 
@@ -1062,7 +1062,7 @@ export function CardSourceDetailPage({ mode, identifier }: CardSourceDetailPageP
                             const targetId = buildPrintingId(
                               targetSourceId,
                               target.sources[0]?.rarity ?? ("Common" satisfies Rarity),
-                              target.differentiators.isPromo,
+                              null,
                               target.differentiators.finish,
                             );
                             return (
@@ -1121,7 +1121,7 @@ const REQUIRED_PRINTING_KEYS = [
   "rarity",
   "artVariant",
   "isSigned",
-  "isPromo",
+  "promoTypeId",
   "finish",
   "artist",
   "publicCode",
@@ -1167,12 +1167,12 @@ function NewPrintingGroupCard({
     return v !== undefined && v !== null && v !== "";
   });
 
-  // Generate ID in the same format as the DB: "sourceId:rarity:finish:promo"
+  // Generate ID in the same format as the DB: "sourceId:rarity:finish:promoSlug"
   const printingId = hasRequired
     ? buildPrintingId(
         activePrinting.sourceId as string,
         String(activePrinting.rarity ?? ("Common" satisfies Rarity)),
-        (activePrinting.isPromo as boolean) ?? false,
+        null,
         activePrinting.finish as string,
       )
     : "";
@@ -1189,7 +1189,7 @@ function NewPrintingGroupCard({
   const guessedId = buildPrintingId(
     guessedSourceId,
     group.sources[0]?.rarity ?? ("Common" satisfies Rarity),
-    d.isPromo,
+    null,
     d.finish,
   );
 
