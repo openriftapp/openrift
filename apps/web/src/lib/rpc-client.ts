@@ -10,7 +10,7 @@ import { ApiError } from "./api-client";
  * dev proxy / Cloudflare Worker forwards /api/* to the backend.
  * @returns A typed Hono RPC client instance.
  */
-export function createRpcClient(baseUrl: string) {
+function createRpcClient(baseUrl: string) {
   return hc<AppType>(baseUrl, { init: { credentials: "include" } });
 }
 

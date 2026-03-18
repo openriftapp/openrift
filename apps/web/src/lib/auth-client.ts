@@ -7,7 +7,7 @@ import { createAuthClient } from "better-auth/react";
  * request origin; on the client the default uses window.location.origin.
  * @returns A configured Better Auth client instance.
  */
-export function createAppAuthClient(baseURL: string) {
+function createAppAuthClient(baseURL: string) {
   return createAuthClient({ baseURL, plugins: [emailOTPClient()] });
 }
 
