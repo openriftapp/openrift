@@ -906,7 +906,7 @@ export function CardSourceDetailPage({ mode, identifier }: CardSourceDetailPageP
                                 onClick={() =>
                                   linkPrintingSources.mutate({
                                     printingSourceIds: [row.id],
-                                    printingId,
+                                    printingId: printingSlug,
                                   })
                                 }
                               >
