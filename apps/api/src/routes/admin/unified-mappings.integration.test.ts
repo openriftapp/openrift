@@ -373,12 +373,8 @@ describe.skipIf(!ctx)("Unified marketplace mappings (integration)", () => {
       expect(filteredGroupCount).toBeLessThanOrEqual(allGroupCount);
 
       // Clean up: unmap so other tests are not affected
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"),
-      );
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"),
-      );
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"));
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"));
     });
   });
 
@@ -433,9 +429,7 @@ describe.skipIf(!ctx)("Unified marketplace mappings (integration)", () => {
       expect(mapped.cmExternalId).toBeNull();
 
       // Clean up
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"),
-      );
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"));
     });
 
     it("printings reflect cmExternalId after Cardmarket-only mapping", async () => {
@@ -487,9 +481,7 @@ describe.skipIf(!ctx)("Unified marketplace mappings (integration)", () => {
       expect(mapped.tcgExternalId).toBeNull();
 
       // Clean up
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"),
-      );
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"));
     });
 
     it("printings reflect both tcgExternalId and cmExternalId after dual mapping", async () => {
@@ -569,12 +561,8 @@ describe.skipIf(!ctx)("Unified marketplace mappings (integration)", () => {
       expect(mapped.cmExternalId).toBe(22_222);
 
       // Clean up
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"),
-      );
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"),
-      );
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"));
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"));
     });
   });
 
@@ -746,12 +734,8 @@ describe.skipIf(!ctx)("Unified marketplace mappings (integration)", () => {
       expect(alphaGroup.cardmarket.stagedProducts).toHaveLength(0);
 
       // Clean up
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"),
-      );
-      await app.fetch(
-        req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"),
-      );
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=tcgplayer"));
+      await app.fetch(req("DELETE", "/admin/marketplace-mappings/all?marketplace=cardmarket"));
     });
 
     it("Beta Card Cardmarket section has empty assignedProducts and stagedProducts", async () => {
