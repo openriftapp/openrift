@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import type { CopyCountResponse, CopyListResponse } from "@openrift/shared";
 import {
   addCopiesSchema,
+  copiesQuerySchema,
   disposeCopiesSchema,
   idParamSchema,
   moveCopiesSchema,
@@ -21,10 +22,19 @@ export const copiesRoute = new Hono<{ Variables: Variables }>()
   // ── GET /copies ─────────────────────────────────────────────────────────────
   // All copies for the authenticated user (combined view)
 
-  .get("/", async (c) => {
+  .get("/", zValidator("query", copiesQuerySchema), async (c) => {
     const { copies } = c.get("repos");
-    const rows = await copies.listForUser(getUserId(c));
-    return c.json({ copies: rows.map((row) => toCopy(row)) } satisfies CopyListResponse);
+    const { cursor, limit: rawLimit } = c.req.valid("query");
+    const limit = rawLimit ?? 200;
+
+    const rows = await copies.listForUser(getUserId(c), limit, cursor);
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+
+    return c.json({
+      copies: items.map((row) => toCopy(row)),
+      nextCursor: hasMore ? (items.at(-1)?.createdAt.toISOString() ?? null) : null,
+    } satisfies CopyListResponse);
   })
 
   // ── POST /copies ────────────────────────────────────────────────────────────

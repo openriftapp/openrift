@@ -16,6 +16,7 @@ export interface CollectionListResponse {
 
 export interface CopyListResponse {
   copies: CopyResponse[];
+  nextCursor: string | null;
 }
 
 export interface CopyCountResponse {

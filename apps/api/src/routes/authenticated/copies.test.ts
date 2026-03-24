@@ -92,6 +92,7 @@ describe("GET /api/copies", () => {
     const json = await res.json();
     expect(json.copies).toHaveLength(1);
     expect(json.copies[0].id).toBe(dbCopy.id);
+    expect(json.nextCursor).toBeNull();
   });
 
   it("returns empty array when no copies", async () => {
@@ -99,6 +100,26 @@ describe("GET /api/copies", () => {
     const res = await app.request("/api/copies");
     const json = await res.json();
     expect(json.copies).toEqual([]);
+    expect(json.nextCursor).toBeNull();
+  });
+
+  it("returns nextCursor when hasMore", async () => {
+    const items = Array.from({ length: 201 }, (_, i) => ({
+      ...dbCopy,
+      id: `a0000000-0001-4000-a000-${String(i).padStart(12, "0")}`,
+      createdAt: new Date(now.getTime() - i * 1000),
+    }));
+    mockRepo.listForUser.mockResolvedValue(items);
+    const res = await app.request("/api/copies");
+    const json = await res.json();
+    expect(json.copies).toHaveLength(200);
+    expect(json.nextCursor).toBeTruthy();
+  });
+
+  it("passes cursor and limit to repo", async () => {
+    mockRepo.listForUser.mockResolvedValue([]);
+    await app.request("/api/copies?limit=10&cursor=2026-03-17T00:00:00.000Z");
+    expect(mockRepo.listForUser).toHaveBeenCalledWith(USER_ID, 10, "2026-03-17T00:00:00.000Z");
   });
 });
 

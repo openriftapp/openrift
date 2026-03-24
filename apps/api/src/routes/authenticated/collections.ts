@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import type { CollectionListResponse, CopyListResponse } from "@openrift/shared";
 import {
+  copiesQuerySchema,
   createCollectionSchema,
   idParamSchema,
   updateCollectionSchema,
@@ -131,17 +132,30 @@ export const collectionsRoute = new Hono<{ Variables: Variables }>()
   })
 
   // ── GET /collections/:id/copies ─────────────────────────────────────────────
-  .get("/collections/:id/copies", zValidator("param", idParamSchema), async (c) => {
-    const { collections, copies } = c.get("repos");
-    const userId = getUserId(c);
-    const { id } = c.req.valid("param");
+  .get(
+    "/collections/:id/copies",
+    zValidator("param", idParamSchema),
+    zValidator("query", copiesQuerySchema),
+    async (c) => {
+      const { collections, copies } = c.get("repos");
+      const userId = getUserId(c);
+      const { id } = c.req.valid("param");
+      const { cursor, limit: rawLimit } = c.req.valid("query");
+      const limit = rawLimit ?? 200;
 
-    // Verify collection belongs to user
-    const collection = await collections.exists(id, userId);
-    if (!collection) {
-      throw new AppError(404, "NOT_FOUND", "Not found");
-    }
+      // Verify collection belongs to user
+      const collection = await collections.exists(id, userId);
+      if (!collection) {
+        throw new AppError(404, "NOT_FOUND", "Not found");
+      }
 
-    const rows = await copies.listForCollection(id);
-    return c.json({ copies: rows.map((row) => toCopy(row)) } satisfies CopyListResponse);
-  });
+      const rows = await copies.listForCollection(id, limit, cursor);
+      const hasMore = rows.length > limit;
+      const items = rows.slice(0, limit);
+
+      return c.json({
+        copies: items.map((row) => toCopy(row)),
+        nextCursor: hasMore ? (items.at(-1)?.createdAt.toISOString() ?? null) : null,
+      } satisfies CopyListResponse);
+    },
+  );

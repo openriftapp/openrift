@@ -295,6 +295,7 @@ describe("GET /api/collections/:id/copies", () => {
     const json = await res.json();
     expect(json.copies).toHaveLength(1);
     expect(json.copies[0].id).toBe(dbCopy.id);
+    expect(json.nextCursor).toBeNull();
   });
 
   it("returns 404 when collection not found", async () => {
