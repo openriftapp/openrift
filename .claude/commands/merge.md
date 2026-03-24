@@ -40,4 +40,9 @@ Must be on the `main` branch. If on a worktree branch, abort and tell the user t
    - `git commit` with the approved message. Never use `--no-verify`.
    - `git status` to confirm the result.
 
-7. **Report the result.** Show the final commit hash and a one-line summary.
+7. **Clean up the worktree.** After the merge succeeds:
+   - `git worktree remove <worktree-path>` to remove the worktree directory. The path comes from step 1's `git worktree list` output.
+   - `git branch -D <branch>` to delete the merged branch.
+   - If either command fails, warn the user but do not abort — the merge itself already succeeded.
+
+8. **Report the result.** Show the final commit hash and a one-line summary. Confirm the worktree and branch were cleaned up (or note if cleanup failed).
