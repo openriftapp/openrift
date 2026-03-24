@@ -36,6 +36,7 @@ export type { Marketplace, TimeRange } from "./pricing.js";
 export { TIME_RANGE_DAYS } from "./pricing.js";
 
 export type {
+  AcquisitionSourceListResponse,
   AcquisitionSourceResponse,
   AdminPrintingImageResponse,
   AdminSetResponse,
@@ -54,6 +55,7 @@ export type {
   CleanupOrphanedResponse,
   ClearRehostedResponse,
   FeatureFlagResponse,
+  FeatureFlagsResponse,
   IgnoredProductResponse,
   MappingPrintingResponse,
   MarketplaceGroupResponse,
@@ -82,11 +84,16 @@ export type {
   ActivityItemResponse,
   ActivityListResponse,
   ActivityResponse,
+  CollectionListResponse,
   CollectionResponse,
+  CopyCountResponse,
+  CopyListResponse,
   CopyResponse,
   DeckAvailabilityItemResponse,
+  DeckAvailabilityResponse,
   DeckCardResponse,
   DeckDetailResponse,
+  DeckListResponse,
   DeckResponse,
   ShoppingListItemResponse,
   ShoppingListResponse,
@@ -94,9 +101,11 @@ export type {
   TradeListDetailResponse,
   TradeListItemDetailResponse,
   TradeListItemResponse,
+  TradeListListResponse,
   TradeListResponse,
   WishListDetailResponse,
   WishListItemResponse,
+  WishListListResponse,
   WishListResponse,
 } from "./api/index.js";
 

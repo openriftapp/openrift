@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { CopyCountResponse, CopyListResponse } from "@openrift/shared";
 import {
   addCopiesSchema,
   disposeCopiesSchema,
@@ -23,7 +24,7 @@ export const copiesRoute = new Hono<{ Variables: Variables }>()
   .get("/", async (c) => {
     const { copies } = c.get("repos");
     const rows = await copies.listForUser(getUserId(c));
-    return c.json(rows.map((row) => toCopy(row)));
+    return c.json({ copies: rows.map((row) => toCopy(row)) } satisfies CopyListResponse);
   })
 
   // ── POST /copies ────────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ export const copiesRoute = new Hono<{ Variables: Variables }>()
     const counts: Record<string, number> = Object.fromEntries(
       rows.map((row) => [row.printingId, row.count]),
     );
-    return c.json(counts);
+    return c.json({ counts } satisfies CopyCountResponse);
   })
 
   // ── GET /copies/:id ─────────────────────────────────────────────────────────

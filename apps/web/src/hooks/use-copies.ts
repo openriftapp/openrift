@@ -11,6 +11,7 @@ export function copiesQueryOptions(collectionId?: string) {
       collectionId
         ? rpc(client.api.collections[":id"].copies.$get({ param: { id: collectionId } }))
         : rpc(client.api.copies.$get()),
+    select: (data) => data.copies,
   });
 }
 

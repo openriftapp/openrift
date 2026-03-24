@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import type { TradeListDetailResponse } from "@openrift/shared";
+import type { TradeListDetailResponse, TradeListListResponse } from "@openrift/shared";
 import {
   createTradeListItemSchema,
   createTradeListSchema,
@@ -30,7 +30,9 @@ export const tradeListsRoute = new Hono<{ Variables: Variables }>()
   .get("/trade-lists", async (c) => {
     const { tradeLists } = c.get("repos");
     const rows = await tradeLists.listForUser(getUserId(c));
-    return c.json(rows.map((row) => toTradeList(row)));
+    return c.json({
+      tradeLists: rows.map((row) => toTradeList(row)),
+    } satisfies TradeListListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { AcquisitionSourceListResponse } from "@openrift/shared";
 import {
   createAcquisitionSourceSchema,
   idParamSchema,
@@ -24,7 +25,9 @@ export const acquisitionSourcesRoute = new Hono<{ Variables: Variables }>()
   .get("/acquisition-sources", async (c) => {
     const { acquisitionSources } = c.get("repos");
     const rows = await acquisitionSources.listForUser(getUserId(c));
-    return c.json(rows.map((row) => toSource(row)));
+    return c.json({
+      sources: rows.map((row) => toSource(row)),
+    } satisfies AcquisitionSourceListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────

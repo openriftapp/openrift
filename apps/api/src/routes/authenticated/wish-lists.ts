@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import type { WishListDetailResponse } from "@openrift/shared";
+import type { WishListDetailResponse, WishListListResponse } from "@openrift/shared";
 import {
   createWishListItemSchema,
   createWishListSchema,
@@ -31,7 +31,7 @@ export const wishListsRoute = new Hono<{ Variables: Variables }>()
   .get("/wish-lists", async (c) => {
     const { wishLists } = c.get("repos");
     const rows = await wishLists.listForUser(getUserId(c));
-    return c.json(rows.map((row) => toWishList(row)));
+    return c.json({ wishLists: rows.map((row) => toWishList(row)) } satisfies WishListListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────

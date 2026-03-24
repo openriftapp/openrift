@@ -90,15 +90,15 @@ describe("GET /api/copies", () => {
     const res = await app.request("/api/copies");
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toHaveLength(1);
-    expect(json[0].id).toBe(dbCopy.id);
+    expect(json.copies).toHaveLength(1);
+    expect(json.copies[0].id).toBe(dbCopy.id);
   });
 
   it("returns empty array when no copies", async () => {
     mockRepo.listForUser.mockResolvedValue([]);
     const res = await app.request("/api/copies");
     const json = await res.json();
-    expect(json).toEqual([]);
+    expect(json.copies).toEqual([]);
   });
 });
 
@@ -173,15 +173,15 @@ describe("GET /api/copies/count", () => {
     const res = await app.request("/api/copies/count");
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json["OGS-001:rare:normal:"]).toBe(3);
-    expect(json["OGS-002:common:normal:"]).toBe(1);
+    expect(json.counts["OGS-001:rare:normal:"]).toBe(3);
+    expect(json.counts["OGS-002:common:normal:"]).toBe(1);
   });
 
   it("returns empty object when no copies", async () => {
     mockRepo.countByPrintingForUser.mockResolvedValue([]);
     const res = await app.request("/api/copies/count");
     const json = await res.json();
-    expect(json).toEqual({});
+    expect(json.counts).toEqual({});
   });
 });
 

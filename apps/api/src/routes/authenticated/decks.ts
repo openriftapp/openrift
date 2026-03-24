@@ -1,8 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import type {
   DeckAvailabilityItemResponse,
+  DeckAvailabilityResponse,
   DeckDetailResponse,
   DeckFormat,
+  DeckListResponse,
   DeckZone,
 } from "@openrift/shared";
 import {
@@ -80,7 +82,7 @@ export const decksRoute = new Hono<{ Variables: Variables }>()
     const userId = getUserId(c);
     const { wanted } = c.req.valid("query");
     const rows = await decks.listForUser(userId, wanted === "true");
-    return c.json(rows.map((row) => toDeck(row)));
+    return c.json({ decks: rows.map((row) => toDeck(row)) } satisfies DeckListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────
@@ -208,5 +210,5 @@ export const decksRoute = new Hono<{ Variables: Variables }>()
       }),
     );
 
-    return c.json(availability);
+    return c.json({ availability } satisfies DeckAvailabilityResponse);
   });

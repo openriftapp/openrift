@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { CollectionListResponse, CopyListResponse } from "@openrift/shared";
 import {
   createCollectionSchema,
   idParamSchema,
@@ -32,7 +33,9 @@ export const collectionsRoute = new Hono<{ Variables: Variables }>()
     const userId = getUserId(c);
     await ensureInbox(c.get("db"), userId);
     const rows = await collections.listForUser(userId);
-    return c.json(rows.map((row) => toCollection(row)));
+    return c.json({
+      collections: rows.map((row) => toCollection(row)),
+    } satisfies CollectionListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────
@@ -140,5 +143,5 @@ export const collectionsRoute = new Hono<{ Variables: Variables }>()
     }
 
     const rows = await copies.listForCollection(id);
-    return c.json(rows.map((row) => toCopy(row)));
+    return c.json({ copies: rows.map((row) => toCopy(row)) } satisfies CopyListResponse);
   });
