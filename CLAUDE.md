@@ -72,11 +72,16 @@ docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-priv
 
 See `docs/contributing.md` for full conventions.
 
-## Parallel Agents (Worktree vs Main)
+## Worktree Requirement
 
-Multiple Claude Code agents may run in parallel. **Default to working in a worktree** — only work in the main repo if the user explicitly asks you to.
+**You MUST enter a worktree before making ANY code changes.** Do not edit, write, or delete files in the main repo. The only exceptions are:
 
-- **Worktree (default)** — each worktree is a full, independent copy of the repo with no file conflicts.
+1. The user explicitly says "work in main" (or equivalent) in the current conversation.
+2. The task is purely read-only (answering questions, reviewing code, running read-only commands).
+
+If you are about to use Edit, Write, or Bash to modify a file and you are NOT in a worktree, **stop and enter a worktree first.** No exceptions. No "it's just a small change." No "there are no other agents running." Enter the worktree.
+
+- **Worktree** — each worktree is a full, independent copy of the repo with no file conflicts.
 - **Main repo** — only when the user explicitly says to work in main.
 
 **Worktree setup:** run `ln -s /home/eiko/repos/openrift/.env .env && LEFTHOOK=0 bun install --frozen-lockfile` before doing anything else.
