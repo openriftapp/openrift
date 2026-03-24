@@ -51,7 +51,7 @@ export interface AdminColumnDef<TData, TDraft = TData> {
 // Props
 // ---------------------------------------------------------------------------
 
-export interface AdminTableProps<TData, TDraft = TData> {
+interface AdminTableProps<TData, TDraft = TData> {
   columns: AdminColumnDef<TData, TDraft>[];
   data: TData[];
   /** Unique key for each row */
