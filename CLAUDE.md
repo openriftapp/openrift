@@ -50,22 +50,13 @@ docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-priv
 
 ## Migrations
 
-The dev server (`bun dev:api`) hot-reloads on file changes and **instantly applies any new migration** it detects. This means a partially-written migration file will be executed the moment it's saved to disk, potentially leaving the database in a broken state that's hard to recover from.
+The database is shared across all worktrees. **Ask the user before running `bun db:migrate`** — another agent may be mid-migration or relying on the current schema.
 
-**Rules:**
+After any migration is applied, regenerate the schema snapshot and include it in the same commit:
 
-1. **Ask the user to stop `bun dev:api`** (or `bun dev`) before creating or editing a migration file. Do not proceed until they confirm the server is stopped.
-2. **Write the migration in one go** — use the `Write` tool (not incremental `Edit`s) so the file lands on disk complete and correct in a single step.
-3. Once the migration file is finalized, tell the user they can restart the dev server (which will apply it) or run `bun db:migrate` manually.
-4. **After a migration is applied**, regenerate the schema snapshot: `docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-privileges > docs/schema.sql` and include it in the same commit.
-
-## Key Patterns
-
-- `useCardFilters` hook syncs all filter state to URL query strings (shareable URLs)
-- `useCards` hook fetches cards and prices via React Query
-- `CardBrowser` is the main container — composes `FilterBar`, `ActiveFilters`, `CardGrid`, `CardDetail`
-- Card grid uses `@tanstack/react-virtual` for virtualized scrolling
-- `@/` alias maps to `apps/web/src/`
+```bash
+docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-privileges > docs/schema.sql
+```
 
 ## Conventions
 
@@ -75,54 +66,24 @@ The dev server (`bun dev:api`) hot-reloads on file changes and **instantly appli
 - **Styling:** Tailwind utility classes with CSS variables for theming (light/dark). Use `cn()` from `@/lib/utils` for conditional class merging.
 - **Linting:** oxlint (primary) + oxfmt. Always lint before committing (`bun lint`). To suppress a rule, use `oxlint-disable` comments (not `eslint-disable`) with a reason: `// oxlint-disable-next-line rule/name -- reason`.
 - **shadcn/ui components:** Components in `apps/web/src/components/ui/` are scaffolded from shadcn's `base-nova` style. Add new ones via `bunx shadcn@latest add <name>`. When customizing a scaffolded component, add a `// custom: <reason>` comment on every changed/added line. This makes it easy to re-scaffold and diff to re-apply customizations. Never modify scaffolded code without a comment.
-- **Card types:** `Card`, `CardType`, `CardVariant`, `Rarity`, `Domain`, `CardFilters`, `SortOption` — all defined in `packages/shared/src/types.ts`
+- **Dependencies:** Always pin exact versions — no carets (`^`) or tildes (`~`). E.g. `"vitest": "4.0.18"`.
+- **Tests:** Run with `bun run test` (turbo → vitest), **not** `bun test` (bun's built-in runner, skips vitest/jsdom config).
+- `@/` alias in the web app maps to `apps/web/src/`
 
 See `docs/contributing.md` for full conventions.
 
-## File Locking (Multi-Agent Coordination)
+## Parallel Agents (Worktree vs Main)
 
-Multiple Claude Code sessions may run in parallel in this repo. To avoid conflicts, use file-based locks before editing any file.
+Multiple Claude Code agents may run in parallel. **Default to working in a worktree** — only work in the main repo if the user explicitly asks you to.
 
-**Lock directory:** `.claude-locks/`
+- **Worktree (default)** — each worktree is a full, independent copy of the repo with no file conflicts.
+- **Main repo** — only when the user explicitly says to work in main.
 
-**Protocol:**
+**Worktree setup:** run `ln -s /home/eiko/repos/openrift/.env .env && LEFTHOOK=0 bun install --frozen-lockfile` before doing anything else.
 
-1. **Before editing a file**, check if `.claude-locks/<encoded-path>.lock` exists (encode by replacing `/` with `__`, e.g., `apps/web/src/foo.tsx` → `apps__web__src__foo.tsx.lock`).
-2. **If locked**, DO NOT edit that file. Tell the user it's locked and what task holds it. Wait for the user to decide.
-3. **If unlocked**, create the lock file before editing. The lock file content should be a short description of your task.
-4. **When done** with your task (or when the user says to), remove all your lock files.
+**Worktree rules:** Database is shared (see Migrations). Use `docker exec` for DB access, not `docker compose`. Use a different port if you need a dev server (`PORT=5174 bun dev:web`). Never `git stash` or discard changes in the main repo.
 
-```bash
-# Check for a lock
-cat .claude-locks/apps__web__src__foo.tsx.lock 2>/dev/null
-
-# Acquire a lock
-echo "Refactoring profile page" > .claude-locks/apps__web__src__foo.tsx.lock
-
-# Release a lock
-rm .claude-locks/apps__web__src__foo.tsx.lock
-
-# Release all your locks when done
-rm .claude-locks/*.lock 2>/dev/null
-```
-
-**Rules:**
-
-- Always check before editing. Never skip this.
-- If you need a file that's locked, don't ask the user — just recheck the lock every 60 seconds until it clears, then proceed. Mention once that you're waiting.
-- Lock files older than 5 minutes can be assumed stale and overwritten. If your task takes longer, re-touch the lock file periodically to keep it fresh.
-- Never `git stash` or discard changes in files you don't own or where another agent is working on. This can cause data loss!
-- **Lint/test timing:** Do NOT run lint or tests mid-task — wait until you are completely done with all code changes. Then **ask the user for permission** before running lint or tests. When you do run them, scope to only the files you touched (never run `bun lint` or `bun run test` globally — it will pick up other agents' incomplete work and fail):
-
-```bash
-# Lint only your files (only after asking the user)
-bunx oxlint file1.ts file2.ts
-bunx oxfmt file1.ts file2.ts
-
-# Run only relevant test files (only after asking the user)
-bun run --cwd apps/web vitest run src/path/to/relevant.test.ts
-bun run --cwd apps/api vitest run src/path/to/relevant.test.ts
-```
+**When done:** run `/done` to commit remaining work, add changelog entries, and run `bun run check`. Do not push or create PRs. The user will run `/merge` from main to squash-merge your branch.
 
 ## Changelog
 
