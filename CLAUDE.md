@@ -62,7 +62,7 @@ docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-priv
 
 - **React Compiler** is enabled — do not add `useMemo`, `useCallback`, or `React.memo` in new code.
 - **Commits:** Conventional Commits enforced by commitlint (`feat:`, `fix:`, `refactor:`, etc.)
-- **TypeScript:** Strict mode, `noUnusedLocals`, `noUnusedParameters` enabled
+- **TypeScript:** Strict mode, `noUnusedLocals`, `noUnusedParameters` enabled. Target is ES2024 — prefer modern APIs like `Map.groupBy()`, `Promise.withResolvers()`, `.toSorted()`, `.toReversed()`, `.at()` over hand-rolled equivalents.
 - **Styling:** Tailwind utility classes with CSS variables for theming (light/dark). Use `cn()` from `@/lib/utils` for conditional class merging.
 - **Linting:** oxlint (primary) + oxfmt. Always lint before committing (`bun lint`). To suppress a rule, use `oxlint-disable` comments (not `eslint-disable`) with a reason: `// oxlint-disable-next-line rule/name -- reason`. When writing JSDoc (`/** */`) comments on functions, always include a `@returns` tag — oxlint enforces `jsdoc/require-returns`.
 - **shadcn/ui components:** Components in `apps/web/src/components/ui/` are scaffolded from shadcn's `base-nova` style. Add new ones via `bunx shadcn@latest add <name>`. When customizing a scaffolded component, add a `// custom: <reason>` comment on every changed/added line. This makes it easy to re-scaffold and diff to re-apply customizations. Never modify scaffolded code without a comment.
