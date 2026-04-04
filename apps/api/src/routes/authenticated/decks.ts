@@ -1,11 +1,15 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import type {
+  CardType,
   DeckAvailabilityItemResponse,
   DeckAvailabilityResponse,
   DeckDetailResponse,
   DeckExportResponse,
   DeckImportPreviewResponse,
   DeckListResponse,
+  DeckZone,
+  Domain,
+  SuperType,
 } from "@openrift/shared";
 import { inferZone } from "@openrift/shared";
 import {
@@ -402,65 +406,79 @@ export const decksRoute = decksApp
     const body = c.req.valid("json");
     const format = body.format ?? "piltover";
 
+    // Each format decodes into a uniform entry list + a resolvedMap keyed by lookupKey.
+    // Text format provides explicit zones; piltover/TTS provide sourceSlots for inference.
+    interface ImportEntry {
+      lookupKey: string;
+      label: string;
+      zone: DeckZone | null;
+      sourceSlot: "mainDeck" | "sideboard" | "chosenChampion" | null;
+      count: number;
+    }
+    let decodedWarnings: string[];
+    let entries: ImportEntry[];
+    let resolvedMap: Map<
+      string,
+      {
+        cardId: string;
+        shortCode: string;
+        cardName: string;
+        cardType: CardType;
+        superTypes: SuperType[];
+        domains: Domain[];
+      }
+    >;
+
     if (format === "text") {
       const decoded = decodeText(body.code);
-      const cardNames = decoded.cards.map((card) => card.cardName);
-      const resolved = await canonicalPrintings.cardIdsByNames(cardNames);
-      const resolvedMap = new Map(resolved.map((row) => [row.cardName.toLowerCase(), row]));
-
-      const warnings = [...decoded.warnings];
-      const cards: DeckImportPreviewResponse["cards"] = [];
-
-      for (const entry of decoded.cards) {
-        const card = resolvedMap.get(entry.cardName.toLowerCase());
-        if (!card) {
-          warnings.push(`Unknown card: "${entry.cardName}" (skipped)`);
-          continue;
-        }
-
-        cards.push({
-          cardId: card.cardId,
-          shortCode: card.shortCode,
-          zone: entry.zone,
-          quantity: entry.count,
-          cardName: card.cardName,
-          cardType: card.cardType,
-          superTypes: card.superTypes,
-          domains: card.domains,
-        });
+      decodedWarnings = decoded.warnings;
+      entries = decoded.cards.map((card) => ({
+        lookupKey: card.cardName.toLowerCase(),
+        label: `"${card.cardName}"`,
+        zone: card.zone,
+        sourceSlot: null,
+        count: card.count,
+      }));
+      const resolved = await canonicalPrintings.cardIdsByNames(
+        decoded.cards.map((card) => card.cardName),
+      );
+      resolvedMap = new Map(resolved.map((row) => [row.cardName.toLowerCase(), row]));
+    } else {
+      let decoded;
+      try {
+        decoded = format === "tts" ? decodeTTS(body.code) : piltoverCodec.decode(body.code);
+      } catch {
+        throw new AppError(400, ERROR_CODES.INVALID_DECK_CODE, "Invalid or unsupported deck code");
       }
-
-      return c.json({ cards, warnings } satisfies DeckImportPreviewResponse);
+      decodedWarnings = decoded.warnings;
+      entries = decoded.cards.map((card) => ({
+        lookupKey: card.cardCode,
+        label: card.cardCode,
+        zone: null,
+        sourceSlot: card.sourceSlot,
+        count: card.count,
+      }));
+      const resolved = await canonicalPrintings.cardIdsByShortCodes(
+        decoded.cards.map((card) => card.cardCode),
+      );
+      resolvedMap = new Map(resolved.map((row) => [row.shortCode, row]));
     }
 
-    // Piltover and TTS both decode to short codes with source slots
-    let decoded;
-    try {
-      decoded = format === "tts" ? decodeTTS(body.code) : piltoverCodec.decode(body.code);
-    } catch {
-      throw new AppError(400, ERROR_CODES.INVALID_DECK_CODE, "Invalid or unsupported deck code");
-    }
-
-    const shortCodes = decoded.cards.map((card) => card.cardCode);
-    const resolved = await canonicalPrintings.cardIdsByShortCodes(shortCodes);
-    const resolvedMap = new Map(resolved.map((row) => [row.shortCode, row]));
-
-    const warnings = [...decoded.warnings];
+    const warnings = [...decodedWarnings];
     const cards: DeckImportPreviewResponse["cards"] = [];
 
-    for (const entry of decoded.cards) {
-      const card = resolvedMap.get(entry.cardCode);
+    for (const entry of entries) {
+      const card = resolvedMap.get(entry.lookupKey);
       if (!card) {
-        warnings.push(`Unknown card: ${entry.cardCode} (skipped)`);
+        warnings.push(`Unknown card: ${entry.label} (skipped)`);
         continue;
       }
 
-      const zone = inferZone(card.cardType, card.superTypes, entry.sourceSlot);
-
       cards.push({
         cardId: card.cardId,
-        shortCode: entry.cardCode,
-        zone,
+        shortCode: card.shortCode,
+        zone:
+          entry.zone ?? inferZone(card.cardType, card.superTypes, entry.sourceSlot ?? "mainDeck"),
         quantity: entry.count,
         cardName: card.cardName,
         cardType: card.cardType,
