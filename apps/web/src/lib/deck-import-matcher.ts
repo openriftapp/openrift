@@ -255,13 +255,3 @@ function matchSingleDeckEntry(entry: DeckImportEntry, index: CardIndex): DeckMat
     zone: inferEntryZone(entry, null),
   };
 }
-
-/**
- * Searches the catalog for cards matching a query.
- * Used by the correction search UI.
- * @returns Up to `limit` matching ResolvedCards.
- */
-export function searchCards(query: string, allPrintings: Printing[], limit = 20): ResolvedCard[] {
-  const index = new CardIndex(allPrintings);
-  return index.search(query, limit);
-}
