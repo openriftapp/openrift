@@ -13,8 +13,6 @@ export const ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
 } as const;
 
-export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
-
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
