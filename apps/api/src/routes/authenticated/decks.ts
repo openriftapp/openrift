@@ -6,12 +6,13 @@ import type {
   DeckDetailResponse,
   DeckExportResponse,
   DeckImportPreviewResponse,
+  DeckListItemResponse,
   DeckListResponse,
   DeckZone,
   Domain,
   SuperType,
 } from "@openrift/shared";
-import { inferZone } from "@openrift/shared";
+import { CARD_TYPE_ORDER, DOMAIN_ORDER, inferZone, validateDeck } from "@openrift/shared";
 import {
   deckAvailabilityResponseSchema,
   deckCardsResponseSchema,
@@ -198,11 +199,106 @@ decksApp.use(requireAuth);
 export const decksRoute = decksApp
   // ── LIST ────────────────────────────────────────────────────────────────────
   .openapi(listDecks, async (c) => {
-    const { decks } = c.get("repos");
+    const { decks, marketplace, userPreferences } = c.get("repos");
     const userId = getUserId(c);
     const { wanted } = c.req.valid("query");
-    const rows = await decks.listForUser(userId, wanted === "true");
-    return c.json({ items: rows.map((row) => toDeck(row)) } satisfies DeckListResponse);
+
+    const [deckRows, allCards, prefs] = await Promise.all([
+      decks.listForUser(userId, wanted === "true"),
+      decks.allCardsForUser(userId),
+      userPreferences.getByUserId(userId),
+    ]);
+
+    const favMarketplace =
+      prefs?.data?.marketplaceOrder?.[0] ?? PREFERENCE_DEFAULTS.marketplaceOrder[0];
+    const deckValueMap = await marketplace.deckValues(userId, favMarketplace);
+
+    // Group cards by deck
+    const cardsByDeckId = Map.groupBy(allCards, (card) => card.deckId);
+
+    const excludedTypes = new Set<string>(["Legend", "Rune", "Battlefield"]);
+    const countedZones = new Set<string>(["main", "champion"]);
+
+    const items: DeckListItemResponse[] = deckRows.map((row) => {
+      const cards = cardsByDeckId.get(row.id) ?? [];
+      const legend = cards.find((card) => card.zone === "legend");
+      const champion = cards.find((card) => card.zone === "champion");
+
+      // Total cards (excluding overflow)
+      const totalCards = cards
+        .filter((card) => card.zone !== "overflow")
+        .reduce((sum, card) => sum + card.quantity, 0);
+
+      // Type counts (Unit/Spell/Gear from main+champion zones)
+      const typeCountMap = new Map<CardType, number>();
+      for (const card of cards) {
+        if (!countedZones.has(card.zone) || excludedTypes.has(card.cardType)) {
+          continue;
+        }
+        typeCountMap.set(
+          card.cardType as CardType,
+          (typeCountMap.get(card.cardType as CardType) ?? 0) + card.quantity,
+        );
+      }
+      const typeCounts = CARD_TYPE_ORDER.filter((type) => typeCountMap.has(type)).map((type) => ({
+        cardType: type,
+        count: typeCountMap.get(type) ?? 0,
+      }));
+
+      // Domain distribution (from main+champion zones)
+      const domainCountMap = new Map<Domain, number>();
+      for (const card of cards) {
+        if (!countedZones.has(card.zone)) {
+          continue;
+        }
+        for (const domain of card.domains as Domain[]) {
+          domainCountMap.set(domain, (domainCountMap.get(domain) ?? 0) + card.quantity);
+        }
+      }
+      const domainDistribution = DOMAIN_ORDER.filter((domain) => domainCountMap.has(domain)).map(
+        (domain) => ({
+          domain,
+          count: domainCountMap.get(domain) ?? 0,
+        }),
+      );
+
+      // Validation
+      const isValid =
+        row.format === "standard"
+          ? validateDeck({
+              format: "standard",
+              cards: cards.map((card) => ({
+                cardId: card.cardId,
+                zone: card.zone as DeckZone,
+                quantity: card.quantity,
+                cardName: card.cardName,
+                cardType: card.cardType as CardType,
+                superTypes: card.superTypes as SuperType[],
+                domains: card.domains as Domain[],
+                tags: card.tags,
+              })),
+            }).length === 0
+          : true;
+
+      return {
+        deck: toDeck(row),
+        legend: legend
+          ? {
+              cardName: legend.cardName,
+              imageUrl: legend.imageUrl,
+              domains: legend.domains as Domain[],
+            }
+          : null,
+        champion: champion ? { cardName: champion.cardName, imageUrl: champion.imageUrl } : null,
+        totalCards,
+        typeCounts,
+        domainDistribution,
+        isValid,
+        totalValueCents: deckValueMap.get(row.id) ?? null,
+      };
+    });
+
+    return c.json({ items } satisfies DeckListResponse);
   })
 
   // ── CREATE ──────────────────────────────────────────────────────────────────
