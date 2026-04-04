@@ -1,3 +1,20 @@
+/**
+ * Canonical error codes used with AppError throughout the API.
+ * Always reference these constants instead of raw strings.
+ */
+export const ERROR_CODES = {
+  BAD_REQUEST: "BAD_REQUEST",
+  CONFLICT: "CONFLICT",
+  FORBIDDEN: "FORBIDDEN",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
+  INVALID_DECK_CODE: "INVALID_DECK_CODE",
+  NOT_FOUND: "NOT_FOUND",
+  PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE",
+  UNAUTHORIZED: "UNAUTHORIZED",
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
