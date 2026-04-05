@@ -92,7 +92,9 @@ export function DeckExportDialog({
     if (!exportDeck.data?.code) {
       return;
     }
-    await navigator.clipboard.writeText(exportDeck.data.code);
+    // Use \r\n so line breaks survive iOS Safari's clipboard
+    const text = exportDeck.data.code.replaceAll("\n", "\r\n");
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
