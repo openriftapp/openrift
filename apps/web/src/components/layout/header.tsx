@@ -88,9 +88,11 @@ function MenuButton({ onClick, className }: { onClick: () => void; className?: s
 }
 
 function DesktopNav({
+  showRules,
   showCollection,
   showDecks,
 }: {
+  showRules: boolean;
   showCollection: boolean;
   showDecks: boolean;
 }) {
@@ -108,17 +110,19 @@ function DesktopNav({
             Cards
           </NavigationMenuLink>
         </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink
-            render={<Link to="/rules" />}
-            className={cn(
-              navigationMenuTriggerStyle(),
-              "data-[status=active]:bg-muted data-[status=active]:font-semibold",
-            )}
-          >
-            Rules
-          </NavigationMenuLink>
-        </NavigationMenuItem>
+        {showRules && (
+          <NavigationMenuItem>
+            <NavigationMenuLink
+              render={<Link to="/rules" />}
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "data-[status=active]:bg-muted data-[status=active]:font-semibold",
+              )}
+            >
+              Rules
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        )}
         {showCollection && (
           <NavigationMenuItem>
             <NavigationMenuLink
@@ -285,11 +289,13 @@ function MobileNavLink({
 function MobileNav({
   open,
   onOpenChange,
+  showRules,
   showCollection,
   showDecks,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showRules: boolean;
   showCollection: boolean;
   showDecks: boolean;
 }) {
@@ -315,9 +321,14 @@ function MobileNav({
           <MobileNavLink to="/cards" icon={<LayersIcon className="text-muted-foreground size-5" />}>
             Cards
           </MobileNavLink>
-          <MobileNavLink to="/rules" icon={<GavelIcon className="text-muted-foreground size-5" />}>
-            Rules
-          </MobileNavLink>
+          {showRules && (
+            <MobileNavLink
+              to="/rules"
+              icon={<GavelIcon className="text-muted-foreground size-5" />}
+            >
+              Rules
+            </MobileNavLink>
+          )}
           {showCollection && (
             <MobileNavLink
               to="/collections"
@@ -348,9 +359,11 @@ function MobileNav({
 export function Header() {
   const { data: session, isPending } = useSession();
   const gravatarUrl = useGravatarUrl(session?.user?.email);
+  const rulesEnabled = useFeatureEnabled("rules");
   const collectionEnabled = useFeatureEnabled("collection");
   const decksEnabled = useFeatureEnabled("decks");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const showRules = rulesEnabled;
   const showCollection = Boolean(session?.user) && collectionEnabled;
   const showDecks = Boolean(session?.user) && decksEnabled;
 
@@ -366,7 +379,7 @@ export function Header() {
         {/* Left: logo + expanded menu on desktop */}
         <div className="hidden gap-4 md:flex">
           <LogoLink />
-          <DesktopNav showCollection={showCollection} showDecks={showDecks} />
+          <DesktopNav showRules={showRules} showCollection={showCollection} showDecks={showDecks} />
         </div>
 
         {/* Center: Logo on mobile */}
@@ -388,6 +401,7 @@ export function Header() {
       <MobileNav
         open={mobileMenuOpen}
         onOpenChange={setMobileMenuOpen}
+        showRules={showRules}
         showCollection={showCollection}
         showDecks={showDecks}
       />
