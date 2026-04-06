@@ -100,7 +100,7 @@ If you are about to use Edit, Write, or Bash to modify a file and you are NOT in
 
 **When done:** run `/done` to commit remaining work, add changelog entries, and run checks (build, lint, unit tests — no integration tests). Do not push or create PRs. The user will run `/merge` from main to squash-merge your branch.
 
-**Rebasing:** Always rebase on **local `main`** (`git rebase main`). Never fetch or rebase on `origin/main` — the local main branch is the source of truth.
+**Rebasing:** Rebase on whichever is newer between local `main` and `origin/main`. Usually local `main` is ahead, but if remote is newer, fetch first and rebase on `origin/main`.
 
 ## Changelog
 
