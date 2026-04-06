@@ -28,8 +28,9 @@ bun lint             # Full lint (builds first, then oxlint + oxfmt)
 bun lint:oxlint      # Run oxlint with --fix
 bun lint:oxfmt       # Run oxfmt on apps/ and packages/
 
-# Test coverage
-bun run test:coverage   # Run all tests (unit + integration) with coverage, merge into coverage/lcov.info
+# Test
+bun run test:integration  # Run integration tests only
+bun run test:coverage     # Run all tests (unit + integration) with coverage, merge into coverage/lcov.info
 
 # Single app/package
 bun run --cwd apps/web dev
