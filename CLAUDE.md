@@ -122,4 +122,4 @@ If you are about to use Edit, Write, or Bash to modify a file and you are NOT in
 
 It must always read as a proper sentence, not a fragment. Avoid starting with "Added" or "Added the ability to" — just say what the feature does for the user. For fixes, briefly describe what was broken and how it's now fixed.
 
-Group multiple entries under the same date. Add new entries at the top, no matter the type. Don't add entries for: chore, refactor, perf, ci, docs, admin-only features, or internal fixes that users won't notice.
+Group multiple entries under the same date. Within a date, list all `feat:` entries first, then all `fix:` entries. Add new entries at the top of their respective group. Don't add entries for: chore, refactor, perf, ci, docs, admin-only features, or internal fixes that users won't notice.
