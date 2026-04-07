@@ -613,6 +613,35 @@ protected routes calls the server function via automatic RPC bridging.
 **Goal:** Move API calls behind server functions where it benefits SSR. This is
 incremental and each route is independently deployable.
 
+**SSR card image optimization (do alongside catalog conversion):**
+
+Converting `catalogQueryOptions` to a server function is necessary but not
+sufficient for SSR-rendered card images. Investigation in Step 4 revealed
+multiple layers blocking card images from the initial HTML:
+
+1. **`useHydrated` guard** in `CardViewer` renders a `CardGridSkeleton` during
+   SSR instead of the real `CardGrid`. Remove this guard so the virtualizer
+   renders during SSR.
+2. **`initialRect` on virtualizer** — `useWindowVirtualizer` renders 0 items
+   during SSR because it has no viewport dimensions. Pass
+   `initialRect: { width: 0, height: 1024 }` so it knows the viewport height.
+3. **Deferred row rendering** — `CardRowContent` starts with `deferred=true`
+   and uses `useEffect` (which doesn't run during SSR) to show real content.
+   Make the first N rows (within `eagerCount`) start with `deferred=false`.
+4. **SSR column/width defaults** — `useResponsiveColumns` defaults
+   `containerWidth` to 400 (→ 2 columns). Use an SSR-safe default (~1200px →
+   5 columns) and ensure server/client initial values match to avoid hydration
+   mismatch.
+5. **Streaming vs blocking** — Even with data in `beforeLoad`, components using
+   `useSuspenseQuery` for data NOT preloaded in `beforeLoad` (enums, keyword
+   styles, etc.) create suspense boundaries that defer the card grid into
+   streaming chunks. Preload all data needed by the card grid in `beforeLoad`
+   or accept that card content streams in after the shell.
+
+All five layers must be addressed together for card images to appear in the
+initial HTML. This is best done in Step 5 when the catalog server function is
+ready.
+
 **Priority order** (high traffic / most SSR benefit first):
 
 1. `/cards` - `catalogQueryOptions` (biggest payload, biggest SSR win)
