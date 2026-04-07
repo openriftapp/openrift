@@ -114,15 +114,13 @@ resolved server-side (faster, more secure, no flash of unauthenticated content).
 - Create `apps/web/src/lib/auth-server.ts` with a `getServerSession` server
   function:
   ```ts
-  const getServerSession = createServerFn({ method: "GET" }).handler(
-    async () => {
-      const request = getWebRequest();
-      const session = await authClient.getSession({
-        headers: request.headers, // forward cookies
-      });
-      return session;
-    },
-  );
+  const getServerSession = createServerFn({ method: "GET" }).handler(async () => {
+    const request = getWebRequest();
+    const session = await authClient.getSession({
+      headers: request.headers, // forward cookies
+    });
+    return session;
+  });
   ```
 - Update `sessionQueryOptions` to use the server function as its `queryFn`
   (works on both server and client because `createServerFn` auto-bridges)
@@ -154,15 +152,13 @@ incremental — do one route at a time, each is independently deployable.
 **Pattern for each:**
 
 ```ts
-const fetchCatalogServer = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const request = getWebRequest();
-    const response = await fetch("http://localhost:3000/api/v1/catalog", {
-      headers: { cookie: request.headers.get("cookie") ?? "" },
-    });
-    return response.json();
-  },
-);
+const fetchCatalogServer = createServerFn({ method: "GET" }).handler(async () => {
+  const request = getWebRequest();
+  const response = await fetch("http://localhost:3000/api/v1/catalog", {
+    headers: { cookie: request.headers.get("cookie") ?? "" },
+  });
+  return response.json();
+});
 ```
 
 Then update the `queryOptions` to use the server function. Components using
@@ -240,14 +236,14 @@ have correct cache headers. PWA installs and works offline.
 
 ## Risk Mitigation
 
-| Risk                                           | Mitigation                                                                                                                    |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| RPC client breaks in SSR (no browser cookies)  | Step 3 addresses this with cookie forwarding. Test early.                                                                     |
-| TanStack Start is relatively new               | Pin exact version. The router/query layer is mature — Start is mainly the SSR glue.                                           |
-| PWA + SSR conflicts                            | Service worker caching strategy may need adjustment. Test offline mode at Step 6.                                             |
-| better-auth session cookie handling in SSR     | Step 4 tackles this explicitly. The cookie needs to be forwarded from the incoming request to API calls.                      |
-| Build time increase (SSR adds server bundle)   | Likely minimal with Vinxi. Monitor.                                                                                           |
-| Card images serving                            | Keep nginx for static files in production. Don't serve large images through the SSR server.                                   |
+| Risk                                          | Mitigation                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| RPC client breaks in SSR (no browser cookies) | Step 3 addresses this with cookie forwarding. Test early.                                                |
+| TanStack Start is relatively new              | Pin exact version. The router/query layer is mature — Start is mainly the SSR glue.                      |
+| PWA + SSR conflicts                           | Service worker caching strategy may need adjustment. Test offline mode at Step 6.                        |
+| better-auth session cookie handling in SSR    | Step 4 tackles this explicitly. The cookie needs to be forwarded from the incoming request to API calls. |
+| Build time increase (SSR adds server bundle)  | Likely minimal with Vinxi. Monitor.                                                                      |
+| Card images serving                           | Keep nginx for static files in production. Don't serve large images through the SSR server.              |
 
 ---
 
