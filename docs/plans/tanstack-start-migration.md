@@ -71,9 +71,10 @@ which doesn't exist on the server.
 
 **Fix:** Split into two modules:
 
-- `lib/auth-client.ts` (browser-only, keep current code but mark it as
-  client-only via a `"use client"` annotation or conditional import)
-- `lib/auth-server.ts` (server function that calls the API directly)
+- `lib/auth-client.ts` (browser-only, keep current code but guard
+  `globalThis.location.origin` with a `typeof window` check, or lazy-init)
+- `lib/auth-session.ts` (server function that calls the API directly, plus the
+  new `sessionQueryOptions` that works on both server and client)
 
 For the session query, the pattern becomes:
 
@@ -183,17 +184,59 @@ localStorage after mount. The visual difference is negligible because:
 - Theme is the only flash-sensitive preference, and it's already SSR-safe via
   cookie storage
 
-### 0f. Verify `theme-store.ts` SSR behavior
+### 0f. Fix theme flash during SSR
 
-Already SSR-safe:
+The theme store uses cookie storage, but Zustand's persist middleware skips
+hydration on the server (`typeof window` guard). This means the server always
+renders with the default theme ("light") regardless of the user's cookie. When
+the client hydrates and reads the cookie, the theme switches, causing a flash.
 
-- Cookie storage with `typeof document` guards
-- Module-level side effects guarded by `typeof document !== "undefined"`
-- `getSystemTheme()` falls back to `"light"` when `matchMedia` is unavailable
+**Fix:** Read the `theme` cookie directly in the `shellComponent` (Step 2) and
+apply the `dark` class to `<html>` server-side. This bypasses Zustand entirely
+for the initial render:
 
-During SSR, the theme cookie is available in the request headers. The server can
-read it to apply the correct theme class. This is handled later in Step 3 by
-reading the theme cookie in the `shellComponent`.
+```tsx
+import { getRequest } from "@tanstack/react-start/server";
+
+function RootDocument({ children }: { children: React.ReactNode }) {
+  // Read theme preference from the cookie set by the theme store.
+  // The cookie value is JSON-encoded by Zustand persist: {"state":{"preference":"dark"},...}
+  let darkClass = "";
+  if (typeof window === "undefined") {
+    try {
+      const request = getRequest();
+      const cookieHeader = request.headers.get("cookie") ?? "";
+      const match = cookieHeader.match(/(?:^|;\s*)theme=([^;]*)/);
+      if (match) {
+        const decoded = decodeURIComponent(match[1]);
+        const parsed = JSON.parse(decoded);
+        const pref = parsed?.state?.preference ?? "auto";
+        // On the server we can't detect system preference, so "auto" → "light"
+        darkClass = pref === "dark" ? "dark" : "";
+      }
+    } catch {
+      // Cookie missing or malformed — render light theme
+    }
+  }
+
+  return (
+    <html lang="en" className={darkClass}>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+This eliminates theme flash for users with an explicit light/dark preference.
+Users with "auto" (system preference) still get "light" from the server, then
+the client applies the correct theme on hydration. This is an acceptable
+tradeoff since detecting system preference requires `matchMedia` (browser-only).
 
 ### 0g. Audit Sentry initialization
 
@@ -219,8 +262,9 @@ Update all `@tanstack/*` packages to the latest release in the same family:
 @tanstack/react-hotkeys         → latest
 ```
 
-Also remove `@tanstack/router-cli` (the `tsr` CLI) from devDependencies. The
-`@tanstack/router-plugin` Vite plugin handles route generation at dev time.
+Keep `@tanstack/router-cli` for now (the `tsr generate` command is still used in
+the build script). It can be removed in Step 7 if `tanstackStart()` handles
+route generation at build time without it.
 
 **Verify:** `bun dev:web` starts, all routes work, no version mismatch warnings.
 
@@ -248,9 +292,12 @@ identically.
   - Keep `rolldownOptions` for chunk splitting (Vite 8 + Rolldown is supported)
   - Remove the `tanstackRouter()` plugin (replaced by `tanstackStart()` which
     includes router functionality)
-  - Remove the custom `serve-card-images` dev plugin (card images are served by
-    the Start server in dev, or via a dev proxy config)
-  - Remove `server.proxy` (server functions replace the Vite proxy for API calls)
+  - **Keep** `server.proxy` for now (`{ "/api": "http://localhost:3000" }`) so
+    API calls still work during dev. Remove it later in Step 5 after server
+    functions handle all API communication.
+  - **Keep** the custom `serve-card-images` dev plugin for now so card images
+    load in dev. Remove in Step 7 and replace with a Nitro server middleware or
+    a proxy rule.
 - Update `apps/web/package.json` scripts:
   ```json
   "dev": "vite dev --clearScreen false",
@@ -339,7 +386,7 @@ still render client-only initially.
       scrollRestoration: true,
     });
 
-    setupRouterSsrQueryIntegration({ router, queryClient });
+    setupRouterSsrQueryIntegration({ router, queryClient, wrapQueryClient: true });
 
     return router;
   }
@@ -363,8 +410,28 @@ still render client-only initially.
 - Update `__root.tsx` to use Start's document model:
 
   ```tsx
-  import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-  // ... existing imports ...
+  import type { QueryClient } from "@tanstack/react-query";
+  import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+  import { getRequest } from "@tanstack/react-start/server";
+  import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+  import { lazy } from "react";
+
+  import { Analytics } from "@/components/analytics";
+  import { RouteNotFoundFallback } from "@/components/error-message";
+  import { Toaster } from "@/components/ui/sonner";
+  import { PROD } from "@/lib/env";
+  import { featureFlagsQueryOptions } from "@/lib/feature-flags";
+  import { siteSettingsQueryOptions } from "@/lib/site-settings";
+
+  // Import CSS as a URL for the head() function (Vite resolves this at build time)
+  import indexCss from "@/index.css?url";
+
+  const TanStackRouterDevtools = PROD
+    ? () => null
+    : lazy(async () => {
+        const mod = await import("@tanstack/react-router-devtools");
+        return { default: mod.TanStackRouterDevtools };
+      });
 
   export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
     head: () => ({
@@ -399,9 +466,27 @@ still render client-only initially.
     shellComponent: RootDocument,
   });
 
+  /** Reads the theme preference from the cookie during SSR to avoid a flash. */
+  function getServerThemeClass(): string {
+    if (typeof window !== "undefined") return "";
+    try {
+      const request = getRequest();
+      const cookieHeader = request.headers.get("cookie") ?? "";
+      const match = cookieHeader.match(/(?:^|;\s*)theme=([^;]*)/);
+      if (!match) return "";
+      const decoded = decodeURIComponent(match[1]);
+      const parsed = JSON.parse(decoded);
+      const pref = parsed?.state?.preference ?? "auto";
+      // "auto" → "light" on server (no matchMedia), explicit "dark" → "dark"
+      return pref === "dark" ? "dark" : "";
+    } catch {
+      return "";
+    }
+  }
+
   function RootDocument({ children }: { children: React.ReactNode }) {
     return (
-      <html lang="en">
+      <html lang="en" className={getServerThemeClass()}>
         <head>
           <HeadContent />
         </head>
@@ -427,8 +512,14 @@ still render client-only initially.
   }
   ```
 
+  **Note on QueryClientProvider:** Pass `wrapQueryClient: true` to
+  `setupRouterSsrQueryIntegration` in `router.ts` (shown above). This
+  auto-wraps the app with `<QueryClientProvider>`, so you don't need to add it
+  manually. If that doesn't work, wrap `<Outlet />` in `RootComponent` with
+  `<QueryClientProvider client={queryClient}>` and access `queryClient` from
+  the route context.
+
 - Delete `apps/web/src/main.tsx` (replaced by `client.tsx`)
-- Delete `apps/web/index.html` (replaced by `shellComponent`)
 
 **Verify:** App builds and hydrates on client. `view-source` shows the HTML
 document shell with `<HeadContent />` rendered meta tags.
@@ -561,8 +652,8 @@ const fetchCatalog = createServerFn({ method: "GET" }).handler(async () => {
 Then update the `queryOptions` to use the server function. Components using
 `useSuspenseQuery` don't change at all.
 
-**Optional optimization: auth middleware.** If many server functions need cookie
-forwarding, extract it into TanStack Start middleware:
+**Recommended: auth middleware.** Since most server functions need cookie
+forwarding, extract it into reusable TanStack Start middleware:
 
 ```ts
 import { createMiddleware } from "@tanstack/react-start";
@@ -585,6 +676,10 @@ const fetchCatalog = createServerFn({ method: "GET" })
   });
 ```
 
+**Once all routes use server functions:** Remove `server.proxy` from
+`vite.config.ts`. The Vite dev proxy is no longer needed since all API calls go
+through server functions (which use `API_INTERNAL_URL` internally).
+
 **Verify after each route:** Page renders server-side with data. Client
 navigation still works. No regressions.
 
@@ -595,31 +690,45 @@ navigation still works. No regressions.
 **Goal:** The web app is now a Bun server process, not static files. Update
 Docker, nginx, and infrastructure.
 
-### 6a. Dockerfile web stage
+### 6a. Dockerfile stages
 
-Replace the nginx stage with a Bun runtime stage:
+Replace the old nginx `web` stage with two stages: a Bun SSR server and an
+nginx reverse proxy:
 
 ```dockerfile
 # ─── Stage 3: Web (TanStack Start SSR server) ───────────────────────────────
 FROM oven/bun:1-alpine AS web
 
 WORKDIR /app
-COPY --from=build /app/.output .output
+COPY --from=build /app/apps/web/.output .output
 EXPOSE 3001
 
 # Bun memory limit (default is 4GB, constrain for the VPS)
 ENV BUN_JSC_maxHeapSize=512
 
 CMD ["bun", "run", ".output/server/index.mjs"]
+
+# ─── Stage 4: Proxy (nginx — reverse proxy + static asset serving) ──────────
+FROM nginx:alpine AS proxy
+
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx/web.conf /etc/nginx/conf.d/web.conf
+# Built client assets (JS/CSS with content hashes) served directly by nginx
+COPY --from=build /app/apps/web/.output/public /srv/static
+EXPOSE 8080
 ```
 
-The Start server listens on port 3001 (configurable via `PORT` env var).
+The `web` container runs the Start SSR server on port 3001 (internal only). The
+`proxy` container runs nginx on port 8080 (exposed to the host). Card images are
+bind-mounted into the `proxy` container at `/srv/static/card-images/`.
 
 ### 6b. Docker Compose
 
-Update the `web` service:
+Replace the old `web` service with two services: `web` (Start SSR) and `proxy`
+(nginx):
 
 ```yaml
+# TanStack Start SSR server (internal only — not exposed to host).
 web:
   image: ghcr.io/eikowagenknecht/openrift-web:${IMAGE_TAG:-latest}
   depends_on:
@@ -629,13 +738,31 @@ web:
     interval: 10s
     timeout: 3s
     retries: 3
-  volumes:
-    - ./card-images:/app/card-images:ro
   environment:
     PORT: "3001"
     API_INTERNAL_URL: "http://api:3000"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "10"
+  restart: unless-stopped
+
+# Nginx reverse proxy + static asset serving (exposed to host).
+proxy:
+  image: ghcr.io/eikowagenknecht/openrift-proxy:${IMAGE_TAG:-latest}
+  depends_on:
+    - web
+    - api
+  healthcheck:
+    test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+  volumes:
+    - ./card-images:/srv/static/card-images:ro
   ports:
-    - "127.0.0.1:${WEB_PORT:-8080}:3001"
+    - "127.0.0.1:${WEB_PORT:-8080}:8080"
   logging:
     driver: json-file
     options:
@@ -644,33 +771,17 @@ web:
   restart: unless-stopped
 ```
 
+The host nginx (TLS termination) proxies to the `proxy` container on `:8080`,
+same as before. Update the host nginx config to reference the `proxy` service
+instead of the old `web` service (the port stays the same).
+
 ### 6c. Health endpoint
 
-Add a `/health` route for Docker health checks. Create
-`apps/web/src/routes/health.tsx`:
-
-```tsx
-import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-
-const healthCheck = createServerFn({ method: "GET" }).handler(async () => {
-  return { status: "ok" };
-});
-
-export const Route = createFileRoute("/health")({
-  loader: () => healthCheck(),
-  component: () => {
-    const data = Route.useLoaderData();
-    return <pre>{JSON.stringify(data)}</pre>;
-  },
-});
-```
-
-Alternatively, if a leaner approach is needed (no React rendering), use the
-server entry to intercept `/health` before the router:
+Add a `/health` endpoint for Docker health checks. Intercept it in the server
+entry before the router to avoid React rendering overhead:
 
 ```ts
-// server.ts
+// apps/web/src/server.ts
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 export default createServerEntry({
@@ -684,19 +795,31 @@ export default createServerEntry({
 });
 ```
 
+This returns a plain-text "ok" response without invoking the router or rendering
+React. The `web` container's healthcheck calls this directly
+(`http://localhost:3001/health`). The `proxy` container's healthcheck also hits
+`/health`, which nginx proxies to the Start server (verifying the full chain).
+
 ### 6d. Nginx config (reverse proxy for SSR + static assets)
 
-nginx changes from serving static files to proxying dynamic routes to the Start
-server while still serving static assets directly for performance:
+Updated `nginx/web.conf` for the `proxy` container (see 6a and 6b for how it's
+built and deployed):
 
 ```nginx
 limit_req_zone $http_x_real_ip zone=api:10m rate=30r/s;
 
-# Shared map for security + CSP headers (DRY — avoids repeating in every block).
-# Nonce-based CSP isn't practical with streaming SSR, so we allow 'unsafe-inline'
-# for scripts. The hydration <script> tags injected by the SSR stream require it.
+# CSP header value. Streaming SSR injects inline <script> tags for each
+# streamed Suspense chunk, so 'unsafe-inline' is required for script-src.
+# Nonce-based CSP is impractical with streaming (CSP header is sent before
+# chunks are generated). 'unsafe-eval' dropped — not needed.
 map $uri $csp_header {
     default "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';";
+}
+
+# Resolve X-Real-IP at the server level so it's available in all locations.
+map $http_x_real_ip $real_ip {
+    default $http_x_real_ip;
+    ""      $remote_addr;
 }
 
 server {
@@ -717,10 +840,6 @@ server {
         limit_req_status 429;
         proxy_pass http://api:3000;
         proxy_set_header Host $host;
-        set $real_ip $remote_addr;
-        if ($http_x_real_ip) {
-            set $real_ip $http_x_real_ip;
-        }
         proxy_set_header X-Real-IP $real_ip;
         proxy_set_header X-Forwarded-For $http_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
@@ -764,6 +883,7 @@ server {
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
+        proxy_read_timeout 30s;
 
         # SSR responses should not be cached by the browser — the server
         # renders fresh content per request (user-specific data, auth state).
@@ -786,17 +906,10 @@ is sent before chunks are generated. `'unsafe-inline'` for `script-src` is the
 pragmatic choice. `'unsafe-eval'` can be dropped if testing confirms nothing
 needs it (it wasn't needed before, the old config had it "just in case").
 
-**Static assets:** The Start build puts client assets in
-`.output/public/assets/`. These are copied to a volume or bind-mounted so nginx
-can serve them directly. Alternatively, the Dockerfile can copy them:
-
-```dockerfile
-# In the nginx container (or a shared volume):
-COPY --from=build /app/apps/web/.output/public /srv/static
-```
-
-Card images are bind-mounted as before, but to `/srv/static/card-images/`
-instead of the nginx html root.
+**Static assets:** The `proxy` Dockerfile stage (6a) copies
+`.output/public/` to `/srv/static/` at build time, so nginx serves hashed
+JS/CSS directly. Card images are bind-mounted into the `proxy` container at
+`/srv/static/card-images/` (see 6b).
 
 ### 6e. Memory and process management
 
@@ -862,9 +975,11 @@ load. PWA installs and works.
 **Changes:**
 
 - Delete `apps/web/src/worker.ts` (Cloudflare Workers preview, no longer needed)
-- Delete `apps/web/src/main.tsx` (replaced by `client.tsx` in Step 2)
 - Delete old `vite.config.ts` backup if kept temporarily
-- Remove Vite proxy config references from documentation
+- Remove the `serve-card-images` dev plugin and Vite proxy config from
+  `vite.config.ts` (server functions and Nitro middleware now handle these)
+- Remove `@tanstack/router-cli` from devDependencies if `tanstackStart()` plugin
+  handles route generation at build time without `tsr generate`
 - Remove `wrangler.toml` and CF Workers deployment config if present
 - Audit bundle size: SSR reduces the initial JS payload since data is embedded in
   HTML. The client bundle should be smaller (no initial data fetch waterfall).
@@ -875,6 +990,81 @@ load. PWA installs and works.
   - Architecture diagram updated
 - Update `docs/architecture.md` with new infrastructure diagrams
 - Update `docs/deployment.md`
+
+---
+
+## Step 8: Server-side cache for public data (optimization)
+
+**Goal:** Avoid redundant API calls for public, non-user-specific data during
+SSR. Every SSR request currently creates a fresh QueryClient (for security),
+which means the catalog (~large payload) is re-fetched from the Hono API on
+every page load, even though the data is the same for all users.
+
+**Changes:**
+
+- Create a shared, long-lived `QueryClient` on the Start server that caches
+  public data only (catalog, feature flags, site settings, enums, keyword styles,
+  rules). This is separate from the per-request QueryClient.
+- In server functions for public endpoints, check the shared cache first:
+
+  ```ts
+  // lib/server-cache.ts
+  import { QueryClient } from "@tanstack/react-query";
+
+  // Singleton — lives for the lifetime of the server process.
+  // Only used for public, non-user-specific data.
+  const serverCache = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000, // 1 minute (matches API's Cache-Control max-age)
+        gcTime: 5 * 60 * 1000, // 5 minutes
+      },
+    },
+  });
+
+  export { serverCache };
+  ```
+
+- Update the catalog server function to use the shared cache:
+
+  ```ts
+  import { serverCache } from "@/lib/server-cache";
+
+  const fetchCatalogServer = createServerFn({ method: "GET" }).handler(async () => {
+    return serverCache.fetchQuery({
+      queryKey: ["catalog"],
+      queryFn: async () => {
+        const res = await fetch(`${API_URL}/api/v1/catalog`);
+        if (!res.ok) throw new Error(`Catalog fetch failed: ${res.status}`);
+        return res.json();
+      },
+    });
+  });
+  ```
+
+- `fetchQuery` returns cached data if fresh, or fetches and caches if stale.
+  This means 100 concurrent SSR requests for `/cards` result in 1 API call (or
+  0, if the cache is fresh), not 100.
+
+**What goes in the shared cache:**
+
+| Query              | Public? | Cache here? |
+| ------------------ | ------- | ----------- |
+| catalog            | Yes     | Yes         |
+| feature flags      | Yes     | Yes         |
+| site settings      | Yes     | Yes         |
+| enums              | Yes     | Yes         |
+| keyword styles     | Yes     | Yes         |
+| rules              | Yes     | Yes         |
+| session            | No      | **No**      |
+| collections/copies | No      | **No**      |
+| decks              | No      | **No**      |
+
+**Important:** Never put user-specific data in the shared cache. Auth-dependent
+queries always use the per-request QueryClient with forwarded cookies.
+
+**Verify:** Monitor API call volume before and after. The Hono API's catalog
+endpoint should see dramatically fewer requests from the Start server.
 
 ---
 
@@ -922,7 +1112,9 @@ load. PWA installs and works.
 | 5    | Convert data fetching (incremental)  | Low per route | Yes (at any point)          |
 | 6    | Update deployment                    | High          | No (must complete for prod) |
 | 7    | Cleanup                              | Low           | Yes                         |
+| 8    | Server-side cache for public data    | Low           | Yes (optimization)          |
 
 Steps 0-3 are the core migration. Step 4 is critical for auth-protected routes.
-Step 5 is incremental. Step 6 is required for production. You could stop after
-Step 3 and already have a working SSR app in development.
+Step 5 is incremental. Step 6 is required for production. Step 8 is a
+performance optimization. You could stop after Step 3 and already have a working
+SSR app in development.
