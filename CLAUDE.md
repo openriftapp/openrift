@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OpenRift is a card collection browser for the Riftbound trading card game. It's a Turborepo monorepo with a React frontend (`apps/web`), a Hono API server (`apps/api`), and a shared types/logic package (`packages/shared`), backed by PostgreSQL. See `docs/architecture.md` for infrastructure details.
+OpenRift is a card collection browser for the Riftbound trading card game. It's a Turborepo monorepo with a TanStack Start SSR frontend (`apps/web`), a Hono API server (`apps/api`), and a shared types/logic package (`packages/shared`), backed by PostgreSQL. The web app uses server functions to call the API over HTTP. See `docs/architecture.md` for infrastructure details.
 
 ## Commands
 
 ```bash
 # Development
-bun dev:web          # Start the web app dev server (Vite)
+bun dev:web          # Start the web app dev server (TanStack Start / Vite)
 bun dev:api          # Start the API server (Hono, needs DATABASE_URL)
 bun dev              # Start all apps in dev mode
 
