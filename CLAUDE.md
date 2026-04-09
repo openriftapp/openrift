@@ -103,7 +103,7 @@ If you are about to use Edit, Write, or Bash to modify a file and you are NOT in
 
 **When done:** run `/done` to commit remaining work, add changelog entries, and run checks (build, lint, unit tests — no integration tests). Do not push or create PRs. The user will run `/merge` from main to squash-merge your branch.
 
-**Rebasing:** Always rebase **inside the worktree** before exiting (the `/done` flow handles this). Rebase on whichever is newer between local `main` and `origin/main`. Usually local `main` is ahead, but if remote is newer, fetch first and rebase on `origin/main`. This keeps the time spent operating on main minimal — only the final squash-merge touches it.
+**Rebasing:** Always rebase **inside the worktree** onto local `main` before exiting (the `/done` flow handles this). Never rebase onto `origin/main` — local main is the source of truth. A PreToolUse hook enforces that worktrees are created from local main.
 
 ## Changelog
 
