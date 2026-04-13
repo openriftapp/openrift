@@ -81,6 +81,7 @@ docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-priv
 - **Async code:** Use `async`/`await` instead of `.then(() => {})` for void promises. Always use braces after `if` — oxlint's `curly` rule requires it.
 - **Database access:** All database queries must go through repository functions (`apps/api/src/repositories/`). Never use raw `db` / `Kysely` instances directly in routes or services — add a method to the appropriate repository instead. Route handlers access repos via `c.get("repos")`.
 - **Timestamp precision:** PostgreSQL stores timestamps with microsecond precision, but JavaScript `Date` only has millisecond precision. When comparing a `Date` value against a `timestamptz` column (e.g. in cursor-based pagination), wrap the column with `date_trunc('milliseconds', ...)` so the comparison uses the same precision. Without this, equality checks silently fail.
+- **Feature flags:** Managed via the admin UI, not migrations. When adding a new feature flag, register it in the `KNOWN_FLAGS` array in `apps/web/src/components/admin/feature-flags-page.tsx` so it appears in the admin dropdown. Do not seed flags via database migrations.
 - **Dev servers:** Never suggest restarting dev servers as a debugging step — they always serve current code. Find the actual bug.
 - `@/` alias in the web app maps to `apps/web/src/`
 
