@@ -64,7 +64,7 @@ docker exec openrift-db-1 pg_dump -U openrift --schema-only --no-owner --no-priv
 ## Conventions
 
 - **React Compiler** is enabled — do not add `useMemo`, `useCallback`, or `React.memo` in new code. In `infer` mode, `use`-prefixed functions that don't call hooks are silently skipped — add a `"use memo"` directive to force compilation.
-- **Commits:** Conventional Commits enforced by commitlint (`feat:`, `fix:`, `refactor:`, etc.)
+- **Commits:** Conventional Commits enforced by commitlint (`feat:`, `fix:`, `refactor:`, etc.). Always include a scope when the change is localized to one area: `web` (apps/web), `api` (apps/api), `shared` (packages/shared), `e2e` (apps/e2e), `ci` (Dockerfiles / GitHub Actions). E.g. `feat(web): ...`, `fix(api): ...`. Omit only when the change genuinely spans multiple areas or doesn't fit any of these.
 - **TypeScript:** Strict mode, `noUnusedLocals`, `noUnusedParameters` enabled. Target is ES2024 — prefer modern APIs like `Map.groupBy()`, `Promise.withResolvers()`, `.toSorted()`, `.toReversed()`, `.at()` over hand-rolled equivalents.
 - **Styling:** Tailwind utility classes with CSS variables for theming (light/dark). Use `cn()` from `@/lib/utils` for conditional class merging.
 - **Linting:** oxlint (primary) + oxfmt. Always lint before committing (`bun lint`). To suppress a rule, use `oxlint-disable` comments (not `eslint-disable`) with a reason: `// oxlint-disable-next-line rule/name -- reason`. When writing JSDoc (`/** */`) comments on functions, always include a `@returns` tag — oxlint enforces `jsdoc/require-returns`.

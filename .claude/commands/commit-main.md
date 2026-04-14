@@ -42,5 +42,19 @@ Based on `$ARGUMENTS`:
    - List each changelog entry on its own line, prefixed with `feat:` or `fix:` to match the commit type. These are the exact lines that will be written to `apps/web/src/CHANGELOG.md`.
    - Do not proceed until the user confirms (unless `yolo` mode — then skip straight to step 6).
 
-6. **Execute the commits.** For each: `git add` the specific files, write a Conventional Commit message, never use `--no-verify`. Always stage whole files — never use `git add -p`. If a file contains changes for multiple commits, include it in whichever commit it fits best.
+6. **Execute the commits.** For each: `git add` the specific files, write a Conventional Commit message with a scope where it makes sense (see "Scopes" below), never use `--no-verify`. Always stage whole files — never use `git add -p`. If a file contains changes for multiple commits, include it in whichever commit it fits best.
 7. Run `git status` to confirm the result.
+
+## Scopes
+
+Always add a Conventional Commit scope when the change clearly belongs to one area. Use these scopes (match the ones already used in `git log`):
+
+- `web` — changes under `apps/web/`
+- `api` — changes under `apps/api/`
+- `shared` — changes under `packages/shared/`
+- `e2e` — changes under `apps/e2e/` or e2e test files
+- `ci` — Dockerfiles, GitHub Actions, CI config
+
+Examples: `feat(web): ...`, `fix(api): ...`, `perf(api): ...`, `fix(e2e): ...`, `fix(ci): ...`.
+
+Omit the scope only when the change genuinely spans multiple areas (e.g. a repo-wide chore, a schema migration touching api + web + shared together) or when none of the scopes above apply (root-level config, monorepo tooling, top-level scripts). When in doubt and the change is localized to one of the packages above, include the scope.
