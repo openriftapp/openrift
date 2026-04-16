@@ -130,3 +130,27 @@ If you are about to use Edit, Write, or Bash to modify a file and you are NOT in
 It must always read as a proper sentence, not a fragment. Avoid starting with "Added" or "Added the ability to" — just say what the feature does for the user. For fixes, briefly describe what was broken and how it's now fixed.
 
 Group multiple entries under the same date. Within a date, list all `feat:` entries first, then all `fix:` entries. Add new entries at the top of their respective group. Don't add entries for: chore, refactor, perf, ci, docs, admin-only features, or internal fixes that users won't notice.
+
+## TanStack Intent Skills
+
+When working in the areas listed below, load the linked SKILL.md into context. Managed by `bunx @tanstack/intent@latest install` — re-run to refresh after dependency upgrades.
+
+<!-- intent-skills:start -->
+
+# Skill mappings - when working in these areas, load the linked skill file into context.
+
+skills:
+
+- task: "Routes in apps/web/src/routes/ — loaders, validateSearch, beforeLoad guards, \_authenticated layouts, lazy splits, path/search params"
+  # Skills under @tanstack/router-core (core entry + 9 sub-skills: data-loading, search-params, navigation, auth-and-guards, code-splitting, ssr, type-safety, not-found-and-errors, path-params).
+  # To locate: bunx @tanstack/intent@latest list | grep router-core
+- task: "Server functions and useServerFn in apps/web/src/hooks/ and route loaders"
+  # To locate: bunx @tanstack/intent@latest list | grep server-functions
+- task: "TanStack Start middleware and execution model (createMiddleware, server-only / client-only / isomorphic boundaries)"
+  # To locate: bunx @tanstack/intent@latest list | grep -E "start-core/middleware|start-core/execution-model"
+- task: "apps/web/vite.config.ts — TanStack Start, router plugin, devtools plugin order, code splitting"
+  load: "apps/web/node_modules/@tanstack/router-plugin/skills/router-plugin/SKILL.md"
+- task: "apps/web/vite.config.ts — TanStack Devtools Vite plugin (must be first plugin, source inspection, console piping)"
+  load: "node_modules/@tanstack/devtools-vite/skills/devtools-vite-plugin/SKILL.md"
+- task: "SSR shell, root route head/scripts management, Nitro deployment preset" # To locate: bunx @tanstack/intent@latest list | grep -E "router-core/ssr|start-core/deployment"
+<!-- intent-skills:end -->
