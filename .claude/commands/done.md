@@ -3,6 +3,7 @@ Finalize work in a worktree — run checks, add changelog, and mark as ready to 
 ## Arguments
 
 - `yolo` — skip changelog check, checks, and merge confirmation. Only does the minimum: commit uncommitted work, rebase onto main, exit worktree, squash-merge. Use when the user passes `yolo` as an argument.
+- `nolint` — skip the build/lint/test step (step 3). Still runs changelog check, rebase, and merge confirmation. Use for docs-only or other non-code changes where checks would be pointless. Can combine with other arguments.
 
 ## Prerequisites
 
@@ -14,7 +15,7 @@ Must be on a worktree branch, not main. If on main, abort and tell the user to u
 
 2. **Changelog check.** Look at all commits on this branch (`git log main..HEAD`). If any are `feat:` or `fix:`, check whether `apps/web/src/CHANGELOG.md` already has a corresponding entry. If not, add one (following the rules in CLAUDE.md) and commit it.
 
-3. **Run checks** (build, lint, unit tests — **no integration tests or knip**, they run post-merge). Run: `bun run build && bun run lint:oxlint && bun run lint:oxfmt && bun run test`. If it fails, fix the issues, commit the fixes, and re-run until it passes. Do not skip this step.
+3. **Run checks** (build, lint, unit tests — **no integration tests or knip**, they run post-merge). Run: `bun run build && bun run lint:oxlint && bun run lint:oxfmt && bun run test`. If it fails, fix the issues, commit the fixes, and re-run until it passes. Do not skip this step. **Skip entirely when invoked with `nolint` or `yolo`**, or when the branch contains only docs/non-code changes.
 
 4. **Rebase onto main.** While still in the worktree, rebase the branch so the squash-merge will be a clean fast-forward:
    - `git rebase main` — this works because worktrees share refs with the main repo, so `main` is always the current local main ref.

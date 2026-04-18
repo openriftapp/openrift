@@ -98,14 +98,16 @@ See `docs/contributing.md` for full conventions.
 
 If you are about to use Edit, Write, or Bash to modify a file and you are NOT in a worktree or on a `claude/…` branch, **stop and enter a worktree first.** No exceptions. No "it's just a small change." No "there are no other agents running." Enter the worktree.
 
+**How to enter a worktree:** use the Claude Code `EnterWorktree` tool. Do NOT create worktrees manually with `git worktree add ../openrift-<name>` or similar — the tool places the worktree inside `.claude/worktrees/`, switches the session's working directory into it, and integrates with `/done` and `/merge`. Manual `git worktree add` outside `.claude/worktrees/` is not supported and will break the workflow.
+
 - **Worktree** — each worktree is a full, independent copy of the repo with no file conflicts.
 - **Main repo** — only when the user explicitly says to work in main.
 
-**Worktree setup:** run `ln -s /home/eiko/repos/openrift/.env .env && ln -s /home/eiko/repos/openrift/media media && LEFTHOOK=0 bun install --frozen-lockfile` before doing anything else.
+**Worktree setup:** after `EnterWorktree`, run `ln -s /home/eiko/repos/openrift/.env .env && ln -s /home/eiko/repos/openrift/media media && LEFTHOOK=0 bun install --frozen-lockfile` before doing anything else. **Skip `bun install`** for docs-only or other non-code changes (e.g. edits to `*.md`, `CHANGELOG.md`, comments-only tweaks) — the symlinks are still useful for commit hooks, but installing dependencies is pointless when no code runs.
 
 **Worktree rules:** Database is shared (see Migrations). Use `docker exec` for DB access, not `docker compose`. Use a different port if you need a dev server (`PORT=5174 bun dev:web`). Never `git stash` or discard changes in the main repo. **Do not run integration tests from worktrees** — the database connection is not available there. Run unit tests and linting only; integration tests run from main after merging.
 
-**When done:** run `/done` to commit remaining work, add changelog entries, and run checks (build, lint, unit tests — no integration tests). Do not push or create PRs. The user will run `/merge` from main to squash-merge your branch.
+**When done:** run `/done` to commit remaining work, add changelog entries, and run checks (build, lint, unit tests — no integration tests). **For docs-only or other non-code changes**, skip the build/lint/test steps in `/done` — just commit and rebase. Do not push or create PRs. The user will run `/merge` from main to squash-merge your branch.
 
 **Rebasing:** Always rebase **inside the worktree** onto local `main` before exiting (the `/done` flow handles this). Never rebase onto `origin/main` — local main is the source of truth. A PreToolUse hook enforces that worktrees are created from local main.
 
