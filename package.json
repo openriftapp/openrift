@@ -46,7 +46,7 @@
     "@tanstack/devtools-vite": "0.6.0",
     "@tanstack/react-devtools": "0.10.2",
     "@tanstack/react-pacer-devtools": "0.7.0",
-    "@tanstack/react-query-devtools": "5.99.2",
+    "@tanstack/react-query-devtools": "5.100.0",
     "knip": "6.6.1",
     "lcov-result-merger": "5.0.1",
     "lefthook": "2.1.6",
