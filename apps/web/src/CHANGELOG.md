@@ -2,6 +2,8 @@
 
 ## 2026-04-28
 
+- feat: Card pages, set pages, the promos page, help articles, the rules page, and the changelog now expose richer structured data to search engines, so Google can show OpenRift listings with card images, set contents, and article snippets directly in search results
+- feat: The sitemap now includes the promos page, every help article, the privacy policy, and the legal notice, so search engines can discover and rank those pages too
 - feat: The owned-count badge in the card detail pane now sits next to each entry in the Printings list, so you can see how many of each printing you own at a glance instead of seeing one ambiguous count next to the card name
 - feat: The cards page and your collections now show one tile per card by default, grouping printings of the same card together. Switch back to a tile per printing in your profile if you prefer the previous view
 - feat: On the cards page in card view, grouping by set now puts each card under every set it was printed in, instead of only the earliest one. Multiple printings within the same set still collapse to a single tile, just like the rest of card view
