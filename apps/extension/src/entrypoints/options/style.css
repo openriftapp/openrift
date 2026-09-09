@@ -1,0 +1,73 @@
+:root {
+  color-scheme: light dark;
+  --fg: #111827;
+  --muted: #4b5563;
+  --line: #d1d5db;
+  --bg: #ffffff;
+  --accent: #166534;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #f3f4f6;
+    --muted: #9ca3af;
+    --line: #374151;
+    --bg: #111827;
+    --accent: #4ade80;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 32px 24px;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+h2 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}

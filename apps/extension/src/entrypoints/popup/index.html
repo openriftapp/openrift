@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenRift</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body class="popup">
+    <p id="snapshot-headline" class="headline">Checking…</p>
+    <p id="snapshot-detail" class="detail"></p>
+    <div class="row">
+      <button id="primary" type="button" class="primary">Refresh counts</button>
+      <button id="import" type="button" hidden>Import deck</button>
+      <button id="enable" type="button" hidden>Run automatically</button>
+    </div>
+    <p id="result" class="result" hidden></p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

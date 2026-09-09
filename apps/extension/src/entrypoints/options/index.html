@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="manifest.open_in_tab" content="true" />
+    <title>OpenRift extension options</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Cardmarket wishlist counts</h1>
+      <p>
+        Show how many copies you own and how many you still want next to every card on a Cardmarket
+        seller's offers. Allow it once and it runs on its own.
+      </p>
+
+      <section>
+        <h2>1. Allow OpenRift on Cardmarket</h2>
+        <p id="permission-status">Checking…</p>
+        <button id="enable" type="button">Allow</button>
+      </section>
+
+      <section>
+        <h2>2. Pick the wishlist</h2>
+        <p id="snapshot-status">No wishlist picked yet.</p>
+        <button id="open-sync" type="button">Open OpenRift</button>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

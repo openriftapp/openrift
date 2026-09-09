@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { InfoIcon, LinkIcon, ListIcon, ScanTextIcon, TableIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
@@ -9,10 +10,11 @@ export default function DeckImporterExtensionArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        The deck importer is a small Firefox add-on. You&apos;re on another site looking at a
-        decklist, you click the OpenRift icon in the toolbar, and the deck lands on OpenRift&apos;s
-        import page with its name and source link filled in. No copying, no export step, and it
-        works whether or not you&apos;re signed in.
+        The OpenRift add-on is a small Firefox extension that does two things. It sends the decklist
+        you&apos;re looking at on another site to OpenRift&apos;s import page, and it marks a
+        Cardmarket seller&apos;s offers with how many copies you own and how many you still want.
+        Clicking the icon in the toolbar opens a popup with the one action that fits the page
+        you&apos;re on.
       </p>
 
       <section>
@@ -35,7 +37,7 @@ export default function DeckImporterExtensionArticle() {
           <StepRow
             step={3}
             title="Pin the icon"
-            description="Optional, but worth it: open the puzzle-piece menu and pin OpenRift so importing is a single click."
+            description="Optional, but worth it: open the puzzle-piece menu and pin OpenRift so the popup is one click away."
           />
         </div>
         <p className="mt-3">
@@ -45,7 +47,7 @@ export default function DeckImporterExtensionArticle() {
             rel="noreferrer"
             className="text-primary font-medium hover:underline"
           >
-            Download the deck importer for Firefox
+            Download the OpenRift add-on for Firefox
           </a>
         </p>
         <p className="text-muted-foreground mt-3">
@@ -64,7 +66,7 @@ export default function DeckImporterExtensionArticle() {
           />
           <StepRow
             step={2}
-            title="Click the OpenRift icon"
+            title="Click the icon, then Import deck"
             description="It reads the deck from that page, once, and opens OpenRift's import page in a new tab."
           />
           <StepRow
@@ -100,18 +102,73 @@ export default function DeckImporterExtensionArticle() {
           <FeatureCard
             icon={<LinkIcon className="size-4" />}
             title="Nothing it recognizes"
-            description="A brief '?' shows on the icon and it stops there. Copy the list by hand into the import page instead."
+            description="The popup says so and stops there. Copy the list by hand into the import page instead."
           />
         </div>
       </section>
 
       <section>
+        <Heading className="mb-2">Your counts on Cardmarket</Heading>
+        <p className="text-muted-foreground">
+          Nothing about the seller, the page, or what you look at goes back to OpenRift. Your counts
+          travel the other way, and the matching happens inside the Cardmarket page.
+        </p>
+        <div className="mt-3 space-y-2">
+          <StepRow
+            step={1}
+            title="Pick the wishlists to count"
+            description={
+              <>
+                On{" "}
+                <Link to="/extension/cardmarket" className="text-primary hover:underline">
+                  the counts page
+                </Link>
+                , every wishlist starts ticked. Untick the ones you don&apos;t want counted.
+              </>
+            }
+          />
+          <StepRow
+            step={2}
+            title="Let the add-on take them"
+            description="Once you've allowed it access, it takes them as the page opens. Otherwise click the OpenRift icon while that page is open."
+          />
+          <StepRow
+            step={3}
+            title="Open a seller's offers"
+            description={
+              <>
+                Every card you own or want is marked{" "}
+                <span className="font-mono">own 2 · want 4</span>, with your own price beside the
+                seller&apos;s asking price. Cards you neither own nor want are left alone.
+              </>
+            }
+          />
+        </div>
+        <p className="text-muted-foreground mt-3">
+          The price shown is whichever marketplace sits first in your marketplace order, the same
+          one OpenRift prices your cards with everywhere else. The seller&apos;s asking price is
+          tinted against it: green at or under, amber up to a fifth over, red beyond that.
+          Cardmarket sells in euro, so a TCGplayer price is shown but never compared.
+        </p>
+        <p className="text-muted-foreground mt-3">
+          Counts go stale as you buy and sell. The popup says how old they are and which wishlists
+          they came from, and refreshes them in one click.
+        </p>
+      </section>
+
+      <section>
         <Heading className="mb-2">What it can access</Heading>
         <p className="text-muted-foreground">
-          Only the tab you&apos;re on, only in the moment you click. It asks for no list of sites,
-          so it can&apos;t run in the background, and it never sees your browsing history. Reading
-          happens inside the page, and the only thing that leaves is the deck itself, as part of the
-          import link that opens.
+          Installing it asks for nothing but the tab you&apos;re on, in the moment you act. It has
+          no list of sites, so it can&apos;t run in the background and never sees your browsing
+          history.
+        </p>
+        <p className="text-muted-foreground mt-3">
+          For the Cardmarket counts you can grant it two sites, www.cardmarket.com and this one,
+          from the popup or its options page. A fresh install opens that page so the choice
+          isn&apos;t buried. Granting them buys one thing: it stops needing the click. Offers pages
+          get marked as they load, and your counts are picked up whenever the counts page opens.
+          Decline and everything still works, one page at a time, from the popup.
         </p>
       </section>
 

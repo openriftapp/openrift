@@ -1,12 +1,12 @@
 # Browser Extension
 
-`apps/extension` is a cross-browser extension (Chrome MV3, Firefox) that sends the decklist the user is viewing on an external deck site to OpenRift. It is built with [WXT](https://wxt.dev/) and shares the deck text codec with the rest of the monorepo through `@openrift/shared/deck-codecs`.
+`apps/extension` is a cross-browser extension (Chrome MV3, Firefox) that sends the decklist the user is viewing on an external deck site to OpenRift, and shows their collection and wishlist counts on Cardmarket seller offers. It is built with [WXT](https://wxt.dev/) and shares the deck text codec with the rest of the monorepo through `@openrift/shared/deck-codecs`.
 
 ## Design
 
 The extension is deliberately minimal.
 
-- **`activeTab`, no host permissions.** It runs when the user clicks the toolbar icon, in that tab, once.
+- **`activeTab`, no host permissions by default.** Clicking the toolbar icon opens a popup, and each of its actions injects into that one tab, once. The Cardmarket feature below adds optional host permissions, granted from the popup or the options page.
 - **Thin extractor.** The injected script reads the decklist (card names, quantities, zones) from the DOM; parsing, matching, and saving happen on the OpenRift side.
 - **Hand-off by deep link.** The result opens `https://openrift.app/decks/import?code=<payload>` in a new tab, where the user reviews the parse and saves. The import works logged-out (browser-local deck, claimed on login).
 
@@ -14,7 +14,7 @@ It imports the deck the user is looking at.
 
 ## How it works
 
-`src/entrypoints/background.ts` listens for the toolbar click, injects `src/entrypoints/extract.content.ts` via `browser.scripting.executeScript` (WXT `registration: "runtime"`), and receives the extraction result as the script's return value. Extraction lives in `src/lib/deck-extract.ts` and tries, in order:
+The popup's "Import deck" action injects `src/entrypoints/extract.content.ts` via `browser.scripting.executeScript` (WXT `registration: "runtime"`) and receives the extraction result as the script's return value. Extraction lives in `src/lib/deck-extract.ts` and tries, in order:
 
 1. **Structured decklist table**
 2. **Sectioned card-name list**
@@ -22,13 +22,42 @@ It imports the deck the user is looking at.
 
 Unknown labels (card-type groupings like `unit`/`spell`) fold into the main deck. Sideboard lists are kept separate.
 
-If nothing matches, a brief "?" badge appears on the toolbar icon and nothing else happens.
+If nothing matches, the popup says so and nothing else happens.
 
 A deck name rides along: the page's `h1` is passed as `&name=` and prefills the deck-name field on the review step.
 
 So does the page's own address, as `&source=`, which the review step offers as an outbound deck link on the imported deck. Deck links are restricted to the allowlist in `packages/shared/src/link-hosts.ts`, so `src/lib/source-link.ts` drops anything not on it (along with `utm_*`-style tracking tags) rather than sending a link the import page would refuse. The URL is read in the page by the content script, not from `tab.url`, so it needs no permission beyond the injection itself. The import page re-checks it against `deckLinkSchema` regardless — the param is whatever the address bar says — and shows it as a removable chip, since a deck's links are public on its share page. Replace mode ignores it and keeps the target deck's own links.
 
 The import page's `?code=` parameter sniffs the payload format itself (`parseDeckImportAuto` in `apps/web/src/features/decks/lib/deck-import-parsers.ts`), so text lists and compact codes both work in the same deep link.
+
+## Cardmarket wishlist counts
+
+The second feature annotates a Cardmarket seller's offers with how many copies the user owns and how many are on the wishlists they picked. Cardmarket's own API is closed to new applicants, so everything runs in the browser under the user's own session.
+
+**The data never travels from Cardmarket to OpenRift.** OpenRift hands the extension a snapshot and matching happens in the page:
+
+1. The user opens `/extension/cardmarket` on OpenRift, where every wishlist starts picked. The page renders the counts into a `<script type="application/json" data-openrift-overlay-snapshot>` block: one row per Cardmarket product id and finish with `owned` and `wanted`, summed across the picked lists.
+2. `capture-snapshot.content.ts` waits for that block (the page renders data-only, so it appears well after the document completes) and writes it to `browser.storage.local` itself. The background script confirms the capture by the stored timestamp changing, because an async content script's return value does not survive injection on every build.
+3. On a seller's offers page, `annotate.content.ts` reads the stored snapshot, resolves each article row to a Cardmarket product id, and marks the row twice: a pill next to the product link for what the viewer owns and wants, and the viewer's own marketplace price next to the seller's asking price. A row the snapshot does not cover gets neither, since a wrong `own 0` reads as a fact.
+
+The seller's own asking price is coloured against that reference: green at or under it, amber up to a fifth over, red past that. Cardmarket sells in euro, so a TCGplayer reference is shown but never compared. Prices are read off the row with `parsePriceCents`, which handles both orders Cardmarket prints (`1.234,56 €` and `€1,234.56`), and the colour is an inline style on Cardmarket's own element, tracked by an attribute so a later pass can take it back.
+
+The reference price is the headline price of the marketplace sitting first in the viewer's marketplace order, which the sync page sends with the request. It is the price OpenRift shows for the card elsewhere, taken from the EN printing behind the product and falling back to the cheapest mapped printing. Rows therefore cover every mapped Cardmarket product, not only the ones the viewer owns or wants, which is why the popup counts only the latter when it reports what it holds.
+
+Cardmarket products are language-aggregate but exist once per finish, so a snapshot row is keyed by product id **and** finish, and the owned count spans every language and condition of the printings behind it. One product sits in front of several printings (the language variants), so the counting query dedupes a list entry per product row or a want of 6 would come back as 24.
+
+**Permissions.** A plain install still asks for nothing beyond `activeTab`: the host permissions for `www.cardmarket.com` and the OpenRift instance are optional, asked for from the popup or the options page, and a fresh install opens the options page so the ask is not buried. Without them the feature still works one page at a time through the popup, which is what `activeTab` grants. With them, the background script annotates offers pages as they finish loading and re-captures the snapshot whenever the sync page is opened, so nothing needs clicking at all.
+
+The popup is two lines and a button: how old the stored counts are, which wishlists they came from, and one action chosen by the page it opens over (`popup-actions.ts`). On the sync page it takes the counts as it opens, so the click on the icon is the whole interaction; on a seller's offers page it marks the page; anywhere else it refreshes, which opens the sync page in a background tab, waits for the hand-off and closes it again. The deck import sits beside it on any page that could hold a deck, and the permission request appears until it is granted.
+
+**Row extraction is markup-dependent**, and `cardmarket-rows.ts` holds every assumption, written against a saved offers page:
+
+- Rows are `div[id^="stockRow"]`, also carrying `class="article-row"`. The id is the article id, not the product id.
+- The row exposes the product id nowhere except the thumbnail tooltip, whose `data-bs-title` holds an `<img>` tag pointing at `product-images.s3.cardmarket.com/<n>/<SET>/<idProduct>/<idProduct>.jpg`. That folder name is the join key.
+- Foil is a `span.st_SpecialIcon` labelled `Foil`. The `isFoil` parameter on the product link is the page's own filter state and says nothing about the article, so it is not read.
+- The pill goes after the product link in `.col-seller`.
+
+When Cardmarket changes any of that, fix it there and update the fixture rows in `cardmarket-rows.test.ts`.
 
 ## Development
 
@@ -41,7 +70,7 @@ bun run --cwd apps/extension zip            # store-ready zips for both browsers
 bun run --cwd apps/extension test src/lib/deck-extract.test.ts
 ```
 
-To point a local build at a dev instance, set `WXT_OPENRIFT_URL` in `apps/extension/.env` (see `src/lib/openrift-url.ts`).
+To point a local build at a dev instance, set `WXT_OPENRIFT_URL` in `apps/extension/.env` (see `src/lib/openrift-url.ts`). Pass it in the shell as well when the OpenRift host permission has to follow (`WXT_OPENRIFT_URL=https://localhost:5174 bun run --cwd apps/extension build:firefox`): `wxt.config.ts` computes that manifest entry before Vite loads `.env`, so the file alone moves the bundled URL but leaves the manifest pointing at production.
 
 To load an unpacked build: Chrome → `chrome://extensions` → Developer mode → "Load unpacked" → `.output/chrome-mv3`. Firefox → `about:debugging` → "Load Temporary Add-on" → any file in `.output/firefox-mv2`.
 

@@ -1,6 +1,8 @@
 import { defineConfig } from "wxt";
 
+import { CARDMARKET_MATCH_PATTERN } from "./src/lib/cardmarket-url";
 import { ADDON_ID, UPDATE_MANIFEST_URL } from "./src/lib/firefox-distribution";
+import { openriftMatchPattern } from "./src/lib/openrift-url";
 
 export default defineConfig({
   srcDir: "src",
@@ -8,10 +10,15 @@ export default defineConfig({
   imports: false,
   manifest: ({ browser }) => ({
     name: "OpenRift Deck Importer",
-    description: "Send the decklist you are viewing to your OpenRift account.",
-    permissions: ["activeTab", "scripting"],
-    // No popup: clicking the toolbar icon triggers the import directly.
-    action: {},
+    description:
+      "Send the decklist you are viewing to your OpenRift account, and see your collection and wishlist counts on Cardmarket.",
+    permissions: ["activeTab", "scripting", "storage"],
+    // Granted from the options page, so a plain deck-importer install still
+    // asks for no host access. MV2 has no separate optional host list.
+    ...(browser === "firefox"
+      ? { optional_permissions: [CARDMARKET_MATCH_PATTERN, openriftMatchPattern()] }
+      : { optional_host_permissions: [CARDMARKET_MATCH_PATTERN, openriftMatchPattern()] }),
+    options_ui: { page: "options.html", open_in_tab: true },
     // Drop update_url when migrating to an AMO-listed add-on: AMO rejects it
     // on listed versions. See docs/extension.md.
     ...(browser === "firefox" && {

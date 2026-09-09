@@ -80,9 +80,9 @@ export const helpArticles = new Map<string, HelpArticle>([
     "deck-importer-extension",
     {
       slug: "deck-importer-extension",
-      title: "Deck Importer Extension",
+      title: "Browser Extension",
       description:
-        "Send the decklist you're looking at on another site straight to OpenRift with one click, using the Firefox add-on.",
+        "Send the decklist you're looking at on another site straight to OpenRift, and see what you own and want on a Cardmarket seller's offers.",
       icon: PuzzleIcon,
       component: () => import("./articles/deck-importer-extension"),
     },

@@ -1,56 +1,46 @@
 import { browser } from "wxt/browser";
 import { defineBackground } from "wxt/utils/define-background";
 
-import type { PageExtract } from "@/lib/deck-extract";
-import { deckImportUrl } from "@/lib/openrift-url";
+import { CARDMARKET_MATCH_PATTERN, isCardmarketOffersUrl } from "@/lib/cardmarket-url";
+import { annotateTab, captureSnapshot, storedSnapshot } from "@/lib/inject";
+import { isOverlaySyncUrl, openriftMatchPattern } from "@/lib/openrift-url";
 
-const BADGE_CLEAR_MS = 4000;
-
-/** `action` on MV3, `browserAction` on Firefox MV2 builds. */
-function actionApi(): typeof browser.action {
-  return browser.action ?? browser.browserAction;
+async function hasPermission(origin: string): Promise<boolean> {
+  return await browser.permissions.contains({ origins: [origin] });
 }
 
-function showNotFoundBadge(tabId: number): void {
-  const action = actionApi();
-  void action.setBadgeText({ tabId, text: "?" });
-  void action.setBadgeBackgroundColor({ tabId, color: "#b91c1c" });
-  setTimeout(() => {
-    void action.setBadgeText({ tabId, text: "" });
-  }, BADGE_CLEAR_MS);
-}
-
-async function importDeckFromTab(tabId: number, tabIndex: number): Promise<void> {
-  const results = await browser.scripting.executeScript({
-    target: { tabId },
-    files: ["/content-scripts/extract.js"],
-  });
-  const extract = results[0]?.result as PageExtract | undefined;
-  const deck = extract?.deck;
-
-  if (!deck || deck.kind === "none") {
-    showNotFoundBadge(tabId);
-    return;
-  }
-  const payload = deck.kind === "text" ? deck.list : deck.code;
-  const url = deckImportUrl(payload, { name: deck.name, source: extract?.sourceUrl });
-  await browser.tabs.create({ url, index: tabIndex + 1 });
-}
-
-async function handleActionClick(tabId: number, tabIndex: number) {
+/** Everything here needs a granted host permission; the popup covers the rest by hand. */
+async function handlePageLoad(tabId: number, url: string): Promise<void> {
   try {
-    await importDeckFromTab(tabId, tabIndex);
+    if (isCardmarketOffersUrl(url) && (await hasPermission(CARDMARKET_MATCH_PATTERN))) {
+      if ((await storedSnapshot()) !== undefined) {
+        await annotateTab(tabId);
+      }
+      return;
+    }
+    if (isOverlaySyncUrl(url) && (await hasPermission(openriftMatchPattern()))) {
+      await captureSnapshot(tabId);
+    }
   } catch {
-    // Injection fails on browser-internal pages and extension stores.
-    showNotFoundBadge(tabId);
+    // A page that navigated away mid-injection is not worth reporting.
   }
 }
 
 export default defineBackground(() => {
-  actionApi().onClicked.addListener((tab) => {
-    if (tab.id === undefined) {
+  // Both events matter: a full load reports status, an in-app navigation to
+  // the sync page only reports the new URL.
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const navigated = changeInfo.status === "complete" || changeInfo.url !== undefined;
+    if (!navigated || tab.url === undefined) {
       return;
     }
-    void handleActionClick(tab.id, tab.index);
+    void handlePageLoad(tabId, tab.url);
+  });
+
+  // Host permissions can only be requested from an extension page.
+  browser.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+      void browser.runtime.openOptionsPage();
+    }
   });
 });

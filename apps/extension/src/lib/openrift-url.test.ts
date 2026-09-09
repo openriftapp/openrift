@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { deckImportUrl } from "./openrift-url";
+import {
+  deckImportUrl,
+  isOverlaySyncUrl,
+  matchPatternForUrl,
+  openriftMatchPattern,
+  overlaySyncUrl,
+} from "./openrift-url";
 
 describe("deckImportUrl", () => {
   it("URL-encodes the payload into the code param", () => {
@@ -27,5 +33,45 @@ describe("deckImportUrl", () => {
     const url = deckImportUrl("CODE123456789ABC");
     expect(url).not.toContain("name=");
     expect(url).not.toContain("source=");
+  });
+});
+
+describe("isOverlaySyncUrl", () => {
+  it("matches the sync page on the configured instance", () => {
+    expect(isOverlaySyncUrl("https://openrift.app/extension/cardmarket")).toBe(true);
+  });
+
+  it("keeps out other pages and other hosts", () => {
+    expect(isOverlaySyncUrl("https://openrift.app/extension")).toBe(false);
+    expect(isOverlaySyncUrl("https://openrift.app.evil.test/extension/cardmarket")).toBe(false);
+    expect(isOverlaySyncUrl("not a url")).toBe(false);
+  });
+});
+
+describe("openriftMatchPattern", () => {
+  it("covers the whole instance origin", () => {
+    expect(openriftMatchPattern()).toBe("https://openrift.app/*");
+  });
+});
+
+describe("matchPatternForUrl", () => {
+  it("drops the port, which no match pattern may carry", () => {
+    expect(matchPatternForUrl("https://localhost:5174")).toBe("https://localhost/*");
+  });
+
+  it("drops any path as well", () => {
+    expect(matchPatternForUrl("https://openrift.app/extension/cardmarket")).toBe(
+      "https://openrift.app/*",
+    );
+  });
+
+  it("keeps the scheme it was given", () => {
+    expect(matchPatternForUrl("http://localhost:3000")).toBe("http://localhost/*");
+  });
+});
+
+describe("overlaySyncUrl", () => {
+  it("points at the sync page", () => {
+    expect(overlaySyncUrl()).toBe("https://openrift.app/extension/cardmarket");
   });
 });

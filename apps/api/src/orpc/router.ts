@@ -63,6 +63,7 @@ import { adminMarketplaceGroupsRouter } from "../modules/marketplace/routes/admi
 import { adminProductsRouter } from "../modules/marketplace/routes/admin-products.js";
 import { adminProviderSettingsRouter } from "../modules/marketplace/routes/admin-provider-settings.js";
 import { adminUnifiedMappingsRouter } from "../modules/marketplace/routes/admin-unified-mappings.js";
+import { cardmarketOverlayRouter } from "../modules/marketplace/routes/authenticated-cardmarket-overlay.js";
 import { cardmarketStockRouter } from "../modules/marketplace/routes/authenticated-cardmarket-stock.js";
 import { pricesRouter } from "../modules/marketplace/routes/public-prices.js";
 import { productsRouter } from "../modules/marketplace/routes/public-products.js";
@@ -172,6 +173,7 @@ const apiRouter = {
   cardSubmissionsRouter,
   scanReportsRouter,
   cardTradesRouter,
+  cardmarketOverlayRouter,
   cardmarketStockRouter,
   collectionEventsRouter,
   collectionValueHistoryRouter,
