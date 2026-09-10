@@ -22,7 +22,7 @@ const fetchCardmarketOverlaySnapshot = createServerFn({ method: "POST" })
     apiOrpcClient(cardmarketOverlayContract, context.cookie).snapshot(data),
   );
 
-export function cardmarketOverlayQueryOptions(
+function cardmarketOverlayQueryOptions(
   userId: string,
   marketplace: Marketplace,
   sortedListIds: readonly string[],

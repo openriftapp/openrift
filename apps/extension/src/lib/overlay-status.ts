@@ -33,7 +33,7 @@ export function listNames(names: readonly string[]): string {
 
 const STALE_AFTER_MS = 2 * DAY_MS;
 
-export const LISTS_SHOWN = 4;
+const LISTS_SHOWN = 4;
 
 export interface SyncStatus {
   lists: OverlayList[];

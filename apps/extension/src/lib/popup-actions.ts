@@ -3,7 +3,7 @@ import type { PageDeckExtract } from "./deck-extract";
 import { countTextCards } from "./deck-extract";
 import { isOverlaySyncUrl } from "./openrift-url";
 
-export type PopupPrimary = "capture" | "annotate" | "refresh";
+type PopupPrimary = "capture" | "annotate" | "refresh";
 
 export interface PopupPlan {
   primary: PopupPrimary;

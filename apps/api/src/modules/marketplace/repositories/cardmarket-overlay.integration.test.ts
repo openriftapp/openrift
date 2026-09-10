@@ -51,11 +51,11 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   const createdListIds: string[] = [];
   const createdFriendGroupIds: string[] = [];
 
+  let cardListId: string;
   let listId: string;
   let secondListId: string;
   let tradeListId: string;
   let ruleListId: string;
-  let foilCopyId: string;
 
   /** Mirrors what the route does: expand each list's rules, then flatten. */
   async function wantsFor(lists: { id: string; kind: "card" | "printing" }[]) {
@@ -65,8 +65,12 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     return perList.flatMap((entries) => overlayWantsFromEntries(entries));
   }
 
-  function manual(id: string) {
-    return wantsFor([{ id, kind: "printing" }]);
+  /** A list holds a single kind, so the hand-entered wants span a card and a printing list. */
+  function manual() {
+    return wantsFor([
+      { id: cardListId, kind: "card" },
+      { id: listId, kind: "printing" },
+    ]);
   }
 
   async function createProduct(
@@ -193,7 +197,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     await addCopy(collection.id, runeEn.id);
     await addCopy(collection.id, runeEn.id);
     await addCopy(collection.id, runeSc.id);
-    foilCopyId = await addCopy(collection.id, runeFoilEn.id);
+    await addCopy(collection.id, runeFoilEn.id);
     // Puts the unpriced product in the result, so its null price is assertable.
     await addCopy(collection.id, unmappedPrinting.id);
 
@@ -221,6 +225,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     createdCollectionIds.push(groupCollection.id);
     await addCopy(groupCollection.id, runeEn.id);
 
+    cardListId = await createList("Overlay Card Wants", "wish", { kind: "card" });
     listId = await createList("Overlay Wants", "wish");
     secondListId = await createList("Overlay Extra Wants", "wish");
     tradeListId = await createList("Overlay Trades", "trade");
@@ -242,9 +247,9 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     await db
       .insertInto("listEntries")
       .values([
-        { listId, userId, kind: "card", cardId: runeEn.cardId, quantity: 2 },
+        { listId: cardListId, userId, kind: "card", cardId: runeEn.cardId, quantity: 2 },
         { listId, userId, kind: "printing", printingId: runeSc.id, quantity: 3 },
-        { listId, userId, kind: "copy", copyId: foilCopyId, quantity: 1 },
+        { listId, userId, kind: "printing", printingId: runeFoilEn.id, quantity: 1 },
         // A second list wanting the same card: the two lists' wants add up.
         { listId: secondListId, userId, kind: "printing", printingId: runeEn.id, quantity: 4 },
       ])
@@ -285,7 +290,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   }
 
   it("splits one product id into independent per-finish rows", async () => {
-    const byProduct = keyed(await repo.productCounts(await manual(listId), userId, "cardmarket"));
+    const byProduct = keyed(await repo.productCounts(await manual(), userId, "cardmarket"));
 
     // owned: 2 EN + 1 SC normal copies. wanted: card entry 2 (once, not once
     // per mapped printing) + printing entry 3.
@@ -296,7 +301,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
       wanted: 5,
       priceCents: EN_CENTS,
     });
-    // owned: the single foil EN copy. wanted: card entry 2 + copy entry 1.
+    // owned: the single foil EN copy. wanted: card entry 2 + foil printing entry 1.
     expect(byProduct.get(`${sharedExternalId}:foil`)).toEqual({
       idProduct: sharedExternalId,
       finish: "foil",
@@ -310,6 +315,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     const byProduct = keyed(
       await repo.productCounts(
         await wantsFor([
+          { id: cardListId, kind: "card" },
           { id: listId, kind: "printing" },
           { id: secondListId, kind: "printing" },
         ]),
@@ -337,6 +343,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
 
   it("sums a manual and a rule-driven list wanting the same card", async () => {
     const wants = await wantsFor([
+      { id: cardListId, kind: "card" },
       { id: listId, kind: "printing" },
       { id: ruleListId, kind: "card" },
     ]);
@@ -352,7 +359,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   // The route dedupes list ids; two identical wants mean two lists asking, and
   // those add. The DISTINCT below only stops one want counting per printing.
   it("adds two identical wants rather than collapsing them", async () => {
-    const wants = await manual(listId);
+    const wants = await manual();
 
     const once = keyed(await repo.productCounts(wants, userId, "cardmarket"));
     const twice = keyed(await repo.productCounts([...wants, ...wants], userId, "cardmarket"));
@@ -365,7 +372,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   // Filtered to this file's own range: the seed maps the same printings to its
   // own Cardmarket products, which legitimately show up in the full result.
   it("orders by product id then finish", async () => {
-    const rows = await repo.productCounts(await manual(listId), userId, "cardmarket");
+    const rows = await repo.productCounts(await manual(), userId, "cardmarket");
 
     expect(
       rows
@@ -375,13 +382,13 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   });
 
   it("omits a product that is neither owned, wanted nor priced", async () => {
-    const rows = await repo.productCounts(await manual(listId), userId, "cardmarket");
+    const rows = await repo.productCounts(await manual(), userId, "cardmarket");
 
     expect(rows.some((row) => row.idProduct === absentExternalId)).toBe(false);
   });
 
   it("emits a priced product the caller neither owns nor wants", async () => {
-    const byProduct = keyed(await repo.productCounts(await manual(listId), userId, "cardmarket"));
+    const byProduct = keyed(await repo.productCounts(await manual(), userId, "cardmarket"));
 
     expect(byProduct.get(`${priceOnlyExternalId}:normal`)).toEqual({
       idProduct: priceOnlyExternalId,
@@ -393,14 +400,14 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   });
 
   it("falls back to the cheapest mapped printing when none of them is EN", async () => {
-    const byProduct = keyed(await repo.productCounts(await manual(listId), userId, "cardmarket"));
+    const byProduct = keyed(await repo.productCounts(await manual(), userId, "cardmarket"));
 
     // Maps the SC normal (100) and the SC foil (700) printings, no EN at all.
     expect(byProduct.get(`${scOnlyExternalId}:normal`)?.priceCents).toBe(SC_CENTS);
   });
 
   it("reports a null price when no mapped printing is priced", async () => {
-    const byProduct = keyed(await repo.productCounts(await manual(listId), userId, "cardmarket"));
+    const byProduct = keyed(await repo.productCounts(await manual(), userId, "cardmarket"));
 
     expect(byProduct.get(`${unpricedExternalId}:normal`)).toEqual({
       idProduct: unpricedExternalId,
@@ -412,7 +419,7 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   });
 
   it("prices against the requested marketplace", async () => {
-    const byProduct = keyed(await repo.productCounts(await manual(listId), userId, "tcgplayer"));
+    const byProduct = keyed(await repo.productCounts(await manual(), userId, "tcgplayer"));
 
     expect(byProduct.get(`${sharedExternalId}:normal`)?.priceCents).toBe(TCG_EN_CENTS);
     // Only the printing behind the row changes marketplace; the row set is Cardmarket's.
@@ -422,7 +429,13 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   it("returns only owned counts for a list with no entries", async () => {
     const empty = await createList("Overlay Empty", "wish");
 
-    const byProduct = keyed(await repo.productCounts(await manual(empty), userId, "cardmarket"));
+    const byProduct = keyed(
+      await repo.productCounts(
+        await wantsFor([{ id: empty, kind: "printing" }]),
+        userId,
+        "cardmarket",
+      ),
+    );
 
     expect(byProduct.get(`${sharedExternalId}:normal`)).toEqual({
       idProduct: sharedExternalId,

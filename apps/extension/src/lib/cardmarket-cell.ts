@@ -1,4 +1,4 @@
-export const CELL_ATTRIBUTE = "data-openrift-cell";
+const CELL_ATTRIBUTE = "data-openrift-cell";
 
 // The header and every article row get the same last column, or the header
 // stops lining up with the rows.
@@ -29,8 +29,8 @@ export function overlayCell(row: HTMLElement, doc: Document): HTMLElement {
 const HEADER_SELECTOR = ".table-header";
 const HEADER_LABEL = "OpenRift";
 const HEADER_ATTRIBUTE = "data-openrift-header";
-export const HELP_TOGGLE_ATTRIBUTE = "data-openrift-help-toggle";
-export const HELP_ATTRIBUTE = "data-openrift-help";
+const HELP_TOGGLE_ATTRIBUTE = "data-openrift-help-toggle";
+const HELP_ATTRIBUTE = "data-openrift-help";
 
 const HELP_LINES = [
   [

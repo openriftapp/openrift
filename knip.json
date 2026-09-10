@@ -7,8 +7,8 @@
     },
     "apps/discord-bot": {},
     "apps/extension": {
-      "entry": ["src/entrypoints/*.ts", "scripts/**/*.ts"],
-      "ignoreDependencies": ["@piltoverarchive/riftbound-deck-codes"]
+      "entry": ["src/entrypoints/**/*.ts", "scripts/**/*.ts"],
+      "ignoreDependencies": ["@piltoverarchive/riftbound-deck-codes", "@fontsource/chakra-petch"]
     },
     "apps/api": {
       "entry": ["src/app.ts"],

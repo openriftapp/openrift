@@ -24,7 +24,7 @@ export interface OverlaySnapshot {
 
 export const SNAPSHOT_STORAGE_KEY = "cardmarketOverlaySnapshot";
 
-export const OVERLAY_MARKETPLACES = ["cardmarket", "tcgplayer", "cardtrader"] as const;
+const OVERLAY_MARKETPLACES = ["cardmarket", "tcgplayer", "cardtrader"] as const;
 
 export type OverlayMarketplace = (typeof OVERLAY_MARKETPLACES)[number];
 
@@ -44,7 +44,7 @@ interface SnapshotProductRow {
   priceCents: number | null;
 }
 
-export function productKey(idProduct: number, finish: CardmarketFinish): string {
+function productKey(idProduct: number, finish: CardmarketFinish): string {
   return `${idProduct}:${finish}`;
 }
 

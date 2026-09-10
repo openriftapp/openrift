@@ -29,14 +29,14 @@ export function overlaySyncUrl(): string {
   return `${BASE_URL}/extension/cardmarket`;
 }
 
-export const PICKS_IMPORT_PATH = "/collections/lists/import/cardmarket";
+const PICKS_IMPORT_PATH = "/collections/lists/import/cardmarket";
 
 /** The payload rides in the fragment: it never reaches the server and has no length cap to speak of. */
 export function picksImportUrl(payload: PicksPayload): string {
   return `${BASE_URL}${PICKS_IMPORT_PATH}#picks=${encodeURIComponent(JSON.stringify(payload))}`;
 }
 
-export function openriftOrigin(): string {
+function openriftOrigin(): string {
   return new URL(BASE_URL).origin;
 }
 

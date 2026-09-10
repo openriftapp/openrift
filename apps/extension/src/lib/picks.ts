@@ -1,6 +1,6 @@
 import type { CardmarketFinish } from "./cardmarket-rows";
 
-export interface CardmarketPick {
+interface CardmarketPick {
   idProduct: number;
   finish: CardmarketFinish;
   /** Cardmarket's numeric language id, null when the flag label could not be placed. */

@@ -4,8 +4,8 @@ import { extractArticleRows } from "./cardmarket-rows";
 import type { PickIdentity, PicksBasket } from "./picks";
 import { pickedQuantity } from "./picks";
 
-export const PICK_CONTROL_ATTRIBUTE = "data-openrift-pick";
-export const PICK_DELTA_ATTRIBUTE = "data-openrift-pick-delta";
+const PICK_CONTROL_ATTRIBUTE = "data-openrift-pick";
+const PICK_DELTA_ATTRIBUTE = "data-openrift-pick-delta";
 const PICK_COUNT_ATTRIBUTE = "data-openrift-pick-count";
 
 const CONTROL_STYLE = [

@@ -28,7 +28,7 @@ const payloadSchema = z.object({
 });
 
 export type CardmarketPicksPayload = z.infer<typeof payloadSchema>;
-export type CardmarketPickInput = CardmarketPicksPayload["picks"][number];
+type CardmarketPickInput = CardmarketPicksPayload["picks"][number];
 
 export function parsePicksHash(hash: string): CardmarketPicksPayload | undefined {
   const raw = new URLSearchParams(hash.replace(/^#/u, "")).get(HASH_PARAM);
