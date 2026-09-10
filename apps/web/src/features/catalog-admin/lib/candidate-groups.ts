@@ -31,3 +31,16 @@ export function unlinkedGroupCandidates(
     return candidate === undefined || candidate.printingId !== null ? [] : [candidate];
   });
 }
+
+export function linkedGroupCandidateIds(
+  detail: Pick<AdminCardDetailResponse, "candidatePrintings">,
+  candidateCardId: string,
+  printingId: string,
+): string[] {
+  return detail.candidatePrintings
+    .filter(
+      (candidate) =>
+        candidate.candidateCardId === candidateCardId && candidate.printingId === printingId,
+    )
+    .map((candidate) => candidate.id);
+}

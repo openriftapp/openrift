@@ -10,7 +10,11 @@ import {
 } from "@/test/factories";
 
 import { buildAttentionSubmissions } from "./attention-items";
-import { buildAcceptSubmissionInput, submissionTickKeys } from "./build-accept-input";
+import {
+  buildAcceptSubmissionInput,
+  printingGroupTickKeys,
+  submissionTickKeys,
+} from "./build-accept-input";
 
 beforeEach(() => {
   resetIdCounter();
@@ -236,5 +240,47 @@ describe("includedKeys", () => {
     });
     expect(includedKeys.has(unknownField.key)).toBe(false);
     expect(input.cardFields?.map((pick) => pick.field)).not.toContain("notAField");
+  });
+});
+
+describe("printingGroupTickKeys", () => {
+  it("returns the change keys of every group on that printing", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const moved = makeAdminPrinting({ artist: "Old Artist" });
+    const kept = makeAdminPrinting({ artist: "Old Artist" });
+    const first = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: moved.id,
+      artist: "New Artist",
+    });
+    const second = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: moved.id,
+      artist: "Other Artist",
+    });
+    const elsewhere = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: kept.id,
+      artist: "Third Artist",
+    });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [moved, kept],
+      candidatePrintings: [first, second, elsewhere],
+    });
+    const submission = buildAttentionSubmissions(detail)[0];
+    if (!submission) {
+      throw new Error("expected a submission");
+    }
+    expect(printingGroupTickKeys(submission, moved.id)).toEqual([
+      `printing:${first.id}:artist`,
+      `printing:${second.id}:artist`,
+    ]);
+    expect(printingGroupTickKeys(submission, kept.id)).toEqual([`printing:${elsewhere.id}:artist`]);
+  });
+
+  it("returns nothing for a printing the submission does not touch", () => {
+    expect(printingGroupTickKeys(cardOnlySubmission(), "prt-nope")).toEqual([]);
   });
 });

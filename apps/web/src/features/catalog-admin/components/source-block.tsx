@@ -16,8 +16,8 @@ import {
   useLinkCandidatePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { ComparePrintingPicker } from "@/features/catalog-admin/components/compare-dialogs";
 import { CompareMissingFieldsDialog } from "@/features/catalog-admin/components/compare-missing-fields-dialog";
+import { PrintingTargetMenu } from "@/features/catalog-admin/components/printing-target-menu";
 import {
   unlinkedCandidatesForSource,
   unlinkedGroupCandidates,
@@ -73,7 +73,6 @@ export function SourceBlock({
   const acceptPrintingGroup = useAcceptPrintingGroup(scope);
   const linkCandidatePrintings = useLinkCandidatePrintings(scope);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
-  const [linking, setLinking] = useState<CandidatePrintingResponse | null>(null);
 
   const isPending = checkCard.isPending || checkPrintings.isPending;
   const cardId = detail.card?.id;
@@ -108,6 +107,13 @@ export function SourceBlock({
       cardId,
       printingFields: buildPrintingFieldsFromCandidate(candidate, overrides),
       candidatePrintingIds: unlinkedGroupCandidates(detail, candidate.id).map((entry) => entry.id),
+    });
+  }
+
+  function linkCandidate(candidate: CandidatePrintingResponse, printingId: string) {
+    linkCandidatePrintings.mutate({
+      candidatePrintingIds: unlinkedGroupCandidates(detail, candidate.id).map((entry) => entry.id),
+      printingId,
     });
   }
 
@@ -174,14 +180,11 @@ export function SourceBlock({
                   >
                     Add printing
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    disabled={printingTargets.length === 0}
-                    onClick={() => setLinking(candidate)}
-                  >
-                    Link to existing…
-                  </Button>
+                  <PrintingTargetMenu
+                    label="Link to existing…"
+                    targets={printingTargets}
+                    onPick={(printingId) => linkCandidate(candidate, printingId)}
+                  />
                 </li>
               ))}
             </ul>
@@ -189,32 +192,6 @@ export function SourceBlock({
         </CardContent>
       </Card>
 
-      <ComparePrintingPicker
-        open={linking !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setLinking(null);
-          }
-        }}
-        copy={{
-          title: "Link to an existing printing",
-          description: "Pick the printing this row belongs to.",
-          confirmLabel: "Link rows",
-        }}
-        targets={printingTargets}
-        onConfirm={(printingId) => {
-          const candidate = linking;
-          setLinking(null);
-          if (candidate !== null) {
-            linkCandidatePrintings.mutate({
-              candidatePrintingIds: unlinkedGroupCandidates(detail, candidate.id).map(
-                (entry) => entry.id,
-              ),
-              printingId,
-            });
-          }
-        }}
-      />
       <CompareMissingFieldsDialog
         open={pendingAdd !== null}
         onOpenChange={(open) => {

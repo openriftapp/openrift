@@ -45,6 +45,31 @@ const newPrintingGroup: AttentionGroup = {
   summary: "foil · epic · Riot Artist",
 };
 
+const linkedPrintingGroup: AttentionGroup = {
+  key: "printing:cp2",
+  kind: "printing",
+  title: "Printing OGN-001 · EN",
+  printingId: "prt-1",
+  candidate: null,
+  changes: [
+    {
+      key: "printing:cp2:artist",
+      field: "artist",
+      label: "Artist",
+      current: "Old Artist",
+      proposed: "New Artist",
+      kind: "value",
+    },
+  ],
+  unchangedFields: [],
+  summary: null,
+};
+
+const printingTargets = [
+  { id: "prt-1", label: "OGN-001 · EN" },
+  { id: "prt-2", label: "OGN-002 · EN" },
+];
+
 function renderList(overrides: Partial<React.ComponentProps<typeof AttentionChangeList>> = {}) {
   const onToggle = vi.fn();
   const onEdit = vi.fn();
@@ -84,11 +109,44 @@ describe("AttentionChangeList", () => {
     expect(onEdit).toHaveBeenCalledWith("card:c1:name", "Lux, Lady of Light!");
   });
 
-  it("offers to link a new printing to an existing one", async () => {
+  it("links a new printing straight from the menu", async () => {
     const onLinkGroup = vi.fn();
-    renderList({ groups: [newPrintingGroup], ticked: new Set(["new-printing:cp1"]), onLinkGroup });
+    renderList({
+      groups: [newPrintingGroup],
+      ticked: new Set(["new-printing:cp1"]),
+      printingTargets,
+      onLinkGroup,
+    });
     await userEvent.click(screen.getByRole("button", { name: "Link to existing…" }));
-    expect(onLinkGroup).toHaveBeenCalledWith(newPrintingGroup);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "OGN-002 · EN" }));
+    expect(onLinkGroup).toHaveBeenCalledWith(newPrintingGroup, "prt-2");
+  });
+
+  it("moves a linked printing group and leaves out its own printing", async () => {
+    const onMoveGroup = vi.fn();
+    renderList({
+      groups: [linkedPrintingGroup],
+      ticked: new Set(["printing:cp2:artist"]),
+      printingTargets,
+      onMoveGroup,
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Move to another printing…" }));
+    expect(await screen.findByRole("menuitem", { name: "OGN-002 · EN" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "OGN-001 · EN" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitem", { name: "OGN-002 · EN" }));
+    expect(onMoveGroup).toHaveBeenCalledWith(linkedPrintingGroup, "prt-2");
+  });
+
+  it("keeps the move control off a new-printing group", () => {
+    renderList({
+      groups: [newPrintingGroup],
+      ticked: new Set(["new-printing:cp1"]),
+      printingTargets,
+      onMoveGroup: vi.fn(),
+    });
+    expect(
+      screen.queryByRole("button", { name: "Move to another printing…" }),
+    ).not.toBeInTheDocument();
   });
 
   it("hides the link control when no handler is given", () => {

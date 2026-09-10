@@ -89,3 +89,12 @@ export function submissionTickKeys(submission: AttentionSubmission): string[] {
     group.kind === "new-printing" ? [group.key] : group.changes.map((change) => change.key),
   );
 }
+
+export function printingGroupTickKeys(
+  submission: AttentionSubmission,
+  printingId: string,
+): string[] {
+  return submission.groups
+    .filter((group) => group.kind === "printing" && group.printingId === printingId)
+    .flatMap((group) => group.changes.map((change) => change.key));
+}

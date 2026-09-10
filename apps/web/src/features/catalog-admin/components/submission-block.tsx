@@ -12,7 +12,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Kbd } from "@/components/ui/kbd";
 import { useLinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
 import { AttentionChangeList } from "@/features/catalog-admin/components/attention-change-list";
-import { ComparePrintingPicker } from "@/features/catalog-admin/components/compare-dialogs";
 import { RejectSubmissionDialog } from "@/features/catalog-admin/components/reject-submission-dialog";
 import { SendNoteDialog } from "@/features/catalog-admin/components/send-note-dialog";
 import type { SettleScope } from "@/features/catalog-admin/hooks/use-catalog-review";
@@ -23,9 +22,13 @@ import type {
 } from "@/features/catalog-admin/lib/attention-items";
 import {
   buildAcceptSubmissionInput,
+  printingGroupTickKeys,
   submissionTickKeys,
 } from "@/features/catalog-admin/lib/build-accept-input";
-import { unlinkedGroupCandidates } from "@/features/catalog-admin/lib/candidate-groups";
+import {
+  linkedGroupCandidateIds,
+  unlinkedGroupCandidates,
+} from "@/features/catalog-admin/lib/candidate-groups";
 import { printingBlockTitle } from "@/features/catalog-admin/lib/compare-rows";
 
 interface SettledRow {
@@ -129,7 +132,6 @@ export function SubmissionBlock({
   const [settled, setSettled] = useState<SettledResult | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [replying, setReplying] = useState(false);
-  const [linking, setLinking] = useState<AttentionGroup | null>(null);
 
   const printingTargets = detail.printings.map((printing) => ({
     id: printing.id,
@@ -158,6 +160,20 @@ export function SubmissionBlock({
       printingId,
     });
     setUnticked((prev) => new Set(prev).add(group.key));
+  }
+
+  function moveGroup(group: AttentionGroup, printingId: string) {
+    const from = group.printingId;
+    if (from === null) {
+      return;
+    }
+    const candidatePrintingIds = linkedGroupCandidateIds(detail, submission.candidateCardId, from);
+    if (candidatePrintingIds.length === 0) {
+      return;
+    }
+    linkCandidatePrintings.mutate({ candidatePrintingIds, printingId });
+    const retick = new Set(printingGroupTickKeys(submission, from));
+    setUnticked((prev) => new Set([...prev].filter((key) => !retick.has(key))));
   }
 
   async function runAccept() {
@@ -216,7 +232,9 @@ export function SubmissionBlock({
               })
             }
             onEdit={(key, value) => setEdits((prev) => new Map([...prev, [key, value]]))}
-            onLinkGroup={printingTargets.length > 0 ? setLinking : undefined}
+            printingTargets={printingTargets}
+            onLinkGroup={printingTargets.length > 0 ? linkGroup : undefined}
+            onMoveGroup={printingTargets.length > 1 ? moveGroup : undefined}
           />
 
           <div className="flex flex-wrap items-center gap-3">
@@ -257,27 +275,6 @@ export function SubmissionBlock({
           }
         }}
         onRejected={onSettled}
-      />
-      <ComparePrintingPicker
-        open={linking !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setLinking(null);
-          }
-        }}
-        copy={{
-          title: "Link to an existing printing",
-          description: "Pick the printing this row belongs to.",
-          confirmLabel: "Link rows",
-        }}
-        targets={printingTargets}
-        onConfirm={(printingId) => {
-          const group = linking;
-          setLinking(null);
-          if (group !== null) {
-            linkGroup(group, printingId);
-          }
-        }}
       />
       <SendNoteDialog
         candidateCardId={replying ? submission.candidateCardId : null}

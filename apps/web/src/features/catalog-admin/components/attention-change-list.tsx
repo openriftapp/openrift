@@ -8,8 +8,10 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DiffText } from "@/features/admin/components/candidate-cell-display";
+import { PrintingTargetMenu } from "@/features/catalog-admin/components/printing-target-menu";
 import type { AttentionChange, AttentionGroup } from "@/features/catalog-admin/lib/attention-items";
 import { formatFieldValue } from "@/features/catalog-admin/lib/catalog-field-labels";
+import type { ComparePrintingTarget } from "@/features/catalog-admin/lib/compare-actions";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
 
@@ -173,7 +175,9 @@ interface AttentionChangeListProps {
   edits: ReadonlyMap<string, unknown>;
   onToggle: (key: string) => void;
   onEdit: (key: string, value: unknown) => void;
-  onLinkGroup?: (group: AttentionGroup) => void;
+  printingTargets?: readonly ComparePrintingTarget[];
+  onLinkGroup?: (group: AttentionGroup, printingId: string) => void;
+  onMoveGroup?: (group: AttentionGroup, printingId: string) => void;
 }
 
 export function AttentionChangeList({
@@ -182,7 +186,9 @@ export function AttentionChangeList({
   edits,
   onToggle,
   onEdit,
+  printingTargets = [],
   onLinkGroup,
+  onMoveGroup,
 }: AttentionChangeListProps) {
   const [editing, setEditing] = useState<ReadonlySet<string>>(() => new Set());
   const [showUnchanged, setShowUnchanged] = useState(false);
@@ -194,9 +200,19 @@ export function AttentionChangeList({
       <CardList>
         {groups.map((group) => (
           <li key={group.key}>
-            <p className="text-muted-foreground bg-muted rounded-md px-3 py-1.5 text-xs font-medium">
-              {group.title}
-            </p>
+            <div className="bg-muted flex items-center gap-2 rounded-md px-3 py-1">
+              <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs font-medium">
+                {group.title}
+              </span>
+              {onMoveGroup && group.kind === "printing" && (
+                <PrintingTargetMenu
+                  label="Move to another printing…"
+                  className="shrink-0"
+                  targets={printingTargets.filter((target) => target.id !== group.printingId)}
+                  onPick={(printingId) => onMoveGroup(group, printingId)}
+                />
+              )}
+            </div>
             <ul>
               {group.kind === "new-printing" ? (
                 <li className="flex items-center gap-3 rounded-md px-3 py-2">
@@ -213,14 +229,12 @@ export function AttentionChangeList({
                     {group.summary}
                   </label>
                   {onLinkGroup && (
-                    <Button
-                      variant="outline"
-                      size="xs"
+                    <PrintingTargetMenu
+                      label="Link to existing…"
                       className="shrink-0"
-                      onClick={() => onLinkGroup(group)}
-                    >
-                      Link to existing…
-                    </Button>
+                      targets={printingTargets}
+                      onPick={(printingId) => onLinkGroup(group, printingId)}
+                    />
                   )}
                 </li>
               ) : (

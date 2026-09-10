@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { makeAdminCardDetail, makeCandidatePrinting, resetIdCounter } from "@/test/factories";
 
-import { unlinkedCandidatesForSource, unlinkedGroupCandidates } from "./candidate-groups";
+import {
+  linkedGroupCandidateIds,
+  unlinkedCandidatesForSource,
+  unlinkedGroupCandidates,
+} from "./candidate-groups";
 
 beforeEach(() => {
   resetIdCounter();
@@ -50,5 +54,28 @@ describe("unlinkedGroupCandidates", () => {
     const solo = makeCandidatePrinting({ candidateCardId: "src-1" });
     const detail = makeAdminCardDetail({ candidatePrintings: [solo] });
     expect(unlinkedGroupCandidates(detail, solo.id).map((row) => row.id)).toEqual([solo.id]);
+  });
+});
+
+describe("linkedGroupCandidateIds", () => {
+  it("returns the rows of that source sitting on the printing", () => {
+    const first = makeCandidatePrinting({ candidateCardId: "src-1", printingId: "prt-1" });
+    const second = makeCandidatePrinting({ candidateCardId: "src-1", printingId: "prt-1" });
+    const elsewhere = makeCandidatePrinting({ candidateCardId: "src-1", printingId: "prt-2" });
+    const otherSource = makeCandidatePrinting({ candidateCardId: "src-2", printingId: "prt-1" });
+    const unlinked = makeCandidatePrinting({ candidateCardId: "src-1" });
+    const detail = makeAdminCardDetail({
+      candidatePrintings: [first, second, elsewhere, otherSource, unlinked],
+    });
+    expect(linkedGroupCandidateIds(detail, "src-1", "prt-1")).toEqual([first.id, second.id]);
+  });
+
+  it("returns nothing when the source has no row on that printing", () => {
+    const detail = makeAdminCardDetail({
+      candidatePrintings: [
+        makeCandidatePrinting({ candidateCardId: "src-1", printingId: "prt-1" }),
+      ],
+    });
+    expect(linkedGroupCandidateIds(detail, "src-1", "prt-2")).toEqual([]);
   });
 });

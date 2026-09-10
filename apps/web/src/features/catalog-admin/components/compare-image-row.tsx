@@ -1,18 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { CatalogImageBox } from "@/features/catalog-admin/components/catalog-image-box";
 import type { CompareColumn } from "@/features/catalog-admin/lib/compare-columns";
 import type { CompareImageRow as CompareImageRowModel } from "@/features/catalog-admin/lib/compare-rows";
 import { cn } from "@/lib/utils";
-
-function Thumbnail({ url, ringed }: { url: string; ringed?: boolean }) {
-  return (
-    <img
-      src={url}
-      alt=""
-      loading="lazy"
-      className={cn("h-20 w-auto rounded-md object-contain", ringed && "ring-primary ring-2")}
-    />
-  );
-}
 
 export function CompareImageRow({
   imageRow,
@@ -32,11 +22,7 @@ export function CompareImageRow({
         Image
       </th>
       <td className="bg-background sticky left-40 z-10 border-l px-3 py-1.5 align-top">
-        {imageRow.siteImageUrl === null ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
-          <Thumbnail url={imageRow.siteImageUrl} ringed />
-        )}
+        <CatalogImageBox url={imageRow.siteImageUrl} alt="" ringed />
       </td>
       {columns.map((column) => {
         const cell = imageRow.cells.find((entry) => entry.columnId === column.id);
@@ -53,7 +39,7 @@ export function CompareImageRow({
               <span className="text-muted-foreground">—</span>
             ) : (
               <div className="flex flex-col items-start gap-1">
-                <Thumbnail url={cell.imageUrl} />
+                <CatalogImageBox url={cell.imageUrl} alt="" />
                 {cell.isSameFile ? (
                   <span className="text-muted-foreground text-xs">same file</span>
                 ) : (

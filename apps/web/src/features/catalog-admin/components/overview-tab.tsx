@@ -8,10 +8,10 @@ import type {
 import { LanguageChip } from "@/components/language-chip";
 import { Badge } from "@/components/ui/badge";
 import { CardList } from "@/components/ui/card-list";
-import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
+import { CatalogImageBox } from "@/features/catalog-admin/components/catalog-image-box";
 import { usePublicCardPreview } from "@/features/catalog-admin/hooks/use-public-card-preview";
 import { firstPrintingSetLabel } from "@/features/catalog-admin/lib/card-overview";
 import { hasFieldValue } from "@/features/catalog-admin/lib/catalog-field-labels";
@@ -56,18 +56,11 @@ function PrintingTiles({ detail }: { detail: AdminCardDetailResponse }) {
         const url = image?.rehostedUrl ?? image?.originalUrl ?? null;
         return (
           <div key={printing.id} className="w-32 space-y-1.5">
-            <div className="bg-muted/30 aspect-card flex items-center justify-center overflow-hidden rounded-md border">
-              {url ? (
-                <ImgWithFallback
-                  src={url}
-                  alt={printing.shortCode}
-                  className="size-full object-contain"
-                  fallback={<span className="text-muted-foreground text-xs">Failed to load</span>}
-                />
-              ) : (
-                <span className="text-muted-foreground text-xs">No image</span>
-              )}
-            </div>
+            <CatalogImageBox
+              url={url}
+              alt={printing.shortCode}
+              className="aspect-card flex h-auto w-full border"
+            />
             <p className="flex items-center gap-1.5 truncate text-sm">
               <LanguageChip code={printing.language} />
               <span className="truncate">{printing.shortCode}</span>

@@ -2,11 +2,9 @@ import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  CompareConfirmDialog,
-  ComparePrintingPicker,
-} from "@/features/catalog-admin/components/compare-dialogs";
+import { CompareConfirmDialog } from "@/features/catalog-admin/components/compare-dialogs";
 import { CompareMissingFieldsDialog } from "@/features/catalog-admin/components/compare-missing-fields-dialog";
+import { PrintingTargetMenu } from "@/features/catalog-admin/components/printing-target-menu";
 import type { CompareActions, CompareContext } from "@/features/catalog-admin/lib/compare-actions";
 import type { CompareGroupBlock } from "@/features/catalog-admin/lib/compare-rows";
 import type { RequiredPrintingField } from "@/features/catalog-admin/lib/printing-fields";
@@ -32,7 +30,7 @@ export function CompareOnlyInSourcesBlock({
   actions: CompareActions;
 }) {
   const { columns } = context;
-  const [pending, setPending] = useState<"link" | "ignore" | null>(null);
+  const [ignoring, setIgnoring] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
 
   const candidatesById = new Map(
@@ -78,15 +76,13 @@ export function CompareOnlyInSourcesBlock({
       </tr>
       <tr className="border-b">
         <td className="bg-background sticky left-0 z-10 space-x-2 px-3 py-2" colSpan={2}>
-          <Button
-            variant="outline"
+          <PrintingTargetMenu
+            label="Link to existing…"
             size="sm"
-            disabled={context.printingTargets.length === 0}
-            onClick={() => setPending("link")}
-          >
-            Link to existing…
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setPending("ignore")}>
+            targets={context.printingTargets}
+            onPick={(printingId) => actions.linkGroup(group.candidates, printingId)}
+          />
+          <Button variant="ghost" size="sm" onClick={() => setIgnoring(true)}>
             Ignore in all sources
           </Button>
         </td>
@@ -113,20 +109,9 @@ export function CompareOnlyInSourcesBlock({
         })}
       </tr>
 
-      <ComparePrintingPicker
-        open={pending === "link"}
-        onOpenChange={(open) => setPending(open ? "link" : null)}
-        copy={{
-          title: "Link these rows",
-          description: "Pick the printing these rows belong to.",
-          confirmLabel: "Link rows",
-        }}
-        targets={context.printingTargets}
-        onConfirm={(printingId) => actions.linkGroup(group.candidates, printingId)}
-      />
       <CompareConfirmDialog
-        open={pending === "ignore"}
-        onOpenChange={(open) => setPending(open ? "ignore" : null)}
+        open={ignoring}
+        onOpenChange={setIgnoring}
         copy={{
           title: "Ignore these rows?",
           description: `Every source row under ${group.title} disappears from this card and stops counting toward review.`,
