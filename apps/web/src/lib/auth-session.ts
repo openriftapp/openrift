@@ -3,7 +3,9 @@
 
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { createContext, use } from "react";
 
+import { captureHandledError } from "./report-error";
 import { fetchApi } from "./server-fns/fetch-api";
 import { withCookies } from "./server-fns/middleware";
 
@@ -59,14 +61,35 @@ export function useUserId(): string | null {
   return session?.user?.id ?? null;
 }
 
+/** Carries the id `_authenticated`'s beforeLoad resolved, which survives an empty client query cache. */
+export const AuthUserIdContext = createContext<string | undefined>(undefined);
+
+let fallbackReported = false;
+
+function reportSessionFallbackOnce(): void {
+  if (fallbackReported || globalThis.window === undefined) {
+    return;
+  }
+  fallbackReported = true;
+  captureHandledError(
+    new Error("useRequiredUserId() fell back to the route context: no session in the query cache."),
+    { session_fallback: "true" },
+  );
+}
+
 /** For hooks on `_authenticated` routes only; reaching the throw means it was called from a public route. */
 export function useRequiredUserId(): string {
-  const userId = useUserId();
-  if (!userId) {
-    throw new Error(
-      "useRequiredUserId() called without an authenticated session. " +
-        "Move this call inside an `_authenticated` route, or switch to useUserId() and handle the null case.",
-    );
+  const sessionUserId = useUserId();
+  const routeUserId = use(AuthUserIdContext);
+  if (sessionUserId) {
+    return sessionUserId;
   }
-  return userId;
+  if (routeUserId) {
+    reportSessionFallbackOnce();
+    return routeUserId;
+  }
+  throw new Error(
+    "useRequiredUserId() called without an authenticated session. " +
+      "Move this call inside an `_authenticated` route, or switch to useUserId() and handle the null case.",
+  );
 }

@@ -2,6 +2,7 @@ import { parseAppEnv } from "@openrift/shared/app-env";
 import * as Sentry from "@sentry/tanstackstart-react";
 import type { ErrorInfo } from "react";
 
+import { getAppDiagnostics } from "./app-diagnostics";
 import { COMMIT_HASH, PROD } from "./env";
 import { drainHydrationErrors } from "./hydration-error-buffer";
 import { CHUNK_LOAD_ERROR_PATTERN } from "./stale-bundle-reload";
@@ -44,6 +45,19 @@ export function enrichBareThrow(event: SentryErrorEvent, hint: SentryEventHint):
   };
 }
 
+/**
+ * A throw in beforeSend drops the event, so every enrichment stays behind this
+ * catch: a broken snapshot must not take the whole report down with it.
+ */
+export function enrichEvent(event: SentryErrorEvent, hint: SentryEventHint): SentryErrorEvent {
+  try {
+    const enriched = enrichBareThrow(event, hint);
+    return { ...enriched, contexts: { ...enriched.contexts, openrift: getAppDiagnostics() } };
+  } catch {
+    return event;
+  }
+}
+
 // Nitro bundles this into the SSR asset graph despite the isServer gate; the
 // namespace import keeps a missing browser-only export a warning, not a build error.
 export function initClientSentry(router: TanstackRouter): void {
@@ -65,7 +79,7 @@ export function initClientSentry(router: TanstackRouter): void {
     integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
     tracesSampleRate: 0.1,
     attachStacktrace: true,
-    beforeSend: enrichBareThrow,
+    beforeSend: enrichEvent,
     // Each is already handled elsewhere or external; Sentry's global handlers
     // fire before those handlers do, so they're filtered here too.
     ignoreErrors: [

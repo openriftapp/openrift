@@ -3,6 +3,7 @@ import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query
 
 import { RouterErrorFallback } from "./components/error-fallback";
 import { NotFoundFallback } from "./components/error-message";
+import { setDiagnosticsSources } from "./lib/app-diagnostics";
 import { createQueryClient } from "./lib/query-client";
 import { initVersionStaleNavigationReload } from "./lib/stale-bundle-reload";
 import { routeTree } from "./routeTree.gen";
@@ -24,6 +25,7 @@ export function getRouter() {
   // Dynamic import so the SSR bundle never statically resolves browser-only
   // Sentry exports. Server Sentry bootstraps separately via instrument.server.mjs.
   if (!router.isServer) {
+    setDiagnosticsSources({ queryClient, router });
     void (async () => {
       const { initClientSentry } = await import("./lib/sentry-client");
       initClientSentry(router);

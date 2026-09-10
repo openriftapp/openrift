@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { useSessionExpiredRedirect } from "@/features/account/hooks/use-session-expired-redirect";
-import { sessionQueryOptions } from "@/lib/auth-session";
+import { AuthUserIdContext, sessionQueryOptions } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_app/_authenticated")({
   errorComponent: RouteErrorFallback,
@@ -23,11 +23,14 @@ export const Route = createFileRoute("/_app/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  // Children must unmount in the same render that observes a null session, or a
-  // mounted user-scoped component re-renders first and useRequiredUserId() throws.
+  const { userId } = Route.useRouteContext();
   const sessionExpired = useSessionExpiredRedirect();
   if (sessionExpired) {
     return null;
   }
-  return <Outlet />;
+  return (
+    <AuthUserIdContext value={userId}>
+      <Outlet />
+    </AuthUserIdContext>
+  );
 }

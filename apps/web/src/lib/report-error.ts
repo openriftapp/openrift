@@ -17,3 +17,20 @@ export function captureHandledError(error: unknown, tags: Record<string, string>
   }
   void sendToSentry(error, tags);
 }
+
+async function sendUserToSentry(userId: string | null): Promise<void> {
+  try {
+    const Sentry = await import("@sentry/tanstackstart-react");
+    Sentry.setUser(userId === null ? null : { id: userId });
+  } catch {
+    /* Best-effort, same as the error reporter above. */
+  }
+}
+
+/** The internal user id only; Sentry's PII capture stays off. */
+export function setSentryUser(userId: string | null): void {
+  if (!PROD) {
+    return;
+  }
+  void sendUserToSentry(userId);
+}

@@ -6,8 +6,10 @@ import { EMOJIS, ErrorMessageLayout, HEADINGS, SUBTEXTS, pick } from "@/componen
 
 export function RouterErrorFallback({ error }: ErrorComponentProps) {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
-  Sentry.captureException(normalizedError);
   if (typeof document === "undefined") {
+    // SSR has no onCaughtError; in the browser client.tsx reports this with the
+    // hydration phase, and a second capture here would win Sentry's dedupe.
+    Sentry.captureException(normalizedError);
     return <ErrorFallback error={normalizedError} />;
   }
   return createPortal(<ErrorFallback error={normalizedError} />, document.body);

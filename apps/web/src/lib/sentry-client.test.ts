@@ -3,14 +3,18 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   captureHydrationError,
   enrichBareThrow,
+  enrichEvent,
   INJECTED_SCRIPT_PATTERN,
   initClientSentry,
 } from "./sentry-client";
 
-const { captureExceptionMock, initMock } = vi.hoisted(() => ({
+const { captureExceptionMock, getAppDiagnosticsMock, initMock } = vi.hoisted(() => ({
   captureExceptionMock: vi.fn(),
+  getAppDiagnosticsMock: vi.fn(() => ({})),
   initMock: vi.fn(),
 }));
+
+vi.mock("./app-diagnostics", () => ({ getAppDiagnostics: getAppDiagnosticsMock }));
 
 vi.mock("@sentry/tanstackstart-react", () => ({
   captureException: captureExceptionMock,
@@ -89,6 +93,45 @@ describe("enrichBareThrow", () => {
     expect(result.message).toBe("Bare throw () on /collections/abc");
     expect(result.tags).toMatchObject({ bare_throw: true });
     expect(result.extra).toMatchObject({ thrown_value: "" });
+  });
+});
+
+describe("enrichEvent", () => {
+  beforeEach(() => {
+    getAppDiagnosticsMock.mockReset();
+    getAppDiagnosticsMock.mockReturnValue({});
+  });
+
+  test("attaches the app snapshot to every event", () => {
+    getAppDiagnosticsMock.mockReturnValue({ sessionState: "empty", queryCount: 0 });
+
+    const result = enrichEvent(
+      { type: undefined, contexts: { trace: { trace_id: "abc", span_id: "def" } } },
+      { originalException: new TypeError("boom") },
+    );
+
+    expect(result.contexts).toEqual({
+      trace: { trace_id: "abc", span_id: "def" },
+      openrift: { sessionState: "empty", queryCount: 0 },
+    });
+  });
+
+  test("still enriches a bare throw", () => {
+    const result = enrichEvent({ type: undefined }, { originalException: undefined });
+
+    expect(result.message).toBe("Bare throw (undefined) on /collections/abc");
+    expect(result.tags).toMatchObject({ bare_throw: true });
+  });
+
+  test("returns the event unchanged when the snapshot throws, so the report survives", () => {
+    getAppDiagnosticsMock.mockImplementation(() => {
+      throw new Error("diagnostics blew up");
+    });
+    const event = { type: undefined, exception: { values: [{ type: "TypeError" }] } };
+
+    const result = enrichEvent(event, { originalException: new TypeError("boom") });
+
+    expect(result).toBe(event);
   });
 });
 

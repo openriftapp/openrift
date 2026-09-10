@@ -6,6 +6,7 @@ import { StartClient } from "@tanstack/react-start/client";
 import { StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 
+import { isHydrationSettled, markHydrationSettled } from "./lib/app-diagnostics";
 import { bufferHydrationError } from "./lib/hydration-error-buffer";
 import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
 import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
@@ -18,14 +19,12 @@ if (import.meta.env.DEV && !import.meta.env.VITE_DISABLE_DEVTOOLS) {
 
 // These callbacks fire for the app's whole lifetime, not just hydration, so
 // reports are stamped with whether they landed before first paint (below).
-let initialHydrationSettled = false;
-
 function reportHydrationError(
   phase: HydrationErrorPhase,
   error: unknown,
   errorInfo: { componentStack?: string | null },
 ): void {
-  const duringHydration = !initialHydrationSettled;
+  const duringHydration = !isHydrationSettled();
   const label = duringHydration ? "hydration" : "render";
   // oxlint-disable-next-line no-console -- deliberate prod diagnostic for render/hydration errors
   console.error(`[${label}:${phase}]`, error, errorInfo.componentStack ?? "(no component stack)");
@@ -64,6 +63,6 @@ hydrateRoot(
 
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
-    initialHydrationSettled = true;
+    markHydrationSettled();
   });
 });

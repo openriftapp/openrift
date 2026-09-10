@@ -13,6 +13,7 @@
 - feat(Collection): **A clearer extension popup** — the popup now opens with the OpenRift logo and splits into sections for Cardmarket, your picks and deck import, each shown only when it has something in it. Cardmarket lists the wishlists it synchronized with how many entries each holds and when the last sync was, and Deck Import only appears when there really is a decklist on the page, named.
 - fix(Collection): **Tradelist exports keep card details** — a tradelist CSV now fills each copy's condition, grading and notes instead of leaving those columns blank.
 - fix(Collection): **All-cards export matches the grid** — exporting All cards no longer includes copies held in a friend group's collection.
+- fix(App): **Fixed an occasional crash right after loading a signed-in page** — a page could show an error screen instead of loading if it rendered before your session had finished loading; it now waits and loads normally.
 
 ## 2026-09-09
 

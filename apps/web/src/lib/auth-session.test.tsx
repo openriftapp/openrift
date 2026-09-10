@@ -24,7 +24,7 @@ vi.mock("./server-fns/middleware", () => ({ withCookies: () => {} }));
 const fetchApi = vi.fn();
 vi.mock("./server-fns/fetch-api", () => ({ fetchApi: (...args: unknown[]) => fetchApi(...args) }));
 
-const { sessionQueryOptions, useRequiredUserId, useSession, useUserId } =
+const { AuthUserIdContext, sessionQueryOptions, useRequiredUserId, useSession, useUserId } =
   await import("./auth-session");
 
 const SESSION = {
@@ -39,10 +39,14 @@ const SESSION = {
   },
 };
 
-function makeWrapper() {
+function makeWrapper(routeUserId?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Wrapper({ children }: PropsWithChildren) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={client}>
+        <AuthUserIdContext value={routeUserId}>{children}</AuthUserIdContext>
+      </QueryClientProvider>
+    );
   }
   return { Wrapper, client };
 }
@@ -122,6 +126,27 @@ describe("useUserId", () => {
 describe("useRequiredUserId", () => {
   it("returns the signed-in user id", async () => {
     const { Wrapper, client } = makeWrapper();
+    client.setQueryData(sessionQueryOptions().queryKey, SESSION);
+
+    const { result } = renderHook(() => useRequiredUserId(), { wrapper: Wrapper });
+
+    await waitFor(() => expect(result.current).toBe("u1"));
+  });
+
+  it("falls back to the route context when the query cache never received the session", () => {
+    // The SSR-dehydrated cache can miss the client render; `_authenticated`'s
+    // beforeLoad has resolved the id either way.
+    const { Wrapper } = makeWrapper("u1");
+    // oxlint-disable-next-line promise/avoid-new -- a never-settling promise holds the query in flight
+    fetchApi.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useRequiredUserId(), { wrapper: Wrapper });
+
+    expect(result.current).toBe("u1");
+  });
+
+  it("prefers the live session over the route context", async () => {
+    const { Wrapper, client } = makeWrapper("stale-user");
     client.setQueryData(sessionQueryOptions().queryKey, SESSION);
 
     const { result } = renderHook(() => useRequiredUserId(), { wrapper: Wrapper });

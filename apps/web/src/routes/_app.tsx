@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, useLocation, useMatches } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { AppBackground } from "@/components/layout/app-background";
@@ -7,6 +8,7 @@ import { Header } from "@/components/layout/header";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
+import { setSentryUser } from "@/lib/report-error";
 import { cn, CONTAINER_WIDTH, FOOTER_PADDING_NO_TOP } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -24,6 +26,11 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { data: session } = useSession();
   usePreferencesSync(Boolean(session?.user));
+  useEffect(() => {
+    if (session !== undefined) {
+      setSentryUser(session?.user?.id ?? null);
+    }
+  }, [session]);
   const matches = useMatches();
   const hideFooter = matches.some((match) => match.staticData?.hideFooter);
 
