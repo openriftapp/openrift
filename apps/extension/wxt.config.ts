@@ -11,7 +11,7 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: "OpenRift Deck Importer",
     description:
-      "Send the decklist you are viewing to your OpenRift account, and see your collection and wishlist counts on Cardmarket.",
+      "Send decklists to OpenRift, see your collection and wishlist counts on Cardmarket, and pick cards from a seller for a list.",
     permissions: ["activeTab", "scripting", "storage"],
     // Granted from the options page, so a plain deck-importer install still
     // asks for no host access. MV2 has no separate optional host list.

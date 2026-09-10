@@ -80,6 +80,25 @@ button.primary {
   font-weight: 600;
 }
 
+.picks {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.picks .seller {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.picks .seller p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .result {
   margin: 8px 0 0;
   color: var(--accent);

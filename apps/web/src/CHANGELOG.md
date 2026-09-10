@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-10
+
+### Highlights
+
+- feat(Collection): **Pick cards on Cardmarket for a list** — the browser extension now puts a + and − on every card on a seller's offers, and the popup sends your picks to OpenRift as an organize list you can share with the seller.
+
 ## 2026-09-09
 
 ### Highlights

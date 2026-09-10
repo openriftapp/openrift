@@ -29,7 +29,7 @@ export function popupPlan(url: string): PopupPlan {
   if (isCardmarketOffersUrl(url)) {
     return {
       primary: "annotate",
-      label: "Show counts here",
+      label: "Mark this page",
       showImport: false,
       captureOnOpen: false,
     };

@@ -1,9 +1,22 @@
 import { browser } from "wxt/browser";
 
 import { CARDMARKET_MATCH_PATTERN } from "@/lib/cardmarket-url";
-import { annotateTab, captureSnapshot, extractDeck, storedSnapshot } from "@/lib/inject";
-import { deckImportUrl, openriftMatchPattern, overlaySyncUrl } from "@/lib/openrift-url";
+import {
+  annotateTab,
+  captureSnapshot,
+  extractDeck,
+  storeBasket,
+  storedBasket,
+  storedSnapshot,
+} from "@/lib/inject";
+import {
+  deckImportUrl,
+  openriftMatchPattern,
+  overlaySyncUrl,
+  picksImportUrl,
+} from "@/lib/openrift-url";
 import { snapshotStatus } from "@/lib/overlay-status";
+import { picksPayload, removeSeller, sellerPicks, sellerPicksText } from "@/lib/picks";
 import type { PopupPlan } from "@/lib/popup-actions";
 import { annotateResult, popupPlan } from "@/lib/popup-actions";
 
@@ -24,6 +37,8 @@ const detail = element<HTMLParagraphElement>("snapshot-detail");
 const primaryButton = element<HTMLButtonElement>("primary");
 const importButton = element<HTMLButtonElement>("import");
 const enableButton = element<HTMLButtonElement>("enable");
+const picksSection = element<HTMLElement>("picks");
+const picksList = element<HTMLDivElement>("picks-list");
 const result = element<HTMLParagraphElement>("result");
 
 interface Tab {
@@ -91,11 +106,60 @@ async function capture(tabId: number, quiet: boolean): Promise<void> {
 }
 
 async function annotate(tabId: number): Promise<void> {
+  const annotated = await annotateTab(tabId);
   if ((await storedSnapshot()) === undefined) {
-    showResult("Refresh your counts first.", true);
+    showResult("Pick buttons added. Refresh your counts to see what you own and want.");
     return;
   }
-  showResult(annotateResult(await annotateTab(tabId)));
+  showResult(annotateResult(annotated));
+}
+
+function actionButton(label: string, onClick: () => Promise<void>): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    void guard(button, onClick);
+  });
+  return button;
+}
+
+async function sendPicks(seller: string, tab: Tab | undefined): Promise<void> {
+  const basket = await storedBasket();
+  const payload = picksPayload(basket, seller);
+  if (payload === undefined) {
+    await renderPicks(tab);
+    return;
+  }
+  await browser.tabs.create({
+    url: picksImportUrl(payload),
+    ...(tab === undefined ? {} : { index: tab.index + 1 }),
+  });
+  await storeBasket(removeSeller(basket, seller));
+  window.close();
+}
+
+async function clearPicks(seller: string, tab: Tab | undefined): Promise<void> {
+  await storeBasket(removeSeller(await storedBasket(), seller));
+  await renderPicks(tab);
+}
+
+async function renderPicks(tab: Tab | undefined): Promise<void> {
+  const sellers = sellerPicks(await storedBasket());
+  picksList.replaceChildren();
+  picksSection.hidden = sellers.length === 0;
+  for (const entry of sellers) {
+    const row = document.createElement("div");
+    row.className = "seller";
+    const text = document.createElement("p");
+    text.textContent = sellerPicksText(entry);
+    row.append(
+      text,
+      actionButton("Send to OpenRift", () => sendPicks(entry.seller, tab)),
+      actionButton("Clear", () => clearPicks(entry.seller, tab)),
+    );
+    picksList.append(row);
+  }
 }
 
 /** With the permission granted the sync page captures itself, so the tab can do its work unseen. */
@@ -167,6 +231,7 @@ async function render(): Promise<void> {
   enableButton.hidden = await granted();
 
   const tab = await activeTab();
+  await renderPicks(tab);
   const plan = popupPlan(tab?.url ?? "");
   primaryButton.textContent = plan.label;
   primaryButton.addEventListener("click", () => {
@@ -191,8 +256,9 @@ enableButton.addEventListener("click", () => {
     try {
       await browser.permissions.request({ origins: ORIGINS });
       enableButton.hidden = await granted();
-    } catch {
-      showResult("The browser refused that permission.", true);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      showResult(`The browser refused that permission: ${reason}`, true);
     }
   })();
 });

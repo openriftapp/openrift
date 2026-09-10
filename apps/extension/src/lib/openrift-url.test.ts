@@ -6,7 +6,35 @@ import {
   matchPatternForUrl,
   openriftMatchPattern,
   overlaySyncUrl,
+  picksImportUrl,
 } from "./openrift-url";
+
+describe("picksImportUrl", () => {
+  it("carries the JSON payload in the fragment, URL-encoded", () => {
+    const url = picksImportUrl({
+      v: 1,
+      seller: "Some One",
+      picks: [
+        {
+          idProduct: 847_321,
+          finish: "foil",
+          idLanguage: 1,
+          languageLabel: "Englisch",
+          productName: "Volibear, Imposing",
+          quantity: 2,
+        },
+      ],
+    });
+
+    const [base, fragment] = url.split("#");
+    expect(base).toBe("https://openrift.app/collections/lists/import/cardmarket");
+    expect(fragment?.startsWith("picks=")).toBe(true);
+    expect(JSON.parse(decodeURIComponent(fragment?.slice("picks=".length) ?? ""))).toMatchObject({
+      v: 1,
+      seller: "Some One",
+    });
+  });
+});
 
 describe("deckImportUrl", () => {
   it("URL-encodes the payload into the code param", () => {

@@ -1,3 +1,4 @@
+import { overlayCell } from "./cardmarket-cell";
 import type { PriceVerdict } from "./cardmarket-price";
 import { parsePriceCents, priceVerdict } from "./cardmarket-price";
 import type { CardmarketArticleRow } from "./cardmarket-rows";
@@ -21,10 +22,10 @@ const VERDICT_COLOUR: Record<"light" | "dark", Record<PriceVerdict, string>> = {
 };
 
 const PILL_STYLE = [
+  "order:1",
   "display:inline-flex",
   "gap:4px",
   "align-items:center",
-  "margin-left:6px",
   "padding:0 6px",
   "border-radius:999px",
   "font-size:11px",
@@ -35,10 +36,12 @@ const PILL_STYLE = [
 ].join(";");
 
 const PRICE_STYLE = [
-  "display:inline-flex",
-  "align-items:center",
-  "margin-left:8px",
+  "display:block",
+  "flex-basis:100%",
+  "width:100%",
+  "text-align:right",
   "font-size:11px",
+  "line-height:1.3",
   "opacity:0.75",
   "white-space:nowrap",
 ].join(";");
@@ -127,7 +130,7 @@ function annotateCounts(row: CardmarketArticleRow, counts: OverlayCounts, doc: D
   const style = `${PILL_STYLE};${counts.wanted > 0 ? WANTED : NEUTRAL}`;
   const pill = upsert(row, PILL_ATTRIBUTE, style, pillText(counts), doc);
   if (!pill.isConnected) {
-    row.productLink.after(pill);
+    overlayCell(row.element, doc).append(pill);
   }
   return true;
 }
@@ -152,9 +155,11 @@ function annotatePrice(
   if (price.isConnected) {
     return;
   }
-  const container = row.element.querySelector(PRICE_CONTAINER_SELECTOR);
+  const container = row.element.querySelector<HTMLElement>(PRICE_CONTAINER_SELECTOR);
   if (container !== null) {
-    container.after(price);
+    // Cardmarket lays the container out as a flex row; wrapping puts the line beneath.
+    container.style.setProperty("flex-wrap", "wrap");
+    container.append(price);
     return;
   }
   row.element.querySelector(OFFER_COLUMN_SELECTOR)?.append(price);

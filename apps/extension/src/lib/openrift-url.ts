@@ -1,3 +1,5 @@
+import type { PicksPayload } from "./picks";
+
 // wxt.config.ts reads this outside a Vite context, where the value only exists
 // on process.env; the bundled code only has import.meta.env.
 const BASE_URL: string =
@@ -25,6 +27,13 @@ export function deckImportUrl(payload: string, extras: DeckImportExtras = {}): s
 
 export function overlaySyncUrl(): string {
   return `${BASE_URL}/extension/cardmarket`;
+}
+
+export const PICKS_IMPORT_PATH = "/collections/lists/import/cardmarket";
+
+/** The payload rides in the fragment: it never reaches the server and has no length cap to speak of. */
+export function picksImportUrl(payload: PicksPayload): string {
+  return `${BASE_URL}${PICKS_IMPORT_PATH}#picks=${encodeURIComponent(JSON.stringify(payload))}`;
 }
 
 export function openriftOrigin(): string {

@@ -55,6 +55,7 @@ export * from "./cards.js";
 export * from "./card-submissions.js";
 export * from "./card-trades.js";
 export * from "./cardmarket-overlay.js";
+export * from "./cardmarket-picks.js";
 export * from "./cardmarket-stock.js";
 export * from "./catalog.js";
 export * from "./collection-events.js";

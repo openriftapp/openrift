@@ -60,27 +60,28 @@ describe("referencePriceText", () => {
 });
 
 describe("annotate", () => {
-  it("puts a pill after the product link of every covered row", () => {
+  it("puts a pill in a cell at the end of every covered row", () => {
     const doc = pageWith({ id: 847_321 }, { id: 847_321, finish: "foil" });
 
     expect(annotate(doc, SNAPSHOT, doc)).toBe(2);
     expect(pills(doc)).toEqual(["own 2 · want 1", "own 3 · want 0"]);
-    // oxlint-disable-next-line unicorn/prefer-dom-node-dataset -- nextElementSibling is typed Element, which carries no `dataset`
-    expect(doc.querySelector("a")?.nextElementSibling?.getAttribute("data-openrift-overlay")).toBe(
-      "",
-    );
+    const first = doc.querySelector("#stockRow0");
+    expect(first?.lastElementChild?.matches("[data-openrift-cell]")).toBe(true);
+    expect(first?.lastElementChild?.querySelector("[data-openrift-overlay]")).not.toBeNull();
   });
 
-  it("puts the reference price after the seller's price", () => {
+  it("puts the reference price below the seller's price, once", () => {
     const doc = pageWith({ id: 847_321 });
 
+    annotate(doc, SNAPSHOT, doc);
     annotate(doc, SNAPSHOT, doc);
 
     expect(prices(doc)).toHaveLength(1);
     expect(prices(doc)[0]).toMatch(/^CT /u);
-    const priceSibling = doc.querySelector(".price-container")?.nextElementSibling;
-    // oxlint-disable-next-line unicorn/prefer-dom-node-dataset -- nextElementSibling is typed Element, which carries no `dataset`
-    expect(priceSibling?.hasAttribute("data-openrift-overlay-price")).toBe(true);
+    const container = doc.querySelector<HTMLElement>(".price-container");
+    expect(container?.lastElementChild?.matches("[data-openrift-overlay-price]")).toBe(true);
+    expect(container?.style.flexWrap).toBe("wrap");
+    expect(doc.querySelector("[data-openrift-cell] [data-openrift-overlay-price]")).toBeNull();
   });
 
   it("prices a row it holds no counts for", () => {

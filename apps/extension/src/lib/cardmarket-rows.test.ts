@@ -50,11 +50,32 @@ describe("extractArticleRows", () => {
     expect(rows[1]?.finish).toBe("normal");
   });
 
-  it("picks the product link out of the seller column", () => {
-    const link = extractArticleRows(documentFrom(FOIL_ROW))[0]?.productLink;
+  it("picks the product link and name out of the seller column", () => {
+    const row = extractArticleRows(documentFrom(FOIL_ROW))[0];
 
-    expect(link?.textContent?.trim()).toBe("Volibear, Imposing (V.1 - Rare)");
-    expect(link?.getAttribute("href")).toContain("/Products/Singles/Origins/");
+    expect(row?.productLink?.textContent?.trim()).toBe("Volibear, Imposing (V.1 - Rare)");
+    expect(row?.productLink?.getAttribute("href")).toContain("/Products/Singles/Origins/");
+    expect(row?.productName).toBe("Volibear, Imposing (V.1 - Rare)");
+  });
+
+  it("reads the language off the flag label and skips the foil icon", () => {
+    const row = extractArticleRows(documentFrom(FOIL_ROW))[0];
+
+    expect(row?.idLanguage).toBe(1);
+    expect(row?.languageLabel).toBe("Englisch");
+  });
+
+  it("leaves the language open when no icon label is one", () => {
+    const doc = documentFrom(`
+      <div id="stockRow1">
+        <div class="col-seller"><a href="/de/Riftbound/Products/Singles/Origins/Card">Card</a></div>
+        <span class="icon st_SpecialIcon" aria-label="Foil"></span>
+      </div>`);
+
+    const row = extractArticleRows(doc)[0];
+
+    expect(row?.idLanguage).toBeUndefined();
+    expect(row?.languageLabel).toBeUndefined();
   });
 
   it("reads a plain img tag when the thumbnail is not a tooltip", () => {

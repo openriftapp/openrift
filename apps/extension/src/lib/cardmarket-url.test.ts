@@ -1,6 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { isCardmarketOffersUrl } from "./cardmarket-url";
+import { cardmarketSellerFromUrl, isCardmarketOffersUrl } from "./cardmarket-url";
+
+describe("cardmarketSellerFromUrl", () => {
+  it("reads the seller out of an offers page", () => {
+    expect(
+      cardmarketSellerFromUrl(
+        "https://www.cardmarket.com/de/Riftbound/Users/Some%20One/Offers/Singles?page=2",
+      ),
+    ).toBe("Some One");
+  });
+
+  it("is undefined off an offers page", () => {
+    expect(
+      cardmarketSellerFromUrl("https://www.cardmarket.com/de/Riftbound/Users/someone"),
+    ).toBeUndefined();
+  });
+});
 
 describe("isCardmarketOffersUrl", () => {
   it("matches a seller's singles offers in any interface language", () => {

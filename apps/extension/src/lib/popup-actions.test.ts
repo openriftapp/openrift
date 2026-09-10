@@ -13,7 +13,7 @@ describe("popupPlan", () => {
   it("marks the page on a seller's offers", () => {
     const plan = popupPlan("https://www.cardmarket.com/de/Riftbound/Users/x/Offers/Singles");
     expect(plan.primary).toBe("annotate");
-    expect(plan.label).toBe("Show counts here");
+    expect(plan.label).toBe("Mark this page");
     expect(plan.showImport).toBe(false);
   });
 

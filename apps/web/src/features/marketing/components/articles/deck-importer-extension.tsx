@@ -157,6 +157,31 @@ export default function DeckImporterExtensionArticle() {
       </section>
 
       <section>
+        <Heading className="mb-2">Pick cards from a seller</Heading>
+        <p className="text-muted-foreground">
+          Buying from someone you know, outside Cardmarket? Pick the cards on their offers and turn
+          them into a list you can send them.
+        </p>
+        <div className="mt-3 space-y-2">
+          <StepRow
+            step={1}
+            title="Press + on the cards you want"
+            description="Every card on a seller's offers gets a small + and − next to it. Press + once per copy. The count on the OpenRift icon keeps the total across pages."
+          />
+          <StepRow
+            step={2}
+            title="Send them to OpenRift"
+            description="Open the popup and choose Send to OpenRift next to the seller's name. A review page opens with your picks matched to cards, and the picks leave the extension."
+          />
+          <StepRow
+            step={3}
+            title="Save the list and share it"
+            description="Fix anything that did not match, then save. Picks go to an organize list, so your wishlists stay untouched, and the list's share link is what you send the seller."
+          />
+        </div>
+      </section>
+
+      <section>
         <Heading className="mb-2">What it can access</Heading>
         <p className="text-muted-foreground">
           Installing it asks for nothing but the tab you&apos;re on, in the moment you act. It has

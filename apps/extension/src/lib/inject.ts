@@ -3,10 +3,21 @@ import { browser } from "wxt/browser";
 import type { PageExtract } from "./deck-extract";
 import type { OverlaySnapshot } from "./overlay-snapshot";
 import { SNAPSHOT_STORAGE_KEY } from "./overlay-snapshot";
+import type { PicksBasket } from "./picks";
+import { PICKS_STORAGE_KEY, readBasket } from "./picks";
 
 export async function storedSnapshot(): Promise<OverlaySnapshot | undefined> {
   const stored = await browser.storage.local.get(SNAPSHOT_STORAGE_KEY);
   return stored[SNAPSHOT_STORAGE_KEY] as OverlaySnapshot | undefined;
+}
+
+export async function storedBasket(): Promise<PicksBasket> {
+  const stored = await browser.storage.local.get(PICKS_STORAGE_KEY);
+  return readBasket(stored[PICKS_STORAGE_KEY]);
+}
+
+export async function storeBasket(basket: PicksBasket): Promise<void> {
+  await browser.storage.local.set({ [PICKS_STORAGE_KEY]: basket });
 }
 
 /** The injected script stores what it finds; a fresh capture time is what proves it found something. */
