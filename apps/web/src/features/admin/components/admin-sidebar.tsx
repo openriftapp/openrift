@@ -68,7 +68,11 @@ const catalogPages = [
   { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
 ];
 
-const catalogNewPages = [{ to: CATALOG_REVIEW_PATH, icon: InboxIcon, title: "Review" }];
+const catalogNewPages = [
+  { to: CATALOG_REVIEW_PATH, icon: InboxIcon, title: "Review" },
+  { to: "/admin/catalog/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
+  { to: "/admin/catalog/sources" as const, icon: DatabaseIcon, title: "Sources" },
+];
 
 const taxonomyPages = [
   { to: "/admin/markers" as const, icon: TagIcon, title: "Markers" },

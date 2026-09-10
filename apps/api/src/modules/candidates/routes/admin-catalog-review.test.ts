@@ -36,6 +36,8 @@ const repos = {
     candidatePrintingImageUrls: vi.fn(),
   },
   candidateCards: {
+    listCatalogCardRows: vi.fn(),
+    listCatalogSourceRows: vi.fn(),
     listSourceReviewGroups: vi.fn(),
     cardSlugsByNormNames: vi.fn(),
     candidateCardById: vi.fn(),
@@ -91,6 +93,8 @@ function resetDefaults(): void {
   repos.cardSubmissions.liveCardByNormName.mockResolvedValue({ id: "card-1", slug: "jinx" });
   repos.cardSubmissions.findByExternalId.mockResolvedValue(pendingSubmission);
   repos.cardSubmissions.candidatePrintingImageUrls.mockResolvedValue([]);
+  repos.candidateCards.listCatalogCardRows.mockResolvedValue([]);
+  repos.candidateCards.listCatalogSourceRows.mockResolvedValue([]);
   repos.candidateCards.listSourceReviewGroups.mockResolvedValue([]);
   repos.candidateCards.cardSlugsByNormNames.mockResolvedValue([]);
   repos.candidateCards.candidateCardById.mockResolvedValue(candidate);
@@ -134,6 +138,109 @@ describe(`GET ${BASE}/review`, () => {
     const json = await readJson(res);
     expect(json.counts).toEqual({ open: 1, contributors: 1, sources: 0 });
     expect(json.items[0]).toMatchObject({ id: "sub-1", kind: "image", cardSlug: "jinx" });
+  });
+});
+
+describe(`GET ${BASE}/cards`, () => {
+  beforeEach(resetDefaults);
+
+  const cardRow = {
+    cardSlug: "jinx",
+    name: "Jinx",
+    normName: "jinx",
+    firstSetSlug: "OGN",
+    firstSetName: "Origins",
+    setSlugs: ["OGN"],
+    shortCodes: ["OGN-001"],
+    printingCount: 1,
+    printingsWithoutImage: 1,
+    proposals: 0,
+    newPrintings: 0,
+    uncheckedTrustedProviders: [],
+    updatedAt: new Date("2026-09-01T10:00:00Z"),
+  };
+
+  it("returns the rows with the derived attention flag and counts", async () => {
+    repos.candidateCards.listCatalogCardRows.mockResolvedValue([
+      cardRow,
+      { ...cardRow, cardSlug: null, name: "Ekko, Unlisted", normName: "ekkounlisted" },
+    ]);
+
+    const res = await app.request(`${BASE}/cards`);
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.counts).toEqual({ all: 2, needsAttention: 2, drafts: 1 });
+    expect(json.rows[0]).toMatchObject({
+      cardSlug: "jinx",
+      needsAttention: true,
+      updatedAt: "2026-09-01T10:00:00.000Z",
+    });
+  });
+
+  it("scopes a grant holder to the helper-reviewable providers", async () => {
+    adminAccess = { isAdmin: false, sections: ["card-review"] };
+
+    const res = await app.request(`${BASE}/cards`);
+
+    expect(res.status).toBe(200);
+    expect(repos.candidateCards.listCatalogCardRows).toHaveBeenCalledWith(["usersubmission"]);
+  });
+});
+
+describe(`GET ${BASE}/sources`, () => {
+  beforeEach(resetDefaults);
+
+  const sourceRow = {
+    provider: "playloltcg",
+    rows: 4,
+    printingRows: 9,
+    isHidden: false,
+    isFavorite: true,
+    helperReviewable: false,
+    sortOrder: 1,
+    lastUploadedAt: new Date("2026-09-01T10:00:00Z"),
+    ignoredCount: 2,
+  };
+
+  it("returns the contributors row first with the queue counts", async () => {
+    repos.candidateCards.listCatalogSourceRows.mockResolvedValue([sourceRow]);
+    repos.candidateCards.listSourceReviewGroups.mockResolvedValue([{ provider: "playloltcg" }]);
+
+    const res = await app.request(`${BASE}/sources`);
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.sources.map((source: { provider: string }) => source.provider)).toEqual([
+      "usersubmission",
+      "playloltcg",
+    ]);
+    expect(json.sources[1]).toMatchObject({
+      kind: "upload",
+      inReview: 1,
+      lastUploadedAt: "2026-09-01T10:00:00.000Z",
+    });
+  });
+
+  it("hides providers outside a grant holder's scope and zeroes the contributors counters", async () => {
+    adminAccess = { isAdmin: false, sections: ["card-review"] };
+    repos.providerSettings.helperReviewableProviders.mockResolvedValue(new Set(["gallery"]));
+    repos.candidateCards.listCatalogSourceRows.mockResolvedValue([
+      sourceRow,
+      { ...sourceRow, provider: "usersubmission", rows: 6, ignoredCount: 3 },
+    ]);
+    repos.cardSubmissions.pendingReviewQueueRows.mockResolvedValue([
+      { provider: "usersubmission" },
+    ]);
+
+    const res = await app.request(`${BASE}/sources`);
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.sources.map((source: { provider: string }) => source.provider)).toEqual([
+      "usersubmission",
+    ]);
+    expect(json.sources[0]).toMatchObject({ rows: 0, inReview: 0, ignoredCount: 0 });
   });
 });
 

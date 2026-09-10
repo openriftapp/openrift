@@ -4,6 +4,8 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { reviewableProviderScope } from "../services/card-review-scope.js";
+import { buildCatalogCardList } from "../services/catalog-card-list.js";
+import { buildCatalogSources } from "../services/catalog-sources.js";
 import { buildReviewQueue } from "../services/review-queue.js";
 import {
   acceptSubmission,
@@ -18,6 +20,18 @@ export const adminCatalogReviewRouter = {
     const { candidateCards, cardSubmissions, providerSettings } = context.repos;
     const scope = await reviewableProviderScope(context.adminAccess, providerSettings);
     return await buildReviewQueue({ candidateCards, cardSubmissions }, scope);
+  }),
+
+  catalogCards: os.catalogCards.handler(async ({ context }) => {
+    const { candidateCards, providerSettings } = context.repos;
+    const scope = await reviewableProviderScope(context.adminAccess, providerSettings);
+    return await buildCatalogCardList({ candidateCards }, scope);
+  }),
+
+  catalogSources: os.catalogSources.handler(async ({ context }) => {
+    const { candidateCards, cardSubmissions, providerSettings } = context.repos;
+    const scope = await reviewableProviderScope(context.adminAccess, providerSettings);
+    return await buildCatalogSources({ candidateCards, cardSubmissions }, scope);
   }),
 
   acceptSubmission: os.acceptSubmission.handler(async ({ input, context }) => {

@@ -1,6 +1,10 @@
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
 import type { CardBanResponse } from "@openrift/shared/contracts/admin/card-bans";
-import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
+import type {
+  CatalogCardRow,
+  CatalogSource,
+  ReviewQueueItem,
+} from "@openrift/shared/contracts/admin/catalog-review";
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { makeCard, makePrinting } from "@openrift/shared/test-factories";
 import type {
@@ -576,6 +580,43 @@ export function makeAdminPrintingMarketplaceMapping(
     variantLanguage: null,
     ownerPrintingId: printingId,
     ownerLanguage: "EN",
+    ...overrides,
+  };
+}
+
+export function makeCatalogCardRow(overrides: Partial<CatalogCardRow> = {}): CatalogCardRow {
+  return {
+    cardSlug: "lux-lady-of-luminosity",
+    name: "Lux, Lady of Luminosity",
+    normName: "lux-lady-of-luminosity",
+    firstSetSlug: "ogn",
+    firstSetName: "Origins",
+    setSlugs: ["ogn"],
+    shortCodes: ["OGN-001"],
+    printingCount: 3,
+    printingsWithoutImage: 0,
+    proposals: 0,
+    newPrintings: 0,
+    uncheckedTrustedProviders: [],
+    needsAttention: false,
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeCatalogSource(overrides: Partial<CatalogSource> = {}): CatalogSource {
+  return {
+    provider: "gallery",
+    kind: "upload",
+    rows: 212,
+    printingRows: 480,
+    inReview: 0,
+    isHidden: false,
+    isFavorite: false,
+    helperReviewable: false,
+    sortOrder: 0,
+    lastUploadedAt: "2026-09-01T00:00:00.000Z",
+    ignoredCount: 0,
     ...overrides,
   };
 }

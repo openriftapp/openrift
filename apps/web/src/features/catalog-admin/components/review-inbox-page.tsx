@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { CardList } from "@/components/ui/card-list";
+import { CardList, CardListRow } from "@/components/ui/card-list";
 import {
   Empty,
   EmptyDescription,
@@ -87,13 +87,7 @@ function ReviewRow({
 
   return (
     <li>
-      <Link
-        {...target}
-        className={cn(
-          "group hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-2",
-          isFocused && "bg-muted",
-        )}
-      >
+      <CardListRow render={<Link {...target} />} className={cn(isFocused && "bg-muted")}>
         <Badge variant={REVIEW_KIND_TONES[item.kind]} className="shrink-0">
           {REVIEW_KIND_LABELS[item.kind]}
         </Badge>
@@ -120,7 +114,7 @@ function ReviewRow({
         <span className="text-muted-foreground w-12 shrink-0 text-right text-sm opacity-0 transition-opacity group-hover:opacity-100">
           Open
         </span>
-      </Link>
+      </CardListRow>
     </li>
   );
 }

@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { candidateCatalogListRepo } from "./candidate-cards-catalog-list.js";
 import { candidateCardDetailRepo } from "./candidate-cards-detail.js";
 import { candidateExportRepo } from "./candidate-cards-export.js";
 import { candidatePrintingLinksRepo } from "./candidate-cards-links.js";
@@ -16,6 +17,7 @@ import { candidateCardWritesRepo } from "./candidate-cards-writes.js";
 export function candidateCardsRepo(db: Kysely<Database>) {
   return {
     ...candidateSourceListRepo(db),
+    ...candidateCatalogListRepo(db),
     ...candidateCardDetailRepo(db),
     ...candidateExportRepo(db),
     ...candidateReviewRepo(db),

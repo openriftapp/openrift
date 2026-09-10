@@ -4,6 +4,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { catalogAdminKeys } from "@/features/catalog-admin/lib/catalog-admin-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
@@ -38,7 +39,7 @@ export function useReorderProviderSettings() {
     mutationFn: async (providers: string[]) => {
       await reorderProviderSettingsFn({ data: { providers } });
     },
-    invalidates: [adminKeys.providerSettings],
+    invalidates: [adminKeys.providerSettings, catalogAdminKeys.sources],
   });
 }
 
@@ -68,6 +69,6 @@ export function useUpdateProviderSetting() {
     }) => {
       await updateProviderSettingFn({ data: vars });
     },
-    invalidates: [adminKeys.providerSettings, adminKeys.cards.list],
+    invalidates: [adminKeys.providerSettings, adminKeys.cards.list, catalogAdminKeys.all],
   });
 }

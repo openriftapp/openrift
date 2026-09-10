@@ -7,6 +7,7 @@ import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/u
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { catalogAdminKeys } from "@/features/catalog-admin/lib/catalog-admin-query-keys";
 import type {
   AcceptNewCardBody,
   AcceptPrintingBody,
@@ -532,7 +533,7 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope) {
 export function useCheckProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => checkProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all],
+    invalidates: [adminKeys.cards.all, catalogAdminKeys.all],
   });
 }
 
@@ -546,7 +547,7 @@ const relinkCandidatePrintingsFn = createServerFn({ method: "POST" })
 export function useRelinkCandidatePrintings() {
   return useMutationWithInvalidation({
     mutationFn: () => relinkCandidatePrintingsFn(),
-    invalidates: [adminKeys.cards.all],
+    invalidates: [adminKeys.cards.all, catalogAdminKeys.all],
   });
 }
 
@@ -576,7 +577,7 @@ export function useAcceptFavoritePrintings() {
 export function useDeleteProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => deleteProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all],
+    invalidates: [adminKeys.cards.all, catalogAdminKeys.all],
   });
 }
 

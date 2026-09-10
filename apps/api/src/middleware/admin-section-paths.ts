@@ -13,6 +13,8 @@ const CARD_REVIEW_GET_EXACT = new Set([
   `${BASE}/cards/all-cards`,
   `${BASE}/cards/distinct-artists`,
   `${BASE}/catalog/review`,
+  `${BASE}/catalog/cards`,
+  `${BASE}/catalog/sources`,
   `${BASE}/provider-settings`,
   `${BASE}/markers`,
   `${BASE}/languages`,

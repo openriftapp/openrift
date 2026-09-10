@@ -4,10 +4,12 @@ import type {
   CandidatePrintingResponse,
   UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import { PageTopBarBack } from "@/components/layout/page-top-bar";
+import { PageTopBarBack, PageTopBarIconButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
@@ -20,7 +22,10 @@ import { DraftCardFieldsForm } from "@/features/catalog-admin/components/draft-c
 import type { PrintingOverrides } from "@/features/catalog-admin/components/draft-printing-row";
 import { DraftPrintingRow } from "@/features/catalog-admin/components/draft-printing-row";
 import { RejectSubmissionDialog } from "@/features/catalog-admin/components/reject-submission-dialog";
+import type { CardsListWalk } from "@/features/catalog-admin/hooks/use-cards-list-walk";
+import { useCardsListWalk } from "@/features/catalog-admin/hooks/use-cards-list-walk";
 import { useCreateCardFromCandidate } from "@/features/catalog-admin/hooks/use-catalog-review";
+import { catalogCardKey } from "@/features/catalog-admin/lib/catalog-card-list";
 import type {
   DraftCardFields,
   DraftPrintingRow as DraftPrintingRowData,
@@ -37,14 +42,18 @@ import { buildPrintingFieldsFromCandidate } from "@/features/catalog-admin/lib/p
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/catalog/drafts/$name");
 
+type DraftBackTarget = "/admin/catalog/review" | "/admin/catalog/cards";
+
 function AdminDraftTopBar({
   title,
-  showBack,
+  backTo,
   badge,
+  walk,
 }: {
   title: string;
-  showBack: boolean;
+  backTo?: DraftBackTarget;
   badge?: React.ReactNode;
+  walk?: CardsListWalk;
 }) {
   return (
     <AdminPageTopBar
@@ -59,8 +68,31 @@ function AdminDraftTopBar({
         )
       }
       back={
-        showBack ? (
-          <PageTopBarBack to="/admin/catalog/review" aria-label="Back to review" />
+        backTo ? (
+          <PageTopBarBack
+            to={backTo}
+            aria-label={backTo === "/admin/catalog/cards" ? "Back to cards" : "Back to review"}
+          />
+        ) : undefined
+      }
+      actions={
+        walk ? (
+          <>
+            <PageTopBarIconButton
+              aria-label="Previous card"
+              disabled={!walk.hasPrev}
+              onClick={() => walk.go("prev")}
+            >
+              <ChevronLeftIcon />
+            </PageTopBarIconButton>
+            <PageTopBarIconButton
+              aria-label="Next card"
+              disabled={!walk.hasNext}
+              onClick={() => walk.go("next")}
+            >
+              <ChevronRightIcon />
+            </PageTopBarIconButton>
+          </>
         ) : undefined
       }
     />
@@ -121,11 +153,31 @@ export function DraftCardPage({ name }: { name: string }) {
   const [rejecting, setRejecting] = useState(false);
 
   const nameMatches = useAdminCardSearch(allCards, name);
+  const fromCards = search.from === "cards";
+  const backTo: DraftBackTarget | undefined = fromCards
+    ? "/admin/catalog/cards"
+    : search.from === "review"
+      ? "/admin/catalog/review"
+      : undefined;
+
+  const listWalk = useCardsListWalk({
+    enabled: fromCards,
+    key: catalogCardKey({ cardSlug: null, normName: name }),
+    search,
+  });
+  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
+  const walkRef = useRef<(direction: "prev" | "next") => void>(() => {});
+  useHotkey("Mod+ArrowLeft", () => walkRef.current("prev"), { enabled: fromCards });
+  useHotkey("Mod+ArrowRight", () => walkRef.current("next"), { enabled: fromCards });
+  useEffect(() => {
+    walkRef.current = (direction) => listWalk.go(direction);
+  });
+  const walk = fromCards ? listWalk : undefined;
 
   if (isLoading || !detail) {
     return (
       <>
-        <AdminDraftTopBar title={name} showBack={search.from === "review"} />
+        <AdminDraftTopBar title={name} backTo={backTo} walk={walk} />
         <div className="pt-3">
           <Skeleton className="h-96 w-full" />
         </div>
@@ -183,7 +235,8 @@ export function DraftCardPage({ name }: { name: string }) {
     <>
       <AdminDraftTopBar
         title={detail.displayName}
-        showBack={search.from === "review"}
+        backTo={backTo}
+        walk={walk}
         badge={<Badge variant="violet">Draft</Badge>}
       />
 

@@ -26,7 +26,8 @@ import { HistoryTab } from "@/features/catalog-admin/components/history-tab";
 import { MarketplaceTab } from "@/features/catalog-admin/components/marketplace-tab";
 import { OverviewTab } from "@/features/catalog-admin/components/overview-tab";
 import { PrintingsTab } from "@/features/catalog-admin/components/printings-tab";
-import { useReviewQueue } from "@/features/catalog-admin/hooks/use-catalog-review";
+import { useCardsListWalk } from "@/features/catalog-admin/hooks/use-cards-list-walk";
+import { useReviewQueueWhen } from "@/features/catalog-admin/hooks/use-catalog-review";
 import { useCheckAllSources } from "@/features/catalog-admin/hooks/use-check-all-sources";
 import {
   attentionCount,
@@ -117,19 +118,25 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
     isLoading: boolean;
   };
   const { data: providerSettingsData } = useProviderSettings();
-  const { data: queue } = useReviewQueue();
   const checkAllSources = useCheckAllSources(cardSlug);
 
   const tab: CatalogTab = search.tab ?? DEFAULT_CATALOG_TAB;
   const fromReview = search.from === "review";
+  const fromCards = search.from === "cards";
+  const { data: queue } = useReviewQueueWhen(fromReview);
   const queueFilter: ReviewFilter = search.filter ?? "all";
   const queueItems = selectReviewItems(queue?.items ?? [], queueFilter, search.q ?? "");
   const neighbours = reviewNeighbours(queueItems, cardSlug);
 
+  const listWalk = useCardsListWalk({ enabled: fromCards, key: cardSlug, search, tab });
+
+  const canWalkPrev = fromCards ? listWalk.hasPrev : neighbours.prev !== null;
+  const canWalkNext = fromCards ? listWalk.hasNext : neighbours.next !== null;
+
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const walkRef = useRef<(direction: "prev" | "next") => void>(() => {});
-  useHotkey("Mod+ArrowLeft", () => walkRef.current("prev"), { enabled: fromReview });
-  useHotkey("Mod+ArrowRight", () => walkRef.current("next"), { enabled: fromReview });
+  useHotkey("Mod+ArrowLeft", () => walkRef.current("prev"), { enabled: fromReview || fromCards });
+  useHotkey("Mod+ArrowRight", () => walkRef.current("next"), { enabled: fromReview || fromCards });
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const checkAllRef = useRef<() => void>(() => {});
@@ -177,6 +184,10 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
 
   useEffect(() => {
     walkRef.current = (direction) => {
+      if (fromCards) {
+        listWalk.go(direction);
+        return;
+      }
       goToQueueItem(direction === "prev" ? neighbours.prev : neighbours.next);
     };
     checkAllRef.current = () => {
@@ -200,7 +211,13 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
     <>
       <AdminPageTopBar
         title={detail?.card?.name ?? cardSlug}
-        back={<PageTopBarBack to="/admin/catalog/review" aria-label="Back to review" />}
+        back={
+          fromCards ? (
+            <PageTopBarBack to="/admin/catalog/cards" aria-label="Back to cards" />
+          ) : (
+            <PageTopBarBack to="/admin/catalog/review" aria-label="Back to review" />
+          )
+        }
         actions={
           <>
             {tab === "compare" && (
@@ -216,18 +233,18 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
                 </Kbd>
               </PageTopBarPrimaryButton>
             )}
-            {fromReview && (
+            {(fromReview || fromCards) && (
               <>
                 <PageTopBarIconButton
-                  aria-label="Previous in queue"
-                  disabled={!neighbours.prev}
+                  aria-label={fromCards ? "Previous card" : "Previous in queue"}
+                  disabled={!canWalkPrev}
                   onClick={() => walkRef.current("prev")}
                 >
                   <ChevronLeftIcon />
                 </PageTopBarIconButton>
                 <PageTopBarIconButton
-                  aria-label="Next in queue"
-                  disabled={!neighbours.next}
+                  aria-label={fromCards ? "Next card" : "Next in queue"}
+                  disabled={!canWalkNext}
                   onClick={() => walkRef.current("next")}
                 >
                   <ChevronRightIcon />

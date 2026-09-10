@@ -1,3 +1,5 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -59,4 +61,20 @@ function CardRow({ className, ...props }: React.ComponentProps<"li">) {
   );
 }
 
-export { CardList, CardRow };
+function CardListRow({ className, render, ...props }: useRender.ComponentProps<"a">) {
+  return useRender({
+    defaultTagName: "a",
+    props: mergeProps<"a">(
+      {
+        className: cn(
+          "group hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-2",
+          className,
+        ),
+      },
+      props,
+    ),
+    render,
+  });
+}
+
+export { CardList, CardListRow, CardRow };

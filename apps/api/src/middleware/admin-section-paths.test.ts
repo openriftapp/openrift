@@ -93,8 +93,11 @@ describe("sectionAllowsRequest", () => {
       expect(sectionAllowsRequest("card-review", "DELETE", path)).toBe(false);
     });
 
-    it("allows the catalog review queue for GET only", () => {
-      const path = "/api/admin/v1/catalog/review";
+    it.each([
+      "/api/admin/v1/catalog/review",
+      "/api/admin/v1/catalog/cards",
+      "/api/admin/v1/catalog/sources",
+    ])("allows the catalog read %s for GET only", (path) => {
       expect(sectionAllowsRequest("card-review", "GET", path)).toBe(true);
       expect(sectionAllowsRequest("card-review", "POST", path)).toBe(false);
       expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(false);
@@ -115,6 +118,7 @@ describe("sectionAllowsRequest", () => {
     it.each([
       "/api/admin/v1/catalog",
       "/api/admin/v1/catalog/anything-else",
+      "/api/admin/v1/catalog/cards/some-slug",
       "/api/admin/v1/catalog/submissions/some-id/delete",
       "/api/admin/v1/catalog/submissions/some-id/create-card",
       "/api/admin/v1/catalog/candidates/some-id/accept",

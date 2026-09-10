@@ -20,7 +20,7 @@ import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
-import { CardList, CardRow } from "@/components/ui/card-list";
+import { CardList, CardListRow, CardRow } from "@/components/ui/card-list";
 import { Medal, Podium } from "@/components/ui/podium";
 import type { PodiumSeat } from "@/components/ui/podium";
 import { StatStrip } from "@/components/ui/stat-strip";
@@ -52,7 +52,7 @@ export function TilesSection() {
     <DemoSection
       id="tiles"
       title="Tiles"
-      note="CardLink is the whole-Card click target for list tiles; every tile hovers the same way (shadow lift, muted wash, 1px primary edge). Cards that keep secondary actions inside, and non-Card link tiles like the deck grid, apply cardLinkVariants() directly. CardList and CardRow carry the same Card edge for the two list shapes that are not a Card: one flush panel of rows, and standalone rows in a gapped list. StatTile is the dashboard stat; accent is reserved for the one tile needing attention. StatStrip is its non-linking sibling for inline context counts. ActionBand is the full-width 'needs you' band (the overview's trades hub, the members page's join requests). Podium is the standings throne. CoverBand is the warm-glow strip at the top of showcase tiles (product fans, group avatar stacks); UserAvatarStack is the overlapping who's-here row with a +N overflow."
+      note="CardLink is the whole-Card click target for list tiles; every tile hovers the same way (shadow lift, muted wash, 1px primary edge). Cards that keep secondary actions inside, and non-Card link tiles like the deck grid, apply cardLinkVariants() directly. CardList and CardRow carry the same Card edge for the two list shapes that are not a Card: one flush panel of rows, and standalone rows in a gapped list; CardListRow is the clickable row that goes inside a CardList. StatTile is the dashboard stat; accent is reserved for the one tile needing attention. StatStrip is its non-linking sibling for inline context counts. ActionBand is the full-width 'needs you' band (the overview's trades hub, the members page's join requests). Podium is the standings throne. CoverBand is the warm-glow strip at the top of showcase tiles (product fans, group avatar stacks); UserAvatarStack is the overlapping who's-here row with a +N overflow."
     >
       <DemoRow label="CardLink">
         <CardLink
@@ -109,6 +109,31 @@ export function TilesSection() {
             </CardRow>
           ))}
         </ul>
+      </DemoRow>
+      <DemoRow
+        label="CardListRow"
+        hint="The clickable row inside a CardList, rendered as whatever `render` passes (a Link on the admin review and cards lists). It holds the row shell — hover wash, radius, padding, the 3-unit gap — so a second list cannot spell it differently. The middle row below is painted in its hover state."
+      >
+        <CardList className="w-full max-w-sm">
+          {[
+            { name: "Jinx, Loose Cannon", meta: "OGN-042 · Origins", hovered: false },
+            { name: "Vi, Enforcer", meta: "OGN-118 · Origins", hovered: true },
+            { name: "Ekko, Time Winder", meta: "OGN-077 · Origins", hovered: false },
+          ].map((row) => (
+            <li key={row.name}>
+              <CardListRow
+                render={<Link to="/admin/design" hash="tiles" />}
+                className={cn(row.hovered && "bg-muted/50")}
+              >
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-medium">{row.name}</span>
+                  <span className="text-muted-foreground truncate text-xs">{row.meta}</span>
+                </span>
+                <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
+              </CardListRow>
+            </li>
+          ))}
+        </CardList>
       </DemoRow>
       <DemoRow label="StatTile">
         <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-2">

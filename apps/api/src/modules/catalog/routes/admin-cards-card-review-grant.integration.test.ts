@@ -358,6 +358,8 @@ describe.skipIf(!adminCtx || !grantCtx)("card-review grant (integration)", () =>
       for (const path of [
         "/cards/all-cards",
         "/cards/distinct-artists",
+        "/catalog/cards",
+        "/catalog/sources",
         "/provider-settings",
         "/markers",
         "/languages",
