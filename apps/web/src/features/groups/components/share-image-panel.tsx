@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { ShareImageRenderChoice } from "@/lib/share-image";
 import { downloadImageFromUrl } from "@/lib/share-image";
 
 /**
@@ -27,12 +28,6 @@ function defaultScale(aspect: ShareImageAspect, scales: readonly number[]): numb
   return scales.includes(2) ? 2 : (scales[0] ?? 1);
 }
 
-export interface ShareImageRenderChoice {
-  aspect: ShareImageAspect;
-  scale: number;
-  qr: boolean;
-}
-
 export interface ShareImagePanelProps {
   title: string;
   filenameBase: string;
@@ -40,8 +35,10 @@ export interface ShareImagePanelProps {
   download?: (choice: ShareImageRenderChoice, filename: string) => Promise<void>;
   aspects?: readonly ShareImageAspect[];
   scales?: readonly number[];
-  qr: "available" | "requires-share" | "hidden";
-  qrLabel?: string;
+  /** The noun for the QR label, e.g. "list". Omitted when the render has no QR at all. */
+  qrNoun?: string;
+  /** A QR needs a share link to point at; without one the render leaves it out. */
+  qrAvailable?: boolean;
   note?: ReactNode;
 }
 
@@ -58,8 +55,8 @@ export function ShareImagePanel({
   download,
   aspects = ["landscape", "vertical"],
   scales = [1, 2],
-  qr,
-  qrLabel = "Include a QR code",
+  qrNoun,
+  qrAvailable = false,
   note,
 }: ShareImagePanelProps) {
   const [aspect, setAspect] = useState<ShareImageAspect>(aspects[0] ?? "landscape");
@@ -69,8 +66,7 @@ export function ShareImagePanel({
   const [previewLoaded, setPreviewLoaded] = useState(false);
 
   const canvas = SHARE_IMAGE_CANVAS[aspect];
-  // A render without a share link carries no mark whatever the switch says.
-  const withQr = qrOn && qr === "available";
+  const withQr = qrOn && qrAvailable;
   const showPreview = download === undefined;
 
   const previewUrl = buildUrl({ aspect, scale: 1, qr: withQr });
@@ -178,22 +174,26 @@ export function ShareImagePanel({
         </div>
       ) : null}
 
-      {qr === "hidden" ? null : (
+      {qrNoun === undefined ? null : (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
+            {/* Bound to the wish, not the outcome: an unshared surface renders
+                without the code and the note below says so, so creating a link
+                later cannot flip a switch the user last saw off. */}
             <Switch
               id="share-image-qr"
-              checked={withQr}
-              disabled={qr !== "available"}
+              checked={qrOn}
+              disabled={!qrAvailable}
               onCheckedChange={setQrOn}
             />
             <Label htmlFor="share-image-qr" className="font-normal">
-              {qrLabel}
+              Include a QR code to the {qrNoun}
             </Label>
           </div>
-          {qr === "requires-share" ? (
+          {qrOn && !qrAvailable ? (
             <p className="text-muted-foreground text-sm">
-              Create a share link first and the QR code becomes available.
+              The code needs a share link to point at, so the image leaves it out until you create
+              one.
             </p>
           ) : null}
         </div>

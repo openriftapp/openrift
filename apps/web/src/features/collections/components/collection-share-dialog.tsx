@@ -1,19 +1,20 @@
 import { CatchBoundary } from "@tanstack/react-router";
 import { Suspense } from "react";
 
-import { Checkbox } from "@/components/ui/checkbox";
 import { useCollectionGroupShares } from "@/features/collections/hooks/use-collection-group-shares";
 import {
   useShareCollection,
   useUnshareCollection,
 } from "@/features/collections/hooks/use-collections";
+import { GroupVisibilitySection } from "@/features/groups/components/group-visibility-section";
 import { ShareDialog } from "@/features/groups/components/share-dialog";
 import {
   useShareCollectionWithFriendGroup,
   useUnshareCollectionFromFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
-import { collectionOwnerImageUrl } from "@/lib/share-image";
+import { collectionOwnerImageUrl, shareImageOptions } from "@/lib/share-image";
+import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
 
 interface CollectionShareDialogProps {
@@ -38,57 +39,50 @@ export function CollectionShareDialog({
   const shareCollection = useShareCollection();
   const unshareCollection = useUnshareCollection();
 
-  const shareUrl = shareToken ? `${getSiteUrl()}/collections/share/${shareToken}` : null;
-  const sharing = isPublic && shareToken !== null;
+  const shareUrl = shareLinkUrl("collection", { shareToken, isPublic });
 
   return (
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Share collection"
-      description={
-        sharing
-          ? "Anyone with this link can view this collection, including the card list and its total value."
-          : "Create a link to share this collection. Anyone with the link will be able to view it without signing in."
-      }
+      noun="collection"
       link={{
-        url: sharing ? shareUrl : null,
+        url: shareUrl,
         label: "Collection share link",
+        exposes: "view this collection, including the card list and its total value",
+        unfurls: true,
         onCreate: () => shareCollection.mutate(collectionId),
         creating: shareCollection.isPending,
         onStop: () => unshareCollection.mutate(collectionId),
         stopping: unshareCollection.isPending,
       }}
+      access={
+        // groupShares 404s for a pooled collection; the boundary scopes that to this panel.
+        isGroupCollection ? null : (
+          <CatchBoundary getResetKey={() => collectionId} errorComponent={() => null}>
+            <Suspense fallback={null}>
+              <CollectionGroupShareSection collectionId={collectionId} />
+            </Suspense>
+          </CatchBoundary>
+        )
+      }
       image={{
         title: collectionName,
         filenameBase: collectionName || "collection",
         buildUrl: (choice) =>
-          collectionOwnerImageUrl(getSiteUrl(), collectionId, {
-            size: choice.scale >= 2 ? "hq" : undefined,
-            aspect: choice.aspect,
-            qr: choice.qr,
-          }),
+          collectionOwnerImageUrl(getSiteUrl(), collectionId, shareImageOptions(choice)),
         scales: [1, 2],
-        qr: sharing ? "available" : "requires-share",
-        qrLabel: "Include a QR code to the collection",
+        qrNoun: "collection",
+        qrAvailable: shareUrl !== null,
       }}
+      qrFilenameBase={collectionName || "collection"}
       print={{
-        shareUrl: sharing ? shareUrl : null,
         defaultTitle: collectionName,
         defaultSubtitle: "Scan to see my collection",
         filenameHint: collectionName,
       }}
-    >
-      {/* groupShares 404s for a pooled collection; the boundary keeps that
-          contained to this optional panel instead of failing the dialog. */}
-      {isGroupCollection ? null : (
-        <CatchBoundary getResetKey={() => collectionId} errorComponent={() => null}>
-          <Suspense fallback={null}>
-            <CollectionGroupShareSection collectionId={collectionId} />
-          </Suspense>
-        </CatchBoundary>
-      )}
-    </ShareDialog>
+    />
   );
 }
 
@@ -98,45 +92,16 @@ function CollectionGroupShareSection({ collectionId }: { collectionId: string })
   const share = useShareCollectionWithFriendGroup();
   const unshare = useUnshareCollectionFromFriendGroup();
 
-  if (groups.items.length === 0) {
-    return null;
-  }
-
-  const sharedSet = new Set(sharedWith.items.map((row) => row.groupId));
-
   return (
-    <div className="space-y-3 border-t pt-4">
-      <div>
-        <h3 className="font-medium">Share with friend groups</h3>
-        <p className="text-muted-foreground text-sm">
-          Members of the selected groups can view this collection (read-only) while signed in.
-        </p>
-      </div>
-      <ul className="space-y-2">
-        {groups.items.map((group) => {
-          const isShared = sharedSet.has(group.id);
-          const checkboxId = `share-collection-group-${group.id}`;
-          return (
-            <li key={group.id} className="flex items-center gap-2">
-              <Checkbox
-                id={checkboxId}
-                checked={isShared}
-                disabled={share.isPending || unshare.isPending}
-                onCheckedChange={(checked) => {
-                  if (checked === true) {
-                    share.mutate({ slug: group.slug, collectionId });
-                  } else if (checked === false) {
-                    unshare.mutate({ slug: group.slug, collectionId });
-                  }
-                }}
-              />
-              <label htmlFor={checkboxId} className="cursor-pointer text-sm">
-                {group.name}
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <GroupVisibilitySection
+      groups={groups.items}
+      sharedGroupIds={new Set(sharedWith.items.map((row) => row.groupId))}
+      onShare={(group) => share.mutate({ slug: group.slug, collectionId })}
+      onUnshare={(group) => unshare.mutate({ slug: group.slug, collectionId })}
+      pending={share.isPending || unshare.isPending}
+      description="Choose which of your friend groups can see this collection (read-only) while signed in."
+      emptyNote="You're not in any friend groups yet. Join or create one to share collections with its members."
+      idPrefix="collection-group"
+    />
   );
 }

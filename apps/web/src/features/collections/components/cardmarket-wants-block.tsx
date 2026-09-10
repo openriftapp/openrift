@@ -1,5 +1,5 @@
+import { CopyTextButton } from "@/components/copy-text-button";
 import { Textarea } from "@/components/ui/textarea";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
 import type { CardLine } from "@/lib/export-text";
 import { formatCardmarketWants } from "@/lib/export-text";
 

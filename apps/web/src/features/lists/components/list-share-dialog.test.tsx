@@ -1,7 +1,7 @@
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type * as ReactRouter from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -81,6 +81,7 @@ function Harness({
         intent={intent}
         tradeDefaults={{ pricePref: null, priceAbsoluteCents: null, tradeType: null }}
         currency={null}
+        isPublic={shareToken !== null}
         shareToken={shareToken}
         updatedAt="2026-06-09T00:00:00.000Z"
         entries={[]}
@@ -121,11 +122,16 @@ describe("ListShareDialog", () => {
     expect(screen.queryByRole("button", { name: /create link/iu })).not.toBeInTheDocument();
   });
 
-  it("triggers useUnshareList when 'Stop sharing' is clicked", async () => {
+  it("confirms before unsharing, since the old link cannot be brought back", async () => {
     const user = userEvent.setup();
     unshareMutate.mockClear();
     render(<Harness shareToken="AbCdEfGhIjKl" />);
+
     await user.click(screen.getByRole("button", { name: /stop sharing/iu }));
+    expect(unshareMutate).not.toHaveBeenCalled();
+
+    const confirm = await screen.findByRole("alertdialog");
+    await user.click(within(confirm).getByRole("button", { name: /stop sharing/iu }));
     expect(unshareMutate).toHaveBeenCalledWith("abc");
   });
 
@@ -136,14 +142,16 @@ describe("ListShareDialog", () => {
     expect(screen.getByRole("button", { name: /^copied$/iu })).toBeInTheDocument();
   });
 
-  it("shows the 'Post to a chat' copy action whether or not the list is shared", () => {
-    const { rerender } = render(<Harness shareToken={null} />);
-    expect(screen.getByText(/post to a chat/iu)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /copy text/iu })).toBeInTheDocument();
+  it("shows the chat text itself, not just a copy button", async () => {
+    render(<Harness shareToken="AbCdEfGhIjKl" />);
 
-    rerender(<Harness shareToken="AbCdEfGhIjKl" />);
-    expect(screen.getByText(/post to a chat/iu)).toBeInTheDocument();
+    expect(await screen.findByDisplayValue(/Holiday Targets \(0 cards\)/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /copy text/iu })).toBeInTheDocument();
+  });
+
+  it("says the chat text carries no link until one exists", async () => {
+    render(<Harness shareToken={null} />);
+    expect(await screen.findByText(/carries no link until you create one/iu)).toBeInTheDocument();
   });
 
   it("offers the image render on its own tab, off the owner-authenticated route", async () => {
@@ -155,11 +163,11 @@ describe("ListShareDialog", () => {
     expect(await screen.findByRole("button", { name: /download image/iu })).toBeInTheDocument();
     // The preview is the real render, so an unshared list still gets one — it
     // just can't carry a QR until there is a link to encode.
-    expect(screen.getByRole("img")).toHaveAttribute(
+    expect(screen.getByRole("img", { name: /preview/iu })).toHaveAttribute(
       "src",
       expect.stringContaining("/api/v1/lists/abc/image.png"),
     );
-    expect(screen.getByText(/create a share link first/iu)).toBeInTheDocument();
+    expect(screen.getByText(/needs a share link to point at/iu)).toBeInTheDocument();
   });
 
   it("points wish and trade lists at the profile's Public sharing section", () => {
@@ -204,7 +212,7 @@ describe("ListShareDialog", () => {
     const user = userEvent.setup();
     render(<Harness shareToken={null} />);
     await user.click(screen.getByRole("tab", { name: "Print" }));
-    expect(screen.getByText(/create a share link first/iu)).toBeInTheDocument();
+    expect(screen.getByText(/create a share link above first/iu)).toBeInTheDocument();
     expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
   });
 });

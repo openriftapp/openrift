@@ -212,6 +212,7 @@ export function ListPage({ listId }: ListPageProps) {
       intent={data.list.intent}
       tradeDefaults={data.list.tradeDefaults}
       currency={data.list.currency}
+      isPublic={data.list.isPublic}
       shareToken={data.list.shareToken}
       updatedAt={data.list.updatedAt}
       entries={data.entries}

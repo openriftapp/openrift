@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -99,11 +99,17 @@ describe("CollectionShareDialog", () => {
     expect(screen.queryByRole("button", { name: /create link/iu })).not.toBeInTheDocument();
   });
 
-  it("triggers useUnshareCollection when 'Stop sharing' is clicked", async () => {
+  it("confirms before unsharing, since the old link cannot be brought back", async () => {
     const user = userEvent.setup();
     unshareMutate.mockClear();
     render(<Harness isPublic shareToken="AbCdEfGhIjKl" />);
+
     await user.click(screen.getByRole("button", { name: /stop sharing/iu }));
+    expect(unshareMutate).not.toHaveBeenCalled();
+
+    const confirm = await screen.findByRole("alertdialog");
+    expect(within(confirm).getByText(/binder qr sheet/iu)).toBeInTheDocument();
+    await user.click(within(confirm).getByRole("button", { name: /stop sharing/iu }));
     expect(unshareMutate).toHaveBeenCalledWith("abc");
   });
 
@@ -122,7 +128,8 @@ describe("CollectionShareDialog", () => {
       },
     });
     render(<Harness isPublic shareToken="AbCdEfGhIjKl" />);
-    expect(screen.getByText("Share with friend groups")).toBeInTheDocument();
+    expect(screen.getByText("Group visibility")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /only me/iu })).toBeInTheDocument();
   });
 
   it("omits the friend-group panel and skips the groupShares query for a group collection", () => {
@@ -133,7 +140,7 @@ describe("CollectionShareDialog", () => {
       },
     });
     render(<Harness isPublic shareToken="AbCdEfGhIjKl" isGroupCollection />);
-    expect(screen.queryByText("Share with friend groups")).not.toBeInTheDocument();
+    expect(screen.queryByText("Group visibility")).not.toBeInTheDocument();
     expect(groupSharesMock).not.toHaveBeenCalled();
   });
 
@@ -165,6 +172,18 @@ describe("CollectionShareDialog", () => {
       "aria-disabled",
       "true",
     );
+    expect(screen.getByText(/needs a share link to point at/iu)).toBeInTheDocument();
+  });
+
+  it("offers the share link as a bare QR code once shared", async () => {
+    const user = userEvent.setup();
+    render(<Harness isPublic shareToken="AbCdEfGhIjKl" />);
+    await user.click(screen.getByRole("tab", { name: "QR code" }));
+
+    expect(
+      screen.getByRole("img", { name: /qr code for the collection share link/iu }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download png/iu })).toBeInTheDocument();
   });
 
   it("shows the binder sheet panel on the Print tab once shared", async () => {
@@ -179,7 +198,7 @@ describe("CollectionShareDialog", () => {
     const user = userEvent.setup();
     render(<Harness isPublic={false} shareToken={null} />);
     await user.click(screen.getByRole("tab", { name: "Print" }));
-    expect(screen.getByText(/create a share link first/iu)).toBeInTheDocument();
+    expect(screen.getByText(/create a share link above first/iu)).toBeInTheDocument();
     expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
   });
 

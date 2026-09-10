@@ -11,10 +11,29 @@ import {
   downloadImageFromUrl,
   listOwnerImageUrl,
   listShareImageUrl,
+  shareImageOptions,
   shareImageVersion,
   tierListOwnerImageUrl,
   tierListShareImageUrl,
 } from "./share-image";
+
+describe("shareImageOptions", () => {
+  it("asks for the high-resolution render from 2x up", () => {
+    expect(shareImageOptions({ aspect: "landscape", scale: 2, qr: true })).toEqual({
+      size: "hq",
+      aspect: "landscape",
+      qr: true,
+    });
+  });
+
+  it("leaves the size off at 1x, where the default render is already native", () => {
+    expect(shareImageOptions({ aspect: "vertical", scale: 1, qr: false })).toEqual({
+      size: undefined,
+      aspect: "vertical",
+      qr: false,
+    });
+  });
+});
 
 describe("shareImageVersion", () => {
   it("returns epoch milliseconds for a valid ISO timestamp", () => {

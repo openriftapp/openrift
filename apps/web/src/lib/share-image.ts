@@ -1,6 +1,7 @@
 // Share images are served with a long immutable cache keyed by URL, so the `?v=`
 // version must change whenever the underlying content changes.
 
+import { qrPngDataUri } from "@openrift/shared/qr";
 import type { ShareImageQuery } from "@openrift/shared/share-image-params";
 import { shareImageQueryParams } from "@openrift/shared/share-image-params";
 
@@ -28,6 +29,21 @@ export function listShareImageUrl(siteUrl: string, shareToken: string, version: 
 }
 
 export type ShareImageOptions = Pick<ShareImageQuery, "size" | "aspect" | "qr">;
+
+export interface ShareImageRenderChoice {
+  aspect: ShareImageQuery["aspect"];
+  scale: number;
+  qr: boolean;
+}
+
+/** Every owner-authenticated render takes the same three params; tier lists build their own since they offer 3x, keyed as `scale`. */
+export function shareImageOptions(choice: ShareImageRenderChoice): ShareImageOptions {
+  return {
+    size: choice.scale >= 2 ? "hq" : undefined,
+    aspect: choice.aspect,
+    qr: choice.qr,
+  };
+}
 
 export function listOwnerImageUrl(
   siteUrl: string,
@@ -159,6 +175,15 @@ export async function downloadImageFromPost(
   filename: string,
 ): Promise<void> {
   triggerBlobDownload(await fetchImageBlobFromPost(url, body), filename);
+}
+
+/** Rendered at the download resolution: `qrcode` scales by redrawing, so a small code blown up would blur. */
+export async function downloadQrPng(value: string, filename: string, width = 1024): Promise<void> {
+  const dataUri = await qrPngDataUri(value, { width });
+  const anchor = document.createElement("a");
+  anchor.href = dataUri;
+  anchor.download = filename;
+  anchor.click();
 }
 
 function triggerBlobDownload(blob: Blob, filename: string): void {

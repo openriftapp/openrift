@@ -51,12 +51,6 @@ const disableUserShareFn = createServerFn({ method: "POST" })
     await apiOrpcClient(userShareContract, context.cookie).disable();
   });
 
-const rotateUserShareFn = createServerFn({ method: "POST" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<UserShareStateResponse> =>
-    apiOrpcClient(userShareContract, context.cookie).rotate(),
-  );
-
 export function useEnableUserShare() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
@@ -78,17 +72,6 @@ export function useDisableUserShare() {
         shareToken: null,
         isPublic: false,
       });
-    },
-  });
-}
-
-export function useRotateUserShare() {
-  const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => rotateUserShareFn(),
-    onSuccess: (data) => {
-      queryClient.setQueryData<UserShareStateResponse>(userShareKeys.state(userId), data);
     },
   });
 }

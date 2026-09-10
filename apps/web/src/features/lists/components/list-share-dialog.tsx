@@ -10,13 +10,13 @@ import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ensurePriceLookup } from "@/features/cards/hooks/use-prices";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
 import { ShareDialog } from "@/features/groups/components/share-dialog";
 import { ListGroupShareSection } from "@/features/lists/components/list-group-share-section";
 import { useShareList, useUnshareList } from "@/features/lists/hooks/use-lists";
 import { formatListShareText } from "@/features/lists/lib/list-export";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { listOwnerImageUrl, shareImageVersion } from "@/lib/share-image";
+import { listOwnerImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
+import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
 
 const BINDER_SUBTITLES: Record<ListIntent, string> = {
@@ -32,6 +32,7 @@ interface ListShareDialogProps {
   intent: ListIntent;
   tradeDefaults: TradePreference;
   currency: Currency | null;
+  isPublic: boolean;
   shareToken: string | null;
   updatedAt: string;
   entries: readonly ListEntryDetailResponse[];
@@ -46,6 +47,7 @@ export function ListShareDialog({
   intent,
   tradeDefaults,
   currency,
+  isPublic,
   shareToken,
   updatedAt,
   entries,
@@ -57,8 +59,7 @@ export function ListShareDialog({
   const queryClient = useQueryClient();
   const { labels } = useEnumOrders();
 
-  const shareUrl = shareToken ? `${getSiteUrl()}/lists/share/${shareToken}` : null;
-  const sharing = shareToken !== null;
+  const shareUrl = shareLinkUrl("list", { shareToken, isPublic });
 
   const buildShareText = async (): Promise<string> => {
     // Only CardTrader-priced lists need the (lazily fetched) price payload;
@@ -87,63 +88,20 @@ export function ListShareDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Share list"
-      description={
-        sharing
-          ? "Anyone with this link can view the cards on this list."
-          : "Create a link to share this list. Anyone with the link will be able to view it without signing in."
-      }
+      noun="list"
       link={{
         url: shareUrl,
         label: "List share link",
+        exposes: "view the cards on this list",
+        unfurls: true,
         onCreate: () => shareList.mutate(listId),
         creating: shareList.isPending,
         onStop: () => unshareList.mutate(listId),
         stopping: unshareList.isPending,
       }}
-      image={{
-        title: listName,
-        filenameBase: listName || "list",
-        // Owner-authenticated route, so the render works whether or not the
-        // list is shared (the public/og image needs a share token).
-        buildUrl: (choice) =>
-          listOwnerImageUrl(getSiteUrl(), listId, shareImageVersion(updatedAt), {
-            size: choice.scale >= 2 ? "hq" : undefined,
-            aspect: choice.aspect,
-            qr: choice.qr,
-          }),
-        scales: [1, 2],
-        qr: sharing ? "available" : "requires-share",
-        qrLabel: "Include a QR code to the list",
-      }}
-      print={{
-        shareUrl,
-        defaultTitle: listName,
-        defaultSubtitle: BINDER_SUBTITLES[intent],
-        filenameHint: listName,
-      }}
-    >
-      <CatchBoundary getResetKey={() => listId} errorComponent={() => null}>
-        <Suspense fallback={null}>
-          <ListGroupShareSection listId={listId} intent={intent} />
-        </Suspense>
-      </CatchBoundary>
-
-      <div className="flex flex-col gap-2 border-t pt-4">
-        <div>
-          <h3 className="font-medium">Post to a chat</h3>
+      linkNote={
+        intent === "organize" ? null : (
           <p className="text-muted-foreground text-sm">
-            Drop the list as text straight into WhatsApp, Discord, or any group chat.
-            {sharing ? "" : " The text uses no link until you create one above."}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <CopyTextButton label="Copy text" getText={buildShareText} />
-        </div>
-      </div>
-
-      {intent === "organize" ? null : (
-        <div className="text-muted-foreground flex flex-col gap-1 border-t pt-4 text-sm">
-          <p>
             One link covers every wishlist and tradelist you have, under{" "}
             <Button
               variant="link"
@@ -155,8 +113,45 @@ export function ListShareDialog({
             </Button>
             .
           </p>
-        </div>
-      )}
-    </ShareDialog>
+        )
+      }
+      access={
+        <CatchBoundary getResetKey={() => listId} errorComponent={() => null}>
+          <Suspense fallback={null}>
+            <ListGroupShareSection listId={listId} intent={intent} />
+          </Suspense>
+        </CatchBoundary>
+      }
+      text={{
+        cacheKey: [listId, updatedAt, entries.length, shareUrl],
+        getText: buildShareText,
+        description:
+          shareUrl === null
+            ? "Drop the list into WhatsApp, Discord, or any group chat. The text carries no link until you create one above."
+            : "Drop the list into WhatsApp, Discord, or any group chat.",
+      }}
+      image={{
+        title: listName,
+        filenameBase: listName || "list",
+        // Owner-authenticated route, so the render works whether or not the
+        // list is shared (the public/og image needs a share token).
+        buildUrl: (choice) =>
+          listOwnerImageUrl(
+            getSiteUrl(),
+            listId,
+            shareImageVersion(updatedAt),
+            shareImageOptions(choice),
+          ),
+        scales: [1, 2],
+        qrNoun: "list",
+        qrAvailable: shareUrl !== null,
+      }}
+      qrFilenameBase={listName || "list"}
+      print={{
+        defaultTitle: listName,
+        defaultSubtitle: BINDER_SUBTITLES[intent],
+        filenameHint: listName,
+      }}
+    />
   );
 }

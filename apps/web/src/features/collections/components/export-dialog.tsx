@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CopyTextPanel } from "@/components/copy-text-panel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CardmarketWantsBlock } from "@/features/collections/components/cardmarket-wants-block";
 import type { CsvExportFormat } from "@/features/collections/lib/csv-export";
@@ -26,7 +26,6 @@ import {
   downloadCSV,
 } from "@/features/collections/lib/csv-export";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
 import { useEnumOrders } from "@/hooks/use-enums";
 import type { CardLine } from "@/lib/export-text";
 import { formatCardListAsDeckText } from "@/lib/export-text";
@@ -147,22 +146,12 @@ export function ExportDialog({
               </Select>
             )}
 
-            {isText && (
-              <Textarea
-                readOnly
-                value={text}
-                className="field-sizing-fixed font-mono text-xs"
-                rows={12}
-                onClick={(event) => (event.target as HTMLTextAreaElement).select()}
-              />
-            )}
+            {isText ? <CopyTextPanel text={text} /> : null}
 
             {scopeControls}
 
-            <div className="flex justify-end">
-              {isText ? (
-                text.length > 0 && <CopyTextButton label="Copy" getText={() => text} />
-              ) : (
+            {isText ? null : (
+              <div className="flex justify-end">
                 <Button type="submit" disabled={isLoading || count === 0}>
                   {isLoading ? (
                     <>
@@ -176,8 +165,8 @@ export function ExportDialog({
                     </>
                   )}
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </DialogForm>
 

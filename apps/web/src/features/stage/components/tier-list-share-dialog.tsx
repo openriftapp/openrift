@@ -1,6 +1,7 @@
 import { ShareDialog } from "@/features/groups/components/share-dialog";
 import { useSetTierListShare } from "@/features/stage/hooks/use-tier-lists";
 import { tierListOwnerImageUrl } from "@/lib/share-image";
+import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
 
 const SCALES = [1, 2, 3];
@@ -26,22 +27,19 @@ export function TierListShareDialog({
 }: TierListShareDialogProps) {
   const setShare = useSetTierListShare();
 
-  const sharing = isPublic && shareToken !== null;
-  const shareUrl = shareToken ? `${getSiteUrl()}/tier-lists/share/${shareToken}` : null;
+  const shareUrl = shareLinkUrl("tierList", { shareToken, isPublic });
 
   return (
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Share tier list"
-      description={
-        sharing
-          ? "Anyone with this link can see the ranking without signing in. They can open any card for its full details."
-          : "Create a link to share this ranking. Anyone with the link can see it without signing in."
-      }
+      noun="tier list"
       link={{
         url: shareUrl,
         label: "Tier list share link",
+        exposes: "see the ranking and open any card for its full details",
+        unfurls: true,
         onCreate: () => setShare.mutate({ id: tierListId, shared: true }),
         creating: setShare.isPending,
         onStop: () => setShare.mutate({ id: tierListId, shared: false }),
@@ -57,21 +55,20 @@ export function TierListShareDialog({
             qr: choice.qr,
           }),
         scales: SCALES,
-        qr: sharing ? "available" : "requires-share",
-        qrLabel: "Include a QR code to the tier list",
+        qrNoun: "tier list",
+        qrAvailable: shareUrl !== null,
         note: dirty ? (
           <p className="text-muted-foreground text-sm">
             The image is drawn from the saved board, so save first to see your latest changes in it.
           </p>
         ) : null,
       }}
-    >
-      {sharing ? (
-        <p className="text-muted-foreground text-sm">
-          Pasting this link into a video description, Discord, or WhatsApp shows a preview image of
-          the board.
-        </p>
-      ) : null}
-    </ShareDialog>
+      qrFilenameBase={title || "tier-list"}
+      print={{
+        defaultTitle: title,
+        defaultSubtitle: "Scan to see this ranking",
+        filenameHint: title,
+      }}
+    />
   );
 }

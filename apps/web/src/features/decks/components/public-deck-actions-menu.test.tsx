@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ShareImageRenderChoice } from "@/features/groups/components/share-image-panel";
+import type { ShareImageRenderChoice } from "@/lib/share-image";
 
 const { encodeMock, copyMock, toastMock, dialogProps } = vi.hoisted(() => ({
   encodeMock: vi.fn(),
@@ -172,9 +172,9 @@ describe("PublicDeckActionsMenu", () => {
 
     const image = dialogProps.share?.image as {
       buildUrl: (choice: ShareImageRenderChoice) => string;
-      qr: string;
+      qrAvailable: boolean;
     };
-    expect(image.qr).toBe("available");
+    expect(image.qrAvailable).toBe(true);
     expect(image.buildUrl({ aspect: "vertical", scale: 2, qr: false })).toBe(
       `https://openrift.app/api/v1/decks/share/tok123/image.png?v=${IMAGE_VERSION}&size=hq&aspect=vertical&qr=0`,
     );

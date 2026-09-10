@@ -1,6 +1,7 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { legendDisplayName } from "@openrift/shared/utils";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
 import { formatCardmarketWants } from "@/lib/export-text";
 
 interface TradeCardmarketExportDialogProps {

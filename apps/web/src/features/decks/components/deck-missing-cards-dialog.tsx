@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowDownLeftIcon, HeartIcon, LockIcon, ShoppingCartIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { CopyTextButton } from "@/components/copy-text-button";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,6 @@ import {
 } from "@/features/decks/lib/deck-missing-export";
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
 import { zoneLabel } from "@/features/decks/lib/deck-zone-labels";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
 import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
 import { useEnumOrders } from "@/hooks/use-enums";

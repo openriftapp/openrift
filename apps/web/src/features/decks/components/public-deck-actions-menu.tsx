@@ -24,9 +24,8 @@ import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card"
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import { ShareDialog } from "@/features/groups/components/share-dialog";
-import type { ShareImageRenderChoice } from "@/features/groups/components/share-image-panel";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
+import { deckShareImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 
 /** Module scope so the copy handler's `try` stays branch-free (React Compiler). */
@@ -43,10 +42,6 @@ function reportCopyResult(written: boolean): void {
     return;
   }
   toast.error("Couldn't copy the deck code");
-}
-
-function sizeFor(choice: ShareImageRenderChoice): "hq" | undefined {
-  return choice.scale >= 2 ? "hq" : undefined;
 }
 
 interface PublicDeckActionsMenuProps {
@@ -138,18 +133,20 @@ export function PublicDeckActionsMenu({
         onOpenChange={setImageOpen}
         title="Save deck image"
         description="Save an image of this deck to post in WhatsApp, Discord, or anywhere else."
+        noun="deck"
         image={{
           title: deckName,
           filenameBase: deckName || "deck",
           buildUrl: (choice) =>
-            deckShareImageUrl(getSiteUrl(), shareToken, publicSource.imageVersion, {
-              size: sizeFor(choice),
-              aspect: choice.aspect,
-              qr: choice.qr,
-            }),
+            deckShareImageUrl(
+              getSiteUrl(),
+              shareToken,
+              publicSource.imageVersion,
+              shareImageOptions(choice),
+            ),
           scales: [1, 2],
-          qr: "available",
-          qrLabel: "Include a QR code to the deck",
+          qrNoun: "deck",
+          qrAvailable: true,
         }}
       />
 
