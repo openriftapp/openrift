@@ -156,7 +156,21 @@ function PrivacyPolicyPage() {
         the content that constitutes the core functionality of this service).
       </p>
 
-      <h2>12. Your rights</h2>
+      <h2>12. Browser extension</h2>
+      <p>
+        Our optional browser extension reads the page you are viewing when you click its icon, or,
+        on Cardmarket, once you have granted it access to that site. It reads decklists and card
+        identifiers from that page and transmits them to us only when you choose to send them, so
+        that we can import them into your collection. Until then, that data and the collection
+        counts the extension displays are stored only in your browser&apos;s local storage. The
+        extension does not record your browsing history and contains no tracking or analytics.
+      </p>
+      <p>
+        The legal basis is Art. 6(1)(b) GDPR, as the processing carries out the import you
+        requested.
+      </p>
+
+      <h2>13. Your rights</h2>
       <p>You have the following rights with respect to your personal data:</p>
       <ul>
         <li>Right of access (Art. 15 GDPR)</li>
@@ -173,7 +187,7 @@ function PrivacyPolicyPage() {
         For any other requests, please contact us at the e-mail address listed above.
       </p>
 
-      <h2>13. Supervisory authority</h2>
+      <h2>14. Supervisory authority</h2>
       <p>The competent supervisory authority for data protection matters is:</p>
       <p>
         Die Landesbeauftragte für den Datenschutz Niedersachsen
@@ -188,13 +202,13 @@ function PrivacyPolicyPage() {
         </a>
       </p>
 
-      <h2>14. Changes to this privacy policy</h2>
+      <h2>15. Changes to this privacy policy</h2>
       <p>
         We reserve the right to update this privacy policy to reflect changes in our data processing
         practices or legal requirements. The current version is always available on this page.
       </p>
 
-      <p className="text-muted-foreground text-sm">Last updated: March 2026</p>
+      <p className="text-muted-foreground text-sm">Last updated: September 2026</p>
     </ProsePage>
   );
 }
