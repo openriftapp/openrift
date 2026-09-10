@@ -51,25 +51,13 @@ export function withoutReservedCopies(
   return entries.filter((entry) => entry.kind !== "copy" || !entry.reserved);
 }
 
-/** Apostrophes are straightened to ASCII to match the deck text codec other deckbuilder tools read. */
-export function formatCardListAsDeckText(entries: readonly ListEntryDetailResponse[]): string {
-  const lines: string[] = [];
-  for (const entry of entries) {
-    if (entry.kind !== "card") {
-      continue;
-    }
-    lines.push(`${entry.quantity} ${straightenApostrophes(entry.cardName)}`);
-  }
-  return lines.join("\n");
-}
-
-/** The synthetic copy ids stand in for real ones; the CSV writers only read their count when no `copiesById` lookup is given. */
+/** Copy entries keep their real copy id for a `copiesById` lookup; printing entries get synthetic ids the CSV writers only count. */
 export function stacksFromListEntries(
   entries: readonly ListEntryDetailResponse[],
   printingsById: Readonly<Record<string, Printing>>,
   sets: readonly SetOrderInfo[],
 ): StackedEntry[] {
-  const quantities = new Map<string, number>();
+  const copyIdsByPrinting = new Map<string, string[]>();
   const printings = new Map<string, Printing>();
   for (const entry of entries) {
     if (entry.kind === "card") {
@@ -80,36 +68,19 @@ export function stacksFromListEntries(
       continue;
     }
     printings.set(entry.printingId, printing);
-    quantities.set(entry.printingId, (quantities.get(entry.printingId) ?? 0) + entry.quantity);
+    const copyIds = copyIdsByPrinting.get(entry.printingId) ?? [];
+    for (let index = 0; index < entry.quantity; index++) {
+      copyIds.push(entry.kind === "copy" ? entry.copyId : `${entry.printingId}#${copyIds.length}`);
+    }
+    copyIdsByPrinting.set(entry.printingId, copyIds);
   }
 
   const sorted = sortCards([...printings.values()], "id", { sets });
   return sorted.map((printing) => ({
     printingId: printing.id,
     printing,
-    copyIds: Array.from(
-      { length: quantities.get(printing.id) ?? 0 },
-      (_, index) => `${printing.id}#${index}`,
-    ),
+    copyIds: copyIdsByPrinting.get(printing.id) ?? [],
   }));
-}
-
-export interface CardmarketWant {
-  name: string;
-  quantity: number;
-}
-
-/** Cardmarket's "add multiple wants" import matches lines by card name; any extra text breaks the match. */
-export function formatCardmarketWants(wants: readonly CardmarketWant[]): string {
-  const byName = new Map<string, number>();
-  for (const want of wants) {
-    const name = straightenApostrophes(want.name);
-    byName.set(name, (byName.get(name) ?? 0) + want.quantity);
-  }
-  return [...byName.entries()]
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([name, quantity]) => `${quantity}x ${name}`)
-    .join("\n");
 }
 
 export interface SharePricing {

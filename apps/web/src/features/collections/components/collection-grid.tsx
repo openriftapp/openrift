@@ -360,6 +360,9 @@ export function CollectionGrid({
     <CollectionGridOverlays
       addTarget={addTarget}
       currentCollection={currentCollection}
+      stacks={stacks}
+      selectableCopyIds={selectableCopyIds}
+      hasActiveFilters={hasActiveFilters}
       catalogAllPrintingsByCardId={catalogAllPrintingsByCardId}
       ownedCountByPrinting={ownedCountByPrinting}
       preferredLanguages={preferredLanguages}

@@ -1,29 +1,8 @@
-import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_TRADE_PREFERENCE } from "@/test/factories";
+import { formatCardListAsDeckText } from "@/lib/export-text";
 
-import { formatCardListAsDeckText } from "./list-export";
 import { parseCardListText, parseListImport } from "./list-import-parser";
-
-function cardEntry(
-  id: string,
-  cardId: string,
-  cardName: string,
-  quantity: number,
-): ListEntryDetailResponse {
-  return {
-    id,
-    listId: "list-1",
-    kind: "card",
-    cardId,
-    quantity,
-    cardName,
-    ruleQuantity: 0,
-    source: "manual",
-    tradeOverride: EMPTY_TRADE_PREFERENCE,
-  };
-}
 
 describe("parseCardListText", () => {
   it("parses `<qty> <name>` lines into ImportEntry shapes with synthetic defaults", () => {
@@ -82,9 +61,9 @@ describe("parseCardListText", () => {
 
   it("round-trips with formatCardListAsDeckText", () => {
     const exported = formatCardListAsDeckText([
-      cardEntry("e1", "c1", "Teemo, Scout", 1),
-      cardEntry("e2", "c2", "Kai’Sa, Survivor", 2),
-      cardEntry("e3", "c3", "Jinx, Rebel", 3),
+      { name: "Teemo, Scout", quantity: 1 },
+      { name: "Kai’Sa, Survivor", quantity: 2 },
+      { name: "Jinx, Rebel", quantity: 3 },
     ]);
     const result = parseCardListText(exported);
     expect(result.errors).toEqual([]);

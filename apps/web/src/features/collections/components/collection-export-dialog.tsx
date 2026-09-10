@@ -1,129 +1,82 @@
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useQuery } from "@tanstack/react-query";
-import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useCards } from "@/features/cards/hooks/use-cards";
-import { buildCollectionCsv } from "@/features/collections/lib/collection-csv-export";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ExportDialog } from "@/features/collections/components/export-dialog";
 import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
-import type { CsvExportFormat } from "@/features/collections/lib/csv-export";
-import {
-  CSV_EXPORT_FORMATS,
-  csvExportFilename,
-  csvExportLabels,
-  downloadCSV,
-} from "@/features/collections/lib/csv-export";
-import { CardmarketWantsBlock } from "@/features/lists/components/cardmarket-wants-block";
-import { useEnumOrders } from "@/hooks/use-enums";
+import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useRequiredUserId } from "@/lib/auth-session";
 
 interface CollectionExportDialogProps {
   collectionId?: string;
   collectionName: string;
+  stacks: readonly StackedEntry[];
+  /** The grid's filtered copies, pre-dedupe, so cards view exports every printing too. */
+  selectableCopyIds: readonly string[];
+  hasActiveFilters: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function narrowToCopyIds(
+  stacks: readonly StackedEntry[],
+  copyIds: readonly string[],
+): StackedEntry[] {
+  const kept = new Set(copyIds);
+  const narrowed: StackedEntry[] = [];
+  for (const stack of stacks) {
+    const ids = stack.copyIds.filter((id) => kept.has(id));
+    if (ids.length > 0) {
+      narrowed.push({ ...stack, copyIds: ids });
+    }
+  }
+  return narrowed;
 }
 
 export function CollectionExportDialog({
   collectionId,
   collectionName,
+  stacks,
+  selectableCopyIds,
+  hasActiveFilters,
   open,
   onOpenChange,
 }: CollectionExportDialogProps) {
   const userId = useRequiredUserId();
-  const { allPrintings, printingsById, sets } = useCards();
-  const { labels } = useEnumOrders();
-  const [format, setFormat] = useState<CsvExportFormat>("openrift");
+  const [applyFilters, setApplyFilters] = useState(true);
 
   const { data: copies, isLoading } = useQuery(copiesQueryOptions(userId, collectionId));
 
-  const wantsByName = new Map<string, number>();
-  for (const copy of copies ?? []) {
-    const printing = printingsById[copy.printingId];
-    if (!printing) {
-      continue;
-    }
-    const name = legendDisplayName(printing.card);
-    wantsByName.set(name, (wantsByName.get(name) ?? 0) + 1);
-  }
-  const wants = [...wantsByName.entries()].map(([name, quantity]) => ({ name, quantity }));
+  const totalCopies = stacks.reduce((sum, stack) => sum + stack.copyIds.length, 0);
+  const exportStacks =
+    hasActiveFilters && applyFilters ? narrowToCopyIds(stacks, selectableCopyIds) : stacks;
 
-  const copyCount = copies?.length ?? 0;
+  const copiesById = new Map((copies ?? []).map((copy) => [copy.id, copy]));
 
-  const handleExport = () => {
-    if (!copies) {
-      return;
-    }
-    const csv = buildCollectionCsv(
-      copies,
-      allPrintings,
-      sets,
-      csvExportLabels(sets, labels),
-      format,
-    );
-    downloadCSV(csv, csvExportFilename(format, collectionName));
-    toast.success("Collection exported.");
-  };
+  const scopeControls = hasActiveFilters && (
+    <div className="flex items-center gap-2">
+      <Checkbox
+        id="collection-export-apply-filters"
+        checked={applyFilters}
+        onCheckedChange={(checked) => setApplyFilters(checked === true)}
+      />
+      <label htmlFor="collection-export-apply-filters" className="cursor-pointer text-sm">
+        Only cards matching the current filters ({selectableCopyIds.length} of {totalCopies})
+      </label>
+    </div>
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogForm onSubmit={handleExport}>
-          <DialogHeader>
-            <DialogTitle>Export collection</DialogTitle>
-          </DialogHeader>
-
-          <div className="flex min-w-0 flex-col gap-3">
-            <Select
-              value={format}
-              onValueChange={(value) => setFormat((value as CsvExportFormat) ?? "openrift")}
-              items={Object.fromEntries(
-                Object.entries(CSV_EXPORT_FORMATS).map(([key, def]) => [key, def.label]),
-              )}
-            >
-              <SelectTrigger className="w-[220px]" id="collection-export-format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CSV_EXPORT_FORMATS).map(([key, def]) => (
-                  <SelectItem key={key} value={key}>
-                    {def.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isLoading || copyCount === 0}>
-                {isLoading ? (
-                  <>
-                    <Loader2Icon className="size-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <DownloadIcon className="size-4" />
-                    Export {copyCount} {copyCount === 1 ? "copy" : "copies"}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogForm>
-
-        <CardmarketWantsBlock wants={wants} />
-      </DialogContent>
-    </Dialog>
+    <ExportDialog
+      title="Export collection"
+      filenameBase={collectionName}
+      payload={{ mode: "printings", stacks: exportStacks, copiesById }}
+      unit="copy"
+      successMessage="Collection exported."
+      scopeControls={scopeControls}
+      isLoading={isLoading}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
   );
 }

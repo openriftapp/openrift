@@ -11,7 +11,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CopyTextButton } from "@/features/groups/components/copy-text-button";
-import { formatCardmarketWants } from "@/features/lists/lib/list-export";
+import { formatCardmarketWants } from "@/lib/export-text";
 
 interface TradeCardmarketExportDialogProps {
   counterpartyName: string | null;

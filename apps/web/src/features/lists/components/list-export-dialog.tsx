@@ -1,39 +1,19 @@
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
-import { DownloadIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DialogForm } from "@/components/ui/dialog-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import type { CsvExportFormat } from "@/features/collections/lib/csv-export";
-import {
-  CSV_EXPORT_FORMATS,
-  csvExportFilename,
-  csvExportLabels,
-  downloadCSV,
-} from "@/features/collections/lib/csv-export";
-import { CopyTextButton } from "@/features/groups/components/copy-text-button";
-import { CardmarketWantsBlock } from "@/features/lists/components/cardmarket-wants-block";
+import type { ExportPayload } from "@/features/collections/components/export-dialog";
+import { ExportDialog } from "@/features/collections/components/export-dialog";
+import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
 import { useFilteredListEntries } from "@/features/lists/hooks/use-filtered-list-entries";
 import {
-  formatCardListAsDeckText,
   hasReservedCopies,
   stacksFromListEntries,
   withoutReservedCopies,
 } from "@/features/lists/lib/list-export";
-import { useEnumOrders } from "@/hooks/use-enums";
+import { useRequiredUserId } from "@/lib/auth-session";
 
 interface ListExportDialogProps {
   listName: string;
@@ -50,6 +30,8 @@ export function ListExportDialog({
   open,
   onOpenChange,
 }: ListExportDialogProps) {
+  const userId = useRequiredUserId();
+  const { printingsById, sets } = useCards();
   const [applyFilters, setApplyFilters] = useState(true);
   const [excludeReserved, setExcludeReserved] = useState(true);
 
@@ -60,7 +42,29 @@ export function ListExportDialog({
   const exportEntries =
     hasReserved && excludeReserved ? withoutReservedCopies(scopedEntries) : scopedEntries;
 
-  const options = (
+  const { data: copies, isLoading } = useQuery({
+    ...copiesQueryOptions(userId),
+    enabled: kind === "copy",
+  });
+
+  const payload: ExportPayload =
+    kind === "card"
+      ? {
+          mode: "cards",
+          lines: exportEntries.map((entry) => ({
+            name: entry.cardName,
+            quantity: entry.quantity,
+          })),
+        }
+      : {
+          mode: "printings",
+          stacks: stacksFromListEntries(exportEntries, printingsById, sets),
+          ...(kind === "copy"
+            ? { copiesById: new Map((copies ?? []).map((copy) => [copy.id, copy])) }
+            : {}),
+        };
+
+  const scopeControls = (
     <>
       {hasActiveFilters && (
         <div className="flex items-center gap-2">
@@ -90,110 +94,16 @@ export function ListExportDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        {kind === "card" ? (
-          <TextExport entries={exportEntries} options={options} />
-        ) : (
-          <CsvExport listName={listName} entries={exportEntries} options={options} />
-        )}
-        <CardmarketWantsBlock
-          wants={exportEntries.map((entry) => ({ name: entry.cardName, quantity: entry.quantity }))}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TextExport({
-  entries,
-  options,
-}: {
-  entries: readonly ListEntryDetailResponse[];
-  options?: ReactNode;
-}) {
-  const code = formatCardListAsDeckText(entries);
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Export list</DialogTitle>
-      </DialogHeader>
-
-      <div className="flex min-w-0 flex-col gap-3">
-        <Textarea
-          readOnly
-          value={code}
-          className="field-sizing-fixed font-mono text-xs"
-          rows={12}
-          onClick={(event) => (event.target as HTMLTextAreaElement).select()}
-        />
-        {options}
-        {code.length > 0 && (
-          <div className="flex justify-end">
-            <CopyTextButton label="Copy" getText={() => code} />
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-function CsvExport({
-  listName,
-  entries,
-  options,
-}: {
-  listName: string;
-  entries: readonly ListEntryDetailResponse[];
-  options?: ReactNode;
-}) {
-  const { printingsById, sets } = useCards();
-  const { labels } = useEnumOrders();
-  const [format, setFormat] = useState<CsvExportFormat>("openrift");
-
-  const stacks = stacksFromListEntries(entries, printingsById, sets);
-  const cardCount = stacks.reduce((sum, stack) => sum + stack.copyIds.length, 0);
-
-  const handleDownload = () => {
-    const csv = CSV_EXPORT_FORMATS[format].generate(stacks, csvExportLabels(sets, labels));
-    downloadCSV(csv, csvExportFilename(format, listName));
-    toast.success("List exported.");
-  };
-
-  return (
-    <DialogForm onSubmit={handleDownload}>
-      <DialogHeader>
-        <DialogTitle>Export list</DialogTitle>
-      </DialogHeader>
-
-      <div className="flex min-w-0 flex-col gap-3">
-        <Select
-          value={format}
-          onValueChange={(value) => setFormat((value as CsvExportFormat) ?? "openrift")}
-          items={Object.fromEntries(
-            Object.entries(CSV_EXPORT_FORMATS).map(([key, def]) => [key, def.label]),
-          )}
-        >
-          <SelectTrigger className="w-[220px]" id="list-export-format">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(CSV_EXPORT_FORMATS).map(([key, def]) => (
-              <SelectItem key={key} value={key}>
-                {def.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {options}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={cardCount === 0}>
-            <DownloadIcon className="size-4" />
-            Export {cardCount} {cardCount === 1 ? "card" : "cards"}
-          </Button>
-        </div>
-      </div>
-    </DialogForm>
+    <ExportDialog
+      title="Export list"
+      filenameBase={listName}
+      payload={payload}
+      unit="card"
+      successMessage="List exported."
+      scopeControls={scopeControls}
+      isLoading={kind === "copy" && isLoading}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
   );
 }

@@ -1,10 +1,10 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
 
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
-import type { CardmarketWant } from "@/features/lists/lib/list-export";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
+import type { CardLine } from "@/lib/export-text";
 
-export function missingCardsToWants(cards: readonly CardOwnership[]): CardmarketWant[] {
+export function missingCardsToWants(cards: readonly CardOwnership[]): CardLine[] {
   return cards
     .filter((card) => card.shortfall > 0)
     .map((card) => ({ name: card.displayName, quantity: card.shortfall }));

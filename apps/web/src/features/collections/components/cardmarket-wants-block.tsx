@@ -1,16 +1,16 @@
 import { Textarea } from "@/components/ui/textarea";
 import { CopyTextButton } from "@/features/groups/components/copy-text-button";
-import type { CardmarketWant } from "@/features/lists/lib/list-export";
-import { formatCardmarketWants } from "@/features/lists/lib/list-export";
+import type { CardLine } from "@/lib/export-text";
+import { formatCardmarketWants } from "@/lib/export-text";
 
 interface CardmarketWantsBlockProps {
-  wants: readonly CardmarketWant[];
+  lines: readonly CardLine[];
 }
 
 // Cardmarket's shopping wizard matches lines by card name; any extra text
 // (short codes, prices, CSV columns) breaks the match.
-export function CardmarketWantsBlock({ wants }: CardmarketWantsBlockProps) {
-  const text = formatCardmarketWants(wants);
+export function CardmarketWantsBlock({ lines }: CardmarketWantsBlockProps) {
+  const text = formatCardmarketWants(lines);
 
   if (text.length === 0) {
     return null;

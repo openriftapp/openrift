@@ -2,6 +2,7 @@ import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { PendingAnnotatedDispose } from "@/features/collections/hooks/use-quick-add-actions";
+import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
@@ -19,6 +20,9 @@ import { TakeWishlistFollowUpDialog } from "./take-wishlist-followup-dialog";
 interface CollectionGridOverlaysProps {
   addTarget?: string;
   currentCollection?: CollectionResponse;
+  stacks: readonly StackedEntry[];
+  selectableCopyIds: readonly string[];
+  hasActiveFilters: boolean;
   catalogAllPrintingsByCardId: Map<string, Printing[]>;
   ownedCountByPrinting?: Record<string, number>;
   preferredLanguages?: readonly string[];
@@ -40,6 +44,9 @@ interface CollectionGridOverlaysProps {
 export function CollectionGridOverlays({
   addTarget,
   currentCollection,
+  stacks,
+  selectableCopyIds,
+  hasActiveFilters,
   catalogAllPrintingsByCardId,
   ownedCountByPrinting,
   preferredLanguages,
@@ -127,6 +134,9 @@ export function CollectionGridOverlays({
         <CollectionExportDialog
           collectionId={currentCollection?.id}
           collectionName={currentCollection?.name ?? "All cards"}
+          stacks={stacks}
+          selectableCopyIds={selectableCopyIds}
+          hasActiveFilters={hasActiveFilters}
           open
           onOpenChange={setExportOpen}
         />

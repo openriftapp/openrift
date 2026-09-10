@@ -1,13 +1,18 @@
-import type { ListEntryDetailResponse } from "@openrift/shared/types/api/list";
+import type { CopyResponse } from "@openrift/shared/types/api/collection";
+import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EMPTY_TRADE_PREFERENCE, stubPrinting } from "@/test/factories";
+import { EMPTY_TRADE_PREFERENCE, stubCopy, stubPrinting } from "@/test/factories";
 
 const viPrinting = stubPrinting({ id: "p-vi", cardId: "card-vi", card: { name: "Vi" } });
 const jinxPrinting = stubPrinting({ id: "p-jinx", cardId: "card-jinx", card: { name: "Jinx" } });
+
+vi.mock("@/lib/auth-session", () => ({
+  useRequiredUserId: () => "user-1",
+}));
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({
@@ -31,6 +36,19 @@ vi.mock("@/features/lists/hooks/use-filtered-list-entries", () => ({
   useFilteredListEntries: () => filtered,
 }));
 
+let copies: CopyResponse[] = [];
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: copies, isLoading: false }),
+}));
+
+vi.mock("@/features/collections/lib/copies-query", () => ({
+  copiesQueryOptions: (_userId: string) => ({}),
+}));
+
+const toastSuccess = vi.fn();
+vi.mock("sonner", () => ({ toast: { success: (...args: unknown[]) => toastSuccess(...args) } }));
+
 const { ListExportDialog } = await import("./list-export-dialog");
 
 const baseEntry = {
@@ -45,11 +63,8 @@ function cardEntry(id: string, cardId: string, cardName: string): ListEntryDetai
   return { ...baseEntry, id, kind: "card", cardId, cardName };
 }
 
-function printingEntry(id: string, printing: Printing): ListEntryDetailResponse {
+function printingFields(printing: Printing) {
   return {
-    ...baseEntry,
-    id,
-    kind: "printing",
     printingId: printing.id,
     cardName: printing.card.name,
     setId: printing.setId,
@@ -61,10 +76,28 @@ function printingEntry(id: string, printing: Printing): ListEntryDetailResponse 
   };
 }
 
+function printingEntry(id: string, printing: Printing): ListEntryDetailResponse {
+  return { ...baseEntry, id, kind: "printing", ...printingFields(printing) };
+}
+
+function copyEntry(id: string, copyId: string, printing: Printing): ListEntryDetailResponse {
+  return {
+    ...baseEntry,
+    id,
+    kind: "copy",
+    copyId,
+    ...printingFields(printing),
+    reserved: false,
+    onLoan: false,
+  };
+}
+
 const viEntry = cardEntry("e-1", "card-vi", "Vi");
 const jinxEntry = cardEntry("e-2", "card-jinx", "Jinx");
 
-function setup(entries: ListEntryDetailResponse[], kind: "card" | "printing" = "card") {
+let downloadedBlobs: Blob[] = [];
+
+function setup(entries: ListEntryDetailResponse[], kind: ListKind = "card") {
   render(
     <ListExportDialog
       listName="Piltover picks"
@@ -81,6 +114,19 @@ const exportText = () => (screen.getAllByRole("textbox")[0] as HTMLTextAreaEleme
 describe("ListExportDialog", () => {
   beforeEach(() => {
     filtered = { hasActiveFilters: false, filteredEntries: [] };
+    copies = [];
+    toastSuccess.mockReset();
+    downloadedBlobs = [];
+    vi.stubGlobal(
+      "URL",
+      Object.assign(globalThis.URL, {
+        createObjectURL: vi.fn((blob: Blob) => {
+          downloadedBlobs.push(blob);
+          return "blob:fake";
+        }),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
   });
 
   it("exports the whole list and offers no filter toggle when no filters are active", () => {
@@ -120,11 +166,47 @@ describe("ListExportDialog", () => {
     expect(wants.value).toBe("1x Jinx");
   });
 
+  it("offers only the text format for a card list", () => {
+    setup([viEntry, jinxEntry]);
+
+    expect(screen.queryByText("OpenRift CSV")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /export \d/iu })).not.toBeInTheDocument();
+  });
+
   it("counts the CSV download against the filtered subset", () => {
     const entries = [printingEntry("e-1", viPrinting), printingEntry("e-2", jinxPrinting)];
     filtered = { hasActiveFilters: true, filteredEntries: [entries[1]!] };
     setup(entries, "printing");
 
     expect(screen.getByRole("button", { name: "Export 1 card" })).toBeInTheDocument();
+  });
+
+  it("offers a text list for a printing list too", async () => {
+    const user = userEvent.setup();
+    setup([printingEntry("e-1", viPrinting), printingEntry("e-2", jinxPrinting)], "printing");
+
+    await user.click(screen.getByText("OpenRift CSV"));
+    await user.click(await screen.findByRole("option", { name: "Text list" }));
+
+    expect(exportText()).toBe("1 Vi\n1 Jinx");
+  });
+
+  it("writes copy metadata into a copy list's CSV", async () => {
+    const user = userEvent.setup();
+    copies = [
+      stubCopy({ id: "copy-1", printingId: viPrinting.id, condition: "near-mint" }),
+      stubCopy({ id: "copy-2", printingId: jinxPrinting.id, condition: "played" }),
+    ];
+    setup(
+      [copyEntry("e-1", "copy-1", viPrinting), copyEntry("e-2", "copy-2", jinxPrinting)],
+      "copy",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Export 2 cards" }));
+
+    expect(toastSuccess).toHaveBeenCalledWith("List exported.");
+    const csv = await downloadedBlobs[0]!.text();
+    expect(csv).toContain("near-mint");
+    expect(csv).toContain("played");
   });
 });
