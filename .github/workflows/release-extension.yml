@@ -23,7 +23,7 @@ env:
   MANIFEST_TAG: extension-updates
   # Fixed asset name of the current signed build on that same tag. The site's
   # install link points here, so it must never change.
-  LATEST_XPI: openrift-deck-importer.xpi
+  LATEST_XPI: openrift-companion.xpi
 
 jobs:
   release:

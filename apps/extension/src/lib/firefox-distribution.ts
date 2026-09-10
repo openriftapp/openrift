@@ -14,7 +14,7 @@ const UPDATE_MANIFEST_FILE = "firefox-updates.json";
 
 export const UPDATE_MANIFEST_URL = `https://github.com/${REPO}/releases/download/${UPDATE_MANIFEST_TAG}/${UPDATE_MANIFEST_FILE}`;
 
-const LATEST_XPI_FILE = "openrift-deck-importer.xpi";
+const LATEST_XPI_FILE = "openrift-companion.xpi";
 
 export const LATEST_XPI_URL = `https://github.com/${REPO}/releases/download/${UPDATE_MANIFEST_TAG}/${LATEST_XPI_FILE}`;
 

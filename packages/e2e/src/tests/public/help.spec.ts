@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 
 import { WEB_BASE_URL } from "../../helpers/constants.js";
 
-// Kept in sync with apps/web/src/components/help/articles.ts (not importable
+// Kept in sync with apps/web/src/features/marketing/components/articles.ts (not importable
 // here). `how-to-play` is omitted: its feature flag is off by default in e2e.
 const ARTICLES: { slug: string; title: string; description: string }[] = [
   {
@@ -30,10 +30,10 @@ const ARTICLES: { slug: string; title: string; description: string }[] = [
       "Move collections between OpenRift and other Riftbound tools (Piltover Archive, RiftCore, and more) using CSV.",
   },
   {
-    slug: "deck-importer-extension",
-    title: "Deck Importer Extension",
+    slug: "browser-extension",
+    title: "Browser Extension",
     description:
-      "Send the decklist you're looking at on another site straight to OpenRift with one click, using the Firefox add-on.",
+      "Send the decklist you're looking at on another site straight to OpenRift, and see what you own and want on a Cardmarket seller's offers.",
   },
   {
     slug: "lists",

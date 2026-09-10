@@ -86,7 +86,7 @@ To load an unpacked build: Chrome → `chrome://extensions` → Developer mode �
 Users install from one permanent URL:
 
 ```plaintext
-https://github.com/openriftapp/openrift/releases/download/extension-updates/openrift-deck-importer.xpi
+https://github.com/openriftapp/openrift/releases/download/extension-updates/openrift-companion.xpi
 ```
 
 Every release re-uploads the signed build there under that fixed name, next to the update manifest, so nothing on the site needs updating when a version ships. AMO names the signed file after the version, which is why this renamed copy exists at all. The name lives in three places that cannot import from each other: `LATEST_XPI_FILE` in `src/lib/firefox-distribution.ts`, `LATEST_XPI` in the release workflow, and `SOCIAL_LINKS.extensionDownload` in `apps/web/src/lib/social-links.ts`.
@@ -101,7 +101,7 @@ Every release re-uploads the signed build there under that fixed name, next to t
 It tests, builds, signs via AMO, generates the update manifest, and publishes two releases:
 
 - `ext-v<version>` — the signed `.xpi` under AMO's own file name. Immutable, one per version.
-- `extension-updates` — the update manifest plus a copy of the same `.xpi` as `openrift-deck-importer.xpi`, both rewritten in place every release.
+- `extension-updates` — the update manifest plus a copy of the same `.xpi` as `openrift-companion.xpi`, both rewritten in place every release.
 
 Both are created with `--latest=false` so `semantic-release` keeps the repo's "latest release" pointer for the app.
 

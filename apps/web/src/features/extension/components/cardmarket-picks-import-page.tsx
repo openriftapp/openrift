@@ -75,7 +75,7 @@ function NothingPicked() {
           &quot;Send to OpenRift&quot; from the extension popup. See{" "}
           <Link
             to="/help/$slug"
-            params={{ slug: "deck-importer-extension" }}
+            params={{ slug: "browser-extension" }}
             className="text-primary hover:underline"
           >
             how the extension works

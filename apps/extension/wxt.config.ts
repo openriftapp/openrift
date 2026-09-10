@@ -9,12 +9,12 @@ export default defineConfig({
   // oxlint needs explicit imports; auto-import hides each identifier's origin from it.
   imports: false,
   manifest: ({ browser }) => ({
-    name: "OpenRift Deck Importer",
+    name: "OpenRift Companion",
     description:
       "Send decklists to OpenRift, see your collection and wishlist counts on Cardmarket, and pick cards from a seller for a list.",
     permissions: ["activeTab", "scripting", "storage"],
-    // Granted from the options page, so a plain deck-importer install still
-    // asks for no host access. MV2 has no separate optional host list.
+    // Granted from the options page, so a plain install still asks for no host
+    // access. MV2 has no separate optional host list.
     ...(browser === "firefox"
       ? { optional_permissions: [CARDMARKET_MATCH_PATTERN, openriftMatchPattern()] }
       : { optional_host_permissions: [CARDMARKET_MATCH_PATTERN, openriftMatchPattern()] }),

@@ -66,7 +66,7 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
               page is open, or read{" "}
               <Link
                 to="/help/$slug"
-                params={{ slug: "deck-importer-extension" }}
+                params={{ slug: "browser-extension" }}
                 className="text-primary hover:underline"
               >
                 how to set the extension up

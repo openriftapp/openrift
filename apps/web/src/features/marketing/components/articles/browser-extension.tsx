@@ -6,11 +6,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
-export default function DeckImporterExtensionArticle() {
+export default function BrowserExtensionArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        The OpenRift add-on is a small Firefox extension that does two things. It sends the decklist
+        OpenRift Companion is a small Firefox extension that does two things. It sends the decklist
         you&apos;re looking at on another site to OpenRift&apos;s import page, and it marks a
         Cardmarket seller&apos;s offers with how many copies you own and how many you still want.
         Clicking the icon in the toolbar opens a popup with the one action that fits the page
@@ -47,7 +47,7 @@ export default function DeckImporterExtensionArticle() {
             rel="noreferrer"
             className="text-primary font-medium hover:underline"
           >
-            Download the OpenRift add-on for Firefox
+            Download OpenRift Companion for Firefox
           </a>
         </p>
         <p className="text-muted-foreground mt-3">

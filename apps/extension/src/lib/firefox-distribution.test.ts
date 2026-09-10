@@ -24,7 +24,7 @@ describe("UPDATE_MANIFEST_URL", () => {
 describe("LATEST_XPI_URL", () => {
   it("points at the fixed tag under the stable file name", () => {
     expect(LATEST_XPI_URL).toBe(
-      "https://github.com/openriftapp/openrift/releases/download/extension-updates/openrift-deck-importer.xpi",
+      "https://github.com/openriftapp/openrift/releases/download/extension-updates/openrift-companion.xpi",
     );
   });
 
@@ -52,8 +52,8 @@ describe("extensionReleaseTag", () => {
 
 describe("xpiDownloadUrl", () => {
   it("builds a versioned release asset URL", () => {
-    expect(xpiDownloadUrl("0.2.0", "openrift_deck_importer-0.2.0.xpi")).toBe(
-      "https://github.com/openriftapp/openrift/releases/download/ext-v0.2.0/openrift_deck_importer-0.2.0.xpi",
+    expect(xpiDownloadUrl("0.2.0", "openrift_companion-0.2.0.xpi")).toBe(
+      "https://github.com/openriftapp/openrift/releases/download/ext-v0.2.0/openrift_companion-0.2.0.xpi",
     );
   });
 

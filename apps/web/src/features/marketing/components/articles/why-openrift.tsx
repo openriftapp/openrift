@@ -173,10 +173,10 @@ export default function WhyOpenRiftArticle() {
             <span className="text-foreground font-medium">
               <Link
                 to="/help/$slug"
-                params={{ slug: "deck-importer-extension" }}
+                params={{ slug: "browser-extension" }}
                 className="text-primary hover:underline"
               >
-                Deck importer extension
+                OpenRift Companion
               </Link>
               :
             </span>{" "}
