@@ -1,23 +1,28 @@
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { CheckCheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 import {
   PageTopBarBack,
   PageTopBarButton,
   PageTopBarIconButton,
+  PageTopBarPrimaryButton,
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
+import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { AttentionTab } from "@/features/catalog-admin/components/attention-tab";
+import { CompareTab } from "@/features/catalog-admin/components/compare-tab";
 import { OverviewTab } from "@/features/catalog-admin/components/overview-tab";
 import { useReviewQueue } from "@/features/catalog-admin/hooks/use-catalog-review";
+import { useCheckAllSources } from "@/features/catalog-admin/hooks/use-check-all-sources";
 import {
   attentionCount,
   buildAttentionSources,
@@ -75,6 +80,9 @@ function TabBody({
     case "attention": {
       return <AttentionTab detail={detail} cardSlug={cardSlug} onSettled={onSettled} />;
     }
+    case "compare": {
+      return <CompareTab detail={detail} cardSlug={cardSlug} />;
+    }
     default: {
       return <NotBuiltYet cardSlug={cardSlug} />;
     }
@@ -90,6 +98,7 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
   };
   const { data: providerSettingsData } = useProviderSettings();
   const { data: queue } = useReviewQueue();
+  const checkAllSources = useCheckAllSources(cardSlug);
 
   const tab: CatalogTab = search.tab ?? DEFAULT_CATALOG_TAB;
   const fromReview = search.from === "review";
@@ -102,6 +111,12 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
   useHotkey("Mod+ArrowLeft", () => walkRef.current("prev"), { enabled: fromReview });
   useHotkey("Mod+ArrowRight", () => walkRef.current("next"), { enabled: fromReview });
 
+  // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
+  const checkAllRef = useRef<() => void>(() => {});
+  useHotkey("Mod+Shift+Enter", () => checkAllRef.current(), {
+    enabled: tab === "compare" && !checkAllSources.isPending,
+  });
+
   function goToQueueItem(item: (typeof queueItems)[number] | null) {
     if (!item) {
       return;
@@ -112,7 +127,7 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
       void navigate({
         to: "/admin/catalog/cards/$cardSlug",
         params: { cardSlug: target.cardSlug },
-        search: { ...queueSearch, tab: "attention" },
+        search: { ...queueSearch, tab: tab === DEFAULT_CATALOG_TAB ? undefined : tab },
       });
       return;
     }
@@ -123,9 +138,29 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
     });
   }
 
+  // `next` is snapshotted by the caller before the checks invalidate the queue,
+  // so the walk cannot skip an item on a refetch that lands first.
+  async function checkAllAndWalk(next: (typeof queueItems)[number] | null) {
+    if (!detail || checkAllSources.isPending) {
+      return;
+    }
+    const settled = await checkAllSources.run(detail);
+    if (!settled) {
+      return;
+    }
+    if (fromReview) {
+      goToQueueItem(next);
+      return;
+    }
+    toast.success("All sources checked");
+  }
+
   useEffect(() => {
     walkRef.current = (direction) => {
       goToQueueItem(direction === "prev" ? neighbours.prev : neighbours.next);
+    };
+    checkAllRef.current = () => {
+      void checkAllAndWalk(neighbours.next);
     };
   });
 
@@ -148,6 +183,19 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
         back={<PageTopBarBack to="/admin/catalog/review" aria-label="Back to review" />}
         actions={
           <>
+            {tab === "compare" && (
+              <PageTopBarPrimaryButton
+                className="gap-1.5"
+                disabled={checkAllSources.isPending || !detail?.card}
+                onClick={() => checkAllRef.current()}
+              >
+                <CheckCheckIcon />
+                Mark all checked &amp; next
+                <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
+                  Ctrl &#8679; &#8629;
+                </Kbd>
+              </PageTopBarPrimaryButton>
+            )}
             {fromReview && (
               <>
                 <PageTopBarIconButton

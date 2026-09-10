@@ -18,6 +18,8 @@ export const ignoredCandidatesQueryOptions = queryOptions({
   queryFn: () => fetchIgnoredCandidates(),
 });
 
+type Scope = readonly (readonly unknown[])[];
+
 export function useIgnoredCandidates() {
   return useSuspenseQuery(ignoredCandidatesQueryOptions);
 }
@@ -29,7 +31,7 @@ const ignoreCandidateCardFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).ignoreCard(data);
   });
 
-export function useIgnoreCandidateCard() {
+export function useIgnoreCandidateCard(invalidates: Scope = []) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { provider: string; externalId: string }) =>
@@ -37,6 +39,9 @@ export function useIgnoreCandidateCard() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      for (const key of invalidates) {
+        void queryClient.invalidateQueries({ queryKey: [...key] });
+      }
     },
   });
 }
@@ -67,7 +72,7 @@ const ignoreCandidatePrintingFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).ignorePrinting(data);
   });
 
-export function useIgnoreCandidatePrinting() {
+export function useIgnoreCandidatePrinting(invalidates: Scope = []) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { provider: string; externalId: string; finish?: string | null }) =>
@@ -75,6 +80,9 @@ export function useIgnoreCandidatePrinting() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      for (const key of invalidates) {
+        void queryClient.invalidateQueries({ queryKey: [...key] });
+      }
     },
   });
 }

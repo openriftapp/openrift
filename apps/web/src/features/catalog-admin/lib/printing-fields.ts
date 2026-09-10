@@ -1,11 +1,9 @@
-import type { AcceptSubmissionInput } from "@openrift/shared/contracts/admin/catalog-review";
+import type { AcceptPrintingBody } from "@openrift/shared/contracts/admin/card-mutations";
 import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
 
 import { hasFieldValue } from "@/features/catalog-admin/lib/catalog-field-labels";
 
-type NewPrintingPick = NonNullable<AcceptSubmissionInput["newPrintings"]>[number];
-
-export type AcceptPrintingFields = NewPrintingPick["printingFields"];
+export type AcceptPrintingFields = AcceptPrintingBody["printingFields"];
 
 export const REQUIRED_PRINTING_FIELDS = [
   "shortCode",

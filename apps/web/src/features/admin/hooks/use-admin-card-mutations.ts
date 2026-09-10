@@ -274,12 +274,13 @@ export function useUncheckCandidateCard(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useCheckAllCandidateCards() {
+export function useCheckAllCandidateCards(invalidates?: Scope) {
   return useMutationWithInvalidation({
     mutationFn: async (cardId: string) => {
       await checkAllCandidateCardsFn({ data: { cardId } });
     },
-    invalidates: (cardId) => [adminKeys.cards.detail(cardId), adminKeys.cards.list],
+    invalidates:
+      invalidates ?? ((cardId) => [adminKeys.cards.detail(cardId), adminKeys.cards.list]),
   });
 }
 

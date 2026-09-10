@@ -4,6 +4,7 @@ import { makeCard, makePrinting } from "@openrift/shared/test-factories";
 import type {
   AdminCardDetailResponse,
   AdminCardResponse,
+  AdminPrintingImageResponse,
   AdminPrintingResponse,
   CandidateCardResponse,
   CandidatePrintingResponse,
@@ -371,6 +372,24 @@ export function makeCandidatePrinting(
     printedName: null,
     printedYear: 2026,
     checkedAt: null,
+    ...overrides,
+  };
+}
+
+export function makeAdminPrintingImage(
+  overrides: Partial<AdminPrintingImageResponse> = {},
+): AdminPrintingImageResponse {
+  return {
+    id: nextId(),
+    printingId: nextId(),
+    imageFileId: nextId(),
+    face: "front",
+    originalUrl: "https://cdn.example.test/ogn-001.png",
+    rehostedUrl: null,
+    rotation: 0,
+    needsTrim: false,
+    quad: null,
+    isActive: true,
     ...overrides,
   };
 }
