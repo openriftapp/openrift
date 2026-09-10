@@ -1,4 +1,4 @@
-import type { OverlaySnapshot } from "./overlay-snapshot";
+import type { OverlayList, OverlaySnapshot } from "./overlay-snapshot";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -33,36 +33,38 @@ export function listNames(names: readonly string[]): string {
 
 const STALE_AFTER_MS = 2 * DAY_MS;
 
-export interface SnapshotStatus {
-  headline: string;
-  detail: string;
-  action: string;
+export const LISTS_SHOWN = 4;
+
+export interface SyncStatus {
+  lists: OverlayList[];
+  more: number;
+  lastSync?: string;
   stale: boolean;
 }
 
-export function snapshotStatus(snapshot: OverlaySnapshot | undefined, now: Date): SnapshotStatus {
+export function syncStatus(snapshot: OverlaySnapshot | undefined, now: Date): SyncStatus {
   if (snapshot === undefined) {
-    return {
-      headline: "No counts yet",
-      detail: "OpenRift has not handed anything over.",
-      action: "Get my counts",
-      stale: true,
-    };
+    return { lists: [], more: 0, stale: true };
   }
-  // Price-only rows cover the whole catalogue; the count the user cares about is their own.
-  const cards = Object.values(snapshot.products).filter(
-    (counts) => counts.owned > 0 || counts.wanted > 0,
-  ).length;
-  const names = listNames(snapshot.lists.map((list) => list.name));
   return {
-    headline: `Counts from ${relativeAge(snapshot.capturedAt, now)}`,
-    detail: `${names} · ${cards} card${cards === 1 ? "" : "s"} you own or want`,
-    action: "Refresh counts",
+    lists: snapshot.lists.slice(0, LISTS_SHOWN),
+    more: Math.max(0, snapshot.lists.length - LISTS_SHOWN),
+    lastSync: relativeAge(snapshot.capturedAt, now),
     stale: now.getTime() - new Date(snapshot.capturedAt).getTime() >= STALE_AFTER_MS,
   };
 }
 
+export function entriesLabel(entryCount?: number): string | undefined {
+  if (entryCount === undefined) {
+    return undefined;
+  }
+  return `${entryCount.toLocaleString()} ${entryCount === 1 ? "entry" : "entries"}`;
+}
+
 export function snapshotSummary(snapshot: OverlaySnapshot | undefined, now: Date): string {
-  const status = snapshotStatus(snapshot, now);
-  return `${status.headline}. ${status.detail}.`;
+  const status = syncStatus(snapshot, now);
+  if (snapshot === undefined || status.lastSync === undefined) {
+    return "No lists synchronized yet.";
+  }
+  return `${listNames(snapshot.lists.map((list) => list.name))}, synchronized ${status.lastSync}.`;
 }

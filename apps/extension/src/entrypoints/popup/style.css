@@ -1,3 +1,5 @@
+@import "@fontsource/chakra-petch/latin-700.css";
+
 :root {
   color-scheme: light dark;
   --fg: #111827;
@@ -20,9 +22,10 @@
 }
 
 body.popup {
-  width: 20rem;
+  width: 348px;
+  box-sizing: border-box;
   margin: 0;
-  padding: 12px 14px 14px;
+  padding: 0 0 14px;
   background: var(--bg);
   color: var(--fg);
   font:
@@ -35,10 +38,121 @@ p {
   color: var(--muted);
 }
 
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-logo {
+  display: block;
+  flex: none;
+}
+
+.app-name {
+  flex: 1;
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.section {
+  padding: 12px 14px 0;
+}
+
+.section + .section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.section-title {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.lead {
+  margin: 0;
+  font-size: 12px;
+}
+
+#deck-detail {
+  color: var(--fg);
+}
+
+.lists {
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.lists li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lists li::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentcolor;
+  opacity: 0.45;
+}
+
+.lists .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lists .entries {
+  flex: none;
+  color: var(--muted);
+}
+
+.lists .rest {
+  color: var(--muted);
+}
+
+.lists .rest::before {
+  background: none;
+}
+
+.last-sync {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.last-sync.stale {
+  color: var(--warn);
+}
+
+.note {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 10px;
 }
 
 button {
@@ -60,33 +174,27 @@ button[disabled] {
   cursor: default;
 }
 
-.headline {
-  margin: 0 0 2px;
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.headline.stale {
-  color: var(--warn);
-}
-
-.detail {
-  margin: 0 0 10px;
-  font-size: 12px;
-}
-
 button.primary {
   border-color: var(--accent);
   font-weight: 600;
 }
 
-.picks {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+button.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
 }
 
-.picks .seller {
+button.icon:hover {
+  color: var(--fg);
+}
+
+#picks .seller {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -94,13 +202,14 @@ button.primary {
   margin-bottom: 6px;
 }
 
-.picks .seller p {
+#picks .seller p {
   flex: 1 1 100%;
   margin: 0;
+  font-size: 12px;
 }
 
 .result {
-  margin: 8px 0 0;
+  margin: 12px 14px 0;
   color: var(--accent);
   font-weight: 600;
 }

@@ -1,13 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import type { OverlaySnapshot } from "./overlay-snapshot";
-import { listNames, relativeAge, snapshotStatus } from "./overlay-status";
+import {
+  entriesLabel,
+  listNames,
+  relativeAge,
+  snapshotSummary,
+  syncStatus,
+} from "./overlay-status";
 
 const NOW = new Date("2026-09-09T12:00:00.000Z");
 
+function list(index: number, name: string, entryCount?: number) {
+  return {
+    id: `0199a0f2-0000-7000-8000-00000000000${index}`,
+    name,
+    ...(entryCount === undefined ? {} : { entryCount }),
+  };
+}
+
 function snapshot(overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot {
   return {
-    lists: [{ id: "0199a0f2-0000-7000-8000-000000000001", name: "Summoner Skirmish wants" }],
+    lists: [list(1, "Summoner Skirmish wants", 24)],
     marketplace: "cardmarket",
     generatedAt: "2026-09-09T11:00:00.000Z",
     capturedAt: "2026-09-09T11:00:00.000Z",
@@ -51,39 +65,64 @@ describe("listNames", () => {
   });
 });
 
-describe("snapshotStatus", () => {
-  it("asks for a first fetch when nothing is stored", () => {
-    const status = snapshotStatus(undefined, NOW);
-    expect(status.headline).toBe("No counts yet");
-    expect(status.action).toBe("Get my counts");
+describe("entriesLabel", () => {
+  it("groups the digits and singularises one entry", () => {
+    expect(entriesLabel(1204)).toBe("1,204 entries");
+    expect(entriesLabel(1)).toBe("1 entry");
+    expect(entriesLabel(0)).toBe("0 entries");
+  });
+
+  it("says nothing for a snapshot taken before the count was sent", () => {
+    expect(entriesLabel(undefined)).toBeUndefined();
+  });
+});
+
+describe("syncStatus", () => {
+  it("has nothing to show before the first synchronize", () => {
+    const status = syncStatus(undefined, NOW);
+    expect(status.lists).toEqual([]);
+    expect(status.lastSync).toBeUndefined();
     expect(status.stale).toBe(true);
   });
 
-  it("leads with the age and offers a refresh", () => {
-    const status = snapshotStatus(snapshot(), NOW);
-    expect(status.headline).toBe("Counts from 1 hour ago");
-    expect(status.action).toBe("Refresh counts");
+  it("names the lists and dates the capture", () => {
+    const status = syncStatus(snapshot(), NOW);
+    expect(status.lists).toEqual([list(1, "Summoner Skirmish wants", 24)]);
+    expect(status.more).toBe(0);
+    expect(status.lastSync).toBe("1 hour ago");
     expect(status.stale).toBe(false);
   });
 
-  it("names every picked list and counts only what the viewer owns or wants", () => {
-    const two = snapshot({
-      lists: [
-        { id: "0199a0f2-0000-7000-8000-000000000001", name: "Wants" },
-        { id: "0199a0f2-0000-7000-8000-000000000002", name: "Playset" },
-      ],
-      products: {
-        "1": { owned: 2, wanted: 1, priceCents: 100 },
-        "2": { owned: 0, wanted: 0, priceCents: 250 },
-      },
-    });
-    expect(two && snapshotStatus(two, NOW).detail).toBe("Wants, Playset · 1 card you own or want");
+  it("counts the lists past the fourth instead of naming them", () => {
+    const status = syncStatus(
+      snapshot({
+        lists: [1, 2, 3, 4, 5, 6].map((index) => list(index, `List ${index}`, index)),
+      }),
+      NOW,
+    );
+    expect(status.lists.map((entry) => entry.name)).toEqual([
+      "List 1",
+      "List 2",
+      "List 3",
+      "List 4",
+    ]);
+    expect(status.more).toBe(2);
   });
 
-  it("marks counts older than two days as stale", () => {
-    const old = snapshot({ capturedAt: "2026-09-06T12:00:00.000Z" });
-    const status = snapshotStatus(old, NOW);
+  it("marks a capture older than two days as stale", () => {
+    const status = syncStatus(snapshot({ capturedAt: "2026-09-06T12:00:00.000Z" }), NOW);
     expect(status.stale).toBe(true);
-    expect(status.headline).toBe("Counts from 3 days ago");
+    expect(status.lastSync).toBe("3 days ago");
+  });
+});
+
+describe("snapshotSummary", () => {
+  it("says nothing is synchronized when nothing is stored", () => {
+    expect(snapshotSummary(undefined, NOW)).toBe("No lists synchronized yet.");
+  });
+
+  it("names the lists and the age in one sentence", () => {
+    const two = snapshot({ lists: [list(1, "Wants", 4), list(2, "Playset", 900)] });
+    expect(snapshotSummary(two, NOW)).toBe("Wants, Playset, synchronized 1 hour ago.");
   });
 });

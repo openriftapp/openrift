@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  countTextCards,
   extractDeckFromPage,
   extractSectionedListDecklist,
   extractTableDecklist,
@@ -271,5 +272,19 @@ describe("extractDeckFromPage", () => {
     const doc = documentFrom("<p>a plain article</p>");
 
     expect(extractDeckFromPage(doc, "https://example.com/article")).toEqual({ kind: "none" });
+  });
+});
+
+describe("countTextCards", () => {
+  it("sums the quantities across zones", () => {
+    expect(countTextCards("Legend:\n1 Yasuo\n\nMainDeck:\n3 Draven\n2 Poro")).toBe(6);
+  });
+
+  it("ignores headers, blank lines and bare names", () => {
+    expect(countTextCards("MainDeck:\n\nDraven\n2 Poro\n")).toBe(2);
+  });
+
+  it("counts nothing in an empty list", () => {
+    expect(countTextCards("")).toBe(0);
   });
 });

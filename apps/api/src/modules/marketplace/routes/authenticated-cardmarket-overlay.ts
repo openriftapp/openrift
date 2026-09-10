@@ -29,7 +29,11 @@ export const cardmarketOverlayRouter = {
       input.marketplace,
     );
     return {
-      lists: lists.map((list) => ({ id: list.id, name: list.name })),
+      lists: lists.map((list, index) => ({
+        id: list.id,
+        name: list.name,
+        entryCount: entriesPerList[index]?.length ?? 0,
+      })),
       marketplace: input.marketplace,
       generatedAt: new Date().toISOString(),
       products,

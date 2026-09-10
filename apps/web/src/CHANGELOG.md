@@ -6,6 +6,10 @@
 
 - feat(Collection): **Pick cards on Cardmarket for a list** — the browser extension now puts a + and − on every card on a seller's offers, and the popup sends your picks to OpenRift as an organize list you can share with the seller.
 
+### Other
+
+- feat(Collection): **A clearer extension popup** — the popup now opens with the OpenRift logo and splits into sections for Cardmarket, your picks and deck import, each shown only when it has something in it. Cardmarket lists the wishlists it synchronized with how many entries each holds and when the last sync was, and Deck Import only appears when there really is a decklist on the page, named.
+
 ## 2026-09-09
 
 ### Highlights

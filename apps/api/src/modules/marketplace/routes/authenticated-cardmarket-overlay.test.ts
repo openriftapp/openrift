@@ -72,8 +72,8 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.lists).toEqual([
-      { id: OTHER_LIST_ID, name: "Skirmish Wants" },
-      { id: LIST_ID, name: "Summoner Wants" },
+      { id: OTHER_LIST_ID, name: "Skirmish Wants", entryCount: 0 },
+      { id: LIST_ID, name: "Summoner Wants", entryCount: 0 },
     ]);
     expect(json.marketplace).toBe("cardmarket");
     expect(json.products).toEqual([
@@ -133,6 +133,31 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(mockOverlayRepo.wishListsForUser).toHaveBeenCalledWith([LIST_ID], USER_ID);
     expect(mockListsRepo.entriesWithDetails).toHaveBeenCalledTimes(1);
     expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID, "tcgplayer");
+  });
+
+  it("counts each list's expanded entries", async () => {
+    mockOverlayRepo.wishListsForUser.mockResolvedValue([
+      { id: OTHER_LIST_ID, name: "Playset", kind: "card" },
+      { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
+    ]);
+    mockListsRepo.entriesWithDetails
+      .mockResolvedValueOnce([
+        { kind: "card", id: null, source: "rule", cardId: CARD_ID, quantity: 2 },
+        { kind: "card", id: null, source: "rule", cardId: CARD_ID, quantity: 1 },
+      ])
+      .mockResolvedValueOnce([
+        { kind: "printing", id: "le-1", source: "manual", printingId: PRINTING_ID, quantity: 3 },
+      ]);
+    mockOverlayRepo.productCounts.mockResolvedValue([]);
+
+    const res = await snapshot([LIST_ID, OTHER_LIST_ID]);
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.lists).toEqual([
+      { id: OTHER_LIST_ID, name: "Playset", entryCount: 2 },
+      { id: LIST_ID, name: "Summoner Wants", entryCount: 1 },
+    ]);
   });
 
   it("resolves each list through its own kind and flattens the wants", async () => {

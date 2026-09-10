@@ -26,6 +26,8 @@ export const cardmarketOverlayProductSchema = z.object({
 export const cardmarketOverlayListSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  /** Rule-driven lists are expanded first, so this is what the snapshot actually covers. */
+  entryCount: z.number().int().min(0),
 });
 
 export const cardmarketOverlaySnapshotResponseSchema = z

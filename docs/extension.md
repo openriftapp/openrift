@@ -14,7 +14,7 @@ It imports the deck the user is looking at.
 
 ## How it works
 
-The popup's "Import deck" action injects `src/entrypoints/extract.content.ts` via `browser.scripting.executeScript` (WXT `registration: "runtime"`) and receives the extraction result as the script's return value. Extraction lives in `src/lib/deck-extract.ts` and tries, in order:
+The popup injects `src/entrypoints/extract.content.ts` via `browser.scripting.executeScript` (WXT `registration: "runtime"`) as it opens, on any page that could hold a deck, and receives the extraction result as the script's return value. Extraction lives in `src/lib/deck-extract.ts` and tries, in order:
 
 1. **Structured decklist table**
 2. **Sectioned card-name list**
@@ -22,7 +22,7 @@ The popup's "Import deck" action injects `src/entrypoints/extract.content.ts` vi
 
 Unknown labels (card-type groupings like `unit`/`spell`) fold into the main deck. Sideboard lists are kept separate.
 
-If nothing matches, the popup says so and nothing else happens.
+If nothing matches, the popup shows no Deck Import section at all. The import itself spends no second injection: it sends what the detection already found.
 
 A deck name rides along: the page's `h1` is passed as `&name=` and prefills the deck-name field on the review step.
 
@@ -48,7 +48,9 @@ Cardmarket products are language-aggregate but exist once per finish, so a snaps
 
 **Permissions.** A plain install still asks for nothing beyond `activeTab`: the host permissions for `www.cardmarket.com` and the OpenRift instance are optional, asked for from the popup or the options page, and a fresh install opens the options page so the ask is not buried. Without them the feature still works one page at a time through the popup, which is what `activeTab` grants. With them, the background script annotates offers pages as they finish loading and re-captures the snapshot whenever the sync page is opened, so nothing needs clicking at all.
 
-The popup is two lines and a button: how old the stored counts are, which wishlists they came from, and one action chosen by the page it opens over (`popup-actions.ts`). On the sync page it takes the counts as it opens, so the click on the icon is the whole interaction; on a seller's offers page it marks the page; anywhere else it refreshes, which opens the sync page in a background tab, waits for the hand-off and closes it again. The deck import sits beside it on any page that could hold a deck, and the permission request appears until it is granted.
+The popup is a header and up to three sections, each present only when it has something to say. **Cardmarket** always shows: the synchronized lists with their entry counts and a "Last sync" line, or the setup when nothing has been synchronized yet. **Picked for a list** appears while the basket holds picks. **Deck Import** appears only when the detection above found a deck, and names it. The primary action comes from the page the popup opens over (`popup-actions.ts`): on the sync page it takes the counts as it opens, so the click on the icon is the whole interaction; on a seller's offers page it marks the page and a quieter "Synchronize" sits beside it; anywhere else it synchronizes, which opens the sync page in a background tab, waits for the hand-off and closes it again. The permission request appears until it is granted.
+
+Entry counts ride along in the snapshot (`cardmarketOverlayListSchema`), counted from the same rule-expanded entries the wants come from, so a rule-driven list reports what the snapshot actually covers. The field is optional on the extension side: a snapshot captured before the site sent it still loads, without the counts.
 
 **Picking cards for a list.** The same offers page can be shopped from: `annotate.content.ts` also puts a `+` / count / `−` control on every row with a product id (`cardmarket-pick-controls.ts`), whether or not a snapshot exists. Picks live in `browser.storage.local` under one basket keyed by seller and then by `(product id, finish, language id)` (`picks.ts`), the background script mirrors the total onto the toolbar badge, and the popup lists each seller with a "Send to OpenRift" and a "Clear" button. Sending opens `/collections/lists/import/cardmarket` with the payload JSON in the URL **fragment** (`picksImportUrl`), which never reaches the server and has no practical length cap, and removes that seller's picks from the basket. The page resolves each pick through `POST /api/v1/cardmarket/picks/resolve`, which reads `(idProduct, finish, idLanguage)` to a printing through `marketplace_product_variants` (the same resolver the stock sync uses, minus the condition), and hands the result to the collection import preview so unmatched picks can be fixed or skipped by hand. Saving creates or appends to a printing-kind organize list. The payload shape is `PicksPayload` in the extension and the zod schema in `apps/web/src/features/extension/lib/cardmarket-picks-payload.ts`; bump `v` on both sides when it changes.
 

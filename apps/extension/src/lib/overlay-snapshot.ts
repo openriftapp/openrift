@@ -10,6 +10,7 @@ export interface OverlayCounts {
 export interface OverlayList {
   id: string;
   name: string;
+  entryCount?: number;
 }
 
 export interface OverlaySnapshot {
@@ -52,7 +53,11 @@ function isList(value: unknown): value is OverlayList {
     return false;
   }
   const list = value as Record<string, unknown>;
-  return typeof list.id === "string" && typeof list.name === "string";
+  return (
+    typeof list.id === "string" &&
+    typeof list.name === "string" &&
+    (list.entryCount === undefined || typeof list.entryCount === "number")
+  );
 }
 
 function isProductRow(value: unknown): value is SnapshotProductRow {

@@ -183,6 +183,17 @@ function extractDeckName(doc: Document): string | undefined {
   return name === "" ? undefined : name;
 }
 
+export function countTextCards(list: string): number {
+  let total = 0;
+  for (const line of list.split("\n")) {
+    const quantity = /^\s*(?<count>\d+)\s+\S/u.exec(line);
+    if (quantity?.groups?.count !== undefined) {
+      total += Number(quantity.groups.count);
+    }
+  }
+  return total;
+}
+
 export function extractDeckFromPage(doc: Document, href: string): PageDeckExtract {
   const list = extractTableDecklist(doc) ?? extractSectionedListDecklist(doc);
   if (list !== null) {
