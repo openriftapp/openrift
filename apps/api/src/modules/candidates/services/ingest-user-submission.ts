@@ -32,7 +32,7 @@ import {
 } from "./candidate-links.js";
 
 /** Per-user cap on in-app submissions in a rolling 24h window. */
-const USER_SUBMISSION_DAILY_LIMIT = 50;
+const USER_SUBMISSION_DAILY_LIMIT = 200;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -12,7 +12,7 @@ export const SUBMISSION_MEDIA_DIR = join(MEDIA_DIR, "submissions");
 
 const URL_PREFIX = "/media/submissions/";
 
-const UPLOAD_DAILY_LIMIT = 100;
+const UPLOAD_DAILY_LIMIT = 200;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

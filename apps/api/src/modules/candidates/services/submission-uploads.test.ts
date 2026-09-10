@@ -173,15 +173,15 @@ describe("saveSubmissionUpload", () => {
     expect(result).toStrictEqual({ status: "not_an_image" });
   });
 
-  it("caps one user at 100 uploads in a rolling 24h window", async () => {
+  it("caps one user at 200 uploads in a rolling 24h window", async () => {
     const buffer = await photo({ width: 8, height: 8, format: "png" });
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 200; i++) {
       const ok = await saveSubmissionUpload(io, { userId: "busy-user", buffer, now: NOW });
       expect(ok.status).toBe("ok");
     }
 
     expect(await saveSubmissionUpload(io, { userId: "busy-user", buffer, now: NOW })).toStrictEqual(
-      { status: "rate_limited", limit: 100 },
+      { status: "rate_limited", limit: 200 },
     );
 
     const nextDay = new Date(NOW.getTime() + 24 * 60 * 60 * 1000 + 1);
@@ -195,7 +195,7 @@ describe("saveSubmissionUpload", () => {
 
   it("counts the cap per user", async () => {
     const buffer = await photo({ width: 8, height: 8, format: "png" });
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 200; i++) {
       await saveSubmissionUpload(io, { userId: "capped-user", buffer, now: NOW });
     }
 
