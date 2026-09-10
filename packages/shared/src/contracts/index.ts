@@ -11,6 +11,7 @@ export * from "./admin/card-queries.js";
 export * from "./admin/card-tags.js";
 export * from "./admin/card-types.js";
 export * from "./admin/catalog.js";
+export * from "./admin/catalog-review.js";
 export * from "./admin/changelog.js";
 export * from "./admin/core.js";
 export * from "./admin/custom-tags.js";

@@ -50,6 +50,7 @@ export const cardSubmissionReasonSchema = z.enum([
   "unverified",
   "not_a_card",
   "bad_image",
+  "other",
 ]);
 
 export const cardSubmissionsQuerySchema = z.object({

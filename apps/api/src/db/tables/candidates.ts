@@ -89,7 +89,8 @@ export type CardSubmissionReason =
   | "already_correct"
   | "unverified"
   | "not_a_card"
-  | "bad_image";
+  | "bad_image"
+  | "other";
 
 export interface CardSubmissionsTable {
   id: Generated<string>;

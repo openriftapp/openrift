@@ -178,7 +178,7 @@ const createPrintingFieldsSchema = z.object({
   printedYear: printingFieldRules.printedYear.optional(),
 });
 
-const acceptPrintingFieldsSchema = createPrintingFieldsSchema.extend({
+export const acceptPrintingFieldsSchema = createPrintingFieldsSchema.extend({
   id: z.string().optional(),
   setId: setFieldRules.slug.optional(),
 });

@@ -53,6 +53,7 @@ export const submissionReasonSentences: Record<CardSubmissionReason, string> = {
   unverified: "We could not confirm this against a source, so we left the card as it was.",
   not_a_card: "This did not look like a real Riftbound card.",
   bad_image: "The image was not usable, usually because of its size, angle, or quality.",
+  other: "We could not apply this one; the note below says why.",
 };
 
 export const submissionReasonLabels: Record<CardSubmissionReason, string> = {
@@ -61,6 +62,7 @@ export const submissionReasonLabels: Record<CardSubmissionReason, string> = {
   unverified: "Could not verify",
   not_a_card: "Not a real card",
   bad_image: "Unusable image",
+  other: "Other",
 };
 
 export function submissionExplanation(

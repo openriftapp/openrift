@@ -93,6 +93,36 @@ describe("sectionAllowsRequest", () => {
       expect(sectionAllowsRequest("card-review", "DELETE", path)).toBe(false);
     });
 
+    it("allows the catalog review queue for GET only", () => {
+      const path = "/api/admin/v1/catalog/review";
+      expect(sectionAllowsRequest("card-review", "GET", path)).toBe(true);
+      expect(sectionAllowsRequest("card-review", "POST", path)).toBe(false);
+      expect(sectionAllowsRequest("printing-desk", "GET", path)).toBe(false);
+      expect(sectionAllowsRequest("custom-tags", "GET", path)).toBe(false);
+    });
+
+    it.each([
+      "/api/admin/v1/catalog/submissions/some-id/accept",
+      "/api/admin/v1/catalog/submissions/some-id/reject",
+      "/api/admin/v1/catalog/candidates/some-id/create-card",
+    ])("allows the review verbs at %s for POST only", (path) => {
+      expect(sectionAllowsRequest("card-review", "POST", path)).toBe(true);
+      expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
+      expect(sectionAllowsRequest("card-review", "DELETE", path)).toBe(false);
+      expect(sectionAllowsRequest("printing-desk", "POST", path)).toBe(false);
+    });
+
+    it.each([
+      "/api/admin/v1/catalog",
+      "/api/admin/v1/catalog/anything-else",
+      "/api/admin/v1/catalog/submissions/some-id/delete",
+      "/api/admin/v1/catalog/submissions/some-id/create-card",
+      "/api/admin/v1/catalog/candidates/some-id/accept",
+    ])("rejects unmapped catalog paths at %s", (path) => {
+      expect(sectionAllowsRequest("card-review", "GET", path)).toBe(false);
+      expect(sectionAllowsRequest("card-review", "POST", path)).toBe(false);
+    });
+
     it("allows GET on enum collections but not their POST create (same path)", () => {
       for (const path of [
         "/api/admin/v1/sets",

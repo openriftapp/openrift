@@ -216,21 +216,50 @@ interface AcceptPrintingFields {
  * The write is an upsert so ingest paths can re-run without duplicating rows;
  * `requireNew` makes an identity collision surface as 409 instead.
  */
+interface AcceptPrintingRepos {
+  catalogMutations: CatalogMutationsRepo;
+  printingImages: PrintingImagesRepo;
+  markers: MarkersRepo;
+  distributionChannels: DistributionChannelsRepo;
+  printingEvents?: PrintingEventsRepo;
+}
+
 export async function acceptPrinting(
   transact: Transact,
-  repos: {
-    catalogMutations: CatalogMutationsRepo;
-    printingImages: PrintingImagesRepo;
-    markers: MarkersRepo;
-    distributionChannels: DistributionChannelsRepo;
-    printingEvents?: PrintingEventsRepo;
-  },
+  repos: AcceptPrintingRepos,
   cardId: string,
   printingFields: AcceptPrintingFields,
   candidatePrintingIds: string[],
   io: Io,
   options: { requireNew?: boolean } = {},
 ): Promise<string> {
+  const { printingId, imageIds } = await acceptPrintingDeferringRehost(
+    transact,
+    repos,
+    cardId,
+    printingFields,
+    candidatePrintingIds,
+    options,
+  );
+  for (const imageId of imageIds) {
+    // oxlint-disable-next-line promise/prefer-await-to-then -- intentionally fire-and-forget to avoid blocking the response
+    rehostSingleImage(io, repos.printingImages, imageId).catch(() => {
+      // Non-fatal; an un-rehosted image falls back to its external URL and is
+      // picked up by the next rehost batch.
+    });
+  }
+  return printingId;
+}
+
+/** For a caller inside its own transaction: the rehost must not start before that commit. */
+export async function acceptPrintingDeferringRehost(
+  transact: Transact,
+  repos: AcceptPrintingRepos,
+  cardId: string,
+  printingFields: AcceptPrintingFields,
+  candidatePrintingIds: string[],
+  options: { requireNew?: boolean } = {},
+): Promise<{ printingId: string; imageIds: string[] }> {
   if (!printingFields.setId) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "printingFields.setId is required");
   }
@@ -396,14 +425,5 @@ export async function acceptPrinting(
     await recordNewPrintingEvent(repos.printingEvents, insertedId);
   }
 
-  // Fire-and-forget so a slow external download doesn't block the response.
-  if (insertedImageId) {
-    // oxlint-disable-next-line promise/prefer-await-to-then -- intentionally fire-and-forget to avoid blocking the response
-    rehostSingleImage(io, repos.printingImages, insertedImageId).catch(() => {
-      // Non-fatal; an un-rehosted image falls back to its external URL and is
-      // picked up by the next rehost batch.
-    });
-  }
-
-  return insertedId;
+  return { printingId: insertedId, imageIds: insertedImageId ? [insertedImageId] : [] };
 }

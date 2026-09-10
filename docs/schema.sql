@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict hMtLda3FnwfsOfJYBowTVJlKYGemuE7bqopXBLkr4HGDR6Waom355iHhsEOWYCX
+\restrict dWWPesQg6rPxTmDRUPxsUsqnjOUwXpcaTAca9agXExbfj5m8SZYLNQnSBSD3722
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1013,7 +1013,7 @@ CREATE TABLE public.card_submissions (
     CONSTRAINT chk_card_submissions_note_not_empty CHECK ((note <> ''::text)),
     CONSTRAINT chk_card_submissions_proposed_diff_shape CHECK (((proposed_diff IS NULL) OR (jsonb_typeof(proposed_diff) = 'array'::text))),
     CONSTRAINT chk_card_submissions_provider_not_empty CHECK ((provider <> ''::text)),
-    CONSTRAINT chk_card_submissions_reason CHECK (((resolution_reason IS NULL) OR (resolution_reason = ANY (ARRAY['duplicate'::text, 'already_correct'::text, 'unverified'::text, 'not_a_card'::text, 'bad_image'::text])))),
+    CONSTRAINT chk_card_submissions_reason CHECK (((resolution_reason IS NULL) OR (resolution_reason = ANY (ARRAY['duplicate'::text, 'already_correct'::text, 'unverified'::text, 'not_a_card'::text, 'bad_image'::text, 'other'::text])))),
     CONSTRAINT chk_card_submissions_resolution_note_not_empty CHECK ((resolution_note <> ''::text)),
     CONSTRAINT chk_card_submissions_resolved_at CHECK (((status = 'pending'::text) = (resolved_at IS NULL))),
     CONSTRAINT chk_card_submissions_status CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'already_correct'::text, 'not_applied'::text, 'rejected'::text])))
@@ -9459,5 +9459,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict hMtLda3FnwfsOfJYBowTVJlKYGemuE7bqopXBLkr4HGDR6Waom355iHhsEOWYCX
+\unrestrict dWWPesQg6rPxTmDRUPxsUsqnjOUwXpcaTAca9agXExbfj5m8SZYLNQnSBSD3722
 

@@ -12,6 +12,7 @@ const CARD_REVIEW_GET_EXACT = new Set([
   `${BASE}/cards`,
   `${BASE}/cards/all-cards`,
   `${BASE}/cards/distinct-artists`,
+  `${BASE}/catalog/review`,
   `${BASE}/provider-settings`,
   `${BASE}/markers`,
   `${BASE}/languages`,
@@ -52,6 +53,8 @@ const SECTION_PATH_MATCHERS: Record<AdminSectionSlug, (method: string, path: str
     }
     if (method === "POST") {
       return (
+        /^\/api\/admin\/v1\/catalog\/submissions\/[^/]+\/(?:accept|reject)$/u.test(path) ||
+        /^\/api\/admin\/v1\/catalog\/candidates\/[^/]+\/create-card$/u.test(path) ||
         /^\/api\/admin\/v1\/cards\/new\/[^/]+\/accept$/u.test(path) ||
         /^\/api\/admin\/v1\/cards\/[^/]+\/accept-field$/u.test(path) ||
         /^\/api\/admin\/v1\/cards\/printing\/[^/]+\/accept-field$/u.test(path) ||

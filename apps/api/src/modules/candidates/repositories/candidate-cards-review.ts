@@ -1,6 +1,8 @@
 import type { ExpressionBuilder, Kysely, UpdateResult } from "kysely";
+import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
 
 /**
  * The proposed card values, in the shape `candidate_cards` stores them.
@@ -38,8 +40,113 @@ export interface ProposedPrinting {
   imageUrl?: string | null;
 }
 
+export interface SourceReviewGroup {
+  provider: string;
+  normName: string;
+  candidateCardId: string;
+  cardName: string;
+  uncheckedCards: number;
+  uncheckedPrintings: number;
+  newPrintings: number;
+  createdAt: Date;
+}
+
+const uncheckedPrintingsPerCard = sql<number>`(
+  select count(*) from candidate_printings cp
+  where cp.candidate_card_id = cc.id
+    and cp.checked_at is null
+    and ${notIgnoredPrinting("cp", "cc")}
+)`;
+
+const newPrintingsPerCard = sql<number>`(
+  select count(*) from candidate_printings cp
+  where cp.candidate_card_id = cc.id
+    and cp.printing_id is null
+    and ${notIgnoredPrinting("cp", "cc")}
+)`;
+
 export function candidateReviewRepo(db: Kysely<Database>) {
   return {
+    candidateCardById(candidateCardId: string): Promise<
+      | {
+          id: string;
+          provider: string;
+          externalId: string;
+          name: string;
+          normName: string;
+        }
+      | undefined
+    > {
+      return db
+        .selectFrom("candidateCards")
+        .select(["id", "provider", "externalId", "name", "normName"])
+        .where("id", "=", candidateCardId)
+        .executeTakeFirst();
+    },
+
+    async checkCandidatePrintingsForCard(candidateCardId: string): Promise<void> {
+      await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: new Date() })
+        .where("candidateCardId", "=", candidateCardId)
+        .where("checkedAt", "is", null)
+        .execute();
+    },
+
+    async listSourceReviewGroups(excludeProvider: string): Promise<SourceReviewGroup[]> {
+      const rows = await sql<SourceReviewGroup>`
+        with card_stats as (
+          select
+            cc.id, cc.provider, cc.norm_name, cc.name, cc.created_at, cc.checked_at,
+            ${uncheckedPrintingsPerCard} as unchecked_printings,
+            ${newPrintingsPerCard} as new_printings
+          from candidate_cards cc
+          where cc.provider <> ${excludeProvider}
+            and ${notIgnoredCard("cc")}
+            and ${notHiddenSource("cc")}
+        ),
+        groups as (
+          select
+            provider,
+            norm_name as "normName",
+            (array_agg(id order by created_at, id))[1] as "candidateCardId",
+            (array_agg(name order by created_at, id))[1] as "cardName",
+            count(*) filter (where checked_at is null)::int as "uncheckedCards",
+            coalesce(sum(unchecked_printings), 0)::int as "uncheckedPrintings",
+            coalesce(sum(new_printings), 0)::int as "newPrintings",
+            min(created_at) as "createdAt"
+          from card_stats
+          group by provider, norm_name
+        )
+        select * from groups
+        where "uncheckedCards" > 0 or "uncheckedPrintings" > 0
+      `.execute(db);
+      return rows.rows;
+    },
+
+    async cardSlugsByNormNames(normNames: string[]): Promise<{ normName: string; slug: string }[]> {
+      if (normNames.length === 0) {
+        return [];
+      }
+      const rows = await sql<{ normName: string; slug: string | null }>`
+        select
+          n.norm_name as "normName",
+          coalesce(
+            (select c.slug from cards c where c.norm_name = n.norm_name),
+            (
+              select c.slug from card_name_aliases a
+              join cards c on c.id = a.card_id
+              where a.norm_name = n.norm_name
+              limit 1
+            )
+          ) as slug
+        from unnest(${normNames}::text[]) as n(norm_name)
+      `.execute(db);
+      return rows.rows.filter(
+        (row): row is { normName: string; slug: string } => row.slug !== null,
+      );
+    },
+
     /**
      * How far review has got on each candidate: whether the card itself is
      * checked, and how many of its printings are not. A user submission is only

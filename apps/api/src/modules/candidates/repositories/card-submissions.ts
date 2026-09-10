@@ -11,8 +11,24 @@ import type {
 } from "../../../db/tables/candidates.js";
 import { buildPrintingLinkKey } from "../../../lib/printing-link-key.js";
 import { joinFrontImage, listOwnedByUser } from "../../../repositories/query-helpers.js";
+import { notHiddenSource, notIgnoredCard, notIgnoredPrinting } from "./candidate-cards-shared.js";
 
 export type CardSubmissionRow = Selectable<CardSubmissionsTable>;
+
+export interface PendingReviewQueueRow {
+  id: string;
+  kind: CardSubmissionKind;
+  provider: string;
+  cardName: string;
+  normName: string;
+  candidateCardId: string;
+  submitterName: string | null;
+  note: string | null;
+  proposedDiff: string[];
+  uncheckedPrintings: number;
+  newPrintings: number;
+  createdAt: Date;
+}
 
 interface LiveCardSnapshot {
   name: string;
@@ -154,6 +170,41 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .where("status", "=", "pending")
         .execute();
       return rows;
+    },
+
+    pendingReviewQueueRows(): Promise<PendingReviewQueueRow[]> {
+      return db
+        .selectFrom("cardSubmissions as cs")
+        .innerJoin("candidateCards as cc", "cc.id", "cs.candidateCardId")
+        .leftJoin("users as u", "u.id", "cc.submittedByUserId")
+        .select([
+          "cs.id",
+          "cs.kind",
+          "cs.provider",
+          "cs.cardName",
+          "cs.note",
+          "cs.proposedDiff",
+          "cs.createdAt",
+          "cc.id as candidateCardId",
+          "cc.normName",
+          "u.name as submitterName",
+          sql<number>`(
+            select count(*) from candidate_printings cp
+            where cp.candidate_card_id = cc.id
+              and cp.checked_at is null
+              and ${notIgnoredPrinting("cp", "cc")}
+          )::int`.as("uncheckedPrintings"),
+          sql<number>`(
+            select count(*) from candidate_printings cp
+            where cp.candidate_card_id = cc.id
+              and cp.printing_id is null
+              and ${notIgnoredPrinting("cp", "cc")}
+          )::int`.as("newPrintings"),
+        ])
+        .where("cs.status", "=", "pending")
+        .where(notIgnoredCard("cc"))
+        .where(notHiddenSource("cc"))
+        .execute();
     },
 
     /**

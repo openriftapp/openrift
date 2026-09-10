@@ -1,5 +1,15 @@
+import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { makeCard, makePrinting } from "@openrift/shared/test-factories";
+import type {
+  AdminCardDetailResponse,
+  AdminCardResponse,
+  AdminPrintingResponse,
+  CandidateCardResponse,
+  CandidatePrintingResponse,
+  ProviderSettingResponse,
+  UnmatchedCardDetailResponse,
+} from "@openrift/shared/types/api/admin";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { MetaPlayerDetailResponse, MetaPlayerFinish } from "@openrift/shared/types/api/meta";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
@@ -223,6 +233,190 @@ export function makeMetaPlayerDetail(
     key: "pnrenata",
     name: "Renata",
     finishes: [makeMetaPlayerFinish()],
+    ...overrides,
+  };
+}
+
+export function makeReviewQueueItem(overrides: Partial<ReviewQueueItem> = {}): ReviewQueueItem {
+  return {
+    id: nextId(),
+    kind: "correction",
+    provider: "usersubmission",
+    isContributor: true,
+    submitterName: "Renata",
+    cardName: "Lux, Lady of Luminosity",
+    normName: "lux-lady-of-luminosity",
+    cardSlug: "OGN-001",
+    candidateCardId: nextId(),
+    note: null,
+    changedFields: 3,
+    uncheckedPrintings: 0,
+    newPrintings: 0,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeAdminCard(overrides: Partial<AdminCardResponse> = {}): AdminCardResponse {
+  return {
+    id: nextId(),
+    slug: "OGN-001",
+    name: "Lux, Lady of Luminosity",
+    types: ["unit"],
+    superTypes: [],
+    domains: ["calm"],
+    might: 3,
+    energy: 2,
+    power: 1,
+    mightBonus: null,
+    keywords: [],
+    errata: null,
+    tags: [],
+    maxCopiesOverride: null,
+    comment: null,
+    ...overrides,
+  };
+}
+
+export function makeCandidateCard(
+  overrides: Partial<CandidateCardResponse> = {},
+): CandidateCardResponse {
+  return {
+    id: nextId(),
+    provider: "usersubmission",
+    externalId: "ogn-001--2026-09-01--user",
+    shortCode: "OGN-001",
+    energy: 2,
+    power: 1,
+    might: 3,
+    superTypes: [],
+    types: ["unit"],
+    name: "Lux, Lady of Luminosity",
+    domains: ["calm"],
+    rulesText: null,
+    effectText: null,
+    mightBonus: null,
+    tags: [],
+    extraData: null,
+    checkedAt: null,
+    submittedByUserId: nextId(),
+    submittedByName: "Renata",
+    submissionNote: null,
+    ...overrides,
+  };
+}
+
+export function makeAdminPrinting(
+  overrides: Partial<AdminPrintingResponse> = {},
+): AdminPrintingResponse {
+  return {
+    id: nextId(),
+    cardId: nextId(),
+    setId: "set-origins",
+    setName: "Origins",
+    setSlug: "ogn",
+    shortCode: "OGN-001",
+    rarity: "common",
+    artVariant: "standard",
+    isSigned: false,
+    isOvernumbered: false,
+    markerSlugs: [],
+    distributionChannelSlugs: [],
+    finish: "nonfoil",
+    size: "standard",
+    artist: "Test Artist",
+    publicCode: "OGN-001/300",
+    printedRulesText: null,
+    printedEffectText: null,
+    flavorText: null,
+    printedName: null,
+    printedYear: 2026,
+    language: "EN",
+    comment: null,
+    expectedPrintingId: "OGN-001",
+    canonicalRank: 0,
+    fallbackArtMode: "auto",
+    fallbackImageFileId: null,
+    ...overrides,
+  };
+}
+
+export function makeCandidatePrinting(
+  overrides: Partial<CandidatePrintingResponse> = {},
+): CandidatePrintingResponse {
+  return {
+    id: nextId(),
+    candidateCardId: nextId(),
+    printingId: null,
+    shortCode: "OGN-001",
+    setId: "set-origins",
+    setName: "Origins",
+    rarity: "common",
+    artVariant: "standard",
+    isSigned: false,
+    isOvernumbered: false,
+    markerSlugs: [],
+    distributionChannelSlugs: [],
+    finish: "nonfoil",
+    size: "standard",
+    artist: "Test Artist",
+    publicCode: "OGN-001/300",
+    printedRulesText: null,
+    printedEffectText: null,
+    imageUrl: null,
+    flavorText: null,
+    externalId: "ogn-001",
+    extraData: null,
+    language: "EN",
+    printedName: null,
+    printedYear: 2026,
+    checkedAt: null,
+    ...overrides,
+  };
+}
+
+export function makeProviderSetting(
+  overrides: Partial<ProviderSettingResponse> = {},
+): ProviderSettingResponse {
+  return {
+    provider: "gallery",
+    sortOrder: 0,
+    isHidden: false,
+    isFavorite: false,
+    helperReviewable: false,
+    ...overrides,
+  };
+}
+
+export function makeAdminCardDetail(
+  overrides: Partial<AdminCardDetailResponse> = {},
+): AdminCardDetailResponse {
+  const card = overrides.card === undefined ? makeAdminCard() : overrides.card;
+  return {
+    card,
+    displayName: card?.name ?? "Lux, Lady of Luminosity",
+    sources: [],
+    printings: [],
+    candidatePrintings: [],
+    candidatePrintingGroups: [],
+    expectedCardId: card?.slug ?? "OGN-001",
+    printingImages: [],
+    setTotals: {},
+    marketplaceMappings: [],
+    ...overrides,
+  };
+}
+
+export function makeUnmatchedCardDetail(
+  overrides: Partial<UnmatchedCardDetailResponse> = {},
+): UnmatchedCardDetailResponse {
+  return {
+    displayName: "Lux, Lady of Luminosity",
+    sources: [],
+    candidatePrintings: [],
+    candidatePrintingGroups: [],
+    defaultCardId: "OGN-001",
+    setTotals: {},
     ...overrides,
   };
 }

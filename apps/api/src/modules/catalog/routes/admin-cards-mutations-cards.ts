@@ -1,5 +1,4 @@
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
-import { cardFieldRules } from "@openrift/shared/db-field-rules";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type { CardType, Domain, SuperType } from "@openrift/shared/types/enums";
 import { normalizeNameForIdentity } from "@openrift/shared/utils";
@@ -15,8 +14,8 @@ import {
   reviewableProviderScope,
 } from "../../candidates/services/card-review-scope.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
-import { cardUpdateFor } from "../lib/card-field-updates.js";
 import { deleteCard } from "../services/card-admin.js";
+import { normalizeCardFieldValue, writeCardField } from "../services/card-field-writes.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -82,22 +81,7 @@ export const adminCardMutationsCardsRouter = {
       assertSomeProviderInScope(await candidateCards.candidateProvidersForCard(cardId), scope);
     }
 
-    const arrayFields = new Set(["types", "superTypes", "domains", "tags"]);
-    const normalized = value === null && arrayFields.has(field) ? [] : value;
-
-    const validator = cardFieldRules[field as keyof typeof cardFieldRules];
-    if (validator) {
-      const parsed = validator.safeParse(normalized);
-      if (!parsed.success) {
-        throw new AppError(
-          400,
-          ERROR_CODES.VALIDATION_ERROR,
-          `Invalid value for ${field}: ${parsed.error.issues[0]?.message ?? "invalid value"}`,
-        );
-      }
-    }
-
-    const finalValue = normalized;
+    const finalValue = normalizeCardFieldValue(field, value);
 
     // Snapshot before the write for the audit event. domains/superTypes live
     // only in junction tables — no cheap before-read, so their old is null;
@@ -122,65 +106,14 @@ export const adminCardMutationsCardsRouter = {
         newValues: { [field]: finalValue },
       });
 
-    // Domains and superTypes are stored in junction tables, not on the cards row
-    if (field === "domains") {
-      await mut.replaceCardDomainsById(cardId, finalValue as string[]);
+    const { refreshViews } = await writeCardField(mut, {
+      cardId,
+      field,
+      value: finalValue,
+      previousName: cardBefore?.name ?? null,
+    });
+    if (refreshViews) {
       await context.repos.catalog.refreshCatalogViews();
-      await auditEvent();
-      return;
-    }
-    if (field === "superTypes") {
-      await mut.replaceCardSuperTypesById(cardId, finalValue as string[]);
-      await context.repos.catalog.refreshCatalogViews();
-      await auditEvent();
-      return;
-    }
-    // Card types live in the card_card_types junction; the repo keeps the
-    // denormalized cards.type scalar in sync.
-    if (field === "types") {
-      try {
-        await mut.replaceCardTypesById(cardId, finalValue as string[]);
-      } catch (error: unknown) {
-        // FK violation on card_types(slug) — unknown type slug, mirror the
-        // scalar-column 400 below.
-        if (error instanceof Error && "code" in error && error.code === "23503") {
-          throw new AppError(
-            400,
-            ERROR_CODES.VALIDATION_ERROR,
-            `Invalid value for ${field}: ${String(finalValue)}`,
-          );
-        }
-        throw error;
-      }
-      await context.repos.catalog.refreshCatalogViews();
-      await auditEvent();
-      return;
-    }
-
-    const updates = cardUpdateFor(field, finalValue);
-
-    try {
-      await mut.updateCardById(cardId, updates);
-    } catch (error: unknown) {
-      if (error instanceof Error && "code" in error && error.code === "23503") {
-        throw new AppError(
-          400,
-          ERROR_CODES.VALIDATION_ERROR,
-          `Invalid value for ${field}: ${String(finalValue)}`,
-        );
-      }
-      throw error;
-    }
-
-    // A name change updates cards.norm_name (via the cards_set_norm_name
-    // trigger) but not card_name_aliases — reconcile the self-alias so the
-    // rename leaves no stale old-name row and the new name is matchable.
-    if (field === "name" && typeof finalValue === "string" && cardBefore) {
-      await mut.syncSelfAliasOnRename(
-        cardId,
-        normalizeNameForIdentity(cardBefore.name),
-        normalizeNameForIdentity(finalValue),
-      );
     }
 
     await auditEvent();

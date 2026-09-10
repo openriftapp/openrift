@@ -28,6 +28,7 @@ const REASON_ORDER: CardSubmissionReason[] = [
   "already_correct",
   "unverified",
   "bad_image",
+  "other",
 ];
 
 // A function declared after the component's return bails the React Compiler out of the whole file.

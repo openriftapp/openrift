@@ -1,7 +1,5 @@
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
-import { printingFieldRules } from "@openrift/shared/db-field-rules";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
@@ -16,12 +14,11 @@ import {
 } from "../../candidates/services/card-review-scope.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { acceptPrinting, deletePrinting } from "../services/printing-admin.js";
 import {
-  acceptPrinting,
-  deletePrinting,
-  updatePrintingDistributionChannels,
-  updatePrintingMarkers,
-} from "../services/printing-admin.js";
+  normalizePrintingFieldValue,
+  writePrintingField,
+} from "../services/printing-field-writes.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -54,31 +51,8 @@ export const adminCardMutationsPrintingsRouter = {
   }),
 
   acceptPrintingField: os.acceptPrintingField.handler(async ({ input, context }): Promise<void> => {
-    const { catalogMutations: mut, rarities, keywords } = context.repos;
+    const { catalogMutations: mut } = context.repos;
     const { printingId, field, value, source } = input;
-
-    // Normalize enum fields before validation so case-insensitive input like
-    // "common" is accepted.
-    let normalizedValue: unknown = value;
-    if (field === "rarity" && typeof value === "string") {
-      const rarityRows = await rarities.listAll();
-      const raritySlugs = rarityRows.map((row) => row.slug);
-      normalizedValue =
-        raritySlugs.find((slug) => slug.toLowerCase() === value.toLowerCase()) ?? value;
-    }
-
-    const validator = printingFieldRules[field as keyof typeof printingFieldRules];
-    if (validator) {
-      const parsed = validator.safeParse(normalizedValue);
-      if (!parsed.success) {
-        throw new AppError(
-          400,
-          ERROR_CODES.VALIDATION_ERROR,
-          `Invalid value for ${field}: ${parsed.error.issues[0]?.message ?? "invalid value"}`,
-        );
-      }
-      normalizedValue = parsed.data;
-    }
 
     const printingBefore = await mut.getFullPrintingById(printingId);
     assertFound(printingBefore, "Printing not found");
@@ -93,6 +67,13 @@ export const adminCardMutationsPrintingsRouter = {
         scope,
       );
     }
+
+    const normalizedValue = await normalizePrintingFieldValue(context.repos, {
+      printingId,
+      field,
+      value,
+      source,
+    });
 
     // Audit snapshot: distributionChannelSlugs lives only in a junction table
     // (no denormalized column), so its old is null; everything else — including
@@ -110,83 +91,11 @@ export const adminCardMutationsPrintingsRouter = {
         newValues: { [field]: written },
       });
 
-    // When markerSlugs changes, update via dedicated function (printing_markers
-    // join is the source of truth; the trigger keeps printings.marker_slugs in sync).
-    if (field === "markerSlugs") {
-      const newSlugs = Array.isArray(normalizedValue)
-        ? (normalizedValue as string[]).filter((s) => typeof s === "string")
-        : [];
-      await updatePrintingMarkers(context.transact, printingId, newSlugs);
-      await auditEvent(newSlugs);
-      return;
-    }
-
-    // Distribution channels also live only in a junction table
-    // (printing_distribution_channels).
-    if (field === "distributionChannelSlugs") {
-      const { catalogMutations, distributionChannels: channelsRepo } = context.repos;
-      const newSlugs = Array.isArray(normalizedValue)
-        ? (normalizedValue as string[]).filter((s) => typeof s === "string")
-        : [];
-      await updatePrintingDistributionChannels(
-        { catalogMutations, distributionChannels: channelsRepo },
-        printingId,
-        newSlugs,
-      );
-      await auditEvent(newSlugs);
-      return;
-    }
-
-    if (source === "provider") {
-      const printingTextFields = new Set(["printedRulesText", "printedEffectText"]);
-      if (printingTextFields.has(field) && typeof normalizedValue === "string") {
-        const costKeywords = await context.repos.keywords.listCostKeywords();
-        normalizedValue = fixTypography(normalizedValue, { costKeywords });
-      }
-      if (field === "flavorText" && typeof normalizedValue === "string") {
-        normalizedValue = fixTypography(normalizedValue, {
-          italicParens: false,
-          keywordGlyphs: false,
-        });
-      }
-    }
-
-    if (source === "provider" && field === "publicCode" && typeof normalizedValue === "string") {
-      const setTotal = await mut.getSetPrintedTotalForPrinting(printingId);
-      normalizedValue = appendSetTotal(normalizedValue, setTotal?.printedTotal);
-    }
-
-    // Audit the human-readable value: for setId that's the slug, not the UUID
-    // the conversion below writes.
-    const auditValue = normalizedValue;
-
-    // Candidate printings store setId as a slug; printings store it as a UUID FK
-    if (field === "setId" && normalizedValue) {
-      const { sets } = context.repos;
-      const slug = normalizedValue as string;
-      const setRow = await sets.getBySlug(slug);
-      assertFound(setRow, `Set not found: ${slug}`);
-      normalizedValue = setRow.id;
-    }
-
-    try {
-      await mut.updatePrintingFieldById(printingId, field, normalizedValue);
-    } catch (error: unknown) {
-      if (error instanceof Error && "code" in error && error.code === "23503") {
-        throw new AppError(
-          400,
-          ERROR_CODES.VALIDATION_ERROR,
-          `Invalid value for ${field}: ${String(normalizedValue)}`,
-        );
-      }
-      throw error;
-    }
-
-    if (field === "printedRulesText" || field === "printedEffectText") {
-      await keywords.recomputeForPrintingCard(printingId);
-      await context.repos.cardTokens.recomputeForPrintingCard(printingId);
-      await context.repos.catalog.refreshCardAggregates();
-    }
+    const { auditValue } = await writePrintingField(context.transact, context.repos, {
+      printingId,
+      field,
+      value: normalizedValue,
+    });
 
     await auditEvent(auditValue);
   }),

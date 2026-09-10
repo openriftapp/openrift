@@ -14,6 +14,7 @@ import {
   GlobeIcon,
   HashIcon,
   ImageIcon,
+  InboxIcon,
   KeyRoundIcon,
   LanguagesIcon,
   LayoutDashboardIcon,
@@ -38,6 +39,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import {
   NestedSidebar,
   SidebarContent,
@@ -51,6 +53,9 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { adminSectionForPathname } from "@/features/admin/lib/admin-sections";
+import { useReviewQueueWhen } from "@/features/catalog-admin/hooks/use-catalog-review";
+
+const CATALOG_REVIEW_PATH = "/admin/catalog/review" as const;
 
 const overviewPages = [{ to: "/admin" as const, icon: LayoutDashboardIcon, title: "Dashboard" }];
 
@@ -62,6 +67,8 @@ const catalogPages = [
   { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Ignored Sources" },
   { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
 ];
+
+const catalogNewPages = [{ to: CATALOG_REVIEW_PATH, icon: InboxIcon, title: "Review" }];
 
 const taxonomyPages = [
   { to: "/admin/markers" as const, icon: TagIcon, title: "Markers" },
@@ -116,6 +123,7 @@ const systemPages = [
 const groups = [
   { label: "Overview", pages: overviewPages },
   { label: "Catalog", pages: catalogPages },
+  { label: "Catalog (new)", pages: catalogNewPages },
   { label: "Taxonomy", pages: taxonomyPages },
   { label: "Content", pages: contentPages },
   { label: "Contribute", pages: contributePages },
@@ -137,6 +145,9 @@ export function AdminSidebar() {
   // sections they hold; groups left empty disappear entirely.
   const isAdmin = access?.isAdmin === true;
   const sections = access?.sections ?? [];
+  const canReview = isAdmin || sections.includes("card-review");
+  const { data: reviewQueue } = useReviewQueueWhen(canReview);
+  const openReviews = reviewQueue?.counts.open ?? 0;
   const visibleGroups = groups
     .map((group) => ({
       ...group,
@@ -163,6 +174,11 @@ export function AdminSidebar() {
                   >
                     <page.icon />
                     <span>{page.title}</span>
+                    {page.to === CATALOG_REVIEW_PATH && openReviews > 0 && (
+                      <Badge variant="count" className="ml-auto">
+                        {openReviews}
+                      </Badge>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
