@@ -302,11 +302,8 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
 describe(`POST ${BASE}/submissions/{id}/reject`, () => {
   beforeEach(resetDefaults);
 
-  it("returns 204 and ignores the candidate", async () => {
-    const res = await post(`${BASE}/submissions/cc-1/reject`, {
-      reason: "not_a_card",
-      note: null,
-    });
+  it("returns 204 and ignores the candidate without a reason", async () => {
+    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: null });
 
     expect(res.status).toBe(204);
     expect(repos.ignoredCandidates.ignoreCard).toHaveBeenCalledWith({
@@ -321,10 +318,7 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
       status: "accepted",
     });
 
-    const res = await post(`${BASE}/submissions/cc-1/reject`, {
-      reason: "duplicate",
-      note: null,
-    });
+    const res = await post(`${BASE}/submissions/cc-1/reject`, { note: null });
     expect(res.status).toBe(409);
   });
 });

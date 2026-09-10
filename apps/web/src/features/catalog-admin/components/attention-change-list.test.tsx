@@ -34,6 +34,17 @@ const cardGroup: AttentionGroup = {
   summary: null,
 };
 
+const newPrintingGroup: AttentionGroup = {
+  key: "new-printing:cp1",
+  kind: "new-printing",
+  title: "New printing OGN-042 · foil",
+  printingId: null,
+  candidate: null,
+  changes: [],
+  unchangedFields: [],
+  summary: "foil · epic · Riot Artist",
+};
+
 function renderList(overrides: Partial<React.ComponentProps<typeof AttentionChangeList>> = {}) {
   const onToggle = vi.fn();
   const onEdit = vi.fn();
@@ -71,6 +82,18 @@ describe("AttentionChangeList", () => {
     const input = screen.getByDisplayValue("Lux, Lady of Light");
     await userEvent.type(input, "!");
     expect(onEdit).toHaveBeenCalledWith("card:c1:name", "Lux, Lady of Light!");
+  });
+
+  it("offers to link a new printing to an existing one", async () => {
+    const onLinkGroup = vi.fn();
+    renderList({ groups: [newPrintingGroup], ticked: new Set(["new-printing:cp1"]), onLinkGroup });
+    await userEvent.click(screen.getByRole("button", { name: "Link to existing…" }));
+    expect(onLinkGroup).toHaveBeenCalledWith(newPrintingGroup);
+  });
+
+  it("hides the link control when no handler is given", () => {
+    renderList({ groups: [newPrintingGroup], ticked: new Set(["new-printing:cp1"]) });
+    expect(screen.queryByRole("button", { name: "Link to existing…" })).not.toBeInTheDocument();
   });
 
   it("marks an edited row and names the unchanged fields on demand", async () => {

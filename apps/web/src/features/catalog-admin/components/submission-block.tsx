@@ -1,5 +1,6 @@
 import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { CheckIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -9,16 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Kbd } from "@/components/ui/kbd";
-import { SubmissionResolutionDialog } from "@/features/admin/components/submission-resolution-dialog";
+import { useLinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
 import { AttentionChangeList } from "@/features/catalog-admin/components/attention-change-list";
+import { ComparePrintingPicker } from "@/features/catalog-admin/components/compare-dialogs";
 import { RejectSubmissionDialog } from "@/features/catalog-admin/components/reject-submission-dialog";
+import { SendNoteDialog } from "@/features/catalog-admin/components/send-note-dialog";
 import type { SettleScope } from "@/features/catalog-admin/hooks/use-catalog-review";
-import { useAcceptSubmission } from "@/features/catalog-admin/hooks/use-catalog-review";
-import type { AttentionSubmission } from "@/features/catalog-admin/lib/attention-items";
+import { settleKeys, useAcceptSubmission } from "@/features/catalog-admin/hooks/use-catalog-review";
+import type {
+  AttentionGroup,
+  AttentionSubmission,
+} from "@/features/catalog-admin/lib/attention-items";
 import {
   buildAcceptSubmissionInput,
   submissionTickKeys,
 } from "@/features/catalog-admin/lib/build-accept-input";
+import { unlinkedGroupCandidates } from "@/features/catalog-admin/lib/candidate-groups";
+import { printingBlockTitle } from "@/features/catalog-admin/lib/compare-rows";
 
 interface SettledRow {
   key: string;
@@ -75,14 +83,12 @@ function BlockHeader({
   total,
   who,
   queueItem,
-  onReply,
 }: {
   submission: AttentionSubmission;
   kindLabel: string;
   total: number;
   who: string;
   queueItem: ReviewQueueItem | undefined;
-  onReply: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -95,28 +101,40 @@ function BlockHeader({
           {formatRelativeTime(queueItem.createdAt)}
         </span>
       )}
-      <Button variant="ghost" className="ml-auto" onClick={onReply}>
-        <MessageSquareIcon className="mr-1.5" />
-        Message contributor
-      </Button>
     </div>
   );
 }
 
 interface SubmissionBlockProps {
+  detail: AdminCardDetailResponse;
   submission: AttentionSubmission;
   scope: SettleScope;
   queueItem: ReviewQueueItem | undefined;
   onSettled: () => void;
 }
 
-export function SubmissionBlock({ submission, scope, queueItem, onSettled }: SubmissionBlockProps) {
+export function SubmissionBlock({
+  detail,
+  submission,
+  scope,
+  queueItem,
+  onSettled,
+}: SubmissionBlockProps) {
   const acceptSubmission = useAcceptSubmission(scope);
+  const linkCandidatePrintings = useLinkCandidatePrintings(
+    settleKeys(submission.candidateCardId, scope),
+  );
   const [unticked, setUnticked] = useState<ReadonlySet<string>>(() => new Set());
   const [edits, setEdits] = useState<ReadonlyMap<string, unknown>>(() => new Map());
   const [settled, setSettled] = useState<SettledResult | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [replying, setReplying] = useState(false);
+  const [linking, setLinking] = useState<AttentionGroup | null>(null);
+
+  const printingTargets = detail.printings.map((printing) => ({
+    id: printing.id,
+    label: printingBlockTitle(printing),
+  }));
 
   const tickKeys = submissionTickKeys(submission);
   const ticked = new Set(tickKeys.filter((key) => !unticked.has(key)));
@@ -129,6 +147,18 @@ export function SubmissionBlock({ submission, scope, queueItem, onSettled }: Sub
   useHotkey("Mod+Enter", () => acceptRef.current(), {
     enabled: settled === null && !acceptSubmission.isPending,
   });
+
+  function linkGroup(group: AttentionGroup, printingId: string) {
+    const candidate = group.candidate;
+    if (candidate === null) {
+      return;
+    }
+    linkCandidatePrintings.mutate({
+      candidatePrintingIds: unlinkedGroupCandidates(detail, candidate.id).map((entry) => entry.id),
+      printingId,
+    });
+    setUnticked((prev) => new Set(prev).add(group.key));
+  }
 
   async function runAccept() {
     const { input, includedKeys } = buildAcceptSubmissionInput(submission, { ticked, edits });
@@ -161,7 +191,6 @@ export function SubmissionBlock({ submission, scope, queueItem, onSettled }: Sub
             total={total}
             who={who}
             queueItem={queueItem}
-            onReply={() => setReplying(true)}
           />
 
           {submission.note && (
@@ -187,11 +216,21 @@ export function SubmissionBlock({ submission, scope, queueItem, onSettled }: Sub
               })
             }
             onEdit={(key, value) => setEdits((prev) => new Map([...prev, [key, value]]))}
+            onLinkGroup={printingTargets.length > 0 ? setLinking : undefined}
           />
 
           <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              title="Writes a message the contributor sees. Nothing is accepted or rejected."
+              onClick={() => setReplying(true)}
+            >
+              <MessageSquareIcon />
+              Send a note
+              <span className="text-muted-foreground">(no decision)</span>
+            </Button>
             <Button variant="ghost" className="text-destructive" onClick={() => setRejecting(true)}>
-              Reject…
+              Reject
             </Button>
             <p className="text-muted-foreground min-w-0 flex-1 text-xs">
               Accepting applies the ticked rows, marks this source checked and tells {who} what
@@ -219,9 +258,30 @@ export function SubmissionBlock({ submission, scope, queueItem, onSettled }: Sub
         }}
         onRejected={onSettled}
       />
-      <SubmissionResolutionDialog
+      <ComparePrintingPicker
+        open={linking !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLinking(null);
+          }
+        }}
+        copy={{
+          title: "Link to an existing printing",
+          description: "Pick the printing this row belongs to.",
+          confirmLabel: "Link rows",
+        }}
+        targets={printingTargets}
+        onConfirm={(printingId) => {
+          const group = linking;
+          setLinking(null);
+          if (group !== null) {
+            linkGroup(group, printingId);
+          }
+        }}
+      />
+      <SendNoteDialog
         candidateCardId={replying ? submission.candidateCardId : null}
-        mode="reply"
+        submitterName={submission.submitterName}
         onOpenChange={(open) => {
           if (!open) {
             setReplying(false);

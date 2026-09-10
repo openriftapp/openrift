@@ -11,46 +11,47 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Textarea } from "@/components/ui/textarea";
-import type { SettleScope } from "@/features/catalog-admin/hooks/use-catalog-review";
-import { useRejectSubmission } from "@/features/catalog-admin/hooks/use-catalog-review";
+import {
+  useSetSubmissionResolution,
+  useSubmissionForCandidate,
+} from "@/features/admin/hooks/use-admin-card-submissions";
 
-interface RejectSubmissionDialogProps {
+interface SendNoteDialogProps {
   candidateCardId: string | null;
   submitterName: string | null;
-  kindLabel: string;
-  scope?: SettleScope;
   onOpenChange: (open: boolean) => void;
-  onRejected?: () => void;
 }
 
-export function RejectSubmissionDialog({
+export function SendNoteDialog({
   candidateCardId,
   submitterName,
-  kindLabel,
-  scope,
   onOpenChange,
-  onRejected,
-}: RejectSubmissionDialogProps) {
-  const rejectSubmission = useRejectSubmission(scope);
+}: SendNoteDialogProps) {
+  const { data } = useSubmissionForCandidate(candidateCardId);
+  const setResolution = useSetSubmissionResolution();
   const [note, setNote] = useState("");
+  const [touched, setTouched] = useState(false);
 
-  const trimmedNote = note.trim();
+  const existing = data?.submission ?? null;
+  const effectiveNote = touched ? note : (existing?.resolutionNote ?? "");
+  const trimmedNote = effectiveNote.trim();
   const notePayload = trimmedNote === "" ? null : trimmedNote;
-  const who = submitterName ?? "this contributor";
+  const who = submitterName ?? "the contributor";
 
   async function handleSubmit() {
     if (candidateCardId === null) {
       return;
     }
+    const payload = { candidateCardId, reason: existing?.reason ?? null, note: notePayload };
     try {
-      await rejectSubmission.mutateAsync({ candidateCardId, note: notePayload });
+      await setResolution.mutateAsync(payload);
     } catch {
       // Reported by the global mutation error toast.
       return;
     }
+    setTouched(false);
     setNote("");
     onOpenChange(false);
-    onRejected?.();
   }
 
   return (
@@ -58,27 +59,26 @@ export function RejectSubmissionDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleSubmit()}>
           <DialogHeader>
-            <DialogTitle>
-              Reject {who}
-              {submitterName === null ? "" : "'s"} {kindLabel.toLowerCase()}
-            </DialogTitle>
+            <DialogTitle>Note to {who}</DialogTitle>
           </DialogHeader>
 
           <div className="py-2">
             <Textarea
-              value={note}
+              value={effectiveNote}
               maxLength={2000}
               rows={4}
-              aria-label="Message to the contributor"
-              placeholder="Tell the contributor why (optional)"
-              onChange={(event) => setNote(event.target.value)}
+              aria-label={`Note to ${who}`}
+              onChange={(event) => {
+                setTouched(true);
+                setNote(event.target.value);
+              }}
             />
           </div>
 
           <DialogFooter>
             <DialogClose render={<Button variant="ghost" type="button" />}>Cancel</DialogClose>
-            <Button type="submit" variant="destructive" disabled={rejectSubmission.isPending}>
-              Reject
+            <Button type="submit" disabled={setResolution.isPending}>
+              Send
             </Button>
           </DialogFooter>
         </DialogForm>

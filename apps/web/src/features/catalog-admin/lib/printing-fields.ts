@@ -100,3 +100,10 @@ export function summarizeCandidatePrinting(candidate: CandidatePrintingResponse)
   );
   return parts.length > 0 ? parts.join(" · ") : "No details";
 }
+
+export function candidateRowSummary(candidate: CandidatePrintingResponse): string {
+  const parts = [candidate.finish, candidate.rarity, candidate.artist].filter(
+    (part): part is string => hasFieldValue(part),
+  );
+  return parts.length > 0 ? parts.join(" · ") : "No details";
+}

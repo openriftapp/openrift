@@ -63,6 +63,7 @@ export function AttentionTab({
       {submissions.map((submission) => (
         <SubmissionBlock
           key={submission.candidateCardId}
+          detail={detail}
           submission={submission}
           scope={{ cardSlug }}
           queueItem={queue?.items.find(
@@ -75,18 +76,12 @@ export function AttentionTab({
       {sources.map((source) => (
         <SourceBlock
           key={source.candidateCardId}
+          detail={detail}
           provider={source.provider}
           candidateCardId={source.candidateCardId}
           changedFields={source.changedFields}
           newPrintings={source.newPrintings}
           cardSlug={cardSlug}
-          candidatePrintingIds={detail.candidatePrintings
-            .filter(
-              (candidate) =>
-                candidate.candidateCardId === source.candidateCardId &&
-                candidate.checkedAt === null,
-            )
-            .map((candidate) => candidate.id)}
         />
       ))}
 

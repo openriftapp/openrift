@@ -1,4 +1,3 @@
-import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type {
   AdminCardDetailResponse,
@@ -11,9 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { CardList } from "@/components/ui/card-list";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
 import { usePublicCardPreview } from "@/features/catalog-admin/hooks/use-public-card-preview";
+import { firstPrintingSetLabel } from "@/features/catalog-admin/lib/card-overview";
 import { hasFieldValue } from "@/features/catalog-admin/lib/catalog-field-labels";
+import type { OverviewSourceGroup } from "@/features/catalog-admin/lib/source-groups";
+import { buildOverviewSourceGroups } from "@/features/catalog-admin/lib/source-groups";
 
 function activeImage(
   printingId: string,
@@ -42,7 +45,7 @@ function PublicPreview({ cardSlug }: { cardSlug: string }) {
       </p>
     );
   }
-  return <CardDetail printing={printing} showImages showPrices={false} />;
+  return <CardDetail printing={printing} layout="modal" showImages showPrices={false} />;
 }
 
 function PrintingTiles({ detail }: { detail: AdminCardDetailResponse }) {
@@ -85,10 +88,7 @@ function Facts({ detail }: { detail: AdminCardDetailResponse }) {
   const withoutImage = detail.printings.filter(
     (printing) => activeImage(printing.id, detail.printingImages) === undefined,
   ).length;
-  const firstSet =
-    detail.printings.toSorted((a, b) => a.canonicalRank - b.canonicalRank).at(0)?.setName ??
-    detail.printings.at(0)?.setSlug ??
-    "—";
+  const firstSet = firstPrintingSetLabel(detail.printings) ?? "—";
 
   const linkedByMarketplace = new Map<string, Set<string>>();
   for (const mapping of detail.marketplaceMappings) {
@@ -118,22 +118,22 @@ function Facts({ detail }: { detail: AdminCardDetailResponse }) {
   );
 }
 
-function Sources({ detail }: { detail: AdminCardDetailResponse }) {
+function Sources({ groups }: { groups: readonly OverviewSourceGroup[] }) {
   return (
     <CardList>
-      {detail.sources.map((source) => (
-        <li key={source.id} className="flex items-center gap-3 px-3 py-2">
-          <span className="min-w-0 flex-1 truncate">
-            {source.provider === USER_SUBMISSION_PROVIDER
-              ? (source.submittedByName ?? "Contributor")
-              : source.provider}
+      {groups.map((group) => (
+        <li key={group.key} className="flex flex-col gap-1 px-3 py-2">
+          <span className="truncate text-sm">{group.label}</span>
+          <span className="flex flex-wrap items-center gap-1.5">
+            {group.isTrusted && <Badge variant="info">Trusted</Badge>}
+            {group.isContributor && <Badge variant="violet">Contributor</Badge>}
+            <Badge variant={group.isChecked ? "success" : "warning"}>
+              {group.isChecked ? "Checked" : "Unchecked"}
+            </Badge>
+            {group.rowCount > 1 && (
+              <span className="text-muted-foreground text-xs">{group.rowCount} rows</span>
+            )}
           </span>
-          {source.provider === USER_SUBMISSION_PROVIDER && (
-            <Badge variant="violet">Contributor</Badge>
-          )}
-          <Badge variant={source.checkedAt === null ? "warning" : "success"}>
-            {source.checkedAt === null ? "Unchecked" : "Checked"}
-          </Badge>
         </li>
       ))}
     </CardList>
@@ -147,35 +147,42 @@ export function OverviewTab({
   detail: AdminCardDetailResponse;
   cardSlug: string;
 }) {
+  const { data: providerSettingsData } = useProviderSettings();
+  const sourceGroups = buildOverviewSourceGroups(detail, providerSettingsData.providerSettings);
+
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
+      <section className="max-w-3xl space-y-3">
         <h2 className="text-lg font-semibold">As shown on the site</h2>
         <PublicPreview cardSlug={cardSlug} />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Printings</h2>
-        {detail.printings.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No printings yet.</p>
-        ) : (
-          <PrintingTiles detail={detail} />
-        )}
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-8">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Printings</h2>
+            {detail.printings.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No printings yet.</p>
+            ) : (
+              <PrintingTiles detail={detail} />
+            )}
+          </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Facts</h2>
-        <Facts detail={detail} />
-      </section>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Facts</h2>
+            <Facts detail={detail} />
+          </section>
+        </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Sources</h2>
-        {detail.sources.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No sources.</p>
-        ) : (
-          <Sources detail={detail} />
-        )}
-      </section>
+        <section className="min-w-0 space-y-3">
+          <h2 className="text-lg font-semibold">Sources</h2>
+          {sourceGroups.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No sources.</p>
+          ) : (
+            <Sources groups={sourceGroups} />
+          )}
+        </section>
+      </div>
     </div>
   );
 }

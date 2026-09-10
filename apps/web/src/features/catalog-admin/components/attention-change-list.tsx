@@ -173,6 +173,7 @@ interface AttentionChangeListProps {
   edits: ReadonlyMap<string, unknown>;
   onToggle: (key: string) => void;
   onEdit: (key: string, value: unknown) => void;
+  onLinkGroup?: (group: AttentionGroup) => void;
 }
 
 export function AttentionChangeList({
@@ -181,6 +182,7 @@ export function AttentionChangeList({
   edits,
   onToggle,
   onEdit,
+  onLinkGroup,
 }: AttentionChangeListProps) {
   const [editing, setEditing] = useState<ReadonlySet<string>>(() => new Set());
   const [showUnchanged, setShowUnchanged] = useState(false);
@@ -210,6 +212,16 @@ export function AttentionChangeList({
                   >
                     {group.summary}
                   </label>
+                  {onLinkGroup && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="shrink-0"
+                      onClick={() => onLinkGroup(group)}
+                    >
+                      Link to existing…
+                    </Button>
+                  )}
                 </li>
               ) : (
                 group.changes.map((change) => (

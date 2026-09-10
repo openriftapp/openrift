@@ -4,6 +4,7 @@ import { resetIdCounter, makeCandidatePrinting } from "@/test/factories";
 
 import {
   buildPrintingFieldsFromCandidate,
+  candidateRowSummary,
   missingPrintingFields,
   summarizeCandidatePrinting,
 } from "./printing-fields";
@@ -72,5 +73,21 @@ describe("summarizeCandidatePrinting", () => {
   it("says so when it has none", () => {
     const candidate = makeCandidatePrinting({ rarity: null, finish: null, artVariant: null });
     expect(summarizeCandidatePrinting(candidate)).toBe("No details");
+  });
+});
+
+describe("candidateRowSummary", () => {
+  it("joins finish, rarity and artist", () => {
+    const candidate = makeCandidatePrinting({
+      finish: "foil",
+      rarity: "epic",
+      artist: "Riot Artist",
+    });
+    expect(candidateRowSummary(candidate)).toBe("foil · epic · Riot Artist");
+  });
+
+  it("says so when it has none", () => {
+    const candidate = makeCandidatePrinting({ finish: null, rarity: null, artist: null });
+    expect(candidateRowSummary(candidate)).toBe("No details");
   });
 });

@@ -293,7 +293,7 @@ export function DraftCardPage({ name }: { name: string }) {
         <div className="flex flex-wrap items-center gap-3">
           {submissionSource && (
             <Button variant="ghost" className="text-destructive" onClick={() => setRejecting(true)}>
-              Reject…
+              Reject
             </Button>
           )}
           <div className="ml-auto flex items-center gap-3">

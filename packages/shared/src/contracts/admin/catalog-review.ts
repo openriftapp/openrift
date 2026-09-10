@@ -84,7 +84,7 @@ export const acceptSubmissionResponseSchema = z.object({
 });
 
 export const rejectSubmissionInputSchema = candidateCardIdParam.extend({
-  reason: cardSubmissionReasonSchema,
+  reason: cardSubmissionReasonSchema.nullable().optional().default(null),
   note: z.string().trim().min(1).max(2000).nullable(),
 });
 
@@ -197,7 +197,7 @@ export type ReviewQueueResponse = z.infer<typeof reviewQueueResponseSchema>;
 export type ReviewQueueKind = z.infer<typeof reviewQueueKindSchema>;
 export type AcceptSubmissionInput = z.input<typeof acceptSubmissionInputSchema>;
 export type AcceptSubmissionResponse = z.infer<typeof acceptSubmissionResponseSchema>;
-export type RejectSubmissionInput = z.infer<typeof rejectSubmissionInputSchema>;
+export type RejectSubmissionInput = z.input<typeof rejectSubmissionInputSchema>;
 export type CreateCardFromCandidateInput = z.input<typeof createCardFromCandidateInputSchema>;
 export type CreateCardFromCandidateResponse = z.infer<typeof createCardFromCandidateResponseSchema>;
 export type CatalogCardRow = z.infer<typeof catalogCardRowSchema>;

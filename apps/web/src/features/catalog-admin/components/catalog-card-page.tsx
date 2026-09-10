@@ -202,11 +202,6 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
       )
     : 0;
 
-  const printing = detail?.printings.at(0);
-  const meta = [printing?.shortCode, printing?.setName ?? printing?.setSlug]
-    .filter((part): part is string => Boolean(part))
-    .join(" · ");
-
   return (
     <>
       <AdminPageTopBar
@@ -261,8 +256,6 @@ export function CatalogCardPage({ cardSlug }: { cardSlug: string }) {
       />
 
       <div className="pt-3">
-        {meta && <p className="text-muted-foreground mb-4 text-sm">{meta}</p>}
-
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
           <nav className="flex flex-row flex-wrap gap-1 md:flex-col">
             {CATALOG_TAB_VALUES.map((value) => (
