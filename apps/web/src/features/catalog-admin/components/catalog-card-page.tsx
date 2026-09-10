@@ -19,8 +19,13 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { AttentionTab } from "@/features/catalog-admin/components/attention-tab";
+import { BansErrataTab } from "@/features/catalog-admin/components/bans-errata-tab";
+import { CardFieldsTab } from "@/features/catalog-admin/components/card-fields-tab";
 import { CompareTab } from "@/features/catalog-admin/components/compare-tab";
+import { HistoryTab } from "@/features/catalog-admin/components/history-tab";
+import { MarketplaceTab } from "@/features/catalog-admin/components/marketplace-tab";
 import { OverviewTab } from "@/features/catalog-admin/components/overview-tab";
+import { PrintingsTab } from "@/features/catalog-admin/components/printings-tab";
 import { useReviewQueue } from "@/features/catalog-admin/hooks/use-catalog-review";
 import { useCheckAllSources } from "@/features/catalog-admin/hooks/use-check-all-sources";
 import {
@@ -82,6 +87,21 @@ function TabBody({
     }
     case "compare": {
       return <CompareTab detail={detail} cardSlug={cardSlug} />;
+    }
+    case "fields": {
+      return <CardFieldsTab detail={detail} cardSlug={cardSlug} />;
+    }
+    case "printings": {
+      return <PrintingsTab detail={detail} cardSlug={cardSlug} />;
+    }
+    case "marketplace": {
+      return <MarketplaceTab cardSlug={cardSlug} />;
+    }
+    case "bans": {
+      return <BansErrataTab detail={detail} />;
+    }
+    case "history": {
+      return <HistoryTab cardSlug={cardSlug} />;
     }
     default: {
       return <NotBuiltYet cardSlug={cardSlug} />;

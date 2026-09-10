@@ -1,3 +1,5 @@
+import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
+import type { CardBanResponse } from "@openrift/shared/contracts/admin/card-bans";
 import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { makeCard, makePrinting } from "@openrift/shared/test-factories";
@@ -5,17 +7,21 @@ import type {
   AdminCardDetailResponse,
   AdminCardResponse,
   AdminPrintingImageResponse,
+  AdminPrintingMarketplaceMappingResponse,
   AdminPrintingResponse,
   CandidateCardResponse,
   CandidatePrintingResponse,
   ProviderSettingResponse,
+  StagedProductResponse,
+  UnifiedMappingGroupResponse,
+  UnifiedMappingPrintingResponse,
   UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { MetaPlayerDetailResponse, MetaPlayerFinish } from "@openrift/shared/types/api/meta";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { TradePreference } from "@openrift/shared/types/api/trade-preferences";
-import type { Card, Printing } from "@openrift/shared/types/catalog";
+import type { Card, CardErrata, Printing } from "@openrift/shared/types/catalog";
 import type { CardType, DeckZone, Domain, SuperType } from "@openrift/shared/types/enums";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
@@ -436,6 +442,140 @@ export function makeUnmatchedCardDetail(
     candidatePrintingGroups: [],
     defaultCardId: "OGN-001",
     setTotals: {},
+    ...overrides,
+  };
+}
+
+export function makeAuditEvent(
+  overrides: Partial<AdminAuditEventResponse> = {},
+): AdminAuditEventResponse {
+  return {
+    id: nextId(),
+    actorUserId: nextId(),
+    actorName: "Renata",
+    actorEmail: "renata@openrift.test",
+    action: "card.accept-field",
+    entityType: "card",
+    entityId: nextId(),
+    entityLabel: "Lux, Lady of Luminosity",
+    cardSlug: "OGN-001",
+    oldValues: { energy: 2 },
+    newValues: { energy: 3 },
+    createdAt: "2026-09-01T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeUnifiedMappingPrinting(
+  overrides: Partial<UnifiedMappingPrintingResponse> = {},
+): UnifiedMappingPrintingResponse {
+  return {
+    printingId: nextId(),
+    setId: "ogn",
+    shortCode: "OGN-001",
+    rarity: "common",
+    artVariant: "normal",
+    isSigned: false,
+    isOvernumbered: false,
+    markerSlugs: [],
+    finish: "normal",
+    size: "standard",
+    language: "EN",
+    imageUrl: null,
+    tcgExternalId: null,
+    cmExternalId: null,
+    ctExternalId: null,
+    ...overrides,
+  };
+}
+
+export function makeStagedProduct(
+  overrides: Partial<StagedProductResponse> = {},
+): StagedProductResponse {
+  return {
+    externalId: 1,
+    productName: "Lux, Lady of Luminosity",
+    finish: "normal",
+    language: "EN",
+    marketCents: 450,
+    lowCents: null,
+    midCents: null,
+    highCents: null,
+    trendCents: null,
+    avg1Cents: null,
+    avg7Cents: null,
+    avg30Cents: null,
+    currency: "USD",
+    recordedAt: "2026-09-01T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+type MarketplaceSlice = UnifiedMappingGroupResponse["tcgplayer"];
+
+function emptyMarketplaceSlice(): MarketplaceSlice {
+  return { stagedProducts: [], assignedProducts: [], assignments: [] };
+}
+
+export function makeUnifiedMappingGroup(
+  overrides: Partial<UnifiedMappingGroupResponse> = {},
+): UnifiedMappingGroupResponse {
+  return {
+    cardId: nextId(),
+    cardSlug: "lux-lady-of-luminosity",
+    cardName: "Lux, Lady of Luminosity",
+    superTypes: ["Champion"],
+    domains: ["Order"],
+    energy: 4,
+    might: 4,
+    setId: nextId(),
+    setName: "Origins",
+    primaryShortCode: "OGN-001",
+    printings: [],
+    tcgplayer: emptyMarketplaceSlice(),
+    cardmarket: emptyMarketplaceSlice(),
+    cardtrader: emptyMarketplaceSlice(),
+    ...overrides,
+  };
+}
+
+export function makeCardBan(overrides: Partial<CardBanResponse> = {}): CardBanResponse {
+  return {
+    id: nextId(),
+    cardId: nextId(),
+    formatId: "constructed",
+    formatName: "Constructed",
+    bannedAt: "2026-08-01",
+    reason: "Locks the board out of every deck",
+    createdAt: "2026-08-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeCardErrata(overrides: Partial<CardErrata> = {}): CardErrata {
+  return {
+    correctedRulesText: "Deal 2 damage to a unit you do not control.",
+    correctedEffectText: null,
+    source: "Rules update, August 2026",
+    sourceUrl: "https://rules.example.test/2026-08",
+    effectiveDate: "2026-08-15",
+    ...overrides,
+  };
+}
+
+export function makeAdminPrintingMarketplaceMapping(
+  overrides: Partial<AdminPrintingMarketplaceMappingResponse> = {},
+): AdminPrintingMarketplaceMappingResponse {
+  const printingId = overrides.targetPrintingId ?? nextId();
+  return {
+    targetPrintingId: printingId,
+    marketplace: "tcgplayer",
+    externalId: 1,
+    productName: "Lux, Lady of Luminosity",
+    finish: "normal",
+    variantLanguage: null,
+    ownerPrintingId: printingId,
+    ownerLanguage: "EN",
     ...overrides,
   };
 }
