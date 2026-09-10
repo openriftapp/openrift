@@ -454,9 +454,10 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
   });
 
   it("wishListsForUser returns the caller's wish lists ordered by name", async () => {
-    expect(await repo.wishListsForUser([listId, secondListId], userId)).toEqual([
-      { id: secondListId, name: "Overlay Extra Wants" },
-      { id: listId, name: "Overlay Wants" },
+    expect(await repo.wishListsForUser([cardListId, listId, secondListId], userId)).toEqual([
+      { id: cardListId, name: "Overlay Card Wants", kind: "card" },
+      { id: secondListId, name: "Overlay Extra Wants", kind: "printing" },
+      { id: listId, name: "Overlay Wants", kind: "printing" },
     ]);
   });
 
@@ -468,10 +469,10 @@ describe.skipIf(!ctx)("cardmarketOverlayRepo (integration)", () => {
     const organize = await createList("Overlay Binder Plan", "organize");
 
     expect(await repo.wishListsForUser([listId, tradeListId], userId)).toEqual([
-      { id: listId, name: "Overlay Wants" },
+      { id: listId, name: "Overlay Wants", kind: "printing" },
     ]);
     expect(await repo.wishListsForUser([listId, organize], userId)).toEqual([
-      { id: listId, name: "Overlay Wants" },
+      { id: listId, name: "Overlay Wants", kind: "printing" },
     ]);
   });
 });
