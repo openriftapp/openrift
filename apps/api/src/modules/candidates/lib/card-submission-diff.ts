@@ -120,10 +120,8 @@ export function computeProposedDiff(
     ) {
       diff.push(`printing.${key}.isOvernumbered`);
     }
-    // An image suggestion for a printing that already has artwork proposes a
-    // replacement we cannot verify by comparison, so it counts as no change.
-    // Those submissions resolve as already_correct unless the admin says
-    // otherwise, which is better than crediting an accept that never happened.
+    // Artwork proposed for a printing that already has some cannot be verified
+    // by comparison; whether it was used is settled from image_files instead.
     if (!isEmpty(printing.imageUrl) && !livePrinting.hasImage) {
       diff.push(`printing.${key}.image`);
     }

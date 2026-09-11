@@ -80,15 +80,20 @@ function pendingSubmission(proposedDiff: string[]) {
 
 describe("outcomeForCheckedSubmission", () => {
   it("calls an empty proposal already_correct", () => {
-    expect(outcomeForCheckedSubmission(0, 0)).toBe("already_correct");
+    expect(outcomeForCheckedSubmission(0, 0, false)).toBe("already_correct");
   });
 
   it("calls a partly adopted proposal accepted", () => {
-    expect(outcomeForCheckedSubmission(3, 1)).toBe("accepted");
+    expect(outcomeForCheckedSubmission(3, 1, false)).toBe("accepted");
   });
 
   it("calls an unadopted proposal not_applied", () => {
-    expect(outcomeForCheckedSubmission(2, 0)).toBe("not_applied");
+    expect(outcomeForCheckedSubmission(2, 0, false)).toBe("not_applied");
+  });
+
+  it("calls an attached photo accepted whatever the diff says", () => {
+    expect(outcomeForCheckedSubmission(0, 0, true)).toBe("accepted");
+    expect(outcomeForCheckedSubmission(2, 0, true)).toBe("accepted");
   });
 });
 
@@ -228,11 +233,11 @@ describe("resolveCheckedSubmissions", () => {
     );
   });
 
-  it("keeps an upload an image_files row still points at", async () => {
+  it("accepts a photo an image_files row now points at, and keeps the upload", async () => {
     const upload = "/media/submissions/0198f000-0000-7000-8000-00000000000b.png";
-    const { repos } = stubRepos({
-      pending: [pendingSubmission(["card.new"])],
-      liveCard: null,
+    const { repos, resolve } = stubRepos({
+      pending: [pendingSubmission([])],
+      liveCard: { id: "card-1", slug: "jinx" },
       candidateImageUrls: [upload],
       urlsInUse: [upload],
     });
@@ -244,7 +249,35 @@ describe("resolveCheckedSubmissions", () => {
       io: mockIo,
     });
 
+    expect(resolve).toHaveBeenCalledWith("sub-1", {
+      status: "accepted",
+      resolvedAt: NOW,
+      resolvedByUserId: ADMIN_ID,
+      acceptedCardId: "card-1",
+    });
     expect(mockUnlink).not.toHaveBeenCalled();
+  });
+
+  it("leaves a photo nothing points at at already_correct", async () => {
+    const upload = "/media/submissions/0198f000-0000-7000-8000-00000000000e.jpg";
+    const { repos, resolve } = stubRepos({
+      pending: [pendingSubmission([])],
+      liveCard: { id: "card-1", slug: "jinx" },
+      candidateImageUrls: [upload],
+    });
+
+    await resolveCheckedSubmissions(repos, {
+      candidateCardIds: ["cc-1"],
+      adminUserId: ADMIN_ID,
+      now: NOW,
+      io: mockIo,
+    });
+
+    expect(resolve).toHaveBeenCalledWith(
+      "sub-1",
+      expect.objectContaining({ status: "already_correct" }),
+    );
+    expect(mockUnlink).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the uploads of an accepted submission", async () => {

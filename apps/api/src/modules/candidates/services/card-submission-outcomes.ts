@@ -2,6 +2,7 @@
  * Every entry point here only touches `pending` rows, so a check that runs
  * twice (or crashes between check and resolve) settles the same way.
  */
+import { isSubmissionUploadUrl } from "@openrift/shared/contribute-schema";
 import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { CardSubmissionStatus } from "../../../db/tables/candidates.js";
@@ -13,11 +14,30 @@ import { discardSubmissionUploads } from "./submission-uploads.js";
 export function outcomeForCheckedSubmission(
   proposedDiffSize: number,
   adoptedCount: number,
+  imageAttached: boolean,
 ): Exclude<CardSubmissionStatus, "pending"> {
+  if (adoptedCount > 0 || imageAttached) {
+    return "accepted";
+  }
   if (proposedDiffSize === 0) {
     return "already_correct";
   }
-  return adoptedCount > 0 ? "accepted" : "not_applied";
+  return "not_applied";
+}
+
+/**
+ * A photo cannot be compared against the catalogue the way a field can, so the
+ * only evidence that a submitted one was used is an `image_files` row pointing
+ * at the upload. The URL is unique to that upload and scoped to this candidate.
+ */
+async function submittedImageAttached(repos: Repos, candidateCardId: string): Promise<boolean> {
+  const candidateUrls = await repos.cardSubmissions.candidatePrintingImageUrls(candidateCardId);
+  const urls = candidateUrls.filter((url) => isSubmissionUploadUrl(url));
+  if (urls.length === 0) {
+    return false;
+  }
+  const inUse = await repos.printingImages.originalUrlsInUse(urls);
+  return inUse.size > 0;
 }
 
 export async function resolveCheckedSubmissions(
@@ -68,7 +88,13 @@ export async function resolveCheckedSubmissions(
     const currentDiff = computeProposedDiff(proposal, snapshot);
     const adopted = adoptedFields(submission.proposedDiff, currentDiff);
 
-    const status = outcomeForCheckedSubmission(submission.proposedDiff.length, adopted.length);
+    const imageAttached =
+      adopted.length === 0 && (await submittedImageAttached(repos, candidateCardId));
+    const status = outcomeForCheckedSubmission(
+      submission.proposedDiff.length,
+      adopted.length,
+      imageAttached,
+    );
 
     await repos.cardSubmissions.resolve(submission.id, {
       status,
