@@ -1,3 +1,5 @@
+import type { LinkProps } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   HandshakeIcon,
@@ -10,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardLink } from "@/components/ui/card-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { UserGrowthChart } from "@/features/admin/components/user-growth-chart";
 import { useAdminDashboard } from "@/features/admin/hooks/use-admin-dashboard";
@@ -19,14 +22,16 @@ function StatTile({
   label,
   value,
   caption,
+  to,
 }: {
   icon: LucideIcon;
   label: string;
   value: number;
   caption?: string;
+  to?: LinkProps["to"];
 }) {
-  return (
-    <Card>
+  const body = (
+    <>
       <CardHeader>
         <CardTitle className="text-muted-foreground flex items-center gap-1.5">
           <Icon className="size-4" />
@@ -37,8 +42,14 @@ function StatTile({
         <p className="font-heading text-2xl font-semibold tabular-nums">{value.toLocaleString()}</p>
         {caption !== undefined && <p className="text-muted-foreground text-xs">{caption}</p>}
       </CardContent>
-    </Card>
+    </>
   );
+
+  if (to !== undefined) {
+    return <CardLink render={<Link to={to} />}>{body}</CardLink>;
+  }
+
+  return <Card>{body}</Card>;
 }
 
 export function DashboardPage() {
@@ -55,6 +66,7 @@ export function DashboardPage() {
           label="Users"
           value={app.totalUsers}
           caption={`+${app.recentSignups7d.toLocaleString()} in 7 days`}
+          to="/admin/users"
         />
         <StatTile icon={LayersIcon} label="Collections" value={app.totalCollections} />
         <StatTile icon={SwordsIcon} label="User decks" value={app.totalUserDecks} />
