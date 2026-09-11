@@ -36,7 +36,7 @@ const NAV_SECTIONS: PageTocItem[] = [
   { id: "preferences", label: "Preferences" },
   { id: "display", label: "Display", level: 1 },
   { id: "marketplaces", label: "Marketplaces", level: 1 },
-  { id: "languages", label: "Languages", level: 1 },
+  { id: "languages", label: "Card languages", level: 1 },
   { id: "trading", label: "Trading", level: 1 },
   { id: "contacts", label: "Trade contacts", level: 1 },
   { id: "groups", label: "Groups", level: 1 },

@@ -6,6 +6,7 @@ import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { COMMIT_HASH } from "@/lib/env";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function Footer({ className }: { className?: string }) {
   const developersEnabled = useFeatureEnabled("developers");
@@ -14,25 +15,25 @@ export function Footer({ className }: { className?: string }) {
       <OrnamentRule className="mx-auto mb-3 w-56" />
       <p>
         <Link to="/features" className="hover:text-muted-foreground">
-          Features
+          {m.footer_features()}
         </Link>
         <span aria-hidden="true"> · </span>
         <Link to="/legal-notice" className="hover:text-muted-foreground">
-          Legal Notice
+          {m.footer_legal_notice()}
         </Link>
         <span aria-hidden="true"> · </span>
         <Link to="/privacy-policy" className="hover:text-muted-foreground">
-          Privacy Policy
+          {m.footer_privacy_policy()}
         </Link>
         <span aria-hidden="true"> · </span>
         <Link to="/support" className="hover:text-muted-foreground">
-          Support us
+          {m.footer_support_us()}
         </Link>
         <span aria-hidden="true"> · </span>
         {developersEnabled && (
           <>
             <Link to="/developers" className="hover:text-muted-foreground">
-              Developers
+              {m.footer_developers()}
             </Link>
             <span aria-hidden="true"> · </span>
           </>
@@ -69,11 +70,7 @@ export function Footer({ className }: { className?: string }) {
           {COMMIT_HASH}
         </a>
       </p>
-      <p className="mt-1">
-        OpenRift was created under Riot Games&apos; &ldquo;Legal Jibber Jabber&rdquo; policy using
-        assets owned by Riot Games. Riot Games does not endorse or sponsor this project. Links to
-        TCGPlayer and CardTrader are affiliate links.
-      </p>
+      <p className="mt-1">{m.footer_riot_disclaimer()}</p>
     </footer>
   );
 }

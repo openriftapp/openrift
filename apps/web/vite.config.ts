@@ -5,6 +5,7 @@ import { createReadStream, existsSync } from "node:fs";
 // oxlint-disable-next-line import/no-nodejs-modules -- Vite config runs in Node.js
 import path from "node:path";
 
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import type { RolldownBabelPreset } from "@rolldown/plugin-babel";
 import babel from "@rolldown/plugin-babel";
 import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
@@ -196,6 +197,9 @@ export default defineConfig(({ mode, command }) => {
           ]
         : []),
       serveMediaPlugin,
+      // Compiles messages/*.json into src/paraglide. Remaining options live in
+      // project.inlang/paraglide.config.ts so the CLI reads the same setup.
+      paraglideVitePlugin({ project: "./project.inlang" }),
       tailwindcss(),
       // Router options live in tsr.config.json so this plugin and the lint
       // job's `tsr generate` read the same routeFileIgnorePattern.

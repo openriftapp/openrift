@@ -57,7 +57,7 @@ export function LanguagesSection({
   return (
     <SettingsSection
       id="languages"
-      title="Languages"
+      title="Card languages"
       description="When a card exists in several languages, the top one wins."
       action={
         overrides.languages !== null && (

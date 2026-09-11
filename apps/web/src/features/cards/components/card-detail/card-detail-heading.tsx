@@ -3,6 +3,7 @@ import { legendDisplayName } from "@openrift/shared/utils";
 
 import { Heading } from "@/components/heading";
 import { getTypeIconPaths } from "@/lib/icons";
+import { htmlLangTag } from "@/lib/language-tag";
 import { cn } from "@/lib/utils";
 
 export function CardDetailHeading({
@@ -27,7 +28,7 @@ export function CardDetailHeading({
       <Heading level={2} className={cn(truncate && "truncate", titleClassName)}>
         {printing.printedName && printing.printedName !== card.name ? (
           <>
-            {printing.printedName}
+            <span lang={htmlLangTag(printing.language)}>{printing.printedName}</span>
             <span className="text-muted-foreground ml-1.5 text-sm font-normal">
               ({displayName})
             </span>

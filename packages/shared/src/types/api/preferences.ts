@@ -12,6 +12,11 @@ import type { Currency } from "./trade-preferences.js";
 
 export type Theme = "light" | "dark" | "auto";
 
+/** Must stay in step with `locales` in apps/web/project.inlang/settings.json. */
+export const DISPLAY_LOCALES = ["en", "de", "fr"] as const;
+
+export type DisplayLocale = (typeof DISPLAY_LOCALES)[number];
+
 /**
  * Orthogonal to Theme: Theme picks light/dark, Palette picks the variable set
  * inside it. Adding one needs a `[data-palette="X"]` block in index.css too.
@@ -173,6 +178,7 @@ export interface ResolvedPreferences {
   cardTilt: boolean;
   theme: Theme;
   palette: Palette;
+  displayLocale: DisplayLocale;
   marketplaceOrder: [Marketplace, ...Marketplace[]];
   languages: string[];
   completionScope: CompletionScopePreference;
@@ -214,6 +220,7 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
   cardTilt: true,
   theme: "dark",
   palette: "default",
+  displayLocale: "en",
   marketplaceOrder: [...ALL_MARKETPLACES],
   languages: [WellKnown.language.EN],
   completionScope: {},

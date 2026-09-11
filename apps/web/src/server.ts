@@ -9,6 +9,7 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 import { helpArticleList } from "./features/marketing/components/articles";
 import { deriveSetEras } from "./features/meta/lib/meta-scope";
+import { localeEntryRedirect } from "./lib/locale-entry";
 import { applyPageCacheControl } from "./lib/page-cache";
 import { fetchApiJson } from "./lib/server-fns/fetch-api";
 import type { SitemapInput } from "./lib/sitemap";
@@ -18,6 +19,7 @@ import {
   renderSitemapIndex,
   SITEMAP_INDEX_PATH,
 } from "./lib/sitemap";
+import { paraglideMiddleware } from "./paraglide/server.js";
 
 const LOG_SSR_TIMINGS = process.env.LOG_SSR_TIMINGS === "true";
 
@@ -144,8 +146,16 @@ export default createServerEntry({
         return new Response("Sitemap generation failed", { status: 500 });
       }
     }
+    const localeEntry = localeEntryRedirect(request);
+    if (localeEntry !== null) {
+      return localeEntry;
+    }
     const t0 = LOG_SSR_TIMINGS ? performance.now() : 0;
-    const response = await handler.fetch(request);
+    // Locale comes from a cookie, not the URL, so there's nothing for the
+    // middleware to delocalize; it only detects the locale and wraps the
+    // request in AsyncLocalStorage. /health, /robots.txt and the sitemaps
+    // above stay outside it on purpose.
+    const response = await paraglideMiddleware(request, () => handler.fetch(request));
     const tHandler = LOG_SSR_TIMINGS ? performance.now() : 0;
     const finalResponse = applyPageCacheControl(request, response);
     if (LOG_SSR_TIMINGS) {

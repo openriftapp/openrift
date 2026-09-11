@@ -138,10 +138,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # routeTree.gen.ts is a gitignored build artifact. Without it the
-      # type-aware rules see route context and search params as `error`/`any`.
+      # routeTree.gen.ts and src/paraglide are gitignored build artifacts.
+      # Without them the type-aware rules see route context, search params and
+      # message functions as `error`/`any`.
       - name: Generate route tree
         run: bun run routes:generate
+
+      - name: Compile messages
+        run: bun run --cwd apps/web paraglide:compile
 
       - name: Lint
         run: bun run lint

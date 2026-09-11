@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 interface ErrataNoticeProps {
   printedText: string;
+  lang?: string;
   source: string;
   sourceUrl?: string | null;
   effectiveDate?: string | null;
@@ -24,6 +25,7 @@ function formatSource(source: string, effectiveDate?: string | null): string {
 
 export function ErrataNotice({
   printedText,
+  lang,
   source,
   sourceUrl,
   effectiveDate,
@@ -62,7 +64,7 @@ export function ErrataNotice({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <Callout variant="inset" className="mt-1">
-            <p className="text-muted-foreground/50 text-xs leading-relaxed">
+            <p lang={lang} className="text-muted-foreground/50 text-xs leading-relaxed">
               <CardText text={printedText} onKeywordClick={onKeywordClick} />
             </p>
           </Callout>

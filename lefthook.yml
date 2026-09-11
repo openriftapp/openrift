@@ -11,7 +11,13 @@ pre-commit:
   commands:
     oxlint-check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx}"
-      run: bunx oxlint --type-aware --deny-warnings '{staged_files}'
+      # src/paraglide is gitignored, so a checkout that has not built yet has no
+      # message types and every `m.foo()` call lints as an `error` typed value.
+      # The install guard only fires on a commit that adds a dependency the
+      # working tree does not have yet, such as a squash merge.
+      run: |
+        [ -x apps/web/node_modules/.bin/paraglide-js ] || bun install --frozen-lockfile
+        bun run --cwd apps/web paraglide:compile && bunx oxlint --type-aware --deny-warnings '{staged_files}'
     eslint-check:
       glob: "*.{js,ts,jsx,tsx}"
       root: "apps/web/"

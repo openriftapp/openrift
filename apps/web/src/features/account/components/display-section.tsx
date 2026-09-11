@@ -1,13 +1,23 @@
 import { Radio } from "@base-ui/react/radio";
-import type { DefaultCardView, Palette, Theme } from "@openrift/shared/types/api/preferences";
-import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import type {
+  DefaultCardView,
+  DisplayLocale,
+  Palette,
+  Theme,
+} from "@openrift/shared/types/api/preferences";
+import { DISPLAY_LOCALES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { persistDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
+import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { cn } from "@/lib/utils";
+import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
 
@@ -40,6 +50,10 @@ export function DisplaySection() {
         {themePreference !== null && (
           <ResetButton onClick={() => setTheme(null)} label="Reset theme" />
         )}
+      </SettingsRow>
+
+      <SettingsRow label="Display language">
+        <DisplayLocalePicker />
       </SettingsRow>
 
       {PALETTE_OPTIONS.length > 1 && (
@@ -117,6 +131,40 @@ export function DisplaySection() {
         />
       </SettingsRow>
     </SettingsSection>
+  );
+}
+
+const DISPLAY_LOCALE_OPTIONS: { value: DisplayLocale; label: string }[] = DISPLAY_LOCALES.map(
+  (locale) => ({ value: locale, label: DISPLAY_LOCALE_LABELS[locale] }),
+);
+
+function DisplayLocalePicker() {
+  const [pending, setPending] = useState(false);
+  const active = getLocale();
+
+  const change = async (next: DisplayLocale) => {
+    if (next === active || pending) {
+      return;
+    }
+    setPending(true);
+    // Applying the locale reloads the document, so the account write has to
+    // land first. On failure nothing changes and the old locale stays selected.
+    try {
+      await persistDisplayLocale(next);
+    } catch {
+      setPending(false);
+      toast.error("Couldn't save your display language");
+      return;
+    }
+    await setLocale(next);
+  };
+
+  return (
+    <SegmentedRadio
+      value={active}
+      onValueChange={(next) => void change(next)}
+      options={DISPLAY_LOCALE_OPTIONS}
+    />
   );
 }
 

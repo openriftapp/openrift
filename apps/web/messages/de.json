@@ -1,0 +1,10 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "footer_features": "Funktionen",
+  "footer_legal_notice": "Impressum",
+  "footer_privacy_policy": "Datenschutz",
+  "footer_support_us": "Unterstütze uns",
+  "footer_developers": "Entwickler",
+  "footer_riot_disclaimer": "OpenRift wurde unter der \"Legal Jibber Jabber\"-Richtlinie von Riot Games mit Assets von Riot Games erstellt. Riot Games unterstützt oder sponsert dieses Projekt nicht. Links zu TCGPlayer und CardTrader sind Affiliate-Links.",
+  "locale_switcher_label": "Sprache"
+}

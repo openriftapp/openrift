@@ -5,6 +5,7 @@
 ### Other
 
 - fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
+- feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation is starting with the site footer and will expand page by page.
 
 ## 2026-09-11
 

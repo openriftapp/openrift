@@ -38,6 +38,19 @@ describe("applyPageCacheControl", () => {
     expect(result.headers.get("Cache-Control")).toBe(PUBLIC);
   });
 
+  it("refuses to publicly cache a page rendered in a non-base locale", () => {
+    const german = applyPageCacheControl(
+      getRequest("/cards", { cookie: "PARAGLIDE_LOCALE=de" }),
+      htmlResponse(),
+    );
+    const english = applyPageCacheControl(
+      getRequest("/cards", { cookie: "PARAGLIDE_LOCALE=en" }),
+      htmlResponse(),
+    );
+    expect(german.headers.get("Cache-Control")).toBe(PRIVATE);
+    expect(english.headers.get("Cache-Control")).toBe(PUBLIC);
+  });
+
   it("caches card and set detail pages via prefix match", () => {
     const cardDetail = applyPageCacheControl(getRequest("/cards/lux"), htmlResponse());
     const setDetail = applyPageCacheControl(getRequest("/sets/origins"), htmlResponse());

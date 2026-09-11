@@ -1,5 +1,8 @@
 import { preferencesContract } from "@openrift/shared/contracts/preferences";
-import type { UserPreferencesResponse } from "@openrift/shared/types/api/preferences";
+import type {
+  DisplayLocale,
+  UserPreferencesResponse,
+} from "@openrift/shared/types/api/preferences";
 import type { ContractRouterClient } from "@orpc/contract";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,9 +14,11 @@ import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/lib/auth-session";
+import { isDisplayLocale } from "@/lib/display-locale";
 import { sanitizePalette, sanitizeServerResponse, sanitizeTheme } from "@/lib/sanitize-preferences";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
 
@@ -35,6 +40,17 @@ const patchPreferencesFn = createServerFn({ method: "POST" })
       data.prefs as PreferencesUpdateInput,
     );
   });
+
+/**
+ * Written on its own rather than through the debounced snapshot below: applying
+ * a locale is a document reload, so the account must already agree before the
+ * page comes back and re-reads it.
+ */
+export async function persistDisplayLocale(locale: DisplayLocale): Promise<void> {
+  await patchPreferencesFn({
+    data: { prefs: { displayLocale: locale } as UserPreferencesResponse },
+  });
+}
 
 function getPrefsSnapshot(): UserPreferencesResponse & {
   theme?: string | null;
@@ -149,6 +165,15 @@ export function usePreferencesSync(enabled: boolean) {
 
     const palette = sanitizePalette((data as Record<string, unknown>).palette);
     usePaletteStore.getState().setPalette(palette);
+
+    // Seeds the locale cookie on a device that has never carried it. setLocale
+    // reloads the document, and after that the cookie agrees, so this is at
+    // most one reload per new device.
+    const storedLocale = (data as Record<string, unknown>).displayLocale;
+    if (isDisplayLocale(storedLocale) && storedLocale !== getLocale()) {
+      void setLocale(storedLocale);
+      return;
+    }
 
     // Recomputed from the stores, not `data`: hydrateOverrides merges, so a key
     // the server omitted keeps its local value.

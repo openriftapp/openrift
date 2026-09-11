@@ -7,6 +7,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
+import { htmlLangTag } from "@/lib/language-tag";
 import { cn } from "@/lib/utils";
 
 import { ErrataNotice } from "./errata-notice";
@@ -21,7 +22,14 @@ export function CardDetailFlavorText({ printing }: { printing: Printing }) {
   if (!printing.flavorText) {
     return null;
   }
-  return <p className="text-muted-foreground/70 px-1 text-sm italic">{printing.flavorText}</p>;
+  return (
+    <p
+      lang={htmlLangTag(printing.language)}
+      className="text-muted-foreground/70 px-1 text-sm italic"
+    >
+      {printing.flavorText}
+    </p>
+  );
 }
 
 /**
@@ -50,13 +58,14 @@ export function CardDetailText({
     return null;
   }
   const rarityIcon = getFilterIconPath("rarities", printing.rarity);
+  const textLang = htmlLangTag(printing.language);
 
   return (
     <div className="flex flex-col pt-2">
       <div className="bg-muted/30 border-border-accent space-y-3 rounded-t-lg border border-b-0 px-3 pt-2.5 pb-2">
         {printing.printedRulesText && (
           <div>
-            <p className="text-muted-foreground text-sm">
+            <p lang={textLang} className="text-muted-foreground text-sm">
               <CardText
                 text={card.errata?.correctedRulesText ?? printing.printedRulesText}
                 onKeywordClick={onKeywordClick}
@@ -66,6 +75,7 @@ export function CardDetailText({
             {card.errata?.correctedRulesText &&
               card.errata.correctedRulesText !== printing.printedRulesText && (
                 <ErrataNotice
+                  lang={textLang}
                   printedText={printing.printedRulesText}
                   source={card.errata.source}
                   sourceUrl={card.errata.sourceUrl}
@@ -82,7 +92,7 @@ export function CardDetailText({
             style={getDomainGradientStyle(card.domains, "18", domainColors)}
           >
             {printing.printedEffectText && (
-              <p className="text-muted-foreground text-sm">
+              <p lang={textLang} className="text-muted-foreground text-sm">
                 <CardText
                   text={card.errata?.correctedEffectText ?? printing.printedEffectText}
                   onKeywordClick={onKeywordClick}
@@ -94,6 +104,7 @@ export function CardDetailText({
               printing.printedEffectText &&
               card.errata.correctedEffectText !== printing.printedEffectText && (
                 <ErrataNotice
+                  lang={textLang}
                   printedText={printing.printedEffectText}
                   source={card.errata.source}
                   sourceUrl={card.errata.sourceUrl}

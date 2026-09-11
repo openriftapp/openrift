@@ -1,5 +1,7 @@
 import hankenGroteskLatinWoff2 from "@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2?url";
 
+import { baseLocale, cookieName } from "@/paraglide/runtime.js";
+
 import indexCss from "@/index.css?url";
 
 const PUBLIC_PAGE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
@@ -39,6 +41,17 @@ function hasSessionCookie(request: Request): boolean {
   return /better-auth\.session_token/u.test(cookie);
 }
 
+// Locale lives in a cookie, not the URL, so a translated page must never be
+// stored under the plain URL and served to everyone behind it.
+function hasNonBaseLocaleCookie(request: Request): boolean {
+  const cookie = request.headers.get("cookie");
+  if (!cookie) {
+    return false;
+  }
+  const match = new RegExp(`(?:^|;\\s*)${cookieName}=([^;]*)`, "u").exec(cookie);
+  return match !== null && decodeURIComponent(match[1] ?? "") !== baseLocale;
+}
+
 function isAnonymousCacheable(request: Request, response: Response, pathname: string): boolean {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return false;
@@ -52,7 +65,7 @@ function isAnonymousCacheable(request: Request, response: Response, pathname: st
   if (!isCacheablePublicPath(pathname)) {
     return false;
   }
-  return !hasSessionCookie(request);
+  return !hasSessionCookie(request) && !hasNonBaseLocaleCookie(request);
 }
 
 /**

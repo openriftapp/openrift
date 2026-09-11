@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
 
-const SKIPPED_DIRS = new Set(["node_modules", "dist", ".output", ".nitro", ".turbo"]);
+const SKIPPED_DIRS = new Set(["node_modules", "dist", ".output", ".nitro", ".turbo", "paraglide"]);
 
 const MOUNTED_AS_ONE_AGGREGATE_ROUTER = "packages/shared/src/contracts/index.ts";
 

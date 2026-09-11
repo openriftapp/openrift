@@ -40,6 +40,7 @@ import { siteSettingsQueryOptions } from "@/lib/site-settings";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import type { CookieViewSurface, ViewPrefsBlob } from "@/lib/view-prefs";
 import { resolveViewPrefsFromCookie, VIEW_PREFS_COOKIE } from "@/lib/view-prefs";
+import { getLocale } from "@/paraglide/runtime.js";
 
 // CSS ?url import causes a harmless hydration warning in dev (Vite appends
 // ?t=<timestamp> on the client). No effect in production.
@@ -213,7 +214,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     // suppressHydrationWarning: THEME_SCRIPT may adjust the class for "auto"
     // theme users whose OS prefers dark mode.
     <html
-      lang="en"
+      lang={getLocale()}
       className={resolvedTheme === "dark" ? "dark" : ""}
       data-palette={resolvedPalette}
       suppressHydrationWarning

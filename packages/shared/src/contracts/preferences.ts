@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { currencySchema, marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
 
-import { TRADE_REQUEST_EMAIL_CADENCES } from "../types/api/preferences.js";
+import { DISPLAY_LOCALES, TRADE_REQUEST_EMAIL_CADENCES } from "../types/api/preferences.js";
 import { authedRoute } from "./_base.js";
 
 extendZodWithOpenApi(z);
@@ -10,6 +10,8 @@ extendZodWithOpenApi(z);
 const themeEnum = z.enum(["light", "dark", "auto"]);
 
 const paletteEnum = z.enum(["default", "minimal"]);
+
+const displayLocaleEnum = z.enum(DISPLAY_LOCALES);
 
 const defaultCardViewEnum = z.enum(["cards", "printings"]);
 
@@ -68,6 +70,7 @@ export const updatePreferencesSchema = z.object({
   cardTilt: z.boolean().nullable().optional(),
   theme: themeEnum.nullable().optional(),
   palette: paletteEnum.nullable().optional(),
+  displayLocale: displayLocaleEnum.nullable().optional(),
   marketplaceOrder: z
     .array(marketplaceEnum)
     .min(1)
@@ -111,6 +114,7 @@ export const userPreferencesResponseSchema = z
     cardTilt: z.boolean().optional(),
     theme: z.enum(["light", "dark", "auto"]).optional(),
     palette: z.enum(["default", "minimal"]).optional(),
+    displayLocale: displayLocaleEnum.optional(),
     marketplaceOrder: z
       .array(z.enum(["tcgplayer", "cardmarket", "cardtrader"]))
       .min(1)
