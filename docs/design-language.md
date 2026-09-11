@@ -10,7 +10,7 @@ A 45° cut on the bottom-right corner is the app's signature shape. The rule is 
 
 - **Gets the cut:** the solid-fill Button variants — `default`, `secondary`, and `destructive` (a solid red fill; destructive commits share the family shape) — everywhere they appear: page CTAs, dialog submits, delete confirms, the top-bar primary, the header's Sign in. Implemented once, in `buttonVariants` (`apps/web/src/components/ui/button.tsx`) via the `btn-corner-cut` utility (`apps/web/src/index.css`); size variants tune `--btn-cut` (8px default, 5px for `xs`/`sm`/`icon-xs`/`icon-sm`).
 - **Stays rounded:** `outline` (bordered, and the border would die on the clip edge — see below), `ghost`, links, inputs, selects, dialogs, cards, badges, and — for now — `Toggle` pressed states (a known, accepted inconsistency; revisit if it grates).
-- **Segmented selectors** (one active option out of a joined row: group-by, time range, price source, validity filter) are `ToggleGroup` with `variant="outline" spacing={0}`, never a `ButtonGroup` whose active member switches to `variant="default"`. A cut fires on the active segment wherever it sits, so an interior selection loses its bottom-right corner with no outer edge to justify it, and `rounded-none` fights the group's end rounding. `ToggleGroup` marks the active segment with a `bg-muted` fill and handles the first/last radii itself. Reference: the validity filter in `apps/web/src/features/decks/components/deck-list-toolbar.tsx`.
+- **Segmented selectors** (one active option out of a joined row: group-by, time range, price source, validity filter) are `ToggleGroup` with `variant="outline" spacing={0}`, never a `ButtonGroup` whose active member switches to `variant="default"`. A cut fires on the active segment wherever it sits, so an interior selection loses its bottom-right corner with no outer edge to justify it, and `rounded-none` fights the group's end rounding. `ToggleGroup` marks the active segment with a `bg-muted` fill and handles the first/last radii itself. Reference: the validity filter in `apps/web/src/features/decks/components/deck-list-toolbar.tsx`. The card-browser toolbars are the exception: they use `variant="control"` (see "The control surface").
 - **Pairing rule:** next to a cut CTA, the lesser action is `ghost` (borderless, visibly a different species), not `outline` — in dark mode `outline` gains a tinted fill and masquerades as a clashing rounded peer. Reserve `outline` for form-adjacent contexts away from cut buttons.
 - **Scaled-up kin:** the landing hero CTAs (12px cut at h-11) and the landing vignette frames / toolbox tiles (16px / 12px) use the same shape at marketing scale, hand-rolled at their call sites.
 
@@ -38,9 +38,24 @@ The palette lives in `apps/web/src/index.css`; components only ever name a token
 - **Two elevation tiers.** Anchored popups (popover, hover card, select, dropdown and context menus including sub-menus, combobox, navigation menu, chart tooltip) cast `shadow-md`. Modals and edge panels (dialog, alert dialog, drawer, sheet) cast `shadow-lg`. Tooltips cast none. Content surfaces (cards, tiles) cast none at rest; a hoverable tile may lift to `shadow-md`.
 - **Focus** is `focus-visible:ring-2 focus-visible:ring-ring/50` everywhere, inset on cut buttons.
 
+## The control surface
+
+The card-browser toolbars — the search row and the compact filter bar on `/cards`, `/collections` and the deck list — sit on one fill ladder, the `control` variant of `Button` and `Toggle`. Four neutral steps, each `foreground` at one alpha over whatever surface the control is on:
+
+| state                  | class                                          |
+| ---------------------- | ---------------------------------------------- |
+| rest                   | `bg-foreground/5` with `border-input`          |
+| hover, or popover open | `bg-foreground/10`                             |
+| active (`data-active`) | `bg-foreground/16` plus `border-foreground/50` |
+| active and hovered     | `bg-foreground/24`                             |
+
+Because `foreground` moves away from the page in both themes, one class is correct in light and dark, and a `dark:` variant next to a control fill is a bug. Active means a filter is carrying a value; set it as `data-active={isActive || undefined}` so the attribute is absent when false (`data-active="false"` still matches the selector). Grouped controls (icon clusters, segmented toggles) take the fill only — their shared borders cannot carry the active edge. Excluded values keep the destructive tint (`bg-destructive/10`, `border-destructive/40`, `text-destructive`); a zero count is `opacity-40` over the rest fill, never a different fill.
+
+Text entry sits on the same rest fill, so `Input`, `Textarea`, `InputGroup`, `Select`, `Checkbox`, `RadioGroup` and `InputOTP` carry `bg-foreground/5` in both themes and mark disabled with opacity alone. `outline` keeps its own `dark:bg-input/30` fill and stays the default for buttons and toggles everywhere else. `/admin/design` → Controls renders every variant against every state, with the resolved colors measured live.
+
 ## Washes and selection
 
-- **Row hover** is `hover:bg-muted/50` on list rows and tiles, `hover:bg-muted` on menu items, ghost buttons and toggles. No other alpha.
+- **Row hover** is `hover:bg-muted/50` on list rows and tiles, `hover:bg-muted` on menu items, ghost buttons and toggles. No other alpha. The `control` variant's ladder below is the one exception, and it is not a row wash.
 - **Inset panels** (a note callout, a muted band, a code chip) use `bg-muted/30` when bordered and `bg-muted` when not. `bg-muted/40`, `/60`, `/80` are not tiers.
 - **Selection** is `ring-2 ring-primary` for the chosen item and `ring-2 ring-primary/60` for a drop target, with `ring-offset-2 ring-offset-background` when the ring must clear an image. `border-primary` and `bg-primary/10` mark a chosen option inside a form, not a selected tile.
 

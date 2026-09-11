@@ -201,9 +201,6 @@ export function CardChecklist({
   );
 }
 
-const ACTIVE_TOGGLE_CLASS =
-  "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground";
-
 export function DisplayModeToggle({
   mode,
   onModeChange,
@@ -223,20 +220,10 @@ export function DisplayModeToggle({
         }
       }}
     >
-      <ToggleGroupItem
-        value="grid"
-        className={ACTIVE_TOGGLE_CLASS}
-        title="Grid view"
-        aria-label="Grid view"
-      >
+      <ToggleGroupItem value="grid" title="Grid view" aria-label="Grid view">
         <LayoutGridIcon className="size-4" />
       </ToggleGroupItem>
-      <ToggleGroupItem
-        value="list"
-        className={ACTIVE_TOGGLE_CLASS}
-        title="List view"
-        aria-label="List view"
-      >
+      <ToggleGroupItem value="list" title="List view" aria-label="List view">
         <Rows3Icon className="size-4" />
       </ToggleGroupItem>
     </ToggleGroup>

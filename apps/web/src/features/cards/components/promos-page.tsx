@@ -276,7 +276,7 @@ function PromosBrowser() {
                 extras={
                   isLoggedIn ? (
                     <Button
-                      variant={showOwned ? "default" : "outline"}
+                      variant="control"
                       size="icon"
                       onClick={togglePromoOwned}
                       aria-label={showOwned ? "Hide owned counts" : "Show owned counts"}

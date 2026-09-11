@@ -57,9 +57,6 @@ export const defaultGroupByOptions = groupByOptionsFor(
   GROUP_BY_FIELDS.filter((field) => !isCopiesOnlyGrouping(field)),
 );
 
-export const activeToggleClass =
-  "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground";
-
 /**
  * Cards view drops the printings-only axes (card / marker / distribution
  * channel), which collapse every card into one bucket there.
@@ -100,10 +97,10 @@ export function DetailPaneToggle({ className }: { className?: string }) {
   const label = paneDocked ? "Hide the card detail panel" : "Show the card detail panel";
   return (
     <Toggle
-      variant="outline"
+      variant="control"
       pressed={paneDocked}
       onPressedChange={handlePressedChange}
-      className={cn(activeToggleClass, className)}
+      className={className}
       title={label}
       aria-label={label}
     >
@@ -123,7 +120,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
     <ToggleGroup
       aria-label="Display mode"
       className={className}
-      variant="outline"
+      variant="control"
       size={compact ? "sm" : "default"}
       spacing={0}
       value={[displayMode]}
@@ -136,7 +133,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
       {compact ? (
         <ToggleGroupItem
           value="grid"
-          className={cn("gap-1.5 text-xs", activeToggleClass)}
+          className="gap-1.5 text-xs"
           aria-label="Grid view"
           title="Grid view"
         >
@@ -146,7 +143,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
       ) : (
         <ToggleGroupItem
           value="grid"
-          className={activeToggleClass}
+
           title="Grid view"
           aria-label="Grid view"
         >
@@ -156,7 +153,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
       {compact ? (
         <ToggleGroupItem
           value="table"
-          className={cn("gap-1.5 text-xs", activeToggleClass)}
+          className="gap-1.5 text-xs"
           aria-label="Table view"
           title="Table view"
         >
@@ -166,7 +163,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
       ) : (
         <ToggleGroupItem
           value="table"
-          className={activeToggleClass}
+
           title="Table view"
           aria-label="Table view"
         >
@@ -194,7 +191,7 @@ function ViewModeToggle({
     <ToggleGroup
       aria-label="View mode"
       className={className}
-      variant="outline"
+      variant="control"
       size={compact ? "sm" : "default"}
       spacing={0}
       value={[view]}
@@ -205,35 +202,35 @@ function ViewModeToggle({
       }}
     >
       {compact ? (
-        <ToggleGroupItem value="cards" className={cn("gap-1.5 text-xs", activeToggleClass)}>
+        <ToggleGroupItem value="cards" className="gap-1.5 text-xs">
           <SquareIcon />
           Cards
         </ToggleGroupItem>
       ) : (
-        <ToggleGroupItem value="cards" className={activeToggleClass} title="One per card">
+        <ToggleGroupItem value="cards" title="One per card">
           <SquareIcon className="size-4" />
         </ToggleGroupItem>
       )}
       {compact ? (
-        <ToggleGroupItem value="printings" className={cn("gap-1.5 text-xs", activeToggleClass)}>
+        <ToggleGroupItem value="printings" className="gap-1.5 text-xs">
           <CopyIcon />
           Printings
         </ToggleGroupItem>
       ) : (
-        <ToggleGroupItem value="printings" className={activeToggleClass} title="Every printing">
+        <ToggleGroupItem value="printings" title="Every printing">
           <CopyIcon className="size-4" />
         </ToggleGroupItem>
       )}
       {showCopies &&
         (compact ? (
-          <ToggleGroupItem value="copies" className={cn("gap-1.5 text-xs", activeToggleClass)}>
+          <ToggleGroupItem value="copies" className="gap-1.5 text-xs">
             <SquareStackIcon />
             Copies
           </ToggleGroupItem>
         ) : (
           <ToggleGroupItem
             value="copies"
-            className={activeToggleClass}
+
             title="Every individual copy"
           >
             <SquareStackIcon className="size-4" />

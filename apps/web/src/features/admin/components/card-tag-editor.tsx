@@ -153,7 +153,7 @@ function CardTagToggleList({
                   variant="outline"
                   pressed={active}
                   onPressedChange={() => toggle(tag.id)}
-                  className="aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground rounded-full px-3"
+                  className="rounded-full px-3"
                 >
                   {tag.label}
                 </Toggle>

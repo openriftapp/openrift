@@ -29,6 +29,28 @@ export function DemoSection({
   );
 }
 
+export function DemoGroup({
+  id,
+  title,
+  hint,
+  children,
+}: {
+  id: string;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div id={id} className="scroll-mt-(--sticky-top) space-y-4">
+      <div className="space-y-0.5">
+        <Heading level={3}>{title}</Heading>
+        {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function DemoRow({
   label,
   hint,

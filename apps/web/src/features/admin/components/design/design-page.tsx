@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { ComponentType, CSSProperties } from "react";
 
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
@@ -8,9 +8,9 @@ import { PAGE_WIDTH, cn } from "@/lib/utils";
 
 import { BadgesChipsSection } from "./badges-chips-section";
 import { BrandGlyphSection } from "./brand-glyph-section";
-import { ButtonsSection } from "./buttons-section";
 import { CardThumbnailsSection } from "./card-thumbnails-section";
 import { CompositesSection } from "./composites-section";
+import { ControlsSection, DESIGN_CONTROL_GROUPS } from "./controls-section";
 import { FeedbackSection } from "./feedback-section";
 import { FlatSectionsSection } from "./flat-sections-section";
 import { FormControlsSection } from "./form-controls-section";
@@ -23,16 +23,24 @@ import { PickersSection } from "./pickers-section";
 import { PressableSection } from "./pressable-section";
 import { QrCodesSection } from "./qr-codes-section";
 import { SectionHeadingSection } from "./section-heading-section";
+import { TextLinksSection } from "./text-links-section";
 import { TilesSection } from "./tiles-section";
-import { TogglesSection } from "./toggles-section";
 import { TokensSection } from "./tokens-section";
 import { TopBarButtonsSection } from "./top-bar-buttons-section";
 
-const SECTIONS = [
+interface DesignSection {
+  id: string;
+  title: string;
+  Component: ComponentType;
+  /** Rendered under the section as level-1 TOC entries; ids must exist in the DOM. */
+  groups?: readonly { id: string; title: string }[];
+}
+
+const SECTIONS: DesignSection[] = [
   { id: "tokens", title: "Tokens", Component: TokensSection },
-  { id: "buttons", title: "Buttons", Component: ButtonsSection },
+  { id: "controls", title: "Controls", Component: ControlsSection, groups: DESIGN_CONTROL_GROUPS },
   { id: "top-bar-buttons", title: "Top-bar buttons", Component: TopBarButtonsSection },
-  { id: "toggles", title: "Toggles", Component: TogglesSection },
+  { id: "text-links", title: "Text links", Component: TextLinksSection },
   { id: "badges-chips", title: "Badges & chips", Component: BadgesChipsSection },
   { id: "pressable", title: "Pressable & disclosure", Component: PressableSection },
   { id: "section-heading", title: "Section heading", Component: SectionHeadingSection },
@@ -50,19 +58,19 @@ const SECTIONS = [
   { id: "layout", title: "Layout & data", Component: LayoutSection },
   { id: "meta-archive", title: "Meta archive", Component: MetaArchiveSection },
   { id: "composites", title: "Composites", Component: CompositesSection },
-] as const;
+];
 
-const TOC_ITEMS: PageTocItem[] = SECTIONS.map((section) => ({
-  id: section.id,
-  label: section.title,
-}));
+const TOC_ITEMS: PageTocItem[] = SECTIONS.flatMap((section) => [
+  { id: section.id, label: section.title },
+  ...(section.groups ?? []).map((group) => ({ id: group.id, label: group.title, level: 1 })),
+]);
 
 export function DesignPage() {
   const topBarHeight = usePageTopBarHeight();
 
   return (
     <div
-      className={cn(PAGE_WIDTH.capped, "flex gap-6 pb-16")}
+      className={cn(PAGE_WIDTH.full, "flex gap-6 pb-16")}
       style={
         { "--sticky-top": `calc(var(--header-height) + ${topBarHeight}px + 1rem)` } as CSSProperties
       }

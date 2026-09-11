@@ -32,10 +32,6 @@ const PLAYER_COUNT_OPTIONS = Array.from(
 
 const TEAM_OPTIONS: TeamId[] = [0, 1];
 
-// Overrides the base toggle's muted active state to keep the prior variant="default" Button look.
-const activeToggleClass =
-  "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground";
-
 function TeamToggle({
   playerName,
   team,
@@ -62,7 +58,7 @@ function TeamToggle({
           key={option}
           value={String(option)}
           aria-label={`Put ${playerName} on ${TEAM_LABELS[option]}`}
-          className={cn("w-9", activeToggleClass)}
+          className="w-9"
         >
           {option + 1}
         </ToggleGroupItem>
@@ -191,11 +187,7 @@ export function SetupScreen() {
             }}
           >
             {PLAYER_COUNT_OPTIONS.map((count) => (
-              <ToggleGroupItem
-                key={count}
-                value={String(count)}
-                className={cn("flex-1", activeToggleClass)}
-              >
+              <ToggleGroupItem key={count} value={String(count)} className="flex-1">
                 {count}
               </ToggleGroupItem>
             ))}
@@ -218,10 +210,10 @@ export function SetupScreen() {
                 }
               }}
             >
-              <ToggleGroupItem value="ffa" className={cn("flex-1", activeToggleClass)}>
+              <ToggleGroupItem value="ffa" className="flex-1">
                 Free-for-all
               </ToggleGroupItem>
-              <ToggleGroupItem value="teams" className={cn("flex-1", activeToggleClass)}>
+              <ToggleGroupItem value="teams" className="flex-1">
                 Teams (2v2)
               </ToggleGroupItem>
             </ToggleGroup>

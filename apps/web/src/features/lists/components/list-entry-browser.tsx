@@ -229,16 +229,12 @@ export function ListEntryBrowser({
       ? entries.length
       : listPrintings.length;
 
-  const activeToggleClass =
-    "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground";
-
   const showLibraryButton =
     kind === "copy" ? null : (
       <Toggle
         variant="outline"
         pressed={showLibrary}
         onPressedChange={onToggleShowLibrary}
-        className={activeToggleClass}
         title={showLibrary ? "Hide library" : "Show whole library"}
         aria-label={showLibrary ? "Hide library" : "Show whole library"}
       >

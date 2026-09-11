@@ -1,7 +1,7 @@
 import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 /** `maxColumns === null` means "Auto"; a number is the user's override, clamped to `[minColumns, maxColumnsLimit]`. */
 export function ColumnControls({
@@ -22,7 +22,7 @@ export function ColumnControls({
   return (
     <ButtonGroup aria-label="Columns">
       <Button
-        variant="outline"
+        variant="control"
         size={compact ? "sm" : "icon"}
         className={compact ? "size-7 p-0" : undefined}
         onClick={() => {
@@ -43,23 +43,22 @@ export function ColumnControls({
       >
         <MinusIcon className={compact ? undefined : "size-4"} />
       </Button>
-      <ButtonGroupText
-        className={
-          compact
-            ? "flex min-w-7 cursor-pointer items-center justify-center text-xs tabular-nums"
-            : "min-w-10 cursor-pointer justify-center tabular-nums"
-        }
+      <Button
+        variant="control"
+        size={compact ? "sm" : "default"}
+        className={compact ? "min-w-7 px-1.5 text-xs tabular-nums" : "min-w-10 tabular-nums"}
         onClick={() => {
           if (maxColumns !== null) {
             onMaxColumnsChange(null);
           }
         }}
         title={maxColumns === null ? "Auto columns" : "Reset to auto"}
+        aria-label={maxColumns === null ? "Auto columns" : "Reset columns to auto"}
       >
         {maxColumns ?? "Auto"}
-      </ButtonGroupText>
+      </Button>
       <Button
-        variant="outline"
+        variant="control"
         size={compact ? "sm" : "icon"}
         className={compact ? "size-7 p-0" : undefined}
         onClick={() => {

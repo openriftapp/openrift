@@ -324,10 +324,9 @@ export function CardBrowser() {
 
   const showCountsButton = isLoggedIn ? (
     <Toggle
-      variant="outline"
+      variant="control"
       pressed={cardsShowCounts}
       onPressedChange={toggleCardsShowCounts}
-      className="aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground"
       title={cardsShowCounts ? "Hide owned count" : "Show owned count"}
       aria-label={cardsShowCounts ? "Hide owned count" : "Show owned count"}
     >

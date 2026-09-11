@@ -262,9 +262,7 @@ export function SortGroupControls<
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className={cn(
-          "border-input bg-background ring-ring/10 dark:bg-input/30 hover:bg-muted hover:text-foreground dark:hover:bg-input/50 inline-flex h-8 items-center gap-2 rounded-md border px-3 text-sm whitespace-nowrap shadow-xs transition-colors",
-        )}
+        render={<Button variant="control" size="default" className="gap-2 rounded-md px-3" />}
       >
         <ArrowUpDownIcon className="text-muted-foreground size-3.5" />
         {groupingActive && group && (

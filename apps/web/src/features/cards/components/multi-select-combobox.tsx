@@ -67,11 +67,6 @@ const flagId = (index: number) => `${FLAG_PREFIX}${index}`;
 const isFlagId = (id: string) => id.startsWith(FLAG_PREFIX);
 const flagIndex = (id: string) => Number(id.slice(FLAG_PREFIX.length));
 
-export const FILTER_TRIGGER_CLASS =
-  "border-input bg-transparent hover:bg-muted hover:text-foreground dark:bg-transparent dark:hover:bg-muted";
-
-export const FILTER_TRIGGER_ACTIVE_CLASS = "bg-muted dark:bg-muted";
-
 /**
  * A space never appears in a slug, so a group option's id (` <groupIndex> <value>`)
  * never collides with a primary option's raw value.
@@ -358,14 +353,10 @@ export function MultiSelectCombobox({
         <ComboboxTrigger
           render={
             <Button
-              variant="outline"
+              variant="control"
               size={triggerSize}
-              className={cn(
-                "font-medium [&>svg]:text-current",
-                FILTER_TRIGGER_CLASS,
-                isActive && FILTER_TRIGGER_ACTIVE_CLASS,
-                triggerClassName,
-              )}
+              data-active={isActive || undefined}
+              className={cn("font-medium [&>svg]:text-current", triggerClassName)}
             />
           }
         >

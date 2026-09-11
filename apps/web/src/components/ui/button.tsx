@@ -20,6 +20,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground btn-corner-cut rounded-none focus-visible:ring-inset",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        // custom: the shared control surface (docs/design-language.md) — one neutral
+        // fill ladder on foreground alpha, so light and dark need no separate classes.
+        // `data-active` marks a filter carrying a value; a Button used as a toggle
+        // signals the same thing with `aria-pressed`.
+        control:
+          "border-input bg-foreground/5 hover:bg-foreground/10 aria-expanded:bg-foreground/10 data-popup-open:bg-foreground/10 data-active:border-foreground/50 data-active:bg-foreground/16 data-active:hover:bg-foreground/24 aria-pressed:border-foreground/50 aria-pressed:bg-foreground/16 aria-pressed:hover:bg-foreground/24",
         // custom: solid destructive fill with the corner-cut signature — destructive commits share the family shape (docs/design-language.md); text-destructive-foreground instead of text-white to track the token
         // custom: dark:hover:bg-destructive/70 — scaffold's dark:bg-destructive/60 wins over hover:bg-destructive/90 in the cascade, leaving dark mode with no hover feedback
         destructive:

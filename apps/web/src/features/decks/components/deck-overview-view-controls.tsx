@@ -12,11 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
-import {
-  activeToggleClass,
-  DetailPaneToggle,
-  MobileOptionsDrawer,
-} from "@/features/cards/components/options-bar";
+import { DetailPaneToggle, MobileOptionsDrawer } from "@/features/cards/components/options-bar";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { DECK_OVERVIEW_SORT_OPTIONS } from "@/features/decks/components/deck-overview-list";
@@ -157,7 +153,7 @@ export function DeckOverviewViewControls({
   // on phones, since it changes what the cards look like, not how they sort.
   const displayModeToggle = (
     <ToggleGroup
-      variant="outline"
+      variant="control"
       spacing={0}
       value={[displayMode]}
       onValueChange={([next]) => {
@@ -168,11 +164,7 @@ export function DeckOverviewViewControls({
       aria-label="Deck view"
     >
       <Tooltip>
-        <TooltipTrigger
-          render={
-            <ToggleGroupItem value="grid" className={activeToggleClass} aria-label="Grid view" />
-          }
-        >
+        <TooltipTrigger render={<ToggleGroupItem value="grid" aria-label="Grid view" />}>
           <LayoutGridIcon className="size-4" />
         </TooltipTrigger>
         <TooltipContent>Grid view</TooltipContent>
@@ -182,7 +174,7 @@ export function DeckOverviewViewControls({
           render={
             <ToggleGroupItem
               value="stacks"
-              className={activeToggleClass}
+
               aria-label="Stacks view"
             />
           }
@@ -192,11 +184,7 @@ export function DeckOverviewViewControls({
         <TooltipContent>Stacks view</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger
-          render={
-            <ToggleGroupItem value="list" className={activeToggleClass} aria-label="List view" />
-          }
-        >
+        <TooltipTrigger render={<ToggleGroupItem value="list" aria-label="List view" />}>
           <ListIcon className="size-4" />
         </TooltipTrigger>
         <TooltipContent>List view</TooltipContent>

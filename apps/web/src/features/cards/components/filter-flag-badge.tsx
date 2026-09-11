@@ -2,7 +2,6 @@ import { MinusIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FILTER_TRIGGER_CLASS } from "@/features/cards/components/multi-select-combobox";
 import { cn } from "@/lib/utils";
 
 export function FlagBadge({
@@ -32,12 +31,13 @@ export function FlagBadge({
   if (triggerStyle === "button") {
     return (
       <Button
-        variant={state === true ? "default" : "outline"}
+        variant="control"
         size="sm"
+        data-active={state === true || undefined}
         className={cn(
           "gap-1 font-medium",
-          state !== true && FILTER_TRIGGER_CLASS,
-          isExcluded && "border-destructive/40 text-destructive",
+          isExcluded &&
+            "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/16",
           isZero && !isActive && "opacity-40",
         )}
         onClick={onClick}

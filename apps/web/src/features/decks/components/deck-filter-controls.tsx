@@ -7,11 +7,7 @@ import {
   useClusterLabelsFit,
 } from "@/features/cards/components/compact-filter-bar";
 import { FlagBadge } from "@/features/cards/components/filter-flag-badge";
-import {
-  FILTER_TRIGGER_ACTIVE_CLASS,
-  FILTER_TRIGGER_CLASS,
-  MultiSelectCombobox,
-} from "@/features/cards/components/multi-select-combobox";
+import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import type {
   DeckListFilterAvailability,
@@ -179,13 +175,10 @@ export function DeckFilterControls({
       {availability.hasArchived && (
         <Button
           type="button"
-          variant="outline"
+          variant="control"
           size="sm"
-          className={cn(
-            "font-medium",
-            FILTER_TRIGGER_CLASS,
-            showArchived && FILTER_TRIGGER_ACTIVE_CLASS,
-          )}
+          data-active={showArchived || undefined}
+          className="font-medium"
           onClick={() => setShowArchived(!showArchived)}
           aria-pressed={showArchived}
         >

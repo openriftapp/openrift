@@ -20,10 +20,6 @@ import {
   FilterValueDropdown,
   FilterVariantDropdown,
 } from "@/features/cards/components/filter-value-dropdown";
-import {
-  FILTER_TRIGGER_ACTIVE_CLASS,
-  FILTER_TRIGGER_CLASS,
-} from "@/features/cards/components/multi-select-combobox";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import {
   useMoreActiveCount,
@@ -92,7 +88,7 @@ export function FilterIconCluster({
   return (
     <ToggleGroup
       multiple
-      variant="outline"
+      variant="control"
       size="sm"
       spacing={0}
       value={included}
@@ -115,7 +111,8 @@ export function FilterIconCluster({
                   value={option}
                   aria-label={optionLabel}
                   className={cn(
-                    isExcluded && "text-destructive bg-destructive/10 line-through",
+                    isExcluded &&
+                      "text-destructive bg-destructive/10 hover:bg-destructive/16 line-through",
                     isZero && !isIncluded && !isExcluded && "opacity-40",
                   )}
                 />
@@ -317,13 +314,10 @@ export function FilterDropdownChip({
       <PopoverTrigger
         render={
           <Button
-            variant="outline"
+            variant="control"
             size="sm"
-            className={cn(
-              "font-medium",
-              FILTER_TRIGGER_CLASS,
-              active && FILTER_TRIGGER_ACTIVE_CLASS,
-            )}
+            data-active={active || undefined}
+            className="font-medium"
           />
         }
         aria-label={summary ?? (active ? `${label}, ${activeCount} selected` : label)}

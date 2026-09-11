@@ -47,10 +47,9 @@ export function CollectionGridToolbar({
   const wantedButton =
     isGroupCollection && onWantedOnlyChange ? (
       <Toggle
-        variant="outline"
+        variant="control"
         pressed={wantedOnly}
         onPressedChange={onWantedOnlyChange}
-        className="aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground"
         title={wantedOnly ? "Show everything in the box" : "Show only cards you want"}
         aria-label={wantedOnly ? "Show everything in the box" : "Show only cards you want"}
       >
@@ -61,7 +60,7 @@ export function CollectionGridToolbar({
 
   const showLibraryButton = addTarget ? (
     <Button
-      variant={showLibrary ? "default" : "outline"}
+      variant="control"
       size="icon"
       onClick={onToggleLibrary}
       title={showLibrary ? "Hide library" : "Show whole library"}

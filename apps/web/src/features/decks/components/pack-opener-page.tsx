@@ -181,12 +181,7 @@ function ToggleField({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <Toggle
-      variant="outline"
-      pressed={checked}
-      onPressedChange={onChange}
-      className="aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground"
-    >
+    <Toggle variant="outline" pressed={checked} onPressedChange={onChange}>
       {label}
     </Toggle>
   );
