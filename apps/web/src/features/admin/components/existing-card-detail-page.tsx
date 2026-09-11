@@ -471,7 +471,6 @@ export function ExistingCardDetailPage({
                 />
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => {
                     setCollapsedForCard(cardId, allExpanded ? new Set(allPrintingKeys) : new Set());
                   }}
@@ -481,7 +480,6 @@ export function ExistingCardDetailPage({
                 {isAdmin && (
                   <Button
                     variant="default"
-                    size="sm"
                     render={
                       <Link
                         to="/admin/cards/$cardSlug/printings/create"
