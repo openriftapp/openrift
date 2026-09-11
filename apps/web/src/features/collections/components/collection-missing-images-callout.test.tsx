@@ -1,6 +1,7 @@
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -54,11 +55,37 @@ describe("CollectionMissingImagesCallout", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders nothing once the nudge is dismissed", () => {
-    useOnboardingStore.getState().dismissMissingImagesNudge();
+  it("renders nothing once every missing printing is dismissed", () => {
+    useOnboardingStore.getState().dismissMissingImagesNudge(["printing-1"]);
     const { container } = renderCallout([stubMissingImagePrinting(1)]);
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("comes back when a printing outside the dismissed set is missing an image", () => {
+    useOnboardingStore.getState().dismissMissingImagesNudge(["printing-1"]);
+    renderCallout([stubMissingImagePrinting(1), stubMissingImagePrinting(2)]);
+
+    expect(screen.getByText("2 cards you own have no photo yet")).toBeInTheDocument();
+  });
+
+  it("stays hidden when a dismissed printing gains an image", () => {
+    useOnboardingStore.getState().dismissMissingImagesNudge(["printing-1", "printing-2"]);
+    const { container } = renderCallout([stubMissingImagePrinting(2)]);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("records the printings on screen when dismissed", async () => {
+    const user = userEvent.setup();
+    renderCallout([stubMissingImagePrinting(1), stubMissingImagePrinting(2)]);
+
+    await user.click(screen.getByRole("button", { name: "Dismiss the missing photos nudge" }));
+
+    expect(useOnboardingStore.getState().dismissedMissingImagePrintings).toEqual([
+      "printing-1",
+      "printing-2",
+    ]);
   });
 
   it("points its only link at the contribute page", () => {

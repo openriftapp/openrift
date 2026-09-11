@@ -9,12 +9,14 @@ import { CardPlaceholderImage } from "@/features/cards/components/card-placehold
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
 
 export function CollectionMissingImagesCallout() {
-  const dismissed = useOnboardingStore((state) => state.missingImagesNudgeDismissed);
+  const dismissedPrintings = useOnboardingStore((state) => state.dismissedMissingImagePrintings);
   const dismiss = useOnboardingStore((state) => state.dismissMissingImagesNudge);
   const { data } = useMyMissingImages();
 
-  const count = data?.items.length ?? 0;
-  if (dismissed || count === 0) {
+  const items = data?.items ?? [];
+  const count = items.length;
+  const hasUndismissed = items.some((item) => !dismissedPrintings.includes(item.printingId));
+  if (count === 0 || !hasUndismissed) {
     return null;
   }
 
@@ -45,7 +47,9 @@ export function CollectionMissingImagesCallout() {
           type="button"
           variant="ghost"
           size="icon-xs"
-          onClick={dismiss}
+          onClick={() => {
+            dismiss(items.map((item) => item.printingId));
+          }}
           aria-label="Dismiss the missing photos nudge"
         >
           <XIcon className="size-4" />

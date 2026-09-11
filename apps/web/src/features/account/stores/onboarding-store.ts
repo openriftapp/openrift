@@ -20,8 +20,8 @@ interface OnboardingState {
   dismissDeckBuilderIntro: () => void;
   collectionIntroDismissed: boolean;
   dismissCollectionIntro: () => void;
-  missingImagesNudgeDismissed: boolean;
-  dismissMissingImagesNudge: () => void;
+  dismissedMissingImagePrintings: string[];
+  dismissMissingImagesNudge: (printingIds: string[]) => void;
   dismissedIntros: IntroKey[];
   dismissIntro: (key: IntroKey) => void;
   dismissedGroupNudges: string[];
@@ -35,8 +35,9 @@ export const useOnboardingStore = create<OnboardingState>()(
       dismissDeckBuilderIntro: () => set({ deckBuilderIntroDismissed: true }),
       collectionIntroDismissed: false,
       dismissCollectionIntro: () => set({ collectionIntroDismissed: true }),
-      missingImagesNudgeDismissed: false,
-      dismissMissingImagesNudge: () => set({ missingImagesNudgeDismissed: true }),
+      dismissedMissingImagePrintings: [],
+      dismissMissingImagesNudge: (printingIds) =>
+        set({ dismissedMissingImagePrintings: [...printingIds] }),
       dismissedIntros: [],
       dismissIntro: (key) =>
         set((state) =>
@@ -59,7 +60,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       partialize: (state) => ({
         deckBuilderIntroDismissed: state.deckBuilderIntroDismissed,
         collectionIntroDismissed: state.collectionIntroDismissed,
-        missingImagesNudgeDismissed: state.missingImagesNudgeDismissed,
+        dismissedMissingImagePrintings: state.dismissedMissingImagePrintings,
         dismissedIntros: state.dismissedIntros,
         dismissedGroupNudges: state.dismissedGroupNudges,
       }),
@@ -75,10 +76,9 @@ export const useOnboardingStore = create<OnboardingState>()(
             typeof raw?.collectionIntroDismissed === "boolean"
               ? raw.collectionIntroDismissed
               : current.collectionIntroDismissed,
-          missingImagesNudgeDismissed:
-            typeof raw?.missingImagesNudgeDismissed === "boolean"
-              ? raw.missingImagesNudgeDismissed
-              : current.missingImagesNudgeDismissed,
+          dismissedMissingImagePrintings: Array.isArray(raw?.dismissedMissingImagePrintings)
+            ? raw.dismissedMissingImagePrintings.filter((id) => typeof id === "string")
+            : current.dismissedMissingImagePrintings,
           dismissedIntros: Array.isArray(raw?.dismissedIntros)
             ? raw.dismissedIntros.filter(isIntroKey)
             : current.dismissedIntros,

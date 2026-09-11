@@ -34,16 +34,22 @@ describe("useOnboardingStore", () => {
   });
 
   it("starts with the missing-images nudge un-dismissed", () => {
-    expect(useOnboardingStore.getState().missingImagesNudgeDismissed).toBe(false);
+    expect(useOnboardingStore.getState().dismissedMissingImagePrintings).toEqual([]);
   });
 
-  it("dismisses the missing-images nudge when called", () => {
-    useOnboardingStore.getState().dismissMissingImagesNudge();
-    expect(useOnboardingStore.getState().missingImagesNudgeDismissed).toBe(true);
+  it("records the dismissed printings when called", () => {
+    useOnboardingStore.getState().dismissMissingImagesNudge(["p-1", "p-2"]);
+    expect(useOnboardingStore.getState().dismissedMissingImagePrintings).toEqual(["p-1", "p-2"]);
+  });
+
+  it("replaces the dismissed printings on a later dismissal", () => {
+    useOnboardingStore.getState().dismissMissingImagesNudge(["p-1", "p-2"]);
+    useOnboardingStore.getState().dismissMissingImagesNudge(["p-2", "p-3"]);
+    expect(useOnboardingStore.getState().dismissedMissingImagePrintings).toEqual(["p-2", "p-3"]);
   });
 
   it("keeps the missing-images nudge separate from the collection intro", () => {
-    useOnboardingStore.getState().dismissMissingImagesNudge();
+    useOnboardingStore.getState().dismissMissingImagesNudge(["p-1"]);
     expect(useOnboardingStore.getState().collectionIntroDismissed).toBe(false);
   });
 
@@ -135,7 +141,9 @@ describe("useOnboardingStore", () => {
       if (result) {
         expect(result.deckBuilderIntroDismissed).toBe(current.deckBuilderIntroDismissed);
         expect(result.collectionIntroDismissed).toBe(current.collectionIntroDismissed);
-        expect(result.missingImagesNudgeDismissed).toBe(current.missingImagesNudgeDismissed);
+        expect(result.dismissedMissingImagePrintings).toEqual(
+          current.dismissedMissingImagePrintings,
+        );
       }
     });
 
@@ -147,29 +155,42 @@ describe("useOnboardingStore", () => {
       const result = merge?.(persisted, current);
       if (result) {
         expect(result.collectionIntroDismissed).toBe(true);
-        expect(result.missingImagesNudgeDismissed).toBe(false);
+        expect(result.dismissedMissingImagePrintings).toEqual([]);
       }
     });
 
-    it("accepts a persisted missing-images dismissal", () => {
+    it("accepts persisted missing-image dismissals", () => {
       const store = useOnboardingStore;
       const current = store.getState();
-      const persisted = { missingImagesNudgeDismissed: true };
+      const persisted = { dismissedMissingImagePrintings: ["p-1", "p-2"] };
       const merge = store.persist?.getOptions()?.merge;
       const result = merge?.(persisted, current);
       if (result) {
-        expect(result.missingImagesNudgeDismissed).toBe(true);
+        expect(result.dismissedMissingImagePrintings).toEqual(["p-1", "p-2"]);
       }
     });
 
-    it("rejects a non-boolean missing-images value and keeps current", () => {
+    it("drops non-string entries from the persisted missing-image dismissals", () => {
       const store = useOnboardingStore;
       const current = store.getState();
-      const persisted = { missingImagesNudgeDismissed: "yes" };
+      const persisted = { dismissedMissingImagePrintings: ["p-1", 7, null] };
       const merge = store.persist?.getOptions()?.merge;
       const result = merge?.(persisted, current);
       if (result) {
-        expect(result.missingImagesNudgeDismissed).toBe(current.missingImagesNudgeDismissed);
+        expect(result.dismissedMissingImagePrintings).toEqual(["p-1"]);
+      }
+    });
+
+    it("rejects a non-array missing-images value and keeps current", () => {
+      const store = useOnboardingStore;
+      const current = store.getState();
+      const persisted = { dismissedMissingImagePrintings: "yes" };
+      const merge = store.persist?.getOptions()?.merge;
+      const result = merge?.(persisted, current);
+      if (result) {
+        expect(result.dismissedMissingImagePrintings).toEqual(
+          current.dismissedMissingImagePrintings,
+        );
       }
     });
 

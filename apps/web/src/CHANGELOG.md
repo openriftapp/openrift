@@ -6,6 +6,10 @@
 
 - feat(Groups): **A banner for your group** — group admins can now upload a picture behind the group's name and drag it to set which part shows.
 
+### Other
+
+- fix(Collection): **The missing photo nudge comes back for new cards** — dismissing the note about cards with no photo used to hide it for good; it now stays hidden only for the cards you dismissed it on and returns when you add another card the catalogue has no photo of.
+
 ## 2026-09-10
 
 ### Highlights
