@@ -1,43 +1,66 @@
 import { describe, expect, it } from "vitest";
 
-import { formatPrintingCode, isTbaCode, TBA_CODE, tbaShortCode } from "./printing-code.js";
+import {
+  formatPrintingCode,
+  isTbaCode,
+  TBA_SET_SLUG,
+  tbaPublicCode,
+  tbaShortCode,
+} from "./printing-code.js";
 
 describe("isTbaCode", () => {
-  it("matches the bare placeholder and the per-card short code", () => {
-    expect(isTbaCode(TBA_CODE)).toBe(true);
-    expect(isTbaCode("TBA-yasuo-the-wanderer")).toBe(true);
+  it("matches the set-scoped placeholder and the per-card short code", () => {
+    expect(isTbaCode("OGN-TBA")).toBe(true);
+    expect(isTbaCode("OGN-TBA-yasuo-the-wanderer")).toBe(true);
+  });
+
+  it("matches the placeholder set's own codes", () => {
+    expect(isTbaCode(tbaPublicCode(TBA_SET_SLUG))).toBe(true);
+    expect(isTbaCode(tbaShortCode(TBA_SET_SLUG, "yasuo-the-wanderer"))).toBe(true);
   });
 
   it("rejects a real code", () => {
     expect(isTbaCode("OGN-042")).toBe(false);
+    expect(isTbaCode("SFD-R01a")).toBe(false);
     expect(isTbaCode("")).toBe(false);
   });
 
-  it("is case sensitive", () => {
-    expect(isTbaCode("tba")).toBe(false);
-    expect(isTbaCode("Tba-yasuo")).toBe(false);
+  it("rejects a bare placeholder without a set", () => {
+    expect(isTbaCode("TBA")).toBe(false);
+    expect(isTbaCode("TBA-yasuo-the-wanderer")).toBe(false);
   });
 
-  it("does not match a code that merely contains TBA", () => {
-    expect(isTbaCode("OGN-TBA")).toBe(false);
+  it("is case sensitive", () => {
+    expect(isTbaCode("OGN-tba")).toBe(false);
+    expect(isTbaCode("OGN-Tba-yasuo")).toBe(false);
+  });
+
+  it("does not match TBA outside the second segment", () => {
+    expect(isTbaCode("OGN-042-TBA")).toBe(false);
   });
 });
 
 describe("tbaShortCode", () => {
-  it("suffixes the card slug", () => {
-    expect(tbaShortCode("yasuo-the-wanderer")).toBe("TBA-yasuo-the-wanderer");
+  it("puts the set first and the card slug last", () => {
+    expect(tbaShortCode("OGN", "yasuo-the-wanderer")).toBe("OGN-TBA-yasuo-the-wanderer");
   });
 
-  it("still produces a TBA code for an empty slug", () => {
-    expect(tbaShortCode("")).toBe("TBA-");
-    expect(isTbaCode(tbaShortCode(""))).toBe(true);
+  it("doubles up for the placeholder set", () => {
+    expect(tbaShortCode(TBA_SET_SLUG, "yasuo-the-wanderer")).toBe("TBA-TBA-yasuo-the-wanderer");
+  });
+});
+
+describe("tbaPublicCode", () => {
+  it("scopes the placeholder to the set", () => {
+    expect(tbaPublicCode("OGN")).toBe("OGN-TBA");
+    expect(tbaPublicCode(TBA_SET_SLUG)).toBe("TBA-TBA");
   });
 });
 
 describe("formatPrintingCode", () => {
   it("labels a placeholder code", () => {
-    expect(formatPrintingCode(TBA_CODE)).toBe("Code TBA");
-    expect(formatPrintingCode("TBA-yasuo-the-wanderer")).toBe("Code TBA");
+    expect(formatPrintingCode("OGN-TBA")).toBe("Code TBA");
+    expect(formatPrintingCode("OGN-TBA-yasuo-the-wanderer")).toBe("Code TBA");
   });
 
   it("returns a real code unchanged", () => {

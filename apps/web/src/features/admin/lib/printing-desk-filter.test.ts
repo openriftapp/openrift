@@ -64,7 +64,9 @@ describe("matchesDeskFilter", () => {
   });
 
   it("finds an unannounced printing by the text the row shows", () => {
-    expect(matchesDeskFilter(row({ publicCode: "TBA" }), { ...ANY, query: "code tba" })).toBe(true);
+    expect(matchesDeskFilter(row({ publicCode: "OGN-TBA" }), { ...ANY, query: "code tba" })).toBe(
+      true,
+    );
   });
 
   it("ignores surrounding whitespace in the query", () => {

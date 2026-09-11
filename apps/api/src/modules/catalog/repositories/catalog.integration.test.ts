@@ -35,6 +35,12 @@ describe.skipIf(!ctx)("catalogRepo (integration)", () => {
     expect(origins!.releases.KR).toEqual({ releasedAt: null, precision: null });
   });
 
+  it("hides the placeholder set while no printing sits in it", async () => {
+    const sets = await repo.sets();
+    expect(sets.some((set) => set.slug === "TBA")).toBe(false);
+    expect(await repo.setBySlug("TBA")).toBeUndefined();
+  });
+
   it("setBySlug carries the same release map as the list", async () => {
     const set = await repo.setBySlug("UNL");
     expect(set).toBeDefined();

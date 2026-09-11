@@ -1,5 +1,6 @@
+import { TBA_SET_SLUG } from "@openrift/shared/printing-code";
 import type { SetReleases } from "@openrift/shared/set-release";
-import type { Kysely, Selectable } from "kysely";
+import type { Kysely, Selectable, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -25,12 +26,20 @@ function releasesJson() {
   ), '{}'::jsonb)`.as("releases");
 }
 
+/** The placeholder set is admin scaffolding until a printing lands in it. */
+function isPublicSet() {
+  return sql<SqlBool>`(sets.slug <> ${TBA_SET_SLUG} OR EXISTS (
+    SELECT 1 FROM printings WHERE printings.set_id = sets.id
+  ))`;
+}
+
 export function catalogSetsRepo(db: Kysely<Database>) {
   return {
     async sets(): Promise<CatalogSetRow[]> {
       const rows = await db
         .selectFrom("sets")
         .select(["id", "slug", "name", "setType", releasesJson()])
+        .where(isPublicSet())
         .orderBy("sortOrder")
         .execute();
       return rows;
@@ -54,6 +63,7 @@ export function catalogSetsRepo(db: Kysely<Database>) {
         .selectFrom("sets")
         .select(["id", "slug", "name", "setType", releasesJson()])
         .where("slug", "=", slug)
+        .where(isPublicSet())
         .executeTakeFirst();
     },
 
@@ -61,6 +71,7 @@ export function catalogSetsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("sets")
         .select(["slug", "updatedAt"])
+        .where(isPublicSet())
         .orderBy("sortOrder")
         .execute();
       return rows.map((row) => ({ slug: row.slug, updatedAt: row.updatedAt.toISOString() }));

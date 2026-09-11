@@ -118,7 +118,7 @@ describe("buildPrintingDeskCsv", () => {
   });
 
   it("renders an unannounced code as Code TBA", () => {
-    const csv = buildPrintingDeskCsv([row({ publicCode: "TBA" })], { channelPaths });
+    const csv = buildPrintingDeskCsv([row({ publicCode: "OGN-TBA" })], { channelPaths });
 
     expect(csv).toContain("Code TBA");
   });

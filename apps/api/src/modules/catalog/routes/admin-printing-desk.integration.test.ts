@@ -227,7 +227,7 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
         .select(["shortCode", "publicCode"])
         .where("id", "=", printingId)
         .executeTakeFirstOrThrow();
-      expect(row).toEqual({ shortCode: "TBA-pdk-poro-snack", publicCode: "TBA" });
+      expect(row).toEqual({ shortCode: "PDK-TBA-pdk-poro-snack", publicCode: "PDK-TBA" });
 
       await db.deleteFrom("adminEvents").where("entityId", "=", printingId).execute();
       await db.deleteFrom("printingMarkers").where("printingId", "=", printingId).execute();

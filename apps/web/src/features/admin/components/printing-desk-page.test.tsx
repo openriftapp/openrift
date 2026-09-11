@@ -189,7 +189,7 @@ describe("PrintingDeskPage", () => {
   });
 
   it("renders an unannounced code as Code TBA", () => {
-    captured.rows = [row({ publicCode: "TBA" })];
+    captured.rows = [row({ publicCode: "OGN-TBA" })];
     render(<PrintingDeskPage />);
 
     expect(screen.getByText("Code TBA")).toBeInTheDocument();

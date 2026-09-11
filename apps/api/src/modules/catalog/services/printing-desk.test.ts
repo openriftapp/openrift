@@ -28,10 +28,16 @@ vi.mock("../../system/services/record-admin-event.js", () => ({ recordAdminEvent
 
 const CARD = { id: "card-1", slug: "poro-snack", name: "Poro Snack" };
 
+const OGN_SET_ID = "00000000-0000-4000-8000-000000000001";
+const SFD_SET_ID = "00000000-0000-4000-8000-000000000002";
+const SET_SLUGS: Record<string, string> = { [OGN_SET_ID]: "OGN", [SFD_SET_ID]: "SFD" };
+
 const BASE_PRINTING = {
   id: "base-1",
   cardId: CARD.id,
+  setId: OGN_SET_ID,
   shortCode: "OGN-001",
+  publicCode: "OGN-001/298",
   rarity: "rare",
   artist: "Base Artist",
   printedRulesText: "Draw a card.",
@@ -68,7 +74,11 @@ function makeRepos() {
     },
     printingEvents: {},
     printingImages: {},
-    sets: { getRef: vi.fn(() => Promise.resolve({ slug: "ogn", name: "Origins" })) },
+    sets: {
+      getRef: vi.fn((id: string) =>
+        Promise.resolve(SET_SLUGS[id] ? { slug: SET_SLUGS[id], name: "Set" } : undefined),
+      ),
+    },
   };
 }
 
@@ -79,7 +89,7 @@ const io = {} as Io;
 
 const CREATE_INPUT = {
   cardId: CARD.id,
-  setId: "00000000-0000-4000-8000-000000000001",
+  setId: OGN_SET_ID,
   distributionChannelSlugs: ["skirmish-2026"],
   markerSlugs: ["prerelease"],
   codeTba: false,
@@ -109,17 +119,17 @@ beforeEach(() => {
 });
 
 describe("createDeskPrinting", () => {
-  it("derives a per-card TBA short code and keeps the public code bare", async () => {
+  it("derives a set-scoped TBA short code and leaves the public code unnumbered", async () => {
     await create(repos, { codeTba: true, shortCode: undefined });
 
     expect(acceptPrinting.mock.calls[0]?.[3]).toMatchObject({
-      shortCode: "TBA-poro-snack",
-      publicCode: "TBA",
+      shortCode: "OGN-TBA-poro-snack",
+      publicCode: "OGN-TBA",
     });
-    // appendSetTotal would otherwise write "TBA/<set total>".
+    // appendSetTotal would otherwise write "OGN-TBA/<set total>".
     expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith(
       "new-printing",
-      expect.objectContaining({ publicCode: "TBA" }),
+      expect.objectContaining({ publicCode: "OGN-TBA" }),
     );
   });
 
@@ -275,12 +285,36 @@ describe("updateDeskPrinting", () => {
     await update(repos, FULL_ADMIN, { codeTba: true });
 
     expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
-      shortCode: "TBA-poro-snack",
-      publicCode: "TBA",
+      shortCode: "OGN-TBA-poro-snack",
+      publicCode: "OGN-TBA",
     });
   });
 
-  it("appends the set total to a real code and leaves TBA bare", async () => {
+  it("rewrites a TBA code when the printing moves to another set", async () => {
+    repos.printingDesk.getFullPrinting.mockResolvedValue({
+      ...BASE_PRINTING,
+      shortCode: "OGN-TBA-poro-snack",
+      publicCode: "OGN-TBA",
+    });
+
+    await update(repos, FULL_ADMIN, { setId: SFD_SET_ID });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
+      setId: SFD_SET_ID,
+      shortCode: "SFD-TBA-poro-snack",
+      publicCode: "SFD-TBA",
+    });
+  });
+
+  it("leaves a real code alone when the printing moves to another set", async () => {
+    await update(repos, FULL_ADMIN, { setId: SFD_SET_ID });
+
+    expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {
+      setId: SFD_SET_ID,
+    });
+  });
+
+  it("appends the set total to a real code and leaves TBA unnumbered", async () => {
     await update(repos, FULL_ADMIN, { codeTba: false, shortCode: "OGN-P02" });
 
     expect(repos.printingDesk.updatePrintingDeskFields).toHaveBeenCalledWith("p-1", {

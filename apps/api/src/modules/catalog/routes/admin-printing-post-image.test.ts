@@ -201,7 +201,7 @@ describe("GET printing-desk post-image.png", () => {
   });
 
   it("shows a TBA public code as its display form", async () => {
-    mockPrintingDesk.getPostImageRow.mockResolvedValue({ ...printingRow, publicCode: "TBA" });
+    mockPrintingDesk.getPostImageRow.mockResolvedValue({ ...printingRow, publicCode: "OGN-TBA" });
     await app.request(url());
     expect(renderMock.mock.calls[0]?.[1]).toMatchObject({ publicCode: "Code TBA" });
   });

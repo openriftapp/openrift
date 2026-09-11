@@ -68,7 +68,7 @@ describe("buildPrintingPostCaption", () => {
   });
 
   it("renders an unannounced code as Code TBA", () => {
-    const caption = buildPrintingPostCaption({ ...base, publicCode: "TBA" });
+    const caption = buildPrintingPostCaption({ ...base, publicCode: "OGN-TBA" });
     expect(caption.split("\n")[0]).toBe("Yasuo, the Wanderer · Foil · Code TBA");
   });
 

@@ -4,7 +4,7 @@ import type {
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { appendSetTotal } from "@openrift/shared/fix-typography";
-import { TBA_CODE, tbaShortCode } from "@openrift/shared/printing-code";
+import { isTbaCode, tbaPublicCode, tbaShortCode } from "@openrift/shared/printing-code";
 import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Updateable } from "kysely";
@@ -181,7 +181,7 @@ export async function createDeskPrinting(
     );
   }
 
-  const shortCode = codeTba ? tbaShortCode(card.slug) : fields.shortCode;
+  const shortCode = codeTba ? tbaShortCode(set.slug, card.slug) : fields.shortCode;
   if (!shortCode) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "A short code is required.");
   }
@@ -199,7 +199,7 @@ export async function createDeskPrinting(
       cardId,
       {
         shortCode,
-        publicCode: codeTba ? TBA_CODE : shortCode,
+        publicCode: codeTba ? tbaPublicCode(set.slug) : shortCode,
         setId: set.slug,
         setName: set.name,
         finish: fields.finish,
@@ -225,13 +225,13 @@ export async function createDeskPrinting(
   }
 
   // `acceptPrinting` runs the public code through `appendSetTotal`, which would
-  // turn a TBA code into "TBA/<total>"; the desk's TBA code stays bare.
+  // turn a TBA code into "<SET>-TBA/<total>"; the desk's TBA code stays unnumbered.
   await repos.printingDesk.updatePrintingDeskFields(printingId, {
     announcedAt: fields.announcedAt,
     releasedAt: release.releasedAt,
     releasePrecision: release.releasePrecision,
     comment: fields.comment,
-    ...(codeTba ? { publicCode: TBA_CODE } : {}),
+    ...(codeTba ? { publicCode: tbaPublicCode(set.slug) } : {}),
   });
 
   await recordAdminEvent(repos, userId, {
@@ -295,8 +295,10 @@ export async function updateDeskPrinting(
       patch[field] = fields[field] as never;
     }
   }
+  const nextSet =
+    patch.setId === undefined ? undefined : await repos.sets.getRef(String(patch.setId));
   if (patch.setId !== undefined) {
-    assertFound(await repos.sets.getRef(String(patch.setId)), "Set not found");
+    assertFound(nextSet, "Set not found");
   }
   if (fields.releasedAt !== undefined || fields.releasePrecision !== undefined) {
     const release = normalizeRelease({
@@ -308,15 +310,22 @@ export async function updateDeskPrinting(
     patch.releasePrecision = release.releasePrecision;
   }
 
-  if (codeTba !== undefined || shortCode !== undefined) {
+  // A TBA code names its set, so moving the printing has to rewrite it.
+  const tbaAfter = codeTba ?? (shortCode === undefined && isTbaCode(before.publicCode));
+  if (codeTba !== undefined || shortCode !== undefined || (nextSet !== undefined && tbaAfter)) {
     const card = await repos.catalogMutations.getCardById(before.cardId);
     assertFound(card, "Card not found");
-    const nextShortCode = codeTba ? tbaShortCode(card.slug) : (shortCode ?? before.shortCode);
-    const total = await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId);
-    patch.shortCode = nextShortCode;
-    patch.publicCode = codeTba
-      ? TBA_CODE
-      : appendSetTotal(nextShortCode, total?.printedTotal ?? null);
+    if (tbaAfter) {
+      const set = nextSet ?? (await repos.sets.getRef(before.setId));
+      assertFound(set, "Set not found");
+      patch.shortCode = tbaShortCode(set.slug, card.slug);
+      patch.publicCode = tbaPublicCode(set.slug);
+    } else {
+      const nextShortCode = shortCode ?? before.shortCode;
+      const total = await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId);
+      patch.shortCode = nextShortCode;
+      patch.publicCode = appendSetTotal(nextShortCode, total?.printedTotal ?? null);
+    }
   }
 
   try {
