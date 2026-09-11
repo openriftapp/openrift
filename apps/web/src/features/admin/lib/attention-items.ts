@@ -57,9 +57,19 @@ export interface AttentionSubmission {
   groups: AttentionGroup[];
 }
 
+export interface AttentionSourceEntry {
+  candidateCardId: string;
+  label: string;
+  externalId: string;
+  groups: AttentionGroup[];
+  changedFields: number;
+  newPrintings: number;
+}
+
 export interface AttentionSourceBlock {
   provider: string;
-  candidateCardId: string;
+  candidateCardIds: string[];
+  entries: AttentionSourceEntry[];
   changedFields: number;
   newPrintings: number;
 }
@@ -145,7 +155,7 @@ function buildCardGroup(
 function buildLinkedPrintingGroup(
   candidate: CandidatePrintingResponse,
   printing: AdminPrintingResponse,
-  images: readonly AdminPrintingImageResponse[],
+  images: readonly AdminPrintingImageResponse[] | null,
 ): AttentionGroup | null {
   const groupKey = `printing:${candidate.id}`;
   const { changes, unchangedFields } = compareFields(
@@ -156,16 +166,18 @@ function buildLinkedPrintingGroup(
     candidate as unknown as Record<string, unknown>,
   );
 
-  const currentImage = activeImageUrl(printing.id, images);
-  if (hasFieldValue(candidate.imageUrl) && candidate.imageUrl !== currentImage) {
-    changes.push({
-      key: `${groupKey}:imageUrl`,
-      field: "imageUrl",
-      label: "Image",
-      current: currentImage,
-      proposed: candidate.imageUrl,
-      kind: "image",
-    });
+  if (images !== null) {
+    const currentImage = activeImageUrl(printing.id, images);
+    if (hasFieldValue(candidate.imageUrl) && candidate.imageUrl !== currentImage) {
+      changes.push({
+        key: `${groupKey}:imageUrl`,
+        field: "imageUrl",
+        label: "Image",
+        current: currentImage,
+        proposed: candidate.imageUrl,
+        kind: "image",
+      });
+    }
   }
 
   if (changes.length === 0) {
@@ -257,6 +269,69 @@ export function buildAttentionSubmissions(detail: AdminCardDetailResponse): Atte
     .filter((submission) => submission.groups.length > 0);
 }
 
+interface SourceEntryDraft extends AttentionSourceEntry {
+  provider: string;
+}
+
+function buildSourceEntry(
+  detail: AdminCardDetailResponse,
+  source: CandidateCardResponse,
+  printingsById: ReadonlyMap<string, AdminPrintingResponse>,
+): SourceEntryDraft | null {
+  const unchecked = detail.candidatePrintings.filter(
+    (candidate) => candidate.candidateCardId === source.id && candidate.checkedAt === null,
+  );
+  if (source.checkedAt !== null && unchecked.length === 0) {
+    return null;
+  }
+
+  const groups: AttentionGroup[] = [];
+  if (source.checkedAt === null) {
+    const cardGroup = buildCardGroup(source, detail.card);
+    if (cardGroup) {
+      groups.push(cardGroup);
+    }
+  }
+
+  let newPrintings = 0;
+  for (const candidate of unchecked) {
+    if (candidate.printingId === null) {
+      newPrintings += 1;
+      continue;
+    }
+    const printing = printingsById.get(candidate.printingId);
+    if (!printing) {
+      continue;
+    }
+    const group = buildLinkedPrintingGroup(candidate, printing, null);
+    if (group) {
+      groups.push(group);
+    }
+  }
+
+  return {
+    provider: source.provider,
+    candidateCardId: source.id,
+    label: source.shortCode ?? source.externalId,
+    externalId: source.externalId,
+    groups,
+    changedFields: groups.reduce((total, group) => total + group.changes.length, 0),
+    newPrintings,
+  };
+}
+
+function disambiguateLabels(entries: readonly SourceEntryDraft[]): AttentionSourceEntry[] {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    counts.set(entry.label, (counts.get(entry.label) ?? 0) + 1);
+  }
+  return entries.map((entry) =>
+    (counts.get(entry.label) ?? 0) > 1
+      ? { ...entry, label: `${entry.label} · ${entry.externalId}` }
+      : entry,
+  );
+}
+
 export function buildAttentionSources(
   detail: AdminCardDetailResponse,
   providerSettings: readonly ProviderSettingResponse[],
@@ -266,57 +341,21 @@ export function buildAttentionSources(
   );
   const printingsById = new Map(detail.printings.map((printing) => [printing.id, printing]));
 
-  const blocks: AttentionSourceBlock[] = [];
-  for (const source of detail.sources) {
+  const entries = detail.sources.flatMap((source) => {
     if (source.provider === USER_SUBMISSION_PROVIDER || !trusted.has(source.provider)) {
-      continue;
+      return [];
     }
-    const candidates = detail.candidatePrintings.filter(
-      (candidate) => candidate.candidateCardId === source.id,
-    );
-    const uncheckedCandidates = candidates.filter((candidate) => candidate.checkedAt === null);
-    if (source.checkedAt !== null && uncheckedCandidates.length === 0) {
-      continue;
-    }
+    const entry = buildSourceEntry(detail, source, printingsById);
+    return entry === null ? [] : [entry];
+  });
 
-    let changedFields = 0;
-    if (source.checkedAt === null) {
-      changedFields += compareFields(
-        source.id,
-        COMPARABLE_CARD_FIELDS,
-        CARD_FIELD_LABELS,
-        detail.card as Record<string, unknown> | null,
-        source as unknown as Record<string, unknown>,
-      ).changes.length;
-    }
-
-    let newPrintings = 0;
-    for (const candidate of uncheckedCandidates) {
-      if (candidate.printingId === null) {
-        newPrintings += 1;
-        continue;
-      }
-      const printing = printingsById.get(candidate.printingId);
-      if (!printing) {
-        continue;
-      }
-      changedFields += compareFields(
-        candidate.id,
-        COMPARABLE_PRINTING_FIELDS,
-        PRINTING_FIELD_LABELS,
-        printing as unknown as Record<string, unknown>,
-        candidate as unknown as Record<string, unknown>,
-      ).changes.length;
-    }
-
-    blocks.push({
-      provider: source.provider,
-      candidateCardId: source.id,
-      changedFields,
-      newPrintings,
-    });
-  }
-  return blocks;
+  return [...Map.groupBy(entries, (entry) => entry.provider)].map(([provider, list]) => ({
+    provider,
+    candidateCardIds: list.map((entry) => entry.candidateCardId),
+    entries: disambiguateLabels(list),
+    changedFields: list.reduce((total, entry) => total + entry.changedFields, 0),
+    newPrintings: list.reduce((total, entry) => total + entry.newPrintings, 0),
+  }));
 }
 
 export function attentionCount(

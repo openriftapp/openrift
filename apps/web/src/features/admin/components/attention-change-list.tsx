@@ -15,6 +15,9 @@ import { formatFieldValue } from "@/features/admin/lib/catalog-field-labels";
 import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
 
+const EMPTY_TICKED: ReadonlySet<string> = new Set();
+const EMPTY_EDITS: ReadonlyMap<string, unknown> = new Map();
+
 function isEditableChange(change: AttentionChange): boolean {
   if (change.kind === "image") {
     return false;
@@ -79,6 +82,7 @@ interface ChangeRowProps {
   isTicked: boolean;
   editedValue: unknown;
   isEditing: boolean;
+  readOnly: boolean;
   onToggle: () => void;
   onToggleEdit: () => void;
   onEdit: (value: unknown) => void;
@@ -89,6 +93,7 @@ function ChangeRow({
   isTicked,
   editedValue,
   isEditing,
+  readOnly,
   onToggle,
   onToggleEdit,
   onEdit,
@@ -105,15 +110,21 @@ function ChangeRow({
       )}
     >
       <div className="flex items-start gap-3">
-        <Checkbox
-          id={checkboxId}
-          checked={isTicked}
-          className="mt-0.5 shrink-0"
-          onCheckedChange={onToggle}
-        />
-        <label htmlFor={checkboxId} className="w-36 shrink-0 cursor-pointer text-sm">
-          {change.label}
-        </label>
+        {readOnly ? (
+          <span className="w-36 shrink-0 text-sm">{change.label}</span>
+        ) : (
+          <>
+            <Checkbox
+              id={checkboxId}
+              checked={isTicked}
+              className="mt-0.5 shrink-0"
+              onCheckedChange={onToggle}
+            />
+            <label htmlFor={checkboxId} className="w-36 shrink-0 cursor-pointer text-sm">
+              {change.label}
+            </label>
+          </>
+        )}
         <div className="min-w-0 flex-1 text-sm">
           {change.kind === "image" ? (
             <span className="flex items-end gap-4">
@@ -139,7 +150,7 @@ function ChangeRow({
             </span>
           )}
         </div>
-        {isEditableChange(change) && (
+        {!readOnly && isEditableChange(change) && (
           <Button
             variant="ghost"
             size="icon"
@@ -195,10 +206,11 @@ function NewPrintingLink({
 
 interface AttentionChangeListProps {
   groups: readonly AttentionGroup[];
-  ticked: ReadonlySet<string>;
-  edits: ReadonlyMap<string, unknown>;
-  onToggle: (key: string) => void;
-  onEdit: (key: string, value: unknown) => void;
+  ticked?: ReadonlySet<string>;
+  edits?: ReadonlyMap<string, unknown>;
+  readOnly?: boolean;
+  onToggle?: (key: string) => void;
+  onEdit?: (key: string, value: unknown) => void;
   printingTargets?: readonly PrintingTarget[];
   onLinkGroup?: (group: AttentionGroup, printingId: string) => void;
   onMoveGroup?: (group: AttentionGroup, printingId: string) => void;
@@ -208,8 +220,9 @@ interface AttentionChangeListProps {
 
 export function AttentionChangeList({
   groups,
-  ticked,
-  edits,
+  ticked = EMPTY_TICKED,
+  edits = EMPTY_EDITS,
+  readOnly = false,
   onToggle,
   onEdit,
   printingTargets = [],
@@ -255,7 +268,7 @@ export function AttentionChangeList({
                         id={`attention-${group.key}`}
                         checked={ticked.has(group.key)}
                         className="shrink-0"
-                        onCheckedChange={() => onToggle(group.key)}
+                        onCheckedChange={() => onToggle?.(group.key)}
                       />
                       <label
                         htmlFor={`attention-${group.key}`}
@@ -293,7 +306,8 @@ export function AttentionChangeList({
                     isTicked={ticked.has(change.key)}
                     editedValue={edits.get(change.key)}
                     isEditing={editing.has(change.key)}
-                    onToggle={() => onToggle(change.key)}
+                    readOnly={readOnly}
+                    onToggle={() => onToggle?.(change.key)}
                     onToggleEdit={() =>
                       setEditing((prev) => {
                         const next = new Set(prev);
@@ -305,7 +319,7 @@ export function AttentionChangeList({
                         return next;
                       })
                     }
-                    onEdit={(value) => onEdit(change.key, value)}
+                    onEdit={(value) => onEdit?.(change.key, value)}
                   />
                 ))
               )}

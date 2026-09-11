@@ -78,21 +78,18 @@ export function CardAttentionSection({
 
       {sources.map((source) => (
         <SourceBlock
-          key={source.candidateCardId}
+          key={source.provider}
           detail={detail}
-          provider={source.provider}
-          candidateCardId={source.candidateCardId}
-          changedFields={source.changedFields}
-          newPrintings={source.newPrintings}
+          block={source}
           cardSlug={cardSlug}
           compareAction={compareAction}
-          unlinkedSlot={
+          renderUnlinked={(candidateCardId) => (
             <CardAttentionNewPrintings
               detail={detail}
-              candidateCardId={source.candidateCardId}
+              candidateCardId={candidateCardId}
               onOpen={onOpenNewPrinting}
             />
-          }
+          )}
         />
       ))}
     </section>

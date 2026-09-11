@@ -116,6 +116,14 @@ describe("AttentionChangeList", () => {
     expect(screen.getByText(/OGN-001::normal/u)).toBeInTheDocument();
   });
 
+  it("drops the ticks and the editors in read-only mode", () => {
+    renderList({ readOnly: true });
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("Lux, Lady of Light")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit Name" })).not.toBeInTheDocument();
+  });
+
   it("reports a toggle by change key", async () => {
     const { onToggle } = renderList();
     await userEvent.click(screen.getByRole("checkbox", { name: "Might" }));

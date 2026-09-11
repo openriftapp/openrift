@@ -143,6 +143,62 @@ describe("buildAttentionSources", () => {
     ]);
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.changedFields).toBe(1);
+    expect(blocks[0]?.entries[0]?.groups[0]?.changes.map((change) => change.field)).toEqual([
+      "name",
+    ]);
+  });
+
+  it("groups every candidate row of one provider into a single block", () => {
+    const card = makeAdminCard({ name: "Lux, Lady of Luminosity" });
+    const detail = makeAdminCardDetail({
+      card,
+      sources: [
+        makeCandidateCard({
+          provider: "gallery",
+          externalId: "gallery-en",
+          name: "Lux, Lady of Light",
+          checkedAt: null,
+          submittedByName: null,
+        }),
+        makeCandidateCard({
+          provider: "gallery",
+          externalId: "gallery-de",
+          name: card.name,
+          checkedAt: null,
+          submittedByName: null,
+        }),
+      ],
+    });
+    const blocks = buildAttentionSources(detail, [
+      makeProviderSetting({ provider: "gallery", isFavorite: true }),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.entries).toHaveLength(2);
+    expect(blocks[0]?.candidateCardIds).toHaveLength(2);
+    expect(blocks[0]?.changedFields).toBe(1);
+    expect(blocks[0]?.entries.map((entry) => entry.changedFields)).toEqual([1, 0]);
+  });
+
+  it("keeps an unchecked source whose values all match, with no changes to show", () => {
+    const card = makeAdminCard();
+    const detail = makeAdminCardDetail({
+      card,
+      sources: [
+        makeCandidateCard({
+          provider: "gallery",
+          name: card.name,
+          checkedAt: null,
+          submittedByName: null,
+        }),
+      ],
+    });
+    const blocks = buildAttentionSources(detail, [
+      makeProviderSetting({ provider: "gallery", isFavorite: true }),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.changedFields).toBe(0);
+    expect(blocks[0]?.newPrintings).toBe(0);
+    expect(blocks[0]?.entries[0]?.groups).toEqual([]);
   });
 
   it("skips an untrusted provider", () => {
