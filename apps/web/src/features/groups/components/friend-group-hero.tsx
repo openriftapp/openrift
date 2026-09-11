@@ -23,6 +23,9 @@ interface HeroStat {
   label: string;
 }
 
+const HERO_BANNER_SCRIM =
+  "linear-gradient(to right, color-mix(in oklab, var(--background) 88%, transparent), color-mix(in oklab, var(--background) 45%, transparent) 70%, transparent)";
+
 const HERO_WASH = [
   "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
   "radial-gradient(70% 120% at 65% 100%, color-mix(in oklab, oklch(0.5 0.11 300) 14%, transparent), transparent 65%)",
@@ -74,6 +77,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
   ];
 
   const shownMembers = data.members.slice(0, HERO_AVATARS);
+  const banner = data.group.bannerUrl;
 
   return (
     <div className="px-safe pt-4">
@@ -81,6 +85,17 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
         className={cn(PAGE_WIDTH.capped, "relative overflow-hidden")}
         style={{ backgroundImage: HERO_WASH }}
       >
+        {banner ? (
+          <div aria-hidden="true" className="absolute inset-0">
+            <img
+              src={banner}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: `50% ${data.group.bannerPosition}%` }}
+            />
+            <div className="absolute inset-0" style={{ backgroundImage: HERO_BANNER_SCRIM }} />
+          </div>
+        ) : null}
         <Button
           variant="ghost"
           size="sm"
@@ -90,7 +105,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
           <SettingsIcon />
           Manage
         </Button>
-        <div className="flex items-end gap-6">
+        <div className="relative flex items-end gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 py-6 pl-5">
             <Eyebrow variant="kicker">Friend group</Eyebrow>
             <Heading level={1} className="text-3xl text-balance">
@@ -126,9 +141,14 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
           </div>
           {/* CardFan positions absolutely; this div is its relative host, and
               the section's overflow-hidden crops the bottom-anchored cards. */}
-          <div aria-hidden="true" className="relative hidden h-36 w-72 shrink-0 self-end sm:block">
-            {covers.length === 0 ? <CardFanOutline /> : <CardFan covers={covers} />}
-          </div>
+          {banner ? null : (
+            <div
+              aria-hidden="true"
+              className="relative hidden h-36 w-72 shrink-0 self-end sm:block"
+            >
+              {covers.length === 0 ? <CardFanOutline /> : <CardFan covers={covers} />}
+            </div>
+          )}
         </div>
       </section>
     </div>

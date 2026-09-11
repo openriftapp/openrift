@@ -21,8 +21,28 @@ export type NewGroupValues = Pick<
 
 export type GroupUpdate = Pick<
   Updateable<FriendGroupsTable>,
-  "slug" | "previousSlug" | "name" | "description" | "updatedAt"
+  "slug" | "previousSlug" | "name" | "description" | "bannerPosition" | "updatedAt"
 >;
+
+export interface GroupBannerValues {
+  bannerUrl: string;
+  bannerPosition: number;
+  bannerUploadedBy: string;
+  bannerUploadedAt: Date;
+}
+
+export interface GroupBannerRow {
+  groupId: string;
+  slug: string;
+  name: string;
+  bannerUrl: string;
+  bannerPosition: number;
+  bannerUploadedAt: Date | null;
+  uploaderUserId: string | null;
+  uploaderName: string | null;
+  uploaderEmail: string | null;
+  memberCount: number;
+}
 
 export interface MemberWithUser extends GroupMember {
   userName: string | null;

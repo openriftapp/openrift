@@ -111,6 +111,7 @@ const systemPages = [
   { to: "/admin/job-runs" as const, icon: ListChecksIcon, title: "Job Runs" },
   { to: "/admin/printing-events" as const, icon: SendIcon, title: "Printing Events" },
   { to: "/admin/users" as const, icon: UsersIcon, title: "Users" },
+  { to: "/admin/group-banners" as const, icon: ImageIcon, title: "Group Banners" },
   { to: "/admin/organizations" as const, icon: CrownIcon, title: "Organizations" },
   { to: "/admin/feature-flags" as const, icon: FlagIcon, title: "Feature Flags" },
   { to: "/admin/site-settings" as const, icon: GlobeIcon, title: "Site Settings" },

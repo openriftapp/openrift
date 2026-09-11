@@ -23,8 +23,13 @@ const createGroupFn = createServerFn({ method: "POST" })
 
 const updateGroupFn = createServerFn({ method: "POST" })
   .validator(
-    (input: { slug: string; name?: string; description?: string | null; newSlug?: string }) =>
-      input,
+    (input: {
+      slug: string;
+      name?: string;
+      description?: string | null;
+      newSlug?: string;
+      bannerPosition?: number;
+    }) => input,
   )
   .middleware([withCookies])
   .handler(({ context, data }): Promise<FriendGroupResponse> => {
@@ -36,6 +41,13 @@ const updateGroupFn = createServerFn({ method: "POST" })
       body: { ...fields, slug: newSlug },
     });
   });
+
+const removeBannerFn = createServerFn({ method: "POST" })
+  .validator((input: string) => input)
+  .middleware([withCookies])
+  .handler(({ context, data: slug }): Promise<FriendGroupResponse> =>
+    apiOrpcClient(friendGroupsContract, context.cookie).removeBanner({ slug }),
+  );
 
 const deleteGroupFn = createServerFn({ method: "POST" })
   .validator((input: string) => input)
@@ -138,7 +150,13 @@ export function useUpdateFriendGroup() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<
     FriendGroupResponse,
-    { slug: string; name?: string; description?: string | null; newSlug?: string }
+    {
+      slug: string;
+      name?: string;
+      description?: string | null;
+      newSlug?: string;
+      bannerPosition?: number;
+    }
   >({
     mutationFn: (data) => updateGroupFn({ data }),
     invalidates: (variables) => [
@@ -146,6 +164,14 @@ export function useUpdateFriendGroup() {
       friendGroupsKeys.detail(userId, variables.slug),
       ...(variables.newSlug ? [friendGroupsKeys.detail(userId, variables.newSlug)] : []),
     ],
+  });
+}
+
+export function useRemoveFriendGroupBanner() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation({
+    mutationFn: (slug: string) => removeBannerFn({ data: slug }),
+    invalidates: (slug) => [friendGroupsKeys.all(userId), friendGroupsKeys.detail(userId, slug)],
   });
 }
 

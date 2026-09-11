@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-11
+
+### Highlights
+
+- feat(Groups): **A banner for your group** — group admins can now upload a picture behind the group's name and drag it to set which part shows.
+
 ## 2026-09-10
 
 ### Highlights

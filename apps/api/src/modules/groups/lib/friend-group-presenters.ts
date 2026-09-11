@@ -63,6 +63,8 @@ export function toGroup(row: Group, includeCode: boolean): FriendGroupResponse {
     slug: row.slug,
     name: row.name,
     description: row.description,
+    bannerUrl: row.bannerUrl,
+    bannerPosition: row.bannerPosition,
     code: includeCode ? row.code : null,
     codeRotatedAt: row.codeRotatedAt.toISOString(),
     createdAt: row.createdAt.toISOString(),

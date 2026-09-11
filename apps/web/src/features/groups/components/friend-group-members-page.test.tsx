@@ -125,6 +125,8 @@ function makeDetail(overrides: Partial<FriendGroupDetailResponse> = {}): FriendG
       slug: "bothfeld",
       name: "Bothfeld Connection",
       description: null,
+      bannerUrl: null,
+      bannerPosition: 50,
       code: null,
       codeRotatedAt: "2026-01-01T00:00:00Z",
       createdAt: "2026-01-01T00:00:00Z",

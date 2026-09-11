@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { GroupBannerPanel } from "@/features/groups/components/group-banner-panel";
 import { InviteLinkPanel } from "@/features/groups/components/invite-link-panel";
 import {
   useEnableFriendGroupCode,
@@ -108,6 +109,10 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
             Save changes
           </Button>
         </div>
+
+        <Separator />
+
+        <GroupBannerPanel group={data.group} />
 
         <Separator />
 

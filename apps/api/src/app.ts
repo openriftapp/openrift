@@ -31,6 +31,7 @@ import { mountAdminPrintingPostImage } from "./modules/catalog/routes/admin-prin
 import { createPublicChatRoute } from "./modules/chat/routes/public-chat.js";
 import { collectionImageRoute } from "./modules/collections/routes/authenticated-collection-image.js";
 import { deckImageRoute } from "./modules/decks/routes/authenticated-deck-image.js";
+import { mountFriendGroupBannerMiddleware } from "./modules/groups/routes/authenticated-friend-groups-banner.js";
 import { listImageRoute } from "./modules/lists/routes/authenticated-list-image.js";
 import { mountMetaSubmissionsMiddleware } from "./modules/meta/routes/authenticated-meta-submissions.js";
 import { mountScanReportsMiddleware } from "./modules/scan/routes/authenticated-scan-reports.js";
@@ -395,6 +396,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/v1/tournaments/staff-invite/*", loadSession);
   mountDeckCheckIngestMiddleware(app);
   mountCardSubmissionsMiddleware(app);
+  mountFriendGroupBannerMiddleware(app);
   mountScanReportsMiddleware(app);
   mountMetaSubmissionsMiddleware(app);
   for (const path of ETAG_PATHS) {

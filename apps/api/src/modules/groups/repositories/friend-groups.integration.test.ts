@@ -136,6 +136,97 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
     expect(members[0]?.role).toBe("owner");
   });
 
+  describe("banners", () => {
+    const BANNER_A = "/media/group-banners/0199251c-5f1a-7000-8000-00000000000a.webp";
+    const BANNER_B = "/media/group-banners/0199251c-5f1a-7000-8000-00000000000b.webp";
+
+    it("starts with no banner and a centred focus", async () => {
+      const group = await createGroup(VIEWER_ID);
+
+      expect(group.bannerUrl).toBeNull();
+      expect(group.bannerPosition).toBe(50);
+    });
+
+    it("records the uploader and hands back the banner it replaced", async () => {
+      const group = await createGroup(VIEWER_ID);
+
+      const first = await repo.setBanner(group.id, {
+        bannerUrl: BANNER_A,
+        bannerPosition: 50,
+        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedAt: new Date(),
+      });
+      expect(first?.previous.bannerUrl).toBeNull();
+      expect(first?.updated.bannerUrl).toBe(BANNER_A);
+      expect(first?.updated.bannerUploadedBy).toBe(VIEWER_ID);
+
+      const second = await repo.setBanner(group.id, {
+        bannerUrl: BANNER_B,
+        bannerPosition: 50,
+        bannerUploadedBy: ADMIN_ID,
+        bannerUploadedAt: new Date(),
+      });
+      expect(second?.previous.bannerUrl).toBe(BANNER_A);
+      expect(second?.updated.bannerUrl).toBe(BANNER_B);
+    });
+
+    it("clears the banner back to its untouched state", async () => {
+      const group = await createGroup(VIEWER_ID);
+      await repo.setBanner(group.id, {
+        bannerUrl: BANNER_A,
+        bannerPosition: 10,
+        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedAt: new Date(),
+      });
+
+      const cleared = await repo.clearBanner(group.id);
+
+      expect(cleared?.previous.bannerUrl).toBe(BANNER_A);
+      expect(cleared?.updated).toMatchObject({
+        bannerUrl: null,
+        bannerPosition: 50,
+        bannerUploadedBy: null,
+        bannerUploadedAt: null,
+      });
+    });
+
+    it("lists only groups that have a banner, with their uploader", async () => {
+      const group = await createGroup(VIEWER_ID);
+      await createGroup(VIEWER_ID);
+      await repo.setBanner(group.id, {
+        bannerUrl: BANNER_A,
+        bannerPosition: 50,
+        bannerUploadedBy: VIEWER_ID,
+        bannerUploadedAt: new Date(),
+      });
+
+      const rows = await repo.listBanners();
+
+      const row = rows.find((candidate) => candidate.groupId === group.id);
+      expect(row).toMatchObject({ bannerUrl: BANNER_A, uploaderUserId: VIEWER_ID, memberCount: 1 });
+      expect(rows.every((candidate) => candidate.bannerUrl !== "")).toBe(true);
+    });
+
+    it("refuses a URL outside the banner directory", async () => {
+      const group = await createGroup(VIEWER_ID);
+
+      await expect(
+        repo.setBanner(group.id, {
+          bannerUrl: "https://example.test/banner.webp",
+          bannerPosition: 50,
+          bannerUploadedBy: VIEWER_ID,
+          bannerUploadedAt: new Date(),
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("refuses a focus outside 0-100", async () => {
+      const group = await createGroup(VIEWER_ID);
+
+      await expect(repo.update(group.id, { bannerPosition: 120 })).rejects.toThrow();
+    });
+  });
+
   it("listMembers orders by role, then by name case-insensitively", async () => {
     const group = await createGroup(VIEWER_ID);
     await repo.addMember(group.id, ADMIN_ID, "admin");

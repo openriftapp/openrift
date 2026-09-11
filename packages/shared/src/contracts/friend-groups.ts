@@ -43,6 +43,7 @@ export const updateFriendGroupSchema = z
     slug: friendGroupSlugSchema.optional(),
     name: z.string().min(1).max(60).optional(),
     description: z.string().max(500).nullable().optional(),
+    bannerPosition: z.number().int().min(0).max(100).optional(),
   })
   .refine((data) => data.slug === undefined || !RESERVED_FRIEND_GROUP_SLUGS.has(data.slug), {
     message: "Slug is reserved",
@@ -208,6 +209,8 @@ export const friendGroupResponseSchema = z
     slug: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    bannerUrl: z.string().nullable(),
+    bannerPosition: z.number().int(),
     code: z.string().nullable(),
     codeRotatedAt: z.string(),
     createdAt: z.string(),
@@ -568,6 +571,21 @@ export const friendGroupsContract = {
       NOT_FOUND: { message: "Group not found" },
       CONFLICT: { message: "Slug already in use" },
     })
+    .output(friendGroupResponseSchema),
+  uploadBanner: authedRoute
+    .route({ method: "POST", path: `${FG}/{slug}/banner`, tags: [TAG] })
+    .errors({
+      NOT_FOUND: { message: "Group not found" },
+      PAYLOAD_TOO_LARGE: { message: "File exceeds 20 MB limit" },
+      BAD_REQUEST: { message: "File is not an image" },
+      TOO_MANY_REQUESTS: { message: "Daily upload limit reached" },
+    })
+    .input(friendGroupSlugParamSchema.extend({ file: z.instanceof(File) }))
+    .output(friendGroupResponseSchema),
+  removeBanner: authedRoute
+    .route({ method: "DELETE", path: `${FG}/{slug}/banner`, tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Group not found" } })
+    .input(friendGroupSlugParamSchema)
     .output(friendGroupResponseSchema),
   remove: authedRoute
     .route({ method: "DELETE", path: `${FG}/{slug}`, tags: [TAG], successStatus: 204 })

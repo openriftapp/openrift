@@ -15,6 +15,11 @@ export interface FriendGroupsTable {
   description: string | null;
   code: string | null;
   codeRotatedAt: ColumnType<Date, Date | undefined, Date>;
+  bannerUrl: string | null;
+  /** Vertical crop focus, percent from the top. */
+  bannerPosition: Generated<number>;
+  bannerUploadedBy: string | null;
+  bannerUploadedAt: Date | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

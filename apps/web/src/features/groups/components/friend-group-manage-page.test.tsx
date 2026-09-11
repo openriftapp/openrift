@@ -14,10 +14,19 @@ vi.mock("@/features/groups/hooks/use-friend-group-mutations", () => ({
   useDisableFriendGroupCode: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEnableFriendGroupCode: () => ({ mutate: vi.fn(), isPending: false }),
   useLeaveFriendGroup: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveFriendGroupBanner: () => ({ mutate: vi.fn(), isPending: false }),
   useRotateFriendGroupCode: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTransferFriendGroupOwnership: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useUpdateFriendGroup: () => ({ mutateAsync: updateMutateAsync, isPending: false }),
+  useUpdateFriendGroup: () => ({
+    mutate: vi.fn(),
+    mutateAsync: updateMutateAsync,
+    isPending: false,
+  }),
   useUpdateGroupContactReveal: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/features/groups/hooks/use-upload-group-banner", () => ({
+  useUploadGroupBanner: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-group-sharing", () => ({
@@ -53,6 +62,8 @@ function makeDetail(
       slug: "bothfeld",
       name: "Bothfeld Connection",
       description: null,
+      bannerUrl: null,
+      bannerPosition: 50,
       code: null,
       codeRotatedAt: "2026-01-01T00:00:00Z",
       createdAt: "2026-01-01T00:00:00Z",

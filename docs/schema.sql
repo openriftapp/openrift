@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict dWWPesQg6rPxTmDRUPxsUsqnjOUwXpcaTAca9agXExbfj5m8SZYLNQnSBSD3722
+\restrict k7nmk4bLodd9MacQUOeBV0PpE6xJhm5E7mpHuhTG4uKjZ1FQNY9UeiW3WeyTkab
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1742,6 +1742,12 @@ CREATE TABLE public.friend_groups (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     previous_slug text,
+    banner_url text,
+    banner_position smallint DEFAULT 50 NOT NULL,
+    banner_uploaded_by text,
+    banner_uploaded_at timestamp with time zone,
+    CONSTRAINT chk_friend_groups_banner_position CHECK (((banner_position >= 0) AND (banner_position <= 100))),
+    CONSTRAINT chk_friend_groups_banner_url CHECK (((banner_url IS NULL) OR (banner_url ~ '^/media/group-banners/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$'::text))),
     CONSTRAINT chk_friend_groups_description CHECK (((description IS NULL) OR (length(description) <= 500))),
     CONSTRAINT chk_friend_groups_name CHECK (((length(name) >= 1) AND (length(name) <= 60))),
     CONSTRAINT chk_friend_groups_previous_slug CHECK (((previous_slug IS NULL) OR (previous_slug ~ '^[a-z0-9][a-z0-9-]{2,29}$'::text))),
@@ -5965,6 +5971,13 @@ CREATE INDEX idx_friend_group_shops_store ON public.friend_group_shops USING btr
 
 
 --
+-- Name: idx_friend_groups_banner_uploaded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_friend_groups_banner_uploaded_at ON public.friend_groups USING btree (banner_uploaded_at DESC) WHERE (banner_url IS NOT NULL);
+
+
+--
 -- Name: idx_friend_groups_previous_slug; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8480,6 +8493,14 @@ ALTER TABLE ONLY public.friend_group_shops
 
 
 --
+-- Name: friend_groups friend_groups_banner_uploaded_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_groups
+    ADD CONSTRAINT friend_groups_banner_uploaded_by_fkey FOREIGN KEY (banner_uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: keyword_translations keyword_translations_keyword_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9459,5 +9480,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dWWPesQg6rPxTmDRUPxsUsqnjOUwXpcaTAca9agXExbfj5m8SZYLNQnSBSD3722
+\unrestrict k7nmk4bLodd9MacQUOeBV0PpE6xJhm5E7mpHuhTG4uKjZ1FQNY9UeiW3WeyTkab
 

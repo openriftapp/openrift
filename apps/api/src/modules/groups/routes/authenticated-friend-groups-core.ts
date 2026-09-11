@@ -226,6 +226,7 @@ export const friendGroupsCoreRouter = {
       ...(isRename ? { previousSlug: ctx.group.slug } : {}),
       name: body.name,
       description: body.description ?? undefined,
+      bannerPosition: body.bannerPosition,
       updatedAt: new Date(),
     });
     if (!patched) {

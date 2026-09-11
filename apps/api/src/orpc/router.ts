@@ -51,6 +51,7 @@ import { adminFormatsRouter } from "../modules/decks/routes/admin-formats.js";
 import { deckFoldersRouter } from "../modules/decks/routes/authenticated-deck-folders.js";
 import { decksRouter } from "../modules/decks/routes/authenticated-decks.js";
 import { publicDecksRouter } from "../modules/decks/routes/public-decks.js";
+import { adminFriendGroupBannersRouter } from "../modules/groups/routes/admin-friend-group-banners.js";
 import { cardTradesRouter } from "../modules/groups/routes/authenticated-card-trades.js";
 import { friendGroupsRouter } from "../modules/groups/routes/authenticated-friend-groups.js";
 import { loansRouter } from "../modules/groups/routes/authenticated-loans.js";
@@ -142,6 +143,7 @@ const apiRouter = {
   adminFeatureFlagsRouter,
   adminFinishesRouter,
   adminFormatsRouter,
+  adminFriendGroupBannersRouter,
   adminGrantsRouter,
   adminIgnoredCandidatesRouter,
   adminIgnoredProductsRouter,

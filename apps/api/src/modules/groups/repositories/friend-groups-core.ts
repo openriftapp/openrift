@@ -1,5 +1,6 @@
 import { TRADED_CARD_TRADE_STATUSES } from "@openrift/shared/card-trade-lifecycle";
 import { TRADE_VOLUME_WINDOW_DAYS } from "@openrift/shared/contracts/friend-groups";
+import { GROUP_BANNER_DEFAULT_POSITION } from "@openrift/shared/group-banner";
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
 import { sql } from "kysely";
 import type { ExpressionBuilder, Kysely } from "kysely";
@@ -8,6 +9,8 @@ import type { Database } from "../../../db/tables.js";
 import type { FriendGroupsTable } from "../../../db/tables/friend-groups.js";
 import type {
   Group,
+  GroupBannerRow,
+  GroupBannerValues,
   GroupUpdate,
   MemberPreviewRow,
   NewGroupValues,
@@ -166,6 +169,91 @@ export function friendGroupRecordsRepo(db: Kysely<Database>) {
         .where("id", "=", id)
         .returningAll()
         .executeTakeFirst();
+    },
+
+    /** @returns The group before the write, so the caller can unlink the file it replaced. */
+    setBanner(
+      id: string,
+      values: GroupBannerValues,
+    ): Promise<{ previous: Group; updated: Group } | undefined> {
+      return db.transaction().execute(async (trx) => {
+        const previous = await trx
+          .selectFrom("friendGroups")
+          .selectAll()
+          .where("id", "=", id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!previous) {
+          return;
+        }
+        const updated = await trx
+          .updateTable("friendGroups")
+          .set({ ...values, updatedAt: new Date() })
+          .where("id", "=", id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        return { previous, updated };
+      });
+    },
+
+    /** @returns The group before the write, so the caller can unlink the file it dropped. */
+    clearBanner(id: string): Promise<{ previous: Group; updated: Group } | undefined> {
+      return db.transaction().execute(async (trx) => {
+        const previous = await trx
+          .selectFrom("friendGroups")
+          .selectAll()
+          .where("id", "=", id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!previous) {
+          return;
+        }
+        const updated = await trx
+          .updateTable("friendGroups")
+          .set({
+            bannerUrl: null,
+            bannerPosition: GROUP_BANNER_DEFAULT_POSITION,
+            bannerUploadedBy: null,
+            bannerUploadedAt: null,
+            updatedAt: new Date(),
+          })
+          .where("id", "=", id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        return { previous, updated };
+      });
+    },
+
+    /** Newest first; the admin moderation list. */
+    async listBanners(): Promise<GroupBannerRow[]> {
+      const rows = await db
+        .selectFrom("friendGroups as g")
+        .leftJoin("users as u", "u.id", "g.bannerUploadedBy")
+        .select((eb) => [
+          "g.id as groupId",
+          "g.slug",
+          "g.name",
+          "g.bannerUrl",
+          "g.bannerPosition",
+          "g.bannerUploadedAt",
+          "u.id as uploaderUserId",
+          "u.name as uploaderName",
+          "u.email as uploaderEmail",
+          eb
+            .selectFrom("friendGroupMembers as m")
+            .select((inner) => inner.cast<number>(inner.fn.countAll(), "integer").as("n"))
+            .whereRef("m.groupId", "=", "g.id")
+            .as("memberCount"),
+        ])
+        .where("g.bannerUrl", "is not", null)
+        .orderBy("g.bannerUploadedAt", "desc")
+        .execute();
+
+      return rows.flatMap((row) =>
+        row.bannerUrl === null
+          ? []
+          : [{ ...row, bannerUrl: row.bannerUrl, memberCount: row.memberCount ?? 0 }],
+      );
     },
 
     /** Owner-only. The trigger on members handles successor promotion. */
