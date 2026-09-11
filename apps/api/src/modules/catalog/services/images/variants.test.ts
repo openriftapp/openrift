@@ -2,6 +2,7 @@
 import { join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
+import { straightenedSize } from "@openrift/shared/scan/unwarp";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,7 +25,6 @@ import {
   generateWebpVariants,
   processAndSave,
   rehostFilesExist,
-  straightenedSize,
 } from "./variants.js";
 
 const realIo = { ...mockIo, sharp };
@@ -284,41 +284,6 @@ describe("ensureOriginalOnDisk", () => {
       status: 400,
       message: "Image has no original to straighten",
     });
-  });
-});
-
-describe("straightenedSize", () => {
-  const rect = (width: number, height: number): ImageQuad => [
-    { x: 0, y: 0 },
-    { x: width, y: 0 },
-    { x: width, y: height },
-    { x: 0, y: height },
-  ];
-
-  it("takes the longer of each pair of opposite edges", () => {
-    const uneven: ImageQuad = [
-      { x: 0, y: 0 },
-      { x: 100, y: 0 },
-      { x: 80, y: 200 },
-      { x: 0, y: 180 },
-    ];
-    expect(straightenedSize(uneven)).toEqual({ width: 144, height: 201 });
-  });
-
-  it("forces the card aspect on the short axis of a portrait quad", () => {
-    expect(straightenedSize(rect(300, 400))).toEqual({ width: 286, height: 400 });
-  });
-
-  it("forces the card aspect on the short axis of a landscape quad", () => {
-    expect(straightenedSize(rect(400, 300))).toEqual({ width: 400, height: 286 });
-  });
-
-  it("caps the longer side and scales the other with it", () => {
-    expect(straightenedSize(rect(3000, 4000))).toEqual({ width: 1718, height: 2400 });
-  });
-
-  it("leaves a quad under the cap alone", () => {
-    expect(straightenedSize(rect(1700, 2400))).toEqual({ width: 1718, height: 2400 });
   });
 });
 

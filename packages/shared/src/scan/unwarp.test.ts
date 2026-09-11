@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Quad, RgbaImage } from "./types";
-import { unwarpCard, unwarpQuad } from "./unwarp";
+import { straightenedSize, unwarpCard, unwarpQuad } from "./unwarp";
 
 function rgba(width: number, height: number, gray: (x: number, y: number) => number): RgbaImage {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -153,5 +153,40 @@ describe("unwarpQuad", () => {
       { x: 2, y: 2 },
     ];
     expect(unwarpQuad(frame, collapsed, 4, 4)).toBeNull();
+  });
+});
+
+describe("straightenedSize", () => {
+  const rect = (width: number, height: number): Quad => [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
+  ];
+
+  it("takes the longer of each pair of opposite edges", () => {
+    const uneven: Quad = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 80, y: 200 },
+      { x: 0, y: 180 },
+    ];
+    expect(straightenedSize(uneven)).toEqual({ width: 144, height: 201 });
+  });
+
+  it("forces the card aspect on the short axis of a portrait quad", () => {
+    expect(straightenedSize(rect(300, 400))).toEqual({ width: 286, height: 400 });
+  });
+
+  it("forces the card aspect on the short axis of a landscape quad", () => {
+    expect(straightenedSize(rect(400, 300))).toEqual({ width: 400, height: 286 });
+  });
+
+  it("caps the longer side and scales the other with it", () => {
+    expect(straightenedSize(rect(3000, 4000))).toEqual({ width: 1718, height: 2400 });
+  });
+
+  it("leaves a quad under the cap alone", () => {
+    expect(straightenedSize(rect(1700, 2400))).toEqual({ width: 1718, height: 2400 });
   });
 });

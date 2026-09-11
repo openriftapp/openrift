@@ -1,5 +1,31 @@
 import { applyHomography, computeHomography } from "./geometry";
-import type { Matrix3, Quad, RgbaImage } from "./types";
+import type { Matrix3, Point, Quad, RgbaImage } from "./types";
+import { CARD_ASPECT } from "./types";
+
+/** Pixels. */
+const MAX_STRAIGHTENED_EDGE = 2400;
+
+function edgeLength(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** Output size a quad straightens to: the longer of each opposite edge pair, forced to the card aspect and capped. */
+export function straightenedSize(quad: Quad): { width: number; height: number } {
+  let width = Math.round(Math.max(edgeLength(quad[0], quad[1]), edgeLength(quad[2], quad[3])));
+  let height = Math.round(Math.max(edgeLength(quad[1], quad[2]), edgeLength(quad[3], quad[0])));
+  if (height >= width) {
+    width = Math.round(height * CARD_ASPECT);
+  } else {
+    height = Math.round(width * CARD_ASPECT);
+  }
+  const longest = Math.max(width, height);
+  if (longest > MAX_STRAIGHTENED_EDGE) {
+    const scale = MAX_STRAIGHTENED_EDGE / longest;
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+  return { width, height };
+}
 
 /**
  * Rectify a detected card into an upright canonical image.

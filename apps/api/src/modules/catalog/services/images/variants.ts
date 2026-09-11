@@ -3,8 +3,7 @@ import { dirname, join } from "node:path";
 
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { CARD_ASPECT } from "@openrift/shared/scan/types";
-import { unwarpQuad } from "@openrift/shared/scan/unwarp";
+import { straightenedSize, unwarpQuad } from "@openrift/shared/scan/unwarp";
 
 import { AppError } from "../../../../errors.js";
 import type { Io } from "../../../../io.js";
@@ -25,30 +24,6 @@ export function isValidVariantSuffix(file: string): boolean {
     return true;
   }
   return SIZES.some((size) => file.endsWith(`-${size.suffix}.webp`));
-}
-
-/** Pixels. */
-const MAX_STRAIGHTENED_EDGE = 2400;
-
-function edgeLength(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.hypot(b.x - a.x, b.y - a.y);
-}
-
-export function straightenedSize(quad: ImageQuad): { width: number; height: number } {
-  let width = Math.round(Math.max(edgeLength(quad[0], quad[1]), edgeLength(quad[2], quad[3])));
-  let height = Math.round(Math.max(edgeLength(quad[1], quad[2]), edgeLength(quad[3], quad[0])));
-  if (height >= width) {
-    width = Math.round(height * CARD_ASPECT);
-  } else {
-    height = Math.round(width * CARD_ASPECT);
-  }
-  const longest = Math.max(width, height);
-  if (longest > MAX_STRAIGHTENED_EDGE) {
-    const scale = MAX_STRAIGHTENED_EDGE / longest;
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
-  }
-  return { width, height };
 }
 
 async function straighten(io: Io, buffer: Buffer, quad: ImageQuad): Promise<Buffer> {

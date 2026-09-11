@@ -1,5 +1,7 @@
 import type { ImageOriginalOutput, ImageQuad } from "@openrift/shared/contracts/admin/card-images";
+import type { Point } from "@openrift/shared/scan/types";
 import { CropIcon } from "lucide-react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,12 +14,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { StraightenLoupe } from "@/features/admin/components/straighten-loupe";
 import {
   useEnsurePrintingImageOriginal,
   useSetPrintingImageQuad,
 } from "@/features/admin/hooks/use-admin-image-mutations";
-import { QUAD_CORNERS, useQuadHandles } from "@/features/admin/hooks/use-quad-handles";
+import {
+  pointerToImagePoint,
+  QUAD_CORNERS,
+  useQuadHandles,
+} from "@/features/admin/hooks/use-quad-handles";
 import { detectQuadInOriginal } from "@/features/admin/lib/straighten-detect";
+import type { PreviewSource } from "@/features/admin/lib/straighten-preview";
+import {
+  drawStraightenedPreview,
+  readPreviewSource,
+} from "@/features/admin/lib/straighten-preview";
 import { clampQuad, defaultQuad, imageToDisplayScale } from "@/features/admin/lib/straighten-quad";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { loadOpenCv } from "@/features/scan/lib/scan-opencv";
@@ -118,7 +130,10 @@ function StraightenDialogBody({
   const [status, setStatus] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [displayWidth, setDisplayWidth] = useState(0);
+  const [pointer, setPointer] = useState<Point | null>(null);
+  const [previewSource, setPreviewSource] = useState<PreviewSource | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const previewRef = useRef<HTMLCanvasElement>(null);
 
   async function detect(source: ImageOriginalOutput): Promise<void> {
     if (opencvUrl === null) {
@@ -154,6 +169,7 @@ function StraightenDialogBody({
         return;
       }
       setStatus(null);
+      setPreviewSource(null);
       setOriginal(result.original);
       if (quad !== null) {
         setCorners(clampQuad(quad, result.original.width, result.original.height));
@@ -177,8 +193,22 @@ function StraightenDialogBody({
     const observer = new ResizeObserver(() => setDisplayWidth(image.getBoundingClientRect().width));
     observer.observe(image);
     setDisplayWidth(image.getBoundingClientRect().width);
+    if (image.complete) {
+      setPreviewSource(readPreviewSource(image));
+    }
     return () => observer.disconnect();
   }, [original]);
+
+  useEffect(() => {
+    const canvas = previewRef.current;
+    if (canvas === null || previewSource === null || corners === null) {
+      return;
+    }
+    const frame = requestAnimationFrame(() =>
+      drawStraightenedPreview(canvas, previewSource, corners),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [previewSource, corners]);
 
   const width = original?.width ?? 1;
   const height = original?.height ?? 1;
@@ -189,6 +219,16 @@ function StraightenDialogBody({
     height,
     onChange: setCorners,
   });
+
+  function trackPointer(event: ReactPointerEvent<SVGSVGElement>): void {
+    const surface = surfaceRef.current;
+    if (surface === null) {
+      return;
+    }
+    setPointer(
+      pointerToImagePoint(event.clientX, event.clientY, surface.getBoundingClientRect(), width),
+    );
+  }
 
   return (
     <DialogForm
@@ -201,7 +241,7 @@ function StraightenDialogBody({
       <DialogHeader>
         <DialogTitle>Straighten image</DialogTitle>
       </DialogHeader>
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center">
         {original !== null && corners !== null && (
           <div className="relative inline-block">
             <img
@@ -210,11 +250,19 @@ function StraightenDialogBody({
               alt="Original scan"
               style={{ imageOrientation: "none" }}
               className="max-h-[60vh] w-auto rounded-md select-none"
+              onLoad={(event) => setPreviewSource(readPreviewSource(event.currentTarget))}
             />
             <svg
               ref={surfaceRef}
               viewBox={`0 0 ${original.width} ${original.height}`}
               className="absolute inset-0 size-full touch-none"
+              onPointerMove={trackPointer}
+              onPointerDown={trackPointer}
+              onPointerLeave={() => {
+                if (draggingCorner === null) {
+                  setPointer(null);
+                }
+              }}
             >
               <polygon
                 points={corners.map((point) => `${point.x},${point.y}`).join(" ")}
@@ -236,6 +284,22 @@ function StraightenDialogBody({
                 />
               ))}
             </svg>
+            {pointer !== null && (
+              <StraightenLoupe
+                url={original.url}
+                point={pointer}
+                quad={corners}
+                width={original.width}
+                height={original.height}
+                displayWidth={displayWidth}
+              />
+            )}
+          </div>
+        )}
+        {original !== null && corners !== null && (
+          <div className="w-36 shrink-0 space-y-1">
+            <p className="text-muted-foreground text-sm">Result</p>
+            <canvas ref={previewRef} className="bg-muted h-auto w-full rounded-md" />
           </div>
         )}
       </div>
