@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import { useMouseHover } from "./use-mouse-hover";
 
-function pointerEvent(pointerType: string): PointerEvent {
-  return { pointerType } as PointerEvent;
+function pointerEvent(pointerType: string, clientX = 0): PointerEvent {
+  return { pointerType, clientX } as PointerEvent;
 }
 
 describe("useMouseHover", () => {
@@ -22,6 +22,16 @@ describe("useMouseHover", () => {
 
     act(() => result.current.hoverProps.onPointerLeave(pointerEvent("mouse")));
     expect(result.current.hovering).toBe(false);
+  });
+
+  it("reports where the pointer entered and forgets it on leave", () => {
+    const { result } = renderHook(() => useMouseHover());
+
+    act(() => result.current.hoverProps.onPointerEnter(pointerEvent("mouse", 640)));
+    expect(result.current.enterX).toBe(640);
+
+    act(() => result.current.hoverProps.onPointerLeave(pointerEvent("mouse", 640)));
+    expect(result.current.enterX).toBeUndefined();
   });
 
   it("ignores a touch enter", () => {

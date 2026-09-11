@@ -196,35 +196,22 @@ describe("resolveMatchRows", () => {
   };
   type ListRow = Parameters<typeof resolveMatchRows>[0][number];
 
-  function resolve(rows: ListRow[], groupNames: ReadonlyMap<string, string> | null) {
-    return resolveMatchRows(rows, {}, {}, [], LABELS, "rift-crew", groupNames);
+  function resolve(rows: ListRow[]) {
+    return resolveMatchRows(rows, {}, {}, [], LABELS, "rift-crew");
   }
 
   function makeListRow(overrides: Partial<ListRow> = {}): ListRow {
     return { ...makeMatch(), groupSlug: undefined, ...overrides } as ListRow;
   }
 
-  it("names the row's own group, not the list's, when they differ", () => {
-    const [row] = resolve(
-      [makeListRow({ groupSlug: "summoner-skirmish" })],
-      new Map([
-        ["rift-crew", "Rift Crew"],
-        ["summoner-skirmish", "Summoner Skirmish"],
-      ]),
-    );
+  it("keeps the row's own group, not the list's, when they differ", () => {
+    const [row] = resolve([makeListRow({ groupSlug: "summoner-skirmish" })]);
     expect(row!.groupSlug).toBe("summoner-skirmish");
-    expect(row!.groupLabel).toBe("Summoner Skirmish");
   });
 
   it("falls back to the list's group for a row that names none", () => {
-    const [row] = resolve([makeListRow()], new Map([["rift-crew", "Rift Crew"]]));
+    const [row] = resolve([makeListRow()]);
     expect(row!.groupSlug).toBe("rift-crew");
-    expect(row!.groupLabel).toBe("Rift Crew");
-  });
-
-  it("leaves rows unlabelled when the list covers a single group", () => {
-    const [row] = resolve([makeListRow({ groupSlug: "summoner-skirmish" })], null);
-    expect(row!.groupLabel).toBeUndefined();
   });
 });
 

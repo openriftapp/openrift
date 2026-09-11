@@ -2,7 +2,6 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { getOrientation } from "@openrift/shared/utils";
 
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
@@ -24,14 +23,11 @@ import {
 export function TradeRow({
   trade,
   sequence,
-  groupLabel,
   redundantStatus,
 }: {
   trade: CardTradeResponse;
   /** The printing ids of the block this row sits in, for the detail's prev/next. */
   sequence?: string[];
-  /** Pass only when the two people share more than one group. */
-  groupLabel?: string;
   /** Suppresses the badge for this one status, since the host's heading already says it. */
   redundantStatus?: TradeBadgeState;
 }) {
@@ -101,13 +97,6 @@ export function TradeRow({
           ) : null}
 
           <TradeExpiry status={trade.status} expiresAt={trade.expiresAt} />
-
-          {groupLabel === undefined ? null : (
-            // Badge clips without an ellipsis, so the label handles its own truncation.
-            <Badge variant="outline" className="min-w-0">
-              <span className="truncate">{groupLabel}</span>
-            </Badge>
-          )}
         </div>
       </div>
 

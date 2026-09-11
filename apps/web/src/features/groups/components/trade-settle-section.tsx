@@ -163,13 +163,7 @@ function CommitSummary({
   );
 }
 
-export function TradeSettleSection({
-  trades,
-  showGroupLabels,
-}: {
-  trades: CardTradeResponse[];
-  showGroupLabels: boolean;
-}) {
+export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   const { cardsById } = useCards();
@@ -331,7 +325,6 @@ export function TradeSettleSection({
               key={trade.id}
               trade={trade}
               sequence={sequence}
-              groupLabel={showGroupLabels ? trade.groupName : undefined}
               redundantStatus="ready-to-swap"
             />
           ))}

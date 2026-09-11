@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-12
+
+### Other
+
+- fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
+
 ## 2026-09-11
 
 ### Highlights

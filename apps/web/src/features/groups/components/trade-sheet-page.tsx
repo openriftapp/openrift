@@ -53,7 +53,6 @@ function LedgerSection({
   icon,
   tone,
   trades,
-  showGroupLabels,
   bulk,
   redundantStatus,
 }: {
@@ -61,7 +60,6 @@ function LedgerSection({
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   tone?: IconChipTone;
   trades: CardTradeResponse[];
-  showGroupLabels: boolean;
   bulk?: ReactNode;
   /** Dropped from rows' own badges when the section heading already says it. */
   redundantStatus?: TradeBadgeState;
@@ -84,7 +82,6 @@ function LedgerSection({
             key={trade.id}
             trade={trade}
             sequence={sequence}
-            groupLabel={showGroupLabels ? trade.groupName : undefined}
             redundantStatus={redundantStatus}
           />
         ))}
@@ -93,13 +90,7 @@ function LedgerSection({
   );
 }
 
-function HistoryFold({
-  trades,
-  showGroupLabels,
-}: {
-  trades: CardTradeResponse[];
-  showGroupLabels: boolean;
-}) {
+function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
   if (trades.length === 0) {
     return null;
   }
@@ -116,12 +107,7 @@ function HistoryFold({
       <CollapsibleContent>
         <div className="flex flex-col gap-2">
           {trades.map((trade) => (
-            <TradeRow
-              key={trade.id}
-              trade={trade}
-              sequence={sequence}
-              groupLabel={showGroupLabels ? trade.groupName : undefined}
-            />
+            <TradeRow key={trade.id} trade={trade} sequence={sequence} />
           ))}
         </div>
       </CollapsibleContent>
@@ -196,12 +182,7 @@ function TradeSheetBody({
   ]) {
     groupKeys.add(tradeGroupKey(trade));
   }
-  const showGroupLabels = groupKeys.size > 1;
-  // Suggestions are always in a live group and key on its slug; trade rows
-  // carry their own group name already.
-  const groupNamesBySlug = showGroupLabels
-    ? new Map(sheet.groups.map((group) => [group.slug, group.name]))
-    : null;
+  const showGroupBadges = groupKeys.size > 1;
   const live = [...ledger.yourMove, ...ledger.readyToSwap, ...ledger.waiting].filter(
     (trade) => trade.status === "pending" || trade.status === "reserved",
   );
@@ -275,7 +256,7 @@ function TradeSheetBody({
             }
           >
             <ContactMethodChips methods={sheet.counterparty.contactMethods} />
-            {showGroupLabels
+            {showGroupBadges
               ? sheet.groups.map((group) => (
                   <Badge key={group.id} variant="outline">
                     {group.name}
@@ -301,17 +282,15 @@ function TradeSheetBody({
               icon={BellIcon}
               tone="gold"
               trades={ledger.yourMove}
-              showGroupLabels={showGroupLabels}
               bulk={<BulkTradeActions trades={ledger.yourMove} mode="accept-decline" />}
               redundantStatus="your-move"
             />
             {ledger.readyToSwap.length > 0 ? (
-              <TradeSettleSection trades={ledger.readyToSwap} showGroupLabels={showGroupLabels} />
+              <TradeSettleSection trades={ledger.readyToSwap} />
             ) : null}
             <LedgerSection
               heading={`Waiting on ${name}`}
               trades={ledger.waiting}
-              showGroupLabels={showGroupLabels}
               redundantStatus="waiting-for-them"
             />
             {incoming.length > 0 || outgoing.length > 0 ? (
@@ -323,14 +302,13 @@ function TradeSheetBody({
                   incoming={incoming}
                   outgoing={outgoing}
                   groupSlug={anchorGroup.slug}
-                  groupNames={groupNamesBySlug}
                 />
               </section>
             ) : null}
           </>
         )}
 
-        <HistoryFold trades={ledger.history} showGroupLabels={showGroupLabels} />
+        <HistoryFold trades={ledger.history} />
       </div>
 
       <TradeCardmarketExportDialog

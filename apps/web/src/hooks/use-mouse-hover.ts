@@ -7,24 +7,27 @@ import { useState } from "react";
  */
 export function useMouseHover(): {
   hovering: boolean;
+  /** Cursor x where the pointer entered; undefined while not hovering. */
+  enterX: number | undefined;
   hoverProps: {
     onPointerEnter: (event: PointerEvent) => void;
     onPointerLeave: (event: PointerEvent) => void;
   };
 } {
-  const [hovering, setHovering] = useState(false);
+  const [enterX, setEnterX] = useState<number | undefined>();
 
   return {
-    hovering,
+    hovering: enterX !== undefined,
+    enterX,
     hoverProps: {
       onPointerEnter: (event: PointerEvent) => {
         if (event.pointerType === "mouse") {
-          setHovering(true);
+          setEnterX(event.clientX);
         }
       },
       onPointerLeave: (event: PointerEvent) => {
         if (event.pointerType === "mouse") {
-          setHovering(false);
+          setEnterX(undefined);
         }
       },
     },

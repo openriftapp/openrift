@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pickDockSide } from "./hovered-card-preview";
+import { pickDockSide } from "./hover-dock";
 
 // A 1200px viewport: midline at 600, deadband edges at 552 and 648.
 const WIDTH = 1200;

@@ -8,10 +8,8 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
@@ -148,7 +146,6 @@ function MatchRowTradeAction({
 
 interface ResolvedMatchRow extends FriendGroupMatchRow {
   groupSlug: string;
-  groupLabel?: string;
   cardSlug: string;
   shortCode: string;
   setIndex: number;
@@ -175,7 +172,6 @@ export function resolveMatchRows(
   sets: ReturnType<typeof useCards>["sets"],
   labels: ReturnType<typeof useEnumOrders>["labels"],
   fallbackGroupSlug: string,
-  groupLabels: ReadonlyMap<string, string> | null,
 ): ResolvedMatchRow[] {
   const setsById = new Map(sets.map((set) => [set.id, set]));
   const setIndexes = setIndexById(sets);
@@ -187,7 +183,6 @@ export function resolveMatchRows(
     return {
       ...row,
       groupSlug,
-      groupLabel: groupLabels?.get(groupSlug),
       cardName: card ? legendDisplayName(card) : row.cardName,
       cardSlug: card?.slug ?? row.cardId,
       shortCode: printing?.shortCode ?? "",
@@ -271,25 +266,6 @@ function MatchSourceLine({
   );
 }
 
-function MatchGroupBadges({ rows }: { rows: readonly ResolvedMatchRow[] }) {
-  const labels = [
-    ...new Set(rows.map((row) => row.groupLabel).filter((label) => label !== undefined)),
-  ];
-  if (labels.length === 0) {
-    return null;
-  }
-  return (
-    <span className="flex min-w-0 flex-wrap items-center gap-1">
-      {labels.map((label) => (
-        // Badge clips overflow; truncate goes on the inner span.
-        <Badge key={label} variant="outline" className="min-w-0">
-          <span className="truncate">{label}</span>
-        </Badge>
-      ))}
-    </span>
-  );
-}
-
 function MatchRow({
   match,
   marketplaceInfos,
@@ -303,7 +279,7 @@ function MatchRow({
   // Mouse-only: iOS Safari synthesizes hover on tap, which would otherwise
   // open this 400px preview over most of the phone screen with no way to dismiss it.
   const rowRef = useRef<HTMLDivElement>(null);
-  const { hovering: previewing, hoverProps } = useMouseHover();
+  const { enterX, hoverProps } = useMouseHover();
   // sellPref is always the seller's side, buyPref the buyer's: the counterparty
   // is the seller when the card comes to the viewer, the buyer when it goes to them.
   const counterpartyPref = incoming ? match.sellPref : match.buyPref;
@@ -347,7 +323,6 @@ function MatchRow({
             listNames={[match.viewerListName]}
             counterpartyListNames={[match.counterpartyListName]}
           />
-          <MatchGroupBadges rows={[match]} />
         </div>
       </div>
 
@@ -368,8 +343,8 @@ function MatchRow({
         <MatchRowTradeAction match={match} liveTrade={liveTrade} />
       </div>
 
-      {previewing && match.printing ? (
-        <PrintingHoverPreview printing={match.printing} anchorRef={rowRef} />
+      {enterX !== undefined && match.printing ? (
+        <PrintingHoverPreview printing={match.printing} anchorRef={rowRef} cursorX={enterX} />
       ) : null}
     </div>
   );
@@ -475,6 +450,7 @@ function MatchTradeRowGroup({
   const expanded = useMatchVariantsFoldStore((state) => state.expanded.has(group.foldId));
   const toggle = useMatchVariantsFoldStore((state) => state.toggle);
   const incoming = group.direction === "incoming";
+  const lead = group.variants[0];
 
   // Cheapest per-copy price across variants, shown as "from X" when they vary.
   // Per-copy, never times the wish quantity: a wish can exceed any one variant's stock.
@@ -501,42 +477,36 @@ function MatchTradeRowGroup({
 
   return (
     <div className="bg-muted/30 overflow-hidden rounded-md border border-dashed">
-      <div className="hover:bg-muted/50 flex flex-col gap-2 p-2 transition-colors sm:flex-row sm:items-center sm:gap-3">
+      {/* The toggle's overlay stretches over the header, so the whole row folds;
+          the copies popover rises above it to keep its own clicks. */}
+      <div className="hover:bg-muted/50 relative flex flex-col gap-2 p-2 transition-colors sm:flex-row sm:items-center sm:gap-3">
         <div className="flex min-w-0 items-center gap-3 sm:contents">
-          {/* Stops at the card name: the counts line below can hold its own
-              control (available-count popover), and nesting buttons is invalid. */}
-          <Pressable
-            onClick={() => toggle(group.foldId)}
-            tabIndex={-1}
-            aria-label={`Toggle ${group.cardName} variants`}
-            className="hover:text-foreground flex shrink-0 items-center gap-3 transition-colors"
-          >
-            <TradeDirectionIcon incoming={incoming} />
+          <TradeDirectionIcon incoming={incoming} />
 
-            <CardArtThumb
-              imageId={group.imageId}
-              alt={group.cardName}
-              domains={group.domains}
-              className="w-10"
-              loading="lazy"
-            />
-          </Pressable>
+          <CardArtThumb
+            shape="strip"
+            imageId={group.imageId}
+            alt={group.cardName}
+            landscape={
+              lead.printing ? getOrientation(lead.printing.card.types) === "landscape" : false
+            }
+            rarity={lead.rarity}
+            domains={group.domains}
+            className="h-10"
+            loading="lazy"
+          />
 
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <Pressable
-              onClick={() => toggle(group.foldId)}
-              tabIndex={-1}
-              className="hover:text-foreground max-w-full self-start truncate font-medium transition-colors"
-            >
-              {group.cardName}
-            </Pressable>
+            <span className="max-w-full self-start truncate font-medium">{group.cardName}</span>
             <span className="text-muted-foreground text-xs">
               {group.variants.length} variants · {group.buyQuantity} wanted ·{" "}
               {group.direction === "outgoing" ? (
-                <AvailableCopiesPopover
-                  cardId={group.cardId}
-                  availableCount={group.totalAvailable}
-                />
+                <span className="relative z-10">
+                  <AvailableCopiesPopover
+                    cardId={group.cardId}
+                    availableCount={group.totalAvailable}
+                  />
+                </span>
               ) : (
                 <>{group.totalAvailable} available</>
               )}
@@ -555,7 +525,6 @@ function MatchTradeRowGroup({
               listNames={group.variants.map((variant) => variant.viewerListName)}
               counterpartyListNames={group.variants.map((variant) => variant.counterpartyListName)}
             />
-            <MatchGroupBadges rows={group.variants} />
           </span>
 
           <ExpandToggle
@@ -564,7 +533,7 @@ function MatchTradeRowGroup({
             aria-label={
               expanded ? `Collapse ${group.cardName} variants` : `Expand ${group.cardName} variants`
             }
-            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors sm:order-last"
+            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors before:absolute before:inset-0 before:content-[''] sm:order-last"
             chevronClassName="text-inherit"
           />
         </div>
@@ -628,7 +597,6 @@ interface MatchTradeListProps {
   incoming: MatchTradeListRow[];
   outgoing: MatchTradeListRow[];
   groupSlug: string;
-  groupNames?: ReadonlyMap<string, string> | null;
 }
 
 function isBulkRequestable(group: MatchTradeGroup): boolean {
@@ -668,12 +636,7 @@ function BulkRequestRow({ groups }: { groups: MatchTradeGroup[] }) {
   );
 }
 
-export function MatchTradeList({
-  incoming,
-  outgoing,
-  groupSlug,
-  groupNames = null,
-}: MatchTradeListProps) {
+export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
   const { cardsById, printingsById, sets } = useCards();
   const { labels } = useEnumOrders();
   const { data: userTrades } = useUserTrades();
@@ -704,10 +667,10 @@ export function MatchTradeList({
   const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
 
   const incomingRows = aggregateMatches(
-    resolveMatchRows(incoming, cardsById, printingsById, sets, labels, groupSlug, groupNames),
+    resolveMatchRows(incoming, cardsById, printingsById, sets, labels, groupSlug),
   ).map((match): DirectedMatch => ({ ...match, direction: "incoming" }));
   const outgoingRows = aggregateMatches(
-    resolveMatchRows(outgoing, cardsById, printingsById, sets, labels, groupSlug, groupNames),
+    resolveMatchRows(outgoing, cardsById, printingsById, sets, labels, groupSlug),
   ).map((match): DirectedMatch => ({ ...match, direction: "outgoing" }));
   const groups = groupTradeMatches([...incomingRows, ...outgoingRows]).toSorted(
     compareMatchTradeGroups,
