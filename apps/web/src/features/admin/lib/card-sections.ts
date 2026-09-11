@@ -1,4 +1,4 @@
-export const CARD_SECTIONS = [
+const CARD_SECTIONS = [
   "overview",
   "attention",
   "fields",

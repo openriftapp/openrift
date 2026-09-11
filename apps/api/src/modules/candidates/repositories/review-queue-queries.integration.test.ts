@@ -65,6 +65,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
     provider: string;
     name: string;
     externalId: string;
+    shortCode?: string;
     createdAt?: Date;
     checkedAt?: Date | null;
     submittedByUserId?: string;
@@ -119,6 +120,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
           provider: PLAIN,
           name: "RQ Fifty Shared",
           externalId: "rq50-plain-a",
+          shortCode: "RQ50-001",
           createdAt: OLDEST,
         }),
         candidateCard({
@@ -126,6 +128,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
           provider: PLAIN,
           name: "RQ Fifty Shared",
           externalId: "rq50-plain-b",
+          shortCode: "RQ50-002",
           createdAt: NEWER,
         }),
         candidateCard({
@@ -152,6 +155,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
           provider: CONTRIBUTOR,
           name: "RQ Fifty Pending",
           externalId: "rq50-sub-pending",
+          shortCode: "RQ50-003",
           submittedByUserId: user.id,
         }),
         candidateCard({
@@ -159,6 +163,7 @@ describe.skipIf(!ctx)("review queue queries (integration)", () => {
           provider: CONTRIBUTOR,
           name: "RQ Fifty Pending",
           externalId: "rq50-sub-settled",
+          shortCode: "RQ50-004",
           submittedByUserId: user.id,
         }),
       ])
