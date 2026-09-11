@@ -39,6 +39,7 @@ const ACTION_SENTENCES: Record<string, string> = {
   "candidate-printing.patch": "Edited an incoming row",
   "candidate-printing.relink": "Relinked incoming rows",
   "candidate-printing.unignore": "Stopped ignoring an incoming row",
+  "candidate-printing.unpin": "Removed a pinned link to a printing",
   "candidates.upload": "Uploaded fresh data from a source",
   "card-submission.accept": "Accepted a contributor submission",
   "card-submission.create-card": "Created the card from a contributor submission",

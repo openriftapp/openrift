@@ -252,18 +252,21 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   deleteByProvider: os.deleteByProvider.handler(async ({ input, context }) => {
-    const { candidateCards } = context.repos;
-    const provider = input.provider;
-    if (!provider.trim()) {
+    const provider = input.provider.trim();
+    if (!provider) {
       throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Provider name is required");
     }
-    const deleted = await candidateCards.deleteByProvider(provider.trim());
+    const deleted = await context.transact(async (repos) => {
+      const count = await repos.candidateCards.deleteByProvider(provider);
+      await repos.providerSettings.remove(provider);
+      return count;
+    });
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "provider.delete-candidates",
       entityType: "provider",
-      entityId: provider.trim(),
-      entityLabel: provider.trim(),
+      entityId: provider,
+      entityLabel: provider,
       newValues: { deleted },
     });
 

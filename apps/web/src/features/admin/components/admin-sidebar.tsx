@@ -65,7 +65,7 @@ const catalogPages = [
   { to: "/admin/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
   { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
   { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
-  { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Ignored Sources" },
+  { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Review Decisions" },
   { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
 ];
 

@@ -15,6 +15,11 @@ const mockRepo = {
   unignorePrinting: vi.fn(),
 };
 
+const mockCandidateCards = {
+  listPrintingLinkOverrides: vi.fn(async (): Promise<unknown[]> => []),
+  deletePrintingLinkOverride: vi.fn(),
+};
+
 const mockAdminEvents = { insert: vi.fn() };
 
 // Returning null is the scraped-provider case: no ledger row, so the
@@ -32,6 +37,7 @@ app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", {
     ignoredCandidates: mockRepo,
+    candidateCards: mockCandidateCards,
     adminEvents: mockAdminEvents,
     cardSubmissions: mockCardSubmissions,
   } as never);
@@ -68,6 +74,17 @@ const dbIgnoredPrintingNullFinish = {
   provider: "cardmarket",
   externalId: "99999",
   finish: null,
+  createdAt: now,
+};
+
+const dbPrintingLink = {
+  provider: "playloltcg",
+  externalId: "VEN·R06b:foil",
+  finish: "foil",
+  printingId: "a0000000-0001-4000-a000-000000000030",
+  shortCode: "VEN-R06b",
+  cardSlug: "vengeful-spirit",
+  cardName: "Vengeful Spirit",
   createdAt: now,
 };
 
@@ -118,11 +135,44 @@ describe("GET /api/admin/v1/ignored-candidates", () => {
   it("returns empty arrays when nothing is ignored", async () => {
     mockRepo.listIgnoredCards.mockResolvedValue([]);
     mockRepo.listIgnoredPrintings.mockResolvedValue([]);
+    mockCandidateCards.listPrintingLinkOverrides.mockResolvedValue([]);
     const res = await app.request("/api/admin/v1/ignored-candidates");
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.cards).toEqual([]);
     expect(json.printings).toEqual([]);
+    expect(json.printingLinks).toEqual([]);
+  });
+
+  it("returns the pinned printing links with their card", async () => {
+    mockRepo.listIgnoredCards.mockResolvedValue([]);
+    mockRepo.listIgnoredPrintings.mockResolvedValue([]);
+    mockCandidateCards.listPrintingLinkOverrides.mockResolvedValue([dbPrintingLink]);
+    const res = await app.request("/api/admin/v1/ignored-candidates");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.printingLinks).toEqual([{ ...dbPrintingLink, createdAt: now.toISOString() }]);
+  });
+});
+
+describe("DELETE /api/admin/v1/ignored-candidates/printing-links", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns 204 and drops the override, wildcard provider included", async () => {
+    mockCandidateCards.deletePrintingLinkOverride.mockResolvedValue(undefined);
+    const res = await app.request("/api/admin/v1/ignored-candidates/printing-links", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "", externalId: "OGN-197b", finish: "" }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockCandidateCards.deletePrintingLinkOverride).toHaveBeenCalledWith({
+      provider: "",
+      externalId: "OGN-197b",
+      finish: "",
+    });
   });
 });
 

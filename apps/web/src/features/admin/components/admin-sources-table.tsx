@@ -204,8 +204,8 @@ export function AdminSourcesTable({ sources }: { sources: readonly CatalogSource
         canDelete: (row) => !isContributors(row),
         onDelete: (row) => deleteProvider.mutateAsync(row.provider),
         confirm: (row) => ({
-          title: `Delete every row from “${row.provider}”?`,
-          description: `This permanently removes the ${row.rows} cards and ${row.printingRows} printings stored for “${row.provider}”. This cannot be undone.`,
+          title: `Delete the source “${row.provider}”?`,
+          description: `This permanently removes the source and the ${row.rows} cards and ${row.printingRows} printings stored for it. This cannot be undone.`,
         }),
       }}
       actions={<CheckAllAction />}

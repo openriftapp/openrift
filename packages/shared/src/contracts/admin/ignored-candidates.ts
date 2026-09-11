@@ -22,6 +22,23 @@ const ignoredPrintingSchema = z.object({
   createdAt: isoDateTime,
 });
 
+const printingLinkSchema = z.object({
+  provider: z.string(),
+  externalId: z.string(),
+  finish: z.string(),
+  printingId: z.string(),
+  shortCode: z.string(),
+  cardSlug: z.string(),
+  cardName: z.string(),
+  createdAt: isoDateTime,
+});
+
+const printingLinkKey = z.object({
+  provider: z.string(),
+  externalId: z.string().min(1),
+  finish: z.string(),
+});
+
 const cardInput = z.object({
   provider: z.string().min(1),
   externalId: z.string().min(1),
@@ -41,7 +58,7 @@ const unignorePrintingInput = z.object({
 
 /**
  * Admin ignored-candidates controls, mounted under
- * `/api/admin/v1/ignored-candidates`. The unignore DELETEs carry a body
+ * `/api/admin/v1/ignored-candidates`. The DELETEs carry a body
  * (compact mode reads it; only query params are dropped).
  */
 export const adminIgnoredCandidatesContract = {
@@ -49,6 +66,7 @@ export const adminIgnoredCandidatesContract = {
     z.object({
       cards: z.array(ignoredCardSchema),
       printings: z.array(ignoredPrintingSchema),
+      printingLinks: z.array(printingLinkSchema),
     }),
   ),
   ignoreCard: authedRoute
@@ -63,10 +81,14 @@ export const adminIgnoredCandidatesContract = {
   unignorePrinting: authedRoute
     .route({ method: "DELETE", path: `${IC}/printings`, tags: [TAG], successStatus: 204 })
     .input(unignorePrintingInput),
+  deletePrintingLink: authedRoute
+    .route({ method: "DELETE", path: `${IC}/printing-links`, tags: [TAG], successStatus: 204 })
+    .input(printingLinkKey),
 };
 
 export type AdminIgnoredCandidatesContract = typeof adminIgnoredCandidatesContract;
 export interface IgnoredCandidatesResponse {
   cards: z.infer<typeof ignoredCardSchema>[];
   printings: z.infer<typeof ignoredPrintingSchema>[];
+  printingLinks: z.infer<typeof printingLinkSchema>[];
 }

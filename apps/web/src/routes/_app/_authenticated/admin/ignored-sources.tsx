@@ -6,7 +6,7 @@ import { ignoredCandidatesQueryOptions } from "@/features/admin/hooks/use-ignore
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/ignored-sources")({
-  head: () => adminSeoHead("Ignored Sources"),
+  head: () => adminSeoHead("Review Decisions"),
   loader: ({ context }) =>
     context.queryClient.query({ ...ignoredCandidatesQueryOptions, staleTime: "static" }),
   pendingComponent: AdminPending,

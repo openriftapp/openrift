@@ -372,6 +372,22 @@ describe("candidateCardsRepo", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("listPrintingLinkOverrides returns overrides", async () => {
+    const db = createMockDb([{ provider: "gallery", externalId: "ext-1", finish: "foil" }]);
+    expect(await candidateCardsRepo(db).listPrintingLinkOverrides()).toHaveLength(1);
+  });
+
+  it("deletePrintingLinkOverride deletes one override", async () => {
+    const db = createMockDb([]);
+    await expect(
+      candidateCardsRepo(db).deletePrintingLinkOverride({
+        provider: "",
+        externalId: "ext-1",
+        finish: "",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("unlinkCandidatePrintingsByPrintingId unlinks", async () => {
     const db = createMockDb([]);
     await expect(

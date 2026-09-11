@@ -80,14 +80,6 @@ const mockTrxMut = {
 const mockImportErrata = vi.fn();
 const mockIngestCandidates = vi.fn();
 const mockIo = { fetch: vi.fn() };
-const mockTransact = vi.fn(
-  async (
-    cb: (repos: {
-      catalogMutations: typeof mockTrxMut;
-      printingImages: object;
-    }) => Promise<unknown>,
-  ) => cb({ catalogMutations: mockTrxMut, printingImages: {} }),
-);
 const mockSets = { getBySlug: vi.fn() };
 const mockRefreshCatalogViews = vi.fn();
 const mockCandidateCards = {
@@ -109,6 +101,20 @@ const mockCandidateCards = {
   reviewStateForCandidates: vi.fn(async () => new Map()),
   proposalForCandidate: vi.fn(async () => null),
 };
+
+const mockProviderSettings = {
+  favoriteProviders: vi.fn(async () => new Set(["gallery"])),
+  remove: vi.fn(),
+};
+const trxRepos = () => ({
+  catalogMutations: mockTrxMut,
+  printingImages: {} as object,
+  candidateCards: mockCandidateCards,
+  providerSettings: mockProviderSettings,
+});
+const mockTransact = vi.fn(async (cb: (repos: ReturnType<typeof trxRepos>) => Promise<unknown>) =>
+  cb(trxRepos()),
+);
 
 // The check verbs settle any user submission on the candidates they touched.
 // No pending rows here, so resolution no-ops for these tests.
@@ -141,7 +147,7 @@ app.use("*", async (c, next) => {
     cardSubmissions: mockCardSubmissions,
     printingImages: {},
     markers: { listBySlugs: vi.fn(async () => []), setForPrinting: vi.fn() },
-    providerSettings: { favoriteProviders: vi.fn().mockResolvedValue(new Set(["gallery"])) },
+    providerSettings: mockProviderSettings,
     catalog: {
       refreshCatalogViews: mockRefreshCatalogViews,
       refreshCanonicalRank: vi.fn(),
@@ -664,6 +670,17 @@ describe("DELETE /cards/by-provider/:provider", () => {
     expect(mockCandidateCards.deleteByProvider).toHaveBeenCalledWith("tcgplayer");
   });
 
+  it("drops the provider settings row so the source leaves the list", async () => {
+    mockCandidateCards.deleteByProvider.mockResolvedValue(0);
+
+    const res = await app.request("/api/admin/v1/cards/by-provider/skeleton-fr", {
+      method: "DELETE",
+    });
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ provider: "skeleton-fr", deleted: 0 });
+    expect(mockProviderSettings.remove).toHaveBeenCalledWith("skeleton-fr");
+  });
+
   it("returns 400 when provider is empty (decoded blank)", async () => {
     const res = await app.request("/api/admin/v1/cards/by-provider/%20", { method: "DELETE" });
     expect(res.status).toBe(400);
@@ -1005,9 +1022,7 @@ describe("POST /cards/printing/:printingId/accept-field", () => {
 describe("POST /cards/new/:name/accept", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockTransact.mockImplementation(async (cb) =>
-      cb({ catalogMutations: mockTrxMut, printingImages: {} }),
-    );
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
   it("returns 204 on successful accept (name path param decoded)", async () => {
@@ -1065,9 +1080,7 @@ describe("POST /cards/new/:name/accept-favorites", () => {
 describe("POST /cards/new/:name/link", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockTransact.mockImplementation(async (cb) =>
-      cb({ catalogMutations: mockTrxMut, printingImages: {} }),
-    );
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
   it("returns 204 on successful link", async () => {
@@ -1192,9 +1205,7 @@ describe("POST /cards/:cardSlug/accept-favorite-printings", () => {
 describe("POST /cards/create", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockTransact.mockImplementation(async (cb) =>
-      cb({ catalogMutations: mockTrxMut, printingImages: {} }),
-    );
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
   it("creates a card and returns its slug", async () => {
@@ -1330,9 +1341,7 @@ describe("POST /cards/upload", () => {
 describe("audit events", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockTransact.mockImplementation(async (cb) =>
-      cb({ catalogMutations: mockTrxMut, printingImages: {} }),
-    );
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
   });
 
   it("accept-field on a card records old and new value", async () => {

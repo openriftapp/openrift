@@ -13,11 +13,12 @@ const os = implement(adminIgnoredCandidatesContract).$context<ApiContext>().use(
 
 export const adminIgnoredCandidatesRouter = {
   list: os.list.handler(async ({ context }) => {
-    const { ignoredCandidates } = context.repos;
+    const { ignoredCandidates, candidateCards } = context.repos;
 
-    const [cards, printings] = await Promise.all([
+    const [cards, printings, printingLinks] = await Promise.all([
       ignoredCandidates.listIgnoredCards(),
       ignoredCandidates.listIgnoredPrintings(),
+      candidateCards.listPrintingLinkOverrides(),
     ]);
 
     return {
@@ -32,6 +33,10 @@ export const adminIgnoredCandidatesRouter = {
         provider: r.provider,
         externalId: r.externalId,
         finish: r.finish,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      printingLinks: printingLinks.map((r) => ({
+        ...r,
         createdAt: r.createdAt.toISOString(),
       })),
     };
@@ -99,6 +104,18 @@ export const adminIgnoredCandidatesRouter = {
       action: "candidate-printing.unignore",
       entityType: "candidate-printing",
       entityId: `${provider}:${externalId}`,
+      oldValues: { provider, externalId, finish },
+    });
+  }),
+
+  deletePrintingLink: os.deletePrintingLink.handler(async ({ input, context }): Promise<void> => {
+    const { provider, externalId, finish } = input;
+    await context.repos.candidateCards.deletePrintingLinkOverride({ provider, externalId, finish });
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "candidate-printing.unpin",
+      entityType: "candidate-printing",
+      entityId: `${provider}:${externalId}:${finish}`,
       oldValues: { provider, externalId, finish },
     });
   }),

@@ -18,6 +18,12 @@ describe("providerSettingsRepo", () => {
     await expect(repo.reorder(["tcgplayer", "cardmarket"])).resolves.toBeUndefined();
   });
 
+  it("remove deletes the row", async () => {
+    const db = createMockDb([]);
+    const repo = providerSettingsRepo(db);
+    await expect(repo.remove("tcgplayer")).resolves.toBeUndefined();
+  });
+
   it("upsert returns the upserted row", async () => {
     const db = createMockDb([ROW]);
     const repo = providerSettingsRepo(db);

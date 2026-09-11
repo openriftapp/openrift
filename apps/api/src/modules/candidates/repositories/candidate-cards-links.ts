@@ -98,6 +98,49 @@ export function candidatePrintingLinksRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    listPrintingLinkOverrides(): Promise<
+      {
+        provider: string;
+        externalId: string;
+        finish: string;
+        printingId: string;
+        shortCode: string;
+        cardSlug: string;
+        cardName: string;
+        createdAt: Date;
+      }[]
+    > {
+      return db
+        .selectFrom("printingLinkOverrides as plo")
+        .innerJoin("printings as p", "p.id", "plo.printingId")
+        .innerJoin("cards as c", "c.id", "p.cardId")
+        .select([
+          "plo.provider",
+          "plo.externalId",
+          "plo.finish",
+          "plo.printingId",
+          "p.shortCode",
+          "c.slug as cardSlug",
+          "c.name as cardName",
+          "plo.createdAt",
+        ])
+        .orderBy("plo.createdAt", "desc")
+        .execute();
+    },
+
+    async deletePrintingLinkOverride(key: {
+      provider: string;
+      externalId: string;
+      finish: string;
+    }): Promise<void> {
+      await db
+        .deleteFrom("printingLinkOverrides")
+        .where("provider", "=", key.provider)
+        .where("externalId", "=", key.externalId)
+        .where("finish", "=", key.finish)
+        .execute();
+    },
+
     async deletePrintingLinkOverridesById(printingId: string): Promise<void> {
       await db.deleteFrom("printingLinkOverrides").where("printingId", "=", printingId).execute();
     },

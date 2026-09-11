@@ -63,6 +63,10 @@ export function providerSettingsRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
     },
 
+    async remove(provider: string): Promise<void> {
+      await db.deleteFrom("providerSettings").where("provider", "=", provider).execute();
+    },
+
     async favoriteProviders(): Promise<Set<string>> {
       const rows = await db
         .selectFrom("providerSettings")

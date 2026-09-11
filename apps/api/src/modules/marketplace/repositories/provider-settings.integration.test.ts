@@ -48,6 +48,16 @@ describe.skipIf(!ctx)("providerSettingsRepo (integration)", () => {
     expect(ourProviders.length).toBeGreaterThanOrEqual(2);
   });
 
+  it("remove deletes the settings row", async () => {
+    await repo.upsert("test-remove-35", { sortOrder: 200 });
+    createdProviders.push("test-remove-35");
+
+    await repo.remove("test-remove-35");
+
+    const list = await repo.listAll();
+    expect(list.find((p) => p.provider === "test-remove-35")).toBeUndefined();
+  });
+
   it("reorder updates sort orders in sequence", async () => {
     await repo.upsert("test-reorder-a-35", { sortOrder: 100 });
     createdProviders.push("test-reorder-a-35");

@@ -105,3 +105,22 @@ export function useUnignoreCandidatePrinting() {
     },
   });
 }
+
+const deletePrintingLinkFn = createServerFn({ method: "POST" })
+  .validator((input: { provider: string; externalId: string; finish: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).deletePrintingLink(data);
+  });
+
+export function useDeletePrintingLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { provider: string; externalId: string; finish: string }) =>
+      deletePrintingLinkFn({ data: params }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+    },
+  });
+}

@@ -32,12 +32,18 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
 
   const PROVIDER = "test-cc-34";
 
+  const OVERRIDE_EXTERNAL_ID = "ext-cc-34-pin";
+
   afterAll(async () => {
     await db
       .deleteFrom("candidatePrintings")
       .where("id", "in", [CP_ID_1, CP_ID_2, CP_ID_3, CP_ID_4, CP_ID_5, CP_ID_6])
       .execute();
     await db.deleteFrom("candidateCards").where("id", "in", [CC_ID_1, CC_ID_2, CC_ID_3]).execute();
+    await db
+      .deleteFrom("printingLinkOverrides")
+      .where("externalId", "=", OVERRIDE_EXTERNAL_ID)
+      .execute();
   });
 
   // Insert test data — runs before each describe block because vitest runs
@@ -447,5 +453,46 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
     expect(result[0]).toHaveProperty("imageId");
     expect(result[0]).toHaveProperty("rehostedUrl");
     expect(result[0]).toHaveProperty("originalUrl");
+  });
+
+  it("listPrintingLinkOverrides names the pinned printing and its card", async () => {
+    await db
+      .insertInto("printingLinkOverrides")
+      .values({
+        provider: PROVIDER,
+        externalId: OVERRIDE_EXTERNAL_ID,
+        finish: "foil",
+        printingId: SEED_PRINTING_ANNIE_ID,
+      })
+      .execute();
+
+    const rows = await repo.listPrintingLinkOverrides();
+    const row = rows.find((r) => r.externalId === OVERRIDE_EXTERNAL_ID);
+    expect(row).toMatchObject({
+      provider: PROVIDER,
+      finish: "foil",
+      printingId: SEED_PRINTING_ANNIE_ID,
+      shortCode: "OGS-001",
+      cardSlug: CARD_FURY_UNIT.slug,
+      cardName: CARD_FURY_UNIT.name,
+    });
+  });
+
+  it("deletePrintingLinkOverride drops exactly the keyed row", async () => {
+    await repo.deletePrintingLinkOverride({
+      provider: PROVIDER,
+      externalId: OVERRIDE_EXTERNAL_ID,
+      finish: "normal",
+    });
+    let rows = await repo.listPrintingLinkOverrides();
+    expect(rows.some((r) => r.externalId === OVERRIDE_EXTERNAL_ID)).toBe(true);
+
+    await repo.deletePrintingLinkOverride({
+      provider: PROVIDER,
+      externalId: OVERRIDE_EXTERNAL_ID,
+      finish: "foil",
+    });
+    rows = await repo.listPrintingLinkOverrides();
+    expect(rows.some((r) => r.externalId === OVERRIDE_EXTERNAL_ID)).toBe(false);
   });
 });
