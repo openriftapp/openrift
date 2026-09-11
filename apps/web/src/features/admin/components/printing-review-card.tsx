@@ -239,10 +239,8 @@ export function PrintingReviewCard({
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
               <PrintingIdLabel label={printingLabel} language={printing.language} />
-              {!activeImage && (
-                <Badge variant="destructive">
-                  {printing.fallbackArtMode === "pinned" ? "substitute image" : "no image"}
-                </Badge>
+              {!activeImage && printing.fallbackArtMode === "pinned" && (
+                <Badge variant="destructive">substitute image</Badge>
               )}
             </span>
             <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 font-normal">

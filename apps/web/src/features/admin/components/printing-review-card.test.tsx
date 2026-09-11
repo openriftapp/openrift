@@ -238,16 +238,11 @@ describe("PrintingReviewCard", () => {
     expect(captured.switcher?.images?.map((i) => i.id)).toEqual(["img1"]);
   });
 
-  it("warns when the printing has no active image", () => {
-    const { getByText } = renderCard({ printingImages: [stubImage({ isActive: false })] });
-
-    expect(getByText("no image")).toBeTruthy();
-  });
-
-  it("drops the warning once an image is active", () => {
-    const { queryByText } = renderCard({ printingImages: [stubImage()] });
+  it("shows no badge when the printing has no active image and no substitute", () => {
+    const { queryByText } = renderCard({ printingImages: [stubImage({ isActive: false })] });
 
     expect(queryByText("no image")).toBeNull();
+    expect(queryByText("substitute image")).toBeNull();
   });
 
   it("marks a pinned substitute instead of warning", () => {

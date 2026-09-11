@@ -91,7 +91,6 @@ function PrintingTile({
         )}
         <span className="truncate">{idParts(printing, labels)}</span>
       </span>
-      {image === undefined && <Badge variant="destructive">No image</Badge>}
     </Pressable>
   );
 }
