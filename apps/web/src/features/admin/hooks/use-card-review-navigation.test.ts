@@ -225,6 +225,20 @@ describe("useCardReviewNavigation", () => {
     });
   });
 
+  it("keeps the open section when stepping to another card", () => {
+    const { result } = renderNav({ section: "printings" });
+
+    act(() => {
+      result.current.goToCard("zed");
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/admin/cards/$cardSlug",
+      params: { cardSlug: "zed" },
+      search: { section: "printings" },
+    });
+  });
+
   it("visits only cards with new printings while that filter is on", () => {
     mocks.cardList = [
       { cardSlug: "ahri", unlinkedPrintingCount: 0 },

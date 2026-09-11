@@ -151,6 +151,7 @@ export function ExistingCardDetailPage({
     setSlug,
     listStatus,
     priceScope,
+    section,
     isAdmin,
     invalidates: invalidateScope,
   });

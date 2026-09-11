@@ -22,6 +22,7 @@ import { useUnifiedMappingsWhen } from "@/features/admin/hooks/use-unified-mappi
 import { selectAdminCardPrevNext } from "@/features/admin/lib/admin-card-nav";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import type { CardSection } from "@/features/admin/lib/card-sections";
 import {
   ALL_ASSIGNABLE_SCOPE,
   buildPriceAssignBucketsBySlug,
@@ -89,6 +90,7 @@ interface UseCardReviewNavigationOptions {
   setSlug?: string;
   listStatus?: AdminCardListStatus;
   priceScope?: string;
+  section?: CardSection;
   isAdmin: boolean;
   invalidates: readonly (readonly unknown[])[];
 }
@@ -103,6 +105,7 @@ export function useCardReviewNavigation({
   setSlug,
   listStatus,
   priceScope,
+  section,
   isAdmin,
   invalidates,
 }: UseCardReviewNavigationOptions) {
@@ -155,7 +158,11 @@ export function useCardReviewNavigation({
   };
 
   function goToCard(cardSlug: string) {
-    void navigate({ to: "/admin/cards/$cardSlug", params: { cardSlug }, search: navSearch });
+    void navigate({
+      to: "/admin/cards/$cardSlug",
+      params: { cardSlug },
+      search: { ...navSearch, ...(section ? { section } : {}) },
+    });
   }
 
   function goToList() {
