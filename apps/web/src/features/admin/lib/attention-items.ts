@@ -1,3 +1,9 @@
+import {
+  COMPARABLE_CARD_FIELDS,
+  COMPARABLE_PRINTING_FIELDS,
+  hasFieldValue,
+  sameFieldValue,
+} from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
@@ -11,12 +17,8 @@ import type {
 
 import {
   CARD_FIELD_LABELS,
-  COMPARABLE_CARD_FIELDS,
-  COMPARABLE_PRINTING_FIELDS,
   DIFFED_FIELDS,
-  hasFieldValue,
   PRINTING_FIELD_LABELS,
-  sameFieldValue,
 } from "@/features/admin/lib/catalog-field-labels";
 import { summarizeCandidatePrinting } from "@/features/admin/lib/printing-fields";
 

@@ -5,6 +5,7 @@ import { candidateCatalogListRepo } from "./candidate-cards-catalog-list.js";
 import { candidateCardDetailRepo } from "./candidate-cards-detail.js";
 import { candidateExportRepo } from "./candidate-cards-export.js";
 import { candidatePrintingLinksRepo } from "./candidate-cards-links.js";
+import { candidateMatchingRepo } from "./candidate-cards-matching.js";
 import { candidateReviewRepo } from "./candidate-cards-review.js";
 import { candidateSourceListRepo } from "./candidate-cards-source-list.js";
 import { candidateCardWritesRepo } from "./candidate-cards-writes.js";
@@ -23,5 +24,6 @@ export function candidateCardsRepo(db: Kysely<Database>) {
     ...candidateReviewRepo(db),
     ...candidateCardWritesRepo(db),
     ...candidatePrintingLinksRepo(db),
+    ...candidateMatchingRepo(db),
   };
 }

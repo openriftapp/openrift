@@ -7,6 +7,7 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
+import { checkMatchingCandidates } from "../../candidates/services/check-matching-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import {
   acceptPrinting,
@@ -29,6 +30,9 @@ vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
 vi.mock("../../candidates/services/relink-candidates.js", () => ({
   relinkCandidatePrintings: vi.fn(),
 }));
+vi.mock("../../candidates/services/check-matching-candidates.js", () => ({
+  checkMatchingCandidates: vi.fn(),
+}));
 
 vi.mock("@openrift/shared/fix-typography", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -42,6 +46,7 @@ const mockAcceptPrinting = vi.mocked(acceptPrinting);
 const mockAcceptFavoriteNewCard = vi.mocked(acceptFavoriteNewCard);
 const mockAcceptFavoritePrintingsForCard = vi.mocked(acceptFavoritePrintingsForCard);
 const mockRelinkCandidatePrintings = vi.mocked(relinkCandidatePrintings);
+const mockCheckMatchingCandidates = vi.mocked(checkMatchingCandidates);
 const mockFixTypography = vi.mocked(fixTypography);
 const mockAppendSetTotal = vi.mocked(appendSetTotal);
 
@@ -1170,6 +1175,22 @@ describe("POST /cards/candidate-printings/relink", () => {
     });
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ examined: 10, linked: 4 });
+  });
+});
+
+describe("POST /cards/candidates/check-matching", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns the check result", async () => {
+    mockCheckMatchingCandidates.mockResolvedValue({ cardsChecked: 3, printingsChecked: 7 });
+
+    const res = await app.request("/api/admin/v1/cards/candidates/check-matching", {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ cardsChecked: 3, printingsChecked: 7 });
   });
 });
 

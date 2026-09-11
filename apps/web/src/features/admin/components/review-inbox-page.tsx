@@ -10,6 +10,9 @@ import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { useReviewQueue } from "@/features/admin/hooks/use-catalog-review";
+import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
+import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
+import type { CardSection } from "@/features/admin/lib/card-sections";
 import type { ReviewFilter } from "@/features/admin/lib/review-queue";
 import {
   countReviewKinds,
@@ -27,13 +30,21 @@ import {
 const routeApi = getRouteApi("/_app/_authenticated/admin/review");
 
 type OpenTarget =
-  | { to: "/admin/cards/$cardSlug"; params: { cardSlug: string } }
+  | {
+      to: "/admin/cards/$cardSlug";
+      params: { cardSlug: string };
+      search: { section: CardSection };
+    }
   | { to: "/admin/cards/new/$name"; params: { name: string } };
 
-function openTarget(item: ReviewQueueItem): OpenTarget {
-  const target = reviewItemTarget(item);
+function openTarget(item: ReviewQueueItem, trustedProviders: ReadonlySet<string>): OpenTarget {
+  const target = reviewItemTarget(item, trustedProviders);
   if (target.kind === "card") {
-    return { to: "/admin/cards/$cardSlug", params: { cardSlug: target.cardSlug } };
+    return {
+      to: "/admin/cards/$cardSlug",
+      params: { cardSlug: target.cardSlug },
+      search: { section: target.section },
+    };
   }
   return { to: "/admin/cards/new/$name", params: { name: target.name } };
 }
@@ -50,11 +61,16 @@ function KindCell({ row }: AdminCellSlotProps<ReviewQueueItem>) {
 }
 
 function CardCell({ row }: AdminCellSlotProps<ReviewQueueItem>) {
+  const { data: providerSettings } = useProviderSettings();
   if (!row) {
     return null;
   }
   return (
-    <TextLink variant="inherit" className="font-medium" render={<Link {...openTarget(row)} />}>
+    <TextLink
+      variant="inherit"
+      className="font-medium"
+      render={<Link {...openTarget(row, favoriteProviderSet(providerSettings.providerSettings))} />}
+    >
       {row.cardName}
       {row.cardSlug && <span className="text-muted-foreground ml-2 text-xs">{row.cardSlug}</span>}
     </TextLink>

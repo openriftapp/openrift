@@ -104,11 +104,21 @@ export function summarizeReviewItem(item: ReviewQueueItem): string {
   return parts.join(" · ");
 }
 
-export type ReviewItemTarget = { kind: "card"; cardSlug: string } | { kind: "draft"; name: string };
+export type ReviewItemTarget =
+  | { kind: "card"; cardSlug: string; section: "attention" | "printings" | "fields" }
+  | { kind: "draft"; name: string };
 
-export function reviewItemTarget(item: ReviewQueueItem): ReviewItemTarget {
-  if (item.cardSlug) {
-    return { kind: "card", cardSlug: item.cardSlug };
+/** Untrusted sources have no attention entry, so they open where their changes are shown. */
+export function reviewItemTarget(
+  item: ReviewQueueItem,
+  trustedProviders: ReadonlySet<string>,
+): ReviewItemTarget {
+  if (!item.cardSlug) {
+    return { kind: "draft", name: item.normName || item.cardName };
   }
-  return { kind: "draft", name: item.normName || item.cardName };
+  if (item.isContributor || trustedProviders.has(item.provider)) {
+    return { kind: "card", cardSlug: item.cardSlug, section: "attention" };
+  }
+  const section = item.uncheckedPrintings > 0 || item.newPrintings > 0 ? "printings" : "fields";
+  return { kind: "card", cardSlug: item.cardSlug, section };
 }

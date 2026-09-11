@@ -2,7 +2,14 @@ import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-
 import { formatDay } from "@openrift/shared/format-date";
 import { Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { BanIcon, DownloadIcon, Link2Icon, LoaderIcon, UploadIcon } from "lucide-react";
+import {
+  BanIcon,
+  DownloadIcon,
+  Link2Icon,
+  ListChecksIcon,
+  LoaderIcon,
+  UploadIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +18,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminSourcesTable } from "@/features/admin/components/admin-sources-table";
 import { SourceUploadDialog } from "@/features/admin/components/source-upload-dialog";
-import { useRelinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
+import {
+  useCheckMatchingCandidates,
+  useRelinkCandidatePrintings,
+} from "@/features/admin/hooks/use-admin-card-mutations";
 import { useSources } from "@/features/admin/hooks/use-sources";
 import { downloadJSONText } from "@/features/collections/lib/json-export";
 import { errorText } from "@/lib/error-text";
@@ -39,6 +49,11 @@ const SWITCH_HELP = [
   {
     term: "Helpers can review",
     description: "Card-review helpers see this source and can settle it.",
+  },
+  {
+    term: "Check matching",
+    description:
+      "Marks every unchecked source row checked when each value it provides equals the live card or printing. Fields the source leaves empty count as matching. Contributor submissions and unlinked printings are left alone.",
   },
   {
     term: "Order",
@@ -91,6 +106,31 @@ function RelinkSourcesButton() {
   );
 }
 
+function CheckMatchingButton() {
+  const checkMatching = useCheckMatchingCandidates();
+
+  return (
+    <PageTopBarButton
+      disabled={checkMatching.isPending}
+      onClick={() =>
+        checkMatching.mutate(undefined, {
+          onSuccess: (result) => {
+            toast.success(
+              `Checked ${result.cardsChecked} matching cards and ${result.printingsChecked} matching printings`,
+            );
+          },
+          onError: (error) => {
+            toast.error(error.message);
+          },
+        })
+      }
+    >
+      {checkMatching.isPending ? <LoaderIcon className="animate-spin" /> : <ListChecksIcon />}
+      Check matching
+    </PageTopBarButton>
+  );
+}
+
 export function AdminSourcesPage() {
   const { data, isLoading } = useSources();
   const [uploadFor, setUploadFor] = useState<string | null>(null);
@@ -109,6 +149,7 @@ export function AdminSourcesPage() {
           <>
             <ExportCatalogButton />
             <RelinkSourcesButton />
+            <CheckMatchingButton />
             <PageTopBarButton render={<Link to="/admin/ignored-sources" />}>
               <BanIcon />
               Ignored {ignoredTotal}

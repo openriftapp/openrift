@@ -93,15 +93,46 @@ describe("summarizeReviewItem", () => {
 });
 
 describe("reviewItemTarget", () => {
-  it("points at the card page when the card exists", () => {
-    expect(reviewItemTarget(makeReviewQueueItem({ cardSlug: "OGN-001" }))).toEqual({
+  const trusted = new Set(["gallery"]);
+
+  it("opens the attention section for a contributor submission", () => {
+    expect(reviewItemTarget(makeReviewQueueItem({ cardSlug: "OGN-001" }), trusted)).toEqual({
       kind: "card",
       cardSlug: "OGN-001",
+      section: "attention",
     });
+  });
+
+  it("opens the attention section for a trusted source", () => {
+    const item = makeReviewQueueItem({ isContributor: false, provider: "gallery" });
+    expect(reviewItemTarget(item, trusted)).toMatchObject({ section: "attention" });
+  });
+
+  it("opens printings for an untrusted source with printing changes", () => {
+    const unchecked = makeReviewQueueItem({
+      isContributor: false,
+      provider: "scraper",
+      uncheckedPrintings: 2,
+    });
+    const fresh = makeReviewQueueItem({
+      isContributor: false,
+      provider: "scraper",
+      newPrintings: 1,
+    });
+    expect(reviewItemTarget(unchecked, trusted)).toMatchObject({ section: "printings" });
+    expect(reviewItemTarget(fresh, trusted)).toMatchObject({ section: "printings" });
+  });
+
+  it("opens card fields for an untrusted source with only card changes", () => {
+    const item = makeReviewQueueItem({ isContributor: false, provider: "scraper" });
+    expect(reviewItemTarget(item, trusted)).toMatchObject({ section: "fields" });
   });
 
   it("falls back to the draft page keyed by the normalized name", () => {
     const item = makeReviewQueueItem({ cardSlug: null, normName: "lux-lady-of-luminosity" });
-    expect(reviewItemTarget(item)).toEqual({ kind: "draft", name: "lux-lady-of-luminosity" });
+    expect(reviewItemTarget(item, trusted)).toEqual({
+      kind: "draft",
+      name: "lux-lady-of-luminosity",
+    });
   });
 });

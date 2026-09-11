@@ -14,6 +14,7 @@ import {
   reviewableProviderScope,
 } from "../../candidates/services/card-review-scope.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
+import { checkMatchingCandidates } from "../../candidates/services/check-matching-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
@@ -224,6 +225,18 @@ export const adminCardMutationsCandidatesRouter = {
       action: "candidate-printing.relink",
       entityType: "candidate-printing",
       newValues: { examined: result.examined, linked: result.linked },
+    });
+
+    return result;
+  }),
+
+  checkMatchingCandidates: os.checkMatchingCandidates.handler(async ({ context }) => {
+    const result = await checkMatchingCandidates(context.repos, new Date());
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "candidate-card.check-matching",
+      entityType: "candidate-card",
+      newValues: { ...result },
     });
 
     return result;

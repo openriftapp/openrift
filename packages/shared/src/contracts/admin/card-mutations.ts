@@ -458,6 +458,9 @@ export const adminCardMutationsContract = {
       tags: [TAG],
     })
     .output(z.object({ examined: z.number(), linked: z.number() })),
+  checkMatchingCandidates: authedRoute
+    .route({ method: "POST", path: `${CARDS}/candidates/check-matching`, tags: [TAG] })
+    .output(z.object({ cardsChecked: z.number(), printingsChecked: z.number() })),
   renameCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/rename`, tags: [TAG], successStatus: 204 })
     .errors({

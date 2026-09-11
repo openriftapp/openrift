@@ -536,6 +536,20 @@ export function useCheckProvider() {
   });
 }
 
+const checkMatchingCandidatesFn = createServerFn({ method: "POST" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<{ cardsChecked: number; printingsChecked: number }> =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).checkMatchingCandidates(),
+  );
+
+/** Checks every source row whose provided values equal the live catalog. */
+export function useCheckMatchingCandidates() {
+  return useMutationWithInvalidation({
+    mutationFn: () => checkMatchingCandidatesFn(),
+    invalidates: [adminKeys.cards.all, adminKeys.sources],
+  });
+}
+
 const relinkCandidatePrintingsFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context }): Promise<{ examined: number; linked: number }> =>
