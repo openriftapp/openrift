@@ -383,15 +383,6 @@ export const decksContract = {
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Deck not found" } })
     .output(deckShareResponseSchema),
-  rotateShare: authedRoute
-    .route({ method: "POST", path: "/api/v1/decks/{id}/share/rotate", tags: [TAG] })
-    .input(idParamSchema)
-    .errors({
-      NOT_FOUND: { message: "Deck not found" },
-      // Refused for an archived meta-archive deck: its share token is a public permalink.
-      CONFLICT: { message: "This deck's link cannot be rotated" },
-    })
-    .output(deckShareResponseSchema),
   unshare: authedRoute
     .route({ method: "DELETE", path: "/api/v1/decks/{id}/share", tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Deck not found" } })

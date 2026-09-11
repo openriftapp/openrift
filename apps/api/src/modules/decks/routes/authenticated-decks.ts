@@ -100,7 +100,7 @@ async function validateDeckPlan(
 }
 
 // isPublic is deliberately NOT patchable here: a deck's public state is owned
-// solely by the /decks/{id}/share sub-resource (POST/DELETE/rotate), so the two
+// solely by the /decks/{id}/share sub-resource (POST/DELETE), so the two
 // can never desync. Collections already follow this rule.
 const patchFields: FieldMapping<DeckUpdateInput> = {
   name: "name",
@@ -546,7 +546,6 @@ export const decksRouter = {
 
   // Idempotent enable: if the deck already has a token, return the existing
   // share state unchanged; otherwise mint one and flip is_public=true.
-  // Rotation lives at POST /decks/:id/share/rotate to avoid surprise churn.
   share: os.share.handler(async ({ input, context }): Promise<DeckShareResponse> => {
     const { decks } = context.repos;
     const userId = context.userId;
@@ -555,31 +554,6 @@ export const decksRouter = {
     assertFound(existing, "Not found");
     if (existing.shareToken !== null && existing.isPublic) {
       return { shareToken: existing.shareToken, isPublic: existing.isPublic };
-    }
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await decks.setShareToken(input.id, userId, candidate, true);
-      assertFound(updated, "Not found");
-      return candidate;
-    });
-
-    return { shareToken: token, isPublic: true };
-  }),
-
-  // When the deck isn't shared yet, rotate acts as "share now" (mints a token
-  // and flips is_public=true) — chosen over 409 since setShareToken already
-  // supports the create-from-unshared path cleanly and it matches the
-  // user-share rotate precedent.
-  rotateShare: os.rotateShare.handler(async ({ input, context }): Promise<DeckShareResponse> => {
-    const { decks, meta } = context.repos;
-    const userId = context.userId;
-
-    // An archived deck's token is its public permalink. Owner scoping already
-    // makes this unreachable — the archive's synthetic owner has no session —
-    // but the invariant is stated here so a future path that rotates on
-    // someone's behalf cannot break every archive link.
-    if (await meta.isMetaDeck(input.id)) {
-      throw new AppError(409, ERROR_CODES.CONFLICT, "This deck's link cannot be rotated");
     }
 
     const token = await withUniqueShareToken(async (candidate) => {

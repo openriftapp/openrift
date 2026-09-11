@@ -36,15 +36,4 @@ export const userShareRouter = {
       throw errors.NOT_FOUND({ message: "User not found" });
     }
   }),
-
-  rotate: os.rotate.handler(async ({ context, errors }): Promise<UserShareStateResponse> => {
-    const { userShares } = context.repos;
-    const updated = await withUniqueShareToken((token) =>
-      userShares.setShareToken(context.userId, token),
-    );
-    if (!updated) {
-      throw errors.NOT_FOUND({ message: "User not found" });
-    }
-    return { shareToken: updated.shareToken, isPublic: true };
-  }),
 };

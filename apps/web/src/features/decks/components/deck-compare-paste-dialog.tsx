@@ -46,7 +46,7 @@ async function entriesFromShareToken(
     }
     return { entries: entriesFromSharedDeck(data.cards) };
   } catch {
-    return { error: "Couldn't load that shared deck. The link may have been unshared or rotated." };
+    return { error: "Couldn't load that shared deck. The link may have been unshared." };
   }
 }
 

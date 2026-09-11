@@ -37,7 +37,8 @@ vi.mock("@/features/stage/hooks/use-overlay", () => ({
   usePushOverlayCard: () => ({ mutate: mockPushCard, isPending: false }),
   useClearOverlay: () => ({ mutate: mockClear, isPending: false }),
   useSetOverlayHidden: () => ({ mutate: mockSetHidden, isPending: false }),
-  useRotateOverlayToken: () => idleMutation,
+  useEnableOverlayToken: () => idleMutation,
+  useDisableOverlayToken: () => idleMutation,
   useUpdateOverlaySettings: () => ({ mutate: mockUpdateSettings, isPending: false }),
 }));
 

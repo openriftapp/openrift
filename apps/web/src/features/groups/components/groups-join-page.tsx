@@ -89,7 +89,7 @@ export function GroupsJoinPage({ code = "" }: GroupsJoinPageProps) {
             <CardTitle>This invite link doesn&apos;t work</CardTitle>
             <CardDescription>
               It may have been cut short on its way to you, or the group&apos;s admins may have
-              rotated it since. Ask them for a fresh link.
+              turned invites off since. Ask them for a fresh link.
             </CardDescription>
           </CardHeader>
         </Card>

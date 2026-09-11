@@ -104,10 +104,6 @@ const mockEnums = {
   ),
 };
 
-const mockMeta = {
-  isMetaDeck: vi.fn(() => Promise.resolve(false)),
-};
-
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 
 const app = new Hono<{ Variables: Variables }>();
@@ -125,7 +121,6 @@ app.use("*", async (c, next) => {
     loans: mockLoans,
     catalog: mockCatalog,
     collections: mockCollections,
-    meta: mockMeta,
   } as never);
   await next();
 });
@@ -846,41 +841,6 @@ describe("POST /api/v1/decks/:id/share", () => {
     mockRepo.getShareState.mockResolvedValue(undefined);
     const res = await app.request(`/api/v1/decks/${DECK_ID}/share`, { method: "POST" });
     expect(res.status).toBe(404);
-    expect(mockRepo.setShareToken).not.toHaveBeenCalled();
-  });
-});
-
-describe("POST /api/v1/decks/:id/share/rotate", () => {
-  beforeEach(() => {
-    mockRepo.setShareToken.mockReset();
-    mockMeta.isMetaDeck.mockReset();
-    mockMeta.isMetaDeck.mockResolvedValue(false);
-  });
-
-  it("mints a new token each call and sets isPublic=true", async () => {
-    mockRepo.setShareToken.mockResolvedValue({ ...dbDeck, isPublic: true });
-    const res1 = await app.request(`/api/v1/decks/${DECK_ID}/share/rotate`, { method: "POST" });
-    expect(res1.status).toBe(200);
-    const r1 = await readJson(res1);
-    expect(r1.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
-    expect(r1.isPublic).toBe(true);
-    expect(mockRepo.setShareToken).toHaveBeenCalledWith(DECK_ID, USER_ID, r1.shareToken, true);
-
-    const res2 = await app.request(`/api/v1/decks/${DECK_ID}/share/rotate`, { method: "POST" });
-    const r2 = await readJson(res2);
-    expect(r2.shareToken).not.toBe(r1.shareToken);
-  });
-
-  it("returns 404 when the deck is not owned by the caller", async () => {
-    mockRepo.setShareToken.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share/rotate`, { method: "POST" });
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 409 for an archived deck, leaving its permalink alone", async () => {
-    mockMeta.isMetaDeck.mockResolvedValue(true);
-    const res = await app.request(`/api/v1/decks/${DECK_ID}/share/rotate`, { method: "POST" });
-    expect(res.status).toBe(409);
     expect(mockRepo.setShareToken).not.toHaveBeenCalled();
   });
 });

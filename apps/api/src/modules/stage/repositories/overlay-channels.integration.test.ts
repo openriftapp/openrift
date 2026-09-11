@@ -35,7 +35,7 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
   it("finds the channel by user and by token", async () => {
     const created = await repo.create(OTHER);
     const byUser = await repo.findByUserId(OTHER);
-    const byToken = await repo.findByToken(created.token);
+    const byToken = await repo.findByToken(created.token!);
 
     expect(byUser?.token).toBe(created.token);
     expect(byToken?.userId).toBe(OTHER);
@@ -99,33 +99,40 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
     expect(updated?.version).toBe((before?.version ?? 0) + 1);
   });
 
-  it("bumps the version on a token rotation too, so pollers notice", async () => {
+  it("bumps the version when the token is turned off or back on, so pollers notice", async () => {
     const before = await repo.findByUserId(OWNER);
-    const rotated = await repo.rotateToken(OWNER);
+    const disabled = await repo.disableToken(OWNER);
 
-    expect(rotated?.token).not.toBe(before?.token);
-    expect(rotated?.version).toBe((before?.version ?? 0) + 1);
+    expect(disabled?.token).toBeNull();
+    expect(disabled?.version).toBe((before?.version ?? 0) + 1);
+
+    const enabled = await repo.enableToken(OWNER);
+
+    expect(enabled?.token).not.toBe(before?.token);
+    expect(enabled?.version).toBe((before?.version ?? 0) + 2);
   });
 
-  it("keeps the payload across a rotation — a leaked token is not a blank scene", async () => {
+  it("keeps the payload across a disable and enable — a leaked token is not a blank scene", async () => {
     const before = await repo.findByUserId(OWNER);
-    const rotated = await repo.rotateToken(OWNER);
+    await repo.disableToken(OWNER);
+    const enabled = await repo.enableToken(OWNER);
 
-    expect(rotated?.payload).toEqual(before?.payload);
+    expect(enabled?.payload).toEqual(before?.payload);
   });
 
-  it("stops resolving the old token after a rotation", async () => {
+  it("stops resolving the old token once it is turned off", async () => {
     const before = await repo.findByUserId(OWNER);
-    await repo.rotateToken(OWNER);
+    await repo.disableToken(OWNER);
 
-    expect(await repo.findByToken(before!.token)).toBeUndefined();
+    expect(await repo.findByToken(before!.token!)).toBeUndefined();
   });
 
   it("returns undefined when writing for a user with no channel", async () => {
     const stranger = crypto.randomUUID();
 
     expect(await repo.setPayload(stranger, DEFAULT_OVERLAY_PAYLOAD)).toBeUndefined();
-    expect(await repo.rotateToken(stranger)).toBeUndefined();
+    expect(await repo.enableToken(stranger)).toBeUndefined();
+    expect(await repo.disableToken(stranger)).toBeUndefined();
   });
 
   it("drops the channel when its user is deleted", async () => {
@@ -135,6 +142,6 @@ describe.skipIf(!ctx)("overlayChannelsRepo (integration)", () => {
 
     await db.deleteFrom("users").where("id", "=", doomed).execute();
 
-    expect(await repo.findByToken(channel.token)).toBeUndefined();
+    expect(await repo.findByToken(channel.token!)).toBeUndefined();
   });
 });

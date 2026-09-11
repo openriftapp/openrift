@@ -153,12 +153,22 @@ export function useUpdateOverlaySettings() {
   );
 }
 
-const rotateOverlayTokenFn = createServerFn({ method: "POST" })
+const enableOverlayTokenFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context }): Promise<OverlayChannelResponse> =>
-    apiOrpcClient(overlayContract, context.cookie).rotateToken(),
+    apiOrpcClient(overlayContract, context.cookie).enableToken(),
   );
 
-export function useRotateOverlayToken() {
-  return useOverlayChannelMutation(() => rotateOverlayTokenFn());
+export function useEnableOverlayToken() {
+  return useOverlayChannelMutation(() => enableOverlayTokenFn());
+}
+
+const disableOverlayTokenFn = createServerFn({ method: "POST" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<OverlayChannelResponse> =>
+    apiOrpcClient(overlayContract, context.cookie).disableToken(),
+  );
+
+export function useDisableOverlayToken() {
+  return useOverlayChannelMutation(() => disableOverlayTokenFn());
 }

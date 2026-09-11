@@ -78,7 +78,7 @@ export default function GroupsArticle() {
             with the person who created the group until they hand it off.
           </DefinitionRow>
           <DefinitionRow icon={<ShieldIcon className="size-3.5" />} label="Admin">
-            Approve or deny join requests, rotate or turn off the invite link, edit the group&apos;s
+            Approve or deny join requests, turn the invite link on or off, edit the group&apos;s
             name and description, promote members, and remove members.
           </DefinitionRow>
           <DefinitionRow icon={<UserIcon className="size-3.5" />} label="Member">
@@ -108,7 +108,7 @@ export default function GroupsArticle() {
           <StepRow
             step={3}
             title="Decide on an invite link"
-            description="Leave invites on to get a link and QR code you can hand out. Turn them off to close the group to newcomers. You can rotate or turn off the link later either way."
+            description="Leave invites on to get a link and QR code you can hand out. Turn them off to close the group to newcomers. You can turn the link off later, and turning invites back on hands out a different link."
           />
         </div>
       </section>

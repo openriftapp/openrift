@@ -279,23 +279,6 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
       expect(stillResolves.status).toBe(200);
     });
 
-    it("rotates the token on POST /decks/:id/share/rotate; old token stops resolving", async () => {
-      const oldToken = shareToken;
-      const res = await app.fetch(req("POST", `/decks/${shareDeckId}/share/rotate`));
-      expect(res.status).toBe(200);
-      const json = await readJson(res);
-      expect(json.isPublic).toBe(true);
-      expect(json.shareToken).toMatch(/^[A-Za-z0-9]{12}$/u);
-      expect(json.shareToken).not.toBe(oldToken);
-
-      const oldTokenGet = await app.fetch(req("GET", `/decks/share/${oldToken}`));
-      expect(oldTokenGet.status).toBe(404);
-      const newTokenGet = await app.fetch(req("GET", `/decks/share/${json.shareToken}`));
-      expect(newTokenGet.status).toBe(200);
-
-      shareToken = json.shareToken;
-    });
-
     it("reflects isPublic=true and shareToken on GET /decks/:id", async () => {
       const res = await app.fetch(req("GET", `/decks/${shareDeckId}`));
       const json = await readJson(res);
@@ -364,16 +347,13 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
       expect(newTokenGet.status).toBe(200);
     });
 
-    it("404s get-share/share/rotate/unshare/clone for non-existent decks or tokens", async () => {
+    it("404s get-share/share/unshare/clone for non-existent decks or tokens", async () => {
       const fakeId = "00000000-0000-4000-a000-000000000000";
       const getShareRes = await app.fetch(req("GET", `/decks/${fakeId}/share`));
       expect(getShareRes.status).toBe(404);
 
       const shareRes = await app.fetch(req("POST", `/decks/${fakeId}/share`));
       expect(shareRes.status).toBe(404);
-
-      const rotateRes = await app.fetch(req("POST", `/decks/${fakeId}/share/rotate`));
-      expect(rotateRes.status).toBe(404);
 
       const unshareRes = await app.fetch(req("DELETE", `/decks/${fakeId}/share`));
       expect(unshareRes.status).toBe(404);

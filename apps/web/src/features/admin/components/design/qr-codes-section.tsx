@@ -50,7 +50,7 @@ export function QrCodesSection() {
           url={DEMO_SHARE_URL}
           label="Registration link"
           defaultQrOpen
-          actions={<Button variant="ghost">Rotate link</Button>}
+          actions={<Button variant="ghost">Disable</Button>}
         />
       </DemoRow>
     </DemoSection>

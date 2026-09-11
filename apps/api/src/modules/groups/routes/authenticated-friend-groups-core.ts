@@ -245,20 +245,6 @@ export const friendGroupsCoreRouter = {
     await friendGroups.deleteById(ctx.group.id);
   }),
 
-  rotateCode: os.rotateCode.handler(async ({ input, context }): Promise<FriendGroupResponse> => {
-    const viewerId = context.userId;
-    const { friendGroups } = context.repos;
-
-    const ctx = await loadGroupForMember(context.repos, input.slug, viewerId);
-    requireRole(ctx.membership, "admin");
-
-    const updated = await friendGroups.setCode(ctx.group.id, generateShareToken());
-    if (!updated) {
-      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Group not found");
-    }
-    return toGroup(updated, true);
-  }),
-
   disableCode: os.disableCode.handler(async ({ input, context }): Promise<FriendGroupResponse> => {
     const viewerId = context.userId;
     const { friendGroups } = context.repos;

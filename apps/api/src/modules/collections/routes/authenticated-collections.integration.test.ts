@@ -486,53 +486,6 @@ describe.skipIf(!ctx)("Collections routes (integration)", () => {
       expect(publicRes.status).toBe(200);
     });
 
-    it("POST rotate mints a new token and the old one stops resolving", async () => {
-      const beforeRes = await app.fetch(req("GET", `/collections/${shareCollectionId}/share`));
-      const before = (await readJson(beforeRes)) as CollectionShareResponse;
-      const oldToken = before.shareToken as string;
-      expect(oldToken).toBeTypeOf("string");
-
-      const oldResolvesRes = await app.fetch(req("GET", `/collections/share/${oldToken}`));
-      expect(oldResolvesRes.status).toBe(200);
-
-      const rotateRes = await app.fetch(
-        req("POST", `/collections/${shareCollectionId}/share/rotate`),
-      );
-      expect(rotateRes.status).toBe(200);
-      const rotated = (await readJson(rotateRes)) as CollectionShareResponse;
-
-      expect(rotated.shareToken).toBeTypeOf("string");
-      expect(rotated.shareToken).not.toBe(oldToken);
-      expect(rotated.isPublic).toBe(true);
-
-      const oldNowRes = await app.fetch(req("GET", `/collections/share/${oldToken}`));
-      expect(oldNowRes.status).toBe(404);
-      const newRes = await app.fetch(
-        req("GET", `/collections/share/${rotated.shareToken as string}`),
-      );
-      expect(newRes.status).toBe(200);
-
-      const stateRes = await app.fetch(req("GET", `/collections/${shareCollectionId}/share`));
-      const state = (await readJson(stateRes)) as CollectionShareResponse;
-      expect(state.shareToken).toBe(rotated.shareToken);
-    });
-
-    it("POST rotate on an unshared collection acts as share-now", async () => {
-      const freshId = await createShareCollection("Rotate Fresh");
-
-      const rotateRes = await app.fetch(req("POST", `/collections/${freshId}/share/rotate`));
-      expect(rotateRes.status).toBe(200);
-      const rotated = (await readJson(rotateRes)) as CollectionShareResponse;
-
-      expect(rotated.shareToken).toBeTypeOf("string");
-      expect(rotated.isPublic).toBe(true);
-
-      const publicRes = await app.fetch(
-        req("GET", `/collections/share/${rotated.shareToken as string}`),
-      );
-      expect(publicRes.status).toBe(200);
-    });
-
     it("DELETE unshares and the token stops resolving", async () => {
       const stateRes = await app.fetch(req("GET", `/collections/${shareCollectionId}/share`));
       const state = (await readJson(stateRes)) as CollectionShareResponse;
@@ -554,12 +507,6 @@ describe.skipIf(!ctx)("Collections routes (integration)", () => {
     it("GET share returns 404 for a non-existent collection", async () => {
       const fakeId = "00000000-0000-4000-a000-000000000000";
       const res = await app.fetch(req("GET", `/collections/${fakeId}/share`));
-      expect(res.status).toBe(404);
-    });
-
-    it("POST rotate returns 404 for a non-existent collection", async () => {
-      const fakeId = "00000000-0000-4000-a000-000000000000";
-      const res = await app.fetch(req("POST", `/collections/${fakeId}/share/rotate`));
       expect(res.status).toBe(404);
     });
   });

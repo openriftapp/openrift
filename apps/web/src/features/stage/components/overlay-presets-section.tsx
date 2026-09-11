@@ -77,6 +77,11 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
       <p className="text-muted-foreground text-sm">
         A saved scene. Apply one, or point a second browser source at its own link.
       </p>
+      {channel.token ? null : (
+        <p className="text-muted-foreground text-sm">
+          Preset links need the browser source link turned on.
+        </p>
+      )}
 
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
@@ -116,7 +121,7 @@ function OverlayPresetRow({
   onApply,
 }: {
   preset: StagePreset;
-  token: string;
+  token: string | null;
   applying: boolean;
   onApply: () => void;
 }) {
@@ -127,6 +132,9 @@ function OverlayPresetRow({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const copyLink = async () => {
+    if (!token) {
+      return;
+    }
     const ok = await copy(presetSourceUrl(token, preset.id));
     if (ok) {
       toast.success("Source URL copied.");
@@ -156,7 +164,7 @@ function OverlayPresetRow({
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => void copyLink()}>
+          <DropdownMenuItem disabled={!token} onClick={() => void copyLink()}>
             <LinkIcon />
             Copy source URL
           </DropdownMenuItem>

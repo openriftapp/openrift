@@ -45,7 +45,8 @@ const mockRepo = {
   findByToken: vi.fn(),
   create: vi.fn(),
   setPayload: vi.fn(),
-  rotateToken: vi.fn(),
+  enableToken: vi.fn(),
+  disableToken: vi.fn(),
 };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -490,26 +491,38 @@ describe("PATCH /api/v1/overlay/me", () => {
   });
 });
 
-describe("POST /api/v1/overlay/me/rotate", () => {
+describe("POST /api/v1/overlay/me/token", () => {
   it("returns the new token", async () => {
-    mockRepo.rotateToken.mockResolvedValue(stubChannel({ token: "RotatedTok1", version: 4 }));
+    mockRepo.enableToken.mockResolvedValue(stubChannel({ token: "FreshToken1", version: 4 }));
 
-    const res = await app.request("/api/v1/overlay/me/rotate", { method: "POST" });
+    const res = await app.request("/api/v1/overlay/me/token", { method: "POST" });
 
     expect(res.status).toBe(200);
-    expect(await readJson(res)).toMatchObject({ token: "RotatedTok1" });
-    expect(mockRepo.rotateToken).toHaveBeenCalledWith(USER_ID);
+    expect(await readJson(res)).toMatchObject({ token: "FreshToken1" });
+    expect(mockRepo.enableToken).toHaveBeenCalledWith(USER_ID);
   });
 
   it("creates the channel first when the user has none", async () => {
     mockRepo.findByUserId.mockResolvedValue(undefined);
     mockRepo.create.mockResolvedValue(stubChannel({ token: "FreshToken12" }));
-    mockRepo.rotateToken.mockResolvedValue(stubChannel({ token: "RotatedTok1" }));
+    mockRepo.enableToken.mockResolvedValue(stubChannel({ token: "FreshToken1" }));
 
-    const res = await app.request("/api/v1/overlay/me/rotate", { method: "POST" });
+    const res = await app.request("/api/v1/overlay/me/token", { method: "POST" });
 
     expect(res.status).toBe(200);
     expect(mockRepo.create).toHaveBeenCalledWith(USER_ID);
-    expect(await readJson(res)).toMatchObject({ token: "RotatedTok1" });
+    expect(await readJson(res)).toMatchObject({ token: "FreshToken1" });
+  });
+});
+
+describe("DELETE /api/v1/overlay/me/token", () => {
+  it("returns the channel with no token", async () => {
+    mockRepo.disableToken.mockResolvedValue(stubChannel({ token: null, version: 5 }));
+
+    const res = await app.request("/api/v1/overlay/me/token", { method: "DELETE" });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({ token: null });
+    expect(mockRepo.disableToken).toHaveBeenCalledWith(USER_ID);
   });
 });

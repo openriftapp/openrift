@@ -4,8 +4,9 @@ import type {
   OverlayPlateFields,
   OverlayPlatePosition,
 } from "@openrift/shared/contracts/overlay";
-import { RefreshCwIcon } from "lucide-react";
+import { useState } from "react";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ShareLinkRow } from "@/features/groups/components/share-link-row";
 import { OverlayPresetsSection } from "@/features/stage/components/overlay-presets-section";
 import {
-  useRotateOverlayToken,
+  useDisableOverlayToken,
+  useEnableOverlayToken,
   useUpdateOverlaySettings,
 } from "@/features/stage/hooks/use-overlay";
 import { getSiteUrl } from "@/lib/site-config";
@@ -61,13 +63,15 @@ export function OverlaySettingsPanel({
   onDraftScaleChange: (scale: number | null) => void;
 }) {
   const updateSettings = useUpdateOverlaySettings();
-  const rotateToken = useRotateOverlayToken();
+  const enableToken = useEnableOverlayToken();
+  const disableToken = useDisableOverlayToken();
+  const [confirmDisable, setConfirmDisable] = useState(false);
   const { payload } = channel;
 
   // Written only on release, not on drag: each write bumps the version the browser source polls for.
   const shownScale = draftScale ?? payload.scale;
 
-  const sourceUrl = `${getSiteUrl()}/stage/source/${channel.token}`;
+  const sourceUrl = channel.token ? `${getSiteUrl()}/stage/source/${channel.token}` : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,23 +80,46 @@ export function OverlaySettingsPanel({
         <p className="text-muted-foreground text-sm">
           Add a Browser source in OBS and paste this URL. Anyone with the link sees what you push.
         </p>
-        <ShareLinkRow
-          url={sourceUrl}
-          label="OBS browser source URL"
-          hideQr
-          actions={
-            <Button
-              variant="outline"
-              onClick={() => rotateToken.mutate()}
-              disabled={rotateToken.isPending}
-              title="Issues a new URL. The old one stops working immediately."
-            >
-              <RefreshCwIcon />
-              New link
-            </Button>
-          }
-        />
+        {sourceUrl ? (
+          <ShareLinkRow
+            url={sourceUrl}
+            label="OBS browser source URL"
+            hideQr
+            actions={
+              <Button
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => setConfirmDisable(true)}
+                disabled={disableToken.isPending}
+              >
+                Disable
+              </Button>
+            }
+          />
+        ) : (
+          <Button
+            className="w-fit"
+            onClick={() => enableToken.mutate()}
+            disabled={enableToken.isPending}
+          >
+            Enable browser source link
+          </Button>
+        )}
       </section>
+
+      <ConfirmActionDialog
+        open={confirmDisable}
+        onOpenChange={setConfirmDisable}
+        title="Disable the browser source link?"
+        description="Every source pointed at it goes blank, including preset links. Enabling it again creates a different link."
+        confirmLabel="Disable link"
+        pendingLabel="Disabling…"
+        isPending={disableToken.isPending}
+        onConfirm={() => {
+          disableToken.mutate();
+          setConfirmDisable(false);
+        }}
+      />
 
       <section className="flex flex-col gap-4">
         <h2 className="font-semibold">Placement</h2>

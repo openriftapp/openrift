@@ -334,20 +334,6 @@ export const listsRouter = {
     return { shareToken: token, isPublic: true };
   }),
 
-  // Rotating an unshared list shares it.
-  rotateShare: os.rotateShare.handler(async ({ input, context }): Promise<ListShareResponse> => {
-    const { lists } = context.repos;
-    const userId = context.userId;
-
-    const token = await withUniqueShareToken(async (candidate) => {
-      const updated = await lists.setShareToken(input.id, userId, candidate, true);
-      assertFound(updated, "Not found");
-      return candidate;
-    });
-
-    return { shareToken: token, isPublic: true };
-  }),
-
   unshare: os.unshare.handler(async ({ input, context }): Promise<void> => {
     const { lists } = context.repos;
     const userId = context.userId;

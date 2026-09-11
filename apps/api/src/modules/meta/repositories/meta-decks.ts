@@ -351,19 +351,6 @@ export function metaDecksRepo(db: Kysely<Database>) {
       }));
     },
 
-    /**
-     * Guard for the share-token rotate path: an archived deck's token is its
-     * permalink, so rotation must be refused while a standings row points at it.
-     */
-    async isMetaDeck(deckId: string): Promise<boolean> {
-      const row = await db
-        .selectFrom("metaEventPlayers")
-        .select("id")
-        .where("deckId", "=", deckId)
-        .executeTakeFirst();
-      return row !== undefined;
-    },
-
     contextForDeck(deckId: string): Promise<MetaDeckContextRow | undefined> {
       return db
         .selectFrom("metaEventPlayers as p")

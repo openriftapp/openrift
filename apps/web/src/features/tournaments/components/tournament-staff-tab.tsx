@@ -299,7 +299,7 @@ function StaffInviteRow({
             open={disableOpen}
             onOpenChange={setDisableOpen}
             title={`Disable the ${roleLabel.toLowerCase()} link?`}
-            description={`Anyone you've shared it with can no longer use it to become ${roleNoun}. You can create a new link any time.`}
+            description={`Anyone you've shared it with can no longer use it to become ${roleNoun}. You can create a link again any time, and it will be a different one.`}
             confirmLabel="Disable link"
             pendingLabel="Disabling..."
             isPending={setInvite.isPending}

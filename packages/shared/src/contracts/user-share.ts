@@ -25,10 +25,6 @@ export const userShareContract = {
       tags: ["User Share"],
     })
     .errors({ NOT_FOUND: { message: "User not found" } }),
-  rotate: authedRoute
-    .route({ method: "POST", path: "/api/v1/users/me/share/rotate", tags: ["User Share"] })
-    .errors({ NOT_FOUND: { message: "User not found" } })
-    .output(userShareStateResponseSchema),
 };
 
 export type UserShareContract = typeof userShareContract;

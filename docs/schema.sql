@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict k7nmk4bLodd9MacQUOeBV0PpE6xJhm5E7mpHuhTG4uKjZ1FQNY9UeiW3WeyTkab
+\restrict owD6WthSr35hgl5rk1NeEKRUHcBE8skOkugzIeuL7MvP5mCnjGhr7u8kis9SnCs
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2791,13 +2791,13 @@ CREATE TABLE public.organizations (
 CREATE TABLE public.overlay_channels (
     id uuid DEFAULT uuidv7() NOT NULL,
     user_id text NOT NULL,
-    token text NOT NULL,
+    token text,
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     version integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_overlay_channels_payload_shape CHECK (((payload IS NULL) OR (jsonb_typeof(payload) = 'object'::text))),
-    CONSTRAINT chk_overlay_channels_token_not_empty CHECK ((token <> ''::text))
+    CONSTRAINT chk_overlay_channels_token_not_empty CHECK (((token IS NULL) OR (token <> ''::text)))
 );
 
 
@@ -9480,5 +9480,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict k7nmk4bLodd9MacQUOeBV0PpE6xJhm5E7mpHuhTG4uKjZ1FQNY9UeiW3WeyTkab
+\unrestrict owD6WthSr35hgl5rk1NeEKRUHcBE8skOkugzIeuL7MvP5mCnjGhr7u8kis9SnCs
 

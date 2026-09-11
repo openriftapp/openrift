@@ -818,29 +818,6 @@ describe("GET /api/v1/lists/:id/share", () => {
   });
 });
 
-describe("POST /api/v1/lists/:id/share/rotate", () => {
-  beforeEach(() => {
-    mockListsRepo.setShareToken.mockReset();
-  });
-
-  it("mints a new token + isPublic=true", async () => {
-    mockListsRepo.setShareToken.mockResolvedValue({ ...dbList, isPublic: true, shareToken: "new" });
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share/rotate`, { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(typeof json.shareToken).toBe("string");
-    expect(json.isPublic).toBe(true);
-    const args = mockListsRepo.setShareToken.mock.calls[0] ?? [];
-    expect(args[3]).toBe(true);
-  });
-
-  it("returns 404 when not owned", async () => {
-    mockListsRepo.setShareToken.mockResolvedValue(undefined);
-    const res = await app.request(`/api/v1/lists/${LIST_ID}/share/rotate`, { method: "POST" });
-    expect(res.status).toBe(404);
-  });
-});
-
 describe("DELETE /api/v1/lists/:id/share", () => {
   beforeEach(() => {
     mockListsRepo.setShareToken.mockReset();

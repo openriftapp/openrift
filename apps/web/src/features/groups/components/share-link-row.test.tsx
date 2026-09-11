@@ -74,9 +74,9 @@ describe("ShareLinkRow", () => {
   });
 
   it("renders caller actions after the copy button", () => {
-    render(<ShareLinkRow url={URL} label="Share link" actions={<Button>Rotate link</Button>} />);
+    render(<ShareLinkRow url={URL} label="Share link" actions={<Button>Disable link</Button>} />);
 
-    expect(screen.getByRole("button", { name: "Rotate link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Disable link" })).toBeInTheDocument();
   });
 
   it("stays usable when the clipboard write is denied", async () => {

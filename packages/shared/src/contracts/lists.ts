@@ -185,7 +185,7 @@ export const listDetailResponseSchema = z
 
 export const listShareResponseSchema = z
   // shareToken is nullable: GET /share reports an owned-but-unshared list as
-  // null; share/rotate always return a non-null token.
+  // null; share always returns a non-null token.
   .object({ shareToken: z.string().nullable(), isPublic: z.boolean() })
   .openapi("ListShareResponse");
 
@@ -307,11 +307,6 @@ export const listsContract = {
     .output(listShareResponseSchema),
   share: authedRoute
     .route({ method: "POST", path: "/api/v1/lists/{id}/share", tags: [TAG] })
-    .input(idParamSchema)
-    .errors({ NOT_FOUND: { message: "List not found" } })
-    .output(listShareResponseSchema),
-  rotateShare: authedRoute
-    .route({ method: "POST", path: "/api/v1/lists/{id}/share/rotate", tags: [TAG] })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "List not found" } })
     .output(listShareResponseSchema),

@@ -110,25 +110,3 @@ describe("DELETE /api/v1/users/me/share (disable)", () => {
     expect(lintBody.message).toBe("User not found");
   });
 });
-
-describe("POST /api/v1/users/me/share/rotate", () => {
-  it("overwrites the token and returns the new state", async () => {
-    mockUserSharesRepo.setShareToken.mockImplementation((_userId, token) =>
-      Promise.resolve({ shareToken: token }),
-    );
-    const res = await app.request("/api/v1/users/me/share/rotate", { method: "POST" });
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.shareToken).toMatch(/^[A-Za-z0-9]+$/u);
-    expect(json.isPublic).toBe(true);
-    expect(mockUserSharesRepo.setShareToken).toHaveBeenCalledWith(USER_ID, expect.any(String));
-  });
-
-  it("returns 404 when the user no longer exists", async () => {
-    mockUserSharesRepo.setShareToken.mockResolvedValue(undefined);
-    const res = await app.request("/api/v1/users/me/share/rotate", { method: "POST" });
-    expect(res.status).toBe(404);
-    const lintBody = await readJson(res);
-    expect(lintBody.message).toBe("User not found");
-  });
-});

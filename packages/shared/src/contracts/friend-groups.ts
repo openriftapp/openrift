@@ -591,11 +591,6 @@ export const friendGroupsContract = {
     .route({ method: "DELETE", path: `${FG}/{slug}`, tags: [TAG], successStatus: 204 })
     .errors({ NOT_FOUND: { message: "Group not found" } })
     .input(friendGroupSlugParamSchema),
-  rotateCode: authedRoute
-    .route({ method: "POST", path: `${FG}/{slug}/code/rotate`, tags: [TAG] })
-    .input(friendGroupSlugParamSchema)
-    .errors({ NOT_FOUND: { message: "Group not found" } })
-    .output(friendGroupResponseSchema),
   disableCode: authedRoute
     .route({ method: "DELETE", path: `${FG}/{slug}/code`, tags: [TAG] })
     .input(friendGroupSlugParamSchema)

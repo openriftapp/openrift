@@ -374,7 +374,7 @@ describe.skipIf(!ctx)("friendGroupsRepo (integration)", () => {
     await db.deleteFrom("users").where("id", "in", [extraA.id, extraB.id]).execute();
   });
 
-  it("rotates the code and invalidates the prior value", async () => {
+  it("replaces the code and invalidates the prior value", async () => {
     const group = await createGroup(VIEWER_ID, "ORIGCODE0001");
     const updated = await repo.setCode(group.id, "NEWCODE00001");
     expect(updated?.code).toBe("NEWCODE00001");

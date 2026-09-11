@@ -7,7 +7,7 @@ import type { CreatedAt, UpdatedAt } from "./columns.js";
 export interface OverlayChannelsTable {
   id: Generated<string>;
   userId: string;
-  token: string;
+  token: string | null;
   payload: ColumnType<OverlayPayload, OverlayPayload | undefined, OverlayPayload>;
   version: Generated<number>;
   createdAt: CreatedAt;

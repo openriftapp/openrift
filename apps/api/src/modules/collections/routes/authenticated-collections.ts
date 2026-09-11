@@ -249,7 +249,7 @@ export const collectionsRouter = {
     return keysetPage(rows, effectiveLimit, toCopy);
   }),
 
-  // Idempotent: returns the existing token unchanged. Use rotate to churn it.
+  // Idempotent: returns the existing token unchanged.
   share: os.share.handler(async ({ input, context }): Promise<CollectionShareResponse> => {
     const { collections } = context.repos;
     const userId = context.userId;
@@ -293,28 +293,6 @@ export const collectionsRouter = {
         shareToken: access.collection.shareToken,
         isPublic: access.collection.isPublic,
       };
-    },
-  ),
-
-  // Mints a NEW share token, invalidating the old one (old links 404 forever).
-  // If the collection isn't shared yet, this acts as "share now" — the repo's
-  // setShareTokenById handles both cases identically.
-  rotateShare: os.rotateShare.handler(
-    async ({ input, context }): Promise<CollectionShareResponse> => {
-      const { collections } = context.repos;
-      const userId = context.userId;
-
-      const access = await collections.getAccessForUser(input.id, userId);
-      assertFound(access, "Not found");
-      if (!access.viewerCanAdmin) {
-        throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only admins can rotate this share link");
-      }
-
-      const token = generateShareToken();
-      const updated = await collections.setShareTokenById(input.id, token, true);
-      assertFound(updated, "Not found");
-
-      return { shareToken: token, isPublic: true };
     },
   ),
 

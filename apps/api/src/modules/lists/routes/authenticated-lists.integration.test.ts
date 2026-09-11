@@ -523,46 +523,6 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
       const res = await app.fetch(req("GET", `/lists/${USER_ID}/share`));
       expect(res.status).toBe(404);
     });
-
-    it("rotate mints a new token; the old token stops resolving", async () => {
-      const id = await createList("Rotatable", "organize", "card");
-
-      const shareRes = await app.fetch(req("POST", `/lists/${id}/share`));
-      const shareBody = (await readJson(shareRes)) as { shareToken: string };
-      const oldToken = shareBody.shareToken;
-
-      const before = await app.fetch(req("GET", `/lists/share/${oldToken}`));
-      expect(before.status).toBe(200);
-
-      const rotateRes = await app.fetch(req("POST", `/lists/${id}/share/rotate`));
-      expect(rotateRes.status).toBe(200);
-      const rotateBody = (await readJson(rotateRes)) as { shareToken: string; isPublic: boolean };
-      expect(rotateBody.shareToken.length).toBeGreaterThan(0);
-      expect(rotateBody.shareToken).not.toBe(oldToken);
-      expect(rotateBody.isPublic).toBe(true);
-
-      const oldAfter = await app.fetch(req("GET", `/lists/share/${oldToken}`));
-      expect(oldAfter.status).toBe(404);
-      const newAfter = await app.fetch(req("GET", `/lists/share/${rotateBody.shareToken}`));
-      expect(newAfter.status).toBe(200);
-
-      const state = await app.fetch(req("GET", `/lists/${id}/share`));
-      const stateBody = (await readJson(state)) as { shareToken: string };
-      expect(stateBody.shareToken).toBe(rotateBody.shareToken);
-    });
-
-    it("rotate on an unshared list shares it (mints a token)", async () => {
-      const id = await createList("Rotate-then-share", "organize", "card");
-
-      const rotateRes = await app.fetch(req("POST", `/lists/${id}/share/rotate`));
-      expect(rotateRes.status).toBe(200);
-      const rotateBody = (await readJson(rotateRes)) as { shareToken: string; isPublic: boolean };
-      expect(rotateBody.shareToken.length).toBeGreaterThan(0);
-      expect(rotateBody.isPublic).toBe(true);
-
-      const publicRes = await app.fetch(req("GET", `/lists/share/${rotateBody.shareToken}`));
-      expect(publicRes.status).toBe(200);
-    });
   });
 
   describe("reliability hardening", () => {

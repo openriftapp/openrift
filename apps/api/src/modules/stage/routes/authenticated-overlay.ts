@@ -123,9 +123,15 @@ export const overlayRouter = {
     },
   ),
 
-  rotateToken: os.rotateToken.handler(async ({ context }): Promise<OverlayChannelResponse> => {
+  enableToken: os.enableToken.handler(async ({ context }): Promise<OverlayChannelResponse> => {
     const channel = await ensureChannel(context.repos, context.userId);
-    const rotated = await context.repos.overlayChannels.rotateToken(context.userId);
-    return toOverlayChannel(rotated ?? channel);
+    const updated = await context.repos.overlayChannels.enableToken(context.userId);
+    return toOverlayChannel(updated ?? channel);
+  }),
+
+  disableToken: os.disableToken.handler(async ({ context }): Promise<OverlayChannelResponse> => {
+    const channel = await ensureChannel(context.repos, context.userId);
+    const updated = await context.repos.overlayChannels.disableToken(context.userId);
+    return toOverlayChannel(updated ?? channel);
   }),
 };

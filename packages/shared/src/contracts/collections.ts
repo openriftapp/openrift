@@ -173,11 +173,6 @@ export const collectionsContract = {
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Collection not found" } })
     .output(collectionShareResponseSchema),
-  rotateShare: authedRoute
-    .route({ method: "POST", path: "/api/v1/collections/{id}/share/rotate", tags: [TAG] })
-    .input(idParamSchema)
-    .errors({ NOT_FOUND: { message: "Collection not found" } })
-    .output(collectionShareResponseSchema),
   unshare: authedRoute
     .route({
       method: "DELETE",

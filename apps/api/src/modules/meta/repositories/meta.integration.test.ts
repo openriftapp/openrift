@@ -429,14 +429,6 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(row?.legendName).toBe("MTA Legend");
     });
 
-    it("reports an archive deck, and only an archive deck", async () => {
-      const eventId = await seedEvent(repo, "mta-is-meta");
-      const { deckId } = await seedListedPlayer(repo, eventId, { playerName: "MTA Vi", rank: 1 });
-
-      expect(await repo.isMetaDeck(deckId)).toBe(true);
-      expect(await repo.isMetaDeck(crypto.randomUUID())).toBe(false);
-    });
-
     it("leaves nothing behind when the standings row's event doesn't exist", async () => {
       const opts = { playerName: "MTA Nobody", rank: 1 };
       const created = await repo.createPlayer(

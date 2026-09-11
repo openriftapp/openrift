@@ -56,13 +56,6 @@ const deleteGroupFn = createServerFn({ method: "POST" })
     await apiOrpcClient(friendGroupsContract, context.cookie).remove({ slug });
   });
 
-const rotateCodeFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: slug }): Promise<FriendGroupResponse> =>
-    apiOrpcClient(friendGroupsContract, context.cookie).rotateCode({ slug }),
-  );
-
 const disableCodeFn = createServerFn({ method: "POST" })
   .validator((input: string) => input)
   .middleware([withCookies])
@@ -180,14 +173,6 @@ export function useDeleteFriendGroup() {
   return useMutationWithInvalidation({
     mutationFn: (slug: string) => deleteGroupFn({ data: slug }),
     invalidates: () => [friendGroupsKeys.all(userId)],
-  });
-}
-
-export function useRotateFriendGroupCode() {
-  const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (slug: string) => rotateCodeFn({ data: slug }),
-    invalidates: (slug) => [friendGroupsKeys.detail(userId, slug)],
   });
 }
 

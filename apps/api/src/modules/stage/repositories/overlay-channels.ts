@@ -85,9 +85,9 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
     // a card keeps the dressing.
     setPayload: writePayload,
 
-    // Leaves the payload alone: rotating a leaked token mid-stream should not
-    // also blank the scene.
-    rotateToken(userId: string): Promise<OverlayChannel | undefined> {
+    // Leaves the payload alone: turning the link off or back on mid-stream
+    // should not also blank the scene.
+    enableToken(userId: string): Promise<OverlayChannel | undefined> {
       return withUniqueShareToken(async (token) => {
         const row = await db
           .updateTable("overlayChannels")
@@ -97,6 +97,16 @@ export function overlayChannelsRepo(db: Kysely<Database>) {
           .executeTakeFirst();
         return row ? toChannel(row) : undefined;
       });
+    },
+
+    async disableToken(userId: string): Promise<OverlayChannel | undefined> {
+      const row = await db
+        .updateTable("overlayChannels")
+        .set({ token: null, version: sql<number>`version + 1` })
+        .where("userId", "=", userId)
+        .returningAll()
+        .executeTakeFirst();
+      return row ? toChannel(row) : undefined;
     },
   };
 }

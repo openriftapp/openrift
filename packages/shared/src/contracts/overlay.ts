@@ -56,7 +56,7 @@ export const overlayStateResponseSchema = z
 
 export const overlayChannelResponseSchema = z
   .object({
-    token: z.string(),
+    token: z.string().nullable(),
     version: z.number().int().nonnegative(),
     payload: overlayPayloadSchema,
     updatedAt: z.string(),
@@ -161,8 +161,11 @@ export const overlayContract = {
     .route({ method: "PATCH", path: "/api/v1/overlay/me", tags: [TAG] })
     .input(overlaySettingsSchema)
     .output(overlayChannelResponseSchema),
-  rotateToken: authedRoute
-    .route({ method: "POST", path: "/api/v1/overlay/me/rotate", tags: [TAG] })
+  enableToken: authedRoute
+    .route({ method: "POST", path: "/api/v1/overlay/me/token", tags: [TAG] })
+    .output(overlayChannelResponseSchema),
+  disableToken: authedRoute
+    .route({ method: "DELETE", path: "/api/v1/overlay/me/token", tags: [TAG] })
     .output(overlayChannelResponseSchema),
 };
 

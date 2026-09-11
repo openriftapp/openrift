@@ -24,7 +24,7 @@ import { getSiteUrl } from "@/lib/site-config";
 
 /**
  * Self-registration toggle plus the shareable sign-up / deck submission link.
- * Rotating it is confirmed because the old link dies immediately.
+ * Disabling it is confirmed because the old link dies immediately.
  */
 export function SignupLinksCard({
   detail,
@@ -35,7 +35,7 @@ export function SignupLinksCard({
 }) {
   const updateTournament = useUpdateTournament();
   const setSubmissionToken = useSetTournamentSubmissionToken();
-  const [confirmRotate, setConfirmRotate] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   const registrationUrl = detail.submissionToken
     ? `${getSiteUrl()}/tournaments/submit/${detail.submissionToken}`
@@ -44,11 +44,11 @@ export function SignupLinksCard({
   const showLink = detail.selfRegistration || deckExpected;
   const linkLabel = detail.selfRegistration ? "Registration link" : "Deck submission link";
 
-  async function handleRotate() {
+  async function handleDisable() {
     await runReportedMutation(() =>
-      setSubmissionToken.mutateAsync({ id: detail.id, enabled: true }),
+      setSubmissionToken.mutateAsync({ id: detail.id, enabled: false }),
     );
-    setConfirmRotate(false);
+    setConfirmDisable(false);
   }
 
   return (
@@ -75,46 +75,62 @@ export function SignupLinksCard({
             />
             <Label htmlFor="t-self-reg">Open self-registration</Label>
           </div>
-          {showLink && registrationUrl ? (
+          {showLink ? (
             <div className="flex flex-col gap-2">
               <Label>{linkLabel}</Label>
-              <ShareLinkRow
-                url={registrationUrl}
-                label={linkLabel}
-                defaultQrOpen
-                actions={
-                  <Button
-                    variant="ghost"
-                    disabled={locked || setSubmissionToken.isPending}
-                    onClick={() => setConfirmRotate(true)}
-                  >
-                    Rotate link
-                  </Button>
-                }
-              />
-              <p className="text-muted-foreground text-sm">
-                Rotating makes a new link and stops the old one working.
-              </p>
+              {registrationUrl ? (
+                <ShareLinkRow
+                  url={registrationUrl}
+                  label={linkLabel}
+                  defaultQrOpen
+                  actions={
+                    <Button
+                      variant="ghost"
+                      className="text-destructive"
+                      disabled={locked || setSubmissionToken.isPending}
+                      onClick={() => setConfirmDisable(true)}
+                    >
+                      Disable
+                    </Button>
+                  }
+                />
+              ) : (
+                <Button
+                  className="w-fit"
+                  disabled={locked || setSubmissionToken.isPending}
+                  onClick={() =>
+                    void runReportedMutation(() =>
+                      setSubmissionToken.mutateAsync({ id: detail.id, enabled: true }),
+                    )
+                  }
+                >
+                  Enable {linkLabel.toLowerCase()}
+                </Button>
+              )}
             </div>
           ) : null}
         </CardContent>
       </Card>
 
-      <Dialog open={confirmRotate} onOpenChange={setConfirmRotate}>
+      <Dialog open={confirmDisable} onOpenChange={setConfirmDisable}>
         <DialogContent>
-          <DialogForm onSubmit={() => void handleRotate()}>
+          <DialogForm onSubmit={() => void handleDisable()}>
             <DialogHeader>
-              <DialogTitle>Rotate the link?</DialogTitle>
+              <DialogTitle>Disable the {linkLabel.toLowerCase()}?</DialogTitle>
               <DialogDescription>
                 The link stops working for everyone. Re-enabling creates a different link.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setConfirmRotate(false)}>
-                Keep current link
+              <Button variant="ghost" onClick={() => setConfirmDisable(false)}>
+                Keep it
               </Button>
-              <Button type="submit" disabled={locked || setSubmissionToken.isPending}>
-                Rotate link
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={locked || setSubmissionToken.isPending}
+              >
+                Disable link
               </Button>
             </DialogFooter>
           </DialogForm>

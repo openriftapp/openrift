@@ -15,7 +15,6 @@ vi.mock("@/features/groups/hooks/use-friend-group-mutations", () => ({
   useEnableFriendGroupCode: () => ({ mutate: vi.fn(), isPending: false }),
   useLeaveFriendGroup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRemoveFriendGroupBanner: () => ({ mutate: vi.fn(), isPending: false }),
-  useRotateFriendGroupCode: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTransferFriendGroupOwnership: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUpdateFriendGroup: () => ({
     mutate: vi.fn(),
