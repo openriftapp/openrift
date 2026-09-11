@@ -65,6 +65,7 @@ const GUARDS: readonly Guard[] = [
       "features/decks/components/deck-hero.tsx",
       "features/decks/components/deck-matchup-card.tsx",
       "features/groups/components/trade-settle-section.tsx",
+      "features/groups/components/user-profile-header.tsx",
       "features/meta/components/meta-event-header.tsx",
       "features/meta/components/meta-event-run-page.tsx",
       "features/meta/components/meta-legend-hero.tsx",

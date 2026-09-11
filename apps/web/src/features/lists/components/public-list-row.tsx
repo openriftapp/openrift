@@ -19,6 +19,11 @@ const KIND_NOUN: Record<ListKind, { singular: string; plural: string }> = {
   copy: { singular: "Copy", plural: "Copies" },
 };
 
+export function listEntryCountLabel(kind: ListKind, entryCount: number): string {
+  const noun = entryCount === 1 ? KIND_NOUN[kind].singular : KIND_NOUN[kind].plural;
+  return `${entryCount} ${noun}`;
+}
+
 interface PublicListRowProps {
   intent: ListIntent;
   kind: ListKind;
@@ -39,7 +44,6 @@ export function PublicListRow({
 }: PublicListRowProps & useRender.ComponentProps<"a">) {
   const IntentIcon = INTENT_ICON[intent];
   const KindIcon = LIST_KIND_ICON[kind];
-  const noun = entryCount === 1 ? KIND_NOUN[kind].singular : KIND_NOUN[kind].plural;
   return (
     <CardLink
       render={render}
@@ -53,7 +57,7 @@ export function PublicListRow({
       </div>
       <span className="text-muted-foreground text-2xs mt-1 inline-flex shrink-0 items-center gap-1">
         <KindIcon className="size-3" />
-        {entryCount} {noun}
+        {listEntryCountLabel(kind, entryCount)}
       </span>
     </CardLink>
   );

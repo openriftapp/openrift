@@ -91,6 +91,26 @@ export function friendGroupMembersRepo(db: Kysely<Database>) {
       return byUser;
     },
 
+    /** Methods revealed in any group shared with the viewer; the owner-as-viewer case sees everything they reveal anywhere. */
+    async revealedContactsForViewer(
+      ownerUserId: string,
+      viewerUserId: string,
+    ): Promise<ContactMethod[]> {
+      const rows = await db
+        .selectFrom("friendGroupMemberContacts as fgmc")
+        .innerJoin("userContactMethods as ucm", "ucm.id", "fgmc.contactMethodId")
+        .innerJoin("friendGroupMembers as viewer", (join) =>
+          join.onRef("viewer.groupId", "=", "fgmc.groupId").on("viewer.userId", "=", viewerUserId),
+        )
+        .select(["ucm.id as id", "ucm.type as type", "ucm.value as value", "ucm.sortOrder"])
+        .distinct()
+        .where("fgmc.userId", "=", ownerUserId)
+        .orderBy("ucm.sortOrder", "asc")
+        .orderBy("ucm.id", "asc")
+        .execute();
+      return rows.map((row) => ({ id: row.id, type: row.type, value: row.value }));
+    },
+
     /**
      * Only ids the member actually owns are accepted (others are silently
      * dropped), so a caller can't reveal someone else's method.

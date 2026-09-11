@@ -8,6 +8,12 @@ export interface BundleOwner {
   displayName: string | null;
   email: string;
   image: string | null;
+  bio: string | null;
+  riotId: string | null;
+  createdAt: Date;
+  profileShowRiotId: boolean;
+  profileShowCollection: boolean;
+  profileShowLastActive: boolean;
 }
 
 export interface BundleListSummary {
@@ -55,6 +61,12 @@ export function userSharesRepo(db: Kysely<Database>) {
           eb.ref("name").as("displayName"),
           "email",
           "image",
+          "bio",
+          "riotId",
+          "createdAt",
+          "profileShowRiotId",
+          "profileShowCollection",
+          "profileShowLastActive",
         ])
         .where("shareToken", "=", shareToken)
         .executeTakeFirst();

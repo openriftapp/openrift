@@ -84,6 +84,16 @@ export function formatMonth(input: Date | string): string {
   return date === null ? "" : date.toISOString().slice(0, 7);
 }
 
+/** `March 2026`, the UTC month spelled out. */
+export function formatMonthYear(input: Date | string): string {
+  const date = toDate(input);
+  if (date === null) {
+    return "";
+  }
+  const month = MONTH_NAMES[date.getUTCMonth()];
+  return month === undefined ? "" : `${month} ${date.getUTCFullYear()}`;
+}
+
 /** UTC instant for admin/ops surfaces. */
 export function formatDayTime(input: Date | string): string {
   const date = toDate(input);

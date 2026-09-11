@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- feat(Account): **A real profile behind your share link** — your public lists page now opens with your name, a bio, when you started and a Contributor badge, counts your contributions, tournaments and decks, shows signed-in visitors how many cards overlap with their own lists, and previews the art on every list. A new Public profile section in settings holds the bio and what else to show.
 - feat(Groups): **A banner for your group** — admins can upload a picture, drag it to frame it, and it shows above the group's name and in the groups list.
 
 ### Other

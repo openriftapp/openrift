@@ -14,6 +14,10 @@ export const authClient = createAuthClient({
     inferAdditionalFields({
       user: {
         riotId: { type: "string", required: false },
+        bio: { type: "string", required: false },
+        profileShowRiotId: { type: "boolean", required: false },
+        profileShowCollection: { type: "boolean", required: false },
+        profileShowLastActive: { type: "boolean", required: false },
       },
     }),
   ],

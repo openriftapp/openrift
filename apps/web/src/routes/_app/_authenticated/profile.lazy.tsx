@@ -17,6 +17,7 @@ import { LanguagesSection } from "@/features/account/components/languages-sectio
 import { MarketplacesSection } from "@/features/account/components/marketplaces-section";
 import { MetaCreditSection } from "@/features/account/components/meta-credit-section";
 import { PasswordSection } from "@/features/account/components/password-section";
+import { PublicProfileSection } from "@/features/account/components/public-profile-section";
 import { PublicSharingSection } from "@/features/account/components/public-sharing-section";
 import { TradingSection } from "@/features/account/components/trading-section";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
@@ -89,6 +90,15 @@ function ProfilePage() {
 
         <SettingsGroup id="sharing" title="Public sharing">
           <PublicSharingSection />
+          <PublicProfileSection
+            userId={user.id}
+            values={{
+              bio: user.bio ?? null,
+              profileShowRiotId: user.profileShowRiotId ?? false,
+              profileShowCollection: user.profileShowCollection ?? false,
+              profileShowLastActive: user.profileShowLastActive ?? true,
+            }}
+          />
           {/* Renders nothing while the meta archive is unlaunched. */}
           <MetaCreditSection />
         </SettingsGroup>

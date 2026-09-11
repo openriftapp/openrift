@@ -24,6 +24,10 @@ export interface UsersTable {
   shareToken: string | null;
   riotId: string | null;
   metaCreditVisibility: Generated<MetaCreditVisibility>;
+  bio: string | null;
+  profileShowRiotId: Generated<boolean>;
+  profileShowCollection: Generated<boolean>;
+  profileShowLastActive: Generated<boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

@@ -2,6 +2,7 @@ import { apiKey } from "@better-auth/api-key";
 // better-auth 1.7.3 leaks SchemaCheck into betterAuth()'s inferred type. The import
 // makes it nameable for declaration emit. Drop once better-auth re-exports it.
 import type { SchemaCheck as _SchemaCheck } from "@better-auth/core/db/internal";
+import { validateProfileBio } from "@openrift/shared/profile-bio";
 import { validateRiotId } from "@openrift/shared/riot-id";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
@@ -124,6 +125,29 @@ export function createAuth(deps: {
           input: true,
           fieldName: "riot_id",
         },
+        bio: {
+          type: "string",
+          required: false,
+          input: true,
+        },
+        profileShowRiotId: {
+          type: "boolean",
+          required: false,
+          input: true,
+          fieldName: "profile_show_riot_id",
+        },
+        profileShowCollection: {
+          type: "boolean",
+          required: false,
+          input: true,
+          fieldName: "profile_show_collection",
+        },
+        profileShowLastActive: {
+          type: "boolean",
+          required: false,
+          input: true,
+          fieldName: "profile_show_last_active",
+        },
       },
       fields: {
         emailVerified: "email_verified",
@@ -212,8 +236,10 @@ export function createAuth(deps: {
         update: {
           // oxlint-disable-next-line require-await -- better-auth hook signature requires Promise return
           async before(user) {
-            const updates: { name?: string; riotId?: string | null } = {};
-            if (Object.hasOwn(user, "name")) {
+            const updates: { name?: string; riotId?: string | null; bio?: string | null } = {};
+            // better-auth passes every top-level field, absent ones as
+            // undefined, so presence alone does not mean a change.
+            if (user.name !== undefined) {
               const result = validateDisplayName(user.name);
               if (!result.ok) {
                 throw new APIError("BAD_REQUEST", {
@@ -225,7 +251,7 @@ export function createAuth(deps: {
                 updates.name = result.value;
               }
             }
-            if (Object.hasOwn(user, "riotId")) {
+            if (user.riotId !== undefined) {
               const result = validateRiotId(user.riotId);
               if (!result.ok) {
                 throw new APIError("BAD_REQUEST", {
@@ -236,6 +262,18 @@ export function createAuth(deps: {
               // An empty submission normalizes to null, clearing the field.
               if (result.value !== user.riotId) {
                 updates.riotId = result.value;
+              }
+            }
+            if (user.bio !== undefined) {
+              const result = validateProfileBio(user.bio);
+              if (!result.ok) {
+                throw new APIError("BAD_REQUEST", {
+                  code: "INVALID_BIO",
+                  message: result.reason,
+                });
+              }
+              if (result.value !== user.bio) {
+                updates.bio = result.value;
               }
             }
             if (Object.keys(updates).length === 0) {

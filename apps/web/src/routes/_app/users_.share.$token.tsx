@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_app/users_/share/$token")({
 
 function SharedUserBundlePending() {
   return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full, "flex flex-col gap-4 py-4")}>
+    <div className={cn(PAGE_PADDING, PAGE_WIDTH.capped, "flex flex-col gap-4 py-4")}>
       <div className="flex items-center gap-3">
         <Skeleton className="size-12 rounded-full" />
         <div className="flex flex-col gap-2">

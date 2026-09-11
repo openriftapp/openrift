@@ -16,6 +16,10 @@ interface SessionUser {
   emailVerified: boolean;
   image?: string | null;
   riotId?: string | null;
+  bio?: string | null;
+  profileShowRiotId?: boolean;
+  profileShowCollection?: boolean;
+  profileShowLastActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }

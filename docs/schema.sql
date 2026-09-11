@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict owD6WthSr35hgl5rk1NeEKRUHcBE8skOkugzIeuL7MvP5mCnjGhr7u8kis9SnCs
+\restrict q15YEQzBp8HSFQVxRxuDgvhCOHxScxHwD6Bjm57R2mh50IkkkprLcp0s0BthLZw
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3659,6 +3659,11 @@ CREATE TABLE public.users (
     share_token text,
     riot_id text,
     meta_credit_visibility text DEFAULT 'hidden'::text NOT NULL,
+    bio text,
+    profile_show_riot_id boolean DEFAULT false NOT NULL,
+    profile_show_collection boolean DEFAULT false NOT NULL,
+    profile_show_last_active boolean DEFAULT true NOT NULL,
+    CONSTRAINT chk_users_bio CHECK (((bio IS NULL) OR ((bio <> ''::text) AND (char_length(bio) <= 200)))),
     CONSTRAINT chk_users_meta_credit_visibility CHECK ((meta_credit_visibility = ANY (ARRAY['hidden'::text, 'name'::text, 'riot_id'::text])))
 );
 
@@ -9480,5 +9485,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict owD6WthSr35hgl5rk1NeEKRUHcBE8skOkugzIeuL7MvP5mCnjGhr7u8kis9SnCs
+\unrestrict q15YEQzBp8HSFQVxRxuDgvhCOHxScxHwD6Bjm57R2mh50IkkkprLcp0s0BthLZw
 

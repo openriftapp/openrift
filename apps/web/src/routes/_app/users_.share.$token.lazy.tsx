@@ -1,12 +1,9 @@
 import type { ListIntent } from "@openrift/shared/types/api/list";
-import type {
-  PublicUserBundleCollectionResponse,
-  PublicUserBundleListResponse,
-} from "@openrift/shared/types/api/user-share";
+import type { PublicUserBundleCollectionResponse } from "@openrift/shared/types/api/user-share";
 import { Link, createLazyFileRoute } from "@tanstack/react-router";
-import { BookOpenIcon, GlobeIcon, HeartIcon, UsersIcon } from "lucide-react";
+import { BookOpenIcon, ChevronRightIcon, HandshakeIcon, HeartIcon, UsersIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 
-import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { CardLink } from "@/components/ui/card-link";
 import {
@@ -16,42 +13,44 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import type { IconChipTone } from "@/components/ui/icon-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { UserAvatar } from "@/components/user-avatar";
+import { UserProfileHeader } from "@/features/groups/components/user-profile-header";
+import { UserProfileListTile } from "@/features/groups/components/user-profile-list-tile";
+import { UserProfileOverlap } from "@/features/groups/components/user-profile-overlap";
+import { UserProfilePreviewFan } from "@/features/groups/components/user-profile-preview-fan";
+import { UserProfileStats } from "@/features/groups/components/user-profile-stats";
 import { usePublicUserBundle } from "@/features/groups/hooks/use-user-share";
-import { PublicListRow } from "@/features/lists/components/public-list-row";
 import { useUserId } from "@/lib/auth-session";
+import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
 
 export const Route = createLazyFileRoute("/_app/users_/share/$token")({
   component: SharedUserBundlePage,
 });
 
-const SECTIONS: { intent: Extract<ListIntent, "wish" | "trade">; heading: string }[] = [
-  { intent: "wish", heading: "Wishlists" },
-  { intent: "trade", heading: "Tradelists" },
+const SECTIONS: {
+  intent: Extract<ListIntent, "wish" | "trade">;
+  heading: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tone: IconChipTone;
+}[] = [
+  { intent: "wish", heading: "Looking for", icon: HeartIcon, tone: "primary" },
+  { intent: "trade", heading: "Offering", icon: HandshakeIcon, tone: "success" },
 ];
 
 function SharedUserBundlePage() {
   const { token } = Route.useParams();
   const { data } = usePublicUserBundle(token);
-  const { owner, lists, collections } = data;
+  const { lists, collections } = data;
   const viewerUserId = useUserId();
   const showVisibility = viewerUserId !== null;
   const isEmpty = lists.length === 0 && collections.length === 0;
 
   return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full, "flex flex-col gap-6 py-4")}>
-      <header className="flex items-center gap-3">
-        <UserAvatar
-          name={owner.displayName}
-          gravatarHash={owner.gravatarHash}
-          size="lg"
-          className="size-12"
-        />
-        <Heading level={1}>{owner.displayName}</Heading>
-      </header>
-
+    <div className={cn(PAGE_PADDING, PAGE_WIDTH.capped, "flex flex-col gap-6 py-4")}>
+      <UserProfileHeader data={data} shareUrl={`${getSiteUrl()}/users/share/${token}`} />
+      <UserProfileStats stats={data.stats} />
       {isEmpty ? (
         <Empty>
           <EmptyHeader>
@@ -66,17 +65,20 @@ function SharedUserBundlePage() {
         </Empty>
       ) : (
         <>
-          {SECTIONS.map(({ intent, heading }) => {
+          <UserProfileOverlap data={data} isOwner={data.owner.isViewer} />
+          {SECTIONS.map(({ intent, heading, icon, tone }) => {
             const sectionLists = lists.filter((list) => list.intent === intent);
             if (sectionLists.length === 0) {
               return null;
             }
             return (
               <section key={intent} className="flex flex-col gap-3">
-                <SectionHeading>{heading}</SectionHeading>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <SectionHeading icon={icon} tone={tone}>
+                  {heading}
+                </SectionHeading>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {sectionLists.map((list) => (
-                    <BundleListRow
+                    <UserProfileListTile
                       key={list.id}
                       token={token}
                       list={list}
@@ -90,8 +92,10 @@ function SharedUserBundlePage() {
 
           {collections.length > 0 ? (
             <section className="flex flex-col gap-3">
-              <SectionHeading>Collections</SectionHeading>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <SectionHeading icon={BookOpenIcon} tone="info">
+                Collections shared with you
+              </SectionHeading>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {collections.map((collection) => (
                   <BundleCollectionRow key={collection.id} collection={collection} />
                 ))}
@@ -113,7 +117,7 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
   }
   return (
     <CardLink
-      className="gap-1 p-3"
+      className="gap-2 p-4"
       render={
         <Link
           to="/groups/$slug/collections/$collectionId"
@@ -121,14 +125,16 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
         />
       }
     >
-      <div className="flex items-center gap-2">
-        <BookOpenIcon className="size-4 shrink-0" />
-        <span className="flex-1 truncate font-medium">{collection.name}</span>
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="font-medium break-words">{collection.name}</span>
+          {collection.description ? (
+            <p className="text-muted-foreground line-clamp-2 text-sm">{collection.description}</p>
+          ) : null}
+        </div>
+        <ChevronRightIcon className="text-muted-foreground/40 mt-0.5 size-4 shrink-0" />
       </div>
-      {collection.description ? (
-        <p className="text-muted-foreground line-clamp-2 text-sm">{collection.description}</p>
-      ) : null}
-      <div className="mt-1 flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1.5">
         {collection.viaGroups.map((group) => (
           <Badge
             key={group.id}
@@ -141,51 +147,9 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
           </Badge>
         ))}
       </div>
+      <div className="mt-auto flex justify-end pt-2">
+        <UserProfilePreviewFan imageIds={collection.previewImageIds} />
+      </div>
     </CardLink>
-  );
-}
-
-function BundleListRow({
-  token,
-  list,
-  showVisibility,
-}: {
-  token: string;
-  list: PublicUserBundleListResponse;
-  showVisibility: boolean;
-}) {
-  return (
-    <PublicListRow
-      intent={list.intent}
-      kind={list.kind}
-      name={list.name}
-      entryCount={list.entryCount}
-      badges={showVisibility ? <VisibilityBadges list={list} /> : null}
-      render={<Link to="/users/share/$token/lists/$listId" params={{ token, listId: list.id }} />}
-    />
-  );
-}
-
-function VisibilityBadges({ list }: { list: PublicUserBundleListResponse }) {
-  return (
-    <>
-      {list.isPublic ? (
-        <Badge variant="outline" className="text-2xs gap-1" title="Has a public share link">
-          <GlobeIcon className="size-3" />
-          Public
-        </Badge>
-      ) : null}
-      {list.viaGroups.map((group) => (
-        <Badge
-          key={group.id}
-          variant="outline"
-          className="text-2xs max-w-[10rem] gap-1"
-          title={`Shared with ${group.name}`}
-        >
-          <UsersIcon className="size-3 shrink-0" />
-          <span className="truncate">{group.name}</span>
-        </Badge>
-      ))}
-    </>
   );
 }
