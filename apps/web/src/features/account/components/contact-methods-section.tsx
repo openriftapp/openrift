@@ -5,8 +5,8 @@ import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -156,20 +156,15 @@ export function ContactMethodsSection() {
   const { contactMethods } = useContactMethods();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Trade contacts</CardTitle>
-        <CardDescription>
-          Choose which to share in each group&apos;s settings. Nothing is visible until you share
-          it.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {contactMethods.map((method) => (
-          <ContactMethodRow key={method.id} method={method} />
-        ))}
-        <AddContactMethod />
-      </CardContent>
-    </Card>
+    <SettingsSection
+      id="contacts"
+      title="Trade contacts"
+      description="Choose which to share in each group's settings. Nothing is visible until you share it."
+    >
+      {contactMethods.map((method) => (
+        <ContactMethodRow key={method.id} method={method} />
+      ))}
+      <AddContactMethod />
+    </SettingsSection>
   );
 }

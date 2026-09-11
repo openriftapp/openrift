@@ -20,7 +20,6 @@ import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
@@ -136,13 +136,16 @@ function StaffRoleSection({
           </EmptyHeader>
         </Empty>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <RowList>
           {members.map((member) => (
-            <li key={`${member.userId}-${member.source}-${member.role}`}>
-              <StaffRow detail={detail} member={member} host={host} />
-            </li>
+            <StaffRow
+              key={`${member.userId}-${member.source}-${member.role}`}
+              detail={detail}
+              member={member}
+              host={host}
+            />
           ))}
-        </ul>
+        </RowList>
       )}
     </section>
   );
@@ -169,7 +172,7 @@ function StaffRow({
   }
 
   return (
-    <Card className="flex-row items-center gap-3 p-3">
+    <RowListItem>
       <UserAvatar name={member.name} className="size-9 shrink-0" />
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span className="truncate font-medium">{member.name ?? member.userId}</span>
@@ -205,7 +208,7 @@ function StaffRow({
         // Keeps the name column aligned with rows that do have a menu.
         <span aria-hidden="true" className="size-7 shrink-0" />
       ) : null}
-    </Card>
+    </RowListItem>
   );
 }
 

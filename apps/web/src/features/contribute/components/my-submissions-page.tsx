@@ -15,7 +15,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCardSubmissions } from "@/features/contribute/hooks/use-card-submissions";
 import {
@@ -33,7 +33,7 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
   const cardLink = submission.cardSlug;
 
   return (
-    <Card className="flex flex-col gap-2 p-4">
+    <RowListItem className="flex-col items-stretch gap-2 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {cardLink ? (
@@ -69,7 +69,7 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
           {submission.note}
         </p>
       ) : null}
-    </Card>
+    </RowListItem>
   );
 }
 
@@ -111,9 +111,13 @@ export function MySubmissionsPage() {
           </EmptyState>
         ) : null}
 
-        {submissions.map((submission) => (
-          <SubmissionRow key={submission.id} submission={submission} />
-        ))}
+        {submissions.length > 0 ? (
+          <RowList variant="divided">
+            {submissions.map((submission) => (
+              <SubmissionRow key={submission.id} submission={submission} />
+            ))}
+          </RowList>
+        ) : null}
 
         {hasNextPage ? (
           <Button

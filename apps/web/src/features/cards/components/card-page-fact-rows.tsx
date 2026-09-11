@@ -7,6 +7,7 @@ import { TriangleAlertIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 import { InfoRow } from "@/features/cards/components/card-page-info-row";
 import { CardText } from "@/features/cards/components/card-text";
@@ -54,7 +55,7 @@ export function CardPageFactRows({
         )}
         {printing.markers.length > 0 && (
           <InfoRow label="Promo">
-            <div className="border-border/50 bg-muted/30 flex flex-wrap gap-1 rounded-md border px-2.5 py-1.5">
+            <div className="flex flex-wrap gap-1">
               {printing.markers.map((marker) => (
                 <Badge key={marker.id} variant="secondary" title={marker.description ?? undefined}>
                   {marker.label}
@@ -67,9 +68,7 @@ export function CardPageFactRows({
         <SourcesRow printing={printing} />
         {printing.comment && (
           <InfoRow label="Note">
-            <div className="border-border/50 bg-muted/30 rounded-md border px-2.5 py-1.5">
-              <p className="text-muted-foreground italic">{printing.comment}</p>
-            </div>
+            <p className="text-muted-foreground italic">{printing.comment}</p>
           </InfoRow>
         )}
         {card.errata && <ErrataRow errata={card.errata} printing={printing} />}
@@ -175,7 +174,7 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
   }
   return (
     <InfoRow label="Found in">
-      <div className="border-border/50 bg-muted/30 rounded-md border px-2.5 py-1.5">
+      <Callout variant="inset">
         {otherEntries.length === 0 ? (
           firstEntry.node
         ) : (
@@ -190,7 +189,7 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
             ))}
           </ul>
         )}
-      </div>
+      </Callout>
     </InfoRow>
   );
 }
@@ -203,9 +202,9 @@ function SourcesRow({ printing }: { printing: Printing }) {
   }
   return (
     <InfoRow label={citations.length === 1 ? "Source" : "Sources"}>
-      <div className="border-border/50 bg-muted/30 rounded-md border px-2.5 py-1.5">
+      <Callout variant="inset">
         <PrintingCitationList citations={citations} />
-      </div>
+      </Callout>
     </InfoRow>
   );
 }

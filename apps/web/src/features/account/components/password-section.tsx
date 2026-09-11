@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/features/account/lib/auth-client";
@@ -40,14 +40,9 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
 
   if (isPending) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Password</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        </CardContent>
-      </Card>
+      <SettingsSection title="Password">
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      </SettingsSection>
     );
   }
 
@@ -60,27 +55,22 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
 
 function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Password</CardTitle>
-        <CardDescription>
-          You sign in with a connected account, so this account has no password yet.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <FieldDescription>
-            Set one and you can sign in with your email address as well. We&apos;ll send a code to{" "}
-            <strong>{currentEmail}</strong> to confirm it&apos;s you.
-          </FieldDescription>
-          <Field>
-            <Button render={<Link to="/reset-password" search={{ email: currentEmail }} />}>
-              Set a password
-            </Button>
-          </Field>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+    <SettingsSection
+      title="Password"
+      description="You sign in with a connected account, so this account has no password yet."
+    >
+      <FieldGroup>
+        <FieldDescription>
+          Set one and you can sign in with your email address as well. We&apos;ll send a code to{" "}
+          <strong>{currentEmail}</strong> to confirm it&apos;s you.
+        </FieldDescription>
+        <Field>
+          <Button render={<Link to="/reset-password" search={{ email: currentEmail }} />}>
+            Set a password
+          </Button>
+        </Field>
+      </FieldGroup>
+    </SettingsSection>
   );
 }
 
@@ -117,79 +107,73 @@ function ChangePasswordCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Password</CardTitle>
-        <CardDescription>Other signed-in devices will be signed out.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
-          <FieldGroup>
-            {form.formState.errors.root && (
-              <FieldError>{form.formState.errors.root.message}</FieldError>
+    <SettingsSection title="Password" description="Other signed-in devices will be signed out.">
+      <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
+        <FieldGroup>
+          {form.formState.errors.root && (
+            <FieldError>{form.formState.errors.root.message}</FieldError>
+          )}
+          <Controller
+            name="currentPassword"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Current password</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  type="password"
+                  autoComplete="current-password"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
-            <Controller
-              name="currentPassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Current password</FieldLabel>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    type="password"
-                    autoComplete="current-password"
-                    aria-invalid={fieldState.invalid}
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              name="newPassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>New password</FieldLabel>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    type="password"
-                    autoComplete="new-password"
-                    aria-invalid={fieldState.invalid}
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              name="confirmPassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Confirm new password</FieldLabel>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    type="password"
-                    autoComplete="new-password"
-                    aria-invalid={fieldState.invalid}
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Field>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Updating..." : "Update password"}
-              </Button>
-            </Field>
-            {success && (
-              <FieldDescription className="text-success">Password updated.</FieldDescription>
+          />
+          <Controller
+            name="newPassword"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>New password</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  type="password"
+                  autoComplete="new-password"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
-          </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
+          />
+          <Controller
+            name="confirmPassword"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Confirm new password</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  type="password"
+                  autoComplete="new-password"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          <Field>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Updating..." : "Update password"}
+            </Button>
+          </Field>
+          {success && (
+            <FieldDescription className="text-success">Password updated.</FieldDescription>
+          )}
+        </FieldGroup>
+      </form>
+    </SettingsSection>
   );
 }

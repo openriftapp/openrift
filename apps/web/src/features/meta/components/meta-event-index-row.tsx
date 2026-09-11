@@ -32,7 +32,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
     <Link
       to="/meta/$slug"
       params={{ slug: event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 block px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
     >
       <span className="sr-only">{formatDay(event.eventDate)}</span>
 

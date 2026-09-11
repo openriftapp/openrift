@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { RowList } from "@/components/ui/row-list";
 import {
   ART_VARIANT_DESCRIPTIONS,
   FINISH_DESCRIPTIONS,
@@ -9,7 +10,7 @@ import {
 import { matches } from "@/features/rules/lib/glossary-search";
 import { getFilterIconPath } from "@/lib/icons";
 
-import { GlossarySectionHeading } from "./glossary-shared";
+import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
 
 export function RaritiesSection({
   rarities,
@@ -37,7 +38,7 @@ export function RaritiesSection({
           const slug = rarity.slug.toLowerCase();
           const rarityIcon = getFilterIconPath("rarities", rarity.slug);
           return (
-            <li key={rarity.slug} className="flex items-center gap-3 rounded-md border p-3">
+            <GlossaryTermTile key={rarity.slug} className="flex-row items-center gap-3">
               {withImage.has(slug) && rarityIcon && (
                 <img
                   src={rarityIcon}
@@ -50,7 +51,7 @@ export function RaritiesSection({
               <span className="font-medium" style={rarity.color ? { color: rarity.color } : {}}>
                 {rarity.label}
               </span>
-            </li>
+            </GlossaryTermTile>
           );
         })}
       </ul>
@@ -73,17 +74,13 @@ export function BoosterPacksSection({ query }: { query: string }) {
         </Link>{" "}
         simulates this same distribution.
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((slot) => (
-          <li
-            key={slot.label}
-            className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
-          >
-            <span className="font-medium sm:w-36 sm:shrink-0">{slot.label}</span>
-            <p className="text-muted-foreground">{slot.description}</p>
-          </li>
+          <GlossaryTermRow key={slot.label} term={slot.label}>
+            <p className="text-muted-foreground flex-1">{slot.description}</p>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
       <p className="text-muted-foreground mt-3">
         Headline rates come from Riot&apos;s Origins announcement. Foil-slot and cascade rates are
         community estimates.
@@ -113,19 +110,15 @@ export function ArtVariantsSection({
         An art variant describes which illustration appears on a printing. Alt-art printings are
         usually marked by a lowercase letter suffix on the card number, like OGN-120a.
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((variant) => (
-          <li
-            key={variant.slug}
-            className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
-          >
-            <span className="font-medium sm:w-32 sm:shrink-0">{variant.label}</span>
-            <p className="text-muted-foreground">
+          <GlossaryTermRow key={variant.slug} term={variant.label}>
+            <p className="text-muted-foreground flex-1">
               {ART_VARIANT_DESCRIPTIONS[variant.slug.toLowerCase()] ?? ""}
             </p>
-          </li>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
     </section>
   );
 }
@@ -153,19 +146,15 @@ export function FinishesSection({
         small number have been released as premium metal collectibles. Finish is independent of
         rarity and art variant, so the same artwork can exist as both a normal and a foil printing.
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((finish) => (
-          <li
-            key={finish.slug}
-            className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
-          >
-            <span className="font-medium sm:w-32 sm:shrink-0">{finish.label}</span>
-            <p className="text-muted-foreground">
+          <GlossaryTermRow key={finish.slug} term={finish.label}>
+            <p className="text-muted-foreground flex-1">
               {FINISH_DESCRIPTIONS[finish.slug.toLowerCase()] ?? ""}
             </p>
-          </li>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
     </section>
   );
 }
@@ -191,19 +180,15 @@ export function MarkersSection({
         cover promotional channels like prereleases, tournaments, judge programs, and store-level
         events, and a single printing can carry more than one.
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((marker) => (
-          <li
-            key={marker.slug}
-            className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
-          >
-            <span className="font-medium sm:w-36 sm:shrink-0">{marker.label}</span>
-            <p className="text-muted-foreground">
+          <GlossaryTermRow key={marker.slug} term={marker.label}>
+            <p className="text-muted-foreground flex-1">
               {marker.description ?? <span className="italic">No description yet.</span>}
             </p>
-          </li>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
     </section>
   );
 }
@@ -221,17 +206,13 @@ export function PrintingDetailsSection({ query }: { query: string }) {
         the signature flag marks printings where the artist&apos;s signature is overlaid on the
         artwork (usually on a foil alt-art or Ultimate variant).
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((item) => (
-          <li
-            key={item.key}
-            className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
-          >
-            <span className="font-medium sm:w-32 sm:shrink-0">{item.label}</span>
-            <p className="text-muted-foreground">{item.description}</p>
-          </li>
+          <GlossaryTermRow key={item.key} term={item.label}>
+            <p className="text-muted-foreground flex-1">{item.description}</p>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
     </section>
   );
 }

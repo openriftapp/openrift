@@ -1,7 +1,8 @@
 import { BookOpenIcon } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   useFriendGroupShareableCollections,
   useShareCollectionWithFriendGroup,
@@ -15,28 +16,26 @@ export function ShareableCollectionsPanel({ slug }: { slug: string }) {
 
   if (data.items.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Share your collections</CardTitle>
-          <CardDescription>
-            You don&apos;t have any personal collections yet. Create one to share it with this
-            group.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <SettingsSection
+        id="collections"
+        className="scroll-mt-28"
+        title="Share your collections"
+        description="You don't have any personal collections yet. Create one to share it with this group."
+      />
     );
   }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Share your collections</CardTitle>
-        <CardDescription>Visible (read-only) to everyone in this group.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+    <SettingsSection
+      id="collections"
+      className="scroll-mt-28"
+      title="Share your collections"
+      description="Visible (read-only) to everyone in this group."
+    >
+      <RowList>
         {data.items.map((row) => {
           const isShared = row.sharedAt !== null;
           return (
-            <div key={row.collectionId} className="flex items-center gap-3">
+            <RowListItem key={row.collectionId}>
               <Checkbox
                 checked={isShared}
                 onCheckedChange={(checked) => {
@@ -52,10 +51,10 @@ export function ShareableCollectionsPanel({ slug }: { slug: string }) {
                 <BookOpenIcon className="size-4" />
                 <span className="font-medium">{row.collectionName}</span>
               </div>
-            </div>
+            </RowListItem>
           );
         })}
-      </CardContent>
-    </Card>
+      </RowList>
+    </SettingsSection>
   );
 }

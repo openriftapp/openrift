@@ -19,6 +19,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { CardChip, CardPicker } from "@/features/decks/components/deck-card-picker";
+import { MatchupCard } from "@/features/decks/components/deck-matchup-card";
 import { PlanTabActionsContext } from "@/features/decks/components/deck-overview-tabs";
 import { SwapColumns } from "@/features/decks/components/swap-column-editor";
 import { useDeckPlan, useSaveDeckPlan } from "@/features/decks/hooks/use-deck-plan";
@@ -189,120 +190,118 @@ function MatchupEditor({
   };
 
   return (
-    <div className="bg-card/40 rounded-lg border">
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 px-3 py-2",
-          !collapsed && "border-b",
-        )}
-      >
-        <ExpandToggle
-          expanded={!collapsed}
-          onClick={() => setCollapsed((value) => !value)}
-          className="min-w-0 flex-1"
-        >
-          <span
-            className={cn("truncate text-sm font-medium", !hasOpponent && "text-muted-foreground")}
+    <MatchupCard
+      editable
+      collapsed={collapsed}
+      header={
+        <>
+          <ExpandToggle
+            expanded={!collapsed}
+            onClick={() => setCollapsed((value) => !value)}
+            className="min-w-0 flex-1"
           >
-            {summaryTitle}
-          </span>
-          {outCount + inCount > 0 ? (
-            <span className="text-muted-foreground shrink-0 text-xs">
-              −{outCount}/+{inCount}
+            <span
+              className={cn(
+                "truncate text-sm font-medium",
+                !hasOpponent && "text-muted-foreground",
+              )}
+            >
+              {summaryTitle}
             </span>
-          ) : null}
-        </ExpandToggle>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={isFirst}
-            onClick={() => onMove(-1)}
-            aria-label="Move up"
-          >
-            <ArrowUpIcon className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={isLast}
-            onClick={() => onMove(1)}
-            aria-label="Move down"
-          >
-            <ArrowDownIcon className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onRemove}
-            aria-label={`Remove matchup ${index + 1}`}
-          >
-            <Trash2Icon className="size-4" />
-          </Button>
+            {outCount + inCount > 0 ? (
+              <span className="text-muted-foreground shrink-0 text-xs">
+                −{outCount}/+{inCount}
+              </span>
+            ) : null}
+          </ExpandToggle>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={isFirst}
+              onClick={() => onMove(-1)}
+              aria-label="Move up"
+            >
+              <ArrowUpIcon className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={isLast}
+              onClick={() => onMove(1)}
+              aria-label="Move down"
+            >
+              <ArrowDownIcon className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onRemove}
+              aria-label={`Remove matchup ${index + 1}`}
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </div>
+        </>
+      }
+    >
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1 space-y-2">
+          <ColumnLabel>Key card</ColumnLabel>
+          <div className="h-8">
+            {matchup.opponentCardId ? (
+              <CardChip
+                cardId={matchup.opponentCardId}
+                variant="field"
+                onRemove={() => onChange({ opponentCardId: null })}
+                onHoverCard={onHoverCard}
+              />
+            ) : (
+              <CardPicker
+                candidates={cardCandidates}
+                onSelect={(cardId) => onChange({ opponentCardId: cardId })}
+                placeholder="Search a card (Diana, Aurora…)"
+                listAllWhenEmpty={false}
+              />
+            )}
+          </div>
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <ColumnLabel>Build</ColumnLabel>
+          <Input
+            value={matchup.opponentLabel}
+            onChange={(event) => onChange({ opponentLabel: event.target.value })}
+            placeholder="e.g. Scorn of the Moon, Aggro, Control"
+            maxLength={120}
+            className="h-8 w-full"
+          />
         </div>
       </div>
 
-      {collapsed ? null : (
-        <div className="space-y-3 p-3">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1 space-y-2">
-              <ColumnLabel>Key card</ColumnLabel>
-              <div className="h-8">
-                {matchup.opponentCardId ? (
-                  <CardChip
-                    cardId={matchup.opponentCardId}
-                    variant="field"
-                    onRemove={() => onChange({ opponentCardId: null })}
-                    onHoverCard={onHoverCard}
-                  />
-                ) : (
-                  <CardPicker
-                    candidates={cardCandidates}
-                    onSelect={(cardId) => onChange({ opponentCardId: cardId })}
-                    placeholder="Search a card (Diana, Aurora…)"
-                    listAllWhenEmpty={false}
-                  />
-                )}
-              </div>
-            </div>
-            <div className="min-w-0 flex-1 space-y-2">
-              <ColumnLabel>Build</ColumnLabel>
-              <Input
-                value={matchup.opponentLabel}
-                onChange={(event) => onChange({ opponentLabel: event.target.value })}
-                placeholder="e.g. Scorn of the Moon, Aggro, Control"
-                maxLength={120}
-                className="h-8 w-full"
-              />
-            </div>
-          </div>
+      <SwapColumns
+        swaps={matchup.swaps}
+        maindeckCandidates={maindeckCandidates}
+        sideboardCandidates={sideboardCandidates}
+        onAdd={addSwap}
+        onSetQuantity={setSwapQuantity}
+        onRemove={removeSwap}
+        onHoverCard={onHoverCard}
+        maxQuantityFor={maxSwapQuantity}
+      />
 
-          <SwapColumns
-            swaps={matchup.swaps}
-            maindeckCandidates={maindeckCandidates}
-            sideboardCandidates={sideboardCandidates}
-            onAdd={addSwap}
-            onSetQuantity={setSwapQuantity}
-            onRemove={removeSwap}
-            onHoverCard={onHoverCard}
-            maxQuantityFor={maxSwapQuantity}
-          />
+      <WarningList warnings={warnings} nameOf={nameOf} />
 
-          <WarningList warnings={warnings} nameOf={nameOf} />
-
-          <div className="space-y-2">
-            <ColumnLabel>Matchup notes</ColumnLabel>
-            <Textarea
-              value={matchup.notes}
-              onChange={(event) => onChange({ notes: event.target.value })}
-              placeholder="Optional"
-              rows={2}
-              maxLength={4000}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      <div className="space-y-2">
+        <ColumnLabel>Matchup notes</ColumnLabel>
+        <Textarea
+          value={matchup.notes}
+          onChange={(event) => onChange({ notes: event.target.value })}
+          placeholder="Optional"
+          rows={2}
+          maxLength={4000}
+        />
+      </div>
+    </MatchupCard>
   );
 }
 

@@ -14,7 +14,7 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
 
 vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn() } }));
 
-const { ScheduleCard } = await import("./schedule-card");
+const { ScheduleSection } = await import("./schedule-section");
 
 // Mid-June avoids every DST transition in both hemispheres, so the local-time
 // round trip through combineLocalDateTimeToUtc is exact regardless of the suite's timezone.
@@ -43,10 +43,10 @@ beforeEach(() => {
   toastError.mockClear();
 });
 
-describe("ScheduleCard initial state", () => {
+describe("ScheduleSection initial state", () => {
   it("shows the stored instants as local date and time parts", () => {
     render(
-      <ScheduleCard
+      <ScheduleSection
         detail={makeDetail({ endsAt: endsAtUtc })}
         locked={false}
         canEndEarly={false}
@@ -60,23 +60,23 @@ describe("ScheduleCard initial state", () => {
   });
 
   it("leaves both end parts blank when the tournament has no end", () => {
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     expect(dateInputs()[1]).toHaveValue("");
     expect(screen.getByLabelText("End time (24h)")).toHaveValue("");
   });
 
   it("keeps Save disabled until the schedule actually changes", () => {
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     expect(screen.getByRole("button", { name: "Save schedule" })).toBeDisabled();
   });
 });
 
-describe("ScheduleCard validation", () => {
+describe("ScheduleSection validation", () => {
   it("rejects an end that falls before the start", async () => {
     const user = userEvent.setup();
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.type(dateInputs()[1]!, START_DATE);
     await user.type(screen.getByLabelText("End time (24h)"), "09:00");
@@ -87,7 +87,7 @@ describe("ScheduleCard validation", () => {
 
   it("rejects an end with only one part filled", async () => {
     const user = userEvent.setup();
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.type(dateInputs()[1]!, "2026-06-11");
 
@@ -97,7 +97,7 @@ describe("ScheduleCard validation", () => {
 
   it("rejects a malformed start time", async () => {
     const user = userEvent.setup();
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.clear(screen.getByLabelText("Start time (24h)"));
     await user.type(screen.getByLabelText("Start time (24h)"), "25:00");
@@ -108,7 +108,7 @@ describe("ScheduleCard validation", () => {
 
   it("treats an end equal to the start as valid", async () => {
     const user = userEvent.setup();
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.type(dateInputs()[1]!, START_DATE);
     await user.type(screen.getByLabelText("End time (24h)"), START_TIME);
@@ -118,10 +118,10 @@ describe("ScheduleCard validation", () => {
   });
 });
 
-describe("ScheduleCard saving", () => {
+describe("ScheduleSection saving", () => {
   it("stores the edited start as a UTC instant", async () => {
     const user = userEvent.setup();
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.clear(screen.getByLabelText("Start time (24h)"));
     await user.type(screen.getByLabelText("Start time (24h)"), "11:30");
@@ -137,7 +137,7 @@ describe("ScheduleCard saving", () => {
   it("stores no end when both end parts are cleared", async () => {
     const user = userEvent.setup();
     render(
-      <ScheduleCard
+      <ScheduleSection
         detail={makeDetail({ endsAt: endsAtUtc })}
         locked={false}
         canEndEarly={false}
@@ -158,7 +158,7 @@ describe("ScheduleCard saving", () => {
   it("leaves a failed save to the global mutation error toast", async () => {
     const user = userEvent.setup();
     updateMutateAsync.mockRejectedValue(new Error("Schedule conflicts with another round"));
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     await user.clear(screen.getByLabelText("Start time (24h)"));
     await user.type(screen.getByLabelText("Start time (24h)"), "11:30");
@@ -169,23 +169,23 @@ describe("ScheduleCard saving", () => {
   });
 });
 
-describe("ScheduleCard end-now action", () => {
+describe("ScheduleSection end-now action", () => {
   it("offers End now while the tournament can still be ended", () => {
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly />);
 
     expect(screen.getByRole("button", { name: "End now" })).toBeInTheDocument();
   });
 
   it("hides End now once the tournament is over", () => {
-    render(<ScheduleCard detail={makeDetail()} locked={false} canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked={false} canEndEarly={false} />);
 
     expect(screen.queryByRole("button", { name: "End now" })).not.toBeInTheDocument();
   });
 });
 
-describe("ScheduleCard locked state", () => {
+describe("ScheduleSection locked state", () => {
   it("disables the inputs and explains why on a cancelled tournament", () => {
-    render(<ScheduleCard detail={makeDetail()} locked canEndEarly={false} />);
+    render(<ScheduleSection detail={makeDetail()} locked canEndEarly={false} />);
 
     expect(screen.getByLabelText("Start time (24h)")).toBeDisabled();
     expect(screen.getByLabelText("End time (24h)")).toBeDisabled();

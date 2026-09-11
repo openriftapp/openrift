@@ -44,9 +44,7 @@ export function GroupCutStandings({
         <GroupStandingsCard key={group.id} group={group} />
       ))}
       <CutSeedsCard groupStage={groupStage} cutSize={cutSize} />
-      <Callout>
-        <GroupTiebreakNote legendTiebreak={legendTiebreak} />
-      </Callout>
+      <GroupTiebreakNote legendTiebreak={legendTiebreak} />
       {metaShares ? (
         <LegendMetaSharesDialog
           id={metaShares.id}

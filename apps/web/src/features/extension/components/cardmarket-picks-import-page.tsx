@@ -10,10 +10,12 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RowList } from "@/components/ui/row-list";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { ImportEntryRow } from "@/features/collections/components/import-entry-row";
 import {
@@ -67,23 +69,20 @@ export function CardmarketPicksImportPage() {
 
 function NothingPicked() {
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-2">
-        <p>Nothing has been handed over.</p>
-        <p className="text-muted-foreground text-sm">
-          Open a seller&apos;s offers on Cardmarket, press + on the cards you want, then choose
-          &quot;Send to OpenRift&quot; from the extension popup. See{" "}
-          <Link
-            to="/help/$slug"
-            params={{ slug: "browser-extension" }}
-            className="text-primary hover:underline"
-          >
-            how the extension works
-          </Link>
-          .
-        </p>
-      </CardContent>
-    </Card>
+    <SettingsSection title="Nothing has been handed over">
+      <p className="text-muted-foreground text-sm">
+        Open a seller&apos;s offers on Cardmarket, press + on the cards you want, then choose
+        &quot;Send to OpenRift&quot; from the extension popup. See{" "}
+        <Link
+          to="/help/$slug"
+          params={{ slug: "browser-extension" }}
+          className="text-primary hover:underline"
+        >
+          how the extension works
+        </Link>
+        .
+      </p>
+    </SettingsSection>
   );
 }
 
@@ -127,49 +126,46 @@ function TargetPicker({
   onChange: (choice: TargetChoice) => void;
 }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3">
-        <p className="font-medium">Save to</p>
-        <RadioGroup
-          value={choice.selected}
-          onValueChange={(value) => onChange({ ...choice, selected: String(value) })}
+    <SettingsSection title="Save to">
+      <RadioGroup
+        value={choice.selected}
+        onValueChange={(value) => onChange({ ...choice, selected: String(value) })}
+      >
+        <label
+          htmlFor="picks-target-new"
+          className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
         >
+          <RadioGroupItem id="picks-target-new" value={NEW_LIST} />
+          <span className="flex-1 font-medium">New list</span>
+          <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
+        </label>
+        {lists.map((list) => (
           <label
-            htmlFor="picks-target-new"
+            key={list.id}
+            htmlFor={`picks-target-${list.id}`}
             className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
           >
-            <RadioGroupItem id="picks-target-new" value={NEW_LIST} />
-            <span className="flex-1 font-medium">New list</span>
-            <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
+            <RadioGroupItem id={`picks-target-${list.id}`} value={list.id} />
+            <span className="min-w-0 flex-1 truncate font-medium">{list.name}</span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {list.entryCount} {list.entryCount === 1 ? "card" : "cards"}
+            </span>
           </label>
-          {lists.map((list) => (
-            <label
-              key={list.id}
-              htmlFor={`picks-target-${list.id}`}
-              className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-            >
-              <RadioGroupItem id={`picks-target-${list.id}`} value={list.id} />
-              <span className="min-w-0 flex-1 truncate font-medium">{list.name}</span>
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {list.entryCount} {list.entryCount === 1 ? "card" : "cards"}
-              </span>
-            </label>
-          ))}
-        </RadioGroup>
-        {choice.selected === NEW_LIST ? (
-          <Input
-            value={choice.newName}
-            onChange={(event) => onChange({ ...choice, newName: event.target.value })}
-            placeholder="List name"
-            aria-label="List name"
-            maxLength={200}
-          />
-        ) : null}
-        <p className="text-muted-foreground text-sm">
-          Picks go to an organize list, so your wishlists stay as they are.
-        </p>
-      </CardContent>
-    </Card>
+        ))}
+      </RadioGroup>
+      {choice.selected === NEW_LIST ? (
+        <Input
+          value={choice.newName}
+          onChange={(event) => onChange({ ...choice, newName: event.target.value })}
+          placeholder="List name"
+          aria-label="List name"
+          maxLength={200}
+        />
+      ) : null}
+      <p className="text-muted-foreground text-sm">
+        Picks go to an organize list, so your wishlists stay as they are.
+      </p>
+    </SettingsSection>
   );
 }
 
@@ -281,9 +277,11 @@ function PicksEditor({
       </p>
 
       {problematicEntries.length > 0 && (
-        <div className="divide-border divide-y rounded-md border">
-          {problematicEntries.map((item) => renderRow(item))}
-        </div>
+        <RowList>
+          {problematicEntries.map(({ entry, index }) => (
+            <li key={`${entry.entry.cardName}-${index}`}>{renderRow({ entry, index })}</li>
+          ))}
+        </RowList>
       )}
 
       <ImportExactMatchesDisclosure count={exactEntries.length}>
@@ -292,7 +290,7 @@ function PicksEditor({
 
       <TargetPicker lists={printingLists} choice={choice} onChange={setChoice} />
 
-      <div className="bg-muted/30 flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+      <Callout className="flex flex-wrap items-center justify-between gap-3">
         <ImportStatusBadges
           readyCount={summary.readyCount}
           toVerifyCount={summary.toVerifyCount}
@@ -311,7 +309,7 @@ function PicksEditor({
             </>
           )}
         </Button>
-      </div>
+      </Callout>
     </div>
   );
 }

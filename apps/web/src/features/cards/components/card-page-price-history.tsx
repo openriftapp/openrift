@@ -10,7 +10,6 @@ import { lazy, Suspense, useState } from "react";
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { MarketplaceIcon } from "@/components/marketplace-icon";
-import { Card as CardPanel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -182,8 +181,8 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
         </ToggleGroup>
       </div>
 
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <CardPanel className="min-w-0 p-4 xl:flex-1 xl:basis-0">
+      <div className="flex flex-col gap-6 xl:flex-row">
+        <div className="min-w-0 xl:flex-1 xl:basis-0">
           <Suspense fallback={<Skeleton className="aspect-[2.5/1] w-full rounded-lg" />}>
             <PriceHistoryChart
               printingId={printing.id}
@@ -196,12 +195,12 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
               onDateHover={setHoveredDate}
             />
           </Suspense>
-        </CardPanel>
+        </div>
         {tableRows.length > 0 && (
           // contain-inline-size: without it the table's intrinsic width leaks up the
           // flex column and widens the page past a phone viewport.
           <div className="min-w-0 contain-inline-size xl:flex-1 xl:basis-0">
-            <div className="max-h-[400px] overflow-auto rounded-lg border">
+            <div className="max-h-[400px] overflow-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0">
                   <tr className="border-border bg-muted border-b">

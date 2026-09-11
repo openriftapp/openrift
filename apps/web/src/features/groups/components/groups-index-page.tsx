@@ -13,8 +13,8 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
+import { CardRow } from "@/components/ui/card-list";
 import {
   Dialog,
   DialogContent,
@@ -270,9 +270,9 @@ export function GroupsIndexPage() {
         {data.outgoingRequests.length > 0 && (
           <section className="flex flex-col gap-3">
             <SectionHeading>Awaiting approval</SectionHeading>
-            <div className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-2">
               {data.outgoingRequests.map((request) => (
-                <Card key={request.id} className="flex-row items-center justify-between gap-3 p-3">
+                <CardRow key={request.id}>
                   <Link
                     to="/groups/$slug"
                     params={{ slug: request.groupSlug }}
@@ -296,9 +296,9 @@ export function GroupsIndexPage() {
                     <XIcon className="size-4" />
                     Cancel request
                   </Button>
-                </Card>
+                </CardRow>
               ))}
-            </div>
+            </ul>
           </section>
         )}
 

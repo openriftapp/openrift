@@ -2,7 +2,6 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
-import { Callout } from "@/components/ui/callout";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 
@@ -20,7 +19,7 @@ export function PrintingNotesSection({ printing }: { printing: Printing }) {
   return (
     <div className="space-y-3">
       {(hasMarkers || hasChannels) && (
-        <Callout className="space-y-2 px-3 py-2.5 text-sm">
+        <section className="space-y-2 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <SectionHeading as="h3">Promo</SectionHeading>
             {hasMarkers && (
@@ -70,21 +69,21 @@ export function PrintingNotesSection({ printing }: { printing: Printing }) {
               ))}
             </ul>
           )}
-        </Callout>
+        </section>
       )}
 
       {citations.length > 0 && (
-        <Callout className="space-y-2 px-3 py-2.5 text-sm">
+        <section className="space-y-2 text-sm">
           <SectionHeading as="h3">{citations.length === 1 ? "Source" : "Sources"}</SectionHeading>
           <PrintingCitationList citations={citations} />
-        </Callout>
+        </section>
       )}
 
       {hasComment && printing.comment && (
-        <Callout className="space-y-2 px-3 py-2.5 text-sm">
+        <section className="space-y-2 text-sm">
           <SectionHeading as="h3">Note</SectionHeading>
           <p className="text-muted-foreground italic">{printing.comment}</p>
-        </Callout>
+        </section>
       )}
     </div>
   );

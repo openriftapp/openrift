@@ -15,7 +15,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
@@ -41,7 +41,7 @@ function SubmissionRow({
   const hint = metaSubmissionStatusHints[submission.status];
 
   return (
-    <Card className="flex flex-col gap-2 p-4">
+    <RowListItem className="flex-col items-stretch gap-2 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="font-medium">{submission.eventName}</span>
@@ -80,7 +80,7 @@ function SubmissionRow({
           See the deck on the archive
         </Link>
       ) : null}
-    </Card>
+    </RowListItem>
   );
 }
 
@@ -124,13 +124,17 @@ export function MetaSubmissionsPage() {
           </EmptyState>
         ) : null}
 
-        {submissions.map((submission) => (
-          <SubmissionRow
-            key={submission.id}
-            submission={submission}
-            shareToken={submission.acceptedDeckToken}
-          />
-        ))}
+        {submissions.length > 0 ? (
+          <RowList variant="divided">
+            {submissions.map((submission) => (
+              <SubmissionRow
+                key={submission.id}
+                submission={submission}
+                shareToken={submission.acceptedDeckToken}
+              />
+            ))}
+          </RowList>
+        ) : null}
 
         {hasNextPage ? (
           <Button

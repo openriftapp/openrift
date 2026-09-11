@@ -7,6 +7,7 @@ import type {
 import { getOrientation } from "@openrift/shared/utils";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { MatchupCard } from "@/features/decks/components/deck-matchup-card";
 import { cn } from "@/lib/utils";
 
 type CardMetaLookup = (cardId: string) => DeckPlanCardMetaResponse | undefined;
@@ -166,9 +167,10 @@ export function DeckPlanView({
               const outSwaps = matchup.swaps.filter((swap) => swap.direction === "out");
               const inSwaps = matchup.swaps.filter((swap) => swap.direction === "in");
               return (
-                <div key={matchup.id} className="space-y-3 rounded-lg border p-3">
-                  <div className="flex items-center gap-2">
-                    {matchup.opponentCardId === null ? (
+                <MatchupCard
+                  key={matchup.id}
+                  header={
+                    matchup.opponentCardId === null ? (
                       <span className="truncate font-medium">{matchup.opponentLabel}</span>
                     ) : (
                       <>
@@ -179,8 +181,9 @@ export function DeckPlanView({
                           </span>
                         )}
                       </>
-                    )}
-                  </div>
+                    )
+                  }
+                >
                   <div className="flex flex-col gap-4 sm:flex-row">
                     <SwapColumn
                       label="Out"
@@ -202,7 +205,7 @@ export function DeckPlanView({
                       {matchup.notes}
                     </p>
                   )}
-                </div>
+                </MatchupCard>
               );
             })}
           </div>

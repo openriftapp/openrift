@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(App): **Fewer boxes on every page** — settings pages, lists, standings and stats now use headings and spacing instead of stacked bordered cards, so pages read lighter and rows line up with their headings.
 - feat(App): **Share links turn off instead of rotating** — group invites, tournament sign-up links and the OBS browser source link now have a single Disable control, and the confirmation says that turning the link back on hands out a different one.
 - fix(Collection): **The missing photo nudge comes back for new cards** — dismissing the note about cards with no photo used to hide it for good; it now stays hidden only for the cards you dismissed it on and returns when you add another card the catalogue has no photo of.
 

@@ -1,8 +1,8 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import {
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
 
-export function FollowAlongCard({
+export function FollowAlongSection({
   detail,
   locked,
 }: {
@@ -52,88 +52,84 @@ export function FollowAlongCard({
 
   return (
     <>
-      <Card id="follow-along" className="scroll-mt-16">
-        <CardHeader>
-          <CardTitle>Participant follow-along</CardTitle>
-          <CardDescription>
-            The reporting link also lets anyone holding it enter their pod result. Nothing counts
-            until you finalize the round.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <Label>Result reporting link</Label>
-            <p className="text-muted-foreground text-sm">
-              Anyone with this link can follow along and enter pod results.
-            </p>
-            {reportUrl ? (
-              <ShareLinkRow
-                url={reportUrl}
-                label="Result reporting link"
-                defaultQrOpen
-                actions={
-                  <Button
-                    variant="ghost"
-                    className="text-destructive"
-                    disabled={setReportToken.isPending}
-                    onClick={() => setConfirmDisableReport(true)}
-                  >
-                    Disable
-                  </Button>
-                }
-              />
-            ) : (
-              <Button
-                className="w-fit"
-                disabled={locked || setReportToken.isPending}
-                onClick={() =>
-                  void runReportedMutation(() =>
-                    setReportToken.mutateAsync({ id: detail.id, enabled: true }),
-                  )
-                }
-              >
-                Enable reporting link
-              </Button>
-            )}
-          </div>
+      <SettingsSection
+        id="follow-along"
+        title="Participant follow-along"
+        description="The reporting link also lets anyone holding it enter their pod result. Nothing counts until you finalize the round."
+        contentClassName="gap-6"
+      >
+        <div className="flex flex-col gap-2">
+          <Label>Result reporting link</Label>
+          <p className="text-muted-foreground text-sm">
+            Anyone with this link can follow along and enter pod results.
+          </p>
+          {reportUrl ? (
+            <ShareLinkRow
+              url={reportUrl}
+              label="Result reporting link"
+              defaultQrOpen
+              actions={
+                <Button
+                  variant="ghost"
+                  className="text-destructive"
+                  disabled={setReportToken.isPending}
+                  onClick={() => setConfirmDisableReport(true)}
+                >
+                  Disable
+                </Button>
+              }
+            />
+          ) : (
+            <Button
+              className="w-fit"
+              disabled={locked || setReportToken.isPending}
+              onClick={() =>
+                void runReportedMutation(() =>
+                  setReportToken.mutateAsync({ id: detail.id, enabled: true }),
+                )
+              }
+            >
+              Enable reporting link
+            </Button>
+          )}
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <Label>Follow-only link</Label>
-            <p className="text-muted-foreground text-sm">
-              Anyone with this link can follow along but cannot enter results.
-            </p>
-            {followUrl ? (
-              <ShareLinkRow
-                url={followUrl}
-                label="Follow-only link"
-                defaultQrOpen
-                actions={
-                  <Button
-                    variant="ghost"
-                    className="text-destructive"
-                    disabled={setFollowToken.isPending}
-                    onClick={() => setConfirmDisableFollow(true)}
-                  >
-                    Disable
-                  </Button>
-                }
-              />
-            ) : (
-              <Button
-                className="w-fit"
-                disabled={locked || setFollowToken.isPending}
-                onClick={() =>
-                  void runReportedMutation(() =>
-                    setFollowToken.mutateAsync({ id: detail.id, enabled: true }),
-                  )
-                }
-              >
-                Enable follow-only link
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex flex-col gap-2">
+          <Label>Follow-only link</Label>
+          <p className="text-muted-foreground text-sm">
+            Anyone with this link can follow along but cannot enter results.
+          </p>
+          {followUrl ? (
+            <ShareLinkRow
+              url={followUrl}
+              label="Follow-only link"
+              defaultQrOpen
+              actions={
+                <Button
+                  variant="ghost"
+                  className="text-destructive"
+                  disabled={setFollowToken.isPending}
+                  onClick={() => setConfirmDisableFollow(true)}
+                >
+                  Disable
+                </Button>
+              }
+            />
+          ) : (
+            <Button
+              className="w-fit"
+              disabled={locked || setFollowToken.isPending}
+              onClick={() =>
+                void runReportedMutation(() =>
+                  setFollowToken.mutateAsync({ id: detail.id, enabled: true }),
+                )
+              }
+            >
+              Enable follow-only link
+            </Button>
+          )}
+        </div>
+      </SettingsSection>
 
       <Dialog open={confirmDisableReport} onOpenChange={setConfirmDisableReport}>
         <DialogContent>

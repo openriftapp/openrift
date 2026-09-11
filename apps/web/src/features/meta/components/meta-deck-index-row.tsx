@@ -133,7 +133,7 @@ export function MetaDeckIndexRow({
   const priced = value === undefined ? null : compactFormatterForMarketplace(marketplace)(value);
 
   return (
-    <div className="group hover:bg-muted/50 focus-within:ring-ring/50 relative px-4 py-2.5 focus-within:ring-2 focus-within:ring-inset">
+    <div className="group hover:bg-muted/50 focus-within:ring-ring/50 relative -mx-2 rounded-md px-2 py-2.5 focus-within:ring-2 focus-within:ring-inset">
       <Link
         to="/meta/decks/$token"
         params={{ token: deck.shareToken }}

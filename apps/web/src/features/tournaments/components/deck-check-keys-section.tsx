@@ -5,9 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   useMintMyDeckCheckKey,
   useMintOrgDeckCheckKey,
@@ -114,41 +115,35 @@ function DeckCheckKeysCard(actions: KeyActions) {
   const [mintedToken, setMintedToken] = useState<string | null>(null);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle>API keys</CardTitle>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="size-4" />
-            Create key
-          </Button>
-        </div>
-        <CardDescription>
-          A key acts on your behalf. The only endpoint today sends entrant decklists to your hosted
-          tournaments.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {keys && keys.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {keys.map((key) => (
-              <KeyRow key={key.id} apiKey={key} actions={actions} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">No keys yet.</p>
-        )}
+    <SettingsSection
+      title="API keys"
+      description="A key acts on your behalf. The only endpoint today sends entrant decklists to your hosted tournaments."
+      action={
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <PlusIcon className="size-4" />
+          Create key
+        </Button>
+      }
+    >
+      {keys && keys.length > 0 ? (
+        <RowList>
+          {keys.map((key) => (
+            <KeyRow key={key.id} apiKey={key} actions={actions} />
+          ))}
+        </RowList>
+      ) : (
+        <p className="text-muted-foreground text-sm">No keys yet.</p>
+      )}
 
-        <CreateKeyDialog
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          onMint={(label) => actions.mint(label)}
-          mintPending={actions.mintPending}
-          onMinted={setMintedToken}
-        />
-        <MintedKeyDialog token={mintedToken} onClose={() => setMintedToken(null)} />
-      </CardContent>
-    </Card>
+      <CreateKeyDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onMint={(label) => actions.mint(label)}
+        mintPending={actions.mintPending}
+        onMinted={setMintedToken}
+      />
+      <MintedKeyDialog token={mintedToken} onClose={() => setMintedToken(null)} />
+    </SettingsSection>
   );
 }
 
@@ -245,7 +240,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
   }
 
   return (
-    <Card className="flex-row items-center gap-3 p-3">
+    <RowListItem className="gap-3">
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-medium">
           {apiKey.label ?? "Unnamed key"}{" "}
@@ -310,7 +305,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
         isPending={actions.removePending}
         onConfirm={() => void handleRemove()}
       />
-    </Card>
+    </RowListItem>
   );
 }
 

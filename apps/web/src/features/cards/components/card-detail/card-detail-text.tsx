@@ -78,7 +78,7 @@ export function CardDetailText({
 
         {hasEffect && (
           <div
-            className="border-border/50 rounded-lg border px-3 py-2.5"
+            className="rounded-md px-3 py-2.5"
             style={getDomainGradientStyle(card.domains, "18", domainColors)}
           >
             {printing.printedEffectText && (

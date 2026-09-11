@@ -2,7 +2,8 @@ import type { MetaCreditVisibility } from "@openrift/shared/types/enums";
 import { META_CREDIT_VISIBILITIES } from "@openrift/shared/types/enums";
 import { Link } from "@tanstack/react-router";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
+import { Callout } from "@/components/ui/callout";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
@@ -28,7 +29,7 @@ function CreditPreview({
   visibility: MetaCreditVisibility;
 }) {
   return (
-    <div className="flex flex-col gap-1 border-t pt-4">
+    <Callout variant="inset" className="flex flex-col gap-1">
       <h3 className="font-medium">On an event page</h3>
       {creditedAs === null ? (
         <p className="text-muted-foreground text-sm">
@@ -56,7 +57,7 @@ function CreditPreview({
           to be credited.
         </p>
       )}
-    </div>
+    </Callout>
   );
 }
 
@@ -77,54 +78,48 @@ export function MetaCreditSection() {
   const preview = metaCreditPreview(visibility, { name: user?.name, riotId: user?.riotId });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Meta archive credit</CardTitle>
-        <CardDescription>
-          Whether archive event pages name you as a contributor. Covers everything you have
-          contributed, past and future.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : (
-          <RadioGroup
-            value={visibility}
-            onValueChange={(next) =>
-              setVisibility.mutate({ visibility: next as MetaCreditVisibility })
-            }
-            className="flex flex-col gap-3"
-            aria-label="Meta archive credit"
-          >
-            {META_CREDIT_VISIBILITIES.map((option) => {
-              const radioId = `meta-credit-${option}`;
-              return (
-                <div key={option} className="flex items-start gap-2">
-                  <RadioGroupItem
-                    id={radioId}
-                    value={option}
-                    disabled={setVisibility.isPending}
-                    className="mt-1"
-                  />
-                  <label htmlFor={radioId} className="cursor-pointer">
-                    <span className="block">{metaCreditVisibilityLabels[option]}</span>
-                    <span className="text-muted-foreground block text-sm">
-                      {metaCreditVisibilityHints[option]}
-                    </span>
-                  </label>
-                </div>
-              );
-            })}
-          </RadioGroup>
-        )}
+    <SettingsSection
+      title="Meta archive credit"
+      description="Whether archive event pages name you as a contributor. Covers everything you have contributed, past and future."
+    >
+      {isPending ? (
+        <Skeleton className="h-24 w-full" />
+      ) : (
+        <RadioGroup
+          value={visibility}
+          onValueChange={(next) =>
+            setVisibility.mutate({ visibility: next as MetaCreditVisibility })
+          }
+          className="flex flex-col gap-3"
+          aria-label="Meta archive credit"
+        >
+          {META_CREDIT_VISIBILITIES.map((option) => {
+            const radioId = `meta-credit-${option}`;
+            return (
+              <div key={option} className="flex items-start gap-2">
+                <RadioGroupItem
+                  id={radioId}
+                  value={option}
+                  disabled={setVisibility.isPending}
+                  className="mt-1"
+                />
+                <label htmlFor={radioId} className="cursor-pointer">
+                  <span className="block">{metaCreditVisibilityLabels[option]}</span>
+                  <span className="text-muted-foreground block text-sm">
+                    {metaCreditVisibilityHints[option]}
+                  </span>
+                </label>
+              </div>
+            );
+          })}
+        </RadioGroup>
+      )}
 
-        <CreditPreview
-          creditedAs={preview.creditedAs}
-          usesDisplayNameFallback={preview.usesDisplayNameFallback}
-          visibility={visibility}
-        />
-      </CardContent>
-    </Card>
+      <CreditPreview
+        creditedAs={preview.creditedAs}
+        usesDisplayNameFallback={preview.usesDisplayNameFallback}
+        visibility={visibility}
+      />
+    </SettingsSection>
   );
 }

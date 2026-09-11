@@ -3,9 +3,9 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { CardList } from "@/components/ui/card-list";
 import { CountPill } from "@/components/ui/count-pill";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 
 const VISIBLE_LIMIT = 10;
@@ -23,13 +23,17 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <CardList>
+      <RowList>
         {visible.map((item) => (
-          <li key={item.printingId}>
-            <Link
-              to="/contribute/card/$cardSlug/printing/$printingId/image"
-              params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
-              className="hover:bg-muted flex items-center justify-between gap-3 rounded-md px-3 py-2"
+          <RowListItem key={item.printingId}>
+            <RowListLink
+              render={
+                <Link
+                  to="/contribute/card/$cardSlug/printing/$printingId/image"
+                  params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+                />
+              }
+              className="justify-between"
             >
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">{item.cardName}</span>
@@ -39,10 +43,10 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
                 </span>
               </span>
               <CountPill title={`${item.copies} in your collections`}>{item.copies}</CountPill>
-            </Link>
-          </li>
+            </RowListLink>
+          </RowListItem>
         ))}
-      </CardList>
+      </RowList>
       {items.length > VISIBLE_LIMIT && (
         <ExpandToggle
           expanded={showAll}

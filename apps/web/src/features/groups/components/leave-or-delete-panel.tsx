@@ -3,8 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -53,50 +53,45 @@ export function LeaveOrDeletePanel({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Membership</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {isOwner ? (
-          <>
-            <TransferOwnershipControl data={data} slug={slug} />
-            <p className="text-muted-foreground text-sm">
-              As the owner you can&apos;t leave the group yourself, transfer ownership first.
-              Deleting it removes the group for everyone.
-            </p>
-            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-              <DialogTrigger render={<Button variant="destructive" />}>
-                <Trash2Icon className="size-4" />
-                Delete group
-              </DialogTrigger>
-              <DialogContent>
-                <DialogForm onSubmit={() => void handleDelete()}>
-                  <DialogHeader>
-                    <DialogTitle>Delete this group?</DialogTitle>
-                    <DialogDescription>
-                      The group, its members, invites, and list-shares will be permanently removed.
-                      Lists themselves stay; only their share with this group goes.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" variant="destructive" disabled={remove.isPending}>
-                      Delete
-                    </Button>
-                  </DialogFooter>
-                </DialogForm>
-              </DialogContent>
-            </Dialog>
-          </>
-        ) : (
-          <Button variant="ghost" onClick={() => void handleLeave()} disabled={leave.isPending}>
-            Leave group
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <SettingsSection title="Leave or delete">
+      {isOwner ? (
+        <>
+          <TransferOwnershipControl data={data} slug={slug} />
+          <p className="text-muted-foreground text-sm">
+            As the owner you can&apos;t leave the group yourself, transfer ownership first. Deleting
+            it removes the group for everyone.
+          </p>
+          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <DialogTrigger render={<Button variant="destructive" />}>
+              <Trash2Icon className="size-4" />
+              Delete group
+            </DialogTrigger>
+            <DialogContent>
+              <DialogForm onSubmit={() => void handleDelete()}>
+                <DialogHeader>
+                  <DialogTitle>Delete this group?</DialogTitle>
+                  <DialogDescription>
+                    The group, its members, invites, and list-shares will be permanently removed.
+                    Lists themselves stay; only their share with this group goes.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="destructive" disabled={remove.isPending}>
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogForm>
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        <Button variant="ghost" onClick={() => void handleLeave()} disabled={leave.isPending}>
+          Leave group
+        </Button>
+      )}
+    </SettingsSection>
   );
 }

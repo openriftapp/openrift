@@ -2,11 +2,10 @@ import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/frien
 import { useNavigate } from "@tanstack/react-router";
 import { KeyIcon } from "lucide-react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { GroupBannerPanel } from "@/features/groups/components/group-banner-panel";
 import { InviteLinkPanel } from "@/features/groups/components/invite-link-panel";
@@ -57,12 +56,13 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Group settings</CardTitle>
-        <CardDescription>Visible to admins and the owner only.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <>
+      <SettingsSection
+        id="group-settings"
+        className="scroll-mt-28"
+        title="Group settings"
+        description="Visible to admins and the owner only."
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="fg-edit-name">Name</Label>
           <Input
@@ -109,37 +109,43 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
             Save changes
           </Button>
         </div>
-
-        <Separator />
-
+      </SettingsSection>
+      <SettingsSection
+        id="banner"
+        className="scroll-mt-28"
+        title="Banner"
+        description="Shown behind the group's name."
+      >
         <GroupBannerPanel group={data.group} />
-
-        <Separator />
-
-        <div className="flex flex-col gap-2">
-          <Label className="flex items-center gap-2">
+      </SettingsSection>
+      <SettingsSection
+        id="invite-link"
+        className="scroll-mt-28"
+        title={
+          <span className="flex items-center gap-2">
             <KeyIcon className="size-4" />
             Invite link
-          </Label>
-          {data.group.code ? (
-            <InviteLinkPanel slug={slug} code={data.group.code} />
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">
-                Invites are turned off, so nobody can join this group right now.
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => enableCode.mutate(slug)}
-                disabled={enableCode.isPending}
-              >
-                Enable invites
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </span>
+        }
+      >
+        {data.group.code ? (
+          <InviteLinkPanel slug={slug} code={data.group.code} />
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Invites are turned off, so nobody can join this group right now.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => enableCode.mutate(slug)}
+              disabled={enableCode.isPending}
+            >
+              Enable invites
+            </Button>
+          </div>
+        )}
+      </SettingsSection>
+    </>
   );
 }

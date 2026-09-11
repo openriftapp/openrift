@@ -4,6 +4,7 @@ import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lu
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import {
   Select,
@@ -129,9 +130,9 @@ export function ImportEntryRow({
         }
       />
       {isExpanded && rawFieldEntries.length > 0 && (
-        <div className="bg-muted/30 px-4 py-2">
+        <Callout variant="inset">
           <ImportRowRawFields entries={rawFieldEntries} />
-        </div>
+        </Callout>
       )}
     </div>
   );

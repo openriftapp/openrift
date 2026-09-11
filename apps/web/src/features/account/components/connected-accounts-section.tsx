@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { siDiscord, siGoogle } from "simple-icons";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { authClient } from "@/features/account/lib/auth-client";
 
@@ -69,24 +70,18 @@ export function ConnectedAccountsSection() {
   const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connected Accounts</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        ) : (
-          <div className="grid gap-3">
-            {error && <p className="text-destructive text-sm">{error}</p>}
+    <SettingsSection title="Connected Accounts">
+      {loading ? (
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      ) : (
+        <>
+          {error && <p className="text-destructive text-sm">{error}</p>}
+          <RowList>
             {SOCIAL_PROVIDERS.map((provider) => {
               const isLinked = linkedProviderIds.has(provider.id);
               const isOnlyAccount = accounts.length <= 1;
               return (
-                <div
-                  key={provider.id}
-                  className="flex items-center justify-between rounded-md border p-3"
-                >
+                <RowListItem key={provider.id} className="justify-between">
                   <div className="flex items-center gap-3">
                     <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
                       <path d={provider.icon.path} fill="currentColor" />
@@ -121,12 +116,12 @@ export function ConnectedAccountsSection() {
                       {actionLoading === provider.id ? "Connecting..." : "Connect"}
                     </Button>
                   )}
-                </div>
+                </RowListItem>
               );
             })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </RowList>
+        </>
+      )}
+    </SettingsSection>
   );
 }

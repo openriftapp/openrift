@@ -14,10 +14,10 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -411,15 +411,15 @@ export function MetaSubmitPage({
           />
         ) : (
           <>
-            {fromRow && eventFromSlug ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{eventFromSlug.name}</CardTitle>
-                  <CardDescription>
-                    {eventFacts(eventFromSlug, enumLabel(formatLabels, eventFromSlug.format))}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <div className="flex flex-col gap-8">
+              {fromRow && eventFromSlug ? (
+                <SettingsSection
+                  title={eventFromSlug.name}
+                  description={eventFacts(
+                    eventFromSlug,
+                    enumLabel(formatLabels, eventFromSlug.format),
+                  )}
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{row.playerName}</span>
                     {finish !== null && <Badge variant="outline">{finish}</Badge>}
@@ -430,22 +430,19 @@ export function MetaSubmitPage({
                       <span className="text-muted-foreground">Legend {row.legendName}</span>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ) : null}
+                </SettingsSection>
+              ) : null}
 
-            {!fromRow && (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>The tournament</CardTitle>
-                    <CardDescription>
-                      {lockedToEvent
+              {!fromRow && (
+                <>
+                  <SettingsSection
+                    title="The tournament"
+                    description={
+                      lockedToEvent
                         ? "Where this deck was played."
-                        : "Pick the tournament this deck came from, or tell us about one we don't have."}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                        : "Pick the tournament this deck came from, or tell us about one we don't have."
+                    }
+                  >
                     <FieldGroup>
                       {lockedToEvent && eventFromSlug ? (
                         <Field>
@@ -594,14 +591,9 @@ export function MetaSubmitPage({
                         </>
                       ) : null}
                     </FieldGroup>
-                  </CardContent>
-                </Card>
+                  </SettingsSection>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>The player</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                  <SettingsSection title="The player">
                     <FieldGroup>
                       <Field>
                         <FieldLabel htmlFor="meta-submit-player">Who played it</FieldLabel>
@@ -671,13 +663,11 @@ export function MetaSubmitPage({
                         <FieldDescription>Wins, losses, and draws.</FieldDescription>
                       </Field>
                     </FieldGroup>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+                  </SettingsSection>
+                </>
+              )}
 
-            <Card>
-              <CardContent className="flex flex-col gap-2">
+              <SettingsSection title="Decklist">
                 <Label htmlFor="meta-submit-deck">Decklist</Label>
                 <Textarea
                   id="meta-submit-deck"
@@ -723,9 +713,8 @@ export function MetaSubmitPage({
                     Add a note for the reviewer
                   </Button>
                 )}
-              </CardContent>
-            </Card>
-
+              </SettingsSection>
+            </div>
             {formError ? (
               <Alert variant="destructive">
                 <TriangleAlertIcon />

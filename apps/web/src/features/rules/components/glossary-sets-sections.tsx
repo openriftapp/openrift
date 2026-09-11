@@ -1,11 +1,12 @@
 import { formatReleasePeriod, isReleasedAnywhere } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
 
+import { RowList } from "@/components/ui/row-list";
 import type { SetEntry } from "@/features/rules/lib/glossary-content";
 import { NUMBERING_PATTERNS } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
 
-import { GlossarySectionHeading } from "./glossary-shared";
+import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
 
 export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }) {
   const visible = sets.filter((setEntry) =>
@@ -29,7 +30,7 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
       </p>
       <ul className="mt-4 grid gap-2 lg:grid-cols-2">
         {visible.map((set) => (
-          <li key={set.slug} className="rounded-md border p-3">
+          <GlossaryTermTile key={set.slug}>
             <div className="flex flex-wrap items-baseline gap-2">
               <code className="bg-muted shrink-0 rounded-md px-2 py-0.5 font-mono">{set.slug}</code>
               <Link
@@ -46,14 +47,14 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
                 </span>
               )}
             </div>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground">
               {set.cardCount} {set.cardCount === 1 ? "card" : "cards"}
               {Object.keys(set.releases)
                 .toSorted()
                 .map((language) => ` · ${language} ${formatReleasePeriod(set.releases[language])}`)
                 .join("")}
             </p>
-          </li>
+          </GlossaryTermTile>
         ))}
       </ul>
     </section>
@@ -72,16 +73,20 @@ export function NumberingSection({ query }: { query: string }) {
         Every printing has a short code combining the three-letter set code with a card number, like
         OGN-007.
       </p>
-      <ul className="mt-4 space-y-2">
+      <RowList className="mt-4">
         {visible.map((item) => (
-          <li key={item.pattern} className="flex gap-3 rounded-md border p-3">
-            <code className="bg-muted shrink-0 self-start rounded-md px-2 py-0.5 font-mono">
-              {item.pattern}
-            </code>
-            <p className="text-muted-foreground">{item.summary}</p>
-          </li>
+          <GlossaryTermRow
+            key={item.pattern}
+            term={
+              <code className="bg-muted shrink-0 rounded-md px-2 py-0.5 font-mono">
+                {item.pattern}
+              </code>
+            }
+          >
+            <p className="text-muted-foreground flex-1">{item.summary}</p>
+          </GlossaryTermRow>
         ))}
-      </ul>
+      </RowList>
     </section>
   );
 }

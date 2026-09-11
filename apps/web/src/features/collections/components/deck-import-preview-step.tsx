@@ -15,6 +15,7 @@ import { Accordion } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,7 +184,7 @@ export function DeckImportPreviewStep({
           multiple
           value={expandedValues}
           onValueChange={(value) => onExpandedValuesChange(value as string[])}
-          className="divide-border divide-y rounded-md border"
+          className="divide-border divide-y rounded-lg border"
         >
           {matchedEntries.map((entry, index) => (
             <DeckImportEntryRow
@@ -215,7 +216,7 @@ export function DeckImportPreviewStep({
           </Alert>
         )}
 
-        <div className="bg-muted/30 space-y-4 rounded-md border p-4">
+        <Callout className="space-y-4">
           <ImportStatusBadges
             readyCount={readyCount}
             toVerifyCount={toVerifyCount}
@@ -290,7 +291,7 @@ export function DeckImportPreviewStep({
               </span>
             )}
           </div>
-        </div>
+        </Callout>
 
         {isMobile && (
           <div className="bg-background/80 mx-safe-neg px-safe pb-safe sticky bottom-0 z-20 pt-2 backdrop-blur-lg">

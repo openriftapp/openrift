@@ -56,6 +56,23 @@ const GUARDS: readonly Guard[] = [
     title: "writes gradients in the Tailwind v4 spelling",
     pattern: /\bbg-gradient-to-/u,
   },
+  {
+    title: "never uses a padding-less Card as a bare list or table wrapper",
+    pattern: /<Card(?:Panel)?\b[^>]*className="[^"]*\b(?:py-0|p-0)\b/u,
+    exempt: new Set([
+      "features/account/components/auth-form-shell.tsx",
+      "features/admin/components/meta-review-event-group.tsx",
+      "features/decks/components/deck-hero.tsx",
+      "features/decks/components/deck-matchup-card.tsx",
+      "features/groups/components/trade-settle-section.tsx",
+      "features/meta/components/meta-event-header.tsx",
+      "features/meta/components/meta-event-run-page.tsx",
+      "features/meta/components/meta-legend-hero.tsx",
+      "features/meta/components/meta-player-hero.tsx",
+      "routes/_app/reset-password.lazy.tsx",
+      "routes/_app/verify-email.lazy.tsx",
+    ]),
+  },
 ];
 
 async function listSourceFiles(dir: string): Promise<string[]> {

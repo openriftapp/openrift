@@ -7,6 +7,7 @@ import { ChevronDownIcon, ChevronUpIcon, GripVerticalIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CardRow } from "@/components/ui/card-list";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
@@ -89,11 +90,11 @@ function QueueRow({
   };
 
   return (
-    <li
+    <CardRow
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-card ring-border relative flex items-center gap-3 rounded-md p-2 ring-1",
+        "relative justify-start gap-3 p-2",
         isSlotOver &&
           "before:bg-primary before:absolute before:inset-x-0 before:-top-0.5 before:h-0.5 before:rounded-full",
       )}
@@ -153,7 +154,7 @@ function QueueRow({
         onClick={() => onRemove(index)}
         aria-label={`Remove ${legendDisplayName(printing.card)} from the queue`}
       />
-    </li>
+    </CardRow>
   );
 }
 

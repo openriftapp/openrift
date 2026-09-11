@@ -5,9 +5,9 @@ import { useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Medal } from "@/components/ui/podium";
+import { RowList } from "@/components/ui/row-list";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
@@ -105,7 +105,7 @@ function FinishRow({
   const record = formatRecord(finish.wins, finish.losses, finish.draws);
 
   return (
-    <li className="px-4 py-2.5 not-last:border-b">
+    <li className="py-2.5">
       <div className={cn(FINISH_GRID, "hidden sm:grid")}>
         <Rank finish={finish} />
         <div className="min-w-0">
@@ -224,8 +224,8 @@ export function MetaPlayerFinishes({
         </div>
       </div>
 
-      <Card className="gap-0 py-0">
-        <ul className="flex flex-col">
+      <div className="text-sm">
+        <RowList className="flex flex-col">
           {rows.map((finish) => (
             <FinishRow
               key={finish.playerId}
@@ -234,13 +234,13 @@ export function MetaPlayerFinishes({
               canSubmit={canSubmit}
             />
           ))}
-        </ul>
+        </RowList>
 
         {remaining > 0 && (
           <div className="border-t">
             <Button
               variant="ghost"
-              className="w-full rounded-none"
+              className="w-full"
               onClick={view === "best" ? showAll : () => setShown(shown + FINISH_PAGE_SIZE)}
             >
               {view === "best"
@@ -249,7 +249,7 @@ export function MetaPlayerFinishes({
             </Button>
           </div>
         )}
-      </Card>
+      </div>
     </section>
   );
 }

@@ -3,9 +3,9 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useDisplayStore } from "@/stores/display-store";
@@ -55,83 +55,76 @@ export function MarketplacesSection() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Marketplaces</CardTitle>
-            <CardDescription>
-              The first one is shown in the card grid. CardTrader is recommended: it prices by
-              language and condition.
-            </CardDescription>
-          </div>
-          {overrides.marketplaceOrder !== null && (
-            <ResetButton
-              onClick={() => resetPreference("marketplaceOrder")}
-              label="Reset marketplace order"
-            />
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          {[...marketplaceOrder, ...ALL_MARKETPLACES.filter((m) => !enabledSet.has(m))].map(
-            (marketplace) => {
-              const enabled = enabledSet.has(marketplace);
-              const index = marketplaceOrder.indexOf(marketplace);
-              const label = MARKETPLACE_LINKS[marketplace].label;
-              return (
-                <div
-                  key={marketplace}
-                  className="flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={`pref-mp-${marketplace}`}
-                      checked={enabled}
-                      disabled={enabled && marketplaceOrder.length === 1}
-                      onCheckedChange={() => toggleMarketplace(marketplace)}
-                    />
-                    <Label htmlFor={`pref-mp-${marketplace}`} className="font-normal">
-                      {label}
-                    </Label>
-                    <span className="text-muted-foreground text-xs">
-                      {MARKETPLACE_CURRENCY[marketplace]}
-                    </span>
-                    {enabled && index === 0 && (
-                      <Badge variant="subtle" className="text-2xs h-auto rounded-md px-1.5">
-                        Favorite
-                      </Badge>
-                    )}
-                  </div>
-                  {enabled && (
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={index === 0}
-                        onClick={() => moveMarketplace(marketplace, -1)}
-                        aria-label={`Move ${label} up`}
-                      >
-                        <ArrowUpIcon className="size-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={index === marketplaceOrder.length - 1}
-                        onClick={() => moveMarketplace(marketplace, 1)}
-                        aria-label={`Move ${label} down`}
-                      >
-                        <ArrowDownIcon className="size-3" />
-                      </Button>
-                    </div>
+    <SettingsSection
+      id="marketplaces"
+      title="Marketplaces"
+      description="The first one is shown in the card grid. CardTrader is recommended: it prices by language and condition."
+      action={
+        overrides.marketplaceOrder !== null && (
+          <ResetButton
+            onClick={() => resetPreference("marketplaceOrder")}
+            label="Reset marketplace order"
+          />
+        )
+      }
+    >
+      <div className="space-y-1">
+        {[...marketplaceOrder, ...ALL_MARKETPLACES.filter((m) => !enabledSet.has(m))].map(
+          (marketplace) => {
+            const enabled = enabledSet.has(marketplace);
+            const index = marketplaceOrder.indexOf(marketplace);
+            const label = MARKETPLACE_LINKS[marketplace].label;
+            return (
+              <div
+                key={marketplace}
+                className="flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id={`pref-mp-${marketplace}`}
+                    checked={enabled}
+                    disabled={enabled && marketplaceOrder.length === 1}
+                    onCheckedChange={() => toggleMarketplace(marketplace)}
+                  />
+                  <Label htmlFor={`pref-mp-${marketplace}`} className="font-normal">
+                    {label}
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    {MARKETPLACE_CURRENCY[marketplace]}
+                  </span>
+                  {enabled && index === 0 && (
+                    <Badge variant="subtle" className="text-2xs h-auto rounded-md px-1.5">
+                      Favorite
+                    </Badge>
                   )}
                 </div>
-              );
-            },
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                {enabled && (
+                  <div className="flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={index === 0}
+                      onClick={() => moveMarketplace(marketplace, -1)}
+                      aria-label={`Move ${label} up`}
+                    >
+                      <ArrowUpIcon className="size-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={index === marketplaceOrder.length - 1}
+                      onClick={() => moveMarketplace(marketplace, 1)}
+                      aria-label={`Move ${label} down`}
+                    >
+                      <ArrowDownIcon className="size-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          },
+        )}
+      </div>
+    </SettingsSection>
   );
 }

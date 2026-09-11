@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { CalendarPlusIcon, ChevronRightIcon, ListOrderedIcon, ListPlusIcon } from "lucide-react";
 import type { ComponentType } from "react";
 
-import { Card } from "@/components/ui/card";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 
 const KIND_ICON: Record<MetaActivityItem["kind"], ComponentType<{ className?: string }>> = {
   "event-added": CalendarPlusIcon,
@@ -30,10 +30,9 @@ function ActivityRow({ item }: { item: MetaActivityItem }) {
   const Icon = KIND_ICON[item.kind];
 
   return (
-    <Link
-      to="/meta/$slug"
-      params={{ slug: item.event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 flex items-center gap-3 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
+    <RowListLink
+      render={<Link to="/meta/$slug" params={{ slug: item.event.slug }} />}
+      className="focus-visible:ring-ring/50 outline-none focus-visible:ring-2"
     >
       <span className="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full">
         <Icon aria-hidden className="size-3.5" />
@@ -45,7 +44,7 @@ function ActivityRow({ item }: { item: MetaActivityItem }) {
         <span className="text-muted-foreground text-xs">{formatRelativeTime(item.occurredAt)}</span>
       </span>
       <ChevronRightIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
-    </Link>
+    </RowListLink>
   );
 }
 
@@ -54,14 +53,12 @@ export function MetaArchiveActivity({ items }: { items: readonly MetaActivityIte
     return null;
   }
   return (
-    <Card className="gap-0 p-0">
-      <ul className="divide-border divide-y">
-        {items.map((item) => (
-          <li key={`${item.kind}-${item.event.slug}-${item.occurredAt}`}>
-            <ActivityRow item={item} />
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <RowList>
+      {items.map((item) => (
+        <RowListItem key={`${item.kind}-${item.event.slug}-${item.occurredAt}`}>
+          <ActivityRow item={item} />
+        </RowListItem>
+      ))}
+    </RowList>
   );
 }

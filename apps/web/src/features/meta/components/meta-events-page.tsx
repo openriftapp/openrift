@@ -12,8 +12,8 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { RowList } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -141,7 +141,7 @@ export function MetaEventsPage() {
               />
             </div>
 
-            <Card className="mt-4 gap-0 py-0">
+            <div className="mt-4 text-sm">
               <SortHeader sort={sort} direction={direction} onSort={setSort} />
               {events.length === 0 ? (
                 <Empty className="py-10">
@@ -152,7 +152,7 @@ export function MetaEventsPage() {
               ) : (
                 <EventList key={listKey} events={events} />
               )}
-            </Card>
+            </div>
           </>
         )}
       </div>
@@ -221,13 +221,13 @@ function EventList({ events }: { events: MetaEventSummary[] }) {
 
   return (
     <>
-      <ul className="divide-border flex flex-col divide-y">
+      <RowList className="flex flex-col">
         {events.slice(0, shown).map((event) => (
           <li key={event.id}>
             <MetaEventIndexRow event={event} />
           </li>
         ))}
-      </ul>
+      </RowList>
       {remaining > 0 && (
         <div className="border-border flex justify-center border-t p-2">
           <Button variant="ghost" size="sm" onClick={() => setShown(shown + PAGE_SIZE)}>
@@ -252,7 +252,7 @@ function SortHeader({
     <div
       className={cn(
         EVENT_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-4 py-2 text-xs font-semibold sm:grid",
+        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
       <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>

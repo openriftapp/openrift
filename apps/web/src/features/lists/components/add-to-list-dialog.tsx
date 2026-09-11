@@ -2,6 +2,7 @@ import { FolderIcon, HandshakeIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -120,10 +121,12 @@ export function AddToListDialog({
           />
         )}
         {exceedsLimit && (
-          <p className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm">
-            You can add at most {MAX_BULK_ADD} copies at a time. Deselect {count - MAX_BULK_ADD}{" "}
-            {count - MAX_BULK_ADD === 1 ? "copy" : "copies"} and try again.
-          </p>
+          <Alert variant="destructive">
+            <AlertDescription>
+              You can add at most {MAX_BULK_ADD} copies at a time. Deselect {count - MAX_BULK_ADD}{" "}
+              {count - MAX_BULK_ADD === 1 ? "copy" : "copies"} and try again.
+            </AlertDescription>
+          </Alert>
         )}
         <div className="max-h-60 overflow-y-auto">
           {eligibleLists.length > 0 ? (

@@ -402,7 +402,7 @@ export function DeckListPage() {
         </PageTopBar>
       </div>
 
-      {!userId && localItems.length > 0 && <LocalDeckSaveBanner />}
+      {!userId && localItems.length > 0 && <LocalDeckSaveBanner className="mb-3" />}
 
       {deckItems.length === 0 || creatingSample ? (
         <EmptyState

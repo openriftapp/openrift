@@ -212,7 +212,7 @@ function DeleteAccountAction() {
 
 export function DangerZoneSection() {
   return (
-    <Card className="border-destructive/50">
+    <Card className="ring-destructive/50">
       <CardHeader>
         <CardTitle>Danger Zone</CardTitle>
         <CardDescription>These actions cannot be undone.</CardDescription>

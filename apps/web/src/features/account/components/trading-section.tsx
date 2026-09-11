@@ -1,7 +1,7 @@
 import type { Currency } from "@openrift/shared/types/api/trade-preferences";
 import { CURRENCIES } from "@openrift/shared/types/api/trade-preferences";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -32,24 +32,20 @@ export function TradingSection() {
   const resetPreference = useDisplayStore((s) => s.resetPreference);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Trading</CardTitle>
-            <CardDescription>
-              Default for new wishlists and tradelists. Each list can override it.
-            </CardDescription>
-          </div>
-          {overrideSet && (
+    <>
+      <SettingsSection
+        id="trading"
+        title="Trading"
+        description="Default for new wishlists and tradelists. Each list can override it."
+        action={
+          overrideSet && (
             <ResetButton
               onClick={() => resetPreference("defaultCurrency")}
               label="Reset default currency"
             />
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
+          )
+        }
+      >
         <div className="flex items-center gap-3">
           <Label htmlFor="pref-default-currency" className="font-normal">
             Default currency
@@ -75,8 +71,8 @@ export function TradingSection() {
             </SelectContent>
           </Select>
         </div>
-        <EmailNotificationsControls />
-      </CardContent>
-    </Card>
+      </SettingsSection>
+      <EmailNotificationsControls />
+    </>
   );
 }

@@ -7,7 +7,6 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, formatterForMarketplace } from "@/lib/format";
 
@@ -110,7 +109,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
   }));
 
   return (
-    <Card className="p-4">
+    <section className="flex flex-col gap-4">
       <StatsHeadline
         packCount={packs.length}
         totalPulls={totalPulls}
@@ -127,7 +126,7 @@ export function PackStats({ packs, prices, marketplace }: PackStatsProps) {
       {notable.length > 0 && <NotablePullsList pulls={notable} compactFmt={compactFmt} />}
 
       {unpricedVisible && unpricedPulls.length > 0 && <UnpricedPullsList pulls={unpricedPulls} />}
-    </Card>
+    </section>
   );
 }
 
@@ -218,7 +217,7 @@ function StatsHeadline({
   const packWord = packCount === 1 ? "pack" : "packs";
   const unpricedCount = totalPulls - valuedCount;
   return (
-    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
       <span className="text-foreground text-lg font-semibold tabular-nums">
         {packCount} {packWord}
       </span>

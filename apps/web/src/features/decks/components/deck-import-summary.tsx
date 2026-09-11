@@ -6,6 +6,7 @@ import { TagIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { DeckDomainBar } from "@/features/decks/components/deck-domain-bar";
@@ -86,7 +87,7 @@ export function DeckImportSummary({
 
   return (
     <>
-      <div className="bg-muted/50 space-y-3 rounded-md border p-4">
+      <Callout className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="shrink-0 text-sm font-medium tabular-nums">
             {totalCards} {totalCards === 1 ? "card" : "cards"}
@@ -133,7 +134,7 @@ export function DeckImportSummary({
             )}
           </div>
         )}
-      </div>
+      </Callout>
 
       {/* Client-only: gate behind hydration and suspend for the fetches. */}
       {hydrated && (

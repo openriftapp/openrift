@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
@@ -40,19 +40,15 @@ export function AccountInfoSection({
   currentEmail: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Account Info</CardTitle>
-        <CardDescription>Your name is what shows on shared lists.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <DisplayNameForm defaultName={defaultName} userId={userId} />
-        <div className="border-t" />
-        <RiotIdForm defaultRiotId={defaultRiotId} userId={userId} />
-        <div className="border-t" />
-        <EmailForm currentEmail={currentEmail} />
-      </CardContent>
-    </Card>
+    <SettingsSection
+      title="Account Info"
+      description="Your name is what shows on shared lists."
+      contentClassName="gap-6"
+    >
+      <DisplayNameForm defaultName={defaultName} userId={userId} />
+      <RiotIdForm defaultRiotId={defaultRiotId} userId={userId} />
+      <EmailForm currentEmail={currentEmail} />
+    </SettingsSection>
   );
 }
 

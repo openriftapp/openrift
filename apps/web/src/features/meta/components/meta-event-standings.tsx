@@ -9,7 +9,6 @@ import { SearchIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -242,16 +241,14 @@ export function MetaEventStandings({
           </div>
         )}
 
-        <Card className="gap-0 py-0">
-          {matching.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-6 text-center text-sm">No entries match.</p>
-          ) : (
-            <>
-              <DesktopStandings {...body} />
-              <PhoneStandings {...body} />
-            </>
-          )}
-        </Card>
+        {matching.length === 0 ? (
+          <p className="text-muted-foreground py-6 text-center text-sm">No entries match.</p>
+        ) : (
+          <>
+            <DesktopStandings {...body} />
+            <PhoneStandings {...body} />
+          </>
+        )}
       </section>
     </CardDetailOverlayProvider>
   );

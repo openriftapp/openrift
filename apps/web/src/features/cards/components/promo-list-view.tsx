@@ -1,6 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
 
+import { Card } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import type { CardTableColumnOptions } from "@/features/cards/components/card-table-row";
@@ -106,7 +107,7 @@ export function PromoMobileCard({
   const image = printing.images[0];
   const cardName = legendDisplayName(printing.card);
   return (
-    <div className="hover:bg-muted/50 relative flex w-full items-start gap-3 rounded-lg border p-2">
+    <Card size="sm" className="hover:bg-muted/50 relative w-full flex-row items-start gap-3 px-3">
       <CardArtThumb imageId={image?.imageId} variant="400w" alt={cardName} className="h-20" />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-baseline justify-between gap-2">
@@ -134,6 +135,6 @@ export function PromoMobileCard({
         onClick={() => onClick(printing)}
         className="absolute inset-0 rounded-lg"
       />
-    </div>
+    </Card>
   );
 }

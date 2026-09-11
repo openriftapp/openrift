@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ColumnControls } from "@/features/cards/components/column-controls";
@@ -196,9 +197,9 @@ export function TournamentDeckCheckEntry({
           onResolved={() => void refetch()}
         />
         {listHidden ? (
-          <p className="text-muted-foreground bg-muted/50 rounded-md border p-3 text-sm">
+          <Callout className="text-muted-foreground text-sm">
             Hidden from judges until the player submits, or submissions close.
-          </p>
+          </Callout>
         ) : null}
       </div>
       {listHidden ? null : (

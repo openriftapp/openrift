@@ -12,8 +12,8 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CountPill } from "@/components/ui/count-pill";
 import { useCardmarketOverlaySnapshot } from "@/features/extension/hooks/use-cardmarket-overlay";
@@ -33,56 +33,49 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
   const cards = ownedOrWantedCount(snapshot);
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3">
+    <SettingsSection
+      title={
+        <>
+          Ready for{" "}
+          <span className="font-medium">
+            {summarizeListNames(snapshot.lists.map((list) => list.name))}
+          </span>
+        </>
+      }
+      description={`${cards} ${cards === 1 ? "card" : "cards"} you own or want, with your ${marketplaceLabel(snapshot.marketplace)} prices. Prepared ${formatDayTimeLocal(snapshot.generatedAt)}.`}
+    >
+      {captured ? (
+        <p className="text-success flex items-center gap-2 text-sm font-medium">
+          <CheckIcon className="size-4 shrink-0" />
+          Saved to your extension
+        </p>
+      ) : (
         <div className="flex flex-col gap-1">
-          <p>
-            Ready for{" "}
-            <span className="font-medium">
-              {summarizeListNames(snapshot.lists.map((list) => list.name))}
-            </span>
-            .
+          <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <Loader2Icon className="size-4 shrink-0 animate-spin" />
+            Waiting for the OpenRift extension…
           </p>
           <p className="text-muted-foreground text-sm">
-            {cards} {cards === 1 ? "card" : "cards"} you own or want, with your{" "}
-            {marketplaceLabel(snapshot.marketplace)} prices. Prepared{" "}
-            {formatDayTimeLocal(snapshot.generatedAt)}.
+            It takes them by itself once allowed. Nothing yet? Click the OpenRift icon while this
+            page is open, or read{" "}
+            <Link
+              to="/help/$slug"
+              params={{ slug: "browser-extension" }}
+              className="text-primary hover:underline"
+            >
+              how to set the extension up
+            </Link>
+            .
           </p>
         </div>
+      )}
 
-        {captured ? (
-          <p className="text-success flex items-center gap-2 text-sm font-medium">
-            <CheckIcon className="size-4 shrink-0" />
-            Saved to your extension
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <p className="text-muted-foreground flex items-center gap-2 text-sm">
-              <Loader2Icon className="size-4 shrink-0 animate-spin" />
-              Waiting for the OpenRift extension…
-            </p>
-            <p className="text-muted-foreground text-sm">
-              It takes them by itself once allowed. Nothing yet? Click the OpenRift icon while this
-              page is open, or read{" "}
-              <Link
-                to="/help/$slug"
-                params={{ slug: "browser-extension" }}
-                className="text-primary hover:underline"
-              >
-                how to set the extension up
-              </Link>
-              .
-            </p>
-          </div>
-        )}
-
-        <script
-          type="application/json"
-          data-openrift-overlay-snapshot=""
-          dangerouslySetInnerHTML={{ __html: serializeOverlaySnapshot(snapshot) }}
-        />
-      </CardContent>
-    </Card>
+      <script
+        type="application/json"
+        data-openrift-overlay-snapshot=""
+        dangerouslySetInnerHTML={{ __html: serializeOverlaySnapshot(snapshot) }}
+      />
+    </SettingsSection>
   );
 }
 
@@ -119,32 +112,30 @@ export function CardmarketOverlayPage() {
           copies you own and how many you still want. Pick the wishlists it counts.
         </PageDescription>
 
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            {wishlists.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                You have no wishlists yet. Create one from your collection and it shows up here.
-              </p>
-            ) : (
-              wishlists.map((list) => (
-                <div key={list.id} className="flex items-center gap-3">
-                  <Checkbox
-                    id={`overlay-wishlist-${list.id}`}
-                    checked={!excludedIds.has(list.id)}
-                    onCheckedChange={(checked) => togglePicked(list.id, checked === true)}
-                  />
-                  <label
-                    htmlFor={`overlay-wishlist-${list.id}`}
-                    className="min-w-0 flex-1 cursor-pointer truncate text-sm"
-                  >
-                    {list.name}
-                  </label>
-                  <CountPill>{list.entryCount}</CountPill>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        <SettingsSection title="Wishlists">
+          {wishlists.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              You have no wishlists yet. Create one from your collection and it shows up here.
+            </p>
+          ) : (
+            wishlists.map((list) => (
+              <div key={list.id} className="flex items-center gap-3">
+                <Checkbox
+                  id={`overlay-wishlist-${list.id}`}
+                  checked={!excludedIds.has(list.id)}
+                  onCheckedChange={(checked) => togglePicked(list.id, checked === true)}
+                />
+                <label
+                  htmlFor={`overlay-wishlist-${list.id}`}
+                  className="min-w-0 flex-1 cursor-pointer truncate text-sm"
+                >
+                  {list.name}
+                </label>
+                <CountPill>{list.entryCount}</CountPill>
+              </div>
+            ))
+          )}
+        </SettingsSection>
 
         {tooMany ? (
           <p className="text-sm">

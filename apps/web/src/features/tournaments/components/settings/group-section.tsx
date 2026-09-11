@@ -1,7 +1,7 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
 import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 
-export function GroupCard({
+export function GroupSection({
   detail,
   locked,
 }: {
@@ -42,36 +42,32 @@ export function GroupCard({
   }
 
   return (
-    <Card id="group" className="scroll-mt-16">
-      <CardHeader>
-        <CardTitle>Group</CardTitle>
-        <CardDescription>
-          Members of a linked group can find and follow the tournament.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Select
-          items={groupItems}
-          value={currentValue}
-          disabled={locked || updateTournament.isPending}
-          onValueChange={(value) => {
-            if (value && value !== currentValue) {
-              void changeGroup(value);
-            }
-          }}
-        >
-          <SelectTrigger className="max-w-sm" aria-label="Group">
-            <SelectValue placeholder="Not linked to a group" />
-          </SelectTrigger>
-          <SelectContent>
-            {groupItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardContent>
-    </Card>
+    <SettingsSection
+      id="group"
+      title="Group"
+      description="Members of a linked group can find and follow the tournament."
+    >
+      <Select
+        items={groupItems}
+        value={currentValue}
+        disabled={locked || updateTournament.isPending}
+        onValueChange={(value) => {
+          if (value && value !== currentValue) {
+            void changeGroup(value);
+          }
+        }}
+      >
+        <SelectTrigger className="max-w-sm" aria-label="Group">
+          <SelectValue placeholder="Not linked to a group" />
+        </SelectTrigger>
+        <SelectContent>
+          {groupItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsSection>
   );
 }

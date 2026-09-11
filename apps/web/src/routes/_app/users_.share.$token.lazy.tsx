@@ -8,6 +8,7 @@ import { BookOpenIcon, GlobeIcon, HeartIcon, UsersIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
+import { CardLink } from "@/components/ui/card-link";
 import {
   Empty,
   EmptyDescription,
@@ -111,10 +112,14 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
     return null;
   }
   return (
-    <Link
-      to="/groups/$slug/collections/$collectionId"
-      params={{ slug: viaGroup.slug, collectionId: collection.id }}
-      className="hover:bg-muted/50 flex flex-col gap-1 rounded-md border px-3 py-3"
+    <CardLink
+      className="gap-1 p-3"
+      render={
+        <Link
+          to="/groups/$slug/collections/$collectionId"
+          params={{ slug: viaGroup.slug, collectionId: collection.id }}
+        />
+      }
     >
       <div className="flex items-center gap-2">
         <BookOpenIcon className="size-4 shrink-0" />
@@ -136,7 +141,7 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
           </Badge>
         ))}
       </div>
-    </Link>
+    </CardLink>
   );
 }
 

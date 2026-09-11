@@ -57,7 +57,7 @@ export function ImportParseErrorDetails({
   }
 
   return (
-    <details className="bg-warning-soft border-warning/40 rounded-md border">
+    <details className="bg-warning-soft border-warning/40 rounded-lg border">
       <summary className="text-warning cursor-pointer px-3 py-2 font-medium">
         {errors.length} {unit}
         {errors.length === 1 ? "" : "s"} could not be read
@@ -85,7 +85,7 @@ export function ImportExactMatchesDisclosure({
   }
 
   return (
-    <details className="group rounded-md border">
+    <details className="group rounded-lg border">
       <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 px-4 py-2.5">
         <ChevronRightIcon className="size-4 transition-transform group-open:rotate-90" />
         <CheckCircle2Icon className="text-success size-4" />

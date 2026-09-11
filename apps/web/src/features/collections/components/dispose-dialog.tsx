@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
@@ -83,10 +84,10 @@ export function DisposeDialog({
           )}
 
           {showListWarning && (
-            <div className="border-destructive/40 bg-destructive/10 text-destructive flex gap-3 rounded-lg border p-3 text-sm">
-              <TriangleAlertIcon className="mt-0.5 size-5 shrink-0" />
+            <Callout variant="inset" className="flex gap-3 text-sm">
+              <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
-                <p className="font-medium">
+                <p className="text-destructive font-medium">
                   {copiesOnAnyList} of these {onListNoun} {copiesOnAnyList === 1 ? "is" : "are"} on
                   your lists
                 </p>
@@ -102,21 +103,21 @@ export function DisposeDialog({
                   ))}
                 </ul>
               </div>
-            </div>
+            </Callout>
           )}
 
           {annotatedCount > 0 && (
-            <div className="border-destructive/40 bg-destructive/10 text-destructive flex gap-3 rounded-lg border p-3 text-sm">
-              <TriangleAlertIcon className="mt-0.5 size-5 shrink-0" />
+            <Callout variant="inset" className="flex gap-3 text-sm">
+              <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <p>
-                <span className="font-medium">
+                <span className="text-destructive font-medium">
                   {annotatedCount} of these {annotatedCount === 1 ? "card has" : "cards have"}{" "}
                   details recorded
                 </span>{" "}
                 (condition, grading, notes, or photo links). Removing{" "}
                 {annotatedCount === 1 ? "it" : "them"} permanently deletes those details too.
               </p>
-            </div>
+            </Callout>
           )}
 
           {needsTypeConfirm && (

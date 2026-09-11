@@ -1,6 +1,6 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,7 +25,7 @@ import {
 } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-export function FormatCard({
+export function FormatSection({
   detail,
   locked,
 }: {
@@ -43,19 +43,26 @@ export function FormatCard({
   const playModeItems = groupCut
     ? PLAY_MODE_ITEMS.filter((item) => item.value === "1v1")
     : PLAY_MODE_ITEMS;
+  const description = detail.hasRounds
+    ? `${detail.playMode === "2v2" ? "2v2 teams · " : ""}${PAIRING_STYLE_LABEL[detail.pairingStyle]}. The pairing engine is fixed once a round has been generated.`
+    : "Can only change before the first round.";
 
   return (
-    <Card id="pairings" className="scroll-mt-16">
-      <CardHeader>
-        <CardTitle>Format</CardTitle>
-        <CardDescription>
-          {detail.hasRounds
-            ? `${detail.playMode === "2v2" ? "2v2 teams · " : ""}${PAIRING_STYLE_LABEL[detail.pairingStyle]}. The pairing engine is fixed once a round has been generated.`
-            : "Can only change before the first round."}
-        </CardDescription>
-      </CardHeader>
-      {detail.hasRounds ? null : (
-        <CardContent className="flex flex-wrap gap-x-4 gap-y-3">
+    <SettingsSection id="pairings" title="Format" description={description}>
+      {detail.hasRounds ? (
+        groupCut ? (
+          <p className="text-muted-foreground text-sm">
+            {MATCH_FORMAT_LABEL[detail.matchFormat]}, group stage with a top {detail.cutSize} cut.
+            The format is fixed once the groups have been drawn.
+          </p>
+        ) : isSwiss ? (
+          <p className="text-muted-foreground text-sm">
+            {MATCH_FORMAT_LABEL[detail.matchFormat]}. The match format is fixed once a round has
+            been generated.
+          </p>
+        ) : null
+      ) : (
+        <div className="flex flex-wrap gap-x-4 gap-y-3">
           <div className="flex flex-col gap-1.5">
             <Label>Play mode</Label>
             <Select
@@ -165,20 +172,8 @@ export function FormatCard({
               />
             </div>
           ) : null}
-        </CardContent>
+        </div>
       )}
-      {detail.hasRounds && groupCut ? (
-        <CardContent className="text-muted-foreground text-sm">
-          {MATCH_FORMAT_LABEL[detail.matchFormat]}, group stage with a top {detail.cutSize} cut. The
-          format is fixed once the groups have been drawn.
-        </CardContent>
-      ) : null}
-      {detail.hasRounds && isSwiss && !groupCut ? (
-        <CardContent className="text-muted-foreground text-sm">
-          {MATCH_FORMAT_LABEL[detail.matchFormat]}. The match format is fixed once a round has been
-          generated.
-        </CardContent>
-      ) : null}
-    </Card>
+    </SettingsSection>
   );
 }

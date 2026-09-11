@@ -11,8 +11,8 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { RowList } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -196,7 +196,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
       </div>
 
       {view === "list" ? (
-        <Card className="mt-3 gap-0 py-0">
+        <div className="mt-3 text-sm">
           <SortHeader
             sort={filters.sort}
             direction={filters.direction}
@@ -213,7 +213,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
               marketplace={marketplace}
             />
           )}
-        </Card>
+        </div>
       ) : decks.length === 0 ? (
         <Empty className="mt-6">
           <EmptyHeader>
@@ -341,7 +341,7 @@ function SortHeader({
     <div
       className={cn(
         DECK_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-4 py-2 text-xs font-semibold sm:grid",
+        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
       <SortButton column="finish" sort={sort} direction={direction} onSort={onSort}>
@@ -381,7 +381,7 @@ function DeckList({ decks, summaries, costs, marketplace }: DeckListProps) {
 
   return (
     <>
-      <ul className="divide-border flex flex-col divide-y">
+      <RowList className="flex flex-col">
         {decks.slice(0, shown).map((deck) => (
           <li key={deck.deckId}>
             <MetaDeckIndexRow
@@ -392,7 +392,7 @@ function DeckList({ decks, summaries, costs, marketplace }: DeckListProps) {
             />
           </li>
         ))}
-      </ul>
+      </RowList>
       {remaining > 0 && (
         <div className="border-border flex justify-center border-t p-2">
           <Button variant="ghost" size="sm" onClick={() => setShown(shown + PAGE_SIZE)}>

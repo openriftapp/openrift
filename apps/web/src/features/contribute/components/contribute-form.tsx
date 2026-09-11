@@ -1,8 +1,6 @@
-import { InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { LivePreview } from "@/features/contribute/components/contribute-card-preview";
 import { ContributeCardSection } from "@/features/contribute/components/contribute-card-section";
@@ -124,38 +122,27 @@ export function ContributeForm({
 function IntroBlock({ lockedSlug, scope }: { lockedSlug?: string; scope: ContributeFormScope }) {
   if (scope === "printing") {
     return (
-      <Alert variant="info">
-        <InfoIcon />
-        <AlertTitle>Only this printing</AlertTitle>
-        <AlertDescription>
-          The card&apos;s own details stay as they are. Fill in what you can see on this version.
-        </AlertDescription>
-      </Alert>
+      <p className="text-muted-foreground text-sm">
+        Only this printing: the card&apos;s own details stay as they are. Fill in what you can see
+        on this version.
+      </p>
     );
   }
   if (lockedSlug) {
     return (
-      <Alert variant="info">
-        <InfoIcon />
-        <AlertTitle>Change only what&apos;s wrong</AlertTitle>
-        <AlertDescription>Edit the fields that are off and leave the rest alone.</AlertDescription>
-      </Alert>
+      <p className="text-muted-foreground text-sm">
+        Change only what&apos;s wrong. Edit the fields that are off and leave the rest alone.
+      </p>
     );
   }
   return (
-    <Alert variant="info">
-      <InfoIcon />
-      <AlertTitle>It&apos;s okay to not fill in everything</AlertTitle>
-      <AlertDescription>
-        <p>
-          Only the name and code are mandatory. For a new version of a known card, select it first
-          and copy a printing. Need help? Visit the{" "}
-          <a href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-            Discord
-          </a>
-          .
-        </p>
-      </AlertDescription>
-    </Alert>
+    <p className="text-muted-foreground text-sm">
+      It&apos;s okay to not fill in everything. Only the name and code are mandatory. For a new
+      version of a known card, select it first and copy a printing. Need help? Visit the{" "}
+      <a href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+        Discord
+      </a>
+      .
+    </p>
   );
 }

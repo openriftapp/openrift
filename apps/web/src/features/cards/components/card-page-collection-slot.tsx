@@ -4,7 +4,7 @@ import { PackageIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card as CardPanel } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/lib/auth-session";
 
@@ -44,22 +44,24 @@ export function CollectionSlot({
 
 function TrackCollectionNudge({ cardSlug }: { cardSlug: string }) {
   return (
-    <CardPanel className="flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <PackageIcon className="text-primary size-5 shrink-0" aria-hidden="true" />
-        <p className="text-muted-foreground text-sm">
+    <section className="flex flex-col gap-2">
+      <SectionHeading icon={PackageIcon}>Your copies</SectionHeading>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <p className="text-muted-foreground min-w-0 flex-1 text-sm">
           Keep count of your copies of this card, with wishlists and tradelists that update
           themselves.
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start sm:self-auto"
+          render={
+            <Link to="/signup" search={{ redirect: `/cards/${cardSlug}`, email: undefined }} />
+          }
+        >
+          Sign up free
+        </Button>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="self-start sm:self-auto"
-        render={<Link to="/signup" search={{ redirect: `/cards/${cardSlug}`, email: undefined }} />}
-      >
-        Sign up free
-      </Button>
-    </CardPanel>
+    </section>
   );
 }

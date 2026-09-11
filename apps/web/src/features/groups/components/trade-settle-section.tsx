@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
@@ -78,7 +80,7 @@ function TallyRow({
   const count = talliedCount(counts, trade.id, trade.quantity);
 
   return (
-    <li className="flex items-center gap-3 py-2">
+    <RowListItem>
       <TradeDirectionIcon incoming={trade.role === "receiver"} />
       <CardArtThumb
         shape="strip"
@@ -127,7 +129,7 @@ function TallyRow({
         max={trade.quantity}
         disabled={disabled}
       />
-    </li>
+    </RowListItem>
   );
 }
 
@@ -255,8 +257,8 @@ export function TradeSettleSection({
       {session ? (
         // No overflow-hidden here: it would trap the sticky footer below
         // inside this panel's own scroll box.
-        <div className="bg-card border-success/30 rounded-xl border">
-          <div className="bg-success-soft flex flex-wrap items-center justify-between gap-2 rounded-t-xl px-3 py-2">
+        <Card className="ring-success/30 gap-0 overflow-visible p-0">
+          <div className="bg-success-soft flex flex-wrap items-center justify-between gap-2 rounded-t-lg px-3 py-2">
             <div className="flex min-w-0 flex-col">
               <span className="text-sm font-medium">Counting cards</span>
               <span className="text-muted-foreground text-xs">
@@ -297,14 +299,14 @@ export function TradeSettleSection({
             </div>
           </div>
 
-          <ul className="divide-border divide-y px-3">
+          <RowList className="divide-border px-3">
             {trades.map((trade) => (
               <TallyRow key={trade.id} trade={trade} sequence={sequence} disabled={busy} />
             ))}
-          </ul>
+          </RowList>
 
           {/* Opaque background: this slides over the rows' art as it sticks. */}
-          <div className="bg-card pb-safe sticky bottom-0 z-20 flex flex-col gap-2 rounded-b-xl border-t px-3 pt-3">
+          <div className="bg-card pb-safe sticky bottom-0 z-20 flex flex-col gap-2 rounded-b-lg border-t px-3 pt-3">
             <CommitSummary
               incomingCards={incomingCards}
               outgoingCards={cards - incomingCards}
@@ -321,7 +323,7 @@ export function TradeSettleSection({
               </p>
             )}
           </div>
-        </div>
+        </Card>
       ) : (
         <div className="flex flex-col gap-2">
           {trades.map((trade) => (

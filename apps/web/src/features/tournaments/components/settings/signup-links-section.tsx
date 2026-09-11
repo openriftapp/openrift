@@ -1,8 +1,8 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,7 @@ import { getSiteUrl } from "@/lib/site-config";
  * Self-registration toggle plus the shareable sign-up / deck submission link.
  * Disabling it is confirmed because the old link dies immediately.
  */
-export function SignupLinksCard({
+export function SignupLinksSection({
   detail,
   locked,
 }: {
@@ -53,64 +53,65 @@ export function SignupLinksCard({
 
   return (
     <>
-      <Card id="signup-links" className="scroll-mt-16">
-        <CardHeader>
-          <CardTitle>Sign-up &amp; deck links</CardTitle>
-          <CardDescription>
+      <SettingsSection
+        id="signup-links"
+        title="Sign-up & deck links"
+        description={
+          <>
             Anyone with the link can request a spot. Requests appear on the Overview tab.
             {deckExpected ? " Players also submit their decks through this link." : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <Switch
-              id="t-self-reg"
-              checked={detail.selfRegistration}
-              disabled={locked || updateTournament.isPending}
-              onCheckedChange={(checked) =>
-                void runReportedMutation(() =>
-                  updateTournament.mutateAsync({ id: detail.id, selfRegistration: checked }),
-                )
-              }
-            />
-            <Label htmlFor="t-self-reg">Open self-registration</Label>
+          </>
+        }
+        contentClassName="gap-3"
+      >
+        <div className="flex items-center gap-3">
+          <Switch
+            id="t-self-reg"
+            checked={detail.selfRegistration}
+            disabled={locked || updateTournament.isPending}
+            onCheckedChange={(checked) =>
+              void runReportedMutation(() =>
+                updateTournament.mutateAsync({ id: detail.id, selfRegistration: checked }),
+              )
+            }
+          />
+          <Label htmlFor="t-self-reg">Open self-registration</Label>
+        </div>
+        {showLink ? (
+          <div className="flex flex-col gap-2">
+            <Label>{linkLabel}</Label>
+            {registrationUrl ? (
+              <ShareLinkRow
+                url={registrationUrl}
+                label={linkLabel}
+                defaultQrOpen
+                actions={
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={locked || setSubmissionToken.isPending}
+                    onClick={() => setConfirmDisable(true)}
+                  >
+                    Disable
+                  </Button>
+                }
+              />
+            ) : (
+              <Button
+                className="w-fit"
+                disabled={locked || setSubmissionToken.isPending}
+                onClick={() =>
+                  void runReportedMutation(() =>
+                    setSubmissionToken.mutateAsync({ id: detail.id, enabled: true }),
+                  )
+                }
+              >
+                Enable {linkLabel.toLowerCase()}
+              </Button>
+            )}
           </div>
-          {showLink ? (
-            <div className="flex flex-col gap-2">
-              <Label>{linkLabel}</Label>
-              {registrationUrl ? (
-                <ShareLinkRow
-                  url={registrationUrl}
-                  label={linkLabel}
-                  defaultQrOpen
-                  actions={
-                    <Button
-                      variant="ghost"
-                      className="text-destructive"
-                      disabled={locked || setSubmissionToken.isPending}
-                      onClick={() => setConfirmDisable(true)}
-                    >
-                      Disable
-                    </Button>
-                  }
-                />
-              ) : (
-                <Button
-                  className="w-fit"
-                  disabled={locked || setSubmissionToken.isPending}
-                  onClick={() =>
-                    void runReportedMutation(() =>
-                      setSubmissionToken.mutateAsync({ id: detail.id, enabled: true }),
-                    )
-                  }
-                >
-                  Enable {linkLabel.toLowerCase()}
-                </Button>
-              )}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+        ) : null}
+      </SettingsSection>
 
       <Dialog open={confirmDisable} onOpenChange={setConfirmDisable}>
         <DialogContent>

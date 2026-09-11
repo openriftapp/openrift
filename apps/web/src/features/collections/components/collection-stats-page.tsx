@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { CompactFilterBar } from "@/features/cards/components/compact-filter-bar";
@@ -101,7 +101,7 @@ export function CollectionStatsPage() {
         ) : (
           <div className="space-y-6">
             <section className="space-y-4">
-              <h2 className="text-base font-semibold">Completion</h2>
+              <SectionHeading variant="display">Completion</SectionHeading>
               <CompletionSection
                 stats={stats}
                 groupBy={groupBy}
@@ -113,7 +113,7 @@ export function CollectionStatsPage() {
             <Separator />
 
             <section className="space-y-4">
-              <h2 className="text-base font-semibold">Cost to Complete</h2>
+              <SectionHeading variant="display">Cost to Complete</SectionHeading>
               <CostToCompleteChart
                 allPrintings={stats.allPrintings}
                 stacks={stats.stacks}
@@ -130,12 +130,8 @@ export function CollectionStatsPage() {
                 <Separator />
 
                 <section className="space-y-4">
-                  <h2 className="text-base font-semibold">Value Over Time</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <CollectionValueChart collectionId={collectionId} scope={scope} />
-                    </CardContent>
-                  </Card>
+                  <SectionHeading variant="display">Value Over Time</SectionHeading>
+                  <CollectionValueChart collectionId={collectionId} scope={scope} />
                 </section>
               </>
             )}
@@ -143,33 +139,21 @@ export function CollectionStatsPage() {
             <Separator />
 
             <section className="space-y-4">
-              <h2 className="text-base font-semibold">Stats</h2>
+              <SectionHeading variant="display">Stats</SectionHeading>
               <StatsHeroStats stats={stats} />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Domain</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DomainDistributionChart data={stats.domainDistribution} />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Rarity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <RarityDistributionChart data={stats.rarityDistribution} />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Type</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TypeDistributionChart data={stats.typeBreakdown} />
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <section className="flex flex-col gap-3">
+                  <SectionHeading as="h3">Domain</SectionHeading>
+                  <DomainDistributionChart data={stats.domainDistribution} />
+                </section>
+                <section className="flex flex-col gap-3">
+                  <SectionHeading as="h3">Rarity</SectionHeading>
+                  <RarityDistributionChart data={stats.rarityDistribution} />
+                </section>
+                <section className="flex flex-col gap-3">
+                  <SectionHeading as="h3">Type</SectionHeading>
+                  <TypeDistributionChart data={stats.typeBreakdown} />
+                </section>
               </div>
               <MostExpensivePrintings
                 printings={stats.mostExpensivePrintings}
@@ -177,22 +161,18 @@ export function CollectionStatsPage() {
               />
 
               {(stats.energyCurve.length > 0 || stats.powerCurve.length > 0) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Energy &amp; Power</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <EnergyPowerChart
-                      energyData={stats.energyCurve}
-                      energyStacks={stats.energyCurveStacks}
-                      averageEnergy={stats.averageEnergy}
-                      powerData={stats.powerCurve}
-                      powerStacks={stats.powerCurveStacks}
-                      averagePower={stats.averagePower}
-                      singleColor
-                    />
-                  </CardContent>
-                </Card>
+                <section className="flex flex-col gap-3">
+                  <SectionHeading as="h3">Energy &amp; Power</SectionHeading>
+                  <EnergyPowerChart
+                    energyData={stats.energyCurve}
+                    energyStacks={stats.energyCurveStacks}
+                    averageEnergy={stats.averageEnergy}
+                    powerData={stats.powerCurve}
+                    powerStacks={stats.powerCurveStacks}
+                    averagePower={stats.averagePower}
+                    singleColor
+                  />
+                </section>
               )}
             </section>
           </div>

@@ -12,7 +12,6 @@ import {
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import { Heading } from "@/components/heading";
 import {
   PageTopBar,
   PageTopBarActions,
@@ -21,10 +20,12 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { RowList } from "@/components/ui/row-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { MetaArchiveActivity } from "@/features/meta/components/meta-archive-activity";
 import { MetaArchiveCounts } from "@/features/meta/components/meta-archive-counts";
@@ -139,7 +140,7 @@ function Section({
         {accent !== undefined && (
           <span aria-hidden="true" className={cn("h-4 w-1 self-center rounded-full", accent)} />
         )}
-        <Heading>{title}</Heading>
+        <SectionHeading variant="display">{title}</SectionHeading>
         {action}
       </div>
       {children}
@@ -164,13 +165,13 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
   const leaf = dateLeafPartsUtc(next.eventDate);
 
   return (
-    <Card className="gap-0 p-0 lg:hidden">
+    <div className="border-border border-y py-2 lg:hidden">
       <Link
         from="/meta"
         search={(prev) => prev}
         hash="coming-up"
         hashScrollIntoView
-        className="hover:bg-muted/50 focus-visible:ring-ring/50 flex items-center gap-3 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
+        className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2"
       >
         <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
@@ -185,7 +186,7 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
         </span>
         <ChevronDownIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
       </Link>
-    </Card>
+    </div>
   );
 }
 
@@ -290,15 +291,13 @@ export function MetaFrontPage() {
                               />
                             }
                           >
-                            <Card className="gap-0 p-0">
-                              <ul className="divide-border divide-y">
-                                {sections.premier.slice(0, PREMIER_LIMIT).map((event) => (
-                                  <li key={event.id}>
-                                    <MetaFrontEventBlock event={event} />
-                                  </li>
-                                ))}
-                              </ul>
-                            </Card>
+                            <RowList>
+                              {sections.premier.slice(0, PREMIER_LIMIT).map((event) => (
+                                <li key={event.id}>
+                                  <MetaFrontEventBlock event={event} />
+                                </li>
+                              ))}
+                            </RowList>
                           </Section>
                         )}
 
@@ -313,15 +312,13 @@ export function MetaFrontPage() {
                               />
                             }
                           >
-                            <Card className="gap-0 p-0">
-                              <ul className="divide-border divide-y">
-                                {sections.competitive.slice(0, COMPETITIVE_LIMIT).map((event) => (
-                                  <li key={event.id}>
-                                    <MetaFrontEventBlock event={event} />
-                                  </li>
-                                ))}
-                              </ul>
-                            </Card>
+                            <RowList>
+                              {sections.competitive.slice(0, COMPETITIVE_LIMIT).map((event) => (
+                                <li key={event.id}>
+                                  <MetaFrontEventBlock event={event} />
+                                </li>
+                              ))}
+                            </RowList>
                           </Section>
                         )}
 
@@ -339,15 +336,13 @@ export function MetaFrontPage() {
                               </Link>
                             }
                           >
-                            <Card className="gap-0 p-0">
-                              <ul className="divide-border divide-y">
-                                {sections.local.slice(0, LOCAL_LIMIT).map((event) => (
-                                  <li key={event.id}>
-                                    <MetaEventRow event={event} />
-                                  </li>
-                                ))}
-                              </ul>
-                            </Card>
+                            <RowList>
+                              {sections.local.slice(0, LOCAL_LIMIT).map((event) => (
+                                <li key={event.id}>
+                                  <MetaEventRow event={event} />
+                                </li>
+                              ))}
+                            </RowList>
                           </Section>
                         )}
                       </>
@@ -378,15 +373,13 @@ export function MetaFrontPage() {
                             </Link>
                           }
                         >
-                          <Card className="gap-0 p-0">
-                            <ul className="divide-border divide-y">
-                              {sections.upcoming.slice(0, UPCOMING_LIMIT).map((event) => (
-                                <li key={event.id}>
-                                  <MetaUpcomingRow event={event} />
-                                </li>
-                              ))}
-                            </ul>
-                          </Card>
+                          <RowList>
+                            {sections.upcoming.slice(0, UPCOMING_LIMIT).map((event) => (
+                              <li key={event.id}>
+                                <MetaUpcomingRow event={event} />
+                              </li>
+                            ))}
+                          </RowList>
                         </Section>
                       )}
 

@@ -11,9 +11,9 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Medal } from "@/components/ui/podium";
+import { RowList } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
@@ -114,7 +114,7 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
     <Link
       to="/meta/legends/$slug"
       params={{ slug: entry.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 block px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset"
     >
       <div className={cn(LEGEND_INDEX_GRID, "hidden md:grid")}>
         <LegendArt entry={entry} className="size-12" />
@@ -205,7 +205,7 @@ function SortHeader({
     <div
       className={cn(
         LEGEND_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-4 py-2 text-xs font-semibold md:grid",
+        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold md:grid",
       )}
     >
       <span />
@@ -295,7 +295,7 @@ export function MetaLegendsPage() {
               />
             </div>
 
-            <Card className="mt-4 gap-0 py-0">
+            <div className="mt-4 text-sm">
               <SortHeader sort={sort} direction={direction} onSort={setSort} />
               {entries.length === 0 ? (
                 <Empty className="py-10">
@@ -304,15 +304,15 @@ export function MetaLegendsPage() {
                   </EmptyHeader>
                 </Empty>
               ) : (
-                <ul className="divide-border flex flex-col divide-y">
+                <RowList className="flex flex-col">
                   {entries.map((entry) => (
                     <li key={entry.slug}>
                       <LegendRow entry={entry} />
                     </li>
                   ))}
-                </ul>
+                </RowList>
               )}
-            </Card>
+            </div>
           </>
         )}
       </div>

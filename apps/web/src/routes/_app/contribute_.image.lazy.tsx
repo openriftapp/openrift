@@ -4,7 +4,7 @@ import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 
 import { Heading } from "@/components/heading";
-import { CardList } from "@/components/ui/card-list";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { CardSlugPicker } from "@/features/contribute/components/card-slug-picker";
@@ -52,13 +52,17 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
   const setNameById = new Map(data.sets.map((s) => [s.id, s.name]));
 
   return (
-    <CardList>
+    <RowList>
       {data.printings.map((printing) => (
-        <li key={printing.id}>
-          <Link
-            to="/contribute/card/$cardSlug/printing/$printingId/image"
-            params={{ cardSlug, printingId: printing.id }}
-            className="hover:bg-muted flex items-center justify-between gap-3 rounded-md px-3 py-2"
+        <RowListItem key={printing.id}>
+          <RowListLink
+            render={
+              <Link
+                to="/contribute/card/$cardSlug/printing/$printingId/image"
+                params={{ cardSlug, printingId: printing.id }}
+              />
+            }
+            className="justify-between"
           >
             <span className="flex min-w-0 flex-col">
               <span className="truncate font-medium">{printing.printedName ?? data.card.name}</span>
@@ -71,9 +75,9 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
             {printing.images.length > 0 && (
               <span className="text-muted-foreground shrink-0 text-sm">Image on file</span>
             )}
-          </Link>
-        </li>
+          </RowListLink>
+        </RowListItem>
       ))}
-    </CardList>
+    </RowList>
   );
 }

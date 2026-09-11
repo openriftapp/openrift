@@ -23,7 +23,6 @@ import {
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { CardRow } from "@/components/ui/card-list";
 import {
   Empty,
   EmptyDescription,
@@ -31,6 +30,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
@@ -349,11 +349,11 @@ function ByesSection({
       <SectionHeading as="h3" size="sm" icon={UserMinusIcon} count={byes.length}>
         Byes
       </SectionHeading>
-      <ul className="flex flex-col gap-1.5">
+      <RowList>
         {byes.map((bye) => {
           const priorByes = priorByesByPlayer.get(bye.playerId) ?? 0;
           return (
-            <CardRow key={bye.playerId}>
+            <RowListItem key={bye.playerId} className="justify-between">
               <span className="flex min-w-0 items-center gap-2">
                 <UserAvatar name={bye.displayName} size="sm" />
                 <span className="truncate font-medium">{bye.displayName}</span>
@@ -366,10 +366,10 @@ function ByesSection({
               <span className="font-semibold tabular-nums">
                 {byePoints > 0 ? `+${byePoints} bye` : "sat out · 0"}
               </span>
-            </CardRow>
+            </RowListItem>
           );
         })}
-      </ul>
+      </RowList>
     </div>
   );
 }

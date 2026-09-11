@@ -2,6 +2,7 @@ import { formatMonth } from "@openrift/shared/format-date";
 import { ChevronDownIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Callout } from "@/components/ui/callout";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CardText } from "@/features/cards/components/card-text";
 import { cn } from "@/lib/utils";
@@ -60,11 +61,11 @@ export function ErrataNotice({
           <span>{open ? "Hide" : "Show"} original printed text</span>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="border-border/30 bg-muted/30 mt-1 rounded-md border border-dashed px-2.5 py-2">
+          <Callout variant="inset" className="mt-1">
             <p className="text-muted-foreground/50 text-xs leading-relaxed">
               <CardText text={printedText} onKeywordClick={onKeywordClick} />
             </p>
-          </div>
+          </Callout>
         </CollapsibleContent>
       </div>
     </Collapsible>

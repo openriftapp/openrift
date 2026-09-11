@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import {
   Select,
   SelectContent,
@@ -188,11 +189,11 @@ export function DeckImportEntryRow({
         row
       )}
       {hasPanel && (
-        <AccordionContent className="bg-muted/30 px-4 py-2">
-          <div className="space-y-2">
+        <AccordionContent>
+          <Callout variant="inset" className="space-y-2">
             {foldActions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
             {hasDetails && <ImportRowRawFields entries={rawFieldEntries} matched={matchedNote} />}
-          </div>
+          </Callout>
         </AccordionContent>
       )}
     </AccordionItem>

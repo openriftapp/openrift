@@ -6,6 +6,7 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
+import { Callout } from "@/components/ui/callout";
 import type { HastNode, MdNode } from "@/features/rules/lib/rules-markdown";
 import {
   diffRuleMarkdown,
@@ -276,7 +277,7 @@ const VERSION_COMMENT_COMPONENTS: Components = {
 
 export function VersionComments({ markdown }: { markdown: string }) {
   return (
-    <div className="bg-muted/30 mb-4 rounded-md border p-3">
+    <Callout className="mb-4">
       <ReactMarkdown
         components={VERSION_COMMENT_COMPONENTS}
         allowedElements={VERSION_COMMENT_MARKDOWN_ELEMENTS}
@@ -285,7 +286,7 @@ export function VersionComments({ markdown }: { markdown: string }) {
       >
         {markdown}
       </ReactMarkdown>
-    </div>
+    </Callout>
   );
 }
 

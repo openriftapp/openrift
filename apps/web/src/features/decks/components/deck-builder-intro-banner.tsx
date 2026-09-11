@@ -3,6 +3,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 
 import { IntroBanner } from "@/components/intro-banner";
+import { Callout } from "@/components/ui/callout";
 
 function introSteps(format: DeckFormat): readonly { title: string; description: string }[] {
   const singleBattlefield = format === WellKnown.deckFormat.CUSTOM_REGION;
@@ -45,17 +46,16 @@ export function DeckBuilderIntroBanner({
       <div className="grid gap-4 @lg:grid-cols-2">
         <ol className="grid gap-2 self-start">
           {introSteps(format).map((step, index) => (
-            <li
-              key={step.title}
-              className="bg-background flex items-start gap-2 rounded-md border p-2"
-            >
-              <span className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full font-semibold">
-                {index + 1}
-              </span>
-              <div>
-                <span className="font-medium">{step.title}</span>
-                <p className="text-muted-foreground">{step.description}</p>
-              </div>
+            <li key={step.title}>
+              <Callout variant="inset" className="flex items-start gap-2">
+                <span className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full font-semibold">
+                  {index + 1}
+                </span>
+                <div>
+                  <span className="font-medium">{step.title}</span>
+                  <p className="text-muted-foreground">{step.description}</p>
+                </div>
+              </Callout>
             </li>
           ))}
         </ol>

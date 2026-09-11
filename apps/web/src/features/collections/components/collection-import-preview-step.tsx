@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -157,7 +158,7 @@ export function CollectionImportPreviewStep({
       </SectionHeader>
 
       {problematicEntries.length > 0 && (
-        <div className="divide-border divide-y rounded-md border">
+        <div className="divide-border divide-y rounded-lg border">
           {problematicEntries.map((item) => renderRow(item))}
         </div>
       )}
@@ -168,7 +169,7 @@ export function CollectionImportPreviewStep({
         {exactEntries.map((item) => renderRow(item))}
       </ImportExactMatchesDisclosure>
 
-      <div className="bg-muted/30 space-y-4 rounded-md border p-4">
+      <Callout className="space-y-4">
         <ImportStatusBadges
           readyCount={readyCount}
           toVerifyCount={toVerifyCount}
@@ -266,7 +267,7 @@ export function CollectionImportPreviewStep({
             ? "Importing into a list just adds the cards to that list."
             : "Importing into a collection marks these cards as owned."}
         </p>
-      </div>
+      </Callout>
 
       <AlertDialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
         <AlertDialogContent>

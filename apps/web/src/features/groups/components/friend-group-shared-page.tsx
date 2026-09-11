@@ -13,9 +13,9 @@ import { CoverBand } from "@/components/cover-band";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
-import { CardList } from "@/components/ui/card-list";
 import { CountPill } from "@/components/ui/count-pill";
 import { Pressable } from "@/components/ui/pressable";
+import { RowList } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
@@ -154,7 +154,7 @@ function NewCollectionTile({ group }: { group: FriendGroupDetailResponse["group"
     <>
       <Pressable
         onClick={() => setCreateOpen(true)}
-        className="border-border hover:border-primary/40 text-muted-foreground hover:text-foreground flex h-full min-h-44 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed p-6 text-center transition-colors"
+        className="border-border hover:border-primary/30 text-muted-foreground hover:text-foreground flex h-full min-h-44 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed p-6 text-center transition-colors"
       >
         <PlusIcon aria-hidden="true" className="size-6" />
         <span className="text-foreground text-sm font-medium">New shared collection</span>
@@ -278,13 +278,13 @@ function MemberSharesBlock({
       </div>
       <ContactMethodChips methods={member.contactMethods} className="-mt-1 ml-8" />
       {collections.length > 0 ? (
-        <CardList>
+        <RowList>
           {collections.map((share) => (
             <li key={share.collectionId}>
               <SharedCollectionRow slug={slug} share={share} />
             </li>
           ))}
-        </CardList>
+        </RowList>
       ) : null}
     </div>
   );

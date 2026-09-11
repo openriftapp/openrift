@@ -1,7 +1,7 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
 import { useMyOrganizations } from "@/features/tournaments/hooks/use-organizations";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 
-export function HostCard({
+export function HostSection({
   detail,
   locked,
 }: {
@@ -41,37 +41,32 @@ export function HostCard({
   }
 
   return (
-    <Card id="host" className="scroll-mt-16">
-      <CardHeader>
-        <CardTitle>Host</CardTitle>
-        <CardDescription>
-          An organization brings in its owners, managers, and judges. You can invite extra staff
-          either way.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Select
-          items={hostItems}
-          value={currentValue}
-          disabled={locked || updateTournament.isPending}
-          onValueChange={(value) => {
-            if (value && value !== currentValue) {
-              void changeHost(value);
-            }
-          }}
-        >
-          <SelectTrigger className="max-w-sm" aria-label="Host">
-            <SelectValue placeholder="Host" />
-          </SelectTrigger>
-          <SelectContent>
-            {hostItems.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardContent>
-    </Card>
+    <SettingsSection
+      id="host"
+      title="Host"
+      description="An organization brings in its owners, managers, and judges. You can invite extra staff either way."
+    >
+      <Select
+        items={hostItems}
+        value={currentValue}
+        disabled={locked || updateTournament.isPending}
+        onValueChange={(value) => {
+          if (value && value !== currentValue) {
+            void changeHost(value);
+          }
+        }}
+      >
+        <SelectTrigger className="max-w-sm" aria-label="Host">
+          <SelectValue placeholder="Host" />
+        </SelectTrigger>
+        <SelectContent>
+          {hostItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsSection>
   );
 }

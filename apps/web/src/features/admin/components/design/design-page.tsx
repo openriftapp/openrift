@@ -12,6 +12,7 @@ import { ButtonsSection } from "./buttons-section";
 import { CardThumbnailsSection } from "./card-thumbnails-section";
 import { CompositesSection } from "./composites-section";
 import { FeedbackSection } from "./feedback-section";
+import { FlatSectionsSection } from "./flat-sections-section";
 import { FormControlsSection } from "./form-controls-section";
 import { IconChipSection } from "./icon-chip-section";
 import { LayoutSection } from "./layout-section";
@@ -40,6 +41,7 @@ const SECTIONS = [
   { id: "brand-glyph", title: "Brand glyph", Component: BrandGlyphSection },
   { id: "qr-codes", title: "Copy rows & QR codes", Component: QrCodesSection },
   { id: "tiles", title: "Tiles", Component: TilesSection },
+  { id: "flat-sections", title: "Flat sections & lists", Component: FlatSectionsSection },
   { id: "card-thumbnails", title: "Card thumbnails", Component: CardThumbnailsSection },
   { id: "form-controls", title: "Form controls", Component: FormControlsSection },
   { id: "pickers", title: "Pickers & commands", Component: PickersSection },

@@ -95,7 +95,6 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Label>Banner</Label>
       {group.bannerUrl ? (
         <div className="flex flex-col gap-2">
           <div

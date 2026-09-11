@@ -17,7 +17,7 @@ export function SettingsLayout({
   return (
     <div className={cn("flex w-full gap-6", className)}>
       <PageToc items={toc} />
-      <div className="flex min-w-0 flex-1 flex-col gap-6">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col gap-10">{children}</div>
     </div>
   );
 }

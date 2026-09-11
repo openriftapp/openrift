@@ -1,6 +1,5 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import { Callout } from "@/components/ui/callout";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useCardHoldingLines } from "@/features/cards/hooks/use-card-holdings";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ export function CardHoldingsSection({
   }
 
   return (
-    <Callout className="space-y-2 px-3 py-2.5 text-sm">
+    <section className="space-y-2 text-sm">
       <SectionHeading as="h3">Loans and trades</SectionHeading>
       <ul className="space-y-1">
         {lines.map((line) => (
@@ -33,6 +32,6 @@ export function CardHoldingsSection({
           </li>
         ))}
       </ul>
-    </Callout>
+    </section>
   );
 }

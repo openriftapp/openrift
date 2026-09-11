@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { HandshakeIcon, MessageCircleIcon, XIcon } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import type { GroupNudgeKind } from "@/features/account/stores/onboarding-store";
 import { groupNudgeKey, useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useRequiredUserId } from "@/lib/auth-session";
@@ -77,16 +77,18 @@ export function GroupSetupNudges({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <RowList variant="divided">
       {kinds.map((kind) => {
         const copy = NUDGE_COPY[kind];
         return (
-          <Alert key={kind} variant="info">
-            <copy.icon />
-            <AlertTitle>{copy.title}</AlertTitle>
-            <AlertDescription className="flex flex-col gap-1">
-              <span>{copy.description}</span>
-              <span className="flex flex-wrap items-center gap-x-3">
+          <RowListItem key={kind} className="items-start">
+            <copy.icon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-sm">
+                <span className="font-medium">{copy.title}</span>{" "}
+                <span className="text-muted-foreground">{copy.description}</span>
+              </p>
+              <span className="flex flex-wrap items-center gap-x-3 text-sm">
                 <Link to="/groups/$slug/manage" params={{ slug }} hash={copy.hash}>
                   {copy.actionLabel}
                 </Link>
@@ -94,21 +96,19 @@ export function GroupSetupNudges({
                   {copy.helpLabel}
                 </Link>
               </span>
-            </AlertDescription>
-            <AlertAction>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => dismiss(slug, kind)}
-                aria-label={`Dismiss "${copy.title}"`}
-              >
-                <XIcon className="size-4" />
-              </Button>
-            </AlertAction>
-          </Alert>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => dismiss(slug, kind)}
+              aria-label={`Dismiss "${copy.title}"`}
+            >
+              <XIcon className="size-4" />
+            </Button>
+          </RowListItem>
         );
       })}
-    </div>
+    </RowList>
   );
 }

@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
-import { CardList } from "@/components/ui/card-list";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { IconChip } from "@/components/ui/icon-chip";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatTileTone } from "@/components/ui/stat-tile";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
 import { FriendGroupActivityFeed } from "./friend-group-activity-feed";
 import { isAdmin } from "./friend-group-shell";
 import { GroupSetupNudges } from "./group-setup-nudges";
-import { HOVER_ROW_CLASS } from "./hover-row";
 import { LIST_INTENT_ICON, LIST_INTENT_NOUN } from "./list-intent-meta";
 import { PendingRequestsBand } from "./pending-requests-band";
 import { TradesHubBand } from "./trades-hub-band";
@@ -231,12 +230,13 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
         ) : null}
       </div>
       {upcoming.length > 0 ? (
-        <CardList>
+        <RowList>
           {upcoming.slice(0, 3).map((event) => {
             const leaf = dateLeafParts(event.startAt);
             return (
-              <li key={event.externalId}>
-                <a href={event.url} target="_blank" rel="noreferrer" className={HOVER_ROW_CLASS}>
+              <RowListItem key={event.externalId}>
+                {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}
+                <RowListLink render={<a href={event.url} target="_blank" rel="noreferrer" />}>
                   <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-sm font-medium">{event.name}</span>
@@ -245,11 +245,11 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
                     </span>
                   </span>
                   <ExternalLinkIcon className="text-muted-foreground/40 size-4 shrink-0" />
-                </a>
-              </li>
+                </RowListLink>
+              </RowListItem>
             );
           })}
-        </CardList>
+        </RowList>
       ) : (
         <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
           <p className="text-muted-foreground text-sm">
@@ -324,30 +324,33 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading>Newest shared</SectionHeading>
-      <CardList>
+      <RowList>
         {rows.map((row) => (
-          <li key={row.key}>
+          <RowListItem key={row.key}>
             {/* Each branch renders its own concrete <Link> so `to`/`params` stay correlated. */}
             {row.target === "list" ? (
-              <Link
-                to="/groups/$slug/lists/$listId"
-                params={{ slug, listId: row.listId }}
-                className={HOVER_ROW_CLASS}
+              <RowListLink
+                render={
+                  <Link to="/groups/$slug/lists/$listId" params={{ slug, listId: row.listId }} />
+                }
               >
                 <RailRowBody row={row} />
-              </Link>
+              </RowListLink>
             ) : (
-              <Link
-                to="/groups/$slug/collections/$collectionId"
-                params={{ slug, collectionId: row.collectionId }}
-                className={HOVER_ROW_CLASS}
+              <RowListLink
+                render={
+                  <Link
+                    to="/groups/$slug/collections/$collectionId"
+                    params={{ slug, collectionId: row.collectionId }}
+                  />
+                }
               >
                 <RailRowBody row={row} />
-              </Link>
+              </RowListLink>
             )}
-          </li>
+          </RowListItem>
         ))}
-      </CardList>
+      </RowList>
     </section>
   );
 }
@@ -362,14 +365,10 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
     <section className="flex flex-col gap-3">
       <SectionHeading>Next up</SectionHeading>
       {current.length > 0 ? (
-        <CardList>
+        <RowList>
           {current.map((tournament) => (
-            <li key={tournament.id}>
-              <Link
-                to="/tournaments/$id"
-                params={{ id: tournament.id }}
-                className={HOVER_ROW_CLASS}
-              >
+            <RowListItem key={tournament.id}>
+              <RowListLink render={<Link to="/tournaments/$id" params={{ id: tournament.id }} />}>
                 <IconChip icon={TrophyIcon} tone="violet" size="sm" shape="round" />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{tournament.name}</span>
@@ -377,10 +376,10 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
                     {formatDayTimeLocal(tournament.startsAt)}
                   </span>
                 </span>
-              </Link>
-            </li>
+              </RowListLink>
+            </RowListItem>
           ))}
-        </CardList>
+        </RowList>
       ) : (
         <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
           <p className="text-muted-foreground text-sm">

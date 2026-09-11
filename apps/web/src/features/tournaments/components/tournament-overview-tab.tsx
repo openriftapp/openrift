@@ -16,10 +16,10 @@ import type { ReactNode } from "react";
 import { ActionBand } from "@/components/ui/action-band";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CardList } from "@/components/ui/card-list";
 import { IconChip } from "@/components/ui/icon-chip";
 import type { PodiumSeat } from "@/components/ui/podium";
 import { Podium } from "@/components/ui/podium";
+import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { StatTile } from "@/components/ui/stat-tile";
 import { UserAvatar } from "@/components/user-avatar";
@@ -165,8 +165,7 @@ function ParticipantsTile({
   );
 }
 
-/** No `render`: the approve/deny rows are real buttons, and a band-wide link would nest interactive elements. */
-function JoinRequestsBand({
+function JoinRequestsSection({
   id,
   pending,
 }: {
@@ -188,20 +187,16 @@ function JoinRequestsBand({
     return null;
   }
   return (
-    <ActionBand
-      icon={InboxIcon}
-      accent
-      label="Join requests"
-      value={pending.length}
-      sub={pending.length === 1 ? "wants in" : "want in"}
-    >
-      <ul className="flex flex-col gap-2">
+    <section className="flex flex-col gap-3">
+      <SectionHeading icon={InboxIcon} tone="gold" count={pending.length}>
+        Join requests
+      </SectionHeading>
+      <RowList>
         {pending.map((participant) => (
-          <li
-            key={participant.id}
-            className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2"
-          >
-            <span className="truncate text-sm font-medium">{participant.displayName}</span>
+          <RowListItem key={participant.id} className="flex-wrap">
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+              {participant.displayName}
+            </span>
             <span className="flex items-center gap-1">
               <Button
                 size="sm"
@@ -236,10 +231,10 @@ function JoinRequestsBand({
                 Deny
               </Button>
             </span>
-          </li>
+          </RowListItem>
         ))}
-      </ul>
-    </ActionBand>
+      </RowList>
+    </section>
   );
 }
 
@@ -430,14 +425,10 @@ function RoundsRail({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading>Rounds</SectionHeading>
-      <CardList>
+      <RowList>
         {run.rounds.map((round) => (
-          <li key={round.id}>
-            <Link
-              to="/tournaments/$id/pairings"
-              params={{ id }}
-              className={cn(RAIL_ROW_CLASS, "hover:bg-muted/50")}
-            >
+          <RowListItem key={round.id}>
+            <RowListLink render={<Link to="/tournaments/$id/pairings" params={{ id }} />}>
               <span
                 className={cn("size-2 shrink-0 rounded-full", ROUND_DOT_CLASS[round.status])}
                 aria-hidden="true"
@@ -448,11 +439,11 @@ function RoundsRail({
               <span className="text-muted-foreground shrink-0 text-xs">
                 {round.status === "finalized" ? "Finalized" : "Reporting"}
               </span>
-            </Link>
-          </li>
+            </RowListLink>
+          </RowListItem>
         ))}
         {showNext ? (
-          <li className={cn(RAIL_ROW_CLASS, "opacity-60")}>
+          <RowListItem className="opacity-60">
             <span
               className={cn("size-2 shrink-0 rounded-full", ROUND_DOT_CLASS.next)}
               aria-hidden="true"
@@ -461,14 +452,12 @@ function RoundsRail({
               Round {run.rounds.length + 1}
             </span>
             <span className="text-muted-foreground shrink-0 text-xs">Not generated</span>
-          </li>
+          </RowListItem>
         ) : null}
         {run.rounds.length === 0 && !showNext ? (
-          <li className={cn(RAIL_ROW_CLASS, "text-muted-foreground text-sm")}>
-            No rounds were run.
-          </li>
+          <RowListItem className="text-muted-foreground text-sm">No rounds were run.</RowListItem>
         ) : null}
-      </CardList>
+      </RowList>
     </section>
   );
 }
@@ -479,9 +468,9 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading>Staff</SectionHeading>
-      <CardList>
+      <RowList>
         {detail.staff.map((member) => (
-          <li key={`${member.userId}:${member.role}`} className={RAIL_ROW_CLASS}>
+          <RowListItem key={`${member.userId}:${member.role}`}>
             <UserAvatar name={member.name} size="sm" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">
               {member.name ?? "Unnamed"}
@@ -489,10 +478,10 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
             <span className="text-muted-foreground shrink-0 text-xs">
               {STAFF_ROLE_LABEL[member.role]}
             </span>
-          </li>
+          </RowListItem>
         ))}
         {hasJudges ? null : (
-          <li className={cn(RAIL_ROW_CLASS, "text-muted-foreground text-sm")}>
+          <RowListItem className="text-muted-foreground text-sm">
             <span className="min-w-0 flex-1">No judges yet.</span>
             <Link
               to="/tournaments/$id/staff"
@@ -501,9 +490,9 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
             >
               Add
             </Link>
-          </li>
+          </RowListItem>
         )}
-      </CardList>
+      </RowList>
     </section>
   );
 }
@@ -602,7 +591,7 @@ function OverviewTabBody({
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="flex min-w-0 flex-col gap-6">
-        {manage ? <JoinRequestsBand id={id} pending={pending} /> : null}
+        {manage ? <JoinRequestsSection id={id} pending={pending} /> : null}
         {runsRounds ? <RunStateModules id={id} detail={detail} slot="main" /> : null}
         <div className={cn("grid gap-4", (showDecks || myDeck) && "sm:grid-cols-2")}>
           <ParticipantsTile

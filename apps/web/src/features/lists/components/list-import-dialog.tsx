@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Code } from "@/components/ui/code";
 import {
   Dialog,
@@ -219,7 +220,7 @@ function PreviewStep({
         </div>
 
         {problematicEntries.length > 0 && (
-          <div className="divide-border divide-y rounded-md border">
+          <div className="divide-border divide-y rounded-lg border">
             {problematicEntries.map((item) => renderRow(item))}
           </div>
         )}
@@ -230,7 +231,7 @@ function PreviewStep({
           {exactEntries.map((item) => renderRow(item))}
         </ImportExactMatchesDisclosure>
 
-        <div className="bg-muted/30 flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+        <Callout variant="inset" className="flex flex-wrap items-center justify-between gap-3">
           <ImportStatusBadges
             readyCount={readyCount}
             toVerifyCount={toVerifyCount}
@@ -250,7 +251,7 @@ function PreviewStep({
               </>
             )}
           </Button>
-        </div>
+        </Callout>
       </div>
     </DialogForm>
   );

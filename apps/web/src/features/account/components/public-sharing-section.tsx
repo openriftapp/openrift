@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SharePanel } from "@/features/groups/components/share-panel";
 import {
@@ -27,57 +27,51 @@ export function PublicSharingSection() {
   const shareUrl = shareLinkUrl("bundle", { shareToken, isPublic: shareToken !== null });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Public sharing</CardTitle>
-        <CardDescription>
-          One link to all your wishlists and tradelists, current and future. Organize lists stay
-          private.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isPending ? (
-          <Skeleton className="h-10 w-full" />
-        ) : (
-          <SharePanel
-            noun="lists"
-            link={{
-              url: shareUrl,
-              label: "Bundle share link",
-              exposes: "see every wishlist and tradelist you have",
-              unfurls: true,
-              onCreate: () => enableShare.mutate(),
-              creating: enableShare.isPending,
-              onStop: () => disableShare.mutate(),
-              stopping: disableShare.isPending,
-            }}
-            image={
-              shareToken === null
-                ? undefined
-                : {
-                    title: "your shared lists",
-                    filenameBase: "openrift-lists",
-                    buildUrl: (choice) =>
-                      bundleShareImageUrl(
-                        getSiteUrl(),
-                        shareToken,
-                        imageVersion,
-                        shareImageOptions(choice),
-                      ),
-                    scales: [1, 2],
-                    qrNoun: "lists",
-                    qrAvailable: true,
-                  }
-            }
-            qrFilenameBase="openrift-lists"
-            print={{
-              defaultTitle: session?.user?.name ?? "My lists",
-              defaultSubtitle: "Scan to see my wish & tradelists",
-              filenameHint: "my-lists",
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <SettingsSection
+      title="Public sharing"
+      description="One link to all your wishlists and tradelists, current and future. Organize lists stay private."
+    >
+      {isPending ? (
+        <Skeleton className="h-10 w-full" />
+      ) : (
+        <SharePanel
+          noun="lists"
+          link={{
+            url: shareUrl,
+            label: "Bundle share link",
+            exposes: "see every wishlist and tradelist you have",
+            unfurls: true,
+            onCreate: () => enableShare.mutate(),
+            creating: enableShare.isPending,
+            onStop: () => disableShare.mutate(),
+            stopping: disableShare.isPending,
+          }}
+          image={
+            shareToken === null
+              ? undefined
+              : {
+                  title: "your shared lists",
+                  filenameBase: "openrift-lists",
+                  buildUrl: (choice) =>
+                    bundleShareImageUrl(
+                      getSiteUrl(),
+                      shareToken,
+                      imageVersion,
+                      shareImageOptions(choice),
+                    ),
+                  scales: [1, 2],
+                  qrNoun: "lists",
+                  qrAvailable: true,
+                }
+          }
+          qrFilenameBase="openrift-lists"
+          print={{
+            defaultTitle: session?.user?.name ?? "My lists",
+            defaultSubtitle: "Scan to see my wish & tradelists",
+            filenameHint: "my-lists",
+          }}
+        />
+      )}
+    </SettingsSection>
   );
 }

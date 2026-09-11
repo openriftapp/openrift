@@ -10,8 +10,9 @@ import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { CardList } from "@/components/ui/card-list";
 import { DateLeaf } from "@/components/ui/date-leaf";
+import { RowList } from "@/components/ui/row-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { isAdmin } from "@/features/groups/components/friend-group-shell";
 import { HOVER_ROW_CLASS } from "@/features/groups/components/hover-row";
@@ -136,16 +137,16 @@ export function ShopEventsContent({
               >
                 <DateLeaf month={leaf.month} day={leaf.day} size="sm" className="mt-1" />
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-muted-foreground/70 text-2xs font-medium tracking-wide uppercase">
+                  <SectionHeading as="h3" size="sm">
                     {day.label}
-                  </span>
-                  <CardList>
+                  </SectionHeading>
+                  <RowList>
                     {day.events.map((event) => (
                       <li key={event.externalId}>
                         <ShopEventRow event={event} showShop={selectedStoreId === null} />
                       </li>
                     ))}
-                  </CardList>
+                  </RowList>
                 </div>
               </li>
             );

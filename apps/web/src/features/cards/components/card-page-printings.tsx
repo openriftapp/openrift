@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { LanguageChip } from "@/components/language-chip";
 import { Card as CardPanel } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-icon";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
@@ -31,10 +32,10 @@ export function CardPagePrintings({
     <>
       {[...Map.groupBy(printings, (p) => p.language)].map(([lang, group]) => (
         <div key={lang}>
-          <h2 className="text-muted-foreground mb-2 flex items-center gap-2 text-xs font-medium">
+          <SectionHeading className="mb-2 flex items-center gap-2">
             <LanguageChip code={lang} />
             {languageLabels[lang] ?? lang}
-          </h2>
+          </SectionHeading>
           {/* grid-cols-1: an implicit column would size to the widest printing card and push the page past a phone viewport. */}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {group.map((printing) => (
@@ -121,7 +122,7 @@ function PrintingCard({
       onClick={onSelect}
       aria-pressed={isSelected}
       data-printing-id={printing.id}
-      className="block w-full rounded-xl"
+      className="block w-full rounded-lg"
     >
       <CardPanel
         className={cn(

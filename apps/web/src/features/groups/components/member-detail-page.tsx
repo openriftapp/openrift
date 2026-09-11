@@ -8,8 +8,7 @@ import { TopBarBreadcrumbBar } from "@/components/layout/top-bar-breadcrumb";
 import { PersonPageHeader } from "@/components/person-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CardList } from "@/components/ui/card-list";
+import { RowList } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import {
@@ -115,12 +114,12 @@ function MemberTradeSection({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading>Trades</SectionHeading>
-      <Card className="flex-row flex-wrap items-center justify-between gap-3 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0">{tradeSummary}</p>
         <Button render={<Link to="/trades/$userId" params={{ userId }} search={{ from: slug }} />}>
           Open trade sheet
         </Button>
-      </Card>
+      </div>
       {hasSharedAnything ? null : (
         <p className="text-muted-foreground">
           {memberName} hasn&apos;t shared any collections or lists with this group yet.
@@ -179,13 +178,13 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
           {hasCollections ? (
             <section className="flex flex-col gap-3">
               <SectionHeading>Collections</SectionHeading>
-              <CardList>
+              <RowList>
                 {sortedCollections.map((share) => (
                   <li key={share.collectionId}>
                     <SharedCollectionRow slug={slug} share={share} />
                   </li>
                 ))}
-              </CardList>
+              </RowList>
             </section>
           ) : null}
 

@@ -32,6 +32,7 @@ import {
   TopBarBreadcrumbSeparator,
   TopBarBreadcrumbTrail,
 } from "@/components/layout/top-bar-breadcrumb";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -254,8 +255,8 @@ export function EntryHeader({
         </div>
       </div>
       {entry.unlockRequestedAt && (entry.state === "approved" || entry.state === "submitted") ? (
-        <div className="border-warning/40 bg-warning-soft flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm">
-          <TriangleAlertIcon className="text-warning size-4 shrink-0" />
+        <Alert variant="warning" className="flex flex-wrap items-center gap-2">
+          <TriangleAlertIcon className="shrink-0" />
           <span className="min-w-0 flex-1">
             The player asked to unlock this {entry.state === "approved" ? "approved" : "submitted"}{" "}
             deck for changes.
@@ -271,7 +272,7 @@ export function EntryHeader({
           >
             Decline
           </Button>
-        </div>
+        </Alert>
       ) : null}
     </header>
   );

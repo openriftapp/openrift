@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { CloudOffIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Callout } from "@/components/ui/callout";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +33,9 @@ export function LocalDeckBadge({ className }: { className?: string }) {
   );
 }
 
-export function LocalDeckSaveNote() {
+export function LocalDeckSaveNote({ className }: { className?: string }) {
   return (
-    <p className="text-muted-foreground flex items-start gap-1.5 text-sm">
+    <p className={cn("text-muted-foreground flex items-start gap-1.5 text-sm", className)}>
       <CloudOffIcon className="mt-0.5 size-3.5 shrink-0" />
       <span>
         You&apos;re not signed in, so this deck is saved only on this device. <SignInLink /> to keep
@@ -46,14 +45,14 @@ export function LocalDeckSaveNote() {
   );
 }
 
-export function LocalDeckSaveBanner() {
+export function LocalDeckSaveBanner({ className }: { className?: string }) {
   return (
-    <Callout className="text-muted-foreground mb-3 flex items-start gap-2 px-3 py-2 text-sm">
-      <CloudOffIcon className="mt-0.5 size-4 shrink-0" />
+    <p className={cn("text-muted-foreground flex items-start gap-1.5 text-sm", className)}>
+      <CloudOffIcon className="mt-0.5 size-3.5 shrink-0" />
       <span>
         Your decks are saved only on this device. <SignInLink /> to keep them safe and use them on
         your other devices.
       </span>
-    </Callout>
+    </p>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CardList } from "@/components/ui/card-list";
 import {
   Dialog,
   DialogContent,
@@ -116,7 +117,7 @@ export function OrganizationPage({ id }: { id: string }) {
               </Button>
             ) : null}
           </div>
-          <ul className="divide-border divide-y rounded-lg border">
+          <CardList className="divide-border divide-y p-0">
             {data.members.map((member) => (
               <li
                 key={member.userId}
@@ -180,7 +181,7 @@ export function OrganizationPage({ id }: { id: string }) {
                 ) : null}
               </li>
             ))}
-          </ul>
+          </CardList>
         </section>
 
         {canManage ? (

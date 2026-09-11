@@ -7,6 +7,7 @@ import { LayoutDashboardIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
@@ -135,19 +136,15 @@ function PanelIdentityHeader({
     </>
   );
 
-  const frame = "bg-card relative w-full overflow-hidden rounded-lg border";
+  const frame = "relative w-full gap-0 overflow-hidden p-0";
 
   if (!onOverviewClick) {
-    return <div className={frame}>{body}</div>;
+    return <Card className={frame}>{body}</Card>;
   }
 
   return (
-    <Pressable
-      onClick={onOverviewClick}
-      aria-label="Deck overview"
-      className={cn(frame, "hover:bg-muted/50 transition-colors")}
-    >
-      {body}
+    <Pressable onClick={onOverviewClick} aria-label="Deck overview" className="block w-full">
+      <Card className={cn(frame, "hover:bg-muted/50 transition-colors")}>{body}</Card>
     </Pressable>
   );
 }

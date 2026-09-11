@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { RowList } from "@/components/ui/row-list";
 import { keywordAnchorSlug } from "@/features/rules/lib/glossary";
 import type { KeywordRow } from "@/features/rules/lib/glossary-content";
 import {
@@ -10,7 +11,12 @@ import {
 import { matches } from "@/features/rules/lib/glossary-search";
 import { getFilterIconPath } from "@/lib/icons";
 
-import { GlossarySectionHeading, RuleRef } from "./glossary-shared";
+import {
+  GlossarySectionHeading,
+  GlossaryTermRow,
+  GlossaryTermTile,
+  RuleRef,
+} from "./glossary-shared";
 
 export function DomainsSection({
   domains,
@@ -40,7 +46,7 @@ export function DomainsSection({
           const domainIcon = getFilterIconPath("domains", domain.slug);
           const ruleNumber = DOMAIN_RULES[slug];
           return (
-            <li key={domain.slug} className="flex items-center gap-3 rounded-md border p-3">
+            <GlossaryTermTile key={domain.slug} className="flex-row items-center gap-3">
               {hasIcon && domainIcon && (
                 <img
                   src={domainIcon}
@@ -68,7 +74,7 @@ export function DomainsSection({
                   />
                 )}
               </div>
-            </li>
+            </GlossaryTermTile>
           );
         })}
       </ul>
@@ -110,7 +116,7 @@ export function CardTypesSection({
               const typeIcon = getFilterIconPath("types", cardType.slug);
               const ruleNumber = CARD_TYPE_RULES[slug];
               return (
-                <li key={cardType.slug} className="flex items-center gap-3 rounded-md border p-3">
+                <GlossaryTermTile key={cardType.slug} className="flex-row items-center gap-3">
                   {hasIcon && typeIcon && (
                     <img
                       src={typeIcon}
@@ -124,7 +130,7 @@ export function CardTypesSection({
                     <span className="font-medium">{cardType.label}</span>
                     {ruleNumber && <RuleRef ruleNumber={ruleNumber} />}
                   </div>
-                </li>
+                </GlossaryTermTile>
               );
             })}
           </ul>
@@ -137,32 +143,33 @@ export function CardTypesSection({
             Supertypes apply on top of a card&apos;s type and are listed before it on the card face.
             They mostly affect deckbuilding.
           </p>
-          <ul className="mt-3 space-y-2">
+          <RowList className="mt-3">
             {visibleSupertypes.map((supertype) => {
               const supertypeIcon = getFilterIconPath("superTypes", supertype.slug);
               return (
-                <li
+                <GlossaryTermRow
                   key={supertype.slug}
-                  className="flex flex-col gap-1 rounded-md border p-3 sm:flex-row sm:items-baseline sm:gap-3"
+                  term={
+                    <>
+                      {supertypeIcon && (
+                        <img
+                          src={supertypeIcon}
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="size-5 shrink-0 brightness-0 dark:invert"
+                        />
+                      )}
+                      {supertype.label}
+                    </>
+                  }
                 >
-                  <span className="flex items-center gap-2 font-medium sm:w-32 sm:shrink-0">
-                    {supertypeIcon && (
-                      <img
-                        src={supertypeIcon}
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="size-5 shrink-0 brightness-0 dark:invert"
-                      />
-                    )}
-                    {supertype.label}
-                  </span>
                   <p className="text-muted-foreground flex-1">{supertype.description}</p>
                   <RuleRef ruleNumber={supertype.ruleNumber} className="shrink-0" />
-                </li>
+                </GlossaryTermRow>
               );
             })}
-          </ul>
+          </RowList>
         </>
       )}
     </section>
@@ -212,21 +219,17 @@ export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; q
       </p>
       <ul className="mt-4 grid gap-3 lg:grid-cols-2">
         {visible.map((kw) => (
-          <li
-            id={keywordAnchorSlug(kw.name)}
-            key={kw.name}
-            className="scroll-mt-20 rounded-md border p-3"
-          >
+          <GlossaryTermTile id={keywordAnchorSlug(kw.name)} key={kw.name} className="gap-2">
             <div className="flex items-center justify-between gap-3">
               <KeywordPill name={kw.name} color={kw.color} darkText={kw.darkText} />
               {kw.info?.ruleNumber && <RuleRef ruleNumber={kw.info.ruleNumber} />}
             </div>
             {kw.info?.summary ? (
-              <p className="text-muted-foreground mt-2">{kw.info.summary}</p>
+              <p className="text-muted-foreground">{kw.info.summary}</p>
             ) : (
-              <p className="text-muted-foreground mt-2 italic">No summary available yet.</p>
+              <p className="text-muted-foreground italic">No summary available yet.</p>
             )}
-          </li>
+          </GlossaryTermTile>
         ))}
       </ul>
     </section>
@@ -247,7 +250,7 @@ export function SymbolsSection({ query }: { query: string }) {
       </p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {visible.map((sym) => (
-          <li key={sym.key} className="flex items-start gap-3 rounded-md border p-3">
+          <GlossaryTermTile key={sym.key} className="flex-row items-start gap-3">
             {sym.icon ? (
               <img
                 src={sym.icon}
@@ -263,7 +266,7 @@ export function SymbolsSection({ query }: { query: string }) {
               <div className="font-medium">{sym.label}</div>
               <p className="text-muted-foreground">{sym.summary}</p>
             </div>
-          </li>
+          </GlossaryTermTile>
         ))}
       </ul>
     </section>

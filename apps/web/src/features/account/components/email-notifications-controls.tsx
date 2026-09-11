@@ -1,5 +1,6 @@
 import type { TradeRequestEmailCadence } from "@openrift/shared/types/api/preferences";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,14 +25,10 @@ export function EmailNotificationsControls() {
   const disabled = isLoading || isSaving;
 
   return (
-    <div className="mt-6 space-y-4 border-t pt-6">
-      <div>
-        <p className="font-medium">Email notifications</p>
-        <p className="text-muted-foreground">
-          Only about your trading activity. Every email has one-click unsubscribe.
-        </p>
-      </div>
-
+    <SettingsSection
+      title="Email notifications"
+      description="Only about your trading activity. Every email has one-click unsubscribe."
+    >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-0.5">
@@ -115,6 +112,6 @@ export function EmailNotificationsControls() {
           onCheckedChange={(checked: boolean) => setChannel("tradeMatches", checked)}
         />
       </div>
-    </div>
+    </SettingsSection>
   );
 }

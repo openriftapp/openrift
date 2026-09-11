@@ -4,9 +4,10 @@ import { Link } from "@tanstack/react-router";
 import { FolderIcon, HandshakeIcon, HeartIcon } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
@@ -39,29 +40,30 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
 
   if (data.items.length === 0) {
     return (
-      <Card id="lists" className="scroll-mt-28">
-        <CardHeader>
-          <CardTitle>Share your lists</CardTitle>
-          <CardDescription>
+      <SettingsSection
+        id="lists"
+        className="scroll-mt-28"
+        title="Share your lists"
+        description={
+          <>
             No lists yet.{" "}
             <Link to="/collections" className="text-primary hover:underline">
               Create a wishlist or tradelist
             </Link>{" "}
             to share it here.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </>
+        }
+      />
     );
   }
   return (
-    <Card id="lists" className="scroll-mt-28">
-      <CardHeader>
-        <CardTitle>Share your lists</CardTitle>
-        <CardDescription>
-          Visible to everyone in this group. Changes here don&apos;t affect other groups.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+    <SettingsSection
+      id="lists"
+      className="scroll-mt-28"
+      title="Share your lists"
+      description="Visible to everyone in this group. Changes here don't affect other groups."
+    >
+      <RowList>
         {data.items.map((row) => (
           <ShareableListRow
             key={row.listId}
@@ -71,8 +73,8 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
             unshare={unshare}
           />
         ))}
-      </CardContent>
-    </Card>
+      </RowList>
+    </SettingsSection>
   );
 }
 
@@ -93,7 +95,7 @@ function ShareableListRow({
   const kindNoun =
     row.entryCount === 1 ? KIND_NOUN[row.listKind].singular : KIND_NOUN[row.listKind].plural;
   return (
-    <div className="flex items-center justify-between gap-3">
+    <RowListItem className="justify-between">
       <div className="flex items-center gap-3">
         <Checkbox
           checked={isShared}
@@ -125,6 +127,6 @@ function ShareableListRow({
           Informational only, doesn&apos;t appear in matches
         </Badge>
       ) : null}
-    </div>
+    </RowListItem>
   );
 }

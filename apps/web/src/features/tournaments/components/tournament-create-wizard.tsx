@@ -7,12 +7,12 @@ import { useState } from "react";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { SettingsGroup } from "@/components/layout/settings-group";
+import { SettingsSection } from "@/components/layout/settings-section";
 import {
   TopBarBreadcrumbSeparator,
   TopBarBreadcrumbTrail,
 } from "@/components/layout/top-bar-breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,301 +214,183 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         <SettingsGroup id="general" title="General">
-          <Card>
-            <CardHeader>
-              <CardTitle>Name</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                id="t-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={120}
-                className="max-w-sm"
-                aria-label="Tournament name"
-                placeholder="Summoner Skirmish"
-              />
-            </CardContent>
-          </Card>
+          <SettingsSection title="Name">
+            <Input
+              id="t-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={120}
+              className="max-w-sm"
+              aria-label="Tournament name"
+              placeholder="Summoner Skirmish"
+            />
+          </SettingsSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Host</CardTitle>
-              <CardDescription>
-                An organization host brings in its owners, managers, and judges. A linked
-                group&apos;s members can find the tournament and be added as staff without an email
-                invite.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label>Host</Label>
-                <Select
-                  items={hostItems}
-                  value={hostValue}
-                  onValueChange={(value) => value && setHostValue(value)}
-                >
-                  <SelectTrigger className="w-full" aria-label="Host">
-                    <SelectValue placeholder="Choose a host" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hostItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Group (optional)</Label>
-                <Select
-                  items={groupItems}
-                  value={groupId}
-                  onValueChange={(value) => value && setGroupId(value)}
-                >
-                  <SelectTrigger className="w-full" aria-label="Group">
-                    <SelectValue placeholder="Not linked to a group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {groupItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsSection
+            title="Host"
+            description="An organization host brings in its owners, managers, and judges. A linked group's members can find the tournament and be added as staff without an email invite."
+            contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label>Host</Label>
+              <Select
+                items={hostItems}
+                value={hostValue}
+                onValueChange={(value) => value && setHostValue(value)}
+              >
+                <SelectTrigger className="w-full" aria-label="Host">
+                  <SelectValue placeholder="Choose a host" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hostItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Group (optional)</Label>
+              <Select
+                items={groupItems}
+                value={groupId}
+                onValueChange={(value) => value && setGroupId(value)}
+              >
+                <SelectTrigger className="w-full" aria-label="Group">
+                  <SelectValue placeholder="Not linked to a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groupItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </SettingsSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Schedule</CardTitle>
-              <CardDescription>
+          <SettingsSection
+            title="Schedule"
+            description={
+              <>
                 Times are in {tzLabel}. Without an end, the tournament auto-completes 24 hours after
                 it starts.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label>Starts</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <DatePicker
-                    value={startDate}
-                    onChange={setStartDate}
-                    onClear={() => setStartDate("")}
-                    className="w-44"
-                  />
-                  <Input
-                    value={startTime}
-                    onChange={(event) => setStartTime(event.target.value)}
-                    placeholder="HH:mm"
-                    aria-label="Start time (24h)"
-                    className="w-24 tabular-nums"
-                  />
-                </div>
-                {startInvalid ? (
-                  <span className="text-destructive text-sm">
-                    Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
-                  </span>
-                ) : null}
+              </>
+            }
+            contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label>Starts</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  onClear={() => setStartDate("")}
+                  className="w-44"
+                />
+                <Input
+                  value={startTime}
+                  onChange={(event) => setStartTime(event.target.value)}
+                  placeholder="HH:mm"
+                  aria-label="Start time (24h)"
+                  className="w-24 tabular-nums"
+                />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Ends (optional)</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <DatePicker
-                    value={endDate}
-                    onChange={setEndDate}
-                    onClear={() => setEndDate("")}
-                    className="w-44"
-                  />
-                  <Input
-                    value={endTime}
-                    onChange={(event) => setEndTime(event.target.value)}
-                    placeholder="HH:mm"
-                    aria-label="End time (24h)"
-                    className="w-24 tabular-nums"
-                  />
-                </div>
-                {endIncomplete ? (
-                  <span className="text-destructive text-sm">
-                    Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
-                  </span>
-                ) : endBeforeStart ? (
-                  <span className="text-destructive text-sm">
-                    The end must be at or after the start.
-                  </span>
-                ) : null}
+              {startInvalid ? (
+                <span className="text-destructive text-sm">
+                  Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
+                </span>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Ends (optional)</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <DatePicker
+                  value={endDate}
+                  onChange={setEndDate}
+                  onClear={() => setEndDate("")}
+                  className="w-44"
+                />
+                <Input
+                  value={endTime}
+                  onChange={(event) => setEndTime(event.target.value)}
+                  placeholder="HH:mm"
+                  aria-label="End time (24h)"
+                  className="w-24 tabular-nums"
+                />
               </div>
-            </CardContent>
-          </Card>
+              {endIncomplete ? (
+                <span className="text-destructive text-sm">
+                  Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
+                </span>
+              ) : endBeforeStart ? (
+                <span className="text-destructive text-sm">
+                  The end must be at or after the start.
+                </span>
+              ) : null}
+            </div>
+          </SettingsSection>
         </SettingsGroup>
 
         <SettingsGroup id="pairings-decks" title="Pairings & decks">
-          <Card>
-            <CardHeader>
-              <CardTitle>Format</CardTitle>
-              <CardDescription>
-                1v1 and 2v2 have different ban lists, and deck check uses the matching one.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label>Play mode</Label>
-                <Select
-                  items={playModeItems}
-                  value={playMode}
-                  onValueChange={(value) =>
-                    value && handlePlayModeChange(value as TournamentPlayMode)
-                  }
-                >
-                  <SelectTrigger className="w-full" aria-label="Play mode">
-                    <SelectValue placeholder="Play mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {playModeItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsSection
+            title="Format"
+            description="1v1 and 2v2 have different ban lists, and deck check uses the matching one."
+            contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label>Play mode</Label>
+              <Select
+                items={playModeItems}
+                value={playMode}
+                onValueChange={(value) =>
+                  value && handlePlayModeChange(value as TournamentPlayMode)
+                }
+              >
+                <SelectTrigger className="w-full" aria-label="Play mode">
+                  <SelectValue placeholder="Play mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  {playModeItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </SettingsSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pairings</CardTitle>
-              <CardDescription>Points can be changed later, standings recalculate.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="t-pairings"
-                  checked={pairingsEnabled}
-                  onCheckedChange={setPairingsEnabled}
-                />
-                <Label htmlFor="t-pairings">Enable pairings</Label>
-              </div>
-              {runsRounds ? (
-                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Rounds</Label>
-                    <Select
-                      items={roundsItems}
-                      value={roundsChoice}
-                      onValueChange={(value) =>
-                        value && handleRoundsChoiceChange(value as TournamentRoundsChoice)
-                      }
-                    >
-                      <SelectTrigger className="w-full" aria-label="Rounds">
-                        <SelectValue placeholder="Rounds" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roundsItems.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Points</Label>
-                    <div className="flex h-8 flex-wrap items-center gap-x-4 gap-y-3">
-                      {isSwiss ? (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <Label
-                              htmlFor="t-win-points"
-                              className="text-muted-foreground font-normal"
-                            >
-                              Win
-                            </Label>
-                            <Input
-                              id="t-win-points"
-                              value={winPointsText}
-                              onChange={(event) => setWinPointsText(event.target.value)}
-                              inputMode="numeric"
-                              className="w-16 tabular-nums"
-                              aria-label="Points for a match win"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label
-                              htmlFor="t-draw-points"
-                              className="text-muted-foreground font-normal"
-                            >
-                              Draw
-                            </Label>
-                            <Input
-                              id="t-draw-points"
-                              value={drawPointsText}
-                              onChange={(event) => setDrawPointsText(event.target.value)}
-                              inputMode="numeric"
-                              className="w-16 tabular-nums"
-                              aria-label="Points for a draw"
-                            />
-                          </div>
-                        </>
-                      ) : null}
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="t-bye-points" className="text-muted-foreground font-normal">
-                          Bye
-                        </Label>
-                        <Input
-                          id="t-bye-points"
-                          value={byePointsText}
-                          onChange={(event) => setByePointsText(event.target.value)}
-                          inputMode="numeric"
-                          className="w-16 tabular-nums"
-                          aria-label="Points for a bye"
-                        />
-                      </div>
-                    </div>
-                    {pointsInvalid ? (
-                      <span className="text-destructive text-sm">
-                        Points must be whole numbers between 0 and 99.
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-              {isGroupCut ? (
-                <GroupCutSettingsFields
-                  idPrefix="t-new"
-                  value={groupCut}
-                  onChange={(patch) => setGroupCut((current) => ({ ...current, ...patch }))}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Decks</CardTitle>
-              <CardDescription>
-                Judges can verify collected decklists on the Deck check tab.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+          <SettingsSection
+            title="Pairings"
+            description="Points can be changed later, standings recalculate."
+          >
+            <div className="flex items-center gap-3">
+              <Switch
+                id="t-pairings"
+                checked={pairingsEnabled}
+                onCheckedChange={setPairingsEnabled}
+              />
+              <Label htmlFor="t-pairings">Enable pairings</Label>
+            </div>
+            {runsRounds ? (
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Deck submission</Label>
+                  <Label>Rounds</Label>
                   <Select
-                    items={DECK_SUBMISSION_ITEMS}
-                    value={deckSubmission}
+                    items={roundsItems}
+                    value={roundsChoice}
                     onValueChange={(value) =>
-                      value && setDeckSubmission(value as TournamentDeckSubmission)
+                      value && handleRoundsChoiceChange(value as TournamentRoundsChoice)
                     }
                   >
-                    <SelectTrigger className="w-full" aria-label="Deck submission">
-                      <SelectValue placeholder="Deck submission" />
+                    <SelectTrigger className="w-full" aria-label="Rounds">
+                      <SelectValue placeholder="Rounds" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DECK_SUBMISSION_ITEMS.map((item) => (
+                      {roundsItems.map((item) => (
                         <SelectItem key={item.value} value={item.value}>
                           {item.label}
                         </SelectItem>
@@ -516,100 +398,184 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                     </SelectContent>
                   </Select>
                 </div>
-                {wantsDeck ? (
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Submission deadline (optional)</Label>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DatePicker
-                        value={closeDate}
-                        onChange={setCloseDate}
-                        onClear={() => setCloseDate("")}
-                        className="w-44"
-                      />
-                      <Input
-                        value={closeTime}
-                        onChange={(event) => setCloseTime(event.target.value)}
-                        placeholder="HH:mm"
-                        aria-label="Deadline time (24h)"
-                        className="w-24 tabular-nums"
-                      />
-                      <span className="text-muted-foreground text-sm">{tzLabel}</span>
-                    </div>
-                    {closeTimeInvalid ? (
-                      <span className="text-destructive text-sm">
-                        Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
-                      </span>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Points</Label>
+                  <div className="flex h-8 flex-wrap items-center gap-x-4 gap-y-3">
+                    {isSwiss ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor="t-win-points"
+                            className="text-muted-foreground font-normal"
+                          >
+                            Win
+                          </Label>
+                          <Input
+                            id="t-win-points"
+                            value={winPointsText}
+                            onChange={(event) => setWinPointsText(event.target.value)}
+                            inputMode="numeric"
+                            className="w-16 tabular-nums"
+                            aria-label="Points for a match win"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label
+                            htmlFor="t-draw-points"
+                            className="text-muted-foreground font-normal"
+                          >
+                            Draw
+                          </Label>
+                          <Input
+                            id="t-draw-points"
+                            value={drawPointsText}
+                            onChange={(event) => setDrawPointsText(event.target.value)}
+                            inputMode="numeric"
+                            className="w-16 tabular-nums"
+                            aria-label="Points for a draw"
+                          />
+                        </div>
+                      </>
                     ) : null}
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="t-bye-points" className="text-muted-foreground font-normal">
+                        Bye
+                      </Label>
+                      <Input
+                        id="t-bye-points"
+                        value={byePointsText}
+                        onChange={(event) => setByePointsText(event.target.value)}
+                        inputMode="numeric"
+                        className="w-16 tabular-nums"
+                        aria-label="Points for a bye"
+                      />
+                    </div>
                   </div>
-                ) : null}
+                  {pointsInvalid ? (
+                    <span className="text-destructive text-sm">
+                      Points must be whole numbers between 0 and 99.
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {isGroupCut ? (
+              <GroupCutSettingsFields
+                idPrefix="t-new"
+                value={groupCut}
+                onChange={(patch) => setGroupCut((current) => ({ ...current, ...patch }))}
+              />
+            ) : null}
+          </SettingsSection>
+
+          <SettingsSection
+            title="Decks"
+            description="Judges can verify collected decklists on the Deck check tab."
+          >
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Deck submission</Label>
+                <Select
+                  items={DECK_SUBMISSION_ITEMS}
+                  value={deckSubmission}
+                  onValueChange={(value) =>
+                    value && setDeckSubmission(value as TournamentDeckSubmission)
+                  }
+                >
+                  <SelectTrigger className="w-full" aria-label="Deck submission">
+                    <SelectValue placeholder="Deck submission" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DECK_SUBMISSION_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {wantsDeck ? (
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      id="t-allow-edits"
-                      checked={lockMode === "at_deadline"}
-                      onCheckedChange={(checked) =>
-                        setLockMode(checked ? "at_deadline" : "on_submit")
-                      }
+                  <Label>Submission deadline (optional)</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DatePicker
+                      value={closeDate}
+                      onChange={setCloseDate}
+                      onClear={() => setCloseDate("")}
+                      className="w-44"
                     />
-                    <Label htmlFor="t-allow-edits">
-                      Let players edit their decks after submitting
-                    </Label>
+                    <Input
+                      value={closeTime}
+                      onChange={(event) => setCloseTime(event.target.value)}
+                      placeholder="HH:mm"
+                      aria-label="Deadline time (24h)"
+                      className="w-24 tabular-nums"
+                    />
+                    <span className="text-muted-foreground text-sm">{tzLabel}</span>
                   </div>
-                  <span className="text-muted-foreground text-sm">
-                    When off, a submitted deck is final and only a judge can unlock it, as
-                    Riot&apos;s official rules require.
-                  </span>
+                  {closeTimeInvalid ? (
+                    <span className="text-destructive text-sm">
+                      Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+            {wantsDeck ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="t-allow-edits"
+                    checked={lockMode === "at_deadline"}
+                    onCheckedChange={(checked) =>
+                      setLockMode(checked ? "at_deadline" : "on_submit")
+                    }
+                  />
+                  <Label htmlFor="t-allow-edits">
+                    Let players edit their decks after submitting
+                  </Label>
+                </div>
+                <span className="text-muted-foreground text-sm">
+                  When off, a submitted deck is final and only a judge can unlock it, as Riot&apos;s
+                  official rules require.
+                </span>
+              </div>
+            ) : null}
+          </SettingsSection>
         </SettingsGroup>
 
         {runsRounds && !isTeams && !isGroupCut ? (
           <SettingsGroup id="custom" title="Custom" collapsible defaultCollapsed>
-            <Card>
-              <CardHeader>
-                <CardTitle>Regions</CardTitle>
-                <CardDescription>
-                  Pairings avoid same-region matchups, and standings add a per-region leaderboard.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="t-regions"
-                    checked={regionsEnabled}
-                    onCheckedChange={setRegionsEnabled}
-                  />
-                  <Label htmlFor="t-regions">Track player regions</Label>
-                </div>
-              </CardContent>
-            </Card>
+            <SettingsSection
+              title="Regions"
+              description="Pairings avoid same-region matchups, and standings add a per-region leaderboard."
+            >
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="t-regions"
+                  checked={regionsEnabled}
+                  onCheckedChange={setRegionsEnabled}
+                />
+                <Label htmlFor="t-regions">Track player regions</Label>
+              </div>
+            </SettingsSection>
           </SettingsGroup>
         ) : null}
 
         <SettingsGroup id="registration" title="Registration">
-          <Card>
-            <CardHeader>
-              <CardTitle>Self-registration</CardTitle>
-              <CardDescription>
-                Players request a spot through a shareable link that you get after creating the
-                tournament.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="t-self-reg"
-                  checked={selfRegistration}
-                  onCheckedChange={setSelfRegistration}
-                />
-                <Label htmlFor="t-self-reg">Open self-registration</Label>
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsSection
+            title="Self-registration"
+            description="Players request a spot through a shareable link that you get after creating the tournament."
+          >
+            <div className="flex items-center gap-3">
+              <Switch
+                id="t-self-reg"
+                checked={selfRegistration}
+                onCheckedChange={setSelfRegistration}
+              />
+              <Label htmlFor="t-self-reg">Open self-registration</Label>
+            </div>
+          </SettingsSection>
         </SettingsGroup>
 
         <div className="flex items-center gap-2">

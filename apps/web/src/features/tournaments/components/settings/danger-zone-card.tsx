@@ -40,7 +40,7 @@ export function DangerZoneCard({ detail }: { detail: TournamentDetailResponse })
 
   return (
     <>
-      <Card className="border-destructive/50">
+      <Card className="ring-destructive/50">
         <CardHeader>
           <CardTitle>Danger zone</CardTitle>
           <CardDescription>

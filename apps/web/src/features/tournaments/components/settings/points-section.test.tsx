@@ -11,7 +11,7 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-const { PointsCard } = await import("./points-card");
+const { PointsSection } = await import("./points-section");
 
 function makeDetail(overrides: Partial<TournamentDetailResponse> = {}): TournamentDetailResponse {
   return {
@@ -30,9 +30,9 @@ beforeEach(() => {
   updateMutateAsync.mockResolvedValue(undefined);
 });
 
-describe("PointsCard fields", () => {
+describe("PointsSection fields", () => {
   it("offers win and draw alongside bye for Swiss", () => {
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     expect(screen.getByLabelText("Points for a match win")).toBeInTheDocument();
     expect(screen.getByLabelText("Points for a draw")).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe("PointsCard fields", () => {
   });
 
   it("offers only bye for a pod event", () => {
-    render(<PointsCard detail={makeDetail({ pairingStyle: "pod" })} locked={false} />);
+    render(<PointsSection detail={makeDetail({ pairingStyle: "pod" })} locked={false} />);
 
     expect(screen.getByLabelText("Points for a bye")).toBeInTheDocument();
     expect(screen.queryByLabelText("Points for a match win")).not.toBeInTheDocument();
@@ -48,10 +48,10 @@ describe("PointsCard fields", () => {
   });
 });
 
-describe("PointsCard validation", () => {
+describe("PointsSection validation", () => {
   it("keeps Save disabled until something actually changes", async () => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
 
@@ -68,7 +68,7 @@ describe("PointsCard validation", () => {
     ["empty", ""],
   ])("rejects %s", async (_label, value) => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     await user.clear(screen.getByLabelText("Points for a bye"));
     if (value !== "") {
@@ -81,7 +81,7 @@ describe("PointsCard validation", () => {
 
   it("accepts 0 and 99 at the boundaries", async () => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     await user.clear(screen.getByLabelText("Points for a bye"));
     await user.type(screen.getByLabelText("Points for a bye"), "0");
@@ -94,7 +94,7 @@ describe("PointsCard validation", () => {
 
   it("blocks the save when a Swiss-only field is invalid", async () => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     await user.clear(screen.getByLabelText("Points for a match win"));
 
@@ -104,7 +104,7 @@ describe("PointsCard validation", () => {
 
   it("ignores a blank win field for a pod event", async () => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail({ pairingStyle: "pod" })} locked={false} />);
+    render(<PointsSection detail={makeDetail({ pairingStyle: "pod" })} locked={false} />);
 
     await user.clear(screen.getByLabelText("Points for a bye"));
     await user.type(screen.getByLabelText("Points for a bye"), "1");
@@ -120,7 +120,7 @@ describe("PointsCard validation", () => {
 
   it("sends win and draw for a Swiss event", async () => {
     const user = userEvent.setup();
-    render(<PointsCard detail={makeDetail()} locked={false} />);
+    render(<PointsSection detail={makeDetail()} locked={false} />);
 
     await user.clear(screen.getByLabelText("Points for a match win"));
     await user.type(screen.getByLabelText("Points for a match win"), "4");
@@ -135,9 +135,9 @@ describe("PointsCard validation", () => {
   });
 });
 
-describe("PointsCard locked state", () => {
+describe("PointsSection locked state", () => {
   it("disables every control on a cancelled tournament", () => {
-    render(<PointsCard detail={makeDetail()} locked />);
+    render(<PointsSection detail={makeDetail()} locked />);
 
     expect(screen.getByLabelText("Points for a match win")).toBeDisabled();
     expect(screen.getByLabelText("Points for a bye")).toBeDisabled();

@@ -1,11 +1,8 @@
-import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
-import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
 
 export function CollectionMissingImagesCallout() {
@@ -26,23 +23,15 @@ export function CollectionMissingImagesCallout() {
     : `${count} cards you own have no photo yet`;
 
   return (
-    <Alert variant="info" className="mb-3 flex items-start gap-3">
-      <div aria-hidden="true" className="w-16 shrink-0 sm:w-20">
-        <CardPlaceholderImage name="" domain={[WellKnown.domain.COLORLESS]} energy={null} />
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="flex flex-col items-start gap-2">
-          <span>
-            You have {single ? "it" : "them"} in hand, so you&rsquo;re the one who can fix that. A
-            phone photo is enough, we handle the rest.
-          </span>
-          <Button size="sm" render={<Link to="/contribute" />}>
-            {single ? "Add a photo" : "Add photos"}
-          </Button>
-        </AlertDescription>
-      </div>
-      <AlertAction>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <p className="text-muted-foreground text-sm">
+        <span className="text-foreground font-medium">{title}</span> You have{" "}
+        {single ? "it" : "them"} in hand, so you&rsquo;re the one who can fix that.
+      </p>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button size="sm" variant="ghost" render={<Link to="/contribute" />}>
+          {single ? "Add a photo" : "Add photos"}
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -54,7 +43,7 @@ export function CollectionMissingImagesCallout() {
         >
           <XIcon className="size-4" />
         </Button>
-      </AlertAction>
-    </Alert>
+      </div>
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -101,8 +102,9 @@ export function ShareImagePanel({
     <div className="flex flex-col gap-4">
       {note}
       {showPreview ? (
-        <div
-          className="bg-muted/30 ring-border relative mx-auto w-full max-w-sm overflow-hidden rounded-md ring-1"
+        <Callout
+          variant="inset"
+          className="mx-auto w-full max-w-sm overflow-hidden p-0"
           style={{ aspectRatio: `${canvas.width} / ${canvas.height}` }}
         >
           <img
@@ -118,7 +120,7 @@ export function ShareImagePanel({
               <Loader2Icon className="text-muted-foreground size-5 animate-spin" />
             </div>
           )}
-        </div>
+        </Callout>
       ) : null}
 
       {aspects.length > 1 ? (

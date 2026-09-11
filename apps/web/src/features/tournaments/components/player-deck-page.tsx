@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
 import {
   Dialog,
   DialogContent,
@@ -104,10 +105,10 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         </Banner>
       ) : null}
       {entry.playerMessage ? (
-        <div className="bg-muted/50 rounded-md border p-3 text-sm">
+        <Callout className="text-sm">
           <p className="text-muted-foreground mb-1 font-medium">Message from the judges</p>
           <p className="whitespace-pre-wrap">{entry.playerMessage}</p>
-        </div>
+        </Callout>
       ) : null}
       {entry.state === "editable" && entry.windowOpen ? (
         <Banner>

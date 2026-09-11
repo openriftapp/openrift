@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { accentGlow } from "@/components/ui/podium";
+import { RowList } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
@@ -139,8 +140,8 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
     opponent === undefined ? null : formatRecord(opponent.wins, opponent.losses, opponent.draws);
 
   return (
-    <li className="not-last:border-b" style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}>
-      <div className={cn(grid, "hidden px-4 py-2.5 sm:grid")}>
+    <li style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}>
+      <div className={cn(grid, "hidden px-2 py-2.5 sm:grid")}>
         <span className="font-heading text-sm font-semibold tabular-nums">{label}</span>
         <span className="text-muted-foreground text-xs tabular-nums">
           {round.tableNumber === null ? "" : `Table ${round.tableNumber}`}
@@ -174,7 +175,7 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
         </span>
       </div>
 
-      <div className="flex items-center gap-2.5 px-3 py-2 text-sm sm:hidden">
+      <div className="flex items-center gap-2.5 px-2 py-2 text-sm sm:hidden">
         <span className="font-heading w-10 shrink-0 font-semibold tabular-nums">{shortLabel}</span>
         {isBye ? (
           <span className="text-muted-foreground min-w-0 flex-1">No opponent this round</span>
@@ -253,8 +254,8 @@ function RunSection({
         <p className="text-muted-foreground text-sm">{sectionSubtitle(rounds, bestOf)}</p>
       </div>
 
-      <Card className="gap-0 py-0">
-        <div className={cn(grid, "hidden h-10 border-b px-4 text-sm font-medium sm:grid")}>
+      <div className="text-sm">
+        <div className={cn(grid, "hidden h-10 border-b px-2 font-medium sm:grid")}>
           <span>Round</span>
           <span />
           <span>Opponent</span>
@@ -262,7 +263,7 @@ function RunSection({
           <span>Result</span>
           <span className="text-right">List</span>
         </div>
-        <ul className="flex flex-col">
+        <RowList className="flex flex-col">
           {rounds.map((round) => {
             const label =
               lastCutRound === null
@@ -280,8 +281,8 @@ function RunSection({
               />
             );
           })}
-        </ul>
-      </Card>
+        </RowList>
+      </div>
     </section>
   );
 }

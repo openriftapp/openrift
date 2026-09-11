@@ -3,6 +3,7 @@ import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -214,7 +215,7 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
   const totalCopies = preview.cards.reduce((sum, card) => sum + card.quantity, 0);
   const unmatched = preview.cards.filter((card) => card.matchStatus !== "matched");
   return (
-    <div className="bg-muted/50 flex flex-col gap-2 rounded-md border p-3 text-sm">
+    <Callout className="flex flex-col gap-2 text-sm">
       <p>
         {totalCopies} cards across {preview.cards.length} lines.
       </p>
@@ -241,6 +242,6 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
       <p className="text-muted-foreground">
         These findings are advisory. You can still submit and a judge decides.
       </p>
-    </div>
+    </Callout>
   );
 }

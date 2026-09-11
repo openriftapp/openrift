@@ -3,7 +3,9 @@ import { capitalize } from "@openrift/shared/utils";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { Label } from "@/components/ui/label";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
@@ -30,13 +32,13 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
 
   if (availableSlugs.length === 0) {
     return (
-      <section className="border-warning/40 bg-warning-soft rounded-md border p-4">
-        <Heading level={2}>No {config.nounPlural} available</Heading>
-        <p className="text-muted-foreground text-sm">
+      <Alert variant="warning">
+        <AlertTitle>No {config.nounPlural} available</AlertTitle>
+        <AlertDescription>
           An admin needs to create at least one custom tag in the <code>{config.category}</code>{" "}
           category before this format can be built.
-        </p>
-      </section>
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -52,7 +54,7 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
   };
 
   return (
-    <section className="space-y-4 rounded-md border p-6">
+    <Callout className="space-y-4">
       <div>
         <Heading level={2}>Pick one or more {config.nounPlural}</Heading>
         <p className="text-muted-foreground text-sm">
@@ -75,7 +77,7 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
           ? "Saving…"
           : `Start building${selected.length > 1 ? ` (${selected.length} ${config.nounPlural})` : ""}`}
       </Button>
-    </section>
+    </Callout>
   );
 }
 

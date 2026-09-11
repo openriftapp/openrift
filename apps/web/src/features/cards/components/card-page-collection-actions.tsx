@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Card as CardPanel } from "@/components/ui/card";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail/owned-collections-popover";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
@@ -90,51 +90,53 @@ export function CardPageCollectionActions({
 
   return (
     <>
-      <CardPanel className="flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <PackageIcon className="text-primary size-5 shrink-0" aria-hidden="true" />
-          <p className="text-muted-foreground text-sm">{ownedSummary(ownedCount, cardTotal)}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
-          <WishlistButton
-            entries={wish.entriesForPrinting(printing.cardId, printing.id)}
-            cardName={cardName}
-            onAdd={() => setWishTarget(printing)}
-            align="end"
-          />
-          <div className="w-28">
-            <CardCountStrip
-              count={ownedCount}
-              totalCount={cardTotal}
-              pillOverride={
-                ownedCount > 0 ? (
-                  <OwnedCollectionsPopover
-                    printingId={printing.id}
-                    cardName={cardName}
-                    shortCode={printing.shortCode}
-                    count={ownedCount}
-                    totalCount={cardTotal}
-                    siblings={siblings.length > 1 ? siblings : undefined}
-                  />
-                ) : undefined
-              }
-              decrement={
-                ownedCount > 0
-                  ? {
-                      onClick: (event) => removeCopy(event.currentTarget),
-                      ariaLabel: `Remove ${cardName}`,
-                    }
-                  : undefined
-              }
-              increment={{
-                onClick: addCopy,
-                disabled: !handleQuickAdd,
-                ariaLabel: inbox ? `Add ${cardName} to ${inbox.name}` : `Add ${cardName}`,
-              }}
+      <section className="flex flex-col gap-2">
+        <SectionHeading icon={PackageIcon}>Your copies</SectionHeading>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <p className="text-muted-foreground min-w-0 flex-1 text-sm">
+            {ownedSummary(ownedCount, cardTotal)}
+          </p>
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+            <WishlistButton
+              entries={wish.entriesForPrinting(printing.cardId, printing.id)}
+              cardName={cardName}
+              onAdd={() => setWishTarget(printing)}
+              align="end"
             />
+            <div className="w-28">
+              <CardCountStrip
+                count={ownedCount}
+                totalCount={cardTotal}
+                pillOverride={
+                  ownedCount > 0 ? (
+                    <OwnedCollectionsPopover
+                      printingId={printing.id}
+                      cardName={cardName}
+                      shortCode={printing.shortCode}
+                      count={ownedCount}
+                      totalCount={cardTotal}
+                      siblings={siblings.length > 1 ? siblings : undefined}
+                    />
+                  ) : undefined
+                }
+                decrement={
+                  ownedCount > 0
+                    ? {
+                        onClick: (event) => removeCopy(event.currentTarget),
+                        ariaLabel: `Remove ${cardName}`,
+                      }
+                    : undefined
+                }
+                increment={{
+                  onClick: addCopy,
+                  disabled: !handleQuickAdd,
+                  ariaLabel: inbox ? `Add ${cardName} to ${inbox.name}` : `Add ${cardName}`,
+                }}
+              />
+            </div>
           </div>
         </div>
-      </CardPanel>
+      </section>
       <VariantLocationsPopoverHost
         catalogPrintingsByCardId={printingsByCardId}
         languageScopedPrintingsByCardId={printingsByCardId}

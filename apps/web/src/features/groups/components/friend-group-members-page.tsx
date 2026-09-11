@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { CountPill } from "@/components/ui/count-pill";
 import {
   DropdownMenu,
@@ -32,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Pressable } from "@/components/ui/pressable";
+import { RowList } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -191,22 +191,20 @@ export function MembersPageContent({
       {rows.length === 0 ? (
         <p className="text-muted-foreground">No members match your search.</p>
       ) : (
-        <Card className="gap-0 py-0">
-          <ul className="divide-border divide-y">
-            {rows.map((member) => (
-              <MemberRow
-                key={member.userId}
-                slug={slug}
-                groupName={data.group.name}
-                member={member}
-                viewerId={viewerId}
-                viewerRole={viewerRole}
-                volume={volumes.get(member.userId) ?? emptyVolume()}
-                cardsTraded={data.cardsTradedByMember[member.userId] ?? 0}
-              />
-            ))}
-          </ul>
-        </Card>
+        <RowList>
+          {rows.map((member) => (
+            <MemberRow
+              key={member.userId}
+              slug={slug}
+              groupName={data.group.name}
+              member={member}
+              viewerId={viewerId}
+              viewerRole={viewerRole}
+              volume={volumes.get(member.userId) ?? emptyVolume()}
+              cardsTraded={data.cardsTradedByMember[member.userId] ?? 0}
+            />
+          ))}
+        </RowList>
       )}
     </div>
   );
@@ -337,7 +335,7 @@ function MemberRow({
   return (
     // The identity link stretches over the row via the ::before overlay (the
     // shared-list-row pattern); secondary controls sit above it via `relative`.
-    <li className="hover:bg-muted/50 relative flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 transition-colors">
+    <li className="hover:bg-muted/50 relative flex flex-wrap items-center gap-x-3 gap-y-2 px-2 py-2.5 transition-colors">
       <Link
         to="/groups/$slug/members/$userId"
         params={{ slug, userId: member.userId }}

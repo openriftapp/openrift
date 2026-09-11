@@ -94,24 +94,12 @@ function ProfilePage() {
         </SettingsGroup>
 
         <SettingsGroup id="preferences" title="Preferences">
-          <div id="display" className="scroll-mt-16">
-            <DisplaySection />
-          </div>
-          <div id="marketplaces" className="scroll-mt-16">
-            <MarketplacesSection />
-          </div>
-          <div id="languages" className="scroll-mt-16">
-            <LanguagesSection availableLanguages={languages} />
-          </div>
-          <div id="trading" className="scroll-mt-16">
-            <TradingSection />
-          </div>
-          <div id="contacts" className="scroll-mt-16">
-            <ContactMethodsSection />
-          </div>
-          <div id="groups" className="scroll-mt-16">
-            <GroupNotificationsSection />
-          </div>
+          <DisplaySection />
+          <MarketplacesSection />
+          <LanguagesSection availableLanguages={languages} />
+          <TradingSection />
+          <ContactMethodsSection />
+          <GroupNotificationsSection />
         </SettingsGroup>
 
         <SettingsGroup id="integrations" title="Integrations">
