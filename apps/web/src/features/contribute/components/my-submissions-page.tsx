@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { useCardSubmissions } from "@/features/contribute/hooks/use-card-submissions";
 import {
   submissionExplanation,
@@ -37,13 +38,15 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {cardLink ? (
-            <Link
-              to="/cards/$cardSlug/{-$printingSlug}"
-              params={{ cardSlug: cardLink }}
-              className="font-medium hover:underline"
+            <TextLink
+              variant="inherit"
+              className="font-medium"
+              render={
+                <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: cardLink }} />
+              }
             >
               {submission.cardName}
-            </Link>
+            </TextLink>
           ) : (
             <span className="font-medium">{submission.cardName}</span>
           )}

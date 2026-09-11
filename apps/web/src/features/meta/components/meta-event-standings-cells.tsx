@@ -4,6 +4,7 @@ import { ChevronRightIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { Medal } from "@/components/ui/podium";
+import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import {
   MetaEventDeckPreview,
@@ -161,14 +162,18 @@ export function DeckCell({
     return null;
   }
   return (
-    <Link
-      to="/meta/$slug/submit"
-      params={{ slug }}
-      search={metaSubmitSearchForPlayer(player)}
-      className={cn("text-primary font-medium whitespace-nowrap hover:underline", className)}
+    <TextLink
+      className={cn("font-medium whitespace-nowrap", className)}
+      render={
+        <Link
+          to="/meta/$slug/submit"
+          params={{ slug }}
+          search={metaSubmitSearchForPlayer(player)}
+        />
+      }
     >
       + Add
-    </Link>
+    </TextLink>
   );
 }
 

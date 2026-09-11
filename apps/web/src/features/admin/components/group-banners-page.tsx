@@ -5,6 +5,7 @@ import { Trash2Icon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { useGroupBanners, useRemoveGroupBanner } from "@/features/admin/hooks/use-group-banners";
@@ -31,13 +32,12 @@ function GroupCell({ row }: AdminCellSlotProps<AdminGroupBanner>) {
     return null;
   }
   return (
-    <Link
-      to="/groups/$slug"
-      params={{ slug: row.groupSlug }}
-      className="text-primary hover:text-primary/80 underline underline-offset-4"
+    <TextLink
+      className="underline"
+      render={<Link to="/groups/$slug" params={{ slug: row.groupSlug }} />}
     >
       {row.groupName}
-    </Link>
+    </TextLink>
   );
 }
 

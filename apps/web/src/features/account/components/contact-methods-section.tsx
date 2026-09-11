@@ -85,7 +85,7 @@ function ContactMethodRow({ method }: { method: ContactMethod }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-h-8 items-center gap-2">
       <TypeSelect value={type} onValueChange={setType} />
       <Input
         value={value}
@@ -130,7 +130,7 @@ function AddContactMethod() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-h-8 items-center gap-2">
       <TypeSelect value={type} onValueChange={setType} id="contact-add-type" />
       <Input
         value={value}
@@ -140,11 +140,7 @@ function AddContactMethod() {
         className="flex-1"
         aria-label="New contact value"
       />
-      <Button
-        variant="outline"
-        disabled={!canAdd || create.isPending}
-        onClick={() => void handleAdd()}
-      >
+      <Button disabled={!canAdd || create.isPending} onClick={() => void handleAdd()}>
         <PlusIcon />
         Add
       </Button>

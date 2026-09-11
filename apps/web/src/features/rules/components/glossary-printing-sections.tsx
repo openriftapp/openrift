@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { RowList } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import {
   ART_VARIANT_DESCRIPTIONS,
   FINISH_DESCRIPTIONS,
@@ -69,10 +70,8 @@ export function BoosterPacksSection({ query }: { query: string }) {
       <GlossarySectionHeading id="booster-packs" title="Booster pack contents" />
       <p className="text-muted-foreground mt-2">
         A standard Riftbound booster contains 14 cards across five slot types. The{" "}
-        <Link to="/pack-opener" className="text-primary hover:underline">
-          Pack opener
-        </Link>{" "}
-        simulates this same distribution.
+        <TextLink render={<Link to="/pack-opener" />}>Pack opener</TextLink> simulates this same
+        distribution.
       </p>
       <RowList className="mt-4">
         {visible.map((slot) => (

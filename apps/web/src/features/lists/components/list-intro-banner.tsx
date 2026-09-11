@@ -11,6 +11,7 @@ import {
 
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
+import { TextLink } from "@/components/ui/text-link";
 
 const FROM_LIBRARY: IntroGuideRow = {
   icons: [LibraryBigIcon],
@@ -94,9 +95,9 @@ export function ListIntroBanner({
   return (
     <IntroBanner className="mb-3" title={copy.title} lead={copy.lead} onDismiss={onDismiss}>
       <IntroGuideList rows={copy.rows} />
-      <Link to="/help/$slug" params={{ slug: "lists" }} className="text-primary hover:underline">
+      <TextLink render={<Link to="/help/$slug" params={{ slug: "lists" }} />}>
         How wishlists and tradelists work →
-      </Link>
+      </TextLink>
     </IntroBanner>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/layout/top-bar-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -299,9 +300,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 />
               </div>
               {startInvalid ? (
-                <span className="text-destructive text-sm">
-                  Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
-                </span>
+                <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -322,13 +321,11 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 />
               </div>
               {endIncomplete ? (
-                <span className="text-destructive text-sm">
+                <FieldError>
                   Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
-                </span>
+                </FieldError>
               ) : endBeforeStart ? (
-                <span className="text-destructive text-sm">
-                  The end must be at or after the start.
-                </span>
+                <FieldError>The end must be at or after the start.</FieldError>
               ) : null}
             </div>
           </SettingsSection>
@@ -452,9 +449,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                     </div>
                   </div>
                   {pointsInvalid ? (
-                    <span className="text-destructive text-sm">
-                      Points must be whole numbers between 0 and 99.
-                    </span>
+                    <FieldError>Points must be whole numbers between 0 and 99.</FieldError>
                   ) : null}
                 </div>
               </div>
@@ -514,9 +509,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                     <span className="text-muted-foreground text-sm">{tzLabel}</span>
                   </div>
                   {closeTimeInvalid ? (
-                    <span className="text-destructive text-sm">
-                      Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
-                    </span>
+                    <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
                   ) : null}
                 </div>
               ) : null}

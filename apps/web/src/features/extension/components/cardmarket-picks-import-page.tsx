@@ -16,6 +16,7 @@ import { Callout } from "@/components/ui/callout";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RowList } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { ImportEntryRow } from "@/features/collections/components/import-entry-row";
 import {
@@ -73,13 +74,9 @@ function NothingPicked() {
       <p className="text-muted-foreground text-sm">
         Open a seller&apos;s offers on Cardmarket, press + on the cards you want, then choose
         &quot;Send to OpenRift&quot; from the extension popup. See{" "}
-        <Link
-          to="/help/$slug"
-          params={{ slug: "browser-extension" }}
-          className="text-primary hover:underline"
-        >
+        <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
           how the extension works
-        </Link>
+        </TextLink>
         .
       </p>
     </SettingsSection>

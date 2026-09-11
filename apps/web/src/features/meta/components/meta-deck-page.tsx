@@ -6,6 +6,7 @@ import { CopyIcon, InfoIcon } from "lucide-react";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { PublicDeckActionsMenu } from "@/features/decks/components/public-deck-actions-menu";
 import { PublicDeckSurface } from "@/features/decks/components/public-deck-surface";
 import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-deck";
@@ -140,14 +141,18 @@ export function MetaDeckPage({ token }: { token: string }) {
       footer={
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <MetaContributors contributors={data.meta.contributors} />
-          <Link
-            to="/meta/$slug/submit"
-            params={{ slug: data.meta.event.slug }}
-            search={metaSubmitSearchForPlayer(entry, "correction")}
-            className="text-primary ml-auto text-sm hover:underline"
+          <TextLink
+            className="ml-auto text-sm"
+            render={
+              <Link
+                to="/meta/$slug/submit"
+                params={{ slug: data.meta.event.slug }}
+                search={metaSubmitSearchForPlayer(entry, "correction")}
+              />
+            }
           >
             Something wrong? Suggest a correction
-          </Link>
+          </TextLink>
         </div>
       }
       heroLead={<MetaDeckFinish meta={data.meta} />}

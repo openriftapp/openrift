@@ -4,6 +4,7 @@ import { Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
@@ -67,11 +68,8 @@ export default function HowToPlayArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          OpenRift&apos;s{" "}
-          <a href="/help/deck-building" className="text-primary hover:underline">
-            deck builder
-          </a>{" "}
-          enforces all of this for you in Constructed format.
+          OpenRift&apos;s <TextLink href="/help/deck-building">deck builder</TextLink> enforces all
+          of this for you in Constructed format.
         </p>
       </section>
 
@@ -223,31 +221,27 @@ export default function HowToPlayArticle() {
         </p>
         <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">
           <li>
-            <a
+            <TextLink
               href="https://riftbound.leagueoflegends.com/en-us/news/rules-and-releases/how-to-play-get-started/"
               target="_blank"
               rel="noreferrer"
-              className="text-primary hover:underline"
             >
               Riot&apos;s official how-to-play guide
-            </a>
+            </TextLink>
           </li>
           <li>
-            <a
+            <TextLink
               href="https://riftboundguide.com/how-to-play-riftbound/"
               target="_blank"
               rel="noreferrer"
-              className="text-primary hover:underline"
             >
               Riftbound Guide&apos;s deeper walk-through
-            </a>
+            </TextLink>
           </li>
           <li>
             Once you&apos;re ready to brew, OpenRift&apos;s{" "}
-            <a href="/help/deck-building" className="text-primary hover:underline">
-              deck builder
-            </a>{" "}
-            handles the legality checks for you.
+            <TextLink href="/help/deck-building">deck builder</TextLink> handles the legality checks
+            for you.
           </li>
         </ul>
       </section>

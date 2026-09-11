@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { textLinkVariants } from "@/components/ui/text-link";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import {
   closeOverlayHistoryEntry,
@@ -149,10 +150,7 @@ export function SelectionDetailModal({
             footerSlot={
               <span className="text-muted-foreground text-xs">
                 Want this to stay open?{" "}
-                <Pressable
-                  onClick={handleDock}
-                  className="text-foreground underline underline-offset-3"
-                >
+                <Pressable onClick={handleDock} className={textLinkVariants({ variant: "muted" })}>
                   Dock it beside the grid
                 </Pressable>
               </span>

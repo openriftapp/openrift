@@ -1,7 +1,14 @@
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { cardSearchAltNames, legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import { AlertTriangleIcon, ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CircleXIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { use, useState } from "react";
 import { createPortal } from "react-dom";
@@ -438,7 +445,10 @@ export function DeckPlanEditor({
         </Badge>
       ) : null}
       {savePlan.isError ? (
-        <span className="text-destructive hidden text-sm sm:inline">Save failed</span>
+        <span className="text-muted-foreground hidden items-center gap-1.5 text-sm sm:inline-flex">
+          <CircleXIcon className="text-destructive size-4 shrink-0" />
+          Save failed
+        </span>
       ) : null}
       {isPlanDraftEmpty(draft) ? null : (
         <Button

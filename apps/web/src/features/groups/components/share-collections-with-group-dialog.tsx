@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { TextLink } from "@/components/ui/text-link";
 import {
   useFriendGroupShareableCollections,
   useShareCollectionWithFriendGroup,
@@ -87,9 +88,9 @@ function ShareCollectionsBody({
           {data.items.length === 0 ? (
             <>
               You don&apos;t have a collection to share yet.{" "}
-              <Link to="/collections" className="text-foreground underline underline-offset-4">
+              <TextLink variant="muted" render={<Link to="/collections" />}>
                 Create one
-              </Link>{" "}
+              </TextLink>{" "}
               and you can share it with this group from its manage page.
             </>
           ) : (

@@ -16,6 +16,7 @@ import {
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { cn } from "@/lib/utils";
 
@@ -89,10 +90,8 @@ export default function CollectionsArticle() {
           Collections track <strong className="text-foreground">copies</strong> (specific physical
           cards), not the cards as game concepts. If you own three copies of the same card, each one
           lives in a collection, whether that&apos;s the same collection or different ones. See{" "}
-          <a href="/help/cards-printings-copies" className="text-primary hover:underline">
-            Cards, Printings &amp; Copies
-          </a>{" "}
-          for more on how these relate.
+          <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
+          more on how these relate.
         </p>
       </section>
 

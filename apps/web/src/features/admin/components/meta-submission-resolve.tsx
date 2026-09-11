@@ -7,6 +7,7 @@ import type { MetaSubmissionReason } from "@openrift/shared/types/enums";
 import { UndoIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -245,11 +246,13 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
               )}
 
               {conflict && (
-                <p className="text-destructive text-sm">
-                  That submission was already accepted, so its outcome is settled. The accept wrote
-                  a public credit and an archived deck with it, and changing the ledger now would
-                  leave the three disagreeing.
-                </p>
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    That submission was already accepted, so its outcome is settled. The accept
+                    wrote a public credit and an archived deck with it, and changing the ledger now
+                    would leave the three disagreeing.
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
 

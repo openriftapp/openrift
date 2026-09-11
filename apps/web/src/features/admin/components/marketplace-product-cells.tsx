@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
+import { textLinkVariants } from "@/components/ui/text-link";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
 import { nameBeyondCardName } from "@/features/admin/lib/name-suffix";
 import type {
@@ -141,7 +142,7 @@ export function AssignedPrintingsCell({
             ) : (
               <Pressable
                 title="Show this printing on the page"
-                className="hover:underline"
+                className={textLinkVariants({ variant: "inherit" })}
                 onClick={() => onOpenPrinting(printing.printingId)}
               >
                 <PrintingLabel

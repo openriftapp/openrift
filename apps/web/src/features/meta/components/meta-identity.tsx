@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { TextLink } from "@/components/ui/text-link";
 import { DomainIcon } from "@/features/decks/components/domain-icon";
 import { splitLegendName } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
@@ -57,21 +58,29 @@ export function MetaIdentity({
   const championText = <span className={CHAMPION_CLASS[layout]}>{champion}</span>;
   // Positioned so the name still takes its own clicks inside a stretched-link
   // tile, where an unpositioned anchor sits under the overlay.
-  const linkClass = "relative hover:underline";
+  const linkClass = "relative";
   const legendKey = filled(archiveSlug);
   const cardSlug = filled(slug);
   let named = championText;
   if (legendKey !== null) {
     named = (
-      <Link to="/meta/legends/$slug" params={{ slug: legendKey }} className={linkClass}>
+      <TextLink
+        variant="inherit"
+        className={linkClass}
+        render={<Link to="/meta/legends/$slug" params={{ slug: legendKey }} />}
+      >
         {championText}
-      </Link>
+      </TextLink>
     );
   } else if (cardSlug !== null) {
     named = (
-      <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug }} className={linkClass}>
+      <TextLink
+        variant="inherit"
+        className={linkClass}
+        render={<Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug }} />}
+      >
         {championText}
-      </Link>
+      </TextLink>
     );
   }
 

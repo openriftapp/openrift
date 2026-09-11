@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TextLink } from "@/components/ui/text-link";
 import {
   useDecks,
   useDeleteDeck,
@@ -256,14 +257,13 @@ function LineageRow({
       <LineageGutter row={row} isCurrent={isCurrent} laneCount={laneCount} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 py-2">
         <div className="flex min-w-0 items-center gap-1.5" style={{ height: HEADER_HEIGHT }}>
-          <Link
-            to="/decks/$deckId"
-            params={{ deckId: deck.id }}
-            className="truncate font-medium hover:underline"
-            onClick={onNavigate}
+          <TextLink
+            variant="inherit"
+            className="truncate font-medium"
+            render={<Link to="/decks/$deckId" params={{ deckId: deck.id }} onClick={onNavigate} />}
           >
             {deck.name}
-          </Link>
+          </TextLink>
           {isCurrent && <Badge variant="subtle">Current</Badge>}
           {deck.isPrimary && <Badge variant="secondary">Primary</Badge>}
           {deck.isDraft && <Badge variant="warning">Draft</Badge>}

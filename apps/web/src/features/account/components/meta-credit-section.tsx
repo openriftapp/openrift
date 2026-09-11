@@ -6,6 +6,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Callout } from "@/components/ui/callout";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
 import {
   useMetaCreditVisibility,
@@ -43,17 +44,17 @@ function CreditPreview({
       {usesDisplayNameFallback && creditedAs !== null && (
         <p className="text-muted-foreground text-sm">
           You have no Riot ID yet, so your display name is used.{" "}
-          <Link to="/profile" hash="account" className="underline">
+          <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
             Add one
-          </Link>{" "}
+          </TextLink>{" "}
           and it takes over.
         </p>
       )}
       {creditedAs === null && visibility !== "hidden" && (
         <p className="text-muted-foreground text-sm">
-          <Link to="/profile" hash="account" className="underline">
+          <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
             Set a display name
-          </Link>{" "}
+          </TextLink>{" "}
           to be credited.
         </p>
       )}

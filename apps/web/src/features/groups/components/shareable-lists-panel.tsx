@@ -8,6 +8,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RowList, RowListItem } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
@@ -47,9 +48,7 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
         description={
           <>
             No lists yet.{" "}
-            <Link to="/collections" className="text-primary hover:underline">
-              Create a wishlist or tradelist
-            </Link>{" "}
+            <TextLink render={<Link to="/collections" />}>Create a wishlist or tradelist</TextLink>{" "}
             to share it here.
           </>
         }

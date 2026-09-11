@@ -33,6 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { CreateTierListDialog } from "@/features/stage/components/create-tier-list-dialog";
 import { TierRowFrame } from "@/features/stage/components/tier-board";
@@ -75,13 +76,9 @@ export function TierListIndexPage() {
               <>
                 Stack cards into rows you name yourself, then share the board as a link, download it
                 as an image, or rank it live on stream.{" "}
-                <Link
-                  to="/help/$slug"
-                  params={{ slug: "tier-lists" }}
-                  className="text-primary hover:underline"
-                >
+                <TextLink render={<Link to="/help/$slug" params={{ slug: "tier-lists" }} />}>
                   Learn how tier lists work.
-                </Link>
+                </TextLink>
               </>
             }
           >
@@ -120,13 +117,13 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
     <Card className="flex flex-col gap-3 p-3">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <Link
-            to="/tier-lists/$tierListId"
-            params={{ tierListId: tierList.id }}
-            className="font-heading hover:underline"
+          <TextLink
+            variant="inherit"
+            className="font-heading"
+            render={<Link to="/tier-lists/$tierListId" params={{ tierListId: tierList.id }} />}
           >
             {tierList.title}
-          </Link>
+          </TextLink>
           <p className="text-muted-foreground text-sm">
             {tierList.cardCount} {tierList.cardCount === 1 ? "card" : "cards"} across{" "}
             {tierList.tierCount} {tierList.tierCount === 1 ? "tier" : "tiers"} · edited{" "}

@@ -53,7 +53,7 @@ import {
   validateMetaSubmissionDraft,
 } from "@/features/meta/lib/meta-submission-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 
 const DECK_PLACEHOLDER = `Legend:
 1 Emperor of the Sands
@@ -443,7 +443,7 @@ export function MetaSubmitPage({
                         : "Pick the tournament this deck came from, or tell us about one we don't have."
                     }
                   >
-                    <FieldGroup>
+                    <FieldGroup className={FORM_COLUMN}>
                       {lockedToEvent && eventFromSlug ? (
                         <Field>
                           <p className="font-medium">{eventFromSlug.name}</p>
@@ -594,7 +594,7 @@ export function MetaSubmitPage({
                   </SettingsSection>
 
                   <SettingsSection title="The player">
-                    <FieldGroup>
+                    <FieldGroup className={FORM_COLUMN}>
                       <Field>
                         <FieldLabel htmlFor="meta-submit-player">Who played it</FieldLabel>
                         <Input
@@ -673,7 +673,7 @@ export function MetaSubmitPage({
                   id="meta-submit-deck"
                   value={draft.deckText}
                   rows={12}
-                  className="font-mono text-sm"
+                  className="max-w-2xl font-mono text-sm"
                   placeholder={DECK_PLACEHOLDER}
                   onChange={(event) => set("deckText", event.target.value)}
                 />
@@ -695,6 +695,7 @@ export function MetaSubmitPage({
                       value={draft.note}
                       rows={3}
                       maxLength={2000}
+                      className="max-w-2xl"
                       placeholder={
                         kind === "correction"
                           ? "What we got wrong, and where the right list came from"

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -132,7 +133,11 @@ export function DeckComparePasteDialog({
           className="field-sizing-fixed text-sm"
           rows={8}
         />
-        {error && <p className="text-destructive text-sm">{error}</p>}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <Button
           className="self-end"
           onClick={() => void handleCompare()}

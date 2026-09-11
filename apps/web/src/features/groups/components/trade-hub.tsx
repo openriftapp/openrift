@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { IconChip } from "@/components/ui/icon-chip";
+import { TextLink } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -79,13 +80,13 @@ export function TradeHubMemberCard({
       </div>
 
       {quiet ? <p className="text-muted-foreground">Nothing in this group yet</p> : null}
-      {action === null ? null : <p className="text-warning text-sm font-medium">{action}</p>}
+      {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {waitingArt.length > 0 ? (
         <CardArtThumbStack items={waitingArt} max={5} thumbClassName="w-8" />
       ) : null}
       {suggestions === null ? null : (
-        <p className="text-success flex items-center gap-1 text-sm font-medium">
-          <SparklesIcon className="size-3.5 shrink-0" />
+        <p className="text-muted-foreground flex items-center gap-1 text-sm font-medium">
+          <SparklesIcon className="text-success size-3.5 shrink-0" />
           {suggestions}
         </p>
       )}
@@ -110,9 +111,9 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
         <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
         <p className="text-muted-foreground min-w-0 flex-1">
           You don&apos;t have a wishlist or tradelist yet.{" "}
-          <Link to="/collections" className="text-foreground underline underline-offset-4">
+          <TextLink variant="muted" render={<Link to="/collections" />}>
             Create one
-          </Link>{" "}
+          </TextLink>{" "}
           and share it with {groupName} to start finding trades.
         </p>
       </Card>

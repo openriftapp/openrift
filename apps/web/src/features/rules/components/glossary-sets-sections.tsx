@@ -2,6 +2,7 @@ import { formatReleasePeriod, isReleasedAnywhere } from "@openrift/shared/set-re
 import { Link } from "@tanstack/react-router";
 
 import { RowList } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import type { SetEntry } from "@/features/rules/lib/glossary-content";
 import { NUMBERING_PATTERNS } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
@@ -22,24 +23,20 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
         Sets are how Riftbound releases new cards. Each set has a three-letter code that prefixes
         every card number in it, and is classified as either a main set (the regular release
         cadence) or a supplemental set (smaller drops outside the main schedule). Browse the full
-        catalogue of any set on the{" "}
-        <Link to="/sets" className="text-primary hover:underline">
-          Sets page
-        </Link>
-        .
+        catalogue of any set on the <TextLink render={<Link to="/sets" />}>Sets page</TextLink>.
       </p>
       <ul className="mt-4 grid gap-2 lg:grid-cols-2">
         {visible.map((set) => (
           <GlossaryTermTile key={set.slug}>
             <div className="flex flex-wrap items-baseline gap-2">
               <code className="bg-muted shrink-0 rounded-md px-2 py-0.5 font-mono">{set.slug}</code>
-              <Link
-                to="/sets/$setSlug"
-                params={{ setSlug: set.slug }}
-                className="font-medium hover:underline"
+              <TextLink
+                variant="inherit"
+                className="font-medium"
+                render={<Link to="/sets/$setSlug" params={{ setSlug: set.slug }} />}
               >
                 {set.name}
-              </Link>
+              </TextLink>
               <span className="text-muted-foreground capitalize">{set.setType}</span>
               {!isReleasedAnywhere(set.releases) && (
                 <span className="bg-warning-soft text-warning rounded-md px-1.5 py-0.5 text-xs">

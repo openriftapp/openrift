@@ -1,7 +1,7 @@
 import { formatDay } from "@openrift/shared/format-date";
 import type { MetaOverlayQueueRow } from "@openrift/shared/types/api/meta";
 import type { DeckZone } from "@openrift/shared/types/enums";
-import { ArchiveXIcon, CheckIcon, LinkIcon } from "lucide-react";
+import { ArchiveXIcon, CheckIcon, LinkIcon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -138,9 +138,13 @@ export function OverlayCardLines({ overlay }: { overlay: MetaOverlayQueueRow }) 
       </div>
       {overlay.unresolvedNames.length > 0 && (
         <div className="space-y-2 text-sm">
-          <p className="text-destructive">
-            {overlay.unresolvedNames.length} card{overlay.unresolvedNames.length === 1 ? "" : "s"}{" "}
-            match nothing in the catalog, so no deck is attached until they do.
+          <p className="text-muted-foreground flex items-start gap-1.5">
+            <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
+            <span>
+              {overlay.unresolvedNames.length} card
+              {overlay.unresolvedNames.length === 1 ? "" : "s"} match nothing in the catalog, so no
+              deck is attached until they do.
+            </span>
           </p>
           <ul className="space-y-1">
             {overlay.unresolvedNames.map((name) => (

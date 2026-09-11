@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { textLinkVariants } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailOverlay } from "@/features/cards/components/card-detail-overlay";
@@ -35,6 +36,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCardmarketWants } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
+import { cn } from "@/lib/utils";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface DeckMissingCardsDialogProps {
@@ -84,7 +86,10 @@ function CardIdentity({
   return (
     <Pressable
       onClick={() => onOpenDetail(printing.id)}
-      className="hover:text-foreground inline-flex items-center gap-1.5 rounded-sm underline-offset-2 hover:underline"
+      className={cn(
+        textLinkVariants({ variant: "muted" }),
+        "inline-flex items-center gap-1.5 rounded-sm",
+      )}
     >
       {content}
     </Pressable>

@@ -11,6 +11,7 @@ import { Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
+import { TextLink } from "@/components/ui/text-link";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
@@ -23,10 +24,7 @@ export default function ImportExportArticle() {
         or a Cardmarket want list. <strong className="text-foreground">Import…</strong> and{" "}
         <strong className="text-foreground">Export…</strong> live in a collection&apos;s three-dot
         menu, or start an import from <strong className="text-foreground">Import</strong> in the{" "}
-        <a href="/collections" className="text-primary hover:underline">
-          collection
-        </a>{" "}
-        sidebar.
+        <TextLink href="/collections">collection</TextLink> sidebar.
       </p>
 
       <section>
@@ -114,23 +112,13 @@ export default function ImportExportArticle() {
         <p className="text-muted-foreground mt-3">
           Using a different tool? Export it as CSV and try importing. If the format isn&apos;t
           recognized, OpenRift will tell you. Let me know on{" "}
-          <a
-            href={SOCIAL_LINKS.discordInvite}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
-          </a>{" "}
+          </TextLink>{" "}
           or{" "}
-          <a
-            href={SOCIAL_LINKS.githubIssues}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
-          </a>{" "}
+          </TextLink>{" "}
           if you&apos;d like support for another tool and I&apos;ll do my best to add it.
         </p>
       </section>
@@ -310,12 +298,9 @@ export default function ImportExportArticle() {
         <ol className="text-muted-foreground mt-2 list-inside list-decimal space-y-2">
           <li>
             <strong className="text-foreground">Code lookup:</strong> looks up the short code (e.g.{" "}
-            <Code>OGN-007</Code>) in the{" "}
-            <a href="/cards" className="text-primary hover:underline">
-              catalog
-            </a>
-            , then narrows by finish, art variant, and promo type. If multiple printings still
-            match, the entry is flagged for review.
+            <Code>OGN-007</Code>) in the <TextLink href="/cards">catalog</TextLink>, then narrows by
+            finish, art variant, and promo type. If multiple printings still match, the entry is
+            flagged for review.
           </li>
           <li>
             <strong className="text-foreground">Name matching:</strong> if the code isn&apos;t

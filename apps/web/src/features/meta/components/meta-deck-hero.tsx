@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 
 import { CountryFlag } from "@/components/ui/country-flag";
 import { Medal } from "@/components/ui/podium";
+import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
@@ -63,13 +64,13 @@ export function MetaDeckHeading({
       )}
       <p className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <CountryFlag code={meta.event.country} showCode={false} size="sm" />
-        <Link
-          to="/meta/$slug"
-          params={{ slug: meta.event.slug }}
-          className="truncate hover:underline"
+        <TextLink
+          variant="inherit"
+          className="truncate"
+          render={<Link to="/meta/$slug" params={{ slug: meta.event.slug }} />}
         >
           {meta.event.name}
-        </Link>
+        </TextLink>
         <span aria-hidden>·</span>
         <span>{formatDay(meta.event.eventDate)}</span>
         <MetaTierBadge tier={meta.event.tier} />

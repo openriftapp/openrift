@@ -95,10 +95,10 @@ export function CandidateActiveCell<TKey extends string>({
   return (
     <td
       className={cn(
-        "group/active bg-success-soft relative border-l px-3 py-1.5 align-top break-words",
+        "group/active bg-success-soft text-success relative border-l px-3 py-1.5 align-top break-words",
         field.multiline && "whitespace-pre-wrap",
         field.readOnly && "bg-muted/30",
-        isMissing && "bg-destructive-soft",
+        isMissing && "bg-destructive-soft text-destructive",
         onActiveChange &&
           !field.readOnly &&
           (field.type === "boolean" || hasDropdown(field)

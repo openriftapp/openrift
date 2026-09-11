@@ -1,4 +1,5 @@
 import { Heading } from "@/components/heading";
+import { TextLink } from "@/components/ui/text-link";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 import { ClipFrame } from "./clip-frame";
@@ -129,13 +130,13 @@ export function FeaturesHero({
             </ul>
             <p className="text-muted-foreground max-w-prose">
               Coming from another app?{" "}
-              <a
+              <TextLink
+                className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
                 href="#import"
                 onClick={smoothAnchorClick}
-                className="text-primary focus-visible:ring-ring font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none"
               >
                 Importing your collection takes a minute
-              </a>
+              </TextLink>
               .
             </p>
           </div>

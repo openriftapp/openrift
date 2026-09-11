@@ -2,6 +2,7 @@ import type { TournamentHostInfo } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 
 import { Card } from "@/components/ui/card";
+import { TextLink } from "@/components/ui/text-link";
 import { getSiteUrl } from "@/lib/site-config";
 
 function buildExamplePayload(tournamentId: string): string {
@@ -53,13 +54,21 @@ export function DeckCheckIngestGuide({
 }) {
   const keysLink =
     host.type === "organization" && host.orgId ? (
-      <Link to="/organizations/$id" params={{ id: host.orgId }} className="font-medium underline">
+      <TextLink
+        variant="muted"
+        className="font-medium"
+        render={<Link to="/organizations/$id" params={{ id: host.orgId }} />}
+      >
         {host.displayName}&apos;s page
-      </Link>
+      </TextLink>
     ) : (
-      <Link to="/profile" hash="integrations" className="font-medium underline">
+      <TextLink
+        variant="muted"
+        className="font-medium"
+        render={<Link to="/profile" hash="integrations" />}
+      >
         your profile
-      </Link>
+      </TextLink>
     );
 
   return (

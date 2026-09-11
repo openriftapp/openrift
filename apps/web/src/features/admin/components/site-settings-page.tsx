@@ -5,7 +5,13 @@ import { useState } from "react";
 import { Eyebrow } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -430,10 +436,10 @@ function KnownSettingRow({
             onClick={() => void handleCreateOn()}
             disabled={pending}
           >
-            <PlusIcon className="mr-1 h-3.5 w-3.5" />
+            <PlusIcon className="mr-1 size-3.5" />
             Set up
           </Button>
-          {saveError && <span className="text-destructive text-xs">{saveError}</span>}
+          {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
         </div>
       ) : editing ? (
         <div className="flex items-center gap-2">
@@ -456,11 +462,11 @@ function KnownSettingRow({
           >
             Cancel
           </Button>
-          {saveError && <span className="text-destructive text-xs">{saveError}</span>}
+          {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
         </div>
       ) : (
         <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-          <PlusIcon className="mr-1 h-3.5 w-3.5" />
+          <PlusIcon className="mr-1 size-3.5" />
           Set up
         </Button>
       )}

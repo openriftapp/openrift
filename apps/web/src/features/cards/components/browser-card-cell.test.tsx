@@ -232,6 +232,6 @@ describe("BrowserCardCell wishlist affordance", () => {
     expect(
       screen.queryByRole("button", { name: "Add Chaos Rune to a wishlist" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByTitle("On your wishlist (2)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /On your wishlist, 2 wanted/u })).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import { Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MissingImagesList } from "@/features/contribute/components/missing-images-list";
@@ -122,7 +123,11 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           hint="JPG or PNG, up to 20 MB. Lay the card flat and fill the frame."
           onFiles={handleFiles}
         />
-        {upload.isError && <p className="text-destructive text-sm">{errorMessage(upload.error)}</p>}
+        {upload.isError && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage(upload.error)}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -135,7 +140,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           placeholder="https://..."
         />
         {urlError ? (
-          <p className="text-destructive text-sm">{urlError}</p>
+          <FieldError>{urlError}</FieldError>
         ) : (
           <p className="text-muted-foreground text-sm">
             Any image format works (.png, .jpg, .webp, .avif, ...).

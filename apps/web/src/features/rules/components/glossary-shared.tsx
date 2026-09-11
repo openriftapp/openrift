@@ -6,20 +6,19 @@ import type { PageTocItem } from "@/components/layout/page-toc";
 import { Card } from "@/components/ui/card";
 import { RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { TextLink } from "@/components/ui/text-link";
 import type { Section } from "@/features/rules/lib/glossary-content";
 import { GROUPS } from "@/features/rules/lib/glossary-content";
 import { cn } from "@/lib/utils";
 
 export function RuleRef({ ruleNumber, className }: { ruleNumber: string; className?: string }) {
   return (
-    <Link
-      to="/rules/$kind"
-      params={{ kind: "core" }}
-      hash={`rule-${ruleNumber}`}
-      className={cn("text-primary text-xs hover:underline", className)}
+    <TextLink
+      className={cn("text-xs", className)}
+      render={<Link to="/rules/$kind" params={{ kind: "core" }} hash={`rule-${ruleNumber}`} />}
     >
       Rule {ruleNumber} →
-    </Link>
+    </TextLink>
   );
 }
 

@@ -6,6 +6,7 @@ import { Fragment } from "react";
 import { Eyebrow, Heading } from "@/components/heading";
 import { MarkdownText } from "@/components/markdown-text";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -130,13 +131,9 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
               {meta.map((stat, index) => (
                 <Fragment key={stat.key}>
                   {index > 0 ? " · " : null}
-                  <Link
-                    to={stat.to}
-                    params={{ slug }}
-                    className="hover:text-foreground underline-offset-4 hover:underline"
-                  >
+                  <TextLink variant="muted" render={<Link to={stat.to} params={{ slug }} />}>
                     {stat.label}
-                  </Link>
+                  </TextLink>
                 </Fragment>
               ))}
             </p>

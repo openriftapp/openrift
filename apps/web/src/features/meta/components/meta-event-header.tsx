@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { TextLink } from "@/components/ui/text-link";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
 import { MetaEventStatusBadge } from "@/features/meta/components/meta-event-status-badge";
@@ -43,15 +44,15 @@ function EventSources({ sources }: { sources: MetaEventDetail["sources"] }) {
           {source.sourceUrl === null ? (
             <span>{source.label}</span>
           ) : (
-            <a
+            <TextLink
+              className="inline-flex items-center gap-1 font-medium"
               href={source.sourceUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-primary inline-flex items-center gap-1 font-medium hover:underline"
             >
               {source.label}
               <ExternalLinkIcon className="size-3.5" />
-            </a>
+            </TextLink>
           )}
         </Fragment>
       ))}
@@ -112,14 +113,13 @@ function ChampionPlate({
           </p>
         )}
         {hasRun && player.playerKey !== null && (
-          <Link
-            to="/meta/$slug/players/$key"
-            params={{ slug, key: player.playerKey }}
-            className="text-primary inline-flex items-center gap-0.5 text-xs font-medium hover:underline"
+          <TextLink
+            className="inline-flex items-center gap-0.5 text-xs font-medium"
+            render={<Link to="/meta/$slug/players/$key" params={{ slug, key: player.playerKey }} />}
           >
             Road to the title
             <ChevronRightIcon className="size-3.5" />
-          </Link>
+          </TextLink>
         )}
       </div>
       {artId !== null && (
@@ -215,7 +215,7 @@ export function MetaEventHeader({
               )}
               <p className="text-muted-foreground text-sm">{byline.join(" · ")}</p>
               {liveLine.length > 0 && (
-                <p className="text-warning text-sm">{liveLine.join(" · ")}</p>
+                <p className="text-foreground text-sm font-medium">{liveLine.join(" · ")}</p>
               )}
             </div>
           </div>

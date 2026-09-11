@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { useCardBrowserLayoutOffsets } from "@/features/cards/components/card-browser-layout";
 import { CompactSection } from "@/features/cards/components/promo-compact-section";
 import { FlatSection } from "@/features/cards/components/promo-flat-section";
@@ -170,11 +171,7 @@ export function PromoSectionsContent({
               "No promos match the current filters."
             ) : (
               <>
-                No promos yet.{" "}
-                <Link to="/contribute" className="text-primary hover:underline">
-                  Suggest one
-                </Link>
-                .
+                No promos yet. <TextLink render={<Link to="/contribute" />}>Suggest one</TextLink>.
               </>
             )}
           </p>

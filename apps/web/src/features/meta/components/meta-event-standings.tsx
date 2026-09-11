@@ -150,7 +150,7 @@ export function MetaEventStandings({
           <Heading>Standings</Heading>
           <p className="text-muted-foreground text-sm">{subtitleFor(players.length, withLists)}</p>
           {status === "in_progress" && (
-            <p className="text-warning text-sm">
+            <p className="text-foreground text-sm font-medium">
               {[describeEventProgress(matches, phases), "provisional"].filter(Boolean).join(" · ")}
             </p>
           )}

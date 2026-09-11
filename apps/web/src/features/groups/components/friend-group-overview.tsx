@@ -18,6 +18,7 @@ import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { StatTileTone } from "@/components/ui/stat-tile";
 import { StatTile } from "@/components/ui/stat-tile";
+import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupShopEvents } from "@/features/groups/hooks/use-friend-group-shops";
@@ -220,13 +221,12 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
       <div className="flex items-baseline justify-between gap-3">
         <SectionHeading>Next at your shops</SectionHeading>
         {feed.shops.length > 0 ? (
-          <Link
-            to="/groups/$slug/shops"
-            params={{ slug }}
-            className="text-primary shrink-0 text-xs font-medium hover:underline"
+          <TextLink
+            className="shrink-0 text-xs font-medium"
+            render={<Link to="/groups/$slug/shops" params={{ slug }} />}
           >
             Show all
-          </Link>
+          </TextLink>
         ) : null}
       </div>
       {upcoming.length > 0 ? (
@@ -258,15 +258,13 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
               : `Nothing listed at your shops in the next ${feed.horizonDays} days.`}
           </p>
           {admin && feed.shops.length === 0 ? (
-            <Link
-              to="/groups/$slug/manage"
-              params={{ slug }}
-              hash="shops"
-              className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
+            <TextLink
+              className="inline-flex items-center gap-1 text-sm font-medium"
+              render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
             >
               Link a shop
               <ChevronRightIcon className="size-4" />
-            </Link>
+            </TextLink>
           ) : null}
         </div>
       )}
@@ -388,14 +386,13 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
               : "No tournaments planned yet. When an admin sets one up, it will show up here."}
           </p>
           {admin ? (
-            <Link
-              to="/groups/$slug/events"
-              params={{ slug }}
-              className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
+            <TextLink
+              className="inline-flex items-center gap-1 text-sm font-medium"
+              render={<Link to="/groups/$slug/events" params={{ slug }} />}
             >
               Plan a tournament
               <ChevronRightIcon className="size-4" />
-            </Link>
+            </TextLink>
           ) : null}
         </div>
       )}

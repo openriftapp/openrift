@@ -2,6 +2,7 @@ import { ImageUpIcon, Trash2Icon } from "lucide-react";
 import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Slider } from "@/components/ui/slider";
 import { useImageUpload } from "@/features/admin/hooks/use-image-upload";
 import { CARD_MAX_ZOOM, CARD_MIN_ZOOM } from "@/features/designer/lib/card-designer";
@@ -43,7 +44,7 @@ export function BackgroundImageControl() {
         <ImageUpIcon className="size-4" />
         {dataUrl ? "Replace background image" : "Upload background image"}
       </Button>
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {error && <FieldError>{error}</FieldError>}
       {dataUrl && (
         <>
           <div className="flex flex-col gap-1.5">

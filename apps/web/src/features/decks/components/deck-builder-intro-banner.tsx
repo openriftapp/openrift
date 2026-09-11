@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 
 import { IntroBanner } from "@/components/intro-banner";
 import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 
 function introSteps(format: DeckFormat): readonly { title: string; description: string }[] {
   const singleBattlefield = format === WellKnown.deckFormat.CUSTOM_REGION;
@@ -64,13 +65,11 @@ export function DeckBuilderIntroBanner({
           <ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-5">
             <li>
               Decks track{" "}
-              <Link
-                to="/help/$slug"
-                params={{ slug: "cards-printings-copies" }}
-                className="text-primary hover:underline"
+              <TextLink
+                render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}
               >
                 cards, not specific printings
-              </Link>
+              </TextLink>
               , so any printing you own counts toward the deck.
             </li>
             {INTRO_TIPS.map((tip) => (
@@ -80,13 +79,9 @@ export function DeckBuilderIntroBanner({
           </ul>
         </div>
       </div>
-      <Link
-        to="/help/$slug"
-        params={{ slug: "deck-building" }}
-        className="text-primary hover:underline"
-      >
+      <TextLink render={<Link to="/help/$slug" params={{ slug: "deck-building" }} />}>
         Read the full guide →
-      </Link>
+      </TextLink>
     </IntroBanner>
   );
 }

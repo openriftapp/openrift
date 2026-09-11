@@ -7,6 +7,7 @@ import { Heading } from "@/components/heading";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useEnumOrders } from "@/hooks/use-enums";
@@ -228,21 +229,27 @@ export function SupportPage() {
         <h2 className="mb-1 text-lg font-semibold">Shop Through the Rift</h2>
         <p className="text-muted-foreground text-sm">
           When you click a{" "}
-          <MarketplaceLink
-            marketplace="tcgplayer"
-            href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
-            className="text-primary underline-offset-4 hover:underline"
+          <TextLink
+            render={
+              <MarketplaceLink
+                marketplace="tcgplayer"
+                href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
+              />
+            }
           >
             TCGplayer
-          </MarketplaceLink>{" "}
+          </TextLink>{" "}
           or{" "}
-          <MarketplaceLink
-            marketplace="cardtrader"
-            href="https://www.cardtrader.com/?share_code=openrift"
-            className="text-primary underline-offset-4 hover:underline"
+          <TextLink
+            render={
+              <MarketplaceLink
+                marketplace="cardtrader"
+                href="https://www.cardtrader.com/?share_code=openrift"
+              />
+            }
           >
             Cardtrader
-          </MarketplaceLink>{" "}
+          </TextLink>{" "}
           link from a card&apos;s prices and end up buying something, I get a very small commission
           at no extra cost to you. (Cardmarket doesn&apos;t do this, so those links are just regular
           links.) Buying cards you were going to buy anyway through these links is a sneaky-easy way
@@ -292,7 +299,7 @@ export function SupportPage() {
         </Card>
       </section>
 
-      <section className="text-muted-foreground mt-auto border-t pt-6 text-center text-sm">
+      <section className="text-muted-foreground mt-auto max-w-prose border-t pt-6 text-sm">
         <p>
           OpenRift is a free, open-source project. No one here is getting rich (well, except in
           Power, and you can&apos;t pay hosting bills with Power).

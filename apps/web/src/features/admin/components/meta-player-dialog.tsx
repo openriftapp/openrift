@@ -553,7 +553,11 @@ export function MetaPlayerDialog({ eventId, eventFormat, player, onClose }: Meta
             </>
           )}
 
-          {formError && <p className="text-destructive text-sm">{formError}</p>}
+          {formError && (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={onClose}>

@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(App): **Quieter text, narrower forms, labelled icons** — status messages now sit in proper notice boxes instead of red or green sentences, settings fields stop stretching across the page, every inline link looks the same, icon-only buttons explain themselves on hover, and buttons in dark mode use darker text on their fill.
 - feat(App): **Fewer boxes on every page** — settings pages, lists, standings and stats now use headings and spacing instead of stacked bordered cards, so pages read lighter and rows line up with their headings.
 - feat(App): **Share links turn off instead of rotating** — group invites, tournament sign-up links and the OBS browser source link now have a single Disable control, and the confirmation says that turning the link back on hands out a different one.
 - feat(App): **A link to Cardmarket beside every wants list** — the export dialogs for collections, lists, decks and group trades that copy cards in Cardmarket's format now have an Open Cardmarket button that takes you straight to your want lists.

@@ -32,8 +32,8 @@ function PriceRefreshResult({ result }: { result: PriceRefreshResponse }) {
   const { transformed, upserted } = result;
   return (
     <div className="text-muted-foreground space-y-0.5">
-      <p className="text-success flex items-center gap-1 text-sm">
-        <CheckIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <CheckIcon className="text-success size-4 shrink-0" />
         Fetched {transformed.groups} groups, {transformed.products} products, {transformed.prices}{" "}
         prices
       </p>
@@ -62,8 +62,8 @@ function JobRunDisplay({
   }
   if (run.status === "failed") {
     return (
-      <p className="text-destructive flex items-center gap-1 text-sm">
-        <XIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <XIcon className="text-destructive size-4 shrink-0" />
         {run.errorMessage ?? failedText}
       </p>
     );
@@ -72,8 +72,8 @@ function JobRunDisplay({
     return <PriceRefreshResult result={run.result} />;
   }
   return (
-    <p className="text-success flex items-center gap-1 text-sm">
-      <CheckIcon className="size-4" />
+    <p className="text-muted-foreground flex items-center gap-1 text-sm">
+      <CheckIcon className="text-success size-4 shrink-0" />
       {succeededText}
     </p>
   );
@@ -140,22 +140,22 @@ function PriceSection({
         <CardContent className="pt-0">
           {latestRun.data && <JobRunDisplay run={latestRun.data} />}
           {refreshMutation.isError && (
-            <p className="text-destructive flex items-center gap-1 text-sm">
-              <XIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <XIcon className="text-destructive size-4 shrink-0" />
               {refreshMutation.error.message}
             </p>
           )}
           {clearMutation.isSuccess && (
-            <p className="text-success flex items-center gap-1 text-sm">
-              <CheckIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <CheckIcon className="text-success size-4 shrink-0" />
               Cleared {clearMutation.data.deleted.products} products,{" "}
               {clearMutation.data.deleted.variants} variants, {clearMutation.data.deleted.prices}{" "}
               prices
             </p>
           )}
           {clearMutation.isError && (
-            <p className="text-destructive flex items-center gap-1 text-sm">
-              <XIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <XIcon className="text-destructive size-4 shrink-0" />
               {clearMutation.error.message}
             </p>
           )}
@@ -227,8 +227,8 @@ function SiblingVariantSection() {
             />
           )}
           {backfill.isError && (
-            <p className="text-destructive flex items-center gap-1 text-sm">
-              <XIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <XIcon className="text-destructive size-4 shrink-0" />
               {backfill.error.message}
             </p>
           )}

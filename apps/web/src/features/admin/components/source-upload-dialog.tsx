@@ -287,8 +287,8 @@ function DiffTable({ label, items }: { label: string; items: UploadDiff[] }) {
 function UploadSummary({ data }: { data: UploadCandidatesResponse }) {
   return (
     <div className="space-y-2">
-      <div className="text-success flex items-start gap-1 text-sm">
-        <CheckIcon className="mt-0.5 size-4 shrink-0" />
+      <div className="text-muted-foreground flex items-start gap-1 text-sm">
+        <CheckIcon className="text-success mt-0.5 size-4 shrink-0" />
         <div>
           <p className="font-medium">Upload complete for &ldquo;{data.provider}&rdquo;</p>
           <p>
@@ -300,7 +300,7 @@ function UploadSummary({ data }: { data: UploadCandidatesResponse }) {
             {data.printingUpdates} updated, {data.printingsUnchanged} unchanged
           </p>
           {data.errors.length > 0 && (
-            <ul className="text-destructive ml-5 list-disc">
+            <ul className="text-muted-foreground ml-5 list-disc">
               {data.errors.slice(0, 10).map((message, index) => (
                 <li key={index}>{message}</li>
               ))}
@@ -431,8 +431,8 @@ export function SourceUploadDialog({
               </p>
             )}
             {parseError && (
-              <p className="text-destructive flex items-center gap-1 text-sm">
-                <XIcon className="size-4" />
+              <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                <XIcon className="text-destructive size-4 shrink-0" />
                 {parseError}
               </p>
             )}
@@ -457,8 +457,8 @@ export function SourceUploadDialog({
           {upload.isSuccess && <UploadSummary data={upload.data} />}
 
           {upload.isError && (
-            <p className="text-destructive flex items-center gap-1 text-sm">
-              <XIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <XIcon className="text-destructive size-4 shrink-0" />
               {upload.error.message}
             </p>
           )}

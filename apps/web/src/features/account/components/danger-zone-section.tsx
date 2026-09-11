@@ -3,6 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -101,7 +102,11 @@ function ResetCollectionsAction() {
                 onChange={(e) => setConfirmText(e.target.value)}
                 aria-invalid={Boolean(error)}
               />
-              {error && <p className="text-destructive text-sm">{error}</p>}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -195,7 +200,11 @@ function DeleteAccountAction() {
                 onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={Boolean(error)}
               />
-              {error && <p className="text-destructive text-sm">{error}</p>}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>

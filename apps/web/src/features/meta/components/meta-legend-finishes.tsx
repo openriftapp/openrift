@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Medal } from "@/components/ui/podium";
 import { RowList } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
@@ -35,27 +36,30 @@ function Rank({ finish }: { finish: MetaLegendFinish }) {
 function ListLink({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: boolean }) {
   if (finish.shareToken !== null) {
     return (
-      <Link
-        to="/meta/decks/$token"
-        params={{ token: finish.shareToken }}
-        className="text-primary font-medium whitespace-nowrap hover:underline"
+      <TextLink
+        className="font-medium whitespace-nowrap"
+        render={<Link to="/meta/decks/$token" params={{ token: finish.shareToken }} />}
       >
         {finish.listStatus === "partial" ? "Partial" : "Decklist"}
-      </Link>
+      </TextLink>
     );
   }
   if (!canSubmit) {
     return null;
   }
   return (
-    <Link
-      to="/meta/$slug/submit"
-      params={{ slug: finish.event.slug }}
-      search={metaSubmitSearchForPlayer(finish)}
-      className="text-primary font-medium whitespace-nowrap hover:underline"
+    <TextLink
+      className="font-medium whitespace-nowrap"
+      render={
+        <Link
+          to="/meta/$slug/submit"
+          params={{ slug: finish.event.slug }}
+          search={metaSubmitSearchForPlayer(finish)}
+        />
+      }
     >
       + Add
-    </Link>
+    </TextLink>
   );
 }
 
@@ -76,13 +80,13 @@ function FinishRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit:
       <div className={cn(FINISH_GRID, "hidden sm:grid")}>
         <Rank finish={finish} />
         <div className="min-w-0">
-          <Link
-            to="/meta/$slug"
-            params={{ slug: finish.event.slug }}
-            className="truncate font-medium hover:underline"
+          <TextLink
+            variant="inherit"
+            className="truncate font-medium"
+            render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
           >
             {finish.event.name}
-          </Link>
+          </TextLink>
           <p className="text-muted-foreground truncate text-xs tabular-nums">
             {eventFacts(finish)}
           </p>
@@ -106,13 +110,13 @@ function FinishRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit:
           <Rank finish={finish} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <Link
-            to="/meta/$slug"
-            params={{ slug: finish.event.slug }}
-            className="truncate font-medium hover:underline"
+          <TextLink
+            variant="inherit"
+            className="truncate font-medium"
+            render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
           >
             {finish.event.name}
-          </Link>
+          </TextLink>
           <p className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
             <MetaTierBadge tier={finish.event.tier} />
             <span className="tabular-nums">{eventFacts(finish)}</span>

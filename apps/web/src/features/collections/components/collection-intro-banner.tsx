@@ -13,6 +13,7 @@ import {
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { Kbd } from "@/components/ui/kbd";
+import { TextLink } from "@/components/ui/text-link";
 
 const GUIDE_ROWS: readonly IntroGuideRow[] = [
   {
@@ -69,17 +70,10 @@ export function CollectionIntroBanner({
         <span className="hidden sm:inline">
           <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> quick-add ·{" "}
         </span>
-        <Link to="/collections/import" className="text-primary hover:underline">
-          Import your collection
-        </Link>{" "}
-        ·{" "}
-        <Link
-          to="/help/$slug"
-          params={{ slug: "cards-printings-copies" }}
-          className="text-primary hover:underline"
-        >
+        <TextLink render={<Link to="/collections/import" />}>Import your collection</TextLink> ·{" "}
+        <TextLink render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}>
           How cards, printings &amp; copies work
-        </Link>
+        </TextLink>
       </p>
     </IntroBanner>
   );

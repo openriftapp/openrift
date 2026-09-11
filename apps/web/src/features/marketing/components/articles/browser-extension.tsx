@@ -3,6 +3,7 @@ import { InfoIcon, LinkIcon, ListIcon, ScanTextIcon, TableIcon } from "lucide-re
 
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
@@ -41,14 +42,14 @@ export default function BrowserExtensionArticle() {
           />
         </div>
         <p className="mt-3">
-          <a
+          <TextLink
+            className="font-medium"
             href={SOCIAL_LINKS.extensionDownload}
             target="_blank"
             rel="noreferrer"
-            className="text-primary font-medium hover:underline"
           >
             Download OpenRift Companion for Firefox
-          </a>
+          </TextLink>
         </p>
         <p className="text-muted-foreground mt-3">
           Updates take care of themselves. Firefox checks for a newer signed build roughly once a
@@ -119,10 +120,7 @@ export default function BrowserExtensionArticle() {
             title="Pick the wishlists to count"
             description={
               <>
-                On{" "}
-                <Link to="/extension/cardmarket" className="text-primary hover:underline">
-                  the counts page
-                </Link>
+                On <TextLink render={<Link to="/extension/cardmarket" />}>the counts page</TextLink>
                 , every wishlist starts ticked. Untick the ones you don&apos;t want counted.
               </>
             }

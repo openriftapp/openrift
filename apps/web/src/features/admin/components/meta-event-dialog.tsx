@@ -4,6 +4,7 @@ import { META_EVENT_TIERS } from "@openrift/shared/types/enums";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -246,7 +247,11 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
             </div>
           </div>
 
-          {formError && <p className="text-destructive text-sm">{formError}</p>}
+          {formError && (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
         </DialogForm>
 
         {/* Kept outside the form element: nested there, Enter in a source/drift field would submit the event. */}

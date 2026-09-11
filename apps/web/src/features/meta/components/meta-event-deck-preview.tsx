@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Pressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useOpenCardDetail } from "@/features/cards/components/card-detail-opener";
 import { DomainIcon } from "@/features/decks/components/domain-icon";
@@ -181,13 +182,16 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
         {missing !== null && <span>{missing}</span>}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
         {!copyToMyDecks.isLoggedIn && (
-          <Link
-            to="/login"
-            search={{ redirect: `/meta/${data.meta.event.slug}`, email: undefined }}
-            className="text-primary hover:underline"
+          <TextLink
+            render={
+              <Link
+                to="/login"
+                search={{ redirect: `/meta/${data.meta.event.slug}`, email: undefined }}
+              />
+            }
           >
             Sign in to compare with your collection
-          </Link>
+          </TextLink>
         )}
         <span className="ml-auto" />
         <span className="flex items-center gap-1.5">

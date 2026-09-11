@@ -4,6 +4,7 @@ import { EyeOffIcon } from "lucide-react";
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { TextLink } from "@/components/ui/text-link";
 import { StepRow } from "@/features/marketing/components/article-cards";
 
 const KEYS: { keys: string[]; does: string }[] = [
@@ -48,9 +49,9 @@ export default function StageArticle() {
         card once and decide later where it appears.
       </p>
       <p>
-        <Link to="/stage" className="text-primary font-medium hover:underline">
+        <TextLink className="font-medium" render={<Link to="/stage" />}>
           Open the Stage
-        </Link>
+        </TextLink>
       </p>
 
       <section>

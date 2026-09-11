@@ -1,8 +1,8 @@
 import type { Currency } from "@openrift/shared/types/api/trade-preferences";
 import { CURRENCIES } from "@openrift/shared/types/api/trade-preferences";
 
+import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -46,10 +46,7 @@ export function TradingSection() {
           )
         }
       >
-        <div className="flex items-center gap-3">
-          <Label htmlFor="pref-default-currency" className="font-normal">
-            Default currency
-          </Label>
+        <SettingsRow label="Default currency" htmlFor="pref-default-currency">
           <Select
             items={CURRENCY_ITEMS}
             value={defaultCurrency}
@@ -70,7 +67,7 @@ export function TradingSection() {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </SettingsRow>
       </SettingsSection>
       <EmailNotificationsControls />
     </>

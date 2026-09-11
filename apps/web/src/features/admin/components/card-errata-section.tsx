@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminConfirmDialog } from "@/features/admin/components/admin-confirm-dialog";
 import { ErrataEditor } from "@/features/admin/components/errata-editor";
 import type { ErrataDraft } from "@/features/admin/lib/errata-draft";
@@ -45,9 +46,9 @@ function ErrataRow({
           {errata.sourceUrl === null ? (
             errata.source
           ) : (
-            <a href={errata.sourceUrl} target="_blank" rel="noreferrer" className="underline">
+            <TextLink variant="muted" href={errata.sourceUrl} target="_blank" rel="noreferrer">
               {errata.source}
-            </a>
+            </TextLink>
           )}
           {errata.effectiveDate !== null && <> &middot; since {formatDay(errata.effectiveDate)}</>}
         </p>

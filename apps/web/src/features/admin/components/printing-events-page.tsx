@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import type { PrintingEventView } from "@/features/admin/hooks/use-flush-printing-events";
@@ -183,13 +184,14 @@ function PrintingEventRow({
       </TableCell>
       <TableCell>
         {event.cardSlug ? (
-          <Link
-            to="/cards/$cardSlug/{-$printingSlug}"
-            params={{ cardSlug: event.cardSlug }}
-            className="hover:underline"
+          <TextLink
+            variant="inherit"
+            render={
+              <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: event.cardSlug }} />
+            }
           >
             {event.cardName ?? event.cardSlug}
-          </Link>
+          </TextLink>
         ) : (
           <span className="text-muted-foreground">{event.cardName ?? "—"}</span>
         )}
@@ -235,8 +237,8 @@ function FlushRunStatus({ run }: { run: JobRunView }) {
   }
   if (run.status === "failed") {
     return (
-      <p className="text-destructive flex items-center gap-1 text-sm">
-        <XIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <XIcon className="text-destructive size-4 shrink-0" />
         {run.errorMessage ?? "Flush failed"}
       </p>
     );
@@ -265,8 +267,8 @@ function FlushRunStatus({ run }: { run: JobRunView }) {
     );
   }
   return (
-    <p className="text-success flex items-center gap-1 text-sm">
-      <CheckIcon className="size-4" />
+    <p className="text-muted-foreground flex items-center gap-1 text-sm">
+      <CheckIcon className="text-success size-4 shrink-0" />
       Last flush completed
     </p>
   );

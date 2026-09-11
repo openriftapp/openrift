@@ -2,6 +2,7 @@ import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { Card } from "@/components/ui/card";
+import { TextLink } from "@/components/ui/text-link";
 import { DomainIcon } from "@/features/decks/components/domain-icon";
 import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
 import { splitLegendName } from "@/features/meta/lib/meta-format";
@@ -44,13 +45,14 @@ export function MetaLegendHero({
           <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
             {/* h2: the page's h1 is the champion in the top bar. */}
             <h2 className="font-heading text-2xl font-bold">
-              <Link
-                to="/cards/$cardSlug/{-$printingSlug}"
-                params={{ cardSlug: legend.slug }}
-                className="hover:underline"
+              <TextLink
+                variant="inherit"
+                render={
+                  <Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: legend.slug }} />
+                }
               >
                 {champion}
-              </Link>
+              </TextLink>
             </h2>
             {legend.domains.length > 0 && (
               <span className="flex shrink-0 items-center gap-1">

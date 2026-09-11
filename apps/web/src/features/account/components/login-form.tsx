@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TextLink } from "@/components/ui/text-link";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient, signIn } from "@/features/account/lib/auth-client";
@@ -197,7 +198,7 @@ function PasswordSignIn({
                 />
                 <ForgotPasswordLink
                   control={form.control}
-                  className="text-muted-foreground col-start-2 row-start-1 justify-self-end text-sm underline-offset-2 hover:underline"
+                  className="col-start-2 row-start-1 justify-self-end text-sm"
                 />
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -375,9 +376,13 @@ function ForgotPasswordLink({
 }) {
   const email = useWatch({ control, name: "email" });
   return (
-    <Link to="/reset-password" search={{ email }} className={className}>
+    <TextLink
+      variant="muted"
+      className={className}
+      render={<Link to="/reset-password" search={{ email }} />}
+    >
       Forgot your password?
-    </Link>
+    </TextLink>
   );
 }
 

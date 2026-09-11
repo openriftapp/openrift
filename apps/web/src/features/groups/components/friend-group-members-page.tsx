@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { textLinkVariants } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
 import { SearchInput } from "@/features/cards/components/search-input";
 import {
@@ -275,7 +276,7 @@ function SelfShareNudge({ slug, groupName }: { slug: string; groupName: string }
   return (
     <>
       <Pressable
-        className="text-primary relative text-sm font-medium hover:underline"
+        className={cn(textLinkVariants(), "relative text-sm font-medium")}
         onClick={() => setOpen(true)}
       >
         Share a tradelist so others can find matches with you
@@ -359,8 +360,8 @@ function MemberRow({
           <span className="text-muted-foreground flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
             <span>Joined {formatMonth(member.joinedAt)}</span>
             {cardsTraded > 0 ? (
-              <span className="text-warning flex items-center gap-1 font-medium">
-                <ZapIcon className="size-3" />
+              <span className="flex items-center gap-1 font-medium">
+                <ZapIcon className="text-warning size-3" />
                 {cardsTraded} traded with you
               </span>
             ) : null}

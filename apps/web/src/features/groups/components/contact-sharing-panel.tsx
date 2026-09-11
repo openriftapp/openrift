@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { TextLink } from "@/components/ui/text-link";
 import { useContactMethods } from "@/features/account/hooks/use-contact-methods";
 import { useUpdateGroupContactReveal } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useRequiredUserId } from "@/lib/auth-session";
@@ -41,9 +42,9 @@ export function ContactSharingPanel({
       description={
         <>
           Shown next to your name on the Members and Trades pages.{" "}
-          <Link to="/profile" hash="contacts" className="underline">
+          <TextLink variant="muted" render={<Link to="/profile" hash="contacts" />}>
             Edit them in your profile
-          </Link>
+          </TextLink>
           .
         </>
       }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Eyebrow, Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -254,10 +255,10 @@ function KnownFlagRow({
         <p className="text-muted-foreground mt-0.5 text-xs">{known.description}</p>
       </div>
       <Button variant="ghost" size="sm" onClick={() => void handleCreate()} disabled={pending}>
-        <PlusIcon className="mr-1 h-3.5 w-3.5" />
+        <PlusIcon className="mr-1 size-3.5" />
         Set up
       </Button>
-      {saveError && <span className="text-destructive text-xs">{saveError}</span>}
+      {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
     </div>
   );
 }

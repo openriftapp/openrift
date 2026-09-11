@@ -17,6 +17,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
+import { TextLink } from "@/components/ui/text-link";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { ProductAddDialog } from "@/features/cards/components/product-add-dialog";
 import { useProductsList } from "@/features/cards/hooks/use-products";
@@ -106,9 +107,12 @@ function ProductGroupHeading({ set }: { set: ProductSet | null }) {
   }
   return (
     <Heading className="mb-4">
-      <Link to="/sets/$setSlug" params={{ setSlug: set.slug }} className="hover:underline">
+      <TextLink
+        variant="inherit"
+        render={<Link to="/sets/$setSlug" params={{ setSlug: set.slug }} />}
+      >
         {set.name}
-      </Link>
+      </TextLink>
     </Heading>
   );
 }

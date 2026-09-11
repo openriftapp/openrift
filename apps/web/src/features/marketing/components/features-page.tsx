@@ -13,6 +13,7 @@ import {
   PageTopBarTitle,
   useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
+import { TextLink } from "@/components/ui/text-link";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useSession } from "@/lib/auth-session";
@@ -127,7 +128,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
             </span>
           )}
         </div>
-        <a
+        <TextLink
           href={SOCIAL_LINKS.githubRepo}
           target="_blank"
           rel="noreferrer"
@@ -137,7 +138,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
             <path d={siGithub.path} />
           </svg>
           OpenRift on GitHub
-        </a>
+        </TextLink>
       </section>
     </Reveal>
   );
@@ -172,10 +173,10 @@ export function FeaturesPage() {
 
   function sectionAction(label: string, to: string): ReactNode {
     return (
-      <Link to={to} className={FEATURE_ACTION_CLASS}>
+      <TextLink className={FEATURE_ACTION_CLASS} render={<Link to={to} />}>
         {label}
         <ActionArrow />
-      </Link>
+      </TextLink>
     );
   }
 
@@ -405,7 +406,7 @@ export function FeaturesPage() {
           description:
             "Type [[card name]] and the bot replies with the art, a link, and prices from TCGplayer, Cardmarket, and CardTrader. Link the server to your group and it also says who has the card on their tradelist. Slash commands unfurl deck codes and look up rulings.",
           action: (
-            <a
+            <TextLink
               href={SOCIAL_LINKS.discordBotInvite}
               target="_blank"
               rel="noreferrer"
@@ -413,7 +414,7 @@ export function FeaturesPage() {
             >
               Add the bot to your server
               <ActionArrow />
-            </a>
+            </TextLink>
           ),
           vignette: <DiscordVignette card={thumbnailCards[14]} />,
         },
@@ -447,14 +448,13 @@ export function FeaturesPage() {
           description:
             "Paste one line into Nightbot, StreamElements, or Fossabot and viewers can look up any card without leaving chat. The reply carries the stats and a link, and a name that matches nothing comes back as a search instead of an error.",
           action: (
-            <Link
-              to="/help/$slug"
-              params={{ slug: "chat-commands" }}
+            <TextLink
               className={FEATURE_ACTION_CLASS}
+              render={<Link to="/help/$slug" params={{ slug: "chat-commands" }} />}
             >
               Set up the command
               <ActionArrow />
-            </Link>
+            </TextLink>
           ),
           vignette: <ChatVignette />,
         },

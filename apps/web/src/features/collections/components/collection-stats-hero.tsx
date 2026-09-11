@@ -2,6 +2,7 @@ import { CoinsIcon, CopyIcon, SquareIcon, SquareStackIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { MarketplaceLink } from "@/components/marketplace-link";
+import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import { CollectionMissingImagesTile } from "@/features/collections/components/collection-missing-images-tile";
 import type { CollectionStats } from "@/features/collections/hooks/use-collection-stats";
@@ -53,13 +54,18 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
           icon={CoinsIcon}
           label="Estimated Value"
           value={
-            <MarketplaceLink
-              marketplace={stats.marketplace}
-              href={marketplace.searchUrl("riftbound")}
-              className="text-foreground no-underline hover:underline"
+            <TextLink
+              variant="inherit"
+              className="text-foreground no-underline"
+              render={
+                <MarketplaceLink
+                  marketplace={stats.marketplace}
+                  href={marketplace.searchUrl("riftbound")}
+                />
+              }
             >
               {stats.formatPrice(stats.estimatedValue)}
-            </MarketplaceLink>
+            </TextLink>
           }
         >
           <span className="text-muted-foreground text-xs">

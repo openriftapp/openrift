@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { OverlayFrame } from "@/features/stage/components/overlay-frame";
 import { OverlaySettingsPanel } from "@/features/stage/components/overlay-settings-panel";
@@ -224,9 +225,9 @@ export function OverlayOutputPanel() {
       />
       <p className="text-muted-foreground text-sm">
         Open a{" "}
-        <Link to="/tier-lists" className="underline underline-offset-2">
+        <TextLink variant="muted" render={<Link to="/tier-lists" />}>
           tier list
-        </Link>
+        </TextLink>
         , press Present, and turn on &ldquo;Board on OBS&rdquo;.
       </p>
       <OverlaySettingsPanel

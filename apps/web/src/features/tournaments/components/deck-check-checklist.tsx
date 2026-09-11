@@ -289,7 +289,7 @@ function ZoneSection({
       <span>
         · {verifiedCopies}/{totalCopies}
       </span>
-      {done ? <CheckIcon className="size-3.5" strokeWidth={3} /> : null}
+      {done ? <CheckIcon className="size-3.5" /> : null}
     </SectionHeading>
   );
 
@@ -437,7 +437,7 @@ function ChecklistRow({
             found ? "border-success bg-success text-success-foreground" : "border-input",
           )}
         >
-          {found ? <CheckIcon className="size-3.5" strokeWidth={3} /> : null}
+          {found ? <CheckIcon className="size-3.5" /> : null}
         </span>
         {matched ? (
           <span className="text-muted-foreground w-24 shrink-0 text-sm tabular-nums">
@@ -574,7 +574,7 @@ function ChecklistCell({
   const foundOverlay = found ? (
     <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
       <div className="bg-background/80 rounded-full p-3 shadow-md">
-        <CheckIcon className="text-success size-12" strokeWidth={3} />
+        <CheckIcon className="text-success size-12" />
       </div>
     </div>
   ) : null;

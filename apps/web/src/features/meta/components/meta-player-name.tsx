@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
 
 export interface MetaPlayerNameProps {
@@ -28,12 +29,12 @@ export function MetaPlayerName({
   }
 
   return (
-    <Link
-      to="/meta/players/$key"
-      params={{ key: playerKey }}
-      className={cn("hover:underline", inStretchedTile && "relative", className)}
+    <TextLink
+      variant="inherit"
+      className={cn(inStretchedTile && "relative", className)}
+      render={<Link to="/meta/players/$key" params={{ key: playerKey }} />}
     >
       {name}
-    </Link>
+    </TextLink>
   );
 }

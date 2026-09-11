@@ -3,8 +3,10 @@ import { createLazyFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { TextLink } from "@/components/ui/text-link";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 const confirmUnsubscribeFn = createServerFn({ method: "POST" })
@@ -93,15 +95,17 @@ function UnsubscribePage() {
         profile.
       </p>
       {status === "error" && (
-        <p className="text-destructive text-sm">Something went wrong. Please try again.</p>
+        <Alert variant="destructive">
+          <AlertDescription>Something went wrong. Please try again.</AlertDescription>
+        </Alert>
       )}
       <div className="flex items-center gap-3">
         <Button onClick={() => void handleConfirm()} disabled={status === "submitting"}>
           {status === "submitting" ? "Unsubscribing…" : "Unsubscribe"}
         </Button>
-        <Link to="/" className="text-muted-foreground text-sm hover:underline">
+        <TextLink variant="muted" className="text-sm" render={<Link to="/" />}>
           Keep my subscription
-        </Link>
+        </TextLink>
       </div>
     </Shell>
   );

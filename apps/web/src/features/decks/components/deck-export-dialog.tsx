@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useEncodeDeckCards, useExportDeck } from "@/features/decks/hooks/use-decks";
@@ -26,28 +27,18 @@ const FORMAT_DESCRIPTIONS: Record<ExportFormat, React.ReactNode> = {
   piltover: (
     <>
       A compact code that can be imported into{" "}
-      <a
-        href="https://piltoverarchive.com"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground underline"
-      >
+      <TextLink variant="muted" href="https://piltoverarchive.com" target="_blank" rel="noreferrer">
         Piltover Archive
-      </a>
+      </TextLink>
       .
     </>
   ),
   text: (
     <>
       A human-readable list grouped by zone. Used by many deck builders, including{" "}
-      <a
-        href="https://piltoverarchive.com"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground underline"
-      >
+      <TextLink variant="muted" href="https://piltoverarchive.com" target="_blank" rel="noreferrer">
         Piltover Archive
-      </a>{" "}
+      </TextLink>{" "}
       and{" "}
       <a
         href="https://tcg-arena.fr/decks"

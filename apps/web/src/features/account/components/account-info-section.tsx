@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { validateRiotId } from "@openrift/shared/riot-id";
 import { useQueryClient } from "@tanstack/react-query";
+import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod/v4";
@@ -94,23 +95,29 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                type="text"
-                placeholder="Your name"
-                aria-invalid={fieldState.invalid}
-              />
+              <div className="flex gap-2">
+                <Input
+                  {...field}
+                  id={field.name}
+                  type="text"
+                  placeholder="Your name"
+                  aria-invalid={fieldState.invalid}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={loading || watchedName.trim() === defaultName}>
+                  {loading ? "Saving..." : "Save"}
+                </Button>
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {success && (
+                <FieldDescription className="flex items-center gap-1.5">
+                  <CheckIcon className="text-success size-3.5" />
+                  Name updated.
+                </FieldDescription>
+              )}
             </Field>
           )}
         />
-        <Field>
-          <Button type="submit" disabled={loading || watchedName.trim() === defaultName}>
-            {loading ? "Saving..." : "Save"}
-          </Button>
-        </Field>
-        {success && <FieldDescription className="text-success">Name updated.</FieldDescription>}
       </FieldGroup>
     </form>
   );
@@ -168,24 +175,30 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Riot ID</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                type="text"
-                placeholder="SummonerName#EUW"
-                aria-invalid={fieldState.invalid}
-              />
+              <div className="flex gap-2">
+                <Input
+                  {...field}
+                  id={field.name}
+                  type="text"
+                  placeholder="SummonerName#EUW"
+                  aria-invalid={fieldState.invalid}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={loading || watchedRiotId.trim() === defaultRiotId}>
+                  {loading ? "Saving..." : "Save"}
+                </Button>
+              </div>
               <FieldDescription>Prefills your tournament deck submissions.</FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {success && (
+                <FieldDescription className="flex items-center gap-1.5">
+                  <CheckIcon className="text-success size-3.5" />
+                  Riot ID updated.
+                </FieldDescription>
+              )}
             </Field>
           )}
         />
-        <Field>
-          <Button type="submit" disabled={loading || watchedRiotId.trim() === defaultRiotId}>
-            {loading ? "Saving..." : "Save"}
-          </Button>
-        </Field>
-        {success && <FieldDescription className="text-success">Riot ID updated.</FieldDescription>}
       </FieldGroup>
     </form>
   );
@@ -304,13 +317,16 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       </FieldLabel>
       {error && <FieldError>{error}</FieldError>}
       {success && (
-        <FieldDescription className="text-success">Email updated successfully.</FieldDescription>
+        <FieldDescription className="flex items-center gap-1.5">
+          <CheckIcon className="text-success size-3.5" />
+          Email updated successfully.
+        </FieldDescription>
       )}
 
       {step === "input" && (
-        <>
-          <Field>
-            <FieldLabel htmlFor="new-email">New email</FieldLabel>
+        <Field>
+          <FieldLabel htmlFor="new-email">New email</FieldLabel>
+          <div className="flex gap-2">
             <Input
               id="new-email"
               type="email"
@@ -321,17 +337,16 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
                 setNewEmail(e.target.value);
                 setSuccess(false);
               }}
+              className="flex-1"
             />
-          </Field>
-          <Field>
             <Button
               disabled={loading || !newEmail.trim()}
               onClick={() => void handleSendToCurrentEmail()}
             >
               {loading ? "Sending..." : "Send code to current email"}
             </Button>
-          </Field>
-        </>
+          </div>
+        </Field>
       )}
 
       {step === "verify-current" && (

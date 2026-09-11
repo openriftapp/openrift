@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PickerGroup, PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -205,13 +206,14 @@ export function DeckBoxTab({
             {plan.inBoxTotal} / {plan.neededTotal}
           </span>{" "}
           in{" "}
-          <Link
-            to="/collections/$collectionId"
-            params={{ collectionId: homeCollectionId }}
-            className="underline-offset-2 hover:underline"
+          <TextLink
+            variant="inherit"
+            render={
+              <Link to="/collections/$collectionId" params={{ collectionId: homeCollectionId }} />
+            }
           >
             {homeCollectionName}
-          </Link>
+          </TextLink>
         </span>
         {complete && (
           <Badge variant="muted" className="text-success">
@@ -469,13 +471,13 @@ function SlotRow({
         }
         trailing={
           slot.reason === "loan" ? (
-            <Link
-              to="/loans"
-              className="text-muted-foreground shrink-0 text-xs underline-offset-2 hover:underline"
-              onClick={rowControlClick()}
+            <TextLink
+              variant="muted"
+              className="shrink-0 text-xs"
+              render={<Link to="/loans" onClick={rowControlClick()} />}
             >
               out on loan
-            </Link>
+            </TextLink>
           ) : (
             <span className="text-muted-foreground shrink-0 text-xs">reserved for a trade</span>
           )

@@ -3,6 +3,7 @@ import { GripVerticalIcon, MonitorPlayIcon, PencilIcon, PointerIcon, SaveIcon } 
 
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
+import { TextLink } from "@/components/ui/text-link";
 
 const GUIDE_ROWS: readonly IntroGuideRow[] = [
   {
@@ -45,13 +46,9 @@ export function TierListIntroBanner({ onDismiss }: { onDismiss: () => void }) {
       onDismiss={onDismiss}
     >
       <IntroGuideList rows={GUIDE_ROWS} />
-      <Link
-        to="/help/$slug"
-        params={{ slug: "tier-lists" }}
-        className="text-primary hover:underline"
-      >
+      <TextLink render={<Link to="/help/$slug" params={{ slug: "tier-lists" }} />}>
         Read the full guide →
-      </Link>
+      </TextLink>
     </IntroBanner>
   );
 }

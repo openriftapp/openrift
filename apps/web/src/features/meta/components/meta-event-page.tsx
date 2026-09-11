@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TextLink } from "@/components/ui/text-link";
 import { MetaEventBracket } from "@/features/meta/components/meta-event-bracket";
 import { MetaEventContributeBand } from "@/features/meta/components/meta-event-contribute-band";
 import { MetaEventCorrectionDialog } from "@/features/meta/components/meta-event-correction-dialog";
@@ -113,9 +114,9 @@ export function MetaEventPage({ slug }: { slug: string }) {
         </div>
 
         <p className="text-muted-foreground mt-8 text-sm">
-          <Link to="/meta/decks" className="hover:underline">
+          <TextLink variant="inherit" render={<Link to="/meta/decks" />}>
             Browse every archived deck
-          </Link>
+          </TextLink>
         </p>
       </div>
     </div>

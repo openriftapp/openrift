@@ -2,8 +2,8 @@ import { Radio } from "@base-ui/react/radio";
 import type { DefaultCardView, Palette, Theme } from "@openrift/shared/types/api/preferences";
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 
+import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Label } from "@/components/ui/label";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
@@ -35,110 +35,87 @@ export function DisplaySection() {
 
   return (
     <SettingsSection id="display" title="Display">
-      <div className="flex items-center justify-between gap-4">
-        <Label>Theme</Label>
-        <div className="flex items-center gap-1.5">
-          <ThemePicker value={themePreference} onChange={setTheme} />
-          {themePreference !== null && (
-            <ResetButton onClick={() => setTheme(null)} label="Reset theme" />
-          )}
-        </div>
-      </div>
+      <SettingsRow label="Theme">
+        <ThemePicker value={themePreference} onChange={setTheme} />
+        {themePreference !== null && (
+          <ResetButton onClick={() => setTheme(null)} label="Reset theme" />
+        )}
+      </SettingsRow>
 
       {PALETTE_OPTIONS.length > 1 && (
-        <div className="flex items-center justify-between gap-4">
-          <Label>Palette</Label>
-          <div className="flex items-center gap-1.5">
-            <PalettePicker value={palettePreference} onChange={setPalette} />
-            {palettePreference !== null && (
-              <ResetButton onClick={() => setPalette(null)} label="Reset palette" />
-            )}
-          </div>
-        </div>
+        <SettingsRow label="Palette">
+          <PalettePicker value={palettePreference} onChange={setPalette} />
+          {palettePreference !== null && (
+            <ResetButton onClick={() => setPalette(null)} label="Reset palette" />
+          )}
+        </SettingsRow>
       )}
 
-      <div className="flex items-center justify-between gap-4">
-        <Label>Default card view</Label>
-        <div className="flex items-center gap-1.5">
-          <DefaultCardViewPicker value={defaultCardView} onChange={setDefaultCardView} />
-          {overrides.defaultCardView !== null && (
-            <ResetButton
-              onClick={() => resetPreference("defaultCardView")}
-              label="Reset default card view"
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="pref-images">Show card images</Label>
-        <div className="flex items-center gap-1.5">
-          <Switch
-            id="pref-images"
-            checked={showImages}
-            onCheckedChange={(checked: boolean) => setShowImages(checked)}
+      <SettingsRow label="Default card view">
+        <DefaultCardViewPicker value={defaultCardView} onChange={setDefaultCardView} />
+        {overrides.defaultCardView !== null && (
+          <ResetButton
+            onClick={() => resetPreference("defaultCardView")}
+            label="Reset default card view"
           />
-          {overrides.showImages !== null && (
-            <ResetButton onClick={() => resetPreference("showImages")} label="Reset show images" />
-          )}
-        </div>
-      </div>
+        )}
+      </SettingsRow>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="pref-fan">Fancy card fan</Label>
-        <div className="flex items-center gap-1.5">
-          <Switch
-            id="pref-fan"
-            checked={fancyFan}
-            onCheckedChange={(checked: boolean) => setFancyFan(checked)}
-          />
-          {overrides.fancyFan !== null && (
-            <ResetButton onClick={() => resetPreference("fancyFan")} label="Reset fancy fan" />
-          )}
-        </div>
-      </div>
+      <SettingsRow label="Show card images" htmlFor="pref-images">
+        <Switch
+          id="pref-images"
+          checked={showImages}
+          onCheckedChange={(checked: boolean) => setShowImages(checked)}
+        />
+        {overrides.showImages !== null && (
+          <ResetButton onClick={() => resetPreference("showImages")} label="Reset show images" />
+        )}
+      </SettingsRow>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="pref-foil">Foil effect</Label>
-        <div className="flex items-center gap-1.5">
-          <Switch
-            id="pref-foil"
-            checked={foilEffect}
-            onCheckedChange={(checked: boolean) => setFoilEffect(checked)}
-          />
-          {overrides.foilEffect !== null && (
-            <ResetButton onClick={() => resetPreference("foilEffect")} label="Reset foil effect" />
-          )}
-        </div>
-      </div>
+      <SettingsRow label="Fancy card fan" htmlFor="pref-fan">
+        <Switch
+          id="pref-fan"
+          checked={fancyFan}
+          onCheckedChange={(checked: boolean) => setFancyFan(checked)}
+        />
+        {overrides.fancyFan !== null && (
+          <ResetButton onClick={() => resetPreference("fancyFan")} label="Reset fancy fan" />
+        )}
+      </SettingsRow>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="pref-tilt">Card tilt on hover</Label>
-        <div className="flex items-center gap-1.5">
-          <Switch
-            id="pref-tilt"
-            checked={cardTilt}
-            onCheckedChange={(checked: boolean) => setCardTilt(checked)}
-          />
-          {overrides.cardTilt !== null && (
-            <ResetButton onClick={() => resetPreference("cardTilt")} label="Reset card tilt" />
-          )}
-        </div>
-      </div>
+      <SettingsRow label="Foil effect" htmlFor="pref-foil">
+        <Switch
+          id="pref-foil"
+          checked={foilEffect}
+          onCheckedChange={(checked: boolean) => setFoilEffect(checked)}
+        />
+        {overrides.foilEffect !== null && (
+          <ResetButton onClick={() => resetPreference("foilEffect")} label="Reset foil effect" />
+        )}
+      </SettingsRow>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Label htmlFor="pref-frosted">Frosted bars</Label>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            Blurs the page behind the header. Can slow scrolling. This device only.
-          </p>
-        </div>
+      <SettingsRow label="Card tilt on hover" htmlFor="pref-tilt">
+        <Switch
+          id="pref-tilt"
+          checked={cardTilt}
+          onCheckedChange={(checked: boolean) => setCardTilt(checked)}
+        />
+        {overrides.cardTilt !== null && (
+          <ResetButton onClick={() => resetPreference("cardTilt")} label="Reset card tilt" />
+        )}
+      </SettingsRow>
+
+      <SettingsRow
+        label="Frosted bars"
+        htmlFor="pref-frosted"
+        description="Blurs the page behind the header. Can slow scrolling. This device only."
+      >
         <Switch
           id="pref-frosted"
           checked={frostedBars}
           onCheckedChange={(checked: boolean) => setFrostedBars(checked)}
         />
-      </div>
+      </SettingsRow>
     </SettingsSection>
   );
 }

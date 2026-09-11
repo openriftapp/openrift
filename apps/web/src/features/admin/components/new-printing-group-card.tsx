@@ -12,6 +12,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   PlusIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -351,12 +352,15 @@ export function NewPrintingGroupCard({
             </p>
           )}
           {unknownValues.length > 0 && (
-            <p className="text-warning px-3 pb-2">
-              Left out because the value is not on the admin list:{" "}
-              {unknownValues
-                .map((entry) => `${entry.provider} ${entry.label} “${entry.value}”`)
-                .join(", ")}
-              . Add it there, or pick a value.
+            <p className="text-muted-foreground flex items-start gap-1.5 px-3 pb-2">
+              <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
+              <span>
+                Left out because the value is not on the admin list:{" "}
+                {unknownValues
+                  .map((entry) => `${entry.provider} ${entry.label} “${entry.value}”`)
+                  .join(", ")}
+                . Add it there, or pick a value.
+              </span>
             </p>
           )}
           <div className="flex flex-col gap-3 px-3 pb-3">

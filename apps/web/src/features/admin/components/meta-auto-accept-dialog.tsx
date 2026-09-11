@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -115,7 +116,7 @@ function AutoAcceptForm({
           <span className="text-muted-foreground">players</span>
         </div>
         {draft.minPlayersEnabled && !playerCountValid && (
-          <p className="text-destructive">Enter a whole number of players above zero.</p>
+          <FieldError>Enter a whole number of players above zero.</FieldError>
         )}
         <p className="text-muted-foreground">
           Every catalogue reads this threshold, so a change here also governs{" "}

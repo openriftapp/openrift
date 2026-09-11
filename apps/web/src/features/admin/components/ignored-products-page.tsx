@@ -6,6 +6,7 @@ import { Undo2Icon } from "lucide-react";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import {
@@ -50,14 +51,14 @@ function ExternalIdCell({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
   }
   const config = row.marketplace === "tcgplayer" ? TCG_CONFIG : CM_CONFIG;
   return (
-    <a
+    <TextLink
+      className="font-mono underline"
       href={config.productUrl(row.externalId)}
       target="_blank"
       rel="noreferrer"
-      className="text-primary hover:text-primary/80 font-mono underline underline-offset-4"
     >
       #{row.externalId}
-    </a>
+    </TextLink>
   );
 }
 

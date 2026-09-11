@@ -3,6 +3,7 @@ import type { TournamentDetailResponse } from "@openrift/shared/types/api/tourna
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
@@ -87,9 +88,7 @@ export function ScheduleSection({
             />
           </div>
           {nextStartsAt === null ? (
-            <span className="text-destructive text-sm">
-              Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).
-            </span>
+            <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
           ) : null}
         </div>
         <span className="text-muted-foreground mb-2 text-sm">to</span>
@@ -113,11 +112,11 @@ export function ScheduleSection({
             />
           </div>
           {endIncomplete ? (
-            <span className="text-destructive text-sm">
+            <FieldError>
               Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
-            </span>
+            </FieldError>
           ) : endBeforeStart ? (
-            <span className="text-destructive text-sm">The end must be at or after the start.</span>
+            <FieldError>The end must be at or after the start.</FieldError>
           ) : null}
         </div>
       </div>

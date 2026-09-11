@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import {
@@ -61,13 +62,17 @@ function ToReviewCell({ row }: AdminCellSlotProps<CatalogSource>) {
     return <span className="text-muted-foreground text-sm">0</span>;
   }
   return (
-    <Link
-      to="/admin/review"
-      search={isContributors(row) ? { filter: "contributors" } : { q: row.provider }}
-      className="text-primary text-sm hover:underline"
+    <TextLink
+      className="text-sm"
+      render={
+        <Link
+          to="/admin/review"
+          search={isContributors(row) ? { filter: "contributors" } : { q: row.provider }}
+        />
+      }
     >
       {inReview}
-    </Link>
+    </TextLink>
   );
 }
 

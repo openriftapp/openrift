@@ -9,6 +9,7 @@ import { PageDescription, PageTopBarBack } from "@/components/layout/page-top-ba
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DeskSegmented, DeskThumb } from "@/features/admin/components/printing-desk-shared";
 import { useDeskCardPrintings } from "@/features/admin/hooks/use-printing-desk";
@@ -92,14 +93,13 @@ function CardHeaderPanel({ card, base }: { card: DeskCard; base: DeskPrintingRow
           <p className="text-muted-foreground text-sm">{meta.join(" · ")}</p>
           {base && <p className="text-muted-foreground text-sm">Art by {base.artist}</p>}
         </div>
-        <Link
-          to="/cards/$cardSlug/{-$printingSlug}"
-          params={{ cardSlug: card.slug }}
-          className="text-primary flex shrink-0 items-center gap-1 text-sm hover:underline"
+        <TextLink
+          className="flex shrink-0 items-center gap-1 text-sm"
+          render={<Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: card.slug }} />}
         >
           Card page
           <ExternalLinkIcon className="size-3.5" />
-        </Link>
+        </TextLink>
       </CardContent>
     </Card>
   );

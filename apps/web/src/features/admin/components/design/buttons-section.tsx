@@ -2,6 +2,7 @@ import { PlusIcon, SettingsIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
+import { TextLink } from "@/components/ui/text-link";
 
 import { DemoRow, DemoSection, Swatch, SwatchRow } from "./demo-primitives";
 
@@ -68,6 +69,24 @@ export function ButtonsSection() {
           <ButtonGroupSeparator />
           <Button variant="outline">Copies</Button>
         </ButtonGroup>
+      </DemoRow>
+      <DemoRow label="Inline text links">
+        <p>
+          Read the <TextLink href="#buttons">tournament rules</TextLink> before the Summoner
+          Skirmish.
+        </p>
+        <p className="text-muted-foreground text-sm">
+          Hosting costs are covered by{" "}
+          <TextLink variant="muted" href="#buttons">
+            supporters
+          </TextLink>
+          .
+        </p>
+        <p className="font-medium">
+          <TextLink variant="inherit" href="#buttons">
+            Jinx, Loose Cannon
+          </TextLink>
+        </p>
       </DemoRow>
     </DemoSection>
   );

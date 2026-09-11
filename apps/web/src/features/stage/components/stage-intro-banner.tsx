@@ -4,6 +4,7 @@ import { KeyboardIcon, ListPlusIcon, MonitorIcon, RadioTowerIcon } from "lucide-
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { Kbd } from "@/components/ui/kbd";
+import { TextLink } from "@/components/ui/text-link";
 
 const GUIDE_ROWS: readonly IntroGuideRow[] = [
   {
@@ -45,9 +46,9 @@ export function StageIntroBanner({ onDismiss }: { onDismiss: () => void }) {
       onDismiss={onDismiss}
     >
       <IntroGuideList rows={GUIDE_ROWS} />
-      <Link to="/help/$slug" params={{ slug: "stage" }} className="text-primary hover:underline">
+      <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
         Read the full guide →
-      </Link>
+      </TextLink>
     </IntroBanner>
   );
 }

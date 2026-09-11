@@ -43,6 +43,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 
@@ -316,23 +317,13 @@ export function RoadmapPage() {
           What ships next grows out of player feedback rather than a long-term plan: most of the
           features below started as requests from people using the app. If something is missing for
           you, say so on{" "}
-          <a
-            href={SOCIAL_LINKS.discordInvite}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
-          </a>{" "}
+          </TextLink>{" "}
           or{" "}
-          <a
-            href={SOCIAL_LINKS.githubIssues}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
-          </a>
+          </TextLink>
           .
         </p>
         <ol className="relative">

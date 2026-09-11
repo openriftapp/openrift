@@ -18,6 +18,9 @@ export const PAGE_WIDTH = {
 
 export type PageWidth = keyof typeof PAGE_WIDTH;
 
+// Column cap for stand-alone forms on full pages; dialogs and grids size their own fields.
+export const FORM_COLUMN = "w-full max-w-md";
+
 const PAGE_X = "px-safe";
 
 export const PAGE_PADDING = `${PAGE_X} py-3`;

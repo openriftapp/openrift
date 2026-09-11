@@ -1,7 +1,7 @@
 import type { TradeRequestEmailCadence } from "@openrift/shared/types/api/preferences";
 
+import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -29,89 +29,71 @@ export function EmailNotificationsControls() {
       title="Email notifications"
       description="Only about your trading activity. Every email has one-click unsubscribe."
     >
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-0.5">
-            <Label htmlFor="pref-email-trade-requests" className="font-normal">
-              Trade requests
-            </Label>
-            <p className="text-muted-foreground">When someone requests a trade with you.</p>
-          </div>
-          <Switch
-            id="pref-email-trade-requests"
-            checked={gates.tradeRequests}
-            disabled={disabled}
-            onCheckedChange={(checked: boolean) => setChannel("tradeRequests", checked)}
-          />
-        </div>
+      <SettingsRow
+        label="Trade requests"
+        htmlFor="pref-email-trade-requests"
+        description="When someone requests a trade with you."
+      >
+        <Switch
+          id="pref-email-trade-requests"
+          checked={gates.tradeRequests}
+          disabled={disabled}
+          onCheckedChange={(checked: boolean) => setChannel("tradeRequests", checked)}
+        />
+      </SettingsRow>
 
-        <div className="flex items-center justify-between gap-4">
-          <Label
-            htmlFor="pref-email-trade-request-cadence"
-            className="text-muted-foreground font-normal"
+      <SettingsRow label="Trade request frequency" htmlFor="pref-email-trade-request-cadence">
+        <Select
+          value={gates.tradeRequestCadence}
+          onValueChange={(value) => {
+            if (value) {
+              setCadence(value as TradeRequestEmailCadence);
+            }
+          }}
+          items={CADENCE_OPTIONS}
+        >
+          <SelectTrigger
+            id="pref-email-trade-request-cadence"
+            className="w-44"
+            disabled={disabled || !gates.tradeRequests}
           >
-            Frequency
-          </Label>
-          <Select
-            value={gates.tradeRequestCadence}
-            onValueChange={(value) => {
-              if (value) {
-                setCadence(value as TradeRequestEmailCadence);
-              }
-            }}
-            items={CADENCE_OPTIONS}
-          >
-            <SelectTrigger
-              id="pref-email-trade-request-cadence"
-              className="w-44"
-              disabled={disabled || !gates.tradeRequests}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CADENCE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CADENCE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-0.5">
-          <Label htmlFor="pref-email-trade-status" className="font-normal">
-            Trade updates
-          </Label>
-          <p className="text-muted-foreground">
-            When your trade is accepted, declined, or cancelled. Same frequency as trade requests.
-          </p>
-        </div>
+      <SettingsRow
+        label="Trade updates"
+        htmlFor="pref-email-trade-status"
+        description="When your trade is accepted, declined, or cancelled. Same frequency as trade requests."
+      >
         <Switch
           id="pref-email-trade-status"
           checked={gates.tradeStatus}
           disabled={disabled}
           onCheckedChange={(checked: boolean) => setChannel("tradeStatus", checked)}
         />
-      </div>
+      </SettingsRow>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-0.5">
-          <Label htmlFor="pref-email-trade-matches" className="font-normal">
-            Daily match digest
-          </Label>
-          <p className="text-muted-foreground">
-            A once-a-day summary of new cards your groups have that are on your wishlist.
-          </p>
-        </div>
+      <SettingsRow
+        label="Daily match digest"
+        htmlFor="pref-email-trade-matches"
+        description="A once-a-day summary of new cards your groups have that are on your wishlist."
+      >
         <Switch
           id="pref-email-trade-matches"
           checked={gates.tradeMatches}
           disabled={disabled}
           onCheckedChange={(checked: boolean) => setChannel("tradeMatches", checked)}
         />
-      </div>
+      </SettingsRow>
     </SettingsSection>
   );
 }

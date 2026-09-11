@@ -491,7 +491,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
                       aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
                       onClick={() => removeRelease(row.setId, row.language)}
                     >
-                      <Trash2Icon className="h-4 w-4" />
+                      <Trash2Icon className="size-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

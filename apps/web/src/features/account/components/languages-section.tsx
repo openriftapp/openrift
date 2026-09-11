@@ -1,6 +1,7 @@
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -64,7 +65,7 @@ export function LanguagesSection({
         )
       }
     >
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         {orderedCodes.map((code) => {
           const lang = availableByCode.get(code);
           if (!lang) {
@@ -73,10 +74,7 @@ export function LanguagesSection({
           const enabled = enabledSet.has(code);
           const index = languages.indexOf(code);
           return (
-            <div
-              key={code}
-              className="flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
-            >
+            <div key={code} className="flex min-h-8 items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Switch
                   id={`pref-lang-${code}`}
@@ -87,34 +85,28 @@ export function LanguagesSection({
                   {lang.name}
                 </Label>
                 <span className="text-muted-foreground text-xs">{code}</span>
-                {enabled && index === 0 && (
-                  <span className="bg-primary/10 text-primary text-2xs rounded-md px-1.5 py-0.5 font-medium">
-                    Preferred
-                  </span>
-                )}
+                {enabled && index === 0 && <Badge variant="subtle">Preferred</Badge>}
               </div>
-              {enabled && (
-                <div className="flex items-center gap-0.5">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={index === 0}
-                    onClick={() => moveLanguage(code, -1)}
-                    aria-label={`Move ${lang.name} up`}
-                  >
-                    <ArrowUpIcon className="size-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={index === languages.length - 1}
-                    onClick={() => moveLanguage(code, 1)}
-                    aria-label={`Move ${lang.name} down`}
-                  >
-                    <ArrowDownIcon className="size-3" />
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={!enabled || index === 0}
+                  onClick={() => moveLanguage(code, -1)}
+                  aria-label={`Move ${lang.name} up`}
+                >
+                  <ArrowUpIcon className="size-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={!enabled || index === languages.length - 1}
+                  onClick={() => moveLanguage(code, 1)}
+                  aria-label={`Move ${lang.name} down`}
+                >
+                  <ArrowDownIcon className="size-3" />
+                </Button>
+              </div>
             </div>
           );
         })}

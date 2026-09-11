@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
 import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import type { HastNode, MdNode } from "@/features/rules/lib/rules-markdown";
 import {
   diffRuleMarkdown,
@@ -84,14 +85,14 @@ function makeRemarkLinkifyTerms(context: TermLinkContext) {
 export const EMPTY_TERM_ANCHORS: ReadonlyMap<string, string> = new Map();
 
 // Tournament penalty labels — matched as literal `[Label]` strings inside rule
-// bodies and styled with the IPG-derived color codes.
+// bodies and styled on the status tokens by severity.
 const PENALTY_STYLES: Record<string, string> = {
-  Warning: "bg-[#ffe599] text-black",
-  Warnings: "bg-[#ffe599] text-black",
-  "Game Loss": "bg-[#f9cb9c] text-black",
-  "No Penalty": "bg-[#cccccc] text-black",
-  "Match Loss": "bg-[#ea9999] text-black",
-  Disqualification: "bg-[#990000] text-white",
+  Warning: "bg-warning-soft text-warning",
+  Warnings: "bg-warning-soft text-warning",
+  "Game Loss": "bg-warning-soft text-warning",
+  "No Penalty": "bg-muted text-muted-foreground",
+  "Match Loss": "bg-destructive-soft text-destructive",
+  Disqualification: "bg-destructive text-destructive-foreground",
 };
 
 function handleSamePageAnchorClick(event: MouseEvent<HTMLAnchorElement>, href: string): void {
@@ -127,32 +128,23 @@ function handleSamePageAnchorClick(event: MouseEvent<HTMLAnchorElement>, href: s
 function RuleMarkdownAnchor({ href, children }: { href?: string; children?: ReactNode }) {
   if (typeof href === "string" && href.startsWith("#")) {
     return (
-      <a
-        href={href}
-        className="text-primary hover:underline"
-        onClick={(event) => handleSamePageAnchorClick(event, href)}
-      >
+      <TextLink href={href} onClick={(event) => handleSamePageAnchorClick(event, href)}>
         {children}
-      </a>
+      </TextLink>
     );
   }
   if (typeof href === "string" && href.startsWith("/rules/core#")) {
     const hash = href.slice("/rules/core#".length);
     return (
-      <Link
-        to="/rules/$kind"
-        params={{ kind: "core" }}
-        hash={hash}
-        className="text-primary hover:underline"
-      >
+      <TextLink render={<Link to="/rules/$kind" params={{ kind: "core" }} hash={hash} />}>
         {children}
-      </Link>
+      </TextLink>
     );
   }
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+    <TextLink href={href} target="_blank" rel="noreferrer">
       {children}
-    </a>
+    </TextLink>
   );
 }
 
@@ -260,9 +252,9 @@ const VERSION_COMMENT_MARKDOWN_ELEMENTS = [
 
 const VERSION_COMMENT_COMPONENTS: Components = {
   a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+    <TextLink href={href} target="_blank" rel="noreferrer">
       {children}
-    </a>
+    </TextLink>
   ),
   ul: ({ children }) => <ul className="my-2 ml-6 list-disc">{children}</ul>,
   ol: ({ children }) => <ol className="my-2 ml-6 list-decimal">{children}</ol>,

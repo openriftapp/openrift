@@ -302,6 +302,7 @@ export function PrintingReviewCard({
               }
             >
               <EllipsisVerticalIcon />
+              <span className="sr-only">Printing actions</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {!hasCitations && (

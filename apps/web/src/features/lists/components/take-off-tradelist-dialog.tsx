@@ -2,6 +2,7 @@ import type { CopyListMembershipsResponse } from "@openrift/shared/types/api/col
 import { LoaderIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Alert } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -108,10 +109,13 @@ export function TakeOffTradelistDialog({
                   but it&apos;s recorded in your activity history.
                 </span>
                 {soldBlocked && (
-                  <span className="text-destructive block text-sm">
-                    {reservedCount === count
-                      ? `${count === 1 ? "This card is" : "These cards are"} in a live trade. Complete or cancel it first.`
-                      : `${reservedCount} of these are in a live trade and can't be sold here. Take those off separately.`}
+                  <span className="text-muted-foreground flex items-start gap-1.5 text-sm">
+                    <TriangleAlertIcon className="text-destructive mt-0.5 size-4 shrink-0" />
+                    <span>
+                      {reservedCount === count
+                        ? `${count === 1 ? "This card is" : "These cards are"} in a live trade. Complete or cancel it first.`
+                        : `${reservedCount} of these are in a live trade and can't be sold here. Take those off separately.`}
+                    </span>
                   </span>
                 )}
               </span>
@@ -119,7 +123,7 @@ export function TakeOffTradelistDialog({
           </RadioGroup>
 
           {sold && showListWarning && (
-            <div className="border-destructive/40 bg-destructive/10 text-destructive flex gap-3 rounded-lg border p-3 text-sm">
+            <Alert variant="destructive" className="flex gap-3">
               <TriangleAlertIcon className="mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
                 <p className="font-medium">
@@ -138,7 +142,7 @@ export function TakeOffTradelistDialog({
                   ))}
                 </ul>
               </div>
-            </div>
+            </Alert>
           )}
 
           {sold && needsTypeConfirm && (

@@ -135,7 +135,7 @@ export function MarkdownText({
       className={cn(
         // Tailwind's preflight strips list markers and indentation, so the
         // ul/ol/li we allow through would otherwise render as bare lines.
-        "space-y-2 [&_a]:underline [&_a]:underline-offset-2 [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5",
+        "[&_a]:hover:text-foreground space-y-2 [&_a]:underline [&_a]:underline-offset-4 [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5",
         headings &&
           "[&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_h1]:mt-4 [&_h1]:text-base [&_h1]:font-semibold [&_h1:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2:first-child]:mt-0 [&_h3]:mt-3 [&_h3]:font-medium [&_h3:first-child]:mt-0",
         className,

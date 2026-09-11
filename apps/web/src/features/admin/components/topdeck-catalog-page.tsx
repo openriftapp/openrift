@@ -8,6 +8,7 @@ import { useState } from "react";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminPager } from "@/features/admin/components/admin-pager";
 import { AdminTable } from "@/features/admin/components/admin-table";
@@ -46,15 +47,16 @@ function NameCell({ row }: AdminCellSlotProps<TopdeckCatalogRow>) {
     return null;
   }
   return (
-    <a
+    <TextLink
+      variant="inherit"
+      className="font-medium"
       href={row.sourceUrl}
       target="_blank"
       rel="noreferrer"
-      className="font-medium hover:underline"
       title="Open the source's page for this event"
     >
       {row.name}
-    </a>
+    </TextLink>
   );
 }
 

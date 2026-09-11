@@ -20,13 +20,13 @@ export function ariaSort(sorted: SortedState): "ascending" | "descending" | "non
 
 function SortIcon({ sorted }: { sorted: SortedState }) {
   if (sorted === "asc") {
-    return <ArrowUpIcon className="text-foreground h-3.5 w-3.5" />;
+    return <ArrowUpIcon className="text-foreground size-3.5" />;
   }
   if (sorted === "desc") {
-    return <ArrowDownIcon className="text-foreground h-3.5 w-3.5" />;
+    return <ArrowDownIcon className="text-foreground size-3.5" />;
   }
   return (
-    <ChevronsUpDownIcon className="text-muted-foreground/50 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+    <ChevronsUpDownIcon className="text-muted-foreground/50 size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
   );
 }
 

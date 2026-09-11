@@ -71,11 +71,11 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       {showGroups ? (
         <p className="text-muted-foreground truncate text-xs">{person.groupNames.join(" · ")}</p>
       ) : null}
-      {action === null ? null : <p className="text-warning text-sm font-medium">{action}</p>}
+      {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {art.length > 0 ? <CardArtThumbStack items={art} max={5} thumbClassName="w-8" /> : null}
       {person.suggestions > 0 ? (
-        <p className="text-success flex items-center gap-1 text-sm font-medium">
-          <SparklesIcon className="size-3.5 shrink-0" />
+        <p className="text-muted-foreground flex items-center gap-1 text-sm font-medium">
+          <SparklesIcon className="text-success size-3.5 shrink-0" />
           {possibleTradesLine(person.suggestions)}
         </p>
       ) : null}

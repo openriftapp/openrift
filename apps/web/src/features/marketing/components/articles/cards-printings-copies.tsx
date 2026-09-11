@@ -6,6 +6,7 @@ import { Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { Code } from "@/components/ui/code";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { cn } from "@/lib/utils";
@@ -127,11 +128,8 @@ export default function CardsPrintingsCopiesArticle() {
           it has been printed.
         </p>
         <p className="text-muted-foreground mt-2">
-          In the{" "}
-          <a href="/cards" className="text-primary hover:underline">
-            browser
-          </a>
-          , <strong className="text-foreground">Cards</strong> view shows one entry per unique card.
+          In the <TextLink href="/cards">browser</TextLink>,{" "}
+          <strong className="text-foreground">Cards</strong> view shows one entry per unique card.
           Use it to answer &quot;do I have this card at all?&quot; The detail panel lists every
           available printing under <em>Printings</em>.
         </p>
@@ -198,11 +196,8 @@ export default function CardsPrintingsCopiesArticle() {
           carry updated wording after an errata, and flavor text often differs.
         </p>
         <p className="text-muted-foreground mt-2">
-          In the{" "}
-          <a href="/cards" className="text-primary hover:underline">
-            browser
-          </a>
-          , <strong className="text-foreground">Printings</strong> view shows every version
+          In the <TextLink href="/cards">browser</TextLink>,{" "}
+          <strong className="text-foreground">Printings</strong> view shows every version
           separately, each with its own image, rarity, and price. Use this when you care about
           specific editions.
         </p>
@@ -233,11 +228,8 @@ export default function CardsPrintingsCopiesArticle() {
           yet.
         </p>
         <p className="text-muted-foreground mt-2">
-          In your{" "}
-          <a href="/collections" className="text-primary hover:underline">
-            collection
-          </a>
-          , <strong className="text-foreground">Copies</strong> view shows every individual copy as
+          In your <TextLink href="/collections">collection</TextLink>,{" "}
+          <strong className="text-foreground">Copies</strong> view shows every individual copy as
           its own entry, with no stacking. Where the other views show a count badge like{" "}
           <strong className="text-foreground">&times;3</strong>, Copies view shows three separate
           cards on the grid.

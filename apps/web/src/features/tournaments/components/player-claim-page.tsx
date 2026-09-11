@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Building2Icon, CalendarIcon, UsersIcon } from "lucide-react";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -141,7 +142,9 @@ export function PlayerClaimPage({ token }: { token: string }) {
               </Button>
             </div>
             {claim.isError ? (
-              <p className="text-destructive text-sm">Something went wrong. Please try again.</p>
+              <Alert variant="destructive">
+                <AlertDescription>Something went wrong. Please try again.</AlertDescription>
+              </Alert>
             ) : null}
           </>
         )}

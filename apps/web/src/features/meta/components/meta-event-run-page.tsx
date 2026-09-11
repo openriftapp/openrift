@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { accentGlow } from "@/components/ui/podium";
 import { RowList } from "@/components/ui/row-list";
+import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-hero";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
@@ -64,13 +65,12 @@ function OpponentList({ opponent }: { opponent: MetaEventPlayer | undefined }) {
     return null;
   }
   return (
-    <Link
-      to="/meta/decks/$token"
-      params={{ token: opponent.shareToken }}
-      className="text-primary font-medium whitespace-nowrap hover:underline"
+    <TextLink
+      className="font-medium whitespace-nowrap"
+      render={<Link to="/meta/decks/$token" params={{ token: opponent.shareToken }} />}
     >
       {opponent.listStatus === "partial" ? "Partial" : "Decklist"}
-    </Link>
+    </TextLink>
   );
 }
 
@@ -420,9 +420,9 @@ export function MetaEventRunPage() {
         />
 
         <p className="text-muted-foreground text-sm">
-          <Link to="/meta/$slug" params={{ slug }} className="hover:underline">
+          <TextLink variant="inherit" render={<Link to="/meta/$slug" params={{ slug }} />}>
             Full standings
-          </Link>
+          </TextLink>
           {" · Every match on this page is the result published by the tournament organizer."}
         </p>
       </div>

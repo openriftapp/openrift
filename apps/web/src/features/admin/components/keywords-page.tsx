@@ -1,5 +1,5 @@
 import { WellKnown } from "@openrift/shared/well-known";
-import { LoaderIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { CircleXIcon, LoaderIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -331,7 +331,12 @@ export function KeywordsPage() {
                   cards
                 </p>
               )}
-              {recomputeKeywords.isError && <p className="text-destructive text-sm">Failed</p>}
+              {recomputeKeywords.isError && (
+                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                  <CircleXIcon className="text-destructive size-4 shrink-0" />
+                  Failed
+                </p>
+              )}
               <Button
                 variant="outline"
                 onClick={() => recomputeKeywords.mutate()}
@@ -362,7 +367,12 @@ export function KeywordsPage() {
                     `, ${discoverTranslations.data.conflicts.length} conflicts`}
                 </p>
               )}
-              {discoverTranslations.isError && <p className="text-destructive text-sm">Failed</p>}
+              {discoverTranslations.isError && (
+                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                  <CircleXIcon className="text-destructive size-4 shrink-0" />
+                  Failed
+                </p>
+              )}
               <Button
                 variant="outline"
                 onClick={() => discoverTranslations.mutate()}

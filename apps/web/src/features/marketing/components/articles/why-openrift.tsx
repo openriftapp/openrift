@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -36,20 +37,15 @@ export default function WhyOpenRiftArticle() {
             It&apos;s not just me, either. My local game store group uses it every day, for example
             to run our shared &quot;bulk box&quot;: a group collection of spare cards where taking a
             card out moves it straight into your own collection. A good part of the{" "}
-            <Link to="/roadmap" className="text-primary hover:underline">
-              roadmap
-            </Link>{" "}
-            started as their feature requests.
+            <TextLink render={<Link to="/roadmap" />}>roadmap</TextLink> started as their feature
+            requests.
           </p>
           <p>
             The fair question to ask any new fan project is whether it will still be around next
             year. I can&apos;t promise the future, but I can point at a track record: the{" "}
-            <Link to="/changelog" className="text-primary hover:underline">
-              changelog
-            </Link>{" "}
-            shows what has shipped week by week since launch, my play group depends on the app
-            daily, and my own collection lives here too. As long as I play Riftbound, OpenRift gets
-            maintained.
+            <TextLink render={<Link to="/changelog" />}>changelog</TextLink> shows what has shipped
+            week by week since launch, my play group depends on the app daily, and my own collection
+            lives here too. As long as I play Riftbound, OpenRift gets maintained.
           </p>
         </div>
       </section>
@@ -63,14 +59,9 @@ export default function WhyOpenRiftArticle() {
             description={
               <>
                 Full source code on{" "}
-                <a
-                  href={SOCIAL_LINKS.githubRepo}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline"
-                >
+                <TextLink href={SOCIAL_LINKS.githubRepo} target="_blank" rel="noreferrer">
                   GitHub
-                </a>{" "}
+                </TextLink>{" "}
                 under AGPL-3.0. Inspect, fork, self-host, or open an issue. I read every single one.
               </>
             }
@@ -144,10 +135,7 @@ export default function WhyOpenRiftArticle() {
         <p className="text-muted-foreground mb-3">
           These are OpenRift features with no counterpart on the other sites, as far as I know. For
           the full tour of everything the app does, unique or not, see the{" "}
-          <Link to="/features" className="text-primary hover:underline">
-            features page
-          </Link>
-          .
+          <TextLink render={<Link to="/features" />}>features page</TextLink>.
         </p>
         <ul className="text-muted-foreground list-disc space-y-1.5 pl-5">
           <li>
@@ -171,13 +159,9 @@ export default function WhyOpenRiftArticle() {
           </li>
           <li>
             <span className="text-foreground font-medium">
-              <Link
-                to="/help/$slug"
-                params={{ slug: "browser-extension" }}
-                className="text-primary hover:underline"
-              >
+              <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
                 OpenRift Companion
-              </Link>
+              </TextLink>
               :
             </span>{" "}
             a Firefox add-on that reads the decklist on whatever site you are looking at and hands
@@ -281,8 +265,8 @@ export default function WhyOpenRiftArticle() {
 
 function TechLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+    <TextLink href={href} target="_blank" rel="noreferrer">
       {children}
-    </a>
+    </TextLink>
   );
 }

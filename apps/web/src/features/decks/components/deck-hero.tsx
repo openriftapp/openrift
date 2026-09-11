@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
+import { textLinkVariants } from "@/components/ui/text-link";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
 import { DeckFormatBadge } from "@/features/decks/components/deck-format-badge";
@@ -87,7 +88,7 @@ function SubtitlePivot({
       onClick={() => onCardClick(card)}
       aria-label={spokenName}
       title={spokenName}
-      className="hover:text-foreground truncate hover:underline"
+      className={cn(textLinkVariants({ variant: "muted" }), "truncate")}
     >
       {label}
     </Pressable>
@@ -323,7 +324,7 @@ export function DeckHero({
                               owned ·{" "}
                             </>
                           )}
-                          <span className="text-warning">{missingLabel}</span>
+                          <span>{missingLabel}</span>
                         </span>
                       </Button>
                     )}

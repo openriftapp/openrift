@@ -119,7 +119,7 @@ export function ReorderableRow({
               locked ? "cursor-not-allowed opacity-50" : "cursor-grab active:cursor-grabbing",
             )}
           >
-            <GripVerticalIcon className="h-3.5 w-3.5" />
+            <GripVerticalIcon className="size-3.5" />
           </button>
           {onMove && (
             <>
@@ -131,7 +131,7 @@ export function ReorderableRow({
                 disabled={!canMoveUp || locked}
                 onClick={() => onMove(-1)}
               >
-                <ArrowUpIcon className="h-3.5 w-3.5" />
+                <ArrowUpIcon className="size-3.5" />
               </Button>
               <Button
                 variant="ghost"
@@ -141,7 +141,7 @@ export function ReorderableRow({
                 disabled={!canMoveDown || locked}
                 onClick={() => onMove(1)}
               >
-                <ArrowDownIcon className="h-3.5 w-3.5" />
+                <ArrowDownIcon className="size-3.5" />
               </Button>
             </>
           )}

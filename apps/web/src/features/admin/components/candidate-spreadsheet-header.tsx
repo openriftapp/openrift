@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import {
   getProviderLabel,
@@ -38,12 +39,19 @@ function SubmitterLine({
       )}
       {submitter.note !== null && (
         <Popover>
-          <PopoverTrigger
-            render={<Button variant="ghost" size="icon" className="size-5 shrink-0" />}
-            aria-label="Show submission note"
-          >
-            <MessageSquareTextIcon className="size-3.5" />
-          </PopoverTrigger>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <PopoverTrigger
+                  render={<Button variant="ghost" size="icon" className="size-5 shrink-0" />}
+                  aria-label="Show submission note"
+                />
+              }
+            >
+              <MessageSquareTextIcon className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipContent>Submission note</TooltipContent>
+          </Tooltip>
           <PopoverContent align="start" className="w-80">
             <p className="text-muted-foreground mb-1 font-medium">Submission note</p>
             <p className="whitespace-pre-wrap">{submitter.note}</p>
@@ -83,7 +91,7 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
         <th className="bg-muted/50 sticky left-0 z-10 w-40 px-3 py-2 text-left font-medium">
           Field
         </th>
-        <th className="bg-success-soft w-64 border-l px-3 py-2 text-left font-medium">
+        <th className="bg-success-soft text-success w-64 border-l px-3 py-2 text-left font-medium">
           <span className="inline-flex items-center gap-1.5">
             On the site
             {activeColumnBadge}
@@ -103,7 +111,8 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
               key={row.id}
               className={cn(
                 "w-64 border-l px-3 py-2 text-left font-medium",
-                isFavoriteProvider(row, providerLabels, favoriteProviders) && "bg-info-soft",
+                isFavoriteProvider(row, providerLabels, favoriteProviders) &&
+                  "bg-info-soft text-info",
                 isChecked(row) && "opacity-50",
                 columnClassName?.(row),
               )}
@@ -122,6 +131,7 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
                     render={<Button variant="ghost" size="icon" className="ml-auto shrink-0" />}
                   >
                     <EllipsisVerticalIcon className="size-3.5" />
+                    <span className="sr-only">Column actions</span>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {onCheck && !isChecked(row) && (

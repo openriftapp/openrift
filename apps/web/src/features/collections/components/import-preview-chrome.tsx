@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
+import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
 export function ImportStatusBadges({
@@ -57,16 +58,14 @@ export function ImportParseErrorDetails({
   }
 
   return (
-    <details className="bg-warning-soft border-warning/40 rounded-lg border">
-      <summary className="text-warning cursor-pointer px-3 py-2 font-medium">
+    <details className="bg-warning-soft border-warning/40 text-warning rounded-lg border">
+      <summary className="cursor-pointer px-3 py-2 font-medium">
         {errors.length} {unit}
         {errors.length === 1 ? "" : "s"} could not be read
       </summary>
       <div className="border-warning/40 border-t px-3 py-2">
         {errors.map((error) => (
-          <p key={error} className="text-warning">
-            {error}
-          </p>
+          <p key={error}>{error}</p>
         ))}
       </div>
     </details>
@@ -104,7 +103,7 @@ export function ImportToVerifyNote({ count }: { count: number }) {
   return (
     <p className="text-muted-foreground text-sm">
       Best guess picked for {count} {count === 1 ? "card" : "cards"} (marked{" "}
-      <span className="text-warning">to verify</span>). Open each to confirm.
+      <span className="text-foreground font-medium">to verify</span>). Open each to confirm.
     </p>
   );
 }
@@ -117,14 +116,9 @@ export function ImportTroubleNote({ needsAttentionCount }: { needsAttentionCount
   return (
     <p className="text-muted-foreground text-sm">
       Having trouble importing?{" "}
-      <a
-        href={SOCIAL_LINKS.githubIssues}
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground underline"
-      >
+      <TextLink variant="muted" href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
         Open a GitHub issue
-      </a>{" "}
+      </TextLink>{" "}
       and we&apos;ll take a look.
     </p>
   );

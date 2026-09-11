@@ -123,56 +123,60 @@ export function ShareImagePanel({
         </Callout>
       ) : null}
 
-      {aspects.length > 1 ? (
-        <div className="flex flex-col gap-2">
-          <Label>Shape</Label>
-          <ToggleGroup
-            aria-label="Image shape"
-            variant="outline"
-            spacing={0}
-            value={[aspect]}
-            onValueChange={([next]) => {
-              if (next === "landscape" || next === "vertical") {
-                chooseAspect(next);
-              }
-            }}
-          >
-            <ToggleGroupItem value="landscape">
-              <RectangleHorizontalIcon className="size-4" />
-              Wide
-            </ToggleGroupItem>
-            <ToggleGroupItem value="vertical">
-              <RectangleVerticalIcon className="size-4" />
-              Tall
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      ) : null}
+      {aspects.length > 1 || scales.length > 1 ? (
+        <div className="flex flex-wrap gap-6">
+          {aspects.length > 1 ? (
+            <div className="flex flex-col gap-2">
+              <Label>Shape</Label>
+              <ToggleGroup
+                aria-label="Image shape"
+                variant="outline"
+                spacing={0}
+                value={[aspect]}
+                onValueChange={([next]) => {
+                  if (next === "landscape" || next === "vertical") {
+                    chooseAspect(next);
+                  }
+                }}
+              >
+                <ToggleGroupItem value="landscape">
+                  <RectangleHorizontalIcon className="size-4" />
+                  Wide
+                </ToggleGroupItem>
+                <ToggleGroupItem value="vertical">
+                  <RectangleVerticalIcon className="size-4" />
+                  Tall
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          ) : null}
 
-      {scales.length > 1 ? (
-        <div className="flex flex-col gap-2">
-          <Label>Size</Label>
-          <ToggleGroup
-            aria-label="Image size"
-            variant="outline"
-            spacing={0}
-            value={[String(scale)]}
-            onValueChange={([next]) => {
-              const picked = Number(next);
-              if (scales.includes(picked)) {
-                setScale(picked);
-              }
-            }}
-          >
-            {scales.map((option) => (
-              <ToggleGroupItem key={option} value={String(option)}>
-                {option}×
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <p className="text-muted-foreground text-sm">
-            {canvas.width * scale} × {canvas.height * scale} pixels
-          </p>
+          {scales.length > 1 ? (
+            <div className="flex flex-col gap-2">
+              <Label>Size</Label>
+              <ToggleGroup
+                aria-label="Image size"
+                variant="outline"
+                spacing={0}
+                value={[String(scale)]}
+                onValueChange={([next]) => {
+                  const picked = Number(next);
+                  if (scales.includes(picked)) {
+                    setScale(picked);
+                  }
+                }}
+              >
+                {scales.map((option) => (
+                  <ToggleGroupItem key={option} value={String(option)}>
+                    {option}×
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="text-muted-foreground text-sm">
+                {canvas.width * scale} × {canvas.height * scale} pixels
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

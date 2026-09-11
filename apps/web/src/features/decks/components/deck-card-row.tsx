@@ -156,6 +156,7 @@ function CardControls({
           }}
         >
           <XIcon className="size-3" />
+          <span className="sr-only">Remove from deck</span>
         </Button>
       </span>
     );

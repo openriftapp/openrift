@@ -68,17 +68,14 @@ export function MarketplacesSection() {
         )
       }
     >
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         {[...marketplaceOrder, ...ALL_MARKETPLACES.filter((m) => !enabledSet.has(m))].map(
           (marketplace) => {
             const enabled = enabledSet.has(marketplace);
             const index = marketplaceOrder.indexOf(marketplace);
             const label = MARKETPLACE_LINKS[marketplace].label;
             return (
-              <div
-                key={marketplace}
-                className="flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5"
-              >
+              <div key={marketplace} className="flex min-h-8 items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     id={`pref-mp-${marketplace}`}
@@ -92,34 +89,28 @@ export function MarketplacesSection() {
                   <span className="text-muted-foreground text-xs">
                     {MARKETPLACE_CURRENCY[marketplace]}
                   </span>
-                  {enabled && index === 0 && (
-                    <Badge variant="subtle" className="text-2xs h-auto rounded-md px-1.5">
-                      Favorite
-                    </Badge>
-                  )}
+                  {enabled && index === 0 && <Badge variant="subtle">Favorite</Badge>}
                 </div>
-                {enabled && (
-                  <div className="flex items-center gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={index === 0}
-                      onClick={() => moveMarketplace(marketplace, -1)}
-                      aria-label={`Move ${label} up`}
-                    >
-                      <ArrowUpIcon className="size-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={index === marketplaceOrder.length - 1}
-                      onClick={() => moveMarketplace(marketplace, 1)}
-                      aria-label={`Move ${label} down`}
-                    >
-                      <ArrowDownIcon className="size-3" />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={!enabled || index === 0}
+                    onClick={() => moveMarketplace(marketplace, -1)}
+                    aria-label={`Move ${label} up`}
+                  >
+                    <ArrowUpIcon className="size-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={!enabled || index === marketplaceOrder.length - 1}
+                    onClick={() => moveMarketplace(marketplace, 1)}
+                    aria-label={`Move ${label} down`}
+                  >
+                    <ArrowDownIcon className="size-3" />
+                  </Button>
+                </div>
               </div>
             );
           },

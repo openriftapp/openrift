@@ -69,7 +69,7 @@ describe("EmailNotificationsControls", () => {
 
   it("shows the current cadence and picking a new one calls setCadence", async () => {
     render(<EmailNotificationsControls />);
-    const frequency = screen.getByLabelText("Frequency");
+    const frequency = screen.getByLabelText("Trade request frequency");
     expect(frequency).toHaveTextContent("Every 5 minutes");
 
     await userEvent.click(frequency);
@@ -81,7 +81,7 @@ describe("EmailNotificationsControls", () => {
   it("disables the frequency control when trade-request emails are off", () => {
     hookValue = { ...hookValue, gates: { ...hookValue.gates, tradeRequests: false } };
     render(<EmailNotificationsControls />);
-    expect(screen.getByLabelText("Frequency")).toBeDisabled();
+    expect(screen.getByLabelText("Trade request frequency")).toBeDisabled();
   });
 
   it("disables both switches while saving", () => {

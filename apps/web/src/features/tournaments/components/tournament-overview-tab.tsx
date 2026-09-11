@@ -22,6 +22,7 @@ import { Podium } from "@/components/ui/podium";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { StatTile } from "@/components/ui/stat-tile";
+import { TextLink } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
@@ -483,13 +484,12 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
         {hasJudges ? null : (
           <RowListItem className="text-muted-foreground text-sm">
             <span className="min-w-0 flex-1">No judges yet.</span>
-            <Link
-              to="/tournaments/$id/staff"
-              params={{ id }}
-              className="text-primary shrink-0 text-sm font-medium hover:underline"
+            <TextLink
+              className="shrink-0 text-sm font-medium"
+              render={<Link to="/tournaments/$id/staff" params={{ id }} />}
             >
               Add
-            </Link>
+            </TextLink>
           </RowListItem>
         )}
       </RowList>

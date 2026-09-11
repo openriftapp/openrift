@@ -273,7 +273,7 @@ function LastRunLine({ runs, source }: { runs: MetaSyncStatus["runs"]; source: M
           {latest.errorMessage === null ? (
             <span>{summarizeRunResult(latest.result)}</span>
           ) : (
-            <span className="text-destructive">{latest.errorMessage}</span>
+            <span>{latest.errorMessage}</span>
           )}
         </>
       )}

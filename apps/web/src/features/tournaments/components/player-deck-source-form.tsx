@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecks } from "@/features/decks/hooks/use-decks";
 import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
@@ -132,14 +133,14 @@ export function PlayerDeckSourceForm({
         />
         <p className="text-muted-foreground text-sm">
           Paste a deck code from OpenRift or{" "}
-          <a
+          <TextLink
+            variant="muted"
             href="https://piltoverarchive.com"
             target="_blank"
             rel="noreferrer"
-            className="text-foreground underline"
           >
             Piltover Archive
-          </a>
+          </TextLink>
           , or an exported text list. Zone headers like &quot;Champion:&quot; apply until the next
           header, and lines without one count as main deck.
         </p>
@@ -220,8 +221,8 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
         {totalCopies} cards across {preview.cards.length} lines.
       </p>
       {unmatched.length > 0 ? (
-        <p className="text-warning flex items-start gap-1.5">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+        <p className="flex items-start gap-1.5">
+          <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
           <span>
             Not recognized: {unmatched.map((card) => card.rawName).join(", ")}. These show as
             placeholders for the judge.
@@ -229,7 +230,7 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
         </p>
       ) : null}
       {preview.violations.length > 0 ? (
-        <ul className="text-warning flex list-disc flex-col gap-1 pl-5">
+        <ul className="flex list-disc flex-col gap-1 pl-5">
           {preview.violations.map((violation) => (
             <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>
               {violation.message}

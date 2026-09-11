@@ -20,7 +20,7 @@ export function DebouncedSearchInput({
   const [searchInput, setSearchInput] = useSearchUrlSync({ urlValue, onCommit });
   return (
     <div className="relative">
-      <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+      <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
       <Input
         placeholder={placeholder}
         value={searchInput}

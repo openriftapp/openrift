@@ -1,4 +1,4 @@
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,12 @@ function ChangeRow({
   const checkboxId = `attention-${change.key}`;
 
   return (
-    <li className={cn("flex flex-col gap-1.5 rounded-md px-3 py-2", isEdited && "bg-warning-soft")}>
+    <li
+      className={cn(
+        "flex flex-col gap-1.5 rounded-md px-3 py-2",
+        isEdited && "border-warning border-l-2",
+      )}
+    >
       <div className="flex items-start gap-3">
         <Checkbox
           id={checkboxId}
@@ -164,7 +169,12 @@ function ChangeRow({
         </div>
       )}
 
-      {isEdited && <p className="text-warning pl-8 text-xs">You are editing the incoming value.</p>}
+      {isEdited && (
+        <p className="text-muted-foreground flex items-center gap-1.5 pl-8 text-xs">
+          <TriangleAlertIcon className="text-warning size-3.5 shrink-0" />
+          You are editing the incoming value.
+        </p>
+      )}
     </li>
   );
 }
@@ -255,7 +265,8 @@ export function AttentionChangeList({
                       </label>
                     </>
                   ) : (
-                    <p className="text-warning min-w-0 flex-1 text-sm">
+                    <p className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-sm">
+                      <TriangleAlertIcon className="text-warning size-4 shrink-0" />
                       Cannot be created as sent: {blocker}. Accepting leaves it alone.
                     </p>
                   )}

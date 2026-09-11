@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
@@ -46,14 +47,14 @@ export default function DiscordBotArticle() {
           />
         </div>
         <p className="mt-3">
-          <a
+          <TextLink
+            className="font-medium"
             href={SOCIAL_LINKS.discordBotInvite}
             target="_blank"
             rel="noreferrer"
-            className="text-primary font-medium hover:underline"
           >
             Add the OpenRift bot to your server
-          </a>
+          </TextLink>
         </p>
       </section>
 

@@ -23,6 +23,7 @@ import { GripVerticalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useReplaceTournamentPairing } from "@/features/tournaments/hooks/use-tournament-run";
@@ -264,11 +265,15 @@ export function PodPairingEditor({
           </ByeDropZone>
         </div>
         {errors.length > 0 ? (
-          <ul className="text-destructive flex flex-col gap-0.5 text-sm">
-            {errors.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
+          <Alert variant="destructive">
+            <AlertDescription>
+              <ul className="flex flex-col gap-0.5">
+                {errors.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
         ) : null}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={replace.isPending}>

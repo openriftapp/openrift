@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 
 export default function TierListsArticle() {
@@ -20,9 +21,9 @@ export default function TierListsArticle() {
         for a thumbnail, or put it on stream and rank live.
       </p>
       <p>
-        <Link to="/tier-lists" className="text-primary font-medium hover:underline">
+        <TextLink className="font-medium" render={<Link to="/tier-lists" />}>
           Open the tier list maker
-        </Link>
+        </TextLink>
       </p>
 
       <section>
@@ -87,13 +88,9 @@ export default function TierListsArticle() {
         </div>
         <p className="text-muted-foreground mt-3">
           Setting up the browser source is covered in{" "}
-          <Link
-            to="/help/$slug"
-            params={{ slug: "stage" }}
-            className="text-primary hover:underline"
-          >
+          <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
             Stage &amp; OBS Overlay
-          </Link>
+          </TextLink>
           .
         </p>
       </section>

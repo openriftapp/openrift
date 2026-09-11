@@ -16,6 +16,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CountPill } from "@/components/ui/count-pill";
+import { TextLink } from "@/components/ui/text-link";
 import { useCardmarketOverlaySnapshot } from "@/features/extension/hooks/use-cardmarket-overlay";
 import { useOverlayCaptured } from "@/features/extension/hooks/use-overlay-captured";
 import { summarizeListNames } from "@/features/extension/lib/overlay-list-names";
@@ -45,8 +46,8 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
       description={`${cards} ${cards === 1 ? "card" : "cards"} you own or want, with your ${marketplaceLabel(snapshot.marketplace)} prices. Prepared ${formatDayTimeLocal(snapshot.generatedAt)}.`}
     >
       {captured ? (
-        <p className="text-success flex items-center gap-2 text-sm font-medium">
-          <CheckIcon className="size-4 shrink-0" />
+        <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+          <CheckIcon className="text-success size-4 shrink-0" />
           Saved to your extension
         </p>
       ) : (
@@ -58,13 +59,9 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
           <p className="text-muted-foreground text-sm">
             It takes them by itself once allowed. Nothing yet? Click the OpenRift icon while this
             page is open, or read{" "}
-            <Link
-              to="/help/$slug"
-              params={{ slug: "browser-extension" }}
-              className="text-primary hover:underline"
-            >
+            <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
               how to set the extension up
-            </Link>
+            </TextLink>
             .
           </p>
         </div>

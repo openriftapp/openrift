@@ -22,7 +22,7 @@ export function DiffText({ segments }: { segments: DiffSegment[] }) {
         }
         if (seg.type === "added") {
           return (
-            <mark key={i} className="bg-warning-soft text-inherit">
+            <mark key={i} className="bg-warning-soft text-warning">
               {seg.text}
             </mark>
           );

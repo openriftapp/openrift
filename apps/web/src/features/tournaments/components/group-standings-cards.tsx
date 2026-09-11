@@ -4,7 +4,9 @@ import type {
   GroupStageView,
   GroupStandingRowView,
 } from "@openrift/shared/types/api/pod-tournament";
+import { TriangleAlertIcon } from "lucide-react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Medal } from "@/components/ui/podium";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -137,10 +139,13 @@ export function CutSeedsCard({
         </p>
       </div>
       {groupStage.seedsDiverged ? (
-        <p className="text-warning text-sm">
-          A group result was corrected after the cut. Group standings now differ from the locked
-          seeds.
-        </p>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertDescription>
+            A group result was corrected after the cut. Group standings now differ from the locked
+            seeds.
+          </AlertDescription>
+        </Alert>
       ) : null}
       <Table>
         <TableHeader>

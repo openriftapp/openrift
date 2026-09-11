@@ -1,9 +1,10 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { useNavigate } from "@tanstack/react-router";
-import { KeyIcon } from "lucide-react";
+import { KeyIcon, TriangleAlertIcon } from "lucide-react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +72,7 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
             onChange={(e) => setName(e.target.value)}
             maxLength={60}
           />
-          {nameError ? <span className="text-destructive text-xs">{nameError}</span> : null}
+          {nameError ? <FieldError className="text-xs">{nameError}</FieldError> : null}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="fg-edit-slug">Slug</Label>
@@ -81,9 +82,10 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
             onChange={(e) => setNewSlug(e.target.value.toLowerCase())}
             maxLength={30}
           />
-          {slugError ? <span className="text-destructive text-xs">{slugError}</span> : null}
+          {slugError ? <FieldError className="text-xs">{slugError}</FieldError> : null}
           {slugChanged && !slugError ? (
-            <span className="text-warning text-xs">
+            <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+              <TriangleAlertIcon className="text-warning size-3.5 shrink-0" />
               Renaming the slug breaks any existing bookmarks to this group.
             </span>
           ) : null}

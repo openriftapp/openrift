@@ -312,16 +312,23 @@ export function DeckOverviewViewControls({
 
   const optionsPopover = optionSwitches.length > 0 && (
     <Popover>
-      <PopoverTrigger
-        render={<Button variant="outline" size="icon" />}
-        className="relative"
-        aria-label={optionsModified ? "Display options, changed" : "Display options"}
-      >
-        <SlidersHorizontalIcon className="size-4" />
-        {optionsModified && (
-          <span className="bg-primary ring-background absolute top-0.5 right-0.5 size-2 rounded-full ring-2" />
-        )}
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              render={<Button variant="outline" size="icon" />}
+              className="relative"
+              aria-label={optionsModified ? "Display options, changed" : "Display options"}
+            />
+          }
+        >
+          <SlidersHorizontalIcon className="size-4" />
+          {optionsModified && (
+            <span className="bg-primary ring-background absolute top-0.5 right-0.5 size-2 rounded-full ring-2" />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>Display options</TooltipContent>
+      </Tooltip>
       <PopoverContent align="end" className="w-72 gap-4">
         {optionSwitchRows}
       </PopoverContent>

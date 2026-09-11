@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
+import { TextLink } from "@/components/ui/text-link";
 import { useLibraryToggle } from "@/features/cards/stores/library-toggle-store";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { DeleteListDialog } from "@/features/lists/components/delete-list-dialog";
@@ -276,13 +277,9 @@ export function ListPage({ listId }: ListPageProps) {
                 ? "Nothing matches this list's rules yet."
                 : "A dynamic list fills itself: set a rule once, and every card that matches joins on its own."}{" "}
               {empty.description}{" "}
-              <Link
-                to="/help/$slug"
-                params={{ slug: "lists" }}
-                className="text-primary hover:underline"
-              >
+              <TextLink render={<Link to="/help/$slug" params={{ slug: "lists" }} />}>
                 Learn how lists work.
-              </Link>
+              </TextLink>
             </>
           }
         >

@@ -104,6 +104,8 @@ export function UserGrowthChart({ signups }: { signups: AdminSignupDay[] }) {
               dataKey="date"
               tick={{ fontSize: 11 }}
               interval={Math.max(0, Math.ceil(series.length / 4) - 1)}
+              axisLine={false}
+              tickLine={false}
             />
             {/* Not zero-based: a running total dwarfs a month of growth, and the ticks carry the real count. */}
             <YAxis
@@ -112,6 +114,8 @@ export function UserGrowthChart({ signups }: { signups: AdminSignupDay[] }) {
               width={48}
               domain={["dataMin", "dataMax"]}
               padding={{ top: 8 }}
+              axisLine={false}
+              tickLine={false}
             />
             <ChartTooltip content={<GrowthTooltipContent />} />
             <Area

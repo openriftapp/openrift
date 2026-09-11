@@ -24,7 +24,7 @@ The app chrome has a display face — **Chakra Petch**, exposed as `--font-headi
 - **Hero wordmark and hero CTAs** on the landing page.
 - **Big display numerals** (2xl and larger), opt-in per spot — the landing stats, the collection stats tiles, the friend-group and tournament overview counters, and the match-tracker score. Tabular data (prices, table counts) stays on the default face.
 
-Everything else — body copy, buttons, form labels, inputs, tables, badges, dropdowns, dialog titles, `Heading` level 3, card names in browser grids — keeps the default face (Inter). At body-adjacent sizes the display face reads as noise, not identity; when in doubt, leave it off.
+Everything else — body copy, buttons, form labels, inputs, tables, badges, dropdowns, dialog titles, `Heading` level 3, card names in browser grids — keeps the default face (Hanken Grotesk). At body-adjacent sizes the display face reads as noise, not identity; when in doubt, leave it off.
 
 `--font-heading` is not `--font-display`: the latter is the printed-card face (Kanit, the Arpona stand-in) and is reserved for card renders (`card-placeholder-image.tsx`, the designer). Never mix the two roles.
 

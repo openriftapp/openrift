@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -193,14 +194,19 @@ function NameCell({ row }: AdminCellSlotProps<CardsRow>) {
       {card.cardSlug === null ? (
         <CardNameCell row={card} />
       ) : (
-        <Link
-          to="/admin/cards/$cardSlug"
-          params={{ cardSlug: card.cardSlug }}
-          search={row.detailSearch}
-          className="font-medium hover:underline"
+        <TextLink
+          variant="inherit"
+          className="font-medium"
+          render={
+            <Link
+              to="/admin/cards/$cardSlug"
+              params={{ cardSlug: card.cardSlug }}
+              search={row.detailSearch}
+            />
+          }
         >
           {card.name}
-        </Link>
+        </TextLink>
       )}
       {card.cardSlug === null && <Badge variant="violet">Draft</Badge>}
     </span>
@@ -545,7 +551,7 @@ export function AdminCardsTable({
       serverSort={serverSort}
       virtualize={{ rowHeight: ROW_HEIGHT }}
       minWidth="min-w-[720px]"
-      rowClassName={(row) => (row.card.cardSlug === null ? "bg-violet-soft" : undefined)}
+      rowClassName={(row) => (row.card.cardSlug === null ? "border-violet border-l-2" : undefined)}
       actions={<RowActions />}
       toolbar={
         <div className="flex flex-wrap items-center gap-3">

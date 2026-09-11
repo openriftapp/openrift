@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { CountBadge } from "@/features/admin/components/count-badge";
@@ -149,14 +150,14 @@ function GroupIdCell({ row }: AdminCellSlotProps<MarketplaceGroup>) {
   const urlFn = externalUrls[row.marketplace];
   if (urlFn) {
     return (
-      <a
+      <TextLink
+        className="font-mono underline"
         href={urlFn(row.groupId)}
         target="_blank"
         rel="noreferrer"
-        className="text-primary hover:text-primary/80 font-mono underline underline-offset-4"
       >
         {row.groupId}
-      </a>
+      </TextLink>
     );
   }
   return <span className="font-mono">{row.groupId}</span>;

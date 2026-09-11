@@ -8,6 +8,7 @@ import {
   SectionHeaderGroup,
   SectionHeaderTitle,
 } from "@/components/section-header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
@@ -180,9 +181,9 @@ export function RulesImportPage() {
         )}
 
         {importMutation.isError && (
-          <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-            {importMutation.error.message}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{importMutation.error.message}</AlertDescription>
+          </Alert>
         )}
       </div>
 

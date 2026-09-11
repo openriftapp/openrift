@@ -13,6 +13,7 @@ import {
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
@@ -180,18 +181,13 @@ export default function GroupsArticle() {
           shows every match you have with that specific person. If a section is empty, it&apos;s
           either because nobody&apos;s shared the relevant kind of list yet, or because nothing
           actually overlaps right now. See{" "}
-          <a href="/help/cards-printings-copies" className="text-primary hover:underline">
-            Cards, Printings &amp; Copies
-          </a>{" "}
-          for how matches handle different printings of the same card.
+          <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
+          how matches handle different printings of the same card.
         </p>
         <p className="text-muted-foreground mt-2">
-          Once trades are underway, the{" "}
-          <a href="/trades" className="text-primary hover:underline">
-            Trades page
-          </a>{" "}
-          under More &rarr; Organize lists everyone you&apos;re trading with across all your groups,
-          with the people waiting on you first. Its badge in the menu counts people, not cards.
+          Once trades are underway, the <TextLink href="/trades">Trades page</TextLink> under More
+          &rarr; Organize lists everyone you&apos;re trading with across all your groups, with the
+          people waiting on you first. Its badge in the menu counts people, not cards.
         </p>
       </section>
 
@@ -206,11 +202,8 @@ export default function GroupsArticle() {
           Group collections appear in your own collection sidebar alongside your private
           collections, with a group badge so you can tell them apart. They behave the same way as
           any other collection: cards can be moved in and out, filtered, searched, and printed as
-          proxies. See{" "}
-          <a href="/help/collections" className="text-primary hover:underline">
-            Managing Your Collection
-          </a>{" "}
-          for the details.
+          proxies. See <TextLink href="/help/collections">Managing Your Collection</TextLink> for
+          the details.
         </p>
       </section>
 

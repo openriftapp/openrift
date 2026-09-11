@@ -194,6 +194,7 @@ export function DeckEditorTopBar({
         <DropdownMenu>
           <DropdownMenuTrigger render={<PageTopBarIconButton />}>
             <EllipsisVerticalIcon className="size-4" />
+            <span className="sr-only">Deck actions</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {/* Share has its own button in the bar from md up, so the

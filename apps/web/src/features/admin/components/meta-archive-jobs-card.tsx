@@ -90,7 +90,7 @@ function ArchiveRunLine({ runs }: { runs: MetaSyncStatus["runs"] }) {
           {latest.errorMessage === null ? (
             <span>{summarizeRunResult(latest.result)}</span>
           ) : (
-            <span className="text-destructive">{latest.errorMessage}</span>
+            <span>{latest.errorMessage}</span>
           )}
         </>
       )}

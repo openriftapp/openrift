@@ -65,10 +65,10 @@ export function CandidateValueCell<TKey extends string>({
       className={cn(
         "border-l px-3 py-1.5 align-top break-words",
         field.multiline && "whitespace-pre-wrap",
-        isFavoriteProvider(row, providerLabels, favoriteProviders) && "bg-info-soft",
+        isFavoriteProvider(row, providerLabels, favoriteProviders) && "bg-info-soft text-info",
         isChecked(row) && "opacity-50",
-        invalidOption && "bg-destructive-soft line-through",
-        isDifferent && "bg-warning-soft",
+        invalidOption && "bg-destructive-soft text-destructive line-through",
+        isDifferent && "bg-warning-soft text-warning",
         isClickable && onCellClick && "hover:bg-warning/20 cursor-pointer",
       )}
       onClick={

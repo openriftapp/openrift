@@ -1,5 +1,6 @@
 import { placementsFromGamePoints, pointsForPlacements } from "@openrift/shared/pairing/points";
 import type { PodResponse, PodScoringScheme } from "@openrift/shared/types/api/pod-tournament";
+import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -126,8 +127,11 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
         Game points per player (8 wins, more is possible). Places are worked out automatically.
       </p>
       {changedRemotely ? (
-        <div className="text-warning flex flex-wrap items-center justify-between gap-2">
-          <span>Someone else saved scores for this pod while you were editing.</span>
+        <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5">
+            <TriangleAlertIcon className="text-warning size-4 shrink-0" />
+            Someone else saved scores for this pod while you were editing.
+          </span>
           <Button variant="outline" size="sm" onClick={loadLatest}>
             Show latest
           </Button>

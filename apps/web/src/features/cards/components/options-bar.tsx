@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/drawer";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
@@ -368,14 +369,21 @@ export function MobileOptionsDrawer({
   }, [smUp, idlePremounted]);
   return (
     <Drawer showSwipeHandle onOpenChange={setDrawerOpen}>
-      <DrawerTrigger
-        render={
-          <Button variant="outline" size="icon" className={cn("relative", className)}>
-            <SlidersHorizontalIcon className="size-4" />
-          </Button>
-        }
-        aria-label="Options"
-      />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DrawerTrigger
+              render={
+                <Button variant="outline" size="icon" className={cn("relative", className)} />
+              }
+              aria-label="Options"
+            />
+          }
+        >
+          <SlidersHorizontalIcon className="size-4" />
+        </TooltipTrigger>
+        <TooltipContent>Display options</TooltipContent>
+      </Tooltip>
       <DrawerContent
         className="pb-4 data-ending-style:duration-250"
         keepMounted={openedOnce || idlePremounted}

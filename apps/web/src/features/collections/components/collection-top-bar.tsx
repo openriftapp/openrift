@@ -25,6 +25,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TextLink } from "@/components/ui/text-link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SelectModeActions } from "@/features/cards/components/select-mode-actions";
 import { CollectionValueSummary } from "@/features/collections/components/collection-value-summary";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
@@ -98,13 +100,13 @@ export function CollectionTopBar({
           <Badge variant="muted" className="shrink-0 gap-1 self-center">
             <BoxIcon className="size-3" />
             {singleHomeDeck ? (
-              <Link
-                to="/decks/$deckId"
-                params={{ deckId: singleHomeDeck.id }}
-                className="max-w-32 truncate underline-offset-2 hover:underline"
+              <TextLink
+                variant="inherit"
+                className="max-w-32 truncate"
+                render={<Link to="/decks/$deckId" params={{ deckId: singleHomeDeck.id }} />}
               >
                 {boxLabel}
-              </Link>
+              </TextLink>
             ) : (
               <span className="max-w-32 truncate">{boxLabel}</span>
             )}
@@ -122,13 +124,20 @@ export function CollectionTopBar({
         <div className="flex items-center gap-2">
           {canAdd && (
             <>
-              <PageTopBarIconButton
-                render={<Link to="/scan" />}
-                aria-label="Scan cards"
-                className="sm:hidden"
-              >
-                <CameraIcon className="size-4" />
-              </PageTopBarIconButton>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <PageTopBarIconButton
+                      render={<Link to="/scan" />}
+                      aria-label="Scan cards"
+                      className="sm:hidden"
+                    />
+                  }
+                >
+                  <CameraIcon className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent>Scan cards</TooltipContent>
+              </Tooltip>
               <PageTopBarButton render={<Link to="/scan" />} className="hidden sm:flex">
                 <CameraIcon className="size-4" />
                 Scan

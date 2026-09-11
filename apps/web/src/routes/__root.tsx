@@ -113,7 +113,7 @@ export const Route = createRootRouteWithContext<{
         // viewport-fit=cover lets the app draw into the iOS safe areas; the
         // insets are reclaimed via env(safe-area-inset-*) in index.css.
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-        { name: "theme-color", content: "#1d1538" },
+        { name: "theme-color", content: "#0f1526" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
         { name: "impact-site-verification", content: "5a360cf2-9e98-4886-8c05-4e2e1a39ce0e" },

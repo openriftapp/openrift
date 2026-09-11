@@ -26,6 +26,7 @@ import { DateLeaf } from "@/components/ui/date-leaf";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { TextLink } from "@/components/ui/text-link";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
 import { MetaArchiveActivity } from "@/features/meta/components/meta-archive-activity";
 import { MetaArchiveCounts } from "@/features/meta/components/meta-archive-counts";
@@ -151,13 +152,12 @@ function Section({
 /** Clears the index's default era and format, or the shown count lands short of `count`. */
 function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number }) {
   return (
-    <Link
-      to="/meta/events"
-      search={{ ...UNSCOPED, tiers }}
-      className="text-primary text-sm font-medium hover:underline"
+    <TextLink
+      className="text-sm font-medium"
+      render={<Link to="/meta/events" search={{ ...UNSCOPED, tiers }} />}
     >
       Browse all {count}
-    </Link>
+    </TextLink>
   );
 }
 
@@ -327,13 +327,12 @@ export function MetaFrontPage() {
                             title="Local"
                             accent="bg-muted-foreground/40"
                             action={
-                              <Link
-                                to="/meta/events"
-                                search={UNSCOPED}
-                                className="text-primary text-sm font-medium hover:underline"
+                              <TextLink
+                                className="text-sm font-medium"
+                                render={<Link to="/meta/events" search={UNSCOPED} />}
                               >
                                 Browse all {counts.totalEvents} events
-                              </Link>
+                              </TextLink>
                             }
                           >
                             <RowList>
@@ -364,13 +363,17 @@ export function MetaFrontPage() {
                           id="coming-up"
                           title="Coming up"
                           action={
-                            <Link
-                              to="/meta/events"
-                              search={{ ...search, holds: "upcoming", by: "date", dir: "asc" }}
-                              className="text-primary text-sm font-medium hover:underline"
+                            <TextLink
+                              className="text-sm font-medium"
+                              render={
+                                <Link
+                                  to="/meta/events"
+                                  search={{ ...search, holds: "upcoming", by: "date", dir: "asc" }}
+                                />
+                              }
                             >
                               All {sections.upcoming.length}
-                            </Link>
+                            </TextLink>
                           }
                         >
                           <RowList>

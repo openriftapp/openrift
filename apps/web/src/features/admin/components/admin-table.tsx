@@ -11,7 +11,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { DownloadIcon } from "lucide-react";
+import { CircleXIcon, DownloadIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { Fragment, cloneElement, useState } from "react";
 
@@ -608,7 +608,7 @@ function AdminTableChrome({
       <div className="flex items-center gap-2">
         {onExport && (
           <Button variant="outline" onClick={onExport}>
-            <DownloadIcon className="h-4 w-4" />
+            <DownloadIcon className="size-4" />
             Export JSON
           </Button>
         )}
@@ -688,7 +688,12 @@ function SaveCancelButtons({
           Cancel
         </Button>
       </div>
-      {error && <p className="text-destructive mt-1">{error}</p>}
+      {error && (
+        <p className="text-muted-foreground mt-1 flex items-center justify-end gap-1.5">
+          <CircleXIcon className="text-destructive size-4 shrink-0" />
+          {error}
+        </p>
+      )}
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
+import { TextLink } from "@/components/ui/text-link";
 import { formatLanguageAggregate } from "@/features/cards/lib/promo-sections";
 
 export function PromosIntro({
@@ -21,11 +22,7 @@ export function PromosIntro({
         <p className="text-muted-foreground mt-2 text-sm">
           {formatLanguageAggregate(languageLabel, aggregate.printingCount, aggregate.cardCount)} If
           you spotted a missing promo or can help out with a picture I don&apos;t have yet, suggest
-          one{" "}
-          <Link to="/contribute" className="text-primary hover:underline">
-            here
-          </Link>
-          .
+          one <TextLink render={<Link to="/contribute" />}>here</TextLink>.
         </p>
       )}
     </div>

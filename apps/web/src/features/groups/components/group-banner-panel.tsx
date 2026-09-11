@@ -2,6 +2,7 @@ import type { FriendGroupResponse } from "@openrift/shared/types/api/friend-grou
 import { ImageUpIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dropzone } from "@/components/ui/dropzone";
 import { Label } from "@/components/ui/label";
@@ -157,7 +158,11 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
         hint="JPG, PNG or WebP, up to 20 MB. Wide pictures work best, around 1600 × 400."
         onFiles={handleFiles}
       />
-      {uploadError ? <p className="text-destructive text-sm">{uploadError}</p> : null}
+      {uploadError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{uploadError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {group.bannerUrl ? (
         <div className="flex justify-end gap-2">

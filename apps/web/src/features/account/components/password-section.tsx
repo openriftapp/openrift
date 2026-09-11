@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod/v4";
@@ -170,7 +171,10 @@ function ChangePasswordCard() {
             </Button>
           </Field>
           {success && (
-            <FieldDescription className="text-success">Password updated.</FieldDescription>
+            <FieldDescription className="flex items-center gap-1.5">
+              <CheckIcon className="text-success size-3.5" />
+              Password updated.
+            </FieldDescription>
           )}
         </FieldGroup>
       </form>

@@ -5,6 +5,7 @@ import type {
 } from "@openrift/shared/types/api/trade-preferences";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
+import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 
 import {
@@ -67,14 +68,15 @@ function renderPrice(
   const productId = marketplaceInfos?.[marketplace]?.productId ?? null;
   const href = productId === null ? meta.searchUrl(searchQuery) : meta.productUrl(productId);
   return (
-    <a
+    <TextLink
+      variant="muted"
+      className="relative"
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="hover:text-foreground relative underline-offset-2 hover:underline"
       onClick={(event) => event.stopPropagation()}
     >
       {PRICE_PREF_SHORT_LABEL[pref.pricePref]}
-    </a>
+    </TextLink>
   );
 }

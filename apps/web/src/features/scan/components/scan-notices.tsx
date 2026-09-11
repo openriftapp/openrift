@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ScanNoticesProps {
@@ -18,7 +19,11 @@ export function ScanNotices({ unavailableMessage, scanError, cameraAvailable }: 
         </Card>
       )}
 
-      {scanError && <p className="text-destructive mt-4">{scanError}</p>}
+      {scanError && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{scanError}</AlertDescription>
+        </Alert>
+      )}
 
       {cameraAvailable === false && (
         <p className="text-muted-foreground mt-4">

@@ -146,8 +146,8 @@ export function ErrataUploadPage() {
               </p>
             )}
             {parseError && (
-              <p className="text-destructive flex items-center gap-1 text-sm">
-                <XIcon className="size-4" />
+              <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                <XIcon className="text-destructive size-4 shrink-0" />
                 {parseError}
               </p>
             )}
@@ -189,15 +189,15 @@ export function ErrataUploadPage() {
           {preview && <PreviewSummary data={preview} />}
 
           {upload.isSuccess && !preview && (
-            <p className="text-success flex items-center gap-1 text-sm">
-              <CheckIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <CheckIcon className="text-success size-4 shrink-0" />
               Errata applied successfully
             </p>
           )}
 
           {upload.isError && (
-            <p className="text-destructive flex items-center gap-1 text-sm">
-              <XIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <XIcon className="text-destructive size-4 shrink-0" />
               {upload.error.message}
             </p>
           )}
@@ -274,7 +274,7 @@ function PreviewSummary({ data }: { data: UploadErrataResponse }) {
       </div>
 
       {data.errors.length > 0 && (
-        <ul className="text-destructive ml-5 list-disc text-sm">
+        <ul className="text-muted-foreground ml-5 list-disc text-sm">
           {data.errors.slice(0, 10).map((err, index) => (
             <li key={index}>{err}</li>
           ))}

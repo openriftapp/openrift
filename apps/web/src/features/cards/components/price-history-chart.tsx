@@ -2,7 +2,7 @@ import { formatDay } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { AnySnapshot } from "@openrift/shared/types/api/pricing";
 import type { Marketplace, TimeRange } from "@openrift/shared/types/pricing";
-import { Loader2Icon } from "lucide-react";
+import { CircleXIcon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts";
 
@@ -217,7 +217,10 @@ export function PriceHistoryChart({
       )}
 
       {error && (
-        <p className="text-destructive py-8 text-center text-sm">Failed to load price history.</p>
+        <p className="text-muted-foreground flex items-center justify-center gap-1.5 py-8 text-sm">
+          <CircleXIcon className="text-destructive size-4 shrink-0" />
+          Failed to load price history.
+        </p>
       )}
 
       {!isLoading && !error && snapshots.length === 0 && (
@@ -262,12 +265,16 @@ export function PriceHistoryChart({
               tickFormatter={formatDay}
               tick={{ fontSize: 11 }}
               interval={Math.max(0, Math.ceil(snapshots.length / 4) - 1)}
+              axisLine={false}
+              tickLine={false}
             />
             <YAxis
               tickFormatter={(v: number) => currencyFormatter(v)}
               tick={{ fontSize: 11 }}
               width={48}
               padding={{ top: 8 }}
+              axisLine={false}
+              tickLine={false}
             />
             <ChartTooltip
               content={

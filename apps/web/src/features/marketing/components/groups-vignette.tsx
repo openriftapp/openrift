@@ -62,14 +62,14 @@ export function GroupsVignette({ thumbnailUrls }: { thumbnailUrls: string[] }) {
                 extra={group.canGetExtra}
               />
               <span className="text-muted-foreground min-w-0 truncate text-sm">
-                <span className="text-success font-medium">{group.canGet}</span> you could get
+                <span className="text-foreground font-medium">{group.canGet}</span> you could get
               </span>
             </div>
             {group.theydWant !== null && (
               <div className="flex min-w-0 items-center gap-2.5">
                 <ArtStrip urls={thumbnailUrls.slice(6, 8)} extra={group.theydWantExtra} />
                 <span className="text-muted-foreground min-w-0 truncate text-sm">
-                  <span className="text-success font-medium">{group.theydWant}</span> they&apos;d
+                  <span className="text-foreground font-medium">{group.theydWant}</span> they&apos;d
                   want
                 </span>
               </div>

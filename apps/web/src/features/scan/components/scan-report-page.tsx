@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSendScanReport } from "@/features/scan/hooks/use-scan-report";
 import type { ScanJournalEntry } from "@/features/scan/lib/scan-journal";
 import { readScanJournal } from "@/features/scan/lib/scan-journal";
-import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 
 function entryWord(count: number): string {
   return count === 1 ? "entry" : "entries";
@@ -75,7 +75,7 @@ export function ScanReportPage() {
 
         {reference === null ? (
           <Card>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className={cn("flex flex-col gap-4", FORM_COLUMN)}>
               <p className="text-muted-foreground">{summarize(journal)}</p>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="scan-report-note">What happened?</Label>

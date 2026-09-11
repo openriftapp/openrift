@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -131,13 +132,11 @@ export function DecksSection({
               </Button>
             </div>
             {closeIncomplete ? (
-              <span className="text-destructive text-sm">
+              <FieldError>
                 Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or clear both.
-              </span>
+              </FieldError>
             ) : closeAfterEnd ? (
-              <span className="text-destructive text-sm">
-                The deadline must be at or before the tournament ends.
-              </span>
+              <FieldError>The deadline must be at or before the tournament ends.</FieldError>
             ) : (
               <span className="text-muted-foreground text-sm">
                 Leave blank to keep lists open until you close the deck phase.

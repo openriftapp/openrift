@@ -1,5 +1,6 @@
 import { Heading } from "@/components/heading";
 import { Code } from "@/components/ui/code";
+import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
 const EXAMPLE_REQUEST = `POST /api/v1/ingest/deck-check
@@ -105,14 +106,10 @@ export default function TournamentDecklistApiArticle() {
         <Heading className="mb-2">API keys</Heading>
         <p className="text-muted-foreground">
           Personal keys are managed under <strong className="text-foreground">API keys</strong> on
-          your{" "}
-          <a href="/profile" className="text-primary hover:underline">
-            profile
-          </a>
-          . For a tournament hosted by an organization, keys live on the organization&apos;s page
-          instead and can be managed by its owners and managers. A push must use a key that belongs
-          to the tournament&apos;s host: a personal key cannot push into an organization&apos;s
-          tournament, and the other way around.
+          your <TextLink href="/profile">profile</TextLink>. For a tournament hosted by an
+          organization, keys live on the organization&apos;s page instead and can be managed by its
+          owners and managers. A push must use a key that belongs to the tournament&apos;s host: a
+          personal key cannot push into an organization&apos;s tournament, and the other way around.
         </p>
         <p className="text-muted-foreground mt-2">
           A key looks like <Code>orpk_…</Code> and is shown once, right when it is created. Store it
@@ -245,31 +242,16 @@ export default function TournamentDecklistApiArticle() {
         <Heading className="mb-2">Reference and support</Heading>
         <p className="text-muted-foreground">
           The full request and response schemas are part of the{" "}
-          <a href="/api/doc" className="text-primary hover:underline">
-            OpenAPI specification
-          </a>
-          , browsable in{" "}
-          <a href="/api/ui" className="text-primary hover:underline">
-            Swagger UI
-          </a>
-          . Building an integration and something is missing or unclear? Let me know on{" "}
-          <a
-            href={SOCIAL_LINKS.discordInvite}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href="/api/doc">OpenAPI specification</TextLink>, browsable in{" "}
+          <TextLink href="/api/ui">Swagger UI</TextLink>. Building an integration and something is
+          missing or unclear? Let me know on{" "}
+          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
-          </a>{" "}
+          </TextLink>{" "}
           or{" "}
-          <a
-            href={SOCIAL_LINKS.githubIssues}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary hover:underline"
-          >
+          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
-          </a>{" "}
+          </TextLink>{" "}
           and I&apos;ll do my best to help.
         </p>
       </section>

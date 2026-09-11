@@ -87,7 +87,7 @@ export function DisposeDialog({
             <Callout variant="inset" className="flex gap-3 text-sm">
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
-                <p className="text-destructive font-medium">
+                <p className="font-medium">
                   {copiesOnAnyList} of these {onListNoun} {copiesOnAnyList === 1 ? "is" : "are"} on
                   your lists
                 </p>
@@ -110,7 +110,7 @@ export function DisposeDialog({
             <Callout variant="inset" className="flex gap-3 text-sm">
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <p>
-                <span className="text-destructive font-medium">
+                <span className="font-medium">
                   {annotatedCount} of these {annotatedCount === 1 ? "card has" : "cards have"}{" "}
                   details recorded
                 </span>{" "}

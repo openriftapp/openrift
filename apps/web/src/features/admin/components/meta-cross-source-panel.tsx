@@ -2,6 +2,7 @@ import type { MetaCrossSourceCitation, MetaCrossSourceRow } from "@openrift/shar
 import { LinkIcon, UnlinkIcon, UserXIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -258,7 +259,11 @@ export function MetaCrossSourcePanel({
   }
 
   if (isError) {
-    return <p className="text-destructive">The cross-source review could not be loaded.</p>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>The cross-source review could not be loaded.</AlertDescription>
+      </Alert>
+    );
   }
   if (isPending || data === undefined) {
     return <Skeleton className="h-40 w-full" />;

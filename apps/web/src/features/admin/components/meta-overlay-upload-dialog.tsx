@@ -141,7 +141,7 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
 
       {result.errors.length > 0 && (
         <ReviewDisclosure title={`Errors (${result.errors.length})`}>
-          <ul className="text-destructive space-y-1">
+          <ul className="text-muted-foreground space-y-1">
             {result.errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
@@ -237,8 +237,8 @@ export function MetaOverlayUploadDialog({ onClose }: { onClose: () => void }) {
               </p>
             )}
             {parseError && (
-              <p className="text-destructive flex items-center gap-1 text-sm">
-                <XIcon className="size-4" />
+              <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                <XIcon className="text-destructive size-4 shrink-0" />
                 {parseError}
               </p>
             )}

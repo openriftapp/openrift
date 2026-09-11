@@ -7,6 +7,7 @@ import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 
 import { PageDescription, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Combobox,
@@ -33,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { SlugCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
@@ -77,9 +79,13 @@ function NameCell({ row }: AdminCellSlotProps<ProductSummary>) {
     return null;
   }
   return (
-    <Link to="/products/$slug" params={{ slug: row.slug }} className="font-medium hover:underline">
+    <TextLink
+      variant="inherit"
+      className="font-medium"
+      render={<Link to="/products/$slug" params={{ slug: row.slug }} />}
+    >
       {row.name}
-    </Link>
+    </TextLink>
   );
 }
 
@@ -393,7 +399,11 @@ function CreateProductDialog({
                 rows={3}
               />
             </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
@@ -471,7 +481,11 @@ function ResyncDialog({
               Replaces the product&apos;s entire contents with a fresh snapshot of the picked list.
             </p>
             <ListPicker value={listId} onChange={setListId} />
-            {error && <p className="text-destructive text-sm">{error}</p>}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => handleOpenChange(false)}>

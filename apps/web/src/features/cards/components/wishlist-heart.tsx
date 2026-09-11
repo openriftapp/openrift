@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { COUNT_PILL_INTERACTIVE, countPillVariants } from "@/components/ui/count-pill";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { cn } from "@/lib/utils";
 
@@ -31,21 +32,31 @@ export function WishlistHeart({
   const listLabel = entries.length > 1 ? "wishlists" : "wishlist";
   return (
     <Popover>
-      <PopoverTrigger
-        onClick={(event) => event.stopPropagation()}
-        tabIndex={-1}
-        className={cn(countPillVariants({ variant: "ghost" }), COUNT_PILL_INTERACTIVE, "gap-0.5")}
-        title={
-          totalQuantity > 1 ? `On your ${listLabel} (${totalQuantity})` : `On your ${listLabel}`
-        }
-      >
-        <HeartIcon className="text-destructive size-3 fill-current" />
-        {totalQuantity > 1 && <span>{totalQuantity}</span>}
-        <span className="sr-only">
-          On your {listLabel}
-          {totalQuantity > 1 ? `, ${totalQuantity} wanted` : ""}
-        </span>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              onClick={(event) => event.stopPropagation()}
+              tabIndex={-1}
+              className={cn(
+                countPillVariants({ variant: "ghost" }),
+                COUNT_PILL_INTERACTIVE,
+                "gap-0.5",
+              )}
+            />
+          }
+        >
+          <HeartIcon className="text-destructive size-3 fill-current" />
+          {totalQuantity > 1 && <span>{totalQuantity}</span>}
+          <span className="sr-only">
+            On your {listLabel}
+            {totalQuantity > 1 ? `, ${totalQuantity} wanted` : ""}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {totalQuantity > 1 ? `On your ${listLabel} (${totalQuantity})` : `On your ${listLabel}`}
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent side="bottom" align={align} className="w-60 p-0">
         <div className="px-3 pt-2.5 pb-1">
           <SectionHeading as="h3">On your {listLabel}</SectionHeading>
@@ -128,20 +139,26 @@ export function WishlistButton({
     return <WishlistHeart entries={entries} align={align} onAdd={onAdd} onRemove={onRemove} />;
   }
   return (
-    <Button
-      type="button"
-      tabIndex={-1}
-      size="icon-xs"
-      variant="ghost"
-      className="text-muted-foreground hover:text-destructive"
-      onClick={(event) => {
-        event.stopPropagation();
-        onAdd();
-      }}
-      aria-label={`Add ${cardName} to a wishlist`}
-      title="Add to a wishlist"
-    >
-      <HeartIcon />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            tabIndex={-1}
+            size="icon-xs"
+            variant="ghost"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAdd();
+            }}
+            aria-label={`Add ${cardName} to a wishlist`}
+          />
+        }
+      >
+        <HeartIcon />
+      </TooltipTrigger>
+      <TooltipContent>Add to a wishlist</TooltipContent>
+    </Tooltip>
   );
 }

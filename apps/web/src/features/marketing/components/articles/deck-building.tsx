@@ -9,6 +9,7 @@ import {
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
@@ -24,29 +25,20 @@ export default function DeckBuildingArticle() {
         <AlertTitle>Decks are blueprints, not physical locations</AlertTitle>
         <AlertDescription>
           <p>
-            A deck is a list of{" "}
-            <a href="/help/cards-printings-copies" className="text-primary hover:underline">
-              cards
-            </a>
-            , not specific printings or copies. It doesn&apos;t matter whether you play the English
+            A deck is a list of <TextLink href="/help/cards-printings-copies">cards</TextLink>, not
+            specific printings or copies. It doesn&apos;t matter whether you play the English
             version, the Chinese version, or the signed foil promo. The deck just says &quot;3x Fury
             Rune&quot; and any printing of that card will do.
           </p>
           <p>
-            This is different from{" "}
-            <a href="/help/collections" className="text-primary hover:underline">
-              collections
-            </a>
-            , which track where your physical copies are. A deck is the recipe; your collection is
-            the pantry. Most other sites like Piltover Archive or TCG Arena tie decks to specific
+            This is different from <TextLink href="/help/collections">collections</TextLink>, which
+            track where your physical copies are. A deck is the recipe; your collection is the
+            pantry. Most other sites like Piltover Archive or TCG Arena tie decks to specific
             printings, but OpenRift keeps them separate by design. This means any printing you own
             (across all{" "}
-            <a
-              href="/help/collections#deck-building-availability"
-              className="text-primary hover:underline"
-            >
+            <TextLink href="/help/collections#deck-building-availability">
               available collections
-            </a>
+            </TextLink>
             ) counts toward completing the deck, and shared deck lists (coming soon) work regardless
             of which language or edition other players own.
           </p>
@@ -274,9 +266,9 @@ export default function DeckBuildingArticle() {
         <Heading className="mb-2">Managing decks</Heading>
         <p className="text-muted-foreground">
           The{" "}
-          <a href="/decks" className="text-primary hover:underline">
+          <TextLink href="/decks">
             <strong className="text-foreground">Decks</strong>
-          </a>{" "}
+          </TextLink>{" "}
           page lists all your decks with their format, domain colors, card count, and validation
           status. From here you can:
         </p>

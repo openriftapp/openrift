@@ -402,6 +402,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
                       render={<Button variant="ghost" size="icon" className="shrink-0" />}
                     >
                       <EllipsisVerticalIcon className="size-3.5" />
+                      <span className="sr-only">Printing group actions</span>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {groups

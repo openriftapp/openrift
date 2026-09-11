@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
 import { Progress } from "@/components/ui/progress";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { ConfirmClearButton } from "@/features/admin/components/confirm-clear-button";
 import { useLatestJobRunByKind } from "@/features/admin/hooks/use-job-runs";
@@ -66,12 +67,12 @@ function MutationStatus({
     const verb = label === "rehost" ? "Rehosted" : "Regenerated";
     return (
       <div>
-        <p className="text-success flex items-center gap-1 text-sm">
-          <CheckIcon className="size-4" />
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <CheckIcon className="text-success size-4 shrink-0" />
           {verb} {count} / {total} images
         </p>
         {errors.length > 0 && (
-          <ul className="text-destructive mt-1 ml-5 list-disc">
+          <ul className="text-muted-foreground mt-1 ml-5 list-disc">
             {errors.slice(0, MAX_DISPLAYED_ERRORS).map((err) => (
               <li key={err}>{err}</li>
             ))}
@@ -85,8 +86,8 @@ function MutationStatus({
   }
   if (mutation.isError) {
     return (
-      <p className="text-destructive flex items-center gap-1 text-sm">
-        <XIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <XIcon className="text-destructive size-4 shrink-0" />
         {mutation.error?.message}
       </p>
     );
@@ -104,8 +105,8 @@ function RegenerateJobStatus({
   if (!checkpoint) {
     if (run.status === "failed") {
       return (
-        <p className="text-destructive flex items-center gap-1 text-sm">
-          <XIcon className="size-4" />
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
           {run.errorMessage ?? "Regenerate failed"}
         </p>
       );
@@ -146,16 +147,16 @@ function SimpleMutationResult<T>({
 }) {
   if (mutation.isSuccess && mutation.data) {
     return (
-      <p className="text-success flex items-center gap-1 text-sm">
-        <CheckIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <CheckIcon className="text-success size-4 shrink-0" />
         {renderSuccess(mutation.data)}
       </p>
     );
   }
   if (mutation.isError) {
     return (
-      <p className="text-destructive flex items-center gap-1 text-sm">
-        <XIcon className="size-4" />
+      <p className="text-muted-foreground flex items-center gap-1 text-sm">
+        <XIcon className="text-destructive size-4 shrink-0" />
         {mutation.error?.message}
       </p>
     );
@@ -168,7 +169,7 @@ function ErrorsList({ errors }: { errors: string[] }) {
     return null;
   }
   return (
-    <ul className="text-destructive mt-1 ml-5 list-disc">
+    <ul className="text-muted-foreground mt-1 ml-5 list-disc">
       {errors.slice(0, MAX_DISPLAYED_ERRORS).map((err) => (
         <li key={err}>{err}</li>
       ))}
@@ -334,8 +335,8 @@ function ManageSection() {
 
         {migrateMutation.isSuccess && migrateMutation.data && (
           <div>
-            <p className="text-success flex items-center gap-1 text-sm">
-              <CheckIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <CheckIcon className="text-success size-4 shrink-0" />
               Scanned {migrateMutation.data.scanned} files: {migrateMutation.data.moved} moved,{" "}
               {migrateMutation.data.skipped} skipped
               {migrateMutation.data.failed > 0 && `, ${migrateMutation.data.failed} failed`}
@@ -344,22 +345,22 @@ function ManageSection() {
           </div>
         )}
         {migrateMutation.isError && (
-          <p className="text-destructive flex items-center gap-1 text-sm">
-            <XIcon className="size-4" />
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
             {migrateMutation.error?.message}
           </p>
         )}
 
         <MutationStatus mutation={rehostMutation} label="rehost" />
         {regenMutation.isError && (
-          <p className="text-destructive flex items-center gap-1 text-sm">
-            <XIcon className="size-4" />
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
             {regenMutation.error?.message}
           </p>
         )}
         {cancelRegenMutation.isError && (
-          <p className="text-destructive flex items-center gap-1 text-sm">
-            <XIcon className="size-4" />
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
             {cancelRegenMutation.error?.message}
           </p>
         )}
@@ -376,8 +377,8 @@ function ManageSection() {
           </div>
         )}
         {cleanupMutation.isError && (
-          <p className="text-destructive flex items-center gap-1 text-sm">
-            <XIcon className="size-4" />
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
             {cleanupMutation.error?.message}
           </p>
         )}
@@ -440,13 +441,12 @@ function MissingImagesSection() {
         <ul className="space-y-1 text-sm">
           {shown.map((card) => (
             <li key={card.cardId} className="flex flex-wrap items-center gap-1.5">
-              <Link
-                to="/admin/cards/$cardSlug"
-                params={{ cardSlug: card.slug }}
-                className="text-muted-foreground hover:underline"
+              <TextLink
+                variant="muted"
+                render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: card.slug }} />}
               >
                 <span className="text-muted-foreground/60">{card.slug}</span> {card.name}
-              </Link>
+              </TextLink>
               {card.byLanguage.map((entry) => (
                 <Badge key={entry.language} variant="muted">
                   {entry.language} {entry.count}
@@ -534,16 +534,16 @@ function BrokenImagesSection() {
       <CardContent className="pt-0">
         {unrehostMutation.isSuccess && unrehostMutation.data && (
           <div className="mb-3">
-            <p className="text-success flex items-center gap-1 text-sm">
-              <CheckIcon className="size-4" />
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <CheckIcon className="text-success size-4 shrink-0" />
               Un-rehosted {unrehostMutation.data.unrehosted} / {unrehostMutation.data.total} images
             </p>
             <ErrorsList errors={unrehostMutation.data.errors} />
           </div>
         )}
         {unrehostMutation.isError && (
-          <p className="text-destructive mb-3 flex items-center gap-1 text-sm">
-            <XIcon className="size-4" />
+          <p className="text-muted-foreground mb-3 flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
             {unrehostMutation.error?.message}
           </p>
         )}
@@ -554,14 +554,15 @@ function BrokenImagesSection() {
               <ul className="space-y-1 text-sm">
                 {entries.map((entry) => (
                   <li key={entry.imageId} className="flex items-baseline gap-2">
-                    <Link
-                      to="/admin/cards/$cardSlug"
-                      params={{ cardSlug: entry.cardSlug }}
-                      className="hover:underline"
+                    <TextLink
+                      variant="inherit"
+                      render={
+                        <Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />
+                      }
                     >
                       <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
                       {entry.cardName}
-                    </Link>
+                    </TextLink>
                     <span className="text-muted-foreground truncate">{entry.rehostedUrl}</span>
                   </li>
                 ))}
@@ -643,14 +644,15 @@ function LowResImagesSection() {
               <ul className="space-y-1 text-sm">
                 {entries.map((entry) => (
                   <li key={entry.imageId} className="flex items-baseline gap-2">
-                    <Link
-                      to="/admin/cards/$cardSlug"
-                      params={{ cardSlug: entry.cardSlug }}
-                      className="hover:underline"
+                    <TextLink
+                      variant="inherit"
+                      render={
+                        <Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />
+                      }
                     >
                       <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
                       {entry.cardName}
-                    </Link>
+                    </TextLink>
                     <span className="text-muted-foreground">
                       {entry.width}×{entry.height}
                     </span>

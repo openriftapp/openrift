@@ -6,6 +6,7 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
+import { TextLink } from "@/components/ui/text-link";
 import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar-cluster";
 import {
   DECK_SUBMISSION_LABEL,
@@ -16,7 +17,7 @@ import { cn, PAGE_WIDTH } from "@/lib/utils";
 
 const HERO_WASH = [
   "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
-  "radial-gradient(70% 120% at 65% 100%, color-mix(in oklab, oklch(0.5 0.11 300) 14%, transparent), transparent 65%)",
+  "radial-gradient(70% 120% at 65% 100%, color-mix(in oklab, var(--violet) 14%, transparent), transparent 65%)",
   "linear-gradient(color-mix(in oklab, var(--muted) 50%, var(--background)), var(--background))",
 ].join(", ");
 
@@ -68,26 +69,26 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
               <MetaItem icon={CalendarIcon}>{formatDayTimeLocal(detail.startsAt)}</MetaItem>
               <MetaItem icon={Building2Icon}>
                 {detail.host.type === "organization" && detail.host.orgSlug ? (
-                  <Link
-                    to="/organizations/$id"
-                    params={{ id: detail.host.orgId ?? "" }}
-                    className="hover:underline"
+                  <TextLink
+                    variant="inherit"
+                    render={
+                      <Link to="/organizations/$id" params={{ id: detail.host.orgId ?? "" }} />
+                    }
                   >
                     {detail.host.displayName}
-                  </Link>
+                  </TextLink>
                 ) : (
                   detail.host.displayName
                 )}
               </MetaItem>
               {detail.groupSlug ? (
                 <MetaItem icon={UsersIcon}>
-                  <Link
-                    to="/groups/$slug"
-                    params={{ slug: detail.groupSlug }}
-                    className="hover:underline"
+                  <TextLink
+                    variant="inherit"
+                    render={<Link to="/groups/$slug" params={{ slug: detail.groupSlug }} />}
                   >
                     {detail.groupName ?? detail.groupSlug}
-                  </Link>
+                  </TextLink>
                 </MetaItem>
               ) : null}
             </div>

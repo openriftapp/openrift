@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
 import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
@@ -20,11 +21,8 @@ export default function ListsArticle() {
       <p className="text-muted-foreground">
         A <strong className="text-foreground">wishlist</strong> is what you&apos;re looking for. A{" "}
         <strong className="text-foreground">tradelist</strong> is what you&apos;d give up. Share
-        either one with a{" "}
-        <a href="/help/groups" className="text-primary hover:underline">
-          group
-        </a>{" "}
-        and OpenRift matches your wants against other members&apos; haves.
+        either one with a <TextLink href="/help/groups">group</TextLink> and OpenRift matches your
+        wants against other members&apos; haves.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -45,10 +43,8 @@ export default function ListsArticle() {
         <p className="text-muted-foreground">
           Every list has a <strong className="text-foreground">kind</strong>, picked when you create
           it. The kind decides what goes on the list. See{" "}
-          <a href="/help/cards-printings-copies" className="text-primary hover:underline">
-            Cards, Printings &amp; Copies
-          </a>{" "}
-          for what these mean.
+          <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
+          what these mean.
         </p>
         <DefinitionList className="mt-3">
           <DefinitionRow icon={<SquareIcon className="size-3.5" />} label="Cards">
@@ -111,10 +107,8 @@ export default function ListsArticle() {
             description={
               <>
                 Paste a text list of card names and quantities. Card-kind lists only. See{" "}
-                <a href="/help/import-export" className="text-primary hover:underline">
-                  Importing &amp; Exporting
-                </a>{" "}
-                for the format.
+                <TextLink href="/help/import-export">Importing &amp; Exporting</TextLink> for the
+                format.
               </>
             }
           />
@@ -160,10 +154,8 @@ export default function ListsArticle() {
         <Heading className="mb-2">Filling a tradelist</Heading>
         <p className="text-muted-foreground">
           Tradelists hold individual copies, so you fill them from the{" "}
-          <a href="/help/collections" className="text-primary hover:underline">
-            collection
-          </a>{" "}
-          side, not the catalog side. Two paths:
+          <TextLink href="/help/collections">collection</TextLink> side, not the catalog side. Two
+          paths:
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
@@ -258,10 +250,7 @@ export default function ListsArticle() {
           quantities). Printing-kind and copy-kind lists can&apos;t be imported that way, since
           pasted text can&apos;t identify a specific printing or copy, but they export as a CSV file
           in the same formats as a collection (OpenRift, Piltover Archive, RiftMana, RiftCore). See{" "}
-          <a href="/help/import-export" className="text-primary hover:underline">
-            Importing &amp; Exporting
-          </a>{" "}
-          for the formats.
+          <TextLink href="/help/import-export">Importing &amp; Exporting</TextLink> for the formats.
         </p>
       </section>
 
@@ -269,10 +258,7 @@ export default function ListsArticle() {
         <Heading className="mb-2">Sharing a list with a group</Heading>
         <p className="text-muted-foreground">
           Lists are private by default. To share one with a{" "}
-          <a href="/help/groups" className="text-primary hover:underline">
-            group
-          </a>
-          , open the group page, scroll to{" "}
+          <TextLink href="/help/groups">group</TextLink>, open the group page, scroll to{" "}
           <strong className="text-foreground">Settings &rarr; Share your lists</strong>, and tick
           the list. Each list is shared per-group, so sharing a wishlist with one group doesn&apos;t
           share it with any other group you&apos;re also in. Untick at any time to stop sharing.

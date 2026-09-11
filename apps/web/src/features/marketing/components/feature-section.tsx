@@ -12,7 +12,7 @@ export function SectionRule() {
 }
 
 export const FEATURE_ACTION_CLASS =
-  "text-primary focus-visible:ring-ring group inline-flex items-center gap-1.5 text-sm font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none";
+  "focus-visible:ring-ring group inline-flex items-center gap-1.5 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none";
 
 export const FEATURE_HEADING_CLASS = "text-2xl sm:text-4xl";
 

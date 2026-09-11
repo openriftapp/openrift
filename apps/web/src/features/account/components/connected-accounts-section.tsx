@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { siDiscord, siGoogle } from "simple-icons";
 
+import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { authClient } from "@/features/account/lib/auth-client";
 
@@ -75,51 +76,55 @@ export function ConnectedAccountsSection() {
         <p className="text-muted-foreground text-sm">Loading...</p>
       ) : (
         <>
-          {error && <p className="text-destructive text-sm">{error}</p>}
-          <RowList>
-            {SOCIAL_PROVIDERS.map((provider) => {
-              const isLinked = linkedProviderIds.has(provider.id);
-              const isOnlyAccount = accounts.length <= 1;
-              return (
-                <RowListItem key={provider.id} className="justify-between">
-                  <div className="flex items-center gap-3">
-                    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {SOCIAL_PROVIDERS.map((provider) => {
+            const isLinked = linkedProviderIds.has(provider.id);
+            const isOnlyAccount = accounts.length <= 1;
+            return (
+              <SettingsRow
+                key={provider.id}
+                label={
+                  <span className="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
                       <path d={provider.icon.path} fill="currentColor" />
                     </svg>
-                    <span className="text-sm font-medium">{provider.name}</span>
-                  </div>
-                  {isLinked ? (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isOnlyAccount || actionLoading === provider.id}
-                            onClick={() => void handleUnlink(provider.id)}
-                          />
-                        }
-                      >
-                        {actionLoading === provider.id ? "Unlinking..." : "Unlink"}
-                      </TooltipTrigger>
-                      {isOnlyAccount && (
-                        <TooltipContent>You must have at least one linked account</TooltipContent>
-                      )}
-                    </Tooltip>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={actionLoading === provider.id}
-                      onClick={() => void handleLink(provider.id)}
+                    {provider.name}
+                  </span>
+                }
+              >
+                {isLinked ? (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          disabled={isOnlyAccount || actionLoading === provider.id}
+                          onClick={() => void handleUnlink(provider.id)}
+                        />
+                      }
                     >
-                      {actionLoading === provider.id ? "Connecting..." : "Connect"}
-                    </Button>
-                  )}
-                </RowListItem>
-              );
-            })}
-          </RowList>
+                      {actionLoading === provider.id ? "Unlinking..." : "Unlink"}
+                    </TooltipTrigger>
+                    {isOnlyAccount && (
+                      <TooltipContent>You must have at least one linked account</TooltipContent>
+                    )}
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="outline"
+                    disabled={actionLoading === provider.id}
+                    onClick={() => void handleLink(provider.id)}
+                  >
+                    {actionLoading === provider.id ? "Connecting..." : "Connect"}
+                  </Button>
+                )}
+              </SettingsRow>
+            );
+          })}
         </>
       )}
     </SettingsSection>

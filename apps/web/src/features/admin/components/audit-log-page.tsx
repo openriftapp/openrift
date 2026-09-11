@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import {
@@ -74,13 +75,12 @@ function AuditEventRow({ event }: { event: AdminAuditEventResponse }) {
       </TableCell>
       <TableCell className="align-top">
         {event.cardSlug ? (
-          <Link
-            to="/admin/cards/$cardSlug"
-            params={{ cardSlug: event.cardSlug }}
-            className="hover:underline"
+          <TextLink
+            variant="inherit"
+            render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: event.cardSlug }} />}
           >
             {event.entityLabel ?? event.cardSlug}
-          </Link>
+          </TextLink>
         ) : (
           <span className="text-muted-foreground">
             {event.entityLabel ?? event.entityId ?? "—"}

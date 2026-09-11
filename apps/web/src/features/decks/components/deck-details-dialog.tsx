@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -306,7 +307,7 @@ export function DeckDetailsDialog({
               isValidUrl={isAllowedLinkUrl}
               urlPlaceholder="https://youtube.com/watch?v=…"
             />
-            {!linksValid && <p className="text-destructive text-xs">{ALLOWED_HOSTS_HINT}</p>}
+            {!linksValid && <FieldError className="text-xs">{ALLOWED_HOSTS_HINT}</FieldError>}
           </div>
 
           <DialogFooter>

@@ -2,6 +2,7 @@ import { Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,7 +79,8 @@ export function DeleteButton<TData>({
         <AlertDialogTrigger
           render={<Button variant="ghost" size="icon" className="text-destructive" />}
         >
-          <Trash2Icon className="h-4 w-4" />
+          <Trash2Icon className="size-4" />
+          <span className="sr-only">Delete</span>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <DialogForm onSubmit={() => void handleConfirmedDelete()}>
@@ -86,7 +88,11 @@ export function DeleteButton<TData>({
               <AlertDialogTitle>{title}</AlertDialogTitle>
               <AlertDialogDescription>{description}</AlertDialogDescription>
             </AlertDialogHeader>
-            {deleteError && <p className="text-destructive text-sm">{deleteError}</p>}
+            {deleteError && (
+              <Alert variant="destructive">
+                <AlertDescription>{deleteError}</AlertDescription>
+              </Alert>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction type="submit" variant="destructive" disabled={deletePending}>

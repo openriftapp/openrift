@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -205,7 +206,7 @@ function PlayerFloorField() {
         </Button>
       </div>
       {!valid && data !== undefined && (
-        <p className="text-destructive text-sm">Enter a whole number of players above zero.</p>
+        <FieldError>Enter a whole number of players above zero.</FieldError>
       )}
     </div>
   );

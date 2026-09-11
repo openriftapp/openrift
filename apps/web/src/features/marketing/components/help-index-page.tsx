@@ -5,6 +5,7 @@ import { siDiscord } from "simple-icons";
 import { Heading } from "@/components/heading";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
+import { TextLink } from "@/components/ui/text-link";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -44,11 +45,12 @@ export function HelpIndexPage() {
       <div className="text-muted-foreground mt-8 text-center text-sm">
         <p>
           Can&apos;t find what you&apos;re looking for?{" "}
-          <a
+          <TextLink
+            variant="inherit"
+            className="text-foreground"
             href={SOCIAL_LINKS.discordInvite}
             target="_blank"
             rel="noreferrer"
-            className="text-foreground hover:underline"
           >
             <svg
               viewBox="0 0 24 24"
@@ -58,7 +60,7 @@ export function HelpIndexPage() {
               <path d={siDiscord.path} />
             </svg>
             Ask on Discord
-          </a>
+          </TextLink>
         </p>
       </div>
     </div>

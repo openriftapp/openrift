@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export interface SortGroupOption<TValue extends string> {
@@ -42,20 +43,28 @@ function DirToggle({
   dir: "asc" | "desc";
   onToggle: (dir: "asc" | "desc") => void;
 }) {
+  const label = dir === "asc" ? "Ascending, click to reverse" : "Descending, click to reverse";
   return (
-    <Button
-      variant="ghost"
-      size="icon-xs"
-      className="text-muted-foreground hover:text-foreground -mr-1 rounded-md p-0.5 transition-colors"
-      onClick={() => onToggle(dir === "asc" ? "desc" : "asc")}
-      title={dir === "asc" ? "Ascending, click to reverse" : "Descending, click to reverse"}
-    >
-      {dir === "asc" ? (
-        <ArrowDownNarrowWideIcon className="size-3.5" />
-      ) : (
-        <ArrowUpNarrowWideIcon className="size-3.5" />
-      )}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground hover:text-foreground -mr-1 rounded-md p-0.5 transition-colors"
+            onClick={() => onToggle(dir === "asc" ? "desc" : "asc")}
+            aria-label={label}
+          />
+        }
+      >
+        {dir === "asc" ? (
+          <ArrowDownNarrowWideIcon className="size-3.5" />
+        ) : (
+          <ArrowUpNarrowWideIcon className="size-3.5" />
+        )}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -24,10 +24,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Switch } from "@/components/ui/switch";
+import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
@@ -75,7 +77,7 @@ function SuggestionStrip({
     <div className="flex min-w-0 items-center gap-2.5">
       <CardArtThumbStack items={items} max={MAX_THUMBS} thumbClassName="w-8" />
       <span className="text-muted-foreground min-w-0 truncate text-sm">
-        <span className="text-success font-medium">{strip.count}</span> {label}
+        <span className="text-foreground font-medium">{strip.count}</span> {label}
       </span>
     </div>
   );
@@ -176,7 +178,7 @@ function CreateGroupDialog({
                 placeholder="tuesday-crew"
               />
               {slugError ? (
-                <span className="text-destructive text-xs">{slugError}</span>
+                <FieldError className="text-xs">{slugError}</FieldError>
               ) : (
                 <span className="text-muted-foreground text-xs">
                   Used in the URL: /groups/{effectiveSlug || "your-group"}
@@ -310,13 +312,9 @@ export function GroupsIndexPage() {
             description={
               <>
                 Create one above, or paste an invite code to join.{" "}
-                <Link
-                  to="/help/$slug"
-                  params={{ slug: "groups" }}
-                  className="text-primary hover:underline"
-                >
+                <TextLink render={<Link to="/help/$slug" params={{ slug: "groups" }} />}>
                   Learn how groups work.
-                </Link>
+                </TextLink>
               </>
             }
           />

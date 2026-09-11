@@ -157,7 +157,7 @@ export function BoxVignette() {
           <span className="ml-auto text-xs tabular-nums">
             <TextSwap
               before={<span className="text-muted-foreground">2/4</span>}
-              after={<span className="text-success">3/4</span>}
+              after={<span className="text-foreground font-medium">3/4</span>}
             />
           </span>
         </div>

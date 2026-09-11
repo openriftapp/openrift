@@ -4,6 +4,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { DatabaseIcon, UserIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
@@ -53,10 +54,10 @@ function CardCell({ row }: AdminCellSlotProps<ReviewQueueItem>) {
     return null;
   }
   return (
-    <Link {...openTarget(row)} className="font-medium hover:underline">
+    <TextLink variant="inherit" className="font-medium" render={<Link {...openTarget(row)} />}>
       {row.cardName}
       {row.cardSlug && <span className="text-muted-foreground ml-2 text-xs">{row.cardSlug}</span>}
-    </Link>
+    </TextLink>
   );
 }
 

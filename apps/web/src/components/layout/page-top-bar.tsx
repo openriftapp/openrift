@@ -4,6 +4,7 @@ import type { AnchorHTMLAttributes, ComponentProps } from "react";
 import { createContext, forwardRef, use, useLayoutEffect, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import type { PageWidth } from "@/lib/utils";
@@ -142,15 +143,22 @@ export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitlePr
         </h1>
         {/* self-center: an icon-only button has no text baseline, so a parent
             items-baseline row would synthesize one from the icon's bottom edge. */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mr-1 -ml-2 hidden self-center md:inline-flex"
-          onClick={onToggleSidebar}
-        >
-          <PanelLeftIcon />
-          <span className="sr-only">Toggle sidebar</span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-1 -ml-2 hidden self-center md:inline-flex"
+                onClick={onToggleSidebar}
+              />
+            }
+          >
+            <PanelLeftIcon />
+            <span className="sr-only">Toggle sidebar</span>
+          </TooltipTrigger>
+          <TooltipContent>Toggle sidebar</TooltipContent>
+        </Tooltip>
         <h1 className="font-heading mr-2 hidden min-w-0 truncate text-lg font-semibold md:block">
           {children}
         </h1>

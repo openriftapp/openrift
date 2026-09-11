@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
@@ -109,11 +110,7 @@ export function PointsSection({
           Save
         </Button>
       </div>
-      {invalid ? (
-        <span className="text-destructive text-sm">
-          Points must be whole numbers between 0 and 99.
-        </span>
-      ) : null}
+      {invalid ? <FieldError>Points must be whole numbers between 0 and 99.</FieldError> : null}
     </SettingsSection>
   );
 }

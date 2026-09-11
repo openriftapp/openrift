@@ -1,5 +1,5 @@
 import { formatDayTime } from "@openrift/shared/format-date";
-import { CameraIcon, CameraOffIcon, LoaderIcon, RotateCcwIcon } from "lucide-react";
+import { CameraIcon, CameraOffIcon, CircleXIcon, LoaderIcon, RotateCcwIcon } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -354,7 +354,10 @@ function ServingCard({ serving }: { serving: ScanServing }) {
           </p>
         )}
         {latestRun.data?.status === "failed" && (
-          <p className="text-destructive">Last rebuild failed: {latestRun.data.errorMessage}</p>
+          <p className="text-muted-foreground flex items-center gap-1.5">
+            <CircleXIcon className="text-destructive size-4 shrink-0" />
+            Last rebuild failed: {latestRun.data.errorMessage}
+          </p>
         )}
         <div>
           <Button onClick={() => void handleRebuild()} disabled={running} variant="secondary">
@@ -565,7 +568,12 @@ export function ScanTestPage() {
               )}
             </div>
 
-            {scanError && <p className="text-destructive">{scanError}</p>}
+            {scanError && (
+              <p className="text-muted-foreground flex items-center gap-1.5">
+                <CircleXIcon className="text-destructive size-4 shrink-0" />
+                {scanError}
+              </p>
+            )}
             {cameraAvailable === false && (
               <p className="text-muted-foreground">
                 The camera needs a secure context, so it is unavailable over a plain http:// dev
