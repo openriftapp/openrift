@@ -12,6 +12,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-groups";
+import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
@@ -22,9 +23,6 @@ interface HeroStat {
   to: "/groups/$slug/members" | "/groups/$slug/shared" | "/groups/$slug/trades";
   label: string;
 }
-
-const HERO_BANNER_SCRIM =
-  "linear-gradient(to right, color-mix(in oklab, var(--background) 88%, transparent), color-mix(in oklab, var(--background) 45%, transparent) 70%, transparent)";
 
 const HERO_WASH = [
   "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
@@ -81,32 +79,42 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
 
   return (
     <div className="px-safe pt-4">
-      <section
-        className={cn(PAGE_WIDTH.capped, "relative overflow-hidden")}
-        style={{ backgroundImage: HERO_WASH }}
-      >
+      <section className={cn(PAGE_WIDTH.capped, "flex flex-col")}>
         {banner ? (
-          <div aria-hidden="true" className="absolute inset-0">
+          <div className={cn(GROUP_BANNER_FRAME, "relative overflow-hidden rounded-lg")}>
             <img
               src={banner}
               alt=""
               className="h-full w-full object-cover"
               style={{ objectPosition: `50% ${data.group.bannerPosition}%` }}
             />
-            <div className="absolute inset-0" style={{ backgroundImage: HERO_BANNER_SCRIM }} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-background/70 absolute top-3 right-3 backdrop-blur-sm"
+              render={<Link to="/groups/$slug/manage" params={{ slug }} />}
+            >
+              <SettingsIcon />
+              Manage
+            </Button>
           </div>
         ) : null}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-3 right-3 z-10"
-          render={<Link to="/groups/$slug/manage" params={{ slug }} />}
+        <div
+          className={cn("relative flex items-end gap-6", banner ? "pt-5" : "overflow-hidden")}
+          style={banner ? undefined : { backgroundImage: HERO_WASH }}
         >
-          <SettingsIcon />
-          Manage
-        </Button>
-        <div className="relative flex items-end gap-6">
-          <div className="flex min-w-0 flex-1 flex-col gap-2.5 py-6 pl-5">
+          {banner ? null : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-3 right-3 z-10"
+              render={<Link to="/groups/$slug/manage" params={{ slug }} />}
+            >
+              <SettingsIcon />
+              Manage
+            </Button>
+          )}
+          <div className={cn("flex min-w-0 flex-1 flex-col gap-2.5", banner ? null : "py-6 pl-5")}>
             <Eyebrow variant="kicker">Friend group</Eyebrow>
             <Heading level={1} className="text-3xl text-balance">
               {data.group.name}
@@ -132,16 +140,25 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
                 </Fragment>
               ))}
             </p>
+            {banner ? null : (
+              <UserAvatarStack
+                members={shownMembers}
+                totalCount={data.members.length}
+                className="mt-1"
+                avatarClassName="bg-background ring-background"
+              />
+            )}
+          </div>
+          {banner ? (
             <UserAvatarStack
               members={shownMembers}
               totalCount={data.members.length}
-              className="mt-1"
+              className="shrink-0"
               avatarClassName="bg-background ring-background"
             />
-          </div>
-          {/* CardFan positions absolutely; this div is its relative host, and
-              the section's overflow-hidden crops the bottom-anchored cards. */}
-          {banner ? null : (
+          ) : (
+            /* CardFan positions absolutely; this div is its relative host, and
+               the wrapper's overflow-hidden crops the bottom-anchored cards. */
             <div
               aria-hidden="true"
               className="relative hidden h-36 w-72 shrink-0 self-end sm:block"

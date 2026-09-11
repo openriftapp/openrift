@@ -42,6 +42,7 @@ import {
   useFriendGroupMatchPanels,
   useFriendGroups,
 } from "@/features/groups/hooks/use-friend-groups";
+import { GROUP_BANNER_FRAME, GROUP_BANNER_WASH } from "@/features/groups/lib/banner-frame";
 import { tradeVolumeLabel } from "@/features/groups/lib/friend-group-activity";
 import { deriveGroupSlug, groupSlugError } from "@/features/groups/lib/group-slug";
 import type { GroupSuggestionStrip } from "@/features/groups/lib/trade-derivation";
@@ -76,6 +77,26 @@ function SuggestionStrip({
       <span className="text-muted-foreground min-w-0 truncate text-sm">
         <span className="text-success font-medium">{strip.count}</span> {label}
       </span>
+    </div>
+  );
+}
+
+function GroupTileBanner({ url, position }: { url: string | null; position: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(GROUP_BANNER_FRAME, "-mx-5 -mt-5 overflow-hidden")}
+      style={url ? undefined : { backgroundImage: GROUP_BANNER_WASH }}
+    >
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: `50% ${position}%` }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -317,6 +338,7 @@ export function GroupsIndexPage() {
                     needsViewer && "ring-primary/40 hover:ring-primary/50",
                   )}
                 >
+                  <GroupTileBanner url={row.bannerUrl} position={row.bannerPosition} />
                   <div className="flex min-w-0 items-center gap-2">
                     <Heading className="min-w-0 flex-1 truncate">{row.name}</Heading>
                     <UserAvatarStack

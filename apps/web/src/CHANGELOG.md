@@ -4,7 +4,7 @@
 
 ### Highlights
 
-- feat(Groups): **A banner for your group** — group admins can now upload a picture behind the group's name and drag it to set which part shows.
+- feat(Groups): **A banner for your group** — admins can upload a picture, drag it to frame it, and it shows above the group's name and in the groups list.
 
 ### Other
 

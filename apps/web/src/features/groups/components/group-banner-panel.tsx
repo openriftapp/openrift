@@ -11,8 +11,10 @@ import {
   useUpdateFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useUploadGroupBanner } from "@/features/groups/hooks/use-upload-group-banner";
+import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
 import { coverOverflowPx, coverPositionFromDrag } from "@/lib/cover-focus";
+import { cn } from "@/lib/utils";
 
 export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
   const upload = useUploadGroupBanner();
@@ -95,21 +97,29 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
     <div className="flex flex-col gap-3">
       <Label>Banner</Label>
       {group.bannerUrl ? (
-        <div
-          className="bg-muted h-28 touch-none overflow-hidden rounded-lg border"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
-        >
-          <img
-            ref={previewRef}
-            src={group.bannerUrl}
-            alt="Group banner"
-            draggable={false}
-            className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
-            style={{ objectPosition: `50% ${position}%` }}
-          />
+        <div className="flex flex-col gap-2">
+          <div
+            className={cn(
+              GROUP_BANNER_FRAME,
+              "bg-muted touch-none overflow-hidden rounded-lg border",
+            )}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+          >
+            <img
+              ref={previewRef}
+              src={group.bannerUrl}
+              alt="Group banner"
+              draggable={false}
+              className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
+              style={{ objectPosition: `50% ${position}%` }}
+            />
+          </div>
+          <span className="text-muted-foreground text-xs">
+            Exactly what the group page and the groups list show.
+          </span>
         </div>
       ) : null}
 
