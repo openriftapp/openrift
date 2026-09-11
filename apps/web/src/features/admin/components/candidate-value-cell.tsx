@@ -1,4 +1,5 @@
 import { TriangleAlertIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import {
   DIFF_FIELDS,
@@ -23,6 +24,7 @@ export function CandidateValueCell<TKey extends string>({
   favoriteProviders,
   normalizeCandidate,
   cellWarning,
+  renderContent,
   onCellClick,
 }: {
   field: FieldDef<TKey>;
@@ -33,6 +35,7 @@ export function CandidateValueCell<TKey extends string>({
   favoriteProviders: Set<string>;
   normalizeCandidate?: (fieldKey: string, value: unknown) => unknown;
   cellWarning?: (fieldKey: string, candidateValue: unknown) => string | null;
+  renderContent?: (field: FieldDef<TKey>, row: CandidateSpreadsheetRow) => ReactNode | undefined;
   onCellClick?: (field: TKey, value: unknown, candidateId: string) => void;
 }) {
   const record = row as unknown as Record<string, unknown>;
@@ -50,6 +53,7 @@ export function CandidateValueCell<TKey extends string>({
   const isDifferent = isClickable && activeRow !== null;
   const warningText =
     cellWarning && hasValue(candidateValue) ? cellWarning(field.key, candidateValue) : null;
+  const content = renderContent?.(field, row);
 
   return (
     <td
@@ -59,7 +63,7 @@ export function CandidateValueCell<TKey extends string>({
           : undefined
       }
       className={cn(
-        "border-l px-3 py-1.5 break-words",
+        "border-l px-3 py-1.5 align-top break-words",
         field.multiline && "whitespace-pre-wrap",
         isFavoriteProvider(row, providerLabels, favoriteProviders) && "bg-info-soft",
         isChecked(row) && "opacity-50",
@@ -78,18 +82,19 @@ export function CandidateValueCell<TKey extends string>({
           <TriangleAlertIcon className="size-3.5" />
         </span>
       )}
-      {field.key === "imageUrl" && typeof candidateValue === "string" ? (
-        <ImageUrlCell url={candidateValue} alt="Candidate" />
-      ) : isDifferent &&
-        DIFF_FIELDS.has(field.key) &&
-        typeof normalizedCandidate === "string" &&
-        typeof activeValue === "string" ? (
-        <DiffText segments={textDiff(activeValue, normalizedCandidate)} />
-      ) : field.labeledOptions ? (
-        renderLabeledValue(field, candidateValue)
-      ) : (
-        formatValue(candidateValue, field.suffixKey ? record[field.suffixKey] : undefined)
-      )}
+      {content ??
+        (field.key === "imageUrl" && typeof candidateValue === "string" ? (
+          <ImageUrlCell url={candidateValue} alt="Candidate" />
+        ) : isDifferent &&
+          DIFF_FIELDS.has(field.key) &&
+          typeof normalizedCandidate === "string" &&
+          typeof activeValue === "string" ? (
+          <DiffText segments={textDiff(activeValue, normalizedCandidate)} />
+        ) : field.labeledOptions ? (
+          renderLabeledValue(field, candidateValue)
+        ) : (
+          formatValue(candidateValue, field.suffixKey ? record[field.suffixKey] : undefined)
+        ))}
     </td>
   );
 }

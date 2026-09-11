@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -449,6 +449,21 @@ describe("AdminTable reorder", () => {
   it("gives every row a drag handle", () => {
     renderReorder(vi.fn().mockResolvedValue(undefined));
     expect(screen.getAllByRole("button", { name: "Drag to reorder" })).toHaveLength(3);
+  });
+
+  it("describes a drag handle by the same id on every mount", () => {
+    const first = render(<div />);
+    renderReorder(vi.fn().mockResolvedValue(undefined));
+    const before = screen.getAllByRole("button", { name: "Drag to reorder" })[0];
+    const describedBy = before?.getAttribute("aria-describedby");
+    first.unmount();
+    cleanup();
+
+    renderReorder(vi.fn().mockResolvedValue(undefined));
+    const after = screen.getAllByRole("button", { name: "Drag to reorder" })[0];
+
+    expect(describedBy).toBeTruthy();
+    expect(after?.getAttribute("aria-describedby")).toBe(describedBy);
   });
 
   it("disables the arrows that would push a row out of the list", () => {

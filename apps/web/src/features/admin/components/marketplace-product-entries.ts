@@ -1,5 +1,5 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
-import { formatPrintingLabel, normalizeNameForIdentity } from "@openrift/shared/utils";
+import { formatPrintingLabel } from "@openrift/shared/utils";
 
 import type {
   SourceMappingConfig,
@@ -84,15 +84,6 @@ export function setPrefix(shortCode: string): string {
   return dash === -1 ? shortCode : shortCode.slice(0, dash);
 }
 
-export function isCardNameMismatch(productName: string, cardName: string): boolean {
-  const normProduct = normalizeNameForIdentity(productName);
-  const normCard = normalizeNameForIdentity(cardName);
-  if (normCard.length === 0) {
-    return false;
-  }
-  return normProduct !== normCard;
-}
-
 // Cardmarket's price guide is language-aggregate: every CM staging row carries a
 // placeholder "EN" regardless of the card's real language, so it renders as a dash.
 export function displayedProductLanguage(
@@ -103,6 +94,29 @@ export function displayedProductLanguage(
     return null;
   }
   return language || null;
+}
+
+export interface MarketplaceTableRow {
+  key: string;
+  entry: TableEntry;
+  showProduct: boolean;
+}
+
+export function buildMarketplaceRows(
+  entries: readonly TableEntry[],
+  marketplace: AdminMarketplaceName,
+): MarketplaceTableRow[] {
+  const byProduct = Map.groupBy(
+    entries.filter((entry) => entry.marketplace === marketplace),
+    (entry) => entry.product.externalId,
+  );
+  return [...byProduct.values()].flatMap((variants) =>
+    variants.map((entry, index) => ({
+      key: `${entry.marketplace}:${entry.product.externalId}:${entry.product.finish}:${entry.product.language ?? ""}`,
+      entry,
+      showProduct: index === 0,
+    })),
+  );
 }
 
 export function collectEntries(group: UnifiedMappingGroup): TableEntry[] {

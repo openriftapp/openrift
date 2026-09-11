@@ -16,28 +16,15 @@ const captured = vi.hoisted(() => ({
     onUncheck?: unknown;
     columnActions?: React.ReactNode;
   } | null,
-  banManager: null as { showForm?: boolean } | null,
-  errataManager: null as { showForm?: boolean } | null,
   acceptCardField: vi.fn(),
+  toastSuccess: vi.fn(),
 }));
+
+vi.mock("sonner", () => ({ toast: { success: captured.toastSuccess } }));
 
 vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
   CandidateSpreadsheet: (props: { fields?: { key: string }[] }) => {
     captured.spreadsheet = props;
-    return null;
-  },
-}));
-
-vi.mock("@/features/admin/components/card-ban-manager", () => ({
-  CardBanManager: (props: { showForm?: boolean }) => {
-    captured.banManager = props;
-    return null;
-  },
-}));
-
-vi.mock("@/features/admin/components/card-errata-manager", () => ({
-  CardErrataManager: (props: { showForm?: boolean }) => {
-    captured.errataManager = props;
     return null;
   },
 }));
@@ -90,14 +77,8 @@ function renderSection(
       sources={[]}
       candidateCardFields={FIELDS}
       providerSettings={[]}
-      expanded
-      onToggleExpanded={noop}
       onCheckAllSources={noop}
       isCheckingAllSources={false}
-      showBanForm={false}
-      onShowBanFormChange={noop}
-      showErrataForm={false}
-      onShowErrataFormChange={noop}
       invalidates={[]}
       isAdmin
       {...props}
@@ -107,9 +88,8 @@ function renderSection(
 
 beforeEach(() => {
   captured.spreadsheet = null;
-  captured.banManager = null;
-  captured.errataManager = null;
   captured.acceptCardField.mockReset();
+  captured.toastSuccess.mockReset();
 });
 
 describe("CardFieldsSection", () => {
@@ -138,12 +118,30 @@ describe("CardFieldsSection", () => {
     });
   });
 
-  it("renders nothing below the heading while folded", () => {
-    const { getByText } = renderSection({ expanded: false });
+  it("offers the old value back after accepting one from a source", () => {
+    renderSection({ sources: [stubSource()] });
 
-    expect(getByText("Card Fields")).toBeTruthy();
-    expect(captured.spreadsheet).toBeNull();
-    expect(captured.banManager).toBeNull();
+    captured.spreadsheet?.onCellClick?.("name", "Jinx", "cc1");
+
+    const [message, options] = captured.toastSuccess.mock.calls[0] as [
+      string,
+      { action: { onClick: () => void } },
+    ];
+    expect(message).toBe("Used Name from piltover");
+
+    options.action.onClick();
+    expect(captured.acceptCardField).toHaveBeenLastCalledWith({
+      cardId: card.id,
+      field: "name",
+      value: "Yasuo",
+      source: "manual",
+    });
+  });
+
+  it("renders the grid, which the nav decides to show at all", () => {
+    renderSection();
+
+    expect(captured.spreadsheet).not.toBeNull();
   });
 
   it("counts only the unchecked sources on the check-all button", () => {
@@ -176,22 +174,5 @@ describe("CardFieldsSection", () => {
     expect(queryByText(/unchecked/u)).toBeNull();
     expect(captured.spreadsheet?.onCheck).toBeUndefined();
     expect(captured.spreadsheet?.onUncheck).toBeUndefined();
-    expect(captured.banManager).toBeNull();
-    expect(captured.errataManager).toBeNull();
-  });
-
-  it("forwards the ban and errata form flags to their managers", () => {
-    renderSection({ showBanForm: true, showErrataForm: true });
-
-    expect(captured.banManager?.showForm).toBe(true);
-    expect(captured.errataManager?.showForm).toBe(true);
-  });
-
-  it("toggles the fold from the heading", () => {
-    const onToggleExpanded = vi.fn();
-    const { getByText } = renderSection({ onToggleExpanded });
-
-    getByText("Card Fields").click();
-    expect(onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 });

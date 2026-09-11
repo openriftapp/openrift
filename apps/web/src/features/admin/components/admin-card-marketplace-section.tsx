@@ -5,9 +5,13 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { WandSparklesIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
+import { IgnoredProductsNote } from "@/features/admin/components/ignored-products-note";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
   unifiedMappingsForCardQueryOptions,
@@ -24,7 +28,15 @@ import { collectStrongMappings, collectWeakMappings } from "./marketplace-produc
 import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { computeProductSuggestions } from "./suggest-mapping";
 
-export function AdminCardMarketplaceSection({ cardId }: { cardId: string }) {
+const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
+
+export function AdminCardMarketplaceSection({
+  cardId,
+  onOpenPrinting,
+}: {
+  cardId: string;
+  onOpenPrinting?: (printingId: string) => void;
+}) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardId));
 
@@ -124,9 +136,8 @@ export function AdminCardMarketplaceSection({ cardId }: { cardId: string }) {
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const acceptAllRef = useRef<() => void>(() => {});
-  useHotkey("Mod+Enter", () => acceptAllRef.current(), {
-    enabled: !(tcgSaveMapping.isPending || cmSaveMapping.isPending || ctSaveMapping.isPending),
-  });
+  const isSaving = tcgSaveMapping.isPending || cmSaveMapping.isPending || ctSaveMapping.isPending;
+  useHotkey("Mod+Enter", () => acceptAllRef.current(), { enabled: !isSaving });
   // Install the latest accept-all closure every render so the hotkey fires
   // against the current data/handlers without needing a stale dep list.
   useEffect(() => {
@@ -145,7 +156,7 @@ export function AdminCardMarketplaceSection({ cardId }: { cardId: string }) {
       strong.tcgplayer.length + strong.cardmarket.length + strong.cardtrader.length;
     acceptAllRef.current = () => {
       const target = totalStrong > 0 ? strong : weak;
-      for (const mp of ["tcgplayer", "cardmarket", "cardtrader"] as const) {
+      for (const mp of MARKETPLACES) {
         const mappings = target[mp];
         if (mappings.length > 0) {
           applyAssignments(mp)(mappings);
@@ -161,7 +172,12 @@ export function AdminCardMarketplaceSection({ cardId }: { cardId: string }) {
   const group = data.group;
   if (!group) {
     return (
-      <p className="text-muted-foreground text-sm">No marketplace products linked to this card.</p>
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-sm">
+          No marketplace products linked to this card.
+        </p>
+        <IgnoredProductsNote />
+      </div>
     );
   }
 
@@ -259,14 +275,35 @@ export function AdminCardMarketplaceSection({ cardId }: { cardId: string }) {
   };
 
   const suggestions = computeProductSuggestions(group);
+  const strong = collectStrongMappings(group, suggestions);
+  const weak = collectWeakMappings(group, suggestions);
+  const strongCount = MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
+  const weakCount = MARKETPLACES.reduce((sum, mp) => sum + weak[mp].length, 0);
+  const offered = strongCount > 0 ? strongCount : weakCount;
 
   return (
-    <MarketplaceProductsTable
-      group={group}
-      allCards={data.allCards}
-      handlers={handlers}
-      suggestions={suggestions}
-    />
+    <div className="space-y-3">
+      {offered > 0 && (
+        <div className="flex justify-end">
+          <Button disabled={isSaving} onClick={() => acceptAllRef.current()}>
+            <WandSparklesIcon />
+            Accept {offered} {strongCount > 0 ? "strong" : "weak"} suggestion
+            {offered === 1 ? "" : "s"}
+            <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
+              Ctrl &#8629;
+            </Kbd>
+          </Button>
+        </div>
+      )}
+      <MarketplaceProductsTable
+        group={group}
+        allCards={data.allCards}
+        handlers={handlers}
+        suggestions={suggestions}
+        onOpenPrinting={onOpenPrinting}
+      />
+      <IgnoredProductsNote />
+    </div>
   );
 }
 

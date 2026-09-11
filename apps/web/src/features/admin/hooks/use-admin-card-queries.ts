@@ -7,8 +7,6 @@ import type {
   AdminCardDetailResponse,
   AdminCardListResponse,
   AllCardsResponse,
-  ProviderNamesResponse,
-  ProviderStatsResponse,
   UnmatchedCardDetailResponse,
 } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -141,34 +139,4 @@ export function useUnmatchedCardDetail(name: string) {
     ...unmatchedCardDetailQueryOptions(name),
     enabled: Boolean(name),
   });
-}
-
-const fetchProviderStats = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<ProviderStatsResponse> =>
-    apiOrpcClient(adminCardQueriesContract, context.cookie).providerStats(),
-  );
-
-export const providerStatsQueryOptions = queryOptions({
-  queryKey: adminKeys.cards.providerStats,
-  queryFn: () => fetchProviderStats(),
-});
-
-export function useProviderStats() {
-  return useSuspenseQuery(providerStatsQueryOptions);
-}
-
-const fetchProviderNames = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<ProviderNamesResponse> =>
-    apiOrpcClient(adminCardQueriesContract, context.cookie).providerNames(),
-  );
-
-const providerNamesQueryOptions = queryOptions({
-  queryKey: adminKeys.cards.providerNames,
-  queryFn: () => fetchProviderNames(),
-});
-
-export function useProviderNames() {
-  return useSuspenseQuery(providerNamesQueryOptions);
 }

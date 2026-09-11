@@ -36,6 +36,9 @@ export function ReorderProvider({
   }
   return (
     <DndContext
+      // dnd-kit numbers its aria-describedby ids per context from a module
+      // counter, so without a fixed id the server's 0 never matches the client's.
+      id="admin-table-reorder"
       sensors={sensors}
       collisionDetection={closestCenter}
       // Rows only ever swap places in one column, so a drag has no business
@@ -52,10 +55,6 @@ export function ReorderProvider({
   );
 }
 
-/**
- * A data row on a reorderable table: draggable by its grip, with the up/down
- * buttons beside it for single steps and keyboard use.
- */
 export function ReorderableRow({
   id,
   locked,
@@ -63,14 +62,16 @@ export function ReorderableRow({
   canMoveUp,
   canMoveDown,
   onMove,
+  className,
   children,
 }: {
   id: string;
   locked: boolean;
   droppable: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
-  onMove: (direction: -1 | 1) => void;
+  className?: string;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMove?: (direction: -1 | 1) => void;
   children: ReactNode;
 }) {
   // Destructured into locals before the JSX: member access on the hook's return
@@ -96,7 +97,7 @@ export function ReorderableRow({
       style={style}
       // The dragged row is lifted out of the flow visually, so it needs its own
       // background to stop the rows it passes showing through.
-      className={cn(isDragging && "bg-background relative z-10 shadow-lg")}
+      className={cn(isDragging && "bg-background relative z-10 shadow-lg", className)}
     >
       <TableCell>
         <div className="flex items-center gap-0.5">
@@ -120,26 +121,30 @@ export function ReorderableRow({
           >
             <GripVerticalIcon className="h-3.5 w-3.5" />
           </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            aria-label="Move up"
-            disabled={!canMoveUp || locked}
-            onClick={() => onMove(-1)}
-          >
-            <ArrowUpIcon className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            aria-label="Move down"
-            disabled={!canMoveDown || locked}
-            onClick={() => onMove(1)}
-          >
-            <ArrowDownIcon className="h-3.5 w-3.5" />
-          </Button>
+          {onMove && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label="Move up"
+                disabled={!canMoveUp || locked}
+                onClick={() => onMove(-1)}
+              >
+                <ArrowUpIcon className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label="Move down"
+                disabled={!canMoveDown || locked}
+                onClick={() => onMove(1)}
+              >
+                <ArrowDownIcon className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
         </div>
       </TableCell>
       {children}

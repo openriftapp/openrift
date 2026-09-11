@@ -1,6 +1,8 @@
+import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { CheckIcon, EllipsisVerticalIcon, MessageSquareTextIcon, XIcon } from "lucide-react";
 import { cloneElement } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,13 +21,21 @@ import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { submitterLabel } from "@/features/admin/lib/candidate-submitter";
 import { cn } from "@/lib/utils";
 
-function SubmitterLine({ submitter }: { submitter: SourceSubmitter }) {
+function SubmitterLine({
+  submitter,
+  showName = true,
+}: {
+  submitter: SourceSubmitter;
+  showName?: boolean;
+}) {
   const label = submitterLabel(submitter);
   return (
     <div className="text-muted-foreground flex items-center gap-1 font-normal">
-      <span className="min-w-0 truncate" title={label}>
-        by {label}
-      </span>
+      {showName && (
+        <span className="min-w-0 truncate" title={label}>
+          by {label}
+        </span>
+      )}
       {submitter.note !== null && (
         <Popover>
           <PopoverTrigger
@@ -70,12 +80,12 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
   return (
     <thead>
       <tr className="bg-muted/50 border-b">
-        <th className="bg-muted/50 sticky left-0 z-10 w-[150px] px-3 py-2 text-left font-medium">
+        <th className="bg-muted/50 sticky left-0 z-10 w-40 px-3 py-2 text-left font-medium">
           Field
         </th>
-        <th className="w-[300px] border-l px-3 py-2 text-left font-medium">
+        <th className="bg-success-soft w-64 border-l px-3 py-2 text-left font-medium">
           <span className="inline-flex items-center gap-1.5">
-            Active
+            On the site
             {activeColumnBadge}
           </span>
         </th>
@@ -83,11 +93,16 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
           // A printing row inherits attribution from its parent candidate card.
           const parentCardId = row.candidateCardId;
           const submitter = submitters?.[parentCardId ?? row.id];
+          const providerLabel = getProviderLabel(row, providerLabels);
+          const isContribution = providerLabel === USER_SUBMISSION_PROVIDER;
+          const columnTitle = isContribution
+            ? ((submitter === undefined ? null : submitterLabel(submitter)) ?? "Contributor")
+            : providerLabel;
           return (
             <th
               key={row.id}
               className={cn(
-                "w-[300px] border-l px-3 py-2 text-left font-medium",
+                "w-64 border-l px-3 py-2 text-left font-medium",
                 isFavoriteProvider(row, providerLabels, favoriteProviders) && "bg-info-soft",
                 isChecked(row) && "opacity-50",
                 columnClassName?.(row),
@@ -95,14 +110,13 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
             >
               <div className="flex items-center gap-1">
                 <span className="min-w-0 break-words">
-                  {getProviderLabel(row, providerLabels)}
+                  {columnTitle}
                   {parentCardId !== undefined && providerNames?.[parentCardId] && (
                     <span className="text-muted-foreground ml-1">
                       ({providerNames[parentCardId]})
                     </span>
                   )}
                 </span>
-                {isChecked(row) && <CheckIcon className="text-success size-3.5 shrink-0" />}
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={<Button variant="ghost" size="icon" className="ml-auto shrink-0" />}
@@ -126,7 +140,17 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {submitter && <SubmitterLine submitter={submitter} />}
+              <div className="mt-1 flex flex-wrap items-center gap-1 font-normal">
+                {isFavoriteProvider(row, providerLabels, favoriteProviders) && (
+                  <Badge variant="info">Trusted</Badge>
+                )}
+                <Badge variant={isChecked(row) ? "success" : "warning"}>
+                  {isChecked(row) ? "Checked" : "Unchecked"}
+                </Badge>
+              </div>
+              {submitter && (isContribution ? submitter.note !== null : true) && (
+                <SubmitterLine submitter={submitter} showName={!isContribution} />
+              )}
             </th>
           );
         })}

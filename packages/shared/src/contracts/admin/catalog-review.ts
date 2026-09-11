@@ -81,6 +81,7 @@ export const acceptSubmissionResponseSchema = z.object({
   status: cardSubmissionStatusSchema,
   applied: z.number().int().min(0),
   createdPrintingIds: z.array(z.string()),
+  skipped: z.array(z.object({ candidatePrintingId: z.string(), reason: z.string() })),
 });
 
 export const rejectSubmissionInputSchema = candidateCardIdParam.extend({
@@ -99,32 +100,6 @@ export const createCardFromCandidateResponseSchema = z.object({
   printingsCreated: z.number().int().min(0),
 });
 
-export const catalogCardRowSchema = z.object({
-  cardSlug: z.string().nullable(),
-  name: z.string(),
-  normName: z.string(),
-  firstSetSlug: z.string().nullable(),
-  firstSetName: z.string().nullable(),
-  setSlugs: z.array(z.string()),
-  shortCodes: z.array(z.string()),
-  printingCount: z.number().int().min(0),
-  printingsWithoutImage: z.number().int().min(0),
-  proposals: z.number().int().min(0),
-  newPrintings: z.number().int().min(0),
-  uncheckedTrustedProviders: z.array(z.string()),
-  needsAttention: z.boolean(),
-  updatedAt: isoDateTime,
-});
-
-export const catalogCardListResponseSchema = z.object({
-  rows: z.array(catalogCardRowSchema),
-  counts: z.object({
-    all: z.number().int().min(0),
-    needsAttention: z.number().int().min(0),
-    drafts: z.number().int().min(0),
-  }),
-});
-
 export const catalogSourceKindSchema = z.enum(["contributors", "upload"]);
 
 export const catalogSourceSchema = z.object({
@@ -139,6 +114,7 @@ export const catalogSourceSchema = z.object({
   sortOrder: z.number().int(),
   lastUploadedAt: isoDateTime.nullable(),
   ignoredCount: z.number().int().min(0),
+  uncheckedRows: z.number().int().min(0),
 });
 
 export const catalogSourcesResponseSchema = z.object({
@@ -170,9 +146,6 @@ export const adminCatalogReviewContract = {
       CONFLICT: { message: "Submission already settled" },
     })
     .input(rejectSubmissionInputSchema),
-  catalogCards: authedRoute
-    .route({ method: "GET", path: `${CATALOG}/cards`, tags: [TAG] })
-    .output(catalogCardListResponseSchema),
   catalogSources: authedRoute
     .route({ method: "GET", path: `${CATALOG}/sources`, tags: [TAG] })
     .output(catalogSourcesResponseSchema),
@@ -200,7 +173,5 @@ export type AcceptSubmissionResponse = z.infer<typeof acceptSubmissionResponseSc
 export type RejectSubmissionInput = z.input<typeof rejectSubmissionInputSchema>;
 export type CreateCardFromCandidateInput = z.input<typeof createCardFromCandidateInputSchema>;
 export type CreateCardFromCandidateResponse = z.infer<typeof createCardFromCandidateResponseSchema>;
-export type CatalogCardRow = z.infer<typeof catalogCardRowSchema>;
-export type CatalogCardListResponse = z.infer<typeof catalogCardListResponseSchema>;
 export type CatalogSource = z.infer<typeof catalogSourceSchema>;
 export type CatalogSourcesResponse = z.infer<typeof catalogSourcesResponseSchema>;

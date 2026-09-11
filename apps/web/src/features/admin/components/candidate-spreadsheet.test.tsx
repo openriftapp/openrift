@@ -294,7 +294,7 @@ describe("CandidateSpreadsheet submitter attribution", () => {
 
   const cardRow = { id: "cc1", provider: "usersubmission", name: "Yasuo", checkedAt: null };
 
-  it("names the submitter under a user-submission column header", () => {
+  it("titles a user-submission column with the submitter", () => {
     render(
       <CandidateSpreadsheet
         fields={[nameField]}
@@ -304,7 +304,7 @@ describe("CandidateSpreadsheet submitter attribution", () => {
       />,
     );
 
-    expect(screen.getByText("by tempest_fox")).toBeDefined();
+    expect(screen.getByText("tempest_fox")).toBeDefined();
   });
 
   it("renders no attribution for a column with no submitter", () => {
@@ -352,7 +352,7 @@ describe("CandidateSpreadsheet submitter attribution", () => {
     expect(screen.queryByRole("button", { name: "Show submission note" })).toBeNull();
   });
 
-  it("resolves a printing row's submitter through its parent card id", () => {
+  it("titles a printing row's column through its parent card's submitter", () => {
     const printingRow = {
       id: "cp1",
       candidateCardId: "cc1",
@@ -370,7 +370,7 @@ describe("CandidateSpreadsheet submitter attribution", () => {
       />,
     );
 
-    expect(screen.getByText("by ionia_main")).toBeDefined();
+    expect(screen.getByText("ionia_main")).toBeDefined();
   });
 });
 
@@ -493,5 +493,50 @@ describe("CandidateSpreadsheet foreign row shapes", () => {
     expect(screen.getByRole("columnheader", { name: /provider-abcdef12/u }).className).toContain(
       "opacity-50",
     );
+  });
+});
+
+describe("CandidateSpreadsheet agreed-fields fold", () => {
+  const agreedField: FieldDef = { key: "artist", label: "Artist" };
+  const rows = [
+    { id: "cp1", artist: "Zoya", checkedAt: null, provider: "tacter" },
+  ] as unknown as CandidatePrintingResponse[];
+
+  it("folds on its own when no caller drives it", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CandidateSpreadsheet
+        fields={[agreedField]}
+        activeRow={{ artist: "Zoya" }}
+        candidateRows={rows}
+      />,
+    );
+
+    expect(screen.queryByText("Artist")).toBeNull();
+    await user.click(screen.getByText("1 field everyone agrees on"));
+    expect(screen.getByText("Artist")).toBeTruthy();
+  });
+
+  it("takes the fold from the caller and reports the toggle back", async () => {
+    const user = userEvent.setup();
+    const onAgreedFieldsFoldedChange = vi.fn();
+
+    render(
+      <CandidateSpreadsheet
+        fields={[agreedField]}
+        activeRow={{ artist: "Zoya" }}
+        candidateRows={rows}
+        agreedFieldsFolded={false}
+        onAgreedFieldsFoldedChange={onAgreedFieldsFoldedChange}
+      />,
+    );
+
+    expect(screen.getByText("Artist")).toBeTruthy();
+
+    await user.click(screen.getByText("Hide"));
+
+    expect(onAgreedFieldsFoldedChange).toHaveBeenCalledWith(true);
+    expect(screen.getByText("Artist")).toBeTruthy();
   });
 });

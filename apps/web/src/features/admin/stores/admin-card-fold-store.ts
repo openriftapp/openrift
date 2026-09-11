@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type AdminCardSectionId = "cardFields" | "marketplace" | "printings";
+type AdminCardSectionId = "attention" | "cardFields" | "history" | "marketplace" | "printings";
 
 interface AdminCardFoldState {
   collapsedByCard: Record<string, Set<string>>;
@@ -27,7 +27,8 @@ export function getCollapsedSections(state: AdminCardFoldState): ReadonlySet<Adm
 
 export const useAdminCardFoldStore = create<AdminCardFoldState>()((set) => ({
   collapsedByCard: {},
-  collapsedSections: new Set(),
+  // History starts folded: opening it pages through the audit log.
+  collapsedSections: new Set<AdminCardSectionId>(["history"]),
 
   togglePrinting: (cardId, printingId) =>
     set((state) => {

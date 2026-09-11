@@ -5,14 +5,14 @@ export const adminKeys = {
   // never shadow a user's real one after sign-in.
   me: (userId: string | null) => ["admin", "me", userId] as const,
   sets: ["admin", "sets"] as const,
+  sources: ["admin", "sources"] as const,
+  reviewQueue: ["admin", "review-queue"] as const,
   cards: {
     all: ["admin", "cards"] as const,
     list: ["admin", "cards", "list"] as const,
     detail: (cardId: string) => ["admin", "cards", "detail", cardId] as const,
     unmatched: (name: string) => ["admin", "cards", "unmatched", name] as const,
     allCards: ["admin", "cards", "all-cards"] as const,
-    providerNames: ["admin", "cards", "provider-names"] as const,
-    providerStats: ["admin", "cards", "provider-stats"] as const,
   },
   // Not nested under `cards`: invalidating a card's detail on every
   // citation write would refetch the whole candidate review payload.

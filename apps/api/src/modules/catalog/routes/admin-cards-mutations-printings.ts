@@ -122,6 +122,8 @@ export const adminCardMutationsPrintingsRouter = {
       );
     }
 
+    // Without requireNew an identity collision updates the matching printing and
+    // links the candidate to it, instead of failing.
     const printingId = await acceptPrinting(
       context.transact,
       { catalogMutations, printingImages, markers, distributionChannels, printingEvents },
@@ -129,6 +131,7 @@ export const adminCardMutationsPrintingsRouter = {
       printingFields,
       candidatePrintingIds,
       context.io,
+      { requireNew: true },
     );
 
     const card = await catalogMutations.getCardById(cardId);
@@ -185,7 +188,11 @@ export const adminCardMutationsPrintingsRouter = {
       entityType: "printing",
       entityLabel: input.cardSlug,
       cardSlug: input.cardSlug,
-      newValues: { printingsCreated: result.printingsCreated, skipped: result.skipped.length },
+      newValues: {
+        printingsCreated: result.printingsCreated,
+        skipped: result.skipped.length,
+        createdPrintingIds: result.createdPrintingIds,
+      },
     });
 
     if (result.printingsCreated > 0) {
@@ -194,7 +201,7 @@ export const adminCardMutationsPrintingsRouter = {
       await relinkCandidatePrintings(context.repos);
     }
 
-    return result;
+    return { printingsCreated: result.printingsCreated, skipped: result.skipped };
   }),
 
   createPrinting: os.createPrinting.handler(async ({ input, context }) => {

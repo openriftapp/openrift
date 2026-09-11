@@ -84,13 +84,19 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async checkCandidatePrintingsForCard(candidateCardId: string): Promise<void> {
-      await db
+    async checkCandidatePrintingsForCard(
+      candidateCardId: string,
+      exceptIds: readonly string[] = [],
+    ): Promise<void> {
+      let query = db
         .updateTable("candidatePrintings")
         .set({ checkedAt: new Date() })
         .where("candidateCardId", "=", candidateCardId)
-        .where("checkedAt", "is", null)
-        .execute();
+        .where("checkedAt", "is", null);
+      if (exceptIds.length > 0) {
+        query = query.where("id", "not in", [...exceptIds]);
+      }
+      await query.execute();
     },
 
     async listSourceReviewGroups(excludeProvider: string): Promise<SourceReviewGroup[]> {

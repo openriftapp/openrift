@@ -71,7 +71,7 @@ export function collectReviewCheckTargets(
  * Search params carried through every navigation off the card detail page, so
  * a review run keeps its filters and the list page matches on the way back.
  */
-interface CardReviewNavSearch {
+export interface CardReviewNavSearch {
   set?: string;
   status?: AdminCardListStatus;
   priceScope?: string;
@@ -108,7 +108,9 @@ export function useCardReviewNavigation({
 }: UseCardReviewNavigationOptions) {
   const navigate = useNavigate();
   const { data: allCards } = useAllCards();
-  const checkAllCardSources = useCheckAllCandidateCards();
+  // The caller's scope, not the mutation's default: that one keys off the card's
+  // UUID, while this page's detail query is keyed by slug.
+  const checkAllCardSources = useCheckAllCandidateCards(invalidates);
   const checkAllCandidatePrintings = useCheckAllCandidatePrintings(invalidates);
 
   // Scoped to match the list page's set filter, so navigation stays inside the set.
@@ -237,6 +239,7 @@ export function useCardReviewNavigation({
 
   return {
     prevNextCards,
+    navSearch,
     isCheckingAll,
     /** Rejects if a check mutation fails, after clearing the run state. */
     checkAllAndNext: runCheckAllAndNext,

@@ -4,25 +4,36 @@ import type {
   AdminMarketplaceName,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { ArrowRightIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ArrowRightIcon, PlusIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminCardMarketplaceSection } from "@/features/admin/components/admin-card-marketplace-section";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { CardAttentionSection } from "@/features/admin/components/card-attention-section";
+import { CardBansSection } from "@/features/admin/components/card-bans-section";
 import { CardDetailHeader } from "@/features/admin/components/card-detail-header";
 import {
   buildSourceLabels,
   useCardDetailData,
 } from "@/features/admin/components/card-detail-shared";
+import { CardErrataSection } from "@/features/admin/components/card-errata-section";
 import { CardFieldsSection } from "@/features/admin/components/card-fields-section";
+import { CardHistorySection } from "@/features/admin/components/card-history-section";
+import { CardOverviewSection } from "@/features/admin/components/card-overview-section";
+import type { CardSectionCount } from "@/features/admin/components/card-section-nav";
+import { CardSectionNav } from "@/features/admin/components/card-section-nav";
 import { NewPrintingGroupCard } from "@/features/admin/components/new-printing-group-card";
 import {
   PrintingFilterBar,
   usePrintingFilters,
 } from "@/features/admin/components/printing-filter-bar";
+import { PrintingLanguageHeader } from "@/features/admin/components/printing-language-header";
 import { PrintingReviewCard } from "@/features/admin/components/printing-review-card";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
@@ -35,18 +46,42 @@ import type { AcceptPrintingBody } from "@/features/admin/hooks/use-admin-card-m
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
 import type { AdminCardListStatus } from "@/features/admin/hooks/use-card-review-navigation";
+import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
+import { unifiedMappingsForCardQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import {
-  getCollapsedSections,
+  attentionCount,
+  buildAttentionSources,
+  buildAttentionSubmissions,
+} from "@/features/admin/lib/attention-items";
+import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import type { CardSection } from "@/features/admin/lib/card-sections";
+import { cardSectionsFor, DEFAULT_CARD_SECTION } from "@/features/admin/lib/card-sections";
+import { buildOverviewSourceGroups } from "@/features/admin/lib/source-groups";
+import {
   getStoredCollapsedPrintings,
   useAdminCardFoldStore,
 } from "@/features/admin/stores/admin-card-fold-store";
+import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
 
+const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
+
 /** Stable placeholder so the filter hook can run before the detail lands. */
 const NO_PRINTINGS: AdminPrintingResponse[] = [];
+
+function MissingCard({ identifier, children }: { identifier: string; children: ReactNode }) {
+  return (
+    <>
+      <AdminPageTopBar title={identifier} />
+      <div className="space-y-2">
+        <Heading level={2}>Card not found</Heading>
+        <p className="text-muted-foreground text-sm">{children}</p>
+      </div>
+    </>
+  );
+}
 
 /** Every printing and ambiguous-source group except the first printing, which stays open. */
 function defaultCollapsedKeys(detail: AdminCardDetailResponse): string[] {
@@ -56,6 +91,7 @@ function defaultCollapsedKeys(detail: AdminCardDetailResponse): string[] {
 
 export function ExistingCardDetailPage({
   identifier,
+  section,
   focusMarketplace,
   focusFinish,
   focusLanguage,
@@ -64,6 +100,7 @@ export function ExistingCardDetailPage({
   priceScope,
 }: {
   identifier: string;
+  section?: CardSection;
   focusMarketplace?: AdminMarketplaceName;
   focusFinish?: string;
   focusLanguage?: string;
@@ -100,41 +137,101 @@ export function ExistingCardDetailPage({
   const { data: setsData } = useSets();
   const keywordStyles = useKeywordStyles();
 
-  const { prevNextCards, isCheckingAll, checkAllAndNext, goToCard, goToList, checkAllCardSources } =
-    useCardReviewNavigation({
-      identifier,
-      detail: existingData,
-      setSlug,
-      listStatus,
-      priceScope,
-      isAdmin,
-      invalidates: invalidateScope,
-    });
+  const {
+    prevNextCards,
+    navSearch,
+    isCheckingAll,
+    checkAllAndNext,
+    goToCard,
+    goToList,
+    checkAllCardSources,
+  } = useCardReviewNavigation({
+    identifier,
+    detail: existingData,
+    setSlug,
+    listStatus,
+    priceScope,
+    isAdmin,
+    invalidates: invalidateScope,
+  });
 
   const storedCollapsedPrintings = useAdminCardFoldStore((state) =>
     getStoredCollapsedPrintings(state, cardId),
   );
-  const collapsedSections = useAdminCardFoldStore((state) => getCollapsedSections(state));
   const togglePrintingFold = useAdminCardFoldStore((state) => state.togglePrinting);
   const expandPrintingFold = useAdminCardFoldStore((state) => state.expandPrinting);
   const setCollapsedForCard = useAdminCardFoldStore((state) => state.setCollapsedForCard);
   const initCollapsedForCard = useAdminCardFoldStore((state) => state.initCollapsedForCard);
-  const toggleSection = useAdminCardFoldStore((state) => state.toggleSection);
-  const cardFieldsExpanded = !collapsedSections.has("cardFields");
-  const marketplaceExpanded = !collapsedSections.has("marketplace");
-  const printingsExpanded = !collapsedSections.has("printings");
-  const [showBanForm, setShowBanForm] = useState(false);
-  const [showErrataForm, setShowErrataForm] = useState(false);
-  // The ban and errata forms live inside the Card Fields section, so opening
-  // one from the header menu has to unfold that section first.
-  function expandCardFields() {
-    if (!cardFieldsExpanded) {
-      toggleSection("cardFields");
-    }
+  // A link from the list that focuses a marketplace variant means the printings.
+  const requestedSection: CardSection =
+    section ?? (focusMarketplace === undefined ? DEFAULT_CARD_SECTION : "printings");
+  const sections = cardSectionsFor(isAdmin);
+  const activeSection = sections.includes(requestedSection)
+    ? requestedSection
+    : DEFAULT_CARD_SECTION;
+  const navigate = useNavigate();
+
+  function goToSection(next: CardSection) {
+    void navigate({
+      to: "/admin/cards/$cardSlug",
+      params: { cardSlug: identifier },
+      search: { ...navSearch, section: next === DEFAULT_CARD_SECTION ? undefined : next },
+    });
   }
+
+  function revealPrinting(printingId: string) {
+    goToSection("printings");
+    expandPrintingFold(cardId, printingId);
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-printing-id="${printingId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+  function revealNewPrinting(candidatePrintingId: string) {
+    if (!existingData) {
+      return;
+    }
+    const group = buildPrintingGroups(
+      existingData.candidatePrintingGroups,
+      existingData.candidatePrintings,
+    ).find((entry) => entry.candidates.some((candidate) => candidate.id === candidatePrintingId));
+    if (!group) {
+      return;
+    }
+    goToSection("printings");
+    expandPrintingFold(cardId, group.groupKey);
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-printing-group="${group.groupKey}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+  const [agreedFieldsFolded, setAgreedFieldsFolded] = useState(true);
   const { filteredPrintings, filters } = usePrintingFilters(
     existingData?.printings ?? NO_PRINTINGS,
   );
+  const printingsByLanguage = usePrintingsByLanguage(filteredPrintings);
+
+  const { data: mappingsData } = useQuery({
+    ...unifiedMappingsForCardQueryOptions(identifier),
+    enabled: isAdmin,
+  });
+  const { data: bansData } = useCardBans(identifier);
+  const attentionSubmissions = existingData ? buildAttentionSubmissions(existingData) : [];
+  const attentionSources = existingData
+    ? buildAttentionSources(existingData, providerSettings)
+    : [];
+  const attentionTotal = attentionCount(attentionSubmissions, attentionSources);
+  const mappingGroup = mappingsData?.group ?? null;
+  const unassignedProducts =
+    mappingGroup === null
+      ? 0
+      : MARKETPLACES.reduce(
+          (total, marketplace) => total + mappingGroup[marketplace].stagedProducts.length,
+          0,
+        );
+
   const pendingScrollTarget = useRef<string | null>(null);
   const focusHandledRef = useRef(false);
 
@@ -199,21 +296,21 @@ export function ExistingCardDetailPage({
 
   if (isError) {
     return (
-      <div className="space-y-2">
-        <Heading level={2}>Card not found</Heading>
-        <p className="text-muted-foreground text-sm">
-          No card with ID &ldquo;{identifier}&rdquo; exists.
-        </p>
-      </div>
+      <MissingCard identifier={identifier}>
+        No card with ID &ldquo;{identifier}&rdquo; exists.
+      </MissingCard>
     );
   }
 
   if (isLoading || !existingData) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64" />
-      </div>
+      <>
+        <AdminPageTopBar title={identifier} />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-64" />
+        </div>
+      </>
     );
   }
 
@@ -239,17 +336,13 @@ export function ExistingCardDetailPage({
   const costKeywords = Object.entries(keywordStyles)
     .filter(([, entry]) => entry.costKeyword)
     .map(([name]) => name);
-  const marketplaceMappings = existingData.marketplaceMappings ?? [];
   const expectedCardId = existingData.expectedCardId;
   const card = existingData.card;
   if (!card) {
     return (
-      <div className="space-y-2">
-        <Heading level={2}>Card not found</Heading>
-        <p className="text-muted-foreground text-sm">
-          No card data for &ldquo;{identifier}&rdquo;.
-        </p>
-      </div>
+      <MissingCard identifier={identifier}>
+        No card data for &ldquo;{identifier}&rdquo;.
+      </MissingCard>
     );
   }
   const canonicalName = card.name;
@@ -268,6 +361,19 @@ export function ExistingCardDetailPage({
   const hasUnchecked =
     sources.some((s) => !s.checkedAt) || candidatePrintings.some((ps) => !ps.checkedAt);
 
+  // Ids are what the audit log stores; History reads the printing ids off this.
+  const printingLabelsById = Object.fromEntries(
+    printings.map((printing) => [printing.id, printing.expectedPrintingId]),
+  );
+
+  const sectionCounts: Partial<Record<CardSection, CardSectionCount>> = {
+    attention: { waiting: attentionTotal },
+    fields: { waiting: sources.filter((source) => !source.checkedAt).length },
+    printings: { total: printings.length, waiting: ambiguousGroups.length },
+    marketplace: { waiting: unassignedProducts },
+    bans: { total: (bansData?.length ?? 0) + (card.errata === null ? 0 : 1) },
+  };
+
   const allPrintingKeys = [
     ...printings.map((p) => p.id),
     ...ambiguousGroups.map((g) => g.groupKey),
@@ -279,199 +385,276 @@ export function ExistingCardDetailPage({
     allPrintingKeys.length > 0 && allPrintingKeys.every((k) => !collapsedPrintings.has(k));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-3">
       <CardDetailHeader
         card={card}
         cardId={cardId}
         expectedCardId={expectedCardId}
-        sourceCount={sources.length}
         hasUnchecked={hasUnchecked}
         prevNextCards={prevNextCards}
+        listSearch={navSearch}
         isCheckingAll={isCheckingAll}
         onCheckAllAndNext={() => void checkAllAndNext()}
         goToCard={goToCard}
         goToList={goToList}
-        onAddBan={() => {
-          expandCardFields();
-          setShowBanForm(true);
-        }}
-        onAddErrata={() => {
-          expandCardFields();
-          setShowErrataForm(true);
-        }}
         isAdmin={isAdmin}
       />
 
-      <CardFieldsSection
-        card={card}
-        sources={sources}
-        candidateCardFields={candidateCardFields}
-        providerSettings={providerSettings}
-        expanded={cardFieldsExpanded}
-        onToggleExpanded={() => toggleSection("cardFields")}
-        onCheckAllSources={() => checkAllCardSources.mutate(card.id)}
-        isCheckingAllSources={checkAllCardSources.isPending}
-        showBanForm={showBanForm}
-        onShowBanFormChange={setShowBanForm}
-        showErrataForm={showErrataForm}
-        onShowErrataFormChange={setShowErrataForm}
-        invalidates={invalidateScope}
-        isAdmin={isAdmin}
-      />
+      <div className="grid grid-cols-1 gap-6 pt-3 md:grid-cols-[11rem_minmax(0,1fr)]">
+        <CardSectionNav
+          cardSlug={cardId}
+          sections={sections}
+          section={activeSection}
+          counts={sectionCounts}
+          search={{ ...navSearch }}
+        />
 
-      {/* The endpoint 403s for grant holders. */}
-      {isAdmin && (
-        <section className="space-y-3">
-          <ExpandToggle
-            expanded={marketplaceExpanded}
-            className="hover:opacity-80"
-            onClick={() => toggleSection("marketplace")}
-          >
-            <Heading level={3}>Marketplace</Heading>
-          </ExpandToggle>
-          {marketplaceExpanded && <AdminCardMarketplaceSection cardId={identifier} />}
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <ExpandToggle
-            expanded={printingsExpanded}
-            className="hover:opacity-80"
-            onClick={() => toggleSection("printings")}
-          >
-            <Heading level={3}>Printings</Heading>
-          </ExpandToggle>
-          {printingsExpanded && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCollapsedForCard(cardId, allExpanded ? new Set(allPrintingKeys) : new Set());
-              }}
-            >
-              {allExpanded ? "Collapse all" : "Expand all"}
-            </Button>
-          )}
-          {printingsExpanded && <PrintingFilterBar {...filters} />}
-        </div>
-        {printingsExpanded &&
-          filteredPrintings.map((printing) => (
-            <PrintingReviewCard
-              key={printing.id}
-              printing={printing}
-              cardId={cardId}
-              printings={printings}
-              candidatePrintings={candidatePrintings}
-              printingImages={printingImages}
-              marketplaceMappings={marketplaceMappings}
-              sourceLabels={sourceLabels}
-              sourceNames={sourceNames}
-              sourceSubmitters={sourceSubmitters}
-              providerSettings={providerSettings}
-              printingSourceFields={printingSourceFields}
-              setTotals={setTotals}
-              costKeywords={costKeywords}
+        <div className="min-w-0 space-y-3">
+          {activeSection === "overview" && (
+            <CardOverviewSection
+              detail={existingData}
+              card={card as unknown as Record<string, unknown>}
+              cardFields={candidateCardFields}
+              sourceGroups={buildOverviewSourceGroups(existingData, providerSettings)}
+              attentionCount={attentionTotal}
               invalidates={invalidateScope}
-              defaultExpanded={printing.id === printings[0]?.id}
+              isAdmin={isAdmin}
+              onOpenPrinting={revealPrinting}
+              onOpenAttention={() => goToSection("attention")}
+            />
+          )}
+
+          {activeSection === "attention" &&
+            (attentionTotal === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Nothing needs a decision on this card.
+              </p>
+            ) : (
+              <CardAttentionSection
+                detail={existingData}
+                cardSlug={cardId}
+                compareAction={
+                  <Button variant="ghost" onClick={() => goToSection("fields")}>
+                    Card fields
+                  </Button>
+                }
+                onOpenNewPrinting={revealNewPrinting}
+                printingFields={printingSourceFields}
+                providerLabels={sourceLabels}
+              />
+            ))}
+
+          {activeSection === "fields" && (
+            <CardFieldsSection
+              card={card}
+              sources={sources}
+              candidateCardFields={candidateCardFields}
+              providerSettings={providerSettings}
+              onCheckAllSources={() => checkAllCardSources.mutate(card.id)}
+              isCheckingAllSources={checkAllCardSources.isPending}
+              invalidates={invalidateScope}
               isAdmin={isAdmin}
             />
-          ))}
+          )}
 
-        {isAdmin &&
-          printingsExpanded &&
-          ambiguousGroups.length > 0 &&
-          (() => {
-            const matchable = ambiguousGroups.filter((g) =>
-              printings.some((p) => p.expectedPrintingId === g.expectedPrintingId),
-            );
-            if (matchable.length < 2) {
-              return null;
-            }
-            return (
-              <div className="flex items-center">
+          {activeSection === "marketplace" && (
+            <AdminCardMarketplaceSection cardId={identifier} onOpenPrinting={revealPrinting} />
+          )}
+
+          {activeSection === "printings" && (
+            <section className="space-y-3">
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+                <PrintingFilterBar
+                  {...filters}
+                  agreedFieldsFolded={agreedFieldsFolded}
+                  onAgreedFieldsFoldedChange={setAgreedFieldsFolded}
+                />
                 <Button
-                  variant="default"
-                  disabled={linkPrintingSources.isPending}
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
-                    for (const g of matchable) {
-                      const match = printings.find(
-                        (p) => p.expectedPrintingId === g.expectedPrintingId,
-                      );
-                      if (!match) {
-                        continue;
-                      }
-                      const pid = match.id;
-                      linkPrintingSources.mutate({
-                        printingId: pid,
-                        candidatePrintingIds: g.candidates.map((s) => s.id),
-                      });
-                    }
+                    setCollapsedForCard(cardId, allExpanded ? new Set(allPrintingKeys) : new Set());
                   }}
                 >
-                  <ArrowRightIcon className="mr-1" />
-                  Assign all {matchable.length} groups to existing
+                  {allExpanded ? "Collapse all" : "Expand all"}
                 </Button>
+                {isAdmin && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    render={
+                      <Link
+                        to="/admin/cards/$cardSlug/printings/create"
+                        params={{ cardSlug: cardId }}
+                      />
+                    }
+                  >
+                    <PlusIcon />
+                    Create printing
+                  </Button>
+                )}
               </div>
-            );
-          })()}
+              {filteredPrintings.length > 0 && (
+                <div className="overflow-hidden rounded-md border">
+                  {printingsByLanguage.map(([language, languagePrintings]) => (
+                    <div key={language}>
+                      <PrintingLanguageHeader code={language} />
+                      {languagePrintings.map((printing) => (
+                        <PrintingReviewCard
+                          key={printing.id}
+                          printing={printing}
+                          cardId={cardId}
+                          printings={printings}
+                          candidatePrintings={candidatePrintings}
+                          printingImages={printingImages}
+                          sourceLabels={sourceLabels}
+                          sourceNames={sourceNames}
+                          sourceSubmitters={sourceSubmitters}
+                          providerSettings={providerSettings}
+                          printingSourceFields={printingSourceFields}
+                          setTotals={setTotals}
+                          costKeywords={costKeywords}
+                          invalidates={invalidateScope}
+                          defaultExpanded={printing.id === printings[0]?.id}
+                          isAdmin={isAdmin}
+                          agreedFieldsFolded={agreedFieldsFolded}
+                          onAgreedFieldsFoldedChange={setAgreedFieldsFolded}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-        {printingsExpanded &&
-          ambiguousGroups.map((group) => (
-            <NewPrintingGroupCard
-              key={group.groupKey}
-              group={group}
-              existingPrintings={printings}
-              providerLabels={sourceLabels}
-              providerNames={sourceNames}
-              providerSubmitters={sourceSubmitters}
-              providerSettings={providerSettings}
-              setTotals={setTotals}
-              setReleaseYears={setReleaseYears}
-              isExpanded={!collapsedPrintings.has(group.groupKey)}
-              onToggle={() => togglePrintingFold(cardId, group.groupKey)}
-              onAccept={(printingFields, candidatePrintingIds) => {
-                acceptPrintingGroup.mutate(
-                  {
-                    cardId: card.id,
-                    printingFields: printingFields as AcceptPrintingBody["printingFields"],
-                    candidatePrintingIds,
-                  },
-                  {
-                    onSuccess: (data) => {
-                      pendingScrollTarget.current = (data as { printingId: string }).printingId;
-                    },
-                  },
-                );
+              {isAdmin &&
+                ambiguousGroups.length > 0 &&
+                (() => {
+                  const matchable = ambiguousGroups.filter((g) =>
+                    printings.some((p) => p.expectedPrintingId === g.expectedPrintingId),
+                  );
+                  if (matchable.length < 2) {
+                    return null;
+                  }
+                  return (
+                    <div className="flex items-center">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={linkPrintingSources.isPending}
+                        onClick={() => {
+                          for (const g of matchable) {
+                            const match = printings.find(
+                              (p) => p.expectedPrintingId === g.expectedPrintingId,
+                            );
+                            if (!match) {
+                              continue;
+                            }
+                            const pid = match.id;
+                            linkPrintingSources.mutate({
+                              printingId: pid,
+                              candidatePrintingIds: g.candidates.map((s) => s.id),
+                            });
+                          }
+                        }}
+                      >
+                        <ArrowRightIcon className="mr-1" />
+                        Assign all {matchable.length} groups to existing
+                      </Button>
+                    </div>
+                  );
+                })()}
+
+              {ambiguousGroups.length > 0 && (
+                <div className="overflow-hidden rounded-md border border-dashed">
+                  {ambiguousGroups.map((group) => (
+                    <NewPrintingGroupCard
+                      key={group.groupKey}
+                      group={group}
+                      existingPrintings={printings}
+                      providerLabels={sourceLabels}
+                      providerNames={sourceNames}
+                      providerSubmitters={sourceSubmitters}
+                      providerSettings={providerSettings}
+                      setTotals={setTotals}
+                      setReleaseYears={setReleaseYears}
+                      isExpanded={!collapsedPrintings.has(group.groupKey)}
+                      onToggle={() => togglePrintingFold(cardId, group.groupKey)}
+                      onAccept={(printingFields, candidatePrintingIds) => {
+                        acceptPrintingGroup.mutate(
+                          {
+                            cardId: card.id,
+                            printingFields: printingFields as AcceptPrintingBody["printingFields"],
+                            candidatePrintingIds,
+                          },
+                          {
+                            onSuccess: (data) => {
+                              pendingScrollTarget.current = (
+                                data as { printingId: string }
+                              ).printingId;
+                            },
+                          },
+                        );
+                      }}
+                      onLink={(pid, candidatePrintingIds) => {
+                        linkPrintingSources.mutate({ printingId: pid, candidatePrintingIds });
+                      }}
+                      onCopy={(id, pid) => {
+                        copyPrintingSource.mutate({ id, printingId: pid });
+                      }}
+                      onDelete={(id) => {
+                        deletePrintingSource.mutate(id);
+                      }}
+                      onIgnore={(externalId, finish) => {
+                        ignorePrintingSource.mutate({
+                          provider:
+                            sourceLabels[
+                              group.candidates.find((s) => s.externalId === externalId)
+                                ?.candidateCardId ?? ""
+                            ] ?? "",
+                          externalId,
+                          finish,
+                        });
+                      }}
+                      isAccepting={acceptPrintingGroup.isPending}
+                      isLinking={linkPrintingSources.isPending}
+                      printingFields={printingSourceFields}
+                      costKeywords={costKeywords}
+                      invalidates={invalidateScope}
+                      isAdmin={isAdmin}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeSection === "bans" && (
+            <div className="space-y-8">
+              <CardBansSection cardId={card.id} />
+              <CardErrataSection cardId={card.id} errata={card.errata} />
+            </div>
+          )}
+
+          {activeSection === "history" && (
+            <CardHistorySection
+              cardSlug={cardId}
+              cardName={canonicalName}
+              printingLabels={printingLabelsById}
+              onOpen={(target) => {
+                if (target.kind === "printing") {
+                  revealPrinting(target.printingId);
+                  return;
+                }
+                if (target.kind === "sources") {
+                  void navigate({ to: "/admin/sources" });
+                  return;
+                }
+                goToSection(target.kind === "submissions" ? "attention" : target.kind);
               }}
-              onLink={(pid, candidatePrintingIds) => {
-                linkPrintingSources.mutate({ printingId: pid, candidatePrintingIds });
-              }}
-              onCopy={(id, pid) => {
-                copyPrintingSource.mutate({ id, printingId: pid });
-              }}
-              onDelete={(id) => {
-                deletePrintingSource.mutate(id);
-              }}
-              onIgnore={(externalId, finish) => {
-                ignorePrintingSource.mutate({
-                  provider:
-                    sourceLabels[
-                      group.candidates.find((s) => s.externalId === externalId)?.candidateCardId ??
-                        ""
-                    ] ?? "",
-                  externalId,
-                  finish,
-                });
-              }}
-              isAccepting={acceptPrintingGroup.isPending}
-              isLinking={linkPrintingSources.isPending}
-              printingFields={printingSourceFields}
-              costKeywords={costKeywords}
-              invalidates={invalidateScope}
-              isAdmin={isAdmin}
             />
-          ))}
-      </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

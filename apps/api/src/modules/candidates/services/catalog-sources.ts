@@ -21,6 +21,7 @@ const ZERO_COUNTS = {
   printingRows: 0,
   lastUploadedAt: null,
   ignoredCount: 0,
+  uncheckedRows: 0,
 } satisfies Partial<CatalogSourceRow>;
 
 const EMPTY_SOURCE: Omit<CatalogSourceRow, "provider"> = {
@@ -44,6 +45,7 @@ function toSource(row: CatalogSourceRow, inReview: number): CatalogSource {
     sortOrder: row.sortOrder,
     lastUploadedAt: row.lastUploadedAt?.toISOString() ?? null,
     ignoredCount: row.ignoredCount,
+    uncheckedRows: row.uncheckedRows,
   };
 }
 

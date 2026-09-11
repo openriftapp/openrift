@@ -13,7 +13,7 @@ import { ShareImagePanel } from "@/features/groups/components/share-image-panel"
 import { ShareLinkRow } from "@/features/groups/components/share-link-row";
 import { ShareQrPanel } from "@/features/groups/components/share-qr-panel";
 
-export interface SharePanelLink {
+interface SharePanelLink {
   url: string | null;
   label: string;
   /** Completes "Anyone with this link can …". */
@@ -26,14 +26,14 @@ export interface SharePanelLink {
   stopping?: boolean;
 }
 
-export interface SharePanelText {
+interface SharePanelText {
   /** Query key for the built text; include whatever makes it go stale. */
   cacheKey: readonly unknown[];
   getText: () => Promise<string>;
   description: ReactNode;
 }
 
-export interface SharePanelPrint {
+interface SharePanelPrint {
   defaultTitle: string;
   defaultSubtitle: string;
   filenameHint?: string;

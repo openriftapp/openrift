@@ -4,6 +4,7 @@ import type {
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { render } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DeduplicatedSourceImage } from "@/features/admin/components/card-detail-shared";
@@ -11,7 +12,10 @@ import { useAdminCardFoldStore } from "@/features/admin/stores/admin-card-fold-s
 import { createStoreResetter } from "@/test/store-helpers";
 
 const captured = vi.hoisted(() => ({
-  spreadsheet: null as { candidateRows?: unknown[] } | null,
+  spreadsheet: null as {
+    candidateRows?: unknown[];
+    onCellClick?: (field: string, value: unknown, candidateId: string) => void;
+  } | null,
   switcher: null as {
     images?: AdminPrintingImageResponse[];
     sourceImages?: DeduplicatedSourceImage[];
@@ -19,12 +23,37 @@ const captured = vi.hoisted(() => ({
     derivedArtLabel?: string | null;
   } | null,
   checkAll: vi.fn(),
+  checkSource: vi.fn(),
   deletePrinting: vi.fn(),
+  acceptField: vi.fn(),
+  toastSuccess: vi.fn(),
+  sourceImageCells: [] as { url: string; isUsed: boolean }[],
 }));
 
 vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
-  CandidateSpreadsheet: (props: { candidateRows?: unknown[] }) => {
+  // The image tools and the sources' art live in the grid's cells, so the stub
+  // must render both slots for them to mount.
+  CandidateSpreadsheet: (props: {
+    candidateRows?: { id: string }[];
+    onCellClick?: (field: string, value: unknown, candidateId: string) => void;
+    renderActiveCell?: (field: { key: string }) => ReactNode;
+    renderCandidateCell?: (field: { key: string }, row: { id: string }) => ReactNode;
+  }) => {
     captured.spreadsheet = props;
+    return (
+      <>
+        {props.renderActiveCell?.({ key: "imageUrl" })}
+        {(props.candidateRows ?? []).map((row) => (
+          <div key={row.id}>{props.renderCandidateCell?.({ key: "imageUrl" }, row)}</div>
+        ))}
+      </>
+    );
+  },
+}));
+
+vi.mock("@/features/admin/components/printing-source-image-cell", () => ({
+  PrintingSourceImageCell: (props: { url: string; isUsed: boolean }) => {
+    captured.sourceImageCells.push({ url: props.url, isUsed: props.isUsed });
     return null;
   },
 }));
@@ -41,10 +70,6 @@ vi.mock("@/features/admin/components/printing-image-switcher", () => ({
   },
 }));
 
-vi.mock("@/features/admin/components/printing-marketplace-cells", () => ({
-  PrintingMarketplaceBadges: () => null,
-}));
-
 vi.mock("@/features/admin/components/printing-citations-editor", () => ({
   PrintingCitationsEditor: () => <div data-testid="citations-editor" />,
 }));
@@ -56,11 +81,13 @@ vi.mock("@/components/language-chip", () => ({
 
 vi.mock("@tanstack/react-router", () => ({ Link: () => null }));
 
+vi.mock("sonner", () => ({ toast: { success: captured.toastSuccess } }));
+
 const stubMutation = { mutate: vi.fn(), isPending: false };
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useAcceptPrintingField: () => stubMutation,
+  useAcceptPrintingField: () => ({ mutate: captured.acceptField, isPending: false }),
   useCheckAllCandidatePrintings: () => ({ mutate: captured.checkAll, isPending: false }),
-  useCheckCandidatePrinting: () => stubMutation,
+  useCheckCandidatePrinting: () => ({ mutate: captured.checkSource, isPending: false }),
   useCopyCandidatePrinting: () => stubMutation,
   useDeleteCandidatePrinting: () => stubMutation,
   useDeletePrinting: () => ({ mutate: captured.deletePrinting, isPending: false }),
@@ -70,6 +97,27 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
 
 vi.mock("@/features/admin/hooks/use-ignored-candidates", () => ({
   useIgnoreCandidatePrinting: () => stubMutation,
+}));
+
+vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
+  useAdminPrintingCitations: () => ({ data: { citations: [] } }),
+}));
+
+vi.mock("@/hooks/use-enums", () => ({
+  useEnumOrders: () => ({ labels: { rarities: {}, finishes: {}, artVariants: {} } }),
+}));
+
+vi.mock("@/hooks/use-markers", () => ({
+  useMarkers: () => ({ data: { markers: [] } }),
+}));
+
+// The real menu renders its items only while open.
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  DropdownMenuSeparator: () => null,
+  DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -136,7 +184,6 @@ function renderCard(
       printings={[printing]}
       candidatePrintings={[]}
       printingImages={[]}
-      marketplaceMappings={[]}
       sourceLabels={{}}
       sourceNames={{}}
       sourceSubmitters={{}}
@@ -147,6 +194,8 @@ function renderCard(
       invalidates={[]}
       defaultExpanded
       isAdmin
+      agreedFieldsFolded
+      onAgreedFieldsFoldedChange={vi.fn()}
       {...props}
     />,
   );
@@ -159,7 +208,11 @@ beforeEach(() => {
   captured.spreadsheet = null;
   captured.switcher = null;
   captured.checkAll.mockReset();
+  captured.checkSource.mockReset();
   captured.deletePrinting.mockReset();
+  captured.acceptField.mockReset();
+  captured.toastSuccess.mockReset();
+  captured.sourceImageCells = [];
 });
 
 afterEach(() => {
@@ -167,23 +220,12 @@ afterEach(() => {
 });
 
 describe("PrintingReviewCard", () => {
-  it("shows the printing label and its own source count", () => {
+  it("shows the printing label in the collapsed row", () => {
     const { getByText } = renderCard({
-      candidatePrintings: [
-        stubSource({ id: "cp1" }),
-        stubSource({ id: "cp2" }),
-        stubSource({ id: "cp3", printingId: "p2" }),
-      ],
+      candidatePrintings: [stubSource({ id: "cp1" }), stubSource({ id: "cp2" })],
     });
 
     expect(getByText("OGN-001::foil")).toBeTruthy();
-    expect(getByText("(2 sources)")).toBeTruthy();
-  });
-
-  it("uses the singular source label for one source", () => {
-    const { getByText } = renderCard({ candidatePrintings: [stubSource()] });
-
-    expect(getByText("(1 source)")).toBeTruthy();
   });
 
   it("passes only its own sources and images down", () => {
@@ -244,7 +286,19 @@ describe("PrintingReviewCard", () => {
     expect(captured.switcher?.derivedArtLabel).toBeNull();
   });
 
-  it("offers source images that are not already accepted", () => {
+  it("draws a placeholder instead of a broken image when nothing is active", () => {
+    const { container } = renderCard({ printingImages: [] });
+
+    expect(container.querySelector('img[alt="OGN-001::foil"]')).toBeNull();
+  });
+
+  it("offers a source link from the menu while the printing has none", () => {
+    const { getByText } = renderCard();
+
+    expect(getByText("Add source link")).toBeTruthy();
+  });
+
+  it("marks a source image the printing already carries as used", () => {
     renderCard({
       candidatePrintings: [
         stubSource({ id: "cp1", imageUrl: "https://cdn.test/a.png" }),
@@ -253,7 +307,10 @@ describe("PrintingReviewCard", () => {
       printingImages: [stubImage({ originalUrl: "https://cdn.test/a.png" })],
     });
 
-    expect(captured.switcher?.sourceImages?.map((i) => i.url)).toEqual(["https://cdn.test/b.png"]);
+    expect(captured.sourceImageCells).toEqual([
+      { url: "https://cdn.test/a.png", isUsed: true },
+      { url: "https://cdn.test/b.png", isUsed: false },
+    ]);
   });
 
   it("offers other printings' images as substitute art, never this printing's own", () => {
@@ -305,32 +362,51 @@ describe("PrintingReviewCard", () => {
     expect(captured.spreadsheet).toBeNull();
   });
 
-  it("offers a check-all button counting only the unchecked sources", () => {
-    const { getByText } = renderCard({
+  it("names each unchecked source, and checks the one that is clicked", () => {
+    const { getByText, queryByText } = renderCard({
       candidatePrintings: [
-        stubSource({ id: "cp1", checkedAt: null }),
-        stubSource({ id: "cp2", checkedAt: null }),
-        stubSource({ id: "cp3" }),
+        stubSource({ id: "cp1", candidateCardId: "cc1", checkedAt: null }),
+        stubSource({ id: "cp2", candidateCardId: "cc2", checkedAt: null }),
+        stubSource({ id: "cp3", candidateCardId: "cc3" }),
       ],
+      sourceLabels: { cc1: "gallery", cc2: "piltover", cc3: "riftbinder" },
     });
 
-    getByText("Check 2 unchecked").click();
+    expect(queryByText("riftbinder")).toBeNull();
+    getByText("piltover").click();
+    expect(captured.checkSource).toHaveBeenCalledWith("cp2");
+  });
+
+  it("offers one more button to check every unchecked source at once", () => {
+    const { getByText } = renderCard({
+      candidatePrintings: [
+        stubSource({ id: "cp1", candidateCardId: "cc1", checkedAt: null }),
+        stubSource({ id: "cp2", candidateCardId: "cc2", checkedAt: null }),
+      ],
+      sourceLabels: { cc1: "gallery", cc2: "piltover" },
+    });
+
+    getByText("All 2").click();
     expect(captured.checkAll).toHaveBeenCalledWith({ printingId: "p1" });
   });
 
-  it("hides the check-all button once every source is checked", () => {
-    const { queryByText } = renderCard({ candidatePrintings: [stubSource()] });
+  it("names no source once every one of them is checked", () => {
+    const { queryByText } = renderCard({
+      candidatePrintings: [stubSource({ candidateCardId: "cc1" })],
+      sourceLabels: { cc1: "gallery" },
+    });
 
-    expect(queryByText(/unchecked/u)).toBeNull();
+    expect(queryByText("gallery")).toBeNull();
   });
 
   it("hides the triage actions from non-admins", () => {
     const { queryByText } = renderCard({
       isAdmin: false,
-      candidatePrintings: [stubSource({ checkedAt: null })],
+      candidatePrintings: [stubSource({ candidateCardId: "cc1", checkedAt: null })],
+      sourceLabels: { cc1: "gallery" },
     });
 
-    expect(queryByText(/unchecked/u)).toBeNull();
+    expect(queryByText("gallery")).toBeNull();
     expect(captured.spreadsheet).not.toBeNull();
   });
 
@@ -355,5 +431,60 @@ describe("PrintingReviewCard", () => {
     renderCard({ defaultExpanded: false });
 
     expect(captured.spreadsheet).toBeNull();
+  });
+
+  it("offers the old value back after accepting one from a source", () => {
+    renderCard({
+      printing: stubPrinting({ artist: "Base Artist" }),
+      candidatePrintings: [stubSource({ id: "cp1", candidateCardId: "cc1" })],
+      sourceLabels: { cc1: "tacter" },
+      printingSourceFields: [{ key: "artist", label: "Artist" }],
+    });
+
+    captured.spreadsheet?.onCellClick?.("artist", "Zoya", "cp1");
+
+    expect(captured.acceptField).toHaveBeenCalledWith({
+      printingId: "p1",
+      field: "artist",
+      value: "Zoya",
+      source: "provider",
+    });
+
+    const [message, options] = captured.toastSuccess.mock.calls[0] as [
+      string,
+      { action: { label: string; onClick: () => void } },
+    ];
+    expect(message).toBe("Used Artist from tacter");
+
+    options.action.onClick();
+    expect(captured.acceptField).toHaveBeenLastCalledWith({
+      printingId: "p1",
+      field: "artist",
+      value: "Base Artist",
+      source: "manual",
+    });
+  });
+
+  it("writes an empty previous value back as null", () => {
+    renderCard({
+      printing: stubPrinting({ artist: undefined }),
+      candidatePrintings: [stubSource({ id: "cp1", candidateCardId: "cc1" })],
+      sourceLabels: { cc1: "tacter" },
+      printingSourceFields: [{ key: "artist", label: "Artist" }],
+    });
+
+    captured.spreadsheet?.onCellClick?.("artist", "Zoya", "cp1");
+    const [, options] = captured.toastSuccess.mock.calls[0] as [
+      string,
+      { action: { onClick: () => void } },
+    ];
+    options.action.onClick();
+
+    expect(captured.acceptField).toHaveBeenLastCalledWith({
+      printingId: "p1",
+      field: "artist",
+      value: null,
+      source: "manual",
+    });
   });
 });

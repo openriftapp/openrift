@@ -6,14 +6,14 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import {
   DownloadIcon,
-  EyeIcon,
-  EyeOffIcon,
+  CropIcon,
+  EllipsisVerticalIcon,
   ImagePlusIcon,
-  PlusIcon,
   RotateCcwIcon,
   RotateCwIcon,
   ScissorsIcon,
   ScissorsLineDashedIcon,
+  TriangleAlertIcon,
   Trash2Icon,
   UploadIcon,
   XIcon,
@@ -22,10 +22,24 @@ import { useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
-import { Toggle } from "@/components/ui/toggle";
-import type { DeduplicatedSourceImage } from "@/features/admin/components/card-detail-shared";
+import { Pressable } from "@/components/ui/pressable";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sortByProviderOrder } from "@/features/admin/components/card-detail-shared";
 import { ImagePreview } from "@/features/admin/components/image-preview";
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
@@ -36,28 +50,17 @@ import {
   useDeletePrintingImage,
   useRehostPrintingImage,
   useRotatePrintingImage,
-  useSetCandidatePrintingImage,
   useSetFallbackArt,
   useSetPrintingImageNeedsTrim,
   useUnrehostPrintingImage,
   useUploadFallbackArt,
   useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
-import { imageQuadOf, quadCacheKey } from "@/features/admin/lib/straighten-quad";
+import { printingImageDisplayUrl as getDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
+import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
 import { cn } from "@/lib/utils";
 
 type Rotation = 0 | 90 | 180 | 270;
-
-const FALLBACK_TOGGLE_CLASS =
-  "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground bg-muted/50 text-muted-foreground h-6 min-w-0 rounded-md px-1.5 font-normal";
-
-function getDisplayUrl(img: AdminPrintingImageResponse): string | null {
-  if (!img.rehostedUrl) {
-    return img.originalUrl;
-  }
-  // Cache-bust: the rehosted URL is stable, but the file is rewritten in place on straighten/rotation/trim.
-  return `${img.rehostedUrl}-full.webp?r=${img.rotation}&t=${img.needsTrim ? 1 : 0}&q=${quadCacheKey(imageQuadOf(img))}`;
-}
 
 function imageLabel(img: AdminPrintingImageResponse): string {
   return (img.originalUrl && hostSlugFromUrl(img.originalUrl)) ?? "upload";
@@ -72,7 +75,6 @@ export function PrintingImageSwitcher({
   printingId,
   printingLabel,
   images,
-  sourceImages,
   siblingImages,
   derivedArtLabel,
   fallbackArtMode,
@@ -84,7 +86,6 @@ export function PrintingImageSwitcher({
   printingId: string;
   printingLabel: string;
   images: AdminPrintingImageResponse[];
-  sourceImages: DeduplicatedSourceImage[];
   siblingImages: SiblingImage[];
   /** Null when the card has no standard printing with art to derive from. */
   derivedArtLabel: string | null;
@@ -103,7 +104,6 @@ export function PrintingImageSwitcher({
   const setNeedsTrim = useSetPrintingImageNeedsTrim(invalidates);
   const addImageFromUrl = useAddImageFromUrl(invalidates);
   const uploadPrintingImage = useUploadPrintingImage(invalidates);
-  const setPrintingSourceImage = useSetCandidatePrintingImage(invalidates);
   const setFallbackArt = useSetFallbackArt(invalidates);
   const addFallbackArtUrl = useAddFallbackArtUrl(invalidates);
   const uploadFallbackArt = useUploadFallbackArt(invalidates);
@@ -116,14 +116,12 @@ export function PrintingImageSwitcher({
     }
     return orderSort(imageLabel(a), imageLabel(b));
   });
-  const sortedSourceImages = sourceImages.toSorted((a, b) => orderSort(a.source, b.source));
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => sortedImages[0]?.id ?? sortedSourceImages[0]?.candidatePrintingId ?? null,
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => sortedImages[0]?.id ?? null);
   const [resolution, setResolution] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [straightening, setStraightening] = useState(false);
   const [urlValue, setUrlValue] = useState("");
   const [showFallbackUrlInput, setShowFallbackUrlInput] = useState(false);
   const [fallbackUrlValue, setFallbackUrlValue] = useState("");
@@ -131,17 +129,13 @@ export function PrintingImageSwitcher({
   const fallbackFileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedImage = images.find((img) => img.id === selectedId);
-  const selectedSource = sourceImages.find((si) => si.candidatePrintingId === selectedId);
 
   const activeImage = images.find((img) => img.isActive);
   // Substitute art fills the front slot only, so an active back-only scan still needs it.
   const activeFrontImage = images.find((img) => img.isActive && img.face === "front");
   const pinnedSibling = siblingImages.find((s) => s.imageFileId === fallbackImageFileId);
   const effectiveImage = selectedImage ?? (selectedId ? null : activeImage);
-  const effectiveSource = selectedSource;
-  const effectiveUrl = effectiveImage
-    ? getDisplayUrl(effectiveImage)
-    : (effectiveSource?.url ?? null);
+  const effectiveUrl = effectiveImage ? getDisplayUrl(effectiveImage) : null;
 
   return (
     <div className="w-full max-w-96 shrink-0 space-y-2">
@@ -153,285 +147,212 @@ export function PrintingImageSwitcher({
         imgError={imgError}
         setImgError={setImgError}
       />
-      {(effectiveImage || effectiveSource) && (
-        <div className="flex min-h-5 items-center gap-2">
+      {(effectiveImage || isAdmin) && (
+        <div className="flex min-h-6 flex-wrap items-center gap-1">
+          {effectiveImage && (
+            <Badge
+              variant={effectiveImage.isActive ? "default" : "secondary"}
+              title={effectiveImage.isActive ? "Click to deactivate" : "Click to set as active"}
+              render={
+                <Pressable
+                  disabled={activatePrintingImage.isPending}
+                  onClick={() =>
+                    activatePrintingImage.mutate({
+                      imageId: effectiveImage.id,
+                      active: !effectiveImage.isActive,
+                    })
+                  }
+                />
+              }
+            >
+              {effectiveImage.isActive ? "Active" : "Inactive"}
+            </Badge>
+          )}
+          {effectiveImage && !effectiveImage.rehostedUrl && (
+            <Badge variant="destructive" title="Still served from the source's own host">
+              <TriangleAlertIcon />
+              Not rehosted
+            </Badge>
+          )}
+          {effectiveImage && imageQuadOf(effectiveImage) !== null && (
+            <Badge variant="outline">Straightened</Badge>
+          )}
           {effectiveImage?.originalUrl && (
             <a
               href={effectiveImage.originalUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-muted-foreground hover:text-foreground truncate"
+              className="text-muted-foreground hover:text-foreground truncate text-xs"
               title={effectiveImage.originalUrl}
             >
               {hostnameFromUrl(effectiveImage.originalUrl) ?? "upload"}
             </a>
           )}
-          {effectiveImage?.rehostedUrl && (
-            <a
-              href={`${effectiveImage.rehostedUrl}-full.webp?r=${effectiveImage.rotation}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-success hover:text-success/80 ml-auto truncate"
-              title={`${effectiveImage.rehostedUrl}-full.webp`}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="icon-xs" className="ml-auto" />}
+              aria-label="Image tools"
             >
-              rehosted
-            </a>
-          )}
-          {effectiveSource && (
-            <a
-              href={effectiveSource.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-muted-foreground hover:text-foreground truncate"
-              title={effectiveSource.url}
-            >
-              {hostnameFromUrl(effectiveSource.url) ?? "upload"}
-            </a>
-          )}
-        </div>
-      )}
-
-      {effectiveImage && (
-        <div className="flex min-h-6 items-center gap-1">
-          {effectiveImage.isActive ? (
-            <Badge variant="default">Active</Badge>
-          ) : (
-            <Badge variant="secondary">Inactive</Badge>
-          )}
-          {effectiveImage.rehostedUrl ? (
-            <Badge variant="outline" className="text-success">
-              Rehosted
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-warning">
-              External
-            </Badge>
-          )}
-          {imageQuadOf(effectiveImage) !== null && <Badge variant="outline">Straightened</Badge>}
-          <span className="text-muted-foreground">{imageLabel(effectiveImage)}</span>
-          <div className="ml-auto flex items-center gap-0.5">
-            {effectiveImage.isActive ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6"
-                title="Deactivate"
-                disabled={activatePrintingImage.isPending}
-                onClick={() =>
-                  activatePrintingImage.mutate({ imageId: effectiveImage.id, active: false })
-                }
-              >
-                <EyeIcon className="size-3" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6"
-                title="Set as active"
-                disabled={activatePrintingImage.isPending}
-                onClick={() =>
-                  activatePrintingImage.mutate({ imageId: effectiveImage.id, active: true })
-                }
-              >
-                <EyeOffIcon className="size-3" />
-              </Button>
-            )}
-            {!effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6"
-                title="Rehost"
-                disabled={rehostPrintingImage.isPending}
-                onClick={() => rehostPrintingImage.mutate(effectiveImage.id)}
-              >
-                <DownloadIcon className="size-3" />
-              </Button>
-            )}
-            {effectiveImage.rehostedUrl && (
-              <>
-                <StraightenImageDialog
-                  imageId={effectiveImage.id}
-                  quad={imageQuadOf(effectiveImage)}
-                  invalidates={invalidates}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  title={`Rotate left (current: ${effectiveImage.rotation}°)`}
-                  disabled={rotatePrintingImage.isPending}
-                  onClick={() =>
-                    rotatePrintingImage.mutate({
-                      imageId: effectiveImage.id,
-                      rotation: ((effectiveImage.rotation + 270) % 360) as Rotation,
-                    })
-                  }
-                >
-                  <RotateCcwIcon className="size-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  title={`Rotate right (current: ${effectiveImage.rotation}°)`}
-                  disabled={rotatePrintingImage.isPending}
-                  onClick={() =>
-                    rotatePrintingImage.mutate({
-                      imageId: effectiveImage.id,
-                      rotation: ((effectiveImage.rotation + 90) % 360) as Rotation,
-                    })
-                  }
-                >
-                  <RotateCwIcon className="size-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  title={
-                    effectiveImage.needsTrim
-                      ? "Auto-trim is ON — click to turn off (regenerates variants; -orig preserved)"
-                      : "Auto-trim is OFF — click to enable for scans (regenerates variants; -orig preserved)"
-                  }
-                  disabled={setNeedsTrim.isPending}
-                  onClick={() =>
-                    setNeedsTrim.mutate({
-                      imageId: effectiveImage.id,
-                      needsTrim: !effectiveImage.needsTrim,
-                    })
-                  }
-                >
-                  {effectiveImage.needsTrim ? (
-                    <ScissorsIcon className="text-success size-3" />
-                  ) : (
-                    <ScissorsLineDashedIcon className="size-3" />
+              <EllipsisVerticalIcon className="size-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {effectiveImage && (
+                <>
+                  {!effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
+                    <DropdownMenuItem
+                      disabled={rehostPrintingImage.isPending}
+                      onClick={() => rehostPrintingImage.mutate(effectiveImage.id)}
+                    >
+                      <DownloadIcon className="mr-2 size-3.5" />
+                      Rehost
+                    </DropdownMenuItem>
                   )}
-                </Button>
-              </>
-            )}
-            {isAdmin && effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6"
-                title="Un-rehost (delete files)"
-                disabled={unrehostPrintingImage.isPending}
-                onClick={() => unrehostPrintingImage.mutate(effectiveImage.id)}
-              >
-                <XIcon className="size-3" />
-              </Button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive size-6"
-                title="Remove"
-                disabled={deletePrintingImage.isPending}
-                onClick={() => deletePrintingImage.mutate(effectiveImage.id)}
-              >
-                <Trash2Icon className="size-3" />
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-      {!effectiveImage && effectiveSource && (
-        <div className="flex min-h-6 items-center gap-1">
-          <Badge variant="outline">Source</Badge>
-          <span className="text-muted-foreground">{effectiveSource.source}</span>
-          <div className="ml-auto flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              className="h-6 px-1.5"
-              disabled={setPrintingSourceImage.isPending}
-              onClick={() =>
-                setPrintingSourceImage.mutate(
-                  { candidatePrintingId: effectiveSource.candidatePrintingId, mode: "main" },
-                  { onSuccess: () => setSelectedId(null) },
-                )
-              }
-            >
-              <PlusIcon className="mr-0.5 size-3" />
-              Main
-            </Button>
-            <Button
-              variant="ghost"
-              className="h-6 px-1.5"
-              disabled={setPrintingSourceImage.isPending}
-              onClick={() =>
-                setPrintingSourceImage.mutate(
-                  { candidatePrintingId: effectiveSource.candidatePrintingId, mode: "additional" },
-                  { onSuccess: () => setSelectedId(null) },
-                )
-              }
-            >
-              <PlusIcon className="mr-0.5 size-3" />
-              Alt
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-1">
-        {sortedImages.map((img) => {
-          const isSelected = effectiveImage?.id === img.id;
-          return (
-            <Toggle
-              key={img.id}
-              pressed={isSelected}
-              onPressedChange={() => {
-                setSelectedId(isSelected ? null : img.id);
-                setResolution(null);
-                setImgError(false);
-              }}
-              className={cn(
-                "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary aria-pressed:hover:text-primary-foreground h-6 min-w-0 rounded-md px-1.5 font-normal",
-                img.isActive ? "bg-muted font-medium" : "bg-muted/50 text-muted-foreground",
+                  {effectiveImage.rehostedUrl && (
+                    <>
+                      <DropdownMenuItem onClick={() => setStraightening(true)}>
+                        <CropIcon
+                          className={cn(
+                            "mr-2 size-3.5",
+                            imageQuadOf(effectiveImage) !== null && "text-success",
+                          )}
+                        />
+                        {imageQuadOf(effectiveImage) === null
+                          ? "Straighten…"
+                          : "Straighten (corners set)…"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={rotatePrintingImage.isPending}
+                        onClick={() =>
+                          rotatePrintingImage.mutate({
+                            imageId: effectiveImage.id,
+                            rotation: ((effectiveImage.rotation + 270) % 360) as Rotation,
+                          })
+                        }
+                      >
+                        <RotateCcwIcon className="mr-2 size-3.5" />
+                        Rotate left ({effectiveImage.rotation}&deg;)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={rotatePrintingImage.isPending}
+                        onClick={() =>
+                          rotatePrintingImage.mutate({
+                            imageId: effectiveImage.id,
+                            rotation: ((effectiveImage.rotation + 90) % 360) as Rotation,
+                          })
+                        }
+                      >
+                        <RotateCwIcon className="mr-2 size-3.5" />
+                        Rotate right ({effectiveImage.rotation}&deg;)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={setNeedsTrim.isPending}
+                        onClick={() =>
+                          setNeedsTrim.mutate({
+                            imageId: effectiveImage.id,
+                            needsTrim: !effectiveImage.needsTrim,
+                          })
+                        }
+                      >
+                        {effectiveImage.needsTrim ? (
+                          <ScissorsIcon className="text-success mr-2 size-3.5" />
+                        ) : (
+                          <ScissorsLineDashedIcon className="mr-2 size-3.5" />
+                        )}
+                        {effectiveImage.needsTrim ? "Auto-trim is on" : "Auto-trim is off"}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {isAdmin && effectiveImage.rehostedUrl && effectiveImage.originalUrl && (
+                    <DropdownMenuItem
+                      disabled={unrehostPrintingImage.isPending}
+                      onClick={() => unrehostPrintingImage.mutate(effectiveImage.id)}
+                    >
+                      <XIcon className="mr-2 size-3.5" />
+                      Un-rehost (delete files)
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem
+                      disabled={deletePrintingImage.isPending}
+                      onClick={() => deletePrintingImage.mutate(effectiveImage.id)}
+                    >
+                      <Trash2Icon className="text-destructive mr-2 size-3.5" />
+                      <span className="text-destructive">Remove</span>
+                    </DropdownMenuItem>
+                  )}
+                </>
               )}
-            >
-              {imageLabel(img)}
-              {img.rehostedUrl ? null : <span className="text-warning"> !</span>}
-            </Toggle>
-          );
-        })}
-        {sortedSourceImages.map((si) => (
-          <Toggle
-            key={si.candidatePrintingId}
-            pressed={effectiveSource?.candidatePrintingId === si.candidatePrintingId}
-            onPressedChange={() => {
-              setSelectedId(
-                effectiveSource?.candidatePrintingId === si.candidatePrintingId
-                  ? null
-                  : si.candidatePrintingId,
-              );
-              setResolution(null);
-              setImgError(false);
-            }}
-            className="aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-foreground text-muted-foreground h-6 min-w-0 rounded-md border border-dashed px-1.5 font-normal"
-          >
-            {si.source}
-          </Toggle>
-        ))}
-      </div>
-
-      {isAdmin && (
-        <div className="flex gap-1">
-          <Button variant="outline" onClick={() => setShowUrlInput((v) => !v)}>
-            <ImagePlusIcon className="mr-1" />
-            From URL
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadPrintingImage.isPending}
-          >
-            <UploadIcon className="mr-1" />
-            Upload
-          </Button>
+              {isAdmin && (
+                <>
+                  {effectiveImage && <DropdownMenuSeparator />}
+                  <DropdownMenuItem onClick={() => setShowUrlInput(true)}>
+                    <ImagePlusIcon className="mr-2 size-3.5" />
+                    Add from URL…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={uploadPrintingImage.isPending}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <UploadIcon className="mr-2 size-3.5" />
+                    Upload an image…
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isAdmin && !activeFrontImage && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowFallbackUrlInput(true)}>
+                    <ImagePlusIcon className="mr-2 size-3.5" />
+                    Pin substitute from URL…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={uploadFallbackArt.isPending}
+                    onClick={() => fallbackFileInputRef.current?.click()}
+                  >
+                    <UploadIcon className="mr-2 size-3.5" />
+                    Upload a pinned substitute…
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+      )}
+      {sortedImages.length > 0 && (
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          spacing={0}
+          aria-label="Which image"
+          className="max-w-full flex-wrap"
+          value={effectiveImage ? [effectiveImage.id] : []}
+          onValueChange={([next]) => {
+            setSelectedId(next ?? null);
+            setResolution(null);
+            setImgError(false);
+          }}
+        >
+          {sortedImages.map((img) => (
+            <ToggleGroupItem key={img.id} value={img.id}>
+              {imageLabel(img)} ({img.face})
+              {!img.rehostedUrl && (
+                <span title="Not rehosted" className="inline-flex">
+                  <TriangleAlertIcon className="text-destructive" />
+                </span>
+              )}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      )}
+
+      {effectiveImage?.rehostedUrl && (
+        <StraightenImageDialog
+          imageId={effectiveImage.id}
+          quad={imageQuadOf(effectiveImage)}
+          invalidates={invalidates}
+          open={straightening}
+          onOpenChange={setStraightening}
+        />
       )}
 
       <input
@@ -494,7 +415,7 @@ export function PrintingImageSwitcher({
       {!activeFrontImage && (
         <div className="space-y-1 border-t pt-2">
           <div className="flex min-h-6 items-center gap-1">
-            <span className="text-muted-foreground">Substitute art</span>
+            <span className="text-muted-foreground shrink-0 text-xs">Substitute</span>
             {fallbackArtMode === "pinned" && fallbackImageFileId !== null && (
               <ImgWithFallback
                 src={imageUrl(fallbackImageFileId, "120w")}
@@ -514,66 +435,51 @@ export function PrintingImageSwitcher({
               <span className="text-muted-foreground truncate">{pinnedSibling.printingLabel}</span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            <Toggle
-              pressed={fallbackArtMode === "auto"}
-              disabled={setFallbackArt.isPending}
-              onPressedChange={() => setFallbackArt.mutate({ printingId, mode: "auto" })}
-              className={FALLBACK_TOGGLE_CLASS}
-              title={
-                derivedArtLabel === null
-                  ? "Show the standard printing's art (same language, else EN). This card has none with art, so nothing is shown."
-                  : `Show the standard printing's art (same language, else EN): ${derivedArtLabel}`
-              }
-            >
-              Derived ({derivedArtLabel ?? "no source"})
-            </Toggle>
-            <Toggle
-              pressed={fallbackArtMode === "none"}
-              disabled={setFallbackArt.isPending}
-              onPressedChange={() => setFallbackArt.mutate({ printingId, mode: "none" })}
-              className={FALLBACK_TOGGLE_CLASS}
-              title="Show no substitute — the drawn placeholder only"
-            >
-              None
-            </Toggle>
-            {siblingImages.map((sibling) => (
-              <Toggle
-                key={sibling.imageFileId}
-                pressed={
-                  fallbackArtMode === "pinned" && fallbackImageFileId === sibling.imageFileId
+          {(() => {
+            const items = [
+              { value: "auto", label: `Derived (${derivedArtLabel ?? "no source"})` },
+              { value: "none", label: "None" },
+              ...siblingImages.map((sibling) => ({
+                value: `pin:${sibling.imageFileId}`,
+                label: sibling.printingLabel,
+              })),
+            ];
+            return (
+              <Select
+                items={items}
+                value={
+                  fallbackArtMode === "pinned"
+                    ? `pin:${fallbackImageFileId ?? ""}`
+                    : fallbackArtMode
                 }
                 disabled={setFallbackArt.isPending}
-                onPressedChange={() =>
-                  setFallbackArt.mutate({
-                    printingId,
-                    mode: "pinned",
-                    imageFileId: sibling.imageFileId,
-                  })
-                }
-                className={FALLBACK_TOGGLE_CLASS}
-                title={`Pin the art from ${sibling.printingLabel}`}
+                onValueChange={(next) => {
+                  if (next === "auto" || next === "none") {
+                    setFallbackArt.mutate({ printingId, mode: next });
+                    return;
+                  }
+                  if (typeof next === "string" && next.startsWith("pin:")) {
+                    setFallbackArt.mutate({
+                      printingId,
+                      mode: "pinned",
+                      imageFileId: next.slice("pin:".length),
+                    });
+                  }
+                }}
               >
-                {sibling.printingLabel}
-              </Toggle>
-            ))}
-          </div>
-          {isAdmin && (
-            <div className="flex gap-1">
-              <Button variant="outline" onClick={() => setShowFallbackUrlInput((v) => !v)}>
-                <ImagePlusIcon className="mr-1" />
-                Pin URL
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => fallbackFileInputRef.current?.click()}
-                disabled={uploadFallbackArt.isPending}
-              >
-                <UploadIcon className="mr-1" />
-                Pin upload
-              </Button>
-            </div>
-          )}
+                <SelectTrigger className="h-7 w-full" aria-label="Which substitute art">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          })()}
           {showFallbackUrlInput && (
             <div className="flex gap-1">
               <Input

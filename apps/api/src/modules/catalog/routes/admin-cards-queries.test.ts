@@ -191,10 +191,14 @@ describe("GET /api/admin/v1/cards (candidate list)", () => {
         uncheckedCardCount: 0,
         uncheckedPrintingCount: 0,
         unlinkedPrintingCount: 0,
+        unlinkedTrustedPrintingCount: 0,
         hasFavorite: true,
         favoriteStagingShortCodes: [],
         suggestedCardSlug: null,
         hasUserSubmission: false,
+        pendingSubmissions: 0,
+        uncheckedTrustedProviders: [],
+        updatedAt: "2026-09-01T00:00:00.000Z",
       },
     ];
     mockBuildCandidateCardList.mockResolvedValue(candidates);

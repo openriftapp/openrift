@@ -35,7 +35,7 @@ const fetchCardDetail = createServerFn({ method: "GET" })
     });
   });
 
-export interface EnrichedCardDetail {
+interface EnrichedCardDetail {
   card: CardDetailResponse["card"];
   printings: Printing[];
   sets: CardDetailResponse["sets"];
@@ -43,7 +43,7 @@ export interface EnrichedCardDetail {
   related: CardDetailResponse["related"];
 }
 
-export function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
+function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
   const setsById = new Map(response.sets.map((s) => [s.id, s]));
   // Printings carry `canonicalRank` from the DB view; consumers layer the
   // per-user language axis on top via `sortByLanguageAndCanonicalRank`.

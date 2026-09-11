@@ -5,7 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 type MarketplaceCoverageStatus = "full" | "partial" | "none" | "na";
 
-export interface DirectionCoverage {
+interface DirectionCoverage {
   status: MarketplaceCoverageStatus;
   mapped: number;
   total: number;
@@ -15,7 +15,7 @@ export interface DirectionCoverage {
  * `printings`: do our printings have an entry on this marketplace?
  * `entries`: do this marketplace's entries match a printing of ours?
  */
-export interface MarketplaceCoverage {
+interface MarketplaceCoverage {
   printings: DirectionCoverage;
   entries: DirectionCoverage;
 }
@@ -192,4 +192,22 @@ export function buildPriceAssignBucketsBySlug(
     result.set(group.cardSlug, computePriceAssignBuckets(group));
   }
   return result;
+}
+
+export function unlinkedProductCount(
+  buckets: PriceAssignBucket[] | undefined,
+  scope: string,
+): number {
+  if (!buckets) {
+    return 0;
+  }
+  let total = 0;
+  for (const bucket of buckets) {
+    const inScope =
+      scope === ALL_ASSIGNABLE_SCOPE ? bucket.assignable : bucketScopeKey(bucket) === scope;
+    if (inScope) {
+      total += bucket.unbound;
+    }
+  }
+  return total;
 }

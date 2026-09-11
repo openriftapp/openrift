@@ -19,7 +19,7 @@ import {
   ComboboxList,
   ComboboxTrigger,
 } from "@/components/ui/combobox";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,6 +31,7 @@ import {
 import { useCreatePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import type { CreatePrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
+import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { buildChannelTree, leafChannels } from "@/features/cards/lib/distribution-channel-tree";
 import { printingFormDefaults } from "@/features/cards/lib/printing-form-defaults";
@@ -87,8 +88,6 @@ export function CreatePrintingPage({
     language: languages[0]?.code ?? WellKnown.language.EN,
   });
 
-  const [shortCode, setShortCode] = useState(defaults.shortCode);
-  const [setId, setSetId] = useState<string>(defaults.setId);
   const [rarity, setRarity] = useState<string>(defaults.rarity);
   const [artVariant, setArtVariant] = useState<string>(defaults.artVariant);
   const [finish, setFinish] = useState<string>(defaults.finish);
@@ -113,10 +112,13 @@ export function CreatePrintingPage({
   const card = cardDetail?.card;
   const cardId = card?.id;
 
+  const derivedShortCode = shortCodeFromPublicCode(publicCode.trim());
+  const derivedSetId = setSlugFromShortCode(derivedShortCode);
+
   const canSubmit =
     cardId !== undefined &&
-    shortCode.trim().length > 0 &&
-    setId.length > 0 &&
+    derivedShortCode !== null &&
+    derivedSetId !== null &&
     artist.trim().length > 0 &&
     publicCode.trim().length > 0 &&
     !createPrinting.isPending;
@@ -128,8 +130,8 @@ export function CreatePrintingPage({
     setErrorMsg(null);
 
     const printingFields: Record<string, unknown> = {
-      shortCode: shortCode.trim(),
-      setId,
+      shortCode: derivedShortCode,
+      setId: derivedSetId,
       rarity,
       artVariant,
       isSigned,
@@ -204,33 +206,38 @@ export function CreatePrintingPage({
 
         <CardContent>
           <FieldGroup>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
               <Field>
-                <FieldLabel htmlFor="create-printing-shortcode">Short code *</FieldLabel>
-                <Input
-                  id="create-printing-shortcode"
-                  value={shortCode}
-                  onChange={(e) => setShortCode(e.target.value)}
-                  placeholder="e.g. OGN-202"
-                  className="font-mono"
-                />
-              </Field>
-              <Field>
-                <FieldLabel>Set *</FieldLabel>
-                <Select value={setId} onValueChange={(value) => value && setSetId(value)}>
+                <FieldLabel>Language</FieldLabel>
+                <Select value={language} onValueChange={(value) => value && setLanguage(value)}>
                   <SelectTrigger className="w-full">
                     <SelectValue>
-                      {(value: string) => sets.find((s) => s.slug === value)?.name ?? value}
+                      {(value: string) => languages.find((l) => l.code === value)?.name ?? value}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {sets.map((s) => (
-                      <SelectItem key={s.slug} value={s.slug}>
-                        {s.name} ({s.slug})
+                    {languages.map((l) => (
+                      <SelectItem key={l.code} value={l.code}>
+                        {l.name} ({l.code})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="create-printing-public-code">Public code *</FieldLabel>
+                <Input
+                  id="create-printing-public-code"
+                  value={publicCode}
+                  onChange={(e) => setPublicCode(e.target.value)}
+                  placeholder="e.g. OGN-202/298"
+                  className="font-mono"
+                />
+                <FieldDescription>
+                  {derivedShortCode === null
+                    ? "The short code and the set are read off this."
+                    : `Saved as ${derivedShortCode} in ${derivedSetId ?? "no set"}.`}
+                </FieldDescription>
               </Field>
             </div>
 
@@ -286,6 +293,9 @@ export function CreatePrintingPage({
                   </SelectContent>
                 </Select>
               </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
               <Field>
                 <FieldLabel>Size</FieldLabel>
                 <Select value={size} onValueChange={(value) => value && setSize(value)}>
@@ -303,27 +313,7 @@ export function CreatePrintingPage({
                   </SelectContent>
                 </Select>
               </Field>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field>
-                <FieldLabel>Language</FieldLabel>
-                <Select value={language} onValueChange={(value) => value && setLanguage(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(value: string) => languages.find((l) => l.code === value)?.name ?? value}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((l) => (
-                      <SelectItem key={l.code} value={l.code}>
-                        {l.name} ({l.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field orientation="horizontal" className="sm:col-start-3 sm:self-end">
+              <Field orientation="horizontal" className="sm:self-end">
                 <Checkbox
                   id="create-printing-signed"
                   checked={isSigned}
@@ -331,7 +321,7 @@ export function CreatePrintingPage({
                 />
                 <FieldLabel htmlFor="create-printing-signed">Signed</FieldLabel>
               </Field>
-              <Field orientation="horizontal" className="sm:col-start-3 sm:self-end">
+              <Field orientation="horizontal" className="sm:self-end">
                 <Checkbox
                   id="create-printing-overnumbered"
                   checked={isOvernumbered}
@@ -376,16 +366,6 @@ export function CreatePrintingPage({
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
                   placeholder="e.g. Jane Doe"
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="create-printing-public-code">Public code *</FieldLabel>
-                <Input
-                  id="create-printing-public-code"
-                  value={publicCode}
-                  onChange={(e) => setPublicCode(e.target.value)}
-                  placeholder="e.g. 202"
-                  className="font-mono"
                 />
               </Field>
             </div>

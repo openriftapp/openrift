@@ -6,6 +6,7 @@ import type {
 export interface PrintingGroup {
   candidates: CandidatePrintingResponse[];
   expectedPrintingId: string;
+  language: string | null;
   suggestedPrintingId: string | null;
 }
 
@@ -21,6 +22,7 @@ export function buildPrintingGroups(
     return {
       candidates,
       expectedPrintingId: g.expectedPrintingId,
+      language: g.language,
       suggestedPrintingId: g.suggestedPrintingId,
       groupKey: candidates[0]?.id ?? `${g.expectedPrintingId}-${index}`,
     };

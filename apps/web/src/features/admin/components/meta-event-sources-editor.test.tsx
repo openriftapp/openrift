@@ -58,9 +58,9 @@ describe("MetaEventSourcesEditor", () => {
   it("gives a hand-entered citation a delete and a provider one none", () => {
     captured.sources = [providerSource, handSource];
     render(<MetaEventSourcesEditor eventId="event-1" />);
-    const deletes = screen.getAllByRole("button", { name: /^Delete citation/u });
+    const deletes = screen.getAllByRole("button", { name: /^Delete source link/u });
     expect(deletes).toHaveLength(1);
-    expect(deletes[0]).toHaveAccessibleName("Delete citation Twitch VOD");
+    expect(deletes[0]).toHaveAccessibleName("Delete source link Twitch VOD");
   });
 
   it("says who owns a provider citation instead of offering to delete it", () => {
@@ -74,31 +74,32 @@ describe("MetaEventSourcesEditor", () => {
     const user = userEvent.setup();
     captured.sources = [handSource];
     render(<MetaEventSourcesEditor eventId="event-1" />);
-    await user.click(screen.getByRole("button", { name: "Delete citation Twitch VOD" }));
+    await user.click(screen.getByRole("button", { name: "Delete source link Twitch VOD" }));
     expect(captured.remove).toHaveBeenCalledWith({ eventId: "event-1", sourceId: "src-2" });
   });
 
-  it("adds a hand-entered citation and clears the form", async () => {
+  it("adds a hand-entered citation and closes the form", async () => {
     const user = userEvent.setup();
     render(<MetaEventSourcesEditor eventId="event-1" />);
-    const labelInput = screen.getByLabelText("Label");
-    await user.type(labelInput, "Twitch VOD");
-    await user.type(screen.getByLabelText("Link"), "https://example.test/vod");
-    await user.click(screen.getByRole("button", { name: "Add citation" }));
+    await user.click(screen.getByRole("button", { name: "Add source link" }));
+    await user.type(screen.getByLabelText("Source name"), "Twitch VOD");
+    await user.type(screen.getByLabelText("Source link"), "https://example.test/vod");
+    await user.click(screen.getByRole("button", { name: "Add source link" }));
 
     expect(captured.create).toHaveBeenCalledWith({
       eventId: "event-1",
       label: "Twitch VOD",
       sourceUrl: "https://example.test/vod",
     });
-    expect(labelInput).toHaveValue("");
+    expect(screen.queryByLabelText("Source name")).not.toBeInTheDocument();
   });
 
   it("sends a blank link as null rather than an empty string", async () => {
     const user = userEvent.setup();
     render(<MetaEventSourcesEditor eventId="event-1" />);
-    await user.type(screen.getByLabelText("Label"), "Standings photo");
-    await user.click(screen.getByRole("button", { name: "Add citation" }));
+    await user.click(screen.getByRole("button", { name: "Add source link" }));
+    await user.type(screen.getByLabelText("Source name"), "Standings photo");
+    await user.click(screen.getByRole("button", { name: "Add source link" }));
     expect(captured.create).toHaveBeenCalledWith({
       eventId: "event-1",
       label: "Standings photo",
@@ -106,9 +107,11 @@ describe("MetaEventSourcesEditor", () => {
     });
   });
 
-  it("will not add a citation with no label", () => {
+  it("will not add a citation with no label", async () => {
+    const user = userEvent.setup();
     render(<MetaEventSourcesEditor eventId="event-1" />);
-    expect(screen.getByRole("button", { name: "Add citation" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Add source link" }));
+    expect(screen.getByRole("button", { name: "Add source link" })).toBeDisabled();
   });
 
   it("offers no way to type a provider key", () => {

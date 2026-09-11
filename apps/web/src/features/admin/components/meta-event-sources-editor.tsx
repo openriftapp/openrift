@@ -23,13 +23,12 @@ export function MetaEventSourcesEditor({ eventId }: { eventId: string }) {
       isPending={isPending}
       description={
         <>
-          Every source the event page credits. Linking a candidate writes its provider&apos;s
-          citation; add the ones nothing uploaded.
+          Every source the event page credits. Linking a candidate writes its provider&apos;s link;
+          add the ones nothing uploaded.
         </>
       }
-      emptyText="No citations yet, so the event page shows no source line."
+      emptyText="No source links yet, so the event page shows no source line."
       labelPlaceholder="Twitch VOD"
-      idPrefix="meta-source"
       creating={createSource.isPending}
       deleting={deleteSource.isPending}
       onAdd={(input) => createSource.mutateAsync({ eventId, ...input })}

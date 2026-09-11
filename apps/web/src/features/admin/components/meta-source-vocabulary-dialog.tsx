@@ -49,6 +49,7 @@ import {
   useUpdateMetaSourceTemplate,
   useUpdateMetaSyncSettings,
 } from "@/features/admin/hooks/use-admin-meta-catalog";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { runningRunId } from "@/features/meta/lib/meta-catalog-display";
 import { META_EVENT_TIER_LABELS } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
@@ -263,7 +264,7 @@ function TemplatesSection() {
       <PlayerFloorField />
       <RetierHint />
       <div className="overflow-x-auto">
-        <Table>
+        <Table className={ADMIN_TABLE_CLASS}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-60">Name</TableHead>
@@ -370,7 +371,7 @@ function FormatsSection() {
         accepted without picking one by hand, and never auto-accepts.
       </p>
       <div className="overflow-x-auto">
-        <Table>
+        <Table className={ADMIN_TABLE_CLASS}>
           <TableHeader>
             <TableRow>
               <TableHead>At the source</TableHead>

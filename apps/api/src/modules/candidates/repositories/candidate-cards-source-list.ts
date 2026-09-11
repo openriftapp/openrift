@@ -65,12 +65,22 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
     },
 
     listCardsForSourceList(): Promise<
-      Pick<Selectable<CardsTable>, "id" | "slug" | "name" | "normName">[]
+      Pick<Selectable<CardsTable>, "id" | "slug" | "name" | "normName" | "updatedAt">[]
     > {
       return db
         .selectFrom("cards")
-        .select(["id", "slug", "name", "normName"])
+        .select(["id", "slug", "name", "normName", "updatedAt"])
         .orderBy("slug")
+        .execute();
+    },
+
+    listPendingSubmissionCandidateIds(): Promise<{ candidateCardId: string }[]> {
+      return db
+        .selectFrom("cardSubmissions")
+        .select("candidateCardId as candidateCardId")
+        .where("status", "=", "pending")
+        .where("candidateCardId", "is not", null)
+        .$castTo<{ candidateCardId: string }>()
         .execute();
     },
 
@@ -81,11 +91,14 @@ export function candidateSourceListRepo(db: Kysely<Database>) {
     },
 
     listCandidateCardsForSourceList(): Promise<
-      Pick<Selectable<CandidateCardsTable>, "id" | "normName" | "name" | "provider" | "checkedAt">[]
+      Pick<
+        Selectable<CandidateCardsTable>,
+        "id" | "normName" | "name" | "provider" | "checkedAt" | "updatedAt"
+      >[]
     > {
       return db
         .selectFrom("candidateCards")
-        .select(["id", "normName", "name", "provider", "checkedAt"])
+        .select(["id", "normName", "name", "provider", "checkedAt", "updatedAt"])
         .where(notIgnoredCard("candidateCards"))
         .where(notHiddenSource("candidateCards"))
         .orderBy("name")

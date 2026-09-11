@@ -1,25 +1,15 @@
 import type { AdminAuditEventResponse } from "@openrift/shared/contracts/admin/audit-events";
 import type { CardBanResponse } from "@openrift/shared/contracts/admin/card-bans";
-import type {
-  CatalogCardRow,
-  CatalogSource,
-  ReviewQueueItem,
-} from "@openrift/shared/contracts/admin/catalog-review";
+import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
 import type { MissingImagePrinting } from "@openrift/shared/contracts/card-submissions";
 import { makeCard, makePrinting } from "@openrift/shared/test-factories";
 import type {
   AdminCardDetailResponse,
   AdminCardResponse,
-  AdminPrintingImageResponse,
-  AdminPrintingMarketplaceMappingResponse,
   AdminPrintingResponse,
   CandidateCardResponse,
   CandidatePrintingResponse,
   ProviderSettingResponse,
-  StagedProductResponse,
-  UnifiedMappingGroupResponse,
-  UnifiedMappingPrintingResponse,
-  UnmatchedCardDetailResponse,
 } from "@openrift/shared/types/api/admin";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { MetaPlayerDetailResponse, MetaPlayerFinish } from "@openrift/shared/types/api/meta";
@@ -386,24 +376,6 @@ export function makeCandidatePrinting(
   };
 }
 
-export function makeAdminPrintingImage(
-  overrides: Partial<AdminPrintingImageResponse> = {},
-): AdminPrintingImageResponse {
-  return {
-    id: nextId(),
-    printingId: nextId(),
-    imageFileId: nextId(),
-    face: "front",
-    originalUrl: "https://cdn.example.test/ogn-001.png",
-    rehostedUrl: null,
-    rotation: 0,
-    needsTrim: false,
-    quad: null,
-    isActive: true,
-    ...overrides,
-  };
-}
-
 export function makeProviderSetting(
   overrides: Partial<ProviderSettingResponse> = {},
 ): ProviderSettingResponse {
@@ -436,20 +408,6 @@ export function makeAdminCardDetail(
   };
 }
 
-export function makeUnmatchedCardDetail(
-  overrides: Partial<UnmatchedCardDetailResponse> = {},
-): UnmatchedCardDetailResponse {
-  return {
-    displayName: "Lux, Lady of Luminosity",
-    sources: [],
-    candidatePrintings: [],
-    candidatePrintingGroups: [],
-    defaultCardId: "OGN-001",
-    setTotals: {},
-    ...overrides,
-  };
-}
-
 export function makeAuditEvent(
   overrides: Partial<AdminAuditEventResponse> = {},
 ): AdminAuditEventResponse {
@@ -466,79 +424,6 @@ export function makeAuditEvent(
     oldValues: { energy: 2 },
     newValues: { energy: 3 },
     createdAt: "2026-09-01T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-export function makeUnifiedMappingPrinting(
-  overrides: Partial<UnifiedMappingPrintingResponse> = {},
-): UnifiedMappingPrintingResponse {
-  return {
-    printingId: nextId(),
-    setId: "ogn",
-    shortCode: "OGN-001",
-    rarity: "common",
-    artVariant: "normal",
-    isSigned: false,
-    isOvernumbered: false,
-    markerSlugs: [],
-    finish: "normal",
-    size: "standard",
-    language: "EN",
-    imageUrl: null,
-    tcgExternalId: null,
-    cmExternalId: null,
-    ctExternalId: null,
-    ...overrides,
-  };
-}
-
-export function makeStagedProduct(
-  overrides: Partial<StagedProductResponse> = {},
-): StagedProductResponse {
-  return {
-    externalId: 1,
-    productName: "Lux, Lady of Luminosity",
-    finish: "normal",
-    language: "EN",
-    marketCents: 450,
-    lowCents: null,
-    midCents: null,
-    highCents: null,
-    trendCents: null,
-    avg1Cents: null,
-    avg7Cents: null,
-    avg30Cents: null,
-    currency: "USD",
-    recordedAt: "2026-09-01T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-type MarketplaceSlice = UnifiedMappingGroupResponse["tcgplayer"];
-
-function emptyMarketplaceSlice(): MarketplaceSlice {
-  return { stagedProducts: [], assignedProducts: [], assignments: [] };
-}
-
-export function makeUnifiedMappingGroup(
-  overrides: Partial<UnifiedMappingGroupResponse> = {},
-): UnifiedMappingGroupResponse {
-  return {
-    cardId: nextId(),
-    cardSlug: "lux-lady-of-luminosity",
-    cardName: "Lux, Lady of Luminosity",
-    superTypes: ["Champion"],
-    domains: ["Order"],
-    energy: 4,
-    might: 4,
-    setId: nextId(),
-    setName: "Origins",
-    primaryShortCode: "OGN-001",
-    printings: [],
-    tcgplayer: emptyMarketplaceSlice(),
-    cardmarket: emptyMarketplaceSlice(),
-    cardtrader: emptyMarketplaceSlice(),
     ...overrides,
   };
 }
@@ -563,60 +448,6 @@ export function makeCardErrata(overrides: Partial<CardErrata> = {}): CardErrata 
     source: "Rules update, August 2026",
     sourceUrl: "https://rules.example.test/2026-08",
     effectiveDate: "2026-08-15",
-    ...overrides,
-  };
-}
-
-export function makeAdminPrintingMarketplaceMapping(
-  overrides: Partial<AdminPrintingMarketplaceMappingResponse> = {},
-): AdminPrintingMarketplaceMappingResponse {
-  const printingId = overrides.targetPrintingId ?? nextId();
-  return {
-    targetPrintingId: printingId,
-    marketplace: "tcgplayer",
-    externalId: 1,
-    productName: "Lux, Lady of Luminosity",
-    finish: "normal",
-    variantLanguage: null,
-    ownerPrintingId: printingId,
-    ownerLanguage: "EN",
-    ...overrides,
-  };
-}
-
-export function makeCatalogCardRow(overrides: Partial<CatalogCardRow> = {}): CatalogCardRow {
-  return {
-    cardSlug: "lux-lady-of-luminosity",
-    name: "Lux, Lady of Luminosity",
-    normName: "lux-lady-of-luminosity",
-    firstSetSlug: "ogn",
-    firstSetName: "Origins",
-    setSlugs: ["ogn"],
-    shortCodes: ["OGN-001"],
-    printingCount: 3,
-    printingsWithoutImage: 0,
-    proposals: 0,
-    newPrintings: 0,
-    uncheckedTrustedProviders: [],
-    needsAttention: false,
-    updatedAt: "2026-09-01T00:00:00.000Z",
-    ...overrides,
-  };
-}
-
-export function makeCatalogSource(overrides: Partial<CatalogSource> = {}): CatalogSource {
-  return {
-    provider: "gallery",
-    kind: "upload",
-    rows: 212,
-    printingRows: 480,
-    inReview: 0,
-    isHidden: false,
-    isFavorite: false,
-    helperReviewable: false,
-    sortOrder: 0,
-    lastUploadedAt: "2026-09-01T00:00:00.000Z",
-    ignoredCount: 0,
     ...overrides,
   };
 }

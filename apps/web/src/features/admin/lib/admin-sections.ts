@@ -10,7 +10,7 @@ export const ADMIN_SECTION_ROUTES = {
 } as const satisfies Record<AdminSectionSlug, `/admin/${string}`>;
 
 const EXTRA_SECTION_ROUTES: Partial<Record<AdminSectionSlug, readonly `/admin/${string}`[]>> = {
-  "card-review": ["/admin/catalog"],
+  "card-review": ["/admin/review"],
 };
 
 function underRoute(pathname: string, route: string): boolean {

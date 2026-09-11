@@ -13,6 +13,8 @@ import {
   buildPreseededActiveCard,
   buildPreseededActivePrinting,
   findDerivedArtPrinting,
+  foldedFieldKeys,
+  unknownOptionValues,
 } from "./card-detail-shared";
 
 // Mirrors buildCandidateCardFields: string, dropdown-array, numeric, read-only
@@ -306,6 +308,40 @@ function printingImage(
   } as AdminPrintingImageResponse;
 }
 
+describe("unknownOptionValues", () => {
+  const labels = { "cc-official": "official", "cc-gallery": "gallery" };
+
+  it("reports a dropdown value no option accepts, with who proposed it", () => {
+    const candidates = [printing("cc-gallery", { setId: "ogn", rarity: "mythic" })];
+
+    expect(unknownOptionValues(candidates, printingFields, labels)).toEqual([
+      { field: "rarity", label: "Rarity", provider: "gallery", value: "mythic" },
+    ]);
+  });
+
+  it("stays quiet on valid values, empty values and free-text fields", () => {
+    const candidates = [
+      printing("cc-official", { setId: "anything", rarity: "common", publicCode: "OGN-001" }),
+      printing("cc-gallery", { setId: "ogn", rarity: null }),
+    ];
+
+    expect(unknownOptionValues(candidates, printingFields, labels)).toEqual([]);
+  });
+
+  it("reports one entry per source and value, not one per source row", () => {
+    const candidates = [
+      printing("cc-gallery", { rarity: "mythic" }),
+      printing("cc-gallery", { rarity: "mythic" }),
+      printing("cc-official", { rarity: "mythic" }),
+    ];
+
+    expect(unknownOptionValues(candidates, printingFields, labels)).toEqual([
+      { field: "rarity", label: "Rarity", provider: "gallery", value: "mythic" },
+      { field: "rarity", label: "Rarity", provider: "official", value: "mythic" },
+    ]);
+  });
+});
+
 describe("findDerivedArtPrinting", () => {
   it("derives from the standard printing of the same language", () => {
     const subject = acceptedPrinting({ id: "p1", finish: "metal", canonicalRank: 5 });
@@ -377,5 +413,77 @@ describe("findDerivedArtPrinting", () => {
       });
       expect(findDerivedArtPrinting(subject, [subject, standard], images)?.id).toBe("p2");
     }
+  });
+});
+
+describe("foldedFieldKeys", () => {
+  const foldFields: FieldDef[] = [
+    { key: "name", label: "Name" },
+    { key: "artist", label: "Artist" },
+    { key: "externalId", label: "External ID", readOnly: true, collapsible: true },
+    {
+      key: "rarity",
+      label: "Rarity",
+      labeledOptions: [
+        { value: "common", label: "Common" },
+        { value: "rare", label: "Rare" },
+      ],
+    },
+  ];
+
+  function row(values: Record<string, unknown>) {
+    return { id: "cp1", checkedAt: null, ...values } as never;
+  }
+
+  it("folds a field no source disagrees with, and keeps the ones that differ", () => {
+    const folded = foldedFieldKeys(
+      foldFields,
+      [row({ name: "Lux", artist: "New Artist", rarity: "common" })],
+      { name: "Lux", artist: "Old Artist", rarity: "common" },
+    );
+
+    expect(folded.has("name")).toBe(true);
+    expect(folded.has("rarity")).toBe(true);
+    expect(folded.has("artist")).toBe(false);
+  });
+
+  it("folds a field every source leaves empty", () => {
+    const folded = foldedFieldKeys(foldFields, [row({ name: null, artist: "" })], { name: "Lux" });
+
+    expect(folded.has("name")).toBe(true);
+    expect(folded.has("artist")).toBe(true);
+  });
+
+  it("folds what a field def marks collapsible even when it differs", () => {
+    const folded = foldedFieldKeys(foldFields, [row({ externalId: "src-1" })], {
+      externalId: "src-2",
+    });
+
+    expect(folded.has("externalId")).toBe(true);
+  });
+
+  it("keeps a value no dropdown option accepts on screen", () => {
+    const folded = foldedFieldKeys(foldFields, [row({ rarity: "mythic" })], { rarity: "mythic" });
+
+    expect(folded.has("rarity")).toBe(false);
+  });
+
+  it("keeps a required field visible so a blank one can still be filled", () => {
+    const folded = foldedFieldKeys(foldFields, [row({ name: "Lux" })], { name: "Lux" }, undefined, [
+      "name",
+    ]);
+
+    expect(folded.has("name")).toBe(false);
+  });
+
+  it("compares through the caller's normalizer", () => {
+    const folded = foldedFieldKeys(
+      foldFields,
+      [row({ artist: "  Riot  " })],
+      { artist: "Riot" },
+      (_, v) => (typeof v === "string" ? v.trim() : v),
+    );
+
+    expect(folded.has("artist")).toBe(true);
   });
 });

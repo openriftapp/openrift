@@ -1,10 +1,11 @@
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CitationEntry } from "@/features/cards/components/card-detail/printing-citations";
 
 export interface EditableCitation {
   id: string;
@@ -15,63 +16,137 @@ export interface EditableCitation {
 interface SourceCitationsEditorProps<T extends EditableCitation> {
   citations: readonly T[];
   isPending: boolean;
-  description: ReactNode;
-  emptyText: string;
+  description?: ReactNode;
+  emptyText?: string;
   labelPlaceholder: string;
-  /** Distinct per surface, so a page hosting more than one editor never
-   * points two `<Label htmlFor>` at the same input. */
-  idPrefix: string;
   creating: boolean;
   deleting: boolean;
   onAdd: (input: { label: string; sourceUrl: string | null }) => Promise<unknown>;
+  onUpdate?: (
+    citationId: string,
+    input: { label: string; sourceUrl: string | null },
+  ) => Promise<unknown>;
   onDelete: (citationId: string) => void;
   renderBadge?: (citation: T) => ReactNode;
   /** When this returns a string, the row cannot be deleted here and says so instead. */
   lockedReason?: (citation: T) => string | null;
+  adding?: boolean;
+  onAddingChange?: (adding: boolean) => void;
+  hideWhenIdle?: boolean;
 }
 
 function CitationRow<T extends EditableCitation>({
   citation,
+  labelPlaceholder,
   deleting,
+  saving,
+  onUpdate,
   onDelete,
   renderBadge,
   lockedReason,
 }: {
   citation: T;
+  labelPlaceholder: string;
   deleting: boolean;
+  saving: boolean;
+  onUpdate?: (
+    citationId: string,
+    input: { label: string; sourceUrl: string | null },
+  ) => Promise<unknown>;
   onDelete: (citationId: string) => void;
   renderBadge?: (citation: T) => ReactNode;
   lockedReason?: (citation: T) => string | null;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(citation.label);
+  const [url, setUrl] = useState(citation.sourceUrl ?? "");
   const locked = lockedReason?.(citation) ?? null;
-  return (
-    <li className="flex items-center gap-2 border-b py-1.5 last:border-b-0">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate font-medium">{citation.label}</span>
-          {renderBadge?.(citation)}
-        </div>
-        {citation.sourceUrl !== null && (
-          <a
-            href={citation.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground block truncate text-sm underline underline-offset-2"
-          >
-            {citation.sourceUrl}
-          </a>
-        )}
-      </div>
-      {locked === null ? (
+
+  async function handleSave() {
+    if (!onUpdate) {
+      return;
+    }
+    // Resolved before the try: the React Compiler cannot lower a conditional
+    // that sits inside one.
+    const trimmedUrl = url.trim();
+    const sourceUrl = trimmedUrl.length > 0 ? trimmedUrl : null;
+    try {
+      await onUpdate(citation.id, { label: label.trim(), sourceUrl });
+    } catch {
+      // Reported by the global mutation error toast.
+      return;
+    }
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <li className="flex flex-wrap items-center gap-2 border-b py-1.5 last:border-b-0">
+        <Input
+          aria-label="Source name"
+          className="min-w-40 flex-1"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder={labelPlaceholder}
+        />
+        <Input
+          aria-label="Source link"
+          className="min-w-40 flex-2"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://… (optional)"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={label.trim().length === 0 || saving}
+          onClick={() => void handleSave()}
+        >
+          Save
+        </Button>
         <Button
           variant="ghost"
-          size="icon"
-          aria-label={`Delete citation ${citation.label}`}
-          disabled={deleting}
-          onClick={() => onDelete(citation.id)}
+          size="sm"
+          onClick={() => {
+            setEditing(false);
+            setLabel(citation.label);
+            setUrl(citation.sourceUrl ?? "");
+          }}
         >
-          <Trash2Icon className="size-4" />
+          Cancel
         </Button>
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex items-center gap-2 border-b py-1.5 last:border-b-0">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <CitationEntry citation={citation} />
+        {renderBadge?.(citation)}
+      </div>
+      {locked === null ? (
+        <>
+          {onUpdate && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Edit source link ${citation.label}`}
+              onClick={() => setEditing(true)}
+            >
+              <PencilIcon className="size-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Delete source link ${citation.label}`}
+            disabled={deleting}
+            onClick={() => onDelete(citation.id)}
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
+        </>
       ) : (
         <span className="text-muted-foreground shrink-0 text-sm">{locked}</span>
       )}
@@ -89,16 +164,23 @@ export function SourceCitationsEditor<T extends EditableCitation>({
   description,
   emptyText,
   labelPlaceholder,
-  idPrefix,
   creating,
   deleting,
   onAdd,
+  onUpdate,
   onDelete,
   renderBadge,
   lockedReason,
+  adding: addingProp,
+  onAddingChange,
+  hideWhenIdle,
 }: SourceCitationsEditorProps<T>) {
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [selfAdding, setSelfAdding] = useState(false);
+  const controlled = addingProp !== undefined;
+  const adding = controlled ? addingProp : selfAdding;
+  const setAdding = controlled ? (onAddingChange ?? setSelfAdding) : setSelfAdding;
 
   const trimmedLabel = label.trim();
 
@@ -115,17 +197,24 @@ export function SourceCitationsEditor<T extends EditableCitation>({
     }
     setLabel("");
     setUrl("");
+    setAdding(false);
+  }
+
+  if (hideWhenIdle === true && citations.length === 0 && !adding && !isPending) {
+    return null;
   }
 
   return (
     <div className="space-y-2">
       <div>
-        <Label>Citations</Label>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <Label>Source links</Label>
+        {description !== undefined && (
+          <p className="text-muted-foreground text-sm">{description}</p>
+        )}
       </div>
 
       {isPending && <p className="text-muted-foreground text-sm">Loading citations…</p>}
-      {!isPending && citations.length === 0 && (
+      {!isPending && citations.length === 0 && emptyText !== undefined && (
         <p className="text-muted-foreground text-sm">{emptyText}</p>
       )}
       {citations.length > 0 && (
@@ -134,7 +223,10 @@ export function SourceCitationsEditor<T extends EditableCitation>({
             <CitationRow
               key={citation.id}
               citation={citation}
+              labelPlaceholder={labelPlaceholder}
               deleting={deleting}
+              saving={creating}
+              onUpdate={onUpdate}
               onDelete={onDelete}
               renderBadge={renderBadge}
               lockedReason={lockedReason}
@@ -143,34 +235,51 @@ export function SourceCitationsEditor<T extends EditableCitation>({
         </ul>
       )}
 
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-40 flex-1 space-y-1.5">
-          <Label htmlFor={`${idPrefix}-label`}>Label</Label>
+      {adding ? (
+        <div className="flex flex-wrap items-center gap-2">
           <Input
-            id={`${idPrefix}-label`}
+            aria-label="Source name"
+            className="min-w-40 flex-1"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder={labelPlaceholder}
+            // oxlint-disable-next-line jsx-a11y/no-autofocus -- admin-only UI, the button that reveals this field is the intent to type
+            autoFocus
           />
-        </div>
-        <div className="min-w-40 flex-2 space-y-1.5">
-          <Label htmlFor={`${idPrefix}-url`}>Link</Label>
           <Input
-            id={`${idPrefix}-url`}
+            aria-label="Source link"
+            className="min-w-40 flex-2"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Optional"
+            placeholder="https://… (optional)"
           />
+          <Button
+            variant="outline"
+            disabled={trimmedLabel.length === 0 || creating}
+            onClick={() => void handleAdd()}
+          >
+            <PlusIcon />
+            Add source link
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setAdding(false);
+              setLabel("");
+              setUrl("");
+            }}
+          >
+            Cancel
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          disabled={trimmedLabel.length === 0 || creating}
-          onClick={() => void handleAdd()}
-        >
-          <PlusIcon />
-          Add citation
-        </Button>
-      </div>
+      ) : (
+        !controlled && (
+          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+            <PlusIcon />
+            Add source link
+          </Button>
+        )
+      )}
     </div>
   );
 }

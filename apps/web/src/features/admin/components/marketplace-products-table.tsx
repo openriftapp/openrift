@@ -1,43 +1,162 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { WandSparklesIcon } from "lucide-react";
-import React from "react";
 
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AssignableCard,
   UnifiedMappingGroup,
+  UnifiedMappingPrinting,
 } from "@/features/admin/lib/price-mappings-types";
 
-import type { MarketplaceHandlers } from "./marketplace-product-entries";
+import type { RowSuggestion } from "./marketplace-product-cells";
 import {
+  AssignedPrintingsCell,
+  MarketplaceActionsCell,
+  PriceCell,
+  ProductCell,
+  VariantCell,
+} from "./marketplace-product-cells";
+import type {
+  MarketplaceHandlers,
+  MarketplaceTableRow,
+  PrintingAssignment,
+} from "./marketplace-product-entries";
+import {
+  buildMarketplaceRows,
   collectEntries,
   collectStrongMappings,
   collectWeakMappings,
   MARKETPLACE_CONFIGS,
 } from "./marketplace-product-entries";
-import { MarketplaceProductRow } from "./marketplace-product-row";
 import type { ProductSuggestion } from "./suggest-mapping";
 import { productSuggestionKey } from "./suggest-mapping";
+
+const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
+
+function AcceptSuggestionsButton({
+  mappings,
+  isWeak,
+  disabled,
+  onAccept,
+}: {
+  mappings: PrintingAssignment[];
+  isWeak?: boolean;
+  disabled: boolean;
+  onAccept: (mappings: PrintingAssignment[]) => void;
+}) {
+  if (mappings.length === 0) {
+    return null;
+  }
+  return (
+    <Button
+      variant="outline"
+      size="xs"
+      disabled={disabled}
+      onClick={() => onAccept(mappings)}
+      className={isWeak ? "border-warning/40 text-warning hover:bg-warning-soft" : undefined}
+    >
+      <WandSparklesIcon />
+      Accept {mappings.length} {isWeak ? "weak " : ""}suggestion
+      {mappings.length === 1 ? "" : "s"}
+    </Button>
+  );
+}
+
+function MarketplaceTable({
+  marketplace,
+  rows,
+  suggestionsByKey,
+  printings,
+  allCards,
+  cardName,
+  handlers,
+  strong,
+  weak,
+  hasStrongElsewhere,
+  onOpenPrinting,
+}: {
+  marketplace: AdminMarketplaceName;
+  rows: MarketplaceTableRow[];
+  suggestionsByKey: ReadonlyMap<string, RowSuggestion[]>;
+  printings: UnifiedMappingPrinting[];
+  allCards: AssignableCard[];
+  cardName: string;
+  handlers: MarketplaceHandlers;
+  strong: PrintingAssignment[];
+  weak: PrintingAssignment[];
+  hasStrongElsewhere: boolean;
+  onOpenPrinting?: (printingId: string) => void;
+}) {
+  return (
+    <section className="space-y-2">
+      <AdminTable<MarketplaceTableRow>
+        columns={[
+          {
+            header: "Product",
+            width: "w-72",
+            wrap: true,
+            cell: <ProductCell cardName={cardName} />,
+          },
+          { header: "Variant", width: "w-32", cell: <VariantCell /> },
+          { header: "Price", width: "w-24", align: "right", cell: <PriceCell /> },
+          {
+            header: "Assigned printings",
+            wrap: true,
+            cell: (
+              <AssignedPrintingsCell
+                handlers={handlers}
+                suggestionsByKey={suggestionsByKey}
+                onOpenPrinting={onOpenPrinting}
+              />
+            ),
+          },
+        ]}
+        data={rows}
+        getRowKey={(row) => row.key}
+        minWidth="min-w-[60rem]"
+        toolbar={
+          <div className="flex w-full items-center gap-2">
+            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {MARKETPLACE_CONFIGS[marketplace].displayName}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <AcceptSuggestionsButton
+                mappings={strong}
+                disabled={handlers.isAssigningToPrinting}
+                onAccept={(mappings) => handlers.onBatchAssignToPrintings(mappings)}
+              />
+              {!hasStrongElsewhere && (
+                <AcceptSuggestionsButton
+                  mappings={weak}
+                  isWeak
+                  disabled={handlers.isAssigningToPrinting}
+                  onAccept={(mappings) => handlers.onBatchAssignToPrintings(mappings)}
+                />
+              )}
+            </div>
+          </div>
+        }
+        actions={
+          <MarketplaceActionsCell handlers={handlers} printings={printings} allCards={allCards} />
+        }
+      />
+    </section>
+  );
+}
 
 export function MarketplaceProductsTable({
   group,
   allCards,
   handlers,
   suggestions,
+  onOpenPrinting,
 }: {
   group: UnifiedMappingGroup;
   allCards: AssignableCard[];
   handlers: Record<AdminMarketplaceName, MarketplaceHandlers>;
   suggestions?: Map<string, ProductSuggestion[]>;
+  onOpenPrinting?: (printingId: string) => void;
 }) {
   const entries = collectEntries(group);
 
@@ -47,155 +166,57 @@ export function MarketplaceProductsTable({
     );
   }
 
-  const printingById = new Map(group.printings.map((p) => [p.printingId, p]));
-  const strongMappingsByMarketplace = collectStrongMappings(group, suggestions);
-  const weakMappingsByMarketplace = collectWeakMappings(group, suggestions);
-  const totalStrongCount =
-    strongMappingsByMarketplace.tcgplayer.length +
-    strongMappingsByMarketplace.cardmarket.length +
-    strongMappingsByMarketplace.cardtrader.length;
-  const totalWeakCount =
-    weakMappingsByMarketplace.tcgplayer.length +
-    weakMappingsByMarketplace.cardmarket.length +
-    weakMappingsByMarketplace.cardtrader.length;
-  // Ctrl+Enter falls through to weak suggestions only when no strong matches are
-  // available, so it never silently accepts a low-confidence mapping over a strong one.
-  const showWeakAcceptAll = totalStrongCount === 0 && totalWeakCount > 0;
-  const anyMarketplacePending = Object.values(handlers).some((h) => h.isAssigningToPrinting);
+  const printingById = new Map(group.printings.map((printing) => [printing.printingId, printing]));
+  const strongByMarketplace = collectStrongMappings(group, suggestions);
+  const weakByMarketplace = collectWeakMappings(group, suggestions);
+  const totalStrong =
+    strongByMarketplace.tcgplayer.length +
+    strongByMarketplace.cardmarket.length +
+    strongByMarketplace.cardtrader.length;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-20">ID</TableHead>
-          <TableHead className="w-80">Product</TableHead>
-          <TableHead className="w-16">Language</TableHead>
-          <TableHead className="w-48">Set</TableHead>
-          <TableHead className="w-16">Finish</TableHead>
-          <TableHead className="w-20 text-right">Price</TableHead>
-          <TableHead>Assigned printings</TableHead>
-          <TableHead className="py-1 text-right">
-            {totalStrongCount > 0 && (
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={anyMarketplacePending}
-                onClick={() => {
-                  for (const mp of ["tcgplayer", "cardmarket", "cardtrader"] as const) {
-                    const mappings = strongMappingsByMarketplace[mp];
-                    if (mappings.length > 0) {
-                      handlers[mp].onBatchAssignToPrintings(mappings);
-                    }
-                  }
-                }}
-              >
-                <WandSparklesIcon />
-                Accept all {totalStrongCount} suggestion{totalStrongCount === 1 ? "" : "s"}
-                <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
-                  Ctrl ↵
-                </Kbd>
-              </Button>
-            )}
-            {showWeakAcceptAll && (
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={anyMarketplacePending}
-                onClick={() => {
-                  for (const mp of ["tcgplayer", "cardmarket", "cardtrader"] as const) {
-                    const mappings = weakMappingsByMarketplace[mp];
-                    if (mappings.length > 0) {
-                      handlers[mp].onBatchAssignToPrintings(mappings);
-                    }
-                  }
-                }}
-                className="border-warning/40 text-warning hover:bg-warning-soft"
-              >
-                <WandSparklesIcon />
-                Accept all {totalWeakCount} weak suggestion{totalWeakCount === 1 ? "" : "s"}
-                <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
-                  Ctrl ↵
-                </Kbd>
-              </Button>
-            )}
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.map((entry, index) => {
-          const key = productSuggestionKey(
-            entry.marketplace,
-            entry.product.externalId,
-            entry.product.finish,
-            entry.product.language,
-          );
-          const productSuggestions = entry.isAssigned
-            ? []
-            : (suggestions?.get(key) ?? []).flatMap((s) => {
-                const printing = printingById.get(s.printingId);
-                return printing ? [{ ...s, printing }] : [];
-              });
-          const prevEntry = entries[index - 1];
-          const isFirstOfMarketplace = !prevEntry || prevEntry.marketplace !== entry.marketplace;
-          const strongMappings = strongMappingsByMarketplace[entry.marketplace];
-          const weakMappings = weakMappingsByMarketplace[entry.marketplace];
-          const marketplaceHandlers = handlers[entry.marketplace];
-          return (
-            <React.Fragment key={key}>
-              {isFirstOfMarketplace && (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={8} className="bg-muted/50 py-1 pr-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                        {MARKETPLACE_CONFIGS[entry.marketplace].displayName}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {weakMappings.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            disabled={marketplaceHandlers.isAssigningToPrinting}
-                            onClick={() =>
-                              marketplaceHandlers.onBatchAssignToPrintings(weakMappings)
-                            }
-                            className="border-warning/40 text-warning hover:bg-warning-soft"
-                          >
-                            <WandSparklesIcon />
-                            Accept {weakMappings.length} weak suggestion
-                            {weakMappings.length === 1 ? "" : "s"}
-                          </Button>
-                        )}
-                        {strongMappings.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            disabled={marketplaceHandlers.isAssigningToPrinting}
-                            onClick={() =>
-                              marketplaceHandlers.onBatchAssignToPrintings(strongMappings)
-                            }
-                          >
-                            <WandSparklesIcon />
-                            Accept {strongMappings.length} suggestion
-                            {strongMappings.length === 1 ? "" : "s"}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-              <MarketplaceProductRow
-                entry={entry}
-                cardName={group.cardName}
-                printings={group.printings}
-                allCards={allCards}
-                handlers={marketplaceHandlers}
-                suggestions={productSuggestions}
-              />
-            </React.Fragment>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div className="space-y-6">
+      {MARKETPLACES.map((marketplace) => {
+        const rows = buildMarketplaceRows(entries, marketplace);
+        if (rows.length === 0) {
+          return null;
+        }
+        const suggestionsByKey = new Map<string, RowSuggestion[]>(
+          rows.map((row) => [
+            row.key,
+            (
+              suggestions?.get(
+                productSuggestionKey(
+                  marketplace,
+                  row.entry.product.externalId,
+                  row.entry.product.finish,
+                  row.entry.product.language,
+                ),
+              ) ?? []
+            ).flatMap((suggestion) => {
+              const printing = printingById.get(suggestion.printingId);
+              return printing ? [{ ...suggestion, printing }] : [];
+            }),
+          ]),
+        );
+
+        return (
+          <MarketplaceTable
+            key={marketplace}
+            marketplace={marketplace}
+            rows={rows}
+            suggestionsByKey={suggestionsByKey}
+            printings={group.printings}
+            allCards={allCards}
+            cardName={group.cardName}
+            handlers={handlers[marketplace]}
+            strong={strongByMarketplace[marketplace]}
+            weak={weakByMarketplace[marketplace]}
+            hasStrongElsewhere={totalStrong > 0}
+            onOpenPrinting={onOpenPrinting}
+          />
+        );
+      })}
+    </div>
   );
 }

@@ -31,6 +31,7 @@ function sourceRow(overrides: Partial<CatalogSourceRow> = {}): CatalogSourceRow 
     sortOrder: 2,
     lastUploadedAt: new Date("2026-09-01T10:00:00Z"),
     ignoredCount: 4,
+    uncheckedRows: 6,
     ...overrides,
   };
 }
@@ -56,6 +57,7 @@ describe("buildCatalogSources", () => {
         sortOrder: 0,
         lastUploadedAt: null,
         ignoredCount: 0,
+        uncheckedRows: 0,
       },
     ]);
   });
@@ -93,6 +95,7 @@ describe("buildCatalogSources", () => {
       sortOrder: 2,
       lastUploadedAt: "2026-09-01T10:00:00.000Z",
       ignoredCount: 4,
+      uncheckedRows: 6,
     });
   });
 
@@ -155,6 +158,7 @@ describe("buildCatalogSources", () => {
       sortOrder: 1,
       lastUploadedAt: null,
       ignoredCount: 0,
+      uncheckedRows: 0,
     });
   });
 

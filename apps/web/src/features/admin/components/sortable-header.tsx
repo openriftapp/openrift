@@ -1,9 +1,7 @@
-import type { CellData, Column, RowData } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
 import { Pressable } from "@/components/ui/pressable";
-import type { AdminCardTableFeatures } from "@/features/admin/components/admin-card-table-shared";
 
 export type SortedState = false | "asc" | "desc";
 
@@ -27,7 +25,9 @@ function SortIcon({ sorted }: { sorted: SortedState }) {
   if (sorted === "desc") {
     return <ArrowDownIcon className="text-foreground h-3.5 w-3.5" />;
   }
-  return <ChevronsUpDownIcon className="text-muted-foreground/50 h-3.5 w-3.5" />;
+  return (
+    <ChevronsUpDownIcon className="text-muted-foreground/50 h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+  );
 }
 
 /**
@@ -44,28 +44,12 @@ export function SortHeaderButton({
   children: ReactNode;
 }) {
   return (
-    <Pressable className="inline-flex items-center gap-1 rounded-sm select-none" onClick={onClick}>
+    <Pressable
+      className="group inline-flex items-center gap-1 rounded-sm select-none"
+      onClick={onClick}
+    >
       {children}
       <SortIcon sorted={sorted} />
     </Pressable>
-  );
-}
-
-// Pinned to the admin card tables' feature set: `getCanSort` and friends only
-// exist on a column whose table registered `rowSortingFeature`.
-export function SortableHeader<TData extends RowData, TValue extends CellData = CellData>({
-  column,
-  label,
-}: {
-  column: Column<AdminCardTableFeatures, TData, TValue>;
-  label: string;
-}) {
-  if (!column.getCanSort()) {
-    return label;
-  }
-  return (
-    <SortHeaderButton sorted={column.getIsSorted()} onClick={column.getToggleSortingHandler()}>
-      {label}
-    </SortHeaderButton>
   );
 }

@@ -52,26 +52,21 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
+import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
 import { adminSectionForPathname } from "@/features/admin/lib/admin-sections";
-import { useReviewQueueWhen } from "@/features/catalog-admin/hooks/use-catalog-review";
 
-const CATALOG_REVIEW_PATH = "/admin/catalog/review" as const;
+const REVIEW_PATH = "/admin/review" as const;
 
 const overviewPages = [{ to: "/admin" as const, icon: LayoutDashboardIcon, title: "Dashboard" }];
 
 const catalogPages = [
+  { to: REVIEW_PATH, icon: InboxIcon, title: "Review" },
   { to: "/admin/sets" as const, icon: DatabaseIcon, title: "Sets" },
   { to: "/admin/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
   { to: "/admin/sources" as const, icon: DatabaseIcon, title: "Sources" },
   { to: "/admin/images" as const, icon: ImageIcon, title: "Images" },
   { to: "/admin/ignored-sources" as const, icon: BanIcon, title: "Ignored Sources" },
   { to: "/admin/products" as const, icon: PackageIcon, title: "Products" },
-];
-
-const catalogNewPages = [
-  { to: CATALOG_REVIEW_PATH, icon: InboxIcon, title: "Review" },
-  { to: "/admin/catalog/cards" as const, icon: GalleryVerticalIcon, title: "Cards" },
-  { to: "/admin/catalog/sources" as const, icon: DatabaseIcon, title: "Sources" },
 ];
 
 const taxonomyPages = [
@@ -127,7 +122,6 @@ const systemPages = [
 const groups = [
   { label: "Overview", pages: overviewPages },
   { label: "Catalog", pages: catalogPages },
-  { label: "Catalog (new)", pages: catalogNewPages },
   { label: "Taxonomy", pages: taxonomyPages },
   { label: "Content", pages: contentPages },
   { label: "Contribute", pages: contributePages },
@@ -178,7 +172,7 @@ export function AdminSidebar() {
                   >
                     <page.icon />
                     <span>{page.title}</span>
-                    {page.to === CATALOG_REVIEW_PATH && openReviews > 0 && (
+                    {page.to === REVIEW_PATH && openReviews > 0 && (
                       <Badge variant="count" className="ml-auto">
                         {openReviews}
                       </Badge>

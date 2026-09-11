@@ -38,7 +38,7 @@ export async function acceptFavoritePrintingsForCard(
   },
   cardSlug: string,
   favoriteProviders: Set<string>,
-): Promise<{ printingsCreated: number; skipped: SkippedGroup[] }> {
+): Promise<{ printingsCreated: number; skipped: SkippedGroup[]; createdPrintingIds: string[] }> {
   const mut = repos.catalogMutations;
 
   const card = await mut.getCardBySlug(cardSlug);
@@ -55,7 +55,7 @@ export async function acceptFavoritePrintingsForCard(
 
   const favoriteCandidates = allCandidates.filter((cc) => favoriteProviders.has(cc.provider));
   if (favoriteCandidates.length === 0) {
-    return { printingsCreated: 0, skipped: [] };
+    return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
   }
 
   const favCandidateIds = favoriteCandidates.map((cc) => cc.id);
@@ -64,7 +64,7 @@ export async function acceptFavoritePrintingsForCard(
   const unlinkedPrintings = allCandidatePrintings.filter((cp) => !cp.printingId);
 
   if (unlinkedPrintings.length === 0) {
-    return { printingsCreated: 0, skipped: [] };
+    return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
   }
 
   const groupMap = new Map<string, typeof unlinkedPrintings>();
@@ -79,7 +79,7 @@ export async function acceptFavoritePrintingsForCard(
     arr.push(cp);
   }
 
-  let printingsCreated = 0;
+  const createdPrintingIds: string[] = [];
   const skipped: SkippedGroup[] = [];
 
   for (const [, group] of groupMap) {
@@ -123,7 +123,7 @@ export async function acceptFavoritePrintingsForCard(
     }
 
     try {
-      await acceptPrinting(
+      const printingId = await acceptPrinting(
         transact,
         repos,
         card.id,
@@ -152,7 +152,7 @@ export async function acceptFavoritePrintingsForCard(
         group.map((cp) => cp.id),
         io,
       );
-      printingsCreated++;
+      createdPrintingIds.push(printingId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       skipped.push({ shortCode: label, reason: message });
@@ -165,5 +165,5 @@ export async function acceptFavoritePrintingsForCard(
 
   // Each acceptPrinting above fire-and-forget rehosts the image it inserted, so
   // there is no separate batch rehost step here.
-  return { printingsCreated, skipped };
+  return { printingsCreated: createdPrintingIds.length, skipped, createdPrintingIds };
 }

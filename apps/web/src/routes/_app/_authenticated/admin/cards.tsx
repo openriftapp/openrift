@@ -10,6 +10,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-queries";
 import { providerSettingsQueryOptions } from "@/features/admin/hooks/use-provider-settings";
 import { unifiedMappingsQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
+import { CARD_ISSUES } from "@/features/admin/lib/card-attention";
 import { setsQueryOptions } from "@/features/cards/hooks/use-sets";
 import { adminSeoHead } from "@/lib/seo";
 
@@ -17,15 +18,16 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
   head: () => adminSeoHead("Cards"),
   validateSearch: z.object({
     set: z.string().optional(),
-    tab: z.enum(["cards", "candidates", "unmatched"]).optional(),
+    // "cards", "candidates" and "unmatched" are older values, kept so a stale
+    // bookmark still validates.
+    tab: z.enum(["attention", "drafts", "cards", "candidates", "unmatched"]).optional(),
     q: z.string().optional(),
     tableSort: z.string().optional(),
+    issue: z.enum(CARD_ISSUES).optional(),
+    // Older filter params, still read so old links keep filtering.
     status: z.enum(["unchecked", "new-printings", "prices-to-assign"]).optional(),
-    // Source+language scope for the "prices to assign" filter, e.g. "cardmarket"
-    // or "cardtrader:FR". Only meaningful while `status` is "prices-to-assign".
+    // Only meaningful while `issue` is "unlinked-products", e.g. "cardtrader:FR".
     priceScope: z.string().optional(),
-    // When "usersubmission", the candidates tab shows only groups that
-    // include an in-app user submission. Composes with `status`.
     source: z.enum(["usersubmission"]).optional(),
   }),
   loader: async ({ context }) => {

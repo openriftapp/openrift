@@ -2,9 +2,26 @@ import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { useState } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export type PrintingMarkerFilter = "all" | "with" | "without";
+
+const ALL = "all";
+
+const MARKER_VALUES: PrintingMarkerFilter[] = ["all", "with", "without"];
+
+const MARKER_LABELS: Record<PrintingMarkerFilter, string> = {
+  all: "All",
+  with: "With markers",
+  without: "No markers",
+};
 
 export interface PrintingFilterBarProps {
   availableLanguages: string[];
@@ -84,78 +101,95 @@ export function PrintingFilterBar({
   onLanguageFilterChange,
   onSetFilterChange,
   onMarkerFilterChange,
-}: PrintingFilterBarProps) {
+  agreedFieldsFolded,
+  onAgreedFieldsFoldedChange,
+}: PrintingFilterBarProps & {
+  agreedFieldsFolded: boolean;
+  onAgreedFieldsFoldedChange: (folded: boolean) => void;
+}) {
+  const setItems = [
+    { value: ALL, label: "Every set" },
+    ...availableSets.map(([slug, name]) => ({ value: slug, label: name })),
+  ];
+
   return (
     <>
+      <ToggleGroup
+        variant="outline"
+        spacing={0}
+        aria-label="Source fields shown"
+        value={[agreedFieldsFolded ? "differences" : "all-fields"]}
+        onValueChange={([next]) => {
+          if (next === "differences" || next === "all-fields") {
+            onAgreedFieldsFoldedChange(next === "differences");
+          }
+        }}
+      >
+        <ToggleGroupItem value="differences">Differences</ToggleGroupItem>
+        <ToggleGroupItem value="all-fields">All fields</ToggleGroupItem>
+      </ToggleGroup>
+
       {availableLanguages.length > 1 && (
-        <div className="flex items-center gap-1">
-          <span className="text-muted-foreground mr-1 text-sm">Language</span>
-          <Button
-            size="sm"
-            variant={languageFilter === null ? "default" : "outline"}
-            onClick={() => onLanguageFilterChange(null)}
-          >
-            All
-          </Button>
-          {availableLanguages.map((lang) => (
-            <Button
-              key={lang}
-              size="sm"
-              variant={languageFilter === lang ? "default" : "outline"}
-              onClick={() => onLanguageFilterChange(lang)}
-            >
-              <LanguageChip code={lang} />
-            </Button>
+        <ToggleGroup
+          variant="outline"
+          spacing={0}
+          aria-label="Language"
+          value={[languageFilter ?? ALL]}
+          onValueChange={([next]) => {
+            if (next !== undefined) {
+              onLanguageFilterChange(next === ALL ? null : next);
+            }
+          }}
+        >
+          <ToggleGroupItem value={ALL}>All</ToggleGroupItem>
+          {availableLanguages.map((language) => (
+            <ToggleGroupItem key={language} value={language}>
+              <LanguageChip code={language} />
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       )}
+
       {availableSets.length > 1 && (
-        <div className="flex items-center gap-1">
-          <span className="text-muted-foreground mr-1 text-sm">Set</span>
-          <Button
-            size="sm"
-            variant={setFilter === null ? "default" : "outline"}
-            onClick={() => onSetFilterChange(null)}
-          >
-            All
-          </Button>
-          {availableSets.map(([slug, name]) => (
-            <Button
-              key={slug}
-              size="sm"
-              variant={setFilter === slug ? "default" : "outline"}
-              onClick={() => onSetFilterChange(slug)}
-            >
-              {name}
-            </Button>
-          ))}
-        </div>
+        <Select
+          items={setItems}
+          value={setFilter ?? ALL}
+          onValueChange={(value: string | null) => {
+            onSetFilterChange(value === null || value === ALL ? null : value);
+          }}
+        >
+          <SelectTrigger className="w-44" aria-label="Set">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {setItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
+
       {showMarkerFilter && (
-        <div className="flex items-center gap-1">
-          <span className="text-muted-foreground mr-1 text-sm">Markers</span>
-          <Button
-            size="sm"
-            variant={markerFilter === "all" ? "default" : "outline"}
-            onClick={() => onMarkerFilterChange("all")}
-          >
-            All
-          </Button>
-          <Button
-            size="sm"
-            variant={markerFilter === "with" ? "default" : "outline"}
-            onClick={() => onMarkerFilterChange("with")}
-          >
-            With
-          </Button>
-          <Button
-            size="sm"
-            variant={markerFilter === "without" ? "default" : "outline"}
-            onClick={() => onMarkerFilterChange("without")}
-          >
-            Without
-          </Button>
-        </div>
+        <ToggleGroup
+          variant="outline"
+          spacing={0}
+          aria-label="Markers"
+          value={[markerFilter]}
+          onValueChange={([next]) => {
+            const match = MARKER_VALUES.find((value) => value === next);
+            if (match !== undefined) {
+              onMarkerFilterChange(match);
+            }
+          }}
+        >
+          {MARKER_VALUES.map((value) => (
+            <ToggleGroupItem key={value} value={value}>
+              {MARKER_LABELS[value]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       )}
     </>
   );

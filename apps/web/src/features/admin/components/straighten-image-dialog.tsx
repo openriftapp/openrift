@@ -54,24 +54,33 @@ export function StraightenImageDialog({
   imageId,
   quad,
   invalidates,
+  open: openProp,
+  onOpenChange,
 }: {
   imageId: string;
   quad: ImageQuad | null;
   invalidates?: Scope;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [selfOpen, setSelfOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : selfOpen;
+  const setOpen = controlled ? (onOpenChange ?? setSelfOpen) : setSelfOpen;
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-6"
-        title={quad === null ? "Straighten" : "Straighten (corners set)"}
-        onClick={() => setOpen(true)}
-      >
-        <CropIcon className={cn("size-3", quad !== null && "text-success")} />
-      </Button>
+      {!controlled && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          title={quad === null ? "Straighten" : "Straighten (corners set)"}
+          onClick={() => setOpen(true)}
+        >
+          <CropIcon className={cn("size-3", quad !== null && "text-success")} />
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-3xl">
           {open && (

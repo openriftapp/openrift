@@ -26,27 +26,28 @@ import {
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import type { CardSubmissionRow } from "../repositories/card-submissions.js";
 import { assertProvidersInScope } from "./card-review-scope.js";
+import { describeUnknownRefs, unknownPrintingRefs } from "./printing-refs.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 import { discardSubmissionUploads } from "./submission-uploads.js";
 
-export interface CardFieldPick {
+interface CardFieldPick {
   field: AcceptCardField;
   value: unknown;
 }
 
-export interface PrintingFieldPick {
+interface PrintingFieldPick {
   printingId: string;
   field: AcceptPrintingField;
   value: unknown;
   source: PrintingFieldSource;
 }
 
-export interface NewPrintingPick {
+interface NewPrintingPick {
   candidatePrintingId: string;
   printingFields: AcceptPrintingBody["printingFields"];
 }
 
-export interface ImagePick {
+interface ImagePick {
   candidatePrintingId: string;
   printingId: string;
 }
@@ -65,10 +66,16 @@ export interface AcceptSubmissionArgs extends ReviewerArgs {
   images: ImagePick[];
 }
 
+interface SkippedNewPrinting {
+  candidatePrintingId: string;
+  reason: string;
+}
+
 export interface AcceptSubmissionResult {
   status: CardSubmissionStatus;
   applied: number;
   createdPrintingIds: string[];
+  skipped: SkippedNewPrinting[];
 }
 
 export interface RejectSubmissionArgs extends ReviewerArgs {
@@ -117,6 +124,46 @@ async function loadPendingSubmission(
   return submission;
 }
 
+async function partitionNewPrintings(
+  repos: Repos,
+  picks: readonly NewPrintingPick[],
+): Promise<{ usable: NewPrintingPick[]; skipped: SkippedNewPrinting[] }> {
+  if (picks.length === 0) {
+    return { usable: [], skipped: [] };
+  }
+  const channelSlugs = [
+    ...new Set(picks.flatMap((pick) => pick.printingFields.distributionChannelSlugs ?? [])),
+  ];
+  const [enums, channels] = await Promise.all([
+    repos.enums.all(),
+    repos.distributionChannels.listBySlugs(channelSlugs),
+  ]);
+  const known = {
+    languages: enums.languages.map((row) => row.slug),
+    rarities: enums.rarities.map((row) => row.slug),
+    artVariants: enums.artVariants.map((row) => row.slug),
+    finishes: enums.finishes.map((row) => row.slug),
+    cardSizes: enums.cardSizes.map((row) => row.slug),
+    markers: enums.markers.map((row) => row.slug),
+    distributionChannels: channels.map((row) => row.slug),
+  };
+
+  const usable: NewPrintingPick[] = [];
+  const skipped: SkippedNewPrinting[] = [];
+  for (const pick of picks) {
+    const unknown = unknownPrintingRefs(pick.printingFields, known);
+    if (unknown.length === 0) {
+      usable.push(pick);
+      continue;
+    }
+    skipped.push({
+      candidatePrintingId: pick.candidatePrintingId,
+      reason: `not on an admin list: ${describeUnknownRefs(unknown)}`,
+    });
+  }
+  return { usable, skipped };
+}
+
 async function attachCandidateImage(
   trx: Repos,
   args: { candidatePrintingId: string; printingId: string },
@@ -145,7 +192,17 @@ export async function acceptSubmission(
   const candidate = await loadCandidate(repos, args);
   const submission = await loadPendingSubmission(repos, candidateCardId);
 
-  const pickCount = cardFields.length + printingFields.length + newPrintings.length + images.length;
+  const { usable: usableNewPrintings, skipped } = await partitionNewPrintings(repos, newPrintings);
+  const pickCount =
+    cardFields.length + printingFields.length + usableNewPrintings.length + images.length;
+  // A skip is not a decision: settling here would close the submission on nothing.
+  if (pickCount === 0 && skipped.length > 0) {
+    throw new AppError(
+      400,
+      ERROR_CODES.BAD_REQUEST,
+      `Nothing could be applied. ${skipped.map((entry) => entry.reason).join("; ")}`,
+    );
+  }
   const liveCard = await repos.cardSubmissions.liveCardByNormName(candidate.normName);
   if (!liveCard && pickCount > 0) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "No live card for this submission");
@@ -186,8 +243,8 @@ export async function acceptSubmission(
       count += 1;
     }
 
-    if (liveCard && newPrintings.length > 0) {
-      for (const pick of newPrintings) {
+    if (liveCard && usableNewPrintings.length > 0) {
+      for (const pick of usableNewPrintings) {
         const created = await acceptPrintingDeferringRehost(
           inner,
           trx,
@@ -198,7 +255,7 @@ export async function acceptSubmission(
         createdPrintingIds.push(created.printingId);
         imageIds.push(...created.imageIds);
       }
-      count += newPrintings.length;
+      count += usableNewPrintings.length;
     }
 
     for (const pick of images) {
@@ -207,7 +264,12 @@ export async function acceptSubmission(
     }
 
     await trx.candidateCards.checkCandidateCard(candidateCardId);
-    await trx.candidateCards.checkCandidatePrintingsForCard(candidateCardId);
+    // A skipped printing is still waiting on an admin list, so checking it here
+    // would drop it out of the queue without anyone having decided anything.
+    await trx.candidateCards.checkCandidatePrintingsForCard(
+      candidateCardId,
+      skipped.map((entry) => entry.candidatePrintingId),
+    );
 
     const outcome: CardSubmissionStatus = count > 0 ? "accepted" : "not_applied";
     await trx.cardSubmissions.resolve(submission.id, {
@@ -247,10 +309,11 @@ export async function acceptSubmission(
       printingFields: printingFields.map((pick) => `${pick.printingId}:${pick.field}`),
       createdPrintingIds,
       images: images.length,
+      skipped,
     },
   });
 
-  return { status, applied, createdPrintingIds };
+  return { status, applied, createdPrintingIds, skipped };
 }
 
 export async function rejectSubmission(

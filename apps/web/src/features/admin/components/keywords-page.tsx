@@ -2,6 +2,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { LoaderIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import type {
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
+import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import {
   useCreateKeywordStyle,
@@ -521,16 +523,16 @@ function TranslationsTable({
   }
 
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <p className="mb-3 text-sm font-medium">Keyword Translations</p>
-        <Table>
+    <div className="space-y-3">
+      <Heading level={2}>Keyword Translations</Heading>
+      <div className={ADMIN_TABLE_SURFACE}>
+        <Table className={ADMIN_TABLE_CLASS}>
           <TableHeader>
             <TableRow>
               <TableHead>Keyword</TableHead>
               <TableHead>Language</TableHead>
               <TableHead>Translation</TableHead>
-              <TableHead className="w-32" />
+              <TableHead className="w-32 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -661,7 +663,7 @@ function TranslationsTable({
             </TableRow>
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

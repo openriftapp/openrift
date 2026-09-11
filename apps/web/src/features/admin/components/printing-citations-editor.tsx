@@ -3,28 +3,41 @@ import {
   useAdminPrintingCitations,
   useCreatePrintingCitation,
   useDeletePrintingCitation,
+  useUpdatePrintingCitation,
 } from "@/features/admin/hooks/use-admin-printing-citations";
 
 /**
  * Unlike the meta archive's equivalent, every row here is hand-entered:
  * nothing ingests citations, so none refuses a delete.
  */
-export function PrintingCitationsEditor({ printingId }: { printingId: string }) {
+export function PrintingCitationsEditor({
+  printingId,
+  adding,
+  onAddingChange,
+}: {
+  printingId: string;
+  adding?: boolean;
+  onAddingChange?: (adding: boolean) => void;
+}) {
   const { data, isPending } = useAdminPrintingCitations(printingId);
   const createCitation = useCreatePrintingCitation();
+  const updateCitation = useUpdatePrintingCitation();
   const deleteCitation = useDeletePrintingCitation();
 
   return (
     <SourceCitationsEditor
       citations={data?.citations ?? []}
       isPending={isPending}
-      description="Where this printing's promo claims come from. Shown on the public card page; the icon comes from the link's host, not the label."
-      emptyText="No citations yet, so the card page shows no source line."
+      adding={adding}
+      onAddingChange={onAddingChange}
+      hideWhenIdle={adding !== undefined}
       labelPlaceholder="Launch party unboxing (RiftboundDaily)"
-      idPrefix={`printing-citation-${printingId}`}
-      creating={createCitation.isPending}
+      creating={createCitation.isPending || updateCitation.isPending}
       deleting={deleteCitation.isPending}
       onAdd={(input) => createCitation.mutateAsync({ printingId, ...input })}
+      onUpdate={(citationId, input) =>
+        updateCitation.mutateAsync({ printingId, citationId, ...input })
+      }
       onDelete={(citationId) => deleteCitation.mutate({ printingId, citationId })}
     />
   );

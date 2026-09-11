@@ -25,6 +25,7 @@ export interface FieldDef<TKey extends string = string> {
   labeledOptions?: readonly { value: string; label: string }[];
   suffixKey?: string;
   collapsible?: boolean;
+  alwaysVisible?: boolean;
   multiline?: boolean;
   richText?: boolean;
   richTextVariant?: CardTextVariant;
@@ -41,7 +42,7 @@ export function buildCandidateCardFields(
   labels: EnumLabels,
 ): FieldDef<CandidateCardFieldKey>[] {
   return [
-    { key: "externalId", label: "External ID", readOnly: true },
+    { key: "externalId", label: "External ID", readOnly: true, collapsible: true },
     { key: "energy", label: "Energy", type: "number" },
     { key: "power", label: "Power", type: "number" },
     { key: "might", label: "Might", type: "number" },
@@ -107,21 +108,21 @@ export function buildCandidatePrintingFields(
   languages?: readonly { value: string; label: string }[],
 ): FieldDef<CandidatePrintingFieldKey>[] {
   return [
-    { key: "externalId", label: "External ID", readOnly: true },
-    { key: "setId", label: "Set", suffixKey: "setName" },
-    { key: "shortCode", label: "Short Code" },
-    { key: "publicCode", label: "Public Code" },
+    { key: "externalId", label: "External ID", readOnly: true, collapsible: true },
+    { key: "publicCode", label: "Public Code", alwaysVisible: true },
 
     {
       key: "rarity",
       label: "Rarity",
       labeledOptions: toLabeledOptions(orders.rarities, labels.rarities),
       iconCategory: "rarities",
+      alwaysVisible: true,
     },
     {
       key: "finish",
       label: "Finish",
       labeledOptions: toLabeledOptions(orders.finishes, labels.finishes),
+      alwaysVisible: true,
     },
     {
       key: "artVariant",
@@ -159,7 +160,13 @@ export function buildCandidatePrintingFields(
     },
     { key: "printedName", label: "Printed Name" },
     { key: "printedYear", label: "Printed Year", type: "number" },
-    { key: "printedRulesText", label: "Printed Rules", multiline: true, richText: true },
+    {
+      key: "printedRulesText",
+      label: "Printed Rules",
+      multiline: true,
+      richText: true,
+      alwaysVisible: true,
+    },
     { key: "printedEffectText", label: "Printed Effect", multiline: true, richText: true },
     {
       key: "flavorText",
@@ -167,10 +174,11 @@ export function buildCandidatePrintingFields(
       multiline: true,
       richText: true,
       richTextVariant: "flavor",
+      alwaysVisible: true,
     },
     { key: "comment", label: "Comment" },
     { key: "extraData", label: "Extra Data", readOnly: true, collapsible: true },
-    { key: "imageUrl", label: "Image", readOnly: true, collapsible: true },
+    { key: "imageUrl", label: "Image", readOnly: true, alwaysVisible: true },
   ];
 }
 

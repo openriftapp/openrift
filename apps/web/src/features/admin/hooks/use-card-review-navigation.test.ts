@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   hotkeys: new Map<string, (...args: unknown[]) => void>(),
   nextUncheckedArgs: { current: null as [string, Set<string> | null | undefined] | null },
+  checkAllCardsScope: { current: undefined as unknown },
   allCards: [] as { slug: string; setSlugs: string[] }[],
   cardList: [] as { cardSlug: string | null; unlinkedPrintingCount: number }[],
   cardListEnabled: { current: false },
@@ -49,7 +50,10 @@ vi.mock("@/features/admin/hooks/use-admin-card-queries", () => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
-  useCheckAllCandidateCards: () => mocks.checkAllCards,
+  useCheckAllCandidateCards: (invalidates?: unknown) => {
+    mocks.checkAllCardsScope.current = invalidates;
+    return mocks.checkAllCards;
+  },
   useCheckAllCandidatePrintings: () => mocks.checkAllPrintings,
 }));
 
@@ -182,6 +186,13 @@ beforeEach(() => {
 });
 
 describe("useCardReviewNavigation", () => {
+  it("checks the card's sources against the caller's scope, not the mutation's own", () => {
+    const invalidates = [["admin", "cards", "detail", "yasuo"]];
+    renderNav({ invalidates });
+
+    expect(mocks.checkAllCardsScope.current).toBe(invalidates);
+  });
+
   it("returns the neighbouring card slugs in list order", () => {
     const { result } = renderNav();
 

@@ -1,20 +1,22 @@
 import type { AdminCardResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
 import {
-  BanIcon,
   CheckCheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   EllipsisVerticalIcon,
-  FileWarningIcon,
   LoaderIcon,
-  PlusIcon,
   RefreshCwIcon,
   Trash2Icon,
 } from "lucide-react";
 
-import { Heading } from "@/components/heading";
-import { Button } from "@/components/ui/button";
+import {
+  PageTopBarBack,
+  PageTopBarButton,
+  PageTopBarIconButton,
+  PageTopBarPrimaryButton,
+} from "@/components/layout/page-top-bar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,22 +25,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
+import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useDeleteCard, useRenameCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 
 interface CardDetailHeaderProps {
   card: AdminCardResponse;
   cardId: string;
   expectedCardId: string;
-  sourceCount: number;
   hasUnchecked: boolean;
   prevNextCards: PrevNextSlugs;
+  listSearch: CardReviewNavSearch;
   isCheckingAll: boolean;
   onCheckAllAndNext: () => void;
   goToCard: (cardSlug: string) => void;
   goToList: () => void;
-  onAddBan: () => void;
-  onAddErrata: () => void;
   isAdmin: boolean;
 }
 
@@ -46,15 +48,13 @@ export function CardDetailHeader({
   card,
   cardId,
   expectedCardId,
-  sourceCount,
   hasUnchecked,
   prevNextCards,
+  listSearch,
   isCheckingAll,
   onCheckAllAndNext,
   goToCard,
   goToList,
-  onAddBan,
-  onAddErrata,
   isAdmin,
 }: CardDetailHeaderProps) {
   const renameCard = useRenameCard();
@@ -62,13 +62,25 @@ export function CardDetailHeader({
   const canonicalName = card.name;
   const isCardIdStale = cardId !== expectedCardId;
 
+  const checkAllLabel = (
+    <>
+      {isCheckingAll ? <LoaderIcon className="animate-spin" /> : <CheckCheckIcon />}
+      {isCheckingAll ? "Checking…" : "Check all & next"}
+      <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
+        Ctrl ⇧ ↵
+      </Kbd>
+    </>
+  );
+
   return (
-    <div>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
+    <AdminPageTopBar
+      title={canonicalName}
+      back={<PageTopBarBack to="/admin/cards" search={listSearch} aria-label="Back to cards" />}
+      actions={
+        <>
+          {isCardIdStale && <Badge variant="warning">ID &rarr; {expectedCardId}</Badge>}
+          <PageTopBarIconButton
+            aria-label="Previous card"
             disabled={!prevNextCards.prev}
             onClick={() => {
               if (prevNextCards.prev) {
@@ -77,10 +89,9 @@ export function CardDetailHeader({
             }}
           >
             <ChevronLeftIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+          </PageTopBarIconButton>
+          <PageTopBarIconButton
+            aria-label="Next card"
             disabled={!prevNextCards.next}
             onClick={() => {
               if (prevNextCards.next) {
@@ -89,94 +100,71 @@ export function CardDetailHeader({
             }}
           >
             <ChevronRightIcon />
-          </Button>
-        </div>
-        <Heading level={2}>{canonicalName}</Heading>
-        {isAdmin && (
-          <Button
-            variant={hasUnchecked ? "default" : "outline"}
-            className="gap-1.5"
-            disabled={isCheckingAll}
-            onClick={onCheckAllAndNext}
+          </PageTopBarIconButton>
+          <PageTopBarButton
+            render={<Link to="/cards/$cardSlug/{-$printingSlug}" params={{ cardSlug: cardId }} />}
           >
-            {isCheckingAll ? <LoaderIcon className="animate-spin" /> : <CheckCheckIcon />}
-            {isCheckingAll ? "Checking…" : "Check all & next"}
-            <Kbd className="bg-background/20 pointer-events-none ml-1 leading-none text-inherit opacity-60">
-              Ctrl ⇧ ↵
-            </Kbd>
-          </Button>
-        )}
-        {isAdmin && (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
-              <EllipsisVerticalIcon />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                render={
-                  <Link
-                    to="/admin/cards/$cardSlug/printings/create"
-                    params={{ cardSlug: cardId }}
-                  />
-                }
+            View public page
+          </PageTopBarButton>
+          {isAdmin &&
+            (hasUnchecked ? (
+              <PageTopBarPrimaryButton
+                className="gap-1.5"
+                disabled={isCheckingAll}
+                onClick={onCheckAllAndNext}
               >
-                <PlusIcon className="mr-2" />
-                Create printing
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onAddBan}>
-                <BanIcon className="mr-2" />
-                Add ban
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onAddErrata}>
-                <FileWarningIcon className="mr-2" />
-                {card.errata ? "Edit errata" : "Add errata"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={deleteCardMutation.isPending}
-                onClick={() => {
-                  if (
-                    globalThis.confirm(
-                      `Delete card "${canonicalName}" and all its printings? This cannot be undone.`,
-                    )
-                  ) {
-                    deleteCardMutation.mutate(card.id, { onSuccess: goToList });
-                  }
-                }}
+                {checkAllLabel}
+              </PageTopBarPrimaryButton>
+            ) : (
+              <PageTopBarButton
+                className="gap-1.5"
+                disabled={isCheckingAll}
+                onClick={onCheckAllAndNext}
               >
-                <Trash2Icon className="text-destructive mr-2" />
-                <span className="text-destructive">Delete card</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-      <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <span className={isCardIdStale ? "text-warning line-through" : ""}>{cardId}</span>
-        {isCardIdStale && (
-          <>
-            <span>&rarr; {expectedCardId}</span>
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                disabled={renameCard.isPending}
-                onClick={() =>
-                  renameCard.mutate(
-                    { cardId: card.id, newId: expectedCardId },
-                    { onSuccess: () => goToCard(expectedCardId) },
-                  )
-                }
-              >
-                <RefreshCwIcon className="mr-1" />
-                Regenerate
-              </Button>
-            )}
-          </>
-        )}
-        <span>
-          ({sourceCount} source{sourceCount === 1 ? "" : "s"})
-        </span>
-      </p>
-    </div>
+                {checkAllLabel}
+              </PageTopBarButton>
+            ))}
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<PageTopBarIconButton aria-label="Card actions" />}>
+                <EllipsisVerticalIcon />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isCardIdStale && (
+                  <DropdownMenuItem
+                    disabled={renameCard.isPending}
+                    onClick={() =>
+                      renameCard.mutate(
+                        { cardId: card.id, newId: expectedCardId },
+                        { onSuccess: () => goToCard(expectedCardId) },
+                      )
+                    }
+                  >
+                    <RefreshCwIcon className="mr-2" />
+                    Regenerate ID ({expectedCardId})
+                  </DropdownMenuItem>
+                )}
+                {isCardIdStale && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  disabled={deleteCardMutation.isPending}
+                  onClick={() => {
+                    if (
+                      globalThis.confirm(
+                        `Delete card "${canonicalName}" and all its printings? This cannot be undone.`,
+                      )
+                    ) {
+                      deleteCardMutation.mutate(card.id, { onSuccess: goToList });
+                    }
+                  }}
+                >
+                  <Trash2Icon className="text-destructive mr-2" />
+                  <span className="text-destructive">Delete card</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </>
+      }
+    />
   );
 }

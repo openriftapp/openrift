@@ -177,9 +177,9 @@ describe("useAdminCardFoldStore", () => {
   });
 
   describe("getCollapsedSections", () => {
-    it("returns an empty set initially", () => {
+    it("starts with History folded and nothing else", () => {
       const collapsed = getCollapsedSections(useAdminCardFoldStore.getState());
-      expect(collapsed.size).toBe(0);
+      expect([...collapsed]).toEqual(["history"]);
     });
   });
 });

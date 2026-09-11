@@ -199,7 +199,7 @@ export function UnmatchedProductsPanel() {
   }
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4">
       <FilterBar
         marketplaceFilter={marketplaceFilter}
         onMarketplaceChange={setMarketplaceFilter}
@@ -220,64 +220,66 @@ export function UnmatchedProductsPanel() {
           {allRows.length === 0 ? "No unmatched products." : "No matches for the current filters."}
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead className="w-16">Language</TableHead>
-              <TableHead>Set</TableHead>
-              <TableHead className="w-16">Finish</TableHead>
-              <TableHead className="w-20 text-right">Price</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedRows.map((row, index) => {
-              const { marketplace, product } = row;
-              const key = `${marketplace}::${product.externalId}::${product.finish}::${product.language}`;
-              const prevRow = sortedRows[index - 1];
-              const isFirstOfMarketplace = !prevRow || prevRow.marketplace !== marketplace;
-              const mutations = mutationsFor(marketplace);
-              return (
-                <React.Fragment key={key}>
-                  {isFirstOfMarketplace && (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell
-                        colSpan={COLUMN_COUNT}
-                        className="bg-muted/50 text-muted-foreground py-1.5 text-xs font-medium tracking-wide uppercase"
-                      >
-                        {CONFIG_BY_MARKETPLACE[marketplace].displayName}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  <UnmatchedProductRow
-                    marketplace={marketplace}
-                    product={product}
-                    allCards={data.allCards as AssignableCard[]}
-                    onAssignToCard={(card) => handleAssignToCard(marketplace, product, card)}
-                    isAssigning={mutations.assign.isPending}
-                    onIgnoreVariant={() =>
-                      mutations.ignoreVariant.mutate([
-                        {
-                          externalId: product.externalId,
-                          finish: product.finish,
-                          language: product.language,
-                        },
-                      ])
-                    }
-                    onIgnoreProduct={() =>
-                      mutations.ignoreProduct.mutate([{ externalId: product.externalId }])
-                    }
-                    isIgnoring={
-                      mutations.ignoreVariant.isPending || mutations.ignoreProduct.isPending
-                    }
-                  />
-                </React.Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <div className="bg-card ring-border overflow-hidden rounded-lg ring-1">
+          <Table>
+            <TableHeader className="[&_th]:text-muted-foreground [&_th]:text-xs [&_th]:font-medium [&_th]:tracking-wide [&_th]:uppercase">
+              <TableRow>
+                <TableHead className="w-20">ID</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead className="w-16">Language</TableHead>
+                <TableHead>Set</TableHead>
+                <TableHead className="w-16">Finish</TableHead>
+                <TableHead className="w-20 text-right">Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="[&_tr]:border-0">
+              {sortedRows.map((row, index) => {
+                const { marketplace, product } = row;
+                const key = `${marketplace}::${product.externalId}::${product.finish}::${product.language}`;
+                const prevRow = sortedRows[index - 1];
+                const isFirstOfMarketplace = !prevRow || prevRow.marketplace !== marketplace;
+                const mutations = mutationsFor(marketplace);
+                return (
+                  <React.Fragment key={key}>
+                    {isFirstOfMarketplace && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell
+                          colSpan={COLUMN_COUNT}
+                          className="bg-muted/50 text-muted-foreground py-1.5 text-xs font-medium tracking-wide uppercase"
+                        >
+                          {CONFIG_BY_MARKETPLACE[marketplace].displayName}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <UnmatchedProductRow
+                      marketplace={marketplace}
+                      product={product}
+                      allCards={data.allCards as AssignableCard[]}
+                      onAssignToCard={(card) => handleAssignToCard(marketplace, product, card)}
+                      isAssigning={mutations.assign.isPending}
+                      onIgnoreVariant={() =>
+                        mutations.ignoreVariant.mutate([
+                          {
+                            externalId: product.externalId,
+                            finish: product.finish,
+                            language: product.language,
+                          },
+                        ])
+                      }
+                      onIgnoreProduct={() =>
+                        mutations.ignoreProduct.mutate([{ externalId: product.externalId }])
+                      }
+                      isIgnoring={
+                        mutations.ignoreVariant.isPending || mutations.ignoreProduct.isPending
+                      }
+                    />
+                  </React.Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );
@@ -470,7 +472,7 @@ function FilterBar({
         value={marketplaceFilter}
         onValueChange={(v) => onMarketplaceChange((v ?? "all") as "all" | Marketplace)}
       >
-        <SelectTrigger className="h-9 w-44" aria-label="Filter by marketplace">
+        <SelectTrigger className="w-44" aria-label="Filter by marketplace">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -489,7 +491,7 @@ function FilterBar({
         value={finishFilter}
         onValueChange={(v) => onFinishChange(v ?? "all")}
       >
-        <SelectTrigger className="h-9 w-36" aria-label="Filter by finish">
+        <SelectTrigger className="w-36" aria-label="Filter by finish">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -508,7 +510,7 @@ function FilterBar({
         value={languageFilter}
         onValueChange={(v) => onLanguageChange(v ?? "all")}
       >
-        <SelectTrigger className="h-9 w-36" aria-label="Filter by language">
+        <SelectTrigger className="w-36" aria-label="Filter by language">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -527,7 +529,7 @@ function FilterBar({
         placeholder="Search product name…"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
-        className="h-9 w-64"
+        className="w-64"
       />
 
       <span className="text-muted-foreground ml-auto text-xs">

@@ -20,6 +20,7 @@ import { errorText } from "@/lib/error-text";
 export interface AdminDeleteConfig<TData> {
   onDelete: (row: TData) => Promise<unknown>;
   confirm?: (row: TData) => { title: string; description: ReactNode };
+  canDelete?: (row: TData) => boolean;
 }
 
 export function DeleteButton<TData>({

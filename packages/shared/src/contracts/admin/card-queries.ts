@@ -1,3 +1,4 @@
+import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
@@ -41,10 +42,14 @@ export const candidateCardSummarySchema = z.object({
   uncheckedCardCount: z.number(),
   uncheckedPrintingCount: z.number(),
   unlinkedPrintingCount: z.number(),
+  unlinkedTrustedPrintingCount: z.number(),
   hasFavorite: z.boolean(),
   favoriteStagingShortCodes: z.array(z.string()),
   suggestedCardSlug: z.string().nullable(),
   hasUserSubmission: z.boolean(),
+  pendingSubmissions: z.number(),
+  uncheckedTrustedProviders: z.array(z.string()),
+  updatedAt: isoDateTime,
 });
 
 /**

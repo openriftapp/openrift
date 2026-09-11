@@ -58,13 +58,23 @@ export async function buildCandidateCardList(
   favoriteProviders: Set<string>,
   allowedProviders: Set<string> | null = null,
 ): Promise<CandidateCardSummaryResponse[]> {
-  const [cards, allCandidateCards, printings, candidatePrintings, aliases] = await Promise.all([
-    repo.listCardsForSourceList(),
-    repo.listCandidateCardsForSourceList(),
-    repo.listPrintingsForSourceList(),
-    repo.listCandidatePrintingsForSourceList(),
-    repo.listAliasesForSourceList(),
-  ]);
+  const [cards, allCandidateCards, printings, candidatePrintings, aliases, pendingRows] =
+    await Promise.all([
+      repo.listCardsForSourceList(),
+      repo.listCandidateCardsForSourceList(),
+      repo.listPrintingsForSourceList(),
+      repo.listCandidatePrintingsForSourceList(),
+      repo.listAliasesForSourceList(),
+      repo.listPendingSubmissionCandidateIds(),
+    ]);
+
+  const pendingByCandidateCardId = new Map<string, number>();
+  for (const row of pendingRows) {
+    pendingByCandidateCardId.set(
+      row.candidateCardId,
+      (pendingByCandidateCardId.get(row.candidateCardId) ?? 0) + 1,
+    );
+  }
 
   // card-review grant holders only see candidates from allowed providers
   // (null = full admin, unscoped). Filtering here keeps every derived
@@ -185,9 +195,15 @@ export async function buildCandidateCardList(
   // No provider or checkedAt narrowing: these are the rows the detail page
   // renders as "New:" groups, and it groups every unlinked candidate printing
   // the same way.
-  function unlinkedPrintingCountForGroup(group: typeof candidateCards): number {
+  function unlinkedPrintingCountForGroup(
+    group: typeof candidateCards,
+    onlyTrusted?: boolean,
+  ): number {
     let count = 0;
     for (const cc of group) {
+      if (onlyTrusted && !favoriteProviders.has(cc.provider)) {
+        continue;
+      }
       for (const cp of cpByCandidateCardId.get(cc.id) ?? []) {
         if (!cp.printingId) {
           count++;
@@ -195,6 +211,38 @@ export async function buildCandidateCardList(
       }
     }
     return count;
+  }
+
+  function pendingSubmissions(group: typeof candidateCards | null): number {
+    let count = 0;
+    for (const cc of group ?? []) {
+      count += pendingByCandidateCardId.get(cc.id) ?? 0;
+    }
+    return count;
+  }
+
+  function uncheckedTrustedProviders(group: typeof candidateCards | null): string[] {
+    const providers = new Set<string>();
+    for (const cc of group ?? []) {
+      if (!favoriteProviders.has(cc.provider)) {
+        continue;
+      }
+      const candidatePrintingRows = cpByCandidateCardId.get(cc.id) ?? [];
+      if (!cc.checkedAt || candidatePrintingRows.some((cp) => !cp.checkedAt)) {
+        providers.add(cc.provider);
+      }
+    }
+    return [...providers].toSorted();
+  }
+
+  function latestWrite(cardUpdatedAt: Date | null, group: typeof candidateCards | null): Date {
+    let latest = cardUpdatedAt;
+    for (const cc of group ?? []) {
+      if (latest === null || cc.updatedAt > latest) {
+        latest = cc.updatedAt;
+      }
+    }
+    return latest ?? new Date(0);
   }
 
   const aliasNormNamesByCardId = new Map<string, string[]>();
@@ -241,10 +289,14 @@ export async function buildCandidateCardList(
         group?.filter((cc) => !cc.checkedAt && favoriteProviders.has(cc.provider)).length ?? 0,
       uncheckedPrintingCount: group ? uncheckedPrintingCountForGroup(group, true) : 0,
       unlinkedPrintingCount: group ? unlinkedPrintingCountForGroup(group) : 0,
+      unlinkedTrustedPrintingCount: group ? unlinkedPrintingCountForGroup(group, true) : 0,
       hasFavorite: group?.some((cc) => favoriteProviders.has(cc.provider)) ?? false,
       favoriteStagingShortCodes: group ? stagingIdsForGroup(group, true) : [],
       suggestedCardSlug: null,
       hasUserSubmission: group?.some((cc) => cc.provider === USER_SUBMISSION_PROVIDER) ?? false,
+      pendingSubmissions: pendingSubmissions(group),
+      uncheckedTrustedProviders: uncheckedTrustedProviders(group),
+      updatedAt: latestWrite(card.updatedAt, group).toISOString(),
     };
   });
 
@@ -282,10 +334,14 @@ export async function buildCandidateCardList(
         .length,
       uncheckedPrintingCount: uncheckedPrintingCountForGroup(group, true),
       unlinkedPrintingCount: unlinkedPrintingCountForGroup(group),
+      unlinkedTrustedPrintingCount: unlinkedPrintingCountForGroup(group, true),
       hasFavorite: group.some((cc) => favoriteProviders.has(cc.provider)),
       favoriteStagingShortCodes: stagingIdsForGroup(group, true),
       suggestedCardSlug: findSuggestedCard(normName),
       hasUserSubmission: group.some((cc) => cc.provider === USER_SUBMISSION_PROVIDER),
+      pendingSubmissions: pendingSubmissions(group),
+      uncheckedTrustedProviders: uncheckedTrustedProviders(group),
+      updatedAt: latestWrite(null, group).toISOString(),
     });
   }
 

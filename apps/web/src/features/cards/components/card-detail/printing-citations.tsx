@@ -4,7 +4,7 @@ import { LinkIcon } from "lucide-react";
 import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { sourceBrand } from "@/features/admin/lib/source-brand";
 
-function CitationEntry({ citation }: { citation: PrintingCitation }) {
+export function CitationEntry({ citation }: { citation: PrintingCitation }) {
   const glyph = (
     <BrandGlyph
       icon={sourceBrand(citation.sourceUrl)}

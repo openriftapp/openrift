@@ -8,11 +8,11 @@ import type {
 } from "@/features/admin/lib/price-mappings-types";
 
 import {
+  buildMarketplaceRows,
   collectEntries,
   collectStrongMappings,
   collectWeakMappings,
   displayedProductLanguage,
-  isCardNameMismatch,
 } from "./marketplace-product-entries";
 import type { ProductSuggestion } from "./suggest-mapping";
 import { productSuggestionKey } from "./suggest-mapping";
@@ -111,6 +111,42 @@ function group(
     },
   };
 }
+
+describe("buildMarketplaceRows", () => {
+  it("keeps a product's variants together and heads them with one row", () => {
+    const rows = buildMarketplaceRows(
+      collectEntries(
+        group([printing({ printingId: "p-1" })], {
+          cardtrader: {
+            staged: [
+              staged({ externalId: 1, finish: "normal", language: "EN" }),
+              staged({ externalId: 2, finish: "normal", language: "EN" }),
+            ],
+            assigned: [staged({ externalId: 1, finish: "foil", language: "EN" })],
+            assignments: [{ externalId: 1, printingId: "p-1", finish: "foil", language: "EN" }],
+          },
+        }),
+      ),
+      "cardtrader",
+    );
+
+    expect(rows.map((row) => row.entry.product.externalId)).toEqual([1, 1, 2]);
+    expect(rows.map((row) => row.showProduct)).toEqual([true, false, true]);
+  });
+
+  it("drops the other marketplaces' rows", () => {
+    const entries = collectEntries(
+      group([printing()], {
+        cardtrader: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
+        tcgplayer: { staged: [staged({ externalId: 9 })], assigned: [], assignments: [] },
+      }),
+    );
+
+    expect(buildMarketplaceRows(entries, "tcgplayer").map((row) => row.entry.marketplace)).toEqual([
+      "tcgplayer",
+    ]);
+  });
+});
 
 describe("collectEntries", () => {
   it("returns no entries when all marketplace buckets are empty", () => {
@@ -422,29 +458,5 @@ describe("collectWeakMappings", () => {
       { externalId: 1, finish: "normal", language: null, printingId: "p-foil" },
     ]);
     expect(result.tcgplayer).toEqual([]);
-  });
-});
-
-describe("isCardNameMismatch", () => {
-  it("returns false only when the normalized names are exactly equal", () => {
-    expect(isCardNameMismatch("Kai'Sa, Survivor", "KaiSa Survivor")).toBe(false);
-    expect(isCardNameMismatch("BLAST CONE", "Blast Cone")).toBe(false);
-    expect(isCardNameMismatch("Mega-Mech", "Mega Mech")).toBe(false);
-  });
-
-  it("returns true when the product name has any extra suffix beyond the card name", () => {
-    expect(isCardNameMismatch("Blast Cone (Foil)", "Blast Cone")).toBe(true);
-    expect(isCardNameMismatch("Jinx Loose Cannon Signature", "Loose Cannon")).toBe(true);
-    expect(isCardNameMismatch("Kai'Sa, Survivor - Alt Art", "KaiSa Survivor")).toBe(true);
-    expect(isCardNameMismatch("Mega-Mech Foil", "Mega Mech")).toBe(true);
-  });
-
-  it("returns true when the product name does not contain the card name at all", () => {
-    expect(isCardNameMismatch("Champion Cantrip", "Blast Cone")).toBe(true);
-    expect(isCardNameMismatch("Random Token", "Fireball")).toBe(true);
-  });
-
-  it("returns false when the card name is empty (can't meaningfully match)", () => {
-    expect(isCardNameMismatch("Some Product", "")).toBe(false);
   });
 });

@@ -30,6 +30,7 @@ import {
   useAdminJobRuns,
 } from "@/features/admin/hooks/use-job-runs";
 import type { JobRunsSearch } from "@/features/admin/lib/admin-job-runs-search";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
 import { useCancelRegenerateImages } from "@/hooks/use-rehost";
 import { formatDuration } from "@/lib/format-duration";
@@ -205,7 +206,7 @@ export function JobRunsPage() {
         />
       </div>
 
-      <Table>
+      <Table className={ADMIN_TABLE_CLASS}>
         <TableHeader>
           <TableRow>
             <TableHead className="w-8" />
@@ -215,7 +216,7 @@ export function JobRunsPage() {
             <TableHead className="w-44">Started</TableHead>
             <TableHead className="w-32">Duration</TableHead>
             <TableHead>Result</TableHead>
-            <TableHead className="w-28" />
+            <TableHead className="w-28 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

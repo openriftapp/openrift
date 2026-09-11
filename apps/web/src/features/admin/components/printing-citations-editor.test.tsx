@@ -7,6 +7,7 @@ const captured = vi.hoisted(() => ({
   citations: [] as AdminPrintingCitation[],
   isPending: false,
   create: vi.fn(),
+  update: vi.fn(),
   remove: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/features/admin/hooks/use-admin-printing-citations", () => ({
     isPending: captured.isPending,
   }),
   useCreatePrintingCitation: () => ({ mutateAsync: captured.create, isPending: false }),
+  useUpdatePrintingCitation: () => ({ mutateAsync: captured.update, isPending: false }),
   useDeletePrintingCitation: () => ({ mutate: captured.remove, isPending: false }),
 }));
 
@@ -35,23 +37,28 @@ beforeEach(() => {
   captured.citations = [];
   captured.isPending = false;
   captured.create.mockReset().mockResolvedValue(citation);
+  captured.update.mockReset().mockResolvedValue(undefined);
   captured.remove.mockReset();
 });
 
 describe("PrintingCitationsEditor", () => {
-  it("says the card page shows no source line when nothing is cited", () => {
+  it("offers only the add button until it is pressed", async () => {
+    const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    expect(screen.getByText(/no citations yet/iu)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Source name")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+
+    expect(screen.getByLabelText("Source name")).toBeInTheDocument();
   });
 
-  it("lists a citation with its link", () => {
+  it("lists a citation the way the card page renders it", () => {
     captured.citations = [citation];
 
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    expect(screen.getByText(citation.label)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: citation.sourceUrl! })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: citation.label })).toHaveAttribute(
       "href",
       citation.sourceUrl,
     );
@@ -61,9 +68,10 @@ describe("PrintingCitationsEditor", () => {
     const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    await user.type(screen.getByLabelText("Label"), "  Unboxing  ");
-    await user.type(screen.getByLabelText("Link"), "  https://youtu.be/abc  ");
-    await user.click(screen.getByRole("button", { name: /add citation/iu }));
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "  Unboxing  ");
+    await user.type(screen.getByLabelText("Source link"), "  https://youtu.be/abc  ");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
     expect(captured.create).toHaveBeenCalledWith({
       printingId: PRINTING_ID,
@@ -76,8 +84,9 @@ describe("PrintingCitationsEditor", () => {
     const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    await user.type(screen.getByLabelText("Label"), "Riot CM in the official Discord");
-    await user.click(screen.getByRole("button", { name: /add citation/iu }));
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "Riot CM in the official Discord");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
     expect(captured.create).toHaveBeenCalledWith({
       printingId: PRINTING_ID,
@@ -86,14 +95,15 @@ describe("PrintingCitationsEditor", () => {
     });
   });
 
-  it("clears the form after a successful add", async () => {
+  it("closes the form after a successful add", async () => {
     const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    await user.type(screen.getByLabelText("Label"), "Unboxing");
-    await user.click(screen.getByRole("button", { name: /add citation/iu }));
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "Unboxing");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
-    expect(screen.getByLabelText("Label")).toHaveValue("");
+    expect(screen.queryByLabelText("Source name")).not.toBeInTheDocument();
   });
 
   it("keeps the form filled when the add fails", async () => {
@@ -101,16 +111,39 @@ describe("PrintingCitationsEditor", () => {
     const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    await user.type(screen.getByLabelText("Label"), "Unboxing");
-    await user.click(screen.getByRole("button", { name: /add citation/iu }));
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+    await user.type(screen.getByLabelText("Source name"), "Unboxing");
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
 
-    expect(screen.getByLabelText("Label")).toHaveValue("Unboxing");
+    expect(screen.getByLabelText("Source name")).toHaveValue("Unboxing");
   });
 
-  it("cannot add a citation with no label", () => {
+  it("cannot add a citation with no label", async () => {
+    const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    expect(screen.getByRole("button", { name: /add citation/iu })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /add source link/iu }));
+
+    expect(screen.getByRole("button", { name: /add source link/iu })).toBeDisabled();
+  });
+
+  it("edits a citation in place", async () => {
+    captured.citations = [citation];
+    const user = userEvent.setup();
+    render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
+
+    await user.click(screen.getByRole("button", { name: `Edit source link ${citation.label}` }));
+    const labelInput = screen.getByLabelText("Source name");
+    await user.clear(labelInput);
+    await user.type(labelInput, "Unboxing, re-watched");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(captured.update).toHaveBeenCalledWith({
+      printingId: PRINTING_ID,
+      citationId: citation.id,
+      label: "Unboxing, re-watched",
+      sourceUrl: citation.sourceUrl,
+    });
   });
 
   it("deletes a citation", async () => {
@@ -118,7 +151,7 @@ describe("PrintingCitationsEditor", () => {
     const user = userEvent.setup();
     render(<PrintingCitationsEditor printingId={PRINTING_ID} />);
 
-    await user.click(screen.getByRole("button", { name: `Delete citation ${citation.label}` }));
+    await user.click(screen.getByRole("button", { name: `Delete source link ${citation.label}` }));
 
     expect(captured.remove).toHaveBeenCalledWith({
       printingId: PRINTING_ID,

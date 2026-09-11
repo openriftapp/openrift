@@ -25,23 +25,33 @@ import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spre
 import {
   buildPreseededActivePrinting,
   buildPrintingNormalizer,
-  deduplicateSourceImages,
-  sortByProviderOrder,
+  unknownOptionValues,
   useCardDetailData,
 } from "@/features/admin/components/card-detail-shared";
-import { GroupImagePreview } from "@/features/admin/components/image-preview";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingSourceActions } from "@/features/admin/components/printing-source-actions";
 import type { PrintingGroup } from "@/features/admin/lib/candidate-printing-groups";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
+import { setSlugFromShortCode, shortCodeFromPublicCode } from "@/features/admin/lib/printing-codes";
+
+/** The grids ask for the public code only; the short code and the set follow it. */
+function withDerivedCodes(record: Record<string, unknown>): Record<string, unknown> {
+  const shortCode = shortCodeFromPublicCode(record.publicCode) ?? record.shortCode;
+  const setId = setSlugFromShortCode(shortCode);
+  return {
+    ...record,
+    ...(shortCode === undefined ? {} : { shortCode }),
+    ...(setId === null ? {} : { setId }),
+  };
+}
 
 const REQUIRED_PRINTING_KEYS = [
-  "shortCode",
-  "setId",
   "rarity",
   "artVariant",
   "isSigned",
   "finish",
+  "language",
   "artist",
   "publicCode",
 ];
@@ -213,6 +223,8 @@ export function NewPrintingGroupCard({
     costKeywords,
   ]);
 
+  const unknownValues = unknownOptionValues(group.candidates, printingFields, providerLabels);
+
   const hasRequired = REQUIRED_PRINTING_KEYS.every((k) => {
     const v = activePrinting[k];
     return v !== undefined && v !== null && v !== "";
@@ -234,12 +246,6 @@ export function NewPrintingGroupCard({
 
   const isPreseeded = !touched && Object.keys(activePrinting).length > 0;
 
-  // Must match GroupImagePreview's default image selection.
-  const previewImageUrl =
-    deduplicateSourceImages(group.candidates, providerLabels).toSorted((a, b) =>
-      sortByProviderOrder(providerSettings)(a.source, b.source),
-    )[0]?.url ?? null;
-
   const matchingExisting = existingPrintings.find((p) => p.expectedPrintingId === guessedId);
   // Falls back to the server-side near-miss suggestion (same code + language,
   // marker/finish may drift) when there's no exact match.
@@ -248,10 +254,10 @@ export function NewPrintingGroupCard({
     : existingPrintings.find((p) => p.id === group.suggestedPrintingId);
 
   return (
-    <div className="overflow-hidden rounded-md border border-dashed">
+    <div data-printing-group={group.groupKey}>
       {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- contains nested buttons, can't use <button> */}
       <div
-        className="bg-violet-soft flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2 hover:opacity-90"
+        className="hover:bg-muted/50 flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2"
         onClick={onToggle}
       >
         <span className="flex items-center gap-2 text-sm font-medium">
@@ -276,6 +282,7 @@ export function NewPrintingGroupCard({
           {isAdmin && group.candidates.some((s) => !s.checkedAt) && (
             <Button
               variant="outline"
+              size="sm"
               disabled={checkAllCandidatePrintings.isPending}
               onClick={(e) => {
                 e.stopPropagation();
@@ -291,6 +298,7 @@ export function NewPrintingGroupCard({
           {isAdmin && matchingExisting && (
             <Button
               variant="default"
+              size="sm"
               disabled={isLinking}
               onClick={() =>
                 onLink(
@@ -306,6 +314,7 @@ export function NewPrintingGroupCard({
           {isAdmin && suggestedExisting && (
             <Button
               variant="outline"
+              size="sm"
               disabled={isLinking}
               onClick={() =>
                 onLink(
@@ -320,10 +329,11 @@ export function NewPrintingGroupCard({
           )}
           <Button
             variant="outline"
+            size="sm"
             disabled={!hasRequired || isAccepting}
             onClick={() =>
               onAccept(
-                activePrinting,
+                withDerivedCodes(activePrinting),
                 group.candidates.map((s) => s.id),
               )
             }
@@ -340,12 +350,16 @@ export function NewPrintingGroupCard({
               Click cells to fill all required fields (marked with *).
             </p>
           )}
-          <div className="flex flex-col gap-3 border-t p-3 lg:flex-row">
-            <GroupImagePreview
-              sources={group.candidates}
-              providerLabels={providerLabels}
-              providerSettings={providerSettings}
-            />
+          {unknownValues.length > 0 && (
+            <p className="text-warning px-3 pb-2">
+              Left out because the value is not on the admin list:{" "}
+              {unknownValues
+                .map((entry) => `${entry.provider} ${entry.label} “${entry.value}”`)
+                .join(", ")}
+              . Add it there, or pick a value.
+            </p>
+          )}
+          <div className="flex flex-col gap-3 px-3 pb-3">
             <div className="min-w-0 flex-1">
               <CandidateSpreadsheet
                 key={group.candidates.map((s) => s.id).join(",")}
@@ -358,7 +372,6 @@ export function NewPrintingGroupCard({
                 submitters={providerSubmitters}
                 providerSettings={providerSettings}
                 costKeywords={costKeywords}
-                activeImageUrl={previewImageUrl}
                 activeColumnBadge={
                   isPreseeded ? (
                     <Badge variant="warning" className="font-normal">
@@ -366,6 +379,47 @@ export function NewPrintingGroupCard({
                     </Badge>
                   ) : null
                 }
+                renderActiveCell={(field) =>
+                  field.key === "imageUrl" ? (
+                    <PrintingImageBox
+                      url={
+                        typeof activePrinting.imageUrl === "string" ? activePrinting.imageUrl : null
+                      }
+                      alt="Image this printing is accepted with"
+                      href={
+                        typeof activePrinting.imageUrl === "string"
+                          ? activePrinting.imageUrl
+                          : undefined
+                      }
+                    />
+                  ) : null
+                }
+                renderCandidateCell={(field, row) => {
+                  if (field.key !== "imageUrl" || typeof row.imageUrl !== "string") {
+                    return null;
+                  }
+                  const url = row.imageUrl;
+                  const chosen = activePrinting.imageUrl === url;
+                  return (
+                    <span className="block space-y-1">
+                      <PrintingImageBox url={url} alt="Source image" href={url} />
+                      {chosen ? (
+                        <span className="text-muted-foreground block text-xs">Accepting this</span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => {
+                            setTouched(true);
+                            setActivePrinting((prev) => ({ ...prev, imageUrl: url }));
+                          }}
+                        >
+                          Use this
+                        </Button>
+                      )}
+                    </span>
+                  );
+                }}
                 normalizeCandidate={normalizePrinting}
                 onCellClick={(field, value) => {
                   setTouched(true);

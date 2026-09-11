@@ -1,7 +1,4 @@
-import type {
-  CandidateCardSummaryResponse,
-  ProviderStatsResponse as ProviderStatsItem,
-} from "@openrift/shared/types/api/admin";
+import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import type { CollectionListResponse } from "@openrift/shared/types/api/collection";
 
 export type {
@@ -19,8 +16,6 @@ export type {
 
 export type { AllCardsResponse } from "@openrift/shared/contracts/admin/card-queries";
 export type AdminCardListResponse = CandidateCardSummaryResponse[];
-export type ProviderStatsResponse = ProviderStatsItem[];
-export type ProviderNamesResponse = string[];
 export type DistinctArtistsResponse = string[];
 // oxlint-disable-next-line typescript/no-explicit-any -- loose passthrough detail payload
 export type AdminCardDetailResponse = Record<string, any>;

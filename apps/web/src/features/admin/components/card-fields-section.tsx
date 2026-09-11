@@ -10,17 +10,13 @@ import type {
 import { BanIcon, CheckCheckIcon, CopyCheckIcon, MessageSquareIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { ExpandToggle } from "@/components/ui/expand-toggle";
 import type {
   CandidateCardFieldKey,
   FieldDef,
 } from "@/features/admin/components/candidate-field-defs";
 import { CandidateSpreadsheet } from "@/features/admin/components/candidate-spreadsheet";
-import { CardBanManager } from "@/features/admin/components/card-ban-manager";
-import { CardErrataManager } from "@/features/admin/components/card-errata-manager";
 import { SubmissionResolutionDialog } from "@/features/admin/components/submission-resolution-dialog";
 import {
   useAcceptCardField,
@@ -28,6 +24,8 @@ import {
   useUncheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useIgnoreCandidateCard } from "@/features/admin/hooks/use-ignored-candidates";
+import { toastFieldAccepted } from "@/features/admin/lib/accept-undo";
+import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 
 interface CardSourceColumnActionsProps {
@@ -109,14 +107,8 @@ interface CardFieldsSectionProps {
   sources: CandidateCardResponse[];
   candidateCardFields: FieldDef<CandidateCardFieldKey>[];
   providerSettings: ProviderSettingResponse[];
-  expanded: boolean;
-  onToggleExpanded: () => void;
   onCheckAllSources: () => void;
   isCheckingAllSources: boolean;
-  showBanForm: boolean;
-  onShowBanFormChange: (show: boolean) => void;
-  showErrataForm: boolean;
-  onShowErrataFormChange: (show: boolean) => void;
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
 }
@@ -126,14 +118,8 @@ export function CardFieldsSection({
   sources,
   candidateCardFields,
   providerSettings,
-  expanded,
-  onToggleExpanded,
   onCheckAllSources,
   isCheckingAllSources,
-  showBanForm,
-  onShowBanFormChange,
-  showErrataForm,
-  onShowErrataFormChange,
   invalidates,
   isAdmin,
 }: CardFieldsSectionProps) {
@@ -154,90 +140,86 @@ export function CardFieldsSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
-        <ExpandToggle expanded={expanded} className="hover:opacity-80" onClick={onToggleExpanded}>
-          <Heading level={3}>Card Fields</Heading>
-        </ExpandToggle>
         {isAdmin && uncheckedCount > 0 && (
-          <Button variant="outline" disabled={isCheckingAllSources} onClick={onCheckAllSources}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            disabled={isCheckingAllSources}
+            onClick={onCheckAllSources}
+          >
             <CheckCheckIcon className="mr-1" />
             Check {uncheckedCount} unchecked
           </Button>
         )}
       </div>
-      {expanded && (
-        <>
-          <CandidateSpreadsheet
-            fields={candidateCardFields}
-            requiredKeys={["name", "types", "domains"]}
-            activeRow={{ ...card }}
-            candidateRows={sources}
-            submitters={submitters}
-            providerSettings={providerSettings}
-            onCellClick={(field, value) => {
-              if (!isAcceptCardField(field)) {
-                return;
-              }
-              acceptCardField.mutate({ cardId: card.id, field, value, source: "provider" });
-            }}
-            onActiveChange={(field, value) => {
-              if (value === undefined || !isAcceptCardField(field)) {
-                return;
-              }
-              acceptCardField.mutate({ cardId: card.id, field, value });
-            }}
-            onCheck={isAdmin ? (candidateId) => checkCandidateCard.mutate(candidateId) : undefined}
-            onUncheck={
-              isAdmin ? (candidateId) => uncheckCandidateCard.mutate(candidateId) : undefined
+      <CandidateSpreadsheet
+        fields={candidateCardFields}
+        requiredKeys={["name", "types", "domains"]}
+        activeRow={{ ...card }}
+        candidateRows={sources}
+        submitters={submitters}
+        providerSettings={providerSettings}
+        onCellClick={(field, value, candidateId) => {
+          if (!isAcceptCardField(field)) {
+            return;
+          }
+          const previousValue = (card as Record<string, unknown>)[field];
+          acceptCardField.mutate({ cardId: card.id, field, value, source: "provider" });
+          const row = sources.find((source) => source.id === candidateId);
+          toastFieldAccepted({
+            fieldLabel: candidateCardFields.find((entry) => entry.key === field)?.label ?? field,
+            sourceLabel: row === undefined ? "this source" : getProviderLabel(row),
+            previousValue,
+            onUndo: (previous) =>
+              acceptCardField.mutate({
+                cardId: card.id,
+                field,
+                value: previous,
+                source: "manual",
+              }),
+          });
+        }}
+        onActiveChange={(field, value) => {
+          if (value === undefined || !isAcceptCardField(field)) {
+            return;
+          }
+          acceptCardField.mutate({ cardId: card.id, field, value });
+        }}
+        onCheck={isAdmin ? (candidateId) => checkCandidateCard.mutate(candidateId) : undefined}
+        onUncheck={isAdmin ? (candidateId) => uncheckCandidateCard.mutate(candidateId) : undefined}
+        columnActions={
+          <CardSourceColumnActions
+            cardId={card.id}
+            candidateCardFields={candidateCardFields}
+            onAcceptField={(input) => acceptCardField.mutate(input)}
+            onIgnoreSource={(input) => ignoreCardSource.mutate(input)}
+            onResolveSubmission={(candidateCardId, mode) =>
+              setResolution({ candidateCardId, mode })
             }
-            columnActions={
-              <CardSourceColumnActions
-                cardId={card.id}
-                candidateCardFields={candidateCardFields}
-                onAcceptField={(input) => acceptCardField.mutate(input)}
-                onIgnoreSource={(input) => ignoreCardSource.mutate(input)}
-                onResolveSubmission={(candidateCardId, mode) =>
-                  setResolution({ candidateCardId, mode })
-                }
-                isAdmin={isAdmin}
-              />
-            }
+            isAdmin={isAdmin}
           />
-          <SubmissionResolutionDialog
-            candidateCardId={resolution?.candidateCardId ?? null}
-            mode={resolution?.mode ?? "reply"}
-            onOpenChange={(open) => {
-              if (!open) {
-                setResolution(null);
-              }
-            }}
-            onConfirmed={() => {
-              // The rejection itself is the ignore; the dialog only owns the
-              // message that goes with it.
-              if (resolution?.mode === "reject" && resolutionSource) {
-                ignoreCardSource.mutate({
-                  provider: resolutionSource.provider,
-                  externalId: resolutionSource.externalId,
-                });
-              }
-            }}
-          />
-          {isAdmin && (
-            <CardBanManager
-              cardId={card.id}
-              showForm={showBanForm}
-              onShowFormChange={onShowBanFormChange}
-            />
-          )}
-          {isAdmin && (
-            <CardErrataManager
-              cardId={card.id}
-              errata={card.errata}
-              showForm={showErrataForm}
-              onShowFormChange={onShowErrataFormChange}
-            />
-          )}
-        </>
-      )}
+        }
+      />
+      <SubmissionResolutionDialog
+        candidateCardId={resolution?.candidateCardId ?? null}
+        mode={resolution?.mode ?? "reply"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResolution(null);
+          }
+        }}
+        onConfirmed={() => {
+          // The rejection itself is the ignore; the dialog only owns the
+          // message that goes with it.
+          if (resolution?.mode === "reject" && resolutionSource) {
+            ignoreCardSource.mutate({
+              provider: resolutionSource.provider,
+              externalId: resolutionSource.externalId,
+            });
+          }
+        }}
+      />
     </section>
   );
 }

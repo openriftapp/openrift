@@ -4,7 +4,6 @@ import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/car
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { catalogAdminKeys } from "@/features/catalog-admin/lib/catalog-admin-query-keys";
 import type { UploadCandidatesBody, UploadCandidatesResponse } from "@/lib/server-fns/api-types";
 import { getApiUrl } from "@/lib/server-fns/api-url";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -392,6 +391,6 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
 export function useUploadCandidates() {
   return useMutationWithInvalidation({
     mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
-    invalidates: [adminKeys.cards.all, catalogAdminKeys.all],
+    invalidates: [adminKeys.cards.all, adminKeys.sources],
   });
 }

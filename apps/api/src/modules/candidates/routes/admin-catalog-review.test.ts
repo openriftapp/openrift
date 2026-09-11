@@ -36,7 +36,6 @@ const repos = {
     candidatePrintingImageUrls: vi.fn(),
   },
   candidateCards: {
-    listCatalogCardRows: vi.fn(),
     listCatalogSourceRows: vi.fn(),
     listSourceReviewGroups: vi.fn(),
     cardSlugsByNormNames: vi.fn(),
@@ -93,7 +92,6 @@ function resetDefaults(): void {
   repos.cardSubmissions.liveCardByNormName.mockResolvedValue({ id: "card-1", slug: "jinx" });
   repos.cardSubmissions.findByExternalId.mockResolvedValue(pendingSubmission);
   repos.cardSubmissions.candidatePrintingImageUrls.mockResolvedValue([]);
-  repos.candidateCards.listCatalogCardRows.mockResolvedValue([]);
   repos.candidateCards.listCatalogSourceRows.mockResolvedValue([]);
   repos.candidateCards.listSourceReviewGroups.mockResolvedValue([]);
   repos.candidateCards.cardSlugsByNormNames.mockResolvedValue([]);
@@ -141,53 +139,6 @@ describe(`GET ${BASE}/review`, () => {
   });
 });
 
-describe(`GET ${BASE}/cards`, () => {
-  beforeEach(resetDefaults);
-
-  const cardRow = {
-    cardSlug: "jinx",
-    name: "Jinx",
-    normName: "jinx",
-    firstSetSlug: "OGN",
-    firstSetName: "Origins",
-    setSlugs: ["OGN"],
-    shortCodes: ["OGN-001"],
-    printingCount: 1,
-    printingsWithoutImage: 1,
-    proposals: 0,
-    newPrintings: 0,
-    uncheckedTrustedProviders: [],
-    updatedAt: new Date("2026-09-01T10:00:00Z"),
-  };
-
-  it("returns the rows with the derived attention flag and counts", async () => {
-    repos.candidateCards.listCatalogCardRows.mockResolvedValue([
-      cardRow,
-      { ...cardRow, cardSlug: null, name: "Ekko, Unlisted", normName: "ekkounlisted" },
-    ]);
-
-    const res = await app.request(`${BASE}/cards`);
-
-    expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.counts).toEqual({ all: 2, needsAttention: 2, drafts: 1 });
-    expect(json.rows[0]).toMatchObject({
-      cardSlug: "jinx",
-      needsAttention: true,
-      updatedAt: "2026-09-01T10:00:00.000Z",
-    });
-  });
-
-  it("scopes a grant holder to the helper-reviewable providers", async () => {
-    adminAccess = { isAdmin: false, sections: ["card-review"] };
-
-    const res = await app.request(`${BASE}/cards`);
-
-    expect(res.status).toBe(200);
-    expect(repos.candidateCards.listCatalogCardRows).toHaveBeenCalledWith(["usersubmission"]);
-  });
-});
-
 describe(`GET ${BASE}/sources`, () => {
   beforeEach(resetDefaults);
 
@@ -201,6 +152,7 @@ describe(`GET ${BASE}/sources`, () => {
     sortOrder: 1,
     lastUploadedAt: new Date("2026-09-01T10:00:00Z"),
     ignoredCount: 2,
+    uncheckedRows: 3,
   };
 
   it("returns the contributors row first with the queue counts", async () => {
@@ -257,6 +209,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
       status: "accepted",
       applied: 1,
       createdPrintingIds: [],
+      skipped: [],
     });
   });
 

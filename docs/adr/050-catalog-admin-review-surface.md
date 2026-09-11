@@ -5,6 +5,8 @@ date: 2026-09-10
 
 # ADR-050: Catalog Admin Review Surface
 
+> **Amended 2026-09-11.** The second surface was built, then harvested into the old `/admin` pages instead of replacing them. The route prefix `/admin/catalog/…` and the `features/catalog-admin/` directory no longer exist. What the surfaces below describe now lives at `/admin/review` (the queue), `/admin/cards` and `/admin/cards/$slug?section=…` (the card page), `/admin/cards/new/$name` (a draft), `/admin/sources` and `/admin/unmatched`. The card page's tabs became sections and Compare folded into Card fields; the decision drivers, the verbs, the attention rules and the grant scoping all stand as written.
+
 ## Context and Problem Statement
 
 The admin card pages grew around the candidate import pipeline (ADR-008) and then absorbed user submissions (ADR-036), marketplace coverage, candidate printings and three tabs of unrelated data. An audit on 2026-09-10 found that accepting a submission never settles its `card_submissions` row (only the check and ignore verbs do), that the "unchecked" counts driving the review run exclude every provider not starred as favorite, so a contributor submission counts as zero by default, that corrections to existing cards have no badge or filter anywhere, and that six colour vocabularies explain themselves only through native tooltips. The maintainer cannot tell what needs a decision, and there is no visible yes / yes-with-edits / no.

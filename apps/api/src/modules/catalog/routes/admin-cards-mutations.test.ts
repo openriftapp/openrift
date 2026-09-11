@@ -1138,6 +1138,7 @@ describe("POST /cards/:cardId/accept-printing", () => {
       expect.objectContaining({ shortCode: "FD" }),
       ["cp-1", "cp-2"],
       mockIo,
+      { requireNew: true },
     );
     expect(mockRelinkCandidatePrintings).toHaveBeenCalled();
   });
@@ -1165,15 +1166,19 @@ describe("POST /cards/:cardSlug/accept-favorite-printings", () => {
   });
 
   it("returns 200 with the accept result", async () => {
-    const result = { printingsCreated: 2, skipped: [{ shortCode: "OGN-202", reason: "exists" }] };
-    mockAcceptFavoritePrintingsForCard.mockResolvedValue(result);
+    const skipped = [{ shortCode: "OGN-202", reason: "exists" }];
+    mockAcceptFavoritePrintingsForCard.mockResolvedValue({
+      printingsCreated: 2,
+      skipped,
+      createdPrintingIds: ["p-1", "p-2"],
+    });
 
     const res = await app.request("/api/admin/v1/cards/fire-dragon/accept-favorite-printings", {
       method: "POST",
     });
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json).toEqual(result);
+    expect(json).toEqual({ printingsCreated: 2, skipped });
     expect(mockAcceptFavoritePrintingsForCard).toHaveBeenCalledWith(
       mockTransact,
       mockIo,

@@ -32,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 
 import { CHAMPIONS } from "./demo-data";
 import { Demo, DemoGrid, DemoSection } from "./demo-primitives";
@@ -105,7 +106,7 @@ export function LayoutSection() {
           name="Table"
           hint="Static data table. Card browsers use the virtualized card table instead."
         >
-          <Table>
+          <Table className={ADMIN_TABLE_CLASS}>
             <TableHeader>
               <TableRow>
                 <TableHead>Card</TableHead>

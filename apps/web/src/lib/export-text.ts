@@ -6,7 +6,7 @@ export interface CardLine {
 }
 
 /** Merges duplicate names into their first occurrence, keeping the caller's order. */
-export function mergeCardLines(lines: readonly CardLine[]): CardLine[] {
+function mergeCardLines(lines: readonly CardLine[]): CardLine[] {
   const merged = new Map<string, CardLine>();
   for (const line of lines) {
     const name = straightenApostrophes(line.name);

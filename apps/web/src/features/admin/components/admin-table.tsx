@@ -37,7 +37,9 @@ import type { AdminReorderConfig } from "@/features/admin/hooks/use-admin-reorde
 import { useAdminReorder } from "@/features/admin/hooks/use-admin-reorder";
 import { useAdminSorting } from "@/features/admin/hooks/use-admin-sorting";
 import { useAdminTableEditing } from "@/features/admin/hooks/use-admin-table-editing";
+import { useVirtualizedRows } from "@/features/admin/hooks/use-virtualized-rows";
 import { columnId } from "@/features/admin/lib/admin-table-columns";
+import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import type { ServerSort } from "@/features/admin/lib/admin-table-types";
 import { downloadJSON } from "@/features/collections/lib/json-export";
 import { cn } from "@/lib/utils";
@@ -69,6 +71,7 @@ export interface AdminColumnDef<TData, TDraft = TData> {
   headerTitle?: string;
   width?: string;
   align?: "left" | "center" | "right";
+  wrap?: boolean;
 
   sortValue?: (row: TData) => string | number | null;
   sortKey?: string;
@@ -83,6 +86,7 @@ interface AdminHeaderMeta {
   headerTitle?: string;
   width?: string;
   align?: "left" | "center" | "right";
+  wrap?: boolean;
 }
 
 interface AdminColumnMeta<TDraft> extends AdminHeaderMeta {
@@ -124,6 +128,16 @@ interface AdminTableProps<TData, TDraft = TData> {
 
   reorder?: AdminReorderConfig;
 
+  pinned?: (row: TData) => boolean;
+
+  reorderSteppers?: boolean;
+
+  rowClassName?: (row: TData) => string | undefined;
+
+  virtualize?: { rowHeight: number };
+
+  minWidth?: string;
+
   export?: {
     filename: string;
     transform?: (data: TData[]) => unknown;
@@ -156,6 +170,7 @@ function toTanStackColumns<TData extends RowData, TDraft>(
         headerTitle: col.headerTitle,
         width: col.width,
         align: col.align,
+        wrap: col.wrap,
         editCell: col.editCell,
         addCell: col.addCell,
       } satisfies AdminColumnMeta<TDraft>,
@@ -214,6 +229,11 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
   edit,
   delete: del,
   reorder,
+  pinned,
+  reorderSteppers = true,
+  rowClassName,
+  virtualize,
+  minWidth,
   export: exportConfig,
   actions,
 }: AdminTableProps<TData, TDraft>) {
@@ -252,7 +272,9 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
     enableSorting: enableSort,
   });
 
-  const rows = table.getRowModel().rows;
+  const allRows = table.getRowModel().rows;
+  const pinnedRows = pinned ? allRows.filter((row) => pinned(row.original)) : [];
+  const rows = pinned ? allRows.filter((row) => !pinned(row.original)) : allRows;
   const rowByKey = new Map(rows.map((row) => [row.id, row]));
   const {
     sensors,
@@ -264,6 +286,17 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
     handleDragEnd,
     handleDragCancel,
   } = useAdminReorder({ reorder, rowKeys: rows.map((row) => row.id) });
+
+  const { tableAnchorRef, virtualItems, totalSize, scrollMargin } = useVirtualizedRows(
+    rows.length,
+    virtualize?.rowHeight ?? 0,
+    virtualize !== undefined,
+  );
+  const renderedRows = virtualize
+    ? virtualItems.map((item) => rows[item.index])
+    : orderedKeys.map((key) => rowByKey.get(key));
+  const firstVirtualItem = virtualItems.at(0);
+  const lastVirtualItem = virtualItems.at(-1);
 
   const hasActions = Boolean(edit || del || actions || addChild);
   const totalCols = adminColumns.length + (reorder ? 1 : 0) + (hasActions ? 1 : 0);
@@ -299,6 +332,35 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
       }
     : undefined;
 
+  function rowCells(row: TanStackRow<AdminTableFeatures, TData>) {
+    const original = row.original;
+    const childCfg = addChild;
+    const showAddChild = childCfg && (childCfg.canAddChild ? childCfg.canAddChild(original) : true);
+
+    return (
+      <AdminRowCells
+        row={row}
+        hasActions={hasActions}
+        editDraft={editingKey === row.id ? editDraft : null}
+        updateDraft={updateDraft}
+        onSave={() => void saveDraft()}
+        onCancel={cancelDraft}
+        pending={draftPending}
+        error={draftError}
+        actions={actions}
+        onAddChild={
+          showAddChild && childCfg
+            ? () => startAdding(childCfg.toDraft(original), getRowKey(original))
+            : undefined
+        }
+        onEdit={edit ? () => startEditing(getRowKey(original), edit.toDraft(original)) : undefined}
+        del={del}
+        deleteError={deleteError}
+        setDeleteError={setDeleteError}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <AdminTableChrome
@@ -310,7 +372,7 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
         onExport={handleExport}
       />
 
-      <div className="overflow-x-auto">
+      <div className={ADMIN_TABLE_SURFACE}>
         <ReorderProvider
           enabled={Boolean(reorder)}
           sensors={sensors}
@@ -319,16 +381,16 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <Table>
+          <Table className={cn(ADMIN_TABLE_CLASS, virtualize && "table-fixed", minWidth)}>
             <AdminTableHead
               table={table}
-              showOrderColumn={Boolean(reorder)}
+              orderColumnWidth={reorder ? (reorderSteppers ? "w-24" : "w-10") : undefined}
               hasActions={hasActions}
             />
-            <TableBody>
+            <TableBody ref={tableAnchorRef}>
               {addingUnderKey === null && addRow}
 
-              {rows.length === 0 && !adding && (
+              {allRows.length === 0 && !adding && (
                 <TableRow>
                   <TableCell colSpan={totalCols} className="text-muted-foreground h-24 text-center">
                     {emptyText}
@@ -336,67 +398,64 @@ export function AdminTable<TData extends RowData, TDraft = TData>({
                 </TableRow>
               )}
 
-              {orderedKeys.map((key) => {
-                const row = rowByKey.get(key);
+              {pinnedRows.map((row) => (
+                <TableRow key={row.id} className={rowClassName?.(row.original)}>
+                  {reorder && <TableCell />}
+                  {rowCells(row)}
+                </TableRow>
+              ))}
+
+              {/* Spacer offsets are tbody-relative; virtual items are reported in
+                  document space, so scrollMargin is subtracted here and added back below. */}
+              {firstVirtualItem && (
+                // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- TanStack Virtual spacer row, no semantic content
+                <tr style={{ height: firstVirtualItem.start - scrollMargin }} />
+              )}
+
+              {renderedRows.map((row) => {
                 if (!row) {
                   return null;
                 }
-                const original = row.original;
-                const childCfg = addChild;
-                const showAddChild =
-                  childCfg && (childCfg.canAddChild ? childCfg.canAddChild(original) : true);
-
-                const cells = (
-                  <AdminRowCells
-                    row={row}
-                    hasActions={hasActions}
-                    editDraft={editingKey === row.id ? editDraft : null}
-                    updateDraft={updateDraft}
-                    onSave={() => void saveDraft()}
-                    onCancel={cancelDraft}
-                    pending={draftPending}
-                    error={draftError}
-                    actions={actions}
-                    onAddChild={
-                      showAddChild && childCfg
-                        ? () => startAdding(childCfg.toDraft(original), getRowKey(original))
-                        : undefined
-                    }
-                    onEdit={
-                      edit
-                        ? () => startEditing(getRowKey(original), edit.toDraft(original))
-                        : undefined
-                    }
-                    del={del}
-                    deleteError={deleteError}
-                    setDeleteError={setDeleteError}
-                  />
-                );
-
+                const key = row.id;
                 return (
-                  <Fragment key={row.id}>
+                  <Fragment key={key}>
                     {reorder ? (
                       <ReorderableRow
-                        id={row.id}
+                        id={key}
                         locked={reorderLocked}
                         // A drag in progress can only land on rows the move math
                         // accepts, which on the channels tree means siblings.
                         droppable={activeKey === null || reorder.moves.canDropOn(activeKey, key)}
-                        canMoveUp={reorder.moves.canStep(key, -1)}
-                        canMoveDown={reorder.moves.canStep(key, 1)}
-                        onMove={(direction) => {
-                          void commitReorder(reorder.moves.step(key, direction));
-                        }}
+                        className={rowClassName?.(row.original)}
+                        canMoveUp={reorderSteppers ? reorder.moves.canStep(key, -1) : undefined}
+                        canMoveDown={reorderSteppers ? reorder.moves.canStep(key, 1) : undefined}
+                        onMove={
+                          reorderSteppers
+                            ? (direction) => {
+                                void commitReorder(reorder.moves.step(key, direction));
+                              }
+                            : undefined
+                        }
                       >
-                        {cells}
+                        {rowCells(row)}
                       </ReorderableRow>
                     ) : (
-                      <TableRow>{cells}</TableRow>
+                      <TableRow
+                        className={rowClassName?.(row.original)}
+                        style={virtualize ? { height: virtualize.rowHeight } : undefined}
+                      >
+                        {rowCells(row)}
+                      </TableRow>
                     )}
-                    {addingUnderKey === row.id && addRow}
+                    {addingUnderKey === key && addRow}
                   </Fragment>
                 );
               })}
+
+              {lastVirtualItem && (
+                // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- TanStack Virtual spacer row, no semantic content
+                <tr style={{ height: totalSize - lastVirtualItem.end + scrollMargin }} />
+              )}
             </TableBody>
           </Table>
         </ReorderProvider>
@@ -445,7 +504,10 @@ function AdminRowCells<TData extends RowData, TDraft>({
       {row.getAllCells().map((cell) => {
         const meta = cell.column.columnDef.meta as AdminColumnMeta<TDraft> | undefined;
         return (
-          <TableCell key={cell.id} className={alignClass(meta?.align)}>
+          <TableCell
+            key={cell.id}
+            className={cn(alignClass(meta?.align), meta?.wrap && "whitespace-normal")}
+          >
             {isEditing && meta?.editCell ? (
               cloneElement(meta.editCell, { draft: editDraft, setDraft: updateDraft })
             ) : (
@@ -477,7 +539,7 @@ function AdminRowCells<TData extends RowData, TDraft>({
                   Edit
                 </Button>
               )}
-              {del && (
+              {del && (del.canDelete ? del.canDelete(row.original) : true) && (
                 <DeleteButton
                   row={row.original}
                   config={del}
@@ -562,18 +624,18 @@ function AdminTableChrome({
 
 function AdminTableHead<TData extends RowData>({
   table,
-  showOrderColumn,
+  orderColumnWidth,
   hasActions,
 }: {
   table: TanStackTable<AdminTableFeatures, TData>;
-  showOrderColumn: boolean;
+  orderColumnWidth?: string;
   hasActions: boolean;
 }) {
   return (
     <TableHeader>
       {table.getHeaderGroups().map((headerGroup) => (
         <TableRow key={headerGroup.id}>
-          {showOrderColumn && <TableHead className="w-24">Order</TableHead>}
+          {orderColumnWidth && <TableHead className={orderColumnWidth}>Order</TableHead>}
           {headerGroup.headers.map((header) => {
             const meta = header.column.columnDef.meta as AdminHeaderMeta | undefined;
             const canSort = header.column.getCanSort();

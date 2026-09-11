@@ -30,6 +30,7 @@ import {
   useLatestFlushRun,
   useRetryPrintingEvents,
 } from "@/features/admin/hooks/use-flush-printing-events";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import type { JobRunView } from "@/lib/server-fns/api-types";
 
 function StatusBadge({ status }: { status: PrintingEventView["status"] }) {
@@ -133,7 +134,7 @@ export function PrintingEventsPage() {
 
       {latestRun.data && <FlushRunStatus run={latestRun.data} />}
 
-      <Table>
+      <Table className={ADMIN_TABLE_CLASS}>
         <TableHeader>
           <TableRow>
             <TableHead className="w-24">Status</TableHead>
@@ -141,7 +142,7 @@ export function PrintingEventsPage() {
             <TableHead className="w-28">Set</TableHead>
             <TableHead className="w-20 text-right">Retries</TableHead>
             <TableHead className="w-32">Created</TableHead>
-            <TableHead className="w-24" />
+            <TableHead className="w-24 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -34,6 +34,7 @@ import {
   useAcceptMetaPlayerOverlays,
   useRejectMetaOverlay,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import type { MetaReviewGroup } from "@/features/meta/lib/meta-review-queue";
 import { bulkAcceptItems, triageOverlay } from "@/features/meta/lib/meta-review-queue";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
@@ -179,7 +180,7 @@ function PlayerRows({ players }: { players: MetaOverlayQueueRow[] }) {
   const hidden = players.length - visible.length;
 
   return (
-    <Table>
+    <Table className={ADMIN_TABLE_CLASS}>
       <TableHeader>
         <TableRow>
           <TableHead className="w-12">Rank</TableHead>
@@ -187,7 +188,7 @@ function PlayerRows({ players }: { players: MetaOverlayQueueRow[] }) {
           <TableHead>Standings row</TableHead>
           <TableHead className="w-32">Cards</TableHead>
           <TableHead className="w-16">Age</TableHead>
-          <TableHead className="w-56" />
+          <TableHead className="w-56 text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

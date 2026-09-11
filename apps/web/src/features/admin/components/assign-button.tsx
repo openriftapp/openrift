@@ -1,15 +1,13 @@
-import { LinkIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { useLinkCard } from "@/features/admin/hooks/use-admin-card-mutations";
-import { CardPickerButton } from "@/features/cards/components/card-picker-button";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 
-/**
- * Links an unmatched normalized card name to an existing card.
- */
 export function AssignButton({
   normalizedName,
   allCards,
@@ -19,26 +17,39 @@ export function AssignButton({
   allCards: AdminSearchableCard[];
   linkCard: ReturnType<typeof useLinkCard>;
 }) {
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const results = useAdminCardSearch(allCards, search);
 
   return (
-    <CardPickerButton label="Assign" icon={<LinkIcon className="size-3" />} className="ml-2">
-      {({ close }) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Assign to another card"
+            title="Assign to another card"
+          />
+        }
+      >
+        <SearchIcon />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-0">
         <CardSearchDropdown
           results={results}
           onSearch={setSearch}
           onSelect={(cardId) => {
             linkCard.mutate({ name: normalizedName, cardId });
             setSearch("");
-            close();
+            setOpen(false);
           }}
           placeholder="Search by name…"
-          className="w-48"
+          className="w-full"
           // oxlint-disable-next-line jsx-a11y/no-autofocus -- admin-only UI, autofocus is intentional
           autoFocus
         />
-      )}
-    </CardPickerButton>
+      </PopoverContent>
+    </Popover>
   );
 }

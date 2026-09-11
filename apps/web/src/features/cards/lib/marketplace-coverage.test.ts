@@ -14,6 +14,7 @@ import {
   computeCardCoverage,
   computePriceAssignBuckets,
   scopeLabel,
+  unlinkedProductCount,
 } from "./marketplace-coverage";
 import type { PriceAssignBucket } from "./marketplace-coverage";
 
@@ -441,5 +442,37 @@ describe("scopeLabel", () => {
     ["cardtrader:FR", "CardTrader · FR"],
   ])("labels %s as %s", (scope, expected) => {
     expect(scopeLabel(scope)).toBe(expected);
+  });
+});
+
+describe("unlinkedProductCount", () => {
+  function bucket(overrides: Partial<PriceAssignBucket> = {}): PriceAssignBucket {
+    return {
+      marketplace: "cardmarket",
+      language: null,
+      unbound: 2,
+      assignable: true,
+      ...overrides,
+    };
+  }
+
+  it("sums only assignable buckets under the umbrella scope", () => {
+    const buckets = [
+      bucket({ unbound: 3 }),
+      bucket({ marketplace: "cardtrader", language: "DE", unbound: 5, assignable: false }),
+    ];
+    expect(unlinkedProductCount(buckets, ALL_ASSIGNABLE_SCOPE)).toBe(3);
+  });
+
+  it("sums one marketplace and language under a named scope", () => {
+    const buckets = [
+      bucket({ unbound: 3 }),
+      bucket({ marketplace: "cardtrader", language: "DE", unbound: 5, assignable: false }),
+    ];
+    expect(unlinkedProductCount(buckets, "cardtrader:DE")).toBe(5);
+  });
+
+  it("counts nothing without buckets", () => {
+    expect(unlinkedProductCount(undefined, ALL_ASSIGNABLE_SCOPE)).toBe(0);
   });
 });

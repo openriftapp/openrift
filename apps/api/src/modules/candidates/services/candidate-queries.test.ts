@@ -20,6 +20,7 @@ function createMockRepo(overrides: Record<string, unknown> = {}) {
     listPrintingsForSourceList: vi.fn().mockResolvedValue([]),
     listCandidatePrintingsForSourceList: vi.fn().mockResolvedValue([]),
     listAliasesForSourceList: vi.fn().mockResolvedValue([]),
+    listPendingSubmissionCandidateIds: vi.fn().mockResolvedValue([]),
     exportCards: vi.fn().mockResolvedValue([]),
     exportPrintings: vi.fn().mockResolvedValue([]),
     exportCardErrata: vi.fn().mockResolvedValue([]),
@@ -116,6 +117,122 @@ describe("buildCandidateCardList", () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.cardSlug).toBe("fireball");
     expect(result[0]!.candidateCount).toBe(1);
+  });
+
+  it("separates printings proposed by trusted sources from the rest", async () => {
+    const repo = createMockRepo({
+      listCardsForSourceList: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "card-1", slug: "fireball", name: "Fireball", normName: "fireball" },
+        ]),
+      listCandidateCardsForSourceList: vi.fn().mockResolvedValue([
+        {
+          id: "cc-trusted",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "gallery",
+          checkedAt: null,
+        },
+        {
+          id: "cc-other",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "playloltcg",
+          checkedAt: null,
+        },
+      ]),
+      listCandidatePrintingsForSourceList: vi.fn().mockResolvedValue([
+        { id: "cp-1", candidateCardId: "cc-trusted", shortCode: "OGN-001", printingId: null },
+        { id: "cp-2", candidateCardId: "cc-other", shortCode: "OGN-002", printingId: null },
+        { id: "cp-3", candidateCardId: "cc-other", shortCode: "OGN-003", printingId: null },
+      ]),
+    });
+
+    const result = await buildCandidateCardList(repo, new Set(["gallery"]));
+
+    expect(result[0]!.unlinkedPrintingCount).toBe(3);
+    expect(result[0]!.unlinkedTrustedPrintingCount).toBe(1);
+  });
+
+  it("counts only submissions still waiting on an answer", async () => {
+    const repo = createMockRepo({
+      listCardsForSourceList: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "card-1", slug: "fireball", name: "Fireball", normName: "fireball" },
+        ]),
+      listCandidateCardsForSourceList: vi.fn().mockResolvedValue([
+        {
+          id: "cc-1",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "usersubmission",
+          checkedAt: null,
+        },
+        {
+          id: "cc-2",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "usersubmission",
+          checkedAt: null,
+        },
+      ]),
+      listPendingSubmissionCandidateIds: vi.fn().mockResolvedValue([{ candidateCardId: "cc-1" }]),
+    });
+
+    const result = await buildCandidateCardList(repo, new Set(["usersubmission"]));
+
+    expect(result[0]!.pendingSubmissions).toBe(1);
+    expect(result[0]!.hasUserSubmission).toBe(true);
+  });
+
+  it("names only the trusted sources with something unchecked", async () => {
+    const repo = createMockRepo({
+      listCardsForSourceList: vi
+        .fn()
+        .mockResolvedValue([
+          { id: "card-1", slug: "fireball", name: "Fireball", normName: "fireball" },
+        ]),
+      listCandidateCardsForSourceList: vi.fn().mockResolvedValue([
+        {
+          id: "cc-1",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "gallery",
+          checkedAt: null,
+        },
+        {
+          id: "cc-2",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "ocr",
+          checkedAt: new Date(),
+        },
+        {
+          id: "cc-3",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "intake",
+          checkedAt: new Date(),
+        },
+        {
+          id: "cc-4",
+          normName: "fireball",
+          name: "Fireball",
+          provider: "playloltcg",
+          checkedAt: null,
+        },
+      ]),
+      listCandidatePrintingsForSourceList: vi.fn().mockResolvedValue([
+        { id: "cp-1", candidateCardId: "cc-2", shortCode: "OGN-001", checkedAt: null },
+        { id: "cp-2", candidateCardId: "cc-3", shortCode: "OGN-002", checkedAt: new Date() },
+      ]),
+    });
+
+    const result = await buildCandidateCardList(repo, new Set(["gallery", "ocr", "intake"]));
+
+    expect(result[0]!.uncheckedTrustedProviders).toEqual(["gallery", "ocr"]);
   });
 
   it("reports unmatched candidate groups with null cardSlug", async () => {

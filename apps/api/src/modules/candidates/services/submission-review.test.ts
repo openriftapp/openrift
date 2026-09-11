@@ -66,6 +66,17 @@ function createRepos(overrides: Record<string, unknown> = {}) {
       allPrintingLinkOverrides: vi.fn().mockResolvedValue([]),
     },
     adminEvents: { insert: vi.fn() },
+    enums: {
+      all: vi.fn().mockResolvedValue({
+        languages: [{ slug: "EN" }],
+        rarities: [{ slug: "common" }],
+        artVariants: [{ slug: "normal" }],
+        finishes: [{ slug: "normal" }],
+        cardSizes: [{ slug: "standard" }],
+        markers: [],
+      }),
+    },
+    distributionChannels: { listBySlugs: vi.fn().mockResolvedValue([]) },
     ...overrides,
   };
   return repos as unknown as Repos;
@@ -100,10 +111,15 @@ describe("acceptSubmission", () => {
       cardFields: [{ field: "energy", value: 3 }],
     });
 
-    expect(result).toEqual({ status: "accepted", applied: 1, createdPrintingIds: [] });
+    expect(result).toEqual({
+      status: "accepted",
+      applied: 1,
+      createdPrintingIds: [],
+      skipped: [],
+    });
     expect(repos.catalogMutations.updateCardById).toHaveBeenCalledWith("card-1", { energy: 3 });
     expect(repos.candidateCards.checkCandidateCard).toHaveBeenCalledWith("cc-1");
-    expect(repos.candidateCards.checkCandidatePrintingsForCard).toHaveBeenCalledWith("cc-1");
+    expect(repos.candidateCards.checkCandidatePrintingsForCard).toHaveBeenCalledWith("cc-1", []);
     expect(repos.cardSubmissions.resolve).toHaveBeenCalledWith("sub-1", {
       status: "accepted",
       resolvedAt: NOW,
@@ -111,6 +127,88 @@ describe("acceptSubmission", () => {
       acceptedCardId: "card-1",
     });
     expect(repos.catalog.refreshCatalogViews).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a new printing carrying a value no admin list holds, and applies the rest", async () => {
+    const repos = createRepos();
+
+    const result = await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "energy", value: 3 }],
+      newPrintings: [
+        {
+          candidatePrintingId: "cp-1",
+          printingFields: {
+            shortCode: "UNL-131",
+            artist: "A",
+            publicCode: "UNL-131",
+            language: "JP",
+            markerSlugs: [],
+            distributionChannelSlugs: [],
+          },
+        },
+      ],
+    });
+
+    expect(result.status).toBe("accepted");
+    expect(result.applied).toBe(1);
+    expect(result.createdPrintingIds).toEqual([]);
+    expect(result.skipped).toEqual([
+      { candidatePrintingId: "cp-1", reason: 'not on an admin list: language "JP"' },
+    ]);
+  });
+
+  it("leaves a skipped printing unchecked so it stays in the queue", async () => {
+    const repos = createRepos();
+
+    await acceptSubmission(transactOn(repos), repos, io, {
+      ...baseArgs,
+      ...noPicks,
+      cardFields: [{ field: "energy", value: 3 }],
+      newPrintings: [
+        {
+          candidatePrintingId: "cp-1",
+          printingFields: {
+            shortCode: "UNL-131",
+            artist: "A",
+            publicCode: "UNL-131",
+            language: "JP",
+            markerSlugs: [],
+            distributionChannelSlugs: [],
+          },
+        },
+      ],
+    });
+
+    expect(repos.candidateCards.checkCandidatePrintingsForCard).toHaveBeenCalledWith("cc-1", [
+      "cp-1",
+    ]);
+  });
+
+  it("refuses when a skip is the only thing there was to do", async () => {
+    const repos = createRepos();
+
+    await expect(
+      acceptSubmission(transactOn(repos), repos, io, {
+        ...baseArgs,
+        ...noPicks,
+        newPrintings: [
+          {
+            candidatePrintingId: "cp-1",
+            printingFields: {
+              shortCode: "UNL-131",
+              artist: "A",
+              publicCode: "UNL-131",
+              language: "JP",
+              markerSlugs: [],
+              distributionChannelSlugs: [],
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow(AppError);
+    expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
   });
 
   it("resolves as not_applied when every pick was unticked", async () => {
@@ -121,7 +219,12 @@ describe("acceptSubmission", () => {
       ...noPicks,
     });
 
-    expect(result).toEqual({ status: "not_applied", applied: 0, createdPrintingIds: [] });
+    expect(result).toEqual({
+      status: "not_applied",
+      applied: 0,
+      createdPrintingIds: [],
+      skipped: [],
+    });
     expect(repos.cardSubmissions.resolve).toHaveBeenCalledWith("sub-1", {
       status: "not_applied",
       resolvedAt: NOW,

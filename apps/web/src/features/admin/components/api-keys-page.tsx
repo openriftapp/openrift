@@ -4,6 +4,7 @@ import { CheckIcon, CopyIcon, KeyRoundIcon, LoaderIcon, PlusIcon, TrashIcon } fr
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Heading } from "@/components/heading";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -49,6 +50,7 @@ import {
   useDeleteApiKey,
 } from "@/features/account/hooks/use-api-keys";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 
 /**
@@ -196,27 +198,25 @@ export function ApiKeysPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your keys</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isPending ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
-          ) : !keys || keys.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <KeyRoundIcon />
-                </EmptyMedia>
-                <EmptyTitle>No API keys</EmptyTitle>
-                <EmptyDescription>
-                  Keys you create appear here. Only the first characters are kept for display.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <Table>
+      <section className="space-y-3">
+        <Heading level={2}>Your keys</Heading>
+        {isPending ? (
+          <p className="text-muted-foreground text-sm">Loading…</p>
+        ) : !keys || keys.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <KeyRoundIcon />
+              </EmptyMedia>
+              <EmptyTitle>No API keys</EmptyTitle>
+              <EmptyDescription>
+                Keys you create appear here. Only the first characters are kept for display.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className={ADMIN_TABLE_SURFACE}>
+            <Table className={ADMIN_TABLE_CLASS}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -224,7 +224,7 @@ export function ApiKeysPage() {
                   <TableHead>Created</TableHead>
                   <TableHead>Last used</TableHead>
                   <TableHead className="text-right">Requests</TableHead>
-                  <TableHead />
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -242,9 +242,9 @@ export function ApiKeysPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </section>
 
       {createdKey && (
         <CreatedKeyDialog createdKey={createdKey} onClose={() => setCreatedKey(null)} />

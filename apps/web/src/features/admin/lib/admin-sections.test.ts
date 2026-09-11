@@ -16,11 +16,8 @@ describe("adminSectionForPathname", () => {
     expect(adminSectionForPathname("/admin/cards/new/some-name")).toBe("card-review");
   });
 
-  it("resolves the catalog surface to card-review", () => {
-    expect(adminSectionForPathname("/admin/catalog")).toBe("card-review");
-    expect(adminSectionForPathname("/admin/catalog/review")).toBe("card-review");
-    expect(adminSectionForPathname("/admin/catalog/cards/some-card-slug")).toBe("card-review");
-    expect(adminSectionForPathname("/admin/catalogue")).toBeNull();
+  it("resolves the review inbox to card-review", () => {
+    expect(adminSectionForPathname("/admin/review")).toBe("card-review");
   });
 
   it("matches on segment boundaries, not raw prefixes", () => {
@@ -41,6 +38,7 @@ describe("adminSectionForPathname", () => {
   it("returns null for non-admin and unmapped paths", () => {
     expect(adminSectionForPathname("/cards")).toBeNull();
     expect(adminSectionForPathname("/admin/sources")).toBeNull();
+    expect(adminSectionForPathname("/admin/unmatched")).toBeNull();
     expect(adminSectionForPathname("")).toBeNull();
   });
 });

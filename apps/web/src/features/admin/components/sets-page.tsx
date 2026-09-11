@@ -7,12 +7,12 @@ import {
 import type { AdminSetResponse } from "@openrift/shared/types/api/admin";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
+import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +38,7 @@ import type {
 } from "@/features/admin/components/admin-table";
 import { CountBadge } from "@/features/admin/components/count-badge";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
+import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import {
   useCreateSet,
   useDeleteSet,
@@ -297,19 +298,29 @@ interface ReleaseRow {
   release: SetRelease;
 }
 
-/** Rows are in set order, languages alphabetical within a set. */
-function toReleaseRows(sets: AdminSetResponse[]): ReleaseRow[] {
-  return sets.flatMap((set) =>
-    Object.keys(set.releases)
-      .toSorted()
-      .map((language) => ({
+interface ReleaseLanguageGroup {
+  language: string;
+  rows: ReleaseRow[];
+}
+
+function toReleaseGroups(sets: AdminSetResponse[]): ReleaseLanguageGroup[] {
+  const byLanguage = new Map<string, ReleaseRow[]>();
+  for (const set of sets) {
+    for (const language of Object.keys(set.releases).toSorted()) {
+      const rows = byLanguage.get(language) ?? [];
+      rows.push({
         setId: set.id,
         setSlug: set.slug,
         language,
         // Non-null: the key came from this map.
         release: set.releases[language] as SetRelease,
-      })),
-  );
+      });
+      byLanguage.set(language, rows);
+    }
+  }
+  return [...byLanguage]
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([language, rows]) => ({ language, rows }));
 }
 
 function ReleasePrecisionSelect({
@@ -355,7 +366,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
   const [addSetId, setAddSetId] = useState("");
   const [addLanguage, setAddLanguage] = useState("");
 
-  const rows = toReleaseRows(sets);
+  const groups = toReleaseGroups(sets);
   const setsById = new Map(sets.map((set) => [set.id, set]));
 
   function saveReleases(setId: string, releases: SetReleases) {
@@ -393,86 +404,99 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
   }
 
   const takenLanguages = new Set(
-    rows.filter((row) => row.setId === addSetId).map((row) => row.language),
+    groups
+      .flatMap((group) => group.rows.filter((row) => row.setId === addSetId))
+      .map((row) => row.language),
   );
   const addableLanguages = languages.filter((language) => !takenLanguages.has(language.code));
   const canAdd = addSetId !== "" && addLanguage !== "";
 
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <p className="mb-1 text-sm font-medium">Release dates per language</p>
-        <p className="text-muted-foreground mb-3 text-sm">
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-medium">Release dates per language</p>
+        <p className="text-muted-foreground text-sm">
           A set counts as released in a language once its release period has passed, so there is no
           separate released switch. Use a coarser precision when only the month, quarter or year is
           known, and clear the date for a language that is announced without one.
         </p>
-        <Table>
+      </div>
+      <div className={ADMIN_TABLE_SURFACE}>
+        <Table className={ADMIN_TABLE_CLASS}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-24">Set</TableHead>
-              <TableHead className="w-24">Language</TableHead>
               <TableHead className="w-44">Date</TableHead>
               <TableHead className="w-32">Precision</TableHead>
               <TableHead className="w-32">Shown as</TableHead>
-              <TableHead className="w-24" />
+              <TableHead className="w-24 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length === 0 && (
+            {groups.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground text-center">
+                <TableCell colSpan={5} className="text-muted-foreground text-center">
                   No release dates yet.
                 </TableCell>
               </TableRow>
             )}
-            {rows.map((row) => (
-              <TableRow key={`${row.setId}-${row.language}`}>
-                <TableCell className="font-mono">{row.setSlug}</TableCell>
-                <TableCell>{row.language}</TableCell>
-                <TableCell>
-                  <DatePicker
-                    value={row.release.releasedAt}
-                    onChange={(iso) =>
-                      writeRelease(row.setId, row.language, {
-                        releasedAt: iso,
-                        precision: row.release.precision ?? "day",
-                      })
-                    }
-                    onClear={() =>
-                      writeRelease(row.setId, row.language, { releasedAt: null, precision: null })
-                    }
-                    className="font-mono"
-                  />
+            {groups.flatMap((group) => [
+              <TableRow key={group.language} className="hover:bg-transparent">
+                <TableCell colSpan={5} className="bg-muted/30 py-1">
+                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    {group.language}
+                  </span>
                 </TableCell>
-                <TableCell>
-                  <ReleasePrecisionSelect
-                    value={row.release.precision ?? "day"}
-                    disabled={row.release.releasedAt === null}
-                    onChange={(precision) =>
-                      writeRelease(row.setId, row.language, {
-                        releasedAt: row.release.releasedAt,
-                        precision,
-                      })
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Badge variant={isReleased(row.release) ? "default" : "secondary"}>
-                    {formatReleasePeriod(row.release)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeRelease(row.setId, row.language)}
-                  >
-                    Remove
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+              </TableRow>,
+              ...group.rows.map((row) => (
+                <TableRow key={`${row.setId}-${row.language}`}>
+                  <TableCell className="font-mono">{row.setSlug}</TableCell>
+                  <TableCell>
+                    <DatePicker
+                      value={row.release.releasedAt}
+                      onChange={(iso) =>
+                        writeRelease(row.setId, row.language, {
+                          releasedAt: iso,
+                          precision: row.release.precision ?? "day",
+                        })
+                      }
+                      onClear={() =>
+                        writeRelease(row.setId, row.language, { releasedAt: null, precision: null })
+                      }
+                      className="font-mono"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ReleasePrecisionSelect
+                      value={row.release.precision ?? "day"}
+                      disabled={row.release.releasedAt === null}
+                      onChange={(precision) =>
+                        writeRelease(row.setId, row.language, {
+                          releasedAt: row.release.releasedAt,
+                          precision,
+                        })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={isReleased(row.release) ? "default" : "secondary"}>
+                      {formatReleasePeriod(row.release)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      aria-label={`Remove the ${row.language} release of ${row.setSlug}`}
+                      onClick={() => removeRelease(row.setId, row.language)}
+                    >
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )),
+            ])}
             <TableRow>
               <TableCell>
                 <Select value={addSetId} onValueChange={(value) => setAddSetId(value ?? "")}>
@@ -502,7 +526,7 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell colSpan={3} className="text-muted-foreground text-sm">
+              <TableCell colSpan={2} className="text-muted-foreground text-sm">
                 Added as undated. Set the date on the new row.
               </TableCell>
               <TableCell>
@@ -521,8 +545,8 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
             </TableRow>
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

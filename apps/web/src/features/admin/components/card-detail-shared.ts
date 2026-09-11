@@ -32,6 +32,7 @@ import {
   useIgnoreCandidatePrinting,
 } from "@/features/admin/hooks/use-ignored-candidates";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
+import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
 import { buildSourceSubmitters } from "@/features/admin/lib/candidate-submitter";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
@@ -242,6 +243,83 @@ const ACCEPT_CARD_FIELD_KEYS = new Set(
 // validating against it would wrongly reject every value.
 function hasDropdownOptions(field: FieldDef): boolean {
   return (field.options?.length ?? 0) > 0 || (field.labeledOptions?.length ?? 0) > 0;
+}
+
+/** A required key stays visible even when every source agrees: a blank one
+ *  could not be filled in otherwise. */
+export function foldedFieldKeys<TKey extends string>(
+  fields: readonly FieldDef<TKey>[],
+  rows: readonly CandidateSpreadsheetRow[],
+  activeRow: Record<string, unknown> | null,
+  normalizeCandidate?: (fieldKey: string, value: unknown) => unknown,
+  requiredKeys?: readonly string[],
+): Set<string> {
+  const folded = new Set<string>();
+  for (const field of fields) {
+    if (field.alwaysVisible || requiredKeys?.includes(field.key)) {
+      continue;
+    }
+    if (field.collapsible) {
+      folded.add(field.key);
+      continue;
+    }
+    if (rows.length === 0) {
+      continue;
+    }
+    const activeValue = activeRow ? activeRow[field.key] : null;
+    const disagrees = rows.some((row) => {
+      const value = (row as unknown as Record<string, unknown>)[field.key];
+      if (!candidateHasValue(value)) {
+        return false;
+      }
+      // An unusable value has to stay on screen even though it is never applied.
+      if (hasDropdownOptions(field) && !isValidFieldOption(field, value)) {
+        return true;
+      }
+      const normalized = normalizeCandidate ? normalizeCandidate(field.key, value) : value;
+      return JSON.stringify(normalized) !== JSON.stringify(activeValue);
+    });
+    if (!disagrees) {
+      folded.add(field.key);
+    }
+  }
+  return folded;
+}
+
+export interface UnknownOptionValue {
+  field: string;
+  label: string;
+  provider: string;
+  value: string;
+}
+
+/** The pre-seed drops these, so nothing else would report them. */
+export function unknownOptionValues(
+  candidates: readonly CandidatePrintingResponse[],
+  fields: readonly FieldDef[],
+  providerLabels: Record<string, string>,
+): UnknownOptionValue[] {
+  const seen = new Set<string>();
+  const found: UnknownOptionValue[] = [];
+  for (const field of fields) {
+    if (field.readOnly || !hasDropdownOptions(field)) {
+      continue;
+    }
+    for (const candidate of candidates) {
+      const value = (candidate as unknown as Record<string, unknown>)[field.key];
+      if (!candidateHasValue(value) || isValidFieldOption(field, value)) {
+        continue;
+      }
+      const provider = providerLabels[candidate.candidateCardId] ?? "";
+      const key = `${field.key}:${provider}:${String(value)}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      found.push({ field: field.key, label: field.label, provider, value: String(value) });
+    }
+  }
+  return found;
 }
 
 export function buildPreseededActiveCard(

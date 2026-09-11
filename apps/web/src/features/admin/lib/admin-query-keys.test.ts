@@ -63,14 +63,6 @@ describe("adminKeys.cards", () => {
   it("allCards", () => {
     expect(adminKeys.cards.allCards).toEqual(["admin", "cards", "all-cards"]);
   });
-
-  it("providerNames", () => {
-    expect(adminKeys.cards.providerNames).toEqual(["admin", "cards", "provider-names"]);
-  });
-
-  it("providerStats", () => {
-    expect(adminKeys.cards.providerStats).toEqual(["admin", "cards", "provider-stats"]);
-  });
 });
 
 describe("adminKeys.printingDesk", () => {

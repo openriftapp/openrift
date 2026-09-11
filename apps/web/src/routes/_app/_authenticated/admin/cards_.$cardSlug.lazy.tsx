@@ -1,27 +1,25 @@
 import { createLazyFileRoute, useParams, useSearch } from "@tanstack/react-router";
 
-import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { ExistingCardDetailPage } from "@/features/admin/components/existing-card-detail-page";
 
 function ExistingCardPage() {
   const { cardSlug } = useParams({ from: "/_app/_authenticated/admin/cards_/$cardSlug" });
-  const { focusMarketplace, focusFinish, focusLanguage, set, status, priceScope } = useSearch({
-    from: "/_app/_authenticated/admin/cards_/$cardSlug",
-  });
+  const { section, focusMarketplace, focusFinish, focusLanguage, set, status, priceScope } =
+    useSearch({
+      from: "/_app/_authenticated/admin/cards_/$cardSlug",
+    });
   return (
-    <>
-      <AdminPageTopBar title="Card Source" />
-      <ExistingCardDetailPage
-        key={cardSlug}
-        identifier={cardSlug}
-        focusMarketplace={focusMarketplace}
-        focusFinish={focusFinish}
-        focusLanguage={focusLanguage}
-        setSlug={set}
-        listStatus={status}
-        priceScope={priceScope}
-      />
-    </>
+    <ExistingCardDetailPage
+      key={cardSlug}
+      identifier={cardSlug}
+      section={section}
+      focusMarketplace={focusMarketplace}
+      focusFinish={focusFinish}
+      focusLanguage={focusLanguage}
+      setSlug={set}
+      listStatus={status}
+      priceScope={priceScope}
+    />
   );
 }
 

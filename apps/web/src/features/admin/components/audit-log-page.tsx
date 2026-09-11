@@ -28,6 +28,7 @@ import {
   useAuditActors,
   useAuditEvents,
 } from "@/features/admin/hooks/use-admin-audit";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { formatAuditChanges } from "@/features/admin/lib/audit-changes";
 import type { AdminAuditEventResponse } from "@/lib/server-fns/api-types";
 import { cn } from "@/lib/utils";
@@ -199,7 +200,7 @@ export function AuditLogPage() {
         />
       </div>
 
-      <Table className="table-fixed">
+      <Table className={cn("table-fixed", ADMIN_TABLE_CLASS)}>
         <TableHeader>
           <TableRow>
             <TableHead className="w-40">When</TableHead>

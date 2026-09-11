@@ -10,6 +10,8 @@ import {
 } from "@/features/admin/hooks/use-admin-card-queries";
 import { providerSettingsQueryOptions } from "@/features/admin/hooks/use-provider-settings";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
+import type { CardSection } from "@/features/admin/lib/card-sections";
+import { isCardSection } from "@/features/admin/lib/card-sections";
 import { adminDistinctArtistsQueryOptions } from "@/features/cards/hooks/use-distinct-artists";
 import { adminLanguagesQueryOptions } from "@/hooks/use-languages";
 import { adminMarkersQueryOptions } from "@/hooks/use-markers";
@@ -18,6 +20,7 @@ import { adminSeoHead } from "@/lib/seo";
 const FOCUSABLE_MARKETPLACES = new Set(["tcgplayer", "cardmarket", "cardtrader"]);
 
 interface CardDetailSearch {
+  section?: CardSection;
   focusMarketplace?: "tcgplayer" | "cardmarket" | "cardtrader";
   focusFinish?: string;
   focusLanguage?: string;
@@ -33,6 +36,9 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
   },
   validateSearch: (search: Record<string, unknown>): CardDetailSearch => {
     const result: CardDetailSearch = {};
+    if (isCardSection(search.section)) {
+      result.section = search.section;
+    }
     if (
       typeof search.focusMarketplace === "string" &&
       FOCUSABLE_MARKETPLACES.has(search.focusMarketplace)
