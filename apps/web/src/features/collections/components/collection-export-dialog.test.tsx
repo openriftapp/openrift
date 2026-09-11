@@ -149,6 +149,15 @@ describe("CollectionExportDialog", () => {
     expect(wants.value).toBe("1x Jinx\n2x Yasuo");
   });
 
+  it("links to Cardmarket's wants page beside the wants block", () => {
+    setup();
+
+    expect(screen.getByRole("link", { name: "Open Cardmarket" })).toHaveAttribute(
+      "href",
+      "https://www.cardmarket.com/en/Riftbound/Wants",
+    );
+  });
+
   it("offers a text list that merges printings into one line per card", async () => {
     const user = userEvent.setup();
     setup();

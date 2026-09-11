@@ -39,6 +39,8 @@ export function cardmarketLangParam(language: string | null | undefined): string
   return code === undefined ? "" : `&language=${code}`;
 }
 
+export const CARDMARKET_WANTS_URL = "https://www.cardmarket.com/en/Riftbound/Wants";
+
 interface MarketplaceLinks {
   label: string;
   searchUrl: (query: string) => string;

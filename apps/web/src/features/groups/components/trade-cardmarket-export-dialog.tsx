@@ -1,11 +1,13 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { legendDisplayName } from "@openrift/shared/utils";
 
+import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -84,6 +86,10 @@ export function TradeCardmarketExportDialog({
           <DirectionBlock heading="You give" text={wantsFor("giver")} />
           <DirectionBlock heading="You get" text={wantsFor("receiver")} />
         </div>
+
+        <DialogFooter>
+          <CardmarketWantsLink />
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

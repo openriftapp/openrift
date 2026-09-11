@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowDownLeftIcon, HeartIcon, LockIcon, ShoppingCartIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
+import { CardmarketWantsLink } from "@/components/cardmarket-wants-link";
 import { CopyTextButton } from "@/components/copy-text-button";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button } from "@/components/ui/button";
@@ -327,6 +328,7 @@ function MissingCardsDialogBody({
               Add to wishlist
             </Button>
           )}
+          <CardmarketWantsLink />
           <CopyTextButton label="Copy for Cardmarket" getText={cardmarketText} size="sm" />
           <CopyTextButton label="Copy list" getText={listText} size="sm" />
         </DialogFooter>

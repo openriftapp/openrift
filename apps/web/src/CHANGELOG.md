@@ -10,6 +10,7 @@
 
 - feat(App): **Fewer boxes on every page** — settings pages, lists, standings and stats now use headings and spacing instead of stacked bordered cards, so pages read lighter and rows line up with their headings.
 - feat(App): **Share links turn off instead of rotating** — group invites, tournament sign-up links and the OBS browser source link now have a single Disable control, and the confirmation says that turning the link back on hands out a different one.
+- feat(App): **A link to Cardmarket beside every wants list** — the export dialogs for collections, lists, decks and group trades that copy cards in Cardmarket's format now have an Open Cardmarket button that takes you straight to your want lists.
 - fix(Cards): **Photos you send in now count as applied** — a photo suggestion that we used showed up as "Already correct" on your submissions instead of "Applied", and did not count towards your applied total. Submissions reviewed before today have been corrected by hand.
 - fix(Collection): **The missing photo nudge comes back for new cards** — dismissing the note about cards with no photo used to hide it for good; it now stays hidden only for the cards you dismissed it on and returns when you add another card the catalogue has no photo of.
 
