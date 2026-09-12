@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ShareImageRenderChoice } from "@/lib/share-image";
 import { downloadImageFromUrl } from "@/lib/share-image";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Wide renders at 2x (1200x630 is an unfurl preview, not a deliverable);
@@ -29,6 +30,17 @@ function defaultScale(aspect: ShareImageAspect, scales: readonly number[]): numb
   return scales.includes(2) ? 2 : (scales[0] ?? 1);
 }
 
+/** The surface being shared; picks the phrasing of the QR toggle and the share copy. */
+export type ShareNoun = "lists" | "list" | "deck" | "collection" | "tier-list";
+
+const QR_TOGGLE_LABEL: Record<ShareNoun, () => string> = {
+  lists: () => m.share_image_qr_toggle_lists(),
+  list: () => m.share_image_qr_toggle_list(),
+  deck: () => m.share_image_qr_toggle_deck(),
+  collection: () => m.share_image_qr_toggle_collection(),
+  "tier-list": () => m.share_image_qr_toggle_tier_list(),
+};
+
 export interface ShareImagePanelProps {
   title: string;
   filenameBase: string;
@@ -36,8 +48,8 @@ export interface ShareImagePanelProps {
   download?: (choice: ShareImageRenderChoice, filename: string) => Promise<void>;
   aspects?: readonly ShareImageAspect[];
   scales?: readonly number[];
-  /** The noun for the QR label, e.g. "list". Omitted when the render has no QR at all. */
-  qrNoun?: string;
+  /** Picks the QR label. Omitted when the render has no QR at all. */
+  qrNoun?: ShareNoun;
   /** A QR needs a share link to point at; without one the render leaves it out. */
   qrAvailable?: boolean;
   note?: ReactNode;
@@ -94,7 +106,7 @@ export function ShareImagePanel({
       // Not a mutation, so it never reaches the global mutation error handler.
       // Flag reset here and above, not in `finally`: React Compiler can't lower it.
       setDownloading(false);
-      toast.error("Couldn't prepare the image. Please try again.");
+      toast.error(m.share_image_error());
     }
   };
 
@@ -111,7 +123,7 @@ export function ShareImagePanel({
             // Keyed on the URL so an aspect/QR change remounts and re-shows the spinner.
             key={previewUrl}
             src={previewUrl}
-            alt={`Preview of ${title}`}
+            alt={m.share_image_preview_alt({ title })}
             className="size-full object-contain"
             onLoad={() => setPreviewLoaded(true)}
           />
@@ -127,9 +139,9 @@ export function ShareImagePanel({
         <div className="flex flex-wrap gap-6">
           {aspects.length > 1 ? (
             <div className="flex flex-col gap-2">
-              <Label>Shape</Label>
+              <Label>{m.share_image_shape_label()}</Label>
               <ToggleGroup
-                aria-label="Image shape"
+                aria-label={m.share_image_shape_aria()}
                 variant="outline"
                 spacing={0}
                 value={[aspect]}
@@ -141,11 +153,11 @@ export function ShareImagePanel({
               >
                 <ToggleGroupItem value="landscape">
                   <RectangleHorizontalIcon className="size-4" />
-                  Wide
+                  {m.share_image_shape_wide()}
                 </ToggleGroupItem>
                 <ToggleGroupItem value="vertical">
                   <RectangleVerticalIcon className="size-4" />
-                  Tall
+                  {m.share_image_shape_tall()}
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -153,9 +165,9 @@ export function ShareImagePanel({
 
           {scales.length > 1 ? (
             <div className="flex flex-col gap-2">
-              <Label>Size</Label>
+              <Label>{m.share_image_size_label()}</Label>
               <ToggleGroup
-                aria-label="Image size"
+                aria-label={m.share_image_size_aria()}
                 variant="outline"
                 spacing={0}
                 value={[String(scale)]}
@@ -173,7 +185,10 @@ export function ShareImagePanel({
                 ))}
               </ToggleGroup>
               <p className="text-muted-foreground text-sm">
-                {canvas.width * scale} × {canvas.height * scale} pixels
+                {m.share_image_dimensions({
+                  width: canvas.width * scale,
+                  height: canvas.height * scale,
+                })}
               </p>
             </div>
           ) : null}
@@ -193,14 +208,11 @@ export function ShareImagePanel({
               onCheckedChange={setQrOn}
             />
             <Label htmlFor="share-image-qr" className="font-normal">
-              Include a QR code to the {qrNoun}
+              {QR_TOGGLE_LABEL[qrNoun]()}
             </Label>
           </div>
           {qrOn && !qrAvailable ? (
-            <p className="text-muted-foreground text-sm">
-              The code needs a share link to point at, so the image leaves it out until you create
-              one.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.share_image_qr_missing_link()}</p>
           ) : null}
         </div>
       )}
@@ -209,12 +221,12 @@ export function ShareImagePanel({
         {downloading ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />
-            Preparing…
+            {m.share_image_preparing()}
           </>
         ) : (
           <>
             <ImageDownIcon className="size-4" />
-            Download image
+            {m.share_image_download()}
           </>
         )}
       </Button>

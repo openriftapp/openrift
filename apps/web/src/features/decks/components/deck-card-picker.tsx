@@ -14,6 +14,7 @@ import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-ro
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface CardCandidate {
   cardId: string;
@@ -124,13 +125,13 @@ export function CardChip({
     >
       <CardThumbnail cardId={cardId} className="h-5" />
       <span className="min-w-0 truncate">
-        {printing ? legendDisplayName(printing.card) : "Unknown card"}
+        {printing ? legendDisplayName(printing.card) : m.decks_editor_unknown_card()}
       </span>
       <CardStats cardId={cardId} />
       {onRemove ? (
         <ChipRemoveButton
           onClick={onRemove}
-          aria-label="Remove"
+          aria-label={m.decks_editor_remove()}
           className={cn("text-muted-foreground shrink-0 p-0.5", field ? "ml-auto" : "ml-0")}
         >
           <XIcon className="size-3.5" />

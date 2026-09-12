@@ -15,11 +15,12 @@ import {
   useUnshareListFromFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
+import { m } from "@/paraglide/messages.js";
 
-const INTENT_LABEL: Record<ListIntent, string> = {
-  wish: "Wishlist",
-  trade: "Tradelist",
-  organize: "Organize",
+const INTENT_LABEL: Record<ListIntent, () => string> = {
+  wish: () => m.share_intent_wish(),
+  trade: () => m.share_intent_trade(),
+  organize: () => m.share_intent_organize(),
 };
 
 const INTENT_ICON: Record<ListIntent, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -28,10 +29,13 @@ const INTENT_ICON: Record<ListIntent, ComponentType<SVGProps<SVGSVGElement>>> = 
   organize: FolderIcon,
 };
 
-const KIND_NOUN: Record<ListKind, { singular: string; plural: string }> = {
-  card: { singular: "Card", plural: "Cards" },
-  printing: { singular: "Printing", plural: "Printings" },
-  copy: { singular: "Copy", plural: "Copies" },
+const KIND_COUNT: Record<ListKind, (count: number) => string> = {
+  card: (count) =>
+    count === 1 ? m.share_kind_card_one({ count }) : m.share_kind_card_other({ count }),
+  printing: (count) =>
+    count === 1 ? m.share_kind_printing_one({ count }) : m.share_kind_printing_other({ count }),
+  copy: (count) =>
+    count === 1 ? m.share_kind_copy_one({ count }) : m.share_kind_copy_other({ count }),
 };
 
 export function ShareableListsPanel({ slug }: { slug: string }) {
@@ -44,12 +48,12 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
       <SettingsSection
         id="lists"
         className="scroll-mt-28"
-        title="Share your lists"
+        title={m.share_lists_title()}
         description={
           <>
-            No lists yet.{" "}
-            <TextLink render={<Link to="/collections" />}>Create a wishlist or tradelist</TextLink>{" "}
-            to share it here.
+            {m.share_lists_empty_before()}{" "}
+            <TextLink render={<Link to="/collections" />}>{m.share_lists_empty_link()}</TextLink>{" "}
+            {m.share_lists_empty_after()}
           </>
         }
       />
@@ -59,8 +63,8 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
     <SettingsSection
       id="lists"
       className="scroll-mt-28"
-      title="Share your lists"
-      description="Visible to everyone in this group. Changes here don't affect other groups."
+      title={m.share_lists_title()}
+      description={m.share_lists_description()}
     >
       <RowList>
         {data.items.map((row) => (
@@ -91,8 +95,7 @@ function ShareableListRow({
   const isShared = row.sharedAt !== null;
   const IntentIcon = INTENT_ICON[row.listIntent];
   const KindIcon = LIST_KIND_ICON[row.listKind];
-  const kindNoun =
-    row.entryCount === 1 ? KIND_NOUN[row.listKind].singular : KIND_NOUN[row.listKind].plural;
+  const kindCount = KIND_COUNT[row.listKind](row.entryCount);
   return (
     <RowListItem className="justify-between">
       <div className="flex items-center gap-3">
@@ -112,18 +115,18 @@ function ShareableListRow({
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className="text-2xs gap-1">
               <IntentIcon className="size-3" />
-              {INTENT_LABEL[row.listIntent]}
+              {INTENT_LABEL[row.listIntent]()}
             </Badge>
             <Badge variant="outline" className="text-2xs gap-1">
               <KindIcon className="size-3" />
-              {row.entryCount} {kindNoun}
+              {kindCount}
             </Badge>
           </div>
         </div>
       </div>
       {row.listIntent === "organize" ? (
         <Badge variant="outline" className="text-xs">
-          Informational only, doesn&apos;t appear in matches
+          {m.share_lists_organize_note()}
         </Badge>
       ) : null}
     </RowListItem>

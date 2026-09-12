@@ -14,6 +14,7 @@ import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatPublicCode } from "@/lib/format";
 import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 type InfoTableRow = [string, ReactNode];
 
@@ -32,7 +33,7 @@ export function CardPageInfoTable({
 
   const leftRows: InfoTableRow[] = [
     [
-      "Set",
+      m.card_detail_info_set(),
       <Link
         key="set"
         to="/sets/$setSlug"
@@ -43,13 +44,13 @@ export function CardPageInfoTable({
         {setById.get(printing.setId) && ` (${setById.get(printing.setId)?.name})`}
       </Link>,
     ],
-    ["Code", formatPublicCode(printing)],
+    [m.card_detail_info_code(), formatPublicCode(printing)],
   ];
   if (printing.printedName && printing.printedName !== card.name) {
-    leftRows.push(["Printed name", printing.printedName]);
+    leftRows.push([m.card_detail_info_printed_name(), printing.printedName]);
   }
   leftRows.push([
-    "Language",
+    m.card_detail_info_language(),
     <span key="language" className="inline-flex items-center gap-1.5">
       <LanguageChip code={printing.language} />
       {languageLabels[printing.language] ?? printing.language}
@@ -58,7 +59,7 @@ export function CardPageInfoTable({
   const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   leftRows.push(
     [
-      "Rarity",
+      m.card_detail_info_rarity(),
       <span key="rarity" className="inline-flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
           {rarityIcon && <img src={rarityIcon} alt="" width={28} height={28} className="size-4" />}
@@ -67,7 +68,7 @@ export function CardPageInfoTable({
       </span>,
     ],
     [
-      "Finish",
+      m.card_detail_info_finish(),
       <span key="finish" className="inline-flex items-center gap-1.5">
         <FinishIcon finish={printing.finish} className="w-4 shrink-0 justify-center" />
         {enumLabel(labels.finishes, printing.finish)}
@@ -76,7 +77,7 @@ export function CardPageInfoTable({
   );
   if (printing.artVariant !== WellKnown.artVariant.NORMAL) {
     leftRows.push([
-      "Art variant",
+      m.card_detail_info_art_variant(),
       <span key="art" className="inline-flex items-center gap-1">
         <PaletteIcon className="size-3.5" />
         {enumLabel(labels.artVariants, printing.artVariant)}
@@ -84,11 +85,14 @@ export function CardPageInfoTable({
     ]);
   }
   if (printing.isOvernumbered) {
-    leftRows.push(["Numbering", <span key="overnumbered">Overnumbered</span>]);
+    leftRows.push([
+      m.card_detail_info_numbering(),
+      <span key="overnumbered">{m.card_detail_info_overnumbered()}</span>,
+    ]);
   }
   if (printing.artist) {
     leftRows.push([
-      "Artist",
+      m.card_detail_info_artist(),
       <span key="artist" className="inline-flex items-center gap-1.5">
         <span className="inline-flex w-4 shrink-0 justify-center">
           <img src="/images/artist.svg" alt="" className="size-3.5 brightness-0 dark:invert" />
@@ -98,12 +102,12 @@ export function CardPageInfoTable({
     ]);
   }
   if (printing.printedYear !== null) {
-    leftRows.push(["Year", printing.printedYear]);
+    leftRows.push([m.card_detail_info_year(), printing.printedYear]);
   }
 
   const rightRows: InfoTableRow[] = [
     [
-      "Type",
+      m.card_detail_info_type(),
       <TypeValue
         key="type"
         types={card.types}
@@ -114,27 +118,33 @@ export function CardPageInfoTable({
   ];
   if (card.superTypes.length > 0) {
     rightRows.push([
-      "Supertypes",
+      m.card_detail_info_supertypes(),
       card.superTypes.map((slug) => enumLabel(labels.superTypes, slug)).join(", "),
     ]);
   }
   if (card.domains.length > 0 && !card.domains.includes(WellKnown.domain.COLORLESS)) {
     rightRows.push([
-      "Domains",
+      m.card_detail_info_domains(),
       <DomainList key="domains" domains={card.domains} labels={labels.domains} />,
     ]);
   }
   if (card.energy !== null && card.energy > 0) {
-    rightRows.push(["Energy", card.energy]);
+    rightRows.push([m.card_detail_info_energy(), card.energy]);
   }
   if (card.power !== null && card.power > 0) {
-    rightRows.push(["Power", <PowerValue key="power" power={card.power} domains={card.domains} />]);
+    rightRows.push([
+      m.card_detail_info_power(),
+      <PowerValue key="power" power={card.power} domains={card.domains} />,
+    ]);
   }
   if (card.might !== null) {
-    rightRows.push(["Might", <MightValue key="might" value={card.might} />]);
+    rightRows.push([m.card_detail_info_might(), <MightValue key="might" value={card.might} />]);
   }
   if (card.mightBonus !== null && card.mightBonus > 0) {
-    rightRows.push(["Might bonus", <MightValue key="mightbonus" value={card.mightBonus} bonus />]);
+    rightRows.push([
+      m.card_detail_info_might_bonus(),
+      <MightValue key="mightbonus" value={card.mightBonus} bonus />,
+    ]);
   }
 
   return (

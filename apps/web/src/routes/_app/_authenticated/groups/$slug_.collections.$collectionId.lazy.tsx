@@ -5,6 +5,7 @@ import { TopBarBreadcrumbTrail } from "@/components/layout/top-bar-breadcrumb";
 import { SharedCollectionView } from "@/features/collections/components/shared-collection-view";
 import { useFriendGroupSharedCollection } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute(
   "/_app/_authenticated/groups/$slug_/collections/$collectionId",
@@ -32,7 +33,10 @@ function SharedCollectionRoute() {
     },
     items: data.copies,
     nextCursor: null,
-    owner: { displayName: data.collection.ownerName ?? "Unknown", gravatarHash: null },
+    owner: {
+      displayName: data.collection.ownerName ?? m.groups_owner_unknown(),
+      gravatarHash: null,
+    },
   };
 
   return (
@@ -43,7 +47,10 @@ function SharedCollectionRoute() {
         <TopBarBreadcrumbTrail
           segments={[
             { label: groupDetail.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> },
-            { label: "Collections", link: <Link to="/groups/$slug/shared" params={{ slug }} /> },
+            {
+              label: m.groups_nav_collections(),
+              link: <Link to="/groups/$slug/shared" params={{ slug }} />,
+            },
           ]}
         />
       }

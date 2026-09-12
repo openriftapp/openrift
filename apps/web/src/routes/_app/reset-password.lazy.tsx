@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient } from "@/features/account/lib/auth-client";
 import { otpErrorMessage, requestOtpErrorMessage } from "@/lib/auth-errors";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/reset-password")({
   component: ResetPasswordPage,
@@ -36,7 +37,7 @@ function ResetPasswordPage() {
   async function handleSendCode() {
     const trimmed = email.trim();
     if (!trimmed || !trimmed.includes("@")) {
-      setEmailError("Please enter a valid email address.");
+      setEmailError(m.auth_reset_email_invalid());
       return;
     }
     setEmailError("");
@@ -46,7 +47,7 @@ function ResetPasswordPage() {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setEmailError("Could not send the code. Please try again.");
+      setEmailError(m.auth_reset_send_failed());
       return;
     }
     if (result.error) {
@@ -64,7 +65,7 @@ function ResetPasswordPage() {
       .catch(() => null);
     setResending(false);
     if (!result) {
-      setError("Could not send the code. Please try again.");
+      setError(m.auth_reset_send_failed());
       return;
     }
     if (result.error) {
@@ -75,11 +76,11 @@ function ResetPasswordPage() {
   async function handleReset() {
     setError("");
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(m.auth_reset_password_too_short());
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(m.auth_reset_password_mismatch());
       return;
     }
     setLoading(true);
@@ -88,7 +89,7 @@ function ResetPasswordPage() {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setError("Could not reset the password. Please try again.");
+      setError(m.auth_reset_failed());
       return;
     }
     if (result.error) {
@@ -105,14 +106,14 @@ function ResetPasswordPage() {
           <FieldGroup>
             <div className="flex flex-col items-center gap-2 text-center">
               <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
-              <Heading level={1}>Reset your password</Heading>
+              <Heading level={1}>{m.auth_reset_title()}</Heading>
               <p className="text-muted-foreground text-balance">
                 {step === "email" ? (
-                  <>Enter your email and we&apos;ll send you a code to reset your password.</>
+                  <>{m.auth_reset_intro()}</>
                 ) : (
                   <>
-                    Enter the 6-digit code sent to <strong>{email.trim()}</strong> and your new
-                    password.
+                    {m.auth_reset_code_intro_before()} <strong>{email.trim()}</strong>{" "}
+                    {m.auth_reset_code_intro_after()}
                   </>
                 )}
               </p>
@@ -129,7 +130,7 @@ function ResetPasswordPage() {
                 <FieldGroup>
                   {emailError && <FieldError>{emailError}</FieldError>}
                   <Field>
-                    <FieldLabel htmlFor="reset-email">Email</FieldLabel>
+                    <FieldLabel htmlFor="reset-email">{m.auth_reset_email_label()}</FieldLabel>
                     <Input
                       id="reset-email"
                       type="email"
@@ -144,7 +145,7 @@ function ResetPasswordPage() {
                   </Field>
                   <Field>
                     <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? "Sending..." : "Send code"}
+                      {loading ? m.auth_reset_sending() : m.auth_reset_send_code()}
                     </Button>
                   </Field>
                 </FieldGroup>
@@ -163,7 +164,9 @@ function ResetPasswordPage() {
                     <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="new-password">New password</FieldLabel>
+                    <FieldLabel htmlFor="new-password">
+                      {m.auth_reset_new_password_label()}
+                    </FieldLabel>
                     <Input
                       id="new-password"
                       type="password"
@@ -173,7 +176,9 @@ function ResetPasswordPage() {
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="confirm-password">Confirm password</FieldLabel>
+                    <FieldLabel htmlFor="confirm-password">
+                      {m.auth_reset_confirm_password_label()}
+                    </FieldLabel>
                     <Input
                       id="confirm-password"
                       type="password"
@@ -188,7 +193,7 @@ function ResetPasswordPage() {
                       className="w-full"
                       disabled={otp.length < 6 || !newPassword || loading}
                     >
-                      {loading ? "Resetting..." : "Reset password"}
+                      {loading ? m.auth_reset_resetting() : m.auth_reset_submit()}
                     </Button>
                     <Button
                       type="button"
@@ -196,11 +201,9 @@ function ResetPasswordPage() {
                       disabled={resending}
                       onClick={() => void handleResend()}
                     >
-                      {resending ? "Sending..." : "Resend code"}
+                      {resending ? m.auth_reset_sending() : m.auth_reset_resend()}
                     </Button>
-                    <p className="text-muted-foreground text-sm">
-                      Didn&apos;t get a code within a minute? Check your spam folder, then resend.
-                    </p>
+                    <p className="text-muted-foreground text-sm">{m.auth_reset_spam_hint()}</p>
                   </Field>
                 </FieldGroup>
               </form>
@@ -212,7 +215,7 @@ function ResetPasswordPage() {
                 search={{ redirect: undefined, email: email.trim() || undefined }}
                 className="underline underline-offset-2"
               >
-                Back to login
+                {m.auth_back_to_login()}
               </Link>
             </p>
           </FieldGroup>

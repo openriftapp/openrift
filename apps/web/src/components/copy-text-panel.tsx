@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { CopyTextButton } from "@/components/copy-text-button";
 import { Textarea } from "@/components/ui/textarea";
+import { m } from "@/paraglide/messages.js";
 
 interface CopyTextPanelProps {
   text: string;
@@ -15,7 +16,7 @@ interface CopyTextPanelProps {
 /** A read-only text field beside a Copy button; hides itself while loading or empty. */
 export function CopyTextPanel({
   text,
-  label = "Copy",
+  label,
   rows = 12,
   isLoading = false,
   emptyNote,
@@ -24,7 +25,7 @@ export function CopyTextPanel({
     return (
       <div className="text-muted-foreground flex items-center gap-2 text-sm">
         <Loader2Icon className="size-4 animate-spin" />
-        Preparing…
+        {m.shared_preparing()}
       </div>
     );
   }
@@ -45,7 +46,7 @@ export function CopyTextPanel({
         onClick={(event) => (event.target as HTMLTextAreaElement).select()}
       />
       <div className="flex justify-end">
-        <CopyTextButton label={label} getText={() => text} />
+        <CopyTextButton label={label ?? m.common_copy()} getText={() => text} />
       </div>
     </div>
   );

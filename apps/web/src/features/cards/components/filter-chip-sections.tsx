@@ -8,15 +8,16 @@ import { FilterValueDropdown } from "@/features/cards/components/filter-value-dr
 import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useVisibleFilterDimensions } from "@/features/cards/hooks/use-filter-dimensions";
-import { filterDimension, OWNED_BUCKETS } from "@/features/cards/lib/filter-dimensions";
+import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";
 import { nextOversize, oversizeCount, oversizeState } from "@/features/cards/lib/oversize-filter";
 import {
-  PRESENCE_LABELS,
   presenceFlagCount,
+  presenceLabel,
   presenceToFlagState,
 } from "@/features/cards/lib/presence-filter";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useTagCategories } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 export function FilterChipSections({
   availableFilters,
@@ -69,7 +70,7 @@ export function FilterChipSections({
   const showUnit = (unit: string) => units === undefined || units.has(unit);
   const shows = (key: string) => visibleDimensions.has(key) && showUnit(filterDimension(key).unit);
   const triggerStyle = variant === "inline" ? "button" : "chip";
-  const placeholder = variant === "rows" ? "Any" : undefined;
+  const placeholder = variant === "rows" ? m.cards_filter_placeholder_any() : undefined;
 
   const showMarkers = shows("markers");
   const showChannels = shows("channels");
@@ -106,10 +107,10 @@ export function FilterChipSections({
   if (showStandard) {
     entries.push({
       key: "standard",
-      label: "Standard",
+      label: m.cards_filter_flag_standard(),
       node: (
         <FlagBadge
-          label="Standard"
+          label={m.cards_filter_flag_standard()}
           state={filterState.standard}
           count={filterCounts?.flags.standard}
           onClick={toggleStandard}
@@ -121,7 +122,7 @@ export function FilterChipSections({
   if (showMarkers) {
     entries.push({
       key: "markers",
-      label: "Markers",
+      label: m.cards_filter_unit_markers(),
       node: (
         <FilterValueDropdown dimension="markers" triggerStyle={triggerStyle} {...dropdownProps} />
       ),
@@ -130,10 +131,10 @@ export function FilterChipSections({
   if (showOversize) {
     entries.push({
       key: "cardSizes",
-      label: "Size",
+      label: m.cards_filter_unit_card_sizes(),
       node: (
         <FlagBadge
-          label="Oversized"
+          label={m.cards_filter_flag_oversized()}
           state={oversizeState(filterState.cardSizes)}
           count={oversizeCount(filterCounts?.cardSizes, oversizeState(filterState.cardSizes))}
           onClick={() => setArrayFilter("cardSizes", nextOversize(filterState.cardSizes))}
@@ -145,7 +146,7 @@ export function FilterChipSections({
   if (showChannels) {
     entries.push({
       key: "channels",
-      label: "Channels",
+      label: m.cards_filter_unit_channels_short(),
       node: (
         <FilterValueDropdown dimension="channels" triggerStyle={triggerStyle} {...dropdownProps} />
       ),
@@ -154,7 +155,7 @@ export function FilterChipSections({
   if (showCustomTags) {
     entries.push({
       key: "customTags",
-      label: "Custom Tags",
+      label: m.cards_filter_unit_custom_tags(),
       node: (
         <>
           {visibleCategories.map(([category, tagsInCategory]) => {
@@ -171,8 +172,8 @@ export function FilterChipSections({
               <MultiSelectCombobox
                 key={category}
                 label={label}
-                searchPlaceholder={`Search ${label.toLowerCase()}…`}
-                emptyText={`No ${label.toLowerCase()} match.`}
+                searchPlaceholder={m.cards_filter_search_named({ label: label.toLowerCase() })}
+                emptyText={m.cards_filter_empty_named({ label: label.toLowerCase() })}
                 options={tagOptions}
                 selected={selectedInCategory}
                 excluded={excludedInCategory}
@@ -182,7 +183,7 @@ export function FilterChipSections({
             );
           })}
           <FlagBadge
-            label={PRESENCE_LABELS.customTags}
+            label={presenceLabel("customTags")}
             state={presenceToFlagState(filterState.customTagsPresence)}
             count={presenceFlagCount(
               filterCounts?.presence.customTags,
@@ -198,7 +199,7 @@ export function FilterChipSections({
   if (showTags) {
     entries.push({
       key: "tags",
-      label: "Tags",
+      label: m.cards_filter_unit_tags(),
       node: (
         <>
           {tagGroups.map((group) => {
@@ -210,8 +211,10 @@ export function FilterChipSections({
               <MultiSelectCombobox
                 key={group.slug}
                 label={group.label}
-                searchPlaceholder={`Search ${group.label.toLowerCase()}…`}
-                emptyText={`No ${group.label.toLowerCase()} match.`}
+                searchPlaceholder={m.cards_filter_search_named({
+                  label: group.label.toLowerCase(),
+                })}
+                emptyText={m.cards_filter_empty_named({ label: group.label.toLowerCase() })}
                 options={tagOptions}
                 selected={selectedInGroup}
                 excluded={excludedInGroup}
@@ -222,7 +225,7 @@ export function FilterChipSections({
             );
           })}
           <FlagBadge
-            label={PRESENCE_LABELS.tags}
+            label={presenceLabel("tags")}
             state={presenceToFlagState(filterState.tagsPresence)}
             count={presenceFlagCount(
               filterCounts?.presence.tags,
@@ -238,7 +241,7 @@ export function FilterChipSections({
   if (showKeywords) {
     entries.push({
       key: "keywords",
-      label: "Keywords",
+      label: m.cards_filter_unit_keywords(),
       node: (
         <FilterValueDropdown dimension="keywords" triggerStyle={triggerStyle} {...dropdownProps} />
       ),
@@ -247,12 +250,12 @@ export function FilterChipSections({
   if (showFlags) {
     entries.push({
       key: "flags",
-      label: "Flags",
+      label: m.cards_filter_unit_flags(),
       node: (
         <>
           {showOvernumbered && (
             <FlagBadge
-              label="Overnumbered"
+              label={m.cards_filter_flag_overnumbered()}
               state={filterState.overnumbered}
               count={filterCounts?.flags.overnumbered}
               onClick={toggleOvernumbered}
@@ -261,7 +264,7 @@ export function FilterChipSections({
           )}
           {showSigned && (
             <FlagBadge
-              label="Signed"
+              label={m.cards_filter_flag_signed()}
               state={filterState.signed}
               count={filterCounts?.flags.signed}
               onClick={toggleSigned}
@@ -270,7 +273,7 @@ export function FilterChipSections({
           )}
           {showBanned && (
             <FlagBadge
-              label="Banned"
+              label={m.cards_filter_flag_banned()}
               state={filterState.banned}
               count={filterCounts?.flags.banned}
               onClick={toggleBanned}
@@ -279,7 +282,7 @@ export function FilterChipSections({
           )}
           {showErrata && (
             <FlagBadge
-              label="Errata"
+              label={m.cards_filter_flag_errata()}
               state={filterState.errata}
               count={filterCounts?.flags.errata}
               onClick={toggleErrata}
@@ -288,7 +291,7 @@ export function FilterChipSections({
           )}
           {showNoImage && (
             <FlagBadge
-              label="No image yet"
+              label={m.cards_filter_flag_no_image()}
               state={filterState.noImage}
               count={filterCounts?.flags.noImage}
               onClick={toggleNoImage}
@@ -302,14 +305,14 @@ export function FilterChipSections({
   if (showOwned) {
     entries.push({
       key: "owned",
-      label: "Owned",
+      label: m.cards_filter_unit_owned(),
       node: (
         <MultiSelectCombobox
-          label="Owned"
+          label={m.cards_filter_unit_owned()}
           placeholder={placeholder}
-          searchPlaceholder="Search owned…"
-          emptyText="No options match."
-          options={OWNED_BUCKETS.map((bucket) => ({
+          searchPlaceholder={m.cards_filter_search_owned()}
+          emptyText={m.cards_filter_empty_options()}
+          options={ownedBuckets().map((bucket) => ({
             value: bucket.value,
             label: bucket.label,
           }))}

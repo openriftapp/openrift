@@ -8,6 +8,7 @@ import { RowList, RowListItem } from "@/components/ui/row-list";
 import type { GroupNudgeKind } from "@/features/account/stores/onboarding-store";
 import { groupNudgeKey, useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 /** Empty when the viewer isn't in data.members yet (still loading, or not a member). */
 export function pendingGroupNudges(
@@ -37,26 +38,26 @@ interface NudgeCopy {
   helpLabel: string;
 }
 
-const NUDGE_COPY: Record<GroupNudgeKind, NudgeCopy> = {
-  contacts: {
-    icon: MessageCircleIcon,
-    title: "Members can't reach you",
-    description:
-      "You aren't showing a contact method in this group, so nobody can arrange a swap with you once a match comes up.",
-    hash: "contacts",
-    actionLabel: "Choose your contacts",
-    helpLabel: "How contacts work",
-  },
-  lists: {
+function nudgeCopy(kind: GroupNudgeKind): NudgeCopy {
+  if (kind === "contacts") {
+    return {
+      icon: MessageCircleIcon,
+      title: m.groups_nudge_contacts_title(),
+      description: m.groups_nudge_contacts_description(),
+      hash: "contacts",
+      actionLabel: m.groups_nudge_contacts_action(),
+      helpLabel: m.groups_nudge_contacts_help(),
+    };
+  }
+  return {
     icon: HandshakeIcon,
-    title: "This group can't see any of your lists",
-    description:
-      "Share a wishlist or tradelist and the group starts matching your wants against what other members are offering.",
+    title: m.groups_nudge_lists_title(),
+    description: m.groups_nudge_lists_description(),
     hash: "lists",
-    actionLabel: "Share your lists",
-    helpLabel: "How sharing works",
-  },
-};
+    actionLabel: m.groups_nudge_lists_action(),
+    helpLabel: m.groups_nudge_lists_help(),
+  };
+}
 
 export function GroupSetupNudges({
   slug,
@@ -79,7 +80,7 @@ export function GroupSetupNudges({
   return (
     <RowList variant="divided">
       {kinds.map((kind) => {
-        const copy = NUDGE_COPY[kind];
+        const copy = nudgeCopy(kind);
         return (
           <RowListItem key={kind} className="items-start">
             <copy.icon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
@@ -102,7 +103,7 @@ export function GroupSetupNudges({
               variant="ghost"
               size="icon-xs"
               onClick={() => dismiss(slug, kind)}
-              aria-label={`Dismiss "${copy.title}"`}
+              aria-label={m.groups_nudge_dismiss({ title: copy.title })}
             >
               <XIcon className="size-4" />
             </Button>

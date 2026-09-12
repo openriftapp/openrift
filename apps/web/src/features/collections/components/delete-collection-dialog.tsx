@@ -1,4 +1,5 @@
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { m } from "@/paraglide/messages.js";
 
 interface DeleteCollectionDialogProps {
   open: boolean;
@@ -21,17 +22,19 @@ export function DeleteCollectionDialog({
     <ConfirmActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete collection"
+      title={m.collections_dialog_delete_title()}
       description={
         <>
-          Are you sure you want to delete &ldquo;{collectionName}&rdquo;?
-          {copyCount > 0
-            ? ` The ${copyCount} card${copyCount === 1 ? "" : "s"} in this collection will be moved to your Inbox.`
-            : " This collection is empty."}
+          {m.collections_dialog_delete_confirm({ name: collectionName })}{" "}
+          {copyCount === 0
+            ? m.collections_dialog_delete_empty()
+            : copyCount === 1
+              ? m.collections_dialog_delete_moved_one({ count: copyCount })
+              : m.collections_dialog_delete_moved_other({ count: copyCount })}
         </>
       }
-      confirmLabel="Delete"
-      pendingLabel="Deleting..."
+      confirmLabel={m.common_delete()}
+      pendingLabel={m.collections_dialog_delete_pending()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

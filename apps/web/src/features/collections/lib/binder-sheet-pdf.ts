@@ -13,6 +13,7 @@ import {
 } from "@/features/collections/lib/binder-sheet-specs";
 import { createPdfDocument } from "@/lib/pdf-document";
 import { loadLogoDataUrl } from "@/lib/pdf-logo";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Printable binder QR sheet: a share link as a QR code cut to real card or
@@ -398,10 +399,8 @@ function drawCropMarks(doc: jsPDF, layout: SheetLayout): void {
   }
 }
 
-const RULER_NOTE =
-  "This bar is exactly 50 mm. If it isn't, reprint at 100% (Actual size), not Fit to page.";
-
 function drawRuler(doc: jsPDF, placement: RulerPlacement): void {
+  const rulerNote = m.collections_export_ruler_note();
   doc.setDrawColor(COLORS.faint[0], COLORS.faint[1], COLORS.faint[2]);
   doc.setLineWidth(0.2);
   doc.setFont("helvetica", "normal");
@@ -415,7 +414,7 @@ function drawRuler(doc: jsPDF, placement: RulerPlacement): void {
       const size = tick % RULER_LENGTH_MM === 0 ? 2.5 : 1.5;
       doc.line(x, y + tick, x + size, y + tick);
     }
-    doc.text(RULER_NOTE, x + 3, y + RULER_LENGTH_MM + 3, { angle: -90 });
+    doc.text(rulerNote, x + 3, y + RULER_LENGTH_MM + 3, { angle: -90 });
     return;
   }
 
@@ -424,7 +423,7 @@ function drawRuler(doc: jsPDF, placement: RulerPlacement): void {
     const size = tick % RULER_LENGTH_MM === 0 ? 2.5 : 1.5;
     doc.line(x + tick, y, x + tick, y - size);
   }
-  doc.text(RULER_NOTE, x + RULER_LENGTH_MM + 3, y);
+  doc.text(rulerNote, x + RULER_LENGTH_MM + 3, y);
 }
 
 async function buildQrDataUrl(shareUrl: string, sizeMm: number): Promise<string> {

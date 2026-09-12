@@ -7,6 +7,7 @@ import {
 } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
 import { useListGroupShares } from "@/features/lists/hooks/use-list-group-shares";
+import { m } from "@/paraglide/messages.js";
 
 export function ListGroupShareSection({ listId, intent }: { listId: string; intent: ListIntent }) {
   const { data: groups } = useFriendGroups();
@@ -23,10 +24,10 @@ export function ListGroupShareSection({ listId, intent }: { listId: string; inte
       pending={share.isPending || unshare.isPending}
       description={
         intent === "organize"
-          ? "Choose which of your friend groups can see this list while signed in."
-          : "Choose which of your friend groups can see this list and find trades with you."
+          ? m.lists_share_groups_description_organize()
+          : m.lists_share_groups_description()
       }
-      emptyNote="You're not in any friend groups yet. Join or create one to share lists with its members."
+      emptyNote={m.lists_share_groups_empty()}
       idPrefix="list-group"
     />
   );

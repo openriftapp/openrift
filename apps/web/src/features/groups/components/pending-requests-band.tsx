@@ -10,6 +10,7 @@ import {
   useAcceptFriendGroupInvite,
   useDeclineFriendGroupInvite,
 } from "@/features/groups/hooks/use-friend-group-mutations";
+import { m } from "@/paraglide/messages.js";
 
 export function PendingRequestsBand({
   slug,
@@ -24,9 +25,11 @@ export function PendingRequestsBand({
     <ActionBand
       icon={UserPlusIcon}
       accent
-      label="Requests"
+      label={m.trades_requests_label()}
       value={requests.length}
-      sub={`${requests.length === 1 ? "person" : "people"} waiting to join`}
+      sub={
+        requests.length === 1 ? m.trades_requests_waiting_one() : m.trades_requests_waiting_other()
+      }
     >
       <div className="flex flex-col gap-2">
         {requests.map((req) => (
@@ -39,10 +42,10 @@ export function PendingRequestsBand({
               className="size-7"
             />
             <span className="min-w-0 flex-1 truncate text-sm">
-              <span className="font-medium">{req.userName ?? "Unknown user"}</span>
+              <span className="font-medium">{req.userName ?? m.trades_request_unknown_user()}</span>
               <span className="text-muted-foreground">
                 {" "}
-                · requested {formatRelativeTime(req.createdAt)}
+                · {m.trades_requested_ago({ time: formatRelativeTime(req.createdAt) })}
               </span>
             </span>
             <Button
@@ -51,7 +54,7 @@ export function PendingRequestsBand({
               disabled={acceptInvite.isPending}
             >
               <CheckIcon className="size-4" />
-              Approve
+              {m.trades_approve()}
             </Button>
             <Button
               size="sm"
@@ -60,7 +63,7 @@ export function PendingRequestsBand({
               disabled={declineInvite.isPending}
             >
               <XIcon className="size-4" />
-              Deny
+              {m.trades_deny()}
             </Button>
           </Callout>
         ))}

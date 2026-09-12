@@ -1,5 +1,7 @@
 import type { PresenceDimension } from "@openrift/shared/types/search";
 
+import { m } from "@/paraglide/messages.js";
+
 export type PresenceParamValue = "any" | "none" | null;
 
 export function presenceToFlagState(value: PresenceParamValue): boolean | null {
@@ -16,11 +18,25 @@ export function presenceFlagCount(
   return state === false ? counts.none : counts.any;
 }
 
-export const PRESENCE_LABELS: Record<PresenceDimension, string> = {
-  markers: "Has any marker",
-  superTypes: "Has any supertype",
-  customTags: "Has any custom tag",
-  distributionChannels: "Has any distribution channel",
-  keywords: "Has any keyword",
-  tags: "Has any tag",
-};
+export function presenceLabel(dimension: PresenceDimension): string {
+  switch (dimension) {
+    case "markers": {
+      return m.cards_filter_presence_markers();
+    }
+    case "superTypes": {
+      return m.cards_filter_presence_super_types();
+    }
+    case "customTags": {
+      return m.cards_filter_presence_custom_tags();
+    }
+    case "distributionChannels": {
+      return m.cards_filter_presence_channels();
+    }
+    case "keywords": {
+      return m.cards_filter_presence_keywords();
+    }
+    case "tags": {
+      return m.cards_filter_presence_tags();
+    }
+  }
+}

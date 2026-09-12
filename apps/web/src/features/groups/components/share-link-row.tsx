@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrCode } from "@/components/ui/qr-code";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 interface ShareLinkRowProps {
   url: string;
@@ -41,14 +42,14 @@ export function ShareLinkRow({
         />
         <Button variant="outline" onClick={() => void copy(url)}>
           {copied ? <CheckIcon /> : <CopyIcon />}
-          {copied ? "Copied" : "Copy"}
+          {copied ? m.common_copied() : m.common_copy()}
         </Button>
         {hideQr ? null : (
           <Button
             variant="outline"
             size="icon"
             aria-expanded={qrOpen}
-            aria-label={qrOpen ? "Hide QR code" : "Show QR code"}
+            aria-label={qrOpen ? m.share_link_qr_hide() : m.share_link_qr_show()}
             onClick={() => setQrOpen(!qrOpen)}
           >
             <QrCodeIcon />
@@ -57,7 +58,7 @@ export function ShareLinkRow({
         {actions}
       </div>
       {qrOpen && !hideQr ? (
-        <QrCode value={url} label={`QR code for the ${label.toLowerCase()}`} />
+        <QrCode value={url} label={m.share_link_qr_label({ label: label.toLowerCase() })} />
       ) : null}
     </div>
   );

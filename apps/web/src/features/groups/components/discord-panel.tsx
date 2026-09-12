@@ -11,6 +11,7 @@ import {
   useFriendGroupDiscordLinks,
 } from "@/features/groups/hooks/use-friend-group-discord";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 // While a code is outstanding the links list polls, so the redeem shows up without a reload.
 export function DiscordPanel({ slug }: { slug: string }) {
@@ -44,19 +45,21 @@ export function DiscordPanel({ slug }: { slug: string }) {
       title={
         <span className="flex items-center gap-2">
           <BotIcon className="size-4" />
-          Discord bot
+          {m.groups_discord_title()}
         </span>
       }
-      description="The OpenRift bot answers card mentions in the linked server with who has the card on a shared tradelist. Anyone who can read that server sees those names and counts."
+      description={m.groups_discord_description()}
     >
       {data.items.length > 0 ? (
         <RowList>
           {data.items.map((item) => (
             <RowListItem key={item.id} className="justify-between">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="font-medium">{item.guildName ?? `Server ${item.guildId}`}</span>
+                <span className="font-medium">
+                  {item.guildName ?? m.groups_discord_server_fallback({ id: item.guildId })}
+                </span>
                 <span className="text-muted-foreground text-sm">
-                  linked {formatDay(item.linkedAt)}
+                  {m.groups_discord_linked_on({ date: formatDay(item.linkedAt) })}
                 </span>
               </div>
               <Button
@@ -66,13 +69,13 @@ export function DiscordPanel({ slug }: { slug: string }) {
                 disabled={removeLink.isPending}
               >
                 <Trash2Icon className="size-4" />
-                Unlink
+                {m.groups_discord_unlink()}
               </Button>
             </RowListItem>
           ))}
         </RowList>
       ) : (
-        <p className="text-muted-foreground text-sm">No server linked yet.</p>
+        <p className="text-muted-foreground text-sm">{m.groups_discord_none_linked()}</p>
       )}
       {pending === null ? (
         <div>
@@ -82,17 +85,14 @@ export function DiscordPanel({ slug }: { slug: string }) {
             onClick={() => void handleGenerate()}
             disabled={createCode.isPending}
           >
-            Generate link code
+            {m.groups_discord_generate()}
           </Button>
         </div>
       ) : redeemed ? (
-        <p className="text-sm">Server linked. Card mentions there now include tradelists.</p>
+        <p className="text-sm">{m.groups_discord_redeemed()}</p>
       ) : (
         <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground text-sm">
-            In your Discord server, run this command within 15 minutes (you need the Manage Server
-            permission there):
-          </p>
+          <p className="text-muted-foreground text-sm">{m.groups_discord_run_command()}</p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="bg-muted rounded-md px-2 py-1 font-mono text-sm">
               /link code:{pending.code}
@@ -103,7 +103,7 @@ export function DiscordPanel({ slug }: { slug: string }) {
               onClick={() => void copy(`/link code:${pending.code}`)}
             >
               {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? m.common_copied() : m.common_copy()}
             </Button>
           </div>
         </div>

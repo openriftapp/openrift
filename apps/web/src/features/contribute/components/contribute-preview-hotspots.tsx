@@ -2,8 +2,9 @@ import type { ReactElement } from "react";
 
 import { Pressable } from "@/components/ui/pressable";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { CARD_PLACEHOLDER_REGIONS } from "@/features/cards/lib/card-placeholder-regions";
+import { cardPlaceholderRegions } from "@/features/cards/lib/card-placeholder-regions";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function ContributePreviewHotspots({
   activeField,
@@ -18,13 +19,17 @@ export function ContributePreviewHotspots({
 }): ReactElement {
   return (
     <div className="@container pointer-events-none absolute inset-0">
-      {CARD_PLACEHOLDER_REGIONS.map((region) => {
+      {cardPlaceholderRegions().map((region) => {
         const isFilled = filled.has(region.field);
         const isActive = activeField === region.field;
         return (
           <Pressable
             key={region.field}
-            aria-label={`${isFilled ? "Jump to" : "Add"} ${region.label}`}
+            aria-label={
+              isFilled
+                ? m.contribute_hotspot_jump_to({ region: region.label })
+                : m.contribute_hotspot_add({ region: region.label })
+            }
             data-active={isActive ? "true" : undefined}
             data-filled={isFilled ? "true" : undefined}
             data-field={region.field}

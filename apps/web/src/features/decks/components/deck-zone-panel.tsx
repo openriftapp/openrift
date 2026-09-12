@@ -26,6 +26,7 @@ import { useZoneOrder } from "@/hooks/use-enums";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * With `onOverviewClick` this doubles as the way back to the overview, which
@@ -77,7 +78,7 @@ function PanelIdentityHeader({
                       types: legend.cardTypes,
                       tags: legend.tags,
                     })
-                  : "Legend"
+                  : m.decks_zone_legend_alt()
               }
               style={{ borderRadius: CARD_BORDER_RADIUS }}
               className="aspect-card absolute top-1/2 left-0 h-11 -translate-y-1/2 -rotate-7 object-cover shadow-sm"
@@ -93,7 +94,7 @@ function PanelIdentityHeader({
           {championImage ? (
             <img
               src={imageUrl(championImage.imageId, "120w")}
-              alt={champion?.cardName ?? "Champion"}
+              alt={champion?.cardName ?? m.decks_zone_champion_alt()}
               style={{ borderRadius: CARD_BORDER_RADIUS }}
               className="aspect-card absolute top-1/2 right-0 h-11 -translate-y-1/2 rotate-7 object-cover shadow-sm"
               draggable={false}
@@ -119,8 +120,10 @@ function PanelIdentityHeader({
             )}
           >
             {isFreeform
-              ? `${totalQuantity} ${totalQuantity === 1 ? "card" : "cards"}`
-              : `${progress}/${total} cards`}
+              ? totalQuantity === 1
+                ? m.common_cards_one({ count: totalQuantity })
+                : m.common_cards_other({ count: totalQuantity })
+              : m.decks_editor_progress_cards({ progress, total })}
           </p>
         </div>
       </div>
@@ -143,7 +146,11 @@ function PanelIdentityHeader({
   }
 
   return (
-    <Pressable onClick={onOverviewClick} aria-label="Deck overview" className="block w-full">
+    <Pressable
+      onClick={onOverviewClick}
+      aria-label={m.decks_editor_deck_overview()}
+      className="block w-full"
+    >
       <Card className={cn(frame, "hover:bg-muted/50 transition-colors")}>{body}</Card>
     </Pressable>
   );
@@ -227,7 +234,7 @@ export function DeckZonePanel({
           className="h-auto justify-start gap-2 rounded-lg px-2.5 py-2 text-left"
         >
           <LayoutDashboardIcon className="size-3.5" />
-          <span>Overview</span>
+          <span>{m.decks_editor_overview()}</span>
         </Button>
       )}
       {visibleZones.map((zone) => (

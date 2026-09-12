@@ -45,6 +45,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession, useUserId } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -124,7 +125,7 @@ export function CardBrowser() {
   // page is already a card search; quick add is its first row instead.
   useRegisterQuickAdd({
     key: inboxId ? `catalog:${inboxId}` : null,
-    label: "Add to Inbox",
+    label: m.cards_quick_add_to_inbox(),
     claimsShortcut: false,
   });
 
@@ -327,8 +328,10 @@ export function CardBrowser() {
       variant="control"
       pressed={cardsShowCounts}
       onPressedChange={toggleCardsShowCounts}
-      title={cardsShowCounts ? "Hide owned count" : "Show owned count"}
-      aria-label={cardsShowCounts ? "Hide owned count" : "Show owned count"}
+      title={cardsShowCounts ? m.cards_grid_hide_owned_count() : m.cards_grid_show_owned_count()}
+      aria-label={
+        cardsShowCounts ? m.cards_grid_hide_owned_count() : m.cards_grid_show_owned_count()
+      }
     >
       <PackageIcon className="size-4" />
     </Toggle>
@@ -340,7 +343,9 @@ export function CardBrowser() {
       filteredCount={filteredCount}
       mobileDoneLabel={
         hasActiveFilters
-          ? `Show ${filteredCount} ${view === "cards" ? "cards" : "printings"}`
+          ? view === "cards"
+            ? m.cards_grid_show_n_cards({ count: filteredCount })
+            : m.cards_grid_show_n_printings({ count: filteredCount })
           : undefined
       }
       extras={showCountsButton}

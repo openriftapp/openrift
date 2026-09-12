@@ -5,10 +5,11 @@ import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Pressable } from "@/components/ui/pressable";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ChangeKind } from "@/features/rules/lib/rules-changes";
-import { CHANGE_KIND_BADGE } from "@/features/rules/lib/rules-changes";
+import { changeKindBadge } from "@/features/rules/lib/rules-changes";
 import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { copyRuleLink, formatRuleNumber, InlineDiff, RuleContent } from "./rule-content";
 
@@ -56,7 +57,7 @@ export function RuleRow({
 
   const isRemoved = changeKind === "removed";
   const isChanged = changeKind === "changed";
-  const badge = changeKind ? CHANGE_KIND_BADGE[changeKind] : null;
+  const badge = changeKind ? changeKindBadge(changeKind) : null;
   const showInlineDiff = isChanged && isDiffExpanded && previousContent !== undefined;
 
   return (
@@ -76,7 +77,7 @@ export function RuleRow({
         onClick={() => {
           void copyRuleLink(rule.ruleNumber);
         }}
-        aria-label={`Copy link to rule ${formatRuleNumber(rule.ruleNumber)}`}
+        aria-label={m.rules_copy_link_aria({ rule: formatRuleNumber(rule.ruleNumber) })}
         className={cn(
           // Copy glyph is a ::after mask via rule-copy-affordance, not a <CopyIcon>
           // element, since this page renders ~2,400 of them. See index.css.
@@ -105,8 +106,8 @@ export function RuleRow({
                   aria-expanded={isDiffExpanded}
                   aria-label={
                     isDiffExpanded
-                      ? `Hide diff for rule ${formatRuleNumber(rule.ruleNumber)}`
-                      : `Show diff for rule ${formatRuleNumber(rule.ruleNumber)}`
+                      ? m.rules_diff_hide_aria({ rule: formatRuleNumber(rule.ruleNumber) })
+                      : m.rules_diff_show_aria({ rule: formatRuleNumber(rule.ruleNumber) })
                   }
                 />
               }
@@ -135,8 +136,8 @@ export function RuleRow({
                 />
                 <TooltipContent>
                   {changeKind === "moved"
-                    ? `Moved from ${formatRuleNumber(relatedRuleNumber)}`
-                    : `Previous content moved to ${formatRuleNumber(relatedRuleNumber)}`}
+                    ? m.rules_moved_from({ rule: formatRuleNumber(relatedRuleNumber) })
+                    : m.rules_moved_to({ rule: formatRuleNumber(relatedRuleNumber) })}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -151,7 +152,7 @@ export function RuleRow({
             <ExpandToggle
               expanded={!isFolded}
               onClick={() => toggle(rule.ruleNumber)}
-              aria-label={isFolded ? "Expand rule group" : "Collapse rule group"}
+              aria-label={isFolded ? m.rules_expand_group() : m.rules_collapse_group()}
               className="text-muted-foreground hover:text-foreground size-4 justify-center gap-0 rounded-md no-underline"
               chevronClassName="size-3 text-inherit"
             />

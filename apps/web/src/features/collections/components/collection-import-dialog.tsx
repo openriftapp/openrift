@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
 import { useImportHandoffStore } from "@/features/collections/stores/import-handoff-store";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionImportDialogProps {
   collectionId?: string;
@@ -57,10 +58,11 @@ export function CollectionImportDialog({
       <DialogContent>
         <DialogForm onSubmit={() => handleContinue(rawText)}>
           <DialogHeader>
-            <DialogTitle>Import cards</DialogTitle>
+            <DialogTitle>{m.collections_import_dialog_title()}</DialogTitle>
             <DialogDescription>
-              Paste or upload a CSV export, or a plain list with one{" "}
-              <code className="text-foreground">quantity cardname</code> per line.
+              {m.collections_import_paste_hint_before()}{" "}
+              <code className="text-foreground">{m.collections_import_paste_hint_code()}</code>{" "}
+              {m.collections_import_paste_hint_after()}
             </DialogDescription>
           </DialogHeader>
 
@@ -68,7 +70,7 @@ export function CollectionImportDialog({
             <Textarea
               value={rawText}
               onChange={(event) => setRawText(event.target.value)}
-              placeholder="Paste CSV data or a plain text list here..."
+              placeholder={m.collections_import_textarea_placeholder()}
               // text-base below md: iOS Safari zooms the viewport when a focused
               // field is under 16px, and there is no maximum-scale to stop it.
               className="min-h-[200px] font-mono text-base md:text-xs"
@@ -77,7 +79,7 @@ export function CollectionImportDialog({
             <div className="flex flex-wrap items-center justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
                 <FileUpIcon className="size-4" />
-                Upload file
+                {m.collections_import_upload_file()}
               </Button>
               <Input
                 ref={fileRef}
@@ -88,7 +90,7 @@ export function CollectionImportDialog({
               />
               <Button type="submit" disabled={rawText.trim().length === 0}>
                 <UploadIcon className="size-4" />
-                Continue
+                {m.collections_import_continue()}
               </Button>
             </div>
           </div>

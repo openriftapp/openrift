@@ -7,11 +7,12 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
+import { m } from "@/paraglide/messages.js";
 
 import {
-  PRICE_PREF_SHORT_LABEL,
-  TRADE_TYPE_LABEL,
   formatAbsolutePrice,
+  pricePrefShortLabel,
+  tradeTypeLabel,
 } from "./trade-preference-labels";
 
 const PREF_TO_MARKETPLACE: Record<TradePricePref, Marketplace | null> = {
@@ -35,14 +36,14 @@ export function MatchPreferenceCell({
   searchQuery,
 }: MatchPreferenceCellProps) {
   const priceNode = renderPrice(pref, marketplaceInfos, searchQuery);
-  const typeNode = pref.tradeType ? TRADE_TYPE_LABEL[pref.tradeType] : null;
+  const typeNode = pref.tradeType ? tradeTypeLabel(pref.tradeType) : null;
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-2 py-1">
       <span className="text-muted-foreground text-2xs font-medium tracking-wide uppercase">
         {label}
       </span>
       <span className="text-xs whitespace-nowrap">
-        {priceNode ?? "Not set"}
+        {priceNode ?? m.trades_not_set()}
         {typeNode ? <span className="text-muted-foreground"> · {typeNode}</span> : null}
       </span>
     </div>
@@ -62,7 +63,7 @@ function renderPrice(
   }
   const marketplace = PREF_TO_MARKETPLACE[pref.pricePref];
   if (marketplace === null) {
-    return PRICE_PREF_SHORT_LABEL[pref.pricePref];
+    return pricePrefShortLabel(pref.pricePref);
   }
   const meta = MARKETPLACE_META[marketplace];
   const productId = marketplaceInfos?.[marketplace]?.productId ?? null;
@@ -76,7 +77,7 @@ function renderPrice(
       rel="noreferrer"
       onClick={(event) => event.stopPropagation()}
     >
-      {PRICE_PREF_SHORT_LABEL[pref.pricePref]}
+      {pricePrefShortLabel(pref.pricePref)}
     </TextLink>
   );
 }

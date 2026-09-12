@@ -6,6 +6,7 @@ import {
   dispatchDecrement,
   dispatchIncrement,
 } from "@/features/cards/stores/card-row-actions-store";
+import { m } from "@/paraglide/messages.js";
 
 interface CountWithAddControlsProps {
   printing: Printing;
@@ -38,7 +39,7 @@ export function CountWithAddControls({
           dispatchDecrement(printing, event.currentTarget, { shift: event.shiftKey });
         }}
         disabled={!ownedCount}
-        aria-label="Remove one"
+        aria-label={m.cards_count_remove_one()}
       >
         <MinusIcon className="size-3.5" />
       </Button>
@@ -50,7 +51,7 @@ export function CountWithAddControls({
           event.stopPropagation();
           dispatchIncrement(printing, { shift: event.shiftKey });
         }}
-        aria-label="Add one"
+        aria-label={m.cards_count_add_one()}
       >
         <PlusIcon className="size-3.5" />
       </Button>

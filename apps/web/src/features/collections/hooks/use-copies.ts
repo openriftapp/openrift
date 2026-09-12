@@ -23,10 +23,11 @@ import { randomUuid } from "@/lib/random-uuid";
 import type { CollectionsResponse } from "@/lib/server-fns/api-types";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { withTimeout } from "@/lib/with-timeout";
+import { m } from "@/paraglide/messages.js";
 
 const BATCH_SIZE = 500;
 
-const STILL_ADDING_ERROR_MESSAGE = "These cards are still being added. Try again in a moment.";
+const stillAddingError = () => new Error(m.collections_copies_still_adding());
 
 /**
  * Resolves a collection's owning group from the cached collections list, so
@@ -114,7 +115,7 @@ const EMPTY_COPY_METADATA = {
 function rethrowAsNetworkError(error: unknown): never {
   if (error instanceof TypeError) {
     // oxlint-disable-next-line unicorn/prefer-type-error -- this is a network failure, not a type check
-    throw new Error("Can't reach the server — check your connection");
+    throw new Error(m.collections_copies_network_error());
   }
   throw error;
 }
@@ -169,7 +170,7 @@ export function useAddCopies() {
       clientIds?: string[];
     }): Promise<AddCopyResult[]> => {
       if (!userId) {
-        throw new Error("Cannot add copies while signed out");
+        throw new Error(m.collections_copies_signed_out());
       }
       const controller = new AbortController();
       const tempIds = body.tempIds ?? [];
@@ -179,7 +180,7 @@ export function useAddCopies() {
         const apiResult = await withTimeout(
           addCopiesApi({ batchId: body.batchId, copies: body.copies }, controller.signal),
           {
-            label: "Add copies",
+            label: m.collections_copies_timeout_add(),
             abortController: controller,
           },
         );
@@ -237,7 +238,7 @@ export function useMoveCopies() {
       // Temp ids aren't valid uuids, so the move API would 400; treat as a no-op.
       const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
       if (realCopyIds.length === 0) {
-        throw new Error(STILL_ADDING_ERROR_MESSAGE);
+        throw stillAddingError();
       }
       const collection = copiesCollection;
       // groupId must travel with collectionId: the invalidation below is
@@ -245,13 +246,13 @@ export function useMoveCopies() {
       const toGroupId = groupIdForCollection(queryClient, userId, toCollectionId);
       const tx = createTransaction<CopyResponse>({
         mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((m) => String(m.key));
+          const ids = transaction.mutations.map((mutation) => String(mutation.key));
           for (const batch of chunks(ids, BATCH_SIZE)) {
             const controller = new AbortController();
             await withTimeout(
               moveCopiesApi({ copyIds: batch, toCollectionId }, controller.signal),
               {
-                label: "Move copies",
+                label: m.collections_copies_timeout_move(),
                 abortController: controller,
               },
             );
@@ -311,17 +312,17 @@ export function useUpdateCopies() {
       }
       const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
       if (realCopyIds.length === 0) {
-        throw new Error(STILL_ADDING_ERROR_MESSAGE);
+        throw stillAddingError();
       }
       const applied = definedCopyMetadataFields(normalizeCopyMetadataPatch(patch));
       const collection = copiesCollection;
       const tx = createTransaction<CopyResponse>({
         mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((m) => String(m.key));
+          const ids = transaction.mutations.map((mutation) => String(mutation.key));
           for (const batch of chunks(ids, BATCH_SIZE)) {
             const controller = new AbortController();
             await withTimeout(updateCopiesApi({ copyIds: batch, patch }, controller.signal), {
-              label: "Update copies",
+              label: m.collections_copies_timeout_update(),
               abortController: controller,
             });
             // Confirm each chunk immediately so a later chunk's failure only rolls
@@ -473,16 +474,16 @@ export function useDisposeCopies() {
       // race where the add later re-inserts a row the user thought they removed.
       const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
       if (realCopyIds.length === 0) {
-        throw new Error(STILL_ADDING_ERROR_MESSAGE);
+        throw stillAddingError();
       }
       const collection = copiesCollection;
       const tx = createTransaction<CopyResponse>({
         mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((m) => String(m.key));
+          const ids = transaction.mutations.map((mutation) => String(mutation.key));
           for (const batch of chunks(ids, BATCH_SIZE)) {
             const controller = new AbortController();
             await withTimeout(disposeCopiesApi({ copyIds: batch }, controller.signal), {
-              label: "Dispose copies",
+              label: m.collections_copies_timeout_dispose(),
               abortController: controller,
             });
             // Confirm each chunk immediately so a later chunk's failure only rolls

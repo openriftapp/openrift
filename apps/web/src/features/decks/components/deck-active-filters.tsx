@@ -8,6 +8,7 @@ import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Visible only below `md`; the toolbar hides it above via CSS once the
 // filter controls themselves are visible.
@@ -47,7 +48,11 @@ export function DeckActiveFilters() {
       {icon && <img src={icon} alt="" className="size-3.5" />}
       <span className={cn(excluded && "line-through")}>{label}</span>
       <ChipRemoveButton
-        aria-label={`${excluded ? "Stop excluding" : "Remove"} ${label}`}
+        aria-label={
+          excluded
+            ? m.decks_editor_stop_excluding({ label })
+            : m.decks_editor_remove_filter({ label })
+        }
         onClick={onRemove}
       />
     </Badge>
@@ -58,7 +63,10 @@ export function DeckActiveFilters() {
       {search !== "" && (
         <Badge variant="secondary" className="gap-1">
           &ldquo;{search}&rdquo;
-          <ChipRemoveButton aria-label="Clear search filter" onClick={() => setSearch("")} />
+          <ChipRemoveButton
+            aria-label={m.decks_editor_clear_search_filter()}
+            onClick={() => setSearch("")}
+          />
         </Badge>
       )}
 
@@ -70,9 +78,12 @@ export function DeckActiveFilters() {
       )}
 
       {validity !== "all" &&
-        chip("validity", "Legal", validity === "invalid", () => setValidity("all"))}
+        chip("validity", m.decks_editor_filter_legal(), validity === "invalid", () =>
+          setValidity("all"),
+        )}
 
-      {drafts !== "all" && chip("drafts", "Draft", drafts === "hide", () => setDrafts("all"))}
+      {drafts !== "all" &&
+        chip("drafts", m.decks_editor_filter_draft(), drafts === "hide", () => setDrafts("all"))}
 
       {domains.map((domain) =>
         chip(
@@ -94,7 +105,7 @@ export function DeckActiveFilters() {
       )}
 
       <Button type="button" variant="ghost" size="sm" onClick={clearAllFilters}>
-        Clear all
+        {m.decks_editor_clear_all()}
       </Button>
     </div>
   );

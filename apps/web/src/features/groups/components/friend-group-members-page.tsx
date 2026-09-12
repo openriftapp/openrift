@@ -51,20 +51,23 @@ import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
-import { isAdmin, ROLE_LABEL } from "./friend-group-shell";
+import { isAdmin, roleLabel } from "./friend-group-shell";
 import { LIST_INTENT_ICON } from "./list-intent-meta";
 import { PendingRequestsBand } from "./pending-requests-band";
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
 export type MemberSortKey = "recent" | "name" | "traded";
 
-const MEMBER_SORT_OPTIONS: { value: MemberSortKey; label: string }[] = [
-  { value: "traded", label: "Most traded with you" },
-  { value: "recent", label: "Recently joined" },
-  { value: "name", label: "Name" },
-];
+function memberSortOptions(): { value: MemberSortKey; label: string }[] {
+  return [
+    { value: "traded", label: m.groups_members_sort_traded() },
+    { value: "recent", label: m.groups_members_sort_recent() },
+    { value: "name", label: m.common_name() },
+  ];
+}
 
 export interface MemberShareVolume {
   offered: number;
@@ -149,6 +152,7 @@ export function MembersPageContent({
   const viewerRole = data.viewerRole ?? "member";
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<MemberSortKey>("traded");
+  const sortOptions = memberSortOptions();
 
   const volumes = memberShareVolumes(data.shares, data.collectionShares);
   const rows = sortMembers(
@@ -167,20 +171,20 @@ export function MembersPageContent({
         <SearchInput
           value={query}
           onValueChange={setQuery}
-          placeholder="Search members…"
-          ariaLabel="Search members"
+          placeholder={m.groups_members_search_placeholder()}
+          ariaLabel={m.groups_members_search_aria()}
           className="w-full max-w-xs"
         />
         <Select
-          items={MEMBER_SORT_OPTIONS}
+          items={sortOptions}
           value={sort}
           onValueChange={(next: MemberSortKey | null) => setSort(next ?? "traded")}
         >
-          <SelectTrigger className="w-52" aria-label="Sort members">
+          <SelectTrigger className="w-52" aria-label={m.groups_members_sort_aria()}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {MEMBER_SORT_OPTIONS.map((option) => (
+            {sortOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -190,7 +194,7 @@ export function MembersPageContent({
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-muted-foreground">No members match your search.</p>
+        <p className="text-muted-foreground">{m.groups_members_no_match()}</p>
       ) : (
         <RowList>
           {rows.map((member) => (
@@ -219,7 +223,9 @@ export function MembersTradedAction({ slug }: { slug: string }) {
   return (
     <PageTopBarButton render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
       <ZapIcon className="size-4" />
-      {data.cardsTradedCount} cards traded
+      {data.cardsTradedCount === 1
+        ? m.groups_members_cards_traded_one({ count: data.cardsTradedCount })
+        : m.groups_members_cards_traded_other({ count: data.cardsTradedCount })}
     </PageTopBarButton>
   );
 }
@@ -236,14 +242,14 @@ export function MembersInviteAction({ slug }: { slug: string }) {
     return (
       <PageTopBarPrimaryButton render={<Link to="/groups/$slug/manage" params={{ slug }} />}>
         <UserPlusIcon className="size-4" />
-        Invite
+        {m.groups_members_invite()}
       </PageTopBarPrimaryButton>
     );
   }
   const handleInvite = async () => {
     const joinUrl = `${getSiteUrl()}/groups/join?code=${encodeURIComponent(code)}`;
     if (await copy(joinUrl)) {
-      toast.success("Invite link copied. Send it to whoever you want to join");
+      toast.success(m.groups_members_invite_copied());
     } else {
       void navigate({ to: "/groups/$slug/manage", params: { slug } });
     }
@@ -252,7 +258,7 @@ export function MembersInviteAction({ slug }: { slug: string }) {
   return (
     <PageTopBarPrimaryButton onClick={() => void handleInvite()}>
       <UserPlusIcon className="size-4" />
-      Invite
+      {m.groups_members_invite()}
     </PageTopBarPrimaryButton>
   );
 }
@@ -279,14 +285,14 @@ function SelfShareNudge({ slug, groupName }: { slug: string; groupName: string }
         className={cn(textLinkVariants(), "relative text-sm font-medium")}
         onClick={() => setOpen(true)}
       >
-        Share a tradelist so others can find matches with you
+        {m.groups_members_self_share_nudge()}
       </Pressable>
       <ShareListsWithGroupDialog
         slug={slug}
         groupName={groupName}
         open={open}
         onOpenChange={setOpen}
-        cancelLabel="Cancel"
+        cancelLabel={m.common_cancel()}
         preselectAll={false}
       />
     </>
@@ -315,13 +321,26 @@ function MemberRow({
   const kickMember = useKickFriendGroupMember();
 
   const volumePills = [
-    { key: "offered", icon: LIST_INTENT_ICON.trade, count: volume.offered, noun: "offered" },
-    { key: "wanted", icon: LIST_INTENT_ICON.wish, count: volume.wanted, noun: "wanted" },
+    {
+      key: "offered",
+      icon: LIST_INTENT_ICON.trade,
+      count: volume.offered,
+      noun: m.groups_members_pill_offered(),
+    },
+    {
+      key: "wanted",
+      icon: LIST_INTENT_ICON.wish,
+      count: volume.wanted,
+      noun: m.groups_members_pill_wanted(),
+    },
     {
       key: "collections",
       icon: FolderIcon,
       count: volume.collections,
-      noun: volume.collections === 1 ? "collection" : "collections",
+      noun:
+        volume.collections === 1
+          ? m.groups_members_pill_collection()
+          : m.groups_members_pill_collections(),
     },
   ].filter((pill) => pill.count > 0);
 
@@ -350,19 +369,23 @@ function MemberRow({
         />
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="font-medium break-words">{member.userName ?? "Unknown user"}</span>
+            <span className="font-medium break-words">
+              {member.userName ?? m.groups_unknown_user()}
+            </span>
             {member.role === "member" ? null : (
-              <Badge variant={ROLE_BADGE_VARIANT[member.role]}>{ROLE_LABEL[member.role]}</Badge>
+              <Badge variant={ROLE_BADGE_VARIANT[member.role]}>{roleLabel(member.role)}</Badge>
             )}
-            {isSelf ? <Badge variant="muted">You</Badge> : null}
-            {isNewMember(member.joinedAt) ? <Badge variant="success">New</Badge> : null}
+            {isSelf ? <Badge variant="muted">{m.groups_members_badge_you()}</Badge> : null}
+            {isNewMember(member.joinedAt) ? (
+              <Badge variant="success">{m.groups_members_badge_new()}</Badge>
+            ) : null}
           </span>
           <span className="text-muted-foreground flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
-            <span>Joined {formatMonth(member.joinedAt)}</span>
+            <span>{m.groups_members_joined({ month: formatMonth(member.joinedAt) })}</span>
             {cardsTraded > 0 ? (
               <span className="flex items-center gap-1 font-medium">
                 <ZapIcon className="text-warning size-3" />
-                {cardsTraded} traded with you
+                {m.groups_members_traded_with_you({ count: cardsTraded })}
               </span>
             ) : null}
           </span>
@@ -380,7 +403,9 @@ function MemberRow({
         ) : isSelf ? (
           <SelfShareNudge slug={slug} groupName={groupName} />
         ) : (
-          <span className="text-muted-foreground/60 text-xs">Nothing shared yet</span>
+          <span className="text-muted-foreground/60 text-xs">
+            {m.groups_members_nothing_shared()}
+          </span>
         )}
       </div>
 
@@ -393,7 +418,7 @@ function MemberRow({
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label="Member actions"
+                aria-label={m.groups_members_actions_aria()}
                 className="relative"
               />
             }
@@ -406,14 +431,14 @@ function MemberRow({
                 onClick={() => updateRole.mutate({ slug, userId: member.userId, role: "admin" })}
               >
                 <ShieldIcon className="size-4" />
-                Promote to admin
+                {m.groups_members_promote()}
               </DropdownMenuItem>
             )}
             {canDemote && (
               <DropdownMenuItem
                 onClick={() => updateRole.mutate({ slug, userId: member.userId, role: "member" })}
               >
-                Demote to member
+                {m.groups_members_demote()}
               </DropdownMenuItem>
             )}
             {canKick && (
@@ -424,7 +449,7 @@ function MemberRow({
                   className="text-destructive"
                 >
                   <Trash2Icon className="size-4" />
-                  Remove
+                  {m.groups_members_remove()}
                 </DropdownMenuItem>
               </>
             )}

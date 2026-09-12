@@ -23,14 +23,17 @@ import {
   filterShopEventsByRange,
   groupShopEventsByDay,
 } from "@/features/groups/lib/shop-events";
+import { m } from "@/paraglide/messages.js";
 
 const ALL_SHOPS = "all";
 
-const RANGES: { value: ShopEventRange; label: string }[] = [
-  { value: "upcoming", label: "Current & upcoming" },
-  { value: "past", label: "Past" },
-  { value: "all", label: "All" },
-];
+function ranges(): { value: ShopEventRange; label: string }[] {
+  return [
+    { value: "upcoming", label: m.groups_shops_range_upcoming() },
+    { value: "past", label: m.groups_shops_range_past() },
+    { value: "all", label: m.common_all() },
+  ];
+}
 
 function toRange(value: string | undefined): ShopEventRange {
   return value === "past" || value === "all" ? value : "upcoming";
@@ -38,12 +41,12 @@ function toRange(value: string | undefined): ShopEventRange {
 
 function rangeWindowLabel(range: ShopEventRange, pastDays: number, horizonDays: number): string {
   if (range === "past") {
-    return `Past ${pastDays} days`;
+    return m.groups_shops_window_past({ days: pastDays });
   }
   if (range === "all") {
-    return `${pastDays} days back, ${horizonDays} ahead`;
+    return m.groups_shops_window_all({ past: pastDays, ahead: horizonDays });
   }
-  return `Next ${horizonDays} days`;
+  return m.groups_shops_window_next({ days: horizonDays });
 }
 
 export function ShopEventsContent({
@@ -61,16 +64,14 @@ export function ShopEventsContent({
     return (
       <EmptyState
         icon={StoreIcon}
-        title="No shop linked yet"
+        title={m.groups_shops_empty_title()}
         description={
-          isAdmin(data.viewerRole)
-            ? "Link the store your group plays at and its next events land here."
-            : "When an admin links the store your group plays at, its next events land here."
+          isAdmin(data.viewerRole) ? m.groups_shops_empty_admin() : m.groups_shops_empty_member()
         }
       >
         {isAdmin(data.viewerRole) ? (
           <Button render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}>
-            Link a shop
+            {m.groups_link_a_shop()}
           </Button>
         ) : null}
       </EmptyState>
@@ -84,10 +85,7 @@ export function ShopEventsContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageDescription>
-        Riftbound events at the shops this group follows. Listings come from the official event
-        locator; each one links back to its page there.
-      </PageDescription>
+      <PageDescription>{m.groups_shops_page_description()}</PageDescription>
 
       <div className="flex flex-wrap items-center gap-3">
         <ToggleGroup
@@ -95,9 +93,9 @@ export function ShopEventsContent({
           spacing={0}
           value={[range]}
           onValueChange={([next]) => setRange(toRange(next))}
-          aria-label="Time range"
+          aria-label={m.groups_shops_range_aria()}
         >
-          {RANGES.map((option) => (
+          {ranges().map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>
               {option.label}
             </ToggleGroupItem>
@@ -109,9 +107,9 @@ export function ShopEventsContent({
             spacing={0}
             value={[shopFilter]}
             onValueChange={([next]) => setShopFilter(next ?? ALL_SHOPS)}
-            aria-label="Shop"
+            aria-label={m.groups_shops_filter_aria()}
           >
-            <ToggleGroupItem value={ALL_SHOPS}>All shops</ToggleGroupItem>
+            <ToggleGroupItem value={ALL_SHOPS}>{m.groups_shops_all_shops()}</ToggleGroupItem>
             {feed.shops.map((shop) => (
               <ToggleGroupItem key={shop.storeId} value={String(shop.storeId)}>
                 {shop.name}
@@ -120,12 +118,15 @@ export function ShopEventsContent({
           </ToggleGroup>
         ) : null}
         <span className="text-muted-foreground ml-auto text-xs">
-          {windowLabel} · {events.length} {events.length === 1 ? "event" : "events"}
+          {windowLabel} ·{" "}
+          {events.length === 1
+            ? m.groups_shops_event_count_one({ count: events.length })
+            : m.groups_shops_event_count_other({ count: events.length })}
         </span>
       </div>
 
       {days.length === 0 ? (
-        <p className="text-muted-foreground">Nothing listed in this range.</p>
+        <p className="text-muted-foreground">{m.groups_shops_nothing_in_range()}</p>
       ) : (
         <ul className="flex flex-col gap-5">
           {days.map((day) => {

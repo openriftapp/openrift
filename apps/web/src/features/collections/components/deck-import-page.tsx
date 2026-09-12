@@ -12,6 +12,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { DeckImportInputStep } from "@/features/collections/components/deck-import-input-step";
 import { DeckImportPreviewStep } from "@/features/collections/components/deck-import-preview-step";
 import { useDeckImportFlow } from "@/features/decks/hooks/use-deck-import-flow";
+import { m } from "@/paraglide/messages.js";
 
 export function DeckImportPage() {
   const flow = useDeckImportFlow();
@@ -85,18 +86,25 @@ export function DeckImportPage() {
             }}
           >
             <AlertDialogHeader>
-              <AlertDialogTitle>Replace deck contents?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {m.collections_import_deck_replace_confirm_title()}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                This will remove all existing cards in &ldquo;{flow.replaceDeckName ?? "this deck"}
-                &rdquo; and replace them with the {flow.totalCards} imported{" "}
-                {flow.totalCards === 1 ? "card" : "cards"}. The deck&apos;s name and format are
-                kept.
+                {flow.totalCards === 1
+                  ? m.collections_import_deck_replace_confirm_body_one({
+                      name: flow.replaceDeckName ?? m.collections_import_deck_replace_this_deck(),
+                      count: flow.totalCards,
+                    })
+                  : m.collections_import_deck_replace_confirm_body_other({
+                      name: flow.replaceDeckName ?? m.collections_import_deck_replace_this_deck(),
+                      count: flow.totalCards,
+                    })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <AlertDialogAction type="submit" variant="destructive">
-                Replace
+                {m.collections_import_deck_replace_action()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>

@@ -72,6 +72,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -149,7 +150,9 @@ function SharedListBody({
     return null;
   }
   return (
-    <Suspense fallback={<p className="text-muted-foreground py-3">Loading cards…</p>}>
+    <Suspense
+      fallback={<p className="text-muted-foreground py-3">{m.lists_share_loading_cards()}</p>}
+    >
       <SharedListGrid data={data} exchange={exchange} />
     </Suspense>
   );
@@ -417,7 +420,11 @@ function SharedListGrid({
       filteredCount={filteredDisplay}
       mobileDoneLabel={
         hasActiveFilters
-          ? `Show ${filteredDisplay} ${view === "cards" ? "cards" : view === "copies" ? "copies" : "printings"}`
+          ? view === "cards"
+            ? m.lists_entry_show_cards({ count: filteredDisplay })
+            : view === "copies"
+              ? m.lists_entry_show_copies({ count: filteredDisplay })
+              : m.lists_entry_show_printings({ count: filteredDisplay })
           : undefined
       }
       hideViewToggle
@@ -444,7 +451,7 @@ function SharedListGrid({
             <KindIcon className="size-16 opacity-50" />
           </EmptyMedia>
           <EmptyTitle>{emptyTitleFor(list.kind)}</EmptyTitle>
-          <EmptyDescription>Check back later.</EmptyDescription>
+          <EmptyDescription>{m.lists_share_empty_description()}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -472,7 +479,7 @@ function SharedListGrid({
             exchange?.mode === "request"
               ? {
                   actionsColumn: "narrow",
-                  actionsLabel: "Trade",
+                  actionsLabel: m.lists_share_actions_trade(),
                   actionsCell: (
                     <TradelistRequestActionsCell
                       entryByItemId={entryByItemId}
@@ -486,7 +493,7 @@ function SharedListGrid({
               : exchange?.mode === "offer"
                 ? {
                     actionsColumn: "narrow",
-                    actionsLabel: "Offer",
+                    actionsLabel: m.lists_share_actions_offer(),
                     actionsCell: (
                       <OfferActionsCell
                         entryByItemId={entryByItemId}
@@ -501,7 +508,7 @@ function SharedListGrid({
                   ? { actionsColumn: "none" }
                   : {
                       actionsColumn: "narrow",
-                      actionsLabel: "Qty",
+                      actionsLabel: m.lists_share_actions_qty(),
                       actionsCell: <SharedListQuantityCell entryByItemId={entryByItemId} />,
                     }
           }
@@ -586,8 +593,8 @@ function RequestStrip({
             variant="primary"
             tabIndex={-1}
             disabled={disabled}
-            aria-label="Cancel this copy"
-            title="Click to cancel this copy"
+            aria-label={m.lists_share_cancel_copy_aria()}
+            title={m.lists_share_cancel_copy_title()}
             onClick={(event) => {
               event.stopPropagation();
               if (!disabled) {
@@ -595,14 +602,14 @@ function RequestStrip({
               }
             }}
           >
-            <span>Requested</span>
+            <span>{m.lists_share_requested()}</span>
             <XIcon className="size-3" />
           </CountPillButton>
         ) : (
           <CountPillButton
             tabIndex={-1}
             disabled={disabled}
-            aria-label="Request this copy"
+            aria-label={m.lists_share_request_copy_aria()}
             onClick={(event) => {
               event.stopPropagation();
               if (!disabled) {
@@ -611,7 +618,7 @@ function RequestStrip({
             }}
           >
             <HeartIcon className="size-3" />
-            <span>Request</span>
+            <span>{m.lists_share_request()}</span>
           </CountPillButton>
         )
       }
@@ -625,8 +632,8 @@ function OfferStrip({ disabled, onClick }: { disabled: boolean; onClick: () => v
       center={
         <CountPillButton
           tabIndex={-1}
-          aria-label={disabled ? "You don't own this card" : "Offer this card"}
-          title={disabled ? "You don't own this card" : undefined}
+          aria-label={disabled ? m.lists_share_not_owned() : m.lists_share_offer_aria()}
+          title={disabled ? m.lists_share_not_owned() : undefined}
           disabled={disabled}
           onClick={(event) => {
             event.stopPropagation();
@@ -636,7 +643,7 @@ function OfferStrip({ disabled, onClick }: { disabled: boolean; onClick: () => v
           }}
         >
           <HandshakeIcon className="size-3" />
-          <span>Offer</span>
+          <span>{m.lists_share_offer()}</span>
         </CountPillButton>
       }
     />
@@ -671,10 +678,10 @@ function TradelistRequestActionsCell({
         size="sm"
         variant="ghost"
         disabled={disabled}
-        aria-label="Cancel this copy"
+        aria-label={m.lists_share_cancel_copy_aria()}
         onClick={() => onRelease(printing)}
       >
-        Requested
+        {m.lists_share_requested()}
         <XIcon className="size-3" />
       </Button>
     );
@@ -691,7 +698,7 @@ function TradelistRequestActionsCell({
       disabled={disabled}
       onClick={() => onRequest(printing)}
     >
-      Request
+      {m.lists_share_request()}
     </Button>
   );
 }
@@ -721,20 +728,20 @@ function OfferActionsCell({
       size="sm"
       variant="outline"
       disabled={choices.length === 0}
-      title={choices.length === 0 ? "You don't own this card" : undefined}
+      title={choices.length === 0 ? m.lists_share_not_owned() : undefined}
       onClick={() => onOffer(choices, wantQuantity)}
     >
-      Offer
+      {m.lists_share_offer()}
     </Button>
   );
 }
 
 function emptyTitleFor(kind: ListKind): string {
   if (kind === "copy") {
-    return "No copies on this list yet";
+    return m.lists_entry_empty_copy_title();
   }
   if (kind === "printing") {
-    return "No printings on this list yet";
+    return m.lists_entry_empty_printing_title();
   }
-  return "No cards on this list yet";
+  return m.lists_entry_empty_card_title();
 }

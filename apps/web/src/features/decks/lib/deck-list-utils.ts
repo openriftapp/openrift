@@ -6,6 +6,8 @@ import type { Domain } from "@openrift/shared/types/enums";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { m } from "@/paraglide/messages.js";
+
 export type DeckListValidity = "all" | "valid" | "invalid";
 
 export type DeckListDrafts = "all" | "hide" | "only";
@@ -238,13 +240,13 @@ function groupEntriesOf(
     case "domains": {
       const combo = domainComboOf(item);
       if (combo.length === 0) {
-        return [{ key: "domains:none", label: "No domain" }];
+        return [{ key: "domains:none", label: m.decks_list_group_no_domain() }];
       }
       const label = combo.map((slug) => labels?.domains?.[slug] ?? slug).join(" / ");
       return [{ key: `domains:${label}`, label }];
     }
     case "legend": {
-      const legend = item.legendName ?? "(No legend)";
+      const legend = item.legendName ?? m.decks_list_group_no_legend();
       return [{ key: `legend:${legend}`, label: legend }];
     }
     case "validity": {
@@ -254,12 +256,12 @@ function groupEntriesOf(
       }
       const formatLabel = labels?.formats?.[slug] ?? slug;
       return item.isValid
-        ? [{ key: `valid:${slug}`, label: `Valid ${formatLabel}` }]
-        : [{ key: `invalid:${slug}`, label: `Invalid ${formatLabel}` }];
+        ? [{ key: `valid:${slug}`, label: m.decks_list_group_valid({ format: formatLabel }) }]
+        : [{ key: `invalid:${slug}`, label: m.decks_list_group_invalid({ format: formatLabel }) }];
     }
     case "folder": {
       if (item.folderIds.length === 0) {
-        return [{ key: "folder:none", label: "No folder" }];
+        return [{ key: "folder:none", label: m.decks_list_group_no_folder() }];
       }
       return item.folderIds.map((id) => ({
         key: `folder:${id}`,

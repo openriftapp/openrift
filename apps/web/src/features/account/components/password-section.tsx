@@ -12,19 +12,22 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/features/account/lib/auth-client";
 import { setServerError } from "@/lib/auth-errors";
+import { m } from "@/paraglide/messages.js";
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required."),
-    newPassword: z.string().min(8, "New password must be at least 8 characters."),
-    confirmPassword: z.string().min(1, "Please confirm your new password."),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
+function passwordSchema() {
+  return z
+    .object({
+      currentPassword: z.string().min(1, m.profile_password_error_current_required()),
+      newPassword: z.string().min(8, m.profile_password_error_new_too_short()),
+      confirmPassword: z.string().min(1, m.profile_password_error_confirm_required()),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: m.profile_password_error_mismatch(),
+      path: ["confirmPassword"],
+    });
+}
 
-type PasswordValues = z.infer<typeof passwordSchema>;
+type PasswordValues = z.infer<ReturnType<typeof passwordSchema>>;
 
 export function PasswordSection({ currentEmail }: { currentEmail: string }) {
   const { data: accounts, isPending } = useQuery({
@@ -32,7 +35,7 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
     queryFn: async () => {
       const { data, error } = await authClient.listAccounts();
       if (error) {
-        throw new Error(error.message ?? "Failed to load connected accounts.");
+        throw new Error(error.message ?? m.profile_password_accounts_load_failed());
       }
       return data ?? [];
     },
@@ -41,8 +44,8 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
 
   if (isPending) {
     return (
-      <SettingsSection title="Password">
-        <p className="text-muted-foreground text-sm">Loading...</p>
+      <SettingsSection title={m.profile_password_title()}>
+        <p className="text-muted-foreground text-sm">{m.profile_password_loading()}</p>
       </SettingsSection>
     );
   }
@@ -57,17 +60,17 @@ export function PasswordSection({ currentEmail }: { currentEmail: string }) {
 function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
   return (
     <SettingsSection
-      title="Password"
-      description="You sign in with a connected account, so this account has no password yet."
+      title={m.profile_password_title()}
+      description={m.profile_password_set_description()}
     >
       <FieldGroup>
         <FieldDescription>
-          Set one and you can sign in with your email address as well. We&apos;ll send a code to{" "}
-          <strong>{currentEmail}</strong> to confirm it&apos;s you.
+          {m.profile_password_set_hint_before()} <strong>{currentEmail}</strong>
+          {m.profile_password_set_hint_after()}
         </FieldDescription>
         <Field>
           <Button render={<Link to="/reset-password" search={{ email: currentEmail }} />}>
-            Set a password
+            {m.profile_password_set_cta()}
           </Button>
         </Field>
       </FieldGroup>
@@ -79,7 +82,7 @@ function ChangePasswordCard() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const form = useForm<PasswordValues>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordSchema()),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
@@ -95,7 +98,7 @@ function ChangePasswordCard() {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not change the password. Please try again." });
+      form.setError("root", { message: m.profile_password_change_failed() });
       return;
     }
     const { error } = result;
@@ -108,7 +111,10 @@ function ChangePasswordCard() {
   }
 
   return (
-    <SettingsSection title="Password" description="Other signed-in devices will be signed out.">
+    <SettingsSection
+      title={m.profile_password_title()}
+      description={m.profile_password_change_description()}
+    >
       <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
         <FieldGroup>
           {form.formState.errors.root && (
@@ -119,7 +125,7 @@ function ChangePasswordCard() {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Current password</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.profile_password_current_label()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
@@ -136,7 +142,7 @@ function ChangePasswordCard() {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>New password</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.profile_password_new_label()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
@@ -153,7 +159,7 @@ function ChangePasswordCard() {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Confirm new password</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.profile_password_confirm_label()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
@@ -167,13 +173,13 @@ function ChangePasswordCard() {
           />
           <Field>
             <Button type="submit" disabled={loading}>
-              {loading ? "Updating..." : "Update password"}
+              {loading ? m.profile_password_submit_pending() : m.profile_password_submit()}
             </Button>
           </Field>
           {success && (
             <FieldDescription className="flex items-center gap-1.5">
               <CheckIcon className="text-success size-3.5" />
-              Password updated.
+              {m.profile_password_updated()}
             </FieldDescription>
           )}
         </FieldGroup>

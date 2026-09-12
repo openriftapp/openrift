@@ -22,6 +22,7 @@ import { authClient } from "@/features/account/lib/auth-client";
 import { useResetCollections } from "@/features/collections/hooks/use-collections";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { errorText } from "@/lib/error-text";
+import { m } from "@/paraglide/messages.js";
 
 const RESET_CONFIRM_WORD = "reset";
 
@@ -31,9 +32,15 @@ function resetSummaryMessage(summary: {
   removedCopies: number;
   removedCollections: number;
 }): string {
-  const copies = summary.removedCopies === 1 ? "card" : "cards";
-  const collections = summary.removedCollections === 1 ? "collection" : "collections";
-  return `Collections reset: removed ${summary.removedCopies} ${copies} and ${summary.removedCollections} ${collections}.`;
+  const copies =
+    summary.removedCopies === 1
+      ? m.profile_danger_reset_summary_cards_one({ count: summary.removedCopies })
+      : m.profile_danger_reset_summary_cards_other({ count: summary.removedCopies });
+  const collections =
+    summary.removedCollections === 1
+      ? m.profile_danger_reset_summary_collections_one({ count: summary.removedCollections })
+      : m.profile_danger_reset_summary_collections_other({ count: summary.removedCollections });
+  return m.profile_danger_reset_summary({ cards: copies, collections });
 }
 
 function ResetCollectionsAction() {
@@ -44,7 +51,7 @@ function ResetCollectionsAction() {
 
   async function handleReset() {
     if (confirmText.trim().toLowerCase() !== RESET_CONFIRM_WORD) {
-      setError(`Type "${RESET_CONFIRM_WORD}" to confirm.`);
+      setError(m.profile_danger_reset_confirm_error({ word: RESET_CONFIRM_WORD }));
       return;
     }
     setError(null);
@@ -53,18 +60,15 @@ function ResetCollectionsAction() {
       setOpen(false);
       toast.success(resetSummaryMessage(summary));
     } catch (resetError) {
-      setError(errorText(resetError, "Failed to reset collections."));
+      setError(errorText(resetError, m.profile_danger_reset_failed()));
     }
   }
 
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="font-medium">Reset collections</p>
-        <p className="text-muted-foreground text-sm">
-          Removes every card and every collection except your Inbox, plus lists that end up empty.
-          Group collections are untouched.
-        </p>
+        <p className="font-medium">{m.profile_danger_reset_title()}</p>
+        <p className="text-muted-foreground text-sm">{m.profile_danger_reset_description()}</p>
       </div>
       <AlertDialog
         open={open}
@@ -79,25 +83,22 @@ function ResetCollectionsAction() {
         <AlertDialogTrigger
           render={
             <Button variant="destructive" className="self-start">
-              Reset collections
+              {m.profile_danger_reset_title()}
             </Button>
           }
         />
         <AlertDialogContent>
           <DialogForm onSubmit={() => void handleReset()}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Reset your collections?</AlertDialogTitle>
+              <AlertDialogTitle>{m.profile_danger_reset_dialog_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                This permanently removes every card you own, deletes all collections except your
-                Inbox, and removes lists that become empty (lists with dynamic rules are kept). Your
-                decks and account stay. This cannot be undone. Type &quot;
-                {RESET_CONFIRM_WORD}&quot; to confirm.
+                {m.profile_danger_reset_dialog_description({ word: RESET_CONFIRM_WORD })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="grid gap-2">
               <Input
                 autoComplete="off"
-                placeholder={`Type "${RESET_CONFIRM_WORD}" to confirm`}
+                placeholder={m.profile_danger_reset_placeholder({ word: RESET_CONFIRM_WORD })}
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 aria-invalid={Boolean(error)}
@@ -109,9 +110,11 @@ function ResetCollectionsAction() {
               )}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.profile_danger_cancel()}</AlertDialogCancel>
               <Button type="submit" variant="destructive" disabled={resetCollections.isPending}>
-                {resetCollections.isPending ? "Resetting..." : "Reset collections"}
+                {resetCollections.isPending
+                  ? m.profile_danger_reset_pending()
+                  : m.profile_danger_reset_title()}
               </Button>
             </AlertDialogFooter>
           </DialogForm>
@@ -131,7 +134,7 @@ function DeleteAccountAction() {
 
   async function handleDelete() {
     if (!password) {
-      setError("Password is required.");
+      setError(m.profile_danger_delete_password_required());
       return;
     }
     setLoading(true);
@@ -139,11 +142,11 @@ function DeleteAccountAction() {
     const result = await authClient.deleteUser({ password }).catch(() => null);
     setLoading(false);
     if (!result) {
-      setError("Failed to delete account.");
+      setError(m.profile_danger_delete_failed());
       return;
     }
     if (result.error) {
-      setError(result.error.message ?? "Failed to delete account.");
+      setError(result.error.message ?? m.profile_danger_delete_failed());
       return;
     }
     // Navigate before invalidating the session query: flipping the session
@@ -160,10 +163,8 @@ function DeleteAccountAction() {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="font-medium">Delete account</p>
-        <p className="text-muted-foreground text-sm">
-          Permanently deletes your account and everything in it.
-        </p>
+        <p className="font-medium">{m.profile_danger_delete_title()}</p>
+        <p className="text-muted-foreground text-sm">{m.profile_danger_delete_description()}</p>
       </div>
       <AlertDialog
         open={open}
@@ -178,24 +179,23 @@ function DeleteAccountAction() {
         <AlertDialogTrigger
           render={
             <Button variant="destructive" className="self-start">
-              Delete account
+              {m.profile_danger_delete_title()}
             </Button>
           }
         />
         <AlertDialogContent>
           <DialogForm onSubmit={() => void handleDelete()}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogTitle>{m.profile_danger_delete_dialog_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete your account and all your data. Enter your password to
-                confirm.
+                {m.profile_danger_delete_dialog_description()}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="grid gap-2">
               <Input
                 type="password"
                 autoComplete="current-password"
-                placeholder="Your password"
+                placeholder={m.profile_danger_delete_password_placeholder()}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={Boolean(error)}
@@ -207,9 +207,9 @@ function DeleteAccountAction() {
               )}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.profile_danger_cancel()}</AlertDialogCancel>
               <Button type="submit" variant="destructive" disabled={loading}>
-                {loading ? "Deleting..." : "Delete account"}
+                {loading ? m.profile_danger_delete_pending() : m.profile_danger_delete_title()}
               </Button>
             </AlertDialogFooter>
           </DialogForm>
@@ -223,8 +223,8 @@ export function DangerZoneSection() {
   return (
     <Card className="ring-destructive/50">
       <CardHeader>
-        <CardTitle>Danger Zone</CardTitle>
-        <CardDescription>These actions cannot be undone.</CardDescription>
+        <CardTitle>{m.profile_danger_title()}</CardTitle>
+        <CardDescription>{m.profile_danger_description()}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <ResetCollectionsAction />

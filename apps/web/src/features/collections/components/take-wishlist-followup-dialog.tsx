@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DialogForm } from "@/components/ui/dialog-form";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { useRemoveListEntry, useUpdateListEntry } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 
 interface TakeWishlistFollowUpDialogProps {
   printing: Printing | null;
@@ -51,7 +52,9 @@ export function TakeWishlistFollowUpDialog({
           });
     });
     const message =
-      chosen.length === 1 ? "Updated your wishlist" : `Updated ${chosen.length} wishlists`;
+      chosen.length === 1
+        ? m.collections_dialog_take_wishlist_updated_one()
+        : m.collections_dialog_take_wishlist_updated_other({ count: chosen.length });
     try {
       await Promise.all(updates);
       toast.success(message);
@@ -65,7 +68,7 @@ export function TakeWishlistFollowUpDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={() => void applyRemoval()}>
-          <AlertDialogTitle>Remove from your wishlist?</AlertDialogTitle>
+          <AlertDialogTitle>{m.collections_dialog_take_wishlist_title()}</AlertDialogTitle>
           {!single && (
             <div className="flex flex-col gap-2 py-1">
               {entries.map((entry) => (
@@ -91,10 +94,16 @@ export function TakeWishlistFollowUpDialog({
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Keep{single ? "" : " all"}
+              {single
+                ? m.collections_dialog_take_wishlist_keep()
+                : m.collections_dialog_take_wishlist_keep_all()}
             </Button>
             <Button type="submit" disabled={isPending || selectedIds.size === 0}>
-              {single ? `Remove from ${entries[0]?.listName}` : "Remove selected"}
+              {single
+                ? m.collections_dialog_take_wishlist_remove_from({
+                    list: entries[0]?.listName ?? "",
+                  })
+                : m.collections_dialog_take_wishlist_remove_selected()}
             </Button>
           </div>
         </DialogForm>

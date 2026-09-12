@@ -6,6 +6,7 @@ import { ExportDialog } from "@/features/collections/components/export-dialog";
 import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionExportDialogProps {
   collectionId?: string;
@@ -61,18 +62,21 @@ export function CollectionExportDialog({
         onCheckedChange={(checked) => setApplyFilters(checked === true)}
       />
       <label htmlFor="collection-export-apply-filters" className="cursor-pointer text-sm">
-        Only cards matching the current filters ({selectableCopyIds.length} of {totalCopies})
+        {m.collections_export_collection_filters({
+          selected: selectableCopyIds.length,
+          total: totalCopies,
+        })}
       </label>
     </div>
   );
 
   return (
     <ExportDialog
-      title="Export collection"
+      title={m.collections_export_collection_title()}
       filenameBase={collectionName}
       payload={{ mode: "printings", stacks: exportStacks, copiesById }}
       unit="copy"
-      successMessage="Collection exported."
+      successMessage={m.collections_export_collection_success()}
       scopeControls={scopeControls}
       isLoading={isLoading}
       open={open}

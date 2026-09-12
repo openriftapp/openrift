@@ -15,6 +15,7 @@ import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useUserId } from "@/lib/auth-session";
 import { withTimeout } from "@/lib/with-timeout";
+import { m } from "@/paraglide/messages.js";
 
 const LOCAL_SCOPE = "local";
 
@@ -105,7 +106,7 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
   try {
     const result = await withTimeout(
       saveDeckCardsFn({ data: { deckId: entry.deckId, cards }, signal: controller.signal }),
-      { label: "Save deck cards", abortController: controller },
+      { label: m.decks_editor_timeout_save(), abortController: controller },
     );
 
     if (seq < entry.lastAppliedSeq || controller.signal.aborted) {

@@ -27,17 +27,18 @@ import {
   useSingleActiveFilterLabel,
   useVisibleFilterDimensions,
 } from "@/features/cards/hooks/use-filter-dimensions";
-import { filterDimension, OWNED_BUCKETS } from "@/features/cards/lib/filter-dimensions";
+import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";
 import { nextOversize, oversizeCount, oversizeState } from "@/features/cards/lib/oversize-filter";
 import type { PresenceParamValue } from "@/features/cards/lib/presence-filter";
 import {
-  PRESENCE_LABELS,
+  presenceLabel,
   presenceFlagCount,
   presenceToFlagState,
 } from "@/features/cards/lib/presence-filter";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useTagCategories } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface FilterMoreMenuProps {
   availableFilters: AvailableFilters;
@@ -309,7 +310,7 @@ export function FilterMoreMenu({
     return (
       <FlagMenuItem
         key={`presence-${dimension}`}
-        label={PRESENCE_LABELS[dimension]}
+        label={presenceLabel(dimension)}
         state={state}
         count={presenceFlagCount(filterCounts?.presence[dimension], state)}
         onToggle={() => cyclePresence(dimension)}
@@ -355,7 +356,7 @@ export function FilterMoreMenu({
   const oversizeNode = showOversizeNode ? (
     <FlagMenuItem
       key="oversize"
-      label="Oversized"
+      label={m.cards_flag_oversized()}
       state={oversizeState_}
       count={oversizeCount(filterCounts?.cardSizes, oversizeState_)}
       onToggle={() => setArrayFilter("cardSizes", nextOversize(filterState.cardSizes))}
@@ -364,7 +365,7 @@ export function FilterMoreMenu({
   const overnumberedNode = showOvernumberedRow ? (
     <FlagMenuItem
       key="overnumbered"
-      label="Overnumbered"
+      label={m.cards_flag_overnumbered()}
       state={filterState.overnumbered}
       count={filterCounts?.flags.overnumbered}
       onToggle={toggleOvernumbered}
@@ -373,7 +374,7 @@ export function FilterMoreMenu({
   const signedNode = showSignedRow ? (
     <FlagMenuItem
       key="signed"
-      label="Signed"
+      label={m.cards_flag_signed()}
       state={filterState.signed}
       count={filterCounts?.flags.signed}
       onToggle={toggleSigned}
@@ -382,7 +383,7 @@ export function FilterMoreMenu({
   const bannedNode = shows("banned") ? (
     <FlagMenuItem
       key="banned"
-      label="Banned"
+      label={m.cards_flag_banned()}
       state={filterState.banned}
       count={filterCounts?.flags.banned}
       onToggle={toggleBanned}
@@ -391,7 +392,7 @@ export function FilterMoreMenu({
   const errataNode = shows("errata") ? (
     <FlagMenuItem
       key="errata"
-      label="Errata"
+      label={m.cards_flag_errata()}
       state={filterState.errata}
       count={filterCounts?.flags.errata}
       onToggle={toggleErrata}
@@ -400,7 +401,7 @@ export function FilterMoreMenu({
   const noImageNode = shows("noImage") ? (
     <FlagMenuItem
       key="noImage"
-      label="No image yet"
+      label={m.cards_flag_no_image()}
       state={filterState.noImage}
       count={filterCounts?.flags.noImage}
       onToggle={toggleNoImage}
@@ -409,7 +410,7 @@ export function FilterMoreMenu({
   const standardNode = shows("standard") ? (
     <FlagMenuItem
       key="standard"
-      label="Standard"
+      label={m.cards_label_standard()}
       state={filterState.standard}
       count={filterCounts?.flags.standard}
       onToggle={toggleStandard}
@@ -433,8 +434,10 @@ export function FilterMoreMenu({
             included={selectedInCategory}
             excluded={excludedInCategory}
             onCycle={(value) => cycleArrayFilter("customTags", "customTagsEx", value)}
-            searchPlaceholder={`Search ${categoryLabel.toLowerCase()}…`}
-            emptyText={`No ${categoryLabel.toLowerCase()} match.`}
+            searchPlaceholder={m.cards_filter_search_placeholder({
+              label: categoryLabel.toLowerCase(),
+            })}
+            emptyText={m.cards_filter_no_match({ label: categoryLabel.toLowerCase() })}
           />
         );
       })
@@ -456,8 +459,10 @@ export function FilterMoreMenu({
             included={selectedInGroup}
             excluded={excludedInGroup}
             onCycle={(value) => cycleArrayFilter("tags", "tagsEx", value)}
-            searchPlaceholder={`Search ${group.label.toLowerCase()}…`}
-            emptyText={`No ${group.label.toLowerCase()} match.`}
+            searchPlaceholder={m.cards_filter_search_placeholder({
+              label: group.label.toLowerCase(),
+            })}
+            emptyText={m.cards_filter_no_match({ label: group.label.toLowerCase() })}
           />
         );
       })
@@ -465,13 +470,13 @@ export function FilterMoreMenu({
   const ownedNode = showOwned ? (
     <MoreDimension
       key="owned"
-      label="Owned"
-      options={OWNED_BUCKETS.map((bucket) => ({ value: bucket.value, label: bucket.label }))}
+      label={m.cards_label_owned()}
+      options={ownedBuckets().map((bucket) => ({ value: bucket.value, label: bucket.label }))}
       included={filterState.owned}
       onIncludeChange={(next) => setArrayFilter("owned", next)}
       onIncludeToggle={(value) => toggleArrayFilter("owned", value)}
-      searchPlaceholder="Search owned…"
-      emptyText="No options match."
+      searchPlaceholder={m.cards_filter_search_owned()}
+      emptyText={m.cards_filter_no_options_match()}
     />
   ) : null;
   const copiesNode = showCopies ? (
@@ -547,13 +552,13 @@ export function FilterMoreMenu({
         }
         aria-label={
           singleActiveLabel
-            ? `More filters: ${singleActiveLabel}`
+            ? m.cards_filter_more_single({ label: singleActiveLabel })
             : active
-              ? `More, ${activeCount} selected`
-              : "More"
+              ? m.cards_filter_more_selected({ count: activeCount })
+              : m.cards_filter_more()
         }
       >
-        {singleActiveLabel ?? "More"}
+        {singleActiveLabel ?? m.cards_filter_more()}
         {active && !singleActiveLabel && <span className="tabular-nums">({activeCount})</span>}
         <ChevronDownIcon />
       </DropdownMenuTrigger>

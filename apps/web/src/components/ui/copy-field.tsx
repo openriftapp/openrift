@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Hand-authored primitive (not shadcn-scaffolded).
 //
@@ -48,7 +49,7 @@ export function CopyField({ value, label, mono = false, className }: CopyFieldPr
       />
       <Button variant="outline" onClick={() => void copy(value)}>
         {copied ? <CheckIcon /> : <CopyIcon />}
-        {copied ? "Copied" : "Copy"}
+        {copied ? m.common_copied() : m.common_copy()}
       </Button>
     </div>
   );

@@ -5,6 +5,8 @@ import {
 } from "@openrift/shared/card-trade-lifecycle";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 
+import { m } from "@/paraglide/messages.js";
+
 import { distinctPrintingIds } from "./friend-group-activity";
 import type { MatchDirection, MatchSuggestionFields } from "./trade-derivation";
 import { tradeSuggestionKeys, withoutLiveTradeMatches } from "./trade-derivation";
@@ -98,19 +100,19 @@ export function needsYouLine(
   const { toAnswer, toHandOver, toReceive } = needsYouCounts(needsYou);
   const acts: string[] = [];
   if (toAnswer > 0) {
-    acts.push(`${toAnswer} to answer`);
+    acts.push(m.trades_to_answer({ count: toAnswer }));
   }
   if (toHandOver > 0) {
-    acts.push(`${toHandOver} to hand over`);
+    acts.push(m.trades_to_hand_over({ count: toHandOver }));
   }
   if (toReceive > 0) {
     // Matches the overview band's "To confirm" label for the same stage.
-    acts.push(`${toReceive} to confirm`);
+    acts.push(m.trades_to_confirm({ count: toReceive }));
   }
   const parts = [acts.join(", ")];
   const soon = expiringSoonCount(needsYou, now);
   if (soon > 0) {
-    parts.push(`${soon} ${soon === 1 ? "expires" : "expire"} soon`);
+    parts.push(expiresSoonLine(soon));
   }
   return parts.join(" · ");
 }
@@ -170,20 +172,33 @@ function cardRank(card: TradeHubCard<TradeHubMember>): number {
   return 4;
 }
 
+function expiresSoonLine(count: number): string {
+  return count === 1 ? m.trades_expire_soon_one({ count }) : m.trades_expire_soon_other({ count });
+}
+
 export function possibleTradesLine(count: number): string {
-  return `${count} possible ${count === 1 ? "trade" : "trades"}`;
+  return count === 1 ? m.trades_possible_one({ count }) : m.trades_possible_other({ count });
 }
 
 export function suggestionsLine(card: TradeHubCard<TradeHubMember>): string | null {
-  const groups = card.suggestionsElsewhere === 1 ? "another group" : "other groups";
+  const single = card.suggestionsElsewhere === 1;
   if (card.suggestions === 0) {
-    return card.suggestionsElsewhere === 0
-      ? null
-      : `${possibleTradesLine(card.suggestionsElsewhere)} in ${groups}`;
+    if (card.suggestionsElsewhere === 0) {
+      return null;
+    }
+    const trades = possibleTradesLine(card.suggestionsElsewhere);
+    return single
+      ? m.trades_suggestions_elsewhere_another({ trades })
+      : m.trades_suggestions_elsewhere_other({ trades });
   }
-  return card.suggestionsElsewhere === 0
-    ? possibleTradesLine(card.suggestions)
-    : `${possibleTradesLine(card.suggestions)} · ${card.suggestionsElsewhere} more in ${groups}`;
+  const trades = possibleTradesLine(card.suggestions);
+  if (card.suggestionsElsewhere === 0) {
+    return trades;
+  }
+  const count = card.suggestionsElsewhere;
+  return single
+    ? m.trades_suggestions_more_another({ trades, count })
+    : m.trades_suggestions_more_other({ trades, count });
 }
 
 export function isQuietTradeHubCard(card: TradeHubCard<TradeHubMember>): boolean {
@@ -269,28 +284,29 @@ export interface TradeShelf {
 
 function memberPhrase(names: readonly string[]): string {
   if (names.length === 1) {
-    return names[0] ?? "a member";
+    return names[0] ?? m.trades_a_member();
   }
-  if (names.length === 2) {
-    return `${names[0]} and ${names[1]}`;
+  const [first, second] = names;
+  if (names.length === 2 && first !== undefined && second !== undefined) {
+    return m.trades_member_pair({ first, second });
   }
-  return `${names.length} members`;
+  return m.trades_member_count({ count: names.length });
 }
 
 function counterpartyNames(trades: readonly CardTradeResponse[]): string[] {
   const names = new Set<string>();
   for (const trade of trades) {
-    names.add(trade.counterparty.name ?? "a member");
+    names.add(trade.counterparty.name ?? m.trades_a_member());
   }
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
-function cardNoun(count: number): string {
-  return count === 1 ? "card" : "cards";
+function cardCount(count: number): string {
+  return count === 1 ? m.common_cards_one({ count }) : m.common_cards_other({ count });
 }
 
-function memberNoun(count: number): string {
-  return count === 1 ? "member" : "members";
+function memberCount(count: number): string {
+  return count === 1 ? m.trades_members_one({ count }) : m.trades_members_other({ count });
 }
 
 function obligationDetail(
@@ -299,12 +315,14 @@ function obligationDetail(
   who: string,
 ): string {
   if (key === "answer") {
-    return `${count} ${count === 1 ? "request" : "requests"} from ${who}`;
+    const requests =
+      count === 1 ? m.trades_requests_one({ count }) : m.trades_requests_other({ count });
+    return m.trades_detail_requests_from({ requests, who });
   }
   if (key === "hand-over") {
-    return `${count} ${cardNoun(count)} for ${who}`;
+    return m.trades_detail_cards_for({ cards: cardCount(count), who });
   }
-  return `${count} ${cardNoun(count)} from ${who}`;
+  return m.trades_detail_cards_from({ cards: cardCount(count), who });
 }
 
 function obligationRow(
@@ -322,7 +340,7 @@ function obligationRow(
     label,
     tone: "warning",
     printingIds: distinctPrintingIds(trades),
-    detail: tail === "" ? detail : `${detail}, ${tail}`,
+    detail: tail === "" ? detail : m.trades_detail_with_tail({ detail, tail }),
   };
 }
 
@@ -342,8 +360,11 @@ function suggestionRow(
   const members = new Set(matches.map((match) => match.counterpartyUserId)).size;
   const detail =
     key === "could-get"
-      ? `${count} ${cardNoun(count)} from ${members} ${memberNoun(members)}`
-      : `${count} ${cardNoun(count)}, wanted by ${members} ${memberNoun(members)}`;
+      ? m.trades_shelf_could_get_detail({ cards: cardCount(count), members: memberCount(members) })
+      : m.trades_shelf_would_want_detail({
+          cards: cardCount(count),
+          members: memberCount(members),
+        });
   return { key, label, tone: "success", printingIds: distinctPrintingIds(matches), detail };
 }
 
@@ -360,29 +381,29 @@ export function buildTradeShelf({
 }): TradeShelf {
   const sorted = sortNeedsYou(needsYou);
   const soon = expiringSoonCount(sorted, now);
-  const expiry = soon === 0 ? "" : `${soon} ${soon === 1 ? "expires" : "expire"} soon`;
+  const expiry = soon === 0 ? "" : expiresSoonLine(soon);
 
   const rows = [
     obligationRow(
       "answer",
-      "To answer",
+      m.trades_shelf_to_answer(),
       sorted.filter((trade) => trade.actionNeeded === "accept-or-decline"),
       expiry,
     ),
     obligationRow(
       "hand-over",
-      "To hand over",
+      m.trades_shelf_to_hand_over(),
       sorted.filter((trade) => trade.actionNeeded === "settle" && trade.role === "giver"),
       "",
     ),
     obligationRow(
       "confirm",
-      "To confirm",
+      m.trades_shelf_to_confirm(),
       sorted.filter((trade) => trade.actionNeeded === "settle" && trade.role === "receiver"),
       "",
     ),
-    suggestionRow("could-get", "You could get", incoming, "incoming"),
-    suggestionRow("would-want", "They would want", outgoing, "outgoing"),
+    suggestionRow("could-get", m.trades_shelf_could_get(), incoming, "incoming"),
+    suggestionRow("would-want", m.trades_shelf_would_want(), outgoing, "outgoing"),
   ].filter((row) => row !== null);
 
   const waitingPeople = counterpartyNames(sorted).length;
@@ -391,9 +412,11 @@ export function buildTradeShelf({
     waitingPeople,
     headline:
       waitingPeople > 0
-        ? `${waitingPeople} ${waitingPeople === 1 ? "person is" : "people are"} waiting on you`
+        ? waitingPeople === 1
+          ? m.trades_waiting_on_you_one({ count: waitingPeople })
+          : m.trades_waiting_on_you_other({ count: waitingPeople })
         : rows.length > 0
-          ? "Nothing waiting on you"
-          : "No matches in this group yet",
+          ? m.trades_nothing_waiting()
+          : m.trades_no_matches_in_group(),
   };
 }

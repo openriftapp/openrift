@@ -16,6 +16,7 @@ import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
 import { coverOverflowPx, coverPositionFromDrag } from "@/lib/cover-focus";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
   const upload = useUploadGroupBanner();
@@ -111,26 +112,24 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
             <img
               ref={previewRef}
               src={group.bannerUrl}
-              alt="Group banner"
+              alt={m.groups_banner_alt()}
               draggable={false}
               className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
               style={{ objectPosition: `50% ${position}%` }}
             />
           </div>
-          <span className="text-muted-foreground text-xs">
-            Exactly what the group page and the groups list show.
-          </span>
+          <span className="text-muted-foreground text-xs">{m.groups_banner_preview_hint()}</span>
         </div>
       ) : null}
 
       {group.bannerUrl ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <Label>Vertical focus</Label>
-            <span className="text-muted-foreground text-sm">Or drag the preview</span>
+            <Label>{m.groups_banner_focus_label()}</Label>
+            <span className="text-muted-foreground text-sm">{m.groups_banner_focus_hint()}</span>
           </div>
           <Slider
-            aria-label="Vertical focus"
+            aria-label={m.groups_banner_focus_label()}
             value={[position]}
             min={0}
             max={100}
@@ -150,12 +149,12 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
         icon={<ImageUpIcon className="text-muted-foreground size-5" />}
         label={
           upload.isPending
-            ? "Uploading…"
+            ? m.groups_banner_uploading()
             : group.bannerUrl
-              ? "Choose a different picture"
-              : "Add a banner"
+              ? m.groups_banner_choose_different()
+              : m.groups_banner_add()
         }
-        hint="JPG, PNG or WebP, up to 20 MB. Wide pictures work best, around 1600 × 400."
+        hint={m.groups_banner_hint()}
         onFiles={handleFiles}
       />
       {uploadError ? (
@@ -172,14 +171,14 @@ export function GroupBannerPanel({ group }: { group: FriendGroupResponse }) {
             onClick={() => remove.mutate(group.slug)}
             disabled={busy}
           >
-            Remove banner
+            {m.groups_banner_remove()}
           </Button>
           <Button
             size="sm"
             onClick={() => update.mutate({ slug: group.slug, bannerPosition: position })}
             disabled={busy || !positionChanged}
           >
-            Save focus
+            {m.groups_banner_save_focus()}
           </Button>
         </div>
       ) : null}

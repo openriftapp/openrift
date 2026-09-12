@@ -85,6 +85,7 @@ import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-
 import { useChampionIdentifierTags, useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckOverviewProps {
   deck: {
@@ -180,9 +181,7 @@ export function DeckOverview({
   const dismissIntro = useOnboardingStore((state) => state.dismissDeckBuilderIntro);
   const showIntroBanner = !readOnly && totalCards === 0 && !introDismissed;
   const fallbackHint =
-    !readOnly && totalCards > 0 && !hasLegend
-      ? "Pick a Legend to unlock matching Champions and auto-fill Runes."
-      : null;
+    !readOnly && totalCards > 0 && !hasLegend ? m.decks_overview_pick_legend_hint() : null;
 
   // Gate behind hydration: SSR and the first client render must both show grid,
   // or a stored "list" pref flips the tree after hydration and trips a mismatch.
@@ -314,11 +313,13 @@ export function DeckOverview({
     });
 
   const groupOptions: SortGroupOption<DeckOverviewGroup>[] = [
-    { value: "type", label: "Type" },
-    { value: "energy", label: "Energy" },
-    { value: "domain", label: "Domain" },
-    ...(canPreferOwned ? [{ value: "ownership" as const, label: "Ownership" }] : []),
-    { value: "none", label: "None" },
+    { value: "type", label: m.decks_overview_group_type() },
+    { value: "energy", label: m.decks_overview_group_energy() },
+    { value: "domain", label: m.decks_overview_group_domain() },
+    ...(canPreferOwned
+      ? [{ value: "ownership" as const, label: m.decks_overview_group_ownership() }]
+      : []),
+    { value: "none", label: m.decks_overview_group_none() },
   ];
 
   const tab = useDeckBuilderUiStore((state) => state.overviewTab);
@@ -524,14 +525,14 @@ export function DeckOverview({
                     variant="ghost"
                     size="icon-sm"
                     className="-my-1 -mr-1 shrink-0"
-                    aria-label="Edit description"
+                    aria-label={m.decks_overview_edit_description()}
                     onClick={onEditDescription}
                   />
                 }
               >
                 <PencilIcon className="size-4" />
               </TooltipTrigger>
-              <TooltipContent>Edit description</TooltipContent>
+              <TooltipContent>{m.decks_overview_edit_description()}</TooltipContent>
             </Tooltip>
           )}
         </Callout>
@@ -600,14 +601,21 @@ export function DeckOverview({
                   </span>
                   <span className="text-muted-foreground tabular-nums">
                     <span className="hidden sm:inline">· </span>
-                    {statsFocusCount(cards, statsFocus)} in deck
+                    {m.decks_overview_focus_in_deck({
+                      count: statsFocusCount(cards, statsFocus),
+                    })}
                     {focusOpeningChance !== null && (
-                      <> · {formatChancePct(focusOpeningChance)} in your opening hand</>
+                      <>
+                        {" · "}
+                        {m.decks_overview_focus_opening_hand({
+                          chance: formatChancePct(focusOpeningChance),
+                        })}
+                      </>
                     )}
                   </span>
                 </span>
                 <ChipRemoveButton
-                  aria-label="Show all cards"
+                  aria-label={m.decks_overview_focus_clear()}
                   className="shrink-0"
                   onClick={() => setStatsFocus(null)}
                 />

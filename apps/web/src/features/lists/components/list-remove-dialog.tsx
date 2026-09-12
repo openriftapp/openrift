@@ -1,4 +1,5 @@
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { m } from "@/paraglide/messages.js";
 
 interface ListRemoveDialogProps {
   open: boolean;
@@ -15,20 +16,22 @@ export function ListRemoveDialog({
   onConfirm,
   isPending,
 }: ListRemoveDialogProps) {
-  const cardNoun = `card${count === 1 ? "" : "s"}`;
   return (
     <ConfirmActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Remove from list"
+      title={m.lists_remove_title()}
       description={
-        <>
-          Remove {count} {cardNoun} from this list? You can always add {count === 1 ? "it" : "them"}{" "}
-          back later.
-        </>
+        count === 1
+          ? m.lists_remove_description_one({ count })
+          : m.lists_remove_description_other({ count })
       }
-      confirmLabel={`Remove ${count} ${cardNoun}`}
-      pendingLabel="Removing…"
+      confirmLabel={
+        count === 1
+          ? m.lists_remove_confirm_one({ count })
+          : m.lists_remove_confirm_other({ count })
+      }
+      pendingLabel={m.lists_remove_pending()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

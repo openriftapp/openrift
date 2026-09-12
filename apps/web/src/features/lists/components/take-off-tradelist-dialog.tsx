@@ -14,6 +14,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { disposeConfirmState } from "@/lib/dispose-confirm";
+import { m } from "@/paraglide/messages.js";
 
 type Outcome = "keep" | "sold";
 
@@ -40,8 +41,7 @@ export function TakeOffTradelistDialog({
   membershipsLoading = false,
   reservedCount = 0,
 }: TakeOffTradelistDialogProps) {
-  const cardNoun = `card${count === 1 ? "" : "s"}`;
-  const pronoun = count === 1 ? "it" : "them";
+  const isOne = count === 1;
   const { showListWarning, needsTypeConfirm, copiesOnAnyList } = disposeConfirmState(
     count,
     memberships,
@@ -70,9 +70,13 @@ export function TakeOffTradelistDialog({
       <AlertDialogContent>
         <DialogForm onSubmit={() => (sold ? onSold() : onKeep())}>
           <AlertDialogTitle>
-            Take {count} {cardNoun} off your tradelist
+            {isOne
+              ? m.lists_entry_takeoff_title_one({ count })
+              : m.lists_entry_takeoff_title_other({ count })}
           </AlertDialogTitle>
-          <AlertDialogDescription>What happened to {pronoun}?</AlertDialogDescription>
+          <AlertDialogDescription>
+            {isOne ? m.lists_entry_takeoff_what_one() : m.lists_entry_takeoff_what_other()}
+          </AlertDialogDescription>
 
           <RadioGroup value={outcome} onValueChange={(value) => setOutcome(value as Outcome)}>
             <label
@@ -81,10 +85,13 @@ export function TakeOffTradelistDialog({
             >
               <RadioGroupItem id="take-off-keep" value="keep" className="mt-0.5" />
               <span className="space-y-0.5">
-                <span className="block font-medium">I&apos;m keeping {pronoun}</span>
+                <span className="block font-medium">
+                  {isOne ? m.lists_entry_takeoff_keep_one() : m.lists_entry_takeoff_keep_other()}
+                </span>
                 <span className="text-muted-foreground block text-sm">
-                  Just takes {pronoun} off this tradelist. {count === 1 ? "It stays" : "They stay"}{" "}
-                  in your collection.
+                  {isOne
+                    ? m.lists_entry_takeoff_keep_hint_one()
+                    : m.lists_entry_takeoff_keep_hint_other()}
                 </span>
               </span>
             </label>
@@ -103,18 +110,23 @@ export function TakeOffTradelistDialog({
                 className="mt-0.5"
               />
               <span className="space-y-0.5">
-                <span className="block font-medium">I traded or sold {pronoun}</span>
+                <span className="block font-medium">
+                  {isOne ? m.lists_entry_takeoff_sold_one() : m.lists_entry_takeoff_sold_other()}
+                </span>
                 <span className="text-muted-foreground block text-sm">
-                  Also removes {pronoun} from your collection for good. This can&apos;t be undone,
-                  but it&apos;s recorded in your activity history.
+                  {isOne
+                    ? m.lists_entry_takeoff_sold_hint_one()
+                    : m.lists_entry_takeoff_sold_hint_other()}
                 </span>
                 {soldBlocked && (
                   <span className="text-muted-foreground flex items-start gap-1.5 text-sm">
                     <TriangleAlertIcon className="text-destructive mt-0.5 size-4 shrink-0" />
                     <span>
                       {reservedCount === count
-                        ? `${count === 1 ? "This card is" : "These cards are"} in a live trade. Complete or cancel it first.`
-                        : `${reservedCount} of these are in a live trade and can't be sold here. Take those off separately.`}
+                        ? isOne
+                          ? m.lists_entry_takeoff_reserved_all_one()
+                          : m.lists_entry_takeoff_reserved_all_other()
+                        : m.lists_entry_takeoff_reserved_some({ count: reservedCount })}
                     </span>
                   </span>
                 )}
@@ -127,12 +139,12 @@ export function TakeOffTradelistDialog({
               <TriangleAlertIcon className="mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
                 <p className="font-medium">
-                  {copiesOnAnyList} of these {copiesOnAnyList === 1 ? "is" : "are"} also on your
-                  other lists
+                  {copiesOnAnyList === 1
+                    ? m.lists_entry_takeoff_alsolists_one({ count: copiesOnAnyList })
+                    : m.lists_entry_takeoff_alsolists_other({ count: copiesOnAnyList })}
                 </p>
                 <p>
-                  Removing {pronoun} from your collection drops{" "}
-                  {copiesOnAnyList === 1 ? "it" : "them"} off:
+                  {isOne ? m.lists_entry_takeoff_drops_one() : m.lists_entry_takeoff_drops_other()}
                 </p>
                 <ul className="list-disc space-y-0.5 pl-4">
                   {memberships?.lists.map((list) => (
@@ -148,7 +160,9 @@ export function TakeOffTradelistDialog({
           {sold && needsTypeConfirm && (
             <div className="space-y-1.5">
               <label htmlFor="take-off-confirm" className="text-sm font-medium">
-                Type <span className="font-mono">{count}</span> to confirm
+                {m.lists_entry_takeoff_type_confirm_before()}{" "}
+                <span className="font-mono">{count}</span>{" "}
+                {m.lists_entry_takeoff_type_confirm_after()}
               </label>
               <Input
                 id="take-off-confirm"
@@ -164,7 +178,7 @@ export function TakeOffTradelistDialog({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button
               type="submit"
@@ -174,18 +188,22 @@ export function TakeOffTradelistDialog({
               {sold && membershipsLoading ? (
                 <>
                   <LoaderIcon className="animate-spin" />
-                  Checking your other lists…
+                  {m.lists_entry_takeoff_checking()}
                 </>
               ) : isPending ? (
                 sold ? (
-                  "Removing…"
+                  m.lists_entry_takeoff_removing()
                 ) : (
-                  "Taking off…"
+                  m.lists_entry_takeoff_takingoff()
                 )
               ) : sold ? (
-                `Remove ${count} ${cardNoun}`
+                isOne ? (
+                  m.lists_entry_takeoff_remove_one({ count })
+                ) : (
+                  m.lists_entry_takeoff_remove_other({ count })
+                )
               ) : (
-                "Take off list"
+                m.lists_entry_take_off()
               )}
             </Button>
           </div>

@@ -34,6 +34,7 @@ import { EnergyPowerChart } from "@/features/decks/components/stats/energy-power
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export function CollectionStatsPage() {
@@ -66,7 +67,9 @@ export function CollectionStatsPage() {
     topBarSlot &&
     createPortal(
       <PageTopBar>
-        <PageTopBarTitle onToggleSidebar={toggleSidebar}>Statistics</PageTopBarTitle>
+        <PageTopBarTitle onToggleSidebar={toggleSidebar}>
+          {m.collections_stats_title()}
+        </PageTopBarTitle>
       </PageTopBar>,
       topBarSlot,
     );
@@ -100,7 +103,9 @@ export function CollectionStatsPage() {
         ) : (
           <div className="space-y-10">
             <section className="space-y-4">
-              <SectionHeading variant="display">Completion</SectionHeading>
+              <SectionHeading variant="display">
+                {m.collections_stats_heading_completion()}
+              </SectionHeading>
               <CompletionSection
                 stats={stats}
                 groupBy={groupBy}
@@ -110,7 +115,9 @@ export function CollectionStatsPage() {
             </section>
 
             <section className="space-y-4">
-              <SectionHeading variant="display">Cost to Complete</SectionHeading>
+              <SectionHeading variant="display">
+                {m.collections_stats_heading_cost_to_complete()}
+              </SectionHeading>
               <CostToCompleteChart
                 allPrintings={stats.allPrintings}
                 stacks={stats.stacks}
@@ -124,25 +131,29 @@ export function CollectionStatsPage() {
 
             {priceHistoryEnabled && (
               <section className="space-y-4">
-                <SectionHeading variant="display">Value Over Time</SectionHeading>
+                <SectionHeading variant="display">
+                  {m.collections_stats_heading_value_over_time()}
+                </SectionHeading>
                 <CollectionValueChart collectionId={collectionId} scope={scope} />
               </section>
             )}
 
             <section className="space-y-4">
-              <SectionHeading variant="display">Stats</SectionHeading>
+              <SectionHeading variant="display">
+                {m.collections_stats_heading_stats()}
+              </SectionHeading>
               <StatsHeroStats stats={stats} />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">Domain</SectionHeading>
+                  <SectionHeading as="h3">{m.collections_stats_heading_domain()}</SectionHeading>
                   <DomainDistributionChart data={stats.domainDistribution} />
                 </section>
                 <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">Rarity</SectionHeading>
+                  <SectionHeading as="h3">{m.collections_stats_heading_rarity()}</SectionHeading>
                   <RarityDistributionChart data={stats.rarityDistribution} />
                 </section>
                 <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">Type</SectionHeading>
+                  <SectionHeading as="h3">{m.collections_stats_heading_type()}</SectionHeading>
                   <TypeDistributionChart data={stats.typeBreakdown} />
                 </section>
               </div>
@@ -153,7 +164,9 @@ export function CollectionStatsPage() {
 
               {(stats.energyCurve.length > 0 || stats.powerCurve.length > 0) && (
                 <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3">Energy &amp; Power</SectionHeading>
+                  <SectionHeading as="h3">
+                    {m.collections_stats_heading_energy_power()}
+                  </SectionHeading>
                   <EnergyPowerChart
                     energyData={stats.energyCurve}
                     energyStacks={stats.energyCurveStacks}

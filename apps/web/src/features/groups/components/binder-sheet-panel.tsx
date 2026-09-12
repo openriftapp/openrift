@@ -21,7 +21,11 @@ import type {
 import {
   BINDER_SHEET_PAPERS,
   BINDER_SHEET_SPECS,
+  binderSheetPaperLabel,
+  binderSheetSizeHint,
+  binderSheetSizeLabel,
 } from "@/features/collections/lib/binder-sheet-specs";
+import { m } from "@/paraglide/messages.js";
 
 export interface BinderSheetPanelProps {
   shareUrl: string;
@@ -30,20 +34,26 @@ export interface BinderSheetPanelProps {
   filenameHint?: string;
 }
 
-const SIZE_ITEMS = (Object.keys(BINDER_SHEET_SPECS) as BinderSheetSize[]).map((value) => ({
-  value,
-  label: BINDER_SHEET_SPECS[value].label,
-}));
+function sizeItems(): { value: BinderSheetSize; label: string }[] {
+  return (Object.keys(BINDER_SHEET_SPECS) as BinderSheetSize[]).map((value) => ({
+    value,
+    label: binderSheetSizeLabel(value),
+  }));
+}
 
-const PAPER_ITEMS = (Object.keys(BINDER_SHEET_PAPERS) as BinderSheetPaper[]).map((value) => ({
-  value,
-  label: BINDER_SHEET_PAPERS[value].label,
-}));
+function paperItems(): { value: BinderSheetPaper; label: string }[] {
+  return (Object.keys(BINDER_SHEET_PAPERS) as BinderSheetPaper[]).map((value) => ({
+    value,
+    label: binderSheetPaperLabel(value),
+  }));
+}
 
-const STYLE_ITEMS: { value: BinderSheetStyle; label: string }[] = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark header" },
-];
+function styleItems(): { value: BinderSheetStyle; label: string }[] {
+  return [
+    { value: "light", label: m.binder_style_light() },
+    { value: "dark", label: m.binder_style_dark() },
+  ];
+}
 
 /**
  * Module scope, not the handler: react-compiler cannot lower an `import()`
@@ -71,6 +81,10 @@ export function BinderSheetPanel({
   const [style, setStyle] = useState<BinderSheetStyle>("light");
   const [generating, setGenerating] = useState(false);
 
+  const sizes = sizeItems();
+  const papers = paperItems();
+  const styles = styleItems();
+
   const handleCreate = async () => {
     setGenerating(true);
     const generateBinderSheetPdf = await loadBinderSheetGenerator();
@@ -91,7 +105,7 @@ export function BinderSheetPanel({
       });
       setGenerating(false);
     } catch {
-      toast.error("Couldn't create the PDF. Please try again.");
+      toast.error(m.binder_error());
       setGenerating(false);
     }
   };
@@ -100,7 +114,7 @@ export function BinderSheetPanel({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="binder-sheet-title">Title</Label>
+          <Label htmlFor="binder-sheet-title">{m.binder_title_label()}</Label>
           <Input
             id="binder-sheet-title"
             value={title}
@@ -109,7 +123,7 @@ export function BinderSheetPanel({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="binder-sheet-subtitle">Line under the title</Label>
+          <Label htmlFor="binder-sheet-subtitle">{m.binder_subtitle_label()}</Label>
           <Input
             id="binder-sheet-subtitle"
             value={subtitle}
@@ -118,19 +132,19 @@ export function BinderSheetPanel({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="binder-sheet-contact">Contact (optional)</Label>
+          <Label htmlFor="binder-sheet-contact">{m.binder_contact_label()}</Label>
           <Input
             id="binder-sheet-contact"
             value={contact}
-            placeholder="Discord: summonerkai"
+            placeholder={m.binder_contact_placeholder()}
             onChange={(event) => setContact(event.target.value)}
           />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="binder-sheet-size">Size</Label>
+          <Label htmlFor="binder-sheet-size">{m.binder_size_label()}</Label>
           <Select
-            items={SIZE_ITEMS}
+            items={sizes}
             value={size}
             onValueChange={(value) => setSize(value as BinderSheetSize)}
           >
@@ -138,21 +152,21 @@ export function BinderSheetPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SIZE_ITEMS.map((item) => (
+              {sizes.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground text-sm">{BINDER_SHEET_SPECS[size].hint}</p>
+          <p className="text-muted-foreground text-sm">{binderSheetSizeHint(size)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="binder-sheet-paper">Paper</Label>
+            <Label htmlFor="binder-sheet-paper">{m.binder_paper_label()}</Label>
             <Select
-              items={PAPER_ITEMS}
+              items={papers}
               value={paper}
               onValueChange={(value) => setPaper(value as BinderSheetPaper)}
             >
@@ -160,7 +174,7 @@ export function BinderSheetPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAPER_ITEMS.map((item) => (
+                {papers.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -170,9 +184,9 @@ export function BinderSheetPanel({
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="binder-sheet-style">Style</Label>
+            <Label htmlFor="binder-sheet-style">{m.binder_style_label()}</Label>
             <Select
-              items={STYLE_ITEMS}
+              items={styles}
               value={style}
               onValueChange={(value) => setStyle(value as BinderSheetStyle)}
             >
@@ -180,7 +194,7 @@ export function BinderSheetPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STYLE_ITEMS.map((item) => (
+                {styles.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -198,7 +212,7 @@ export function BinderSheetPanel({
               onCheckedChange={(checked) => setShowLink(checked === true)}
             />
             <label htmlFor="binder-sheet-show-link" className="cursor-pointer text-sm">
-              Print the link as text too, for people who can’t scan
+              {m.binder_show_link()}
             </label>
           </div>
 
@@ -209,9 +223,7 @@ export function BinderSheetPanel({
               onCheckedChange={(checked) => setCutMarks(checked === true)}
             />
             <label htmlFor="binder-sheet-cut-marks" className="cursor-pointer text-sm">
-              {size === "card"
-                ? "Add cut lines between the nine copies"
-                : "Add crop marks around the sheet"}
+              {size === "card" ? m.binder_cut_marks_card() : m.binder_cut_marks_sheet()}
             </label>
           </div>
 
@@ -222,26 +234,24 @@ export function BinderSheetPanel({
               onCheckedChange={(checked) => setRuler(checked === true)}
             />
             <label htmlFor="binder-sheet-ruler" className="cursor-pointer text-sm">
-              Add a 50 mm bar in the margin to check the print scale
+              {m.binder_ruler()}
             </label>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground text-sm">
-          Print at 100% (Actual size), not Fit to page.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.binder_print_scale_note()}</p>
         <Button className="self-start" onClick={() => void handleCreate()} disabled={generating}>
           {generating ? (
             <>
               <Loader2Icon className="animate-spin" />
-              Creating…
+              {m.binder_creating()}
             </>
           ) : (
             <>
               <PrinterIcon />
-              Create PDF
+              {m.binder_create_pdf()}
             </>
           )}
         </Button>

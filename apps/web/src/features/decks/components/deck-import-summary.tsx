@@ -23,6 +23,7 @@ import { requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useChampionIdentifierTags } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 /** Drops rows whose card is missing from the catalog: type narrowing, not a real case. */
@@ -90,7 +91,9 @@ export function DeckImportSummary({
       <Callout className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="shrink-0 text-sm font-medium tabular-nums">
-            {totalCards} {totalCards === 1 ? "card" : "cards"}
+            {totalCards === 1
+              ? m.common_cards_one({ count: totalCards })
+              : m.common_cards_other({ count: totalCards })}
           </span>
           <div className="min-w-0 flex-1">
             <DeckDomainBar distribution={stats.domainDistribution} />
@@ -117,9 +120,7 @@ export function DeckImportSummary({
           )
         ) : (
           <div className="space-y-2">
-            <p className="text-muted-foreground text-sm">
-              Sign in after importing to see which of these you already own.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.decks_import_sign_in_hint()}</p>
             {ownershipData?.deckValueCents !== undefined && (
               <Button
                 variant="outline"
@@ -129,7 +130,7 @@ export function DeckImportSummary({
               >
                 <TagIcon className="size-3.5" />
                 {formatterForMarketplace(marketplace)(ownershipData.deckValueCents)}
-                <span className="text-muted-foreground">· view prices</span>
+                <span className="text-muted-foreground">{m.decks_import_view_prices()}</span>
               </Button>
             )}
           </div>

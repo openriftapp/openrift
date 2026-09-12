@@ -2,6 +2,7 @@ import { BookOpenIcon, ListPlusIcon, Trash2Icon } from "lucide-react";
 
 import type { CollectionContextAction } from "@/features/cards/stores/card-row-actions-store";
 import { FloatingActionBar } from "@/features/collections/components/floating-action-bar";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionSelectionBarProps {
   mode: "browse" | "select";
@@ -29,18 +30,18 @@ export function CollectionSelectionBar({
       selectedCount={selected.size}
       actions={[
         {
-          label: "Move",
+          label: m.collections_selection_move(),
           icon: <BookOpenIcon />,
           onClick: () => openAction("move", [...selected]),
           disabled: moveIsPending,
         },
         {
-          label: "Add to list",
+          label: m.collections_selection_add_to_list(),
           icon: <ListPlusIcon />,
           onClick: () => openAction("addToList", [...selected]),
         },
         {
-          label: "Dispose",
+          label: m.collections_selection_dispose(),
           icon: <Trash2Icon />,
           variant: "destructive",
           onClick: () => openAction("dispose", [...selected]),

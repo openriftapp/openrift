@@ -11,6 +11,7 @@ import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-in
 import { authClient } from "@/features/account/lib/auth-client";
 import { otpErrorMessage } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/verify-email")({
   component: VerifyEmailPage,
@@ -34,7 +35,7 @@ function VerifyEmailPage() {
     const result = await authClient.emailOtp.verifyEmail({ email, otp: code }).catch(() => null);
     setVerifying(false);
     if (!result) {
-      setError("Could not verify the code. Please try again.");
+      setError(m.auth_verify_failed());
       return;
     }
     if (result.error) {
@@ -55,7 +56,7 @@ function VerifyEmailPage() {
       .catch(() => null);
     setResending(false);
     if (!result) {
-      setError("Could not send a new code. Please try again.");
+      setError(m.auth_verify_resend_failed());
     }
   }
 
@@ -66,10 +67,10 @@ function VerifyEmailPage() {
           <FieldGroup>
             <div className="flex flex-col items-center gap-2 text-center">
               <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
-              <Heading level={1}>Verify your email</Heading>
+              <Heading level={1}>{m.auth_verify_title()}</Heading>
               <p className="text-muted-foreground text-balance">
-                We sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your
-                account.
+                {m.auth_verify_intro_before()} <strong>{email}</strong>
+                {m.auth_verify_intro_after()}
               </p>
             </div>
             <Field className="items-center">
@@ -87,7 +88,7 @@ function VerifyEmailPage() {
                 disabled={otp.length < 6 || verifying}
                 onClick={() => void handleVerify(otp)}
               >
-                {verifying ? "Verifying..." : "Verify"}
+                {verifying ? m.auth_verify_verifying() : m.auth_verify_submit()}
               </Button>
               <Button
                 type="button"
@@ -95,7 +96,7 @@ function VerifyEmailPage() {
                 disabled={resending}
                 onClick={() => void handleResend()}
               >
-                {resending ? "Sending..." : "Resend code"}
+                {resending ? m.auth_verify_sending() : m.auth_verify_resend()}
               </Button>
             </Field>
             <p className="text-muted-foreground text-center text-sm">
@@ -104,7 +105,7 @@ function VerifyEmailPage() {
                 search={{ redirect: redirectTo, email: undefined }}
                 className="underline underline-offset-2"
               >
-                Back to login
+                {m.auth_back_to_login()}
               </Link>
             </p>
           </FieldGroup>

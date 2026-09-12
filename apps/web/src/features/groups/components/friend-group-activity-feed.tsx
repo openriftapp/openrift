@@ -20,9 +20,10 @@ import {
   distinctPrintingIds,
 } from "@/features/groups/lib/friend-group-activity";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 import { HOVER_ROW_CLASS } from "./hover-row";
-import { LIST_INTENT_ICON, LIST_INTENT_NOUN } from "./list-intent-meta";
+import { LIST_INTENT_ICON, listIntentNoun } from "./list-intent-meta";
 
 const FEED_ROWS = 10;
 
@@ -37,21 +38,19 @@ export function FriendGroupActivityFeed({ slug }: { slug: string }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between gap-3">
-        <SectionHeading>Recent activity</SectionHeading>
+        <SectionHeading>{m.groups_activity_title()}</SectionHeading>
         {totalRows > FEED_ROWS && (
           <Button
             variant="link"
             className="h-auto shrink-0 p-0 text-xs font-medium"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "Show fewer" : "Show more"}
+            {expanded ? m.groups_activity_show_fewer() : m.groups_activity_show_more()}
           </Button>
         )}
       </div>
       {days.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Nothing yet. New members, shared lists, and trades show up here as the group gets going.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.groups_activity_empty()}</p>
       ) : (
         <ul className="flex flex-col gap-6">
           {days.map((day) => {
@@ -129,13 +128,17 @@ function TradeBatchRow({ slug, batch }: { slug: string; batch: TradeBatch }) {
       <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
       <CardArtThumbStack items={thumbs} thumbClassName="w-6" />
       <span className="text-muted-foreground line-clamp-2 min-w-0 flex-1 text-sm">
-        <strong className="font-medium">
-          {batch.giverUserId === viewerId ? "You" : (batch.giverName ?? "A member")}
-        </strong>{" "}
-        traded {batch.totalQuantity} cards to{" "}
-        <strong className="font-medium">
-          {batch.receiverUserId === viewerId ? "you" : (batch.receiverName ?? "a member")}
-        </strong>
+        {m.groups_activity_trade_batch({
+          giver:
+            batch.giverUserId === viewerId
+              ? m.groups_activity_you()
+              : (batch.giverName ?? m.groups_activity_a_member()),
+          count: batch.totalQuantity,
+          receiver:
+            batch.receiverUserId === viewerId
+              ? m.groups_activity_you_object()
+              : (batch.receiverName ?? m.groups_a_member()),
+        })}
       </span>
     </Link>
   );
@@ -145,7 +148,8 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
   const { cardsById, printingsById } = useCards();
   const viewerId = useRequiredUserId();
 
-  const cardName = (cardId: string): string => cardsById[cardId]?.name ?? "a card";
+  const cardName = (cardId: string): string =>
+    cardsById[cardId]?.name ?? m.groups_activity_a_card();
   const thumb = (printingId: string): ReactNode => (
     <CardArtThumbStack
       items={[{ key: printingId, imageId: frontImageId(printingsById[printingId]) }]}
@@ -167,15 +171,18 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
         <Link to="/groups/$slug/trades" params={{ slug }} className={HOVER_ROW_CLASS}>
           <IconChip icon={ArrowLeftRightIcon} tone="primary" size="sm" shape="round" />
           {text(
-            <>
-              <strong className="font-medium">
-                {event.giverUserId === viewerId ? "You" : (event.giverName ?? "A member")}
-              </strong>{" "}
-              traded {event.quantity}× {cardName(event.cardId)} to{" "}
-              <strong className="font-medium">
-                {event.receiverUserId === viewerId ? "you" : (event.receiverName ?? "a member")}
-              </strong>
-            </>,
+            m.groups_activity_trade_completed({
+              giver:
+                event.giverUserId === viewerId
+                  ? m.groups_activity_you()
+                  : (event.giverName ?? m.groups_activity_a_member()),
+              quantity: event.quantity,
+              card: cardName(event.cardId),
+              receiver:
+                event.receiverUserId === viewerId
+                  ? m.groups_activity_you_object()
+                  : (event.receiverName ?? m.groups_a_member()),
+            }),
             thumb(event.printingId),
           )}
         </Link>
@@ -186,10 +193,10 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
         <Link to="/groups/$slug/trades" params={{ slug }} className={HOVER_ROW_CLASS}>
           <IconChip icon={SparklesIcon} tone="primary" size="sm" shape="round" />
           {text(
-            <>
-              <strong className="font-medium">{event.counterpartyName ?? "A member"}</strong> has{" "}
-              {cardName(event.cardId)} you want
-            </>,
+            m.groups_activity_match({
+              member: event.counterpartyName ?? m.groups_activity_a_member(),
+              card: cardName(event.cardId),
+            }),
             thumb(event.printingId),
           )}
         </Link>
@@ -208,10 +215,9 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
             gravatarHash={event.gravatarHash}
           />
           {text(
-            <>
-              <strong className="font-medium">{event.userName ?? "A member"}</strong> joined the
-              group
-            </>,
+            m.groups_activity_member_joined({
+              member: event.userName ?? m.groups_activity_a_member(),
+            }),
           )}
         </Link>
       );
@@ -226,10 +232,11 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
         >
           <IconChip icon={Icon} size="sm" shape="round" />
           {text(
-            <>
-              <strong className="font-medium">{event.userName ?? "A member"}</strong> shared the{" "}
-              {LIST_INTENT_NOUN[event.listIntent]} {event.listName}
-            </>,
+            m.groups_activity_list_shared({
+              member: event.userName ?? m.groups_activity_a_member(),
+              noun: listIntentNoun(event.listIntent),
+              list: event.listName,
+            }),
           )}
         </Link>
       );
@@ -243,10 +250,10 @@ function ActivityRow({ slug, event }: { slug: string; event: FriendGroupActivity
         >
           <IconChip icon={FolderIcon} size="sm" shape="round" />
           {text(
-            <>
-              <strong className="font-medium">{event.userName ?? "A member"}</strong> shared the
-              collection {event.collectionName}
-            </>,
+            m.groups_activity_collection_shared({
+              member: event.userName ?? m.groups_activity_a_member(),
+              collection: event.collectionName,
+            }),
           )}
         </Link>
       );

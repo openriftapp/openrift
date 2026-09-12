@@ -1,5 +1,6 @@
 import type { PromoGrouping, PromoSection } from "@/features/cards/lib/promo-groupings";
 import type { ChannelNode } from "@/features/cards/lib/promos-tree";
+import { m } from "@/paraglide/messages.js";
 
 const COMPACT_LEAF_THRESHOLD = 4;
 
@@ -46,9 +47,15 @@ export function formatLanguageAggregate(
   printingCount: number,
   cardCount: number,
 ): string {
-  const printingWord = printingCount === 1 ? "printing" : "printings";
-  const cardWord = cardCount === 1 ? "card" : "cards";
-  return `OpenRift currently has data on ${printingCount} ${languageLabel} promo ${printingWord} across ${cardCount} ${cardWord}.`;
+  const printings =
+    printingCount === 1
+      ? m.promos_aggregate_printings_one({ count: printingCount, language: languageLabel })
+      : m.promos_aggregate_printings_other({ count: printingCount, language: languageLabel });
+  const cards =
+    cardCount === 1
+      ? m.common_cards_one({ count: cardCount })
+      : m.common_cards_other({ count: cardCount });
+  return m.promos_aggregate({ printings, cards });
 }
 
 /**

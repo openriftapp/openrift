@@ -15,6 +15,7 @@ import {
   useSkipTradeSync,
 } from "@/features/groups/hooks/use-card-trades";
 import { useTradeActionStore } from "@/features/groups/stores/trade-action-store";
+import { m } from "@/paraglide/messages.js";
 
 import { TradeCopyPickerDialog, useTradeAcceptFlow } from "./trade-copy-picker-dialog";
 
@@ -27,7 +28,7 @@ function SettleOverflowMenu({ disabled, children }: { disabled: boolean; childre
             size="icon-sm"
             variant="ghost"
             disabled={disabled}
-            aria-label="More trade actions"
+            aria-label={m.trades_more_trade_actions()}
             className="absolute top-2 right-2 sm:static"
           />
         }
@@ -82,7 +83,7 @@ export function TradeRowActions({
               disabled={acting}
               onClick={() => run(decline, actionArgs)}
             >
-              Decline
+              {m.trades_decline()}
             </Button>
             <Button
               size="sm"
@@ -92,7 +93,7 @@ export function TradeRowActions({
                 acceptFlow.start({ ...actionArgs, role: trade.role, cardName });
               }}
             >
-              Accept
+              {m.trades_accept()}
             </Button>
           </>
         ) : null}
@@ -104,7 +105,7 @@ export function TradeRowActions({
             disabled={acting}
             onClick={() => run(cancel, actionArgs)}
           >
-            Cancel
+            {m.common_cancel()}
           </Button>
         ) : null}
 
@@ -114,12 +115,12 @@ export function TradeRowActions({
           <SettleOverflowMenu disabled={acting}>
             <DropdownMenuItem onClick={() => run(skipSync, actionArgs)}>
               <CheckIcon className="size-4" />
-              {incoming ? "Got them, don't add" : "Handed over, keep mine"}
+              {incoming ? m.trades_got_them_dont_add() : m.trades_handed_over_keep_mine()}
             </DropdownMenuItem>
             {cancellable ? (
               <DropdownMenuItem variant="destructive" onClick={() => run(cancel, actionArgs)}>
                 <XIcon className="size-4" />
-                Cancel trade
+                {m.trades_cancel_trade()}
               </DropdownMenuItem>
             ) : null}
           </SettleOverflowMenu>

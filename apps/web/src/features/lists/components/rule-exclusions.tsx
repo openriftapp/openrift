@@ -8,13 +8,14 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 function ExclusionChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-md py-0.5 pr-0.5 pl-2 text-sm">
       {label}
       <ChipRemoveButton
-        aria-label={`Stop excluding ${label}`}
+        aria-label={m.lists_rule_stop_excluding({ label })}
         className="hover:bg-background/60 ml-0 p-0.5"
         onClick={onRemove}
       >
@@ -53,12 +54,12 @@ export function RuleExclusions({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-muted-foreground text-sm">Excluded</span>
+      <span className="text-muted-foreground text-sm">{m.lists_rule_excluded()}</span>
       <div className="flex flex-wrap gap-1.5">
         {excludeIds.map((id) => {
           const card =
             kind === "card" ? printingsByCardId.get(id)?.[0]?.card : printingsById[id]?.card;
-          const label = card ? legendDisplayName(card) : "Removed card";
+          const label = card ? legendDisplayName(card) : m.lists_rule_removed_card();
           return (
             <ExclusionChip key={id} label={label} onRemove={() => toggleExcludeId(index, id)} />
           );
@@ -78,12 +79,12 @@ function CopyExclusions({ index, copyIds }: { index: number; copyIds: string[] }
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-muted-foreground text-sm">Excluded</span>
+      <span className="text-muted-foreground text-sm">{m.lists_rule_excluded()}</span>
       <div className="flex flex-wrap gap-1.5">
         {copyIds.map((copyId) => {
           const printingId = printingIdByCopyId.get(copyId);
           const card = printingId ? printingsById[printingId]?.card : undefined;
-          const label = card ? legendDisplayName(card) : "Removed copy";
+          const label = card ? legendDisplayName(card) : m.lists_rule_removed_copy();
           return (
             <ExclusionChip
               key={copyId}

@@ -42,6 +42,7 @@ import { TradeStatusChip } from "@/features/groups/components/trade-status-chip"
 import { useLiveTradesByPrinting } from "@/features/groups/hooks/use-card-trades";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionGridCellProps {
   printing: Printing;
@@ -168,8 +169,10 @@ export const CollectionGridCell = memo(function CollectionGridCell({
               event.stopPropagation();
               dispatchTake(itemId, 1);
             }}
-            aria-label={`Take a copy of ${legendDisplayName(displayPrinting.card)}`}
-            title="Take a copy"
+            aria-label={m.collections_cell_take_copy_of({
+              name: legendDisplayName(displayPrinting.card),
+            })}
+            title={m.collections_menu_take_one()}
           >
             <ArrowDownToLineIcon />
           </Button>
@@ -198,20 +201,26 @@ export const CollectionGridCell = memo(function CollectionGridCell({
           ownedCount > 0
             ? {
                 onClick: (event) => dispatchDecrement(displayPrinting, event.currentTarget),
-                ariaLabel: `Remove ${legendDisplayName(displayPrinting.card)}`,
+                ariaLabel: m.collections_cell_remove({
+                  name: legendDisplayName(displayPrinting.card),
+                }),
               }
             : undefined
         }
         increment={{
           onClick: () => dispatchIncrement(displayPrinting),
-          ariaLabel: `Add ${legendDisplayName(displayPrinting.card)}`,
+          ariaLabel: m.collections_cell_add({ name: legendDisplayName(displayPrinting.card) }),
         }}
         onPillClick={openLocations}
         pillAriaLabel={
           openLocations
             ? ownedCount > 0
-              ? `Variants and collections for ${legendDisplayName(displayPrinting.card)}`
-              : `Choose variant for ${legendDisplayName(displayPrinting.card)}`
+              ? m.collections_cell_variants_and_collections({
+                  name: legendDisplayName(displayPrinting.card),
+                })
+              : m.collections_cell_choose_variant({
+                  name: legendDisplayName(displayPrinting.card),
+                })
             : undefined
         }
         extras={

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useCreateCollection } from "@/features/collections/hooks/use-collections";
+import { m } from "@/paraglide/messages.js";
 
 interface CreateCollectionDialogProps {
   open: boolean;
@@ -39,7 +40,9 @@ export function CreateCollectionDialog({
   const effectiveDescription =
     description ??
     (isShared
-      ? `Shared with ${groupName ?? "this group"}. Any member can add or remove cards. Admins can rename or delete it.`
+      ? m.collections_dialog_create_shared_description({
+          group: groupName ?? m.collections_dialog_create_shared_group_fallback(),
+        })
       : undefined);
 
   const handleOpenChange = (next: boolean) => {
@@ -74,7 +77,10 @@ export function CreateCollectionDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {title ?? (isShared ? "New shared collection" : "New collection")}
+            {title ??
+              (isShared
+                ? m.collections_dialog_create_title_shared()
+                : m.collections_dialog_create_title())}
           </DialogTitle>
           {effectiveDescription !== undefined && (
             <DialogDescription>{effectiveDescription}</DialogDescription>
@@ -91,7 +97,7 @@ export function CreateCollectionDialog({
             autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Collection name"
+            placeholder={m.collections_dialog_collection_name_placeholder()}
           />
           <DialogFooter>
             <Button
@@ -100,10 +106,10 @@ export function CreateCollectionDialog({
               onClick={() => handleOpenChange(false)}
               disabled={createCollection.isPending}
             >
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={!name.trim() || createCollection.isPending}>
-              Create
+              {m.common_create()}
             </Button>
           </DialogFooter>
         </form>

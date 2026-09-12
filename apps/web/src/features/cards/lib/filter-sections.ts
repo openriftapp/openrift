@@ -2,39 +2,103 @@ import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 
 import type { FilterDimensionAvailability } from "@/features/cards/lib/filter-dimensions";
 import { sectionHasContent } from "@/features/cards/lib/filter-dimensions";
+import { m } from "@/paraglide/messages.js";
 
 export interface FilterPlacementUnit {
   key: string;
-  label: string;
   sections: readonly string[];
 }
 
 export const FILTER_PLACEMENT_UNITS: readonly FilterPlacementUnit[] = [
-  { key: "languages", label: "Language", sections: ["languages"] },
-  { key: "sets", label: "Set", sections: ["sets"] },
-  { key: "domains", label: "Domain", sections: ["domains"] },
-  { key: "rarities", label: "Rarity", sections: ["rarities"] },
-  { key: "types", label: "Type", sections: ["types"] },
-  { key: "superTypes", label: "Supertype", sections: ["superTypes"] },
-  {
-    key: "variant",
-    label: "Variant",
-    sections: ["artVariants", "finishes", "overnumbered", "signed"],
-  },
-  { key: "standard", label: "Standard", sections: ["standard"] },
-  { key: "stats", label: "Stats", sections: ["energy", "power", "might"] },
-  { key: "markers", label: "Markers", sections: ["markers"] },
-  { key: "cardSizes", label: "Size", sections: ["cardSizes"] },
-  { key: "channels", label: "Distribution Channels", sections: ["channels"] },
-  { key: "customTags", label: "Custom Tags", sections: ["customTags"] },
-  { key: "tags", label: "Tags", sections: ["tags"] },
-  { key: "keywords", label: "Keywords", sections: ["keywords"] },
-  { key: "banned", label: "Banned", sections: ["banned"] },
-  { key: "errata", label: "Errata", sections: ["errata"] },
-  { key: "noImage", label: "No image yet", sections: ["noImage"] },
-  { key: "owned", label: "Owned", sections: ["owned"] },
-  { key: "price", label: "Price", sections: ["price"] },
+  { key: "languages", sections: ["languages"] },
+  { key: "sets", sections: ["sets"] },
+  { key: "domains", sections: ["domains"] },
+  { key: "rarities", sections: ["rarities"] },
+  { key: "types", sections: ["types"] },
+  { key: "superTypes", sections: ["superTypes"] },
+  { key: "variant", sections: ["artVariants", "finishes", "overnumbered", "signed"] },
+  { key: "standard", sections: ["standard"] },
+  { key: "stats", sections: ["energy", "power", "might"] },
+  { key: "markers", sections: ["markers"] },
+  { key: "cardSizes", sections: ["cardSizes"] },
+  { key: "channels", sections: ["channels"] },
+  { key: "customTags", sections: ["customTags"] },
+  { key: "tags", sections: ["tags"] },
+  { key: "keywords", sections: ["keywords"] },
+  { key: "banned", sections: ["banned"] },
+  { key: "errata", sections: ["errata"] },
+  { key: "noImage", sections: ["noImage"] },
+  { key: "owned", sections: ["owned"] },
+  { key: "price", sections: ["price"] },
 ];
+
+export function placementUnitLabel(key: string): string {
+  switch (key) {
+    case "languages": {
+      return m.cards_filter_unit_languages();
+    }
+    case "sets": {
+      return m.cards_filter_unit_sets();
+    }
+    case "domains": {
+      return m.cards_filter_unit_domains();
+    }
+    case "rarities": {
+      return m.cards_filter_unit_rarities();
+    }
+    case "types": {
+      return m.cards_filter_unit_types();
+    }
+    case "superTypes": {
+      return m.cards_filter_unit_super_types();
+    }
+    case "variant": {
+      return m.cards_filter_unit_variant();
+    }
+    case "standard": {
+      return m.cards_filter_unit_standard();
+    }
+    case "stats": {
+      return m.cards_filter_unit_stats();
+    }
+    case "markers": {
+      return m.cards_filter_unit_markers();
+    }
+    case "cardSizes": {
+      return m.cards_filter_unit_card_sizes();
+    }
+    case "channels": {
+      return m.cards_filter_unit_channels();
+    }
+    case "customTags": {
+      return m.cards_filter_unit_custom_tags();
+    }
+    case "tags": {
+      return m.cards_filter_unit_tags();
+    }
+    case "keywords": {
+      return m.cards_filter_unit_keywords();
+    }
+    case "banned": {
+      return m.cards_filter_unit_banned();
+    }
+    case "errata": {
+      return m.cards_filter_unit_errata();
+    }
+    case "noImage": {
+      return m.cards_filter_unit_no_image();
+    }
+    case "owned": {
+      return m.cards_filter_unit_owned();
+    }
+    case "price": {
+      return m.cards_filter_unit_price();
+    }
+    default: {
+      return key;
+    }
+  }
+}
 
 const UNIT_KEYS = new Set(FILTER_PLACEMENT_UNITS.map((unit) => unit.key));
 

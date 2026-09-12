@@ -28,6 +28,7 @@ import {
 } from "@/features/groups/hooks/use-card-trades";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export interface TradeAcceptTarget {
   tradeId: string;
@@ -146,7 +147,7 @@ function CopyQualityBadge({ copy }: { copy: CardTradeCopyOption }) {
 
 function CopyOptionSummary({ copy }: { copy: CardTradeCopyOption }) {
   if (!copy.hasRecordedDetails) {
-    return <span className="text-muted-foreground text-sm">No details</span>;
+    return <span className="text-muted-foreground text-sm">{m.trades_no_details()}</span>;
   }
 
   return (
@@ -165,13 +166,19 @@ function CopyOptionSummary({ copy }: { copy: CardTradeCopyOption }) {
 function selectionHint(selected: number, quantity: number): string {
   const missing = quantity - selected;
   if (missing > 0) {
-    return missing === 1 ? "Pick 1 more copy." : `Pick ${missing} more copies.`;
+    return missing === 1
+      ? m.trades_pick_more_one({ count: missing })
+      : m.trades_pick_more_other({ count: missing });
   }
   if (missing < 0) {
     const extra = -missing;
-    return extra === 1 ? "Unpick 1 copy." : `Unpick ${extra} copies.`;
+    return extra === 1
+      ? m.trades_unpick_one({ count: extra })
+      : m.trades_unpick_other({ count: extra });
   }
-  return quantity === 1 ? "1 copy picked." : `${quantity} copies picked.`;
+  return quantity === 1
+    ? m.trades_picked_one({ count: quantity })
+    : m.trades_picked_other({ count: quantity });
 }
 
 // Opens on the copies already pinned to the trade when there are any,
@@ -261,7 +268,7 @@ function CopyPickerBody({
         </p>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" disabled={pending} onClick={onCancel}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button type="submit" disabled={pending || !ready}>
             {confirmLabel}
@@ -287,9 +294,22 @@ export function TradeCopyPickerDialog({ flow }: { flow: TradeAcceptFlow }) {
       <DialogContent className="sm:max-w-lg">
         {choice === null ? null : (
           <CopyPickerBody
-            title={quantity === 1 ? "Which copy?" : `Which ${quantity} copies?`}
-            description={`You have ${choice.options.copies.length} copies of ${choice.target.cardName} this trade could take. Pick the ${quantity === 1 ? "one" : quantity} you want to hand over. The rest stay yours.`}
-            confirmLabel="Accept"
+            title={
+              quantity === 1 ? m.trades_which_copy() : m.trades_which_n_copies({ count: quantity })
+            }
+            description={
+              quantity === 1
+                ? m.trades_accept_copy_description_one({
+                    available: choice.options.copies.length,
+                    card: choice.target.cardName,
+                  })
+                : m.trades_accept_copy_description_other({
+                    available: choice.options.copies.length,
+                    card: choice.target.cardName,
+                    count: quantity,
+                  })
+            }
+            confirmLabel={m.trades_accept()}
             options={choice.options}
             quantity={quantity}
             pending={flow.accepting}
@@ -324,7 +344,6 @@ export function TradeSettleCopyPickerDialog({
 }) {
   const choice = flow.choice;
   const quantity = choice?.quantity ?? 1;
-  const noun = quantity === 1 ? "copy" : `${quantity} copies`;
   return (
     <Dialog
       open={choice !== null}
@@ -339,9 +358,21 @@ export function TradeSettleCopyPickerDialog({
           <CopyPickerBody
             // Keyed by trade id to reset selection state per row.
             key={choice.options.tradeId}
-            title={quantity === 1 ? "Which copy did you hand over?" : `Which ${quantity} copies?`}
-            description={`Pick the ${noun} of ${cardName} that changed hands. ${quantity === 1 ? "It leaves" : "They leave"} your collection for good, and the rest stay yours.`}
-            confirmLabel={`Remove ${noun}`}
+            title={
+              quantity === 1
+                ? m.trades_which_copy_handed_over()
+                : m.trades_which_n_copies({ count: quantity })
+            }
+            description={
+              quantity === 1
+                ? m.trades_settle_pick_description_one({ card: cardName })
+                : m.trades_settle_pick_description_other({ card: cardName, count: quantity })
+            }
+            confirmLabel={
+              quantity === 1
+                ? m.trades_remove_copy_one({ count: quantity })
+                : m.trades_remove_copy_other({ count: quantity })
+            }
             options={choice.options}
             quantity={quantity}
             pending={flow.settling}

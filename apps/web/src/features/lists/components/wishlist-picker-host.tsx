@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AddToWishlistDialog } from "@/features/lists/components/add-to-wishlist-dialog";
 import { CreateListDialog } from "@/features/lists/components/create-list-dialog";
+import { m } from "@/paraglide/messages.js";
 
 export function WishlistPickerHost({
   target,
@@ -50,12 +51,11 @@ export function WishlistPickerHost({
           }
         }}
         initialEntries={entriesFor}
-        title={`New wishlist for "${cardName}"`}
-        description="Pick whether any version of the card works, or you want a specific one."
+        title={m.lists_add_new_wishlist_title({ name: cardName })}
+        description={m.lists_add_new_wishlist_description()}
         kindHints={{
-          card: "Any printing of this card counts. Pick this if you just want to play it.",
-          printing:
-            "Only this exact printing counts. Pick this if you want a specific set, art, or finish.",
+          card: m.lists_add_new_wishlist_hint_card(),
+          printing: m.lists_add_new_wishlist_hint_printing(),
         }}
         onCreated={close}
       />

@@ -40,6 +40,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -102,13 +103,15 @@ export function SharedCollectionView({
                 {topBarTrailing ? <TopBarBreadcrumbSeparator className="hidden sm:inline" /> : null}
                 <PageTopBarTitle>{collection.name}</PageTopBarTitle>
                 <span className="text-muted-foreground hidden shrink-0 items-baseline gap-x-1.5 text-xs sm:flex">
-                  <span>Shared by {owner.displayName}</span>
+                  <span>{m.collections_shared_by({ name: owner.displayName })}</span>
                   {valueLabel !== null && (
                     <span>
                       · {valueLabel}
                       {collection.unpricedCopyCount ? (
                         <span className="text-muted-foreground/60 ml-1">
-                          ({collection.unpricedCopyCount} unpriced)
+                          {m.collections_shared_unpriced({
+                            count: collection.unpricedCopyCount,
+                          })}
                         </span>
                       ) : null}
                     </span>
@@ -137,7 +140,9 @@ function SharedCollectionBody({ data }: { data: PublicCollectionDetailResponse }
     return null;
   }
   return (
-    <Suspense fallback={<p className="text-muted-foreground py-3">Loading cards…</p>}>
+    <Suspense
+      fallback={<p className="text-muted-foreground py-3">{m.collections_loading_cards()}</p>}
+    >
       <SharedCollectionGrid data={data} />
     </Suspense>
   );
@@ -273,7 +278,9 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
       filteredCount={filteredCount}
       mobileDoneLabel={
         hasActiveFilters
-          ? `Show ${filteredCount} ${view === "cards" ? "cards" : "printings"}`
+          ? view === "cards"
+            ? m.collections_grid_show_cards({ count: filteredCount })
+            : m.collections_grid_show_printings({ count: filteredCount })
           : undefined
       }
     />
@@ -288,7 +295,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
   );
 
   if (collectionPrintings.length === 0) {
-    return <p className="text-muted-foreground py-3 text-sm">This collection is empty.</p>;
+    return <p className="text-muted-foreground py-3 text-sm">{m.collections_shared_empty()}</p>;
   }
 
   return (
@@ -309,7 +316,7 @@ function SharedCollectionGrid({ data }: { data: PublicCollectionDetailResponse }
         addStripHeight={ADD_STRIP_HEIGHT}
         table={{
           actionsColumn: "narrow",
-          actionsLabel: "Copies",
+          actionsLabel: m.collections_table_copies(),
           actionsCell: <SharedCollectionCountCell countByPrintingId={countByPrintingId} />,
         }}
       >

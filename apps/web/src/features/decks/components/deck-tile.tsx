@@ -14,6 +14,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckActionsMenu } from "./deck-actions-menu";
 import { DeckDomainBar } from "./deck-domain-bar";
@@ -109,14 +110,14 @@ export function FannedPreview({
   const legendPlaceholder = isSolo ? (
     <PlaceholderPreviewCard
       iconSrc="/images/types/legend.svg"
-      label="Legend"
+      label={m.decks_list_placeholder_legend()}
       className="left-1/2"
       style={{ transform: "translateX(-50%) rotate(-4deg)" }}
     />
   ) : (
     <PlaceholderPreviewCard
       iconSrc="/images/types/legend.svg"
-      label="Legend"
+      label={m.decks_list_placeholder_legend()}
       className="left-[12%]"
       style={{ transform: "rotate(-6deg)" }}
     />
@@ -124,7 +125,7 @@ export function FannedPreview({
   const championPlaceholder = (
     <PlaceholderPreviewCard
       iconSrc="/images/supertypes/champion.svg"
-      label="Champion"
+      label={m.decks_list_placeholder_champion()}
       className="right-[12%]"
       style={{ transform: "rotate(6deg)" }}
     />
@@ -160,7 +161,7 @@ export function FannedPreview({
       {legendImage ? (
         <CardPreviewImage
           image={legendImage}
-          alt="Legend"
+          alt={m.decks_list_placeholder_legend()}
           sizes="160px"
           // Lift via `scale` only: it composes with the slot's inline
           // `transform` rotation, which a class-based translate would not.
@@ -178,7 +179,7 @@ export function FannedPreview({
       {championImage ? (
         <CardPreviewImage
           image={championImage}
-          alt="Champion"
+          alt={m.decks_list_placeholder_champion()}
           sizes="160px"
           className="absolute h-[85%] rounded-lg object-cover shadow-md transition-[scale] duration-200 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           style={{ right: "12%", transform: "rotate(6deg)" }}
@@ -290,12 +291,15 @@ export function DeckTile({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             {deck.isPinned && (
-              <PinIcon className="text-muted-foreground size-3.5 shrink-0" aria-label="Pinned" />
+              <PinIcon
+                className="text-muted-foreground size-3.5 shrink-0"
+                aria-label={m.decks_list_pinned()}
+              />
             )}
             {deck.archivedAt !== null && (
               <ArchiveIcon
                 className="text-muted-foreground size-3.5 shrink-0"
-                aria-label="Archived"
+                aria-label={m.decks_list_archived()}
               />
             )}
             <h3 className="min-w-0 truncate leading-tight font-semibold">

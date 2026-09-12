@@ -54,25 +54,32 @@ import {
   fetchImageBlobFromPost,
 } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 type PrintTab = "proxies" | "registration" | "sheet";
 
-const TAB_DESCRIPTIONS: Record<PrintTab, string> = {
-  proxies: "Generate a printable PDF of proxy cards from this deck.",
-  registration: "Generate a printable tournament deck registration sheet.",
-  sheet: "Put the deck image on one page, ready to print.",
-};
+function tabDescriptions(): Record<PrintTab, string> {
+  return {
+    proxies: m.decks_dialog_print_desc_proxies(),
+    registration: m.decks_dialog_print_desc_registration(),
+    sheet: m.decks_dialog_print_desc_sheet(),
+  };
+}
 
-const RENDER_MODE_LABELS: Record<ProxyRenderMode, string> = {
-  image: "Card images",
-  text: "Text placeholders",
-};
+function renderModeLabels(): Record<ProxyRenderMode, string> {
+  return {
+    image: m.decks_dialog_print_render_image(),
+    text: m.decks_dialog_print_render_text(),
+  };
+}
 
-const PAGE_SIZE_LABELS: Record<ProxyPageSize, string> = {
-  a4: "A4",
-  letter: "US Letter",
-};
+function pageSizeLabels(): Record<ProxyPageSize, string> {
+  return {
+    a4: "A4",
+    letter: m.decks_dialog_print_page_letter(),
+  };
+}
 
 // Full render width for html2canvas capture (px)
 const RENDER_WIDTH_PX = 504;
@@ -342,29 +349,29 @@ function ProxyPrintPanel({
     <DialogForm onSubmit={() => void handleGenerate()}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="proxy-render-mode">Render mode</Label>
+          <Label htmlFor="proxy-render-mode">{m.decks_dialog_print_render_mode()}</Label>
           <Select
             value={renderMode}
             onValueChange={(value) => setRenderMode(value as ProxyRenderMode)}
           >
             <SelectTrigger id="proxy-render-mode">
               <SelectValue>
-                {(value: string) => RENDER_MODE_LABELS[value as ProxyRenderMode] ?? value}
+                {(value: string) => renderModeLabels()[value as ProxyRenderMode] ?? value}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="image">Card images</SelectItem>
-              <SelectItem value="text">Text placeholders</SelectItem>
+              <SelectItem value="image">{m.decks_dialog_print_render_image()}</SelectItem>
+              <SelectItem value="text">{m.decks_dialog_print_render_text()}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="proxy-page-size">Page size</Label>
+          <Label htmlFor="proxy-page-size">{m.decks_dialog_print_page_size()}</Label>
           <Select value={pageSize} onValueChange={(value) => setPageSize(value as ProxyPageSize)}>
             <SelectTrigger id="proxy-page-size">
               <SelectValue>
-                {(value: string) => PAGE_SIZE_LABELS[value as ProxyPageSize] ?? value}
+                {(value: string) => pageSizeLabels()[value as ProxyPageSize] ?? value}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -375,12 +382,12 @@ function ProxyPrintPanel({
         </div>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="proxy-cut-lines">Cut lines</Label>
+          <Label htmlFor="proxy-cut-lines">{m.decks_dialog_print_cut_lines()}</Label>
           <Switch id="proxy-cut-lines" checked={cutLines} onCheckedChange={setCutLines} />
         </div>
 
         <div className="flex items-center justify-between">
-          <Label htmlFor="proxy-watermark">Proxy watermark</Label>
+          <Label htmlFor="proxy-watermark">{m.decks_dialog_print_watermark()}</Label>
           <Switch id="proxy-watermark" checked={watermark} onCheckedChange={setWatermark} />
         </div>
 
@@ -388,7 +395,7 @@ function ProxyPrintPanel({
           <div className="flex justify-center">
             <img
               src={previewUrl}
-              alt="Last captured card"
+              alt={m.decks_dialog_print_preview_alt()}
               className="aspect-card w-48 rounded-md"
             />
           </div>
@@ -399,13 +406,16 @@ function ProxyPrintPanel({
             <>
               <Loader2Icon className="size-4 animate-spin" />
               {progress.total > 0
-                ? `Rendering ${progress.current}/${progress.total}…`
-                : "Generating…"}
+                ? m.decks_dialog_print_rendering({
+                    current: progress.current,
+                    total: progress.total,
+                  })
+                : m.decks_dialog_print_generating()}
             </>
           ) : (
             <>
               <PrinterIcon className="size-4" />
-              Generate PDF
+              {m.decks_dialog_print_generate_pdf()}
             </>
           )}
         </Button>
@@ -500,16 +510,16 @@ function RegistrationPrintPanel({
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2 flex flex-col gap-1.5">
-          <Label htmlFor="reg-deck-name">Deck Name</Label>
+          <Label htmlFor="reg-deck-name">{m.decks_dialog_print_reg_deck_name()}</Label>
           <Input
             id="reg-deck-name"
             value={regDeckName}
             onChange={(event) => setRegDeckName(event.target.value)}
-            placeholder="Untitled Deck"
+            placeholder={m.decks_dialog_print_reg_deck_name_placeholder()}
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="reg-first-name">First Name</Label>
+          <Label htmlFor="reg-first-name">{m.decks_dialog_print_reg_first_name()}</Label>
           <Input
             id="reg-first-name"
             value={firstName}
@@ -517,7 +527,7 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="reg-last-name">Last Name</Label>
+          <Label htmlFor="reg-last-name">{m.decks_dialog_print_reg_last_name()}</Label>
           <Input
             id="reg-last-name"
             value={lastName}
@@ -534,11 +544,11 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Event Date</Label>
+          <Label>{m.decks_dialog_print_reg_event_date()}</Label>
           <DatePicker value={eventDate || null} onChange={setEventDate} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="reg-event-name">Event Name</Label>
+          <Label htmlFor="reg-event-name">{m.decks_dialog_print_reg_event_name()}</Label>
           <Input
             id="reg-event-name"
             value={eventName}
@@ -546,7 +556,7 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="col-span-2 flex flex-col gap-1.5">
-          <Label htmlFor="reg-event-location">Event Location</Label>
+          <Label htmlFor="reg-event-location">{m.decks_dialog_print_reg_event_location()}</Label>
           <Input
             id="reg-event-location"
             value={eventLocation}
@@ -554,7 +564,7 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="reg-deck-designer">Deck Designer</Label>
+          <Label htmlFor="reg-deck-designer">{m.decks_dialog_print_reg_deck_designer()}</Label>
           <Input
             id="reg-deck-designer"
             value={deckDesigner}
@@ -562,14 +572,14 @@ function RegistrationPrintPanel({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="registration-page-size">Page Size</Label>
+          <Label htmlFor="registration-page-size">{m.decks_dialog_print_page_size()}</Label>
           <Select
             value={pageSize}
             onValueChange={(value) => setPageSize(value as RegistrationPageSize)}
           >
             <SelectTrigger id="registration-page-size">
               <SelectValue>
-                {(value: string) => PAGE_SIZE_LABELS[value as RegistrationPageSize] ?? value}
+                {(value: string) => pageSizeLabels()[value as RegistrationPageSize] ?? value}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -588,12 +598,12 @@ function RegistrationPrintPanel({
         {generating ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />
-            Generating…
+            {m.decks_dialog_print_generating()}
           </>
         ) : (
           <>
             <FileTextIcon className="size-4" />
-            Download PDF
+            {m.decks_dialog_print_download_pdf()}
           </>
         )}
       </Button>
@@ -644,17 +654,14 @@ function DeckSheetPrintPanel({
       await downloadImageAsPdf(await blob, `${fileNameBase(deckName)}.pdf`);
       setDownloading(false);
     } catch {
-      toast.error("Couldn't prepare the PDF. Please try again.");
+      toast.error(m.decks_dialog_print_pdf_failed());
       setDownloading(false);
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-sm">
-        The wide deck image on one A4 page: the same picture that shows up when you paste a shared
-        deck link into WhatsApp, Discord, or Signal.
-      </p>
+      <p className="text-muted-foreground text-sm">{m.decks_dialog_print_sheet_description()}</p>
       {!isLocal && (
         <div className="flex items-center gap-2">
           <Checkbox
@@ -663,7 +670,7 @@ function DeckSheetPrintPanel({
             onCheckedChange={(checked) => setQr(checked === true)}
           />
           <label htmlFor="deck-sheet-include-qr" className="cursor-pointer text-sm">
-            Include a scan code linking to the deck
+            {m.decks_dialog_print_sheet_qr_label()}
           </label>
         </div>
       )}
@@ -671,12 +678,12 @@ function DeckSheetPrintPanel({
         {downloading ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />
-            Preparing…
+            {m.decks_dialog_print_preparing()}
           </>
         ) : (
           <>
             <PrinterIcon className="size-4" />
-            Download PDF
+            {m.decks_dialog_print_download_pdf()}
           </>
         )}
       </Button>
@@ -712,13 +719,15 @@ export function DeckPrintDialog({
       <DialogContent>
         <Tabs value={tab} onValueChange={(value) => setTab(value as PrintTab)}>
           <DialogHeader>
-            <DialogTitle>Print deck</DialogTitle>
+            <DialogTitle>{m.decks_dialog_print_title()}</DialogTitle>
             <TabsList>
-              <TabsTrigger value="proxies">Proxies</TabsTrigger>
-              <TabsTrigger value="registration">Registration</TabsTrigger>
-              <TabsTrigger value="sheet">Deck sheet</TabsTrigger>
+              <TabsTrigger value="proxies">{m.decks_dialog_print_tab_proxies()}</TabsTrigger>
+              <TabsTrigger value="registration">
+                {m.decks_dialog_print_tab_registration()}
+              </TabsTrigger>
+              <TabsTrigger value="sheet">{m.decks_dialog_print_tab_sheet()}</TabsTrigger>
             </TabsList>
-            <DialogDescription>{TAB_DESCRIPTIONS[tab]}</DialogDescription>
+            <DialogDescription>{tabDescriptions()[tab]}</DialogDescription>
           </DialogHeader>
 
           <TabsContent value="proxies" keepMounted>

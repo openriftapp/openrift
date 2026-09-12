@@ -21,6 +21,7 @@ import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckVariantCreateDialog } from "./deck-variant-create-dialog";
 
@@ -133,7 +134,7 @@ function RailPopoverFooter({ children }: { children: ReactNode }) {
 
 function RailDiffRows({ diff }: { diff: DeckDiff }) {
   if (diff.zones.length === 0) {
-    return <p className="text-muted-foreground">The two lists match, card for card.</p>;
+    return <p className="text-muted-foreground">{m.decks_dialog_rail_lists_match()}</p>;
   }
   return (
     <div className="flex max-h-64 min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain">
@@ -166,7 +167,7 @@ function RailNodeDiff({
   cardsById: Record<string, Card>;
 }) {
   if (!ourCards || !theirCards) {
-    return <p className="text-muted-foreground">Loading changes…</p>;
+    return <p className="text-muted-foreground">{m.decks_dialog_rail_loading_changes()}</p>;
   }
   return (
     <RailDiffRows
@@ -200,7 +201,7 @@ function EdgeCounts({
   return (
     <Popover>
       <PopoverTrigger
-        aria-label={`What changed between ${fromLabel} and ${toLabel}`}
+        aria-label={m.decks_dialog_rail_edge_label({ from: fromLabel, to: toLabel })}
         className="group bg-background focus-visible:ring-ring flex items-center gap-1 rounded-full px-1 transition-transform outline-none hover:scale-110 focus-visible:scale-110 focus-visible:ring-2 data-popup-open:scale-110"
       >
         <span className={cn(CHIP_BASE, ADD_CHIP, ADD_CHIP_HOVER)}>+{addCount}</span>
@@ -225,7 +226,7 @@ function EdgeCounts({
             size="sm"
             render={<Link to="/decks/compare" search={{ from: fromId, to: toId }} />}
           >
-            Show full changes
+            {m.decks_dialog_rail_show_full_changes()}
           </Button>
         </RailPopoverFooter>
       </PopoverContent>
@@ -267,7 +268,8 @@ function RailCurrentPopover({
         <span className="font-medium">{node.fullName}</span>
         {updatedLabel && (
           <span className="text-muted-foreground text-2xs">
-            {node.isDraft ? "Draft · " : ""}Updated {updatedLabel}
+            {node.isDraft ? m.decks_dialog_rail_draft_prefix() : ""}
+            {m.decks_dialog_variants_updated({ date: updatedLabel })}
           </span>
         )}
       </div>
@@ -281,12 +283,12 @@ function RailCurrentPopover({
             render={<Link to="/decks/compare" search={{ from: compareFrom, to: node.id }} />}
           >
             <GitCompareArrowsIcon className="size-4" />
-            Compare with other versions
+            {m.decks_dialog_rail_compare_versions()}
           </Button>
         )}
         <PopoverClose render={<Button variant="ghost" size="sm" onClick={onBranchFrom} />}>
           <GitBranchIcon className="size-4" />
-          Branch from here
+          {m.decks_dialog_rail_branch_from_here()}
         </PopoverClose>
       </RailPopoverFooter>
     </PopoverContent>
@@ -318,7 +320,8 @@ function RailNodePopover({
         <span className="font-medium">{node.fullName}</span>
         {updatedLabel && (
           <span className="text-muted-foreground text-2xs">
-            {node.isDraft ? "Draft · " : ""}Updated {updatedLabel}
+            {node.isDraft ? m.decks_dialog_rail_draft_prefix() : ""}
+            {m.decks_dialog_variants_updated({ date: updatedLabel })}
           </span>
         )}
       </div>
@@ -332,18 +335,18 @@ function RailNodePopover({
           render={<Link to="/decks/$deckId" params={{ deckId: node.id }} />}
         >
           <ArrowRightIcon className="size-4" />
-          Open deck
+          {m.decks_dialog_rail_open_deck()}
         </Button>
         <Button
           variant="ghost"
           size="sm"
           render={<Link to="/decks/compare" search={{ from: node.id, to: openDeckId }} />}
         >
-          Show full changes
+          {m.decks_dialog_rail_show_full_changes()}
         </Button>
         <PopoverClose render={<Button variant="ghost" size="sm" onClick={onBranchFrom} />}>
           <GitBranchIcon className="size-4" />
-          Branch from here
+          {m.decks_dialog_rail_branch_from_here()}
         </PopoverClose>
       </RailPopoverFooter>
     </PopoverContent>
@@ -360,7 +363,9 @@ function RailNodeLabel({ node }: { node: RailNode }) {
       style={{ width: LABEL_WIDTH }}
     >
       <span className="truncate">{node.label}</span>
-      {node.isDraft && <span className="text-warning shrink-0">Draft</span>}
+      {node.isDraft && (
+        <span className="text-warning shrink-0">{m.decks_dialog_draft_badge()}</span>
+      )}
     </span>
   );
 }
@@ -425,7 +430,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
     }
   }
 
-  const openDeckName = current?.deck.name ?? "this deck";
+  const openDeckName = current?.deck.name ?? m.decks_dialog_rail_this_deck();
 
   const handleCreate = (target: { id: string; name: string }) => {
     setCreateTarget(target);
@@ -451,7 +456,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
   return (
     <div className="flex items-start gap-2 px-1">
       <nav
-        aria-label="Deck variants"
+        aria-label={m.decks_dialog_rail_nav_label()}
         // overflow-y must be stated: left at `visible` next to a set `overflow-x`,
         // CSS promotes it to `auto` and a hair of vertical overflow shows a scrollbar.
         className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain"
@@ -509,8 +514,10 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                 <EdgeCounts
                   fromId={edge.fromId}
                   toId={edge.toId}
-                  fromLabel={nodesById.get(edge.fromId)?.fullName ?? "the previous version"}
-                  toLabel={nodesById.get(edge.toId)?.fullName ?? "this version"}
+                  fromLabel={
+                    nodesById.get(edge.fromId)?.fullName ?? m.decks_dialog_rail_previous_version()
+                  }
+                  toLabel={nodesById.get(edge.toId)?.fullName ?? m.decks_dialog_rail_this_version()}
                   addCount={counts.addCount}
                   cutCount={counts.cutCount}
                   cardsByDeck={cardsByDeck}
@@ -526,7 +533,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
               return (
                 <Popover key={node.id}>
                   <PopoverTrigger
-                    aria-label={`${node.fullName} (open deck)`}
+                    aria-label={m.decks_dialog_rail_current_node_label({ name: node.fullName })}
                     className="focus-visible:ring-ring group absolute -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     style={position}
                   >
@@ -573,7 +580,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="New variant"
+                    aria-label={m.decks_dialog_variant_create_title()}
                     className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed"
                     style={{ left: nodeX(ghost), top: laneY(ghost.lane) }}
                     onClick={() => handleCreate({ id: deckId, name: openDeckName })}
@@ -582,7 +589,7 @@ function VariantRailBody({ deckId }: { deckId: string }) {
               >
                 <PlusIcon className="size-4" />
               </TooltipTrigger>
-              <TooltipContent>New variant</TooltipContent>
+              <TooltipContent>{m.decks_dialog_variant_create_title()}</TooltipContent>
             </Tooltip>
           )}
         </div>

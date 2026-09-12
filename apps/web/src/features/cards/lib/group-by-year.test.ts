@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubCardViewerItem } from "@/test/factories";
 
-import { groupItemsByYear, UNKNOWN_YEAR_ID, UNKNOWN_YEAR_LABEL } from "./group-by-year";
+import { groupItemsByYear, UNKNOWN_YEAR_ID, unknownYearLabel } from "./group-by-year";
 
 beforeEach(() => {
   resetIdCounter();
@@ -41,7 +41,7 @@ describe("groupItemsByYear", () => {
     expect(sections).toHaveLength(2);
     const last = sections.at(-1)!;
     expect(last.group.id).toBe(UNKNOWN_YEAR_ID);
-    expect(last.group.name).toBe(UNKNOWN_YEAR_LABEL);
+    expect(last.group.name).toBe(unknownYearLabel());
     expect(last.items).toEqual([undated]);
   });
 

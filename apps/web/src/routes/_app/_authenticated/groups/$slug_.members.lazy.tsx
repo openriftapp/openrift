@@ -6,6 +6,7 @@ import {
   MembersTradedAction,
 } from "@/features/groups/components/friend-group-members-page";
 import { FriendGroupSectionFrame } from "@/features/groups/components/friend-group-shell";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/members")({
   component: GroupMembersRoute,
@@ -16,7 +17,7 @@ function GroupMembersRoute() {
   return (
     <FriendGroupSectionFrame
       slug={slug}
-      title="Members"
+      title={m.groups_nav_members()}
       actions={
         <>
           <MembersTradedAction slug={slug} />

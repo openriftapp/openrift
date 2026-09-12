@@ -1,14 +1,40 @@
 import type { DeckOddsGroup } from "@openrift/shared/contracts/decks";
+import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { chanceToDraw, EARLY_DRAWS, OPENING_HAND_SIZE } from "@/features/decks/lib/deck-draw-odds";
+import { m } from "@/paraglide/messages.js";
 
 // Must match `deckOddsGroupSchema`'s shape exactly.
 export type OddsGroupDef = DeckOddsGroup;
 
 /** Picker section a preset sorts under. */
-export type OddsGroupTheme = "Curve" | "Interaction" | "Economy" | "Card types";
+export type OddsGroupTheme = "curve" | "interaction" | "economy" | "card-types";
+
+export const ODDS_GROUP_THEMES: readonly OddsGroupTheme[] = [
+  "curve",
+  "interaction",
+  "economy",
+  "card-types",
+];
+
+export function oddsGroupThemeLabel(theme: OddsGroupTheme): string {
+  switch (theme) {
+    case "curve": {
+      return m.decks_odds_theme_curve();
+    }
+    case "interaction": {
+      return m.decks_odds_theme_interaction();
+    }
+    case "economy": {
+      return m.decks_odds_theme_economy();
+    }
+    case "card-types": {
+      return m.decks_odds_theme_card_types();
+    }
+  }
+}
 
 export interface OddsGroupPreset extends OddsGroupDef {
   theme: OddsGroupTheme;
@@ -65,104 +91,110 @@ export function oddsGroupPresets(
     // Turn-1 energy is 2 going first, 3 going second.
     {
       key: "turn-one-first-unit",
-      label: "Turn-1 unit going first (≤2 energy)",
-      theme: "Curve",
+      label: m.decks_odds_preset_turn_one_first_unit(),
+      theme: "curve",
       types: [UNIT],
       energyMax: 2,
       core: true,
     },
     {
       key: "turn-one-first",
-      label: "Turn-1 play going first (≤2 unit/gear)",
-      theme: "Curve",
+      label: m.decks_odds_preset_turn_one_first(),
+      theme: "curve",
       types: [UNIT, WellKnown.cardType.GEAR],
       energyMax: 2,
     },
     {
       key: "turn-one-second",
-      label: "Turn-1 play going second (≤3 unit/gear)",
-      theme: "Curve",
+      label: m.decks_odds_preset_turn_one_second(),
+      theme: "curve",
       types: [UNIT, WellKnown.cardType.GEAR],
       energyMax: 3,
     },
     {
       key: "turn-one-second-unit",
-      label: "Turn-1 unit going second (≤3 energy)",
-      theme: "Curve",
+      label: m.decks_odds_preset_turn_one_second_unit(),
+      theme: "curve",
       types: [UNIT],
       energyMax: 3,
     },
     {
       key: "two-cost-unit",
-      label: "2-cost unit",
-      theme: "Curve",
+      label: m.decks_odds_preset_two_cost_unit(),
+      theme: "curve",
       types: [UNIT],
       energyMin: 2,
       energyMax: 2,
     },
     {
       key: "three-cost-unit",
-      label: "3-cost unit",
-      theme: "Curve",
+      label: m.decks_odds_preset_three_cost_unit(),
+      theme: "curve",
       types: [UNIT],
       energyMin: 3,
       energyMax: 3,
     },
-    { key: "top-end", label: "Top end (5+ energy)", theme: "Curve", energyMin: 5 },
+    { key: "top-end", label: m.decks_odds_preset_top_end(), theme: "curve", energyMin: 5 },
     {
       key: "combat-trick",
-      label: "Combat trick (Action/Reaction spell)",
-      theme: "Interaction",
+      label: m.decks_odds_preset_combat_trick(),
+      theme: "interaction",
       types: ["spell"],
       keywords: ["Action", "Reaction"],
       core: true,
     },
     {
       key: "reaction-speed",
-      label: "Reaction speed",
-      theme: "Interaction",
+      label: m.decks_odds_preset_reaction_speed(),
+      theme: "interaction",
       keywords: ["Reaction"],
     },
     {
       key: "surprise-threat",
-      label: "Surprise threat (Hidden/Ambush)",
-      theme: "Interaction",
+      label: m.decks_odds_preset_surprise_threat(),
+      theme: "interaction",
       types: [UNIT],
       keywords: ["Hidden", "Ambush"],
     },
     {
       key: "defensive-tool",
-      label: "Defensive tool (Deflect/Shield/Tank)",
-      theme: "Interaction",
+      label: m.decks_odds_preset_defensive_tool(),
+      theme: "interaction",
       keywords: ["Deflect", "Shield", "Tank"],
     },
     {
       key: "aggro-enabler",
-      label: "Aggro enabler (Assault/Ganking)",
-      theme: "Interaction",
+      label: m.decks_odds_preset_aggro_enabler(),
+      theme: "interaction",
       types: [UNIT],
       keywords: ["Assault", "Ganking"],
     },
     {
       key: "disruption",
-      label: "Disruption (Stun/Burn)",
-      theme: "Interaction",
+      label: m.decks_odds_preset_disruption(),
+      theme: "interaction",
       keywords: ["Stun", "Burn"],
     },
     {
       key: "ramp",
-      label: "Ramp (Accelerate/Add)",
-      theme: "Economy",
+      label: m.decks_odds_preset_ramp(),
+      theme: "economy",
       keywords: ["Accelerate", "Add"],
     },
     {
       key: "death-value",
-      label: "Death value (Deathknell)",
-      theme: "Economy",
+      label: m.decks_odds_preset_death_value(),
+      theme: "economy",
       keywords: ["Deathknell"],
     },
-    { key: "big-body", label: "Big body (5+ might)", theme: "Economy", types: [UNIT], mightMin: 5 },
-    { key: "rune-payoff", label: "Rune payoff (2+ power)", theme: "Economy", powerMin: 2 },
+    {
+      key: "big-body",
+      label: m.decks_odds_preset_big_body(),
+      theme: "economy",
+      types: [UNIT],
+      mightMin: 5,
+    },
+    { key: "rune-payoff", label: m.decks_odds_preset_rune_payoff(), theme: "economy", powerMin: 2 },
   ];
 
   const mainCards = cards.filter((card) => card.zone === WellKnown.deckZone.MAIN);
@@ -170,8 +202,8 @@ export function oddsGroupPresets(
   for (const type of presentTypes) {
     presets.push({
       key: `type-${type}`,
-      label: `Any ${typeLabels[type]}`,
-      theme: "Card types",
+      label: m.decks_odds_preset_any_type({ label: enumLabel(typeLabels, type) }),
+      theme: "card-types",
       types: [type],
     });
   }

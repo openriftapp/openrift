@@ -7,6 +7,7 @@ import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
 import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+import { m } from "@/paraglide/messages.js";
 
 const PREVIEW_LIMIT = 3;
 
@@ -26,16 +27,17 @@ export function CollectionMissingImagesCallout() {
   const preview = items.slice(0, PREVIEW_LIMIT);
   const rest = count - preview.length;
   const title = single
-    ? "We don't have a photo for one of your owned cards."
-    : `We don't have photos for ${count} of your owned cards.`;
+    ? m.collections_stats_missing_images_title_one()
+    : m.collections_stats_missing_images_title_other({ count });
 
   return (
     <Callout className="mb-3 flex items-start justify-between gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="text-muted-foreground text-sm">
-          <span className="text-foreground font-medium">{title}</span> Could you snap{" "}
-          {single ? "it" : "them"} for us? Every photo helps, and it earns you a Contributor badge
-          on your profile.
+          <span className="text-foreground font-medium">{title}</span>{" "}
+          {single
+            ? m.collections_stats_missing_images_hint_one()
+            : m.collections_stats_missing_images_hint_other()}
         </p>
         <p className="text-muted-foreground text-sm">
           {preview.map((item, index) => (
@@ -53,12 +55,14 @@ export function CollectionMissingImagesCallout() {
               </TextLink>
             </Fragment>
           ))}
-          {rest > 0 ? ` and ${rest} more` : null}
+          {rest > 0 ? ` ${m.collections_stats_missing_images_more({ count: rest })}` : null}
         </p>
       </div>
       <div className="-my-1 flex shrink-0 items-center gap-1">
         <Button size="sm" render={<Link to="/contribute" />}>
-          {single ? "Add a photo" : "Add photos"}
+          {single
+            ? m.collections_stats_missing_images_add_one()
+            : m.collections_stats_missing_images_add_other()}
         </Button>
         <Button
           type="button"
@@ -67,7 +71,7 @@ export function CollectionMissingImagesCallout() {
           onClick={() => {
             dismiss(items.map((item) => item.printingId));
           }}
-          aria-label="Dismiss the missing photos nudge"
+          aria-label={m.collections_stats_missing_images_dismiss()}
         >
           <XIcon className="size-4" />
         </Button>

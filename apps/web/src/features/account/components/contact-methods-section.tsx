@@ -21,21 +21,25 @@ import {
   useDeleteContactMethod,
   useUpdateContactMethod,
 } from "@/features/account/hooks/use-contact-methods";
+import { m } from "@/paraglide/messages.js";
 
 const TYPE_ITEMS: { value: ContactMethodType; label: string }[] = CONTACT_METHOD_TYPES.map(
   (value) => ({ value, label: CONTACT_METHOD_LABELS[value] }),
 );
 
-const PLACEHOLDER: Record<ContactMethodType, string> = {
-  discord: "username or invite link",
-  signal: "+49 151 …",
-  telegram: "@handle",
-  whatsapp: "+49 151 …",
-  phone: "+49 151 …",
-  email: "you@example.com",
-  in_person: "Fridays at the LGS",
-  other: "however people reach you",
-};
+function placeholderFor(type: ContactMethodType): string {
+  const placeholders: Record<ContactMethodType, string> = {
+    discord: m.profile_contacts_placeholder_discord(),
+    signal: "+49 151 …",
+    telegram: "@handle",
+    whatsapp: "+49 151 …",
+    phone: "+49 151 …",
+    email: "you@example.com",
+    in_person: m.profile_contacts_placeholder_in_person(),
+    other: m.profile_contacts_placeholder_other(),
+  };
+  return placeholders[type];
+}
 
 function TypeSelect({
   value,
@@ -78,7 +82,7 @@ function ContactMethodRow({ method }: { method: ContactMethod }) {
   async function handleSave() {
     try {
       await update.mutateAsync({ id: method.id, type, value: value.trim() });
-      toast.success("Contact method saved");
+      toast.success(m.profile_contacts_saved_toast());
     } catch {
       /* Reported by the global mutation error toast. */
     }
@@ -90,20 +94,20 @@ function ContactMethodRow({ method }: { method: ContactMethod }) {
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={PLACEHOLDER[type]}
+        placeholder={placeholderFor(type)}
         maxLength={200}
         className="flex-1"
-        aria-label="Contact value"
+        aria-label={m.profile_contacts_value_aria()}
       />
       {canSave ? (
         <Button disabled={update.isPending} onClick={() => void handleSave()}>
-          Save
+          {m.profile_contacts_save()}
         </Button>
       ) : null}
       <Button
         size="icon-sm"
         variant="ghost"
-        aria-label="Remove contact method"
+        aria-label={m.profile_contacts_remove_aria()}
         disabled={remove.isPending}
         onClick={() => remove.mutate({ id: method.id })}
       >
@@ -135,14 +139,14 @@ function AddContactMethod() {
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={PLACEHOLDER[type]}
+        placeholder={placeholderFor(type)}
         maxLength={200}
         className="flex-1"
-        aria-label="New contact value"
+        aria-label={m.profile_contacts_new_value_aria()}
       />
       <Button disabled={!canAdd || create.isPending} onClick={() => void handleAdd()}>
         <PlusIcon />
-        Add
+        {m.profile_contacts_add()}
       </Button>
     </div>
   );
@@ -154,8 +158,8 @@ export function ContactMethodsSection() {
   return (
     <SettingsSection
       id="contacts"
-      title="Trade contacts"
-      description="Choose which to share in each group's settings. Nothing is visible until you share it."
+      title={m.profile_contacts_title()}
+      description={m.profile_contacts_description()}
     >
       {contactMethods.map((method) => (
         <ContactMethodRow key={method.id} method={method} />

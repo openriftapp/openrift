@@ -16,6 +16,7 @@ import type { PromoGrouping } from "@/features/cards/lib/promo-groupings";
 import type { ChannelRenderItem, FlatRenderItem } from "@/features/cards/lib/promo-sections";
 import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-store";
 import type { DisplayMode } from "@/lib/sanitize-preferences";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface PromoSectionsContentProps {
@@ -168,10 +169,11 @@ export function PromoSectionsContent({
         ) : (
           <p className="text-muted-foreground text-sm">
             {hasActiveFilters ? (
-              "No promos match the current filters."
+              m.promos_no_match()
             ) : (
               <>
-                No promos yet. <TextLink render={<Link to="/contribute" />}>Suggest one</TextLink>.
+                {m.promos_empty()}{" "}
+                <TextLink render={<Link to="/contribute" />}>{m.promos_suggest_one()}</TextLink>.
               </>
             )}
           </p>

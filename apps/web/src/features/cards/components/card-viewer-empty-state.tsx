@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { m } from "@/paraglide/messages.js";
 
 /** Shows a connectivity error when nothing loaded, or a no-results hint when filters excluded everything. */
 export function CardViewerEmptyState({
@@ -17,11 +18,11 @@ export function CardViewerEmptyState({
       <EmptyState
         className="flex-1"
         icon={WifiOffIcon}
-        title="Couldn't load cards"
-        description="The server may be unreachable."
+        title={m.cards_grid_load_error_title()}
+        description={m.cards_grid_load_error_description()}
       >
         <Button type="button" variant="ghost" onClick={() => globalThis.location.reload()}>
-          Retry
+          {m.common_retry()}
         </Button>
       </EmptyState>
     );
@@ -30,8 +31,8 @@ export function CardViewerEmptyState({
     <EmptyState
       className="flex-1"
       icon={SearchXIcon}
-      title="No cards found"
-      description={noResultsDescription ?? "Try adjusting your filters."}
+      title={m.cards_grid_no_results_title()}
+      description={noResultsDescription ?? m.cards_grid_no_results_description()}
     />
   );
 }

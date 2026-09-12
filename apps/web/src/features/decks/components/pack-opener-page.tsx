@@ -43,6 +43,7 @@ import { PackStats } from "@/features/decks/components/pack-stats";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { useSession } from "@/lib/auth-session";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 function poolFromPrintings(printings: readonly Printing[], language: string): PackPool {
@@ -90,8 +91,8 @@ export function PackOpenerPage() {
           <EmptyState
             className="py-12"
             icon={PackagePlusIcon}
-            title="No sets are available to open yet"
-            description="A set can be opened once its booster pull rates are in the catalog. Check back after the next release."
+            title={m.packs_empty_title()}
+            description={m.packs_empty_description()}
           />
         </div>
       </>
@@ -101,13 +102,15 @@ export function PackOpenerPage() {
   return (
     <>
       <PackOpenerTopBar>
-        <ToggleField label="Foil shimmer" checked={shimmer} onChange={setShimmer} />
-        <ToggleField label="Auto-reveal" checked={autoReveal} onChange={setAutoReveal} />
+        <ToggleField label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
+        <ToggleField
+          label={m.packs_toggle_auto_reveal()}
+          checked={autoReveal}
+          onChange={setAutoReveal}
+        />
       </PackOpenerTopBar>
       <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
-        <PageDescription>
-          Pull rates match the real booster. No cards are added to your collection.
-        </PageDescription>
+        <PageDescription>{m.packs_description()}</PageDescription>
 
         <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
           <SetPickerField
@@ -162,7 +165,8 @@ function PackOpenerTopBar({ children }: { children?: ReactNode }) {
       <PageTopBar>
         <PackagePlusIcon className="mr-2 size-5 shrink-0" />
         <PageTopBarTitle>
-          Pack opener<span className="max-sm:hidden"> simulator</span>
+          {m.packs_title()}
+          <span className="max-sm:hidden"> {m.packs_title_suffix()}</span>
         </PageTopBarTitle>
         {children ? <PageTopBarActions>{children}</PageTopBarActions> : null}
       </PageTopBar>
@@ -197,7 +201,7 @@ function SetPickerField({
 }) {
   return (
     <div className="space-y-1">
-      <Label>Set</Label>
+      <Label>{m.packs_field_set()}</Label>
       <Select value={value} onValueChange={(val) => val && onChange(val as string)}>
         <SelectTrigger className="w-full">
           <SelectValue>
@@ -232,7 +236,7 @@ function LanguageField({
     : (languages[0] ?? WellKnown.language.EN);
   return (
     <div className="space-y-1">
-      <Label>Language</Label>
+      <Label>{m.packs_field_language()}</Label>
       <Select value={effectiveValue} onValueChange={(val) => val && onChange(val as string)}>
         <SelectTrigger className="w-full">
           <SelectValue>{(current: string) => current}</SelectValue>
@@ -249,11 +253,13 @@ function LanguageField({
   );
 }
 
-const COUNT_OPTIONS = [
-  { value: "1", label: "1 pack" },
-  { value: "24", label: "24 (booster display)" },
-  { value: "custom", label: "Custom\u2026" },
-] as const;
+function countOptions() {
+  return [
+    { value: "1", label: m.packs_count_one() },
+    { value: "24", label: m.packs_count_display() },
+    { value: "custom", label: m.packs_count_custom() },
+  ] as const;
+}
 
 function CountField({
   choice,
@@ -266,6 +272,7 @@ function CountField({
   onChoiceChange: (value: string) => void;
   onCustomChange: (value: number) => void;
 }) {
+  const options = countOptions();
   const { inputProps } = useNumericDraft({
     display: String(custom),
     onCommit: (text) => {
@@ -278,18 +285,16 @@ function CountField({
   });
   return (
     <div className="space-y-1">
-      <Label>Packs</Label>
+      <Label>{m.packs_field_packs()}</Label>
       <div className="flex gap-2">
         <Select value={choice} onValueChange={(val) => val && onChoiceChange(val as string)}>
           <SelectTrigger className="flex-1">
             <SelectValue>
-              {(current: string) =>
-                COUNT_OPTIONS.find((o) => o.value === current)?.label ?? current
-              }
+              {(current: string) => options.find((o) => o.value === current)?.label ?? current}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {COUNT_OPTIONS.map((opt) => (
+            {options.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -303,7 +308,7 @@ function CountField({
             max={500}
             // Hides the native up/down spinner (Firefox via -moz-appearance, others via the webkit selectors).
             className="w-20 [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-            aria-label="Custom pack count"
+            aria-label={m.packs_custom_count_aria()}
             {...inputProps}
           />
         )}
@@ -339,7 +344,11 @@ function OpenAction({
         onClick={() => onOpened(openPacks(pool, mathRandom, count))}
       >
         <SparklesIcon className="size-4" />
-        {openable ? `Open ${count} pack${count === 1 ? "" : "s"}` : "No pool"}
+        {openable
+          ? count === 1
+            ? m.packs_open_one({ count })
+            : m.packs_open_other({ count })
+          : m.packs_no_pool()}
       </Button>
     </div>
   );

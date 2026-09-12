@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TextLink } from "@/components/ui/text-link";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+import { m } from "@/paraglide/messages.js";
 
 const confirmUnsubscribeFn = createServerFn({ method: "POST" })
   .validator((token: string) => token)
@@ -54,57 +55,51 @@ function UnsubscribePage() {
 
   if (!preview.valid) {
     return (
-      <Shell title="Link not valid">
-        <p className="text-muted-foreground text-sm">
-          This unsubscribe link is invalid or has expired. Nothing was changed. You can manage email
-          notifications anytime in your profile.
-        </p>
-        <Button render={<Link to="/" />}>Go to OpenRift</Button>
+      <Shell title={m.unsubscribe_invalid_title()}>
+        <p className="text-muted-foreground text-sm">{m.unsubscribe_invalid_body()}</p>
+        <Button render={<Link to="/" />}>{m.unsubscribe_go_home()}</Button>
       </Shell>
     );
   }
 
   if (status === "done") {
     return (
-      <Shell title="You're unsubscribed">
+      <Shell title={m.unsubscribe_done_title()}>
         <p className="text-muted-foreground text-sm">
-          You&apos;ll no longer receive {doneLabel ?? preview.channelLabel}. You can turn this back
-          on anytime in your OpenRift profile.
+          {m.unsubscribe_done_body({ channel: doneLabel ?? preview.channelLabel ?? "" })}
         </p>
-        <Button render={<Link to="/" />}>Go to OpenRift</Button>
+        <Button render={<Link to="/" />}>{m.unsubscribe_go_home()}</Button>
       </Shell>
     );
   }
 
   if (preview.alreadyUnsubscribed) {
     return (
-      <Shell title="Already unsubscribed">
+      <Shell title={m.unsubscribe_already_title()}>
         <p className="text-muted-foreground text-sm">
-          You&apos;re already unsubscribed from {preview.channelLabel}. You can turn it back on
-          anytime in your OpenRift profile.
+          {m.unsubscribe_already_body({ channel: preview.channelLabel ?? "" })}
         </p>
-        <Button render={<Link to="/" />}>Go to OpenRift</Button>
+        <Button render={<Link to="/" />}>{m.unsubscribe_go_home()}</Button>
       </Shell>
     );
   }
 
   return (
-    <Shell title="Unsubscribe?">
+    <Shell title={m.unsubscribe_confirm_title()}>
       <p className="text-muted-foreground text-sm">
-        Stop receiving {preview.channelLabel}? You can turn it back on anytime in your OpenRift
-        profile.
+        {m.unsubscribe_confirm_body({ channel: preview.channelLabel ?? "" })}
       </p>
       {status === "error" && (
         <Alert variant="destructive">
-          <AlertDescription>Something went wrong. Please try again.</AlertDescription>
+          <AlertDescription>{m.unsubscribe_error()}</AlertDescription>
         </Alert>
       )}
       <div className="flex items-center gap-3">
         <Button onClick={() => void handleConfirm()} disabled={status === "submitting"}>
-          {status === "submitting" ? "Unsubscribing…" : "Unsubscribe"}
+          {status === "submitting" ? m.unsubscribe_submitting() : m.unsubscribe_submit()}
         </Button>
         <TextLink variant="muted" className="text-sm" render={<Link to="/" />}>
-          Keep my subscription
+          {m.unsubscribe_keep()}
         </TextLink>
       </div>
     </Shell>

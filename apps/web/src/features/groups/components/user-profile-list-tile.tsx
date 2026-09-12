@@ -7,13 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { CardLink } from "@/components/ui/card-link";
 import { UserProfilePreviewFan } from "@/features/groups/components/user-profile-preview-fan";
 import { listEntryCountLabel } from "@/features/lists/lib/list-entry-count";
+import { m } from "@/paraglide/messages.js";
 
 function matchLabel(list: PublicUserBundleListResponse): string | null {
   if (list.matchCount === null || list.matchCount === 0) {
     return null;
   }
-  const where = list.intent === "wish" ? "in your tradelists" : "on your wishlists";
-  return `${list.matchCount} ${where}`;
+  return list.intent === "wish"
+    ? m.user_profile_match_wish({ count: list.matchCount })
+    : m.user_profile_match_trade({ count: list.matchCount });
 }
 
 export function UserProfileListTile({
@@ -43,8 +45,8 @@ export function UserProfileListTile({
       <div className="mt-auto flex items-end justify-between gap-4 pt-2">
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className="whitespace-nowrap">
-            {listEntryCountLabel(list.kind, list.entryCount)} · Updated{" "}
-            {formatRelativeTime(list.updatedAt)}
+            {listEntryCountLabel(list.kind, list.entryCount)} ·{" "}
+            {m.user_profile_updated({ time: formatRelativeTime(list.updatedAt) })}
           </span>
           {match ? (
             <span className="text-success inline-flex items-center gap-1 whitespace-nowrap">
@@ -63,9 +65,9 @@ function VisibilityBadges({ list }: { list: PublicUserBundleListResponse }) {
   return (
     <>
       {list.isPublic ? (
-        <Badge variant="outline" className="text-2xs gap-1" title="Has a public share link">
+        <Badge variant="outline" className="text-2xs gap-1" title={m.user_profile_public_title()}>
           <GlobeIcon className="size-3" />
-          Public
+          {m.user_profile_public()}
         </Badge>
       ) : null}
       {list.viaGroups.map((group) => (
@@ -73,7 +75,7 @@ function VisibilityBadges({ list }: { list: PublicUserBundleListResponse }) {
           key={group.id}
           variant="outline"
           className="text-2xs max-w-[10rem] gap-1"
-          title={`Shared with ${group.name}`}
+          title={m.user_profile_shared_with({ group: group.name })}
         >
           <UsersIcon className="size-3 shrink-0" />
           <span className="truncate">{group.name}</span>

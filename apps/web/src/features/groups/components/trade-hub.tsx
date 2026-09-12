@@ -21,23 +21,28 @@ import {
   suggestionsLine,
 } from "@/features/groups/lib/trade-hub";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
 function factsLine(card: TradeHubCard<FriendGroupMemberResponse>): string | null {
-  return card.open.length > 0 ? `${card.open.length} waiting on them` : null;
+  return card.open.length > 0 ? m.trades_waiting_on_them({ count: card.open.length }) : null;
 }
 
 function footerLine(card: TradeHubCard<FriendGroupMemberResponse>): string | null {
   const parts: string[] = [];
   if (card.tradedCount > 0) {
-    parts.push(`${card.tradedCount} ${card.tradedCount === 1 ? "trade" : "trades"} done`);
+    const count = card.tradedCount;
+    parts.push(count === 1 ? m.trades_done_one({ count }) : m.trades_done_other({ count }));
   }
   if (card.elsewhereCount > 0) {
-    parts.push(`+${card.elsewhereCount} in other groups`);
+    parts.push(m.trades_in_other_groups({ count: card.elsewhereCount }));
   }
   if (card.listCount > 0) {
-    parts.push(`shares ${card.listCount} ${card.listCount === 1 ? "list" : "lists"}`);
+    const count = card.listCount;
+    parts.push(
+      count === 1 ? m.trades_shares_lists_one({ count }) : m.trades_shares_lists_other({ count }),
+    );
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }
@@ -75,11 +80,13 @@ export function TradeHubMemberCard({
           gravatarHash={member.gravatarHash}
           size="sm"
         />
-        <span className="min-w-0 flex-1 truncate font-medium">{member.userName ?? "Member"}</span>
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {member.userName ?? m.trades_member_fallback()}
+        </span>
         <ChevronRightIcon className="text-muted-foreground/40 group-hover/card:text-muted-foreground size-4 shrink-0 transition-transform group-hover/card:translate-x-0.5" />
       </div>
 
-      {quiet ? <p className="text-muted-foreground">Nothing in this group yet</p> : null}
+      {quiet ? <p className="text-muted-foreground">{m.trades_nothing_in_group()}</p> : null}
       {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {waitingArt.length > 0 ? (
         <CardArtThumbStack items={waitingArt} max={5} thumbClassName="w-8" />
@@ -110,11 +117,11 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
       <Callout className="flex items-center gap-3">
         <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
         <p className="text-muted-foreground min-w-0 flex-1">
-          You don&apos;t have a wishlist or tradelist yet.{" "}
+          {m.trades_share_band_empty_before()}{" "}
           <TextLink variant="muted" render={<Link to="/collections" />}>
-            Create one
+            {m.trades_share_band_create()}
           </TextLink>{" "}
-          and share it with {groupName} to start finding trades.
+          {m.trades_share_band_empty_after({ group: groupName })}
         </p>
       </Callout>
     );
@@ -125,25 +132,24 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
       <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="font-medium">
-          You&apos;ve shared {shared.length} of {tradable.length}{" "}
-          {tradable.length === 1 ? "list" : "lists"} with this group
+          {tradable.length === 1
+            ? m.trades_share_band_shared_one({ shared: shared.length, total: tradable.length })
+            : m.trades_share_band_shared_other({ shared: shared.length, total: tradable.length })}
         </p>
-        <p className="text-muted-foreground text-xs">
-          Members can only find trades with you through the lists you share.
-        </p>
+        <p className="text-muted-foreground text-xs">{m.trades_share_band_hint()}</p>
       </div>
       {shared.length === tradable.length ? null : (
         <>
           <Button size="sm" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
             <Share2Icon />
-            Share more
+            {m.trades_share_more()}
           </Button>
           <ShareListsWithGroupDialog
             slug={slug}
             groupName={groupName}
             open={open}
             onOpenChange={setOpen}
-            cancelLabel="Cancel"
+            cancelLabel={m.common_cancel()}
             preselectAll={false}
           />
         </>

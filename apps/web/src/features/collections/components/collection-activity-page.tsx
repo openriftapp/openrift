@@ -46,6 +46,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 const ACTION_CONFIG = {
@@ -72,23 +73,23 @@ function Toolbar({
   const { data: collections } = useCollections();
 
   const actionOptions: { value: ActionFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "added", label: "Added" },
-    { value: "removed", label: "Removed" },
-    { value: "moved", label: "Moved" },
+    { value: "all", label: m.common_all() },
+    { value: "added", label: m.collections_activity_added() },
+    { value: "removed", label: m.collections_activity_removed() },
+    { value: "moved", label: m.collections_activity_moved() },
   ];
 
   const dateOptions: { value: DatePreset; label: string }[] = [
-    { value: "all", label: "All time" },
-    { value: "today", label: "Today" },
-    { value: "week", label: "7 days" },
-    { value: "month", label: "30 days" },
+    { value: "all", label: m.collections_activity_all_time() },
+    { value: "today", label: m.collections_activity_today() },
+    { value: "week", label: m.collections_activity_7_days() },
+    { value: "month", label: m.collections_activity_30_days() },
   ];
 
   // Single source for the collection picker: drives both the value-label
   // resolution (items) and the rendered options, so they can't drift.
   const collectionItems: Record<string, string> = {
-    all: "All collections",
+    all: m.collections_activity_all_collections(),
     ...Object.fromEntries(
       (collections ?? []).map((collection) => [collection.id, collection.name]),
     ),
@@ -101,7 +102,7 @@ function Toolbar({
         onValueChange={(v) => onCollectionChange(v ?? "all")}
         items={collectionItems}
       >
-        <SelectTrigger className="w-auto" aria-label="Collection">
+        <SelectTrigger className="w-auto" aria-label={m.collections_activity_collection()}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -123,7 +124,7 @@ function Toolbar({
             onActionChange(option.value);
           }
         }}
-        aria-label="Action"
+        aria-label={m.collections_activity_action()}
       >
         {actionOptions.map((opt) => (
           <ToggleGroupItem key={opt.value} value={opt.value}>
@@ -142,7 +143,7 @@ function Toolbar({
             onDateChange(option.value);
           }
         }}
-        aria-label="Time range"
+        aria-label={m.collections_activity_time_range()}
         className="ml-auto"
       >
         {dateOptions.map((opt) => (
@@ -306,13 +307,13 @@ function DaySummary({
 
   const parts: string[] = [];
   if (added > 0) {
-    parts.push(`${added} added`);
+    parts.push(m.collections_activity_summary_added({ count: added }));
   }
   if (removed > 0) {
-    parts.push(`${removed} removed`);
+    parts.push(m.collections_activity_summary_removed({ count: removed }));
   }
   if (moved > 0) {
-    parts.push(`${moved} moved`);
+    parts.push(m.collections_activity_summary_moved({ count: moved }));
   }
 
   const netValue = Math.round((addedValue - removedValue) * 100) / 100;
@@ -368,12 +369,12 @@ function ActivityEmptyState() {
     <EmptyState
       className="py-20"
       icon={HistoryIcon}
-      title="No activity yet"
-      description="Every card you add, move, or remove lands here as a timeline, so you can see how your collection changed and when. Browse the catalog to make the first entry."
+      title={m.collections_activity_empty_title()}
+      description={m.collections_activity_empty_description()}
     >
       <Button variant="default" render={<Link to="/cards" />}>
         <SearchIcon />
-        Browse cards
+        {m.collections_activity_browse_cards()}
       </Button>
     </EmptyState>
   );
@@ -386,7 +387,7 @@ function FilteredEmptyState() {
         <EmptyMedia>
           <HistoryIcon className="text-muted-foreground size-8" />
         </EmptyMedia>
-        <EmptyDescription>No matching activity</EmptyDescription>
+        <EmptyDescription>{m.collections_activity_no_matches()}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
@@ -411,7 +412,9 @@ export function CollectionActivityPage() {
     topBarSlot &&
     createPortal(
       <PageTopBar>
-        <PageTopBarTitle onToggleSidebar={toggleSidebar}>Activity</PageTopBarTitle>
+        <PageTopBarTitle onToggleSidebar={toggleSidebar}>
+          {m.collections_sidebar_activity()}
+        </PageTopBarTitle>
       </PageTopBar>,
       topBarSlot,
     );

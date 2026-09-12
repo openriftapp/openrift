@@ -16,6 +16,7 @@ import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { coverOverflowPx, coverPositionFromDrag } from "@/lib/cover-focus";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Default vertical crop focus, matching the legend backdrop's framing. */
 const DEFAULT_POSITION = 20;
@@ -154,7 +155,7 @@ export function DeckCoverDialog({
     >
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Deck cover art</DialogTitle>
+          <DialogTitle>{m.decks_dialog_cover_title()}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
@@ -169,7 +170,7 @@ export function DeckCoverDialog({
               <img
                 ref={previewRef}
                 src={draftThumb}
-                alt="Cover preview"
+                alt={m.decks_dialog_cover_preview_alt()}
                 draggable={false}
                 className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
                 style={{ objectPosition: `50% ${draftPosition}%` }}
@@ -178,18 +179,20 @@ export function DeckCoverDialog({
           )}
           {draftCardId === null && (
             <div className="text-muted-foreground bg-muted/30 flex h-24 items-center justify-center rounded-lg border border-dashed text-sm">
-              Default: the deck&rsquo;s Legend art
+              {m.decks_dialog_cover_default_hint()}
             </div>
           )}
 
           {draftCardId !== null && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
-                <Label>Vertical focus</Label>
-                <span className="text-muted-foreground text-sm">Or drag the preview</span>
+                <Label>{m.decks_dialog_cover_focus_label()}</Label>
+                <span className="text-muted-foreground text-sm">
+                  {m.decks_dialog_cover_focus_hint()}
+                </span>
               </div>
               <Slider
-                aria-label="Vertical focus"
+                aria-label={m.decks_dialog_cover_focus_label()}
                 value={[draftPosition]}
                 min={0}
                 max={100}
@@ -212,7 +215,7 @@ export function DeckCoverDialog({
                 draftCardId === null && "ring-primary ring-2",
               )}
             >
-              Legend (default)
+              {m.decks_dialog_cover_legend_default()}
             </Pressable>
             {choices.map((choice) => {
               const isActive =
@@ -245,9 +248,9 @@ export function DeckCoverDialog({
         </div>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
           <Button type="button" onClick={handleSave} disabled={isPending}>
-            Save
+            {m.common_save()}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -51,6 +51,7 @@ import {
 import type { VariantGraphRow } from "@/features/decks/lib/deck-variant-graph";
 import { buildVariantGraph } from "@/features/decks/lib/deck-variant-graph";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckVariantCreateForm } from "./deck-variant-create-dialog";
 
@@ -191,7 +192,13 @@ function RowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${deck.name}`} />}
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={m.decks_menu_row_actions_label({ name: deck.name })}
+          />
+        }
       >
         <EllipsisVerticalIcon className="size-4" />
       </DropdownMenuTrigger>
@@ -200,13 +207,15 @@ function RowActions({
           <DropdownMenuItem
             render={<Link to="/decks/compare" search={{ from: deck.id, to: openDeckId }} />}
           >
-            Show changes
+            {m.decks_menu_show_changes()}
           </DropdownMenuItem>
         )}
-        {!deck.isPrimary && <DropdownMenuItem onClick={onPromote}>Make primary</DropdownMenuItem>}
+        {!deck.isPrimary && (
+          <DropdownMenuItem onClick={onPromote}>{m.decks_menu_make_primary()}</DropdownMenuItem>
+        )}
         {canUnlink && (
           <DropdownMenuItem onClick={onUnlink} className="text-destructive focus:text-destructive">
-            Remove from variants
+            {m.decks_menu_remove_from_variants()}
           </DropdownMenuItem>
         )}
         {/* The open deck deletes itself from its own top bar instead: doing it
@@ -214,7 +223,7 @@ function RowActions({
         {!isCurrent && (
           <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
             <Trash2Icon className="size-4" />
-            Delete version
+            {m.decks_menu_delete_version()}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
@@ -249,7 +258,10 @@ function LineageRow({
   onUnlink: () => void;
   onDelete: () => void;
 }) {
-  const parentItems = [{ value: NO_PARENT, label: "Nothing" }, ...parentChoices];
+  const parentItems = [
+    { value: NO_PARENT, label: m.decks_dialog_variants_parent_none() },
+    ...parentChoices,
+  ];
   return (
     // Rows sit flush and pad their own content so the gutter's lines run
     // unbroken from one row into the next.
@@ -264,11 +276,13 @@ function LineageRow({
           >
             {deck.name}
           </TextLink>
-          {isCurrent && <Badge variant="subtle">Current</Badge>}
-          {deck.isPrimary && <Badge variant="secondary">Primary</Badge>}
-          {deck.isDraft && <Badge variant="warning">Draft</Badge>}
+          {isCurrent && <Badge variant="subtle">{m.decks_dialog_variants_badge_current()}</Badge>}
+          {deck.isPrimary && (
+            <Badge variant="secondary">{m.decks_dialog_variants_badge_primary()}</Badge>
+          )}
+          {deck.isDraft && <Badge variant="warning">{m.decks_dialog_draft_badge()}</Badge>}
           <span className="text-muted-foreground text-2xs ml-auto shrink-0">
-            Updated {formatDay(deck.updatedAt)}
+            {m.decks_dialog_variants_updated({ date: formatDay(deck.updatedAt) })}
           </span>
           <RowActions
             deck={deck}
@@ -282,7 +296,9 @@ function LineageRow({
         </div>
         {parentChoices.length > 0 && (
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-muted-foreground text-2xs shrink-0">Came from</span>
+            <span className="text-muted-foreground text-2xs shrink-0">
+              {m.decks_dialog_variant_source_label()}
+            </span>
             <Select
               items={parentItems}
               value={deck.predecessorDeckId ?? NO_PARENT}
@@ -290,7 +306,7 @@ function LineageRow({
             >
               <SelectTrigger
                 size="sm"
-                aria-label={`Previous version of ${deck.name}`}
+                aria-label={m.decks_dialog_variants_parent_select_label({ name: deck.name })}
                 className="min-w-0 flex-1"
               >
                 <SelectValue />
@@ -352,14 +368,14 @@ function VariantsDialogBody({
 
   const handlePromote = (memberId: string) => {
     promotePrimary.mutate(memberId, {
-      onSuccess: () => toast.success("Primary variant updated"),
+      onSuccess: () => toast.success(m.decks_dialog_variants_primary_updated()),
       // Errors are reported by the global mutation error toast.
     });
   };
 
   const handleUnlink = (memberId: string) => {
     unlinkVariant.mutate(memberId, {
-      onSuccess: () => toast.success("Removed from variants"),
+      onSuccess: () => toast.success(m.decks_dialog_variants_removed()),
       // Errors are reported by the global mutation error toast.
     });
   };
@@ -373,7 +389,7 @@ function VariantsDialogBody({
     // The family repairs itself server-side: a sole survivor goes standalone,
     // and a deleted primary hands the flag on.
     deleteDeck.mutate(target.id, {
-      onSuccess: () => toast.success("Version deleted"),
+      onSuccess: () => toast.success(m.decks_dialog_variants_version_deleted()),
       // Errors are reported by the global mutation error toast.
     });
   };
@@ -392,7 +408,7 @@ function VariantsDialogBody({
         onSuccess: () => {
           setLinkTargetId(null);
           setPanel(null);
-          toast.success("Decks linked");
+          toast.success(m.decks_dialog_variants_linked());
         },
         // Errors are reported by the global mutation error toast.
       },
@@ -431,11 +447,11 @@ function VariantsDialogBody({
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setPanel("create")}>
             <CopyIcon className="size-4" />
-            New variant…
+            {m.decks_dialog_variants_new_variant()}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setPanel("link")}>
             <Link2Icon className="size-4" />
-            Link another deck…
+            {m.decks_dialog_variants_link_deck()}
           </Button>
         </div>
 
@@ -453,26 +469,25 @@ function VariantsDialogBody({
         {panel === "link" && (
           <div className="bg-muted flex min-w-0 flex-col gap-3 rounded-md p-3">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="font-medium">Link another deck</span>
+              <span className="font-medium">{m.decks_dialog_variants_link_title()}</span>
               <span className="text-muted-foreground text-sm">
-                Pulls a deck you already own into this family, keeping its own list.
+                {m.decks_dialog_variants_link_description()}
               </span>
             </div>
             {linkOptions.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                There is no other deck to link. Every deck you own is either already in this family
-                or archived.
+                {m.decks_dialog_variants_link_empty()}
               </p>
             ) : (
               <div className="flex min-w-0 flex-col gap-2">
-                <Label htmlFor="deck-variants-link">Deck</Label>
+                <Label htmlFor="deck-variants-link">{m.decks_dialog_variants_link_label()}</Label>
                 <Select
                   items={linkOptions}
                   value={linkTargetId}
                   onValueChange={(value) => setLinkTargetId(value)}
                 >
                   <SelectTrigger id="deck-variants-link" className="w-full">
-                    <SelectValue placeholder="Pick a deck" />
+                    <SelectValue placeholder={m.decks_dialog_variants_link_placeholder()} />
                   </SelectTrigger>
                   <SelectContent>
                     {linkOptions.map((item) => (
@@ -486,13 +501,13 @@ function VariantsDialogBody({
             )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setPanel(null)}>
-                Cancel
+                {m.common_cancel()}
               </Button>
               <Button
                 disabled={linkTargetId === null || linkVariant.isPending}
                 onClick={handleLink}
               >
-                Link deck
+                {m.decks_dialog_variants_link_submit()}
               </Button>
             </div>
           </div>
@@ -510,16 +525,15 @@ function VariantsDialogBody({
         <AlertDialogContent>
           <DialogForm onSubmit={handleDelete}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete version</AlertDialogTitle>
+              <AlertDialogTitle>{m.decks_dialog_variants_delete_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                Delete &ldquo;{deleteTarget?.name}&rdquo;? This cannot be undone. The other versions
-                stay.
+                {m.decks_dialog_variants_delete_description({ name: deleteTarget?.name ?? "" })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                Delete
+                {m.common_delete()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>
@@ -540,15 +554,17 @@ export function DeckVariantsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Variants</DialogTitle>
-          <DialogDescription>
-            Manage versions of this deck, compare and link them.
-          </DialogDescription>
+          <DialogTitle>{m.decks_dialog_variants_title()}</DialogTitle>
+          <DialogDescription>{m.decks_dialog_variants_description()}</DialogDescription>
         </DialogHeader>
         {/* Mounting the body only while open keeps a closed dialog from
             suspending the page that hosts it. */}
         {open && (
-          <Suspense fallback={<p className="text-muted-foreground text-sm">Loading variants…</p>}>
+          <Suspense
+            fallback={
+              <p className="text-muted-foreground text-sm">{m.decks_dialog_variants_loading()}</p>
+            }
+          >
             <VariantsDialogBody
               deckId={deckId}
               deckName={deckName}

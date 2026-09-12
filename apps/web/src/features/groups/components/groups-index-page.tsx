@@ -52,6 +52,7 @@ import { groupSuggestionStripsBySlug } from "@/features/groups/lib/trade-derivat
 import { useRequiredUserId } from "@/lib/auth-session";
 import { markdownTeaser } from "@/lib/markdown-teaser";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ShareListsWithGroupDialog } from "./share-lists-with-group-dialog";
 
@@ -148,24 +149,22 @@ function CreateGroupDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleCreate()}>
           <DialogHeader>
-            <DialogTitle>Create group</DialogTitle>
-            <DialogDescription>
-              Closed by default. Members opt in their own lists per group.
-            </DialogDescription>
+            <DialogTitle>{m.groups_create_title()}</DialogTitle>
+            <DialogDescription>{m.groups_create_description()}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fg-name">Name</Label>
+              <Label htmlFor="fg-name">{m.common_name()}</Label>
               <Input
                 id="fg-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={60}
-                placeholder="Tuesday Night Crew"
+                placeholder={m.groups_create_name_placeholder()}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fg-slug">Web address</Label>
+              <Label htmlFor="fg-slug">{m.groups_create_slug_label()}</Label>
               <Input
                 id="fg-slug"
                 value={effectiveSlug}
@@ -175,18 +174,20 @@ function CreateGroupDialog({
                   setSlug(next);
                 }}
                 maxLength={30}
-                placeholder="tuesday-crew"
+                placeholder={m.groups_create_slug_placeholder()}
               />
               {slugError ? (
                 <FieldError className="text-xs">{slugError}</FieldError>
               ) : (
                 <span className="text-muted-foreground text-xs">
-                  Used in the URL: /groups/{effectiveSlug || "your-group"}
+                  {m.groups_create_slug_hint({
+                    slug: effectiveSlug || m.groups_create_slug_hint_fallback(),
+                  })}
                 </span>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fg-desc">Description (optional)</Label>
+              <Label htmlFor="fg-desc">{m.groups_create_description_label()}</Label>
               <Textarea
                 id="fg-desc"
                 value={description}
@@ -194,15 +195,13 @@ function CreateGroupDialog({
                 maxLength={500}
                 rows={3}
               />
-              <span className="text-muted-foreground text-xs">
-                Markdown works here: bold, links, and lists.
-              </span>
+              <span className="text-muted-foreground text-xs">{m.groups_markdown_hint()}</span>
             </div>
             <div className="flex items-center justify-between rounded-md border p-3">
               <div className="flex flex-col gap-0.5">
-                <Label htmlFor="fg-invite">Invite link</Label>
+                <Label htmlFor="fg-invite">{m.groups_invite_link_label()}</Label>
                 <span className="text-muted-foreground text-xs">
-                  Admins get a link and QR code to invite people.
+                  {m.groups_create_invite_hint()}
                 </span>
               </div>
               <Switch id="fg-invite" checked={generateCode} onCheckedChange={setGenerateCode} />
@@ -215,7 +214,7 @@ function CreateGroupDialog({
                 !name.trim() || !effectiveSlug || Boolean(slugError) || createGroup.isPending
               }
             >
-              Create
+              {m.common_create()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -252,11 +251,11 @@ export function GroupsIndexPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Groups</PageTopBarTitle>
+          <PageTopBarTitle>{m.groups_index_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
               <PlusIcon className="size-4" />
-              New group
+              {m.groups_index_new()}
             </PageTopBarPrimaryButton>
             <CreateGroupDialog
               open={createOpen}
@@ -271,7 +270,7 @@ export function GroupsIndexPage() {
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         {data.outgoingRequests.length > 0 && (
           <section className="flex flex-col gap-3">
-            <SectionHeading>Awaiting approval</SectionHeading>
+            <SectionHeading>{m.groups_index_awaiting_approval()}</SectionHeading>
             <ul className="flex flex-col gap-2">
               {data.outgoingRequests.map((request) => (
                 <CardRow key={request.id}>
@@ -284,7 +283,9 @@ export function GroupsIndexPage() {
                       {request.groupName}
                     </span>
                     <span className="text-muted-foreground text-xs">
-                      {request.memberCount} {request.memberCount === 1 ? "member" : "members"}
+                      {request.memberCount === 1
+                        ? m.groups_member_count_one({ count: request.memberCount })
+                        : m.groups_member_count_other({ count: request.memberCount })}
                     </span>
                   </Link>
                   <Button
@@ -296,7 +297,7 @@ export function GroupsIndexPage() {
                     disabled={declineInvite.isPending}
                   >
                     <XIcon className="size-4" />
-                    Cancel request
+                    {m.groups_cancel_request()}
                   </Button>
                 </CardRow>
               ))}
@@ -308,12 +309,12 @@ export function GroupsIndexPage() {
           <EmptyState
             className="py-12"
             icon={UsersIcon}
-            title="You're not in any groups yet."
+            title={m.groups_index_empty_title()}
             description={
               <>
-                Create one above, or paste an invite code to join.{" "}
+                {m.groups_index_empty_description()}{" "}
                 <TextLink render={<Link to="/help/$slug" params={{ slug: "groups" }} />}>
-                  Learn how groups work.
+                  {m.groups_index_empty_link()}
                 </TextLink>
               </>
             }
@@ -350,30 +351,39 @@ export function GroupsIndexPage() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {respondCount > 0 ? (
                         <Badge className="whitespace-nowrap">
-                          {respondCount} trade request{respondCount === 1 ? "" : "s"}
+                          {respondCount === 1
+                            ? m.groups_index_trade_requests_one({ count: respondCount })
+                            : m.groups_index_trade_requests_other({ count: respondCount })}
                         </Badge>
                       ) : null}
                       {settleCount > 0 ? (
                         <Badge variant="subtle" className="whitespace-nowrap">
-                          {settleCount} swap{settleCount === 1 ? "" : "s"} to confirm
+                          {settleCount === 1
+                            ? m.groups_index_swaps_to_confirm_one({ count: settleCount })
+                            : m.groups_index_swaps_to_confirm_other({ count: settleCount })}
                         </Badge>
                       ) : null}
                     </div>
                   ) : null}
                   {row.pendingRequestCount > 0 ? (
                     <span className="text-primary text-sm font-medium">
-                      {row.pendingRequestCount} request
-                      {row.pendingRequestCount === 1 ? "" : "s"} to review
+                      {row.pendingRequestCount === 1
+                        ? m.groups_index_requests_to_review_one({
+                            count: row.pendingRequestCount,
+                          })
+                        : m.groups_index_requests_to_review_other({
+                            count: row.pendingRequestCount,
+                          })}
                     </span>
                   ) : null}
                   <SuggestionStrip
                     strip={strips?.incoming}
-                    label="you could get"
+                    label={m.groups_index_strip_incoming()}
                     printingsById={printingsById}
                   />
                   <SuggestionStrip
                     strip={strips?.outgoing}
-                    label="they'd want"
+                    label={m.groups_index_strip_outgoing()}
                     printingsById={printingsById}
                   />
                   {teaser ? (

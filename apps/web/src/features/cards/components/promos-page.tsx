@@ -55,14 +55,13 @@ import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { useSession } from "@/lib/auth-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const routeApi = getRouteApi("/_app/promos_/$language");
 
 const PROMOS_BASE_HIDDEN_SECTIONS: ReadonlySet<string> = new Set(["promo"]);
-
-const GROUP_OPTIONS = groupByOptionsFor(PROMO_GROUPINGS);
 
 export function PromosPage() {
   const search = routeApi.useSearch();
@@ -121,6 +120,7 @@ function PromosBrowser() {
   const { orders: enumOrders, labels: enumLabels } = useEnumOrders();
   const { setSearch } = useFilterActions();
   const isMobile = useIsMobile();
+  const groupOptions = groupByOptionsFor(PROMO_GROUPINGS);
 
   const presentLanguageSet = new Set(data.languages);
   const presentLanguages = [
@@ -268,10 +268,12 @@ function PromosBrowser() {
                 totalCards={activePrintings.length}
                 filteredCount={matchedPrintings.length}
                 mobileDoneLabel={
-                  hasActiveFilters ? `Show ${matchedPrintings.length} promos` : undefined
+                  hasActiveFilters
+                    ? m.promos_show_count({ count: matchedPrintings.length })
+                    : undefined
                 }
                 hideViewToggle
-                groupByOptions={GROUP_OPTIONS}
+                groupByOptions={groupOptions}
                 groupByValue={grouping}
                 extras={
                   isLoggedIn ? (
@@ -279,9 +281,9 @@ function PromosBrowser() {
                       variant="control"
                       size="icon"
                       onClick={togglePromoOwned}
-                      aria-label={showOwned ? "Hide owned counts" : "Show owned counts"}
+                      aria-label={showOwned ? m.promos_hide_owned() : m.promos_show_owned()}
                       aria-pressed={showOwned}
-                      title={showOwned ? "Hide owned counts" : "Show owned counts"}
+                      title={showOwned ? m.promos_hide_owned() : m.promos_show_owned()}
                     >
                       <PackageIcon className="size-4" />
                     </Button>

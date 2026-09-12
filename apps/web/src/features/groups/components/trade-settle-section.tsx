@@ -48,6 +48,7 @@ import { talliedCount, useTradeTallyStore } from "@/features/groups/stores/trade
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { languageNameForCode } from "@/lib/language-names";
+import { m } from "@/paraglide/messages.js";
 
 async function copyOptionsOrNull(
   read: () => Promise<CardTradeCopyOptionsResponse>,
@@ -76,7 +77,7 @@ function TallyRow({
 
   const card = cardsById[trade.cardId];
   const printing = printingsById[trade.printingId];
-  const cardName = card?.name ?? "Card";
+  const cardName = card?.name ?? m.trades_card_fallback();
   const count = talliedCount(counts, trade.id, trade.quantity);
 
   return (
@@ -151,14 +152,14 @@ function CommitSummary({
     <p className="text-muted-foreground min-w-0 text-xs">
       {incomingCards > 0 ? (
         <>
-          Adds {incomingCards} to{" "}
+          {m.trades_settle_adds_to({ count: incomingCards })}{" "}
           <Button variant="link-muted" size="sm" className="h-auto p-0" onClick={onChangeTarget}>
             {targetLabel}
           </Button>
         </>
       ) : null}
       {incomingCards > 0 && outgoingCards > 0 ? " · " : null}
-      {outgoingCards > 0 ? `Removes ${outgoingCards} from your collection` : null}
+      {outgoingCards > 0 ? m.trades_settle_removes({ count: outgoingCards }) : null}
     </p>
   );
 }
@@ -203,7 +204,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
     setBusy(false);
     if (result.failed) {
       // The global mutation toast won't fire: this batch partially succeeded.
-      toast.warning("Some cards could not be settled. The rest went through.");
+      toast.warning(m.trades_settle_partial_failure());
     }
   }
 
@@ -226,24 +227,22 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeading icon={HandshakeIcon} tone="success" count={trades.length}>
-          Ready to swap
+          {m.trades_badge_ready_to_swap()}
         </SectionHeading>
         {session ? null : hasSavedCount ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground text-xs">
-              You started counting these earlier
-            </span>
+            <span className="text-muted-foreground text-xs">{m.trades_settle_resume_hint()}</span>
             <Button size="sm" onClick={() => setSession(true)}>
-              Resume
+              {m.trades_resume()}
             </Button>
             <Button variant="ghost" size="sm" onClick={discardCounts}>
-              Discard
+              {m.trades_discard()}
             </Button>
           </div>
         ) : (
           <Button size="sm" onClick={() => setSession(true)}>
             <HandshakeIcon />
-            Settle up
+            {m.trades_settle_up()}
           </Button>
         )}
       </div>
@@ -254,14 +253,12 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
         <Card className="ring-success/30 gap-0 overflow-visible p-0">
           <div className="bg-success-soft flex flex-wrap items-center justify-between gap-2 rounded-t-lg px-3 py-2">
             <div className="flex min-w-0 flex-col">
-              <span className="text-sm font-medium">Counting cards</span>
-              <span className="text-muted-foreground text-xs">
-                Nothing is saved until you settle
-              </span>
+              <span className="text-sm font-medium">{m.trades_counting_cards()}</span>
+              <span className="text-muted-foreground text-xs">{m.trades_counting_hint()}</span>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button variant="outline" size="sm" disabled={busy} onClick={() => setSession(false)}>
-                Done for now
+                {m.trades_done_for_now()}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -270,7 +267,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
                       size="icon-sm"
                       variant="ghost"
                       disabled={busy}
-                      aria-label="More session actions"
+                      aria-label={m.trades_more_session_actions()}
                     />
                   }
                 >
@@ -286,7 +283,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
                     }}
                   >
                     <Trash2Icon className="size-4" />
-                    Discard count
+                    {m.trades_discard_count()}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -308,12 +305,15 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               onChangeTarget={() => setTargetOpen(true)}
             />
             <Button className="w-full" disabled={busy || cards === 0} onClick={commit}>
-              Settle {cards} {cards === 1 ? "card" : "cards"}
+              {cards === 1
+                ? m.trades_settle_button_one({ count: cards })
+                : m.trades_settle_button_other({ count: cards })}
             </Button>
             {rowsAtZero === 0 ? null : (
               <p className="text-muted-foreground text-xs">
-                {rowsAtZero} {rowsAtZero === 1 ? "swap" : "swaps"} left at 0, staying open for next
-                time.
+                {rowsAtZero === 1
+                  ? m.trades_rows_at_zero_one({ count: rowsAtZero })
+                  : m.trades_rows_at_zero_other({ count: rowsAtZero })}
               </p>
             )}
           </div>
@@ -359,7 +359,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               setPendingChoices((rest) => rest.slice(1));
             },
           }}
-          cardName={cardsById[choice.trade.cardId]?.name ?? "this card"}
+          cardName={cardsById[choice.trade.cardId]?.name ?? m.trades_this_card()}
         />
       )}
     </section>

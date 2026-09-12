@@ -14,6 +14,7 @@ import {
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import { useBulkAddListEntries } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 /** List kinds that support text/CSV import. Copy-kind has no source-file identity. */
@@ -91,7 +92,7 @@ export function useListImportFlow(
 
   const handleImport = async () => {
     if (importableEntries.length === 0) {
-      toast.error("Nothing to import.");
+      toast.error(m.lists_import_nothing());
       return;
     }
 
@@ -110,18 +111,21 @@ export function useListImportFlow(
       }
     };
 
-    const cardLabel = summary.totalCards === 1 ? "card" : "cards";
+    const successMessage =
+      summary.totalCards === 1
+        ? m.lists_import_success_one({ count: summary.totalCards })
+        : m.lists_import_success_other({ count: summary.totalCards });
 
     try {
       await sendAllBatches();
-      toast.success(`Added ${summary.totalCards} ${cardLabel} to list.`);
+      toast.success(successMessage);
       setIsImporting(false);
       reset();
       onClose();
     } catch {
       // Deliberate second toast on top of the global mutation error one: this says the
       // import was left half-done (batches before the failing one already committed).
-      toast.error("Import failed. Some cards may have been added.");
+      toast.error(m.lists_import_failed());
       setIsImporting(false);
     }
   };

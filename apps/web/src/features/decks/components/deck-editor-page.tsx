@@ -68,6 +68,7 @@ import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSession, useUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -81,12 +82,12 @@ function MobileSidebarHeader() {
   return (
     <SectionHeader className="items-center p-4 md:hidden">
       <SectionHeaderTitle level={3} as="h2">
-        Deck Zones
+        {m.decks_editor_zones_heading()}
       </SectionHeaderTitle>
       <SectionHeaderActions>
         <Button variant="ghost" size="icon-sm" onClick={() => setOpenMobile(false)}>
           <XIcon />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{m.common_close()}</span>
         </Button>
       </SectionHeaderActions>
     </SectionHeader>
@@ -159,7 +160,7 @@ function DeckEditorContent({
 
   // Ctrl/Cmd+K reaches the quick-add omnibar through the command palette,
   // which resolves the chord to whichever quick-add the route registered.
-  useRegisterQuickAdd({ key: `deck:${deckId}`, label: "Add cards to this deck" });
+  useRegisterQuickAdd({ key: `deck:${deckId}`, label: m.decks_editor_quick_add_label() });
   const ownershipData = useDeckOwnership(
     deckCards,
     allPrintings,
@@ -399,8 +400,11 @@ function DeckEditorContent({
               <div className="text-muted-foreground flex items-center gap-2 pt-1 pb-2 pl-8 md:hidden">
                 <CornerLeftUpIcon className="size-4 shrink-0" />
                 <span>
-                  Tap <span className="text-foreground font-medium">Zones</span> above to see all
-                  zones
+                  {m.decks_editor_tap_zones_before()}{" "}
+                  <span className="text-foreground font-medium">
+                    {m.decks_editor_tap_zones_button()}
+                  </span>{" "}
+                  {m.decks_editor_tap_zones_after()}
                 </span>
               </div>
             )}

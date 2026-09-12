@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { PublicShareCta } from "@/features/account/components/signed-out-cta";
+import { m } from "@/paraglide/messages.js";
 
 function OverlapCount({ value, children }: { value: number; children: string }) {
   return (
@@ -32,15 +33,13 @@ export function UserProfileOverlap({
       return null;
     }
     return (
-      <PublicShareCta title={`See what you could trade with ${owner.displayName}`}>
-        Sign in and OpenRift matches their wants and offers against your lists.
+      <PublicShareCta title={m.user_profile_cta_title({ name: owner.displayName })}>
+        {m.user_profile_cta_body()}
       </PublicShareCta>
     );
   }
   if (overlap.theyWantYouHave === 0 && overlap.theyOfferYouWant === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">Nothing on their lists matches yours yet.</p>
-    );
+    return <p className="text-muted-foreground text-sm">{m.user_profile_no_overlap()}</p>;
   }
   const matchGroup = groupsInCommon[0];
   return (
@@ -48,15 +47,15 @@ export function UserProfileOverlap({
       <div className="flex items-center gap-3 sm:min-w-52">
         <IconChip icon={ArrowLeftRightIcon} tone="primary" />
         <div className="flex flex-col">
-          <span className="font-medium">Overlap with your lists</span>
-          <span className="text-muted-foreground text-xs">Across the lists you can see here</span>
+          <span className="font-medium">{m.user_profile_overlap_title()}</span>
+          <span className="text-muted-foreground text-xs">{m.user_profile_overlap_subtitle()}</span>
         </div>
       </div>
       <OverlapCount value={overlap.theyWantYouHave}>
-        cards they want that sit in your tradelists
+        {m.user_profile_overlap_they_want()}
       </OverlapCount>
       <OverlapCount value={overlap.theyOfferYouWant}>
-        cards they offer that are on your wishlists
+        {m.user_profile_overlap_they_offer()}
       </OverlapCount>
       {matchGroup && owner.userId ? (
         <Button
@@ -68,7 +67,7 @@ export function UserProfileOverlap({
             />
           }
         >
-          See matches in {matchGroup.name}
+          {m.user_profile_see_matches({ group: matchGroup.name })}
         </Button>
       ) : null}
     </Card>

@@ -19,6 +19,7 @@ import {
 } from "@/features/meta/lib/meta-submission-copy";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useSession } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 function CreditPreview({
   creditedAs,
@@ -31,31 +32,31 @@ function CreditPreview({
 }) {
   return (
     <Callout variant="inset" className="flex flex-col gap-1">
-      <h3 className="font-medium">On an event page</h3>
+      <h3 className="font-medium">{m.profile_meta_credit_preview_title()}</h3>
       {creditedAs === null ? (
         <p className="text-muted-foreground text-sm">
           {visibility === "hidden"
-            ? "Nothing names you. Your decklists still count towards the archive."
-            : "There is no name to print, so you are left off the page entirely."}
+            ? m.profile_meta_credit_preview_hidden()
+            : m.profile_meta_credit_preview_no_name()}
         </p>
       ) : (
         <MetaContributors contributors={[creditedAs]} />
       )}
       {usesDisplayNameFallback && creditedAs !== null && (
         <p className="text-muted-foreground text-sm">
-          You have no Riot ID yet, so your display name is used.{" "}
+          {m.profile_meta_credit_fallback_before()}{" "}
           <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
-            Add one
+            {m.profile_meta_credit_fallback_link()}
           </TextLink>{" "}
-          and it takes over.
+          {m.profile_meta_credit_fallback_after()}
         </p>
       )}
       {creditedAs === null && visibility !== "hidden" && (
         <p className="text-muted-foreground text-sm">
           <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
-            Set a display name
+            {m.profile_meta_credit_no_name_link()}
           </TextLink>{" "}
-          to be credited.
+          {m.profile_meta_credit_no_name_after()}
         </p>
       )}
     </Callout>
@@ -80,8 +81,8 @@ export function MetaCreditSection() {
 
   return (
     <SettingsSection
-      title="Meta archive credit"
-      description="Whether archive event pages name you as a contributor. Covers everything you have contributed, past and future."
+      title={m.profile_meta_credit_title()}
+      description={m.profile_meta_credit_description()}
     >
       {isPending ? (
         <Skeleton className="h-24 w-full" />
@@ -92,7 +93,7 @@ export function MetaCreditSection() {
             setVisibility.mutate({ visibility: next as MetaCreditVisibility })
           }
           className="flex flex-col gap-3"
-          aria-label="Meta archive credit"
+          aria-label={m.profile_meta_credit_title()}
         >
           {META_CREDIT_VISIBILITIES.map((option) => {
             const radioId = `meta-credit-${option}`;

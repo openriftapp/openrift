@@ -24,6 +24,7 @@ import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/cards_/$cardSlug/{-$printingSlug}");
 
@@ -63,7 +64,7 @@ export function CardDetailPage() {
   if (!selectedPrinting) {
     return (
       <div className={PAGE_PADDING}>
-        <p className="text-muted-foreground">No printings found for this card.</p>
+        <p className="text-muted-foreground">{m.card_detail_no_printings()}</p>
       </div>
     );
   }
@@ -72,15 +73,15 @@ export function CardDetailPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarBack to="/cards" aria-label="All cards" />
+          <PageTopBarBack to="/cards" aria-label={m.card_detail_all_cards()} />
           <PageTopBarTitle>{legendDisplayName(card)}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarButton
-              aria-label="Suggest a correction"
+              aria-label={m.card_detail_link_suggest_correction()}
               render={<Link to="/contribute/card/$cardSlug" params={{ cardSlug }} />}
             >
               <PencilLineIcon className="size-4" />
-              <span className="hidden sm:inline">Suggest a correction</span>
+              <span className="hidden sm:inline">{m.card_detail_link_suggest_correction()}</span>
             </PageTopBarButton>
             <ShareLinkButton cardName={legendDisplayName(card)} />
           </PageTopBarActions>

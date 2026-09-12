@@ -33,6 +33,7 @@ import {
   useRevokeOrgDeckCheckKey,
 } from "@/features/tournaments/hooks/use-deck-check-keys";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 interface KeyActions {
   keys: DeckCheckKeyResponse[] | undefined;
@@ -116,12 +117,12 @@ function DeckCheckKeysCard(actions: KeyActions) {
 
   return (
     <SettingsSection
-      title="API keys"
-      description="A key acts on your behalf. The only endpoint today sends entrant decklists to your hosted tournaments."
+      title={m.profile_deck_check_title()}
+      description={m.profile_deck_check_description()}
       action={
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <PlusIcon className="size-4" />
-          Create key
+          {m.profile_deck_check_create_key()}
         </Button>
       }
     >
@@ -132,7 +133,7 @@ function DeckCheckKeysCard(actions: KeyActions) {
           ))}
         </RowList>
       ) : (
-        <p className="text-muted-foreground text-sm">No keys yet.</p>
+        <p className="text-muted-foreground text-sm">{m.profile_deck_check_empty()}</p>
       )}
 
       <CreateKeyDialog
@@ -186,25 +187,25 @@ function CreateKeyDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleCreate()}>
           <DialogHeader>
-            <DialogTitle>Create API key</DialogTitle>
-            <DialogDescription>Name it after where it is used.</DialogDescription>
+            <DialogTitle>{m.profile_deck_check_create_title()}</DialogTitle>
+            <DialogDescription>{m.profile_deck_check_create_description()}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-check-key-label">Name</Label>
+            <Label htmlFor="deck-check-key-label">{m.profile_deck_check_name_label()}</Label>
             <Input
               id="deck-check-key-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              placeholder="Registration website"
+              placeholder={m.profile_deck_check_name_placeholder()}
               maxLength={120}
             />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.profile_deck_check_cancel()}
             </Button>
             <Button type="submit" disabled={mintPending || !label.trim()}>
-              {mintPending ? "Creating..." : "Create"}
+              {mintPending ? m.profile_deck_check_creating() : m.profile_deck_check_create()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -223,7 +224,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
     try {
       await actions.revoke(apiKey.id);
       setConfirmOpen(false);
-      toast.success("Key revoked");
+      toast.success(m.profile_deck_check_toast_revoked());
     } catch {
       /* Reported by the global mutation error toast. */
     }
@@ -233,7 +234,7 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
     try {
       await actions.remove(apiKey.id);
       setRemoveOpen(false);
-      toast.success("Key removed");
+      toast.success(m.profile_deck_check_toast_removed());
     } catch {
       /* Reported by the global mutation error toast. */
     }
@@ -243,25 +244,32 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
     <RowListItem className="gap-3">
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-medium">
-          {apiKey.label ?? "Unnamed key"}{" "}
+          {apiKey.label ?? m.profile_deck_check_unnamed()}{" "}
           <code className="text-muted-foreground font-normal">{apiKey.tokenPrefix}…</code>
         </span>
         <span className="text-muted-foreground text-sm">
-          Created {formatDay(apiKey.createdAt)}
-          {apiKey.createdByName ? ` by ${apiKey.createdByName}` : ""}
-          {apiKey.lastUsedAt ? ` · last used ${formatDay(apiKey.lastUsedAt)}` : " · never used"}
+          {apiKey.createdByName
+            ? m.profile_deck_check_created_by({
+                date: formatDay(apiKey.createdAt),
+                name: apiKey.createdByName,
+              })
+            : m.profile_deck_check_created({ date: formatDay(apiKey.createdAt) })}
+          {" · "}
+          {apiKey.lastUsedAt
+            ? m.profile_deck_check_last_used({ date: formatDay(apiKey.lastUsedAt) })
+            : m.profile_deck_check_never_used()}
         </span>
       </div>
       {revoked ? (
         <>
-          <Badge variant="secondary">Revoked</Badge>
+          <Badge variant="secondary">{m.profile_deck_check_revoked_badge()}</Badge>
           <Button
             size="sm"
             variant="ghost"
             className="text-destructive"
             onClick={() => setRemoveOpen(true)}
           >
-            Remove
+            {m.profile_deck_check_remove()}
           </Button>
         </>
       ) : (
@@ -269,13 +277,13 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
           <Button
             size="sm"
             variant="ghost"
-            aria-label="Rename key"
+            aria-label={m.profile_deck_check_rename_aria()}
             onClick={() => setRenameOpen(true)}
           >
             <PencilIcon className="size-4" />
           </Button>
           <Button size="sm" variant="destructive" onClick={() => setConfirmOpen(true)}>
-            Revoke
+            {m.profile_deck_check_revoke()}
           </Button>
         </>
       )}
@@ -288,20 +296,20 @@ function KeyRow({ apiKey, actions }: { apiKey: DeckCheckKeyResponse; actions: Ke
       <ConfirmActionDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Revoke this key?"
-        description="Anything still using it will no longer be able to send decklists."
-        confirmLabel="Revoke"
-        pendingLabel="Revoking..."
+        title={m.profile_deck_check_revoke_confirm_title()}
+        description={m.profile_deck_check_revoke_confirm_description()}
+        confirmLabel={m.profile_deck_check_revoke()}
+        pendingLabel={m.profile_deck_check_revoking()}
         isPending={actions.revokePending}
         onConfirm={() => void handleRevoke()}
       />
       <ConfirmActionDialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}
-        title="Remove this key?"
-        description="It is already revoked, so this just clears it from the list. This cannot be undone."
-        confirmLabel="Remove"
-        pendingLabel="Removing..."
+        title={m.profile_deck_check_remove_confirm_title()}
+        description={m.profile_deck_check_remove_confirm_description()}
+        confirmLabel={m.profile_deck_check_remove()}
+        pendingLabel={m.profile_deck_check_removing()}
         isPending={actions.removePending}
         onConfirm={() => void handleRemove()}
       />
@@ -353,15 +361,15 @@ function RenameKeyDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleRename()}>
           <DialogHeader>
-            <DialogTitle>Rename key</DialogTitle>
+            <DialogTitle>{m.profile_deck_check_rename_title()}</DialogTitle>
           </DialogHeader>
           <Input value={label} onChange={(event) => setLabel(event.target.value)} maxLength={120} />
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.profile_deck_check_cancel()}
             </Button>
             <Button type="submit" disabled={pending || !label.trim()}>
-              {pending ? "Saving..." : "Save"}
+              {pending ? m.profile_deck_check_saving() : m.profile_deck_check_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -392,16 +400,14 @@ function MintedKeyDialog({ token, onClose }: { token: string | null; onClose: ()
           }}
         >
           <DialogHeader>
-            <DialogTitle>API key created</DialogTitle>
-            <DialogDescription>
-              Copy it now and store it where it will be used. For security, it is never shown again.
-            </DialogDescription>
+            <DialogTitle>{m.profile_deck_check_minted_title()}</DialogTitle>
+            <DialogDescription>{m.profile_deck_check_minted_description()}</DialogDescription>
           </DialogHeader>
           <div className="bg-muted rounded-md p-3 font-mono text-sm break-all">{token}</div>
           <DialogFooter>
             <Button type="submit">
               {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-              {copied ? "Copied" : "Copy key"}
+              {copied ? m.profile_deck_check_copied() : m.profile_deck_check_copy()}
             </Button>
           </DialogFooter>
         </DialogForm>

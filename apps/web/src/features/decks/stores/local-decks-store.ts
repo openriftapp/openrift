@@ -14,6 +14,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { LocalDeck, LocalDeckCard } from "@/features/decks/lib/local-deck";
 import { isLocalDeckId, LOCAL_DECK_PREFIX } from "@/features/decks/lib/local-deck";
 import { randomUuid } from "@/lib/random-uuid";
+import { m } from "@/paraglide/messages.js";
 
 interface LocalDeckPatch {
   name?: string;
@@ -36,8 +37,9 @@ interface LocalDecksState {
   clearImported: (ids: string[]) => void;
 }
 
-const QUOTA_MESSAGE =
-  "Couldn't save your decks: this browser's storage is full. Sign in to sync your decks, or remove some local decks.";
+function quotaMessage(): string {
+  return m.decks_dialog_local_quota_full();
+}
 
 function isQuotaExceeded(error: unknown): boolean {
   // Browsers throw a DOMException named "QuotaExceededError" (legacy code 22,
@@ -58,7 +60,7 @@ export function writeLocalDecksItem(
     return true;
   } catch (error) {
     if (isQuotaExceeded(error)) {
-      toast.error(QUOTA_MESSAGE);
+      toast.error(quotaMessage());
       return false;
     }
     throw error;
@@ -139,7 +141,7 @@ function sanitizeLinks(candidate: Record<string, unknown>): DeckLink[] {
     return links;
   }
   if (typeof candidate.videoUrl === "string" && isAllowedLinkUrl(candidate.videoUrl)) {
-    return [{ url: candidate.videoUrl, title: "Video guide" }];
+    return [{ url: candidate.videoUrl, title: m.decks_dialog_local_video_guide() }];
   }
   return [];
 }
@@ -162,7 +164,7 @@ export function sanitizeDecks(raw: unknown): Record<string, LocalDeck> {
       name:
         typeof candidate.name === "string" && candidate.name.trim() !== ""
           ? candidate.name
-          : "Recovered deck",
+          : m.decks_dialog_local_recovered_name(),
       description: typeof candidate.description === "string" ? candidate.description : "",
       // Open string on purpose — a format this bundle doesn't know must survive.
       format:
@@ -203,7 +205,7 @@ export const useLocalDecksStore = create<LocalDecksState>()(
             ...state.decks,
             [id]: {
               id,
-              name: name?.trim() || "New Deck",
+              name: name?.trim() || m.decks_dialog_local_new_deck_name(),
               description: "",
               format,
               formatConfig: null,
@@ -294,7 +296,7 @@ export const useLocalDecksStore = create<LocalDecksState>()(
             [newId]: {
               ...source,
               id: newId,
-              name: `${source.name} (copy)`,
+              name: m.decks_dialog_local_copy_name({ name: source.name }),
               cards: source.cards.map((card) => ({ ...card })),
               createdAt: stamp,
               updatedAt: stamp,

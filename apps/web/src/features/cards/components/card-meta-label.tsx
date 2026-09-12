@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface CardMetaLabelProps {
   shortCode: string;
@@ -76,7 +77,9 @@ export function CardMetaLabel({
           {bans && bans.length > 0 && (
             <span
               title={bans
-                .map((ban) => `Banned in ${ban.formatName} since ${ban.bannedAt}`)
+                .map((ban) =>
+                  m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt }),
+                )
                 .join("\n")}
               className="inline-flex"
             >
@@ -84,13 +87,16 @@ export function CardMetaLabel({
             </span>
           )}
           {hasRulesDeviation && (
-            <span title="Printed text differs from current rules" className="inline-flex">
+            <span title={m.card_detail_meta_rules_deviation()} className="inline-flex">
               <TriangleAlertIcon className="text-warning size-3.5" />
             </span>
           )}
           {printingComment && (
             <Tooltip>
-              <TooltipTrigger className="cursor-default" aria-label="Printing note">
+              <TooltipTrigger
+                className="cursor-default"
+                aria-label={m.card_detail_meta_printing_note()}
+              >
                 <InfoIcon className="size-3.5" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">{printingComment}</TooltipContent>

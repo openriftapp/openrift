@@ -9,6 +9,7 @@ import {
 
 import { EmptyState } from "@/components/empty-state";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 interface CollectionGridEmptyProps {
@@ -28,18 +29,16 @@ export function CollectionGridEmpty({
     <EmptyState
       className="flex-1"
       icon={PackageIcon}
-      title="No cards yet"
+      title={m.collections_grid_empty_title()}
       description={
         <>
-          Browse the card catalog and add cards to{" "}
-          {collectionName
-            ? `"${collectionName}"`
-            : inboxName
-              ? `"${inboxName}"`
-              : "your collection"}
-          .{" "}
+          {collectionName || inboxName
+            ? m.collections_grid_empty_description_named({
+                name: collectionName ?? inboxName ?? "",
+              })
+            : m.collections_grid_empty_description()}{" "}
           <Link to="/help/$slug" params={{ slug: "cards-printings-copies" }}>
-            Learn about cards, printings &amp; copies
+            {m.collections_grid_empty_learn_link()}
           </Link>
         </>
       }
@@ -49,24 +48,24 @@ export function CollectionGridEmpty({
           <>
             <Button onClick={onBrowseLibrary}>
               <LibraryBigIcon />
-              Browse & add
+              {m.collections_grid_empty_browse_add()}
             </Button>
             <Link to="/scan" className={buttonVariants({ variant: "ghost" })}>
               <CameraIcon />
-              Scan cards
+              {m.collections_grid_empty_scan()}
             </Link>
             <Button
               variant="ghost"
               onClick={() => useCommandPaletteStore.getState().openQuickAdd("add")}
             >
               <SquarePlusIcon />
-              Quick add
+              {m.collections_grid_empty_quick_add()}
             </Button>
           </>
         )}
         <Link to="/collections/import" className={buttonVariants({ variant: "ghost" })}>
           <DownloadIcon />
-          Import from another tool
+          {m.collections_grid_empty_import()}
         </Link>
       </div>
     </EmptyState>

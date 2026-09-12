@@ -5,14 +5,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Sign-in / create-account pair that sends the visitor back to the page they
  * came from, so a token in the URL survives the trip through login.
  */
 export function SignedOutAuthButtons({
-  signInLabel = "Sign in",
-  signUpLabel = "Create an account",
+  signInLabel,
+  signUpLabel,
 }: {
   signInLabel?: string;
   signUpLabel?: string;
@@ -22,10 +23,10 @@ export function SignedOutAuthButtons({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Link to="/login" search={search} className={buttonVariants()}>
-        {signInLabel}
+        {signInLabel ?? m.common_sign_in()}
       </Link>
       <Link to="/signup" search={search} className={buttonVariants({ variant: "ghost" })}>
-        {signUpLabel}
+        {signUpLabel ?? m.auth_create_account()}
       </Link>
     </div>
   );
@@ -47,7 +48,7 @@ export function PublicShareCta({ title, children }: { title: string; children: R
         <span className="font-medium">{title}</span>
         <span className="text-muted-foreground">{children}</span>
       </div>
-      <SignedOutAuthButtons signUpLabel="Create a free account" />
+      <SignedOutAuthButtons signUpLabel={m.auth_create_free_account()} />
     </Card>
   );
 }

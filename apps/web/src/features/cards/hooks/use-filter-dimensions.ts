@@ -7,7 +7,7 @@ import type { FilterDimensionLabels } from "@/features/cards/lib/filter-dimensio
 import {
   activeFilterDimensionLabels,
   countActiveFilterDimensions,
-  OWNED_BUCKETS,
+  ownedBuckets,
   visibleFilterDimensions,
 } from "@/features/cards/lib/filter-dimensions";
 import { useCustomTagList, useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
@@ -79,7 +79,7 @@ export function useSingleActiveFilterLabel({
     [...customTagsByCategory.values()].flat().map((tag) => [tag.slug, tag.label]),
   );
   const ownedLabels = new Map<string, string>(
-    OWNED_BUCKETS.map((bucket) => [bucket.value, bucket.label]),
+    ownedBuckets().map((bucket) => [bucket.value, bucket.label]),
   );
   // Every resolver falls back to the raw slug when the URL names a value the surface doesn't offer.
   const dimensionLabels: FilterDimensionLabels = {

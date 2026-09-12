@@ -18,6 +18,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface TypeBreakdownProps {
   data: TypeCount[];
@@ -88,7 +89,10 @@ export function TypeBreakdown({
       ...entry,
       ...hits,
       __hitTotal: hitTotal,
-      label: `${entry.total} ${entry.total === 1 ? typeLabel : `${typeLabel}s`}`,
+      label:
+        entry.total === 1
+          ? m.decks_stats_type_axis_one({ count: entry.total, label: typeLabel })
+          : m.decks_stats_type_axis_other({ count: entry.total, label: typeLabel }),
     };
   });
 
@@ -104,11 +108,11 @@ export function TypeBreakdown({
       }
     : undefined;
 
-  const heading = hideHeading ? null : <ChartHeading title="Types" />;
+  const heading = hideHeading ? null : <ChartHeading title={m.decks_stats_types()} />;
 
   if (singleColor) {
     const singleConfig: ChartConfig = {
-      total: { label: "Count", color: "var(--color-primary)" },
+      total: { label: m.decks_stats_count(), color: "var(--color-primary)" },
     };
 
     return (

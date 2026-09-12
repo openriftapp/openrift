@@ -14,17 +14,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PricingSection } from "@/features/cards/components/card-detail/pricing";
-import { TIME_RANGES } from "@/features/cards/components/price-history-chart-constants";
+import {
+  TIME_RANGES,
+  timeRangeLabel,
+} from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatPublicCode, formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 const PriceHistoryChart = lazy(async () => {
-  const m = await import("@/features/cards/components/price-history-chart");
-  return { default: m.PriceHistoryChart };
+  const mod = await import("@/features/cards/components/price-history-chart");
+  return { default: mod.PriceHistoryChart };
 });
 
 export function PriceHistorySection({ printing }: { printing: Printing }) {
@@ -106,10 +110,11 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Heading level={2}>
-          Price History — {formatPublicCode(printing)}
+          {m.card_detail_price_history_title()} — {formatPublicCode(printing)}
           {printing.finish !== WellKnown.finish.NORMAL &&
             ` ${enumLabel(labels.finishes, printing.finish)}`}
-          {printing.markers.length > 0 && ` (${printing.markers.map((m) => m.label).join(", ")})`}
+          {printing.markers.length > 0 &&
+            ` (${printing.markers.map((marker) => marker.label).join(", ")})`}
           {printing.language !== WellKnown.language.EN && (
             <>
               {" "}
@@ -132,11 +137,11 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
               setRange(match.value);
             }
           }}
-          aria-label="Time range"
+          aria-label={m.card_detail_time_range()}
         >
           {availableRanges.map((tr) => (
             <ToggleGroupItem key={tr.value} value={tr.value}>
-              {tr.label}
+              {timeRangeLabel(tr)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -155,7 +160,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
               setSource(match);
             }
           }}
-          aria-label="Price source"
+          aria-label={m.card_detail_price_source()}
           className="ml-auto"
         >
           {marketplaceOrder.map((mp) => {
@@ -205,7 +210,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
                 <thead className="sticky top-0">
                   <tr className="border-border bg-background border-b">
                     <th scope="col" className="px-3 py-2 text-left font-medium">
-                      Date
+                      {m.card_detail_price_date()}
                     </th>
                     {availableMarketplaces.map((mp) => (
                       <th key={mp} scope="col" className="px-3 py-2 text-right font-medium">

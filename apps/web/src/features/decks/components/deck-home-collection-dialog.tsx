@@ -24,6 +24,7 @@ import { collectionsQueryOptions } from "@/features/collections/lib/collections-
 import { useUpdateDeck } from "@/features/decks/hooks/use-decks";
 import { sharedBoxWarning } from "@/features/decks/lib/deck-box-label";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 const NONE = "none";
 const NEW = "new";
@@ -59,12 +60,15 @@ export function DeckHomeCollectionDialog({
     (collection) => collection.groupId === null || collection.id === currentCollectionId,
   );
   const items = [
-    { value: NONE, label: "Not stored anywhere" },
+    { value: NONE, label: m.decks_dialog_home_none() },
     ...pickable.map((collection) => ({
       value: collection.id,
-      label: collection.groupId === null ? collection.name : `${collection.name} (group)`,
+      label:
+        collection.groupId === null
+          ? collection.name
+          : m.decks_dialog_home_group_suffix({ name: collection.name }),
     })),
-    { value: NEW, label: "New deck box…" },
+    { value: NEW, label: m.decks_dialog_home_new() },
   ];
 
   // A group binder the deck was linked to before the personal-only rule: shown
@@ -104,15 +108,12 @@ export function DeckHomeCollectionDialog({
       <DialogContent>
         <DialogForm onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Stored in</DialogTitle>
-            <DialogDescription>
-              Its cards stay available to this deck even when the collection is off for deck
-              building.
-            </DialogDescription>
+            <DialogTitle>{m.decks_dialog_home_title()}</DialogTitle>
+            <DialogDescription>{m.decks_dialog_home_description()}</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-home-collection">Collection</Label>
+            <Label htmlFor="deck-home-collection">{m.decks_dialog_home_label()}</Label>
             <Select
               items={items}
               value={value}
@@ -147,7 +148,7 @@ export function DeckHomeCollectionDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={updateDeck.isPending}>
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -155,8 +156,8 @@ export function DeckHomeCollectionDialog({
       <CreateCollectionDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        title="New deck box"
-        description="A deck box holds the cards of one deck. It starts out excluded from deck building, so its cards only count for the deck stored in it."
+        title={m.decks_dialog_home_create_title()}
+        description={m.decks_dialog_home_create_description()}
         availableForDeckbuilding={false}
         onCreated={(collectionId) => {
           setValue(collectionId);

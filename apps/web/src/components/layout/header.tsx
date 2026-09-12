@@ -26,7 +26,7 @@ import type { NavFlags } from "@/components/layout/nav-items";
 import {
   badgeAriaLabel,
   navItemVisible,
-  PRIMARY_NAV_ITEMS,
+  primaryNavItems,
   SignInRequiredDialog,
   visibleMoreSections,
 } from "@/components/layout/nav-items";
@@ -75,6 +75,7 @@ import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, CONTAINER_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
@@ -104,7 +105,7 @@ function MenuButton({ onClick, className }: { onClick: () => void; className?: s
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label="Open menu"
+      aria-label={m.layout_header_open_menu()}
       className={className}
       onClick={onClick}
     >
@@ -233,8 +234,9 @@ function DesktopNav({
   return (
     <NavigationMenu>
       <NavigationMenuList className="gap-1">
-        {PRIMARY_NAV_ITEMS.filter((item) => navItemVisible(item, { flags, mobile: false })).map(
-          (item) => (
+        {primaryNavItems()
+          .filter((item) => navItemVisible(item, { flags, mobile: false }))
+          .map((item) => (
             <NavigationMenuItem key={item.to}>
               <DesktopPrimaryItem
                 item={item}
@@ -243,11 +245,10 @@ function DesktopNav({
                 onLockedClick={onLockedClick}
               />
             </NavigationMenuItem>
-          ),
-        )}
+          ))}
         <NavigationMenuItem>
           <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground focus:text-foreground data-popup-open:text-foreground">
-            More
+            {m.layout_header_more()}
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             {/* CSS columns pack the sections side by side; break-inside-avoid
@@ -323,7 +324,7 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
       await router.navigate({ to: "/cards", search: {} });
       void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
     } catch {
-      toast.error("Could not sign out. Please try again.");
+      toast.error(m.layout_header_sign_out_failed());
     }
   };
 
@@ -332,26 +333,26 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
       {isLoggedIn && (
         <DropdownMenuItem render={<Link to="/profile" />}>
           <UserIcon className="size-4" />
-          Profile
+          {m.layout_header_profile()}
         </DropdownMenuItem>
       )}
       {isLoggedIn && hasAdminAccess && (
         <DropdownMenuItem render={<Link to="/admin" />}>
           <ShieldIcon className="size-4" />
-          Admin
+          {m.layout_header_admin()}
         </DropdownMenuItem>
       )}
       {isLoggedIn && <DropdownMenuSeparator />}
       {!isLoggedIn && (
         <DropdownMenuItem onClick={toggleTheme}>
           {darkMode ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
-          {darkMode ? "Light mode" : "Dark mode"}
+          {darkMode ? m.layout_header_light_mode() : m.layout_header_dark_mode()}
         </DropdownMenuItem>
       )}
       {isLoggedIn && (
         <DropdownMenuItem onClick={() => void handleSignOut()}>
           <LogOutIcon className="size-4" />
-          Sign out
+          {m.layout_header_sign_out()}
         </DropdownMenuItem>
       )}
     </DropdownMenuContent>
@@ -400,11 +401,13 @@ function UserMenu({
           search={{ redirect: signInRedirect, email: undefined }}
           className={buttonVariants({ variant: "default", size: "sm" })}
         >
-          Sign in
+          {m.common_sign_in()}
         </Link>
       )}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Menu" />}>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon-sm" aria-label={m.layout_header_menu()} />}
+        >
           <UserMenuTrigger user={user} />
         </DropdownMenuTrigger>
         <UserMenuItems isLoggedIn={isLoggedIn} />
@@ -497,7 +500,10 @@ function MobileNavSection({
         <span className="flex items-center gap-2">
           {section.label}
           {hiddenBadgeCount > 0 && (
-            <Badge variant="count" aria-label={`${section.label} needs your attention`}>
+            <Badge
+              variant="count"
+              aria-label={m.layout_header_section_attention({ section: section.label })}
+            >
               {hiddenBadgeCount > 9 ? "9+" : hiddenBadgeCount}
             </Badge>
           )}
@@ -549,8 +555,9 @@ function MobileNav({
           </SheetTitle>
         </SheetHeader>
         <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2">
-          {PRIMARY_NAV_ITEMS.filter((item) => navItemVisible(item, { flags, mobile: true })).map(
-            (item) => (
+          {primaryNavItems()
+            .filter((item) => navItemVisible(item, { flags, mobile: true }))
+            .map((item) => (
               <MobileNavItem
                 key={item.to}
                 item={item}
@@ -558,8 +565,7 @@ function MobileNav({
                 badges={badges}
                 onLockedClick={onLockedClick}
               />
-            ),
-          )}
+            ))}
           {visibleMoreSections({ flags, mobile: true }).map((section) => (
             <MobileNavSection
               key={section.label}
@@ -580,9 +586,9 @@ function MobileNav({
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
               <path d={siDiscord.path} fill="currentColor" />
             </svg>
-            Join our Discord
+            {m.layout_header_join_discord()}
           </a>
-          <p className="text-muted-foreground text-xs">Built with Fury. Maintained with Calm.</p>
+          <p className="text-muted-foreground text-xs">{m.layout_header_tagline()}</p>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -659,35 +665,35 @@ function HelpPopover() {
     <Popover>
       <PopoverTrigger render={<Button variant="ghost" size="sm" />} className="gap-1.5">
         <CircleHelpIcon className="size-4" />
-        <span className="sr-only lg:not-sr-only">Help</span>
+        <span className="sr-only lg:not-sr-only">{m.layout_header_help()}</span>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 gap-1 p-1.5">
         <p className="text-muted-foreground px-2 pt-1.5 pb-1 text-xs">
-          Stuck, or found something broken?
+          {m.layout_header_help_intro()}
         </p>
         <InternalPopoverRow
           to="/help"
           icon={<CircleHelpIcon className="size-4 shrink-0" />}
-          label="Help articles"
-          description="How everything on the site works"
+          label={m.layout_header_help_articles()}
+          description={m.layout_header_help_articles_description()}
         />
         <InternalPopoverRow
           to="/changelog"
           icon={<SparklesIcon className="size-4 shrink-0" />}
-          label="What's new"
-          description="Recent changes and additions"
+          label={m.layout_header_whats_new()}
+          description={m.layout_header_whats_new_description()}
         />
         <ExternalPopoverRow
           href={SOCIAL_LINKS.githubNewIssue}
           icon={<SimpleIconGlyph path={siGithub.path} />}
-          label="Report a bug"
-          description="We'll get back to you (we actually will)"
+          label={m.layout_header_report_bug()}
+          description={m.layout_header_report_bug_description()}
         />
         <ExternalPopoverRow
           href={SOCIAL_LINKS.discordInvite}
           icon={<SimpleIconGlyph path={siDiscord.path} />}
-          label="Ask on Discord"
-          description="Chat, report bugs, or share ideas"
+          label={m.layout_header_ask_discord()}
+          description={m.layout_header_ask_discord_description()}
         />
       </PopoverContent>
     </Popover>
@@ -705,16 +711,18 @@ function ContributePopover({
     <Popover>
       <PopoverTrigger render={<Button variant="ghost" size="sm" />} className="gap-1.5">
         <PencilLineIcon className="size-4" />
-        <span className="sr-only lg:not-sr-only">Contribute</span>
+        <span className="sr-only lg:not-sr-only">{m.layout_header_contribute()}</span>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 gap-1 p-1.5">
-        <p className="text-muted-foreground px-2 pt-1.5 pb-1 text-xs">Help us fill in the gaps.</p>
+        <p className="text-muted-foreground px-2 pt-1.5 pb-1 text-xs">
+          {m.layout_header_contribute_intro()}
+        </p>
         {isLoggedIn ? (
           <InternalPopoverRow
             to="/contribute"
             icon={<PencilLineIcon className="size-4 shrink-0" />}
-            label="Card data"
-            description="Add a missing card or fix a typo"
+            label={m.layout_header_card_data()}
+            description={m.layout_header_card_data_description()}
           />
         ) : (
           <PopoverClose
@@ -725,15 +733,18 @@ function ContributePopover({
             render={<button type="button" onClick={() => onLockedClick("contribute")} />}
           >
             <PencilLineIcon className="size-4 shrink-0" />
-            <PopoverRowText label="Card data" description="Add a missing card or fix a typo" />
+            <PopoverRowText
+              label={m.layout_header_card_data()}
+              description={m.layout_header_card_data_description()}
+            />
             <LockIcon className="text-muted-foreground ml-auto size-3.5 self-center" />
           </PopoverClose>
         )}
         <InternalPopoverRow
           to="/support"
           icon={<HeartIcon className="size-4 shrink-0" />}
-          label="Support the site"
-          description="Donate, share, or shop through our links"
+          label={m.layout_header_support()}
+          description={m.layout_header_support_description()}
         />
       </PopoverContent>
     </Popover>
@@ -748,12 +759,12 @@ function HeaderSearchButton() {
     <Button
       variant="ghost"
       size="sm"
-      aria-label="Search"
+      aria-label={m.layout_header_search()}
       onClick={openPalette}
       className="text-muted-foreground gap-1.5"
     >
       <SearchIcon className="size-4" />
-      <span className="hidden lg:inline">Search</span>
+      <span className="hidden lg:inline">{m.layout_header_search()}</span>
       <Kbd className="hidden lg:inline-flex">Ctrl K</Kbd>
     </Button>
   );

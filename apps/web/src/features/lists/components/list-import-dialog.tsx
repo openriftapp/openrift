@@ -29,6 +29,7 @@ import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { partitionMatchedEntries } from "@/features/collections/lib/import-summary";
 import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
 import { useListImportFlow } from "@/features/lists/hooks/use-list-import-flow";
+import { m } from "@/paraglide/messages.js";
 
 interface ListImportDialogProps {
   listId: string;
@@ -51,13 +52,12 @@ export function ListImportDialog({ listId, listKind, open, onOpenChange }: ListI
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Import list</DialogTitle>
+          <DialogTitle>{m.lists_import_title()}</DialogTitle>
           <DialogDescription>
-            Paste a CSV export or a plain list (<Code>&lt;quantity&gt; &lt;card name&gt;</Code> per
-            line).{" "}
-            {listKind === "printing"
-              ? "Rows without enough detail to pin a printing are flagged for review."
-              : "Quantities stack with what's already there."}
+            {m.lists_import_paste_before()}
+            <Code>&lt;quantity&gt; &lt;card name&gt;</Code>
+            {m.lists_import_paste_after()}{" "}
+            {listKind === "printing" ? m.lists_import_hint_printing() : m.lists_import_hint_card()}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,7 +121,7 @@ function InputStep({
         <div className="flex flex-wrap items-center justify-end gap-3">
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
             <FileUpIcon className="size-4" />
-            Upload file
+            {m.lists_import_upload_file()}
           </Button>
           <Input
             ref={fileRef}
@@ -132,7 +132,7 @@ function InputStep({
           />
           <Button type="submit" disabled={rawText.trim().length === 0}>
             <UploadIcon className="size-4" />
-            Parse
+            {m.lists_import_parse()}
           </Button>
         </div>
 
@@ -213,11 +213,16 @@ function PreviewStep({
       <ImportPreviewStack className="min-w-0">
         <div className="flex items-center justify-between gap-3">
           <p className="text-muted-foreground">
-            {rowCount} line{rowCount === 1 ? "" : "s"} parsed, {matchedEntries.length} unique card
-            {matchedEntries.length === 1 ? "" : "s"}
+            {rowCount === 1
+              ? m.lists_import_lines_one({ count: rowCount })
+              : m.lists_import_lines_other({ count: rowCount })}
+            {", "}
+            {matchedEntries.length === 1
+              ? m.lists_import_cards_one({ count: matchedEntries.length })
+              : m.lists_import_cards_other({ count: matchedEntries.length })}
           </p>
           <Button variant="outline" size="sm" onClick={onBack}>
-            Back
+            {m.lists_import_back()}
           </Button>
         </div>
 
@@ -245,12 +250,12 @@ function PreviewStep({
             {isImporting ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" />
-                Importing...
+                {m.lists_import_importing()}
               </>
+            ) : totalCards === 1 ? (
+              m.lists_import_add_one({ count: totalCards })
             ) : (
-              <>
-                Add {totalCards} {totalCards === 1 ? "card" : "cards"}
-              </>
+              m.lists_import_add_other({ count: totalCards })
             )}
           </Button>
         </Callout>

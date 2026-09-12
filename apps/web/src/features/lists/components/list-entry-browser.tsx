@@ -39,6 +39,7 @@ import { useListEntryBrowserData } from "@/features/lists/hooks/use-list-entry-b
 import { useListEntryBrowserSelection } from "@/features/lists/hooks/use-list-entry-browser-selection";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 const LIST_HIDDEN_FILTER_SECTIONS: ReadonlySet<string> = new Set(["owned", "customTags"]);
 
@@ -235,8 +236,8 @@ export function ListEntryBrowser({
         variant="outline"
         pressed={showLibrary}
         onPressedChange={onToggleShowLibrary}
-        title={showLibrary ? "Hide library" : "Show whole library"}
-        aria-label={showLibrary ? "Hide library" : "Show whole library"}
+        title={showLibrary ? m.lists_entry_hide_library() : m.lists_entry_show_library()}
+        aria-label={showLibrary ? m.lists_entry_hide_library() : m.lists_entry_show_library()}
       >
         <LibraryBigIcon className="size-4" />
       </Toggle>
@@ -260,7 +261,11 @@ export function ListEntryBrowser({
       filteredCount={filteredDisplay}
       mobileDoneLabel={
         hasActiveFilters
-          ? `Show ${filteredDisplay} ${view === "cards" ? "cards" : view === "copies" ? "copies" : "printings"}`
+          ? view === "cards"
+            ? m.lists_entry_show_cards({ count: filteredDisplay })
+            : view === "copies"
+              ? m.lists_entry_show_copies({ count: filteredDisplay })
+              : m.lists_entry_show_printings({ count: filteredDisplay })
           : undefined
       }
       hideViewToggle
@@ -350,21 +355,21 @@ export function ListEntryBrowser({
               selectedCount={selected.size}
               actions={[
                 {
-                  label: "Move",
+                  label: m.lists_entry_move_action(),
                   icon: <ListIcon />,
                   onClick: () => openListAction("move", [...selected]),
                   disabled: moveEntries.isPending,
                 },
                 kind === "copy"
                   ? {
-                      label: "Take off list",
+                      label: m.lists_entry_take_off(),
                       icon: <XIcon />,
                       variant: "destructive" as const,
                       onClick: () => openListAction("takeOff", [...selected]),
                       disabled: bulkRemove.isPending || disposeCopies.isPending,
                     }
                   : {
-                      label: "Remove",
+                      label: m.lists_entry_remove_action(),
                       icon: <Trash2Icon />,
                       variant: "destructive" as const,
                       onClick: () => openListAction("remove", [...selected]),

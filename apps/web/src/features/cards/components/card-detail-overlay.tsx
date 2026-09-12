@@ -30,11 +30,12 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
+import { m } from "@/paraglide/messages.js";
 
 const cardDetailImport = import("@/features/cards/components/card-detail/card-detail");
 const CardDetail = lazy(async () => {
-  const m = await cardDetailImport;
-  return { default: m.CardDetail };
+  const mod = await cardDetailImport;
+  return { default: mod.CardDetail };
 });
 
 interface CardDetailOverlayProps {
@@ -150,8 +151,8 @@ function CardDetailOverlayContent({
           style={tint}
         >
           <DrawerHeader className="sr-only">
-            <DrawerTitle>Card details</DrawerTitle>
-            <DrawerDescription>Details for the selected card</DrawerDescription>
+            <DrawerTitle>{m.card_detail_overlay_title()}</DrawerTitle>
+            <DrawerDescription>{m.card_detail_overlay_description()}</DrawerDescription>
           </DrawerHeader>
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             <Suspense fallback={<CardDetailPaneSkeleton />}>
@@ -191,13 +192,13 @@ function CardDetailOverlayContent({
       >
         <DialogClose
           render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
-          aria-label="Close card details"
+          aria-label={m.card_detail_close()}
         >
           <XIcon className="size-4" />
         </DialogClose>
         <DialogHeader className="sr-only">
-          <DialogTitle>Card details</DialogTitle>
-          <DialogDescription>Details for the selected card</DialogDescription>
+          <DialogTitle>{m.card_detail_overlay_title()}</DialogTitle>
+          <DialogDescription>{m.card_detail_overlay_description()}</DialogDescription>
         </DialogHeader>
         <Suspense fallback={<CardDetailModalSkeleton />}>
           <CardDetail

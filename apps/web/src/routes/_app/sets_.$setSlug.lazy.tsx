@@ -17,6 +17,7 @@ import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbna
 import { publicSetDetailQueryOptions } from "@/features/cards/hooks/use-public-sets";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export const Route = createLazyFileRoute("/_app/sets_/$setSlug")({
@@ -54,16 +55,21 @@ function SetDetailPage() {
       <PageTopBarSticky width="full">
         <PageTopBar>
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-            <PageTopBarBack to="/sets" aria-label="Back to sets" />
+            <PageTopBarBack to="/sets" aria-label={m.sets_back_aria()} />
             <PageTopBarTitle>{data.set.name}</PageTopBarTitle>
             <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-              {uniquePrintings.length} {uniquePrintings.length === 1 ? "card" : "cards"},{" "}
-              {data.printings.length} {data.printings.length === 1 ? "printing" : "printings"}
+              {uniquePrintings.length === 1
+                ? m.common_cards_one({ count: uniquePrintings.length })
+                : m.common_cards_other({ count: uniquePrintings.length })}
+              {", "}
+              {data.printings.length === 1
+                ? m.common_printings_one({ count: data.printings.length })
+                : m.common_printings_other({ count: data.printings.length })}
             </span>
           </div>
           <PageTopBarActions>
             <PageTopBarPrimaryButton render={<Link to="/cards" search={{ sets: [setSlug] }} />}>
-              Open in card browser
+              {m.sets_open_in_browser()}
             </PageTopBarPrimaryButton>
           </PageTopBarActions>
         </PageTopBar>

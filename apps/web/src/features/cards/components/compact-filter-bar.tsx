@@ -25,13 +25,14 @@ import {
   useMoreActiveCount,
   useVisibleFilterDimensions,
 } from "@/features/cards/hooks/use-filter-dimensions";
-import { filterDimension, OWNED_BUCKETS } from "@/features/cards/lib/filter-dimensions";
+import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";
 import { clusterLabelsFit } from "@/features/tournaments/lib/cluster-label-fit";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { rangeBadgeLabel } from "@/lib/range-label";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface CompactFilterBarProps {
   availableFilters: AvailableFilters;
@@ -93,7 +94,7 @@ export function FilterIconCluster({
       spacing={0}
       value={included}
       onValueChange={(next) => onValueChange(next as string[])}
-      aria-label={`${label} filter`}
+      aria-label={m.cards_filter_dimension_aria({ label })}
       data-label-fit-cluster=""
     >
       {options.map((option) => {
@@ -102,7 +103,10 @@ export function FilterIconCluster({
         const isIncluded = included.includes(option);
         const isExcluded = excluded.includes(option);
         const isZero = counts !== undefined && (count ?? 0) === 0;
-        const optionLabel = `${isExcluded ? "Exclude " : ""}${displayLabel(option)}${count === undefined ? "" : ` (${count})`}`;
+        const name = isExcluded
+          ? m.cards_filter_exclude_option({ label: displayLabel(option) })
+          : displayLabel(option);
+        const optionLabel = count === undefined ? name : `${name} (${count})`;
         return (
           <Tooltip key={option}>
             <TooltipTrigger
@@ -320,7 +324,9 @@ export function FilterDropdownChip({
             className="font-medium"
           />
         }
-        aria-label={summary ?? (active ? `${label}, ${activeCount} selected` : label)}
+        aria-label={
+          summary ?? (active ? m.cards_filter_chip_selected({ label, count: activeCount }) : label)
+        }
       >
         {summary ?? label}
         {active && !summary && <span className="tabular-nums">({activeCount})</span>}
@@ -356,11 +362,11 @@ export function OwnedFilterChip({
   const copiesActive = filterState.ownedCountMin !== null || filterState.ownedCountMax !== null;
   const activeCount = filterState.owned.length + Number(copiesActive);
   const bucketLabel = (value: string | undefined) =>
-    OWNED_BUCKETS.find((bucket) => bucket.value === value)?.label ?? value;
+    ownedBuckets().find((bucket) => bucket.value === value)?.label ?? value;
   const summary =
     activeCount === 1
       ? copiesActive
-        ? `Copies ${rangeBadgeLabel(
+        ? `${m.cards_label_copies()} ${rangeBadgeLabel(
             filterState.ownedCountMin,
             filterState.ownedCountMax,
             0,
@@ -370,13 +376,13 @@ export function OwnedFilterChip({
       : undefined;
   return (
     <FilterDropdownChip
-      label="Owned"
+      label={m.cards_label_owned()}
       activeCount={activeCount}
       summary={summary}
       contentClassName="w-80"
     >
       <div className={CHIP_POPOVER_ROWS_CLASS}>
-        {OWNED_BUCKETS.map((bucket) => {
+        {ownedBuckets().map((bucket) => {
           const isSelected = filterState.owned.includes(bucket.value);
           return (
             <Pressable
@@ -442,7 +448,7 @@ export function CompactFilterBar({
   const domainCluster = (showLabels: boolean) =>
     shows("domains") ? (
       <FilterIconCluster
-        label="Domain"
+        label={m.cards_label_domain()}
         options={availableFilters.domains}
         included={filterState.domains}
         excluded={filterState.domainsEx}
@@ -456,7 +462,7 @@ export function CompactFilterBar({
   const rarityCluster = (showLabels: boolean) =>
     shows("rarities") ? (
       <FilterIconCluster
-        label="Rarity"
+        label={m.cards_label_rarity()}
         options={availableFilters.rarities}
         included={filterState.rarities}
         excluded={filterState.raritiesEx}
@@ -479,19 +485,19 @@ export function CompactFilterBar({
 
   const statRanges = [
     {
-      label: "Energy",
+      label: m.cards_label_energy(),
       min: filterState.energyMin,
       max: filterState.energyMax,
       bounds: availableFilters.energy,
     },
     {
-      label: "Might",
+      label: m.cards_label_might(),
       min: filterState.mightMin,
       max: filterState.mightMax,
       bounds: availableFilters.might,
     },
     {
-      label: "Power",
+      label: m.cards_label_power(),
       min: filterState.powerMin,
       max: filterState.powerMax,
       bounds: availableFilters.power,
@@ -515,7 +521,7 @@ export function CompactFilterBar({
   const showOwnedChip = shows("owned");
   const priceActive = filterState.priceMin !== null || filterState.priceMax !== null;
   const priceSummary = priceActive
-    ? `Price ${rangeBadgeLabel(
+    ? `${m.cards_label_price()} ${rangeBadgeLabel(
         filterState.priceMin,
         filterState.priceMax,
         availableFilters.price.min,
@@ -572,7 +578,7 @@ export function CompactFilterBar({
         )}
         {shows("standard") && (
           <FlagBadge
-            label="Standard"
+            label={m.cards_label_standard()}
             state={filterState.standard}
             count={filterCounts?.flags.standard}
             onClick={toggleStandard}
@@ -581,7 +587,7 @@ export function CompactFilterBar({
         )}
         {showStats && (
           <FilterDropdownChip
-            label="Stats"
+            label={m.cards_label_stats()}
             activeCount={statsActiveCount}
             summary={singleStatSummary}
             contentClassName="w-80"
@@ -615,7 +621,7 @@ export function CompactFilterBar({
         )}
         {showPriceChip && (
           <FilterDropdownChip
-            label="Price"
+            label={m.cards_label_price()}
             activeCount={priceActive ? 1 : 0}
             summary={priceSummary}
             contentClassName="w-80"
@@ -650,7 +656,7 @@ export function CompactFilterBar({
               size="icon-sm"
               className="text-muted-foreground hover:text-foreground"
               onClick={clearAllFilters}
-              aria-label="Clear all filters"
+              aria-label={m.cards_clear_all_filters()}
             >
               <XIcon className="size-4" />
             </Button>

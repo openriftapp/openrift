@@ -1,3 +1,5 @@
+import { m } from "@/paraglide/messages.js";
+
 // Without an AbortController, the underlying fetch keeps running in the
 // background on timeout and the server may still succeed after the UI has
 // already rolled back.
@@ -18,7 +20,7 @@ export function withTimeout<T>(promise: Promise<T>, options: WithTimeoutOptions)
     new Promise<T>((_resolve, reject) => {
       setTimeout(() => {
         abortController?.abort();
-        reject(new Error(`${label} timed out after ${timeoutMs / 1000}s — check your connection`));
+        reject(new Error(m.common_timed_out({ label, seconds: timeoutMs / 1000 })));
       }, timeoutMs);
     }),
   ]);

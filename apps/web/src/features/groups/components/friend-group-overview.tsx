@@ -32,11 +32,12 @@ import {
 } from "@/features/tournaments/lib/tournament-display";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { FriendGroupActivityFeed } from "./friend-group-activity-feed";
 import { isAdmin } from "./friend-group-shell";
 import { GroupSetupNudges } from "./group-setup-nudges";
-import { LIST_INTENT_ICON, LIST_INTENT_NOUN } from "./list-intent-meta";
+import { LIST_INTENT_ICON, listIntentNoun } from "./list-intent-meta";
 import { PendingRequestsBand } from "./pending-requests-band";
 import { TradesHubBand } from "./trades-hub-band";
 
@@ -101,12 +102,12 @@ function ActionTiles({ slug, data }: { slug: string; data: FriendGroupDetailResp
           }
           icon={HeartIcon}
           tone="gold"
-          label="Cards you want"
+          label={m.groups_overview_cards_you_want()}
           value={boxWants.wantedCardCount()}
           hint={
             boxesWithWants > 1
-              ? `across ${boxesWithWants} group boxes`
-              : `waiting in ${wantedBox.name}`
+              ? m.groups_overview_across_boxes({ count: boxesWithWants })
+              : m.groups_overview_waiting_in({ name: wantedBox.name })
           }
         />
       ) : null}
@@ -116,10 +117,12 @@ function ActionTiles({ slug, data }: { slug: string; data: FriendGroupDetailResp
         slug={slug}
         icon={FolderIcon}
         tone="info"
-        label="Group collections"
+        label={m.groups_overview_group_collections()}
         value={groupCollections.length}
         hint={
-          memberShareCount > 0 ? `+${memberShareCount} shared by members` : "owned by the group"
+          memberShareCount > 0
+            ? m.groups_overview_shared_by_members({ count: memberShareCount })
+            : m.groups_overview_owned_by_group()
         }
       />
       <MembersCard slug={slug} data={data} />
@@ -141,14 +144,14 @@ function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupD
         slug={slug}
         icon={TrophyIcon}
         tone="violet"
-        label="Tournaments"
+        label={m.groups_nav_tournaments()}
         value={tournaments.items.length}
         hint={
           isAdmin(data.viewerRole)
-            ? "Plan one for the next game night →"
+            ? m.groups_overview_plan_one()
             : tournaments.items.length === 0
-              ? "no tournaments yet"
-              : "none open"
+              ? m.groups_overview_no_tournaments_yet()
+              : m.groups_overview_none_open()
         }
       />
     );
@@ -159,9 +162,13 @@ function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupD
       slug={slug}
       icon={TrophyIcon}
       tone="violet"
-      label="Open tournaments"
+      label={m.groups_overview_open_tournaments()}
       value={open.length}
-      hint={joined > 0 ? `you're in ${joined}` : `${tournaments.items.length} total`}
+      hint={
+        joined > 0
+          ? m.groups_overview_youre_in({ count: joined })
+          : m.groups_overview_tournaments_total({ count: tournaments.items.length })
+      }
     />
   );
 }
@@ -199,7 +206,7 @@ function MembersCard({ slug, data }: { slug: string; data: FriendGroupDetailResp
       slug={slug}
       icon={UsersIcon}
       tone="success"
-      label="Members"
+      label={m.groups_nav_members()}
       value={data.members.length}
     >
       <UserAvatarStack members={shown} totalCount={data.members.length} size="sm" />
@@ -228,13 +235,13 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
-        <SectionHeading>Next at your shops</SectionHeading>
+        <SectionHeading>{m.groups_overview_next_at_shops()}</SectionHeading>
         {feed.shops.length > 0 ? (
           <TextLink
             className="shrink-0 text-xs font-medium"
             render={<Link to="/groups/$slug/shops" params={{ slug }} />}
           >
-            Show all
+            {m.groups_overview_show_all()}
           </TextLink>
         ) : null}
       </div>
@@ -263,8 +270,8 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
         <OverviewSlotEmpty
           description={
             feed.shops.length === 0
-              ? "No shop linked yet. Link the store you play at and its next events show up here."
-              : `Nothing listed at your shops in the next ${feed.horizonDays} days.`
+              ? m.groups_overview_no_shop_linked()
+              : m.groups_overview_nothing_at_shops({ days: feed.horizonDays })
           }
           action={
             admin && feed.shops.length === 0 ? (
@@ -272,7 +279,7 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
                 className="inline-flex items-center gap-1 text-sm font-medium"
                 render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
               >
-                Link a shop
+                {m.groups_link_a_shop()}
                 <ChevronRightIcon className="size-4" />
               </TextLink>
             ) : null
@@ -312,7 +319,7 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
       sharedAt: share.sharedAt,
       icon: LIST_INTENT_ICON[share.listIntent],
       name: share.listName,
-      sub: `${capitalize(LIST_INTENT_NOUN[share.listIntent])} · ${share.userName ?? "a member"}`,
+      sub: `${capitalize(listIntentNoun(share.listIntent))} · ${share.userName ?? m.groups_a_member()}`,
       target: "list",
       listId: share.listId,
     })),
@@ -321,7 +328,7 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
       sharedAt: share.sharedAt,
       icon: FolderIcon,
       name: share.collectionName,
-      sub: `Collection · ${share.userName ?? "a member"}`,
+      sub: `${m.groups_overview_collection_noun()} · ${share.userName ?? m.groups_a_member()}`,
       target: "collection",
       collectionId: share.collectionId,
     })),
@@ -334,13 +341,13 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
-        <SectionHeading>Newest shared</SectionHeading>
+        <SectionHeading>{m.groups_overview_newest_shared()}</SectionHeading>
         {all.length > rows.length ? (
           <TextLink
             className="shrink-0 text-xs font-medium"
             render={<Link to="/groups/$slug/shared" params={{ slug }} />}
           >
-            Show all
+            {m.groups_overview_show_all()}
           </TextLink>
         ) : null}
       </div>
@@ -384,13 +391,13 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
-        <SectionHeading>Next up</SectionHeading>
+        <SectionHeading>{m.groups_overview_next_up()}</SectionHeading>
         {tournaments.items.length > 0 ? (
           <TextLink
             className="shrink-0 text-xs font-medium"
             render={<Link to="/groups/$slug/events" params={{ slug }} />}
           >
-            Show all
+            {m.groups_overview_show_all()}
           </TextLink>
         ) : null}
       </div>
@@ -416,8 +423,8 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
         <OverviewSlotEmpty
           description={
             admin
-              ? "No tournaments planned. Set one up for the next game night."
-              : "No tournaments planned yet. When an admin sets one up, it will show up here."
+              ? m.groups_overview_no_tournaments_admin()
+              : m.groups_overview_no_tournaments_member()
           }
           action={
             admin ? (
@@ -425,7 +432,7 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
                 className="inline-flex items-center gap-1 text-sm font-medium"
                 render={<Link to="/groups/$slug/events" params={{ slug }} />}
               >
-                Plan a tournament
+                {m.groups_overview_plan_a_tournament()}
                 <ChevronRightIcon className="size-4" />
               </TextLink>
             ) : null

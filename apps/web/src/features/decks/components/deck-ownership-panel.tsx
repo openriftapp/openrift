@@ -7,6 +7,7 @@ import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckOwnershipPanelProps {
   data: DeckOwnershipData;
@@ -18,37 +19,51 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
   return (
     <div className="space-y-3">
       <div className="space-y-1 text-sm">
-        <Row label="Owned" value={`${data.totalOwned} / ${data.totalNeeded}`} />
+        <Row
+          label={m.decks_overview_own_owned()}
+          value={`${data.totalOwned} / ${data.totalNeeded}`}
+        />
         {data.totalBorrowed > 0 && (
           <Tooltip>
             <TooltipTrigger render={<div />}>
               <Row
-                label="Borrowed"
-                value={`${data.totalBorrowed} ${data.totalBorrowed === 1 ? "card" : "cards"}`}
+                label={m.decks_overview_own_borrowed()}
+                value={
+                  data.totalBorrowed === 1
+                    ? m.common_cards_one({ count: data.totalBorrowed })
+                    : m.common_cards_other({ count: data.totalBorrowed })
+                }
               />
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-64 text-xs">
-              Copies you&apos;re borrowing from friends. They count as buildable while you have
-              them, but they aren&apos;t part of your collection.
+              {m.decks_overview_borrowed_hint()}
             </TooltipContent>
           </Tooltip>
         )}
         {data.missingCount > 0 && (
           <Row
-            label="Missing"
-            value={`${data.missingCount} ${data.missingCount === 1 ? "card" : "cards"}`}
+            label={m.decks_overview_own_missing()}
+            value={
+              data.missingCount === 1
+                ? m.common_cards_one({ count: data.missingCount })
+                : m.common_cards_other({ count: data.missingCount })
+            }
           />
         )}
         {data.totalLocked > 0 && (
           <Tooltip>
             <TooltipTrigger render={<div />}>
               <Row
-                label="Locked"
-                value={`${data.totalLocked} ${data.totalLocked === 1 ? "card" : "cards"}`}
+                label={m.decks_overview_own_locked()}
+                value={
+                  data.totalLocked === 1
+                    ? m.common_cards_one({ count: data.totalLocked })
+                    : m.common_cards_other({ count: data.totalLocked })
+                }
               />
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-64 text-xs">
-              In collections excluded from deck building, so they don&apos;t count toward missing.
+              {m.decks_overview_own_locked_hint()}
             </TooltipContent>
           </Tooltip>
         )}
@@ -59,7 +74,7 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
       {data.missingCards.length > 0 && (
         <Button variant="outline" size="sm" className="w-full" onClick={onViewMissing}>
           <PackageSearchIcon className="size-3.5" />
-          View missing cards
+          {m.decks_overview_view_missing()}
         </Button>
       )}
     </div>
@@ -94,28 +109,30 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
     >
       <div className="text-muted-foreground flex items-center gap-1.5 pb-0.5 text-xs">
         <img src={MARKETPLACE_META[marketplace].icon} alt="" className="h-3 invert dark:invert-0" />
-        {MARKETPLACE_META[marketplace].label} prices
+        {m.decks_overview_marketplace_prices({ marketplace: MARKETPLACE_META[marketplace].label })}
       </div>
       <span />
       {showMissing && (
-        <span className="text-muted-foreground pb-0.5 text-right text-xs">missing</span>
+        <span className="text-muted-foreground pb-0.5 text-right text-xs">
+          {m.decks_overview_price_missing_column()}
+        </span>
       )}
 
       <PriceRow
-        label="Deck value"
+        label={m.decks_overview_deck_value()}
         value={fmt(data.deckValueCents)}
         missing={showMissing ? fmt(data.missingValueCents) : undefined}
       />
       {showSplit && (
         <>
           <PriceRow
-            label="Main deck"
+            label={m.decks_overview_main_deck()}
             value={fmt(data.mainValueCents)}
             missing={showMissing ? fmt(data.missingMainValueCents) : undefined}
             indent
           />
           <PriceRow
-            label="Sideboard"
+            label={m.decks_overview_sideboard()}
             value={fmt(data.sideboardValueCents)}
             missing={showMissing ? fmt(data.missingSideboardValueCents) : undefined}
             indent
@@ -123,7 +140,11 @@ function PriceBlock({ data, marketplace }: { data: DeckOwnershipData; marketplac
         </>
       )}
       {showAsShown && (
-        <PriceRow label="As shown" missing={fmt(data.missingAsDisplayedValueCents)} indent />
+        <PriceRow
+          label={m.decks_overview_price_as_shown()}
+          missing={fmt(data.missingAsDisplayedValueCents)}
+          indent
+        />
       )}
     </div>
   );

@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { signInRedirectFor } from "./header";
-import { navItemVisible, PRIMARY_NAV_ITEMS, visibleMoreSections } from "./nav-items";
+import { navItemVisible, primaryNavItems, visibleMoreSections } from "./nav-items";
 
 const flagsOn = { glossary: true, meta: true };
 const flagsOff = { glossary: false, meta: false };
 
-describe("PRIMARY_NAV_ITEMS", () => {
+describe("primaryNavItems", () => {
   const visible = (flags: typeof flagsOn, mobile: boolean) =>
-    PRIMARY_NAV_ITEMS.filter((item) => navItemVisible(item, { flags, mobile })).map((i) => i.to);
+    primaryNavItems()
+      .filter((item) => navItemVisible(item, { flags, mobile }))
+      .map((i) => i.to);
 
   it("hides the meta archive in both menus while its flag is off", () => {
     expect(visible(flagsOff, false)).not.toContain("/meta");

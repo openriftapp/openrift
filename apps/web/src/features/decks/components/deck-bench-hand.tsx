@@ -11,6 +11,7 @@ import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
 import type { LibraryHitChance } from "@/features/decks/lib/deck-hand-odds";
 import { shortGroupLabel } from "@/features/decks/lib/deck-hand-odds";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function LibraryOddsLine({
   lead,
@@ -78,7 +79,7 @@ export function DeckBenchHand({
           aria-keyshortcuts="N"
         >
           {bench ? <RotateCcwIcon className="size-4" /> : <HandIcon className="size-4" />}
-          Draw a hand
+          {m.decks_editor_draw_hand()}
           <Kbd
             className={cn(
               "max-sm:hidden",
@@ -95,7 +96,7 @@ export function DeckBenchHand({
           disabled={!bench || bench.mulliganUsed || bench.hasDrawn || selected.size === 0}
           aria-keyshortcuts="M"
         >
-          Mulligan
+          {m.decks_editor_mulligan()}
           <Kbd className="max-sm:hidden">M</Kbd>
         </Button>
         <Button
@@ -105,12 +106,12 @@ export function DeckBenchHand({
           disabled={!bench || bench.library.length === 0}
           aria-keyshortcuts="D"
         >
-          Draw a card
+          {m.decks_editor_draw_card()}
           <Kbd className="max-sm:hidden">D</Kbd>
         </Button>
         {bench && (
           <span className="text-muted-foreground text-xs tabular-nums">
-            {bench.library.length} left in deck
+            {m.decks_editor_left_in_deck({ count: bench.library.length })}
           </span>
         )}
       </div>
@@ -126,7 +127,11 @@ export function DeckBenchHand({
                 {...cardHoverProps(onHoverCard, card.cardId, card.preferredPrintingId)}
                 onClick={() => onToggleSelected(card.key)}
                 aria-pressed={isSelected}
-                aria-label={canMulligan ? `${card.cardName} — select to mulligan` : card.cardName}
+                aria-label={
+                  canMulligan
+                    ? m.decks_editor_select_to_mulligan({ card: card.cardName })
+                    : card.cardName
+                }
                 style={{ borderRadius: CARD_BORDER_RADIUS }}
                 className={cn(
                   "transition-transform",
@@ -156,18 +161,18 @@ export function DeckBenchHand({
         </div>
       ) : (
         <div className="text-muted-foreground rounded-md border border-dashed px-4 py-10 text-center text-sm">
-          Draw a sample hand to see how the deck opens.
+          {m.decks_editor_bench_empty()}
         </div>
       )}
       {bench && selected.size > 0 && (
         <LibraryOddsLine
-          lead={`Exchanging ${selected.size}:`}
+          lead={m.decks_editor_exchanging({ count: selected.size })}
           rows={mulliganRows}
-          emptyLabel="nothing left to look for, this hand covers every group."
+          emptyLabel={m.decks_editor_exchanging_empty()}
         />
       )}
       {bench && selected.size === 0 && bench.library.length > 0 && (
-        <LibraryOddsLine lead="Next card:" rows={nextCardRows} />
+        <LibraryOddsLine lead={m.decks_editor_next_card()} rows={nextCardRows} />
       )}
     </>
   );

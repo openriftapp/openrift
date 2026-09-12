@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { SharePanelProps } from "@/features/groups/components/share-panel";
-import { SharePanel } from "@/features/groups/components/share-panel";
+import { SHARE_DIALOG_DESCRIPTION, SharePanel } from "@/features/groups/components/share-panel";
 
 interface ShareDialogProps extends SharePanelProps {
   open: boolean;
@@ -32,8 +32,7 @@ export function ShareDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {description ??
-              `Choose who can reach this ${panelProps.noun}, then how to hand it out.`}
+            {description ?? SHARE_DIALOG_DESCRIPTION[panelProps.noun]()}
           </DialogDescription>
         </DialogHeader>
         <SharePanel {...panelProps} />

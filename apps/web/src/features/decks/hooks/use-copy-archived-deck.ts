@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCloneSharedDeck } from "@/features/decks/hooks/use-decks";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 interface CopyArchivedDeckInput {
   token: string;
@@ -62,6 +63,6 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
     copy,
     isPending: cloneMutation.isPending,
     isLoggedIn,
-    label: isLoggedIn ? "Copy to my decks" : "Open in deck builder",
+    label: isLoggedIn ? m.decks_menu_copy_to_my_decks() : m.decks_menu_open_in_builder(),
   };
 }

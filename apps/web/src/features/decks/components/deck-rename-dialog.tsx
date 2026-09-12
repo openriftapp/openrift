@@ -13,6 +13,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckRenameDialogProps {
   deckId: string;
@@ -51,10 +52,10 @@ export function DeckRenameDialog({
       <DialogContent>
         <DialogForm onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Rename deck</DialogTitle>
+            <DialogTitle>{m.decks_dialog_rename_title()}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="deck-rename-name">Name</Label>
+            <Label htmlFor="deck-rename-name">{m.common_name()}</Label>
             <Input
               id="deck-rename-name"
               value={draft}
@@ -65,9 +66,9 @@ export function DeckRenameDialog({
             />
           </div>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
             <Button type="submit" disabled={!draft.trim()}>
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

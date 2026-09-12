@@ -32,6 +32,7 @@ import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getTypeIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const SINGLE_CARD_ZONES = new Set<DeckZone>([
@@ -229,7 +230,11 @@ export function DeckZoneSection({
           <ExpandToggle
             expanded={open}
             chevronClassName="size-3.5"
-            aria-label={`${open ? "Collapse" : "Expand"} ${zoneLabel}`}
+            aria-label={
+              open
+                ? m.decks_editor_collapse_zone({ zone: zoneLabel })
+                : m.decks_editor_expand_zone({ zone: zoneLabel })
+            }
             onClick={() => setOpen((prev) => !prev)}
             className="shrink-0"
           />
@@ -241,7 +246,7 @@ export function DeckZoneSection({
         labelRender={
           <Pressable
             onClick={activateZone}
-            aria-label={`Edit ${zoneLabel}`}
+            aria-label={m.decks_editor_edit_zone({ zone: zoneLabel })}
             className="group/zone-label min-w-0 flex-1 truncate"
           />
         }
@@ -255,7 +260,7 @@ export function DeckZoneSection({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Show zone issues"
+                  aria-label={m.decks_editor_show_zone_issues()}
                   className="size-5 shrink-0 rounded-md"
                 />
               }

@@ -39,6 +39,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getTypeIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Excludes Overflow: cards parked there don't travel with the deck.
 const BOX_ZONE_ORDER: readonly DeckZone[] = [
@@ -107,7 +108,7 @@ export function DeckBoxTab({
   };
 
   if (!plan) {
-    return <p className="text-muted-foreground py-6 text-sm">Loading your copies…</p>;
+    return <p className="text-muted-foreground py-6 text-sm">{m.decks_overview_box_loading()}</p>;
   }
 
   const slotsByCardKey = Map.groupBy(plan.slots, (slot) => slot.cardKey);
@@ -133,14 +134,18 @@ export function DeckBoxTab({
     }
     const single = byTarget.length === 1 ? byTarget[0]?.[0] : undefined;
     const target = collections.find((collection) => collection.id === single);
-    const noun = copyIds.length === 1 ? "card" : "cards";
+    const count = copyIds.length;
     toast.success(
       target
-        ? `Moved ${copyIds.length} ${noun} into ${target.name}`
-        : `Moved ${copyIds.length} ${noun} out of the box`,
+        ? count === 1
+          ? m.decks_overview_box_moved_into_one({ count, collection: target.name })
+          : m.decks_overview_box_moved_into_other({ count, collection: target.name })
+        : count === 1
+          ? m.decks_overview_box_moved_out_one({ count })
+          : m.decks_overview_box_moved_out_other({ count }),
       {
         action: {
-          label: "Undo",
+          label: m.decks_overview_box_undo(),
           onClick: () => {
             moveCopies.mutate({ copyIds: [...copyIds], toCollectionId: homeCollectionId });
           },
@@ -194,18 +199,14 @@ export function DeckBoxTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground max-w-prose">
-        Tick cards off as you put them in the box. Each tick moves that copy into this deck&apos;s
-        collection. A red tick marks a card the deck doesn&apos;t want, and clearing it sends that
-        copy to your inbox.
-      </p>
+      <p className="text-muted-foreground max-w-prose">{m.decks_overview_box_intro()}</p>
       <div className="flex items-center gap-2">
         <BoxIcon className="text-muted-foreground size-4" />
         <span className="font-medium">
           <span className="tabular-nums">
             {plan.inBoxTotal} / {plan.neededTotal}
           </span>{" "}
-          in{" "}
+          {m.decks_overview_box_in()}{" "}
           <TextLink
             variant="inherit"
             render={
@@ -217,7 +218,7 @@ export function DeckBoxTab({
         </span>
         {complete && (
           <Badge variant="muted" className="text-success">
-            Ready to play
+            {m.decks_overview_ready_to_play()}
           </Badge>
         )}
       </div>
@@ -238,7 +239,7 @@ export function DeckBoxTab({
 
         {plan.extras.length > 0 && (
           <section className={DECK_LIST_SECTION_CLASS}>
-            <DeckZoneHeader label="Not in this deck">
+            <DeckZoneHeader label={m.decks_overview_box_not_in_deck()}>
               <span className="text-muted-foreground ml-auto text-xs tabular-nums">
                 {plan.extraCount}
               </span>
@@ -268,7 +269,9 @@ export function DeckBoxTab({
                         checked
                         className={SURPLUS_TICK_CLASS}
                         disabled={moveCopies.isPending}
-                        aria-label={`Move ${legendDisplayName(entry.card)} out of the box`}
+                        aria-label={m.decks_overview_box_move_out({
+                          card: legendDisplayName(entry.card),
+                        })}
                         onClick={rowControlClick()}
                         onCheckedChange={() => takeOut([copy.copyId])}
                       />
@@ -290,7 +293,9 @@ export function DeckBoxTab({
           disabled={!onViewMissing}
         >
           <PackageSearchIcon className="size-3.5" />
-          You don&apos;t own {plan.missingCount} {plan.missingCount === 1 ? "card" : "cards"}
+          {plan.missingCount === 1
+            ? m.decks_overview_box_missing_one({ count: plan.missingCount })
+            : m.decks_overview_box_missing_other({ count: plan.missingCount })}
         </Button>
       )}
     </div>
@@ -394,7 +399,7 @@ function SlotRow({
           <Checkbox
             checked
             disabled={disabled}
-            aria-label={`Take ${legendDisplayName(card)} back out of the box`}
+            aria-label={m.decks_overview_box_take_out({ card: legendDisplayName(card) })}
             onClick={rowControlClick()}
             onCheckedChange={onTakeOut}
           />
@@ -426,7 +431,7 @@ function SlotRow({
           <Checkbox
             checked={false}
             disabled={disabled}
-            aria-label={`Put ${legendDisplayName(card)} in the box`}
+            aria-label={m.decks_overview_box_put_in({ card: legendDisplayName(card) })}
             onClick={rowControlClick()}
             onCheckedChange={onTick}
           />
@@ -470,10 +475,12 @@ function SlotRow({
               className="shrink-0 text-xs"
               render={<Link to="/loans" onClick={rowControlClick()} />}
             >
-              out on loan
+              {m.decks_overview_box_on_loan()}
             </TextLink>
           ) : (
-            <span className="text-muted-foreground shrink-0 text-xs">reserved for a trade</span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {m.decks_overview_box_reserved()}
+            </span>
           )
         }
       />
@@ -489,7 +496,11 @@ function SlotRow({
       onOpen={onOpen}
       muted
       leading={<span className="size-4 shrink-0" />}
-      trailing={<span className="text-muted-foreground shrink-0 text-xs">not owned</span>}
+      trailing={
+        <span className="text-muted-foreground shrink-0 text-xs">
+          {m.decks_overview_box_not_owned()}
+        </span>
+      }
     />
   );
 }
@@ -543,14 +554,14 @@ function SourcePicker({
   const wording =
     mode === "keep"
       ? {
-          trigger: "Swap",
-          action: `Keep a different copy of ${legendDisplayName(card)}`,
-          prompt: "Keep this copy instead",
+          trigger: m.decks_overview_box_swap(),
+          action: m.decks_overview_box_keep_other({ card: legendDisplayName(card) }),
+          prompt: m.decks_overview_box_keep_prompt(),
         }
       : {
           trigger: source,
-          action: `Take a different copy of ${legendDisplayName(card)}`,
-          prompt: "Take this copy instead",
+          action: m.decks_overview_box_take_other({ card: legendDisplayName(card) }),
+          prompt: m.decks_overview_box_take_prompt(),
         };
   const byCollection = Map.groupBy(
     slot.alternatives,
@@ -670,7 +681,7 @@ function CopyDetails({
   const { language, rest } = formatPrintingVariantLabelParts(copy, siblings, labels);
   const parts: string[] = language === null ? [...rest] : [language, ...rest];
   if (copy.grade !== null) {
-    parts.push(`graded ${copy.grade}`);
+    parts.push(m.decks_overview_box_graded({ grade: copy.grade }));
   } else if (copy.condition !== null) {
     parts.push(enumLabel(labels.conditions, copy.condition));
   }
@@ -693,8 +704,8 @@ function CopyDetails({
       </TooltipTrigger>
       <TooltipContent side="top" className="text-xs">
         {copy.grade === null
-          ? "The copy this row stands for"
-          : "This copy is graded — swap it for a plain one if you'd rather keep it in the binder"}
+          ? m.decks_overview_box_copy_hint()
+          : m.decks_overview_box_graded_hint()}
       </TooltipContent>
     </Tooltip>
   );

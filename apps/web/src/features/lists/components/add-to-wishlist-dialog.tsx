@@ -10,12 +10,21 @@ import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-const KIND_LABEL: Record<ListKind, string> = {
-  card: "Any printing",
-  printing: "Exact printings",
-  copy: "",
-};
+function kindLabel(kind: ListKind): string {
+  switch (kind) {
+    case "card": {
+      return m.lists_add_kind_card();
+    }
+    case "printing": {
+      return m.lists_add_kind_printing();
+    }
+    case "copy": {
+      return "";
+    }
+  }
+}
 
 interface AddToWishlistDialogProps {
   open: boolean;
@@ -40,7 +49,7 @@ export function AddToWishlistDialog({
   const addToList = (listId: string, listName: string, kind: ListKind) => {
     const entries = entriesFor(kind);
     if (entries.length === 0) {
-      toast.info(`Nothing to add to "${listName}"`);
+      toast.info(m.lists_add_nothing_to_add({ list: listName }));
       return;
     }
     bulkAdd.mutate(
@@ -48,7 +57,11 @@ export function AddToWishlistDialog({
       {
         onSuccess: (result) => {
           const total = result.added + result.updated;
-          toast.success(`Added ${total} ${total === 1 ? "card" : "cards"} to "${listName}"`);
+          toast.success(
+            total === 1
+              ? m.lists_add_added_cards_one({ count: total, list: listName })
+              : m.lists_add_added_cards_other({ count: total, list: listName }),
+          );
           onAdded?.(listId);
           onOpenChange(false);
         },
@@ -65,7 +78,7 @@ export function AddToWishlistDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add to wishlist</DialogTitle>
+          <DialogTitle>{m.lists_add_wishlist_title()}</DialogTitle>
         </DialogHeader>
         <div className="max-h-60 overflow-y-auto">
           {wishlists.length > 0 ? (
@@ -82,14 +95,14 @@ export function AddToWishlistDialog({
                   <HeartIcon className="size-4 shrink-0" />
                   <span className="flex-1 truncate">{list.name}</span>
                   <span className="text-muted-foreground text-2xs shrink-0">
-                    {KIND_LABEL[list.kind]}
+                    {kindLabel(list.kind)}
                   </span>
                 </PickerRow>
               ))}
             </PickerList>
           ) : (
             <Empty>
-              <EmptyDescription>No wishlists yet. Create one below.</EmptyDescription>
+              <EmptyDescription>{m.lists_add_no_wishlists()}</EmptyDescription>
             </Empty>
           )}
         </div>
@@ -102,10 +115,10 @@ export function AddToWishlistDialog({
             disabled={bulkAdd.isPending}
           >
             <PlusIcon className="size-3.5" />
-            New wishlist
+            {m.lists_add_new_wishlist()}
           </Button>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={bulkAdd.isPending}>
-            Cancel
+            {m.common_cancel()}
           </Button>
         </div>
       </DialogContent>

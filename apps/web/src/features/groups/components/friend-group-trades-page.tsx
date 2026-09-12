@@ -13,6 +13,7 @@ import {
 } from "@/features/groups/hooks/use-friend-groups";
 import { buildTradeHubCards } from "@/features/groups/lib/trade-hub";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 import { ShareYourListsBand, TradeHubMemberCard } from "./trade-hub";
 
@@ -64,10 +65,12 @@ function TradeHub({ slug, data }: { slug: string; data: FriendGroupDetailRespons
     return (
       <EmptyState
         icon={UsersIcon}
-        title="Invite people to start trading"
-        description="Trades happen between members, so this group needs someone else in it first."
+        title={m.trades_invite_title()}
+        description={m.trades_invite_description()}
       >
-        <Button render={<Link to="/groups/$slug/members" params={{ slug }} />}>View members</Button>
+        <Button render={<Link to="/groups/$slug/members" params={{ slug }} />}>
+          {m.trades_view_members()}
+        </Button>
       </EmptyState>
     );
   }

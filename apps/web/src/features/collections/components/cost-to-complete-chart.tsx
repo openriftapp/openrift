@@ -23,6 +23,7 @@ import {
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import type { CompletionCountMode } from "@/features/collections/lib/stat-types";
 import { compactFormatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 
 interface CurvePoint {
   cost: number;
@@ -370,21 +371,21 @@ function CostToCompleteTooltipContent({
         {point.label ? (
           <p className="mb-1 font-medium">{point.label}</p>
         ) : (
-          <p className="mb-1 font-medium">Current collection</p>
+          <p className="mb-1 font-medium">{m.collections_stats_cost_tooltip_current()}</p>
         )}
         <div className="text-muted-foreground space-y-0.5">
           <p>
-            Completion:{" "}
+            {m.collections_stats_cost_tooltip_completion()}{" "}
             <span className="text-foreground font-medium">{point.percent.toFixed(1)}%</span>
           </p>
           {point.itemPrice !== undefined && (
             <p>
-              Card price:{" "}
+              {m.collections_stats_cost_tooltip_card_price()}{" "}
               <span className="text-foreground font-medium">{formatPrice(point.itemPrice)}</span>
             </p>
           )}
           <p>
-            Total spent:{" "}
+            {m.collections_stats_cost_tooltip_total_spent()}{" "}
             <span className="text-foreground font-medium">{formatPrice(point.cost)}</span>
           </p>
         </div>
@@ -393,12 +394,14 @@ function CostToCompleteTooltipContent({
   );
 }
 
-const chartConfig = {
-  percent: {
-    label: "Completion",
-    color: "var(--color-primary)",
-  },
-} satisfies ChartConfig;
+function buildChartConfig(): ChartConfig {
+  return {
+    percent: {
+      label: m.collections_stats_cost_series_completion(),
+      color: "var(--color-primary)",
+    },
+  } satisfies ChartConfig;
+}
 
 interface CostToCompleteChartProps {
   allPrintings: Printing[];
@@ -420,6 +423,7 @@ export function CostToCompleteChart({
   marketplace,
 }: CostToCompleteChartProps) {
   const formatPrice = compactFormatterForMarketplace(marketplace);
+  const chartConfig = buildChartConfig();
 
   const data = computeCostToComplete({
     allPrintings,
@@ -436,8 +440,8 @@ export function CostToCompleteChart({
       <Empty>
         <EmptyDescription>
           {data.startPercent >= 100
-            ? "Collection is complete!"
-            : "No price data available for missing items."}
+            ? m.collections_stats_cost_complete()
+            : m.collections_stats_cost_no_prices()}
         </EmptyDescription>
       </Empty>
     );
@@ -521,7 +525,7 @@ export function CostToCompleteChart({
               fillOpacity={1}
               stroke="none"
               label={{
-                value: `${data.unpricedMissing} unpriced`,
+                value: m.collections_stats_cost_unpriced_badge({ count: data.unpricedMissing }),
                 position: "insideTopRight",
                 className: "fill-muted-foreground text-2xs",
               }}
@@ -532,10 +536,10 @@ export function CostToCompleteChart({
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="text-muted-foreground flex items-center gap-1.5">
           <span className="bg-primary inline-block size-2.5 rounded-full" />
-          You are here: {data.startPercent.toFixed(1)}%
+          {m.collections_stats_cost_you_are_here({ percent: data.startPercent.toFixed(1) })}
         </span>
         <span className="text-muted-foreground">
-          Cost to complete: {formatPrice(data.totalCost)}
+          {m.collections_stats_cost_total({ price: formatPrice(data.totalCost) })}
         </span>
         {data.unpricedMissing > 0 && (
           <span className="text-muted-foreground flex items-center gap-1.5">
@@ -561,8 +565,9 @@ export function CostToCompleteChart({
                 </pattern>
               </defs>
             </svg>
-            {data.unpricedMissing} unpriced {data.unpricedMissing === 1 ? "card" : "cards"} (no
-            market data)
+            {data.unpricedMissing === 1
+              ? m.collections_stats_cost_legend_unpriced_one({ count: data.unpricedMissing })
+              : m.collections_stats_cost_legend_unpriced_other({ count: data.unpricedMissing })}
           </span>
         )}
       </div>

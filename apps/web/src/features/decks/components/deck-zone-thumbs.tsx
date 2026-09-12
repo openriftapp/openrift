@@ -25,6 +25,7 @@ import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-
 import { ownershipBandTitle } from "@/features/decks/lib/deck-ownership-band";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 /**
@@ -97,14 +98,20 @@ function ThumbEditControls({
                 "bg-background/80 hover:bg-background absolute top-1 right-1 size-5 rounded-md",
                 reveal,
               )}
-              aria-label={perCopy ? `Remove one copy of ${cardName}` : `Remove ${cardName}`}
+              aria-label={
+                perCopy
+                  ? m.decks_editor_remove_one_copy({ card: cardName })
+                  : m.decks_editor_remove_card({ card: cardName })
+              }
               onClick={remove}
             />
           }
         >
           <XIcon className="size-3" />
         </TooltipTrigger>
-        <TooltipContent>{perCopy ? "Remove this copy" : "Remove from deck"}</TooltipContent>
+        <TooltipContent>
+          {perCopy ? m.decks_editor_remove_this_copy() : m.decks_editor_remove_from_deck()}
+        </TooltipContent>
       </Tooltip>
       {showStepper && (
         <span
@@ -120,14 +127,14 @@ function ThumbEditControls({
                   variant="ghost"
                   size="icon-xs"
                   className="size-5"
-                  aria-label={`Remove one copy of ${cardName}`}
+                  aria-label={m.decks_editor_remove_one_copy({ card: cardName })}
                   onClick={decrement}
                 />
               }
             >
               <MinusIcon className="size-3" />
             </TooltipTrigger>
-            <TooltipContent>Shift+click to remove all</TooltipContent>
+            <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
           </Tooltip>
           <span className="min-w-3 text-center text-xs leading-none font-medium tabular-nums">
             {card.quantity}
@@ -140,14 +147,14 @@ function ThumbEditControls({
                   size="icon-xs"
                   className="size-5"
                   disabled={addRoom <= 0}
-                  aria-label={`Add one copy of ${cardName}`}
+                  aria-label={m.decks_editor_add_one_copy({ card: cardName })}
                   onClick={increment}
                 />
               }
             >
               <PlusIcon className="size-3" />
             </TooltipTrigger>
-            {addRoom > 0 && <TooltipContent>Shift+click to add max</TooltipContent>}
+            {addRoom > 0 && <TooltipContent>{m.decks_editor_shift_add_max()}</TooltipContent>}
           </Tooltip>
         </span>
       )}
@@ -256,7 +263,7 @@ export function ZoneThumb({
       )}
       {hasCustomPrinting && (
         <span
-          title="Pinned printing"
+          title={m.decks_editor_pinned_printing()}
           className="bg-background/70 absolute top-1 left-1 rounded-md p-0.5"
         >
           <PinIcon className="text-muted-foreground size-2.5" />

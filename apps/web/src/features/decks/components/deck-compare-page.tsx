@@ -56,6 +56,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Which column a picker fills. Doubles as the search-param name. */
 type SideKey = "from" | "to";
@@ -205,7 +206,7 @@ function DeckPicker({
   const [open, setOpen] = useState(false);
   // Reset per open, not once: picking changes `value` while this stays mounted.
   const [highlightedId, setHighlightedId] = useState("");
-  const name = identity?.name ?? "Choose a deck";
+  const name = identity?.name ?? m.decks_compare_choose_deck();
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
@@ -248,15 +249,15 @@ function DeckPicker({
             className="w-80 max-w-(--available-width) gap-0 p-0 sm:w-96"
           >
             <PickerList
-              searchPlaceholder="Search your decks…"
+              searchPlaceholder={m.decks_compare_search_decks()}
               highlightedId={highlightedId}
               onHighlightChange={setHighlightedId}
             >
-              <CommandEmpty>No decks match.</CommandEmpty>
+              <CommandEmpty>{m.decks_compare_no_decks_match()}</CommandEmpty>
               {familyIds.length > 0 && (
                 <CommandGroup
                   className="p-0"
-                  heading={familyIds.length > 1 ? "Versions of this deck" : undefined}
+                  heading={familyIds.length > 1 ? m.decks_compare_versions_heading() : undefined}
                 >
                   {familyIds.map((deckId) => (
                     <DeckPickerRow
@@ -272,7 +273,11 @@ function DeckPicker({
               {otherIds.length > 0 && (
                 <CommandGroup
                   className="p-0 pt-2"
-                  heading={familyIds.length > 0 ? "Your other decks" : "Your decks"}
+                  heading={
+                    familyIds.length > 0
+                      ? m.decks_compare_other_decks_heading()
+                      : m.decks_compare_your_decks_heading()
+                  }
                 >
                   {otherIds.map((deckId) => (
                     <DeckPickerRow
@@ -297,7 +302,7 @@ function DeckPicker({
                 }}
               >
                 <ClipboardPasteIcon className="size-4" />
-                Paste a deck code or list…
+                {m.decks_compare_paste_action()}
               </Button>
             </div>
           </PopoverContent>
@@ -307,10 +312,14 @@ function DeckPicker({
             variant="outline"
             className="self-center"
             render={
-              <Link to="/decks/$deckId" params={{ deckId: value }} aria-label={`Open ${name}`} />
+              <Link
+                to="/decks/$deckId"
+                params={{ deckId: value }}
+                aria-label={m.decks_compare_open_aria({ name })}
+              />
             }
           >
-            Open
+            {m.decks_compare_open()}
           </Button>
         )}
         {pastedText !== null && (
@@ -321,11 +330,11 @@ function DeckPicker({
               <Link
                 to="/decks/import"
                 search={{ code: pastedText }}
-                aria-label="Save the pasted list as a deck"
+                aria-label={m.decks_compare_save_pasted_aria()}
               />
             }
           >
-            Save
+            {m.common_save()}
           </Button>
         )}
         {(value !== null || pastedText !== null) && (
@@ -333,7 +342,7 @@ function DeckPicker({
             variant="ghost"
             size="icon"
             className="self-center"
-            aria-label={`Clear the ${label.toLowerCase()} deck`}
+            aria-label={m.decks_compare_clear_aria({ side: label.toLowerCase() })}
             onClick={onClear}
           >
             <XIcon className="size-4" />
@@ -484,7 +493,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
       : null;
 
   const pastedIdentity = (pasted: PastedCompareSource): DeckIdentity => ({
-    name: "Pasted list",
+    name: m.decks_compare_pasted_list(),
     legendCardId: pasted.cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
     championCardId: pasted.cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
     cardCount: countCopies(pasted.cards),
@@ -571,19 +580,19 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
       <PageTopBarSticky width="capped">
         <PageTopBar>
           {anchorId === null ? (
-            <PageTopBarBack to="/decks" aria-label="Back to your decks" />
+            <PageTopBarBack to="/decks" aria-label={m.decks_compare_back_to_decks()} />
           ) : (
             <PageTopBarBack
               to="/decks/$deckId"
               params={{ deckId: anchorId }}
-              aria-label="Back to the deck"
+              aria-label={m.decks_compare_back_to_deck()}
             />
           )}
-          <PageTopBarTitle>Compare</PageTopBarTitle>
+          <PageTopBarTitle>{m.decks_compare_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <Switch id="deck-changes-only" checked={changesOnly} onCheckedChange={setChangesOnly} />
             <Label htmlFor="deck-changes-only" className="font-normal">
-              Only what changed
+              {m.decks_compare_only_changed()}
             </Label>
           </PageTopBarActions>
         </PageTopBar>
@@ -593,7 +602,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
         <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-6 pt-3")}>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-2">
             <DeckPicker
-              label="From"
+              label={m.decks_compare_from()}
               value={fromDeckId}
               identity={fromIdentity}
               pastedText={pastedFrom?.text ?? null}
@@ -608,7 +617,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
               <ArrowRightIcon aria-hidden className="text-muted-foreground size-3 shrink-0" />
             </span>
             <DeckPicker
-              label="To"
+              label={m.decks_compare_to()}
               value={toDeckId}
               identity={toIdentity}
               pastedText={pastedTo?.text ?? null}
@@ -623,24 +632,21 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
 
           {bothPicked && (
             <p className="text-muted-foreground text-sm tabular-nums">
-              {sharedCount} {sharedCount === 1 ? "card is" : "cards are"} the same
+              {sharedCount === 1
+                ? m.decks_compare_shared_one({ count: sharedCount })
+                : m.decks_compare_shared_other({ count: sharedCount })}
             </p>
           )}
 
-          {!bothChosen && (
-            <p className="text-muted-foreground">
-              Pick a deck on each side, or paste a deck code or list, and the comparison shows what
-              was cut, what was added, and what both share, zone by zone. Handy for tracking a
-              deck&apos;s versions or sizing up a build against a tournament list.
-            </p>
-          )}
-          {isIdentical && <p className="text-sm">The two lists match, card for card.</p>}
+          {!bothChosen && <p className="text-muted-foreground">{m.decks_compare_intro()}</p>}
+          {isIdentical && <p className="text-sm">{m.decks_compare_identical()}</p>}
 
           {unmatched.length > 0 && (
             <div className="text-muted-foreground flex flex-col gap-1">
               <p className="text-sm">
-                Couldn&apos;t match {unmatched.length} {unmatched.length === 1 ? "line" : "lines"}{" "}
-                of the pasted list
+                {unmatched.length === 1
+                  ? m.decks_compare_unmatched_one({ count: unmatched.length })
+                  : m.decks_compare_unmatched_other({ count: unmatched.length })}
               </p>
               <ul className="text-2xs flex flex-col gap-0.5">
                 {unmatched.map((line, index) => (

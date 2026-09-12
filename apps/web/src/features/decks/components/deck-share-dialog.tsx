@@ -11,6 +11,7 @@ import {
 } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckShareDialogProps {
   deckId: string;
@@ -41,13 +42,12 @@ function ServerDeckShareDialog({
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Share deck"
+      title={m.decks_dialog_share_title()}
       noun="deck"
       link={{
         url: shareUrl,
-        label: "Deck share link",
-        exposes:
-          "view the deck, including your Plan (strategy, mulligans, and matchup notes), and copy it into their own decks",
+        label: m.decks_dialog_share_link_label(),
+        exposes: m.decks_dialog_share_link_exposes(),
         unfurls: true,
         onCreate: () => shareDeck.mutate(deckId),
         creating: shareDeck.isPending,
@@ -62,15 +62,13 @@ function ServerDeckShareDialog({
         qrNoun: "deck",
         qrAvailable: shareUrl !== null,
         note: isDirty ? (
-          <p className="text-muted-foreground text-sm">
-            You have unsaved changes. The image reflects the last saved state.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.decks_dialog_share_dirty_note()}</p>
         ) : undefined,
       }}
       qrFilenameBase={deckName || "deck"}
       print={{
         defaultTitle: deckName,
-        defaultSubtitle: "Scan to see this deck",
+        defaultSubtitle: m.decks_dialog_share_print_subtitle(),
         filenameHint: deckName,
       }}
     />
@@ -90,13 +88,11 @@ function LocalDeckShareDialog({
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Share deck"
+      title={m.decks_dialog_share_title()}
       noun="deck"
-      description="Save an image of this deck to post in WhatsApp, Discord, or anywhere else."
+      description={m.decks_dialog_share_local_description()}
       noLinkNote={
-        <p className="text-muted-foreground text-sm">
-          Save this deck to your account to get a share link.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.decks_dialog_share_local_no_link()}</p>
       }
       image={{
         title: deckName,

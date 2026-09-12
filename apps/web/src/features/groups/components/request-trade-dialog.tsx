@@ -13,6 +13,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { maxTradeQuantity } from "@/features/groups/lib/trade-derivation";
+import { m } from "@/paraglide/messages.js";
 
 interface RequestTradeDialogProps {
   open: boolean;
@@ -38,8 +39,8 @@ export function RequestTradeDialog({
   const maxQuantity = maxTradeQuantity(demandQuantity, availableCount);
   const [quantity, setQuantity] = useState(() => Math.max(1, maxQuantity));
 
-  const title = mode === "request" ? "Request this card" : "Offer this card";
-  const verb = mode === "request" ? "Send request" : "Send offer";
+  const title = mode === "request" ? m.trades_request_card_title() : m.trades_offer_card_title();
+  const verb = mode === "request" ? m.trades_send_request() : m.trades_send_offer();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,13 +50,13 @@ export function RequestTradeDialog({
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
               {mode === "request"
-                ? `Ask for ${cardName}. They'll get a notification, and accepting reserves it for you.`
-                : `Offer ${cardName}. They'll get a notification, and accepting reserves your copies.`}
+                ? m.trades_request_description({ card: cardName })
+                : m.trades_offer_description({ card: cardName })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center justify-between gap-4 py-2">
-            <span>How many?</span>
+            <span>{m.trades_how_many()}</span>
             <QuantityStepper
               value={quantity}
               onValueChange={setQuantity}
@@ -65,12 +66,12 @@ export function RequestTradeDialog({
           </div>
           <p className="text-muted-foreground text-sm">
             {mode === "offer"
-              ? `They want ${demandQuantity}, you have ${availableCount}`
-              : `You want ${demandQuantity} · ${availableCount} available`}
+              ? m.trades_offer_counts({ want: demandQuantity, have: availableCount })
+              : m.trades_request_counts({ want: demandQuantity, available: availableCount })}
           </p>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
             <Button type="submit" disabled={pending || maxQuantity <= 0}>
               {verb}
             </Button>

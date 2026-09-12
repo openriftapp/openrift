@@ -24,6 +24,7 @@ import {
   parseDeckImportData,
   sniffDeckImportFormat,
 } from "@/features/decks/lib/deck-import-parsers";
+import { m } from "@/paraglide/messages.js";
 
 /** A list pasted into the comparison, held only for the session; not persisted. */
 export interface PastedCompareSource {
@@ -43,11 +44,11 @@ async function entriesFromShareToken(
   try {
     const data = await queryClient.query(publicDeckQueryOptions(token));
     if (data.cards.length === 0) {
-      return { error: "That shared deck has no cards to compare against." };
+      return { error: m.decks_compare_error_shared_empty() };
     }
     return { entries: entriesFromSharedDeck(data.cards) };
   } catch {
-    return { error: "Couldn't load that shared deck. The link may have been unshared." };
+    return { error: m.decks_compare_error_shared_load() };
   }
 }
 
@@ -61,13 +62,13 @@ async function resolveCompareEntries(
     return await entriesFromShareToken(queryClient, urlSniff.token);
   }
   if (urlSniff?.kind === "url-no-deck") {
-    return { error: "Couldn't find a deck code or share link in that URL." };
+    return { error: m.decks_compare_error_no_deck_in_url() };
   }
   const source = urlSniff?.kind === "deck-code" ? urlSniff.code : text;
   const format = urlSniff?.kind === "deck-code" ? "piltover" : sniffDeckImportFormat(source);
   const { entries } = parseDeckImportData(source, format);
   if (entries.length === 0) {
-    return { error: "Couldn't read a deck out of that. Paste a deck code, share link, or list." };
+    return { error: m.decks_compare_error_unreadable() };
   }
   return { entries };
 }
@@ -112,7 +113,7 @@ export function DeckComparePasteDialog({
     }
     const resolved = diffCardsFromEntries(entriesResult.entries, allPrintings);
     if (resolved.cards.length === 0) {
-      setError("None of those lines matched a card in the catalog.");
+      setError(m.decks_compare_error_no_matches());
       return;
     }
     onResolved({ ...resolved, text: trimmed });
@@ -123,13 +124,13 @@ export function DeckComparePasteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Paste a deck</DialogTitle>
-          <DialogDescription>A deck code, share link, or plain card list.</DialogDescription>
+          <DialogTitle>{m.decks_compare_paste_title()}</DialogTitle>
+          <DialogDescription>{m.decks_compare_paste_description()}</DialogDescription>
         </DialogHeader>
         <Textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="Paste a deck code, share link, or card list…"
+          placeholder={m.decks_compare_paste_placeholder()}
           className="field-sizing-fixed text-sm"
           rows={8}
         />
@@ -146,10 +147,10 @@ export function DeckComparePasteDialog({
           {pending ? (
             <>
               <Loader2Icon className="size-4 animate-spin" />
-              Reading…
+              {m.decks_compare_reading()}
             </>
           ) : (
-            "Use this list"
+            m.decks_compare_use_this_list()
           )}
         </Button>
       </DialogContent>

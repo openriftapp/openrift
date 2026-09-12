@@ -4,15 +4,36 @@ import type { PresenceDimension, SortDirection } from "@openrift/shared/types/se
 
 import { oversizeState } from "@/features/cards/lib/oversize-filter";
 import type { PresenceParamValue } from "@/features/cards/lib/presence-filter";
-import { PRESENCE_LABELS } from "@/features/cards/lib/presence-filter";
+import { presenceLabel } from "@/features/cards/lib/presence-filter";
 import type { FilterSearch, OwnedBucket } from "@/features/cards/lib/search-schemas";
+import { m } from "@/paraglide/messages.js";
 
-export const OWNED_BUCKETS: readonly { value: OwnedBucket; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "partial", label: "Partial Playset" },
-  { value: "full", label: "Full Playset" },
-  { value: "extra", label: "More than Full" },
-];
+export function ownedBucketLabel(value: string): string {
+  switch (value) {
+    case "none": {
+      return m.cards_filter_owned_none();
+    }
+    case "partial": {
+      return m.cards_filter_owned_partial();
+    }
+    case "full": {
+      return m.cards_filter_owned_full();
+    }
+    case "extra": {
+      return m.cards_filter_owned_extra();
+    }
+    default: {
+      return value;
+    }
+  }
+}
+
+export function ownedBuckets(): readonly { value: OwnedBucket; label: string }[] {
+  return (["none", "partial", "full", "extra"] as const).map((value) => ({
+    value,
+    label: ownedBucketLabel(value),
+  }));
+}
 
 // Sort/group defaults are passed as primitives, not one object: a derived
 // object makes React Compiler treat this call as maybe-mutated, killing memoization.
@@ -139,7 +160,8 @@ function presenceLabels(dimension: PresenceDimension, value: PresenceParamValue)
   if (value === null) {
     return [];
   }
-  return [value === "none" ? `−${PRESENCE_LABELS[dimension]}` : PRESENCE_LABELS[dimension]];
+  const label = presenceLabel(dimension);
+  return [value === "none" ? `−${label}` : label];
 }
 
 function rangeCount(min: number | null, max: number | null): number {
@@ -225,7 +247,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "overnumbered",
     hasContent: ({ availableFilters }) => availableFilters.hasOvernumbered,
     activeCount: (s) => setCount(s.overnumbered),
-    activeLabels: (s) => flagLabels(s.overnumbered, "Overnumbered"),
+    activeLabels: (s) => flagLabels(s.overnumbered, m.cards_filter_flag_overnumbered()),
   },
   {
     key: "signed",
@@ -233,7 +255,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "signed",
     hasContent: ({ availableFilters }) => availableFilters.hasSigned,
     activeCount: (s) => setCount(s.signed),
-    activeLabels: (s) => flagLabels(s.signed, "Signed"),
+    activeLabels: (s) => flagLabels(s.signed, m.cards_filter_flag_signed()),
   },
   {
     key: "standard",
@@ -241,7 +263,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "standard",
     hasContent: ({ availableFilters }) => availableFilters.hasNonStandard,
     activeCount: (s) => setCount(s.standard),
-    activeLabels: (s) => flagLabels(s.standard, "Standard"),
+    activeLabels: (s) => flagLabels(s.standard, m.cards_filter_flag_standard()),
   },
   {
     key: "energy",
@@ -249,7 +271,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "energy",
     hasContent: () => true,
     activeCount: (s) => rangeCount(s.energyMin, s.energyMax),
-    activeLabels: (s) => (rangeCount(s.energyMin, s.energyMax) ? ["Energy"] : []),
+    activeLabels: (s) =>
+      rangeCount(s.energyMin, s.energyMax) ? [m.cards_filter_range_energy()] : [],
   },
   {
     key: "power",
@@ -257,7 +280,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "power",
     hasContent: () => true,
     activeCount: (s) => rangeCount(s.powerMin, s.powerMax),
-    activeLabels: (s) => (rangeCount(s.powerMin, s.powerMax) ? ["Power"] : []),
+    activeLabels: (s) => (rangeCount(s.powerMin, s.powerMax) ? [m.cards_filter_range_power()] : []),
   },
   {
     key: "might",
@@ -265,7 +288,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "might",
     hasContent: () => true,
     activeCount: (s) => rangeCount(s.mightMin, s.mightMax),
-    activeLabels: (s) => (rangeCount(s.mightMin, s.mightMax) ? ["Might"] : []),
+    activeLabels: (s) => (rangeCount(s.mightMin, s.mightMax) ? [m.cards_filter_range_might()] : []),
   },
   {
     key: "markers",
@@ -284,7 +307,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "cardSizes",
     hasContent: ({ availableFilters }) => availableFilters.cardSizes.length > 1,
     activeCount: (s) => s.cardSizes.length,
-    activeLabels: (s) => flagLabels(oversizeState(s.cardSizes), "Oversized"),
+    activeLabels: (s) => flagLabels(oversizeState(s.cardSizes), m.cards_filter_flag_oversized()),
   },
   {
     key: "channels",
@@ -337,7 +360,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "banned",
     hasContent: ({ availableFilters }) => availableFilters.hasBanned,
     activeCount: (s) => setCount(s.banned),
-    activeLabels: (s) => flagLabels(s.banned, "Banned"),
+    activeLabels: (s) => flagLabels(s.banned, m.cards_filter_flag_banned()),
   },
   {
     key: "errata",
@@ -345,7 +368,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "errata",
     hasContent: ({ availableFilters }) => availableFilters.hasErrata,
     activeCount: (s) => setCount(s.errata),
-    activeLabels: (s) => flagLabels(s.errata, "Errata"),
+    activeLabels: (s) => flagLabels(s.errata, m.cards_filter_flag_errata()),
   },
   {
     key: "noImage",
@@ -353,7 +376,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "noImage",
     hasContent: ({ availableFilters }) => availableFilters.hasNoImage,
     activeCount: (s) => setCount(s.noImage),
-    activeLabels: (s) => flagLabels(s.noImage, "No image yet"),
+    activeLabels: (s) => flagLabels(s.noImage, m.cards_filter_flag_no_image()),
   },
   {
     key: "owned",
@@ -369,7 +392,8 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "owned",
     hasContent: ({ ownedCountMax }) => ownedCountMax !== undefined && ownedCountMax > 0,
     activeCount: (s) => rangeCount(s.ownedCountMin, s.ownedCountMax),
-    activeLabels: (s) => (rangeCount(s.ownedCountMin, s.ownedCountMax) ? ["Copies"] : []),
+    activeLabels: (s) =>
+      rangeCount(s.ownedCountMin, s.ownedCountMax) ? [m.cards_filter_range_copies()] : [],
   },
   {
     key: "price",
@@ -377,7 +401,7 @@ export const FILTER_DIMENSIONS: readonly FilterDimension[] = [
     section: "price",
     hasContent: ({ availableFilters }) => availableFilters.price.max > 0,
     activeCount: (s) => rangeCount(s.priceMin, s.priceMax),
-    activeLabels: (s) => (rangeCount(s.priceMin, s.priceMax) ? ["Price"] : []),
+    activeLabels: (s) => (rangeCount(s.priceMin, s.priceMax) ? [m.cards_filter_range_price()] : []),
   },
 ];
 

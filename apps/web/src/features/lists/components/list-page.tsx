@@ -45,6 +45,7 @@ import {
   useUpdateListEntry,
 } from "@/features/lists/hooks/use-lists";
 import { emptyStateCopy } from "@/features/lists/lib/list-entries";
+import { m } from "@/paraglide/messages.js";
 
 interface ListPageProps {
   listId: string;
@@ -89,7 +90,7 @@ export function ListPage({ listId }: ListPageProps) {
     removeEntry.mutate(
       { listId, entryId },
       {
-        onSuccess: () => toast.success(`Removed ${cardName} from list`),
+        onSuccess: () => toast.success(m.lists_page_entry_removed({ name: cardName })),
       },
     );
   };
@@ -128,28 +129,28 @@ export function ListPage({ listId }: ListPageProps) {
             {selectActions}
             <PageTopBarIconButton
               onClick={() => setShareOpen(true)}
-              aria-label="Share"
+              aria-label={m.lists_page_share()}
               className="sm:hidden"
             >
               <Share2Icon className="size-4" />
             </PageTopBarIconButton>
             <PageTopBarButton onClick={() => setShareOpen(true)} className="hidden sm:flex">
               <Share2Icon className="size-4" />
-              Share
+              {m.lists_page_share()}
             </PageTopBarButton>
             <DropdownMenu>
               <DropdownMenuTrigger render={<PageTopBarIconButton />}>
                 <EllipsisVerticalIcon className="size-4" />
-                <span className="sr-only">List actions</span>
+                <span className="sr-only">{m.lists_page_actions()}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setEditOpen(true)}>
                   <PencilIcon className="size-4" />
-                  Edit
+                  {m.common_edit()}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setRuleOpen(true)}>
                   <SparklesIcon className="size-4" />
-                  Dynamic rules
+                  {m.lists_page_dynamic_rules()}
                   {activeRuleCount > 0 ? (
                     <span className="text-primary ml-auto pl-3 text-xs">{activeRuleCount}</span>
                   ) : null}
@@ -157,19 +158,19 @@ export function ListPage({ listId }: ListPageProps) {
                 {(data.list.kind === "card" || data.list.kind === "printing") && (
                   <DropdownMenuItem onClick={() => setImportOpen(true)}>
                     <UploadIcon className="size-4" />
-                    Import…
+                    {m.lists_page_import()}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => setExportOpen(true)}>
                   <DownloadIcon className="size-4" />
-                  Export…
+                  {m.lists_page_export()}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
                   <Trash2Icon className="size-4" />
-                  Delete list
+                  {m.lists_page_delete_list()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -274,23 +275,23 @@ export function ListPage({ listId }: ListPageProps) {
           description={
             <>
               {activeRuleCount > 0
-                ? "Nothing matches this list's rules yet."
-                : "A dynamic list fills itself: set a rule once, and every card that matches joins on its own."}{" "}
+                ? m.lists_page_empty_no_rule_matches()
+                : m.lists_page_empty_rules_pitch()}{" "}
               {empty.description}{" "}
               <TextLink render={<Link to="/help/$slug" params={{ slug: "lists" }} />}>
-                Learn how lists work.
+                {m.lists_page_empty_learn_link()}
               </TextLink>
             </>
           }
         >
           <Button onClick={() => setRuleOpen(true)}>
             <SparklesIcon />
-            {activeRuleCount > 0 ? "Edit dynamic rules" : "Set up dynamic rules"}
+            {activeRuleCount > 0 ? m.lists_page_edit_rules() : m.lists_page_setup_rules()}
           </Button>
           {canShowLibrary && (
             <Button variant="outline" onClick={() => setShowLibrary(true)}>
               <LibraryBigIcon />
-              Show library
+              {m.lists_page_show_library()}
             </Button>
           )}
         </EmptyState>

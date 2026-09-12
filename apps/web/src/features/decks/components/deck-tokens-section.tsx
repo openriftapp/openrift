@@ -27,10 +27,8 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
-
-const TOKENS_LABEL = "Tokens";
-const TOKENS_HINT = "Created by cards in this deck. Not part of the deck itself.";
 
 function tokenImageUrl(entry: DeckTokenEntry, size: "120w" | "400w"): string | undefined {
   const front = entry.printing.images.find((image) => image.face === "front");
@@ -38,7 +36,10 @@ function tokenImageUrl(entry: DeckTokenEntry, size: "120w" | "400w"): string | u
 }
 
 function tokenTitle(entry: DeckTokenEntry): string {
-  return `${entry.card.name}, from ${entry.sourceNames.join(", ")}`;
+  return m.decks_editor_token_title({
+    card: entry.card.name,
+    sources: entry.sourceNames.join(", "),
+  });
 }
 
 function TokensHint() {
@@ -46,9 +47,9 @@ function TokensHint() {
     <Tooltip>
       <TooltipTrigger className="text-muted-foreground/70 hover:text-foreground flex shrink-0 items-center transition-colors">
         <InfoIcon className="size-3.5" />
-        <span className="sr-only">{TOKENS_HINT}</span>
+        <span className="sr-only">{m.decks_editor_tokens_hint()}</span>
       </TooltipTrigger>
-      <TooltipContent>{TOKENS_HINT}</TooltipContent>
+      <TooltipContent>{m.decks_editor_tokens_hint()}</TooltipContent>
     </Tooltip>
   );
 }
@@ -146,7 +147,7 @@ function TokenRow({
       <span className="min-w-0 flex-1 truncate">{entry.card.name}</span>
 
       <span className="text-muted-foreground min-w-0 shrink truncate text-xs">
-        from {entry.sourceNames.join(", ")}
+        {m.decks_editor_token_from({ sources: entry.sourceNames.join(", ") })}
       </span>
     </div>
   );
@@ -186,7 +187,7 @@ export function DeckTokensSection({
   if (variant === "list") {
     return (
       <section className={DECK_LIST_SECTION_CLASS}>
-        <DeckZoneHeader label={TOKENS_LABEL} labelAs="h3">
+        <DeckZoneHeader label={m.decks_editor_tokens()} labelAs="h3">
           <TokensHint />
           {count}
         </DeckZoneHeader>
@@ -209,13 +210,17 @@ export function DeckTokensSection({
   return (
     <section className="flex flex-col gap-2">
       <DeckZoneHeader
-        label={TOKENS_LABEL}
+        label={m.decks_editor_tokens()}
         labelAs="h3"
         leading={
           <ExpandToggle
             expanded={!collapsed}
             onClick={() => toggleCollapsed("tokens")}
-            aria-label={collapsed ? `Expand ${TOKENS_LABEL}` : `Collapse ${TOKENS_LABEL}`}
+            aria-label={
+              collapsed
+                ? m.decks_editor_expand_zone({ zone: m.decks_editor_tokens() })
+                : m.decks_editor_collapse_zone({ zone: m.decks_editor_tokens() })
+            }
             chevronClassName="size-3.5"
             className="shrink-0 rounded-md"
           />

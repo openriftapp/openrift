@@ -17,6 +17,7 @@ import {
   useDeclineTrade,
 } from "@/features/groups/hooks/use-card-trades";
 import { useTradeActionStore } from "@/features/groups/stores/trade-action-store";
+import { m } from "@/paraglide/messages.js";
 
 type BulkMode = "accept-decline" | "cancel" | "none";
 
@@ -67,46 +68,48 @@ export function BulkTradeActions({
   if (mode === "cancel") {
     return (
       <Button size="sm" variant="outline" disabled={acting} onClick={() => runAll(cancel)}>
-        Cancel all ({targets.length})
+        {m.trades_cancel_all({ count: targets.length })}
       </Button>
     );
   }
   // A big accept-all reserves real copies on both shelves; above the
   // threshold the button confirms once before firing.
   const needsConfirm = targets.length > BULK_ACCEPT_CONFIRM_THRESHOLD;
-  const counterpartyName = targets[0]?.counterparty.name ?? "this member";
+  const counterpartyName = targets[0]?.counterparty.name ?? m.trades_this_member();
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       <Button size="sm" variant="outline" disabled={acting} onClick={() => runAll(decline)}>
-        Decline all
+        {m.trades_decline_all()}
       </Button>
       <Button
         size="sm"
         disabled={acting}
         onClick={() => (needsConfirm ? setConfirmOpen(true) : runAll(accept))}
       >
-        Accept all ({targets.length})
+        {m.trades_accept_all({ count: targets.length })}
       </Button>
       {needsConfirm ? (
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogTitle>
-              Accept all {targets.length} requests from {counterpartyName}?
+              {m.trades_accept_all_confirm_title({
+                count: targets.length,
+                name: counterpartyName,
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Each accepted request reserves your copies for the swap. You can still cancel
-              individual trades afterwards.
+              {m.trades_accept_all_confirm_description()}
             </AlertDialogDescription>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
                   setConfirmOpen(false);
                   runAll(accept);
                 }}
               >
-                Accept all ({targets.length})
+                {m.trades_accept_all({ count: targets.length })}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

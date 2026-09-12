@@ -14,6 +14,7 @@ import {
 import { allCards } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
+import { m } from "@/paraglide/messages.js";
 
 type DeckCollection = Collection<DeckBuilderCard, string | number>;
 
@@ -106,17 +107,23 @@ export function DeckUndoControls({ deckId }: { deckId: string }) {
     <>
       <Tooltip>
         <TooltipTrigger
-          render={<PageTopBarIconButton aria-label="Undo" disabled={!canUndo} onClick={undo} />}
+          render={
+            <PageTopBarIconButton
+              aria-label={m.decks_editor_undo()}
+              disabled={!canUndo}
+              onClick={undo}
+            />
+          }
         >
           <Undo2Icon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+        <TooltipContent>{m.decks_editor_undo_tooltip()}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={
             <PageTopBarIconButton
-              aria-label="Redo"
+              aria-label={m.decks_editor_redo()}
               disabled={!canRedo}
               onClick={redo}
               className={canRedo ? "inline-flex" : "hidden sm:inline-flex"}
@@ -125,7 +132,7 @@ export function DeckUndoControls({ deckId }: { deckId: string }) {
         >
           <Redo2Icon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+        <TooltipContent>{m.decks_editor_redo_tooltip()}</TooltipContent>
       </Tooltip>
     </>
   );

@@ -18,12 +18,21 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { listOwnerImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
-const BINDER_SUBTITLES: Record<ListIntent, string> = {
-  wish: "Scan to see my wishlist",
-  trade: "Scan to see my trades",
-  organize: "Scan to see this list",
-};
+function binderSubtitle(intent: ListIntent): string {
+  switch (intent) {
+    case "wish": {
+      return m.lists_share_binder_wish();
+    }
+    case "trade": {
+      return m.lists_share_binder_trade();
+    }
+    case "organize": {
+      return m.lists_share_binder_organize();
+    }
+  }
+}
 
 interface ListShareDialogProps {
   listId: string;
@@ -87,12 +96,12 @@ export function ListShareDialog({
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Share list"
+      title={m.lists_share_title()}
       noun="list"
       link={{
         url: shareUrl,
-        label: "List share link",
-        exposes: "view the cards on this list",
+        label: m.lists_share_link_label(),
+        exposes: m.lists_share_link_exposes(),
         unfurls: true,
         onCreate: () => shareList.mutate(listId),
         creating: shareList.isPending,
@@ -102,16 +111,16 @@ export function ListShareDialog({
       linkNote={
         intent === "organize" ? null : (
           <p className="text-muted-foreground">
-            One link covers every wishlist and tradelist you have, under{" "}
+            {m.lists_share_bundle_note_before()}{" "}
             <Button
               variant="link"
               className="h-auto p-0"
               onClick={() => onOpenChange(false)}
               render={<Link to="/profile" hash="sharing" />}
             >
-              Public sharing
+              {m.lists_share_bundle_note_link()}
             </Button>
-            .
+            {m.lists_share_bundle_note_after()}
           </p>
         )
       }
@@ -127,8 +136,8 @@ export function ListShareDialog({
         getText: buildShareText,
         description:
           shareUrl === null
-            ? "Drop the list into WhatsApp, Discord, or any group chat. The text carries no link until you create one above."
-            : "Drop the list into WhatsApp, Discord, or any group chat.",
+            ? m.lists_share_text_description_nolink()
+            : m.lists_share_text_description(),
       }}
       image={{
         title: listName,
@@ -149,7 +158,7 @@ export function ListShareDialog({
       qrFilenameBase={listName || "list"}
       print={{
         defaultTitle: listName,
-        defaultSubtitle: BINDER_SUBTITLES[intent],
+        defaultSubtitle: binderSubtitle(intent),
         filenameHint: listName,
       }}
     />

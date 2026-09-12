@@ -11,6 +11,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import type { CardSearchResult } from "@/features/cards/lib/card-search-result";
+import { m } from "@/paraglide/messages.js";
 
 const SEARCH_DEBOUNCE_MS = 150;
 
@@ -47,8 +48,8 @@ export function CatalogSearchCombobox<T>({
   onRawInputChange,
   initialQuery,
   ariaLabel,
-  placeholder = "Search card name…",
-  emptyMessage = "No matching cards",
+  placeholder = m.cards_search_placeholder(),
+  emptyMessage = m.cards_search_empty(),
   disabled,
   className,
   autoFocus,

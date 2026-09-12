@@ -11,6 +11,7 @@ import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { formatPrice, formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export function PricingSection({
@@ -59,7 +60,7 @@ export function PricingSection({
 
   return (
     <div className="flex items-center justify-end gap-1.5">
-      <span className="text-muted-foreground text-sm">Buy on</span>
+      <span className="text-muted-foreground text-sm">{m.card_detail_buy_on_label()}</span>
       {chips.map(({ marketplace, value, url }) => {
         const links = MARKETPLACE_LINKS[marketplace];
         return (
@@ -115,7 +116,7 @@ function PriceChip({
                 <MarketplaceLink
                   marketplace={marketplace}
                   href={url}
-                  aria-label={`Buy on ${label}`}
+                  aria-label={m.card_detail_buy_on_marketplace({ marketplace: label })}
                 />
               }
               className={chipClassName}
@@ -128,9 +129,11 @@ function PriceChip({
         {content}
       </TooltipTrigger>
       <TooltipContent>
-        Buy on {label}
+        {m.card_detail_buy_on_marketplace({ marketplace: label })}
         {isAffiliate && (
-          <span className="text-muted-foreground ml-1 text-xs">(affiliate link)</span>
+          <span className="text-muted-foreground ml-1 text-xs">
+            {m.card_detail_affiliate_note()}
+          </span>
         )}
       </TooltipContent>
     </Tooltip>

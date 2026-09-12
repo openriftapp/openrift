@@ -9,13 +9,14 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { CardRow } from "@/components/ui/card-list";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-import { LIST_INTENT_ICON, LIST_KIND_NOUN } from "./list-intent-meta";
+import { LIST_INTENT_ICON, listKindNoun } from "./list-intent-meta";
 
-const LIST_INTENT_LABEL: Record<ListIntent, string> = {
-  wish: "Wishlist",
-  trade: "Tradelist",
-  organize: "Organize",
+const LIST_INTENT_LABEL: Record<ListIntent, () => string> = {
+  wish: m.lists_intent_label_wish,
+  trade: m.lists_intent_label_trade,
+  organize: m.lists_intent_label_organize,
 };
 
 export function SharedListRow({
@@ -30,10 +31,7 @@ export function SharedListRow({
   showMember?: boolean;
 }) {
   const IntentIcon = LIST_INTENT_ICON[share.listIntent];
-  const noun =
-    share.entryCount === 1
-      ? LIST_KIND_NOUN[share.listKind].singular
-      : LIST_KIND_NOUN[share.listKind].plural;
+  const noun = listKindNoun(share.listKind, share.entryCount);
   return (
     <CardRow className={cn(cardLinkVariants(), "relative gap-3")}>
       <IntentIcon className="text-muted-foreground size-5 shrink-0" />
@@ -47,7 +45,7 @@ export function SharedListRow({
           <span className="block truncate">{share.listName}</span>
         </Link>
         <span className="text-muted-foreground text-xs">
-          {LIST_INTENT_LABEL[share.listIntent]} · {share.entryCount} {noun}
+          {LIST_INTENT_LABEL[share.listIntent]()} · {share.entryCount} {noun}
         </span>
       </div>
       {showMember ? (

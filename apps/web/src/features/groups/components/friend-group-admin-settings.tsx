@@ -16,6 +16,7 @@ import {
 } from "@/features/groups/hooks/use-friend-group-mutations";
 import { groupSlugError } from "@/features/groups/lib/group-slug";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { m } from "@/paraglide/messages.js";
 
 export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse; slug: string }) {
   const navigate = useNavigate();
@@ -29,8 +30,9 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
   const trimmedName = name.trim();
   const trimmedSlug = newSlug.trim();
   const slugChanged = newSlug !== data.group.slug;
-  const nameError = trimmedName.length === 0 ? "Give the group a name" : null;
-  const slugError = trimmedSlug.length === 0 ? "Pick a web address" : groupSlugError(trimmedSlug);
+  const nameError = trimmedName.length === 0 ? m.groups_admin_name_required() : null;
+  const slugError =
+    trimmedSlug.length === 0 ? m.groups_admin_slug_required() : groupSlugError(trimmedSlug);
 
   async function handleSave() {
     if (nameError || slugError) {
@@ -61,11 +63,11 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
       <SettingsSection
         id="group-settings"
         className="scroll-mt-28"
-        title="Group settings"
-        description="Visible to admins and the owner only."
+        title={m.groups_admin_settings_title()}
+        description={m.groups_admin_settings_description()}
       >
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="fg-edit-name">Name</Label>
+          <Label htmlFor="fg-edit-name">{m.common_name()}</Label>
           <Input
             id="fg-edit-name"
             value={name}
@@ -75,7 +77,7 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
           {nameError ? <FieldError className="text-xs">{nameError}</FieldError> : null}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="fg-edit-slug">Slug</Label>
+          <Label htmlFor="fg-edit-slug">{m.groups_admin_slug_label()}</Label>
           <Input
             id="fg-edit-slug"
             value={newSlug}
@@ -86,12 +88,12 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
           {slugChanged && !slugError ? (
             <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
               <TriangleAlertIcon className="text-warning size-3.5 shrink-0" />
-              Renaming the slug breaks any existing bookmarks to this group.
+              {m.groups_admin_slug_warning()}
             </span>
           ) : null}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="fg-edit-desc">Description</Label>
+          <Label htmlFor="fg-edit-desc">{m.groups_admin_description_label()}</Label>
           <Textarea
             id="fg-edit-desc"
             value={description}
@@ -99,24 +101,22 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
             maxLength={500}
             rows={3}
           />
-          <span className="text-muted-foreground text-xs">
-            Markdown works here: bold, links, and lists.
-          </span>
+          <span className="text-muted-foreground text-xs">{m.groups_markdown_hint()}</span>
         </div>
         <div className="flex justify-end">
           <Button
             onClick={() => void handleSave()}
             disabled={update.isPending || nameError !== null || slugError !== null}
           >
-            Save changes
+            {m.groups_admin_save_changes()}
           </Button>
         </div>
       </SettingsSection>
       <SettingsSection
         id="banner"
         className="scroll-mt-28"
-        title="Banner"
-        description="Shown behind the group's name."
+        title={m.groups_manage_toc_banner()}
+        description={m.groups_admin_banner_description()}
       >
         <GroupBannerPanel group={data.group} />
       </SettingsSection>
@@ -126,7 +126,7 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
         title={
           <span className="flex items-center gap-2">
             <KeyIcon className="size-4" />
-            Invite link
+            {m.groups_invite_link_label()}
           </span>
         }
       >
@@ -134,16 +134,14 @@ export function AdminSettings({ data, slug }: { data: FriendGroupDetailResponse;
           <InviteLinkPanel slug={slug} code={data.group.code} />
         ) : (
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">
-              Invites are turned off, so nobody can join this group right now.
-            </span>
+            <span className="text-muted-foreground text-sm">{m.groups_admin_invites_off()}</span>
             <Button
               size="sm"
               variant="outline"
               onClick={() => enableCode.mutate(slug)}
               disabled={enableCode.isPending}
             >
-              Enable invites
+              {m.groups_admin_enable_invites()}
             </Button>
           </div>
         )}

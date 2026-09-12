@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { formatCardmarketWants } from "@/lib/export-text";
+import { m } from "@/paraglide/messages.js";
 
 interface TradeCardmarketExportDialogProps {
   counterpartyName: string | null;
@@ -33,7 +34,7 @@ function DirectionBlock({ heading, text }: { heading: string; text: string }) {
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-medium">{heading}</h3>
-        <CopyTextButton label="Copy" getText={() => text} size="sm" />
+        <CopyTextButton label={m.common_copy()} getText={() => text} size="sm" />
       </div>
       <Textarea
         readOnly
@@ -75,16 +76,15 @@ export function TradeCardmarketExportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Export for Cardmarket</DialogTitle>
+          <DialogTitle>{m.trades_export_cardmarket()}</DialogTitle>
           <DialogDescription>
-            Your agreed trades with {counterpartyName ?? "this member"} as plain card lists, ready
-            for Cardmarket&apos;s shopping wizard.
+            {m.trades_export_description({ name: counterpartyName ?? m.trades_this_member() })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <DirectionBlock heading="You give" text={wantsFor("giver")} />
-          <DirectionBlock heading="You get" text={wantsFor("receiver")} />
+          <DirectionBlock heading={m.trades_you_give()} text={wantsFor("giver")} />
+          <DirectionBlock heading={m.trades_you_get()} text={wantsFor("receiver")} />
         </div>
 
         <DialogFooter>

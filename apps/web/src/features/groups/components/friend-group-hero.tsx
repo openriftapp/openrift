@@ -1,10 +1,12 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
 import { SettingsIcon } from "lucide-react";
+import { Fragment } from "react";
 
 import { Eyebrow, Heading } from "@/components/heading";
 import { MarkdownText } from "@/components/markdown-text";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -14,11 +16,13 @@ import { useFriendGroupActivity } from "@/features/groups/hooks/use-friend-group
 import { GROUP_BANNER_FRAME } from "@/features/groups/lib/banner-frame";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const HERO_AVATARS = 5;
 
 interface HeroStat {
   key: string;
+  to: "/groups/$slug/members" | "/groups/$slug/shared" | "/groups/$slug/trades";
   label: string;
 }
 
@@ -48,13 +52,21 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
   const meta: HeroStat[] = [
     {
       key: "members",
-      label: `${data.members.length} ${data.members.length === 1 ? "member" : "members"}`,
+      to: "/groups/$slug/members",
+      label:
+        data.members.length === 1
+          ? m.groups_member_count_one({ count: data.members.length })
+          : m.groups_member_count_other({ count: data.members.length }),
     },
     ...(groupCollectionCount > 0
       ? [
           {
             key: "collections",
-            label: `${groupCollectionCount} group ${groupCollectionCount === 1 ? "collection" : "collections"}`,
+            to: "/groups/$slug/shared" as const,
+            label:
+              groupCollectionCount === 1
+                ? m.groups_hero_group_collections_one({ count: groupCollectionCount })
+                : m.groups_hero_group_collections_other({ count: groupCollectionCount }),
           },
         ]
       : []),
@@ -62,7 +74,11 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
       ? [
           {
             key: "traded",
-            label: `${data.cardsTradedCount} ${data.cardsTradedCount === 1 ? "card" : "cards"} traded`,
+            to: "/groups/$slug/trades" as const,
+            label:
+              data.cardsTradedCount === 1
+                ? m.groups_hero_cards_traded_one({ count: data.cardsTradedCount })
+                : m.groups_hero_cards_traded_other({ count: data.cardsTradedCount }),
           },
         ]
       : []),
@@ -88,7 +104,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
             render={<Link to="/groups/$slug/manage" params={{ slug }} />}
           >
             <SettingsIcon />
-            Manage
+            {m.groups_manage()}
           </Button>
         </div>
       ) : null}
@@ -109,11 +125,11 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
             render={<Link to="/groups/$slug/manage" params={{ slug }} />}
           >
             <SettingsIcon />
-            Manage
+            {m.groups_manage()}
           </Button>
         )}
         <div className={cn("flex min-w-0 flex-1 flex-col gap-2.5", banner ? null : "py-6 pl-5")}>
-          <Eyebrow variant="kicker">Friend group</Eyebrow>
+          <Eyebrow variant="kicker">{m.groups_hero_kicker()}</Eyebrow>
           <Heading level={1} className="text-3xl text-balance">
             {data.group.name}
           </Heading>
@@ -125,7 +141,14 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
             />
           ) : null}
           <p className="text-muted-foreground text-sm">
-            {meta.map((stat) => stat.label).join(" · ")}
+            {meta.map((stat, index) => (
+              <Fragment key={stat.key}>
+                {index > 0 ? " · " : null}
+                <TextLink variant="muted" render={<Link to={stat.to} params={{ slug }} />}>
+                  {stat.label}
+                </TextLink>
+              </Fragment>
+            ))}
           </p>
           {banner ? null : (
             <UserAvatarStack

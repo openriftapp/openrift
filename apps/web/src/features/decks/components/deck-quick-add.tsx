@@ -31,6 +31,7 @@ import { ZONE_LABELS, zoneExpected } from "@/features/decks/lib/deck-zone-labels
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 interface AddTarget {
@@ -57,7 +58,7 @@ export function buildTargets(
     return [
       {
         zone: WellKnown.deckZone.LEGEND,
-        label: hasLegend ? "Switch Legend" : "Set as Legend",
+        label: hasLegend ? m.decks_editor_switch_legend() : m.decks_editor_set_as_legend(),
         kind: "legend",
         disabled: false,
         count: 0,
@@ -112,7 +113,7 @@ export function DeckQuickAdd({ open, onOpenChange, deckId, format, cards }: Deck
   const isMobile = useIsMobile();
 
   return (
-    <PaletteFrame open={open} onOpenChange={onOpenChange} title="Add cards to the deck">
+    <PaletteFrame open={open} onOpenChange={onOpenChange} title={m.decks_editor_quick_add_title()}>
       <QuickAddInner deckId={deckId} format={format} cards={cards} isMobile={isMobile} />
     </PaletteFrame>
   );
@@ -367,12 +368,12 @@ function QuickAddInner({
 
       <InputGroup className="h-11 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-transparent">
         <InputGroupAddon align="inline-start">
-          <PaletteScopeToken label="Add to this deck" />
+          <PaletteScopeToken label={m.decks_editor_quick_add_scope()} />
         </InputGroupAddon>
         <InputGroupInput
           ref={inputRef}
           type="text"
-          aria-label="Add a card to the deck"
+          aria-label={m.decks_editor_quick_add_input_aria()}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -380,7 +381,7 @@ function QuickAddInner({
             collapse();
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search cards..."
+          placeholder={m.decks_editor_quick_add_placeholder()}
           className="text-base sm:text-sm"
           autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- command palette, always focused on open
         />
@@ -393,7 +394,7 @@ function QuickAddInner({
                 collapse();
                 inputRef.current?.focus();
               }}
-              aria-label="Clear search"
+              aria-label={m.decks_editor_clear_search()}
             >
               <XIcon className="size-4" />
             </InputGroupButton>
@@ -404,13 +405,13 @@ function QuickAddInner({
       <div ref={listRef} className={cn("overflow-y-auto", isMobile ? "max-h-72" : "max-h-96")}>
         {query.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-center text-sm">
-            Type a card name to add it to the deck
+            {m.decks_editor_quick_add_empty()}
           </div>
         )}
 
         {query.length > 0 && results.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-center text-sm">
-            No cards matching &ldquo;{query}&rdquo;
+            {m.decks_editor_quick_add_no_results({ query })}
           </div>
         )}
 
@@ -443,14 +444,14 @@ function QuickAddInner({
                       ? rowDefault.kind === "legend"
                         ? rowDefault.label
                         : rowDefault.disabled
-                          ? `${rowDefault.label} · full`
+                          ? m.decks_editor_target_full({ zone: rowDefault.label })
                           : rowDefault.label
-                      : "No printings"}
+                      : m.decks_editor_no_printings()}
                   </div>
                 </div>
                 {targets.length > 1 && inDeck > 0 && (
                   <span className="text-muted-foreground group-data-[selected=true]:text-foreground/80 shrink-0 text-xs tabular-nums">
-                    ×{inDeck} in deck
+                    {m.decks_editor_times_in_deck({ count: inDeck })}
                   </span>
                 )}
                 {targets.length > 1 ? (
@@ -465,8 +466,14 @@ function QuickAddInner({
                     count={rowDefault.count}
                     changed={rowDefault.count > 0}
                     incrementIcon={<PlusIcon />}
-                    incrementLabel={`Add ${card.cardName} to ${rowDefault.label}`}
-                    decrementLabel={`Remove ${card.cardName} from ${rowDefault.label}`}
+                    incrementLabel={m.decks_editor_add_card_to_zone({
+                      card: card.cardName,
+                      zone: rowDefault.label,
+                    })}
+                    decrementLabel={m.decks_editor_remove_card_from_zone({
+                      card: card.cardName,
+                      zone: rowDefault.label,
+                    })}
                     onIncrement={() => performAdd(card.cardId, rowDefault)}
                     onDecrement={() => performRemove(card.cardId, rowDefault)}
                     incrementDisabled={rowDefault.disabled}
@@ -513,13 +520,21 @@ function QuickAddInner({
                         onMouseEnter={() => setTargetIndex(index2)}
                       >
                         <span className="min-w-0 flex-1 truncate text-left">{target.label}</span>
-                        {target.disabled && <span className="shrink-0 text-xs">Full</span>}
+                        {target.disabled && (
+                          <span className="shrink-0 text-xs">{m.decks_editor_full()}</span>
+                        )}
                         <QuickAddStepper
                           count={target.count}
                           changed={target.count > 0}
                           incrementIcon={<PlusIcon />}
-                          incrementLabel={`Add ${card.cardName} to ${target.label}`}
-                          decrementLabel={`Remove ${card.cardName} from ${target.label}`}
+                          incrementLabel={m.decks_editor_add_card_to_zone({
+                            card: card.cardName,
+                            zone: target.label,
+                          })}
+                          decrementLabel={m.decks_editor_remove_card_from_zone({
+                            card: card.cardName,
+                            zone: target.label,
+                          })}
                           onIncrement={() => performAdd(card.cardId, target)}
                           onDecrement={() => performRemove(card.cardId, target)}
                           incrementDisabled={target.disabled}
@@ -539,33 +554,33 @@ function QuickAddInner({
       {!isMobile && (
         <div className="text-muted-foreground flex items-center gap-3 px-3 py-2 text-xs">
           <span>
-            <Kbd>↑↓</Kbd> navigate
+            <Kbd>↑↓</Kbd> {m.decks_editor_hint_navigate()}
           </span>
           <span>
-            <Kbd>↵</Kbd> add
+            <Kbd>↵</Kbd> {m.decks_editor_hint_add()}
           </span>
           {selectedTargets.length > 1 && !expanded && (
             <span>
-              <Kbd>→</Kbd> zone
+              <Kbd>→</Kbd> {m.decks_editor_hint_zone()}
             </span>
           )}
           {expanded && (
             <span>
-              <Kbd>←</Kbd> back
+              <Kbd>←</Kbd> {m.decks_editor_hint_back()}
             </span>
           )}
           {addsSinceOpen > 0 && (
             <span>
-              <Kbd>⇧↵</Kbd> undo
+              <Kbd>⇧↵</Kbd> {m.decks_editor_hint_undo()}
             </span>
           )}
           {query.length === 0 && !expanded && (
             <span>
-              <Kbd>⌫</Kbd> search everything
+              <Kbd>⌫</Kbd> {m.decks_editor_hint_search_all()}
             </span>
           )}
           <span>
-            <Kbd>esc</Kbd> close
+            <Kbd>esc</Kbd> {m.decks_editor_hint_close()}
           </span>
         </div>
       )}

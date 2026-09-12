@@ -8,6 +8,7 @@ import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups"
 import type { ListExchangeContext } from "@/features/lists/components/shared-list-content";
 import { SharedListContent } from "@/features/lists/components/shared-list-content";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/lists/$listId")({
   component: SharedListRoute,
@@ -31,7 +32,7 @@ function SharedListRoute() {
           groupSlug: slug,
           groupName: groupDetail.group.name,
           counterpartyUserId: data.list.ownerUserId,
-          counterpartyName: data.list.ownerName ?? "this member",
+          counterpartyName: data.list.ownerName ?? m.groups_this_member(),
         }
       : undefined;
 
@@ -49,7 +50,7 @@ function SharedListRoute() {
       updatedAt: "",
     },
     entries: data.entries,
-    owner: { displayName: data.list.ownerName ?? "Unknown", gravatarHash: null },
+    owner: { displayName: data.list.ownerName ?? m.groups_owner_unknown(), gravatarHash: null },
   };
 
   const groupCrumb = {
@@ -57,7 +58,8 @@ function SharedListRoute() {
     link: <Link to="/groups/$slug" params={{ slug }} />,
   };
   const memberName = fromUser
-    ? (groupDetail.members.find((member) => member.userId === fromUser)?.userName ?? "Member")
+    ? (groupDetail.members.find((member) => member.userId === fromUser)?.userName ??
+      m.groups_member_fallback())
     : null;
   const backLink = (
     <TopBarBreadcrumbTrail
@@ -65,9 +67,12 @@ function SharedListRoute() {
         fromUser
           ? [
               groupCrumb,
-              { label: "Members", link: <Link to="/groups/$slug/members" params={{ slug }} /> },
               {
-                label: memberName ?? "Member",
+                label: m.groups_nav_members(),
+                link: <Link to="/groups/$slug/members" params={{ slug }} />,
+              },
+              {
+                label: memberName ?? m.groups_member_fallback(),
                 link: (
                   <Link to="/groups/$slug/members/$userId" params={{ slug, userId: fromUser }} />
                 ),
@@ -75,7 +80,10 @@ function SharedListRoute() {
             ]
           : [
               groupCrumb,
-              { label: "Trades", link: <Link to="/groups/$slug/trades" params={{ slug }} /> },
+              {
+                label: m.groups_nav_trades(),
+                link: <Link to="/groups/$slug/trades" params={{ slug }} />,
+              },
             ]
       }
     />

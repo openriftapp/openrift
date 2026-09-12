@@ -65,8 +65,8 @@ import { localDeckToListItem } from "@/features/decks/lib/local-deck-list-item";
 import {
   buildSampleDeckCards,
   SAMPLE_DECK_FORMAT,
-  SAMPLE_DECK_NAME,
   sampleDeckKeyCards,
+  sampleDeckName,
 } from "@/features/decks/lib/sample-deck";
 import {
   useDeckListPrefsStore,
@@ -78,6 +78,7 @@ import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH, PAGE_PADDING_NO_TOP } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClaimLocalDecksPrompt } from "./claim-local-decks-prompt";
 import { DeckListRow } from "./deck-list-row";
@@ -97,7 +98,7 @@ function CreateDeckDialog({
   const createDeck = useCreateDeck();
   const createLocalDeck = useLocalDecksStore((state) => state.createDeck);
   const { formats, labels: formatLabels } = useDeckFormatList();
-  const [name, setName] = useState("New Deck");
+  const [name, setName] = useState<string>(m.decks_list_new_deck_default_name());
   const [format, setFormat] = useState<string>(formats[0]?.slug ?? "");
 
   const handleCreate = () => {
@@ -124,11 +125,11 @@ function CreateDeckDialog({
       <DialogContent>
         <DialogForm onSubmit={handleCreate}>
           <DialogHeader>
-            <DialogTitle>New deck</DialogTitle>
+            <DialogTitle>{m.decks_list_new_deck_title()}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="deck-name">Name</Label>
+              <Label htmlFor="deck-name">{m.common_name()}</Label>
               <Input
                 id="deck-name"
                 value={name}
@@ -138,7 +139,7 @@ function CreateDeckDialog({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="deck-format">Format</Label>
+              <Label htmlFor="deck-format">{m.decks_list_format_label()}</Label>
               <Select
                 value={format}
                 onValueChange={(value) => {
@@ -165,13 +166,13 @@ function CreateDeckDialog({
               className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
             >
               <CircleHelpIcon className="size-3.5" />
-              New to deck building? See how it works →
+              {m.decks_list_new_to_deck_building()}
             </Link>
             {!userId && <LocalDeckSaveNote />}
           </div>
           <DialogFooter>
             <Button type="submit" disabled={!name.trim() || createDeck.isPending}>
-              Create
+              {m.common_create()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -254,20 +255,20 @@ export function DeckListPage() {
   function handleTrySample() {
     const cards = sampleCards;
     if (!cards) {
-      toast.error("The sample deck could not be loaded.");
+      toast.error(m.decks_list_sample_load_failed());
       return;
     }
     // Without this, the list flashes in before navigation to the new deck completes.
     setCreatingSample(true);
     if (!userId) {
       const store = useLocalDecksStore.getState();
-      const localId = store.createDeck(SAMPLE_DECK_FORMAT, SAMPLE_DECK_NAME);
+      const localId = store.createDeck(SAMPLE_DECK_FORMAT, sampleDeckName());
       store.setCards(localId, cards);
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });
       return;
     }
     createDeck.mutate(
-      { name: SAMPLE_DECK_NAME, format: SAMPLE_DECK_FORMAT },
+      { name: sampleDeckName(), format: SAMPLE_DECK_FORMAT },
       {
         onSuccess: (data) => {
           const deck = data as DeckResponse;
@@ -382,21 +383,21 @@ export function DeckListPage() {
       {/* mx-safe-neg, not -mx-3: must cancel the same px-safe amount as the gutter. */}
       <div ref={setTitleSlot} className={cn(PAGE_TOP_BAR_STICKY, "mx-safe-neg")}>
         <PageTopBar>
-          <PageTopBarTitle>Decks</PageTopBarTitle>
+          <PageTopBarTitle>{m.decks_list_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarIconButton
-              aria-label="Deck building help"
+              aria-label={m.decks_list_help_aria()}
               render={<Link to="/help/$slug" params={{ slug: "deck-building" }} />}
             >
               <CircleHelpIcon className="size-4" />
             </PageTopBarIconButton>
             <PageTopBarButton render={<Link to="/decks/import" />}>
               <UploadIcon className="size-4" />
-              Import
+              {m.decks_list_import()}
             </PageTopBarButton>
             <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
               <PlusIcon className="size-4" />
-              New Deck
+              {m.decks_list_new_deck()}
             </PageTopBarPrimaryButton>
           </PageTopBarActions>
         </PageTopBar>
@@ -408,13 +409,12 @@ export function DeckListPage() {
         <EmptyState
           className="py-16"
           icon={SwordsIcon}
-          title="No decks yet"
+          title={m.decks_list_empty_title()}
           description={
             <>
-              Build against the official rules or fully freeform, validated live against your
-              collection, with prices for anything you&apos;re missing.{" "}
+              {m.decks_list_empty_description()}{" "}
               <Link to="/help/$slug" params={{ slug: "deck-building" }}>
-                Learn how deck building works.
+                {m.decks_list_empty_learn_link()}
               </Link>
             </>
           }
@@ -422,11 +422,11 @@ export function DeckListPage() {
           <div className="flex flex-wrap justify-center gap-2">
             <Button onClick={() => setCreateOpen(true)}>
               <PlusIcon />
-              Create your first deck
+              {m.decks_list_create_first()}
             </Button>
             <Link to="/decks/import" className={buttonVariants({ variant: "ghost" })}>
               <UploadIcon />
-              Import a deck
+              {m.decks_list_import_a_deck()}
             </Link>
           </div>
           {sampleCards && sampleLegendImage && (
@@ -436,7 +436,7 @@ export function DeckListPage() {
               className="mt-6 block w-full max-w-xs disabled:pointer-events-none disabled:opacity-60"
             >
               <span className="text-muted-foreground mb-2 block text-center text-sm">
-                or explore the builder with a ready-made deck:
+                {m.decks_list_sample_lead()}
               </span>
               <Card className={cn(cardLinkVariants(), "gap-0 py-0")}>
                 <FannedPreview
@@ -445,11 +445,9 @@ export function DeckListPage() {
                 />
                 <span className="flex items-center justify-between gap-3 p-3">
                   <span className="flex flex-col">
-                    <span className="font-medium">{SAMPLE_DECK_NAME}</span>
+                    <span className="font-medium">{sampleDeckName()}</span>
                     <span className="text-muted-foreground text-xs">
-                      {creatingSample
-                        ? "Opening the builder…"
-                        : "Ready to play, opens right in the builder"}
+                      {creatingSample ? m.decks_list_sample_opening() : m.decks_list_sample_ready()}
                     </span>
                   </span>
                   <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
@@ -479,7 +477,7 @@ export function DeckListPage() {
           {sorted.length === 0 ? (
             <Empty className="py-12">
               <EmptyHeader>
-                <EmptyDescription>No decks match your filters.</EmptyDescription>
+                <EmptyDescription>{m.decks_list_no_matches()}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (

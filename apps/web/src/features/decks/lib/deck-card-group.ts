@@ -4,6 +4,7 @@ import { comboKey } from "@/features/collections/lib/stat-types";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { TYPE_GROUP_ORDER } from "@/features/decks/lib/deck-card-sort";
 import type { CardOwnership } from "@/features/decks/lib/deck-ownership-types";
+import { m } from "@/paraglide/messages.js";
 
 /** "none" renders the zone as one flat run with no sub-headers. */
 export type DeckOverviewGroup = "type" | "energy" | "domain" | "ownership" | "none";
@@ -22,16 +23,24 @@ export interface DeckCardGroupContext {
   getEntry?: (card: DeckBuilderCard) => CardOwnership | undefined;
 }
 
-const OWNERSHIP_GROUPS = [
-  { key: "owned", label: "Owned" },
-  { key: "partial", label: "Missing copies" },
-  { key: "missing", label: "Not owned" },
-] as const;
+const OWNERSHIP_GROUP_KEYS = ["owned", "partial", "missing"] as const;
+
+function ownershipGroupLabel(key: (typeof OWNERSHIP_GROUP_KEYS)[number]): string {
+  switch (key) {
+    case "owned": {
+      return m.decks_editor_group_owned();
+    }
+    case "partial": {
+      return m.decks_editor_group_missing_copies();
+    }
+    default: {
+      return m.decks_editor_group_not_owned();
+    }
+  }
+}
 
 /** Cards without an entry count as owned: ownership data covers every deck card when it is loaded at all. */
-function ownershipBucket(
-  entry: CardOwnership | undefined,
-): (typeof OWNERSHIP_GROUPS)[number]["key"] {
+function ownershipBucket(entry: CardOwnership | undefined): (typeof OWNERSHIP_GROUP_KEYS)[number] {
   if (!entry || entry.shortfall <= 0) {
     return "owned";
   }
@@ -77,7 +86,7 @@ function buildGroups(
     const grouped = Map.groupBy(cards, (card) => card.cardType);
     return orderedTypeKeys(grouped).map((type) => ({
       key: type,
-      label: `${ctx.typeLabels[type] ?? type}s`,
+      label: m.decks_editor_group_type({ type: ctx.typeLabels[type] ?? type }),
       cards: grouped.get(type) ?? [],
     }));
   }
@@ -91,12 +100,16 @@ function buildGroups(
       .toSorted((a, b) => a - b);
     const groups: DeckCardGroup[] = numeric.map((energy) => ({
       key: `energy-${energy}`,
-      label: `${energy} energy`,
+      label: m.decks_editor_group_energy({ energy }),
       cards: grouped.get(energy) ?? [],
     }));
     const costless = grouped.get(null);
     if (costless) {
-      groups.push({ key: "energy-none", label: "No energy cost", cards: costless });
+      groups.push({
+        key: "energy-none",
+        label: m.decks_editor_group_no_energy(),
+        cards: costless,
+      });
     }
     return groups;
   }
@@ -125,7 +138,7 @@ function buildGroups(
       key: key === "" ? "domain-none" : `domain-${key}`,
       label:
         key === ""
-          ? "No domain"
+          ? m.decks_editor_group_no_domain()
           : key
               .split("+")
               .map((domain) => ctx.domainLabels[domain] ?? domain)
@@ -135,9 +148,9 @@ function buildGroups(
   }
 
   const grouped = Map.groupBy(cards, (card) => ownershipBucket(ctx.getEntry?.(card)));
-  return OWNERSHIP_GROUPS.filter((bucket) => grouped.has(bucket.key)).map((bucket) => ({
-    key: bucket.key,
-    label: bucket.label,
-    cards: grouped.get(bucket.key) ?? [],
+  return OWNERSHIP_GROUP_KEYS.filter((key) => grouped.has(key)).map((key) => ({
+    key,
+    label: ownershipGroupLabel(key),
+    cards: grouped.get(key) ?? [],
   }));
 }

@@ -27,21 +27,22 @@ import { ShareDialog } from "@/features/groups/components/share-dialog";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { deckShareImageUrl, shareImageOptions, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 /** Module scope so the copy handler's `try` stays branch-free (React Compiler). */
 function reportEncodeWarnings(warnings: readonly string[]): void {
   if (warnings.length > 0) {
-    toast.warning("The deck code left some cards out.", { description: warnings.join(" ") });
+    toast.warning(m.decks_menu_code_warnings(), { description: warnings.join(" ") });
   }
 }
 
 /** Module scope for the same reason as {@link reportEncodeWarnings}. */
 function reportCopyResult(written: boolean): void {
   if (written) {
-    toast.success("Deck code copied");
+    toast.success(m.decks_menu_code_copied());
     return;
   }
-  toast.error("Couldn't copy the deck code");
+  toast.error(m.decks_menu_code_copy_failed());
 }
 
 interface PublicDeckActionsMenuProps {
@@ -97,9 +98,9 @@ export function PublicDeckActionsMenu({
         <DropdownMenuTrigger
           render={
             inTopBar ? (
-              <PageTopBarIconButton aria-label="Deck actions" />
+              <PageTopBarIconButton aria-label={m.decks_menu_actions_label()} />
             ) : (
-              <Button variant="ghost" size="icon" aria-label="Deck actions" />
+              <Button variant="ghost" size="icon" aria-label={m.decks_menu_actions_label()} />
             )
           }
         >
@@ -111,19 +112,19 @@ export function PublicDeckActionsMenu({
             disabled={encodeMutation.isPending}
           >
             <CopyIcon className="size-4" />
-            Copy deck code
+            {m.decks_menu_copy_deck_code()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setImageOpen(true)}>
             <ImageDownIcon className="size-4" />
-            Save image…
+            {m.decks_menu_save_image()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setPrintOpen(true)}>
             <PrinterIcon className="size-4" />
-            Print…
+            {m.decks_menu_print()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setExportOpen(true)}>
             <DownloadIcon className="size-4" />
-            Export…
+            {m.decks_menu_export()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -131,8 +132,8 @@ export function PublicDeckActionsMenu({
       <ShareDialog
         open={imageOpen}
         onOpenChange={setImageOpen}
-        title="Save deck image"
-        description="Save an image of this deck to post in WhatsApp, Discord, or anywhere else."
+        title={m.decks_dialog_save_image_title()}
+        description={m.decks_dialog_share_local_description()}
         noun="deck"
         image={{
           title: deckName,

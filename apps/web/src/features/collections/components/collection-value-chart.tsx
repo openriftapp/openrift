@@ -20,21 +20,29 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollectionValueHistory } from "@/features/collections/hooks/use-collection-value-history";
 import { describePriceChange, formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-  { value: "90d", label: "90D" },
-  { value: "all", label: "All" },
-];
+function timeRanges(): { value: TimeRange; label: string }[] {
+  return [
+    { value: "7d", label: "7D" },
+    { value: "30d", label: "30D" },
+    { value: "90d", label: "90D" },
+    { value: "all", label: m.common_all() },
+  ];
+}
 
 // --chart-2, not the neutral --chart-3: gold/gray falls under the ΔE 15
 // contrast floor in dark mode, gold/teal clears it.
-const chartConfig = {
-  value: { label: "Value", color: "var(--chart-1)" },
-  baselineValue: { label: "Value when acquired", color: "var(--chart-2)" },
-} satisfies ChartConfig;
+function buildChartConfig(): ChartConfig {
+  return {
+    value: { label: m.collections_stats_value_series_value(), color: "var(--chart-1)" },
+    baselineValue: {
+      label: m.collections_stats_value_series_baseline(),
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;
+}
 
 interface CollectionValueTooltipContentProps {
   active?: boolean;
@@ -63,7 +71,7 @@ function CollectionValueTooltipContent({
       <div className="space-y-0.5">
         <div className="flex items-center gap-2">
           <span className="size-2 rounded-full" style={{ backgroundColor: "var(--color-value)" }} />
-          <span className="text-muted-foreground">Value</span>
+          <span className="text-muted-foreground">{m.collections_stats_value_series_value()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {currencyFormatter(point.value)}
           </span>
@@ -73,14 +81,16 @@ function CollectionValueTooltipContent({
             className="size-2 rounded-full"
             style={{ backgroundColor: "var(--color-baselineValue)" }}
           />
-          <span className="text-muted-foreground">Value when acquired</span>
+          <span className="text-muted-foreground">
+            {m.collections_stats_value_series_baseline()}
+          </span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {currencyFormatter(point.baselineValue)}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="size-2" />
-          <span className="text-muted-foreground">Price change</span>
+          <span className="text-muted-foreground">{m.collections_stats_value_price_change()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {sign}
             {currencyFormatter(magnitude)}
@@ -89,7 +99,7 @@ function CollectionValueTooltipContent({
         </div>
         <div className="flex items-center gap-2">
           <span className="size-2" />
-          <span className="text-muted-foreground">Cards</span>
+          <span className="text-muted-foreground">{m.collections_stats_value_cards()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
             {point.copyCount.toLocaleString()}
           </span>
@@ -116,6 +126,8 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
     scope,
   );
 
+  const ranges = timeRanges();
+  const chartConfig = buildChartConfig();
   const series = data?.series ?? [];
   const currencyFormatter = formatterForMarketplace(marketplace);
 
@@ -128,14 +140,14 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
           spacing={0}
           value={[range]}
           onValueChange={([next]) => {
-            const match = TIME_RANGES.find((tr) => tr.value === next);
+            const match = ranges.find((tr) => tr.value === next);
             if (match) {
               setRange(match.value);
             }
           }}
-          aria-label="Time range"
+          aria-label={m.collections_stats_value_range_label()}
         >
-          {TIME_RANGES.map((tr) => (
+          {ranges.map((tr) => (
             <ToggleGroupItem key={tr.value} value={tr.value}>
               {tr.label}
             </ToggleGroupItem>
@@ -152,7 +164,7 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
               setMarketplace(match);
             }
           }}
-          aria-label="Price source"
+          aria-label={m.collections_stats_value_source_label()}
           className="ml-auto"
         >
           {marketplaceOrder.map((mp) => (
@@ -177,15 +189,13 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
       {error && (
         <Alert variant="destructive">
           <CircleXIcon />
-          <AlertTitle>Failed to load value history.</AlertTitle>
+          <AlertTitle>{m.collections_stats_value_error()}</AlertTitle>
         </Alert>
       )}
 
       {!isLoading && !error && series.length === 0 && (
         <Empty>
-          <EmptyDescription>
-            No value history available. Add cards to your collection to start tracking.
-          </EmptyDescription>
+          <EmptyDescription>{m.collections_stats_value_empty()}</EmptyDescription>
         </Empty>
       )}
 

@@ -9,23 +9,36 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import type { CompletionCountMode, CompletionGroupBy } from "@/features/collections/lib/stat-types";
+import { m } from "@/paraglide/messages.js";
 
-const GROUP_BY_OPTIONS: { value: CompletionGroupBy; label: string }[] = [
-  { value: "set", label: "Set" },
-  { value: "domain", label: "Domain" },
-  { value: "rarity", label: "Rarity" },
-  { value: "type", label: "Type" },
-];
+function groupByOptions(): { value: CompletionGroupBy; label: string }[] {
+  return [
+    { value: "set", label: m.collections_stats_group_by_set() },
+    { value: "domain", label: m.collections_stats_group_by_domain() },
+    { value: "rarity", label: m.collections_stats_group_by_rarity() },
+    { value: "type", label: m.collections_stats_group_by_type() },
+  ];
+}
 
-const COUNT_MODE_OPTIONS: { value: CompletionCountMode; label: string; tooltip: string }[] = [
-  { value: "cards", label: "Cards", tooltip: "One of each unique card" },
-  { value: "printings", label: "Printings", tooltip: "Every printing variant" },
-  {
-    value: "copies",
-    label: "Playset",
-    tooltip: "Playset quantities (3x, 1x for Legends/Battlefields). Runes and Other are left out.",
-  },
-];
+function countModeOptions(): { value: CompletionCountMode; label: string; tooltip: string }[] {
+  return [
+    {
+      value: "cards",
+      label: m.collections_stats_count_cards(),
+      tooltip: m.collections_stats_count_cards_tooltip(),
+    },
+    {
+      value: "printings",
+      label: m.collections_stats_count_printings(),
+      tooltip: m.collections_stats_count_printings_tooltip(),
+    },
+    {
+      value: "copies",
+      label: m.collections_stats_count_playset(),
+      tooltip: m.collections_stats_count_playset_tooltip(),
+    },
+  ];
+}
 
 function CollectionSelector({
   value,
@@ -41,15 +54,15 @@ function CollectionSelector({
       value={value}
       onValueChange={(newValue) => onChange(newValue ?? "all")}
       items={{
-        all: "All collections",
+        all: m.collections_stats_scope_all(),
         ...Object.fromEntries(collections?.map((col) => [col.id, col.name]) ?? []),
       }}
     >
-      <SelectTrigger className="w-auto" aria-label="Collection scope">
+      <SelectTrigger className="w-auto" aria-label={m.collections_stats_scope_label()}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All collections</SelectItem>
+        <SelectItem value="all">{m.collections_stats_scope_all()}</SelectItem>
         {collections?.map((col) => (
           <SelectItem key={col.id} value={col.id}>
             {col.name}
@@ -75,6 +88,9 @@ export function CollectionStatsToolbar({
   countMode: CompletionCountMode;
   onCountModeChange: (value: CompletionCountMode) => void;
 }) {
+  const groupByChoices = groupByOptions();
+  const countModeChoices = countModeOptions();
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <CollectionSelector value={collectionScope} onChange={onCollectionScopeChange} />
@@ -84,14 +100,14 @@ export function CollectionStatsToolbar({
           spacing={0}
           value={[groupBy]}
           onValueChange={([next]) => {
-            const option = GROUP_BY_OPTIONS.find((entry) => entry.value === next);
+            const option = groupByChoices.find((entry) => entry.value === next);
             if (option) {
               onGroupByChange(option.value);
             }
           }}
-          aria-label="Group by"
+          aria-label={m.collections_stats_group_by_label()}
         >
-          {GROUP_BY_OPTIONS.map((option) => (
+          {groupByChoices.map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>
               {option.label}
             </ToggleGroupItem>
@@ -103,14 +119,14 @@ export function CollectionStatsToolbar({
             spacing={0}
             value={[countMode]}
             onValueChange={([next]) => {
-              const option = COUNT_MODE_OPTIONS.find((entry) => entry.value === next);
+              const option = countModeChoices.find((entry) => entry.value === next);
               if (option) {
                 onCountModeChange(option.value);
               }
             }}
-            aria-label="Count mode"
+            aria-label={m.collections_stats_count_mode_label()}
           >
-            {COUNT_MODE_OPTIONS.map((option) => (
+            {countModeChoices.map((option) => (
               <Tooltip key={option.value}>
                 <TooltipTrigger render={<ToggleGroupItem value={option.value} />}>
                   {option.label}

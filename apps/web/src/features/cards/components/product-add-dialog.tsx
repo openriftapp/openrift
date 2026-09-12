@@ -27,6 +27,7 @@ import {
 } from "@/features/collections/components/collection-radio-picker";
 import { useCollections, useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useAddCopies } from "@/features/collections/hooks/use-copies";
+import { m } from "@/paraglide/messages.js";
 
 // Sends batches sequentially so the server never sees a later one before an
 // earlier one. Lives outside the component: React Compiler cannot lower a
@@ -58,7 +59,9 @@ export function ProductAddDialog({
       <DialogContent>
         {open ? (
           <Suspense
-            fallback={<div className="text-muted-foreground py-4 text-sm">Loading product…</div>}
+            fallback={
+              <div className="text-muted-foreground py-4 text-sm">{m.products_add_loading()}</div>
+            }
           >
             <ProductAddBody
               productSlug={productSlug}
@@ -92,7 +95,7 @@ function ProductAddBody({
   const [selectedId, setSelectedId] = useState<string>(
     () => inbox?.id ?? collections[0]?.id ?? NEW_COLLECTION_OPTION,
   );
-  const [newName, setNewName] = useState("Collection");
+  const [newName, setNewName] = useState<string>(m.products_add_default_collection_name());
   const [countText, setCountText] = useState("1");
 
   // Number("") is 0 and trailing garbage yields NaN — both fail the >= 1 check.
@@ -108,11 +111,13 @@ function ProductAddBody({
     setIsAdding(true);
     // Every conditional is resolved up front: React Compiler cannot lower a
     // ternary, `??`, `||` or `?.` that sits inside a try/catch.
-    const newCollectionName = newName.trim() || "Collection";
-    const cardNoun = totalCards === 1 ? "card" : "cards";
+    const newCollectionName = newName.trim() || m.products_add_default_collection_name();
+    const successMessage =
+      totalCards === 1 ? m.products_add_success_one : m.products_add_success_other;
     let targetId = selectedId;
     let targetName =
-      collections.find((collection) => collection.id === selectedId)?.name ?? "your collection";
+      collections.find((collection) => collection.id === selectedId)?.name ??
+      m.products_add_fallback_collection();
     try {
       if (selectedId === NEW_COLLECTION_OPTION) {
         const created = await createCollection.mutateAsync({ name: newCollectionName });
@@ -123,12 +128,12 @@ function ProductAddBody({
         expandProductContents(data.contents, targetId, productCount),
       );
       await addBatchesInOrder(batches, addCopies.mutateAsync);
-      toast.success(`Added ${totalCards} ${cardNoun} to ${targetName}.`);
+      toast.success(successMessage({ count: totalCards, name: targetName }));
       onClose();
     } catch {
       // Second toast alongside the global mutation error one: batches before
       // the failing one already committed.
-      toast.error("Adding failed. Some cards may have been added.");
+      toast.error(m.products_add_error());
       setIsAdding(false);
     }
   };
@@ -136,10 +141,8 @@ function ProductAddBody({
   return (
     <DialogForm onSubmit={() => void confirm()}>
       <DialogHeader>
-        <DialogTitle>Add to collection</DialogTitle>
-        <DialogDescription>
-          Adds every card from {productName} to the collection you pick.
-        </DialogDescription>
+        <DialogTitle>{m.products_add_to_collection()}</DialogTitle>
+        <DialogDescription>{m.products_add_description({ name: productName })}</DialogDescription>
       </DialogHeader>
 
       <CollectionRadioPicker
@@ -152,7 +155,7 @@ function ProductAddBody({
       />
 
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="product-add-count">How many do you have?</Label>
+        <Label htmlFor="product-add-count">{m.products_add_count_label()}</Label>
         <Input
           id="product-add-count"
           type="number"
@@ -166,12 +169,14 @@ function ProductAddBody({
 
       <p className="text-muted-foreground text-sm" aria-live="polite">
         {countValid
-          ? `This adds ${totalCards} ${totalCards === 1 ? "card" : "cards"}.`
-          : "Enter how many of this product you have."}
+          ? totalCards === 1
+            ? m.products_add_hint_one({ count: totalCards })
+            : m.products_add_hint_other({ count: totalCards })
+          : m.products_add_prompt()}
       </p>
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
         <Button
           type="submit"
           disabled={
@@ -181,7 +186,7 @@ function ProductAddBody({
             (selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0)
           }
         >
-          {pending ? "Adding…" : "Add to collection"}
+          {pending ? m.products_add_pending() : m.products_add_to_collection()}
         </Button>
       </DialogFooter>
     </DialogForm>

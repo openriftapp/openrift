@@ -2,6 +2,8 @@ import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupShareableListResponse } from "@openrift/shared/types/api/friend-group";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 
+import { m } from "@/paraglide/messages.js";
+
 export interface PendingRequest {
   tradeId: string;
   quantity: number;
@@ -61,15 +63,18 @@ export function listTargetOptions(
   return options;
 }
 
-const LIST_KIND_NOUN: Record<ListKind, { singular: string; plural: string }> = {
-  card: { singular: "card", plural: "cards" },
-  printing: { singular: "printing", plural: "printings" },
-  copy: { singular: "copy", plural: "copies" },
-};
-
 export function listKindNoun(kind: ListKind, count: number): string {
-  const noun = LIST_KIND_NOUN[kind];
-  return count === 1 ? noun.singular : noun.plural;
+  switch (kind) {
+    case "card": {
+      return count === 1 ? m.lists_kind_lower_card_one() : m.lists_kind_lower_card_other();
+    }
+    case "printing": {
+      return count === 1 ? m.lists_kind_lower_printing_one() : m.lists_kind_lower_printing_other();
+    }
+    case "copy": {
+      return count === 1 ? m.lists_kind_lower_copy_one() : m.lists_kind_lower_copy_other();
+    }
+  }
 }
 
 // A new wishlist is printing-kind, since card-kind would match every printing

@@ -17,6 +17,7 @@ import {
 } from "@/features/collections/components/collection-radio-picker";
 import { useCollections, useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-target-store";
+import { m } from "@/paraglide/messages.js";
 
 // Changes where incoming trade copies land, and nothing else: the settle
 // session commits every row at once, so the target must be set beforehand.
@@ -33,7 +34,9 @@ export function TradeAddTargetDialog({
         {open ? (
           <Suspense
             fallback={
-              <div className="text-muted-foreground py-4 text-sm">Loading your collections…</div>
+              <div className="text-muted-foreground py-4 text-sm">
+                {m.trades_loading_collections()}
+              </div>
             }
           >
             <TradeAddTargetBody onClose={() => onOpenChange(false)} />
@@ -56,10 +59,10 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
   const [selectedId, setSelectedId] = useState<string>(
     () => rememberedId ?? inbox?.id ?? collections[0]?.id ?? NEW_COLLECTION_OPTION,
   );
-  const [newName, setNewName] = useState("Collection");
+  const [newName, setNewName] = useState<string>(m.trades_default_collection_name());
 
   const confirm = async () => {
-    const newCollectionName = newName.trim() || "Collection";
+    const newCollectionName = newName.trim() || m.trades_default_collection_name();
     // Resolved up front: reading it inside the try would put an optional chain
     // in a try body, which the React Compiler bails on.
     const picked = collections.find((collection) => collection.id === selectedId);
@@ -82,10 +85,8 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
   return (
     <DialogForm onSubmit={() => void confirm()}>
       <DialogHeader>
-        <DialogTitle>Where do incoming cards go?</DialogTitle>
-        <DialogDescription>
-          Cards you receive are filed here until you pick somewhere else.
-        </DialogDescription>
+        <DialogTitle>{m.trades_target_title()}</DialogTitle>
+        <DialogDescription>{m.trades_target_description()}</DialogDescription>
       </DialogHeader>
 
       <CollectionRadioPicker
@@ -98,7 +99,7 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
       />
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
         <Button
           type="submit"
           disabled={
@@ -106,7 +107,7 @@ function TradeAddTargetBody({ onClose }: { onClose: () => void }) {
             (selectedId === NEW_COLLECTION_OPTION && newName.trim().length === 0)
           }
         >
-          Use this collection
+          {m.trades_use_this_collection()}
         </Button>
       </DialogFooter>
     </DialogForm>

@@ -7,6 +7,7 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { preferencesQueryOptions } from "@/features/account/hooks/use-preferences-sync";
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import type { EmailNotificationGates } from "@/features/account/lib/email-notification-prefs";
 import {
@@ -18,12 +19,6 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchPreferencesFn = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<UserPreferencesResponse> =>
-    apiOrpcClient(preferencesContract, context.cookie).get(),
-  );
 
 const patchEmailNotificationsFn = createServerFn({ method: "POST" })
   .validator(
@@ -54,11 +49,8 @@ export function useEmailNotifications(): UseEmailNotificationsResult {
   const queryClient = useQueryClient();
   const queryKey = preferencesKeys.all(userId ?? "");
 
-  // `hydrated` keeps this observer from starting the query during SSR;
-  // usePreferencesSync owns the actual fetch.
   const { data, isPending } = useQuery({
-    queryKey,
-    queryFn: () => fetchPreferencesFn(),
+    ...preferencesQueryOptions(userId),
     enabled: Boolean(userId) && hydrated,
   });
 

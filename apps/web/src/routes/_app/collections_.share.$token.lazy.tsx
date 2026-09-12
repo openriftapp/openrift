@@ -4,6 +4,7 @@ import { PublicShareCta } from "@/features/account/components/signed-out-cta";
 import { SharedCollectionAccessRedirect } from "@/features/collections/components/shared-collection-access-redirect";
 import { SharedCollectionView } from "@/features/collections/components/shared-collection-view";
 import { usePublicCollection } from "@/features/collections/hooks/use-collections";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/collections_/share/$token")({
   component: SharedCollectionPage,
@@ -21,8 +22,8 @@ function SharedCollectionPage() {
       notice={
         <>
           <SharedCollectionAccessRedirect collectionId={data.collection.id} />
-          <PublicShareCta title="Keep track of your own cards">
-            Log what you own, see what a binder is worth, and share it with a link like this one.
+          <PublicShareCta title={m.collections_share_cta_title()}>
+            {m.collections_share_cta_body()}
           </PublicShareCta>
         </>
       }

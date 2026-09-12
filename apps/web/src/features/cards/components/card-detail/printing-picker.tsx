@@ -11,6 +11,7 @@ import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useLanguageList } from "@/hooks/use-enums";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { OwnedCollectionsPopover } from "./owned-collections-popover";
@@ -49,7 +50,7 @@ export function PrintingPicker({
 function PickerHeading() {
   return (
     <SectionHeading as="h3" className="shrink-0">
-      Printings
+      {m.card_detail_printings_title()}
     </SectionHeading>
   );
 }

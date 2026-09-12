@@ -23,6 +23,7 @@ import { useUpdateList } from "@/features/lists/hooks/use-lists";
 import { ruleWording } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { initQueryOptions } from "@/hooks/use-init";
+import { m } from "@/paraglide/messages.js";
 
 interface RuleEditorDialogProps {
   listId: string;
@@ -78,7 +79,9 @@ export function RuleEditorDialog({
       { listId, rules: next, ruleCombine },
       {
         onSuccess: () => {
-          toast.success(next.length > 0 ? "Rules saved" : "Rules removed");
+          toast.success(
+            next.length > 0 ? m.lists_rule_toast_saved() : m.lists_rule_toast_removed(),
+          );
           onOpenChange(false);
         },
         // No onError: a per-call handler runs in ADDITION to the global
@@ -92,7 +95,7 @@ export function RuleEditorDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogForm onSubmit={handleSave}>
           <DialogHeader>
-            <DialogTitle>Dynamic rules</DialogTitle>
+            <DialogTitle>{m.lists_rule_dialog_title()}</DialogTitle>
             <DialogDescription>{wording.description}</DialogDescription>
           </DialogHeader>
 
@@ -111,10 +114,10 @@ export function RuleEditorDialog({
               onClick={() => onOpenChange(false)}
               disabled={updateList.isPending}
             >
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={updateList.isPending}>
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

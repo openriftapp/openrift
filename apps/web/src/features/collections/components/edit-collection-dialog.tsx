@@ -17,6 +17,7 @@ import {
   useSetCollectionDeckbuilding,
   useUpdateCollection,
 } from "@/features/collections/hooks/use-collections";
+import { m } from "@/paraglide/messages.js";
 
 interface EditCollectionDialogProps {
   collectionId: string;
@@ -85,12 +86,12 @@ export function EditCollectionDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleSubmit()}>
           <DialogHeader>
-            <DialogTitle>Edit collection</DialogTitle>
-            <DialogDescription>Rename this collection.</DialogDescription>
+            <DialogTitle>{m.collections_dialog_edit_title()}</DialogTitle>
+            <DialogDescription>{m.collections_dialog_edit_description()}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="collection-name">Name</Label>
+              <Label htmlFor="collection-name">{m.common_name()}</Label>
               <Input
                 id="collection-name"
                 value={name}
@@ -102,7 +103,7 @@ export function EditCollectionDialog({
               />
               {isInbox && (
                 <p className="text-muted-foreground text-xs">
-                  The Inbox collection can&apos;t be renamed.
+                  {m.collections_dialog_edit_inbox_note()}
                 </p>
               )}
             </div>
@@ -113,19 +114,21 @@ export function EditCollectionDialog({
                   checked={deckbuildingAvailable}
                   onCheckedChange={(checked) => setDeckbuildingAvailable(checked === true)}
                 />
-                <Label htmlFor="collection-deckbuilding">Available for deck building</Label>
+                <Label htmlFor="collection-deckbuilding">
+                  {m.collections_dialog_edit_deckbuilding_label()}
+                </Label>
               </div>
               <p className="text-muted-foreground text-xs">
-                Cards here count toward decks you build.
+                {m.collections_dialog_edit_deckbuilding_hint()}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={!name.trim() || isPending}>
-              {isPending ? "Saving..." : "Save"}
+              {isPending ? m.collections_dialog_edit_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

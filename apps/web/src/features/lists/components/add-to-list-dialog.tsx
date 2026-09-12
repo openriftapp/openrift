@@ -11,6 +11,7 @@ import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
 import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_BULK_ADD = 500;
 
@@ -70,11 +71,15 @@ export function AddToListDialog({
           if (result.added > 0) {
             toast.success(
               result.skipped > 0
-                ? `Added ${result.added} to "${listName}" (${result.skipped} skipped)`
-                : `Added ${result.added} to "${listName}"`,
+                ? m.lists_add_added_skipped({
+                    count: result.added,
+                    list: listName,
+                    skipped: result.skipped,
+                  })
+                : m.lists_add_added({ count: result.added, list: listName }),
             );
           } else {
-            toast.info(`Nothing added to "${listName}"`);
+            toast.info(m.lists_add_nothing({ list: listName }));
           }
           onAdded?.();
           onOpenChange(false);
@@ -110,11 +115,11 @@ export function AddToListDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add to list</DialogTitle>
+          <DialogTitle>{m.lists_add_title()}</DialogTitle>
         </DialogHeader>
         {canChooseQuantity && (
           <QuantityStepperField
-            label="Copies to add"
+            label={m.lists_add_copies_label()}
             value={quantity}
             onValueChange={setQuantity}
             max={count}
@@ -124,8 +129,9 @@ export function AddToListDialog({
         {exceedsLimit && (
           <Alert variant="destructive">
             <AlertDescription>
-              You can add at most {MAX_BULK_ADD} copies at a time. Deselect {count - MAX_BULK_ADD}{" "}
-              {count - MAX_BULK_ADD === 1 ? "copy" : "copies"} and try again.
+              {count - MAX_BULK_ADD === 1
+                ? m.lists_add_limit_one({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })
+                : m.lists_add_limit_other({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })}
             </AlertDescription>
           </Alert>
         )}
@@ -134,7 +140,10 @@ export function AddToListDialog({
             <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
               {eligibleLists.map((list) => {
                 const Icon = list.intent === "trade" ? HandshakeIcon : FolderIcon;
-                const intentLabel = list.intent === "trade" ? "Tradelist" : "Organize";
+                const intentLabel =
+                  list.intent === "trade"
+                    ? m.lists_add_intent_trade()
+                    : m.lists_add_intent_organize();
                 return (
                   <PickerRow
                     key={list.id}
@@ -151,15 +160,12 @@ export function AddToListDialog({
             </PickerList>
           ) : createIntent === null ? (
             <Empty>
-              <EmptyDescription>No copy lists yet. Create one below.</EmptyDescription>
+              <EmptyDescription>{m.lists_add_no_copy_lists()}</EmptyDescription>
             </Empty>
           ) : null}
         </div>
         {groupOwnedOnly && (
-          <p className="text-muted-foreground text-sm">
-            These cards belong to a shared group collection, so they can only go on an organize
-            list.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.lists_add_group_owned_note()}</p>
         )}
         {createIntent === null ? (
           <div className="flex flex-wrap gap-2">
@@ -172,7 +178,7 @@ export function AddToListDialog({
                 disabled={disableAdd}
               >
                 <PlusIcon className="size-3.5" />
-                New tradelist
+                {m.lists_add_new_tradelist()}
               </Button>
             )}
             <Button
@@ -183,7 +189,7 @@ export function AddToListDialog({
               disabled={disableAdd}
             >
               <PlusIcon className="size-3.5" />
-              New organize list
+              {m.lists_add_new_organize()}
             </Button>
           </div>
         ) : (
@@ -198,11 +204,15 @@ export function AddToListDialog({
               autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder={createIntent === "trade" ? "Tradelist name" : "Organize list name"}
+              placeholder={
+                createIntent === "trade"
+                  ? m.lists_add_tradelist_name_placeholder()
+                  : m.lists_add_organize_name_placeholder()
+              }
               className="h-8"
             />
             <Button type="submit" size="sm" disabled={!newName.trim() || disableAdd}>
-              Create
+              {m.lists_add_create()}
             </Button>
             <Button
               type="button"
@@ -213,13 +223,13 @@ export function AddToListDialog({
                 setNewName("");
               }}
             >
-              Cancel
+              {m.common_cancel()}
             </Button>
           </form>
         )}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
+            {m.common_cancel()}
           </Button>
         </div>
       </DialogContent>

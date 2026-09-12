@@ -14,6 +14,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { ShareLinkRow } from "@/features/groups/components/share-link-row";
 import { useDisableFriendGroupCode } from "@/features/groups/hooks/use-friend-group-mutations";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 // The bare code is deliberately not shown: nothing accepts a typed one, only a link.
 export function InviteLinkPanel({ slug, code }: { slug: string; code: string }) {
@@ -35,26 +36,25 @@ export function InviteLinkPanel({ slug, code }: { slug: string; code: string }) 
     <div className="flex flex-col gap-2">
       <ShareLinkRow
         url={joinUrl}
-        label="Group invite link"
+        label={m.groups_invite_panel_label()}
         defaultQrOpen
         actions={
           <Dialog open={disableConfirmOpen} onOpenChange={setDisableConfirmOpen}>
-            <DialogTrigger render={<Button variant="destructive" />}>Disable</DialogTrigger>
+            <DialogTrigger render={<Button variant="destructive" />}>
+              {m.groups_invite_disable()}
+            </DialogTrigger>
             <DialogContent>
               <DialogForm onSubmit={() => void handleDisable()}>
                 <DialogHeader>
-                  <DialogTitle>Turn off invites?</DialogTitle>
-                  <DialogDescription>
-                    The current link stops working immediately. Turning invites back on creates a
-                    different link.
-                  </DialogDescription>
+                  <DialogTitle>{m.groups_invite_disable_title()}</DialogTitle>
+                  <DialogDescription>{m.groups_invite_disable_description()}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setDisableConfirmOpen(false)}>
-                    Cancel
+                    {m.common_cancel()}
                   </Button>
                   <Button type="submit" variant="destructive" disabled={disableCode.isPending}>
-                    Disable
+                    {m.groups_invite_disable()}
                   </Button>
                 </DialogFooter>
               </DialogForm>

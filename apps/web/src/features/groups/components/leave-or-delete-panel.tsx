@@ -20,6 +20,7 @@ import {
   useDeleteFriendGroup,
   useLeaveFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-mutations";
+import { m } from "@/paraglide/messages.js";
 
 export function LeaveOrDeletePanel({
   data,
@@ -53,34 +54,28 @@ export function LeaveOrDeletePanel({
   }
 
   return (
-    <SettingsSection title="Leave or delete">
+    <SettingsSection title={m.groups_leave_title()}>
       {isOwner ? (
         <>
           <TransferOwnershipControl data={data} slug={slug} />
-          <p className="text-muted-foreground text-sm">
-            As the owner you can&apos;t leave the group yourself, transfer ownership first. Deleting
-            it removes the group for everyone.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.groups_leave_owner_note()}</p>
           <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <DialogTrigger render={<Button variant="destructive" />}>
               <Trash2Icon className="size-4" />
-              Delete group
+              {m.groups_leave_delete_group()}
             </DialogTrigger>
             <DialogContent>
               <DialogForm onSubmit={() => void handleDelete()}>
                 <DialogHeader>
-                  <DialogTitle>Delete this group?</DialogTitle>
-                  <DialogDescription>
-                    The group, its members, invites, and list-shares will be permanently removed.
-                    Lists themselves stay; only their share with this group goes.
-                  </DialogDescription>
+                  <DialogTitle>{m.groups_leave_confirm_title()}</DialogTitle>
+                  <DialogDescription>{m.groups_leave_confirm_description()}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                    Cancel
+                    {m.common_cancel()}
                   </Button>
                   <Button type="submit" variant="destructive" disabled={remove.isPending}>
-                    Delete
+                    {m.common_delete()}
                   </Button>
                 </DialogFooter>
               </DialogForm>
@@ -89,7 +84,7 @@ export function LeaveOrDeletePanel({
         </>
       ) : (
         <Button variant="ghost" onClick={() => void handleLeave()} disabled={leave.isPending}>
-          Leave group
+          {m.groups_leave_button()}
         </Button>
       )}
     </SettingsSection>

@@ -20,6 +20,7 @@ import {
   dispatchContextAction,
   dispatchTake,
 } from "@/features/cards/stores/card-row-actions-store";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionCardContextMenuProps {
   itemId: string;
@@ -64,7 +65,7 @@ export function CollectionCardContextMenu({
               }}
             >
               <HandIcon />
-              Take a copy
+              {m.collections_menu_take_one()}
             </ContextMenuItem>
             {takeAllCount !== undefined && takeAllCount > 1 && (
               <ContextMenuItem
@@ -74,7 +75,7 @@ export function CollectionCardContextMenu({
                 }}
               >
                 <HandIcon />
-                Take {takeAllCount} copies
+                {m.collections_menu_take_many({ count: takeAllCount })}
               </ContextMenuItem>
             )}
             <ContextMenuSeparator />
@@ -87,7 +88,7 @@ export function CollectionCardContextMenu({
           }}
         >
           <NotebookPenIcon />
-          {stacked ? "Copies…" : "Copy details"}
+          {stacked ? m.collections_menu_copies() : m.collections_menu_copy_details()}
         </ContextMenuItem>
         <ContextMenuItem
           onClick={(event) => {
@@ -96,7 +97,7 @@ export function CollectionCardContextMenu({
           }}
         >
           <BookOpenIcon />
-          Move
+          {m.collections_menu_move()}
         </ContextMenuItem>
         <ContextMenuItem
           onClick={(event) => {
@@ -105,7 +106,7 @@ export function CollectionCardContextMenu({
           }}
         >
           <ListPlusIcon />
-          Add to list
+          {m.collections_menu_add_to_list()}
         </ContextMenuItem>
         {canLend && (
           <ContextMenuItem
@@ -115,7 +116,7 @@ export function CollectionCardContextMenu({
             }}
           >
             <HandHeartIcon />
-            Lend to a friend
+            {m.collections_menu_lend()}
           </ContextMenuItem>
         )}
         <ContextMenuItem
@@ -126,7 +127,7 @@ export function CollectionCardContextMenu({
           }}
         >
           <Trash2Icon />
-          Dispose
+          {m.collections_menu_dispose()}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

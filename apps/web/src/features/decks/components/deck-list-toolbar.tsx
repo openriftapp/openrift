@@ -21,25 +21,30 @@ import {
   useDeckListPrefsStore,
   useDeckListViewPrefs,
 } from "@/features/decks/stores/deck-list-prefs-store";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckActiveFilters } from "./deck-active-filters";
 import { DeckFilterControls, hasUsableDeckFilters } from "./deck-filter-controls";
 
-const SORT_OPTIONS: SortGroupOption<DeckListSortField>[] = [
-  { value: "updated", label: "Updated" },
-  { value: "created", label: "Created" },
-  { value: "name", label: "Name" },
-  { value: "value", label: "Value" },
-];
+function sortOptions(): SortGroupOption<DeckListSortField>[] {
+  return [
+    { value: "updated", label: m.decks_list_sort_updated() },
+    { value: "created", label: m.decks_list_sort_created() },
+    { value: "name", label: m.common_name() },
+    { value: "value", label: m.decks_list_sort_value() },
+  ];
+}
 
-const GROUP_OPTIONS: SortGroupOption<DeckListGroupBy>[] = [
-  { value: "none", label: "None" },
-  { value: "format", label: "Format" },
-  { value: "domains", label: "Domains" },
-  { value: "legend", label: "Legend" },
-  { value: "validity", label: "Validity" },
-  { value: "folder", label: "Folder" },
-];
+function groupOptions(): SortGroupOption<DeckListGroupBy>[] {
+  return [
+    { value: "none", label: m.decks_list_group_none() },
+    { value: "format", label: m.decks_list_format_label() },
+    { value: "domains", label: m.decks_list_group_domains() },
+    { value: "legend", label: m.decks_list_group_legend() },
+    { value: "validity", label: m.decks_list_group_validity() },
+    { value: "folder", label: m.decks_list_group_folder() },
+  ];
+}
 
 function DensityToggle({ className }: { className?: string }) {
   const density = useDeckListPrefsStore((state) => state.density);
@@ -56,19 +61,23 @@ function DensityToggle({ className }: { className?: string }) {
           setDensity(next);
         }
       }}
-      aria-label="Density"
+      aria-label={m.decks_list_density_aria()}
     >
       <Tooltip>
-        <TooltipTrigger render={<ToggleGroupItem value="grid" aria-label="Grid view" />}>
+        <TooltipTrigger
+          render={<ToggleGroupItem value="grid" aria-label={m.decks_list_grid_view()} />}
+        >
           <LayoutGridIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Grid view</TooltipContent>
+        <TooltipContent>{m.decks_list_grid_view()}</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger render={<ToggleGroupItem value="list" aria-label="List view" />}>
+        <TooltipTrigger
+          render={<ToggleGroupItem value="list" aria-label={m.decks_list_list_view()} />}
+        >
           <ListIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>List view</TooltipContent>
+        <TooltipContent>{m.decks_list_list_view()}</TooltipContent>
       </Tooltip>
     </ToggleGroup>
   );
@@ -115,7 +124,7 @@ export function DeckListToolbar({
     onCommit: setSearch,
   });
 
-  const visibleGroupOptions = GROUP_OPTIONS.filter((option) => {
+  const visibleGroupOptions = groupOptions().filter((option) => {
     if (option.value === "folder" && folders.length === 0) {
       return false;
     }
@@ -128,7 +137,7 @@ export function DeckListToolbar({
 
   const sortGroupControls = (
     <SortGroupControls
-      sortOptions={SORT_OPTIONS}
+      sortOptions={sortOptions()}
       sortBy={sortField}
       sortDir={sortDir}
       onSortByChange={setSortField}
@@ -147,7 +156,7 @@ export function DeckListToolbar({
     hasActiveFilters && filteredCount !== totalCount
       ? `${filteredCount} / ${totalCount}`
       : String(totalCount);
-  const unitLabel = totalCount === 1 ? "deck" : "decks";
+  const unitLabel = totalCount === 1 ? m.decks_list_unit_one() : m.decks_list_unit_other();
   // Keeps the row alive even when the deck set has made every control
   // pointless, so there is always a way back to the full list.
   const showFilters =
@@ -159,8 +168,8 @@ export function DeckListToolbar({
         <SearchInput
           value={localSearch}
           onValueChange={setLocalSearch}
-          placeholder="Search decks..."
-          ariaLabel="Search decks"
+          placeholder={m.decks_list_search_placeholder()}
+          ariaLabel={m.decks_list_search_aria()}
           trailing={`${countLabel} ${unitLabel}`}
           className="min-w-[200px] flex-1"
         />
@@ -173,10 +182,10 @@ export function DeckListToolbar({
 
         <div className="ml-auto flex items-center gap-2 md:hidden">
           <DensityToggle />
-          <MobileOptionsDrawer doneLabel={hasActiveFilters ? "Show decks" : undefined}>
-            <DrawerSection label="Sort & group">{sortGroupControls}</DrawerSection>
+          <MobileOptionsDrawer doneLabel={hasActiveFilters ? m.decks_list_show_decks() : undefined}>
+            <DrawerSection label={m.decks_list_sort_and_group()}>{sortGroupControls}</DrawerSection>
             {showFilters && (
-              <DrawerSection label="Filter">
+              <DrawerSection label={m.decks_list_filter()}>
                 <DeckFilterControls
                   availableDomains={availableDomains}
                   availability={availability}

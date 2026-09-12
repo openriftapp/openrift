@@ -12,6 +12,7 @@ import { useSession } from "@/lib/auth-session";
 import { bundleShareImageUrl, shareImageOptions } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 export function PublicSharingSection() {
   const { data, isPending } = useUserShareState();
@@ -28,8 +29,8 @@ export function PublicSharingSection() {
 
   return (
     <SettingsSection
-      title="Public sharing"
-      description="One link to all your wishlists and tradelists, current and future. Organize lists stay private."
+      title={m.profile_sharing_title()}
+      description={m.profile_sharing_description()}
     >
       {isPending ? (
         <Skeleton className="h-10 w-full" />
@@ -38,8 +39,8 @@ export function PublicSharingSection() {
           noun="lists"
           link={{
             url: shareUrl,
-            label: "Bundle share link",
-            exposes: "see every wishlist and tradelist you have",
+            label: m.profile_sharing_link_label(),
+            exposes: m.profile_sharing_link_exposes(),
             unfurls: true,
             onCreate: () => enableShare.mutate(),
             creating: enableShare.isPending,
@@ -50,7 +51,7 @@ export function PublicSharingSection() {
             shareToken === null
               ? undefined
               : {
-                  title: "your shared lists",
+                  title: m.profile_sharing_image_title(),
                   filenameBase: "openrift-lists",
                   buildUrl: (choice) =>
                     bundleShareImageUrl(
@@ -66,8 +67,8 @@ export function PublicSharingSection() {
           }
           qrFilenameBase="openrift-lists"
           print={{
-            defaultTitle: session?.user?.name ?? "My lists",
-            defaultSubtitle: "Scan to see my wish & tradelists",
+            defaultTitle: session?.user?.name ?? m.profile_sharing_print_title(),
+            defaultSubtitle: m.profile_sharing_print_subtitle(),
             filenameHint: "my-lists",
           }}
         />

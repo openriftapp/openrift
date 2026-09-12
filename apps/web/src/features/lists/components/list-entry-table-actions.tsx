@@ -1,6 +1,7 @@
 import { MinusIcon, PlusIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { m } from "@/paraglide/messages.js";
 
 type ListEntryTableActionsProps = {
   isRemovePending: boolean;
@@ -31,7 +32,7 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
           props.onTakeOff();
         }}
         disabled={props.isRemovePending}
-        aria-label="Take off list"
+        aria-label={m.lists_entry_take_off()}
       >
         <XIcon className="size-3.5" />
       </Button>
@@ -51,13 +52,13 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
           }
         }}
         disabled={props.isQuantityPending || props.isRemovePending}
-        aria-label="Decrease quantity"
+        aria-label={m.lists_entry_decrease_quantity()}
       >
         <MinusIcon className="size-3.5" />
       </Button>
       <span
         className="text-foreground min-w-5 text-center text-xs font-semibold tabular-nums"
-        aria-label={`Quantity ${props.quantity}`}
+        aria-label={m.lists_entry_quantity_aria({ count: props.quantity })}
       >
         {props.quantity}
       </span>
@@ -69,7 +70,7 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
           props.onIncrement();
         }}
         disabled={props.isQuantityPending}
-        aria-label="Increase quantity"
+        aria-label={m.lists_entry_increase_quantity()}
       >
         <PlusIcon className="size-3.5" />
       </Button>
@@ -82,7 +83,7 @@ export function ListEntryTableActions(props: ListEntryTableActionsProps) {
           props.onRemove();
         }}
         disabled={props.isRemovePending}
-        aria-label="Remove from list"
+        aria-label={m.lists_entry_remove_from_list()}
       >
         <XIcon className="size-3.5" />
       </Button>

@@ -23,6 +23,7 @@ import { useRequiredUserId } from "@/lib/auth-session";
 import { formatCardId } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface VariantLocationsPopoverProps {
   printings: Printing[];
@@ -193,7 +194,7 @@ export function VariantLocationsPopover({
         header={
           <div className="px-2.5 pt-2 pb-0.5">
             <SectionHeading as="h3" size="sm">
-              Add to collection
+              {m.collections_variants_add_to_collection()}
             </SectionHeading>
           </div>
         }
@@ -217,7 +218,7 @@ export function VariantLocationsPopover({
         ))}
         {addGroup.addCandidates.length === 0 && (
           <p className="text-muted-foreground px-3 py-2 text-sm">
-            Already in all your collections.
+            {m.collections_variants_already_everywhere()}
           </p>
         )}
       </PickerList>
@@ -323,7 +324,9 @@ export function VariantLocationsPopover({
                       event.stopPropagation();
                       onRemoveFromCollection(group.printing, defaultTargetCollectionId);
                     }}
-                    aria-label={`Remove ${legendDisplayName(group.printing.card)}`}
+                    aria-label={m.collections_cell_remove({
+                      name: legendDisplayName(group.printing.card),
+                    })}
                   >
                     <MinusIcon />
                   </Button>
@@ -347,7 +350,9 @@ export function VariantLocationsPopover({
                       event.stopPropagation();
                       onQuickAdd(group.printing);
                     }}
-                    aria-label={`Add ${legendDisplayName(group.printing.card)}`}
+                    aria-label={m.collections_cell_add({
+                      name: legendDisplayName(group.printing.card),
+                    })}
                   >
                     <PlusIcon />
                   </Button>
@@ -370,7 +375,10 @@ export function VariantLocationsPopover({
                       variant="ghost"
                       className="transition-none"
                       onClick={() => onRemoveFromCollection(group.printing, location.collectionId)}
-                      aria-label={`Remove ${legendDisplayName(group.printing.card)} from ${location.collectionName}`}
+                      aria-label={m.collections_variants_remove_from({
+                        name: legendDisplayName(group.printing.card),
+                        collection: location.collectionName,
+                      })}
                     >
                       <MinusIcon />
                     </Button>
@@ -385,7 +393,10 @@ export function VariantLocationsPopover({
                         variant="ghost"
                         className="transition-none"
                         onClick={() => onAddToCollection(group.printing, location.collectionId)}
-                        aria-label={`Add ${legendDisplayName(group.printing.card)} to ${location.collectionName}`}
+                        aria-label={m.collections_variants_add_to({
+                          name: legendDisplayName(group.printing.card),
+                          collection: location.collectionName,
+                        })}
                       >
                         <PlusIcon />
                       </Button>
@@ -400,7 +411,7 @@ export function VariantLocationsPopover({
                 onSelect={() => setAddCollectionTarget(group.printing)}
               >
                 <PlusIcon className="size-3 shrink-0" />
-                <span className="flex-1">Add to another collection</span>
+                <span className="flex-1">{m.collections_variants_add_another()}</span>
               </PickerRow>
             )}
           </Fragment>

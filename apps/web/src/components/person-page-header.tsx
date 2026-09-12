@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { Heading } from "@/components/heading";
 import { UserAvatar } from "@/components/user-avatar";
+import { m } from "@/paraglide/messages.js";
 
 export function PersonPageHeader({
   image,
@@ -28,7 +29,7 @@ export function PersonPageHeader({
         />
         <div className="flex min-w-0 flex-col gap-1">
           <Heading level={2} as="h1" className="truncate">
-            {name ?? "Unknown user"}
+            {name ?? m.shared_unknown_user()}
           </Heading>
           {children ? <div className="flex flex-wrap items-center gap-1.5">{children}</div> : null}
         </div>

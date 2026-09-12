@@ -8,13 +8,14 @@ import { MultiSelectCombobox } from "@/features/cards/components/multi-select-co
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbs } from "@/features/cards/lib/channel-breadcrumbs";
 import {
-  PRESENCE_LABELS,
   presenceFlagCount,
+  presenceLabel,
   presenceToFlagState,
 } from "@/features/cards/lib/presence-filter";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 interface DropdownContext {
   availableFilters: AvailableFilters;
@@ -38,7 +39,7 @@ function presenceFlag(
 ): NonNullable<MultiSelectComboboxProps["flags"]>[number] {
   const state = presenceToFlagState(value);
   return {
-    label: PRESENCE_LABELS[dimension],
+    label: presenceLabel(dimension),
     state,
     count: presenceFlagCount(ctx.filterCounts?.presence[dimension], state),
     onToggle: () => ctx.actions.cyclePresence(dimension),
@@ -47,9 +48,9 @@ function presenceFlag(
 
 const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
   languages: (ctx) => ({
-    label: "Language",
-    searchPlaceholder: "Search languages…",
-    emptyText: "No languages match.",
+    label: m.cards_filter_unit_languages(),
+    searchPlaceholder: m.cards_filter_search_languages(),
+    emptyText: m.cards_filter_empty_languages(),
     options: (ctx.availableLanguages ?? []).map((value) => ({
       value,
       label: ctx.languageLabels[value] ?? value,
@@ -60,9 +61,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     counts: ctx.filterCounts?.languages,
   }),
   sets: (ctx) => ({
-    label: "Sets",
-    searchPlaceholder: "Search sets…",
-    emptyText: "No sets match.",
+    label: m.cards_filter_unit_sets_plural(),
+    searchPlaceholder: m.cards_filter_search_sets(),
+    emptyText: m.cards_filter_empty_sets(),
     options: ctx.availableFilters.sets.map((value) => {
       const name = ctx.setDisplayLabel?.(value) ?? value;
       return name === value ? { value, label: value } : { value, label: name, prefix: value };
@@ -74,9 +75,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     mutedOptions: ctx.availableFilters.supplementalSets,
   }),
   domains: (ctx) => ({
-    label: "Domain",
-    searchPlaceholder: "Search domains…",
-    emptyText: "No domains match.",
+    label: m.cards_filter_unit_domains(),
+    searchPlaceholder: m.cards_filter_search_domains(),
+    emptyText: m.cards_filter_empty_domains(),
     options: ctx.availableFilters.domains.map((value) => ({
       value,
       label: formatDomainFilterLabel(value, ctx.labels.domains),
@@ -88,9 +89,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     counts: ctx.filterCounts?.domains,
   }),
   rarities: (ctx) => ({
-    label: "Rarity",
-    searchPlaceholder: "Search rarities…",
-    emptyText: "No rarities match.",
+    label: m.cards_filter_unit_rarities(),
+    searchPlaceholder: m.cards_filter_search_rarities(),
+    emptyText: m.cards_filter_empty_rarities(),
     options: ctx.availableFilters.rarities.map((value) => ({
       value,
       label: enumLabel(ctx.labels.rarities, value),
@@ -102,9 +103,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     counts: ctx.filterCounts?.rarities,
   }),
   types: (ctx) => ({
-    label: "Type",
-    searchPlaceholder: "Search types…",
-    emptyText: "No types match.",
+    label: m.cards_filter_unit_types(),
+    searchPlaceholder: m.cards_filter_search_types(),
+    emptyText: m.cards_filter_empty_types(),
     options: ctx.availableFilters.types.map((value) => ({
       value,
       label: enumLabel(ctx.labels.cardTypes, value),
@@ -117,9 +118,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     counts: ctx.filterCounts?.types,
   }),
   superTypes: (ctx) => ({
-    label: "Supertype",
-    searchPlaceholder: "Search supertypes…",
-    emptyText: "No supertypes match.",
+    label: m.cards_filter_unit_super_types(),
+    searchPlaceholder: m.cards_filter_search_super_types(),
+    emptyText: m.cards_filter_empty_super_types(),
     options: ctx.availableFilters.superTypes.map((value) => ({
       value,
       label: enumLabel(ctx.labels.superTypes, value),
@@ -132,9 +133,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     counts: ctx.filterCounts?.superTypes,
   }),
   markers: (ctx) => ({
-    label: "Markers",
-    searchPlaceholder: "Search markers…",
-    emptyText: "No markers match.",
+    label: m.cards_filter_unit_markers(),
+    searchPlaceholder: m.cards_filter_search_markers(),
+    emptyText: m.cards_filter_empty_markers(),
     options: ctx.availableFilters.markers.map((marker) => ({
       value: marker.slug,
       label: marker.label,
@@ -147,9 +148,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     flags: [presenceFlag("markers", ctx.filterState.markersPresence, ctx)],
   }),
   channels: (ctx) => ({
-    label: "Distribution Channels",
-    searchPlaceholder: "Search distribution channels…",
-    emptyText: "No distribution channels match.",
+    label: m.cards_filter_unit_channels(),
+    searchPlaceholder: m.cards_filter_search_channels(),
+    emptyText: m.cards_filter_empty_channels(),
     options: ctx.availableFilters.distributionChannels.map((channel) => ({
       value: channel.slug,
       label: ctx.channelBreadcrumbs.get(channel.id) ?? channel.label,
@@ -162,9 +163,9 @@ const DROPDOWNS: Record<string, (ctx: DropdownContext) => DropdownSpec> = {
     flags: [presenceFlag("distributionChannels", ctx.filterState.channelsPresence, ctx)],
   }),
   keywords: (ctx) => ({
-    label: "Keywords",
-    searchPlaceholder: "Search keywords…",
-    emptyText: "No keywords match.",
+    label: m.cards_filter_unit_keywords(),
+    searchPlaceholder: m.cards_filter_search_keywords(),
+    emptyText: m.cards_filter_empty_keywords(),
     options: ctx.availableFilters.keywords.map((keyword) => ({
       value: keyword,
       label: keyword,
@@ -215,7 +216,7 @@ export function FilterVariantDropdown({
   const groups = both
     ? [
         {
-          label: "Finish",
+          label: m.cards_filter_label_finish(),
           options: finishOptions,
           included: filterState.finishes,
           excluded: filterState.finishesEx,
@@ -225,13 +226,13 @@ export function FilterVariantDropdown({
       ]
     : [];
   const overnumberedFlag = {
-    label: "Overnumbered",
+    label: m.cards_filter_flag_overnumbered(),
     state: filterState.overnumbered,
     count: filterCounts?.flags.overnumbered,
     onToggle: toggleOvernumbered,
   };
   const signedFlag = {
-    label: "Signed",
+    label: m.cards_filter_flag_signed(),
     state: filterState.signed,
     count: filterCounts?.flags.signed,
     onToggle: toggleSigned,
@@ -243,10 +244,16 @@ export function FilterVariantDropdown({
   return (
     <MultiSelectCombobox
       triggerStyle={triggerStyle}
-      label={both ? "Variant" : showArtVariant ? "Art Variant" : "Finish"}
-      searchPlaceholder={both ? "Search variants…" : "Search…"}
-      emptyText={both ? "No variants match." : "No matches."}
-      primaryLabel={both ? "Art Variant" : undefined}
+      label={
+        both
+          ? m.cards_filter_unit_variant()
+          : showArtVariant
+            ? m.cards_filter_label_art_variant()
+            : m.cards_filter_label_finish()
+      }
+      searchPlaceholder={both ? m.cards_filter_search_variants() : m.cards_filter_search_generic()}
+      emptyText={both ? m.cards_filter_empty_variants() : m.cards_filter_empty_generic()}
+      primaryLabel={both ? m.cards_filter_label_art_variant() : undefined}
       options={primaryIsArt ? artVariantOptions : finishOptions}
       selected={primaryIsArt ? filterState.artVariants : filterState.finishes}
       excluded={primaryIsArt ? filterState.artVariantsEx : filterState.finishesEx}

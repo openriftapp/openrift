@@ -4,12 +4,15 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckTableActionsProps {
   printing: Printing;
   deckQuantity: number;
   maxReached: boolean;
   addLabel?: string;
+  addAriaLabel?: string;
+  addTooltip?: string;
   removeLabel?: string;
   shiftHeld: boolean;
   remainingCount?: number;
@@ -22,6 +25,8 @@ export function DeckTableActions({
   deckQuantity,
   maxReached,
   addLabel,
+  addAriaLabel,
+  addTooltip,
   removeLabel,
   shiftHeld,
   remainingCount,
@@ -66,14 +71,14 @@ export function DeckTableActions({
                   event.stopPropagation();
                   onRemove(printing, event);
                 }}
-                aria-label="Remove from deck"
+                aria-label={m.decks_editor_remove_from_deck()}
                 className={cn(showBulkRemove && "min-w-9 px-1 text-xs font-semibold")}
               />
             }
           >
             {showBulkRemove ? `-${deckQuantity}` : <MinusIcon className="size-3.5" />}
           </TooltipTrigger>
-          <TooltipContent>Shift+click to remove all</TooltipContent>
+          <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
         </Tooltip>
       )}
       <Tooltip>
@@ -88,7 +93,7 @@ export function DeckTableActions({
                 event.stopPropagation();
                 onQuickAdd(printing, event);
               }}
-              aria-label={addLabel ? `${addLabel} card` : "Add to deck"}
+              aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
               className={cn(showBulkAdd && "min-w-9 px-1 text-xs font-semibold")}
             />
           }
@@ -102,9 +107,7 @@ export function DeckTableActions({
           )}
         </TooltipTrigger>
         {!maxReached && (
-          <TooltipContent>
-            {addLabel ? `Click to ${addLabel.toLowerCase()}` : "Shift+click to add max"}
-          </TooltipContent>
+          <TooltipContent>{addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
         )}
       </Tooltip>
     </>

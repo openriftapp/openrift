@@ -51,6 +51,7 @@ import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 // Custom tags are a deck-builder concept; hiding them keeps this grid scoped
@@ -174,11 +175,14 @@ export function CollectionGrid({
   // go on a trade/wish list; the server enforces this too.
   const sourceCollectionIsGroup = isGroupCollection;
   const addTarget = collectionId ?? inboxId;
-  const quickAddCollectionName = currentCollection?.name ?? "Collection";
+  const quickAddCollectionName = currentCollection?.name ?? m.collections_fallback_title();
   useRegisterQuickAdd({
     key: addTarget ? `collection:${addTarget}` : null,
-    label: `Add to ${quickAddCollectionName}`,
-    moveLabel: (collections?.length ?? 0) >= 2 ? `Move to ${quickAddCollectionName}` : null,
+    label: m.collections_quick_add_label({ collection: quickAddCollectionName }),
+    moveLabel:
+      (collections?.length ?? 0) >= 2
+        ? m.collections_quick_move_label({ collection: quickAddCollectionName })
+        : null,
   });
 
   // Render-phase (not effect) so an empty collection never paints before
@@ -412,11 +416,7 @@ export function CollectionGrid({
             printingsByCardId={printingsByCardId}
             view={dataView}
             stale={isGridStale}
-            noResultsDescription={
-              wantedFilterActive
-                ? "Nothing from your wishlists is in this box right now."
-                : undefined
-            }
+            noResultsDescription={wantedFilterActive ? m.collections_grid_no_wanted() : undefined}
             toolbar={
               <CollectionGridToolbar
                 sortedCards={sortedCards}

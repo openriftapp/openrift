@@ -18,6 +18,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface EnergyPowerChartProps {
   energyData: EnergyCostCount[];
@@ -116,7 +117,9 @@ function buildChartConfig(
 
 // ChartTooltipContent types the label as the wider ReactNode a config label may hold; it's always the axis bucket here.
 function bucketLabel(value: unknown, axis: string): string {
-  return typeof value === "string" || typeof value === "number" ? `${value} ${axis}` : axis;
+  return typeof value === "string" || typeof value === "number"
+    ? m.decks_stats_bucket_label({ value, axis })
+    : axis;
 }
 
 function comboFill(stack: DomainCombo, colors: Record<string, string>): string {
@@ -205,7 +208,7 @@ function SingleChart({
   if (singleColor) {
     const totalKey = `${metric}_total`;
     const singleConfig: ChartConfig = {
-      [totalKey]: { label: "Count", color: "var(--color-primary)" },
+      [totalKey]: { label: m.decks_stats_count(), color: "var(--color-primary)" },
     };
     const hitTotalKey = hitKeyFor("total");
     const chartData = Array.from({ length: maxValue + 1 }, (_, value) => {
@@ -373,7 +376,7 @@ export function EnergyChart({
         data={data}
         stacks={stacks}
         average={average}
-        label="Energy"
+        label={m.decks_stats_energy()}
         metric="energy"
         minAxisMax={8}
         singleColor={singleColor}
@@ -412,7 +415,7 @@ export function PowerChart({
       data={data}
       stacks={stacks}
       average={average}
-      label="Power"
+      label={m.decks_stats_power()}
       metric="power"
       minAxisMax={4}
       singleColor={singleColor}

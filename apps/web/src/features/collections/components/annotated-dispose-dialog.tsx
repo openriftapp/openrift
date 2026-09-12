@@ -13,25 +13,37 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import type { PendingAnnotatedDispose } from "@/features/collections/hooks/use-quick-add-actions";
 import { useEnumOrders } from "@/hooks/use-enums";
 import type { EnumLabels } from "@/lib/enum-labels";
+import { m } from "@/paraglide/messages.js";
 
 /** Lists what the copy has recorded, for the confirmation body (e.g. "graded PSA 9.5, notes"). */
 function recordedDetails(copy: CopyResponse, labels: EnumLabels): string[] {
   const parts: string[] = [];
   if (copy.grader !== null && copy.grade !== null) {
-    parts.push(`graded ${enumLabel(labels.graders, copy.grader)} ${copy.grade}`);
+    parts.push(
+      m.collections_dialog_annotated_detail_graded({
+        grader: enumLabel(labels.graders, copy.grader),
+        grade: copy.grade,
+      }),
+    );
   }
   if (copy.condition !== null) {
-    parts.push(`condition ${enumLabel(labels.conditions, copy.condition)}`);
+    parts.push(
+      m.collections_dialog_annotated_detail_condition({
+        condition: enumLabel(labels.conditions, copy.condition),
+      }),
+    );
   }
   if (copy.isAltered) {
-    parts.push("marked as altered");
+    parts.push(m.collections_dialog_annotated_detail_altered());
   }
   if (copy.notesPublic !== null || copy.notesPrivate !== null) {
-    parts.push("notes");
+    parts.push(m.collections_dialog_annotated_detail_notes());
   }
   if (copy.links.length > 0) {
     parts.push(
-      copy.links.length === 1 ? "1 photo/video link" : `${copy.links.length} photo/video links`,
+      copy.links.length === 1
+        ? m.collections_dialog_annotated_detail_links_one({ count: copy.links.length })
+        : m.collections_dialog_annotated_detail_links_other({ count: copy.links.length }),
     );
   }
   return parts;
@@ -66,20 +78,27 @@ export function AnnotatedDisposeDialog({
     >
       <AlertDialogContent>
         <DialogForm onSubmit={onConfirm}>
-          <AlertDialogTitle>Remove this copy?</AlertDialogTitle>
+          <AlertDialogTitle>{m.collections_dialog_annotated_title()}</AlertDialogTitle>
           <AlertDialogDescription>
             {pending
-              ? `This copy of ${legendDisplayName(pending.printing.card)} has details recorded` +
-                `${details.length > 0 ? ` (${details.join(", ")})` : ""}. ` +
-                "Removing the copy permanently deletes these details too."
+              ? details.length > 0
+                ? m.collections_dialog_annotated_body_with_details({
+                    card: legendDisplayName(pending.printing.card),
+                    details: details.join(", "),
+                  })
+                : m.collections_dialog_annotated_body({
+                    card: legendDisplayName(pending.printing.card),
+                  })
               : ""}
           </AlertDialogDescription>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={onCancel} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" variant="destructive" disabled={isPending}>
-              {isPending ? "Removing…" : "Remove copy"}
+              {isPending
+                ? m.collections_dialog_removing()
+                : m.collections_dialog_annotated_confirm()}
             </Button>
           </div>
         </DialogForm>

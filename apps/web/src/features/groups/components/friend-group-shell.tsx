@@ -22,12 +22,16 @@ import { useDeclineFriendGroupInvite } from "@/features/groups/hooks/use-friend-
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-export const ROLE_LABEL: Record<FriendGroupRole, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  member: "Member",
-};
+export function roleLabel(role: FriendGroupRole): string {
+  const labels: Record<FriendGroupRole, () => string> = {
+    owner: m.groups_role_owner,
+    admin: m.groups_role_admin,
+    member: m.groups_role_member,
+  };
+  return labels[role]();
+}
 
 export function isAdmin(role: FriendGroupRole | null): role is "admin" | "owner" {
   return role === "admin" || role === "owner";
@@ -110,16 +114,14 @@ function PendingApprovalStub({ data }: { data: FriendGroupDetailResponse }) {
     <div className={cn(PAGE_WIDTH.capped, "flex flex-col items-center gap-6", PAGE_PADDING)}>
       <div className="flex flex-col items-center gap-2 text-center">
         <Heading level={1}>{data.group.name}</Heading>
-        <p className="text-muted-foreground">
-          Waiting for an admin to approve your request to join.
-        </p>
+        <p className="text-muted-foreground">{m.groups_pending_approval()}</p>
       </div>
       <Button
         variant="ghost"
         onClick={() => void handleCancel()}
         disabled={declineInvite.isPending}
       >
-        Cancel request
+        {m.groups_cancel_request()}
       </Button>
     </div>
   );

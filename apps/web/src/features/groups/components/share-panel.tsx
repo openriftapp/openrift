@@ -8,16 +8,36 @@ import { CopyTextPanel } from "@/components/copy-text-panel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BinderSheetPanel } from "@/features/groups/components/binder-sheet-panel";
-import type { ShareImagePanelProps } from "@/features/groups/components/share-image-panel";
+import type {
+  ShareImagePanelProps,
+  ShareNoun,
+} from "@/features/groups/components/share-image-panel";
 import { ShareImagePanel } from "@/features/groups/components/share-image-panel";
 import { ShareLinkRow } from "@/features/groups/components/share-link-row";
 import { ShareQrPanel } from "@/features/groups/components/share-qr-panel";
+import { m } from "@/paraglide/messages.js";
+
+const QR_LABEL: Record<ShareNoun, () => string> = {
+  lists: () => m.share_qr_label_lists(),
+  list: () => m.share_qr_label_list(),
+  deck: () => m.share_qr_label_deck(),
+  collection: () => m.share_qr_label_collection(),
+  "tier-list": () => m.share_qr_label_tier_list(),
+};
+
+export const SHARE_DIALOG_DESCRIPTION: Record<ShareNoun, () => string> = {
+  lists: () => m.share_dialog_description_lists(),
+  list: () => m.share_dialog_description_list(),
+  deck: () => m.share_dialog_description_deck(),
+  collection: () => m.share_dialog_description_collection(),
+  "tier-list": () => m.share_dialog_description_tier_list(),
+};
 
 interface SharePanelLink {
   url: string | null;
   label: string;
   /** Completes "Anyone with this link can …". */
-  exposes: ReactNode;
+  exposes: string;
   /** The link resolves to a preview image when pasted into a chat app. */
   unfurls?: boolean;
   onCreate: () => void;
@@ -40,8 +60,8 @@ interface SharePanelPrint {
 }
 
 export interface SharePanelProps {
-  /** "list", "collection", "deck". Fills the copy so no surface writes its own. */
-  noun: string;
+  /** Fills the copy so no surface writes its own. */
+  noun: ShareNoun;
   link?: SharePanelLink;
   noLinkNote?: ReactNode;
   /** Surface-specific extra under the link, e.g. a pointer at a wider setting. */
@@ -55,7 +75,7 @@ export interface SharePanelProps {
 }
 
 function NeedsLinkNote({ reason }: { reason: string }) {
-  return <p className="text-muted-foreground text-sm">Create a share link above first. {reason}</p>;
+  return <p className="text-muted-foreground text-sm">{m.share_needs_link({ reason })}</p>;
 }
 
 function ShareTextPanel({ cacheKey, getText, description }: SharePanelText) {
@@ -67,7 +87,7 @@ function ShareTextPanel({ cacheKey, getText, description }: SharePanelText) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <p className="text-muted-foreground text-sm">{description}</p>
-      <CopyTextPanel text={data ?? ""} label="Copy text" isLoading={isPending} />
+      <CopyTextPanel text={data ?? ""} label={m.share_copy_text()} isLoading={isPending} />
     </div>
   );
 }
@@ -94,34 +114,38 @@ export function SharePanel({
 
   const outputs: { value: string; label: string; body: ReactNode }[] = [];
   if (text) {
-    outputs.push({ value: "text", label: "Text", body: <ShareTextPanel {...text} /> });
+    outputs.push({
+      value: "text",
+      label: m.share_output_text(),
+      body: <ShareTextPanel {...text} />,
+    });
   }
   if (image) {
-    outputs.push({ value: "image", label: "Image", body: <ShareImagePanel {...image} /> });
+    outputs.push({
+      value: "image",
+      label: m.share_output_image(),
+      body: <ShareImagePanel {...image} />,
+    });
   }
   if (qrFilenameBase !== undefined) {
     outputs.push({
       value: "qr",
-      label: "QR code",
+      label: m.share_output_qr(),
       body:
         url === null ? (
-          <NeedsLinkNote reason="The code has to point somewhere." />
+          <NeedsLinkNote reason={m.share_needs_link_qr_reason()} />
         ) : (
-          <ShareQrPanel
-            url={url}
-            label={`QR code for the ${noun} share link`}
-            filenameBase={qrFilenameBase}
-          />
+          <ShareQrPanel url={url} label={QR_LABEL[noun]()} filenameBase={qrFilenameBase} />
         ),
     });
   }
   if (print) {
     outputs.push({
       value: "print",
-      label: "Print",
+      label: m.share_output_print(),
       body:
         url === null ? (
-          <NeedsLinkNote reason="The sheet carries a QR code that opens it." />
+          <NeedsLinkNote reason={m.share_needs_link_print_reason()} />
         ) : (
           <BinderSheetPanel
             shareUrl={url}
@@ -142,7 +166,7 @@ export function SharePanel({
           {url === null ? (
             <>
               <p className="text-muted-foreground text-sm">
-                Create a link and anyone with it can {link.exposes}, without signing in.
+                {m.share_link_create_intro({ exposes: link.exposes })}
               </p>
               <Button
                 className="self-start"
@@ -150,7 +174,7 @@ export function SharePanel({
                 disabled={link.creating}
               >
                 <LinkIcon />
-                Create link
+                {m.share_create_link()}
               </Button>
             </>
           ) : (
@@ -166,15 +190,13 @@ export function SharePanel({
                     disabled={link.stopping}
                   >
                     <Trash2Icon />
-                    Stop sharing
+                    {m.share_stop_sharing()}
                   </Button>
                 }
               />
               <p className="text-muted-foreground text-sm">
-                Anyone with this link can {link.exposes}. They don&apos;t need an account.
-                {link.unfurls === true
-                  ? " Pasting it into WhatsApp, Discord, or Signal shows a preview image."
-                  : ""}
+                {m.share_link_active_note({ exposes: link.exposes })}
+                {link.unfurls === true ? ` ${m.share_link_unfurl_note()}` : ""}
               </p>
             </>
           )}
@@ -188,7 +210,7 @@ export function SharePanel({
 
       {outputs.length === 0 ? null : (
         <div className="flex flex-col gap-3">
-          <h3 className="font-medium">Share it as</h3>
+          <h3 className="font-medium">{m.share_outputs_heading()}</h3>
           {outputs.length === 1 ? (
             outputs[0]?.body
           ) : (
@@ -214,10 +236,10 @@ export function SharePanel({
         <ConfirmActionDialog
           open={confirmStopOpen}
           onOpenChange={setConfirmStopOpen}
-          title="Stop sharing?"
-          description="The link stops working immediately and cannot be brought back. Anything printed with it, like a binder QR sheet, stops working too. Creating a link again later gives out a different address."
-          confirmLabel="Stop sharing"
-          pendingLabel="Stopping…"
+          title={m.share_stop_confirm_title()}
+          description={m.share_stop_confirm_description()}
+          confirmLabel={m.share_stop_sharing()}
+          pendingLabel={m.share_stop_pending()}
           isPending={link.stopping ?? false}
           onConfirm={() => {
             link.onStop();

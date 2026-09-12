@@ -28,6 +28,7 @@ import { useCopiesCollection } from "@/features/collections/lib/copies-collectio
 import { useFriendGroupShareableCollections } from "@/features/groups/hooks/use-friend-group-sharing";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
 import { ShareCollectionsWithGroupDialog } from "./share-collections-with-group-dialog";
@@ -57,7 +58,7 @@ export function SharedCollectionAction({ slug }: { slug: string }) {
     <>
       <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
         <PlusIcon className="size-4" />
-        New shared collection
+        {m.groups_shared_new_collection()}
       </PageTopBarPrimaryButton>
       <CreateCollectionDialog
         open={createOpen}
@@ -99,7 +100,7 @@ function GroupCollectionsSection({ data }: { data: FriendGroupDetailResponse }) 
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Group collections</SectionHeading>
+      <SectionHeading>{m.groups_overview_group_collections()}</SectionHeading>
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {groupCollections.map((col) => (
           <li key={col.id}>
@@ -121,7 +122,10 @@ function GroupCollectionTile({
   collection: CollectionResponse;
   covers: { key: string; imageId: string }[];
 }) {
-  const noun = collection.copyCount === 1 ? "copy" : "copies";
+  const copies =
+    collection.copyCount === 1
+      ? m.common_copies_one({ count: collection.copyCount })
+      : m.common_copies_other({ count: collection.copyCount });
   return (
     <CardLink
       render={
@@ -140,9 +144,7 @@ function GroupCollectionTile({
       </CoverBand>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 p-4">
         <span className="truncate font-medium">{collection.name}</span>
-        <span className="text-muted-foreground text-xs">
-          {collection.copyCount} {noun}
-        </span>
+        <span className="text-muted-foreground text-xs">{copies}</span>
       </div>
     </CardLink>
   );
@@ -157,10 +159,10 @@ function NewCollectionTile({ group }: { group: FriendGroupDetailResponse["group"
         className="border-border hover:border-primary/30 text-muted-foreground hover:text-foreground flex h-full min-h-44 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed p-6 text-center transition-colors"
       >
         <PlusIcon aria-hidden="true" className="size-6" />
-        <span className="text-foreground text-sm font-medium">New shared collection</span>
-        <span className="text-xs">
-          A pooled inventory the whole group can add to and remove from.
+        <span className="text-foreground text-sm font-medium">
+          {m.groups_shared_new_collection()}
         </span>
+        <span className="text-xs">{m.groups_shared_new_collection_hint()}</span>
       </Pressable>
       <CreateCollectionDialog
         open={createOpen}
@@ -216,12 +218,9 @@ function MemberSharesSection({ slug, data }: { slug: string; data: FriendGroupDe
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Member collections</SectionHeading>
+      <SectionHeading>{m.groups_shared_member_collections()}</SectionHeading>
       {owners.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No shared collections yet. A member can share a collection with the group so everyone can
-          browse what they own.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.groups_shared_empty()}</p>
       ) : (
         <div className="flex flex-col gap-5">
           {owners.map(({ member, collections }) => (
@@ -262,11 +261,15 @@ function MemberSharesBlock({
           gravatarHash={member.gravatarHash}
           size="sm"
         />
-        <span className="truncate font-medium">{member.userName ?? "Member"}</span>
+        <span className="truncate font-medium">
+          {member.userName ?? m.groups_member_fallback()}
+        </span>
         {collections.length > 0 ? (
           <CountPill>{collections.length}</CountPill>
         ) : (
-          <span className="text-muted-foreground text-xs">nothing shared yet</span>
+          <span className="text-muted-foreground text-xs">
+            {m.groups_shared_nothing_lowercase()}
+          </span>
         )}
         {isViewer ? (
           <span className="ml-auto shrink-0">
@@ -304,7 +307,7 @@ function ShareMoreButton({ slug, groupName }: { slug: string; groupName: string 
     <>
       <Button size="sm" variant="outline" className="shrink-0" onClick={() => setOpen(true)}>
         <Share2Icon />
-        Share more
+        {m.groups_shared_share_more()}
       </Button>
       <ShareCollectionsWithGroupDialog
         slug={slug}

@@ -3,6 +3,7 @@ import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { CollectionGrid } from "@/features/collections/components/collection-grid";
 import { useCollectionsMap } from "@/features/collections/hooks/use-collections";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/collections/$collectionId")({
   component: CollectionDetail,
@@ -24,7 +25,7 @@ function CollectionDetail() {
   return (
     <CollectionGrid
       collectionId={collectionId}
-      title={collection?.name ?? "Collection"}
+      title={collection?.name ?? m.collections_fallback_title()}
       wantedOnly={wanted === true}
       // Off drops the key so the URL only carries the filter when active.
       // Replaces the history entry: a toggle isn't a back-button stop.

@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/types/api/preferences";
 import type { ContractRouterClient } from "@orpc/contract";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef } from "react";
 
@@ -31,6 +31,12 @@ const fetchPreferencesFn = createServerFn({ method: "GET" })
   .handler(({ context }): Promise<UserPreferencesResponse> =>
     apiOrpcClient(preferencesContract, context.cookie).get(),
   );
+
+export const preferencesQueryOptions = (userId: string | null) =>
+  queryOptions({
+    queryKey: preferencesKeys.all(userId ?? ""),
+    queryFn: () => fetchPreferencesFn(),
+  });
 
 const patchPreferencesFn = createServerFn({ method: "POST" })
   .validator((input: { prefs: UserPreferencesResponse }) => input)
@@ -95,11 +101,8 @@ export function usePreferencesSync(enabled: boolean) {
   // already match it; hydrate stands down when they don't. Null until seeded below.
   const lastSynced = useRef<string | null>(null);
 
-  // Gated on `hydrated`: this query is SSR-prefetched fire-and-forget, so without
-  // the gate the SSR-query integration hydrates it stuck at `pending` client-side.
   const { data, isError } = useQuery({
-    queryKey: preferencesKeys.all(userId ?? ""),
-    queryFn: () => fetchPreferencesFn(),
+    ...preferencesQueryOptions(userId),
     enabled: enabled && Boolean(userId) && hydrated,
   });
 

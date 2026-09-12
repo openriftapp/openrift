@@ -10,11 +10,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
+import { m } from "@/paraglide/messages.js";
 
-const QUANTITY_MODES = [
-  { value: "fixed", label: "Fixed" },
-  { value: "playset", label: "Playset ×" },
-] as const;
+function quantityModes() {
+  return [
+    { value: "fixed", label: m.lists_rule_quantity_fixed() },
+    { value: "playset", label: m.lists_rule_quantity_playset() },
+  ] as const;
+}
 
 export function QuantityControl({
   value,
@@ -42,19 +45,19 @@ export function QuantityControl({
   return (
     <div className="flex items-center gap-2">
       <Select
-        items={QUANTITY_MODES}
+        items={quantityModes()}
         value={value.mode}
         onValueChange={(mode) => {
           resetDraft();
           onChange(mode === "fixed" ? { mode: "fixed", n: 1 } : { mode: "playset", multiplier: 1 });
         }}
       >
-        <SelectTrigger className="w-36" aria-label="Quantity mode">
+        <SelectTrigger className="w-36" aria-label={m.lists_rule_quantity_mode_aria()}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            {QUANTITY_MODES.map((item) => (
+            {quantityModes().map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>
@@ -66,7 +69,7 @@ export function QuantityControl({
         type="number"
         className="w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         min={value.mode === "fixed" ? 0 : 1}
-        aria-label="Quantity amount"
+        aria-label={m.lists_rule_quantity_amount_aria()}
         {...inputProps}
       />
     </div>

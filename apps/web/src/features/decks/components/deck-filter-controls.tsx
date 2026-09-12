@@ -17,6 +17,7 @@ import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function hasUsableDeckFilters(
   availability: DeckListFilterAvailability,
@@ -90,7 +91,7 @@ export function DeckFilterControls({
   const domainCluster = (showLabels: boolean) =>
     showDomains ? (
       <FilterIconCluster
-        label="Domain"
+        label={m.decks_editor_filter_domain()}
         options={availableDomains}
         included={domains}
         excluded={domainsExclude}
@@ -112,7 +113,7 @@ export function DeckFilterControls({
     >
       {showFormat && (
         <MultiSelectCombobox
-          label="Format"
+          label={m.decks_editor_filter_format()}
           triggerStyle={triggerStyle}
           options={formatList.map((entry) => ({ value: entry.slug, label: entry.label }))}
           selected={formats}
@@ -124,7 +125,7 @@ export function DeckFilterControls({
 
       {showFolders && (
         <MultiSelectCombobox
-          label="Folder"
+          label={m.decks_editor_filter_folder()}
           triggerStyle={triggerStyle}
           options={folderList.map((folder) => ({ value: folder.id, label: folder.name }))}
           selected={folders}
@@ -136,7 +137,7 @@ export function DeckFilterControls({
 
       {showValidity && (
         <FlagBadge
-          label="Legal"
+          label={m.decks_editor_filter_legal()}
           triggerStyle={triggerStyle}
           state={validity === "all" ? null : validity === "valid"}
           count={
@@ -148,7 +149,7 @@ export function DeckFilterControls({
 
       {showDrafts && (
         <FlagBadge
-          label="Draft"
+          label={m.decks_editor_filter_draft()}
           triggerStyle={triggerStyle}
           state={drafts === "all" ? null : drafts === "only"}
           count={drafts === "hide" ? counts.drafts.get("hide") : counts.drafts.get("only")}
@@ -182,7 +183,7 @@ export function DeckFilterControls({
           onClick={() => setShowArchived(!showArchived)}
           aria-pressed={showArchived}
         >
-          {showArchived ? "Hide archived" : "Show archived"}
+          {showArchived ? m.decks_editor_hide_archived() : m.decks_editor_show_archived()}
         </Button>
       )}
 
@@ -194,7 +195,7 @@ export function DeckFilterControls({
           className={cn(stacked && "justify-start")}
           onClick={clearAllFilters}
         >
-          Reset filters
+          {m.decks_editor_reset_filters()}
         </Button>
       )}
     </div>

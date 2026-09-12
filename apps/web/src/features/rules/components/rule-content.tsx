@@ -19,6 +19,7 @@ import {
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { copyTextToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Re-exported from @openrift/shared: the Discord bot's /rule command uses these too.
 export { buildTermAnchors, formatRuleNumber } from "@openrift/shared/rules";
@@ -27,9 +28,9 @@ export async function copyRuleLink(ruleNumber: string): Promise<void> {
   const url = `${globalThis.location.origin}${globalThis.location.pathname}#rule-${ruleNumber}`;
   try {
     await copyTextToClipboard(url);
-    toast.success(`Link to rule ${formatRuleNumber(ruleNumber)} copied`);
+    toast.success(m.rules_copy_link_success({ rule: formatRuleNumber(ruleNumber) }));
   } catch {
-    toast.error("Could not copy link");
+    toast.error(m.rules_copy_link_error());
   }
 }
 

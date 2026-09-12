@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import { TextLink } from "@/components/ui/text-link";
 import { formatLanguageAggregate } from "@/features/cards/lib/promo-sections";
+import { m } from "@/paraglide/messages.js";
 
 export function PromosIntro({
   languageLabel,
@@ -13,16 +14,14 @@ export function PromosIntro({
   return (
     <div className="mb-6">
       <p className="text-muted-foreground text-sm">
-        All the cards you can&apos;t pull from booster packs.{" "}
-        <strong className="font-semibold">Markers</strong> say how a card differs from the base
-        printing, <strong className="font-semibold">distribution channels</strong> say where it was
-        available.
+        {m.promos_intro_lead()} {m.promos_intro_markers()}
       </p>
       {aggregate && (
         <p className="text-muted-foreground mt-2 text-sm">
-          {formatLanguageAggregate(languageLabel, aggregate.printingCount, aggregate.cardCount)} If
-          you spotted a missing promo or can help out with a picture I don&apos;t have yet, suggest
-          one <TextLink render={<Link to="/contribute" />}>here</TextLink>.
+          {formatLanguageAggregate(languageLabel, aggregate.printingCount, aggregate.cardCount)}{" "}
+          {m.promos_intro_contribute()}{" "}
+          <TextLink render={<Link to="/contribute" />}>{m.promos_intro_contribute_link()}</TextLink>
+          .
         </p>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { m } from "@/paraglide/messages.js";
+
 interface NamedDeck {
   name: string;
 }
@@ -12,12 +14,12 @@ export function deckBoxLabel(homeDecks: readonly NamedDeck[]): string | undefine
     return undefined;
   }
   if (!second) {
-    return `Deck box for ${first.name}`;
+    return m.decks_overview_box_label_one({ name: first.name });
   }
   if (homeDecks.length === 2) {
-    return `Deck box for ${first.name} and ${second.name}`;
+    return m.decks_overview_box_label_two({ first: first.name, second: second.name });
   }
-  return `Deck box for ${homeDecks.length} decks`;
+  return m.decks_overview_box_label_many({ count: homeDecks.length });
 }
 
 export function sharedBoxWarning(
@@ -29,7 +31,10 @@ export function sharedBoxWarning(
     return undefined;
   }
   if (otherDecks.length === 1) {
-    return `${collectionName} is already the box for ${first.name}. Two decks can share one box.`;
+    return m.decks_overview_box_shared_one({ collection: collectionName, deck: first.name });
   }
-  return `${collectionName} is already the box for ${otherDecks.length} other decks. They can share it.`;
+  return m.decks_overview_box_shared_many({
+    collection: collectionName,
+    count: otherDecks.length,
+  });
 }

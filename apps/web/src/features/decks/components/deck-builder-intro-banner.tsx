@@ -5,23 +5,32 @@ import { Link } from "@tanstack/react-router";
 import { IntroBanner } from "@/components/intro-banner";
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
+import { m } from "@/paraglide/messages.js";
 
 function introSteps(format: DeckFormat): readonly { title: string; description: string }[] {
   const singleBattlefield = format === WellKnown.deckFormat.CUSTOM_REGION;
   return [
-    { title: "Pick a Legend", description: "Sets your deck's domains. Runes auto-fill 6/6." },
-    { title: "Choose a Champion", description: "Suggested by your Legend's tag." },
+    { title: m.decks_intro_step_legend_title(), description: m.decks_intro_step_legend_desc() },
+    {
+      title: m.decks_intro_step_champion_title(),
+      description: m.decks_intro_step_champion_desc(),
+    },
     singleBattlefield
-      ? { title: "Add a Battlefield", description: "One battlefield card." }
-      : { title: "Add Battlefields", description: "Three unique battlefield cards." },
-    { title: "Fill the Main Deck", description: "39 units, spells, and gear from your domains." },
+      ? {
+          title: m.decks_intro_step_battlefield_one_title(),
+          description: m.decks_intro_step_battlefield_one_desc(),
+        }
+      : {
+          title: m.decks_intro_step_battlefield_many_title(),
+          description: m.decks_intro_step_battlefield_many_desc(),
+        },
+    { title: m.decks_intro_step_main_title(), description: m.decks_intro_step_main_desc() },
   ];
 }
 
-const INTRO_TIPS: readonly string[] = [
-  "Click + on a card to add a copy, or drag it onto a zone. Shift adds the maximum.",
-  "Edits save automatically as you go.",
-];
+function introTips(): readonly string[] {
+  return [m.decks_intro_tip_add(), m.decks_intro_tip_autosave()];
+}
 
 // Dismissed for good once closed; the flag lives in the onboarding store.
 export function DeckBuilderIntroBanner({
@@ -33,15 +42,15 @@ export function DeckBuilderIntroBanner({
 }) {
   const formatTip =
     format === WellKnown.deckFormat.CONSTRUCTED
-      ? "The deck is checked against the rules as you build, and violations show up right away."
+      ? m.decks_intro_format_constructed()
       : format === WellKnown.deckFormat.CUSTOM_REGION
-        ? "Every card must belong to your chosen regions, one battlefield is played, there is no sideboard, and signature cards need their champion in the deck. Violations show up as you build."
-        : "You can build without rule restrictions.";
+        ? m.decks_intro_format_custom_region()
+        : m.decks_intro_format_freeform();
   return (
     <IntroBanner
       bodyClassName="mx-auto max-w-5xl"
-      title="Build your deck in four steps"
-      lead="The card browser auto-filters as you fill each zone, so you only see what fits."
+      title={m.decks_intro_title()}
+      lead={m.decks_intro_lead()}
       onDismiss={onDismiss}
     >
       <div className="grid gap-4 @lg:grid-cols-2">
@@ -61,18 +70,18 @@ export function DeckBuilderIntroBanner({
           ))}
         </ol>
         <div>
-          <p className="font-medium">Good to know</p>
+          <p className="font-medium">{m.decks_intro_good_to_know()}</p>
           <ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-5">
             <li>
-              Decks track{" "}
+              {m.decks_intro_printings_before()}{" "}
               <TextLink
                 render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}
               >
-                cards, not specific printings
+                {m.decks_intro_printings_link()}
               </TextLink>
-              , so any printing you own counts toward the deck.
+              {m.decks_intro_printings_after()}
             </li>
-            {INTRO_TIPS.map((tip) => (
+            {introTips().map((tip) => (
               <li key={tip}>{tip}</li>
             ))}
             <li>{formatTip}</li>
@@ -80,7 +89,7 @@ export function DeckBuilderIntroBanner({
         </div>
       </div>
       <TextLink render={<Link to="/help/$slug" params={{ slug: "deck-building" }} />}>
-        Read the full guide →
+        {m.decks_intro_read_guide()}
       </TextLink>
     </IntroBanner>
   );

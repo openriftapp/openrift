@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface SelectionCheckboxProps {
   isSelected: boolean;
@@ -9,7 +10,7 @@ interface SelectionCheckboxProps {
 export function SelectionCheckbox({ isSelected, onToggle }: SelectionCheckboxProps) {
   return (
     <Checkbox
-      aria-label="Select card"
+      aria-label={m.collections_grid_select_card()}
       checked={isSelected}
       onCheckedChange={onToggle}
       onClick={(event) => event.stopPropagation()}

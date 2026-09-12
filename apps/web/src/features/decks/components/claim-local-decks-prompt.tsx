@@ -20,6 +20,7 @@ import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function ClaimLocalDecksPrompt() {
   const userId = useUserId();
@@ -66,7 +67,7 @@ export function ClaimLocalDecksPrompt() {
         importedIds.push(deck.id);
       } catch {
         // Second toast beside the global mutation error one: this loop claims several decks, only this toast names which one failed.
-        toast.error(`Couldn't import "${deck.name}".`);
+        toast.error(m.decks_dialog_claim_import_failed({ name: deck.name }));
       }
     }
     // Refresh the server list before dropping the imported locals, or a freshly imported deck can appear twice in the merged list.
@@ -77,7 +78,9 @@ export function ClaimLocalDecksPrompt() {
     setImporting(false);
     if (importedIds.length > 0) {
       toast.success(
-        `Imported ${importedIds.length} ${importedIds.length === 1 ? "deck" : "decks"} to your account.`,
+        importedIds.length === 1
+          ? m.decks_dialog_claim_imported_one({ count: importedIds.length })
+          : m.decks_dialog_claim_imported_other({ count: importedIds.length }),
       );
     }
   };
@@ -87,10 +90,8 @@ export function ClaimLocalDecksPrompt() {
       <DialogContent>
         <DialogForm onSubmit={() => void handleImport()}>
           <DialogHeader>
-            <DialogTitle>Keep your local decks?</DialogTitle>
-            <DialogDescription>
-              Built on this device while signed out. Unpicked decks stay on this device.
-            </DialogDescription>
+            <DialogTitle>{m.decks_dialog_claim_title()}</DialogTitle>
+            <DialogDescription>{m.decks_dialog_claim_description()}</DialogDescription>
           </DialogHeader>
 
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
@@ -108,7 +109,9 @@ export function ClaimLocalDecksPrompt() {
                     <span className="min-w-0 flex-1 truncate font-medium">{deck.name}</span>
                     <Badge variant="secondary">{formatLabels[deck.format] ?? deck.format}</Badge>
                     <span className="text-muted-foreground tabular-nums">
-                      {totalCards} {totalCards === 1 ? "card" : "cards"}
+                      {totalCards === 1
+                        ? m.common_cards_one({ count: totalCards })
+                        : m.common_cards_other({ count: totalCards })}
                     </span>
                   </label>
                 </li>
@@ -118,10 +121,12 @@ export function ClaimLocalDecksPrompt() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDismissed(true)} disabled={importing}>
-              Not now
+              {m.decks_dialog_claim_not_now()}
             </Button>
             <Button type="submit" disabled={importing || selectedDecks.length === 0}>
-              {importing ? "Importing…" : `Import ${selectedDecks.length} to account`}
+              {importing
+                ? m.decks_dialog_claim_importing()
+                : m.decks_dialog_claim_submit({ count: selectedDecks.length })}
             </Button>
           </DialogFooter>
         </DialogForm>

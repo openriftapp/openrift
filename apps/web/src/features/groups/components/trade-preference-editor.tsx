@@ -20,21 +20,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
+import { m } from "@/paraglide/messages.js";
 
 import {
   CURRENCY_SYMBOL,
-  PRICE_PREF_LABEL,
-  PRICE_PREF_SHORT_LABEL,
-  TRADE_TYPE_LABEL,
+  pricePrefLabel,
+  pricePrefShortLabel,
+  tradeTypeLabel,
 } from "./trade-preference-labels";
 
 const PRICE_PREF_NONE = "__none__";
 const TRADE_TYPE_NONE = "__none__";
 
-const CURRENCY_ITEMS: { value: Currency; label: string }[] = CURRENCIES.map((value) => ({
-  value,
-  label: value === "EUR" ? "Euro (EUR)" : "US Dollar (USD)",
-}));
+function currencyItems(): { value: Currency; label: string }[] {
+  return CURRENCIES.map((value) => ({
+    value,
+    label: value === "EUR" ? m.trade_pref_currency_eur() : m.trade_pref_currency_usd(),
+  }));
+}
 
 export interface TradePreferenceEditorProps {
   value: TradePreference;
@@ -75,31 +78,36 @@ export function TradePreferenceEditor({
 
   // listDefault undefined means this editor edits the list defaults themselves;
   // only show inheritance labels when a listDefault to inherit from is given.
+  const currencyOptions = currencyItems();
   const pricePrefNoneLabel =
     listDefault === undefined
-      ? "No preference (negotiate)"
-      : `List default (${
-          listDefault.pricePref === null
-            ? "Negotiate"
-            : PRICE_PREF_SHORT_LABEL[listDefault.pricePref]
-        })`;
+      ? m.trade_pref_no_preference()
+      : m.trade_pref_list_default({
+          value:
+            listDefault.pricePref === null
+              ? m.trade_pref_negotiate()
+              : pricePrefShortLabel(listDefault.pricePref),
+        });
   const tradeTypeNoneLabel =
     listDefault === undefined
-      ? "No preference (negotiate)"
-      : `List default (${
-          listDefault.tradeType === null ? "Negotiate" : TRADE_TYPE_LABEL[listDefault.tradeType]
-        })`;
+      ? m.trade_pref_no_preference()
+      : m.trade_pref_list_default({
+          value:
+            listDefault.tradeType === null
+              ? m.trade_pref_negotiate()
+              : tradeTypeLabel(listDefault.tradeType),
+        });
 
   const pricePrefItems: { value: string; label: string }[] = [
     { value: PRICE_PREF_NONE, label: pricePrefNoneLabel },
     ...offeredPricePrefs(listDefault === undefined, value.pricePref).map((option) => ({
       value: option,
-      label: PRICE_PREF_LABEL[option],
+      label: pricePrefLabel(option),
     })),
   ];
   const tradeTypeItems: { value: string; label: string }[] = [
     { value: TRADE_TYPE_NONE, label: tradeTypeNoneLabel },
-    ...TRADE_TYPES.map((option) => ({ value: option, label: TRADE_TYPE_LABEL[option] })),
+    ...TRADE_TYPES.map((option) => ({ value: option, label: tradeTypeLabel(option) })),
   ];
 
   const handleAmountChange = (text: string) => {
@@ -154,7 +162,7 @@ export function TradePreferenceEditor({
     <div className="flex min-w-0 flex-col gap-3 overflow-hidden">
       <div className="flex items-center gap-2">
         <Label htmlFor={`${idPrefix}-price`} className="w-20 shrink-0 font-normal">
-          Price
+          {m.trade_pref_price_label()}
         </Label>
         <Select
           items={pricePrefItems}
@@ -181,10 +189,10 @@ export function TradePreferenceEditor({
       {showCurrency && (
         <div className="flex items-center gap-2">
           <Label htmlFor={`${idPrefix}-currency`} className="w-20 shrink-0 font-normal">
-            Currency
+            {m.trade_pref_currency_label()}
           </Label>
           <Select
-            items={CURRENCY_ITEMS}
+            items={currencyOptions}
             value={currency ?? "EUR"}
             onValueChange={(next) => {
               if (next && CURRENCIES.includes(next as Currency)) {
@@ -196,7 +204,7 @@ export function TradePreferenceEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CURRENCY_ITEMS.map((item) => (
+              {currencyOptions.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
@@ -209,13 +217,13 @@ export function TradePreferenceEditor({
       {isAbsolute && (
         <div className="flex items-center gap-2">
           <Label htmlFor={`${idPrefix}-amount`} className="w-20 shrink-0 font-normal">
-            Amount
+            {m.trade_pref_amount_label()}
           </Label>
           <div className="flex flex-1 items-center gap-2">
             <Input
               id={`${idPrefix}-amount`}
               inputMode="decimal"
-              placeholder="e.g. 4 or 4.50"
+              placeholder={m.trade_pref_amount_placeholder()}
               {...amountProps}
             />
             <span className="text-muted-foreground text-sm">
@@ -227,7 +235,7 @@ export function TradePreferenceEditor({
 
       <div className="flex items-center gap-2">
         <Label htmlFor={`${idPrefix}-type`} className="w-20 shrink-0 font-normal">
-          Accepts
+          {m.trade_pref_accepts_label()}
         </Label>
         <Select
           items={tradeTypeItems}

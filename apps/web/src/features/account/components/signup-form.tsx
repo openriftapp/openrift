@@ -11,22 +11,22 @@ import { Input } from "@/components/ui/input";
 import { AuthFormCard, SocialAuthButtons } from "@/features/account/components/auth-form-shell";
 import { signUp } from "@/features/account/lib/auth-client";
 import { setServerError } from "@/lib/auth-errors";
+import { m } from "@/paraglide/messages.js";
 
-const signUpSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required.")
-    .max(50, "Name must be 50 characters or fewer.")
-    .regex(
-      /^[\p{L}\p{N} ._-]+$/u,
-      "Name may only contain letters, digits, spaces, periods, underscores, and hyphens.",
-    ),
-  email: z.email("Please enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-});
+function signUpSchema() {
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, m.auth_name_required())
+      .max(50, m.auth_name_too_long())
+      .regex(/^[\p{L}\p{N} ._-]+$/u, m.auth_name_invalid()),
+    email: z.email(m.auth_invalid_email()),
+    password: z.string().min(8, m.auth_password_min()),
+  });
+}
 
-type SignUpValues = z.infer<typeof signUpSchema>;
+type SignUpValues = z.infer<ReturnType<typeof signUpSchema>>;
 
 export function SignupForm({
   className,
@@ -42,7 +42,7 @@ export function SignupForm({
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const form = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
+    resolver: zodResolver(signUpSchema()),
     defaultValues: { name: "", email: initialEmail, password: "" },
   });
 
@@ -51,7 +51,7 @@ export function SignupForm({
     const result = await signUp.email(values).catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not create the account. Please try again." });
+      form.setError("root", { message: m.auth_signup_failed() });
       return;
     }
     const { error } = result;
@@ -65,8 +65,8 @@ export function SignupForm({
   return (
     <AuthFormCard
       className={className}
-      title="Create an account"
-      subtitle="Enter your details to get started"
+      title={m.auth_signup_title()}
+      subtitle={m.auth_signup_subtitle()}
       {...props}
     >
       <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} noValidate>
@@ -77,12 +77,12 @@ export function SignupForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.auth_field_name()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
                   type="text"
-                  placeholder="Your name"
+                  placeholder={m.auth_name_placeholder()}
                   aria-invalid={fieldState.invalid}
                   // oxlint-disable-next-line jsx-a11y/no-autofocus -- sign-up page's primary input
                   autoFocus
@@ -96,7 +96,7 @@ export function SignupForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.auth_field_email()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
@@ -114,7 +114,7 @@ export function SignupForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{m.auth_field_password()}</FieldLabel>
                 <Input
                   {...field}
                   id={field.name}
@@ -128,14 +128,14 @@ export function SignupForm({
           />
           <Field>
             <Button type="submit" disabled={loading}>
-              {loading ? "Signing up..." : "Sign up"}
+              {loading ? m.auth_signing_up() : m.common_sign_up()}
             </Button>
           </Field>
         </FieldGroup>
       </form>
       <SocialAuthButtons redirectTo={redirectTo} />
       <FieldDescription className="text-center">
-        Already have an account? <LoginLink control={form.control} redirectTo={redirectTo} />
+        {m.auth_signup_have_account()} <LoginLink control={form.control} redirectTo={redirectTo} />
       </FieldDescription>
     </AuthFormCard>
   );
@@ -160,7 +160,7 @@ function LoginLink({
   const email = useWatch({ control, name: "email" });
   return (
     <Link to="/login" search={{ redirect: redirectTo, email: email || undefined }}>
-      Sign in
+      {m.common_sign_in()}
     </Link>
   );
 }

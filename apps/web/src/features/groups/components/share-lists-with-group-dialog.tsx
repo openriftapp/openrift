@@ -18,13 +18,14 @@ import {
   useFriendGroupShareableLists,
   useShareListWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
+import { m } from "@/paraglide/messages.js";
 
 export function ShareListsWithGroupDialog({
   slug,
   groupName,
   open,
   onOpenChange,
-  cancelLabel = "Skip for now",
+  cancelLabel = m.share_lists_dialog_skip(),
   preselectAll = true,
 }: {
   slug: string;
@@ -38,13 +39,15 @@ export function ShareListsWithGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share lists with {groupName}?</DialogTitle>
-          <DialogDescription>
-            Members can see every card on the lists you pick. You can change this anytime.
-          </DialogDescription>
+          <DialogTitle>{m.share_lists_dialog_title({ group: groupName })}</DialogTitle>
+          <DialogDescription>{m.share_lists_dialog_description()}</DialogDescription>
         </DialogHeader>
         <Suspense
-          fallback={<div className="text-muted-foreground py-4 text-sm">Loading your lists…</div>}
+          fallback={
+            <div className="text-muted-foreground py-4 text-sm">
+              {m.share_lists_dialog_loading()}
+            </div>
+          }
         >
           <ShareListsBody
             slug={slug}
@@ -87,19 +90,19 @@ function ShareListsBody({
         <p className="text-muted-foreground">
           {tradableLists.length === 0 ? (
             <>
-              You don&apos;t have a wishlist or tradelist to share yet.{" "}
+              {m.share_lists_dialog_none_before()}{" "}
               <TextLink variant="muted" render={<Link to="/collections" />}>
-                Create one
+                {m.share_dialog_create_one()}
               </TextLink>{" "}
-              and you can share it with this group from its manage page.
+              {m.share_dialog_none_after()}
             </>
           ) : (
-            "You've already shared all your wishlists and tradelists with this group."
+            m.share_lists_dialog_all_shared()
           )}
         </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Close
+            {m.common_close()}
           </Button>
         </DialogFooter>
       </>
@@ -149,7 +152,9 @@ function ShareListsBody({
                 )}
                 <span className="truncate font-medium">{item.listName}</span>
                 <span className="text-muted-foreground shrink-0 text-xs">
-                  {item.entryCount} {item.entryCount === 1 ? "card" : "cards"}
+                  {item.entryCount === 1
+                    ? m.common_cards_one({ count: item.entryCount })
+                    : m.common_cards_other({ count: item.entryCount })}
                 </span>
               </label>
             </li>
@@ -161,7 +166,9 @@ function ShareListsBody({
           {cancelLabel}
         </Button>
         <Button type="submit" disabled={share.isPending || selectedIds.size === 0}>
-          {selectedIds.size === 1 ? "Share 1 list" : `Share ${selectedIds.size} lists`}
+          {selectedIds.size === 1
+            ? m.share_lists_dialog_submit_one({ count: selectedIds.size })
+            : m.share_lists_dialog_submit_other({ count: selectedIds.size })}
         </Button>
       </DialogFooter>
     </DialogForm>

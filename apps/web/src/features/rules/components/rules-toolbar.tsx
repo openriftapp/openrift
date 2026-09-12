@@ -13,6 +13,7 @@ import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { m } from "@/paraglide/messages.js";
 
 // Keep as its own component: inlining the `foldedRules.size` selector here
 // would re-render the whole RulesContent tree on every fold toggle.
@@ -23,7 +24,7 @@ export function ExpandCollapseAllButton({ foldGroupKeys }: { foldGroupKeys: stri
   const collapseAll = useRulesFoldStore((state) => state.collapseAll);
   const expandAll = useRulesFoldStore((state) => state.expandAll);
 
-  const label = allCollapsed ? "Expand all" : "Collapse all";
+  const label = allCollapsed ? m.rules_expand_all() : m.rules_collapse_all();
   const handleClick = () => {
     if (allCollapsed) {
       expandAll();
@@ -63,9 +64,7 @@ export function ShowChangesToggle({
   const setShow = useRulesShowChangesStore((state) => state.setShow);
 
   const isOn = hasPreviousVersion && checked;
-  const label = hasPreviousVersion
-    ? "Show changes since previous version"
-    : "First version, no prior to compare";
+  const label = hasPreviousVersion ? m.rules_show_changes() : m.rules_show_changes_unavailable();
 
   return (
     <Tooltip>
@@ -77,7 +76,7 @@ export function ShowChangesToggle({
           pressed={isOn}
           disabled={!hasPreviousVersion}
           onPressedChange={(next) => setShow(kind, next)}
-          aria-label="Show changes since previous version"
+          aria-label={m.rules_show_changes()}
         >
           <FileClockIcon />
         </Toggle>
@@ -103,8 +102,8 @@ export function KindTabs({ kind }: { kind: RuleKind }) {
       }}
     >
       <TabsList variant="line">
-        <TabsTrigger value="core">Core</TabsTrigger>
-        <TabsTrigger value="tournament">Tournament</TabsTrigger>
+        <TabsTrigger value="core">{m.rules_tab_core()}</TabsTrigger>
+        <TabsTrigger value="tournament">{m.rules_tab_tournament()}</TabsTrigger>
       </TabsList>
     </Tabs>
   );
@@ -163,7 +162,7 @@ export function RulesSearchBar({ trailing }: { trailing: string }) {
         setDraft("");
         debouncedApply("");
       }}
-      placeholder="Search rules..."
+      placeholder={m.rules_search_placeholder()}
       trailing={trailing}
       className="min-w-[200px] flex-1"
     />

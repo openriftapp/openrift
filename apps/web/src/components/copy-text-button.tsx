@@ -2,6 +2,7 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 interface CopyTextButtonProps {
   label: string;
@@ -38,7 +39,7 @@ export function CopyTextButton({
   return (
     <Button variant="outline" size={size} onClick={() => void handleCopy()}>
       {copied ? <CheckIcon /> : <CopyIcon />}
-      {copied ? "Copied" : label}
+      {copied ? m.common_copied() : label}
     </Button>
   );
 }

@@ -14,38 +14,40 @@ import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { Kbd } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/text-link";
+import { m } from "@/paraglide/messages.js";
 
-const GUIDE_ROWS: readonly IntroGuideRow[] = [
-  {
-    icons: [LibraryBigIcon],
-    title: "Library",
-    description: "Switch between the whole card library and just the cards you own.",
-  },
-  {
-    icons: [SquareIcon, CopyIcon, SquareStackIcon],
-    title: "Cards, printings, copies",
-    description: "One tile per card, every printing separately, or each individual copy you own.",
-    desktopOnly: true,
-  },
-  {
-    icons: [CheckSquareIcon],
-    title: "Manage cards",
-    description:
-      "Select lots of cards at once to move them between collections or add them to lists.",
-  },
-  {
-    icons: [LayoutGridIcon, Rows3Icon],
-    title: "Grid or table",
-    description: "View cards as image tiles or as a compact table.",
-    desktopOnly: true,
-  },
-  {
-    icons: [SlidersHorizontalIcon],
-    title: "Options",
-    description: "View modes, sorting, and filters live behind this button.",
-    mobileOnly: true,
-  },
-];
+function guideRows(): readonly IntroGuideRow[] {
+  return [
+    {
+      icons: [LibraryBigIcon],
+      title: m.collections_intro_library_title(),
+      description: m.collections_intro_library_description(),
+    },
+    {
+      icons: [SquareIcon, CopyIcon, SquareStackIcon],
+      title: m.collections_intro_units_title(),
+      description: m.collections_intro_units_description(),
+      desktopOnly: true,
+    },
+    {
+      icons: [CheckSquareIcon],
+      title: m.collections_intro_manage_title(),
+      description: m.collections_intro_manage_description(),
+    },
+    {
+      icons: [LayoutGridIcon, Rows3Icon],
+      title: m.collections_intro_view_title(),
+      description: m.collections_intro_view_description(),
+      desktopOnly: true,
+    },
+    {
+      icons: [SlidersHorizontalIcon],
+      title: m.collections_intro_options_title(),
+      description: m.collections_intro_options_description(),
+      mobileOnly: true,
+    },
+  ];
+}
 
 export function CollectionIntroBanner({
   showLibrary,
@@ -57,22 +59,21 @@ export function CollectionIntroBanner({
   return (
     <IntroBanner
       className="mb-3"
-      title="Welcome to your collection"
-      lead={
-        showLibrary
-          ? "You're browsing the whole card library. Tap the + on any card to add it to your collection."
-          : "This view shows only the cards you own. Turn on the library to browse and add every card."
-      }
+      title={m.collections_intro_title()}
+      lead={showLibrary ? m.collections_intro_lead_library() : m.collections_intro_lead_owned()}
       onDismiss={onDismiss}
     >
-      <IntroGuideList rows={GUIDE_ROWS} />
+      <IntroGuideList rows={guideRows()} />
       <p className="text-muted-foreground">
         <span className="hidden sm:inline">
-          <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> quick-add ·{" "}
+          <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd> {m.collections_intro_quick_add()} ·{" "}
         </span>
-        <TextLink render={<Link to="/collections/import" />}>Import your collection</TextLink> ·{" "}
+        <TextLink render={<Link to="/collections/import" />}>
+          {m.collections_intro_import_link()}
+        </TextLink>{" "}
+        ·{" "}
         <TextLink render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}>
-          How cards, printings &amp; copies work
+          {m.collections_intro_help_link()}
         </TextLink>
       </p>
     </IntroBanner>

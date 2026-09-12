@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   requiredZoneProgress,
-  ZONE_EMPTY_HINTS,
   ZONE_LABELS,
   zoneEmptyHint,
+  zoneEmptyHints,
   zoneEmptyReadOnlyLabel,
   zoneExpected,
   zoneLabel,
@@ -43,7 +43,7 @@ describe("zone constants", () => {
 
   it("has an empty-state hint for every labelled zone", () => {
     for (const zone of Object.keys(ZONE_LABELS)) {
-      expect(ZONE_EMPTY_HINTS[zone as keyof typeof ZONE_EMPTY_HINTS]).toBeTruthy();
+      expect(zoneEmptyHints()[zone as keyof typeof ZONE_LABELS]).toBeTruthy();
     }
   });
 });
@@ -101,7 +101,7 @@ describe("zoneEmptyHint", () => {
 
   it("uses the baseline hint for other zones regardless of format", () => {
     expect(zoneEmptyHint(WellKnown.deckZone.LEGEND, WellKnown.deckFormat.CUSTOM_REGION)).toBe(
-      ZONE_EMPTY_HINTS.legend,
+      zoneEmptyHints().legend,
     );
   });
 });

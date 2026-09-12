@@ -24,6 +24,7 @@ import { useImportHandoffStore } from "@/features/collections/stores/import-hand
 import type { ImportableListKind } from "@/features/lists/hooks/use-list-import-flow";
 import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export interface ImportableListOption {
@@ -125,7 +126,7 @@ export function useImportFlow() {
   const importIntoList = async (listId: string) => {
     const list = importableLists.find((option) => option.id === listId);
     if (!list) {
-      toast.error("Please select a target.");
+      toast.error(m.collections_import_toast_select_target());
       return;
     }
 
@@ -136,7 +137,6 @@ export function useImportFlow() {
     for (let offset = 0; offset < payload.length; offset += IMPORT_BATCH_SIZE) {
       batches.push(payload.slice(offset, offset + IMPORT_BATCH_SIZE));
     }
-    const cardLabel = summary.totalCards === 1 ? "card" : "cards";
 
     const sendAllBatches = async () => {
       for (const batch of batches) {
@@ -144,14 +144,25 @@ export function useImportFlow() {
       }
     };
 
+    const addedToListMessage =
+      summary.totalCards === 1
+        ? m.collections_import_toast_added_to_list_one({
+            count: summary.totalCards,
+            name: list.name,
+          })
+        : m.collections_import_toast_added_to_list_other({
+            count: summary.totalCards,
+            name: list.name,
+          });
+
     try {
       await sendAllBatches();
-      toast.success(`Added ${summary.totalCards} ${cardLabel} to ${list.name}.`);
+      toast.success(addedToListMessage);
       void navigate({ to: "/collections/lists/$listId", params: { listId } });
     } catch {
       // Deliberate second toast: batches before the failing one already
       // committed, so this says the import was left half-done.
-      toast.error("Import failed. Some cards may have been added.");
+      toast.error(m.collections_import_toast_failed());
       setIsImporting(false);
     }
   };
@@ -169,7 +180,7 @@ export function useImportFlow() {
     if (targetCollectionId === "__new__") {
       const trimmed = newCollectionName.trim();
       if (!trimmed) {
-        toast.error("Please enter a collection name.");
+        toast.error(m.collections_import_toast_enter_collection_name());
         return;
       }
       setIsCreatingCollection(true);
@@ -185,7 +196,7 @@ export function useImportFlow() {
     }
 
     if (!targetCollectionId || targetCollectionId === "__new__") {
-      toast.error("Please select a target collection.");
+      toast.error(m.collections_import_toast_select_collection());
       return;
     }
 
@@ -202,7 +213,7 @@ export function useImportFlow() {
           await disposeCopies.mutateAsync({ copyIds: existingCopyIds });
         } catch {
           // Deliberate second toast: this says the collection is untouched.
-          toast.error("Couldn't clear the collection, so nothing was imported.");
+          toast.error(m.collections_import_toast_clear_failed());
           setIsImporting(false);
           return;
         }
@@ -224,7 +235,6 @@ export function useImportFlow() {
     for (let offset = 0; offset < copies.length; offset += IMPORT_BATCH_SIZE) {
       batches.push(copies.slice(offset, offset + IMPORT_BATCH_SIZE));
     }
-    const copyLabel = summary.totalCards === 1 ? "copy" : "copies";
 
     const sendAllBatches = async () => {
       for (const batch of batches) {
@@ -232,9 +242,14 @@ export function useImportFlow() {
       }
     };
 
+    const importedMessage =
+      summary.totalCards === 1
+        ? m.collections_import_toast_imported_one({ count: summary.totalCards })
+        : m.collections_import_toast_imported_other({ count: summary.totalCards });
+
     try {
       await sendAllBatches();
-      toast.success(`Imported ${summary.totalCards} ${copyLabel}.`);
+      toast.success(importedMessage);
       void navigate({
         to: "/collections/$collectionId",
         params: { collectionId: targetCollectionId },
@@ -242,7 +257,7 @@ export function useImportFlow() {
     } catch {
       // Deliberate second toast: batches before the failing one already
       // committed, so this says the import was left half-done.
-      toast.error("Import failed. Some cards may have been added.");
+      toast.error(m.collections_import_toast_failed());
       setIsImporting(false);
     }
   };

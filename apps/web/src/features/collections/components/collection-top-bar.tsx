@@ -30,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SelectModeActions } from "@/features/cards/components/select-mode-actions";
 import { CollectionValueSummary } from "@/features/collections/components/collection-value-summary";
 import { deckBoxLabel } from "@/features/decks/lib/deck-box-label";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionTopBarProps {
   title: string;
@@ -129,18 +130,18 @@ export function CollectionTopBar({
                   render={
                     <PageTopBarIconButton
                       render={<Link to="/scan" />}
-                      aria-label="Scan cards"
+                      aria-label={m.collections_topbar_scan_cards()}
                       className="sm:hidden"
                     />
                   }
                 >
                   <CameraIcon className="size-4" />
                 </TooltipTrigger>
-                <TooltipContent>Scan cards</TooltipContent>
+                <TooltipContent>{m.collections_topbar_scan_cards()}</TooltipContent>
               </Tooltip>
               <PageTopBarButton render={<Link to="/scan" />} className="hidden sm:flex">
                 <CameraIcon className="size-4" />
-                Scan
+                {m.collections_topbar_scan()}
               </PageTopBarButton>
             </>
           )}
@@ -148,14 +149,14 @@ export function CollectionTopBar({
             <>
               <PageTopBarIconButton
                 onClick={onQuickAdd}
-                aria-label="Quick add"
+                aria-label={m.collections_topbar_quick_add()}
                 className="sm:hidden"
               >
                 <SquarePlusIcon className="size-4" />
               </PageTopBarIconButton>
               <PageTopBarButton onClick={onQuickAdd} className="hidden sm:flex">
                 <SquarePlusIcon className="size-4" />
-                Quick add
+                {m.collections_topbar_quick_add()}
               </PageTopBarButton>
             </>
           )}
@@ -170,36 +171,40 @@ export function CollectionTopBar({
           />
           {shareInBar && (
             <>
-              <PageTopBarIconButton onClick={onShare} aria-label="Share" className="sm:hidden">
+              <PageTopBarIconButton
+                onClick={onShare}
+                aria-label={m.collections_topbar_share()}
+                className="sm:hidden"
+              >
                 <Share2Icon className="size-4" />
               </PageTopBarIconButton>
               <PageTopBarButton onClick={onShare} className="hidden sm:flex">
                 <Share2Icon className="size-4" />
-                Share
+                {m.collections_topbar_share()}
               </PageTopBarButton>
             </>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger render={<PageTopBarIconButton />}>
               <EllipsisVerticalIcon className="size-4" />
-              <span className="sr-only">Collection actions</span>
+              <span className="sr-only">{m.collections_topbar_actions()}</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {canEdit && (
                 <DropdownMenuItem onClick={onEdit}>
                   <PencilIcon className="size-4" />
-                  Edit
+                  {m.collections_topbar_edit()}
                 </DropdownMenuItem>
               )}
               {canImport && (
                 <DropdownMenuItem onClick={onImport}>
                   <UploadIcon className="size-4" />
-                  Import…
+                  {m.collections_topbar_import()}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={onExport}>
                 <DownloadIcon className="size-4" />
-                Export…
+                {m.collections_topbar_export()}
               </DropdownMenuItem>
               {canDelete && (
                 <DropdownMenuItem
@@ -207,7 +212,7 @@ export function CollectionTopBar({
                   onClick={onDelete}
                 >
                   <Trash2Icon className="size-4" />
-                  Delete collection
+                  {m.collections_topbar_delete()}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

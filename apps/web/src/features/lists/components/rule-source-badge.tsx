@@ -4,8 +4,7 @@ import { BanIcon, SparklesIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { cn } from "@/lib/utils";
-
-const RULE_LABEL = "Added by a list rule";
+import { m } from "@/paraglide/messages.js";
 
 export function isRuleSourced(source: EntrySource): boolean {
   return source === "rule" || source === "both";
@@ -15,7 +14,7 @@ export function RuleSourceBadge({
   quantity,
   className,
   onExclude,
-  excludeLabel = "Don't include this",
+  excludeLabel = m.lists_rule_badge_exclude_default(),
 }: {
   quantity?: number;
   className?: string;
@@ -27,10 +26,18 @@ export function RuleSourceBadge({
       variant="subtle"
       // Must match countPillVariants in ui/count-pill.tsx.
       className={cn("rounded-md border-0 bg-transparent", onExclude && "pr-0.5", className)}
-      title={quantity === undefined ? RULE_LABEL : `${quantity} added by a list rule`}
+      title={
+        quantity === undefined
+          ? m.lists_rule_badge_title()
+          : m.lists_rule_badge_title_quantity({ count: quantity })
+      }
     >
       <SparklesIcon aria-hidden />
-      {quantity === undefined ? "Rule" : <span className="tabular-nums">{quantity}</span>}
+      {quantity === undefined ? (
+        m.lists_rule_badge_label()
+      ) : (
+        <span className="tabular-nums">{quantity}</span>
+      )}
       {onExclude ? (
         <ChipRemoveButton
           tabIndex={-1}

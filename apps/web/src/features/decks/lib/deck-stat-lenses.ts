@@ -5,6 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+import { m } from "@/paraglide/messages.js";
 
 export interface LensSeries {
   key: string;
@@ -26,12 +27,14 @@ const LENS_ZONES: ReadonlySet<DeckZone> = new Set([
 
 export type OwnershipClass = "exact" | "other" | "borrowed" | "missing";
 
-export const OWNERSHIP_LENS_SERIES: readonly (LensSeries & { key: OwnershipClass })[] = [
-  { key: "exact", label: "This printing", color: "var(--color-green-500)" },
-  { key: "other", label: "Another printing", color: "var(--color-sky-500)" },
-  { key: "borrowed", label: "Borrowed", color: "var(--color-violet-500)" },
-  { key: "missing", label: "Missing", color: "var(--color-amber-500)" },
-];
+export function ownershipLensSeries(): readonly (LensSeries & { key: OwnershipClass })[] {
+  return [
+    { key: "exact", label: m.decks_stats_lens_exact(), color: "var(--color-green-500)" },
+    { key: "other", label: m.decks_stats_lens_other(), color: "var(--color-sky-500)" },
+    { key: "borrowed", label: m.decks_stats_lens_borrowed(), color: "var(--color-violet-500)" },
+    { key: "missing", label: m.decks_stats_lens_missing(), color: "var(--color-amber-500)" },
+  ];
+}
 
 export function buildRarityByCardKey(
   cards: readonly DeckBuilderCard[],
@@ -93,7 +96,7 @@ export function buildRarityRows(
       const total = totals.get(rarity) ?? 0;
       return {
         key: rarity,
-        label: `${total} ${rarityLabels[rarity]}`,
+        label: m.decks_stats_lens_row({ count: total, label: enumLabel(rarityLabels, rarity) }),
         total,
         segments: { [rarity]: total },
       };
@@ -120,9 +123,9 @@ export function buildOwnershipRows(
     // Locked copies count as missing, matching every other shortfall figure.
     totals.missing += segments.missing + segments.locked;
   }
-  return OWNERSHIP_LENS_SERIES.map((series) => ({
+  return ownershipLensSeries().map((series) => ({
     key: series.key,
-    label: `${totals[series.key]} ${series.label}`,
+    label: m.decks_stats_lens_row({ count: totals[series.key], label: series.label }),
     total: totals[series.key],
     segments: { [series.key]: totals[series.key] },
   }));

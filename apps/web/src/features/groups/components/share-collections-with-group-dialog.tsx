@@ -18,13 +18,14 @@ import {
   useFriendGroupShareableCollections,
   useShareCollectionWithFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
+import { m } from "@/paraglide/messages.js";
 
 export function ShareCollectionsWithGroupDialog({
   slug,
   groupName,
   open,
   onOpenChange,
-  cancelLabel = "Cancel",
+  cancelLabel = m.common_cancel(),
   preselectAll = false,
 }: {
   slug: string;
@@ -38,15 +39,14 @@ export function ShareCollectionsWithGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share collections with {groupName}?</DialogTitle>
-          <DialogDescription>
-            Pick the collections this group can see. Shared collections are read-only for other
-            members, and you can change this anytime from the group&apos;s manage page.
-          </DialogDescription>
+          <DialogTitle>{m.share_collections_dialog_title({ group: groupName })}</DialogTitle>
+          <DialogDescription>{m.share_collections_dialog_description()}</DialogDescription>
         </DialogHeader>
         <Suspense
           fallback={
-            <div className="text-muted-foreground py-4 text-sm">Loading your collections…</div>
+            <div className="text-muted-foreground py-4 text-sm">
+              {m.share_collections_dialog_loading()}
+            </div>
           }
         >
           <ShareCollectionsBody
@@ -87,19 +87,19 @@ function ShareCollectionsBody({
         <p className="text-muted-foreground">
           {data.items.length === 0 ? (
             <>
-              You don&apos;t have a collection to share yet.{" "}
+              {m.share_collections_dialog_none_before()}{" "}
               <TextLink variant="muted" render={<Link to="/collections" />}>
-                Create one
+                {m.share_dialog_create_one()}
               </TextLink>{" "}
-              and you can share it with this group from its manage page.
+              {m.share_dialog_none_after()}
             </>
           ) : (
-            "You've already shared all your collections with this group."
+            m.share_collections_dialog_all_shared()
           )}
         </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Close
+            {m.common_close()}
           </Button>
         </DialogFooter>
       </>
@@ -154,7 +154,9 @@ function ShareCollectionsBody({
           {cancelLabel}
         </Button>
         <Button type="submit" disabled={share.isPending || selectedIds.size === 0}>
-          {selectedIds.size === 1 ? "Share 1 collection" : `Share ${selectedIds.size} collections`}
+          {selectedIds.size === 1
+            ? m.share_collections_dialog_submit_one({ count: selectedIds.size })
+            : m.share_collections_dialog_submit_other({ count: selectedIds.size })}
         </Button>
       </DialogFooter>
     </DialogForm>

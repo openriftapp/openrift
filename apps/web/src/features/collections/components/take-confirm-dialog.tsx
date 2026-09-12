@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/
 import { Button } from "@/components/ui/button";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { m } from "@/paraglide/messages.js";
 
 interface TakeConfirmDialogProps {
   printing: Printing | null;
@@ -38,7 +39,7 @@ export function TakeConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={() => onConfirm(quantity)}>
-          <AlertDialogTitle>Take from the group collection</AlertDialogTitle>
+          <AlertDialogTitle>{m.collections_dialog_take_title()}</AlertDialogTitle>
           {canStep && (
             <div className="flex flex-col items-center gap-1 py-1">
               <QuantityStepper
@@ -47,15 +48,21 @@ export function TakeConfirmDialog({
                 max={maxQuantity}
                 disabled={isPending}
               />
-              <p className="text-muted-foreground text-xs">{maxQuantity} in the box</p>
+              <p className="text-muted-foreground text-xs">
+                {m.collections_dialog_take_in_box({ count: maxQuantity })}
+              </p>
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Taking…" : quantity === 1 ? "Take a copy" : `Take ${quantity} copies`}
+              {isPending
+                ? m.collections_dialog_take_pending()
+                : quantity === 1
+                  ? m.collections_dialog_take_one()
+                  : m.collections_dialog_take_other({ count: quantity })}
             </Button>
           </div>
         </DialogForm>

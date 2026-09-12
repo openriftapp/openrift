@@ -4,6 +4,7 @@ import { PlusSquareIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { m } from "@/paraglide/messages.js";
 
 export const NEW_COLLECTION_OPTION = "__new__";
 
@@ -39,7 +40,7 @@ export function CollectionRadioPicker({
               <span className="min-w-0 flex-1 truncate font-medium">{collection.name}</span>
               {collection.isInbox ? (
                 <Badge variant="secondary" className="shrink-0">
-                  Inbox
+                  {m.collections_dialog_picker_inbox_badge()}
                 </Badge>
               ) : null}
               {collection.groupName ? (
@@ -48,7 +49,9 @@ export function CollectionRadioPicker({
                 </Badge>
               ) : null}
               <span className="text-muted-foreground shrink-0 text-xs">
-                {collection.copyCount} {collection.copyCount === 1 ? "card" : "cards"}
+                {collection.copyCount === 1
+                  ? m.common_cards_one({ count: collection.copyCount })
+                  : m.common_cards_other({ count: collection.copyCount })}
               </span>
             </label>
           );
@@ -58,7 +61,7 @@ export function CollectionRadioPicker({
           className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
         >
           <RadioGroupItem id={`${idPrefix}-new`} value={NEW_COLLECTION_OPTION} />
-          <span className="flex-1 font-medium">New collection</span>
+          <span className="flex-1 font-medium">{m.collections_dialog_picker_new()}</span>
           <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
         </label>
       </RadioGroup>
@@ -67,8 +70,8 @@ export function CollectionRadioPicker({
         <Input
           value={newName}
           onChange={(event) => onNewNameChange(event.target.value)}
-          placeholder="Collection name"
-          aria-label="New collection name"
+          placeholder={m.collections_dialog_collection_name_placeholder()}
+          aria-label={m.collections_dialog_picker_new_name_label()}
         />
       ) : null}
     </>

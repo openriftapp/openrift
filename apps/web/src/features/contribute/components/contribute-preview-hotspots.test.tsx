@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
-import { CARD_PLACEHOLDER_REGIONS } from "@/features/cards/lib/card-placeholder-regions";
+import { cardPlaceholderRegions } from "@/features/cards/lib/card-placeholder-regions";
 import { ContributePreviewHotspots } from "@/features/contribute/components/contribute-preview-hotspots";
 
 const ALL_FIELDS: Record<PlaceholderField, true> = {
@@ -43,16 +43,16 @@ function renderHotspots(
   );
 }
 
-describe("CARD_PLACEHOLDER_REGIONS", () => {
+describe("cardPlaceholderRegions", () => {
   it("covers every placeholder field exactly once", () => {
-    const fields = CARD_PLACEHOLDER_REGIONS.map((region) => region.field);
+    const fields = cardPlaceholderRegions().map((region) => region.field);
 
     expect(fields.toSorted()).toEqual(Object.keys(ALL_FIELDS).toSorted());
     expect(new Set(fields).size).toBe(fields.length);
   });
 
   it("keeps every rect inside the card box", () => {
-    for (const region of CARD_PLACEHOLDER_REGIONS) {
+    for (const region of cardPlaceholderRegions()) {
       expect(region.x).toBeGreaterThanOrEqual(0);
       expect(region.y).toBeGreaterThanOrEqual(0);
       expect(region.x + region.width).toBeLessThanOrEqual(100);
@@ -65,7 +65,7 @@ describe("ContributePreviewHotspots", () => {
   it("renders a control for every region", () => {
     renderHotspots();
 
-    expect(screen.getAllByRole("button")).toHaveLength(CARD_PLACEHOLDER_REGIONS.length);
+    expect(screen.getAllByRole("button")).toHaveLength(cardPlaceholderRegions().length);
   });
 
   it("labels an empty region but not a filled one", () => {

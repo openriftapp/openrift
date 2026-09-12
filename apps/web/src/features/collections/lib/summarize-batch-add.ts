@@ -1,3 +1,5 @@
+import { m } from "@/paraglide/messages.js";
+
 /** "Added N× Card Name" for a single-printing batch, "Added N cards" otherwise. */
 export function summarizeBatchAdd(
   printingIds: string[],
@@ -9,8 +11,8 @@ export function summarizeBatchAdd(
   }
   const allSame = printingIds.every((id) => id === first);
   if (allSame) {
-    const name = nameById(first) ?? "card";
-    return `Added ${printingIds.length}× ${name}`;
+    const name = nameById(first) ?? m.collections_copies_added_card_fallback();
+    return m.collections_copies_added_named({ count: printingIds.length, name });
   }
-  return `Added ${printingIds.length} cards`;
+  return m.collections_copies_added_other({ count: printingIds.length });
 }

@@ -6,26 +6,51 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { CardGroup, GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import type { EnumLabels } from "@/lib/enum-labels";
+import { m } from "@/paraglide/messages.js";
 
 /** Shared across /cards, /collections and /promos so an axis reads the same everywhere. */
-export const GROUP_BY_LABELS: Record<GroupByField, string> = {
-  none: "None",
-  set: "Set",
-  type: "Type",
-  superType: "Supertype",
-  domain: "Domain",
-  rarity: "Rarity",
-  card: "Card",
-  channel: "Distribution Channel",
-  year: "Year",
-  marker: "Marker",
-  collection: "Collection",
-};
+export function groupByLabel(field: GroupByField): string {
+  switch (field) {
+    case "none": {
+      return m.cards_filter_group_none();
+    }
+    case "set": {
+      return m.cards_filter_group_set();
+    }
+    case "type": {
+      return m.cards_filter_group_type();
+    }
+    case "superType": {
+      return m.cards_filter_group_super_type();
+    }
+    case "domain": {
+      return m.cards_filter_group_domain();
+    }
+    case "rarity": {
+      return m.cards_filter_group_rarity();
+    }
+    case "card": {
+      return m.cards_filter_group_card();
+    }
+    case "channel": {
+      return m.cards_filter_group_channel();
+    }
+    case "year": {
+      return m.cards_filter_group_year();
+    }
+    case "marker": {
+      return m.cards_filter_group_marker();
+    }
+    case "collection": {
+      return m.cards_filter_group_collection();
+    }
+  }
+}
 
 export function groupByOptionsFor(
   values: readonly GroupByField[],
 ): { value: GroupByField; label: string }[] {
-  return values.map((value) => ({ value, label: GROUP_BY_LABELS[value] }));
+  return values.map((value) => ({ value, label: groupByLabel(value) }));
 }
 
 /** Marker and distribution channel live on individual printings; card pools a card's printings into one section. */
@@ -72,7 +97,10 @@ export function groupItemsByField(
         const keys = supers.length > 0 ? supers : [NO_SUPER_TYPE_KEY];
         return keys.map((key) => ({ key, mapped: item }));
       },
-      label: (key) => (key === NO_SUPER_TYPE_KEY ? key : enumLabel(labels.superTypes, key)),
+      label: (key) =>
+        key === NO_SUPER_TYPE_KEY
+          ? m.cards_filter_group_no_super_type()
+          : enumLabel(labels.superTypes, key),
     },
     domain: {
       order: orders.domains,

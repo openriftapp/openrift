@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TradePreferenceEditor } from "@/features/groups/components/trade-preference-editor";
 import { useUpdateList } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface ListEditDialogProps {
@@ -91,12 +92,12 @@ export function ListEditDialog({
       <DialogContent>
         <DialogForm onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit list</DialogTitle>
+            <DialogTitle>{m.lists_edit_title()}</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="list-edit-name">Name</Label>
+              <Label htmlFor="list-edit-name">{m.lists_edit_name_label()}</Label>
               <Input
                 id="list-edit-name"
                 value={name}
@@ -110,10 +111,10 @@ export function ListEditDialog({
             {supportsPrefs && (
               <div className="flex flex-col gap-2">
                 <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  Trade preferences
+                  {m.lists_edit_trade_preferences()}
                 </div>
                 <div className="text-muted-foreground text-xs">
-                  Defaults applied to every entry. You can override per card on each row.
+                  {m.lists_edit_trade_defaults_hint()}
                 </div>
                 <TradePreferenceEditor
                   value={tradeDefaults}
@@ -134,13 +135,13 @@ export function ListEditDialog({
               onClick={() => onOpenChange(false)}
               disabled={updateList.isPending}
             >
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button
               type="submit"
               disabled={!name.trim() || absoluteNeedsAmount || updateList.isPending}
             >
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

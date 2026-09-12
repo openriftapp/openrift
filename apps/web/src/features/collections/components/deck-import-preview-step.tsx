@@ -37,11 +37,12 @@ import {
 import { classifyBucket } from "@/features/collections/lib/import-summary";
 import { DeckImportSummary } from "@/features/decks/components/deck-import-summary";
 import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
-import { DEFAULT_IMPORT_DECK_NAME } from "@/features/decks/lib/deck-import-cards";
+import { defaultImportDeckName } from "@/features/decks/lib/deck-import-cards";
 import type { DeckMatchedEntry, ResolvedCard } from "@/features/decks/lib/deck-import-matcher";
 import { deckImportRowId } from "@/features/decks/lib/deck-import-preview";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function DeckImportPreviewStep({
   matchedEntries,
@@ -144,16 +145,18 @@ export function DeckImportPreviewStep({
       {isImporting ? (
         <>
           <Loader2Icon className="size-4 animate-spin" />
-          {isReplaceMode ? "Replacing..." : "Importing..."}
+          {isReplaceMode ? m.collections_import_deck_replacing() : m.collections_import_importing()}
         </>
       ) : isReplaceMode ? (
-        <>
-          Replace with {totalCards} {totalCards === 1 ? "card" : "cards"}
-        </>
+        totalCards === 1 ? (
+          m.collections_import_deck_replace_button_one({ count: totalCards })
+        ) : (
+          m.collections_import_deck_replace_button_other({ count: totalCards })
+        )
+      ) : totalCards === 1 ? (
+        m.collections_import_deck_import_button_one({ count: totalCards })
       ) : (
-        <>
-          Import {totalCards} {totalCards === 1 ? "card" : "cards"}
-        </>
+        m.collections_import_deck_import_button_other({ count: totalCards })
       )}
     </Button>
   );
@@ -162,15 +165,25 @@ export function DeckImportPreviewStep({
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarIconButton aria-label="Back" className="mr-1 -ml-2" onClick={onBack}>
+          <PageTopBarIconButton
+            aria-label={m.collections_import_back()}
+            className="mr-1 -ml-2"
+            onClick={onBack}
+          >
             <ArrowLeftIcon />
           </PageTopBarIconButton>
-          <PageTopBarTitle>{isReplaceMode ? "Replace Preview" : "Import Preview"}</PageTopBarTitle>
+          <PageTopBarTitle>
+            {isReplaceMode
+              ? m.collections_import_deck_replace_preview_title()
+              : m.collections_import_preview_title()}
+          </PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <PageDescription>
-          {matchedEntries.length} card{matchedEntries.length === 1 ? "" : "s"} parsed
+          {matchedEntries.length === 1
+            ? m.collections_import_deck_cards_parsed_one({ count: matchedEntries.length })
+            : m.collections_import_deck_cards_parsed_other({ count: matchedEntries.length })}
           {sourceNote ? ` (${sourceNote})` : null}
         </PageDescription>
 
@@ -178,7 +191,7 @@ export function DeckImportPreviewStep({
           cards={importCards}
           format={summaryFormat}
           formatConfig={summaryFormatConfig}
-          deckName={replaceDeckName || deckName.trim() || DEFAULT_IMPORT_DECK_NAME}
+          deckName={replaceDeckName || deckName.trim() || defaultImportDeckName()}
           isLoggedIn={isLoggedIn}
         />
 
@@ -213,7 +226,9 @@ export function DeckImportPreviewStep({
         {parseWarnings.length > 0 && (
           <Alert variant="warning">
             <AlertTitle>
-              {parseWarnings.length} warning{parseWarnings.length === 1 ? "" : "s"} while parsing
+              {parseWarnings.length === 1
+                ? m.collections_import_deck_warnings_one({ count: parseWarnings.length })
+                : m.collections_import_deck_warnings_other({ count: parseWarnings.length })}
             </AlertTitle>
             <AlertDescription>
               {parseWarnings.map((warning) => (
@@ -238,12 +253,12 @@ export function DeckImportPreviewStep({
 
           {sourceLink !== undefined && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Save a link to</span>
+              <span className="text-muted-foreground">{m.collections_import_deck_save_link()}</span>
               <Badge variant="outline" title={sourceLink}>
                 <ExternalLinkIcon className="size-3" />
                 {linkHostLabel(sourceLink) ?? sourceLink}
                 <ChipRemoveButton
-                  aria-label="Don't save the source link"
+                  aria-label={m.collections_import_deck_drop_link()}
                   onClick={onDropSourceLink}
                 />
               </Badge>
@@ -254,18 +269,22 @@ export function DeckImportPreviewStep({
             {!isReplaceMode && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="preview-deck-name">Deck name</Label>
+                  <Label htmlFor="preview-deck-name">
+                    {m.collections_import_deck_name_label()}
+                  </Label>
                   <Input
                     id="preview-deck-name"
                     value={deckName}
                     onChange={(event) => onDeckNameChange(event.target.value)}
-                    placeholder={DEFAULT_IMPORT_DECK_NAME}
+                    placeholder={defaultImportDeckName()}
                     className="w-full sm:w-[200px]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="preview-deck-format">Format</Label>
+                  <Label htmlFor="preview-deck-format">
+                    {m.collections_import_deck_format_label()}
+                  </Label>
                   <Select
                     value={deckFormat}
                     onValueChange={(value) => {
@@ -294,7 +313,7 @@ export function DeckImportPreviewStep({
             {!isMobile && importButton}
             {needsAttentionCount > 0 && !isImporting && (
               <span className="text-muted-foreground text-sm">
-                (skips {needsAttentionCount} unmatched)
+                {m.collections_import_skips_unmatched({ count: needsAttentionCount })}
               </span>
             )}
           </div>

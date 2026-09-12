@@ -19,6 +19,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ContactMethodChips } from "@/features/groups/components/contact-method-chips";
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 function MetaItem({
   icon: Icon,
@@ -40,7 +41,7 @@ function CopyLinkButton({ url }: { url: string }) {
   return (
     <Button variant="outline" onClick={() => void copy(url)}>
       {copied ? <CheckIcon className="text-success" /> : <LinkIcon />}
-      {copied ? "Copied" : "Copy link"}
+      {copied ? m.common_copied() : m.user_profile_copy_link()}
     </Button>
   );
 }
@@ -70,14 +71,14 @@ export function UserProfileHeader({
             {owner.isContributor ? (
               <Badge variant="subtle" className="gap-1">
                 <SparklesIcon />
-                Contributor
+                {m.user_profile_contributor()}
               </Badge>
             ) : null}
           </div>
           {owner.bio ? <p className="text-muted-foreground">{owner.bio}</p> : null}
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <MetaItem icon={CalendarIcon}>
-              Member since {formatMonthYear(owner.memberSince)}
+              {m.user_profile_member_since({ date: formatMonthYear(owner.memberSince) })}
             </MetaItem>
             {owner.lastActive ? (
               <MetaItem icon={ClockIcon}>{lastActiveLabel(owner.lastActive)}</MetaItem>
@@ -90,7 +91,7 @@ export function UserProfileHeader({
               <ContactMethodChips methods={contactMethods} />
               {owner.isViewer ? (
                 <span className="text-muted-foreground text-xs">
-                  Shown to members of the groups you revealed them in.
+                  {m.user_profile_contacts_note()}
                 </span>
               ) : null}
             </div>

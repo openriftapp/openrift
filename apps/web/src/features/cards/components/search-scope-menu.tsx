@@ -11,21 +11,24 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Display name and typed prefix for every searchable field; the picker
  * doubles as the only documentation of the `n:` / `k:` search syntax.
  */
-export const SEARCH_FIELD_LABELS: Record<SearchField, { label: string; prefix: string }> = {
-  name: { label: "Name", prefix: "n:" },
-  cardText: { label: "Card Text", prefix: "d:" },
-  keywords: { label: "Keywords", prefix: "k:" },
-  tags: { label: "Tags", prefix: "t:" },
-  artist: { label: "Artist", prefix: "a:" },
-  flavorText: { label: "Flavor Text", prefix: "f:" },
-  type: { label: "Type", prefix: "ty:" },
-  id: { label: "ID", prefix: "id:" },
-};
+export function searchFieldLabels(): Record<SearchField, { label: string; prefix: string }> {
+  return {
+    name: { label: m.cards_search_field_name(), prefix: "n:" },
+    cardText: { label: m.cards_search_field_card_text(), prefix: "d:" },
+    keywords: { label: m.cards_search_field_keywords(), prefix: "k:" },
+    tags: { label: m.cards_search_field_tags(), prefix: "t:" },
+    artist: { label: m.cards_search_field_artist(), prefix: "a:" },
+    flavorText: { label: m.cards_search_field_flavor_text(), prefix: "f:" },
+    type: { label: m.cards_search_field_type(), prefix: "ty:" },
+    id: { label: m.cards_search_field_id(), prefix: "id:" },
+  };
+}
 
 /**
  * Human summary of the current scope, without the "in: " prefix: "all" while
@@ -33,9 +36,10 @@ export const SEARCH_FIELD_LABELS: Record<SearchField, { label: string; prefix: s
  */
 export function scopeSummary(scope: readonly SearchField[]): string {
   if (scope.length === ALL_SEARCH_FIELDS.length) {
-    return "all";
+    return m.cards_search_scope_all();
   }
-  const labels = scope.map((field) => SEARCH_FIELD_LABELS[field].label.toLowerCase());
+  const fieldLabels = searchFieldLabels();
+  const labels = scope.map((field) => fieldLabels[field].label.toLowerCase());
   return labels.length > 2
     ? `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`
     : labels.join(", ");
@@ -57,9 +61,9 @@ export function SearchPrefixChip({ fields }: SearchPrefixChipProps) {
     <Badge
       variant="muted"
       className="min-w-0 font-normal"
-      title={`Your query's prefix searches ${summary}. Remove it to search the fields you picked.`}
+      title={m.cards_search_prefix_hint({ summary })}
     >
-      <span className="min-w-0 truncate">in: {summary}</span>
+      <span className="min-w-0 truncate">{m.cards_search_scope_chip({ summary })}</span>
     </Badge>
   );
 }
@@ -96,6 +100,7 @@ export function SearchScopeChip({
   const rowId = useId();
   const allSelected = scope.length === ALL_SEARCH_FIELDS.length;
   const summary = scopeSummary(scope);
+  const fieldLabels = searchFieldLabels();
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -105,21 +110,21 @@ export function SearchScopeChip({
           // Keep the input's focus on mousedown: the chip is mounted on that
           // focus, so blurring first would unmount the trigger mid-click.
           onMouseDown={(event) => event.preventDefault()}
-          aria-label={`Search in: ${summary}. Change search scope`}
+          aria-label={m.cards_search_scope_change({ summary })}
         >
-          <span className="min-w-0 truncate">in: {summary}</span>
+          <span className="min-w-0 truncate">{m.cards_search_scope_chip({ summary })}</span>
           <ChevronDownIcon className="size-3 shrink-0 opacity-60" />
         </PopoverTrigger>
         {!allSelected && (
           <ChipRemoveButton
-            aria-label="Search in all fields"
+            aria-label={m.cards_search_in_all_fields()}
             onMouseDown={(event) => event.preventDefault()}
             onClick={selectAll}
           />
         )}
       </Badge>
       <PopoverContent align="start" finalFocus={inputRef} className={cn("w-64 gap-1 p-1.5")}>
-        <span className="text-muted-foreground px-1.5 text-xs">Search in</span>
+        <span className="text-muted-foreground px-1.5 text-xs">{m.cards_search_in()}</span>
         <div className="mb-1 flex items-center gap-2 rounded-md px-1.5 py-1.5">
           <Checkbox
             id={`${rowId}-all`}
@@ -130,11 +135,11 @@ export function SearchScopeChip({
             onCheckedChange={selectAll}
           />
           <Label htmlFor={`${rowId}-all`} className="flex-1 cursor-pointer font-normal">
-            All fields
+            {m.cards_search_all_fields()}
           </Label>
         </div>
         {ALL_SEARCH_FIELDS.map((field) => {
-          const { label, prefix } = SEARCH_FIELD_LABELS[field];
+          const { label, prefix } = fieldLabels[field];
           const checked = scope.includes(field);
           const isOnly = checked && scope.length === 1;
           return (
@@ -159,10 +164,10 @@ export function SearchScopeChip({
               {!isOnly && (
                 <Pressable
                   className="text-muted-foreground hover:text-foreground text-2xs rounded-sm"
-                  aria-label={`Search only ${label}`}
+                  aria-label={m.cards_search_only({ label })}
                   onClick={() => selectOnly(field)}
                 >
-                  only
+                  {m.cards_search_only_short()}
                 </Pressable>
               )}
             </div>

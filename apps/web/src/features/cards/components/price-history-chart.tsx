@@ -12,16 +12,22 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TIME_RANGES } from "@/features/cards/components/price-history-chart-constants";
+import {
+  TIME_RANGES,
+  timeRangeLabel,
+} from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
-const chartConfig = {
-  value: { label: "Market", color: "var(--chart-1)" },
-  low: { label: "Low", color: "var(--chart-2)" },
-} satisfies ChartConfig;
+function buildChartConfig() {
+  return {
+    value: { label: m.card_detail_chart_market(), color: "var(--chart-1)" },
+    low: { label: m.card_detail_chart_low(), color: "var(--chart-2)" },
+  } satisfies ChartConfig;
+}
 
 interface PriceHistoryTooltipContentProps {
   active?: boolean;
@@ -40,7 +46,8 @@ function PriceHistoryTooltipContent({
   if (!active || !snap) {
     return null;
   }
-  const headlineLabel = source === "cardtrader" ? "Zero" : "Market";
+  const headlineLabel =
+    source === "cardtrader" ? m.card_detail_chart_zero() : m.card_detail_chart_market();
   return (
     <div className="border-border/50 bg-background rounded-lg border px-2.5 py-1.5 text-xs shadow-md">
       <p className="mb-1 font-medium">{formatDay(snap.date)}</p>
@@ -60,7 +67,7 @@ function PriceHistoryTooltipContent({
         {snap.low !== null && snap.low !== undefined && (
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full" style={{ backgroundColor: "var(--color-low)" }} />
-            <span className="text-muted-foreground">Low</span>
+            <span className="text-muted-foreground">{m.card_detail_chart_low()}</span>
             <span className="ml-auto font-mono font-medium tabular-nums">
               {currencyFormatter(snap.low)}
             </span>
@@ -144,6 +151,7 @@ export function PriceHistoryChart({
   }, []);
 
   const btnSize = "sm" as const;
+  const chartConfig = buildChartConfig();
 
   return (
     <div className="space-y-3">
@@ -160,11 +168,11 @@ export function PriceHistoryChart({
                 setRange(match.value);
               }
             }}
-            aria-label="Time range"
+            aria-label={m.card_detail_time_range()}
           >
             {availableRanges.map((tr) => (
               <ToggleGroupItem key={tr.value} value={tr.value}>
-                {tr.label}
+                {timeRangeLabel(tr)}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -183,7 +191,7 @@ export function PriceHistoryChart({
                 setSource(match);
               }
             }}
-            aria-label="Price source"
+            aria-label={m.card_detail_price_source()}
             className="ml-auto"
           >
             {marketplaceOrder.map((s) => {
@@ -220,13 +228,13 @@ export function PriceHistoryChart({
       {error && (
         <p className="text-muted-foreground flex items-center justify-center gap-1.5 py-8 text-sm">
           <CircleXIcon className="text-destructive size-4 shrink-0" />
-          Failed to load price history.
+          {m.card_detail_chart_error()}
         </p>
       )}
 
       {!isLoading && !error && snapshots.length === 0 && (
         <Empty className="py-8">
-          <EmptyDescription>No price data available for this time range.</EmptyDescription>
+          <EmptyDescription>{m.card_detail_chart_empty()}</EmptyDescription>
         </Empty>
       )}
 

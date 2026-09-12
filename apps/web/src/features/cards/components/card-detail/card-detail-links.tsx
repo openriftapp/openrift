@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon, LayersIcon, PencilLineIcon, ShieldIcon } from "lucide-react";
 
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Escape hatches out of the overlay: the card's own page, the correction form,
@@ -20,7 +21,7 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
       >
         <ExternalLinkIcon className="size-3" />
-        Open card page
+        {m.card_detail_link_open_card_page()}
       </Link>
       <Link
         to="/contribute/card/$cardSlug"
@@ -28,7 +29,7 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
       >
         <PencilLineIcon className="size-3" />
-        Suggest a correction
+        {m.card_detail_link_suggest_correction()}
       </Link>
       {printing && (
         <Link
@@ -37,7 +38,7 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
         >
           <LayersIcon className="size-3" />
-          Fix this printing
+          {m.card_detail_link_fix_printing()}
         </Link>
       )}
       {isAdmin && (
@@ -47,7 +48,7 @@ export function CardDetailLinks({ card, printing }: { card: Card; printing?: Pri
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs"
         >
           <ShieldIcon className="size-3" />
-          Admin view
+          {m.card_detail_link_admin_view()}
         </Link>
       )}
     </div>

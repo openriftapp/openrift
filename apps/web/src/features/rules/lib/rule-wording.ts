@@ -2,6 +2,8 @@ import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { ListRuleCombine, TradeKeepPer } from "@openrift/shared/types/list-rule";
 import type { FilterRange } from "@openrift/shared/types/search";
 
+import { m } from "@/paraglide/messages.js";
+
 /**
  * A rule's shape follows the list's kind (card/printing lists match the catalog,
  * copy lists draw on owned copies); the words around it follow the list's intent.
@@ -18,124 +20,161 @@ export interface RuleWording {
   countVerb: (netOwned: boolean) => string;
 }
 
-const QUANTITY_COMBINE_LABELS = [
-  { value: "sum", label: "Add up the quantities" },
-  { value: "max", label: "Highest rule wins" },
-] as const satisfies readonly { value: ListRuleCombine; label: string }[];
+type RuleNoun = "card" | "printing";
 
-const TRADE_COMBINE_LABELS = [
-  { value: "protect", label: "Keep everything a rule keeps" },
-  { value: "count-sum", label: "Keep the totals added up" },
-  { value: "count-max", label: "Keep the highest total" },
-] as const satisfies readonly { value: ListRuleCombine; label: string }[];
+function quantityCombineLabels(): readonly { value: ListRuleCombine; label: string }[] {
+  return [
+    { value: "sum", label: m.lists_rule_wording_combine_sum() },
+    { value: "max", label: m.lists_rule_wording_combine_max() },
+  ];
+}
 
-const ORGANIZE_COPY_COMBINE_LABELS = [
-  { value: "protect", label: "Leave out everything a rule leaves out" },
-  { value: "count-sum", label: "Leave out the totals added up" },
-  { value: "count-max", label: "Leave out the highest total" },
-] as const satisfies readonly { value: ListRuleCombine; label: string }[];
+function tradeCombineLabels(): readonly { value: ListRuleCombine; label: string }[] {
+  return [
+    { value: "protect", label: m.lists_rule_wording_combine_trade_protect() },
+    { value: "count-sum", label: m.lists_rule_wording_combine_trade_count_sum() },
+    { value: "count-max", label: m.lists_rule_wording_combine_trade_count_max() },
+  ];
+}
 
-const wishWording = (noun: string): Omit<RuleWording, "isCopy"> => ({
-  description: "Automatically want every card that matches these filters.",
-  emptyMessage: "No rules yet. Add one to automatically want every card that matches a filter.",
-  quantityLabel: () => "Want quantity",
-  quantityHint: () => `How many of each matched ${noun} you want.`,
+function organizeCopyCombineLabels(): readonly { value: ListRuleCombine; label: string }[] {
+  return [
+    { value: "protect", label: m.lists_rule_wording_combine_organize_protect() },
+    { value: "count-sum", label: m.lists_rule_wording_combine_organize_count_sum() },
+    { value: "count-max", label: m.lists_rule_wording_combine_organize_count_max() },
+  ];
+}
+
+const wishWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
+  description: m.lists_rule_wording_wish_description(),
+  emptyMessage: m.lists_rule_wording_wish_empty(),
+  quantityLabel: () => m.lists_rule_wording_wish_quantity_label(),
+  quantityHint: () =>
+    noun === "printing"
+      ? m.lists_rule_wording_wish_quantity_hint_printing()
+      : m.lists_rule_wording_wish_quantity_hint_card(),
   groupLabel: "",
-  combineOptions: QUANTITY_COMBINE_LABELS,
-  combineHint: (combine) =>
-    combine === "max"
-      ? `A ${noun} matched by several rules is wanted as much as the most demanding rule.`
-      : `A ${noun} matched by several rules is wanted once per rule, added together.`,
-  countVerb: (netOwned) => (netOwned ? "missing" : "matches"),
+  combineOptions: quantityCombineLabels(),
+  combineHint: (combine) => {
+    if (combine === "max") {
+      return noun === "printing"
+        ? m.lists_rule_wording_wish_combine_hint_max_printing()
+        : m.lists_rule_wording_wish_combine_hint_max_card();
+    }
+    return noun === "printing"
+      ? m.lists_rule_wording_wish_combine_hint_sum_printing()
+      : m.lists_rule_wording_wish_combine_hint_sum_card();
+  },
+  countVerb: (netOwned) =>
+    netOwned ? m.lists_rule_wording_verb_missing() : m.lists_rule_wording_verb_matches(),
 });
 
-const TRADE_WORDING: Omit<RuleWording, "isCopy"> = {
-  description: "Automatically offer copies in your collection that match these filters.",
-  emptyMessage:
-    "No rule yet. Add one to automatically offer copies in your collection that match a filter.",
-  quantityLabel: (keepPer) => (keepPer === "printing" ? "Keep per printing" : "Keep per card"),
+const tradeWording = (): Omit<RuleWording, "isCopy"> => ({
+  description: m.lists_rule_wording_trade_description(),
+  emptyMessage: m.lists_rule_wording_trade_empty(),
+  quantityLabel: (keepPer) =>
+    keepPer === "printing"
+      ? m.lists_rule_wording_trade_quantity_label_printing()
+      : m.lists_rule_wording_trade_quantity_label_card(),
   quantityHint: (keepPer) =>
     keepPer === "printing"
-      ? "Keep this many of each printing, and offer the rest. 0 trades all."
-      : "Keep this many per card, counted across all its printings, and offer the rest. 0 trades all.",
-  groupLabel: "Keep counts per",
-  combineOptions: TRADE_COMBINE_LABELS,
-  combineHint: (combine) =>
-    combine === "count-sum"
-      ? "Adds up the keep counts per card (or printing) and keeps your best copies up to that total."
-      : combine === "count-max"
-        ? "Uses the highest keep count per card (or printing) and keeps your best copies up to it."
-        : "A copy is only offered when every rule that matches it agrees to offer it.",
+      ? m.lists_rule_wording_trade_quantity_hint_printing()
+      : m.lists_rule_wording_trade_quantity_hint_card(),
+  groupLabel: m.lists_rule_wording_trade_group_label(),
+  combineOptions: tradeCombineLabels(),
+  combineHint: (combine) => {
+    if (combine === "count-sum") {
+      return m.lists_rule_wording_trade_combine_hint_count_sum();
+    }
+    if (combine === "count-max") {
+      return m.lists_rule_wording_trade_combine_hint_count_max();
+    }
+    return m.lists_rule_wording_trade_combine_hint_protect();
+  },
   // Copy rules never net owned copies, so the verb doesn't vary.
-  countVerb: () => "offers",
-};
+  countVerb: () => m.lists_rule_wording_verb_offers(),
+});
 
-const organizeCardWording = (noun: string): Omit<RuleWording, "isCopy"> => ({
-  description: "Automatically include every card that matches these filters.",
-  emptyMessage: "No rules yet. Add one to automatically include every card that matches a filter.",
-  quantityLabel: () => "Quantity",
-  quantityHint: () => `How many of each matched ${noun} the list tracks.`,
+const organizeCardWording = (noun: RuleNoun): Omit<RuleWording, "isCopy"> => ({
+  description: m.lists_rule_wording_organize_description(),
+  emptyMessage: m.lists_rule_wording_organize_empty(),
+  quantityLabel: () => m.lists_rule_wording_organize_quantity_label(),
+  quantityHint: () =>
+    noun === "printing"
+      ? m.lists_rule_wording_organize_quantity_hint_printing()
+      : m.lists_rule_wording_organize_quantity_hint_card(),
   groupLabel: "",
-  combineOptions: QUANTITY_COMBINE_LABELS,
-  combineHint: (combine) =>
-    combine === "max"
-      ? `A ${noun} matched by several rules is tracked at the most demanding rule's quantity.`
-      : `A ${noun} matched by several rules is tracked once per rule, added together.`,
-  countVerb: (netOwned) => (netOwned ? "missing" : "matches"),
+  combineOptions: quantityCombineLabels(),
+  combineHint: (combine) => {
+    if (combine === "max") {
+      return noun === "printing"
+        ? m.lists_rule_wording_organize_combine_hint_max_printing()
+        : m.lists_rule_wording_organize_combine_hint_max_card();
+    }
+    return noun === "printing"
+      ? m.lists_rule_wording_organize_combine_hint_sum_printing()
+      : m.lists_rule_wording_organize_combine_hint_sum_card();
+  },
+  countVerb: (netOwned) =>
+    netOwned ? m.lists_rule_wording_verb_missing() : m.lists_rule_wording_verb_matches(),
 });
 
 /**
  * Reuses the trade list's keep/offer split, but nothing is offered here, so
  * held-back copies read as "left out" instead.
  */
-const ORGANIZE_COPY_WORDING: Omit<RuleWording, "isCopy"> = {
-  description: "Automatically include copies in your collection that match these filters.",
-  emptyMessage:
-    "No rule yet. Add one to automatically include copies in your collection that match a filter.",
+const organizeCopyWording = (): Omit<RuleWording, "isCopy"> => ({
+  description: m.lists_rule_wording_organize_copy_description(),
+  emptyMessage: m.lists_rule_wording_organize_copy_empty(),
   quantityLabel: (keepPer) =>
-    keepPer === "printing" ? "Leave out per printing" : "Leave out per card",
+    keepPer === "printing"
+      ? m.lists_rule_wording_organize_copy_quantity_label_printing()
+      : m.lists_rule_wording_organize_copy_quantity_label_card(),
   quantityHint: (keepPer) =>
     keepPer === "printing"
-      ? "Leave out this many of each printing (nicest copies first) and include the rest. 0 includes every matching copy."
-      : "Leave out this many per card, counted across all its printings (nicest copies first), and include the rest. 0 includes every matching copy.",
-  groupLabel: "Leave-out counts per",
-  combineOptions: ORGANIZE_COPY_COMBINE_LABELS,
-  combineHint: (combine) =>
-    combine === "count-sum"
-      ? "Adds up the leave-out counts per card (or printing) and holds back your best copies up to that total."
-      : combine === "count-max"
-        ? "Uses the highest leave-out count per card (or printing) and holds back your best copies up to it."
-        : "A copy is only included when every rule that matches it agrees to include it.",
-  countVerb: () => "includes",
-};
+      ? m.lists_rule_wording_organize_copy_quantity_hint_printing()
+      : m.lists_rule_wording_organize_copy_quantity_hint_card(),
+  groupLabel: m.lists_rule_wording_organize_copy_group_label(),
+  combineOptions: organizeCopyCombineLabels(),
+  combineHint: (combine) => {
+    if (combine === "count-sum") {
+      return m.lists_rule_wording_organize_copy_combine_hint_count_sum();
+    }
+    if (combine === "count-max") {
+      return m.lists_rule_wording_organize_copy_combine_hint_count_max();
+    }
+    return m.lists_rule_wording_organize_copy_combine_hint_protect();
+  },
+  countVerb: () => m.lists_rule_wording_verb_includes(),
+});
 
 export function ruleWording(intent: ListIntent, kind: ListKind): RuleWording {
   const isCopy = kind === "copy";
-  const noun = kind === "printing" ? "printing" : "card";
+  const noun: RuleNoun = kind === "printing" ? "printing" : "card";
   if (intent === "organize") {
-    return { ...(isCopy ? ORGANIZE_COPY_WORDING : organizeCardWording(noun)), isCopy };
+    return { ...(isCopy ? organizeCopyWording() : organizeCardWording(noun)), isCopy };
   }
-  return { ...(isCopy ? TRADE_WORDING : wishWording(noun)), isCopy };
+  return { ...(isCopy ? tradeWording() : wishWording(noun)), isCopy };
 }
 
 /** Pluralized rule-count label, e.g. "42 cards" / "1 printing" / "3 copies". */
 export function matchLabel(count: number, kind: ListKind): string {
-  const [one, many] =
-    kind === "card"
-      ? ["card", "cards"]
-      : kind === "printing"
-        ? ["printing", "printings"]
-        : ["copy", "copies"];
-  return `${count} ${count === 1 ? one : many}`;
+  const isOne = count === 1;
+  if (kind === "card") {
+    return isOne ? m.common_cards_one({ count }) : m.common_cards_other({ count });
+  }
+  if (kind === "printing") {
+    return isOne ? m.common_printings_one({ count }) : m.common_printings_other({ count });
+  }
+  return isOne ? m.common_copies_one({ count }) : m.common_copies_other({ count });
 }
 
-const NET_OWNED_HINT = "Shows only the shortfall toward the quantity above.";
-
 export function netOwnedHint(price: FilterRange): string {
+  const base = m.lists_rule_wording_net_owned_hint();
   if (price.min === null && price.max === null) {
-    return NET_OWNED_HINT;
+    return base;
   }
-  return `${NET_OWNED_HINT} The price range limits what the list asks for, not which of your copies count.`;
+  return `${base} ${m.lists_rule_wording_net_owned_hint_price()}`;
 }
 
 export function ruleCountLabel(
@@ -144,5 +183,8 @@ export function ruleCountLabel(
   wording: RuleWording,
   netOwned: boolean,
 ): string {
-  return `${wording.countVerb(netOwned)} ${matchLabel(count, kind)}`;
+  return m.lists_rule_wording_count_label({
+    verb: wording.countVerb(netOwned),
+    matches: matchLabel(count, kind),
+  });
 }

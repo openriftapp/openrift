@@ -35,6 +35,7 @@ import type { DeckMatchedEntry, ResolvedCard } from "@/features/decks/lib/deck-i
 import { deckImportRowId } from "@/features/decks/lib/deck-import-preview";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const BUCKET_CONFIG: Record<ImportBucket, { icon: React.ElementType; className: string }> = {
   ready: { icon: CheckCircle2Icon, className: "text-success" },
@@ -70,7 +71,10 @@ export function DeckImportEntryRow({
   const { icon: StatusIcon, className: statusColor } = BUCKET_CONFIG[bucket];
   const rawFieldEntries = Object.entries(entry.entry.rawFields);
   const displayName =
-    entry.resolvedCard?.cardName ?? entry.entry.cardName ?? entry.entry.shortCode ?? "Unknown";
+    entry.resolvedCard?.cardName ??
+    entry.entry.cardName ??
+    entry.entry.shortCode ??
+    m.collections_import_deck_unknown_card();
   const isMobile = useIsMobile();
   const foldActions = isMobile && bucket === "ready" && !isSkipped;
 
@@ -79,7 +83,8 @@ export function DeckImportEntryRow({
   const matchedNote =
     resolved && (!sourceName || sourceName.toLowerCase() !== resolved.cardName.toLowerCase()) ? (
       <>
-        Matched to <span className="text-foreground font-medium">{resolved.cardName}</span> (
+        {m.collections_import_matched_to()}{" "}
+        <span className="text-foreground font-medium">{resolved.cardName}</span> (
         {resolved.shortCode})
       </>
     ) : null;
@@ -88,7 +93,8 @@ export function DeckImportEntryRow({
     <>
       {entry.suggestedName && (
         <span className="text-muted-foreground text-xs">
-          Did you mean <em>{entry.suggestedName}</em>?
+          {m.collections_import_did_you_mean_before()} <em>{entry.suggestedName}</em>
+          {m.collections_import_did_you_mean_after()}
         </span>
       )}
       {showSearch ? (
@@ -104,7 +110,9 @@ export function DeckImportEntryRow({
         variant="ghost"
         size={isMobile ? "icon" : "xs"}
         onClick={() => setShowSearch(!showSearch)}
-        aria-label={showSearch ? "Close search" : "Search catalog"}
+        aria-label={
+          showSearch ? m.collections_import_close_search() : m.collections_import_search_catalog()
+        }
       >
         {showSearch ? <XCircleIcon className="size-3.5" /> : <SearchIcon className="size-3.5" />}
       </Button>
@@ -117,11 +125,11 @@ export function DeckImportEntryRow({
       />
       {isSkipped ? (
         <Button variant="ghost" size={isMobile ? "default" : "xs"} onClick={() => onUnskip(index)}>
-          Unskip
+          {m.collections_import_unskip()}
         </Button>
       ) : (
         <Button variant="ghost" size={isMobile ? "default" : "xs"} onClick={() => onSkip(index)}>
-          Skip
+          {m.collections_import_skip()}
         </Button>
       )}
     </>
@@ -146,7 +154,7 @@ export function DeckImportEntryRow({
             <AccordionPrimitive.Trigger
               className="group text-muted-foreground hover:text-foreground -m-2 shrink-0 p-2 outline-none"
               disabled={!hasPanel}
-              aria-label="Toggle import details"
+              aria-label={m.collections_import_toggle_details()}
             >
               {chevronIcon}
             </AccordionPrimitive.Trigger>
@@ -263,8 +271,8 @@ function CardSearch({
 
   return (
     <CardSearchDropdown
-      ariaLabel="Search cards"
-      placeholder="Search cards..."
+      ariaLabel={m.collections_import_search_cards_aria()}
+      placeholder={m.collections_import_search_cards_placeholder()}
       className="h-8 w-full sm:h-7 sm:w-44"
       results={results}
       onSearch={setQuery}

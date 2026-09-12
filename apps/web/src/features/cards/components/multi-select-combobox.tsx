@@ -15,6 +15,7 @@ import {
   ComboboxTrigger,
 } from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface MultiSelectOption {
   value: string;
@@ -118,8 +119,8 @@ export function MultiSelectCombobox({
   onChange,
   excluded,
   onCycle,
-  searchPlaceholder = "Search…",
-  emptyText = "No matches.",
+  searchPlaceholder = m.cards_filter_search_generic(),
+  emptyText = m.cards_filter_empty_generic(),
   triggerStyle = "chip",
   icon,
   iconAfterLabel,
@@ -254,7 +255,7 @@ export function MultiSelectCombobox({
         ? labelFor(singleId)
         : placeholder === undefined
           ? `${label} (${totalCount})`
-          : `${totalCount} selected`
+          : m.cards_filter_n_selected({ count: totalCount })
     : (placeholder ?? label);
 
   const [query, setQuery] = useState("");

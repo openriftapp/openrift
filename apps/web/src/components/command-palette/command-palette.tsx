@@ -9,18 +9,19 @@ import { PaletteFrame } from "@/components/command-palette/palette-frame";
 import { SignInRequiredDialog } from "@/components/layout/nav-items";
 import { useCommandPaletteShortcuts } from "@/hooks/use-command-palette";
 import type { LockedFeatureKey } from "@/lib/nav-items";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 
 // Imported by value from routes/_app.tsx, so anything pulled in statically
 // here lands in every app page's layout chunk. Keep lazy.
 const GlobalPaletteBody = lazy(async () => {
-  const m = await import("@/components/command-palette/global-palette-body");
-  return { default: m.GlobalPaletteBody };
+  const mod = await import("@/components/command-palette/global-palette-body");
+  return { default: mod.GlobalPaletteBody };
 });
 const CardDetailOverlay = lazy(async () => {
-  const m = await import("@/features/cards/components/card-detail-overlay");
-  return { default: m.CardDetailOverlay };
+  const mod = await import("@/features/cards/components/card-detail-overlay");
+  return { default: mod.CardDetailOverlay };
 });
 
 interface OpenCard {
@@ -62,7 +63,7 @@ export function CommandPalette() {
             closePalette();
           }
         }}
-        title="Search OpenRift"
+        title={m.palette_title()}
       >
         {/* Catches the suspended catalog read's throw on a failed fetch, or it
             escapes to the route's error component. */}

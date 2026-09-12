@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import type { NavFlags } from "@/components/layout/nav-items";
-import { MORE_NAV_SECTIONS, PRIMARY_NAV_ITEMS } from "@/components/layout/nav-items";
+import { moreNavSections, primaryNavItems } from "@/components/layout/nav-items";
 import {
   Command,
   CommandEmpty,
@@ -34,6 +34,7 @@ import { buildPaletteGroups } from "@/lib/command-palette-results";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import type { LockedFeatureKey } from "@/lib/nav-items";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -71,7 +72,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
     glossary: featureEnabled(flags, "glossary"),
     meta: featureEnabled(flags, "meta"),
   };
-  const navItems = [...PRIMARY_NAV_ITEMS, ...MORE_NAV_SECTIONS.flatMap((s) => s.items)].filter(
+  const navItems = [...primaryNavItems(), ...moreNavSections().flatMap((s) => s.items)].filter(
     (item) => item.flag === undefined || navFlags[item.flag],
   );
 
@@ -142,14 +143,18 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
         <CommandPrimitive.Input
           value={query}
           onValueChange={setQuery}
-          aria-label="Search cards, pages and help"
-          placeholder="Search cards, pages and help..."
+          aria-label={m.palette_search_label()}
+          placeholder={m.palette_search_placeholder()}
           className="w-full bg-transparent text-base outline-hidden sm:text-sm"
           autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- command palette, always focused on open
         />
         {query && (
           <InputGroupAddon align="inline-end">
-            <InputGroupButton size="icon-xs" onClick={() => setQuery("")} aria-label="Clear search">
+            <InputGroupButton
+              size="icon-xs"
+              onClick={() => setQuery("")}
+              aria-label={m.palette_clear_search()}
+            >
               <XIcon className="size-4" />
             </InputGroupButton>
           </InputGroupAddon>
@@ -160,7 +165,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
 
       <CommandList className={isMobile ? "max-h-[50dvh]" : "max-h-96"}>
         <CommandEmpty className="text-muted-foreground px-3 py-8 text-center">
-          Nothing matches that.
+          {m.palette_no_results()}
         </CommandEmpty>
         {groups.map((group) => (
           <CommandGroup key={group.heading} heading={group.heading}>
@@ -215,14 +220,14 @@ function PaletteRowContent({ row }: { row: PaletteRow }) {
     return (
       <>
         <LayersIcon />
-        <span className="truncate">Search all cards for &ldquo;{row.query}&rdquo;</span>
+        <span className="truncate">{m.palette_search_all_cards({ query: row.query })}</span>
       </>
     );
   }
   return (
     <>
       <GavelIcon />
-      <span className="truncate">Search rules for &ldquo;{row.query}&rdquo;</span>
+      <span className="truncate">{m.palette_search_rules({ query: row.query })}</span>
     </>
   );
 }
@@ -231,14 +236,14 @@ function PaletteFooterHint() {
   return (
     <div className="text-muted-foreground border-border flex items-center gap-3 border-t px-3 py-2 text-xs">
       <span className="flex items-center gap-1">
-        <Kbd>↵</Kbd> open
+        <Kbd>↵</Kbd> {m.palette_hint_open()}
       </span>
       <span className="flex items-center gap-1">
         <Kbd>↑</Kbd>
-        <Kbd>↓</Kbd> navigate
+        <Kbd>↓</Kbd> {m.palette_hint_navigate()}
       </span>
       <span className="ml-auto flex items-center gap-1">
-        <Kbd>Esc</Kbd> close
+        <Kbd>Esc</Kbd> {m.palette_hint_close()}
       </span>
     </div>
   );

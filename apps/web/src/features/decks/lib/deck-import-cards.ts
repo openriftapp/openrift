@@ -1,6 +1,10 @@
 import type { DeckZone } from "@openrift/shared/types/enums";
 
-export const DEFAULT_IMPORT_DECK_NAME = "Imported Deck";
+import { m } from "@/paraglide/messages.js";
+
+export function defaultImportDeckName(): string {
+  return m.decks_import_default_deck_name();
+}
 
 /** The shape both the server save-cards mutation and the local-decks store accept. */
 export interface ImportedDeckCard {

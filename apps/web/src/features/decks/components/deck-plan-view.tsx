@@ -10,6 +10,7 @@ import { Heading } from "@/components/heading";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { MatchupCard } from "@/features/decks/components/deck-matchup-card";
+import { m } from "@/paraglide/messages.js";
 
 type CardMetaLookup = (cardId: string) => DeckPlanCardMetaResponse | undefined;
 
@@ -40,7 +41,7 @@ function CardLine({
         {quantity === undefined ? null : (
           <span className="text-muted-foreground">{quantity}× </span>
         )}
-        {meta?.cardName ?? "Unknown card"}
+        {meta?.cardName ?? m.decks_plan_unknown_card()}
       </span>
     </span>
   );
@@ -65,7 +66,7 @@ function SwapColumn({
         {sign} {label}
       </SectionHeading>
       {swaps.length === 0 ? (
-        <div className="text-muted-foreground text-sm">No changes</div>
+        <div className="text-muted-foreground text-sm">{m.decks_plan_no_changes()}</div>
       ) : (
         swaps.map((swap) => (
           <div key={swap.cardId}>
@@ -90,9 +91,9 @@ export function DeckPlanView({
   const lookup: CardMetaLookup = (cardId) => metaById.get(cardId);
 
   const battlefields = [
-    { label: "Game 1", cardId: plan.battlefieldGame1CardId },
-    { label: "Going first", cardId: plan.battlefieldFirstCardId },
-    { label: "Going second", cardId: plan.battlefieldSecondCardId },
+    { label: m.decks_plan_game_1(), cardId: plan.battlefieldGame1CardId },
+    { label: m.decks_plan_going_first(), cardId: plan.battlefieldFirstCardId },
+    { label: m.decks_plan_going_second(), cardId: plan.battlefieldSecondCardId },
   ].flatMap((entry) =>
     entry.cardId === null ? [] : [{ label: entry.label, cardId: entry.cardId }],
   );
@@ -107,11 +108,11 @@ export function DeckPlanView({
 
   return (
     <section className="space-y-6">
-      {!hideHeading && <Heading>Deck plan</Heading>}
+      {!hideHeading && <Heading>{m.decks_plan_heading()}</Heading>}
 
       {plan.generalStrategy !== "" && (
         <div className="space-y-2">
-          <Heading level={3}>Strategy</Heading>
+          <Heading level={3}>{m.decks_plan_strategy()}</Heading>
           <p className="text-muted-foreground max-w-prose whitespace-pre-wrap">
             {plan.generalStrategy}
           </p>
@@ -120,15 +121,15 @@ export function DeckPlanView({
 
       {hasMulligan ? (
         <div className="space-y-2">
-          <Heading level={3}>Mulligan priority</Heading>
+          <Heading level={3}>{m.decks_plan_mulligan_priority()}</Heading>
           {plan.mulliganSplit ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <div className="text-muted-foreground text-xs">Going first</div>
+                <div className="text-muted-foreground text-xs">{m.decks_plan_going_first()}</div>
                 <p className="whitespace-pre-wrap">{plan.mulliganFirst || "—"}</p>
               </div>
               <div>
-                <div className="text-muted-foreground text-xs">Going second</div>
+                <div className="text-muted-foreground text-xs">{m.decks_plan_going_second()}</div>
                 <p className="whitespace-pre-wrap">{plan.mulliganSecond || "—"}</p>
               </div>
             </div>
@@ -142,7 +143,7 @@ export function DeckPlanView({
 
       {hasBattlefields ? (
         <div className="space-y-2">
-          <Heading level={3}>Battlefields</Heading>
+          <Heading level={3}>{m.decks_plan_battlefields()}</Heading>
           {plan.battlefieldCustom ? (
             <p className="text-muted-foreground max-w-prose whitespace-pre-wrap">
               {plan.battlefieldNote}
@@ -162,7 +163,7 @@ export function DeckPlanView({
 
       {plan.matchups.length > 0 ? (
         <div className="space-y-2">
-          <Heading level={3}>Matchups</Heading>
+          <Heading level={3}>{m.decks_plan_matchups()}</Heading>
           <div className="grid gap-4 @2xl:grid-cols-2">
             {plan.matchups.map((matchup) => {
               const outSwaps = matchup.swaps.filter((swap) => swap.direction === "out");
@@ -187,14 +188,14 @@ export function DeckPlanView({
                 >
                   <div className="flex flex-col gap-4 sm:flex-row">
                     <SwapColumn
-                      label="Out"
+                      label={m.decks_plan_swap_out()}
                       tone="text-destructive"
                       sign="−"
                       swaps={outSwaps}
                       lookup={lookup}
                     />
                     <SwapColumn
-                      label="In"
+                      label={m.decks_plan_swap_in()}
                       tone="text-success"
                       sign="+"
                       swaps={inSwaps}

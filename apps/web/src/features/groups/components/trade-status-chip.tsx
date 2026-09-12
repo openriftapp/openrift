@@ -16,6 +16,7 @@ import {
   tradeStatusTitle,
 } from "@/features/groups/lib/trade-status-labels";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * `word` omits the count: an annotation's count is printing-wide, so a
@@ -41,7 +42,7 @@ function tradeChipPeople(trades: readonly CardTradeResponse[]): TradeChipPerson[
     return [
       {
         userId,
-        name: group.counterparty.name ?? "Member",
+        name: group.counterparty.name ?? m.trades_member_fallback(),
         image: group.counterparty.image,
         gravatarHash: group.counterparty.gravatarHash,
         quantity: group.trades.reduce((sum, trade) => sum + trade.quantity, 0),
@@ -122,7 +123,7 @@ function TradeChip({
   const [only] = people;
 
   if (people.length === 1 && only) {
-    const withName = `${title} · with ${only.name}`;
+    const withName = m.trades_chip_with_person({ title, name: only.name });
     return (
       <Link
         to="/trades/$userId"
@@ -151,7 +152,9 @@ function TradeChip({
         </PopoverTrigger>
         <PopoverContent side="bottom" align="start" className="w-56 p-0">
           <div className="px-3 pt-2.5 pb-1">
-            <SectionHeading as="h3">{status.label} with</SectionHeading>
+            <SectionHeading as="h3">
+              {m.trades_chip_status_with({ label: status.label })}
+            </SectionHeading>
           </div>
           <ul className="px-1 pb-1">
             {people.map((person) => (

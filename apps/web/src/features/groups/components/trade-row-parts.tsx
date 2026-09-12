@@ -12,6 +12,7 @@ import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 const EXPIRY_URGENT_MS = 24 * 60 * 60 * 1000;
@@ -28,8 +29,8 @@ export function TradeDirectionIcon({ incoming }: { incoming: boolean }) {
         "flex size-7 shrink-0 items-center justify-center rounded-full",
         incoming ? "bg-success-soft text-success" : "bg-warning-soft text-warning",
       )}
-      title={incoming ? "Comes to you" : "Goes to them"}
-      aria-label={incoming ? "Comes to you" : "Goes to them"}
+      title={incoming ? m.trades_comes_to_you() : m.trades_goes_to_them()}
+      aria-label={incoming ? m.trades_comes_to_you() : m.trades_goes_to_them()}
     >
       <Icon className="size-4" />
     </span>
@@ -83,9 +84,11 @@ export function TradePerCopyPrice({ printingId }: { printingId: string }) {
       <span>·</span>
       <span
         className={cn("font-medium", priceColorClass(unitPrice))}
-        title={`Price per copy (${marketplaceLabel(marketplace)})`}
+        title={m.trades_price_per_copy({ marketplace: marketplaceLabel(marketplace) })}
       >
-        {compactFormatterForMarketplace(marketplace)(unitPrice)}/copy
+        {m.trades_per_copy_amount({
+          amount: compactFormatterForMarketplace(marketplace)(unitPrice),
+        })}
       </span>
     </>
   );
@@ -110,7 +113,7 @@ export function TradeEstimatedPrice({
       <span>·</span>
       <span
         className={cn("font-medium", priceColorClass(total))}
-        title={`Estimated value (${marketplaceLabel(marketplace)})`}
+        title={m.trades_estimated_value({ marketplace: marketplaceLabel(marketplace) })}
       >
         {compactFormatterForMarketplace(marketplace)(total)}
       </span>
@@ -163,7 +166,7 @@ export function TradeStatusBadge({
     return (
       <Badge variant="warning" className={cn("shrink-0", className)}>
         <BellIcon />
-        Your move
+        {m.trades_badge_your_move()}
       </Badge>
     );
   }
@@ -171,7 +174,9 @@ export function TradeStatusBadge({
     return (
       <Badge variant="secondary" className={cn("shrink-0", className)}>
         <ClockIcon />
-        <span className="truncate">Waiting for {counterpartyName ?? "them"}</span>
+        <span className="truncate">
+          {m.trades_badge_waiting_for({ name: counterpartyName ?? m.trades_them() })}
+        </span>
       </Badge>
     );
   }
@@ -180,10 +185,10 @@ export function TradeStatusBadge({
       <Badge
         variant="secondary"
         className={cn("shrink-0", className)}
-        title="Your side is settled. The trade completes when they confirm theirs."
+        title={m.trades_badge_done_your_side_title()}
       >
         <CheckIcon />
-        <span className="truncate">Done on your side</span>
+        <span className="truncate">{m.trades_badge_done_your_side()}</span>
       </Badge>
     );
   }
@@ -191,7 +196,7 @@ export function TradeStatusBadge({
     return (
       <Badge variant="success" className={cn("shrink-0", className)}>
         <CheckIcon />
-        Ready to swap
+        {m.trades_badge_ready_to_swap()}
       </Badge>
     );
   }
@@ -223,7 +228,7 @@ export function TradeExpiry({
         "inline-flex shrink-0 items-center gap-1 text-xs whitespace-nowrap",
         urgent ? "text-warning font-medium" : "text-muted-foreground",
       )}
-      title="Pending requests expire 7 days after they're sent"
+      title={m.trades_expiry_title()}
     >
       <ClockIcon className="size-3" />
       {label}

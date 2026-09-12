@@ -7,6 +7,7 @@ import { PrintingHoverPreview } from "@/features/cards/components/printing-hover
 import { ImportPrintingLabel } from "@/features/cards/components/printing-label";
 import { PrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_RESULTS = 20;
 const MIN_QUERY_LENGTH = 1;
@@ -46,8 +47,8 @@ export function PrintingSearch({
 
   return (
     <CatalogSearchCombobox<(typeof searchable)[number]>
-      ariaLabel="Search catalog"
-      placeholder="Search catalog..."
+      ariaLabel={m.cards_search_catalog_label()}
+      placeholder={m.cards_search_catalog_placeholder()}
       className="h-7 w-44"
       results={results}
       onQueryChange={setQuery}

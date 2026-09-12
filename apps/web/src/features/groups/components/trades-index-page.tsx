@@ -27,6 +27,7 @@ import { needsYouLine, possibleTradesLine } from "@/features/groups/lib/trade-hu
 import type { TradesIndexMatchGroup, TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function artPrintingIds(person: TradesIndexPerson): string[] {
   if (person.needsYou.length > 0) {
@@ -65,7 +66,9 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
           gravatarHash={person.gravatarHash}
           size="sm"
         />
-        <span className="min-w-0 flex-1 truncate font-medium">{person.name ?? "Member"}</span>
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {person.name ?? m.trades_member_fallback()}
+        </span>
         <ChevronRightIcon className="text-muted-foreground/40 group-hover/card:text-muted-foreground size-4 shrink-0 transition-transform group-hover/card:translate-x-0.5" />
       </div>
       {showGroups ? (
@@ -80,11 +83,15 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
         </p>
       ) : null}
       {waiting > 0 ? (
-        <p className="text-muted-foreground text-sm">{waiting} waiting on them</p>
+        <p className="text-muted-foreground text-sm">
+          {m.trades_waiting_on_them({ count: waiting })}
+        </p>
       ) : null}
       {person.doneCount > 0 ? (
         <p className="text-muted-foreground text-xs">
-          {person.doneCount} {person.doneCount === 1 ? "trade" : "trades"} done
+          {person.doneCount === 1
+            ? m.trades_done_one({ count: person.doneCount })
+            : m.trades_done_other({ count: person.doneCount })}
         </p>
       ) : null}
     </CardLink>
@@ -137,29 +144,27 @@ export function TradesIndexPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Trades</PageTopBarTitle>
+          <PageTopBarTitle>{m.trades_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
-        <PageDescription>
-          Who you&apos;re trading with and who you could trade with, across all your groups.
-        </PageDescription>
+        <PageDescription>{m.trades_index_description()}</PageDescription>
 
         {empty ? (
           <EmptyState
             icon={HandshakeIcon}
-            title="No trades yet"
-            description="Trades start in a group: share a wishlist or tradelist there and matches with other members show up."
+            title={m.trades_empty_title()}
+            description={m.trades_empty_description()}
           >
-            <Button render={<Link to="/groups" />}>Go to groups</Button>
+            <Button render={<Link to="/groups" />}>{m.trades_go_to_groups()}</Button>
           </EmptyState>
         ) : null}
 
         {index.yourMove.length > 0 ? (
           <section className="flex flex-col gap-3">
             <SectionHeading icon={BellIcon} tone="gold" count={index.yourMove.length}>
-              Your move
+              {m.trades_section_your_move()}
             </SectionHeading>
             <PeopleGrid people={index.yourMove} showGroups={showGroups} />
           </section>
@@ -167,7 +172,9 @@ export function TradesIndexPage() {
 
         {index.waiting.length > 0 ? (
           <section className="flex flex-col gap-3">
-            <SectionHeading count={index.waiting.length}>Waiting on them</SectionHeading>
+            <SectionHeading count={index.waiting.length}>
+              {m.trades_section_waiting()}
+            </SectionHeading>
             <PeopleGrid people={index.waiting} showGroups={showGroups} />
           </section>
         ) : null}
@@ -175,7 +182,7 @@ export function TradesIndexPage() {
         {index.couldTrade.length > 0 ? (
           <section className="flex flex-col gap-3">
             <SectionHeading icon={SparklesIcon} tone="success" count={index.couldTrade.length}>
-              Could trade
+              {m.trades_section_could_trade()}
             </SectionHeading>
             <PeopleGrid people={index.couldTrade} showGroups={showGroups} />
           </section>
@@ -186,8 +193,9 @@ export function TradesIndexPage() {
             <SectionHeading as="h3">
               <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
                 <IconChip icon={CheckIcon} size="sm" />
-                Traded before with {index.past.length}{" "}
-                {index.past.length === 1 ? "person" : "people"}
+                {index.past.length === 1
+                  ? m.trades_traded_before_one({ count: index.past.length })
+                  : m.trades_traded_before_other({ count: index.past.length })}
                 <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
               </CollapsibleTrigger>
             </SectionHeading>

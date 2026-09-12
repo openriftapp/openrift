@@ -24,8 +24,8 @@ import {
   buildOwnershipRows,
   buildRarityByCardKey,
   buildRarityRows,
-  OWNERSHIP_LENS_SERIES,
   ownershipFocusKeys,
+  ownershipLensSeries,
   rarityFocusKeys,
   rarityLensSeries,
 } from "@/features/decks/lib/deck-stat-lenses";
@@ -36,6 +36,7 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import type { useEnumOrders } from "@/hooks/use-enums";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 type OwnedPrinting = ReturnType<DeckOwnershipData["ownedPrintingByCardId"]["get"]>;
 
@@ -111,9 +112,13 @@ export function DeckStatsBand({
   const rarityLensAvailable = rarityRows !== undefined && rarityRows.length > 0;
   const ownershipLensAvailable = ownershipRows !== undefined;
   const lensOptions: { key: StatsLens; label: string }[] = [
-    ...(stats.typeBreakdown.length > 0 ? [{ key: "types" as const, label: "Types" }] : []),
-    ...(rarityLensAvailable ? [{ key: "rarity" as const, label: "Rarity" }] : []),
-    ...(ownershipLensAvailable ? [{ key: "ownership" as const, label: "Collection" }] : []),
+    ...(stats.typeBreakdown.length > 0
+      ? [{ key: "types" as const, label: m.decks_stats_types() }]
+      : []),
+    ...(rarityLensAvailable ? [{ key: "rarity" as const, label: m.decks_stats_rarity() }] : []),
+    ...(ownershipLensAvailable
+      ? [{ key: "ownership" as const, label: m.decks_stats_collection() }]
+      : []),
   ];
   const storedStatsLens = useDeckBuilderUiStore((state) => state.statsLens);
   const setStatsLens = useDeckBuilderUiStore((state) => state.setStatsLens);
@@ -141,7 +146,7 @@ export function DeckStatsBand({
         revealDomainsOnHover
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "type", value })}
-        footnote={hasMultiTypeCards ? "A card with two types counts under both." : undefined}
+        footnote={hasMultiTypeCards ? m.decks_stats_footnote_multi_type() : undefined}
         focusValue={statsFocus?.kind === "type" ? statsFocus.value : null}
         hitData={statsFocus && statsFocus.kind !== "type" ? focusedStats.typeBreakdown : undefined}
         hideHeading={!withHeading}
@@ -151,7 +156,7 @@ export function DeckStatsBand({
   const rarityChart = (withHeading: boolean) =>
     rarityRows && rarityLensAvailable ? (
       <LensBar
-        title={withHeading ? "Rarity" : undefined}
+        title={withHeading ? m.decks_stats_rarity() : undefined}
         rows={rarityRows}
         series={raritySeries}
         onSegmentClick={(value) => {
@@ -169,18 +174,19 @@ export function DeckStatsBand({
       />
     ) : null;
 
+  const ownershipSeries = ownershipLensSeries();
   const ownershipChart = (withHeading: boolean) =>
     ownershipRows ? (
       <LensBar
-        title={withHeading ? "Collection" : undefined}
+        title={withHeading ? m.decks_stats_collection() : undefined}
         rows={ownershipRows}
-        series={OWNERSHIP_LENS_SERIES}
-        footnote="Counts the main deck against your collection."
+        series={ownershipSeries}
+        footnote={m.decks_stats_footnote_collection()}
         onSegmentClick={(value) => {
           if (!ownershipSegmentsByCardKey) {
             return;
           }
-          const ownershipClass = OWNERSHIP_LENS_SERIES.find((series) => series.key === value)?.key;
+          const ownershipClass = ownershipSeries.find((series) => series.key === value)?.key;
           if (!ownershipClass) {
             return;
           }
@@ -202,6 +208,7 @@ export function DeckStatsBand({
         stacks={stats.energyCurveStacks}
         average={stats.averageEnergy}
         revealDomainsOnHover
+        footnote={m.decks_stats_footnote_energy()}
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "energy", value })}
         focusValue={statsFocus?.kind === "energy" ? statsFocus.value : null}
@@ -309,11 +316,9 @@ export function DeckStatsBand({
             value: `${formatChancePct(turnOneFirstChance)} · ${formatChancePct(turnOneSecondChance)}`,
             label: (
               <span className="inline-flex items-center gap-1">
-                Turn-1 play
-                <InfoHint label="Turn-1 play" side="bottom">
-                  The chance your opening hand holds a turn-one play. First number: going first (a
-                  unit or gear at 2 energy or less). Second: going second (3 or less). Spells
-                  don&rsquo;t count, there&rsquo;s nothing to react to yet.
+                {m.decks_stats_turn_one_play_label()}
+                <InfoHint label={m.decks_stats_turn_one_play_label()} side="bottom">
+                  {m.decks_stats_turn_one_play_hint()}
                 </InfoHint>
               </span>
             ),
@@ -327,10 +332,9 @@ export function DeckStatsBand({
             value: `${formatChancePct(curveOutFirst)} · ${formatChancePct(curveOutSecond)}`,
             label: (
               <span className="inline-flex items-center gap-1">
-                Curve-out
-                <InfoHint label="Curve-out" side="bottom">
-                  How often you can play at least one card on each of turns 1 to 3. First number:
-                  going first. Second: going second.
+                {m.decks_stats_curve_out_label()}
+                <InfoHint label={m.decks_stats_curve_out_label()} side="bottom">
+                  {m.decks_stats_curve_out_hint()}
                 </InfoHint>
               </span>
             ),
@@ -350,7 +354,7 @@ export function DeckStatsBand({
       className="flex flex-col gap-4"
     >
       <DeckZoneHeader
-        label="Stats"
+        label={m.decks_stats_title()}
         labelClassName="group-hover/zone-label:text-foreground transition-colors"
         labelRender={
           <ExpandToggle
@@ -361,8 +365,8 @@ export function DeckStatsBand({
           />
         }
       >
-        <InfoHint label="About these stats" side="bottom">
-          Counts the main deck. Click a bar to see its cards.
+        <InfoHint label={m.decks_stats_about_label()} side="bottom">
+          {m.decks_stats_about_hint()}
         </InfoHint>
       </DeckZoneHeader>
       {statsOpen && (

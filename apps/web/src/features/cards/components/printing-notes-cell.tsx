@@ -6,6 +6,7 @@ import { BrandGlyph } from "@/components/ui/brand-glyph";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { sourceBrand } from "@/features/admin/lib/source-brand";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Also special-cased in card-thumbnail.tsx, for placeholder art. */
 const PROMO_MARKER_SLUG = "promo";
@@ -83,7 +84,7 @@ export function PrintingNotesCell({
         <Tooltip>
           <TooltipTrigger
             className="flex min-w-0 cursor-default items-center gap-1.5"
-            aria-label="Printing note"
+            aria-label={m.cards_notes_printing_note()}
           >
             <InfoIcon className="size-4 shrink-0" />
             <span className="hidden truncate @[10rem]:inline">{comment}</span>

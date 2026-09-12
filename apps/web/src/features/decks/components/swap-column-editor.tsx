@@ -3,6 +3,7 @@ import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { CardChip, CardPicker } from "@/features/decks/components/deck-card-picker";
 import type { PlanSwapDraft, SwapDirection } from "@/features/decks/lib/deck-plan";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
+import { m } from "@/paraglide/messages.js";
 
 interface SwapCandidate {
   cardId: string;
@@ -32,7 +33,7 @@ function SwapQuantityField({
         min={1}
         max={max}
         className="w-5 min-w-0 bg-transparent text-right tabular-nums outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-        aria-label="Quantity"
+        aria-label={m.decks_editor_quantity()}
         {...inputProps}
       />
       {available === undefined ? null : (
@@ -79,7 +80,7 @@ function SwapColumn({
         size="sm"
         className={direction === "out" ? "text-destructive" : "text-success"}
       >
-        {direction === "out" ? "− Out (maindeck)" : "+ In (sideboard)"}
+        {direction === "out" ? m.decks_editor_swap_out() : m.decks_editor_swap_in()}
       </SectionHeading>
       {columnSwaps.map(({ swap, swapIndex }) => {
         const limit = maxQuantityFor?.(swap.cardId, direction);
@@ -114,7 +115,11 @@ function SwapColumn({
       <CardPicker
         candidates={open}
         onSelect={(cardId) => onAdd(direction, cardId)}
-        placeholder={direction === "out" ? "Add a card to cut…" : "Add a card to bring in…"}
+        placeholder={
+          direction === "out"
+            ? m.decks_editor_swap_out_placeholder()
+            : m.decks_editor_swap_in_placeholder()
+        }
       />
     </div>
   );

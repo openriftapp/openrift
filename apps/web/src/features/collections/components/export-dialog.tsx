@@ -29,6 +29,7 @@ import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useEnumOrders } from "@/hooks/use-enums";
 import type { CardLine } from "@/lib/export-text";
 import { formatCardListAsDeckText } from "@/lib/export-text";
+import { m } from "@/paraglide/messages.js";
 
 /** `cards` has no printing, so only the text format renders it; `printings` fills copy columns only when `copiesById` is given. */
 export type ExportPayload =
@@ -47,10 +48,21 @@ const CSV_FORMAT_KEYS = Object.keys(CSV_EXPORT_FORMATS) as CsvExportFormat[];
 
 type ExportUnit = "card" | "copy";
 
-const UNIT_PLURAL: Record<ExportUnit, string> = { card: "cards", copy: "copies" };
-
 function formatLabel(format: ExportFormat): string {
-  return format === TEXT_FORMAT ? "Text list" : CSV_EXPORT_FORMATS[format].label;
+  return format === TEXT_FORMAT
+    ? m.collections_export_format_text_list()
+    : CSV_EXPORT_FORMATS[format].label;
+}
+
+function exportButtonLabel(unit: ExportUnit, count: number): string {
+  if (unit === "card") {
+    return count === 1
+      ? m.collections_export_cards_one({ count })
+      : m.collections_export_cards_other({ count });
+  }
+  return count === 1
+    ? m.collections_export_copies_one({ count })
+    : m.collections_export_copies_other({ count });
 }
 
 function payloadLines(payload: ExportPayload): CardLine[] {
@@ -156,12 +168,12 @@ export function ExportDialog({
                   {isLoading ? (
                     <>
                       <Loader2Icon className="size-4 animate-spin" />
-                      Loading...
+                      {m.collections_export_loading()}
                     </>
                   ) : (
                     <>
                       <DownloadIcon className="size-4" />
-                      Export {count} {count === 1 ? unit : UNIT_PLURAL[unit]}
+                      {exportButtonLabel(unit, count)}
                     </>
                   )}
                 </Button>

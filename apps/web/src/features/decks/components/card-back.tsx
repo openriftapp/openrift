@@ -1,6 +1,7 @@
 import { useId } from "react";
 
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface CardBackProps {
   className?: string;
@@ -19,7 +20,7 @@ export function CardBack({ className, interactive = false }: CardBackProps) {
         className,
       )}
       role="img"
-      aria-label="Card back"
+      aria-label={m.packs_card_back_aria()}
     >
       <svg className="pointer-events-none absolute inset-0 size-full opacity-20" aria-hidden="true">
         <filter id={noiseId}>

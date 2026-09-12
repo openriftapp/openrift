@@ -11,6 +11,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface SortGroupOption<TValue extends string> {
   value: TValue;
@@ -44,7 +45,7 @@ function DirToggle({
   dir: "asc" | "desc";
   onToggle: (dir: "asc" | "desc") => void;
 }) {
-  const label = dir === "asc" ? "Ascending, click to reverse" : "Descending, click to reverse";
+  const label = dir === "asc" ? m.cards_sort_dir_asc() : m.cards_sort_dir_desc();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -194,7 +195,7 @@ export function SortGroupControls<
 
   const groupSection = group && (
     <SortGroupSection
-      title="Group by"
+      title={m.cards_group_by()}
       action={
         groupingActive ? (
           // oxlint-disable-next-line react/jsx-handler-names -- forwarded callback from caller, name fixed by the route
@@ -208,7 +209,7 @@ export function SortGroupControls<
 
   const sortSection = (
     <SortGroupSection
-      title="Sort by"
+      title={m.cards_sort_by()}
       action={<DirToggle dir={sortDir} onToggle={onSortDirChange} />}
     >
       {renderOptions(sortOptions, sortBy, onSortByChange)}
@@ -216,7 +217,7 @@ export function SortGroupControls<
   );
 
   const viewSection = view && (
-    <SortGroupSection title={view.title ?? "View"}>
+    <SortGroupSection title={view.title ?? m.cards_view_label()}>
       {renderOptions(view.options, view.value, view.onChange)}
     </SortGroupSection>
   );
@@ -226,7 +227,7 @@ export function SortGroupControls<
       <div className="flex flex-col gap-2">
         {group && (
           <BadgeRow
-            label="Group by"
+            label={m.cards_group_by()}
             options={group.options}
             value={group.value}
             // oxlint-disable-next-line react/jsx-handler-names -- forwarded callback from caller, name fixed by the route
@@ -240,7 +241,7 @@ export function SortGroupControls<
           />
         )}
         <BadgeRow
-          label="Sort by"
+          label={m.cards_sort_by()}
           options={sortOptions}
           value={sortBy}
           onChange={onSortByChange}
@@ -248,7 +249,7 @@ export function SortGroupControls<
         />
         {view && (
           <BadgeRow
-            label={view.title ?? "View"}
+            label={view.title ?? m.cards_view_label()}
             options={view.options}
             value={view.value}
             // oxlint-disable-next-line react/jsx-handler-names -- forwarded callback from caller, name fixed by the route

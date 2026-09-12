@@ -9,6 +9,7 @@ import {
   StripIconButton,
 } from "@/features/cards/components/card-strip";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckAddStripProps {
   printing: Printing;
@@ -16,6 +17,8 @@ interface DeckAddStripProps {
   deckQuantity: number;
   maxReached?: boolean;
   addLabel?: string;
+  addAriaLabel?: string;
+  addTooltip?: string;
   removeLabel?: string;
   shiftHeld?: boolean;
   remainingCount?: number;
@@ -29,6 +32,8 @@ export function DeckAddStrip({
   deckQuantity,
   maxReached,
   addLabel,
+  addAriaLabel,
+  addTooltip,
   removeLabel,
   shiftHeld,
   remainingCount,
@@ -53,20 +58,20 @@ export function DeckAddStrip({
   const ownedPill = (
     <CountPill
       variant="ghost"
-      title={`${ownedCount} owned`}
+      title={m.decks_editor_owned_count({ count: ownedCount })}
       className={cn(ownedCount === 0 && "opacity-50")}
     >
       <PackageIcon className="size-3" aria-hidden />
       <span>{ownedCount}</span>
-      <span className="sr-only">owned</span>
+      <span className="sr-only">{m.decks_editor_owned()}</span>
     </CountPill>
   );
 
   const deckPill = deckQuantity > 0 && (
-    <CountPill variant="primary" title={`${deckQuantity} in deck`}>
+    <CountPill variant="primary" title={m.decks_editor_in_deck_count({ count: deckQuantity })}>
       <LayersIcon className="size-3" aria-hidden />
       <span>{deckQuantity}</span>
-      <span className="sr-only">in deck</span>
+      <span className="sr-only">{m.decks_editor_in_deck()}</span>
     </CountPill>
   );
 
@@ -77,13 +82,13 @@ export function DeckAddStrip({
           showBulkRemove ? (
             <StripActionButton
               variant="destructive"
-              aria-label="Remove from deck"
+              aria-label={m.decks_editor_remove_from_deck()}
               onClick={(event) => onRemove(printing, event)}
             />
           ) : (
             <StripIconButton
               className="text-muted-foreground"
-              aria-label="Remove from deck"
+              aria-label={m.decks_editor_remove_from_deck()}
               onClick={(event) => onRemove(printing, event)}
             />
           )
@@ -91,7 +96,7 @@ export function DeckAddStrip({
       >
         {showBulkRemove ? `-${deckQuantity}` : <MinusIcon />}
       </TooltipTrigger>
-      <TooltipContent>Shift+click to remove all</TooltipContent>
+      <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
     </Tooltip>
   );
 
@@ -101,14 +106,14 @@ export function DeckAddStrip({
         render={
           !maxReached && (addLabel || showBulkAdd) ? (
             <StripActionButton
-              aria-label={addLabel ? `${addLabel} card` : "Add to deck"}
+              aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
               onClick={(event) => onQuickAdd(printing, event)}
             />
           ) : (
             <StripIconButton
               className={maxReached ? "text-muted-foreground/30" : "text-muted-foreground"}
               disabled={maxReached}
-              aria-label={addLabel ? `${addLabel} card` : "Add to deck"}
+              aria-label={addAriaLabel ?? m.decks_editor_add_to_deck()}
               onClick={(event) => onQuickAdd(printing, event)}
             />
           )
@@ -123,9 +128,7 @@ export function DeckAddStrip({
         )}
       </TooltipTrigger>
       {!maxReached && (
-        <TooltipContent>
-          {addLabel ? `Click to ${addLabel.toLowerCase()}` : "Shift+click to add max"}
-        </TooltipContent>
+        <TooltipContent>{addTooltip ?? m.decks_editor_shift_add_max()}</TooltipContent>
       )}
     </Tooltip>
   );

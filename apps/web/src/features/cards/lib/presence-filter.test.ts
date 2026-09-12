@@ -1,7 +1,7 @@
 import { PRESENCE_DIMENSIONS } from "@openrift/shared/types/search";
 import { describe, expect, it } from "vitest";
 
-import { PRESENCE_LABELS, presenceFlagCount, presenceToFlagState } from "./presence-filter";
+import { presenceFlagCount, presenceLabel, presenceToFlagState } from "./presence-filter";
 
 describe("presenceToFlagState", () => {
   it("maps 'any' to a check (true), 'none' to a minus (false), null to off", () => {
@@ -28,10 +28,10 @@ describe("presenceFlagCount", () => {
   });
 });
 
-describe("PRESENCE_LABELS", () => {
+describe("presenceLabel", () => {
   it("has a label for every presence dimension", () => {
     for (const dimension of PRESENCE_DIMENSIONS) {
-      expect(PRESENCE_LABELS[dimension]).toBeTruthy();
+      expect(presenceLabel(dimension)).toBeTruthy();
     }
   });
 });

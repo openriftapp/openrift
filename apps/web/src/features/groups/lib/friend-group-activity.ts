@@ -3,13 +3,17 @@ import type { AggregatedActivityRow } from "@openrift/shared/friend-group-activi
 import { aggregateActivityEvents } from "@openrift/shared/friend-group-activity";
 import type { FriendGroupActivityEvent } from "@openrift/shared/types/api/friend-group";
 
+import { m } from "@/paraglide/messages.js";
+
 export function tradeVolumeLabel(recent: number, lifetime: number): string {
   if (recent > 0) {
-    return `${recent} ${recent === 1 ? "card" : "cards"} traded in the last ${TRADE_VOLUME_WINDOW_DAYS} days`;
+    return recent === 1
+      ? m.groups_trade_volume_recent_one({ count: recent, days: TRADE_VOLUME_WINDOW_DAYS })
+      : m.groups_trade_volume_recent_other({ count: recent, days: TRADE_VOLUME_WINDOW_DAYS });
   }
   return lifetime > 0
-    ? `No trades in the last ${TRADE_VOLUME_WINDOW_DAYS} days`
-    : "No trades here yet";
+    ? m.groups_trade_volume_quiet({ days: TRADE_VOLUME_WINDOW_DAYS })
+    : m.groups_trade_volume_none();
 }
 
 /** `at` is the day's newest timestamp: the input is newest-first. */

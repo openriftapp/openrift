@@ -2,20 +2,18 @@ import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Switch } from "@/components/ui/switch";
 import { useEmailNotifications } from "@/features/account/hooks/use-email-notifications";
+import { m } from "@/paraglide/messages.js";
 
 export function AdminNotificationsSection() {
   const { gates, isLoading, isSaving, setChannel } = useEmailNotifications();
   const disabled = isLoading || isSaving;
 
   return (
-    <SettingsSection
-      title="Admin notifications"
-      description="Emails about the review queue. Only admins see these settings, and each admin chooses their own."
-    >
+    <SettingsSection title={m.profile_admin_title()} description={m.profile_admin_description()}>
       <SettingsRow
-        label="New card submissions"
+        label={m.profile_admin_card_submissions_label()}
         htmlFor="pref-email-card-submissions"
-        description="Get an email each time someone submits a card through the contribution form, with a link straight to the review queue."
+        description={m.profile_admin_card_submissions_description()}
       >
         <Switch
           id="pref-email-card-submissions"

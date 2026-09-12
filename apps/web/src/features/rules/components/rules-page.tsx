@@ -36,12 +36,14 @@ import {
   mergeTombstones,
   parseSearchTerms,
 } from "@/features/rules/lib/rules-changes";
+import { ruleKindTitle } from "@/features/rules/lib/rules-kinds";
 import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import {
   buildTermAnchors,
@@ -67,11 +69,6 @@ function buildRulesTocItems(rules: RuleResponse[]): PageTocItem[] {
       level: rule.ruleType === "subtitle" ? 1 : 0,
     }));
 }
-
-const KIND_TITLES: Record<RuleKind, string> = {
-  core: "Core Rules",
-  tournament: "Tournament Rules",
-};
 
 /**
  * Returns the version immediately before `current` in the chronologically
@@ -99,8 +96,8 @@ function NoRulesYet() {
   return (
     <EmptyState
       icon={BookOpenIcon}
-      title="No rules available yet"
-      description="Rules will appear here once imported by an administrator."
+      title={m.rules_empty_title()}
+      description={m.rules_empty_description()}
     />
   );
 }
@@ -110,7 +107,7 @@ function RulesEmpty({ kind }: { kind: RuleKind }) {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>{KIND_TITLES[kind]}</PageTopBarTitle>
+          <PageTopBarTitle>{ruleKindTitle(kind)}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
@@ -197,14 +194,14 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   const tocItems = buildRulesTocItems(rules);
   const ruleCountLabel =
     searchResult === null
-      ? `${rules.length} rules`
-      : `${searchResult.matchSet.size} / ${rules.length} rules`;
+      ? m.rules_count({ count: rules.length })
+      : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
 
   return (
     <>
       <PageTopBarSticky width="capped" ref={setTopBarEl}>
         <PageTopBar>
-          <PageTopBarTitle>{KIND_TITLES[kind]}</PageTopBarTitle>
+          <PageTopBarTitle>{ruleKindTitle(kind)}</PageTopBarTitle>
           <PageTopBarActions>
             {versions.length > 1 ? (
               <Select
@@ -280,8 +277,8 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
               {noSearchResults ? (
                 <Empty>
                   <EmptyHeader>
-                    <EmptyTitle>No rules match your search</EmptyTitle>
-                    <EmptyDescription>Try fewer or different terms.</EmptyDescription>
+                    <EmptyTitle>{m.rules_search_empty_title()}</EmptyTitle>
+                    <EmptyDescription>{m.rules_search_empty_description()}</EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               ) : searchResult === null ? (

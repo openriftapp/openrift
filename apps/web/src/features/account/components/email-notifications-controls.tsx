@@ -11,28 +11,32 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useEmailNotifications } from "@/features/account/hooks/use-email-notifications";
+import { m } from "@/paraglide/messages.js";
 
-const CADENCE_OPTIONS: { value: TradeRequestEmailCadence; label: string }[] = [
-  { value: "instant", label: "Instant" },
-  { value: "5min", label: "Every 5 minutes" },
-  { value: "15min", label: "Every 15 minutes" },
-  { value: "30min", label: "Every 30 minutes" },
-  { value: "60min", label: "Every hour" },
-];
+function cadenceOptions(): { value: TradeRequestEmailCadence; label: string }[] {
+  return [
+    { value: "instant", label: m.profile_notifications_cadence_instant() },
+    { value: "5min", label: m.profile_notifications_cadence_5min() },
+    { value: "15min", label: m.profile_notifications_cadence_15min() },
+    { value: "30min", label: m.profile_notifications_cadence_30min() },
+    { value: "60min", label: m.profile_notifications_cadence_60min() },
+  ];
+}
 
 export function EmailNotificationsControls() {
   const { gates, isLoading, isSaving, setChannel, setCadence } = useEmailNotifications();
+  const cadences = cadenceOptions();
   const disabled = isLoading || isSaving;
 
   return (
     <SettingsSection
-      title="Email notifications"
-      description="Only about your trading activity. Every email has one-click unsubscribe."
+      title={m.profile_notifications_title()}
+      description={m.profile_notifications_description()}
     >
       <SettingsRow
-        label="Trade requests"
+        label={m.profile_notifications_trade_requests_label()}
         htmlFor="pref-email-trade-requests"
-        description="When someone requests a trade with you."
+        description={m.profile_notifications_trade_requests_description()}
       >
         <Switch
           id="pref-email-trade-requests"
@@ -42,7 +46,10 @@ export function EmailNotificationsControls() {
         />
       </SettingsRow>
 
-      <SettingsRow label="Trade request frequency" htmlFor="pref-email-trade-request-cadence">
+      <SettingsRow
+        label={m.profile_notifications_cadence_label()}
+        htmlFor="pref-email-trade-request-cadence"
+      >
         <Select
           value={gates.tradeRequestCadence}
           onValueChange={(value) => {
@@ -50,7 +57,7 @@ export function EmailNotificationsControls() {
               setCadence(value as TradeRequestEmailCadence);
             }
           }}
-          items={CADENCE_OPTIONS}
+          items={cadences}
         >
           <SelectTrigger
             id="pref-email-trade-request-cadence"
@@ -60,7 +67,7 @@ export function EmailNotificationsControls() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CADENCE_OPTIONS.map((option) => (
+            {cadences.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -70,9 +77,9 @@ export function EmailNotificationsControls() {
       </SettingsRow>
 
       <SettingsRow
-        label="Trade updates"
+        label={m.profile_notifications_trade_status_label()}
         htmlFor="pref-email-trade-status"
-        description="When your trade is accepted, declined, or cancelled. Same frequency as trade requests."
+        description={m.profile_notifications_trade_status_description()}
       >
         <Switch
           id="pref-email-trade-status"
@@ -83,9 +90,9 @@ export function EmailNotificationsControls() {
       </SettingsRow>
 
       <SettingsRow
-        label="Daily match digest"
+        label={m.profile_notifications_trade_matches_label()}
         htmlFor="pref-email-trade-matches"
-        description="A once-a-day summary of new cards your groups have that are on your wishlist."
+        description={m.profile_notifications_trade_matches_description()}
       >
         <Switch
           id="pref-email-trade-matches"

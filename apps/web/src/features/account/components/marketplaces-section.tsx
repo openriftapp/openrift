@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { ResetButton } from "./reset-button";
@@ -30,7 +31,7 @@ export function MarketplacesSection() {
       setMarketplaceOrder([...marketplaceOrder, marketplace]);
       return;
     }
-    const next = nonEmptyOrder(marketplaceOrder.filter((m) => m !== marketplace));
+    const next = nonEmptyOrder(marketplaceOrder.filter((entry) => entry !== marketplace));
     if (next !== null) {
       setMarketplaceOrder(next);
     }
@@ -57,19 +58,19 @@ export function MarketplacesSection() {
   return (
     <SettingsSection
       id="marketplaces"
-      title="Marketplaces"
-      description="The first one is shown in the card grid. CardTrader is recommended: it prices by language and condition."
+      title={m.profile_marketplaces_title()}
+      description={m.profile_marketplaces_description()}
       action={
         overrides.marketplaceOrder !== null && (
           <ResetButton
             onClick={() => resetPreference("marketplaceOrder")}
-            label="Reset marketplace order"
+            label={m.profile_marketplaces_reset()}
           />
         )
       }
     >
       <div className="flex flex-col gap-1">
-        {[...marketplaceOrder, ...ALL_MARKETPLACES.filter((m) => !enabledSet.has(m))].map(
+        {[...marketplaceOrder, ...ALL_MARKETPLACES.filter((entry) => !enabledSet.has(entry))].map(
           (marketplace) => {
             const enabled = enabledSet.has(marketplace);
             const index = marketplaceOrder.indexOf(marketplace);
@@ -89,7 +90,9 @@ export function MarketplacesSection() {
                   <span className="text-muted-foreground text-xs">
                     {MARKETPLACE_CURRENCY[marketplace]}
                   </span>
-                  {enabled && index === 0 && <Badge variant="subtle">Favorite</Badge>}
+                  {enabled && index === 0 && (
+                    <Badge variant="subtle">{m.profile_marketplaces_favorite()}</Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-0.5">
                   <Button
@@ -97,7 +100,7 @@ export function MarketplacesSection() {
                     size="icon-sm"
                     disabled={!enabled || index === 0}
                     onClick={() => moveMarketplace(marketplace, -1)}
-                    aria-label={`Move ${label} up`}
+                    aria-label={m.profile_marketplaces_move_up({ name: label })}
                   >
                     <ArrowUpIcon className="size-3" />
                   </Button>
@@ -106,7 +109,7 @@ export function MarketplacesSection() {
                     size="icon-sm"
                     disabled={!enabled || index === marketplaceOrder.length - 1}
                     onClick={() => moveMarketplace(marketplace, 1)}
-                    aria-label={`Move ${label} down`}
+                    aria-label={m.profile_marketplaces_move_down({ name: label })}
                   >
                     <ArrowDownIcon className="size-3" />
                   </Button>

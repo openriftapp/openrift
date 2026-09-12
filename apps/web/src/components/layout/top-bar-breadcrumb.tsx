@@ -5,6 +5,7 @@ import { cloneElement, Fragment } from "react";
 import { PageTopBar, PageTopBarActions, PageTopBarSticky } from "@/components/layout/page-top-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface TopBarCrumb {
   label: string;
@@ -23,7 +24,7 @@ export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] })
     <>
       {parent?.link
         ? cloneElement(parent.link, {
-            "aria-label": `Back to ${parent.label}`,
+            "aria-label": m.layout_breadcrumb_back({ label: parent.label }),
             className: cn(
               buttonVariants({ variant: "ghost", size: "icon-sm" }),
               "-ml-1.5 sm:hidden",

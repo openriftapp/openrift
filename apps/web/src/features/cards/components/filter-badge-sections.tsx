@@ -7,6 +7,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 export function FilterBadgeSections({
   availableFilters,
@@ -38,7 +39,7 @@ export function FilterBadgeSections({
     <>
       {overnumberedInArtVariant && (
         <FlagBadge
-          label="Overnumbered"
+          label={m.cards_filter_flag_overnumbered()}
           state={filterState.overnumbered}
           count={filterCounts?.flags.overnumbered}
           onClick={toggleOvernumbered}
@@ -46,7 +47,7 @@ export function FilterBadgeSections({
       )}
       {signedInArtVariant && (
         <FlagBadge
-          label="Signed"
+          label={m.cards_filter_flag_signed()}
           state={filterState.signed}
           count={filterCounts?.flags.signed}
           onClick={toggleSigned}
@@ -67,7 +68,7 @@ export function FilterBadgeSections({
         availableLanguages.length > 1 &&
         !hiddenSections?.has("languages") && (
           <FilterSection
-            label="Language"
+            label={m.cards_filter_unit_languages()}
             options={availableLanguages}
             selected={filterState.languages}
             excluded={filterState.languagesEx}
@@ -78,7 +79,7 @@ export function FilterBadgeSections({
         )}
       {showUnit("sets") && !hiddenSections?.has("sets") && (
         <FilterSection
-          label="Set"
+          label={m.cards_filter_unit_sets()}
           options={availableFilters.sets}
           selected={filterState.sets}
           excluded={filterState.setsEx}
@@ -91,7 +92,7 @@ export function FilterBadgeSections({
       )}
       {showUnit("domains") && !hiddenSections?.has("domains") && (
         <FilterSection
-          label="Domain"
+          label={m.cards_filter_unit_domains()}
           options={availableFilters.domains}
           selected={selected("domains")}
           excluded={filterState.domainsEx}
@@ -103,7 +104,7 @@ export function FilterBadgeSections({
       )}
       {showUnit("rarities") && !hiddenSections?.has("rarities") && (
         <FilterSection
-          label="Rarity"
+          label={m.cards_filter_unit_rarities()}
           options={availableFilters.rarities}
           selected={filterState.rarities}
           excluded={filterState.raritiesEx}
@@ -115,7 +116,7 @@ export function FilterBadgeSections({
       )}
       {showUnit("types") && !hiddenSections?.has("types") && (
         <FilterSection
-          label="Type"
+          label={m.cards_filter_unit_types()}
           options={availableFilters.types}
           selected={selected("types")}
           excluded={filterState.typesEx}
@@ -129,7 +130,7 @@ export function FilterBadgeSections({
         availableFilters.superTypes.length > 0 &&
         !hiddenSections?.has("superTypes") && (
           <FilterSection
-            label="Supertype"
+            label={m.cards_filter_unit_super_types()}
             options={availableFilters.superTypes}
             selected={selected("superTypes")}
             excluded={filterState.superTypesEx}
@@ -141,7 +142,7 @@ export function FilterBadgeSections({
         )}
       {artVariantShown && (
         <FilterSection
-          label="Art Variant"
+          label={m.cards_filter_label_art_variant()}
           options={availableFilters.artVariants}
           selected={filterState.artVariants}
           excluded={filterState.artVariantsEx}
@@ -155,7 +156,7 @@ export function FilterBadgeSections({
         availableFilters.finishes.length > 1 &&
         !hiddenSections?.has("finishes") && (
           <FilterSection
-            label="Finish"
+            label={m.cards_filter_label_finish()}
             options={availableFilters.finishes}
             selected={filterState.finishes}
             excluded={filterState.finishesEx}

@@ -1,6 +1,7 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { m } from "@/paraglide/messages.js";
 
 interface DeleteListDialogProps {
   open: boolean;
@@ -12,6 +13,25 @@ interface DeleteListDialogProps {
   isPending: boolean;
 }
 
+function deleteTail(kind: ListKind, entryCount: number): string {
+  if (entryCount === 0) {
+    return m.lists_delete_tail_empty();
+  }
+  if (kind === "copy") {
+    return entryCount === 1
+      ? m.lists_delete_tail_copy_one({ count: entryCount })
+      : m.lists_delete_tail_copy_other({ count: entryCount });
+  }
+  if (kind === "printing") {
+    return entryCount === 1
+      ? m.lists_delete_tail_printing_one({ count: entryCount })
+      : m.lists_delete_tail_printing_other({ count: entryCount });
+  }
+  return entryCount === 1
+    ? m.lists_delete_tail_card_one({ count: entryCount })
+    : m.lists_delete_tail_card_other({ count: entryCount });
+}
+
 export function DeleteListDialog({
   open,
   onOpenChange,
@@ -21,28 +41,20 @@ export function DeleteListDialog({
   onConfirm,
   isPending,
 }: DeleteListDialogProps) {
-  const itemNoun = kind === "copy" ? "copy" : kind === "printing" ? "printing" : "card";
-  const itemPluralNoun = kind === "copy" ? "copies" : kind === "printing" ? "printings" : "cards";
-  const tailMessage =
-    entryCount === 0
-      ? " This list is empty."
-      : kind === "copy"
-        ? ` The ${entryCount} ${entryCount === 1 ? "copy" : "copies"} on this list will stay in your collection, but will no longer be on this list.`
-        : ` This list has ${entryCount} ${entryCount === 1 ? itemNoun : itemPluralNoun}, which will no longer be grouped.`;
+  const tailMessage = deleteTail(kind, entryCount);
 
   return (
     <ConfirmActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete list"
+      title={m.lists_delete_title()}
       description={
         <>
-          Are you sure you want to delete &ldquo;{listName}&rdquo;?
-          {tailMessage}
+          {m.lists_delete_confirm({ name: listName })} {tailMessage}
         </>
       }
-      confirmLabel="Delete"
-      pendingLabel="Deleting..."
+      confirmLabel={m.common_delete()}
+      pendingLabel={m.lists_delete_pending()}
       onConfirm={onConfirm}
       isPending={isPending}
     />

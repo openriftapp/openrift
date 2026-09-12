@@ -29,6 +29,7 @@ import { rulePresetsFor } from "@/features/rules/lib/rule-presets";
 import type { RuleWording } from "@/features/rules/lib/rule-wording";
 import { netOwnedHint, ruleCountLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 /** Each rule is a full-catalog pass at read time, hence the `MAX_LIST_RULES` cap. */
@@ -88,7 +89,7 @@ export function RuleList({
           key={index}
           index={index}
           kind={kind}
-          title={`Rule ${index + 1}`}
+          title={m.lists_rule_block_title({ number: index + 1 })}
           matchCount={perRuleCounts?.[index]}
           wording={wording}
           collectionOptions={collectionOptions}
@@ -107,17 +108,19 @@ export function RuleList({
           onClick={() => addRule(preferredLanguages)}
         >
           <PlusIcon />
-          Add rule
+          {m.lists_rule_add_rule()}
         </Button>
       )}
     </div>
   );
 }
 
-const KEEP_PER_OPTIONS = [
-  { value: "card", label: "Card (all printings together)" },
-  { value: "printing", label: "Printing (each separately)" },
-] as const;
+function keepPerOptions() {
+  return [
+    { value: "card", label: m.lists_rule_keep_per_card() },
+    { value: "printing", label: m.lists_rule_keep_per_printing() },
+  ] as const;
+}
 
 /** The store's `null` renders as the kind's default so the select never looks unset. */
 function RuleCombineRow({ kind, wording }: { kind: ListKind; wording: RuleWording }) {
@@ -128,13 +131,13 @@ function RuleCombineRow({ kind, wording }: { kind: ListKind; wording: RuleWordin
 
   return (
     <>
-      <FilterRow label="When rules overlap">
+      <FilterRow label={m.lists_rule_overlap_label()}>
         <Select
           items={options}
           value={value}
           onValueChange={(next) => setRuleCombine(next as ListRuleCombine)}
         >
-          <SelectTrigger className={CONTROL_WIDTH} aria-label="When rules overlap">
+          <SelectTrigger className={CONTROL_WIDTH} aria-label={m.lists_rule_overlap_label()}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -186,7 +189,7 @@ function RuleBlock({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={`Remove ${title.toLowerCase()}`}
+          aria-label={m.lists_rule_remove_rule_aria({ number: index + 1 })}
           onClick={() => removeRule(index)}
         >
           <Trash2Icon />
@@ -238,12 +241,12 @@ function RuleFields({
       />
 
       {isCopy && (
-        <FilterRow label="Collections">
+        <FilterRow label={m.lists_rule_collections_label()}>
           <MultiSelectCombobox
             triggerStyle="button"
             triggerClassName={CONTROL_WIDTH}
-            placeholder="All collections"
-            label="Collections"
+            placeholder={m.lists_rule_collections_placeholder()}
+            label={m.lists_rule_collections_label()}
             options={collectionOptions}
             selected={rule.collectionIds ?? []}
             onChange={(next) => setCollectionIds(index, next.length === 0 ? null : next)}
@@ -254,7 +257,7 @@ function RuleFields({
       {isCopy && (
         <FilterRow label={wording.groupLabel}>
           <Select
-            items={KEEP_PER_OPTIONS}
+            items={keepPerOptions()}
             value={rule.keepPer}
             onValueChange={(next) => setKeepPer(index, next as TradeKeepPer)}
           >
@@ -263,7 +266,7 @@ function RuleFields({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {KEEP_PER_OPTIONS.map((item) => (
+                {keepPerOptions().map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -283,9 +286,9 @@ function RuleFields({
       <p className="text-muted-foreground -mt-1 text-sm">{wording.quantityHint(rule.keepPer)}</p>
 
       {!isCopy && (
-        <FilterRow label="Only what I'm missing" hint={netOwnedHint(rule.filter.price)}>
+        <FilterRow label={m.lists_rule_net_owned_label()} hint={netOwnedHint(rule.filter.price)}>
           <Switch
-            aria-label="Only what I'm missing"
+            aria-label={m.lists_rule_net_owned_label()}
             checked={rule.netOwned}
             onCheckedChange={(next) => setNetOwned(index, next)}
           />
@@ -294,11 +297,11 @@ function RuleFields({
 
       {!isCopy && kind === "card" && rule.netOwned && rule.filter.isStandard === true && (
         <FilterRow
-          label="Count special versions"
-          hint="Alt arts, foils, and promos you own also count toward missing."
+          label={m.lists_rule_count_special_label()}
+          hint={m.lists_rule_count_special_hint()}
         >
           <Switch
-            aria-label="Count special versions"
+            aria-label={m.lists_rule_count_special_label()}
             checked={rule.countSpecialVersions}
             onCheckedChange={(next) => setCountSpecialVersions(index, next)}
           />

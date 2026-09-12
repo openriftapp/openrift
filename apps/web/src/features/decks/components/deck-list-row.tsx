@@ -13,6 +13,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckActionsMenu } from "./deck-actions-menu";
 import { DeckFolderChips } from "./deck-folder-chips";
@@ -111,12 +112,15 @@ export function DeckListRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {deck.isPinned && (
-              <PinIcon className="text-muted-foreground size-3.5 shrink-0" aria-label="Pinned" />
+              <PinIcon
+                className="text-muted-foreground size-3.5 shrink-0"
+                aria-label={m.decks_list_pinned()}
+              />
             )}
             {deck.archivedAt !== null && (
               <ArchiveIcon
                 className="text-muted-foreground size-3.5 shrink-0"
-                aria-label="Archived"
+                aria-label={m.decks_list_archived()}
               />
             )}
             {/* The ::after is what makes the whole row clickable. It resolves

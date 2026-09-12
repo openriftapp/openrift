@@ -14,6 +14,7 @@ import { ShareableListsPanel } from "@/features/groups/components/shareable-list
 import { ShopsPanel } from "@/features/groups/components/shops-panel";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { isAdmin } from "./friend-group-shell";
 
@@ -21,23 +22,22 @@ interface FriendGroupManagePageProps {
   slug: string;
 }
 
-const ADMIN_TOC: PageTocItem[] = [
-  { id: "group", label: "Group" },
-  { id: "group-settings", label: "Settings", level: 1 },
-  { id: "banner", label: "Banner", level: 1 },
-  { id: "invite-link", label: "Invite link", level: 1 },
-  { id: "discord", label: "Discord", level: 1 },
-  { id: "shops", label: "Shops", level: 1 },
-  { id: "sharing", label: "Sharing" },
-  { id: "contacts", label: "Contacts", level: 1 },
-  { id: "lists", label: "Lists", level: 1 },
-  { id: "collections", label: "Collections", level: 1 },
-  { id: "membership", label: "Membership" },
-];
-
-const MEMBER_TOC: PageTocItem[] = ADMIN_TOC.slice(
-  ADMIN_TOC.findIndex((item) => item.id === "sharing"),
-);
+function manageToc(admin: boolean): PageTocItem[] {
+  const toc: PageTocItem[] = [
+    { id: "group", label: m.groups_manage_toc_group() },
+    { id: "group-settings", label: m.groups_manage_toc_settings(), level: 1 },
+    { id: "banner", label: m.groups_manage_toc_banner(), level: 1 },
+    { id: "invite-link", label: m.groups_invite_link_label(), level: 1 },
+    { id: "discord", label: "Discord", level: 1 },
+    { id: "shops", label: m.groups_manage_toc_shops(), level: 1 },
+    { id: "sharing", label: m.groups_manage_toc_sharing() },
+    { id: "contacts", label: m.groups_manage_toc_contacts(), level: 1 },
+    { id: "lists", label: m.groups_manage_toc_lists(), level: 1 },
+    { id: "collections", label: m.groups_nav_collections(), level: 1 },
+    { id: "membership", label: m.groups_manage_toc_membership() },
+  ];
+  return admin ? toc : toc.slice(toc.findIndex((item) => item.id === "sharing"));
+}
 
 export function FriendGroupManagePage({ slug }: FriendGroupManagePageProps) {
   const { data } = useFriendGroupDetail(slug);
@@ -49,26 +49,26 @@ export function FriendGroupManagePage({ slug }: FriendGroupManagePageProps) {
       <TopBarBreadcrumbBar
         segments={[
           { label: data.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> },
-          { label: "Manage" },
+          { label: m.groups_manage() },
         ]}
       />
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6", PAGE_PADDING)}>
-        <Heading level={1}>Manage {data.group.name}</Heading>
+        <Heading level={1}>{m.groups_manage_heading({ group: data.group.name })}</Heading>
 
-        <SettingsLayout toc={admin ? ADMIN_TOC : MEMBER_TOC}>
+        <SettingsLayout toc={manageToc(admin)}>
           {admin ? (
-            <SettingsGroup id="group" title="Group">
+            <SettingsGroup id="group" title={m.groups_manage_toc_group()}>
               <AdminSettings data={data} slug={slug} />
               <DiscordPanel slug={slug} />
               <ShopsPanel slug={slug} />
             </SettingsGroup>
           ) : null}
-          <SettingsGroup id="sharing" title="Sharing">
+          <SettingsGroup id="sharing" title={m.groups_manage_toc_sharing()}>
             <ContactSharingPanel data={data} slug={slug} />
             <ShareableListsPanel slug={slug} />
             <ShareableCollectionsPanel slug={slug} />
           </SettingsGroup>
-          <SettingsGroup id="membership" title="Membership">
+          <SettingsGroup id="membership" title={m.groups_manage_toc_membership()}>
             <LeaveOrDeletePanel data={data} slug={slug} />
           </SettingsGroup>
         </SettingsLayout>

@@ -5,6 +5,7 @@ import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import type { AnyDragData } from "@/features/collections/components/dnd-types";
 import { CARD_CARRYING_DRAG_TYPES } from "@/features/collections/components/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
+import { m } from "@/paraglide/messages.js";
 import type { SidebarGroupKey } from "@/stores/sidebar-fold-store";
 import { useSidebarFoldStore } from "@/stores/sidebar-fold-store";
 
@@ -41,7 +42,11 @@ export function SidebarShowMoreRow({ foldKey, hiddenCount, shown }: SidebarShowM
         className="text-muted-foreground h-6 py-0 pl-8 text-xs"
         onClick={() => toggleMoreShown(foldKey)}
       >
-        <span>{shown ? "Show less" : `Show ${hiddenCount} more`}</span>
+        <span>
+          {shown
+            ? m.collections_sidebar_show_less()
+            : m.collections_sidebar_show_more({ count: hiddenCount })}
+        </span>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );

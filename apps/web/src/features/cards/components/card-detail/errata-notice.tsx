@@ -6,6 +6,7 @@ import { Callout } from "@/components/ui/callout";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CardText } from "@/features/cards/components/card-text";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface ErrataNoticeProps {
   printedText: string;
@@ -40,7 +41,7 @@ export function ErrataNotice({
         <div className="text-muted-foreground/70 flex items-center gap-1 text-xs">
           <TriangleAlertIcon className="text-warning size-3 shrink-0" />
           <span>
-            Errata (
+            {m.card_detail_errata_label()} (
             {sourceUrl ? (
               <a
                 href={sourceUrl}
@@ -60,7 +61,9 @@ export function ErrataNotice({
           <ChevronDownIcon
             className={cn("size-3 shrink-0 transition-transform", open && "rotate-180")}
           />
-          <span>{open ? "Hide" : "Show"} original printed text</span>
+          <span>
+            {open ? m.card_detail_errata_hide_original() : m.card_detail_errata_show_original()}
+          </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <Callout variant="inset" className="mt-1">

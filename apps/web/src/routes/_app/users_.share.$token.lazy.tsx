@@ -24,20 +24,28 @@ import { usePublicUserBundle } from "@/features/groups/hooks/use-user-share";
 import { useUserId } from "@/lib/auth-session";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/users_/share/$token")({
   component: SharedUserBundlePage,
 });
 
-const SECTIONS: {
+function sections(): {
   intent: Extract<ListIntent, "wish" | "trade">;
   heading: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   tone: IconChipTone;
-}[] = [
-  { intent: "wish", heading: "Looking for", icon: HeartIcon, tone: "primary" },
-  { intent: "trade", heading: "Offering", icon: HandshakeIcon, tone: "success" },
-];
+}[] {
+  return [
+    { intent: "wish", heading: m.user_profile_section_wish(), icon: HeartIcon, tone: "primary" },
+    {
+      intent: "trade",
+      heading: m.user_profile_section_trade(),
+      icon: HandshakeIcon,
+      tone: "success",
+    },
+  ];
+}
 
 function SharedUserBundlePage() {
   const { token } = Route.useParams();
@@ -57,16 +65,14 @@ function SharedUserBundlePage() {
             <EmptyMedia variant="icon">
               <HeartIcon />
             </EmptyMedia>
-            <EmptyTitle>Nothing shared yet</EmptyTitle>
-            <EmptyDescription>
-              This person hasn&apos;t added any wishlist or tradelist items yet. Check back later.
-            </EmptyDescription>
+            <EmptyTitle>{m.user_profile_empty_title()}</EmptyTitle>
+            <EmptyDescription>{m.user_profile_empty_description()}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <>
           <UserProfileOverlap data={data} isOwner={data.owner.isViewer} />
-          {SECTIONS.map(({ intent, heading, icon, tone }) => {
+          {sections().map(({ intent, heading, icon, tone }) => {
             const sectionLists = lists.filter((list) => list.intent === intent);
             if (sectionLists.length === 0) {
               return null;
@@ -93,7 +99,7 @@ function SharedUserBundlePage() {
           {collections.length > 0 ? (
             <section className="flex flex-col gap-3">
               <SectionHeading icon={BookOpenIcon} tone="info">
-                Collections shared with you
+                {m.user_profile_collections_heading()}
               </SectionHeading>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {collections.map((collection) => (
@@ -140,7 +146,7 @@ function BundleCollectionRow({ collection }: { collection: PublicUserBundleColle
             key={group.id}
             variant="outline"
             className="text-2xs max-w-[10rem] gap-1"
-            title={`Shared with ${group.name}`}
+            title={m.user_profile_shared_with({ group: group.name })}
           >
             <UsersIcon className="size-3 shrink-0" />
             <span className="truncate">{group.name}</span>

@@ -1,8 +1,12 @@
 import type { CardGroup } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 export const UNKNOWN_YEAR_ID = "_unknown-year";
-export const UNKNOWN_YEAR_LABEL = "Unknown year";
+
+export function unknownYearLabel(): string {
+  return m.cards_filter_group_unknown_year();
+}
 
 export function groupItemsByYear(items: CardViewerItem[], dir: "asc" | "desc"): CardGroup[] {
   const byYear = new Map<number, CardViewerItem[]>();
@@ -29,7 +33,7 @@ export function groupItemsByYear(items: CardViewerItem[], dir: "asc" | "desc"): 
     }));
   if (unknown.length > 0) {
     sections.push({
-      group: { id: UNKNOWN_YEAR_ID, slug: "", name: UNKNOWN_YEAR_LABEL },
+      group: { id: UNKNOWN_YEAR_ID, slug: "", name: unknownYearLabel() },
       items: unknown,
     });
   }

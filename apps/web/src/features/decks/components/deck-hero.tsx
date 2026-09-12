@@ -27,6 +27,7 @@ import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-type
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckHeroProps {
   name: string;
@@ -194,10 +195,13 @@ export function DeckHero({
   const sideboardMissing = ownershipData?.sideboardMissing ?? 0;
   const missingLabel =
     requiredZoneMissing > 0 && sideboardMissing > 0
-      ? `${requiredZoneMissing} + ${sideboardMissing} side missing`
+      ? m.decks_overview_hero_missing_split({
+          main: requiredZoneMissing,
+          side: sideboardMissing,
+        })
       : requiredZoneMissing > 0
-        ? `${requiredZoneMissing} missing`
-        : `${sideboardMissing} side missing`;
+        ? m.decks_overview_hero_missing({ count: requiredZoneMissing })
+        : m.decks_overview_hero_missing_side({ count: sideboardMissing });
   const hasMissingValue =
     ownershipData?.missingValueCents !== undefined && ownershipData.missingValueCents > 0;
   const hasValueSplit =
@@ -227,8 +231,8 @@ export function DeckHero({
     <>
       <HeroFanSlot
         thumbnail={legendThumb}
-        alt={legendName ?? "Legend"}
-        placeholder="Legend"
+        alt={legendName ?? m.decks_overview_hero_legend()}
+        placeholder={m.decks_overview_hero_legend()}
         className={cn(
           "absolute top-1/2 left-0 -translate-y-1/2 -rotate-6",
           actions && "h-24 sm:h-36",
@@ -236,8 +240,8 @@ export function DeckHero({
       />
       <HeroFanSlot
         thumbnail={championThumb}
-        alt={champion?.cardName ?? "Champion"}
-        placeholder="Champion"
+        alt={champion?.cardName ?? m.decks_overview_hero_champion()}
+        placeholder={m.decks_overview_hero_champion()}
         className={cn(
           "absolute top-1/2 right-0 -translate-y-1/2 rotate-6",
           actions && "h-24 sm:h-36",
@@ -282,7 +286,7 @@ export function DeckHero({
                   {legend && (
                     <SubtitlePivot
                       label={identity.legend ?? ""}
-                      roleLabel="Legend"
+                      roleLabel={m.decks_overview_hero_legend()}
                       fullName={legendName ?? ""}
                       card={legend}
                       onCardClick={onCardClick}
@@ -292,7 +296,7 @@ export function DeckHero({
                   {champion && (
                     <SubtitlePivot
                       label={identity.champion ?? ""}
-                      roleLabel="Champion"
+                      roleLabel={m.decks_overview_hero_champion()}
                       fullName={champion.cardName}
                       card={champion}
                       onCardClick={onCardClick}
@@ -322,8 +326,11 @@ export function DeckHero({
                         <span className="tabular-nums">
                           {ownershipData.requiredZoneNeeded > 0 && (
                             <>
-                              {ownershipData.requiredZoneOwned}/{ownershipData.requiredZoneNeeded}{" "}
-                              owned ·{" "}
+                              {m.decks_overview_hero_owned({
+                                owned: ownershipData.requiredZoneOwned,
+                                needed: ownershipData.requiredZoneNeeded,
+                              })}
+                              {" · "}
                             </>
                           )}
                           <span>{missingLabel}</span>
@@ -334,16 +341,20 @@ export function DeckHero({
                       <span className={cn(CHIP_CLASS, "text-success")}>
                         <CheckCircle2Icon className="size-3" />
                         {/* Borrowed copies count toward "ready" but not ownership. */}
-                        {borrowedCount > 0 ? "Ready to play" : "Fully owned"}
+                        {borrowedCount > 0
+                          ? m.decks_overview_ready_to_play()
+                          : m.decks_overview_fully_owned()}
                       </span>
                     )}
                     {ownershipData && !signInHref && borrowedCount > 0 && (
                       <span
                         className={cn(CHIP_CLASS, "text-violet")}
-                        title="Copies you're borrowing from friends. They count as buildable while you have them, but they aren't part of your collection."
+                        title={m.decks_overview_borrowed_hint()}
                       >
                         <HandHeartIcon className="size-3" />
-                        <span className="tabular-nums">{borrowedCount} borrowed</span>
+                        <span className="tabular-nums">
+                          {m.decks_overview_hero_borrowed({ count: borrowedCount })}
+                        </span>
                       </span>
                     )}
                     {signInHref && (
@@ -355,7 +366,7 @@ export function DeckHero({
                         render={<a href={signInHref} />}
                       >
                         <LogInIcon className="size-3" />
-                        Sign in to compare with your collection
+                        {m.decks_overview_hero_sign_in()}
                       </Button>
                     )}
 
@@ -371,7 +382,10 @@ export function DeckHero({
                           <span className="tabular-nums">
                             {fmtPrice(ownershipData.deckValueCents)}
                           </span>
-                          <span className="text-muted-foreground">· view prices</span>
+                          <span className="text-muted-foreground">
+                            {"· "}
+                            {m.decks_overview_hero_view_prices()}
+                          </span>
                         </Button>
                       ) : hasValueBreakdown ? (
                         <Popover>
@@ -381,7 +395,7 @@ export function DeckHero({
                                 type="button"
                                 variant="outline"
                                 size="xs"
-                                aria-label="Show value breakdown"
+                                aria-label={m.decks_overview_hero_value_breakdown()}
                                 className={chipButtonClass("tabular-nums")}
                               />
                             }
@@ -398,13 +412,17 @@ export function DeckHero({
                               {hasValueSplit && (
                                 <>
                                   <div className="flex justify-between gap-6">
-                                    <dt className="text-muted-foreground">Main deck</dt>
+                                    <dt className="text-muted-foreground">
+                                      {m.decks_overview_main_deck()}
+                                    </dt>
                                     <dd className="tabular-nums">
                                       {fmtPrice(ownershipData.mainValueCents ?? 0)}
                                     </dd>
                                   </div>
                                   <div className="flex justify-between gap-6">
-                                    <dt className="text-muted-foreground">Sideboard</dt>
+                                    <dt className="text-muted-foreground">
+                                      {m.decks_overview_sideboard()}
+                                    </dt>
                                     <dd className="tabular-nums">
                                       {fmtPrice(ownershipData.sideboardValueCents ?? 0)}
                                     </dd>
@@ -413,7 +431,9 @@ export function DeckHero({
                               )}
                               {asDisplayedDiffers && (
                                 <div className="flex justify-between gap-6">
-                                  <dt className="text-muted-foreground">At shown printings</dt>
+                                  <dt className="text-muted-foreground">
+                                    {m.decks_overview_hero_as_shown()}
+                                  </dt>
                                   <dd className="tabular-nums">
                                     {fmtPrice(ownershipData.asDisplayedValueCents ?? 0)}
                                   </dd>
@@ -421,7 +441,9 @@ export function DeckHero({
                               )}
                               {hasMissingValue && (
                                 <div className="flex justify-between gap-6">
-                                  <dt className="text-muted-foreground">To complete</dt>
+                                  <dt className="text-muted-foreground">
+                                    {m.decks_overview_hero_to_complete()}
+                                  </dt>
                                   <dd className="tabular-nums">
                                     {fmtPrice(ownershipData.missingValueCents ?? 0)}
                                   </dd>

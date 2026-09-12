@@ -59,6 +59,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
 import { useSession } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -85,6 +86,24 @@ interface DeckActionsCellProps {
   copyLimitTotalByCard: Map<string, number>;
   handleQuickAdd: (printing: Printing, event: { shiftKey?: boolean }) => void;
   handleRemove: (printing: Printing, event: { shiftKey?: boolean }) => void;
+}
+
+function singleZoneAddAction(switching: boolean): {
+  addLabel: string;
+  addAriaLabel: string;
+  addTooltip: string;
+} {
+  return switching
+    ? {
+        addLabel: m.decks_editor_switch(),
+        addAriaLabel: m.decks_editor_switch_card_aria(),
+        addTooltip: m.decks_editor_click_to_switch(),
+      }
+    : {
+        addLabel: m.decks_editor_choose(),
+        addAriaLabel: m.decks_editor_choose_card_aria(),
+        addTooltip: m.decks_editor_click_to_choose(),
+      };
 }
 
 function DeckActionsCell({
@@ -119,14 +138,10 @@ function DeckActionsCell({
       printing={printing}
       deckQuantity={deckQty}
       maxReached={isMaxReached({ id: printing.id, printing })}
-      addLabel={
-        isSingleCardZone
-          ? singleCardZoneOccupied && !isInActiveSingleZone
-            ? "Switch"
-            : "Choose"
-          : undefined
-      }
-      removeLabel={isInActiveSingleZone ? "Remove" : undefined}
+      {...(isSingleCardZone
+        ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
+        : {})}
+      removeLabel={isInActiveSingleZone ? m.decks_editor_remove() : undefined}
       shiftHeld={shiftHeld}
       remainingCount={
         activeZone === WellKnown.deckZone.RUNES
@@ -265,7 +280,11 @@ function DeckOverviewForEditor({
         }
         planSlot={
           isLocal ? undefined : (
-            <Suspense fallback={<div className="text-muted-foreground p-4">Loading plan…</div>}>
+            <Suspense
+              fallback={
+                <div className="text-muted-foreground p-4">{m.decks_editor_loading_plan()}</div>
+              }
+            >
               <DeckPlanEditor
                 deckId={deck.id}
                 deckCards={cards}
@@ -540,14 +559,10 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
         ownedCount={ownedCounts?.get(printing.id) ?? 0}
         deckQuantity={deckQty}
         maxReached={isMaxReached({ id: printing.id, printing })}
-        addLabel={
-          isSingleCardZone
-            ? singleCardZoneOccupied && !isInActiveSingleZone
-              ? "Switch"
-              : "Choose"
-            : undefined
-        }
-        removeLabel={isInActiveSingleZone ? "Remove" : undefined}
+        {...(isSingleCardZone
+          ? singleZoneAddAction(singleCardZoneOccupied && !isInActiveSingleZone)
+          : {})}
+        removeLabel={isInActiveSingleZone ? m.decks_editor_remove() : undefined}
         shiftHeld={shiftHeld}
         remainingCount={
           isFreeform
@@ -602,7 +617,9 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
     <BrowserToolbar
       totalCards={totalUniqueCards}
       filteredCount={sortedCards.length}
-      mobileDoneLabel={hasActiveFilters ? `Show ${sortedCards.length} cards` : undefined}
+      mobileDoneLabel={
+        hasActiveFilters ? m.decks_editor_show_cards({ count: sortedCards.length }) : undefined
+      }
     />
   );
 
@@ -640,7 +657,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
         addStripHeight={ADD_STRIP_HEIGHT}
         table={{
           actionsColumn: "wide",
-          actionsLabel: "Deck",
+          actionsLabel: m.decks_editor_table_actions_label(),
           actionsCell: (
             <DeckActionsCell
               view={view}

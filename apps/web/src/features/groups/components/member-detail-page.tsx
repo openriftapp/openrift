@@ -27,9 +27,10 @@ import {
 } from "@/features/groups/lib/trade-derivation";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ContactMethodChips } from "./contact-method-chips";
-import { ROLE_LABEL } from "./friend-group-shell";
+import { roleLabel } from "./friend-group-shell";
 import { SharedCollectionRow } from "./shared-collection-row";
 import { SharedListRow } from "./shared-list-row";
 
@@ -38,10 +39,12 @@ interface MemberDetailPageProps {
   userId: string;
 }
 
-const LIST_SECTIONS: { intent: Extract<ListIntent, "wish" | "trade">; heading: string }[] = [
-  { intent: "wish", heading: "Wishlists" },
-  { intent: "trade", heading: "Tradelists" },
-];
+function listSections(): { intent: Extract<ListIntent, "wish" | "trade">; heading: string }[] {
+  return [
+    { intent: "wish", heading: m.groups_member_wishlists() },
+    { intent: "trade", heading: m.groups_member_tradelists() },
+  ];
+}
 
 // tradedCount keeps the fallback honest: without it, a member you'd traded 58
 // cards with could still read "Nothing traded yet".
@@ -53,18 +56,30 @@ function tradeSummaryLine(
 ): string {
   const parts: string[] = [];
   if (openCount > 0) {
-    parts.push(`${openCount} open ${openCount === 1 ? "trade" : "trades"}`);
+    parts.push(
+      openCount === 1
+        ? m.groups_member_open_trades_one({ count: openCount })
+        : m.groups_member_open_trades_other({ count: openCount }),
+    );
   }
   if (needsYouCount > 0) {
-    parts.push(`${needsYouCount} needs you`);
+    parts.push(m.groups_member_needs_you({ count: needsYouCount }));
   }
   if (matchCount > 0) {
-    parts.push(`${matchCount} possible ${matchCount === 1 ? "trade" : "trades"}`);
+    parts.push(
+      matchCount === 1
+        ? m.groups_member_possible_trades_one({ count: matchCount })
+        : m.groups_member_possible_trades_other({ count: matchCount }),
+    );
   }
   if (tradedCount > 0) {
-    parts.push(`${tradedCount} ${tradedCount === 1 ? "trade" : "trades"} done`);
+    parts.push(
+      tradedCount === 1
+        ? m.groups_member_trades_done_one({ count: tradedCount })
+        : m.groups_member_trades_done_other({ count: tradedCount }),
+    );
   }
-  return parts.length > 0 ? parts.join(" · ") : "Nothing traded yet";
+  return parts.length > 0 ? parts.join(" · ") : m.groups_member_nothing_traded();
 }
 
 // Own component: the API refuses to open a trade sheet for the viewer's own
@@ -105,24 +120,24 @@ function MemberTradeSection({
     return (
       <EmptyState
         icon={HandshakeIcon}
-        title="Nothing here yet"
-        description={`${memberName} hasn't shared any lists or collections with this group, and the two of you haven't traded.`}
+        title={m.groups_member_nothing_here_title()}
+        description={m.groups_member_nothing_here_description({ member: memberName })}
       />
     );
   }
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Trades</SectionHeading>
+      <SectionHeading>{m.groups_nav_trades()}</SectionHeading>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0">{tradeSummary}</p>
         <Button render={<Link to="/trades/$userId" params={{ userId }} search={{ from: slug }} />}>
-          Open trade sheet
+          {m.groups_member_open_trade_sheet()}
         </Button>
       </div>
       {hasSharedAnything ? null : (
         <p className="text-muted-foreground">
-          {memberName} hasn&apos;t shared any collections or lists with this group yet.
+          {m.groups_member_has_not_shared({ member: memberName })}
         </p>
       )}
     </section>
@@ -148,8 +163,11 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
       <TopBarBreadcrumbBar
         segments={[
           { label: groupDetail.group.name, link: <Link to="/groups/$slug" params={{ slug }} /> },
-          { label: "Members", link: <Link to="/groups/$slug/members" params={{ slug }} /> },
-          { label: member.userName ?? "Member" },
+          {
+            label: m.groups_nav_members(),
+            link: <Link to="/groups/$slug/members" params={{ slug }} />,
+          },
+          { label: member.userName ?? m.groups_member_fallback() },
         ]}
       />
       <CardDetailOverlayProvider>
@@ -160,7 +178,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
               name={member.userName}
               gravatarHash={member.gravatarHash}
             >
-              <Badge variant="outline">{ROLE_LABEL[member.role]}</Badge>
+              <Badge variant="outline">{roleLabel(member.role)}</Badge>
               <ContactMethodChips methods={member.contactMethods} />
             </PersonPageHeader>
           </header>
@@ -170,14 +188,14 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
               slug={slug}
               userId={userId}
               groupId={groupDetail.group.id}
-              memberName={member.userName ?? "This member"}
+              memberName={member.userName ?? m.groups_this_member_capitalized()}
               hasSharedAnything={hasShares || hasCollections}
             />
           )}
 
           {hasCollections ? (
             <section className="flex flex-col gap-3">
-              <SectionHeading>Collections</SectionHeading>
+              <SectionHeading>{m.groups_nav_collections()}</SectionHeading>
               <RowList>
                 {sortedCollections.map((share) => (
                   <li key={share.collectionId}>
@@ -189,7 +207,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
           ) : null}
 
           {hasShares
-            ? LIST_SECTIONS.map(({ intent, heading }) => {
+            ? listSections().map(({ intent, heading }) => {
                 const sectionShares = sortedShares.filter((share) => share.listIntent === intent);
                 if (sectionShares.length === 0) {
                   return null;
@@ -214,9 +232,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
             : null}
 
           {isSelf && !hasShares && !hasCollections ? (
-            <p className="text-muted-foreground">
-              You haven&apos;t shared any collections or lists with this group yet.
-            </p>
+            <p className="text-muted-foreground">{m.groups_member_you_have_not_shared()}</p>
           ) : null}
         </div>
       </CardDetailOverlayProvider>

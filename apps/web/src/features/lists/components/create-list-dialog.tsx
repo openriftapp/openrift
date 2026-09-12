@@ -23,6 +23,7 @@ import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 const EMPTY_TRADE_PREFERENCE: TradePreference = {
@@ -35,45 +36,58 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface KindOption {
   kind: ListKind;
-  label: string;
   icon: IconComponent;
 }
 
 const KIND_OPTIONS: Record<ListKind, KindOption> = {
   card: {
     kind: "card",
-    label: "Cards",
     icon: SquareIcon,
   },
   printing: {
     kind: "printing",
-    label: "Printings",
     icon: CopyIcon,
   },
   copy: {
     kind: "copy",
-    label: "Copies",
     icon: SquareStackIcon,
   },
 };
 
-const KIND_HINTS: Record<ListIntent, Record<ListKind, string>> = {
-  wish: {
-    card: "Any printing works.",
-    printing: "A specific version (set, art, finish).",
-    copy: "specific physical cards from your collection",
-  },
-  trade: {
-    card: "any printing of the card",
-    printing: "a specific printing (set, art, finish)",
-    copy: "specific physical cards from your collection",
-  },
-  organize: {
-    card: "Any printing works.",
-    printing: "A specific version (set, art, finish).",
-    copy: "Specific physical cards from your collection.",
-  },
-};
+function kindLabel(kind: ListKind): string {
+  switch (kind) {
+    case "card": {
+      return m.lists_create_kind_cards();
+    }
+    case "printing": {
+      return m.lists_create_kind_printings();
+    }
+    case "copy": {
+      return m.lists_create_kind_copies();
+    }
+  }
+}
+
+function kindHint(intent: ListIntent, kind: ListKind): string {
+  const hints: Record<ListIntent, Record<ListKind, string>> = {
+    wish: {
+      card: m.lists_create_hint_wish_card(),
+      printing: m.lists_create_hint_wish_printing(),
+      copy: m.lists_create_hint_wish_copy(),
+    },
+    trade: {
+      card: m.lists_create_hint_trade_card(),
+      printing: m.lists_create_hint_trade_printing(),
+      copy: m.lists_create_hint_trade_copy(),
+    },
+    organize: {
+      card: m.lists_create_hint_organize_card(),
+      printing: m.lists_create_hint_organize_printing(),
+      copy: m.lists_create_hint_organize_copy(),
+    },
+  };
+  return hints[intent][kind];
+}
 
 const KINDS_BY_INTENT: Record<ListIntent, ListKind[]> = {
   wish: ["card", "printing"],
@@ -81,11 +95,19 @@ const KINDS_BY_INTENT: Record<ListIntent, ListKind[]> = {
   organize: ["card", "printing", "copy"],
 };
 
-const INTENT_TITLE: Record<ListIntent, string> = {
-  wish: "New wishlist",
-  trade: "New tradelist",
-  organize: "New organize list",
-};
+function intentTitle(intent: ListIntent): string {
+  switch (intent) {
+    case "wish": {
+      return m.lists_create_title_wish();
+    }
+    case "trade": {
+      return m.lists_create_title_trade();
+    }
+    case "organize": {
+      return m.lists_create_title_organize();
+    }
+  }
+}
 
 interface CreateListDialogProps {
   intent: ListIntent;
@@ -189,12 +211,12 @@ export function CreateListDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title ?? INTENT_TITLE[intent]}</DialogTitle>
+          <DialogTitle>{title ?? intentTitle(intent)}</DialogTitle>
           <DialogDescription>
             {description ??
               (availableKinds.length === 1
-                ? "List specific copies you want to sell or trade away."
-                : "You can't change it later, but you can always create a new list.")}
+                ? m.lists_create_description_single()
+                : m.lists_create_description_multi())}
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +231,7 @@ export function CreateListDialog({
             autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- intentional inside dialog
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="List name"
+            placeholder={m.lists_create_name_placeholder()}
           />
           {availableKinds.length > 1 && (
             <div className="flex flex-col gap-1">
@@ -230,9 +252,9 @@ export function CreateListDialog({
                   >
                     <Icon className="mt-0.5 size-4 shrink-0" />
                     <div className="flex-1">
-                      <div className="font-medium">{meta.label}</div>
+                      <div className="font-medium">{kindLabel(meta.kind)}</div>
                       <div className="text-muted-foreground text-xs">
-                        {kindHints?.[option] ?? KIND_HINTS[intent][option]}
+                        {kindHints?.[option] ?? kindHint(intent, option)}
                       </div>
                     </div>
                   </Pressable>
@@ -243,13 +265,12 @@ export function CreateListDialog({
           {groups.length > 0 && (
             <div className="flex flex-col gap-2">
               <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                Group visibility
+                {m.lists_create_group_visibility()}
               </div>
               <div className="text-muted-foreground text-xs">
                 {intent === "organize"
-                  ? "Members of the selected groups can view this list."
-                  : "Members of the selected groups can view this list and find trades with you."}{" "}
-                You can change this later.
+                  ? m.lists_create_group_hint_organize()
+                  : m.lists_create_group_hint_trade()}
               </div>
               <ul className="flex flex-col gap-2">
                 {groups.map((group) => {
@@ -294,12 +315,12 @@ export function CreateListDialog({
                     tradePrefsOpen && "rotate-180",
                   )}
                 />
-                Trade preferences
+                {m.lists_create_trade_preferences()}
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="flex flex-col gap-2 pt-2">
                   <div className="text-muted-foreground text-xs">
-                    Defaults applied to every entry. You can override per card later.
+                    {m.lists_create_trade_defaults_hint()}
                   </div>
                   <TradePreferenceEditor
                     value={tradeDefaults}
@@ -320,7 +341,7 @@ export function CreateListDialog({
               onClick={() => handleOpenChange(false)}
               disabled={createList.isPending || bulkAdd.isPending || shareWithGroup.isPending}
             >
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button
               type="submit"
@@ -332,7 +353,7 @@ export function CreateListDialog({
                 absoluteNeedsAmount
               }
             >
-              Create
+              {m.common_create()}
             </Button>
           </DialogFooter>
         </form>

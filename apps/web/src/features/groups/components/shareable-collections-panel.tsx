@@ -8,6 +8,7 @@ import {
   useShareCollectionWithFriendGroup,
   useUnshareCollectionFromFriendGroup,
 } from "@/features/groups/hooks/use-friend-group-sharing";
+import { m } from "@/paraglide/messages.js";
 
 export function ShareableCollectionsPanel({ slug }: { slug: string }) {
   const { data } = useFriendGroupShareableCollections(slug);
@@ -19,8 +20,8 @@ export function ShareableCollectionsPanel({ slug }: { slug: string }) {
       <SettingsSection
         id="collections"
         className="scroll-mt-28"
-        title="Share your collections"
-        description="You don't have any personal collections yet. Create one to share it with this group."
+        title={m.share_collections_title()}
+        description={m.share_collections_empty()}
       />
     );
   }
@@ -28,8 +29,8 @@ export function ShareableCollectionsPanel({ slug }: { slug: string }) {
     <SettingsSection
       id="collections"
       className="scroll-mt-28"
-      title="Share your collections"
-      description="Visible (read-only) to everyone in this group."
+      title={m.share_collections_title()}
+      description={m.share_collections_description()}
     >
       <RowList>
         {data.items.map((row) => {

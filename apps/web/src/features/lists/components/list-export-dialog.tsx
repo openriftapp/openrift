@@ -14,6 +14,7 @@ import {
   withoutReservedCopies,
 } from "@/features/lists/lib/list-export";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 interface ListExportDialogProps {
   listName: string;
@@ -74,7 +75,10 @@ export function ListExportDialog({
             onCheckedChange={(checked) => setApplyFilters(checked === true)}
           />
           <label htmlFor="list-export-apply-filters" className="cursor-pointer text-sm">
-            Only cards matching the current filters ({filteredEntries.length} of {entries.length})
+            {m.lists_export_apply_filters({
+              shown: filteredEntries.length,
+              total: entries.length,
+            })}
           </label>
         </div>
       )}
@@ -86,7 +90,7 @@ export function ListExportDialog({
             onCheckedChange={(checked) => setExcludeReserved(checked === true)}
           />
           <label htmlFor="list-export-exclude-reserved" className="cursor-pointer text-sm">
-            Exclude cards reserved in a trade
+            {m.lists_export_exclude_reserved()}
           </label>
         </div>
       )}
@@ -95,11 +99,11 @@ export function ListExportDialog({
 
   return (
     <ExportDialog
-      title="Export list"
+      title={m.lists_export_title()}
       filenameBase={listName}
       payload={payload}
       unit="card"
-      successMessage="List exported."
+      successMessage={m.lists_export_success()}
       scopeControls={scopeControls}
       isLoading={kind === "copy" && isLoading}
       open={open}

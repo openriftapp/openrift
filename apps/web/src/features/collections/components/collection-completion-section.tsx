@@ -25,6 +25,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
   const totalOwned = entries.reduce((sum, entry) => sum + entry.owned, 0);
@@ -33,7 +34,9 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
 
   return (
     <div className="mb-4 flex items-center gap-3 py-1.5">
-      <span className="flex w-36 shrink-0 items-center text-sm font-semibold sm:w-48">Overall</span>
+      <span className="flex w-36 shrink-0 items-center text-sm font-semibold sm:w-48">
+        {m.collections_stats_completion_overall()}
+      </span>
       <ProgressPrimitive.Root value={Math.min(percent, 100)} className="flex-1">
         <ProgressTrack className="h-1.5">
           <ProgressIndicator className="rounded-full" />
@@ -88,7 +91,7 @@ function CompletionRow({
         <Link
           to="/cards"
           search={missingSearch}
-          title={`Browse ${missing} missing`}
+          title={m.collections_stats_completion_browse_missing({ count: missing })}
           className={cn(
             "shrink-0",
             missing > 0
@@ -184,7 +187,7 @@ export function CompletionSection({
 
       {mainEntries.length === 0 && supplementalEntries.length === 0 ? (
         <Empty>
-          <EmptyDescription>No data</EmptyDescription>
+          <EmptyDescription>{m.collections_stats_completion_no_data()}</EmptyDescription>
         </Empty>
       ) : (
         <>
@@ -202,7 +205,7 @@ export function CompletionSection({
           {supplementalEntries.length > 0 && (
             <div className="mt-8">
               <SectionHeading as="h3" className="mb-2">
-                Supplemental
+                {m.collections_stats_completion_supplemental()}
               </SectionHeading>
               {supplementalEntries.map((entry) => (
                 <CompletionRow

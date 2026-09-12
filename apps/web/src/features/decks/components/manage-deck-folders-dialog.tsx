@@ -35,6 +35,7 @@ import {
 } from "@/features/decks/hooks/use-deck-folders";
 import { moveToIndex } from "@/lib/move-to-index";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // The up/down buttons aren't redundant with the drag handle: they're the
 // keyboard and screen-reader path to the same reorder.
@@ -99,12 +100,12 @@ function FolderRow({
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          aria-label={`Rename ${folder.name}`}
+          aria-label={m.decks_dialog_folders_rename_label({ name: folder.name })}
           // oxlint-disable-next-line jsx-a11y/no-autofocus -- replaces the row's label in place, so focus must follow
           autoFocus
         />
         <Button type="button" size="sm" onClick={commitRename} disabled={rename.isPending}>
-          Save
+          {m.common_save()}
         </Button>
         <Button
           type="button"
@@ -115,7 +116,7 @@ function FolderRow({
             setDraft(folder.name);
           }}
         >
-          Cancel
+          {m.common_cancel()}
         </Button>
       </div>
     );
@@ -129,7 +130,7 @@ function FolderRow({
         {...attributes}
         {...listeners}
         type="button"
-        aria-label={`Reorder ${folder.name}`}
+        aria-label={m.decks_dialog_folders_reorder_label({ name: folder.name })}
         className={cn(
           "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md outline-hidden",
           "cursor-grab active:cursor-grabbing",
@@ -143,13 +144,15 @@ function FolderRow({
       </button>
       <span className="min-w-0 flex-1 truncate">{folder.name}</span>
       <span className="text-muted-foreground shrink-0 text-sm">
-        {folder.deckCount} {folder.deckCount === 1 ? "deck" : "decks"}
+        {folder.deckCount === 1
+          ? m.decks_dialog_folders_deck_count_one({ count: folder.deckCount })
+          : m.decks_dialog_folders_deck_count_other({ count: folder.deckCount })}
       </span>
       <Button
         type="button"
         size="icon-sm"
         variant="ghost"
-        aria-label={`Move ${folder.name} up`}
+        aria-label={m.decks_dialog_folders_move_up_label({ name: folder.name })}
         disabled={isFirst}
         onClick={() => onMove(folder.id, -1)}
       >
@@ -159,7 +162,7 @@ function FolderRow({
         type="button"
         size="icon-sm"
         variant="ghost"
-        aria-label={`Move ${folder.name} down`}
+        aria-label={m.decks_dialog_folders_move_down_label({ name: folder.name })}
         disabled={isLast}
         onClick={() => onMove(folder.id, 1)}
       >
@@ -169,7 +172,7 @@ function FolderRow({
         type="button"
         size="icon-sm"
         variant="ghost"
-        aria-label={`Rename ${folder.name}`}
+        aria-label={m.decks_dialog_folders_rename_label({ name: folder.name })}
         onClick={() => setEditing(true)}
       >
         <PencilIcon className="size-4" />
@@ -178,7 +181,7 @@ function FolderRow({
         type="button"
         size="icon-sm"
         variant="ghost"
-        aria-label={`Delete ${folder.name}`}
+        aria-label={m.decks_dialog_folders_delete_label({ name: folder.name })}
         disabled={remove.isPending}
         onClick={() => remove.mutate({ id: folder.id })}
       >
@@ -252,14 +255,14 @@ export function ManageDeckFoldersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Manage folders</DialogTitle>
+          <DialogTitle>{m.decks_dialog_folders_title()}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
           {folderList.length === 0 ? (
             <Empty className="py-6">
               <EmptyHeader>
-                <EmptyDescription>A deck can sit in more than one folder.</EmptyDescription>
+                <EmptyDescription>{m.decks_dialog_folders_empty()}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -290,16 +293,16 @@ export function ManageDeckFoldersDialog({
 
           <DialogForm onSubmit={handleCreate}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new-folder-name">New folder</Label>
+              <Label htmlFor="new-folder-name">{m.decks_dialog_folders_new_label()}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="new-folder-name"
                   value={newName}
                   onChange={(event) => setNewName(event.target.value)}
-                  placeholder="Standard brews"
+                  placeholder={m.decks_dialog_folders_new_placeholder()}
                 />
                 <Button type="submit" disabled={newName.trim() === "" || create.isPending}>
-                  Create
+                  {m.common_create()}
                 </Button>
               </div>
             </div>
@@ -308,7 +311,7 @@ export function ManageDeckFoldersDialog({
 
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Done
+            {m.common_done()}
           </Button>
         </DialogFooter>
       </DialogContent>

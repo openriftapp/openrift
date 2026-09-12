@@ -11,6 +11,7 @@ import { lastChange } from "@/features/decks/lib/deck-last-change";
 import { ZONE_LABELS, zoneExpected } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function ZoneRing({ count, expected }: { count: number; expected?: number }) {
   if (expected === undefined) {
@@ -57,7 +58,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
       <div className="px-safe pb-safe mx-auto flex w-full max-w-3xl items-center gap-3 pt-2">
         <Pressable
           onClick={() => setOpenMobile(true)}
-          aria-label="Open deck zones"
+          aria-label={m.decks_editor_open_zones()}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-md"
         >
           <ZoneRing count={count} expected={expected} />
@@ -86,7 +87,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label="Undo"
+          aria-label={m.decks_editor_undo()}
           disabled={!canUndo}
           onClick={undo}
           className="shrink-0"
@@ -97,7 +98,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label="Redo"
+          aria-label={m.decks_editor_redo()}
           disabled={!canRedo}
           onClick={redo}
           className="shrink-0"

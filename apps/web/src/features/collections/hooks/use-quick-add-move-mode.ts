@@ -13,6 +13,7 @@ import {
   movableCountsByPrinting,
 } from "@/features/collections/lib/move-sources";
 import type { QuickAddVerb } from "@/lib/command-palette-results";
+import { m } from "@/paraglide/messages.js";
 
 /** Kept so Shift+Enter / the minus button can send the copy back where it came from. */
 interface MoveRecord {
@@ -115,7 +116,7 @@ export function useQuickAddMoveMode({
   const movableCounts = movableByPrinting ? movableCountsByPrinting(movableByPrinting) : undefined;
 
   const fromItems: SelectOption[] = [
-    { value: MOVE_FROM_ANYWHERE, label: "All collections" },
+    { value: MOVE_FROM_ANYWHERE, label: m.collections_copies_quick_all_collections() },
     ...(collections ?? [])
       .filter((col) => col.id !== moveTo)
       .map((col) => ({ value: col.id, label: col.name })),
@@ -125,7 +126,8 @@ export function useQuickAddMoveMode({
     .map((col) => ({ value: col.id, label: col.name }));
 
   const collectionDisplayName = (id: string) =>
-    collections?.find((col) => col.id === id)?.name ?? "collection";
+    collections?.find((col) => col.id === id)?.name ??
+    m.collections_copies_quick_collection_fallback();
 
   const sourcesFor = (printingId: string): MoveSource[] =>
     buildMoveSources(movableByPrinting?.get(printingId) ?? [], inboxId);
@@ -152,7 +154,10 @@ export function useQuickAddMoveMode({
       await moveCopies.mutateAsync({ copyIds: [copyId], toCollectionId: moveTo });
       // Toast id is stable per printing, so a held Enter replaces it.
       toast.success(
-        `Moved 1× ${legendDisplayName(printing.card)} to ${collectionDisplayName(moveTo)}`,
+        m.collections_copies_quick_moved({
+          card: legendDisplayName(printing.card),
+          collection: collectionDisplayName(moveTo),
+        }),
         { id: `palette-move-${printing.id}` },
       );
       if (onMoved) {
@@ -176,7 +181,10 @@ export function useQuickAddMoveMode({
         toCollectionId: record.fromCollectionId,
       });
       toast.success(
-        `Moved 1× ${legendDisplayName(printing.card)} back to ${collectionDisplayName(record.fromCollectionId)}`,
+        m.collections_copies_quick_moved_back({
+          card: legendDisplayName(printing.card),
+          collection: collectionDisplayName(record.fromCollectionId),
+        }),
         { id: `palette-move-${printing.id}` },
       );
       if (onMoved) {

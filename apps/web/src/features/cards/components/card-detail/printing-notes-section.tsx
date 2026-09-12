@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
+import { m } from "@/paraglide/messages.js";
 
 const BREADCRUMB_SEP = " \u203A ";
 
@@ -21,7 +22,7 @@ export function PrintingNotesSection({ printing }: { printing: Printing }) {
       {(hasMarkers || hasChannels) && (
         <section className="space-y-2 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <SectionHeading as="h3">Promo</SectionHeading>
+            <SectionHeading as="h3">{m.card_detail_notes_promo()}</SectionHeading>
             {hasMarkers && (
               <div className="flex flex-wrap justify-end gap-1">
                 {printing.markers.map((marker) => (
@@ -74,14 +75,18 @@ export function PrintingNotesSection({ printing }: { printing: Printing }) {
 
       {citations.length > 0 && (
         <section className="space-y-2 text-sm">
-          <SectionHeading as="h3">{citations.length === 1 ? "Source" : "Sources"}</SectionHeading>
+          <SectionHeading as="h3">
+            {citations.length === 1
+              ? m.card_detail_notes_source_one()
+              : m.card_detail_notes_source_other()}
+          </SectionHeading>
           <PrintingCitationList citations={citations} />
         </section>
       )}
 
       {hasComment && printing.comment && (
         <section className="space-y-2 text-sm">
-          <SectionHeading as="h3">Note</SectionHeading>
+          <SectionHeading as="h3">{m.card_detail_notes_note()}</SectionHeading>
           <p className="text-muted-foreground italic">{printing.comment}</p>
         </section>
       )}

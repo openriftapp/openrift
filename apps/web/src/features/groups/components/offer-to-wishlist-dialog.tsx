@@ -26,6 +26,7 @@ import {
 import { useFriendGroupMatches } from "@/features/groups/hooks/use-friend-groups";
 import { listTargetOptions, preferredListId } from "@/features/groups/lib/tradelist-exchange";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 
 const NEW_LIST = "__new__";
 
@@ -64,7 +65,9 @@ export function OfferToWishlistDialog({
       <DialogContent>
         {open && firstChoice !== undefined ? (
           <Suspense
-            fallback={<div className="text-muted-foreground py-4 text-sm">Loading your lists…</div>}
+            fallback={
+              <div className="text-muted-foreground py-4 text-sm">{m.trades_loading_lists()}</div>
+            }
           >
             <OfferBody
               choices={[firstChoice, ...otherChoices]}
@@ -126,17 +129,19 @@ function OfferBody({
 
   const [phase, setPhase] = useState<"pick" | "confirm-share">("pick");
   const [selectedId, setSelectedId] = useState<string>(() => preferredListId(options) ?? NEW_LIST);
-  const [newName, setNewName] = useState("Tradelist");
+  const [newName, setNewName] = useState<string>(m.trades_default_tradelist_name());
 
   const chosenList = options.find((option) => option.listId === selectedId);
   // New lists are always private; an unshared existing list needs the same
   // confirmation. Either way the offer can't match until it's shared.
   const needsShare = selectedId === NEW_LIST ? true : chosenList ? !chosenList.isShared : false;
   const chosenListName =
-    selectedId === NEW_LIST ? newName.trim() || "Tradelist" : (chosenList?.listName ?? "");
+    selectedId === NEW_LIST
+      ? newName.trim() || m.trades_default_tradelist_name()
+      : (chosenList?.listName ?? "");
 
   const sendOffer = async () => {
-    const newListName = newName.trim() || "Tradelist";
+    const newListName = newName.trim() || m.trades_default_tradelist_name();
     try {
       const copyIds = chosenPrinting.copyIds.slice(0, effectiveQuantity);
       if (!existingMatch) {
@@ -168,7 +173,7 @@ function OfferBody({
         printingId: chosenPrinting.printing.id,
         quantity: effectiveQuantity,
       });
-      toast.success(`Offered ${cardName} to ${counterpartyName}`);
+      toast.success(m.trades_offered_toast({ card: cardName, name: counterpartyName }));
       onClose();
     } catch {
       // Reported by the global mutation error toast.
@@ -178,7 +183,7 @@ function OfferBody({
   const printingPicker =
     choices.length > 1 ? (
       <div className="flex flex-col gap-1">
-        <span className="text-muted-foreground text-sm">Which printing are you offering?</span>
+        <span className="text-muted-foreground text-sm">{m.trades_which_printing_offering()}</span>
         <RadioGroup
           value={String(choiceIndex)}
           onValueChange={(value) => {
@@ -199,7 +204,7 @@ function OfferBody({
                   {choice.printing.shortCode}
                 </span>
                 <span className="text-muted-foreground shrink-0 text-xs">
-                  {choice.copyIds.length} owned
+                  {m.trades_owned_count({ count: choice.copyIds.length })}
                 </span>
               </label>
             );
@@ -210,7 +215,7 @@ function OfferBody({
 
   const stepper = (
     <div className="flex items-center justify-between gap-4 py-2">
-      <span>How many?</span>
+      <span>{m.trades_how_many()}</span>
       <QuantityStepper
         value={effectiveQuantity}
         onValueChange={setQuantity}
@@ -224,18 +229,17 @@ function OfferBody({
     return (
       <DialogForm onSubmit={() => void sendOffer()}>
         <DialogHeader>
-          <DialogTitle>Offer this card</DialogTitle>
+          <DialogTitle>{m.trades_offer_card_title()}</DialogTitle>
           <DialogDescription>
-            Offer {cardName} to {counterpartyName}. They&apos;ll get a notification, and accepting
-            reserves it for them.
+            {m.trades_offer_to_description({ card: cardName, name: counterpartyName })}
           </DialogDescription>
         </DialogHeader>
         {printingPicker}
         {stepper}
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
           <Button type="submit" disabled={pending}>
-            Send offer
+            {m.trades_send_offer()}
           </Button>
         </DialogFooter>
       </DialogForm>
@@ -247,18 +251,18 @@ function OfferBody({
       <DialogForm onSubmit={() => void sendOffer()}>
         <DialogHeader>
           <DialogTitle>
-            Share {chosenListName} with {groupName}?
+            {m.trades_share_list_title({ list: chosenListName, group: groupName })}
           </DialogTitle>
           <DialogDescription>
-            Members of {groupName} will be able to view every card on {chosenListName}.
+            {m.trades_share_list_description({ list: chosenListName, group: groupName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" disabled={pending} onClick={() => setPhase("pick")}>
-            Back
+            {m.trades_back()}
           </Button>
           <Button type="submit" disabled={pending}>
-            Share and send offer
+            {m.trades_share_and_send_offer()}
           </Button>
         </DialogFooter>
       </DialogForm>
@@ -268,10 +272,13 @@ function OfferBody({
   return (
     <DialogForm onSubmit={needsShare ? () => setPhase("confirm-share") : sendOffer}>
       <DialogHeader>
-        <DialogTitle>Offer this card</DialogTitle>
+        <DialogTitle>{m.trades_offer_card_title()}</DialogTitle>
         <DialogDescription>
-          Pick a tradelist for {cardName}. Sharing it with {groupName} is what lets{" "}
-          {counterpartyName} see your offer.
+          {m.trades_pick_tradelist_description({
+            card: cardName,
+            group: groupName,
+            name: counterpartyName,
+          })}
         </DialogDescription>
       </DialogHeader>
 
@@ -289,10 +296,12 @@ function OfferBody({
               <RadioGroupItem id={inputId} value={option.listId} />
               <span className="min-w-0 flex-1 truncate font-medium">{option.listName}</span>
               <span className="text-muted-foreground shrink-0 text-xs">
-                {option.entryCount} {option.entryCount === 1 ? "copy" : "copies"}
+                {option.entryCount === 1
+                  ? m.common_copies_one({ count: option.entryCount })
+                  : m.common_copies_other({ count: option.entryCount })}
               </span>
               <Badge variant={option.isShared ? "secondary" : "outline"} className="shrink-0">
-                {option.isShared ? "Shared" : "Will be shared"}
+                {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
               </Badge>
             </label>
           );
@@ -303,9 +312,9 @@ function OfferBody({
         >
           <RadioGroupItem id="offer-tradelist-new" value={NEW_LIST} />
           <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-          <span className="flex-1 font-medium">New tradelist</span>
+          <span className="flex-1 font-medium">{m.trades_new_tradelist()}</span>
           <Badge variant="outline" className="shrink-0">
-            Will be shared
+            {m.trades_will_be_shared()}
           </Badge>
         </label>
       </RadioGroup>
@@ -314,25 +323,25 @@ function OfferBody({
         <Input
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
-          placeholder="Tradelist name"
-          aria-label="New tradelist name"
+          placeholder={m.trades_tradelist_name_placeholder()}
+          aria-label={m.trades_new_tradelist_name_label()}
         />
       ) : null}
 
       {stepper}
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
         {needsShare ? (
           <Button
             type="submit"
             disabled={pending || (selectedId === NEW_LIST && newName.trim().length === 0)}
           >
-            Continue
+            {m.trades_continue()}
           </Button>
         ) : (
           <Button type="submit" disabled={pending}>
-            Send offer
+            {m.trades_send_offer()}
           </Button>
         )}
       </DialogFooter>

@@ -2,24 +2,24 @@ import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/a
 import type { Printing } from "@openrift/shared/types/catalog";
 
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 export function emptyStateCopy(kind: ListKind): { title: string; description: string } {
   if (kind === "copy") {
     return {
-      title: "No copies on this list yet",
-      description:
-        "Open a collection, select copies, and use the “Add to list” action to put them here.",
+      title: m.lists_entry_empty_copy_title(),
+      description: m.lists_entry_empty_copy_description(),
     };
   }
   if (kind === "printing") {
     return {
-      title: "No printings on this list yet",
-      description: "Browse the catalog to add printings, or drag copies onto the list.",
+      title: m.lists_entry_empty_printing_title(),
+      description: m.lists_entry_empty_printing_description(),
     };
   }
   return {
-    title: "No cards on this list yet",
-    description: "Browse the catalog to add cards, or drag copies onto the list.",
+    title: m.lists_entry_empty_card_title(),
+    description: m.lists_entry_empty_card_description(),
   };
 }
 

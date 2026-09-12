@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { m } from "@/paraglide/messages.js";
 
 interface ConfirmActionDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ export function ConfirmActionDialog({
   description,
   confirmLabel,
   pendingLabel,
-  cancelLabel = "Cancel",
+  cancelLabel,
   onConfirm,
   isPending = false,
   destructive = true,
@@ -42,7 +43,7 @@ export function ConfirmActionDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              {cancelLabel}
+              {cancelLabel ?? m.common_cancel()}
             </Button>
             <Button
               type="submit"

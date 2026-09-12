@@ -3,6 +3,8 @@ import type { UnifiedMappingGroupResponse } from "@openrift/shared/types/api/adm
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { m } from "@/paraglide/messages.js";
+
 type MarketplaceCoverageStatus = "full" | "partial" | "none" | "na";
 
 interface DirectionCoverage {
@@ -132,7 +134,7 @@ export const ALL_ASSIGNABLE_SCOPE = "all";
 /** Human label for a scope key (`"cardtrader:FR"` -> `"CardTrader · FR"`). */
 export function scopeLabel(scope: string): string {
   if (scope === ALL_ASSIGNABLE_SCOPE) {
-    return "All assignable";
+    return m.card_detail_scope_all_assignable();
   }
   const [marketplace, language] = scope.split(":") as [Marketplace, string?];
   const base = marketplaceLabel(marketplace);

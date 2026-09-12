@@ -14,6 +14,7 @@ import { withoutLiveTradeMatches } from "@/features/groups/lib/trade-derivation"
 import type { TradeShelfRow } from "@/features/groups/lib/trade-hub";
 import { buildTradeShelf } from "@/features/groups/lib/trade-hub";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_THUMBS = 5;
 
@@ -71,7 +72,7 @@ export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupD
       icon={ZapIcon}
       tone={needsAction ? "gold" : shelf.rows.length > 0 ? "success" : "neutral"}
       accent={needsAction}
-      label="Trades"
+      label={m.trades_title()}
       value={shelf.headline}
       valueClassName="font-sans truncate text-base font-medium"
       action={
@@ -81,7 +82,7 @@ export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupD
             needsAction && "group-hover/action-band:bg-primary/90",
           )}
         >
-          View trades
+          {m.trades_view_trades()}
           <ChevronRightIcon className="size-4 transition-transform group-hover/action-band:translate-x-0.5" />
         </span>
       }

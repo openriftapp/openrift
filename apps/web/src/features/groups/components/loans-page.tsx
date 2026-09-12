@@ -47,6 +47,7 @@ import {
 } from "@/features/groups/lib/loan-derivation";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function LoanRow({ loan }: { loan: LoanResponse }) {
   const { cardsById, printingsById } = useCards();
@@ -63,7 +64,7 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
 
   const card = cardsById[loan.cardId];
   const printing = printingsById[loan.printingId];
-  const cardName = card?.name ?? "Card";
+  const cardName = card?.name ?? m.loans_card_fallback();
   const imageId = frontImageId(printing);
 
   const lending = loan.role === "lender";
@@ -78,8 +79,8 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
   const counterpartyName = loanCounterpartyLabel(loan);
   const quantityLabel =
     loan.status === "active" && loan.returnedQuantity > 0
-      ? `${outstanding} of ${loan.quantity}× ${cardName} still out`
-      : `${loan.quantity}× ${cardName}`;
+      ? m.loans_quantity_partial({ outstanding, total: loan.quantity, card: cardName })
+      : m.loans_quantity({ count: loan.quantity, card: cardName });
 
   return (
     <CardRow className="flex-col items-stretch justify-start gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -118,7 +119,9 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
             />
           ) : null}
           <span className="text-sm">
-            {lending ? `to ${counterpartyName}` : `from ${counterpartyName}`}
+            {lending
+              ? m.loans_to_person({ name: counterpartyName })
+              : m.loans_from_person({ name: counterpartyName })}
           </span>
         </span>
       </div>
@@ -135,14 +138,14 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
                 disabled={acting}
                 onClick={() => reject.mutate({ loanId: loan.id })}
               >
-                I don&apos;t have this
+                {m.loans_dont_have_this()}
               </Button>
               <Button
                 size="sm"
                 disabled={acting}
                 onClick={() => acknowledge.mutate({ loanId: loan.id })}
               >
-                Got it
+                {m.loans_got_it()}
               </Button>
             </>
           ) : null}
@@ -157,21 +160,23 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
                   : setReturnOpen(true)
               }
             >
-              Mark returned
+              {m.loans_mark_returned()}
             </Button>
           ) : null}
 
           {lending ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon-sm" aria-label="More actions" />}
+                render={
+                  <Button variant="ghost" size="icon-sm" aria-label={m.loans_more_actions()} />
+                }
               >
                 <EllipsisVerticalIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {loan.status === "active" ? (
                   <DropdownMenuItem onClick={() => setWriteOffOpen(true)}>
-                    Not coming back…
+                    {m.loans_not_coming_back()}
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuItem
@@ -179,11 +184,11 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
                   onClick={() =>
                     deleteLoan.mutate(
                       { loanId: loan.id },
-                      { onSuccess: () => toast.success("Loan deleted") },
+                      { onSuccess: () => toast.success(m.loans_deleted_toast()) },
                     )
                   }
                 >
-                  Delete
+                  {m.common_delete()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -235,26 +240,22 @@ function LoanStatusBadge({ loan }: { loan: LoanResponse }) {
   }
   if (loan.role === "lender" && loan.rejectedAt !== null) {
     return (
-      <Badge
-        variant="warning"
-        className="shrink-0"
-        title="They say they don't have this card — check with them, then fix or delete the loan"
-      >
-        They don&apos;t have it?
+      <Badge variant="warning" className="shrink-0" title={m.loans_rejected_badge_title()}>
+        {m.loans_rejected_badge()}
       </Badge>
     );
   }
   if (loan.role === "lender" && loan.counterparty !== null && loan.acknowledgedAt === null) {
     return (
       <Badge variant="secondary" className="shrink-0">
-        Unconfirmed
+        {m.loans_unconfirmed()}
       </Badge>
     );
   }
   if (loan.role === "borrower" && loan.actionNeeded === "acknowledge") {
     return (
       <Badge variant="warning" className="shrink-0">
-        New
+        {m.loans_new()}
       </Badge>
     );
   }
@@ -305,38 +306,36 @@ export function LoansPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Lending</PageTopBarTitle>
+          <PageTopBarTitle>{m.loans_page_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
-        <PageDescription>
-          Cards you&apos;ve lent to friends and cards you&apos;re borrowing.
-        </PageDescription>
+        <PageDescription>{m.loans_page_description()}</PageDescription>
 
         {empty ? (
           <EmptyState
             className="py-12"
             icon={HandHeartIcon}
-            title="Nothing lent out right now"
-            description="Lend a card to a friend and OpenRift remembers who has it. The copy stays in your collection but stops counting for decks and trades until you mark it returned. To lend one, right-click it in a collection and choose “Lend to a friend”."
+            title={m.loans_empty_title()}
+            description={m.loans_empty_description()}
           >
             <Link to="/collections" className={buttonVariants({ variant: "default" })}>
-              Open your collections
+              {m.loans_empty_cta()}
             </Link>
           </EmptyState>
         ) : null}
 
-        <LoanGroup heading="Needs your attention" loans={attention} />
-        <LoanGroup heading="Lent out" loans={lent} />
-        <LoanGroup heading="Borrowed" loans={borrowed} />
+        <LoanGroup heading={m.loans_group_attention()} loans={attention} />
+        <LoanGroup heading={m.loans_group_lent()} loans={lent} />
+        <LoanGroup heading={m.loans_group_borrowed()} loans={borrowed} />
 
         {history.length > 0 ? (
           <Collapsible>
             <CollapsibleTrigger className="group flex w-full items-center gap-1.5">
               <ChevronRightIcon className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
               <SectionHeading as="span" count={history.length}>
-                History
+                {m.loans_group_history()}
               </SectionHeading>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">

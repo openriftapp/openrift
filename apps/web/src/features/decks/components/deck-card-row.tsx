@@ -23,6 +23,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainColor, getDomainGradientStyle } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 type ControlMode = "quantity" | "remove-only" | "none";
 
@@ -98,7 +99,10 @@ export function PowerPips({
     return null;
   }
   const named = domains.map((domain) => domainLabels[domain]).join(", ");
-  const label = named.length > 0 ? `Power ${power} (${named})` : `Power ${power}`;
+  const label =
+    named.length > 0
+      ? m.decks_editor_power_with_domains({ power, domains: named })
+      : m.decks_editor_power({ power });
   return (
     <span role="img" aria-label={label} className="flex shrink-0 items-center gap-0.5">
       {Array.from({ length: power }, (_, index) => (
@@ -112,7 +116,7 @@ export function EnergyGlyph({ value }: { value: number }) {
   return (
     <span
       role="img"
-      aria-label={`Energy ${value}`}
+      aria-label={m.decks_editor_energy({ value })}
       className="text-2xs flex size-4 shrink-0 items-center justify-center rounded-full bg-white leading-none font-bold text-[#013951]"
     >
       {value}
@@ -156,7 +160,7 @@ function CardControls({
           }}
         >
           <XIcon className="size-3" />
-          <span className="sr-only">Remove from deck</span>
+          <span className="sr-only">{m.decks_editor_remove_from_deck()}</span>
         </Button>
       </span>
     );
@@ -186,7 +190,7 @@ function CardControls({
               <MinusIcon className="size-3" />
             )}
           </TooltipTrigger>
-          <TooltipContent>Shift+click to remove all</TooltipContent>
+          <TooltipContent>{m.decks_editor_shift_remove_all()}</TooltipContent>
         </Tooltip>
       </span>
       <span className={cn("text-right text-xs font-medium tabular-nums", countWidthClass)}>
@@ -210,7 +214,7 @@ function CardControls({
           >
             <PlusIcon className="size-3" />
           </TooltipTrigger>
-          <TooltipContent>Shift+click to add max</TooltipContent>
+          <TooltipContent>{m.decks_editor_shift_add_max()}</TooltipContent>
         </Tooltip>
       </span>
     </span>
@@ -305,8 +309,12 @@ export function DeckCardRow({
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            You have {card.quantity - shortfall} of {card.quantity}{" "}
-            {card.quantity === 1 ? "copy" : "copies"}
+            {card.quantity === 1
+              ? m.decks_editor_you_have_one({ owned: card.quantity - shortfall })
+              : m.decks_editor_you_have_other({
+                  owned: card.quantity - shortfall,
+                  total: card.quantity,
+                })}
           </TooltipContent>
         </Tooltip>
       )}

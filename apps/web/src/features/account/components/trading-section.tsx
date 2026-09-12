@@ -10,22 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { EmailNotificationsControls } from "./email-notifications-controls";
 import { ResetButton } from "./reset-button";
 
-const CURRENCY_LABEL: Record<Currency, string> = {
-  EUR: "Euro (EUR)",
-  USD: "US Dollar (USD)",
-};
+function currencyLabel(currency: Currency): string {
+  return currency === "EUR" ? m.profile_trading_currency_eur() : m.profile_trading_currency_usd();
+}
 
-const CURRENCY_ITEMS: { value: Currency; label: string }[] = CURRENCIES.map((value) => ({
-  value,
-  label: CURRENCY_LABEL[value],
-}));
+function currencyItems(): { value: Currency; label: string }[] {
+  return CURRENCIES.map((value) => ({ value, label: currencyLabel(value) }));
+}
 
 export function TradingSection() {
+  const currencyOptions = currencyItems();
   const defaultCurrency = useDisplayStore((s) => s.defaultCurrency);
   const setDefaultCurrency = useDisplayStore((s) => s.setDefaultCurrency);
   const overrideSet = useDisplayStore((s) => s.overrides.defaultCurrency) !== null;
@@ -35,20 +35,20 @@ export function TradingSection() {
     <>
       <SettingsSection
         id="trading"
-        title="Trading"
-        description="Default for new wishlists and tradelists. Each list can override it."
+        title={m.profile_trading_title()}
+        description={m.profile_trading_description()}
         action={
           overrideSet && (
             <ResetButton
               onClick={() => resetPreference("defaultCurrency")}
-              label="Reset default currency"
+              label={m.profile_trading_reset_currency()}
             />
           )
         }
       >
-        <SettingsRow label="Default currency" htmlFor="pref-default-currency">
+        <SettingsRow label={m.profile_trading_currency_label()} htmlFor="pref-default-currency">
           <Select
-            items={CURRENCY_ITEMS}
+            items={currencyOptions}
             value={defaultCurrency}
             onValueChange={(value) => {
               if (CURRENCIES.includes(value as Currency)) {
@@ -60,7 +60,7 @@ export function TradingSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CURRENCY_ITEMS.map((item) => (
+              {currencyOptions.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>

@@ -27,6 +27,7 @@ import { useQuickAddSearch } from "@/features/collections/hooks/use-quick-add-se
 import type { DeckMetaPatch } from "@/features/decks/hooks/use-decks";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const DESCRIPTION_MAX = 8000;
 
@@ -43,7 +44,9 @@ export function cardTokenAtCaret(value: string, caret: number): string | null {
   return match?.groups?.token ?? null;
 }
 
-const ALLOWED_HOSTS_HINT = `Links must be https and point at one of: ${ALLOWED_LINK_SITE_NAMES.join(", ")}.`;
+function allowedHostsHint(): string {
+  return m.decks_dialog_details_links_hint({ hosts: ALLOWED_LINK_SITE_NAMES.join(", ") });
+}
 
 function toDrafts(links: readonly DeckLink[]): LinkDraft[] {
   return links.map((link) => ({ url: link.url, title: link.title ?? "" }));
@@ -172,7 +175,7 @@ export function DeckDetailsDialog({
   const preview = (
     <div className="bg-card min-h-48 overflow-y-auto rounded-md border p-3 lg:max-h-96">
       {draft.trim() === "" ? (
-        <p className="text-muted-foreground text-sm">Nothing to preview yet.</p>
+        <p className="text-muted-foreground text-sm">{m.decks_dialog_details_preview_empty()}</p>
       ) : (
         <MarkdownText
           text={draft}
@@ -203,16 +206,16 @@ export function DeckDetailsDialog({
       <DialogContent className="sm:max-w-4xl">
         <DialogForm onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Deck details</DialogTitle>
+            <DialogTitle>{m.decks_dialog_details_title()}</DialogTitle>
             <DialogDescription>
-              The guide is Markdown. Type
+              {m.decks_dialog_details_description_before()}
               <Code className="mx-1">[[</Code>
-              to link a card.
+              {m.decks_dialog_details_description_after()}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="deck-details-name">Name</Label>
+            <Label htmlFor="deck-details-name">{m.common_name()}</Label>
             <Input
               id="deck-details-name"
               value={name}
@@ -224,7 +227,9 @@ export function DeckDetailsDialog({
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="deck-details-description">Description</Label>
+            <Label htmlFor="deck-details-description">
+              {m.decks_dialog_details_description_label()}
+            </Label>
             <ToggleGroup
               variant="outline"
               spacing={0}
@@ -235,11 +240,13 @@ export function DeckDetailsDialog({
                   setPane(next);
                 }
               }}
-              aria-label="Editor pane"
+              aria-label={m.decks_dialog_details_pane_label()}
               className="lg:hidden"
             >
-              <ToggleGroupItem value="write">Write</ToggleGroupItem>
-              <ToggleGroupItem value="preview">Preview</ToggleGroupItem>
+              <ToggleGroupItem value="write">{m.decks_dialog_details_pane_write()}</ToggleGroupItem>
+              <ToggleGroupItem value="preview">
+                {m.decks_dialog_details_pane_preview()}
+              </ToggleGroupItem>
             </ToggleGroup>
           </div>
 
@@ -259,12 +266,12 @@ export function DeckDetailsDialog({
                 maxLength={DESCRIPTION_MAX}
                 rows={14}
                 className="lg:max-h-96"
-                placeholder="A few words about your deck…"
+                placeholder={m.decks_dialog_details_description_placeholder()}
               />
               {suggestions.length > 0 && (
                 <div
                   role="listbox"
-                  aria-label="Card suggestions"
+                  aria-label={m.decks_dialog_details_suggestions_label()}
                   className="bg-popover absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-md border shadow-md"
                 >
                   {suggestions.map((suggestion, index) => (
@@ -299,7 +306,7 @@ export function DeckDetailsDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Links</Label>
+            <Label>{m.decks_dialog_details_links_label()}</Label>
             <LinkRowsField
               links={links}
               onChange={setLinks}
@@ -307,12 +314,12 @@ export function DeckDetailsDialog({
               isValidUrl={isAllowedLinkUrl}
               urlPlaceholder="https://youtube.com/watch?v=…"
             />
-            {!linksValid && <FieldError className="text-xs">{ALLOWED_HOSTS_HINT}</FieldError>}
+            {!linksValid && <FieldError className="text-xs">{allowedHostsHint()}</FieldError>}
           </div>
 
           <DialogFooter>
             <Button type="submit" disabled={!linksValid || trimmedName === ""}>
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

@@ -7,13 +7,14 @@ import { resolveEffectiveTradePreference } from "@openrift/shared/types/api/trad
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { TRADE_TYPE_ICON } from "./trade-preference-icon";
 import {
   PRICE_PREF_ABBR,
-  PRICE_PREF_SHORT_LABEL,
-  TRADE_TYPE_SHORT_LABEL,
   formatAbsolutePrice,
+  pricePrefShortLabel,
+  tradeTypeShortLabel,
 } from "./trade-preference-labels";
 
 interface ReadOnlyProps {
@@ -59,8 +60,8 @@ export function TradePreferencePill(props: Props) {
   const labels = preferenceLabels(effective);
   const hasAnyPref = labels.length > 0;
   const ariaLabel = hasAnyPref
-    ? `Edit trade preference (${labels.join(" · ")})`
-    : "Set trade preference";
+    ? m.trade_pref_edit_aria({ value: labels.join(" · ") })
+    : m.trade_pref_set_aria();
   const pillBody = renderPillBody(effective);
   const Icon = TRADE_TYPE_ICON[effective.tradeType ?? "none"];
 
@@ -87,7 +88,7 @@ export function TradePreferencePill(props: Props) {
   return (
     <Tooltip>
       <TooltipTrigger render={button} />
-      <TooltipContent>{hasAnyPref ? labels.join(" · ") : "Set trade preference"}</TooltipContent>
+      <TooltipContent>{hasAnyPref ? labels.join(" · ") : m.trade_pref_set_aria()}</TooltipContent>
     </Tooltip>
   );
 }
@@ -110,10 +111,10 @@ function preferenceLabels(effective: EffectiveTradePreference): string[] {
       labels.push(formatted);
     }
   } else if (effective.pricePref !== null) {
-    labels.push(PRICE_PREF_SHORT_LABEL[effective.pricePref]);
+    labels.push(pricePrefShortLabel(effective.pricePref));
   }
   if (effective.tradeType !== null) {
-    labels.push(TRADE_TYPE_SHORT_LABEL[effective.tradeType]);
+    labels.push(tradeTypeShortLabel(effective.tradeType));
   }
   return labels;
 }

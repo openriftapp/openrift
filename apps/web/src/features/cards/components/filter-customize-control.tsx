@@ -11,10 +11,12 @@ import {
 import { useFilterMetaOptional } from "@/features/cards/components/card-browser-filter-scaffold";
 import {
   getApplicablePlacementUnits,
+  placementUnitLabel,
   keepPlacementUnits,
 } from "@/features/cards/lib/filter-sections";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export function FilterCustomizeControl({
@@ -74,7 +76,7 @@ export function FilterCustomizeControl({
           className,
         )}
         aria-label={
-          placementOverridden ? "Customize filters — placement changed" : "Customize filters"
+          placementOverridden ? m.cards_customize_filters_changed() : m.cards_customize_filters()
         }
       >
         <SlidersHorizontalIcon className="size-4" />
@@ -84,17 +86,17 @@ export function FilterCustomizeControl({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">
         <PopoverHeader>
-          <PopoverTitle>Filter placement</PopoverTitle>
+          <PopoverTitle>{m.cards_filter_placement_title()}</PopoverTitle>
         </PopoverHeader>
         <p className="text-muted-foreground pb-1 text-xs">
-          Top-level filters stay in view. Everything else moves into “More”.
+          {m.cards_filter_placement_description()}
         </p>
         <div className="flex flex-col">
           {applicable.map((unit) => {
             const isTop = topLevel.has(unit.key);
             return (
               <div key={unit.key} className="flex items-center justify-between gap-2 px-1 py-1">
-                <span className="min-w-0 flex-1 truncate">{unit.label}</span>
+                <span className="min-w-0 flex-1 truncate">{placementUnitLabel(unit.key)}</span>
                 <div className="flex shrink-0 items-center gap-0.5">
                   <Button
                     variant={isTop ? "secondary" : "ghost"}
@@ -103,7 +105,7 @@ export function FilterCustomizeControl({
                     aria-pressed={isTop}
                     onClick={() => setPlacement(unit.key, true)}
                   >
-                    Top
+                    {m.cards_filter_placement_top()}
                   </Button>
                   <Button
                     variant={isTop ? "ghost" : "secondary"}
@@ -112,7 +114,7 @@ export function FilterCustomizeControl({
                     aria-pressed={!isTop}
                     onClick={() => setPlacement(unit.key, false)}
                   >
-                    More
+                    {m.cards_filter_placement_more()}
                   </Button>
                 </div>
               </div>
@@ -122,7 +124,7 @@ export function FilterCustomizeControl({
         {placementOverridden && (
           <div className="flex items-center justify-end pt-2">
             <Button variant="ghost" size="sm" onClick={() => resetPreference("topLevelFilters")}>
-              Reset to default
+              {m.cards_reset_to_default()}
             </Button>
           </div>
         )}

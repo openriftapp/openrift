@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js"; // custom: localized
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -29,8 +30,8 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = m.ui_command_title(), // custom: localized
+  description = m.ui_command_description(), // custom: localized
   children,
   className,
   showCloseButton = false,

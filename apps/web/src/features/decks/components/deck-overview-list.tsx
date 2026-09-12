@@ -58,6 +58,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { asDragData } from "@/lib/dnd-data";
 import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 type OwnershipPrinting = NonNullable<CardOwnership["displayPrinting"]>;
 
@@ -77,15 +78,17 @@ interface ReservedCells {
   price: boolean;
 }
 
-export const DECK_OVERVIEW_SORT_OPTIONS: SortGroupOption<DeckOverviewSort>[] = [
-  { value: "default", label: "Curve order" },
-  { value: "id", label: "ID" },
-  { value: "name", label: "Name" },
-  { value: "energy", label: "Energy" },
-  { value: "price", label: "Price" },
-  { value: "rarity", label: "Rarity" },
-  { value: "ownership", label: "Ownership" },
-];
+export function deckOverviewSortOptions(): SortGroupOption<DeckOverviewSort>[] {
+  return [
+    { value: "default", label: m.decks_overview_sort_curve() },
+    { value: "id", label: m.decks_overview_sort_id() },
+    { value: "name", label: m.common_name() },
+    { value: "energy", label: m.decks_overview_group_energy() },
+    { value: "price", label: m.decks_overview_sort_price() },
+    { value: "rarity", label: m.decks_overview_sort_rarity() },
+    { value: "ownership", label: m.decks_overview_group_ownership() },
+  ];
+}
 
 // Mirrors the sidebar and thumbnail dashboard's zone order.
 const ZONE_ORDER: readonly DeckZone[] = [
@@ -248,7 +251,7 @@ export function DeckOverviewList({
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Show ${ZONE_LABELS[zone]} issues`}
+                    aria-label={m.decks_overview_zone_issues({ zone: ZONE_LABELS[zone] })}
                     className="size-5 shrink-0 rounded-md"
                   />
                 }
@@ -387,11 +390,11 @@ function ZoneAddRow({
       type="button"
       variant="dashed"
       onClick={onClick}
-      aria-label={isEmpty ? hint : `Add cards to ${ZONE_LABELS[zone]}`}
+      aria-label={isEmpty ? hint : m.decks_overview_zone_add_to({ zone: ZONE_LABELS[zone] })}
       className="h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-xs font-normal whitespace-normal"
     >
       <PlusIcon className="size-3.5 shrink-0" />
-      <span>{isEmpty ? hint : "Add cards"}</span>
+      <span>{isEmpty ? hint : m.decks_overview_zone_add_cards()}</span>
     </Button>
   );
 }

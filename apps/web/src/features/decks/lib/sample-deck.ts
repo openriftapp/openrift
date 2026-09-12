@@ -5,8 +5,12 @@ import type { ImportedDeckCard } from "@/features/decks/lib/deck-import-cards";
 import { dedupeMatchedEntries } from "@/features/decks/lib/deck-import-cards";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import { parseDeckImportData } from "@/features/decks/lib/deck-import-parsers";
+import { m } from "@/paraglide/messages.js";
 
-export const SAMPLE_DECK_NAME = "Sample Deck: Azir";
+export function sampleDeckName(): string {
+  return m.decks_list_sample_deck_name();
+}
+
 export const SAMPLE_DECK_FORMAT: DeckFormat = "constructed";
 export const SAMPLE_DECK_CODE =
   "CQAAAAAAAAAACAQEAAAQEAIGAAAAGAQAAAADUAGVAECAGAAAEEAJSAIATIAQBIIBAECAAABHAMBAAAAAFMAC2AYDAAAB6ABKADDACAIEAAALAAIDAIAAAAGRAEAKMAQGAMAAAMQAGMAKGAIAVQAQBRIBADKQCAYEAAAKKAIAVUAQBWYBAAAQCBAAACUQCAQDAAAAALIA2EAQBYABAIBQAABNAA2ACAYAAAZA";

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateDeckVariant } from "@/features/decks/hooks/use-decks";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckVariantCreateDialogProps {
   deckId: string;
@@ -29,11 +30,8 @@ interface DeckVariantCreateDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const TITLE = "New variant";
-const DESCRIPTION = "Creates an editable copy, kept alongside this deck as another version of it.";
-
 export function defaultVariantName(deckName: string): string {
-  return `${deckName} (variant)`;
+  return m.decks_dialog_variant_default_name({ name: deckName });
 }
 
 export function DeckVariantCreateForm({
@@ -101,7 +99,9 @@ export function DeckVariantCreateForm({
     <div className="flex min-w-0 flex-col gap-3">
       {showSources && (
         <div className="flex min-w-0 flex-col gap-2">
-          <Label htmlFor={`deck-variant-source-${layout}`}>Came from</Label>
+          <Label htmlFor={`deck-variant-source-${layout}`}>
+            {m.decks_dialog_variant_source_label()}
+          </Label>
           <Select items={sources} value={sourceId} onValueChange={handleSourceChange}>
             <SelectTrigger id={`deck-variant-source-${layout}`} className="w-full">
               <SelectValue />
@@ -117,7 +117,7 @@ export function DeckVariantCreateForm({
         </div>
       )}
       <div className="flex min-w-0 flex-col gap-2">
-        <Label htmlFor={inputId}>Name</Label>
+        <Label htmlFor={inputId}>{m.common_name()}</Label>
         <Input
           id={inputId}
           value={draft}
@@ -132,10 +132,10 @@ export function DeckVariantCreateForm({
   const actions = (
     <>
       <Button variant="outline" onClick={onCancel}>
-        Cancel
+        {m.common_cancel()}
       </Button>
       <Button type="submit" disabled={draft.trim().length === 0 || createVariant.isPending}>
-        Create variant
+        {m.decks_dialog_variant_create_submit()}
       </Button>
     </>
   );
@@ -144,8 +144,8 @@ export function DeckVariantCreateForm({
     return (
       <DialogForm onSubmit={handleSubmit}>
         <DialogHeader>
-          <DialogTitle>{TITLE}</DialogTitle>
-          <DialogDescription>{DESCRIPTION}</DialogDescription>
+          <DialogTitle>{m.decks_dialog_variant_create_title()}</DialogTitle>
+          <DialogDescription>{m.decks_dialog_variant_create_description()}</DialogDescription>
         </DialogHeader>
         {fields}
         <DialogFooter>{actions}</DialogFooter>
@@ -162,8 +162,10 @@ export function DeckVariantCreateForm({
       }}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-medium">{TITLE}</span>
-        <span className="text-muted-foreground text-sm">{DESCRIPTION}</span>
+        <span className="font-medium">{m.decks_dialog_variant_create_title()}</span>
+        <span className="text-muted-foreground text-sm">
+          {m.decks_dialog_variant_create_description()}
+        </span>
       </div>
       {fields}
       <div className="flex justify-end gap-2">{actions}</div>

@@ -52,6 +52,7 @@ import { useLists, useReorderLists } from "@/features/lists/hooks/use-lists";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { asDragData } from "@/lib/dnd-data";
 import { splitSidebarRows } from "@/lib/sidebar-visibility";
+import { m } from "@/paraglide/messages.js";
 import type { SidebarGroupKey } from "@/stores/sidebar-fold-store";
 import { moreKey, useSidebarFoldStore } from "@/stores/sidebar-fold-store";
 
@@ -77,12 +78,12 @@ function MobileSidebarHeader() {
   return (
     <SectionHeader className="items-center p-4 md:hidden">
       <SectionHeaderTitle level={3} as="h2">
-        Collections
+        {m.collections_sidebar_title()}
       </SectionHeaderTitle>
       <SectionHeaderActions>
         <Button variant="ghost" size="icon-sm" onClick={() => setOpenMobile(false)}>
           <XIcon />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{m.common_close()}</span>
         </Button>
       </SectionHeaderActions>
     </SectionHeader>
@@ -96,16 +97,28 @@ interface IntentGroup {
   foldKey: SidebarGroupKey;
 }
 
-const INTENT_GROUPS: IntentGroup[] = [
-  { intent: "wish", groupLabel: "Wishlists", newButtonLabel: "New wishlist", foldKey: "wish" },
-  { intent: "trade", groupLabel: "Tradelists", newButtonLabel: "New tradelist", foldKey: "trade" },
-  {
-    intent: "organize",
-    groupLabel: "Organize lists",
-    newButtonLabel: "New organize list",
-    foldKey: "organize",
-  },
-];
+function intentGroups(): IntentGroup[] {
+  return [
+    {
+      intent: "wish",
+      groupLabel: m.collections_sidebar_wishlists(),
+      newButtonLabel: m.collections_sidebar_new_wishlist(),
+      foldKey: "wish",
+    },
+    {
+      intent: "trade",
+      groupLabel: m.collections_sidebar_tradelists(),
+      newButtonLabel: m.collections_sidebar_new_tradelist(),
+      foldKey: "trade",
+    },
+    {
+      intent: "organize",
+      groupLabel: m.collections_sidebar_organize_lists(),
+      newButtonLabel: m.collections_sidebar_new_organize_list(),
+      foldKey: "organize",
+    },
+  ];
+}
 
 function CollapsibleSidebarGroup({
   label,
@@ -168,9 +181,9 @@ function SidebarCreateRow({ label, onCreate }: { label: string; onCreate: () => 
 // marker stands in because a real count needs a full-catalog filter pass.
 function DynamicListMarker() {
   return (
-    <span title="Kept up to date by a rule" className="flex shrink-0 items-center">
+    <span title={m.collections_sidebar_rule_title()} className="flex shrink-0 items-center">
       <SparklesIcon className="text-primary size-3.5" aria-hidden />
-      <span className="sr-only">Dynamic list</span>
+      <span className="sr-only">{m.collections_sidebar_dynamic_list()}</span>
     </span>
   );
 }
@@ -274,7 +287,7 @@ function ListsSidebarGroups({
 
   return (
     <>
-      {INTENT_GROUPS.map((group) => (
+      {intentGroups().map((group) => (
         <ListIntentGroup
           key={group.intent}
           group={group}
@@ -356,9 +369,9 @@ function PersonalCollectionsGroup({
 
   return (
     <CollapsibleSidebarGroup
-      label="Collections"
+      label={m.collections_sidebar_title()}
       foldKey="collections"
-      createLabel="New collection"
+      createLabel={m.collections_sidebar_new_collection()}
       onCreate={onCreate}
     >
       {inbox && (
@@ -444,7 +457,7 @@ function PersonalCollectionsGroup({
         <SidebarShowMoreRow foldKey="collections" hiddenCount={hiddenCount} shown={moreShown} />
       )}
       {!inbox && collections.length === 0 && (
-        <SidebarCreateRow label="New collection" onCreate={onCreate} />
+        <SidebarCreateRow label={m.collections_sidebar_new_collection()} onCreate={onCreate} />
       )}
     </CollapsibleSidebarGroup>
   );
@@ -475,7 +488,7 @@ function SharedCollectionsGroup({
     <CollapsibleSidebarGroup
       label={section.groupName}
       foldKey={foldKey}
-      createLabel="New shared collection"
+      createLabel={m.collections_sidebar_new_shared_collection()}
       onCreate={onCreate}
     >
       {rows.map((col) => (
@@ -513,7 +526,10 @@ function SharedCollectionsGroup({
         <SidebarShowMoreRow foldKey={foldKey} hiddenCount={hiddenCount} shown={moreShown} />
       )}
       {section.collections.length === 0 && (
-        <SidebarCreateRow label="New shared collection" onCreate={onCreate} />
+        <SidebarCreateRow
+          label={m.collections_sidebar_new_shared_collection()}
+          onCreate={onCreate}
+        />
       )}
     </CollapsibleSidebarGroup>
   );
@@ -654,7 +670,7 @@ export function CollectionSidebar() {
               render={<Link to="/collections" search={(prev) => prev} />}
             >
               <LayersIcon />
-              <span className="flex-1">All Cards</span>
+              <span className="flex-1">{m.collections_all_cards()}</span>
               {totalCopies > 0 && (
                 <Badge variant="ghost" className="text-2xs ml-auto">
                   {totalCopies}
@@ -694,7 +710,9 @@ export function CollectionSidebar() {
           <SidebarGroupLabel className="gap-1.5">
             {/* Reserves the collapsible groups' chevron column so every group label starts on one text origin. */}
             <span aria-hidden className="size-3 shrink-0" />
-            <span className="min-w-0 flex-1 truncate text-left">Manage</span>
+            <span className="min-w-0 flex-1 truncate text-left">
+              {m.collections_sidebar_manage()}
+            </span>
           </SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             <SidebarMenuItem>
@@ -703,7 +721,7 @@ export function CollectionSidebar() {
                 render={<Link to="/collections/stats" />}
               >
                 <ChartBarIcon />
-                <span>Statistics</span>
+                <span>{m.collections_sidebar_statistics()}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -712,7 +730,7 @@ export function CollectionSidebar() {
                 render={<Link to="/collections/import" />}
               >
                 <ArrowLeftRightIcon />
-                <span>Import</span>
+                <span>{m.collections_sidebar_import()}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -721,7 +739,7 @@ export function CollectionSidebar() {
                 render={<Link to="/collections/activity" />}
               >
                 <HistoryIcon />
-                <span>Activity</span>
+                <span>{m.collections_sidebar_activity()}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

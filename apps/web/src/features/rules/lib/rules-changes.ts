@@ -2,31 +2,29 @@ import { compareRuleNumbers, RULE_REFERENCE_REGEX } from "@openrift/shared/rules
 import type { RuleChangesResponse, RuleResponse } from "@openrift/shared/types/api/rules";
 
 import { hasVisibleRuleChanges } from "@/features/rules/lib/rules-markdown";
+import { m } from "@/paraglide/messages.js";
 
 export type ChangeKind = "new" | "changed" | "moved" | "replaced" | "removed";
 
-export const CHANGE_KIND_BADGE: Record<ChangeKind, { label: string; className: string }> = {
-  new: {
-    label: "New",
-    className: "bg-success-soft text-success",
-  },
-  changed: {
-    label: "Changed",
-    className: "bg-warning-soft text-warning",
-  },
-  moved: {
-    label: "Moved",
-    className: "bg-info-soft text-info",
-  },
-  replaced: {
-    label: "Replaced",
-    className: "bg-violet-soft text-violet",
-  },
-  removed: {
-    label: "Removed",
-    className: "bg-destructive-soft text-destructive",
-  },
+const CHANGE_KIND_CLASS: Record<ChangeKind, string> = {
+  new: "bg-success-soft text-success",
+  changed: "bg-warning-soft text-warning",
+  moved: "bg-info-soft text-info",
+  replaced: "bg-violet-soft text-violet",
+  removed: "bg-destructive-soft text-destructive",
 };
+
+const CHANGE_KIND_LABEL: Record<ChangeKind, () => string> = {
+  new: m.rules_change_new,
+  changed: m.rules_change_changed,
+  moved: m.rules_change_moved,
+  replaced: m.rules_change_replaced,
+  removed: m.rules_change_removed,
+};
+
+export function changeKindBadge(kind: ChangeKind): { label: string; className: string } {
+  return { label: CHANGE_KIND_LABEL[kind](), className: CHANGE_KIND_CLASS[kind] };
+}
 
 export interface RuleMoves {
   oldToNew: Map<string, string>;

@@ -6,6 +6,7 @@ import { PublicDeckActionsMenu } from "@/features/decks/components/public-deck-a
 import { PublicDeckSurface } from "@/features/decks/components/public-deck-surface";
 import { useCloneSharedDeck, usePublicDeck } from "@/features/decks/hooks/use-decks";
 import { useSession } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/decks_/share/$token")({
   component: SharedDeckPage,
@@ -40,16 +41,16 @@ function SharedDeckPage() {
       data={data}
       isLoggedIn={isLoggedIn}
       returnPath={`/decks/share/${token}`}
-      heroByline={<>by {data.owner.displayName}</>}
+      heroByline={<>{m.decks_share_byline({ name: data.owner.displayName })}</>}
       heroActions={
         <>
           <Button onClick={() => void handleClone()} disabled={cloneMutation.isPending}>
             <CopyIcon />
             {cloneMutation.isPending
-              ? "Copying…"
+              ? m.decks_share_copying()
               : isLoggedIn
-                ? "Copy to my decks"
-                : "Sign in to copy"}
+                ? m.decks_share_copy_to_my_decks()
+                : m.decks_share_sign_in_to_copy()}
           </Button>
           <PublicDeckActionsMenu
             deckId={data.deck.id}

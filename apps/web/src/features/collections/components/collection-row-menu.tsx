@@ -16,6 +16,7 @@ import {
   useSetCollectionDeckbuilding,
   useSetCollectionSidebarHidden,
 } from "@/features/collections/hooks/use-collections";
+import { m } from "@/paraglide/messages.js";
 
 import { CollectionShareDialog } from "./collection-share-dialog";
 import { DeleteCollectionDialog } from "./delete-collection-dialog";
@@ -66,7 +67,7 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
           {canAdmin && (
             <ContextMenuItem onClick={() => setEditOpen(true)}>
               <PencilIcon />
-              Edit collection
+              {m.collections_row_edit()}
             </ContextMenuItem>
           )}
           <ContextMenuItem
@@ -79,13 +80,13 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
           >
             <LayersIcon />
             {collection.availableForDeckbuilding
-              ? "Exclude from my deck building"
-              : "Include in my deck building"}
+              ? m.collections_row_deckbuilding_exclude()
+              : m.collections_row_deckbuilding_include()}
           </ContextMenuItem>
           {canAdmin && (
             <ContextMenuItem onClick={() => setShareOpen(true)}>
               <Share2Icon />
-              Share
+              {m.collections_row_share()}
             </ContextMenuItem>
           )}
           {!collection.isInbox && (
@@ -97,7 +98,9 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
                 }
               >
                 {collection.sidebarHidden ? <EyeIcon /> : <EyeOffIcon />}
-                {collection.sidebarHidden ? "Show in sidebar" : "Hide behind Show more"}
+                {collection.sidebarHidden
+                  ? m.collections_row_show_in_sidebar()
+                  : m.collections_row_hide_in_sidebar()}
               </ContextMenuItem>
             </>
           )}
@@ -106,7 +109,7 @@ export function CollectionRowMenu({ collection, isActive, children }: Collection
               <ContextMenuSeparator />
               <ContextMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
                 <Trash2Icon />
-                Delete collection
+                {m.collections_row_delete()}
               </ContextMenuItem>
             </>
           )}

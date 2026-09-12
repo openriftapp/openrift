@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface IntroGuideRow {
   icons: readonly LucideIcon[];
@@ -46,7 +47,7 @@ export function IntroBanner({
         variant="ghost"
         size="icon-xs"
         onClick={onDismiss}
-        aria-label="Dismiss this guide"
+        aria-label={m.layout_intro_dismiss()}
         className="text-muted-foreground absolute top-3 right-3"
       >
         <XIcon className="size-4" />

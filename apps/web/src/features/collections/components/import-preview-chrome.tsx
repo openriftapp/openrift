@@ -9,6 +9,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function ImportPreviewStack({
   className,
@@ -63,8 +64,12 @@ export function ImportStatusBadges({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge variant="success">{readyCount} ready</Badge>
-      {toVerifyCount > 0 && <Badge variant="warning">{toVerifyCount} to verify</Badge>}
+      <Badge variant="success">{m.collections_import_badge_ready({ count: readyCount })}</Badge>
+      {toVerifyCount > 0 && (
+        <Badge variant="warning">
+          {m.collections_import_badge_to_verify({ count: toVerifyCount })}
+        </Badge>
+      )}
       {needsAttentionCount > 0 &&
         (onJumpToNeedsAttention ? (
           <Badge
@@ -72,17 +77,23 @@ export function ImportStatusBadges({
             render={<Pressable />}
             // Badge's built-in hover rules only target anchor renders.
             className="hover:bg-destructive/20"
-            aria-label={`Jump to the first of ${needsAttentionCount} ${
-              needsAttentionCount === 1 ? "row" : "rows"
-            } that need attention`}
+            aria-label={
+              needsAttentionCount === 1
+                ? m.collections_import_jump_aria_one({ count: needsAttentionCount })
+                : m.collections_import_jump_aria_other({ count: needsAttentionCount })
+            }
             onClick={onJumpToNeedsAttention}
           >
-            {needsAttentionCount} need attention
+            {m.collections_import_badge_need_attention({ count: needsAttentionCount })}
           </Badge>
         ) : (
-          <Badge variant="destructive">{needsAttentionCount} need attention</Badge>
+          <Badge variant="destructive">
+            {m.collections_import_badge_need_attention({ count: needsAttentionCount })}
+          </Badge>
         ))}
-      {skippedCount > 0 && <Badge variant="ghost">{skippedCount} skipped</Badge>}
+      {skippedCount > 0 && (
+        <Badge variant="ghost">{m.collections_import_badge_skipped({ count: skippedCount })}</Badge>
+      )}
     </div>
   );
 }
@@ -102,8 +113,7 @@ export function ImportParseErrorDetails({
   return (
     <details className="bg-warning-soft border-warning/40 text-warning rounded-lg border">
       <summary className="cursor-pointer px-3 py-2 font-medium">
-        {errors.length} {unit}
-        {errors.length === 1 ? "" : "s"} could not be read
+        {parseErrorSummary(errors.length, unit)}
       </summary>
       <div className="border-warning/40 border-t px-3 py-2">
         {errors.map((error) => (
@@ -112,6 +122,17 @@ export function ImportParseErrorDetails({
       </div>
     </details>
   );
+}
+
+function parseErrorSummary(count: number, unit: "row" | "line"): string {
+  if (unit === "line") {
+    return count === 1
+      ? m.collections_import_parse_errors_lines_one({ count })
+      : m.collections_import_parse_errors_lines_other({ count });
+  }
+  return count === 1
+    ? m.collections_import_parse_errors_rows_one({ count })
+    : m.collections_import_parse_errors_rows_other({ count });
 }
 
 export function ImportExactMatchesDisclosure({
@@ -130,7 +151,7 @@ export function ImportExactMatchesDisclosure({
       <summary className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 px-4 py-2.5">
         <ChevronRightIcon className="size-4 transition-transform group-open:rotate-90" />
         <CheckCircle2Icon className="text-success size-4" />
-        <span>{count} matched exactly</span>
+        <span>{m.collections_import_matched_exactly({ count })}</span>
       </summary>
       <div className="divide-border divide-y border-t">{children}</div>
     </details>
@@ -144,8 +165,11 @@ export function ImportToVerifyNote({ count }: { count: number }) {
 
   return (
     <p className="text-muted-foreground text-sm">
-      Best guess picked for {count} {count === 1 ? "card" : "cards"} (marked{" "}
-      <span className="text-foreground font-medium">to verify</span>). Open each to confirm.
+      {count === 1
+        ? m.collections_import_to_verify_note_before_one({ count })
+        : m.collections_import_to_verify_note_before_other({ count })}{" "}
+      <span className="text-foreground font-medium">{m.collections_import_to_verify_label()}</span>
+      {m.collections_import_to_verify_note_after()}
     </p>
   );
 }
@@ -157,11 +181,11 @@ export function ImportTroubleNote({ needsAttentionCount }: { needsAttentionCount
 
   return (
     <p className="text-muted-foreground text-sm">
-      Having trouble importing?{" "}
+      {m.collections_import_trouble_before()}{" "}
       <TextLink variant="muted" href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
-        Open a GitHub issue
+        {m.collections_import_trouble_link()}
       </TextLink>{" "}
-      and we&apos;ll take a look.
+      {m.collections_import_trouble_after()}
     </p>
   );
 }

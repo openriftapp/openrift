@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/features/account/lib/auth-client";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export interface PublicProfileValues {
   bio: string | null;
@@ -24,23 +25,25 @@ export interface PublicProfileValues {
 
 type ProfileToggle = Exclude<keyof PublicProfileValues, "bio">;
 
-const TOGGLES: { key: ProfileToggle; label: string; description: string }[] = [
-  {
-    key: "profileShowRiotId",
-    label: "Show my Riot ID",
-    description: "Your display name is always shown.",
-  },
-  {
-    key: "profileShowCollection",
-    label: "Show my collection size",
-    description: "How many cards you own, never which ones.",
-  },
-  {
-    key: "profileShowLastActive",
-    label: "Show when I was last active",
-    description: "Rounded to today, this week or this month.",
-  },
-];
+function toggles(): { key: ProfileToggle; label: string; description: string }[] {
+  return [
+    {
+      key: "profileShowRiotId",
+      label: m.profile_public_toggle_riot_id_label(),
+      description: m.profile_public_toggle_riot_id_description(),
+    },
+    {
+      key: "profileShowCollection",
+      label: m.profile_public_toggle_collection_label(),
+      description: m.profile_public_toggle_collection_description(),
+    },
+    {
+      key: "profileShowLastActive",
+      label: m.profile_public_toggle_last_active_label(),
+      description: m.profile_public_toggle_last_active_description(),
+    },
+  ];
+}
 
 export function PublicProfileSection({
   userId,
@@ -51,13 +54,13 @@ export function PublicProfileSection({
 }) {
   return (
     <SettingsSection
-      title="Public profile"
-      description="What your share page says about you besides your lists. Contributions, tournaments and decks are counted for everyone."
+      title={m.profile_public_title()}
+      description={m.profile_public_description()}
       contentClassName="gap-6"
     >
       <BioForm key={userId} defaultBio={values.bio ?? ""} />
       <div className="flex flex-col gap-4">
-        {TOGGLES.map((toggle) => (
+        {toggles().map((toggle) => (
           <ProfileToggleRow key={toggle.key} toggle={toggle} checked={values[toggle.key]} />
         ))}
       </div>
@@ -93,13 +96,13 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
     const result = await authClient.updateUser({ bio: values.bio.trim() }).catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not save. Please try again." });
+      form.setError("root", { message: m.profile_public_save_error() });
       return;
     }
     const { error } = result;
     if (error) {
       form.setError(error.code === "INVALID_BIO" ? "bio" : "root", {
-        message: error.message ?? "Could not save. Please try again.",
+        message: error.message ?? m.profile_public_save_error(),
       });
       return;
     }
@@ -118,28 +121,31 @@ function BioForm({ defaultBio }: { defaultBio: string }) {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{m.profile_public_bio_label()}</FieldLabel>
               <Textarea
                 {...field}
                 id={field.name}
                 rows={2}
                 maxLength={PROFILE_BIO_MAX_LENGTH}
-                placeholder="Fury and Chaos player from Frankfurt. Collecting a full Origins playset."
+                placeholder={m.profile_public_bio_placeholder()}
                 aria-invalid={fieldState.invalid}
               />
               <div className="flex items-center justify-between gap-2">
                 <FieldDescription>
-                  One line under your name. {watchedBio.length}/{PROFILE_BIO_MAX_LENGTH}
+                  {m.profile_public_bio_hint({
+                    count: watchedBio.length,
+                    max: PROFILE_BIO_MAX_LENGTH,
+                  })}
                 </FieldDescription>
                 <Button type="submit" disabled={loading || watchedBio.trim() === defaultBio}>
-                  {loading ? "Saving..." : "Save"}
+                  {loading ? m.profile_public_bio_saving() : m.profile_public_bio_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               {success && (
                 <FieldDescription className="flex items-center gap-1.5">
                   <CheckIcon className="text-success size-3.5" />
-                  Bio updated.
+                  {m.profile_public_bio_updated()}
                 </FieldDescription>
               )}
             </Field>
@@ -154,7 +160,7 @@ function ProfileToggleRow({
   toggle,
   checked,
 }: {
-  toggle: (typeof TOGGLES)[number];
+  toggle: ReturnType<typeof toggles>[number];
   checked: boolean;
 }) {
   const [pending, setPending] = useState(false);
@@ -178,7 +184,7 @@ function ProfileToggleRow({
     <SettingsRow
       label={toggle.label}
       htmlFor={id}
-      description={failed ? "Could not save. Please try again." : toggle.description}
+      description={failed ? m.profile_public_save_error() : toggle.description}
     >
       <Switch
         id={id}

@@ -1,4 +1,5 @@
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 export function PaletteScopeToken({ label }: { label: string }) {
@@ -6,7 +7,7 @@ export function PaletteScopeToken({ label }: { label: string }) {
   return (
     <span className="bg-muted text-foreground flex max-w-44 shrink-0 items-center gap-0.5 rounded-md py-0.5 pr-1 pl-2 text-xs font-medium">
       <span className="truncate">{label}</span>
-      <ChipRemoveButton aria-label={`Leave ${label}`} onClick={exitQuickAddScope} />
+      <ChipRemoveButton aria-label={m.palette_leave_scope({ label })} onClick={exitQuickAddScope} />
     </span>
   );
 }

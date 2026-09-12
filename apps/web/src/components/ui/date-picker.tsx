@@ -9,19 +9,20 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { m } from "@/paraglide/messages.js";
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/u;
 
 function formatIso(date: Date): string {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return `${y}-${month}-${d}`;
 }
 
 function parseIso(value: string): Date {
-  const [y = NaN, m = NaN, d = NaN] = value.split("-").map(Number);
-  return new Date(y, m - 1, d, 12);
+  const [y = NaN, month = NaN, d = NaN] = value.split("-").map(Number);
+  return new Date(y, month - 1, d, 12);
 }
 
 function isValidIso(value: string): boolean {
@@ -112,7 +113,7 @@ export function DatePicker({
               <InputGroupButton
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Select date"
+                aria-label={m.ui_date_picker_select()}
                 disabled={disabled}
               />
             }

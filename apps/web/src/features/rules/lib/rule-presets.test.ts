@@ -5,12 +5,17 @@ import { describe, expect, it } from "vitest";
 import { serializeRules } from "@/features/rules/lib/rule-draft";
 
 import {
-  ORGANIZE_CARD_RULE_PRESETS,
-  ORGANIZE_COPY_RULE_PRESETS,
+  organizeCardRulePresets,
+  organizeCopyRulePresets,
   rulePresetsFor,
-  TRADE_RULE_PRESETS,
-  WISH_RULE_PRESETS,
+  tradeRulePresets,
+  wishRulePresets,
 } from "./rule-presets";
+
+const WISH_RULE_PRESETS = wishRulePresets();
+const TRADE_RULE_PRESETS = tradeRulePresets();
+const ORGANIZE_CARD_RULE_PRESETS = organizeCardRulePresets();
+const ORGANIZE_COPY_RULE_PRESETS = organizeCopyRulePresets();
 
 const ALL_PRESETS = [
   ...WISH_RULE_PRESETS,
@@ -18,6 +23,8 @@ const ALL_PRESETS = [
   ...ORGANIZE_CARD_RULE_PRESETS,
   ...ORGANIZE_COPY_RULE_PRESETS,
 ];
+
+const presetIds = (presets: { id: string }[]) => presets.map((preset) => preset.id);
 
 describe("rule presets", () => {
   it("has unique ids across every intent", () => {
@@ -44,12 +51,18 @@ describe("rule presets", () => {
   });
 
   it("rulePresetsFor picks the set matching the list's intent and kind", () => {
-    expect(rulePresetsFor("wish", "card")).toBe(WISH_RULE_PRESETS);
-    expect(rulePresetsFor("wish", "printing")).toBe(WISH_RULE_PRESETS);
-    expect(rulePresetsFor("trade", "copy")).toBe(TRADE_RULE_PRESETS);
-    expect(rulePresetsFor("organize", "card")).toBe(ORGANIZE_CARD_RULE_PRESETS);
-    expect(rulePresetsFor("organize", "printing")).toBe(ORGANIZE_CARD_RULE_PRESETS);
-    expect(rulePresetsFor("organize", "copy")).toBe(ORGANIZE_COPY_RULE_PRESETS);
+    expect(presetIds(rulePresetsFor("wish", "card"))).toEqual(presetIds(WISH_RULE_PRESETS));
+    expect(presetIds(rulePresetsFor("wish", "printing"))).toEqual(presetIds(WISH_RULE_PRESETS));
+    expect(presetIds(rulePresetsFor("trade", "copy"))).toEqual(presetIds(TRADE_RULE_PRESETS));
+    expect(presetIds(rulePresetsFor("organize", "card"))).toEqual(
+      presetIds(ORGANIZE_CARD_RULE_PRESETS),
+    );
+    expect(presetIds(rulePresetsFor("organize", "printing"))).toEqual(
+      presetIds(ORGANIZE_CARD_RULE_PRESETS),
+    );
+    expect(presetIds(rulePresetsFor("organize", "copy"))).toEqual(
+      presetIds(ORGANIZE_COPY_RULE_PRESETS),
+    );
   });
 
   it("organize presets default to including everything that matches", () => {

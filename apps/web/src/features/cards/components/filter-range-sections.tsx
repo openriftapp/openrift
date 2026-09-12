@@ -12,6 +12,7 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 const LOG_STEPS = 1000;
@@ -42,11 +43,13 @@ interface RangeSection {
   formatValue?: (v: number) => string;
 }
 
-const STAT_RANGE_SECTIONS: RangeSection[] = [
-  { key: "energy", label: "Energy" },
-  { key: "power", label: "Power" },
-  { key: "might", label: "Might" },
-];
+function statRangeSections(): RangeSection[] {
+  return [
+    { key: "energy", label: m.cards_filter_range_energy() },
+    { key: "power", label: m.cards_filter_range_power() },
+    { key: "might", label: m.cards_filter_range_might() },
+  ];
+}
 
 const HAS_NULL_KEY: Partial<Record<RangeKey, keyof AvailableFilters>> = {
   energy: "hasNullEnergy",
@@ -75,20 +78,20 @@ export function FilterRangeSections({
   // availableFilters[key] price already reflects the favourite marketplace via getAvailableFilters' getPrice.
   const priceSection: RangeSection = {
     key: "price",
-    label: "Price",
+    label: m.cards_filter_range_price(),
     logarithmic: true,
     formatValue: compactFormatterForMarketplace(favoriteMarketplace),
   };
   const showRangeUnit = (unit: string) => scope !== "all" || units === undefined || units.has(unit);
   const sections: RangeSection[] =
     scope === "stats"
-      ? STAT_RANGE_SECTIONS
+      ? statRangeSections()
       : scope === "price"
         ? [priceSection]
         : scope === "copies"
           ? []
           : [
-              ...(showRangeUnit("stats") ? STAT_RANGE_SECTIONS : []),
+              ...(showRangeUnit("stats") ? statRangeSections() : []),
               ...(showRangeUnit("price") ? [priceSection] : []),
             ];
   const showCopies = (scope === "all" || scope === "copies") && showRangeUnit("owned");
@@ -102,7 +105,7 @@ export function FilterRangeSections({
         ownedCountMax !== undefined &&
         ownedCountMax > 0 && (
           <RangeFilterSection
-            label="Copies"
+            label={m.cards_filter_range_copies()}
             availableMin={0}
             availableMax={ownedCountMax}
             selectedMin={filterState.ownedCountMin}
@@ -188,7 +191,7 @@ function RangeFilterSection({
       <CircleSlashIcon
         className="inline-block size-3 align-[-0.1875em]"
         role="img"
-        aria-label="None"
+        aria-label={m.cards_filter_range_none()}
       />
     ) : (
       fmt(value)
@@ -295,7 +298,7 @@ function RangeFilterSection({
           step={sStep}
           value={displayValue}
           disabled={isDegenerate}
-          aria-label={`${label} range`}
+          aria-label={m.cards_filter_range_slider({ label })}
           onValueChange={(values, details) => {
             const arr = Array.isArray(values) ? values : [values];
             const next: [number, number] = [arr[0] ?? sMin, arr[1] ?? sMax];

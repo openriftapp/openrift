@@ -2,6 +2,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { m } from "@/paraglide/messages.js";
 
 /** One editable row: both fields stay strings so a half-typed row is valid state. */
 export interface LinkDraft {
@@ -26,8 +27,8 @@ export function LinkRowsField({
   max,
   isValidUrl,
   urlPlaceholder = "https://…",
-  titlePlaceholder = "Title",
-  addLabel = "Add link",
+  titlePlaceholder,
+  addLabel,
 }: LinkRowsFieldProps) {
   const replaceAt = (index: number, patch: Partial<LinkDraft>) => {
     onChange(links.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)));
@@ -43,7 +44,7 @@ export function LinkRowsField({
             onChange={(event) => replaceAt(index, { url: event.target.value })}
             placeholder={urlPlaceholder}
             maxLength={500}
-            aria-label={`Link ${index + 1} URL`}
+            aria-label={m.shared_link_url_label({ index: index + 1 })}
             aria-invalid={link.url.trim() !== "" && !isValidUrl(link.url.trim())}
           />
           <Input
@@ -51,14 +52,14 @@ export function LinkRowsField({
             value={link.title}
             onChange={(event) => replaceAt(index, { title: event.target.value })}
             maxLength={100}
-            placeholder={titlePlaceholder}
-            aria-label={`Link ${index + 1} title`}
+            placeholder={titlePlaceholder ?? m.shared_link_title_placeholder()}
+            aria-label={m.shared_link_title_label({ index: index + 1 })}
           />
           <Button
             variant="ghost"
             size="icon-xs"
             onClick={() => onChange(links.filter((_entry, i) => i !== index))}
-            aria-label={`Remove link ${index + 1}`}
+            aria-label={m.shared_link_remove_label({ index: index + 1 })}
           >
             <XIcon />
           </Button>
@@ -72,7 +73,7 @@ export function LinkRowsField({
           onClick={() => onChange([...links, { url: "", title: "" }])}
         >
           <PlusIcon />
-          {addLabel}
+          {addLabel ?? m.shared_link_add()}
         </Button>
       )}
     </>

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { BrowserToolbar } from "@/features/cards/components/card-browser-filter-scaffold";
 import { defaultGroupByOptions } from "@/features/cards/components/options-bar";
-import { GROUP_BY_LABELS } from "@/features/cards/lib/group-by-field";
+import { groupByLabel } from "@/features/cards/lib/group-by-field";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionGridToolbarProps {
   sortedCards: Printing[];
@@ -50,11 +51,13 @@ export function CollectionGridToolbar({
         variant="control"
         pressed={wantedOnly}
         onPressedChange={onWantedOnlyChange}
-        title={wantedOnly ? "Show everything in the box" : "Show only cards you want"}
-        aria-label={wantedOnly ? "Show everything in the box" : "Show only cards you want"}
+        title={wantedOnly ? m.collections_grid_wanted_show_all() : m.collections_grid_wanted_only()}
+        aria-label={
+          wantedOnly ? m.collections_grid_wanted_show_all() : m.collections_grid_wanted_only()
+        }
       >
         <HeartIcon className="size-4" />
-        <span className="hidden sm:inline">Wanted</span>
+        <span className="hidden sm:inline">{m.collections_grid_wanted()}</span>
       </Toggle>
     ) : null;
 
@@ -63,8 +66,10 @@ export function CollectionGridToolbar({
       variant="control"
       size="icon"
       onClick={onToggleLibrary}
-      title={showLibrary ? "Hide library" : "Show whole library"}
-      aria-label={showLibrary ? "Hide library" : "Show whole library"}
+      title={showLibrary ? m.collections_grid_hide_library() : m.collections_grid_show_library()}
+      aria-label={
+        showLibrary ? m.collections_grid_hide_library() : m.collections_grid_show_library()
+      }
       aria-pressed={showLibrary}
     >
       <LibraryBigIcon className="size-4" />
@@ -91,7 +96,9 @@ export function CollectionGridToolbar({
       }
       mobileDoneLabel={
         hasActiveFilters
-          ? `Show ${filteredCardCount} ${dataView === "cards" ? "cards" : "printings"}`
+          ? dataView === "cards"
+            ? m.collections_grid_show_cards({ count: filteredCardCount })
+            : m.collections_grid_show_printings({ count: filteredCardCount })
           : undefined
       }
       extras={
@@ -103,7 +110,7 @@ export function CollectionGridToolbar({
       showCopies={!showLibrary}
       groupByOptions={
         collectionGroupingAvailable
-          ? [...defaultGroupByOptions, { value: "collection", label: GROUP_BY_LABELS.collection }]
+          ? [...defaultGroupByOptions(), { value: "collection", label: groupByLabel("collection") }]
           : undefined
       }
       groupByValue={groupBy}

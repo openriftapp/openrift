@@ -59,6 +59,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckExportDialog } from "./deck-export-dialog";
 import { DeckPrintDialog } from "./deck-print-dialog";
@@ -129,7 +130,9 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Deck actions" />}
+          render={
+            <Button variant="ghost" size="icon-sm" aria-label={m.decks_menu_actions_label()} />
+          }
         >
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
@@ -142,12 +145,12 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             {deck.isPinned ? (
               <>
                 <PinOffIcon className="size-4" />
-                Unpin
+                {m.decks_menu_unpin()}
               </>
             ) : (
               <>
                 <PinIcon className="size-4" />
-                Pin
+                {m.decks_menu_pin()}
               </>
             )}
           </DropdownMenuItem>
@@ -157,7 +160,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <Share2Icon className="size-4" />
-            Share…
+            {m.decks_menu_share()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -165,7 +168,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <DownloadIcon className="size-4" />
-            Export…
+            {m.decks_menu_export()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -173,7 +176,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PrinterIcon className="size-4" />
-            Print…
+            {m.decks_menu_print()}
           </DropdownMenuItem>
           {item.totalCards > 0 && (
             <DropdownMenuItem
@@ -182,7 +185,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
               }}
             >
               <MonitorPlayIcon className="size-4" />
-              Present
+              {m.decks_menu_present()}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -191,13 +194,13 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PencilIcon className="size-4" />
-            Rename
+            {m.decks_menu_rename()}
           </DropdownMenuItem>
           {otherFormats.length > 0 && (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <RefreshCwIcon className="size-4" />
-                Change format
+                {m.decks_menu_change_format()}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 {otherFormats.map((entry) => (
@@ -212,7 +215,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <FolderIcon className="size-4" />
-              Add to folder
+              {m.decks_menu_add_to_folder()}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {folderList.map((folder) => (
@@ -233,7 +236,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
                 }}
               >
                 <SettingsIcon className="size-4" />
-                Manage folders…
+                {m.decks_menu_manage_folders()}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -244,7 +247,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <GitBranchIcon className="size-4" />
-            Variants…
+            {m.decks_menu_variants()}
           </DropdownMenuItem>
           {deck.familyId !== null && !deck.isPrimary && (
             <DropdownMenuItem
@@ -253,7 +256,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
               }}
             >
               <StarIcon className="size-4" />
-              Make primary
+              {m.decks_menu_make_primary()}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -262,7 +265,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <FlaskConicalIcon className="size-4" />
-            {deck.isDraft ? "Remove draft mark" : "Mark as draft"}
+            {deck.isDraft ? m.decks_menu_unmark_draft() : m.decks_menu_mark_draft()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -272,12 +275,12 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             {deck.archivedAt === null ? (
               <>
                 <ArchiveIcon className="size-4" />
-                Archive
+                {m.decks_menu_archive()}
               </>
             ) : (
               <>
                 <ArchiveRestoreIcon className="size-4" />
-                Unarchive
+                {m.decks_menu_unarchive()}
               </>
             )}
           </DropdownMenuItem>
@@ -288,7 +291,7 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             className="text-destructive focus:text-destructive"
           >
             <Trash2Icon className="size-4" />
-            Delete
+            {m.common_delete()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -323,15 +326,15 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
         <AlertDialogContent>
           <DialogForm onSubmit={handleDelete}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete deck</AlertDialogTitle>
+              <AlertDialogTitle>{m.decks_dialog_delete_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                Delete &ldquo;{deck.name}&rdquo;? This cannot be undone.
+                {m.decks_dialog_delete_description({ name: deck.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                Delete
+                {m.common_delete()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>

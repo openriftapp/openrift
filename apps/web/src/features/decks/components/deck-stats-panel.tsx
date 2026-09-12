@@ -13,6 +13,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function DomainBar({
   data,
@@ -88,7 +89,7 @@ function DeckStatsBody({ stats }: { stats: ReturnType<typeof useDeckStats> }) {
         averagePower={stats.averagePower}
         revealDomainsOnHover
         showTotals
-        footnote="Counts the main deck only."
+        footnote={m.decks_stats_footnote_main_only()}
       />
       <TypeBreakdown
         data={stats.typeBreakdown}
@@ -111,7 +112,7 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
   return (
     <Collapsible defaultOpen={defaultOpen} className="flex flex-col gap-1.5">
       <DeckZoneHeader
-        label="Stats"
+        label={m.decks_stats_title()}
         labelClassName="group-hover/zone-label:text-foreground shrink-0 transition-colors"
         className="group/zone-label w-full gap-1.5 text-left"
         leading={
@@ -126,7 +127,7 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
           className="mx-1"
         />
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-          {stats.totalCards} cards
+          {m.decks_stats_total_cards({ count: stats.totalCards })}
         </span>
       </DeckZoneHeader>
 

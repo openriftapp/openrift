@@ -9,6 +9,7 @@ import { getDomainGradientStyle } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { htmlLangTag } from "@/lib/language-tag";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ErrataNotice } from "./errata-notice";
 import { StatChip } from "./stat-chip";
@@ -115,7 +116,7 @@ export function CardDetailText({
             {card.mightBonus !== null && card.mightBonus > 0 && (
               <div className={cn(printing.printedEffectText && "mt-2")}>
                 <StatChip
-                  label="Might Bonus"
+                  label={m.card_detail_stat_might_bonus()}
                   value={`+${card.mightBonus}`}
                   icon="/images/might.svg"
                 />

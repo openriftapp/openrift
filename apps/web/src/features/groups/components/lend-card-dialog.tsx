@@ -22,6 +22,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { useCreateLoan, useLoanBorrowerOptions } from "@/features/groups/hooks/use-loans";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const FREE_TEXT = "__name__";
 
@@ -68,7 +69,7 @@ export function LendCardDialog({
       {
         onSuccess: () => {
           onOpenChange(false);
-          toast.success(`Lent ${cardName} — track it on the Lending page`);
+          toast.success(m.loans_lent_toast({ card: cardName }));
         },
       },
     );
@@ -79,11 +80,8 @@ export function LendCardDialog({
       <DialogContent>
         <DialogForm onSubmit={confirm}>
           <DialogHeader>
-            <DialogTitle>Lend to a friend</DialogTitle>
-            <DialogDescription>
-              It stays in your collection, marked as on loan, and stops counting for deck building
-              and trades until it&apos;s back.
-            </DialogDescription>
+            <DialogTitle>{m.loans_lend_title()}</DialogTitle>
+            <DialogDescription>{m.loans_lend_description()}</DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-2">
@@ -110,16 +108,22 @@ export function LendCardDialog({
                   gravatarHash={member.gravatarHash}
                   size="sm"
                 />
-                <span className="min-w-0 flex-1 truncate text-sm">{member.name ?? "Member"}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {member.name ?? m.loans_member_fallback()}
+                </span>
               </label>
             ))}
             <label className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md border p-2.5">
               <RadioGroupItem value={FREE_TEXT} className="mt-2" />
               <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <Input
-                  placeholder={members.length > 0 ? "Someone else, by name" : "Who has it?"}
+                  placeholder={
+                    members.length > 0
+                      ? m.loans_borrower_placeholder_other()
+                      : m.loans_borrower_placeholder()
+                  }
                   value={name}
-                  aria-label="Borrower name"
+                  aria-label={m.loans_borrower_name_label()}
                   onFocus={() => setBorrower(FREE_TEXT)}
                   onChange={(event) => setName(event.target.value)}
                 />
@@ -142,7 +146,7 @@ export function LendCardDialog({
           </RadioGroup>
 
           <div className="flex items-center justify-between gap-4">
-            <span>How many?</span>
+            <span>{m.loans_how_many()}</span>
             <QuantityStepper
               value={quantity}
               onValueChange={setQuantity}
@@ -152,9 +156,9 @@ export function LendCardDialog({
           </div>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
             <Button type="submit" disabled={createLoan.isPending || !canConfirm}>
-              Lend it out
+              {m.loans_lend_confirm()}
             </Button>
           </DialogFooter>
         </DialogForm>

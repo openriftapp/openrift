@@ -8,6 +8,7 @@ import { CollectionImportInputStep } from "@/features/collections/components/col
 import { CollectionImportPreviewStep } from "@/features/collections/components/collection-import-preview-step";
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useImportFlow } from "@/features/collections/hooks/use-import-flow";
+import { m } from "@/paraglide/messages.js";
 
 export function CollectionImportPage() {
   const { toggleSidebar } = useSidebar();
@@ -19,7 +20,9 @@ export function CollectionImportPage() {
     topBarSlot &&
     createPortal(
       <PageTopBar>
-        <PageTopBarTitle onToggleSidebar={toggleSidebar}>Import</PageTopBarTitle>
+        <PageTopBarTitle onToggleSidebar={toggleSidebar}>
+          {m.collections_import_top_bar_title()}
+        </PageTopBarTitle>
       </PageTopBar>,
       topBarSlot,
     );

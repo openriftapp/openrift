@@ -10,6 +10,7 @@ import { SuggestImageNotice } from "@/features/cards/components/suggest-image-no
 import { useStandardArtFallback } from "@/features/cards/hooks/use-standard-art-fallback";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function CardImage({
   innerRef,
@@ -155,10 +156,10 @@ export function CardImage({
         {!printing.setReleased && (
           <div
             className="@container pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[inherit]"
-            title="Not released in this language yet"
+            title={m.card_detail_not_released()}
           >
             <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
-              Preview
+              {m.card_detail_preview_badge()}
             </div>
           </div>
         )}

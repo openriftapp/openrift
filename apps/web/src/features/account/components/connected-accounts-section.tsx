@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { authClient } from "@/features/account/lib/auth-client";
+import { m } from "@/paraglide/messages.js";
 
 const SOCIAL_PROVIDERS = [
   { id: "google", name: "Google", icon: siGoogle },
@@ -23,9 +24,9 @@ export function ConnectedAccountsSection() {
     async function fetchAccounts() {
       const result = await authClient.listAccounts().catch(() => null);
       if (!result) {
-        setError("Failed to load connected accounts.");
+        setError(m.profile_connected_load_failed());
       } else if (result.error) {
-        setError(result.error.message ?? "Failed to load connected accounts.");
+        setError(result.error.message ?? m.profile_connected_load_failed());
       } else {
         setAccounts(result.data ?? []);
       }
@@ -44,7 +45,7 @@ export function ConnectedAccountsSection() {
       });
     } catch {
       setActionLoading(null);
-      setError("Could not reach the sign-in provider. Please try again.");
+      setError(m.profile_connected_provider_failed());
     }
   }
 
@@ -58,11 +59,11 @@ export function ConnectedAccountsSection() {
     const result = await authClient.unlinkAccount({ accountId: account.id }).catch(() => null);
     setActionLoading(null);
     if (!result) {
-      setError("Failed to unlink account.");
+      setError(m.profile_connected_unlink_failed());
       return;
     }
     if (result.error) {
-      setError(result.error.message ?? "Failed to unlink account.");
+      setError(result.error.message ?? m.profile_connected_unlink_failed());
       return;
     }
     setAccounts((prev) => prev.filter((a) => a.providerId !== providerId));
@@ -71,9 +72,9 @@ export function ConnectedAccountsSection() {
   const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
 
   return (
-    <SettingsSection title="Connected Accounts">
+    <SettingsSection title={m.profile_connected_title()}>
       {loading ? (
-        <p className="text-muted-foreground text-sm">Loading...</p>
+        <p className="text-muted-foreground text-sm">{m.profile_connected_loading()}</p>
       ) : (
         <>
           {error && (
@@ -107,10 +108,12 @@ export function ConnectedAccountsSection() {
                         />
                       }
                     >
-                      {actionLoading === provider.id ? "Unlinking..." : "Unlink"}
+                      {actionLoading === provider.id
+                        ? m.profile_connected_unlinking()
+                        : m.profile_connected_unlink()}
                     </TooltipTrigger>
                     {isOnlyAccount && (
-                      <TooltipContent>You must have at least one linked account</TooltipContent>
+                      <TooltipContent>{m.profile_connected_last_account()}</TooltipContent>
                     )}
                   </Tooltip>
                 ) : (
@@ -119,7 +122,9 @@ export function ConnectedAccountsSection() {
                     disabled={actionLoading === provider.id}
                     onClick={() => void handleLink(provider.id)}
                   >
-                    {actionLoading === provider.id ? "Connecting..." : "Connect"}
+                    {actionLoading === provider.id
+                      ? m.profile_connected_connecting()
+                      : m.profile_connected_connect()}
                   </Button>
                 )}
               </SettingsRow>

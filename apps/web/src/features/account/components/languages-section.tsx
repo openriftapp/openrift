@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { ResetButton } from "./reset-button";
@@ -57,11 +58,14 @@ export function LanguagesSection({
   return (
     <SettingsSection
       id="languages"
-      title="Card languages"
-      description="When a card exists in several languages, the top one wins."
+      title={m.profile_languages_title()}
+      description={m.profile_languages_description()}
       action={
         overrides.languages !== null && (
-          <ResetButton onClick={() => resetPreference("languages")} label="Reset languages" />
+          <ResetButton
+            onClick={() => resetPreference("languages")}
+            label={m.profile_languages_reset()}
+          />
         )
       }
     >
@@ -85,7 +89,9 @@ export function LanguagesSection({
                   {lang.name}
                 </Label>
                 <span className="text-muted-foreground text-xs">{code}</span>
-                {enabled && index === 0 && <Badge variant="subtle">Preferred</Badge>}
+                {enabled && index === 0 && (
+                  <Badge variant="subtle">{m.profile_languages_preferred()}</Badge>
+                )}
               </div>
               <div className="flex items-center gap-0.5">
                 <Button
@@ -93,7 +99,7 @@ export function LanguagesSection({
                   size="icon-sm"
                   disabled={!enabled || index === 0}
                   onClick={() => moveLanguage(code, -1)}
-                  aria-label={`Move ${lang.name} up`}
+                  aria-label={m.profile_languages_move_up({ name: lang.name })}
                 >
                   <ArrowUpIcon className="size-3" />
                 </Button>
@@ -102,7 +108,7 @@ export function LanguagesSection({
                   size="icon-sm"
                   disabled={!enabled || index === languages.length - 1}
                   onClick={() => moveLanguage(code, 1)}
-                  aria-label={`Move ${lang.name} down`}
+                  aria-label={m.profile_languages_move_down({ name: lang.name })}
                 >
                   <ArrowDownIcon className="size-3" />
                 </Button>

@@ -2,6 +2,7 @@ import { isCountedZone } from "@openrift/shared/deck-zones";
 
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * The five numbers always sum to the entry's quantity. Locked copies still
@@ -224,38 +225,65 @@ export function ownershipBandTitle(quantity: number, segments: OwnershipBandSegm
   const { exact, other, borrowed, locked } = segments;
   const needed = Math.max(0, quantity);
   const lockedSuffix =
-    locked === 0 ? "" : locked === 1 ? ", 1 more is locked" : `, ${locked} more are locked`;
+    locked === 0
+      ? ""
+      : locked === 1
+        ? m.decks_overview_band_suffix_locked_one()
+        : m.decks_overview_band_suffix_locked_other({ count: locked });
   const borrowedSuffix =
-    borrowed === 0 ? "" : borrowed === 1 ? ", 1 is borrowed" : `, ${borrowed} are borrowed`;
+    borrowed === 0
+      ? ""
+      : borrowed === 1
+        ? m.decks_overview_band_suffix_borrowed_one()
+        : m.decks_overview_band_suffix_borrowed_other({ count: borrowed });
   // The `> 0` guard matters: an entry needing nothing has borrowed === needed
   // === 0 and must not read "you're borrowing all 0".
   if (borrowed > 0 && borrowed === needed) {
-    return needed === 1 ? "You're borrowing this card" : `You're borrowing all ${needed}`;
+    return needed === 1
+      ? m.decks_overview_band_borrowed_one()
+      : m.decks_overview_band_borrowed_all({ count: needed });
   }
   if (exact === 0 && other === 0 && locked === 0 && borrowed > 0) {
-    return `You're borrowing ${borrowed} of ${needed}`;
+    return m.decks_overview_band_borrowed_some({ borrowed, needed });
   }
   if (exact === needed) {
-    return needed === 1 ? "You own this printing" : `You own all ${needed} in this printing`;
+    return needed === 1
+      ? m.decks_overview_band_exact_one()
+      : m.decks_overview_band_exact_all({ count: needed });
   }
   if (other === needed) {
     return needed === 1
-      ? "You own this card in another printing"
-      : `You own all ${needed} in another printing`;
+      ? m.decks_overview_band_other_one()
+      : m.decks_overview_band_other_all({ count: needed });
   }
   if (exact > 0 && other > 0) {
-    return `You own ${exact} of ${needed} in this printing and ${other} in another${borrowedSuffix}${lockedSuffix}`;
+    return m.decks_overview_band_exact_and_other({
+      exact,
+      needed,
+      other,
+      suffix: `${borrowedSuffix}${lockedSuffix}`,
+    });
   }
   if (exact > 0) {
-    return `You own ${exact} of ${needed} in this printing${borrowedSuffix}${lockedSuffix}`;
+    return m.decks_overview_band_exact_some({
+      exact,
+      needed,
+      suffix: `${borrowedSuffix}${lockedSuffix}`,
+    });
   }
   if (other > 0) {
-    return `You own ${other} of ${needed} in another printing${borrowedSuffix}${lockedSuffix}`;
+    return m.decks_overview_band_other_some({
+      other,
+      needed,
+      suffix: `${borrowedSuffix}${lockedSuffix}`,
+    });
   }
   if (locked === needed) {
     return needed === 1
-      ? "You own this card, but it's locked"
-      : `You own all ${needed}, but they're locked`;
+      ? m.decks_overview_band_locked_one()
+      : m.decks_overview_band_locked_all({ count: needed });
   }
-  return `You own ${locked} of ${needed}, but ${locked === 1 ? "it's" : "they're"} locked${borrowedSuffix}`;
+  return locked === 1
+    ? m.decks_overview_band_locked_some_one({ locked, needed, suffix: borrowedSuffix })
+    : m.decks_overview_band_locked_some_other({ locked, needed, suffix: borrowedSuffix });
 }

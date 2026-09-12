@@ -6,53 +6,66 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn, FOOTER_PADDING_NO_TOP } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-export const HEADINGS = [
-  "The Rift collapsed",
-  "Critical misprint detected",
-  "This page pulled a blank",
-  "Shuffled into the void",
-  "Well, that wasn't supposed to happen",
-  "We drew a bug",
-  "Something broke (no, you can't grade it)",
-  "That's not ideal",
-  "Yeah, that's a bug",
-];
+export function errorHeadings(): string[] {
+  return [
+    m.error_heading_rift_collapsed(),
+    m.error_heading_misprint(),
+    m.error_heading_blank(),
+    m.error_heading_void(),
+    m.error_heading_not_supposed(),
+    m.error_heading_drew_bug(),
+    m.error_heading_cant_grade(),
+    m.error_heading_not_ideal(),
+    m.error_heading_yeah_bug(),
+  ];
+}
 
-export const SUBTEXTS = [
-  "Someone shuffled the code wrong.",
-  "We checked the binder. This page is missing.",
-  "The Rift giveth, the Rift taketh away.",
-  "This page fell through a Rift and didn't come back.",
-  "Even mint-condition apps have bad days.",
-  "We're looking into it. Probably.",
-  "Something broke and it's definitely not your fault.",
-  "No worries, the rest of the app is fine. Probably.",
-];
+export function errorSubtexts(): string[] {
+  return [
+    m.error_subtext_shuffled_wrong(),
+    m.error_subtext_binder(),
+    m.error_subtext_giveth(),
+    m.error_subtext_fell_through(),
+    m.error_subtext_bad_days(),
+    m.error_subtext_looking_into_it(),
+    m.error_subtext_not_your_fault(),
+    m.error_subtext_rest_is_fine(),
+  ];
+}
 
-export const EMOJIS = [":(", String.raw`¯\_(ツ)_/¯`, "[MISPRINT]", "[DAMAGED]"];
+export function errorEmojis(): string[] {
+  return [":(", String.raw`¯\_(ツ)_/¯`, m.error_emoji_misprint(), m.error_emoji_damaged()];
+}
 
-const NOT_FOUND_HEADINGS = [
-  "Nothing here but dust",
-  "This card was never printed",
-  "Lost in the Rift",
-  "Page not found",
-  "You've wandered off the map",
-  "This page doesn't exist",
-  "No card at this address",
-  "The Rift has no record of this",
-];
+function notFoundHeadings(): string[] {
+  return [
+    m.error_notfound_heading_dust(),
+    m.error_notfound_heading_never_printed(),
+    m.error_notfound_heading_lost(),
+    m.error_notfound_heading_page_not_found(),
+    m.error_notfound_heading_off_map(),
+    m.error_notfound_heading_doesnt_exist(),
+    m.error_notfound_heading_no_card(),
+    m.error_notfound_heading_no_record(),
+  ];
+}
 
-const NOT_FOUND_SUBTEXTS = [
-  "Whatever was here, it's gone now.",
-  "Double-check the URL or head back to safety.",
-  "This page isn't in any set we know of.",
-  "Maybe it was here once, maybe it never was.",
-  "Even the best collectors come up empty sometimes.",
-  "The URL looks wrong, or the page was removed.",
-];
+function notFoundSubtexts(): string[] {
+  return [
+    m.error_notfound_subtext_gone(),
+    m.error_notfound_subtext_double_check(),
+    m.error_notfound_subtext_no_set(),
+    m.error_notfound_subtext_maybe(),
+    m.error_notfound_subtext_come_up_empty(),
+    m.error_notfound_subtext_url_wrong(),
+  ];
+}
 
-const NOT_FOUND_EMOJIS = ["?", "404", "[MISSING]", String.raw`¯\_(ツ)_/¯`];
+function notFoundEmojis(): string[] {
+  return ["?", "404", m.error_emoji_missing(), String.raw`¯\_(ツ)_/¯`];
+}
 
 function hashString(input: string): number {
   let hash = 0;
@@ -81,7 +94,7 @@ function DevErrorDetails({ error }: { error: string }) {
         className="h-auto px-0 text-xs"
         onClick={() => setOpen((prev) => !prev)}
       >
-        {open ? "Hide details" : "Show details"}
+        {open ? m.error_hide_details() : m.error_show_details()}
       </Button>
       {open && (
         <pre className="bg-muted text-muted-foreground max-h-60 w-full overflow-auto rounded-md p-3 text-left text-xs break-words whitespace-pre-wrap">
@@ -127,7 +140,7 @@ export function ErrorMessageLayout({
         <div className="flex gap-3">
           {goHome && (
             <a href="/" className={buttonVariants()}>
-              Go home
+              {m.error_go_home()}
             </a>
           )}
           {reload && (
@@ -136,7 +149,7 @@ export function ErrorMessageLayout({
               variant={goHome ? "outline" : "default"}
               onClick={() => globalThis.location.reload()}
             >
-              Reshuffle
+              {m.error_reshuffle()}
             </Button>
           )}
         </div>
@@ -162,9 +175,9 @@ export function RouteErrorFallback({ error }: { error?: unknown }) {
   const seed = message ?? "unknown";
   return (
     <ErrorMessageLayout
-      emoji={pick(EMOJIS, `${seed}:emoji`)}
-      heading={pick(HEADINGS, `${seed}:heading`)}
-      subtext={pick(SUBTEXTS, `${seed}:subtext`)}
+      emoji={pick(errorEmojis(), `${seed}:emoji`)}
+      heading={pick(errorHeadings(), `${seed}:heading`)}
+      subtext={pick(errorSubtexts(), `${seed}:subtext`)}
       className="flex-1"
       reload
       devError={message}
@@ -176,9 +189,9 @@ export function NotFoundFallback() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <ErrorMessageLayout
-      emoji={pick(NOT_FOUND_EMOJIS, `${pathname}:emoji`)}
-      heading={pick(NOT_FOUND_HEADINGS, `${pathname}:heading`)}
-      subtext={pick(NOT_FOUND_SUBTEXTS, `${pathname}:subtext`)}
+      emoji={pick(notFoundEmojis(), `${pathname}:emoji`)}
+      heading={pick(notFoundHeadings(), `${pathname}:heading`)}
+      subtext={pick(notFoundSubtexts(), `${pathname}:subtext`)}
       className="flex-1"
       goHome
     />

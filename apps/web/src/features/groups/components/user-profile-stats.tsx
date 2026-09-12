@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import type { IconChipTone } from "@/components/ui/icon-chip";
 import { IconChip } from "@/components/ui/icon-chip";
 import { bestFinishHint, contributionsHint } from "@/features/groups/lib/user-profile-copy";
+import { m } from "@/paraglide/messages.js";
 
 interface StatEntry {
   key: string;
@@ -39,9 +40,14 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
       key: "collection",
       icon: LayersIcon,
       tone: "info",
-      label: "Collection",
+      label: m.user_profile_stat_collection(),
       value: stats.collection.copies,
-      hint: `${stats.collection.uniqueCards.toLocaleString("en-US")} unique cards`,
+      hint:
+        stats.collection.uniqueCards === 1
+          ? m.user_profile_unique_cards_one({ count: stats.collection.uniqueCards })
+          : m.user_profile_unique_cards_other({
+              count: stats.collection.uniqueCards.toLocaleString("en-US"),
+            }),
     });
   }
   if (stats.contributions.total > 0) {
@@ -49,7 +55,7 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
       key: "contributions",
       icon: PenLineIcon,
       tone: "success",
-      label: "Contributions",
+      label: m.user_profile_stat_contributions(),
       value: stats.contributions.total,
       hint: contributionsHint(stats.contributions),
     });
@@ -59,7 +65,7 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
       key: "tournaments",
       icon: TrophyIcon,
       tone: "gold",
-      label: "Tournaments",
+      label: m.user_profile_stat_tournaments(),
       value: stats.tournaments.played,
       hint: bestFinishHint(stats.tournaments.bestFinish),
     });
@@ -69,9 +75,11 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
       key: "decks",
       icon: FolderIcon,
       tone: "violet",
-      label: "Decks built",
+      label: m.user_profile_stat_decks(),
       value: stats.decks.total,
-      hint: stats.decks.topLegend ? `Mostly ${stats.decks.topLegend.name}` : null,
+      hint: stats.decks.topLegend
+        ? m.user_profile_mostly_legend({ name: stats.decks.topLegend.name })
+        : null,
     });
   }
   if (entries.length === 0) {

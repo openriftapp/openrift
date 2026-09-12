@@ -24,13 +24,14 @@ import {
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { getDomainTintStyle } from "@/lib/domain";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const cardDetailImport = import("@/features/cards/components/card-detail/card-detail");
 const CardDetail = lazy(async () => {
-  const m = await cardDetailImport;
-  return { default: m.CardDetail };
+  const mod = await cardDetailImport;
+  return { default: mod.CardDetail };
 });
 
 interface SelectionDetailModalProps {
@@ -126,13 +127,13 @@ export function SelectionDetailModal({
         <DialogClose
           render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           // Must match the pane and mobile drawer's close button label: one locator finds all three.
-          aria-label="Close card details"
+          aria-label={m.cards_detail_close()}
         >
           <XIcon className="size-4" />
         </DialogClose>
         <DialogHeader className="sr-only">
-          <DialogTitle>Card details</DialogTitle>
-          <DialogDescription>Details for the selected card</DialogDescription>
+          <DialogTitle>{m.cards_detail_title()}</DialogTitle>
+          <DialogDescription>{m.cards_detail_description()}</DialogDescription>
         </DialogHeader>
         <Suspense fallback={<CardDetailModalSkeleton />}>
           <CardDetail
@@ -149,9 +150,9 @@ export function SelectionDetailModal({
             navLabel={navLabel}
             footerSlot={
               <span className="text-muted-foreground text-xs">
-                Want this to stay open?{" "}
+                {m.cards_detail_dock_prompt()}{" "}
                 <Pressable onClick={handleDock} className={textLinkVariants({ variant: "muted" })}>
-                  Dock it beside the grid
+                  {m.cards_detail_dock_action()}
                 </Pressable>
               </span>
             }

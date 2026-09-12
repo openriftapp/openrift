@@ -51,6 +51,7 @@ import { useConditionList, useEnumOrders, useGraderList } from "@/hooks/use-enum
 import type { EnumLabels } from "@/lib/enum-labels";
 import { formatCardId } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 // Select sentinels for the two non-slug condition states. Real condition
 // slugs are kebab-case words from the reference table, so these can't collide.
@@ -223,7 +224,9 @@ function CopySummary({
   const { labels } = useEnumOrders();
 
   if (!copyHasRecordedDetails(copy)) {
-    return <span className="text-muted-foreground text-sm">No details yet</span>;
+    return (
+      <span className="text-muted-foreground text-sm">{m.collections_copies_no_details()}</span>
+    );
   }
 
   const trade = copy.reserved && tradeAnnotation ? liveTradeStatus(tradeAnnotation) : null;
@@ -231,7 +234,7 @@ function CopySummary({
   return (
     <span className="flex shrink-0 items-center gap-1.5">
       <ConditionBadge copy={copy} labels={labels} />
-      {copy.onLoan && <SummaryIcon icon={HandHeartIcon} label="On loan" />}
+      {copy.onLoan && <SummaryIcon icon={HandHeartIcon} label={m.collections_copies_on_loan()} />}
       {/* The icon is the direction arrow, so the label spells the direction out
           too: it is the only text a screen reader gets here. */}
       {trade && (
@@ -271,10 +274,8 @@ function CopyPickerList({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Copies of {target.cardName}</DialogTitle>
-        <DialogDescription>
-          Pick a copy to view or edit its condition, notes, and photos.
-        </DialogDescription>
+        <DialogTitle>{m.collections_copies_list_title({ card: target.cardName })}</DialogTitle>
+        <DialogDescription>{m.collections_copies_list_description()}</DialogDescription>
       </DialogHeader>
       <div className="max-h-72 overflow-y-auto">
         <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
@@ -298,7 +299,7 @@ function CopyPickerList({
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Close
+          {m.common_close()}
         </Button>
       </DialogFooter>
     </>
@@ -368,11 +369,16 @@ function CopyEditor({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           {showBack && (
-            <Button variant="ghost" size="icon-xs" onClick={onBack} aria-label="Back to copy list">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={onBack}
+              aria-label={m.collections_copies_back()}
+            >
               <ArrowLeftIcon />
             </Button>
           )}
-          Copy details
+          {m.collections_copies_editor_title()}
           {copy.onLoan && <OnLoanChip count={1} iconOnly />}
           {/* Icon only: the header is about this one copy, so the annotation's
               per-printing count would misread as this copy's. */}
@@ -393,13 +399,13 @@ function CopyEditor({
 
       <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto px-0.5">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="copy-condition">Condition</Label>
+          <Label htmlFor="copy-condition">{m.collections_copies_condition_label()}</Label>
           <Select
             value={conditionValue}
             onValueChange={(value) => setConditionValue(value ?? UNRECORDED)}
             items={{
-              [UNRECORDED]: "Not recorded",
-              [GRADED]: "Graded",
+              [UNRECORDED]: m.collections_copies_condition_unrecorded(),
+              [GRADED]: m.collections_copies_condition_graded(),
               ...Object.fromEntries(conditions.map((row) => [row.slug, row.label])),
             }}
           >
@@ -407,8 +413,10 @@ function CopyEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={UNRECORDED}>Not recorded</SelectItem>
-              <SelectItem value={GRADED}>Graded</SelectItem>
+              <SelectItem value={UNRECORDED}>
+                {m.collections_copies_condition_unrecorded()}
+              </SelectItem>
+              <SelectItem value={GRADED}>{m.collections_copies_condition_graded()}</SelectItem>
               {conditions.map((row) => (
                 <SelectItem key={row.slug} value={row.slug}>
                   {row.label}
@@ -421,14 +429,14 @@ function CopyEditor({
         {isGraded && (
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="copy-grader">Graded by</Label>
+              <Label htmlFor="copy-grader">{m.collections_copies_grader_label()}</Label>
               <Select
                 value={grader === "" ? undefined : grader}
                 onValueChange={(value) => setGrader(value ?? "")}
                 items={Object.fromEntries(graders.map((row) => [row.slug, row.label]))}
               >
                 <SelectTrigger id="copy-grader" className="w-full">
-                  <SelectValue placeholder="Pick a grader" />
+                  <SelectValue placeholder={m.collections_copies_grader_placeholder()} />
                 </SelectTrigger>
                 <SelectContent>
                   {graders.map((row) => (
@@ -440,14 +448,14 @@ function CopyEditor({
               </Select>
             </div>
             <div className="flex w-24 flex-col gap-1.5">
-              <Label htmlFor="copy-grade">Grade</Label>
+              <Label htmlFor="copy-grade">{m.collections_copies_grade_label()}</Label>
               <Select
                 value={gradeText === "" ? undefined : gradeText}
                 onValueChange={(value) => setGradeText(value ?? "")}
                 items={GRADE_ITEMS}
               >
                 <SelectTrigger id="copy-grade" className="w-full">
-                  <SelectValue placeholder="Grade" />
+                  <SelectValue placeholder={m.collections_copies_grade_label()} />
                 </SelectTrigger>
                 <SelectContent>
                   {GRADE_OPTIONS.map((grade) => (
@@ -464,47 +472,47 @@ function CopyEditor({
         <div className="flex items-center gap-2">
           <Switch id="copy-altered" checked={isAltered} onCheckedChange={setIsAltered} />
           <Label htmlFor="copy-altered" className="font-normal">
-            Altered (signed, painted, or otherwise modified)
+            {m.collections_copies_altered_label()}
           </Label>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="copy-notes-public">Public notes</Label>
+          <Label htmlFor="copy-notes-public">{m.collections_copies_notes_public_label()}</Label>
           <Textarea
             id="copy-notes-public"
             value={notesPublic}
             onChange={(event) => setNotesPublic(event.target.value)}
             maxLength={2000}
             rows={2}
-            placeholder="Shown wherever this copy is visible, including share pages."
+            placeholder={m.collections_copies_notes_public_placeholder()}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="copy-notes-private">Private notes</Label>
+          <Label htmlFor="copy-notes-private">{m.collections_copies_notes_private_label()}</Label>
           <Textarea
             id="copy-notes-private"
             value={notesPrivate}
             onChange={(event) => setNotesPrivate(event.target.value)}
             maxLength={2000}
             rows={2}
-            placeholder="Never shown on public share pages."
+            placeholder={m.collections_copies_notes_private_placeholder()}
           />
           <p className="text-muted-foreground text-xs">
             {copy.groupId === null
-              ? "Only you can see this, even when the collection is shared with your group."
-              : "This copy lives in a group collection, so everyone in the group can see this. Never shown on public share pages."}
+              ? m.collections_copies_notes_private_hint_personal()
+              : m.collections_copies_notes_private_hint_group()}
           </p>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label>Photos &amp; videos</Label>
+          <Label>{m.collections_copies_links_label()}</Label>
           <LinkRowsField
             links={links}
             onChange={setLinks}
             max={MAX_LINKS}
             isValidUrl={(url) => URL_PATTERN.test(url)}
-            titlePlaceholder="Label"
+            titlePlaceholder={m.collections_copies_link_title_placeholder()}
           />
         </div>
       </div>
@@ -515,10 +523,10 @@ function CopyEditor({
           onClick={showBack ? onBack : onDone}
           disabled={updateCopies.isPending}
         >
-          Cancel
+          {m.common_cancel()}
         </Button>
         <Button type="submit" disabled={!canSave || updateCopies.isPending}>
-          {updateCopies.isPending ? "Saving…" : "Save"}
+          {updateCopies.isPending ? m.common_saving() : m.common_save()}
         </Button>
       </DialogFooter>
     </DialogForm>

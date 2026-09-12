@@ -33,6 +33,7 @@ import {
 } from "@/features/groups/lib/tradelist-exchange";
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { useBulkAddListEntries, useCreateList } from "@/features/lists/hooks/use-lists";
+import { m } from "@/paraglide/messages.js";
 
 const NEW_LIST = "__new__";
 
@@ -65,7 +66,9 @@ export function RequestFromTradelistDialog({
       <DialogContent>
         {open && printing ? (
           <Suspense
-            fallback={<div className="text-muted-foreground py-4 text-sm">Loading your lists…</div>}
+            fallback={
+              <div className="text-muted-foreground py-4 text-sm">{m.trades_loading_lists()}</div>
+            }
           >
             <RequestBody
               printing={printing}
@@ -119,7 +122,7 @@ function RequestBody({
 
   const [phase, setPhase] = useState<"pick" | "confirm-share">("pick");
   const [selectedId, setSelectedId] = useState<string>(() => preferredListId(options) ?? NEW_LIST);
-  const [newName, setNewName] = useState("Wishlist");
+  const [newName, setNewName] = useState<string>(m.trades_default_wishlist_name());
 
   const cardName = printing.card.name;
   const chosen = options.find((option) => option.listId === selectedId);
@@ -128,10 +131,12 @@ function RequestBody({
   // confirmation. Either way the request can't match until it's shared.
   const needsShare = selectedId === NEW_LIST ? true : chosen ? !chosen.isShared : false;
   const chosenName =
-    selectedId === NEW_LIST ? newName.trim() || "Wishlist" : (chosen?.listName ?? "");
+    selectedId === NEW_LIST
+      ? newName.trim() || m.trades_default_wishlist_name()
+      : (chosen?.listName ?? "");
 
   const sendRequest = async () => {
-    const newListName = newName.trim() || "Wishlist";
+    const newListName = newName.trim() || m.trades_default_wishlist_name();
     try {
       if (existingMatch) {
         await createTrade.mutateAsync({
@@ -171,7 +176,7 @@ function RequestBody({
           quantity,
         });
       }
-      toast.success(`Requested ${cardName} from ${counterpartyName}`);
+      toast.success(m.trades_requested_toast({ card: cardName, name: counterpartyName }));
       onClose();
     } catch {
       // Reported by the global mutation error toast.
@@ -180,7 +185,7 @@ function RequestBody({
 
   const stepper = (
     <div className="flex items-center justify-between gap-4 py-2">
-      <span>How many?</span>
+      <span>{m.trades_how_many()}</span>
       <QuantityStepper value={quantity} onValueChange={setQuantity} max={maxQuantity} editable />
     </div>
   );
@@ -189,17 +194,16 @@ function RequestBody({
     return (
       <DialogForm onSubmit={() => void sendRequest()}>
         <DialogHeader>
-          <DialogTitle>Request this card</DialogTitle>
+          <DialogTitle>{m.trades_request_card_title()}</DialogTitle>
           <DialogDescription>
-            Ask {counterpartyName} for {cardName}. They&apos;ll get a notification, and accepting
-            reserves it for you.
+            {m.trades_request_from_description({ name: counterpartyName, card: cardName })}
           </DialogDescription>
         </DialogHeader>
         {stepper}
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
           <Button type="submit" disabled={pending}>
-            Send request
+            {m.trades_send_request()}
           </Button>
         </DialogFooter>
       </DialogForm>
@@ -211,18 +215,18 @@ function RequestBody({
       <DialogForm onSubmit={() => void sendRequest()}>
         <DialogHeader>
           <DialogTitle>
-            Share {chosenName} with {groupName}?
+            {m.trades_share_list_title({ list: chosenName, group: groupName })}
           </DialogTitle>
           <DialogDescription>
-            Members of {groupName} will be able to view every card on {chosenName}.
+            {m.trades_share_list_description({ list: chosenName, group: groupName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" disabled={pending} onClick={() => setPhase("pick")}>
-            Back
+            {m.trades_back()}
           </Button>
           <Button type="submit" disabled={pending}>
-            Share and send request
+            {m.trades_share_and_send_request()}
           </Button>
         </DialogFooter>
       </DialogForm>
@@ -232,10 +236,13 @@ function RequestBody({
   return (
     <DialogForm onSubmit={needsShare ? () => setPhase("confirm-share") : sendRequest}>
       <DialogHeader>
-        <DialogTitle>Request this card</DialogTitle>
+        <DialogTitle>{m.trades_request_card_title()}</DialogTitle>
         <DialogDescription>
-          Pick a wishlist for {cardName}. Sharing it with {groupName} is what lets{" "}
-          {counterpartyName} see your request.
+          {m.trades_pick_wishlist_description({
+            card: cardName,
+            group: groupName,
+            name: counterpartyName,
+          })}
         </DialogDescription>
       </DialogHeader>
 
@@ -256,7 +263,7 @@ function RequestBody({
                 {option.entryCount} {listKindNoun(option.listKind, option.entryCount)}
               </span>
               <Badge variant={option.isShared ? "secondary" : "outline"} className="shrink-0">
-                {option.isShared ? "Shared" : "Will be shared"}
+                {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}
               </Badge>
             </label>
           );
@@ -267,13 +274,13 @@ function RequestBody({
         >
           <RadioGroupItem id="request-wishlist-new" value={NEW_LIST} />
           <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-medium">New wishlist</span>
+          <span className="min-w-0 flex-1 truncate font-medium">{m.trades_new_wishlist()}</span>
           <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs">
             <NewKindIcon className="size-3" />
-            printings
+            {listKindNoun("printing", 2)}
           </span>
           <Badge variant="outline" className="shrink-0">
-            Will be shared
+            {m.trades_will_be_shared()}
           </Badge>
         </label>
       </RadioGroup>
@@ -282,25 +289,25 @@ function RequestBody({
         <Input
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
-          placeholder="Wishlist name"
-          aria-label="New wishlist name"
+          placeholder={m.trades_wishlist_name_placeholder()}
+          aria-label={m.trades_new_wishlist_name_label()}
         />
       ) : null}
 
       {stepper}
 
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
         {needsShare ? (
           <Button
             type="submit"
             disabled={pending || (selectedId === NEW_LIST && newName.trim().length === 0)}
           >
-            Continue
+            {m.trades_continue()}
           </Button>
         ) : (
           <Button type="submit" disabled={pending}>
-            Send request
+            {m.trades_send_request()}
           </Button>
         )}
       </DialogFooter>

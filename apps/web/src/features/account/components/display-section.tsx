@@ -17,6 +17,7 @@ import { persistDisplayLocale } from "@/features/account/hooks/use-preferences-s
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { getLocale, setLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
@@ -44,85 +45,100 @@ export function DisplaySection() {
   const setPalette = usePaletteStore((s) => s.setPalette);
 
   return (
-    <SettingsSection id="display" title="Display">
-      <SettingsRow label="Theme">
+    <SettingsSection id="display" title={m.profile_display_title()}>
+      <SettingsRow label={m.profile_display_theme()}>
         <ThemePicker value={themePreference} onChange={setTheme} />
         {themePreference !== null && (
-          <ResetButton onClick={() => setTheme(null)} label="Reset theme" />
+          <ResetButton onClick={() => setTheme(null)} label={m.profile_display_theme_reset()} />
         )}
       </SettingsRow>
 
-      <SettingsRow label="Display language">
+      <SettingsRow label={m.locale_switcher_label()}>
         <DisplayLocalePicker />
       </SettingsRow>
 
-      {PALETTE_OPTIONS.length > 1 && (
-        <SettingsRow label="Palette">
+      {PALETTE_VALUES.length > 1 && (
+        <SettingsRow label={m.profile_display_palette()}>
           <PalettePicker value={palettePreference} onChange={setPalette} />
           {palettePreference !== null && (
-            <ResetButton onClick={() => setPalette(null)} label="Reset palette" />
+            <ResetButton
+              onClick={() => setPalette(null)}
+              label={m.profile_display_palette_reset()}
+            />
           )}
         </SettingsRow>
       )}
 
-      <SettingsRow label="Default card view">
+      <SettingsRow label={m.profile_display_default_card_view()}>
         <DefaultCardViewPicker value={defaultCardView} onChange={setDefaultCardView} />
         {overrides.defaultCardView !== null && (
           <ResetButton
             onClick={() => resetPreference("defaultCardView")}
-            label="Reset default card view"
+            label={m.profile_display_default_card_view_reset()}
           />
         )}
       </SettingsRow>
 
-      <SettingsRow label="Show card images" htmlFor="pref-images">
+      <SettingsRow label={m.profile_display_show_images()} htmlFor="pref-images">
         <Switch
           id="pref-images"
           checked={showImages}
           onCheckedChange={(checked: boolean) => setShowImages(checked)}
         />
         {overrides.showImages !== null && (
-          <ResetButton onClick={() => resetPreference("showImages")} label="Reset show images" />
+          <ResetButton
+            onClick={() => resetPreference("showImages")}
+            label={m.profile_display_show_images_reset()}
+          />
         )}
       </SettingsRow>
 
-      <SettingsRow label="Fancy card fan" htmlFor="pref-fan">
+      <SettingsRow label={m.profile_display_fancy_fan()} htmlFor="pref-fan">
         <Switch
           id="pref-fan"
           checked={fancyFan}
           onCheckedChange={(checked: boolean) => setFancyFan(checked)}
         />
         {overrides.fancyFan !== null && (
-          <ResetButton onClick={() => resetPreference("fancyFan")} label="Reset fancy fan" />
+          <ResetButton
+            onClick={() => resetPreference("fancyFan")}
+            label={m.profile_display_fancy_fan_reset()}
+          />
         )}
       </SettingsRow>
 
-      <SettingsRow label="Foil effect" htmlFor="pref-foil">
+      <SettingsRow label={m.profile_display_foil_effect()} htmlFor="pref-foil">
         <Switch
           id="pref-foil"
           checked={foilEffect}
           onCheckedChange={(checked: boolean) => setFoilEffect(checked)}
         />
         {overrides.foilEffect !== null && (
-          <ResetButton onClick={() => resetPreference("foilEffect")} label="Reset foil effect" />
+          <ResetButton
+            onClick={() => resetPreference("foilEffect")}
+            label={m.profile_display_foil_effect_reset()}
+          />
         )}
       </SettingsRow>
 
-      <SettingsRow label="Card tilt on hover" htmlFor="pref-tilt">
+      <SettingsRow label={m.profile_display_card_tilt()} htmlFor="pref-tilt">
         <Switch
           id="pref-tilt"
           checked={cardTilt}
           onCheckedChange={(checked: boolean) => setCardTilt(checked)}
         />
         {overrides.cardTilt !== null && (
-          <ResetButton onClick={() => resetPreference("cardTilt")} label="Reset card tilt" />
+          <ResetButton
+            onClick={() => resetPreference("cardTilt")}
+            label={m.profile_display_card_tilt_reset()}
+          />
         )}
       </SettingsRow>
 
       <SettingsRow
-        label="Frosted bars"
+        label={m.profile_display_frosted_bars()}
         htmlFor="pref-frosted"
-        description="Blurs the page behind the header. Can slow scrolling. This device only."
+        description={m.profile_display_frosted_bars_description()}
       >
         <Switch
           id="pref-frosted"
@@ -153,7 +169,7 @@ function DisplayLocalePicker() {
       await persistDisplayLocale(next);
     } catch {
       setPending(false);
-      toast.error("Couldn't save your display language");
+      toast.error(m.profile_display_locale_error());
       return;
     }
     await setLocale(next);
@@ -168,11 +184,13 @@ function DisplayLocalePicker() {
   );
 }
 
-const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { value: "auto", label: "Auto" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-];
+function themeOptions(): { value: Theme; label: string }[] {
+  return [
+    { value: "auto", label: m.profile_display_theme_auto() },
+    { value: "light", label: m.profile_display_theme_light() },
+    { value: "dark", label: m.profile_display_theme_dark() },
+  ];
+}
 
 function ThemePicker({
   value,
@@ -187,17 +205,23 @@ function ThemePicker({
       onValueChange={(next) =>
         onChange(next === PREFERENCE_DEFAULTS.theme ? null : (next as Theme))
       }
-      options={THEME_OPTIONS}
+      options={themeOptions()}
     />
   );
 }
 
 // Palette is hidden from the UI until a second option ships. Adding an entry
 // here automatically reveals the picker in DisplaySection.
-const PALETTE_OPTIONS: { value: Palette; label: string }[] = [
-  { value: "default", label: "Default" },
-  { value: "minimal", label: "Minimal" },
-];
+const PALETTE_VALUES: Palette[] = ["default", "minimal"];
+
+const PALETTE_LABELS: Record<Palette, () => string> = {
+  default: () => m.profile_display_palette_default(),
+  minimal: () => m.profile_display_palette_minimal(),
+};
+
+function paletteOptions(): { value: Palette; label: string }[] {
+  return PALETTE_VALUES.map((value) => ({ value, label: PALETTE_LABELS[value]() }));
+}
 
 function PalettePicker({
   value,
@@ -210,15 +234,17 @@ function PalettePicker({
     <SegmentedRadio
       value={value ?? "default"}
       onValueChange={(next) => onChange(next === "default" ? null : (next as Palette))}
-      options={PALETTE_OPTIONS}
+      options={paletteOptions()}
     />
   );
 }
 
-const DEFAULT_CARD_VIEW_OPTIONS: { value: DefaultCardView; label: string }[] = [
-  { value: "cards", label: "Cards" },
-  { value: "printings", label: "Printings" },
-];
+function defaultCardViewOptions(): { value: DefaultCardView; label: string }[] {
+  return [
+    { value: "cards", label: m.profile_display_card_view_cards() },
+    { value: "printings", label: m.profile_display_card_view_printings() },
+  ];
+}
 
 function DefaultCardViewPicker({
   value,
@@ -231,7 +257,7 @@ function DefaultCardViewPicker({
     <SegmentedRadio
       value={value}
       onValueChange={(next) => onChange(next as DefaultCardView)}
-      options={DEFAULT_CARD_VIEW_OPTIONS}
+      options={defaultCardViewOptions()}
     />
   );
 }

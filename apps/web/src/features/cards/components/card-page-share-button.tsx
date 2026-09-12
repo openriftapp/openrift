@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 export function ShareLinkButton({ cardName }: { cardName: string }) {
   const { copied, copy } = useCopyToClipboard();
@@ -26,16 +27,19 @@ export function ShareLinkButton({ cardName }: { cardName: string }) {
     }
 
     if (await copy(url)) {
-      toast.success("Link copied");
+      toast.success(m.card_detail_share_copied());
     } else {
-      toast.error("Could not copy link");
+      toast.error(m.card_detail_share_failed());
     }
   };
 
   return (
-    <PageTopBarButton onClick={() => void handleShare()} aria-label="Share link">
+    <PageTopBarButton
+      onClick={() => void handleShare()}
+      aria-label={m.card_detail_share_link_aria()}
+    >
       {copied ? <CheckIcon className="size-4" /> : <Share2Icon className="size-4" />}
-      Share
+      {m.card_detail_share()}
     </PageTopBarButton>
   );
 }

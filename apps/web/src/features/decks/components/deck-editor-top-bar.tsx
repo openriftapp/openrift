@@ -54,6 +54,7 @@ import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import { ZONE_LABELS } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 interface DeckEditorTopBarProps {
@@ -136,7 +137,7 @@ export function DeckEditorTopBar({
                 <span className="text-muted-foreground ml-1">({zoneCount})</span>
               </>
             ) : (
-              "Zones"
+              m.decks_editor_zones_short()
             )}
           </span>
           <span className="hidden md:inline">{deck.name}</span>
@@ -164,7 +165,7 @@ export function DeckEditorTopBar({
               Ctrl+K to advertise. */}
         <PageTopBarIconButton
           className="md:hidden"
-          aria-label="Add a card"
+          aria-label={m.decks_editor_add_card_aria()}
           onClick={() => openQuickAdd("add")}
         >
           <PlusIcon className="size-4" />
@@ -180,21 +181,21 @@ export function DeckEditorTopBar({
             }
           >
             <PlusIcon className="size-4" />
-            Add card
+            {m.decks_editor_add_card()}
           </TooltipTrigger>
-          <TooltipContent>Add a card (Ctrl+K)</TooltipContent>
+          <TooltipContent>{m.decks_editor_add_card_tooltip()}</TooltipContent>
         </Tooltip>
         <DeckUndoControls deckId={deckId} />
         <div className="hidden md:flex md:items-center md:gap-1">
           <PageTopBarButton onClick={() => openDialog("share")}>
             <Share2Icon className="size-4" />
-            Share
+            {m.decks_editor_share()}
           </PageTopBarButton>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<PageTopBarIconButton />}>
             <EllipsisVerticalIcon className="size-4" />
-            <span className="sr-only">Deck actions</span>
+            <span className="sr-only">{m.decks_editor_deck_actions()}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {/* Share has its own button in the bar from md up, so the
@@ -202,16 +203,16 @@ export function DeckEditorTopBar({
             <div className="md:hidden">
               <DropdownMenuItem onClick={() => openDialog("share")}>
                 <Share2Icon className="size-4" />
-                Share…
+                {m.decks_editor_menu_share()}
               </DropdownMenuItem>
             </div>
             <DropdownMenuItem onClick={() => openDialog("export")}>
               <DownloadIcon className="size-4" />
-              Export…
+              {m.decks_editor_menu_export()}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog("print")}>
               <PrinterIcon className="size-4" />
-              Print…
+              {m.decks_editor_menu_print()}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
@@ -222,25 +223,25 @@ export function DeckEditorTopBar({
               }
             >
               <UploadIcon className="size-4" />
-              Import &amp; replace cards…
+              {m.decks_editor_menu_import_replace()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {/* Descriptions are a signed-in feature, so a local deck
                   gets the name on its own. */}
             <DropdownMenuItem onClick={() => openDialog(isLocal ? "rename" : "details")}>
               <PencilIcon className="size-4" />
-              {isLocal ? "Rename" : "Name & description"}
+              {isLocal ? m.decks_editor_menu_rename() : m.decks_editor_menu_name_description()}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog("cover")}>
               <ImageIcon className="size-4" />
-              Change cover art
+              {m.decks_editor_menu_change_cover()}
             </DropdownMenuItem>
             {/* A home collection points at a server collection, which
                   a browser-local deck can't reference. */}
             {!isLocal && (
               <DropdownMenuItem onClick={() => openDialog("homeCollection")}>
                 <BoxIcon className="size-4" />
-                Stored in…
+                {m.decks_editor_menu_stored_in()}
               </DropdownMenuItem>
             )}
             {/* Opens the comparison page with this deck pinned as the
@@ -249,14 +250,14 @@ export function DeckEditorTopBar({
               render={<Link to="/decks/compare" search={{ from: deckId, to: undefined }} />}
             >
               <GitCompareArrowsIcon className="size-4" />
-              Compare with another deck…
+              {m.decks_editor_menu_compare()}
             </DropdownMenuItem>
             {/* Variants are server decks in a family, which a
                   browser-local deck can't join until it's claimed. */}
             {!isLocal && (
               <DropdownMenuItem onClick={() => openDialog("variantCreate")}>
                 <CopyIcon className="size-4" />
-                New variant…
+                {m.decks_editor_menu_new_variant()}
               </DropdownMenuItem>
             )}
             {/* Always available for a server deck: the dialog is also
@@ -264,7 +265,7 @@ export function DeckEditorTopBar({
             {!isLocal && (
               <DropdownMenuItem onClick={() => openDialog("variants")}>
                 <GitBranchIcon className="size-4" />
-                Variants…
+                {m.decks_editor_menu_variants()}
               </DropdownMenuItem>
             )}
             {!isLocal && (
@@ -272,14 +273,16 @@ export function DeckEditorTopBar({
                 onClick={() => updateDeck.mutate({ deckId, isDraft: !deck.isDraft })}
               >
                 <FlaskConicalIcon className="size-4" />
-                {deck.isDraft ? "Remove draft mark" : "Mark as draft"}
+                {deck.isDraft
+                  ? m.decks_editor_menu_unmark_draft()
+                  : m.decks_editor_menu_mark_draft()}
               </DropdownMenuItem>
             )}
             {otherFormats.length > 0 && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <RefreshCwIcon className="size-4" />
-                  Change format
+                  {m.decks_editor_menu_change_format()}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   {otherFormats.map((entry) => (
@@ -295,7 +298,7 @@ export function DeckEditorTopBar({
             )}
             <DropdownMenuItem onClick={handlePlayOnRiftAtlas}>
               <PlayIcon className="size-4" />
-              Play on RiftAtlas
+              {m.decks_editor_menu_play_riftatlas()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {/* A variant is a deck of its own, so this is also how a
@@ -305,7 +308,7 @@ export function DeckEditorTopBar({
               className="text-destructive focus:text-destructive"
             >
               <Trash2Icon className="size-4" />
-              Delete deck
+              {m.decks_editor_menu_delete()}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

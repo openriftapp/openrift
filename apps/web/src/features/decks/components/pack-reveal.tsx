@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CardBack } from "@/features/decks/components/card-back";
 import { PullCard } from "@/features/decks/components/pull-card";
+import { m } from "@/paraglide/messages.js";
 
 interface PackRevealProps {
   pack: PackResult;
@@ -51,11 +52,11 @@ export function PackReveal({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {allRevealed ? "Pack revealed." : "Click a card to reveal it."}
+          {allRevealed ? m.packs_revealed() : m.packs_click_to_reveal()}
         </p>
         {!allRevealed && (
           <Button variant="outline" size="sm" onClick={revealAll}>
-            Reveal all
+            {m.packs_reveal_all()}
           </Button>
         )}
       </div>
@@ -75,7 +76,7 @@ export function PackReveal({
                   variant="ghost"
                   onClick={() => flip(i)}
                   className="block h-auto w-full cursor-pointer rounded-xl p-0 hover:bg-transparent dark:hover:bg-transparent"
-                  aria-label={`Reveal card ${i + 1}`}
+                  aria-label={m.packs_reveal_card_aria({ number: i + 1 })}
                 >
                   <CardBack interactive />
                 </Button>

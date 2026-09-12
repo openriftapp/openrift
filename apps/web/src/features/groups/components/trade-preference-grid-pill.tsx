@@ -7,13 +7,14 @@ import { resolveEffectiveTradePreference } from "@openrift/shared/types/api/trad
 
 import { CountPillButton } from "@/components/ui/count-pill";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { TRADE_TYPE_ICON } from "./trade-preference-icon";
 import {
   PRICE_PREF_ABBR,
-  PRICE_PREF_SHORT_LABEL,
-  TRADE_TYPE_SHORT_LABEL,
   formatAbsolutePrice,
+  pricePrefShortLabel,
+  tradeTypeShortLabel,
 } from "./trade-preference-labels";
 
 interface TradePreferenceGridPillProps {
@@ -44,8 +45,8 @@ export function TradePreferenceGridPill({
     <CountPillButton
       variant="ghost"
       tabIndex={-1}
-      aria-label={tooltip ?? "Set trade preference"}
-      title={tooltip ?? "Set trade preference"}
+      aria-label={tooltip ?? m.trade_pref_set_aria()}
+      title={tooltip ?? m.trade_pref_set_aria()}
       onClick={(event) => {
         event.stopPropagation();
         onEdit();
@@ -76,10 +77,10 @@ function renderTooltip(effective: EffectiveTradePreference): string | null {
       parts.push(formatted);
     }
   } else if (effective.pricePref !== null) {
-    parts.push(PRICE_PREF_SHORT_LABEL[effective.pricePref]);
+    parts.push(pricePrefShortLabel(effective.pricePref));
   }
   if (effective.tradeType !== null) {
-    parts.push(TRADE_TYPE_SHORT_LABEL[effective.tradeType]);
+    parts.push(tradeTypeShortLabel(effective.tradeType));
   }
   return parts.length === 0 ? null : parts.join(" · ");
 }

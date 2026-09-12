@@ -43,6 +43,7 @@ import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { isReplaceableTarget, LIST_TARGET_PREFIX } from "@/features/collections/lib/import-replace";
 import { partitionMatchedEntries } from "@/features/collections/lib/import-summary";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface CollectionOption {
   id: string;
@@ -107,7 +108,6 @@ export function CollectionImportPreviewStep({
   const [replaceDialogOpen, setReplaceDialogOpen] = useState(false);
   const targetCollection = collections.find((col) => col.id === collectionId);
   const targetCopyCount = targetCollection?.copyCount ?? 0;
-  const targetCopyUnit = targetCopyCount === 1 ? "copy" : "copies";
   // A non-empty existing collection is the only case that needs the add/replace
   // question — new collections start empty and lists are additive only.
   const promptsForReplace = isReplaceableTarget(collectionId, collections);
@@ -116,14 +116,13 @@ export function CollectionImportPreviewStep({
     importableCount > 0 &&
     collectionId !== "" &&
     (collectionId !== "__new__" || newCollectionName.trim().length > 0);
-  const importVerb = isListTarget ? "Add" : "Import";
-  const importUnit = isListTarget
+  const importLabel = isListTarget
     ? totalCards === 1
-      ? "card"
-      : "cards"
+      ? m.collections_import_button_add_cards_one({ count: totalCards })
+      : m.collections_import_button_add_cards_other({ count: totalCards })
     : totalCards === 1
-      ? "copy"
-      : "copies";
+      ? m.collections_import_button_import_copies_one({ count: totalCards })
+      : m.collections_import_button_import_copies_other({ count: totalCards });
 
   const { problematicEntries, exactEntries } = partitionMatchedEntries(matchedEntries);
 
@@ -146,15 +145,20 @@ export function CollectionImportPreviewStep({
     <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3")}>
       <SectionHeader>
         <SectionHeaderGroup>
-          <SectionHeaderTitle>Import Preview</SectionHeaderTitle>
+          <SectionHeaderTitle>{m.collections_import_preview_title()}</SectionHeaderTitle>
           <SectionHeaderDescription>
-            {rowCount} row{rowCount === 1 ? "" : "s"} parsed, {matchedEntries.length} unique
-            printing{matchedEntries.length === 1 ? "" : "s"}
+            {rowCount === 1
+              ? m.collections_import_rows_parsed_one({ count: rowCount })
+              : m.collections_import_rows_parsed_other({ count: rowCount })}
+            {", "}
+            {matchedEntries.length === 1
+              ? m.collections_import_unique_printings_one({ count: matchedEntries.length })
+              : m.collections_import_unique_printings_other({ count: matchedEntries.length })}
           </SectionHeaderDescription>
         </SectionHeaderGroup>
         <SectionHeaderActions>
           <Button variant="outline" size="sm" onClick={onBack}>
-            Back
+            {m.collections_import_back()}
           </Button>
         </SectionHeaderActions>
       </SectionHeader>
@@ -189,30 +193,32 @@ export function CollectionImportPreviewStep({
             onValueChange={(value) => onCollectionChange(value ?? "")}
             items={{
               ...Object.fromEntries(collections.map((col) => [col.id, col.name])),
-              __new__: "+ Create new collection",
+              __new__: m.collections_import_create_new_collection(),
               ...Object.fromEntries(
                 importableLists.map((list) => [`${LIST_TARGET_PREFIX}${list.id}`, list.name]),
               ),
             }}
           >
             <SelectTrigger className="mb-0 w-[240px]">
-              <SelectValue placeholder="Choose a destination..." />
+              <SelectValue placeholder={m.collections_import_destination_placeholder()} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Collections</SelectLabel>
+                <SelectLabel>{m.collections_import_group_collections()}</SelectLabel>
                 {collections.map((col) => (
                   <SelectItem key={col.id} value={col.id}>
                     {col.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="__new__">+ Create new collection</SelectItem>
+                <SelectItem value="__new__">
+                  {m.collections_import_create_new_collection()}
+                </SelectItem>
               </SelectGroup>
               {importableLists.length > 0 && (
                 <>
                   <SelectSeparator />
                   <SelectGroup>
-                    <SelectLabel>Lists</SelectLabel>
+                    <SelectLabel>{m.collections_import_group_lists()}</SelectLabel>
                     {importableLists.map((list) => (
                       <SelectItem key={list.id} value={`${LIST_TARGET_PREFIX}${list.id}`}>
                         {list.name}
@@ -230,13 +236,13 @@ export function CollectionImportPreviewStep({
                 className="text-sm font-medium whitespace-nowrap"
                 htmlFor="new-collection-name"
               >
-                Collection name
+                {m.collections_import_collection_name_label()}
               </label>
               <Input
                 id="new-collection-name"
                 value={newCollectionName}
                 onChange={(event) => onNewCollectionNameChange(event.target.value)}
-                placeholder="My imported cards"
+                placeholder={m.collections_import_collection_name_placeholder()}
                 className="w-[240px]"
               />
             </div>
@@ -249,40 +255,43 @@ export function CollectionImportPreviewStep({
             {isImporting ? (
               <>
                 <Loader2Icon className="size-4 animate-spin" />
-                Importing...
+                {m.collections_import_importing()}
               </>
             ) : (
-              <>
-                {importVerb} {totalCards} {importUnit}
-              </>
+              importLabel
             )}
           </Button>
           {needsAttentionCount > 0 && !isImporting && (
             <span className="text-muted-foreground text-sm">
-              (skips {needsAttentionCount} unmatched)
+              {m.collections_import_skips_unmatched({ count: needsAttentionCount })}
             </span>
           )}
         </div>
 
         <p className="text-muted-foreground text-sm">
-          {isListTarget
-            ? "Importing into a list just adds the cards to that list."
-            : "Importing into a collection marks these cards as owned."}
+          {isListTarget ? m.collections_import_note_list() : m.collections_import_note_collection()}
         </p>
       </Callout>
 
       <AlertDialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogTitle>
-            {targetCollection?.name} already has {targetCopyCount} {targetCopyUnit}
+            {targetCopyCount === 1
+              ? m.collections_import_replace_title_one({
+                  name: targetCollection?.name ?? "",
+                  count: targetCopyCount,
+                })
+              : m.collections_import_replace_title_other({
+                  name: targetCollection?.name ?? "",
+                  count: targetCopyCount,
+                })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Add the imported copies on top of what&apos;s already there, or replace everything with
-            just the import?
+            {m.collections_import_replace_description()}
           </AlertDialogDescription>
           <div className="flex flex-col justify-end gap-2 pt-2 sm:flex-row">
             <Button variant="ghost" onClick={() => setReplaceDialogOpen(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button
               variant="outline"
@@ -291,7 +300,7 @@ export function CollectionImportPreviewStep({
                 onImport({ replaceExisting: false });
               }}
             >
-              Add to it
+              {m.collections_import_replace_add()}
             </Button>
             <Button
               variant="destructive"
@@ -300,7 +309,7 @@ export function CollectionImportPreviewStep({
                 onImport({ replaceExisting: true });
               }}
             >
-              Replace all {targetCopyCount}
+              {m.collections_import_replace_all({ count: targetCopyCount })}
             </Button>
           </div>
         </AlertDialogContent>

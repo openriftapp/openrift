@@ -14,6 +14,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface MoveToListDialogProps {
   open: boolean;
@@ -38,23 +39,21 @@ export function MoveToListDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={() => selectedId && onMove(selectedId)}>
-          <AlertDialogTitle>Move to list</AlertDialogTitle>
-          <AlertDialogDescription>
-            Choose a list to move the selected cards to.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{m.lists_entry_move_title()}</AlertDialogTitle>
+          <AlertDialogDescription>{m.lists_entry_move_description()}</AlertDialogDescription>
           {/* Do not add overflow here: CommandList scrolls internally. */}
           <div>
             {lists.length === 0 ? (
               <Empty>
-                <EmptyDescription>No other matching lists available.</EmptyDescription>
+                <EmptyDescription>{m.lists_entry_move_none()}</EmptyDescription>
               </Empty>
             ) : (
               <PickerList
-                searchPlaceholder="Filter lists…"
+                searchPlaceholder={m.lists_entry_move_filter_placeholder()}
                 highlightedId={highlightedId}
                 onHighlightChange={setHighlightedId}
               >
-                <CommandEmpty>No matching lists.</CommandEmpty>
+                <CommandEmpty>{m.lists_entry_move_no_match()}</CommandEmpty>
                 {lists.map((list) => (
                   <PickerRow
                     key={list.id}
@@ -76,10 +75,10 @@ export function MoveToListDialog({
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={!selectedId || isPending}>
-              {isPending ? "Moving…" : "Move"}
+              {isPending ? m.lists_entry_move_pending() : m.lists_entry_move_confirm()}
             </Button>
           </div>
         </DialogForm>

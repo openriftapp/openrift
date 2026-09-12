@@ -9,6 +9,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import type { PageWidth } from "@/lib/utils";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface PageTopBarProps {
   children: React.ReactNode;
@@ -155,9 +156,9 @@ export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitlePr
             }
           >
             <PanelLeftIcon />
-            <span className="sr-only">Toggle sidebar</span>
+            <span className="sr-only">{m.layout_toggle_sidebar()}</span>
           </TooltipTrigger>
-          <TooltipContent>Toggle sidebar</TooltipContent>
+          <TooltipContent>{m.layout_toggle_sidebar()}</TooltipContent>
         </Tooltip>
         <h1 className="font-heading mr-2 hidden min-w-0 truncate text-lg leading-8 font-semibold md:block">
           {children}

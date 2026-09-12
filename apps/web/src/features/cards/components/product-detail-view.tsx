@@ -45,6 +45,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -99,7 +100,7 @@ export function ProductDetailView({ data, search }: ProductDetailViewProps) {
           <div ref={setTopBarSlot} className={PAGE_TOP_BAR_STICKY}>
             <PageTopBar>
               <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-                <PageTopBarBack to="/products" aria-label="Back to products" />
+                <PageTopBarBack to="/products" aria-label={m.products_back_aria()} />
                 <PageTopBarTitle>{product.name}</PageTopBarTitle>
                 <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
                   {formatProductCounts(product.cardTotal, product.printingCount)}
@@ -113,7 +114,7 @@ export function ProductDetailView({ data, search }: ProductDetailViewProps) {
               {isLoggedIn && (
                 <PageTopBarActions>
                   <PageTopBarPrimaryButton onClick={() => setAddOpen(true)}>
-                    Add to collection
+                    {m.products_add_to_collection()}
                   </PageTopBarPrimaryButton>
                 </PageTopBarActions>
               )}
@@ -161,7 +162,11 @@ function ProductValue({ contents }: { contents: ProductDetailResponse["contents"
     <>
       {" · "}
       {formatValue(total)}
-      {unpriced > 0 && <span className="text-muted-foreground/60 ml-1">({unpriced} unpriced)</span>}
+      {unpriced > 0 && (
+        <span className="text-muted-foreground/60 ml-1">
+          {m.products_unpriced({ count: unpriced })}
+        </span>
+      )}
     </>
   );
 }
@@ -306,7 +311,13 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
     <BrowserToolbar
       totalCards={totalUniqueCards}
       filteredCount={filteredCount}
-      mobileDoneLabel={hasActiveFilters ? `Show ${filteredCount} printings` : undefined}
+      mobileDoneLabel={
+        hasActiveFilters
+          ? filteredCount === 1
+            ? m.products_show_printings_one({ count: filteredCount })
+            : m.products_show_printings_other({ count: filteredCount })
+          : undefined
+      }
       hideViewToggle
     />
   );
@@ -320,7 +331,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
   );
 
   if (productPrintings.length === 0) {
-    return <p className="text-muted-foreground py-3 text-sm">This product is empty.</p>;
+    return <p className="text-muted-foreground py-3 text-sm">{m.products_empty_product()}</p>;
   }
 
   return (
@@ -341,7 +352,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
         addStripHeight={ADD_STRIP_HEIGHT}
         table={{
           actionsColumn: "narrow",
-          actionsLabel: "Quantity",
+          actionsLabel: m.products_quantity_column(),
           actionsCell: <ProductQuantityCell quantityByPrintingId={quantityByPrintingId} />,
         }}
       >

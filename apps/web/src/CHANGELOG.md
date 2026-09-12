@@ -9,12 +9,12 @@
 
 ### Other
 
-- feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation is starting with the site footer and will expand page by page.
 - feat(Decks): **The next variant has a place in the tree** — the add-variant button now shows as the next slot in the branch graph instead of floating outside it, and the separate Variants button by the graph is gone (the same list is one tap away from the ⋮ menu).
 - feat(Meta): **Player pages open on their whole career** — a player's page in the Meta Archive now defaults to all time instead of the current set, so their record doesn't look empty until you clear the era.
 - feat(Meta): **One link instead of a toggle** — a legend's or player's Best/All finishes and a legend's archived decklists now expand with a single "Show all" link next to the heading.
 - fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
 - fix(Collection): **The missing-photo nudge names the cards** — it lists the first few by name, each linking straight to that card's photo upload page.
+- feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation covers the site footer, the navigation, the command palette, sign-in and sign-up, the card browser with card, set, product and promo pages, collections and lists, decks, the pack opener, the rules pages, groups, trades and loans, and the whole profile page so far and will expand page by page.
 
 ## 2026-09-11
 

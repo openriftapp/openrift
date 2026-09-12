@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { TradePreferenceEditor } from "./trade-preference-editor";
@@ -70,9 +71,9 @@ export function TradePreferenceDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Trade preference</DialogTitle>
+            <DialogTitle>{m.trade_pref_dialog_title()}</DialogTitle>
             <DialogDescription>
-              Override for {cardName}. Leave fields at the list default to inherit.
+              {m.trade_pref_dialog_description({ card: cardName })}
             </DialogDescription>
           </DialogHeader>
 
@@ -103,14 +104,14 @@ export function TradePreferenceDialog({
                 onOpenChange(false);
               }}
             >
-              Reset to list default
+              {m.trade_pref_reset()}
             </Button>
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancel
+                {m.common_cancel()}
               </Button>
               <Button type="submit" disabled={absoluteNeedsAmount}>
-                Save
+                {m.common_save()}
               </Button>
             </div>
           </DialogFooter>

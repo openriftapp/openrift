@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
-import { PRESENCE_LABELS } from "@/features/cards/lib/presence-filter";
+import { ownedBucketLabel } from "@/features/cards/lib/filter-dimensions";
+import { presenceLabel } from "@/features/cards/lib/presence-filter";
 import { groupTagsByCategory } from "@/features/collections/lib/tag-category-groups";
 import { useCustomTagList, useEnumOrders, useTagCategories } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
@@ -17,6 +18,7 @@ import { compactFormatterForMarketplace } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { rangeBadgeLabel } from "@/lib/range-label";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface RangeBadgeSection {
@@ -25,11 +27,13 @@ interface RangeBadgeSection {
   formatValue?: (v: number) => string;
 }
 
-const STAT_RANGE_BADGE_SECTIONS: RangeBadgeSection[] = [
-  { key: "energy", label: "Energy" },
-  { key: "might", label: "Might" },
-  { key: "power", label: "Power" },
-];
+function statRangeBadgeSections(): RangeBadgeSection[] {
+  return [
+    { key: "energy", label: m.cards_filter_range_energy() },
+    { key: "might", label: m.cards_filter_range_might() },
+    { key: "power", label: m.cards_filter_range_power() },
+  ];
+}
 
 interface ActiveFiltersProps {
   availableFilters: AvailableFilters;
@@ -69,19 +73,13 @@ export function ActiveFilters({
     ["keywords", filterState.keywordsPresence ?? null],
     ["tags", filterState.tagsPresence ?? null],
   ];
-  const ownedBucketLabels: Record<string, string> = {
-    none: "None",
-    partial: "Partial Playset",
-    full: "Full Playset",
-    extra: "More than Full",
-  };
   const favoriteMarketplace = useDisplayStore((s) => s.marketplaceOrder[0]);
 
   const rangeBadgeSections: RangeBadgeSection[] = [
-    ...STAT_RANGE_BADGE_SECTIONS,
+    ...statRangeBadgeSections(),
     {
       key: "price",
-      label: "Price",
+      label: m.cards_filter_range_price(),
       formatValue: compactFormatterForMarketplace(favoriteMarketplace),
     },
   ];
@@ -100,7 +98,7 @@ export function ActiveFilters({
     | "owned";
 
   const markerLabel = (slug: string) =>
-    availableFilters.markers.find((m) => m.slug === slug)?.label ?? slug;
+    availableFilters.markers.find((marker) => marker.slug === slug)?.label ?? slug;
   const channelBreadcrumbs = buildChannelBreadcrumbsBySlug(availableFilters.distributionChannels);
   const channelLabel = (slug: string) => channelBreadcrumbs.get(slug) ?? slug;
 
@@ -111,7 +109,7 @@ export function ActiveFilters({
   for (const slug of filterState.customTags) {
     const tag = customTagBySlug.get(slug);
     const categorySlug = tag?.category ?? "__unknown";
-    const categoryLabel = tag?.categoryLabel ?? "Tag";
+    const categoryLabel = tag?.categoryLabel ?? m.cards_filter_tag_category_fallback();
     const existing = customTagGroups.find((g) => g.categorySlug === categorySlug);
     if (existing) {
       existing.values.push(slug);
@@ -152,67 +150,72 @@ export function ActiveFilters({
     values: string[];
     displayLabel?: (v: string) => string;
   }[] = [
-    { key: "setsEx", section: "sets", label: "Set", values: filterState.setsEx },
+    {
+      key: "setsEx",
+      section: "sets",
+      label: m.cards_filter_unit_sets(),
+      values: filterState.setsEx,
+    },
     {
       key: "raritiesEx",
       section: "rarities",
-      label: "Rarity",
+      label: m.cards_filter_unit_rarities(),
       values: filterState.raritiesEx,
       displayLabel: (v: string) => enumLabel(labels.rarities, v),
     },
     {
       key: "typesEx",
       section: "types",
-      label: "Type",
+      label: m.cards_filter_unit_types(),
       values: filterState.typesEx,
       displayLabel: (v: string) => enumLabel(labels.cardTypes, v),
     },
     {
       key: "superTypesEx",
       section: "superTypes",
-      label: "Supertype",
+      label: m.cards_filter_unit_super_types(),
       values: filterState.superTypesEx,
       displayLabel: (v: string) => enumLabel(labels.superTypes, v),
     },
     {
       key: "domainsEx",
       section: "domains",
-      label: "Domain",
+      label: m.cards_filter_unit_domains(),
       values: filterState.domainsEx,
       displayLabel: (v: string) => formatDomainFilterLabel(v, labels.domains),
     },
     {
       key: "artVariantsEx",
       section: "artVariants",
-      label: "Art Variant",
+      label: m.cards_filter_label_art_variant(),
       values: filterState.artVariantsEx,
       displayLabel: (v: string) => enumLabel(labels.artVariants, v),
     },
     {
       key: "finishesEx",
       section: "finishes",
-      label: "Finish",
+      label: m.cards_filter_label_finish(),
       values: filterState.finishesEx,
       displayLabel: (v: string) => enumLabel(labels.finishes, v),
     },
     {
       key: "markersEx",
       section: "markers",
-      label: "Marker",
+      label: m.cards_filter_label_marker(),
       values: filterState.markersEx,
       displayLabel: markerLabel,
     },
     {
       key: "channelsEx",
       section: "channels",
-      label: "Distribution Channel",
+      label: m.cards_filter_label_channel(),
       values: filterState.channelsEx,
       displayLabel: channelLabel,
     },
     {
       key: "keywordsEx",
       section: "keywords",
-      label: "Keyword",
+      label: m.cards_filter_label_keyword(),
       values: filterState.keywordsEx,
     },
   ];
@@ -223,7 +226,7 @@ export function ActiveFilters({
   const customTagExcludeGroups: { categoryLabel: string; values: string[] }[] = [];
   for (const slug of filterState.customTagsEx) {
     const tag = customTagBySlug.get(slug);
-    const categoryLabel = tag?.categoryLabel ?? "Tag";
+    const categoryLabel = tag?.categoryLabel ?? m.cards_filter_tag_category_fallback();
     const existing = customTagExcludeGroups.find((group) => group.categoryLabel === categoryLabel);
     if (existing) {
       existing.values.push(slug);
@@ -244,87 +247,82 @@ export function ActiveFilters({
     !hiddenSections?.has("owned") &&
     (filterState.ownedCountMin !== null || filterState.ownedCountMax !== null);
 
-  const filterGroups: {
+  interface FilterGroup {
     key: FilterKey;
     label: string;
     values: string[];
     displayLabel?: (v: string) => string;
-  }[] = [
-    { key: "sets", label: "Set", values: filterState.sets },
+  }
+  const filterGroupDefs: FilterGroup[] = [
+    { key: "sets", label: m.cards_filter_unit_sets(), values: filterState.sets },
     {
       key: "rarities",
-      label: "Rarity",
+      label: m.cards_filter_unit_rarities(),
       values: filterState.rarities,
       displayLabel: (v: string) => enumLabel(labels.rarities, v),
     },
     {
       key: "types",
-      label: "Type",
+      label: m.cards_filter_unit_types(),
       values: filterState.types,
       displayLabel: (v: string) => enumLabel(labels.cardTypes, v),
     },
     {
       key: "superTypes",
-      label: "Supertype",
+      label: m.cards_filter_unit_super_types(),
       values: filterState.superTypes,
       displayLabel: (v: string) => enumLabel(labels.superTypes, v),
     },
     {
       key: "domains",
-      label: "Domain",
+      label: m.cards_filter_unit_domains(),
       values: filterState.domains,
       displayLabel: (v: string) => formatDomainFilterLabel(v, labels.domains),
     },
     {
       key: "artVariants",
-      label: "Art Variant",
+      label: m.cards_filter_label_art_variant(),
       values: filterState.artVariants,
       displayLabel: (v: string) => enumLabel(labels.artVariants, v),
     },
     {
       key: "finishes",
-      label: "Finish",
+      label: m.cards_filter_label_finish(),
       values: filterState.finishes,
       displayLabel: (v: string) => enumLabel(labels.finishes, v),
     },
     {
       key: "cardSizes",
-      label: "Size",
+      label: m.cards_filter_unit_card_sizes(),
       values: filterState.cardSizes,
       displayLabel: (v: string) => enumLabel(labels.cardSizes, v),
     },
     {
       key: "markers",
-      label: "Marker",
+      label: m.cards_filter_label_marker(),
       values: filterState.markers,
       displayLabel: markerLabel,
     },
     {
       key: "channels",
-      label: "Distribution Channel",
+      label: m.cards_filter_label_channel(),
       values: filterState.channels,
       displayLabel: channelLabel,
     },
     {
       key: "keywords",
-      label: "Keyword",
+      label: m.cards_filter_label_keyword(),
       values: filterState.keywords,
     },
     {
       key: "owned",
-      label: "Owned",
+      label: m.cards_filter_unit_owned(),
       values: filterState.owned,
-      displayLabel: (v: string) => ownedBucketLabels[v] ?? v,
+      displayLabel: (v: string) => ownedBucketLabel(v),
     },
-  ].filter(
-    (
-      g,
-    ): g is {
-      key: FilterKey;
-      label: string;
-      values: string[];
-      displayLabel?: (v: string) => string;
-    } => g.values.length > 0 && !hiddenSections?.has(g.key),
+  ];
+  const filterGroups = filterGroupDefs.filter(
+    (g) => g.values.length > 0 && !hiddenSections?.has(g.key),
   );
 
   const hasVisibleContent =
@@ -354,10 +352,15 @@ export function ActiveFilters({
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
         {filterState.search && (
           <div className="flex items-center gap-1">
-            <span className="text-muted-foreground hidden text-xs sm:inline">Search:</span>
+            <span className="text-muted-foreground hidden text-xs sm:inline">
+              {m.cards_filter_active_search_label()}
+            </span>
             <Badge variant="secondary" className="gap-1">
               &ldquo;{filterState.search}&rdquo;
-              <ChipRemoveButton aria-label="Clear search filter" onClick={() => setSearch("")} />
+              <ChipRemoveButton
+                aria-label={m.cards_filter_clear_search()}
+                onClick={() => setSearch("")}
+              />
             </Badge>
           </div>
         )}
@@ -377,7 +380,7 @@ export function ActiveFilters({
                   {icon && <CardIcon src={icon} />}
                   {displayFn(value)}
                   <ChipRemoveButton
-                    aria-label={`Remove ${label} ${displayFn(value)}`}
+                    aria-label={m.cards_filter_remove_value({ label, value: displayFn(value) })}
                     onClick={() => toggleArrayFilter(key, value)}
                   />
                 </Badge>
@@ -400,7 +403,7 @@ export function ActiveFilters({
                   <Badge key={`customTags-${slug}`} variant="secondary" className="gap-1">
                     {tag?.label ?? slug}
                     <ChipRemoveButton
-                      aria-label={`Remove tag ${tag?.label ?? slug}`}
+                      aria-label={m.cards_filter_remove_tag({ tag: tag?.label ?? slug })}
                       onClick={() => toggleArrayFilter("customTags", slug)}
                     />
                   </Badge>
@@ -416,7 +419,7 @@ export function ActiveFilters({
                 <Badge key={`tags-${tag}`} variant="secondary" className="gap-1">
                   {tag}
                   <ChipRemoveButton
-                    aria-label={`Remove tag ${tag}`}
+                    aria-label={m.cards_filter_remove_tag({ tag })}
                     onClick={() => toggleArrayFilter("tags", tag)}
                   />
                 </Badge>
@@ -444,7 +447,10 @@ export function ActiveFilters({
                   {icon && <CardIcon src={icon} />}
                   <span className="line-through">{displayFn(value)}</span>
                   <ChipRemoveButton
-                    aria-label={`Remove excluded ${label} ${displayFn(value)}`}
+                    aria-label={m.cards_filter_remove_excluded_value({
+                      label,
+                      value: displayFn(value),
+                    })}
                     onClick={() => toggleArrayFilter(key, value)}
                   />
                 </Badge>
@@ -472,7 +478,7 @@ export function ActiveFilters({
                     <MinusIcon className="size-3 shrink-0" />
                     <span className="line-through">{tag?.label ?? slug}</span>
                     <ChipRemoveButton
-                      aria-label={`Remove excluded ${tag?.label ?? slug}`}
+                      aria-label={m.cards_filter_remove_excluded_tag({ tag: tag?.label ?? slug })}
                       onClick={() => toggleArrayFilter("customTagsEx", slug)}
                     />
                   </Badge>
@@ -493,7 +499,7 @@ export function ActiveFilters({
                   <MinusIcon className="size-3 shrink-0" />
                   <span className="line-through">{tag}</span>
                   <ChipRemoveButton
-                    aria-label={`Remove excluded tag ${tag}`}
+                    aria-label={m.cards_filter_remove_excluded_tag({ tag })}
                     onClick={() => toggleArrayFilter("tagsEx", tag)}
                   />
                 </Badge>
@@ -520,7 +526,7 @@ export function ActiveFilters({
         })}
         {copiesRangeActive && (
           <RangeBadge
-            label="Copies"
+            label={m.cards_filter_range_copies()}
             min={filterState.ownedCountMin}
             max={filterState.ownedCountMax}
             availableMin={0}
@@ -530,35 +536,55 @@ export function ActiveFilters({
         )}
         {filterState.overnumbered !== null && (
           <FlagChip
-            label="Overnumbered"
+            label={m.cards_filter_flag_overnumbered()}
             state={filterState.overnumbered}
             onClear={clearOvernumbered}
           />
         )}
         {filterState.signed !== null && (
-          <FlagChip label="Signed" state={filterState.signed} onClear={clearSigned} />
+          <FlagChip
+            label={m.cards_filter_flag_signed()}
+            state={filterState.signed}
+            onClear={clearSigned}
+          />
         )}
         {presenceChips.map(([dimension, value]) =>
           value === null ? null : (
             <FlagChip
               key={dimension}
-              label={PRESENCE_LABELS[dimension]}
+              label={presenceLabel(dimension)}
               state={value === "any"}
               onClear={() => clearPresence(dimension)}
             />
           ),
         )}
         {filterState.banned !== null && (
-          <FlagChip label="Banned" state={filterState.banned} onClear={clearBanned} />
+          <FlagChip
+            label={m.cards_filter_flag_banned()}
+            state={filterState.banned}
+            onClear={clearBanned}
+          />
         )}
         {filterState.errata !== null && (
-          <FlagChip label="Errata" state={filterState.errata} onClear={clearErrata} />
+          <FlagChip
+            label={m.cards_filter_flag_errata()}
+            state={filterState.errata}
+            onClear={clearErrata}
+          />
         )}
         {filterState.noImage !== null && (
-          <FlagChip label="No image yet" state={filterState.noImage} onClear={clearNoImage} />
+          <FlagChip
+            label={m.cards_filter_flag_no_image()}
+            state={filterState.noImage}
+            onClear={clearNoImage}
+          />
         )}
         {filterState.standard !== null && (
-          <FlagChip label="Standard" state={filterState.standard} onClear={clearStandard} />
+          <FlagChip
+            label={m.cards_filter_flag_standard()}
+            state={filterState.standard}
+            onClear={clearStandard}
+          />
         )}
       </div>
       <Button
@@ -566,7 +592,7 @@ export function ActiveFilters({
         size="icon-sm"
         className="text-muted-foreground hover:text-foreground shrink-0 self-start"
         onClick={clearAllFilters}
-        title="Clear all filters"
+        title={m.cards_filter_clear_all()}
       >
         <XIcon className="size-4" />
       </Button>
@@ -587,14 +613,16 @@ function FlagChip({
   const excluded = state === false;
   return (
     <div className="flex items-center gap-1">
-      <span className="text-muted-foreground hidden text-xs sm:inline">Flag:</span>
+      <span className="text-muted-foreground hidden text-xs sm:inline">
+        {m.cards_filter_active_flag_label()}
+      </span>
       <Badge
         variant={excluded ? "outline" : "secondary"}
         className={cn("gap-1", excluded && "border-destructive/40 text-destructive")}
       >
         {excluded && <MinusIcon className="size-3 shrink-0" />}
         <span className={cn(excluded && "line-through")}>{label}</span>
-        <ChipRemoveButton aria-label={`Clear ${label} filter`} onClick={onClear} />
+        <ChipRemoveButton aria-label={m.cards_filter_clear_named({ label })} onClick={onClear} />
       </Badge>
     </div>
   );
@@ -626,7 +654,7 @@ function RangeBadge({
         {/* On mobile the external prefix is hidden, so carry the label inside the chip. */}
         <span className="sm:hidden">{label}</span>
         {valueLabel}
-        <ChipRemoveButton aria-label={`Clear ${label} filter`} onClick={onClear} />
+        <ChipRemoveButton aria-label={m.cards_filter_clear_named({ label })} onClick={onClear} />
       </Badge>
     </div>
   );

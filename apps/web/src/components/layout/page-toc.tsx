@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { usePageTocStore } from "@/stores/page-toc-store";
 
 export interface PageTocItem {
@@ -146,7 +147,7 @@ export function PageTocMobileTrigger({
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Open contents"
+            aria-label={m.layout_toc_open()}
             className={cn("lg:hidden", className)}
           />
         }
@@ -155,8 +156,8 @@ export function PageTocMobileTrigger({
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Contents</DrawerTitle>
-          <DrawerDescription className="sr-only">Jump to a section on this page</DrawerDescription>
+          <DrawerTitle>{m.layout_toc_title()}</DrawerTitle>
+          <DrawerDescription className="sr-only">{m.layout_toc_description()}</DrawerDescription>
         </DrawerHeader>
         {/* Native overflow scroll, not ScrollArea: the Drawer's touch handling
             doesn't recognize ScrollArea's custom overflow:scroll viewport. */}

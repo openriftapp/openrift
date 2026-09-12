@@ -7,6 +7,7 @@ import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import type { PricedCard } from "@/features/collections/hooks/use-collection-stats";
+import { m } from "@/paraglide/messages.js";
 
 const COLLAPSED_EXPENSIVE_PRINTINGS = 2;
 
@@ -27,7 +28,7 @@ export function MostExpensivePrintings({
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading as="h3">Most Expensive Printings</SectionHeading>
+      <SectionHeading as="h3">{m.collections_stats_expensive_title()}</SectionHeading>
       <RowList>
         {visible.map((printing, index) => (
           <RowListItem key={printing.printingId}>
@@ -71,7 +72,9 @@ export function MostExpensivePrintings({
             setExpanded(!expanded);
           }}
         >
-          {expanded ? "Show less" : `Show more (${printings.length})`}
+          {expanded
+            ? m.collections_stats_show_less()
+            : m.collections_stats_show_more({ count: printings.length })}
         </Button>
       )}
     </section>

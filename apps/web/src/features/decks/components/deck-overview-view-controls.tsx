@@ -15,12 +15,13 @@ import { ColumnControls } from "@/features/cards/components/column-controls";
 import { DetailPaneToggle, MobileOptionsDrawer } from "@/features/cards/components/options-bar";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
-import { DECK_OVERVIEW_SORT_OPTIONS } from "@/features/decks/components/deck-overview-list";
+import { deckOverviewSortOptions } from "@/features/decks/components/deck-overview-list";
 import type { DeckOverviewGroup } from "@/features/decks/lib/deck-card-group";
 import type { DeckOverviewSort } from "@/features/decks/lib/deck-overview-list-sort";
 import type { DeckOverviewDisplayMode } from "@/features/decks/stores/deck-overview-view-store";
 import { useDeckOverviewViewStore } from "@/features/decks/stores/deck-overview-view-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Built once by the overview and handed to both control clusters: the Box tab
 // carries the same ordering control as the Deck tab, since the box lists the
@@ -83,7 +84,7 @@ export function DeckOrderingControl({
   return (
     <SortGroupControls
       compact={compact}
-      sortOptions={DECK_OVERVIEW_SORT_OPTIONS}
+      sortOptions={deckOverviewSortOptions()}
       sortBy={ordering.sortBy}
       sortDir={ordering.sortDir}
       onSortByChange={handleSortByChange}
@@ -156,13 +157,15 @@ export function DeckOverviewViewControls({
           setDisplayMode(next);
         }
       }}
-      aria-label="Deck view"
+      aria-label={m.decks_overview_display_mode()}
     >
       <Tooltip>
-        <TooltipTrigger render={<ToggleGroupItem value="grid" aria-label="Grid view" />}>
+        <TooltipTrigger
+          render={<ToggleGroupItem value="grid" aria-label={m.decks_overview_view_grid()} />}
+        >
           <LayoutGridIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Grid view</TooltipContent>
+        <TooltipContent>{m.decks_overview_view_grid()}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
@@ -170,19 +173,21 @@ export function DeckOverviewViewControls({
             <ToggleGroupItem
               value="stacks"
 
-              aria-label="Stacks view"
+              aria-label={m.decks_overview_view_stacks()}
             />
           }
         >
           <GalleryVerticalEndIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Stacks view</TooltipContent>
+        <TooltipContent>{m.decks_overview_view_stacks()}</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger render={<ToggleGroupItem value="list" aria-label="List view" />}>
+        <TooltipTrigger
+          render={<ToggleGroupItem value="list" aria-label={m.decks_overview_view_list()} />}
+        >
           <ListIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>List view</TooltipContent>
+        <TooltipContent>{m.decks_overview_view_list()}</TooltipContent>
       </Tooltip>
     </ToggleGroup>
   );
@@ -194,8 +199,8 @@ export function DeckOverviewViewControls({
       ? [
           {
             key: "copies",
-            label: "Show every copy",
-            description: "One thumbnail per physical copy instead of a ×N badge.",
+            label: m.decks_overview_option_every_copy(),
+            description: m.decks_overview_option_every_copy_hint(),
             checked: showAllCopies,
             modified: showAllCopies,
             onCheckedChange: setShowAllCopies,
@@ -206,8 +211,8 @@ export function DeckOverviewViewControls({
       ? [
           {
             key: "rune-copies",
-            label: "Include runes",
-            description: "Expand the rune stacks too.",
+            label: m.decks_overview_option_runes(),
+            description: m.decks_overview_option_runes_hint(),
             checked: showAllRuneCopies,
             modified: showAllRuneCopies,
             nested: true,
@@ -219,8 +224,8 @@ export function DeckOverviewViewControls({
       ? [
           {
             key: "bands",
-            label: "Highlight owned copies",
-            description: "Green: this printing. Blue: another printing.",
+            label: m.decks_overview_option_bands(),
+            description: m.decks_overview_option_bands_hint(),
             checked: showBands,
             modified: !showBands,
             onCheckedChange: setShowOwnershipBands,
@@ -231,7 +236,7 @@ export function DeckOverviewViewControls({
       ? [
           {
             key: "prices",
-            label: "Show prices",
+            label: m.decks_overview_option_prices(),
             checked: showPrices,
             modified: showPrices,
             onCheckedChange: setShowPrices,
@@ -242,8 +247,8 @@ export function DeckOverviewViewControls({
       ? [
           {
             key: "owned-printings",
-            label: "Show my printings",
-            description: "Swap each card's art for the printing you own.",
+            label: m.decks_overview_option_owned_printings(),
+            description: m.decks_overview_option_owned_printings_hint(),
             checked: preferOwned,
             modified: preferOwned,
             onCheckedChange: setPreferOwnedPrintings,
@@ -271,7 +276,9 @@ export function DeckOverviewViewControls({
         <MobileOptionsDrawer>
           {hasThumbnails && (
             <div className="flex min-w-0 items-center gap-2">
-              <p className="text-muted-foreground w-18 text-xs font-medium">Columns</p>
+              <p className="text-muted-foreground w-18 text-xs font-medium">
+                {m.decks_overview_columns()}
+              </p>
               <ColumnControls
                 compact
                 maxColumns={columnOverride}
@@ -301,7 +308,11 @@ export function DeckOverviewViewControls({
             <PopoverTrigger
               render={<Button variant="outline" size="icon" />}
               className="relative"
-              aria-label={optionsModified ? "Display options, changed" : "Display options"}
+              aria-label={
+                optionsModified
+                  ? m.decks_overview_display_options_changed()
+                  : m.decks_overview_display_options()
+              }
             />
           }
         >
@@ -310,7 +321,7 @@ export function DeckOverviewViewControls({
             <span className="bg-primary ring-background absolute top-0.5 right-0.5 size-2 rounded-full ring-2" />
           )}
         </TooltipTrigger>
-        <TooltipContent>Display options</TooltipContent>
+        <TooltipContent>{m.decks_overview_display_options()}</TooltipContent>
       </Tooltip>
       <PopoverContent align="end" className="w-72 gap-4">
         {optionSwitchRows}

@@ -42,6 +42,7 @@ import { useScopeEffect } from "@/hooks/use-scope-effect";
 import type { QuickAddVerb } from "@/lib/command-palette-results";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -74,13 +75,20 @@ export function QuickAddPalette({
 }: QuickAddPaletteProps) {
   const isMobile = useIsMobile();
   const verb = useCommandPaletteStore((state) => state.quickAddVerb);
-  const scopeLabel = verb === "move" ? "Move" : `Add to ${collectionName}`;
+  const scopeLabel =
+    verb === "move"
+      ? m.collections_copies_quick_scope_move()
+      : m.collections_copies_quick_scope_add({ collection: collectionName });
 
   return (
     <PaletteFrame
       open={open}
       onOpenChange={onOpenChange}
-      title={`Quick ${verb} to ${collectionName}`}
+      title={
+        verb === "move"
+          ? m.collections_copies_quick_title_move({ collection: collectionName })
+          : m.collections_copies_quick_title_add({ collection: collectionName })
+      }
     >
       <PaletteInner
         verb={verb}
@@ -142,7 +150,7 @@ function PaletteInner({
     cancelAnnotatedDispose,
     disposeIsPending,
   } = useQuickAddActions(collectionId, collectionId, (printing) => {
-    toast.success(`Removed 1× ${legendDisplayName(printing.card)}`);
+    toast.success(m.collections_copies_quick_removed({ card: legendDisplayName(printing.card) }));
     inputRef.current?.focus();
   });
 
@@ -364,19 +372,25 @@ function PaletteInner({
           type="text"
           aria-label={
             inMoveMode
-              ? `Move card to ${move.collectionDisplayName(moveTo)}`
-              : `Add card to ${collectionName}`
+              ? m.collections_copies_quick_aria_move({
+                  collection: move.collectionDisplayName(moveTo),
+                })
+              : m.collections_copies_quick_aria_add({ collection: collectionName })
           }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search cards..."
+          placeholder={m.collections_copies_quick_search_placeholder()}
           className="text-base sm:text-sm"
           autoFocus // oxlint-disable-line jsx-a11y/no-autofocus -- command palette, always focused on open
         />
         {query && (
           <InputGroupAddon align="inline-end">
-            <InputGroupButton size="icon-xs" onClick={clearSearch} aria-label="Clear search">
+            <InputGroupButton
+              size="icon-xs"
+              onClick={clearSearch}
+              aria-label={m.collections_copies_quick_clear_search()}
+            >
               <XIcon className="size-4" />
             </InputGroupButton>
           </InputGroupAddon>
@@ -386,7 +400,7 @@ function PaletteInner({
       {/* px-3 is desktop-only; the drawer already pads its content (p-4). */}
       {inMoveMode && (
         <div className={cn("flex items-center gap-1.5 pt-1 pb-2", !isMobile && "px-3")}>
-          <span className="text-muted-foreground text-xs">from</span>
+          <span className="text-muted-foreground text-xs">{m.collections_copies_quick_from()}</span>
           <Select
             items={move.fromItems}
             value={moveFrom}
@@ -396,7 +410,10 @@ function PaletteInner({
               }
             }}
           >
-            <SelectTrigger aria-label="Move from" className="min-w-0 flex-1">
+            <SelectTrigger
+              aria-label={m.collections_copies_quick_select_from_label()}
+              className="min-w-0 flex-1"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -412,11 +429,11 @@ function PaletteInner({
             size="icon"
             variant="ghost"
             onClick={move.handleSwapDirection}
-            aria-label="Swap move direction"
+            aria-label={m.collections_copies_quick_swap()}
           >
             <ArrowRightLeftIcon />
           </Button>
-          <span className="text-muted-foreground text-xs">to</span>
+          <span className="text-muted-foreground text-xs">{m.collections_copies_quick_to()}</span>
           <Select
             items={move.toItems}
             value={moveTo}
@@ -426,7 +443,10 @@ function PaletteInner({
               }
             }}
           >
-            <SelectTrigger aria-label="Move to" className="min-w-0 flex-1">
+            <SelectTrigger
+              aria-label={m.collections_copies_quick_select_to_label()}
+              className="min-w-0 flex-1"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -448,13 +468,15 @@ function PaletteInner({
       >
         {query.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-sm">
-            {inMoveMode ? "Type a card name to move" : "Type a card name to add"}
+            {inMoveMode
+              ? m.collections_copies_quick_empty_move()
+              : m.collections_copies_quick_empty_add()}
           </div>
         )}
 
         {query.length > 0 && results.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-sm">
-            No cards matching &ldquo;{query}&rdquo;
+            {m.collections_copies_quick_no_matches({ query })}
           </div>
         )}
 
@@ -545,8 +567,12 @@ function PaletteInner({
                               count={movableForPrinting}
                               changed={movedThisSession > 0}
                               incrementIcon={<ArrowRightIcon />}
-                              incrementLabel={`Move ${cardName}`}
-                              decrementLabel={`Undo move ${cardName}`}
+                              incrementLabel={m.collections_copies_quick_move_card({
+                                card: cardName,
+                              })}
+                              decrementLabel={m.collections_copies_quick_undo_move_card({
+                                card: cardName,
+                              })}
                               onIncrement={() => void move.moveOne(printing)}
                               onDecrement={() => void move.undoMove(printing)}
                               incrementDisabled={movableForPrinting === 0}
@@ -558,8 +584,12 @@ function PaletteInner({
                               count={ownedForPrinting}
                               changed={sessionAdded > 0}
                               incrementIcon={<PlusIcon />}
-                              incrementLabel={`Add ${cardName}`}
-                              decrementLabel={`Undo add ${cardName}`}
+                              incrementLabel={m.collections_copies_quick_add_card({
+                                card: cardName,
+                              })}
+                              decrementLabel={m.collections_copies_quick_undo_add_card({
+                                card: cardName,
+                              })}
                               onIncrement={() => void handleAdd(printing)}
                               onDecrement={() => void handleUndo(printing)}
                               decrementDisabled={sessionAdded === 0}
@@ -570,12 +600,14 @@ function PaletteInner({
                         {sources !== null &&
                           (sources.length === 0 ? (
                             <div className="text-2xs text-foreground/80 px-2 pb-1.5">
-                              No copies available to move
+                              {m.collections_copies_quick_no_movable()}
                             </div>
                           ) : (
                             moveFrom === MOVE_FROM_ANYWHERE && (
                               <div className="text-2xs flex flex-wrap items-center gap-1 px-2 pb-1.5">
-                                <span className="text-foreground/80">from</span>
+                                <span className="text-foreground/80">
+                                  {m.collections_copies_quick_from()}
+                                </span>
                                 {sources.map((source, chipIndex) => {
                                   const isActiveSource =
                                     chipIndex === Math.min(move.sourceIndex, sources.length - 1);
@@ -621,35 +653,40 @@ function PaletteInner({
           {results.length > 0 && (
             <>
               <span>
-                <Kbd>↑↓</Kbd> navigate
+                <Kbd>↑↓</Kbd> {m.collections_copies_quick_hint_navigate()}
               </span>
               <span>
-                <Kbd>↵</Kbd> {expandedCardId ? (inMoveMode ? "move" : "add") : "select"}
+                <Kbd>↵</Kbd>{" "}
+                {expandedCardId
+                  ? inMoveMode
+                    ? m.collections_copies_quick_hint_move()
+                    : m.collections_copies_quick_hint_add()
+                  : m.collections_copies_quick_hint_select()}
               </span>
             </>
           )}
           {expandedCardId && canUndoSelected && (
             <span>
-              <Kbd>⇧↵</Kbd> undo
+              <Kbd>⇧↵</Kbd> {m.collections_copies_quick_hint_undo()}
             </span>
           )}
           {expandedCardId && (
             <span>
-              <Kbd>←</Kbd> back
+              <Kbd>←</Kbd> {m.collections_copies_quick_hint_back()}
             </span>
           )}
           {expandedCardId && selectedSourceCount > 1 && (
             <span>
-              <Kbd>→</Kbd> source
+              <Kbd>→</Kbd> {m.collections_copies_quick_hint_source()}
             </span>
           )}
           {query.length === 0 && !expandedCardId && (
             <span>
-              <Kbd>⌫</Kbd> search everything
+              <Kbd>⌫</Kbd> {m.collections_copies_quick_hint_search_everything()}
             </span>
           )}
           <span>
-            <Kbd>esc</Kbd> close
+            <Kbd>esc</Kbd> {m.collections_copies_quick_hint_close()}
           </span>
         </div>
       )}

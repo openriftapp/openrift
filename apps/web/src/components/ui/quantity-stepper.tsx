@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Hand-authored primitive (not shadcn-scaffolded).
 //
@@ -68,7 +69,7 @@ function QuantityStepper({
           resetDraft();
           onValueChange(clamp(value - 1));
         }}
-        aria-label="One fewer"
+        aria-label={m.ui_quantity_one_fewer()}
       >
         <MinusIcon className="size-4" />
       </Button>
@@ -78,7 +79,7 @@ function QuantityStepper({
           min={min}
           max={max}
           disabled={disabled}
-          aria-label="Quantity"
+          aria-label={m.ui_quantity_label()}
           // Hide the native number spinners — the +/- buttons drive the value.
           className="w-16 [appearance:textfield] text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           {...inputProps}
@@ -94,7 +95,7 @@ function QuantityStepper({
           resetDraft();
           onValueChange(clamp(value + 1));
         }}
-        aria-label="One more"
+        aria-label={m.ui_quantity_one_more()}
       >
         <PlusIcon className="size-4" />
       </Button>

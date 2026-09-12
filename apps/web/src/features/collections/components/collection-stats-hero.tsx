@@ -7,6 +7,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { CollectionStats } from "@/features/collections/hooks/use-collection-stats";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+import { m } from "@/paraglide/messages.js";
 
 function HeroStat({
   icon: Icon,
@@ -37,20 +38,24 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
   const missingImageCount = missingImages?.items.length ?? 0;
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-5">
-      <HeroStat icon={SquareIcon} label="Unique Cards" value={stats.uniqueCards.toLocaleString()} />
+      <HeroStat
+        icon={SquareIcon}
+        label={m.collections_stats_hero_unique_cards()}
+        value={stats.uniqueCards.toLocaleString()}
+      />
       <HeroStat
         icon={CopyIcon}
-        label="Unique Printings"
+        label={m.collections_stats_hero_unique_printings()}
         value={stats.uniquePrintings.toLocaleString()}
       />
       <HeroStat
         icon={SquareStackIcon}
-        label="Total Copies"
+        label={m.collections_stats_hero_total_copies()}
         value={stats.totalCopies.toLocaleString()}
       />
       <HeroStat
         icon={CoinsIcon}
-        label="Estimated Value"
+        label={m.collections_stats_hero_estimated_value()}
         value={
           <TextLink
             variant="inherit"
@@ -73,7 +78,9 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
           </span>
           {stats.unpricedCount > 0 && (
             <span className="block">
-              {stats.unpricedCount} {stats.unpricedCount === 1 ? "copy" : "copies"} unpriced
+              {stats.unpricedCount === 1
+                ? m.collections_stats_hero_unpriced_one({ count: stats.unpricedCount })
+                : m.collections_stats_hero_unpriced_other({ count: stats.unpricedCount })}
             </span>
           )}
         </span>
@@ -81,7 +88,7 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
       {missingImageCount > 0 && (
         <HeroStat
           icon={ImageOffIcon}
-          label="Without an Image"
+          label={m.collections_stats_hero_missing_images()}
           value={
             <TextLink
               variant="inherit"
@@ -93,7 +100,7 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
           }
         >
           <span className="text-muted-foreground text-xs">
-            Owned cards the catalogue has no picture for yet
+            {m.collections_stats_hero_missing_images_hint()}
           </span>
         </HeroStat>
       )}

@@ -14,20 +14,20 @@ import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-in
 import { authClient } from "@/features/account/lib/auth-client";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
-const displayNameSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required.")
-    .max(50, "Name must be 50 characters or fewer.")
-    .regex(
-      /^[\p{L}\p{N} ._-]+$/u,
-      "Name may only contain letters, digits, spaces, periods, underscores, and hyphens.",
-    ),
-});
+function displayNameSchema() {
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, m.profile_account_name_error_required())
+      .max(50, m.profile_account_name_error_max())
+      .regex(/^[\p{L}\p{N} ._-]+$/u, m.profile_account_name_error_charset()),
+  });
+}
 
-type DisplayNameValues = z.infer<typeof displayNameSchema>;
+type DisplayNameValues = z.infer<ReturnType<typeof displayNameSchema>>;
 
 export function AccountInfoSection({
   defaultName,
@@ -42,8 +42,8 @@ export function AccountInfoSection({
 }) {
   return (
     <SettingsSection
-      title="Account Info"
-      description="Your name is what shows on shared lists."
+      title={m.profile_account_title()}
+      description={m.profile_account_description()}
       contentClassName="gap-6"
     >
       <DisplayNameForm defaultName={defaultName} userId={userId} />
@@ -58,7 +58,7 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
   const [success, setSuccess] = useState(false);
   const queryClient = useQueryClient();
   const form = useForm<DisplayNameValues>({
-    resolver: zodResolver(displayNameSchema),
+    resolver: zodResolver(displayNameSchema()),
     defaultValues: { name: defaultName },
   });
   // `form.watch()` returns a function React Compiler flags as un-memoizable
@@ -71,7 +71,7 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
     const result = await authClient.updateUser({ name: values.name.trim() }).catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not save. Please try again." });
+      form.setError("root", { message: m.profile_account_save_failed() });
       return;
     }
     const { error } = result;
@@ -94,25 +94,25 @@ function DisplayNameForm({ defaultName, userId }: { defaultName: string; userId:
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{m.profile_account_name_label()}</FieldLabel>
               <div className="flex gap-2">
                 <Input
                   {...field}
                   id={field.name}
                   type="text"
-                  placeholder="Your name"
+                  placeholder={m.profile_account_name_placeholder()}
                   aria-invalid={fieldState.invalid}
                   className="flex-1"
                 />
                 <Button type="submit" disabled={loading || watchedName.trim() === defaultName}>
-                  {loading ? "Saving..." : "Save"}
+                  {loading ? m.profile_account_saving() : m.profile_account_save()}
                 </Button>
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               {success && (
                 <FieldDescription className="flex items-center gap-1.5">
                   <CheckIcon className="text-success size-3.5" />
-                  Name updated.
+                  {m.profile_account_name_updated()}
                 </FieldDescription>
               )}
             </Field>
@@ -151,7 +151,7 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
     const result = await authClient.updateUser({ riotId: values.riotId.trim() }).catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not save. Please try again." });
+      form.setError("root", { message: m.profile_account_save_failed() });
       return;
     }
     const { error } = result;
@@ -174,7 +174,7 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Riot ID</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{m.profile_account_riot_label()}</FieldLabel>
               <div className="flex gap-2">
                 <Input
                   {...field}
@@ -185,15 +185,15 @@ function RiotIdForm({ defaultRiotId, userId }: { defaultRiotId: string; userId: 
                   className="flex-1"
                 />
                 <Button type="submit" disabled={loading || watchedRiotId.trim() === defaultRiotId}>
-                  {loading ? "Saving..." : "Save"}
+                  {loading ? m.profile_account_saving() : m.profile_account_save()}
                 </Button>
               </div>
-              <FieldDescription>Prefills your tournament deck submissions.</FieldDescription>
+              <FieldDescription>{m.profile_account_riot_description()}</FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               {success && (
                 <FieldDescription className="flex items-center gap-1.5">
                   <CheckIcon className="text-success size-3.5" />
-                  Riot ID updated.
+                  {m.profile_account_riot_updated()}
                 </FieldDescription>
               )}
             </Field>
@@ -225,7 +225,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
   async function handleSendToCurrentEmail() {
     const trimmed = newEmail.trim();
     if (!trimmed || !trimmed.includes("@")) {
-      setError("Please enter a valid email address.");
+      setError(m.profile_account_email_invalid());
       return;
     }
     setError("");
@@ -235,7 +235,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setError("Could not send the code. Please try again.");
+      setError(m.profile_account_send_failed());
       return;
     }
     if (result.error) {
@@ -256,7 +256,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setError("Could not verify the code. Please try again.");
+      setError(m.profile_account_verify_failed());
       return;
     }
     if (result.error) {
@@ -278,7 +278,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setError("Could not verify the code. Please try again.");
+      setError(m.profile_account_verify_failed());
       return;
     }
     if (result.error) {
@@ -302,7 +302,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       .catch(() => null);
     setResending(false);
     if (!result) {
-      setError("Could not send the code. Please try again.");
+      setError(m.profile_account_send_failed());
       return;
     }
     if (result.error) {
@@ -313,19 +313,20 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
   return (
     <FieldGroup>
       <FieldLabel>
-        Email <span className="text-muted-foreground font-normal">({currentEmail})</span>
+        {m.profile_account_email_label()}{" "}
+        <span className="text-muted-foreground font-normal">({currentEmail})</span>
       </FieldLabel>
       {error && <FieldError>{error}</FieldError>}
       {success && (
         <FieldDescription className="flex items-center gap-1.5">
           <CheckIcon className="text-success size-3.5" />
-          Email updated successfully.
+          {m.profile_account_email_updated()}
         </FieldDescription>
       )}
 
       {step === "input" && (
         <Field>
-          <FieldLabel htmlFor="new-email">New email</FieldLabel>
+          <FieldLabel htmlFor="new-email">{m.profile_account_new_email_label()}</FieldLabel>
           <div className="flex gap-2">
             <Input
               id="new-email"
@@ -343,7 +344,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               disabled={loading || !newEmail.trim()}
               onClick={() => void handleSendToCurrentEmail()}
             >
-              {loading ? "Sending..." : "Send code to current email"}
+              {loading ? m.profile_account_sending() : m.profile_account_send_code()}
             </Button>
           </div>
         </Field>
@@ -352,7 +353,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       {step === "verify-current" && (
         <>
           <p className="text-muted-foreground text-sm">
-            Enter the 6-digit code sent to <strong>{currentEmail}</strong>.
+            {m.profile_account_otp_sent_to()} <strong>{currentEmail}</strong>.
           </p>
           <div className="flex justify-center">
             <SixDigitOtpInput value={otp} onChange={setOtp} />
@@ -362,7 +363,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               disabled={otp.length < 6 || loading}
               onClick={() => void handleVerifyCurrentEmail()}
             >
-              {loading ? "Verifying..." : "Verify"}
+              {loading ? m.profile_account_verifying() : m.profile_account_verify()}
             </Button>
           </Field>
           <div className="flex justify-center gap-4">
@@ -373,7 +374,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               disabled={resending}
               onClick={() => void handleResend()}
             >
-              {resending ? "Sending..." : "Resend code"}
+              {resending ? m.profile_account_sending() : m.profile_account_resend()}
             </Button>
             <Button
               type="button"
@@ -381,7 +382,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               className="h-auto px-0 text-sm"
               onClick={resetFlow}
             >
-              Cancel
+              {m.profile_account_cancel()}
             </Button>
           </div>
         </>
@@ -390,7 +391,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
       {step === "verify-new" && (
         <>
           <p className="text-muted-foreground text-sm">
-            Enter the 6-digit code sent to <strong>{newEmail.trim()}</strong>.
+            {m.profile_account_otp_sent_to()} <strong>{newEmail.trim()}</strong>.
           </p>
           <div className="flex justify-center">
             <SixDigitOtpInput value={otp} onChange={setOtp} />
@@ -400,7 +401,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               disabled={otp.length < 6 || loading}
               onClick={() => void handleVerifyNewEmail()}
             >
-              {loading ? "Confirming..." : "Confirm"}
+              {loading ? m.profile_account_confirming() : m.profile_account_confirm()}
             </Button>
           </Field>
           <div className="flex justify-center">
@@ -410,7 +411,7 @@ function EmailForm({ currentEmail }: { currentEmail: string }) {
               className="h-auto px-0 text-sm"
               onClick={resetFlow}
             >
-              Cancel
+              {m.profile_account_cancel()}
             </Button>
           </div>
         </>

@@ -24,6 +24,7 @@ import { getDomainGradientStyle } from "@/lib/domain";
 import { priceColorClass } from "@/lib/format";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const CARD_WIDTH = 630;
 const CARD_HEIGHT = 880;
@@ -31,7 +32,7 @@ const CARD_HEIGHT = 880;
 const PROMO_MARKER_SLUG = "promo";
 
 function promoMarkerLabel(printing: Printing): string | undefined {
-  return printing.markers.find((m) => m.slug === PROMO_MARKER_SLUG)?.label;
+  return printing.markers.find((marker) => marker.slug === PROMO_MARKER_SLUG)?.label;
 }
 
 function cardSrcSet(imageId: string): string {
@@ -459,28 +460,32 @@ export const CardThumbnail = memo(function CardThumbnail({
   const previewOverlay = !printing.setReleased && (
     <div
       className="@container pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[inherit]"
-      title="Not released in this language yet"
+      title={m.cards_thumb_not_released()}
     >
       <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
-        Preview
+        {m.cards_thumb_preview_ribbon()}
       </div>
     </div>
   );
 
   // z-40, above the z-30 Preview ribbon: a previewed-and-banned card stays visibly banned.
   const soleModeBan = baseBans.length === 0 && modeBans.length === 1 ? modeBans[0] : undefined;
-  const banLines = activeBans.map((ban) => `Banned in ${ban.formatName} since ${ban.bannedAt}`);
+  const banLines = activeBans.map((ban) =>
+    m.cards_thumb_banned_since({ format: ban.formatName, date: ban.bannedAt }),
+  );
   const banRibbon = activeBans.length > 0 && (
     <div
       className="@container pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]"
       title={
         baseBans.length > 0
           ? banLines.join("\n")
-          : [...banLines, "Legal in other constructed play."].join("\n")
+          : [...banLines, m.cards_thumb_legal_elsewhere()].join("\n")
       }
     >
       <div className="bg-destructive absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider text-white uppercase shadow-md select-none">
-        {soleModeBan ? `${soleModeBan.formatName} Ban` : "Banned"}
+        {soleModeBan
+          ? m.cards_thumb_format_ban({ format: soleModeBan.formatName })
+          : m.cards_thumb_banned()}
       </div>
     </div>
   );

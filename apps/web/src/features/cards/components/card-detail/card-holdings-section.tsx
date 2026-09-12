@@ -3,6 +3,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useCardHoldingLines } from "@/features/cards/hooks/use-card-holdings";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Where the viewer's copies of this card are, when some are lent, borrowed or in a trade. */
 export function CardHoldingsSection({
@@ -21,7 +22,7 @@ export function CardHoldingsSection({
 
   return (
     <section className="space-y-2 text-sm">
-      <SectionHeading as="h3">Loans and trades</SectionHeading>
+      <SectionHeading as="h3">{m.card_detail_holdings_title()}</SectionHeading>
       <ul className="space-y-1">
         {lines.map((line) => (
           <li key={line.key} className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { OddsGroupDef } from "@/features/decks/lib/deck-odds-groups";
+import { m } from "@/paraglide/messages.js";
 
 const CUSTOM_GROUP_TYPES: readonly string[] = [
   WellKnown.cardType.UNIT,
@@ -59,35 +61,35 @@ export function DeckOddsCustomGroupForm({
       <Input
         value={label}
         onChange={(event) => setLabel(event.target.value)}
-        placeholder="New group, e.g. Turn-1 gear"
-        aria-label="Group name"
+        placeholder={m.decks_odds_new_group_placeholder()}
+        aria-label={m.decks_odds_group_name()}
         className="h-7 text-sm"
       />
       <div className="flex flex-wrap items-center gap-3">
         {CUSTOM_GROUP_TYPES.map((type) => (
           <label key={type} className="flex cursor-pointer items-center gap-1.5 text-sm">
             <Checkbox checked={types.has(type)} onCheckedChange={() => toggleType(type)} />
-            {typeLabels[type]}
+            {enumLabel(typeLabels, type)}
           </label>
         ))}
       </div>
       <div className="text-muted-foreground flex items-center gap-1.5 text-sm">
-        Energy
+        {m.decks_stats_energy()}
         <Input
           type="number"
           min={0}
           value={energyMin}
           onChange={(event) => setEnergyMin(event.target.value)}
-          aria-label="Minimum energy"
+          aria-label={m.decks_odds_energy_min()}
           className="h-7 w-14 [appearance:textfield] text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
-        to
+        {m.decks_odds_energy_to()}
         <Input
           type="number"
           min={0}
           value={energyMax}
           onChange={(event) => setEnergyMax(event.target.value)}
-          aria-label="Maximum energy"
+          aria-label={m.decks_odds_energy_max()}
           className="h-7 w-14 [appearance:textfield] text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <Button
@@ -98,7 +100,7 @@ export function DeckOddsCustomGroupForm({
           disabled={!canAdd}
           className="ml-auto"
         >
-          Add
+          {m.decks_odds_add_group()}
         </Button>
       </div>
     </div>

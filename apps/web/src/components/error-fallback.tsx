@@ -2,7 +2,13 @@ import * as Sentry from "@sentry/tanstackstart-react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 
-import { EMOJIS, ErrorMessageLayout, HEADINGS, SUBTEXTS, pick } from "@/components/error-message";
+import {
+  errorEmojis,
+  errorHeadings,
+  ErrorMessageLayout,
+  errorSubtexts,
+  pick,
+} from "@/components/error-message";
 
 export function RouterErrorFallback({ error }: ErrorComponentProps) {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -20,9 +26,9 @@ function ErrorFallback({ error }: { error: Error }) {
   return (
     <div className="bg-background text-foreground fixed inset-0 z-50 flex items-center justify-center">
       <ErrorMessageLayout
-        emoji={pick(EMOJIS, `${seed}:emoji`)}
-        heading={pick(HEADINGS, `${seed}:heading`)}
-        subtext={pick(SUBTEXTS, `${seed}:subtext`)}
+        emoji={pick(errorEmojis(), `${seed}:emoji`)}
+        heading={pick(errorHeadings(), `${seed}:heading`)}
+        subtext={pick(errorSubtexts(), `${seed}:subtext`)}
         goHome
         reload
         devError={error.stack ?? error.message}

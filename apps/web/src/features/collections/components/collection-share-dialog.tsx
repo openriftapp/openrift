@@ -16,6 +16,7 @@ import { useFriendGroups } from "@/features/groups/hooks/use-friend-groups";
 import { collectionOwnerImageUrl, shareImageOptions } from "@/lib/share-image";
 import { shareLinkUrl } from "@/lib/share-links";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 interface CollectionShareDialogProps {
   collectionId: string;
@@ -45,12 +46,12 @@ export function CollectionShareDialog({
     <ShareDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Share collection"
+      title={m.collections_dialog_share_title()}
       noun="collection"
       link={{
         url: shareUrl,
-        label: "Collection share link",
-        exposes: "view this collection, including the card list and its total value",
+        label: m.collections_dialog_share_link_label(),
+        exposes: m.collections_dialog_share_link_exposes(),
         unfurls: true,
         onCreate: () => shareCollection.mutate(collectionId),
         creating: shareCollection.isPending,
@@ -79,7 +80,7 @@ export function CollectionShareDialog({
       qrFilenameBase={collectionName || "collection"}
       print={{
         defaultTitle: collectionName,
-        defaultSubtitle: "Scan to see my collection",
+        defaultSubtitle: m.collections_dialog_share_print_subtitle(),
         filenameHint: collectionName,
       }}
     />
@@ -99,8 +100,8 @@ function CollectionGroupShareSection({ collectionId }: { collectionId: string })
       onShare={(group) => share.mutate({ slug: group.slug, collectionId })}
       onUnshare={(group) => unshare.mutate({ slug: group.slug, collectionId })}
       pending={share.isPending || unshare.isPending}
-      description="Choose which of your friend groups can see this collection (read-only) while signed in."
-      emptyNote="You're not in any friend groups yet. Join or create one to share collections with its members."
+      description={m.collections_dialog_share_groups_description()}
+      emptyNote={m.collections_dialog_share_groups_empty()}
       idPrefix="collection-group"
     />
   );

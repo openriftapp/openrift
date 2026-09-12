@@ -47,6 +47,7 @@ import {
 } from "@/features/groups/lib/trade-derivation";
 import { splitTradeLedger, stepSequence } from "@/features/groups/lib/trade-sheet";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function LedgerSection({
   heading,
@@ -100,7 +101,9 @@ function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
       <SectionHeading as="h3">
         <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
           <IconChip icon={CheckIcon} size="sm" />
-          {trades.length} completed {trades.length === 1 ? "trade" : "trades"}
+          {trades.length === 1
+            ? m.trades_completed_one({ count: trades.length })
+            : m.trades_completed_other({ count: trades.length })}
           <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
         </CollapsibleTrigger>
       </SectionHeading>
@@ -170,7 +173,7 @@ function TradeSheetBody({
     anchorGroupDetail.shares.some(
       (share) => share.userId === userId && share.listIntent !== "organize",
     ) || anchorGroupDetail.collectionShares.some((share) => share.userId === userId);
-  const name = sheet.counterparty.name ?? "Member";
+  const name = sheet.counterparty.name ?? m.trades_member_fallback();
   // A group since deleted still counts: its trades keep the name they were
   // made under and stay on this sheet beside a live group's.
   const groupKeys = new Set(sheet.groups.map((group) => group.id));
@@ -206,12 +209,12 @@ function TradeSheetBody({
                   link: <Link to="/groups/$slug" params={{ slug: anchorGroup.slug }} />,
                 },
                 {
-                  label: "Trades",
+                  label: m.trades_title(),
                   link: <Link to="/groups/$slug/trades" params={{ slug: anchorGroup.slug }} />,
                 },
                 { label: name },
               ]
-            : [{ label: "Trades", link: <Link to="/trades" /> }, { label: name }]
+            : [{ label: m.trades_title(), link: <Link to="/trades" /> }, { label: name }]
         }
       />
 
@@ -235,19 +238,25 @@ function TradeSheetBody({
                       />
                     }
                   >
-                    View their lists
+                    {m.trades_view_their_lists()}
                   </Button>
                 ) : null}
                 {reserved.length > 0 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      render={<Button variant="ghost" size="icon-sm" aria-label="More actions" />}
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={m.trades_more_actions()}
+                        />
+                      }
                     >
                       <EllipsisVerticalIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setExportOpen(true)}>
-                        Export for Cardmarket
+                        {m.trades_export_cardmarket()}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -272,13 +281,13 @@ function TradeSheetBody({
           // No action here: the header's "View their lists" link sits right above.
           <EmptyState
             icon={HandshakeIcon}
-            title="Nothing traded yet"
-            description="Suggestions appear when a card on your wishlist is on their tradelist, or the other way round. Both of you need to share those lists into a group you're in together."
+            title={m.trades_sheet_empty_title()}
+            description={m.trades_sheet_empty_description()}
           />
         ) : (
           <>
             <LedgerSection
-              heading="Your move"
+              heading={m.trades_section_your_move()}
               icon={BellIcon}
               tone="gold"
               trades={ledger.yourMove}
@@ -289,14 +298,14 @@ function TradeSheetBody({
               <TradeSettleSection trades={ledger.readyToSwap} />
             ) : null}
             <LedgerSection
-              heading={`Waiting on ${name}`}
+              heading={m.trades_waiting_on_name({ name })}
               trades={ledger.waiting}
               redundantStatus="waiting-for-them"
             />
             {incoming.length > 0 || outgoing.length > 0 ? (
               <section className="flex flex-col gap-3">
                 <SectionHeading count={countTradeSuggestions(incoming, outgoing)}>
-                  Suggestions
+                  {m.trades_section_suggestions()}
                 </SectionHeading>
                 <MatchTradeList
                   incoming={incoming}

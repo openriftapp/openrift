@@ -5,6 +5,7 @@ import {
   SharedPageContent,
 } from "@/features/groups/components/friend-group-shared-page";
 import { FriendGroupSectionFrame } from "@/features/groups/components/friend-group-shell";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/shared")({
   component: GroupSharedRoute,
@@ -15,7 +16,7 @@ function GroupSharedRoute() {
   return (
     <FriendGroupSectionFrame
       slug={slug}
-      title="Collections"
+      title={m.groups_nav_collections()}
       actions={<SharedCollectionAction slug={slug} />}
       render={(data) => <SharedPageContent slug={slug} data={data} />}
     />

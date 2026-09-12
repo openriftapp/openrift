@@ -5,6 +5,7 @@ import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { FriendGroupSectionFrame, isAdmin } from "@/features/groups/components/friend-group-shell";
 import { ShopEventsContent } from "@/features/groups/components/shop-events-page";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/shops")({
   component: GroupShopEventsRoute,
@@ -16,14 +17,14 @@ function GroupShopEventsRoute() {
   return (
     <FriendGroupSectionFrame
       slug={slug}
-      title="Shop events"
+      title={m.groups_nav_shop_events()}
       actions={
         isAdmin(data.viewerRole) ? (
           <PageTopBarButton
             render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
           >
             <SettingsIcon className="size-4" />
-            Manage shops
+            {m.groups_shops_manage()}
           </PageTopBarButton>
         ) : null
       }

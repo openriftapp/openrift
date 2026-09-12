@@ -3,14 +3,17 @@ import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { m } from "@/paraglide/messages.js";
 
 type GroupVisibilityMode = "all" | "selected" | "none";
 
-const VISIBILITY_OPTIONS: { value: GroupVisibilityMode; label: string }[] = [
-  { value: "all", label: "All my groups" },
-  { value: "selected", label: "Some groups" },
-  { value: "none", label: "Only me" },
-];
+function visibilityOptions(): { value: GroupVisibilityMode; label: string }[] {
+  return [
+    { value: "all", label: m.share_visibility_all() },
+    { value: "selected", label: m.share_visibility_selected() },
+    { value: "none", label: m.share_visibility_none() },
+  ];
+}
 
 export interface VisibilityGroup {
   id: string;
@@ -69,7 +72,7 @@ export function GroupVisibilitySection({
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <h3 className="font-medium">Group visibility</h3>
+        <h3 className="font-medium">{m.share_visibility_heading()}</h3>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
       {groups.length === 0 ? (
@@ -81,7 +84,7 @@ export function GroupVisibilitySection({
             onValueChange={(next) => applyMode(next as GroupVisibilityMode)}
             className="flex flex-col gap-2"
           >
-            {VISIBILITY_OPTIONS.map((option) => {
+            {visibilityOptions().map((option) => {
               const radioId = `${idPrefix}-visibility-${option.value}`;
               return (
                 <div key={option.value} className="flex items-center gap-2">

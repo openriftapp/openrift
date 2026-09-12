@@ -15,6 +15,7 @@ import {
 import { useDeleteList, useSetListSidebarHidden } from "@/features/lists/hooks/use-lists";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 import { DeleteListDialog } from "./delete-list-dialog";
 import { ListEditDialog } from "./list-edit-dialog";
@@ -44,10 +45,10 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
       return;
     }
     if (await copy(shareUrl)) {
-      toast.success("Share link copied");
+      toast.success(m.lists_row_copy_success());
       return;
     }
-    toast.error("Couldn't copy the link");
+    toast.error(m.lists_row_copy_error());
   };
 
   const handleDelete = () => {
@@ -73,12 +74,12 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={() => setEditOpen(true)}>
             <PencilIcon />
-            Edit list
+            {m.lists_row_edit()}
           </ContextMenuItem>
           {shareUrl && (
             <ContextMenuItem onClick={() => void handleCopyLink()}>
               <LinkIcon />
-              Copy share link
+              {m.lists_row_copy_link()}
             </ContextMenuItem>
           )}
           <ContextMenuSeparator />
@@ -88,12 +89,12 @@ export function ListRowMenu({ list, isActive, children }: ListRowMenuProps) {
             }
           >
             {list.sidebarHidden ? <EyeIcon /> : <EyeOffIcon />}
-            {list.sidebarHidden ? "Show in sidebar" : "Hide behind Show more"}
+            {list.sidebarHidden ? m.lists_row_show_in_sidebar() : m.lists_row_hide_in_sidebar()}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
             <Trash2Icon />
-            Delete list
+            {m.lists_row_delete()}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

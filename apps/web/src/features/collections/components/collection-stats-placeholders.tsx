@@ -4,6 +4,7 @@ import { ChartBarIcon, SearchIcon } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { m } from "@/paraglide/messages.js";
 
 export function StatsSkeleton() {
   return (
@@ -24,12 +25,12 @@ export function StatsEmptyState() {
     <EmptyState
       className="py-20"
       icon={ChartBarIcon}
-      title="No cards in collection yet"
-      description="Browse the catalog and add cards to see statistics about your collection."
+      title={m.collections_stats_empty_title()}
+      description={m.collections_stats_empty_description()}
     >
       <Button variant="default" render={<Link to="/cards" />}>
         <SearchIcon />
-        Browse cards
+        {m.collections_stats_empty_action()}
       </Button>
     </EmptyState>
   );

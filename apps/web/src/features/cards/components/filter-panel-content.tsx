@@ -15,6 +15,7 @@ import {
 } from "@/features/cards/lib/filter-sections";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface FilterPanelContentProps {
   availableFilters: AvailableFilters;
@@ -135,7 +136,7 @@ function MoreFiltersFold({ children }: { children: ReactNode }) {
         }
       >
         <ChevronRightIcon className={cn("size-4 transition-transform", open && "rotate-90")} />
-        More filters
+        {m.cards_more_filters()}
       </CollapsibleTrigger>
       <CollapsibleContent className="flex flex-col gap-3 pt-3">{children}</CollapsibleContent>
     </Collapsible>

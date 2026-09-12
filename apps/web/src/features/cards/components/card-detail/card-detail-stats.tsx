@@ -6,6 +6,7 @@ import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-ic
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { StatChip } from "./stat-chip";
 
@@ -30,12 +31,14 @@ export function CardDetailStats({
         align === "center" ? "flex-1 justify-center" : "justify-start",
       )}
     >
-      {card.energy !== null && card.energy > 0 && <StatChip label="Energy" value={card.energy} />}
+      {card.energy !== null && card.energy > 0 && (
+        <StatChip label={m.card_detail_stat_energy()} value={card.energy} />
+      )}
       {card.power !== null && card.power > 0 && (
-        <StatChip label="Power" value={card.power} icon="/images/power.svg" />
+        <StatChip label={m.card_detail_stat_power()} value={card.power} icon="/images/power.svg" />
       )}
       {card.might !== null && (
-        <StatChip label="Might" value={card.might} icon="/images/might.svg" />
+        <StatChip label={m.card_detail_stat_might()} value={card.might} icon="/images/might.svg" />
       )}
       {!card.domains.includes(WellKnown.domain.COLORLESS) &&
         card.domains.map((d) => {

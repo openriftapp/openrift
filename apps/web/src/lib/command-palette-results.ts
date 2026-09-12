@@ -1,6 +1,7 @@
 import type { QuickAddCardResult } from "@/features/collections/lib/quick-add-result";
 import type { HelpArticle } from "@/lib/help-article";
 import type { NavItemConfig } from "@/lib/nav-items";
+import { m } from "@/paraglide/messages.js";
 
 export type QuickAddVerb = "add" | "move";
 
@@ -84,8 +85,10 @@ export function buildPaletteGroups({
 
   if (folded === "") {
     return [
-      ...(quickAddRows.length > 0 ? [{ heading: "Actions", rows: quickAddRows }] : []),
-      ...(navRows.length > 0 ? [{ heading: "Go to", rows: navRows }] : []),
+      ...(quickAddRows.length > 0
+        ? [{ heading: m.palette_group_actions(), rows: quickAddRows }]
+        : []),
+      ...(navRows.length > 0 ? [{ heading: m.palette_group_go_to(), rows: navRows }] : []),
     ];
   }
 
@@ -110,7 +113,7 @@ export function buildPaletteGroups({
   const groups: PaletteGroup[] = [];
   const pushSearch = () => {
     if (searchRows.length > 0) {
-      groups.push({ heading: "Search", rows: searchRows });
+      groups.push({ heading: m.palette_group_search(), rows: searchRows });
     }
   };
 
@@ -118,16 +121,16 @@ export function buildPaletteGroups({
     pushSearch();
   }
   if (quickAddRows.length > 0) {
-    groups.push({ heading: "Actions", rows: quickAddRows });
+    groups.push({ heading: m.palette_group_actions(), rows: quickAddRows });
   }
   if (cardRows.length > 0) {
-    groups.push({ heading: "Cards", rows: cardRows });
+    groups.push({ heading: m.palette_group_cards(), rows: cardRows });
   }
   if (navRows.length > 0) {
-    groups.push({ heading: "Go to", rows: navRows });
+    groups.push({ heading: m.palette_group_go_to(), rows: navRows });
   }
   if (helpRows.length > 0) {
-    groups.push({ heading: "Help", rows: helpRows });
+    groups.push({ heading: m.palette_group_help(), rows: helpRows });
   }
   if (cardRows.length > 0) {
     pushSearch();

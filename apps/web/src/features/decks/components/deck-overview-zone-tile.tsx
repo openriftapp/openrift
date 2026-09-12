@@ -31,6 +31,7 @@ import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { zoneEmptyReadOnlyLabel } from "@/features/decks/lib/deck-zone-labels";
 import type { CollapsibleDeckSection } from "@/features/decks/stores/deck-builder-ui-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_UNKNOWN_SLOTS = 3;
 const SINGLE_CARD_ZONES = new Set<DeckZone>([
@@ -40,7 +41,8 @@ const SINGLE_CARD_ZONES = new Set<DeckZone>([
 
 function UnknownSlots({ count, isLandscape }: { count: number; isLandscape: boolean }) {
   const slots = count <= MAX_UNKNOWN_SLOTS ? count : 1;
-  const label = slots === count ? "Unknown" : `${count} unknown`;
+  const label =
+    slots === count ? m.decks_overview_unknown() : m.decks_overview_unknown_count({ count });
   return Array.from({ length: slots }, (_, index) => (
     <div
       key={index}
@@ -157,7 +159,11 @@ export function ZoneTile({
           <ExpandToggle
             expanded={!collapsed}
             onClick={() => onToggleCollapsed(zone)}
-            aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+            aria-label={
+              collapsed
+                ? m.decks_overview_zone_expand({ zone: label })
+                : m.decks_overview_zone_collapse({ zone: label })
+            }
             chevronClassName="size-3.5"
             className="shrink-0 rounded-md"
           />
@@ -167,7 +173,7 @@ export function ZoneTile({
           onClick && !readOnly ? (
             <Pressable
               onClick={onClick}
-              aria-label={`Edit ${label}`}
+              aria-label={m.decks_overview_zone_edit({ zone: label })}
               className="group/zone-label flex min-w-0 flex-1 items-center gap-2 text-left"
             />
           ) : (
@@ -183,7 +189,7 @@ export function ZoneTile({
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  aria-label={`Show ${label} issues`}
+                  aria-label={m.decks_overview_zone_issues({ zone: label })}
                   className="size-5 shrink-0 rounded-md"
                 />
               }
@@ -213,11 +219,21 @@ export function ZoneTile({
             )}
           >
             {unknownCount > 0 && expected !== undefined ? (
-              `${quantity} of ${expected} known`
+              m.decks_overview_zone_known({ quantity, expected })
             ) : (
               <>
                 {quantity}
                 {expected !== undefined && quantity !== expected && `/${expected}`}
+                {/* Sideboard's number is a cap, not a goal, so it never gets a "more" hint. */}
+                {expected !== undefined &&
+                  zone !== WellKnown.deckZone.SIDEBOARD &&
+                  quantity > 0 &&
+                  quantity < expected && (
+                    <span className="text-muted-foreground/70">
+                      {" · "}
+                      {m.decks_overview_zone_more({ count: expected - quantity })}
+                    </span>
+                  )}
               </>
             )}
           </span>
@@ -263,7 +279,7 @@ export function ZoneTile({
             type="button"
             variant="dashed"
             onClick={onClick}
-            aria-label={`Edit ${label}`}
+            aria-label={m.decks_overview_zone_edit({ zone: label })}
             className="h-auto w-full gap-2 rounded-md px-3 py-4 font-normal"
           >
             <PlusIcon className="size-4" />
@@ -294,7 +310,7 @@ export function ZoneTile({
                 type="button"
                 variant="dashed"
                 onClick={onClick}
-                aria-label={`Add to ${label}`}
+                aria-label={m.decks_overview_zone_add_to({ zone: label })}
                 style={LANDSCAPE_THUMB_STYLE}
                 className={cn(
                   LANDSCAPE_THUMB_CLASS,
@@ -302,7 +318,7 @@ export function ZoneTile({
                 )}
               >
                 <PlusIcon className="size-4" />
-                <span className="text-muted-foreground text-xs">Add</span>
+                <span className="text-muted-foreground text-xs">{m.decks_overview_add()}</span>
               </Button>
             )}
           {unknownSlots}
@@ -365,7 +381,7 @@ export function ZoneTile({
                 type="button"
                 variant="dashed"
                 onClick={onClick}
-                aria-label={`Add to ${label}`}
+                aria-label={m.decks_overview_zone_add_to({ zone: label })}
                 style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
                 className={cn(
                   isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
@@ -373,7 +389,7 @@ export function ZoneTile({
                 )}
               >
                 <PlusIcon className="size-4" />
-                <span className="text-muted-foreground text-xs">Add</span>
+                <span className="text-muted-foreground text-xs">{m.decks_overview_add()}</span>
               </Button>
             )}
           {unknownSlots}

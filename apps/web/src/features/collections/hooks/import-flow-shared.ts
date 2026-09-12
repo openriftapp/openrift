@@ -6,6 +6,7 @@ import type { MatchStatus, MatchedEntry } from "@/features/collections/lib/impor
 import type { ImportEntry } from "@/features/collections/lib/import-parsers";
 import { summarizeMatchedEntries } from "@/features/collections/lib/import-summary";
 import { parseListImport } from "@/features/lists/lib/list-import-parser";
+import { m } from "@/paraglide/messages.js";
 
 export const STATUS_SORT_ORDER: Record<MatchStatus, number> = {
   unresolved: 0,
@@ -68,7 +69,7 @@ export async function handleImportFileUpload(
   try {
     text = await file.text();
   } catch {
-    toast.error("Could not read that file.");
+    toast.error(m.collections_import_toast_file_read_failed());
     return;
   }
   setRawText(text);

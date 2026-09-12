@@ -37,6 +37,7 @@ import { formatCardmarketWants } from "@/lib/export-text";
 import { formatterForMarketplace } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface DeckMissingCardsDialogProps {
@@ -101,31 +102,34 @@ function CardIdentity({
 function lockedTooltipText(card: CardOwnership): string {
   const reasons: string[] = [];
   if (card.lockedLoaned > 0) {
-    reasons.push("out on loan");
+    reasons.push(m.decks_overview_locked_reason_loan());
   }
   if (card.lockedReserved > 0) {
-    reasons.push("reserved for a trade");
+    reasons.push(m.decks_overview_locked_reason_trade());
   }
   if (card.lockedExcluded > 0) {
-    reasons.push("in a collection that's excluded from deck building");
+    reasons.push(m.decks_overview_locked_reason_excluded());
   }
 
-  const copyWord = card.locked === 1 ? "copy" : "copies";
   if (reasons.length <= 1) {
-    const reason = reasons[0] ?? "you can't build with right now";
-    return `You have ${card.locked} ${copyWord} ${reason}.`;
+    const reason = reasons[0] ?? m.decks_overview_locked_reason_generic();
+    return card.locked === 1
+      ? m.decks_overview_locked_one({ reason })
+      : m.decks_overview_locked_other({ count: card.locked, reason });
   }
-  const last = reasons.at(-1);
+  const last = reasons.at(-1) ?? "";
   const rest = reasons.slice(0, -1).join(", ");
-  return `You have ${card.locked} ${copyWord} that are ${rest} or ${last}.`;
+  return card.locked === 1
+    ? m.decks_overview_locked_multi_one({ rest, last })
+    : m.decks_overview_locked_multi_other({ count: card.locked, rest, last });
 }
 
 // Incoming copies aren't locked and aren't the viewer's yet: they explain
 // part of the shortfall without reducing it.
 function incomingTooltipText(card: CardOwnership): string {
   return card.incoming === 1
-    ? "1 copy is on the way from a trade. It'll count once you've got it."
-    : `${card.incoming} copies are on the way from a trade. They'll count once you've got them.`;
+    ? m.decks_overview_incoming_one()
+    : m.decks_overview_incoming_other({ count: card.incoming });
 }
 
 // A suspending read inside this dialog, mounted while closed, would else be
@@ -218,12 +222,12 @@ function MissingCardsDialogBody({
         <DialogHeader>
           <DialogTitle>
             {mode === "prices"
-              ? `Card prices (${totalMissing})`
-              : `Missing cards (${totalMissing})`}
+              ? m.decks_overview_missing_title_prices({ count: totalMissing })
+              : m.decks_overview_missing_title({ count: totalMissing })}
           </DialogTitle>
           <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
             <img src={meta.icon} alt="" className="h-3 invert dark:invert-0" />
-            Prices from {meta.label}
+            {m.decks_overview_prices_from({ marketplace: meta.label })}
           </div>
         </DialogHeader>
 
@@ -306,8 +310,11 @@ function MissingCardsDialogBody({
                     <MarketplaceLink
                       marketplace={marketplace}
                       href={linkFor(card, printing)}
-                      title={`Buy on ${meta.label}`}
-                      aria-label={`Buy ${card.displayName} on ${meta.label}`}
+                      title={m.decks_overview_buy_on({ marketplace: meta.label })}
+                      aria-label={m.decks_overview_buy_card_on({
+                        card: card.displayName,
+                        marketplace: meta.label,
+                      })}
                       className="text-muted-foreground hover:text-foreground hover:bg-muted inline-flex size-7 shrink-0 items-center justify-center rounded-md"
                     >
                       <ShoppingCartIcon className="size-4" />
@@ -321,7 +328,7 @@ function MissingCardsDialogBody({
 
         {totalMissingValue !== undefined && (
           <div className="text-muted-foreground flex items-center justify-between px-2 pt-4 text-sm">
-            <span>Total</span>
+            <span>{m.decks_overview_missing_total()}</span>
             <span className="text-foreground font-medium">{fmt(totalMissingValue)}</span>
           </div>
         )}
@@ -330,12 +337,20 @@ function MissingCardsDialogBody({
           {showWishlistButton && (
             <Button variant="outline" size="sm" onClick={() => setWishlistPickerOpen(true)}>
               <HeartIcon className="size-3.5" />
-              Add to wishlist
+              {m.decks_overview_missing_add_wishlist()}
             </Button>
           )}
           <CardmarketWantsLink />
-          <CopyTextButton label="Copy for Cardmarket" getText={cardmarketText} size="sm" />
-          <CopyTextButton label="Copy list" getText={listText} size="sm" />
+          <CopyTextButton
+            label={m.decks_overview_missing_copy_cardmarket()}
+            getText={cardmarketText}
+            size="sm"
+          />
+          <CopyTextButton
+            label={m.decks_overview_missing_copy_list()}
+            getText={listText}
+            size="sm"
+          />
         </DialogFooter>
       </DialogContent>
       <CardDetailOverlay
@@ -363,14 +378,13 @@ function MissingCardsDialogBody({
           intent="wish"
           open={wishlistOpen}
           onOpenChange={setWishlistOpen}
-          defaultName={`${deckName} - Missing`}
+          defaultName={m.decks_overview_missing_list_name({ deck: deckName })}
           initialEntries={buildWishlistEntries}
-          title={`New wishlist for "${deckName}"`}
-          description="Pick whether any version of the card works, or you want a specific one."
+          title={m.decks_overview_missing_list_title({ deck: deckName })}
+          description={m.decks_overview_missing_list_description()}
           kindHints={{
-            card: "Any printing of each card counts. Pick this if you just want to play the deck.",
-            printing:
-              "Only the exact printings from the deck count. Pick this if you want a specific set, art, or finish.",
+            card: m.decks_overview_missing_list_hint_card(),
+            printing: m.decks_overview_missing_list_hint_printing(),
           }}
           onCreated={(listId) => {
             onOpenChange(false);

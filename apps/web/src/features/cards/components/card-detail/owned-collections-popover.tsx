@@ -16,6 +16,7 @@ import {
 } from "@/features/collections/hooks/use-owned-count";
 import { useSession } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface OwnedCollectionsPopoverProps {
@@ -74,7 +75,7 @@ export function OwnedCollectionsPopover({
       </PopoverTrigger>
       <PopoverContent side="bottom" align={align} className="w-60 p-0">
         <div className="px-3 pt-2.5 pb-1">
-          <SectionHeading as="h3">In your collections</SectionHeading>
+          <SectionHeading as="h3">{m.card_detail_owned_collections_title()}</SectionHeading>
         </div>
         {groupByVariant ? (
           <OwnedVariantBreakdown variants={variantBreakdown ?? []} />

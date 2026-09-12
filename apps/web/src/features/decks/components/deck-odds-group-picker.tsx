@@ -11,12 +11,14 @@ import type {
   OddsGroupDef,
   OddsGroupPreset,
   OddsGroupRow,
-  OddsGroupTheme,
 } from "@/features/decks/lib/deck-odds-groups";
-import { isInformativeGroupRow } from "@/features/decks/lib/deck-odds-groups";
+import {
+  isInformativeGroupRow,
+  ODDS_GROUP_THEMES,
+  oddsGroupThemeLabel,
+} from "@/features/decks/lib/deck-odds-groups";
 import { cn } from "@/lib/utils";
-
-const GROUP_THEMES: readonly OddsGroupTheme[] = ["Curve", "Interaction", "Economy", "Card types"];
+import { m } from "@/paraglide/messages.js";
 
 function GroupCounts({ row, informative }: { row: OddsGroupRow; informative: boolean }) {
   return (
@@ -24,8 +26,8 @@ function GroupCounts({ row, informative }: { row: OddsGroupRow; informative: boo
       {informative
         ? `${row.copies} · ${formatChancePct(row.openingChance)}`
         : row.copies === 0
-          ? "0 in deck"
-          : "whole deck"}
+          ? m.decks_odds_group_none()
+          : m.decks_odds_group_whole_deck()}
     </span>
   );
 }
@@ -67,7 +69,7 @@ export function DeckOddsGroupPicker({
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label="Choose odds rows"
+            aria-label={m.decks_odds_choose_rows()}
             className="ml-auto"
           />
         }
@@ -76,21 +78,19 @@ export function DeckOddsGroupPicker({
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-96 w-80 overflow-y-auto p-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">Card groups</span>
+          <span className="text-sm font-medium">{m.decks_odds_card_groups()}</span>
           {hasOverride && (
             <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-              Reset to suggested
+              {m.decks_odds_reset()}
             </Button>
           )}
         </div>
         {!canCustomize && (
-          <p className="text-muted-foreground mt-2 text-xs">
-            Copy this deck to your decks to make your own groups.
-          </p>
+          <p className="text-muted-foreground mt-2 text-xs">{m.decks_odds_copy_to_customize()}</p>
         )}
         {(customDefs.length > 0 || canCustomize) && (
           <SectionHeading as="h3" size="sm" className="mt-3 mb-1">
-            This deck
+            {m.decks_odds_this_deck()}
           </SectionHeading>
         )}
         <div className="flex flex-col">
@@ -118,7 +118,7 @@ export function DeckOddsGroupPicker({
                 <GroupCounts row={row} informative={informative} />
                 {canCustomize && (
                   <ChipRemoveButton
-                    aria-label={`Remove ${def.label}`}
+                    aria-label={m.decks_odds_remove_group({ label: def.label })}
                     onClick={() => onRemoveCustom(def.key)}
                   />
                 )}
@@ -127,7 +127,7 @@ export function DeckOddsGroupPicker({
           })}
           {canCustomize && <DeckOddsCustomGroupForm typeLabels={typeLabels} onAdd={onAddCustom} />}
         </div>
-        {GROUP_THEMES.map((theme) => {
+        {ODDS_GROUP_THEMES.map((theme) => {
           const themed = presets.filter((preset) => preset.theme === theme);
           if (themed.length === 0) {
             return null;
@@ -135,7 +135,7 @@ export function DeckOddsGroupPicker({
           return (
             <div key={theme}>
               <SectionHeading as="h3" size="sm" className="mt-3 mb-1">
-                {theme}
+                {oddsGroupThemeLabel(theme)}
               </SectionHeading>
               <div className="flex flex-col">
                 {themed.map((preset) => {

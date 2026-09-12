@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { BinderSheetSize } from "./binder-sheet-specs";
-import { BINDER_SHEET_PAPERS, BINDER_SHEET_SPECS, CARD_WIDTH_MM } from "./binder-sheet-specs";
+import {
+  BINDER_SHEET_PAPERS,
+  BINDER_SHEET_SPECS,
+  binderSheetSizeHint,
+  binderSheetSizeLabel,
+  CARD_WIDTH_MM,
+} from "./binder-sheet-specs";
 
 const SIZES = Object.keys(BINDER_SHEET_SPECS) as BinderSheetSize[];
 const CARD_HEIGHT_MM = BINDER_SHEET_SPECS.card.height;
@@ -31,14 +37,15 @@ describe("BINDER_SHEET_SPECS", () => {
   it("states the real dimensions and per-page count in every hint", () => {
     for (const size of SIZES) {
       const spec = BINDER_SHEET_SPECS[size];
-      expect(spec.hint).toContain(`${spec.width} × ${spec.height} mm`);
-      expect(spec.hint).toContain(`${spec.cols * spec.rows} per page`);
+      const hint = binderSheetSizeHint(size);
+      expect(hint).toContain(`${spec.width} × ${spec.height} mm`);
+      expect(hint).toContain(`${spec.cols * spec.rows} per page`);
     }
   });
 
   it("labels every size", () => {
     for (const size of SIZES) {
-      expect(BINDER_SHEET_SPECS[size].label).not.toBe("");
+      expect(binderSheetSizeLabel(size)).not.toBe("");
     }
   });
 });

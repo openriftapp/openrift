@@ -9,6 +9,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { useContactMethods } from "@/features/account/hooks/use-contact-methods";
 import { useUpdateGroupContactReveal } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function ContactSharingPanel({
   data,
@@ -38,21 +39,19 @@ export function ContactSharingPanel({
     <SettingsSection
       id="contacts"
       className="scroll-mt-28"
-      title="Your contacts in this group"
+      title={m.groups_contacts_title()}
       description={
         <>
-          Shown next to your name on the Members and Trades pages.{" "}
+          {m.groups_contacts_description()}{" "}
           <TextLink variant="muted" render={<Link to="/profile" hash="contacts" />}>
-            Edit them in your profile
+            {m.groups_contacts_edit_link()}
           </TextLink>
           .
         </>
       }
     >
       {contactMethods.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          You haven&apos;t added any contact methods yet.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.groups_contacts_empty()}</p>
       ) : (
         contactMethods.map((method) => (
           <Label

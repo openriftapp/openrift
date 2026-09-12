@@ -3,6 +3,7 @@ import { ExternalLinkIcon } from "lucide-react";
 
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { buttonVariants } from "@/components/ui/button";
+import { m } from "@/paraglide/messages.js";
 
 export function CardmarketWantsLink() {
   return (
@@ -12,7 +13,7 @@ export function CardmarketWantsLink() {
       className={buttonVariants({ variant: "outline", size: "sm" })}
     >
       <ExternalLinkIcon />
-      Open Cardmarket
+      {m.shared_open_cardmarket()}
     </MarketplaceLink>
   );
 }

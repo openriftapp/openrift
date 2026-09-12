@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, formatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 
 interface PackStatsProps {
   packs: PackResult[];
@@ -216,21 +217,24 @@ function StatsHeadline({
   unpricedVisible: boolean;
   onToggleUnpriced: () => void;
 }) {
-  const packWord = packCount === 1 ? "pack" : "packs";
   const unpricedCount = totalPulls - valuedCount;
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
       <span className="text-foreground text-lg font-semibold tabular-nums">
-        {packCount} {packWord}
+        {packCount === 1
+          ? m.packs_pack_count_one({ count: packCount })
+          : m.packs_pack_count_other({ count: packCount })}
       </span>
       {fullFmt ? (
         <>
           <span className="text-muted-foreground">·</span>
           <span className="text-foreground font-medium tabular-nums">
-            {fullFmt(totalValue)} total
+            {m.packs_stats_total({ value: fullFmt(totalValue) })}
           </span>
           <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground tabular-nums">{fullFmt(averageValue)}/pack</span>
+          <span className="text-muted-foreground tabular-nums">
+            {m.packs_stats_per_pack({ value: fullFmt(averageValue) })}
+          </span>
           {unpricedCount > 0 && (
             <Button
               type="button"
@@ -239,12 +243,12 @@ function StatsHeadline({
               aria-expanded={unpricedVisible}
               className="h-auto px-0 text-xs decoration-dotted underline-offset-4"
             >
-              ({unpricedCount} without price data)
+              {m.packs_stats_unpriced({ count: unpricedCount })}
             </Button>
           )}
         </>
       ) : (
-        <span className="text-muted-foreground text-sm">Sign in to see marketplace value</span>
+        <span className="text-muted-foreground text-sm">{m.packs_stats_sign_in()}</span>
       )}
     </div>
   );
@@ -294,7 +298,7 @@ function NotablePullsList({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <Heading level={3}>Notable pulls</Heading>
+      <Heading level={3}>{m.packs_notable_pulls()}</Heading>
       <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
           <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">
@@ -318,7 +322,7 @@ function NotablePullsList({
 function UnpricedPullsList({ pulls }: { pulls: UnpricedPull[] }) {
   return (
     <div className="flex flex-col gap-2">
-      <Heading level={3}>Cards without price data</Heading>
+      <Heading level={3}>{m.packs_unpriced_title()}</Heading>
       <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
           <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">

@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DETECTED_FORMAT_LABELS,
-  IMPORT_MODE_LABELS,
+  detectedFormatLabels,
+  importModeLabels,
   IMPORT_MODE_ORDER,
-  IMPORT_PLACEHOLDERS,
+  importPlaceholders,
 } from "./deck-import-modes";
 
 describe("IMPORT_MODE_ORDER", () => {
   it("lists every labelled mode exactly once", () => {
-    expect(IMPORT_MODE_ORDER.toSorted()).toEqual(Object.keys(IMPORT_MODE_LABELS).toSorted());
+    expect(IMPORT_MODE_ORDER.toSorted()).toEqual(Object.keys(importModeLabels()).toSorted());
   });
 
   it("offers automatic detection first", () => {
@@ -17,17 +17,17 @@ describe("IMPORT_MODE_ORDER", () => {
   });
 });
 
-describe("IMPORT_PLACEHOLDERS", () => {
+describe("importPlaceholders", () => {
   it("gives every offered mode a placeholder", () => {
     for (const mode of IMPORT_MODE_ORDER) {
-      expect(IMPORT_PLACEHOLDERS[mode]).not.toBe("");
+      expect(importPlaceholders()[mode]).not.toBe("");
     }
   });
 });
 
-describe("DETECTED_FORMAT_LABELS", () => {
+describe("detectedFormatLabels", () => {
   it("names every mode except automatic detection", () => {
-    expect(Object.keys(DETECTED_FORMAT_LABELS).toSorted()).toEqual(
+    expect(Object.keys(detectedFormatLabels()).toSorted()).toEqual(
       IMPORT_MODE_ORDER.filter((mode) => mode !== "auto").toSorted(),
     );
   });

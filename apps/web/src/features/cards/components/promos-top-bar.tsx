@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/promos_/$language");
 
@@ -41,11 +42,11 @@ export function PromosTopBar({
 
   return (
     <PageTopBar>
-      <PageTopBarTitle>Promos</PageTopBarTitle>
+      <PageTopBarTitle>{m.promos_title()}</PageTopBarTitle>
       <PageTopBarActions>
         {presentLanguages.length > 1 ? (
           <Select items={languageItems} value={activeLanguage} onValueChange={handleLanguageChange}>
-            <SelectTrigger aria-label="Language">
+            <SelectTrigger aria-label={m.promos_language_aria()}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

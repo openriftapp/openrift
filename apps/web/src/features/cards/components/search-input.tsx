@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface SearchInputProps {
   value: string;
@@ -113,7 +114,7 @@ export function SearchInput({
             <span className="pointer-events-none text-xs font-normal">{trailing}</span>
           )}
           {value && (
-            <ChipRemoveButton className="ml-0" onClick={clear} aria-label="Clear search">
+            <ChipRemoveButton className="ml-0" onClick={clear} aria-label={m.cards_clear_search()}>
               <XIcon className="size-3.5" />
             </ChipRemoveButton>
           )}

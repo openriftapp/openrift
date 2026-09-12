@@ -3,38 +3,61 @@ import type {
   PublicUserProfileStats,
 } from "@openrift/shared/types/api/user-share";
 
-const LAST_ACTIVE_LABELS: Record<ProfileLastActive, string> = {
-  today: "Active today",
-  week: "Active this week",
-  month: "Active this month",
-  older: "Last active a while ago",
+import { m } from "@/paraglide/messages.js";
+import { getLocale } from "@/paraglide/runtime.js";
+
+const LAST_ACTIVE_LABELS: Record<ProfileLastActive, () => string> = {
+  today: () => m.user_profile_active_today(),
+  week: () => m.user_profile_active_week(),
+  month: () => m.user_profile_active_month(),
+  older: () => m.user_profile_active_older(),
 };
 
 export function lastActiveLabel(lastActive: ProfileLastActive): string {
-  return LAST_ACTIVE_LABELS[lastActive];
+  return LAST_ACTIVE_LABELS[lastActive]();
 }
 
 const ORDINAL_SUFFIXES: Record<number, string> = { 1: "st", 2: "nd", 3: "rd" };
 
 export function ordinal(n: number): string {
+  const locale = getLocale();
+  if (locale === "de") {
+    return `${n}.`;
+  }
+  if (locale === "fr") {
+    return n === 1 ? "1er" : `${n}e`;
+  }
   const mod100 = n % 100;
   const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (ORDINAL_SUFFIXES[n % 10] ?? "th");
   return `${n}${suffix}`;
-}
-
-function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
 /** The parts under the contributions number, non-zero kinds only. */
 export function contributionsHint(
   contributions: PublicUserProfileStats["contributions"],
 ): string | null {
+  const { cardFixes, newCards, photos, metaEvents } = contributions;
   const parts = [
-    contributions.cardFixes > 0 ? plural(contributions.cardFixes, "card fix", "card fixes") : null,
-    contributions.newCards > 0 ? plural(contributions.newCards, "new card") : null,
-    contributions.photos > 0 ? plural(contributions.photos, "photo") : null,
-    contributions.metaEvents > 0 ? plural(contributions.metaEvents, "meta event") : null,
+    cardFixes > 0
+      ? cardFixes === 1
+        ? m.user_profile_card_fixes_one({ count: cardFixes })
+        : m.user_profile_card_fixes_other({ count: cardFixes })
+      : null,
+    newCards > 0
+      ? newCards === 1
+        ? m.user_profile_new_cards_one({ count: newCards })
+        : m.user_profile_new_cards_other({ count: newCards })
+      : null,
+    photos > 0
+      ? photos === 1
+        ? m.user_profile_photos_one({ count: photos })
+        : m.user_profile_photos_other({ count: photos })
+      : null,
+    metaEvents > 0
+      ? metaEvents === 1
+        ? m.user_profile_meta_events_one({ count: metaEvents })
+        : m.user_profile_meta_events_other({ count: metaEvents })
+      : null,
   ].filter((part) => part !== null);
   return parts.length === 0 ? null : parts.join(" · ");
 }
@@ -45,18 +68,22 @@ export function bestFinishHint(
   if (bestFinish === null) {
     return null;
   }
-  return `Best finish: ${ordinal(bestFinish.rank)} of ${bestFinish.players}`;
+  return m.user_profile_best_finish({
+    rank: ordinal(bestFinish.rank),
+    players: bestFinish.players,
+  });
 }
 
 export function groupsInCommonLabel(names: readonly string[]): string | null {
-  if (names.length === 0) {
+  const [first, second] = names;
+  if (first === undefined) {
     return null;
   }
-  if (names.length === 1) {
-    return `In ${names[0]} with you`;
+  if (second === undefined) {
+    return m.user_profile_groups_one({ group: first });
   }
   if (names.length === 2) {
-    return `In ${names[0]} and ${names[1]} with you`;
+    return m.user_profile_groups_two({ first, second });
   }
-  return `In ${names[0]} and ${names.length - 1} other groups with you`;
+  return m.user_profile_groups_more({ first, count: names.length - 1 });
 }

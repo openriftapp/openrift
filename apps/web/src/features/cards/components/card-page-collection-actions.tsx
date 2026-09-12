@@ -16,20 +16,19 @@ import { collectionsQueryOptions } from "@/features/collections/lib/collections-
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function ownedSummary(ownedCount: number, cardTotal: number): string {
   if (cardTotal === 0) {
-    return "You don't own this card yet.";
+    return m.card_detail_own_none();
   }
   if (ownedCount === 0) {
-    return `You own ${cardTotal} of this card, none of this printing.`;
+    return m.card_detail_own_other_printing({ total: cardTotal });
   }
   if (cardTotal > ownedCount) {
-    return `You own ${ownedCount} of this printing, ${cardTotal} of this card.`;
+    return m.card_detail_own_partial({ count: ownedCount, total: cardTotal });
   }
-  return ownedCount === 1
-    ? "You own 1 copy of this printing."
-    : `You own ${ownedCount} copies of this printing.`;
+  return ownedCount === 1 ? m.card_detail_own_one() : m.card_detail_own_many({ count: ownedCount });
 }
 
 // Every count here comes from a live query with no server snapshot; the card
@@ -91,7 +90,7 @@ export function CardPageCollectionActions({
   return (
     <>
       <section className="flex flex-col gap-2">
-        <SectionHeading icon={PackageIcon}>Your copies</SectionHeading>
+        <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <p className="text-muted-foreground min-w-0 flex-1 text-sm">
             {ownedSummary(ownedCount, cardTotal)}
@@ -123,14 +122,16 @@ export function CardPageCollectionActions({
                   ownedCount > 0
                     ? {
                         onClick: (event) => removeCopy(event.currentTarget),
-                        ariaLabel: `Remove ${cardName}`,
+                        ariaLabel: m.card_detail_remove_card({ card: cardName }),
                       }
                     : undefined
                 }
                 increment={{
                   onClick: addCopy,
                   disabled: !handleQuickAdd,
-                  ariaLabel: inbox ? `Add ${cardName} to ${inbox.name}` : `Add ${cardName}`,
+                  ariaLabel: inbox
+                    ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
+                    : m.card_detail_add_card({ card: cardName }),
                 }}
               />
             </div>

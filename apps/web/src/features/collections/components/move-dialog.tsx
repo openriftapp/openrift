@@ -10,6 +10,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface MoveDialogProps {
   open: boolean;
@@ -63,10 +64,10 @@ export function MoveDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={() => selectedId && onMove(selectedId, effectiveQuantity)}>
-          <AlertDialogTitle>Move to collection</AlertDialogTitle>
+          <AlertDialogTitle>{m.collections_dialog_move_title()}</AlertDialogTitle>
           {canChooseQuantity && (
             <QuantityStepperField
-              label="Copies to move"
+              label={m.collections_dialog_move_quantity_label()}
               value={quantity}
               onValueChange={setQuantity}
               max={count}
@@ -77,15 +78,15 @@ export function MoveDialog({
           <div>
             {collections.length === 0 ? (
               <Empty>
-                <EmptyDescription>No other collections available.</EmptyDescription>
+                <EmptyDescription>{m.collections_dialog_move_empty()}</EmptyDescription>
               </Empty>
             ) : (
               <PickerList
-                searchPlaceholder="Filter collections…"
+                searchPlaceholder={m.collections_dialog_move_filter_placeholder()}
                 highlightedId={highlightedId}
                 onHighlightChange={setHighlightedId}
               >
-                <CommandEmpty>No matching collections.</CommandEmpty>
+                <CommandEmpty>{m.collections_dialog_move_no_matches()}</CommandEmpty>
                 {collections.map((col) => (
                   <PickerRow
                     key={col.id}
@@ -111,11 +112,13 @@ export function MoveDialog({
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             {canChooseQuantity && (
               <Button type="submit" disabled={!selectedId || isPending}>
-                {isPending ? "Moving…" : "Move"}
+                {isPending
+                  ? m.collections_dialog_move_pending()
+                  : m.collections_dialog_move_confirm()}
               </Button>
             )}
           </div>

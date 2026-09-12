@@ -17,6 +17,7 @@ import { formatChancePct } from "@/features/decks/lib/deck-draw-odds";
 import type { OddsGroupRow } from "@/features/decks/lib/deck-odds-groups";
 import { oddsRowTitle } from "@/features/decks/lib/deck-odds-row-title";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function InHandDot({ inHand }: { inHand: number }) {
   if (inHand === 0) {
@@ -53,16 +54,16 @@ export function DeckDrawOddsPanel({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <SectionHeading size="sm">Draw odds</SectionHeading>
+        <SectionHeading size="sm">{m.decks_odds_draw_title()}</SectionHeading>
         {picker}
       </div>
       <div className="max-h-96 overflow-y-auto">
         <Table interactive={false}>
           <TableHeader>
             <TableRow className="text-muted-foreground text-xs">
-              <TableHead>Card</TableHead>
-              <TableHead className="w-px text-right">Hand</TableHead>
-              <TableHead className="w-px text-right">First 7</TableHead>
+              <TableHead>{m.decks_odds_col_card()}</TableHead>
+              <TableHead className="w-px text-right">{m.decks_odds_col_hand()}</TableHead>
+              <TableHead className="w-px text-right">{m.decks_odds_col_first_seven()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -123,11 +124,9 @@ export function DeckDrawOddsPanel({
           </TableBody>
         </Table>
       </div>
-      <p className="text-muted-foreground text-2xs">
-        Chance of at least one copy in your opening hand, and anywhere in your first 7 cards.
-      </p>
+      <p className="text-muted-foreground text-2xs">{m.decks_odds_draw_footnote()}</p>
       {showHandDots && (
-        <p className="text-muted-foreground text-2xs">Dots show what you hit in the sample hand.</p>
+        <p className="text-muted-foreground text-2xs">{m.decks_odds_dots_footnote()}</p>
       )}
     </div>
   );

@@ -12,47 +12,55 @@ import {
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { TextLink } from "@/components/ui/text-link";
+import { m } from "@/paraglide/messages.js";
 
-const FROM_LIBRARY: IntroGuideRow = {
-  icons: [LibraryBigIcon],
-  title: "Fill it from the library",
-  description:
-    "Turn on the library and press + on any card, or drag cards onto the list in the sidebar.",
-};
+function fromLibraryRow(): IntroGuideRow {
+  return {
+    icons: [LibraryBigIcon],
+    title: m.lists_intro_from_library_title(),
+    description: m.lists_intro_from_library_description(),
+  };
+}
 
-const FROM_COLLECTION: IntroGuideRow = {
-  icons: [CheckSquareIcon],
-  title: "Fill it from a collection",
-  description:
-    "Open a collection, choose Manage cards, select copies, and pick Add to list. Or drag copies onto the list in the sidebar.",
-};
+function fromCollectionRow(): IntroGuideRow {
+  return {
+    icons: [CheckSquareIcon],
+    title: m.lists_intro_from_collection_title(),
+    description: m.lists_intro_from_collection_description(),
+  };
+}
 
-const DYNAMIC_RULES: IntroGuideRow = {
-  icons: [SparklesIcon],
-  title: "Dynamic rules",
-  description: "Set a rule once, like every Legend you don't own yet, and the list fills itself.",
-};
+function dynamicRulesRow(): IntroGuideRow {
+  return {
+    icons: [SparklesIcon],
+    title: m.lists_intro_rules_title(),
+    description: m.lists_intro_rules_description(),
+  };
+}
 
-const TRADE_PREFERENCES: IntroGuideRow = {
-  icons: [TagIcon],
-  title: "Prices and preferences",
-  description:
-    "The list's price reference and what you accept are what members see on a match. Override them per card from the pill on each entry.",
-};
+function tradePreferencesRow(): IntroGuideRow {
+  return {
+    icons: [TagIcon],
+    title: m.lists_intro_prefs_title(),
+    description: m.lists_intro_prefs_description(),
+  };
+}
 
-const SHARE: IntroGuideRow = {
-  icons: [Share2Icon],
-  title: "Share with a group",
-  description:
-    "Lists are private until you share them into a group from that group's settings. Each group is shared separately.",
-};
+function shareRow(): IntroGuideRow {
+  return {
+    icons: [Share2Icon],
+    title: m.lists_intro_share_title(),
+    description: m.lists_intro_share_description(),
+  };
+}
 
-const FILE_AWAY: IntroGuideRow = {
-  icons: [FolderInputIcon],
-  title: "File copies away",
-  description:
-    "Move every copy on this list into another collection in one step from Manage copies.",
-};
+function fileAwayRow(): IntroGuideRow {
+  return {
+    icons: [FolderInputIcon],
+    title: m.lists_intro_file_away_title(),
+    description: m.lists_intro_file_away_description(),
+  };
+}
 
 function introCopy(
   intent: ListIntent,
@@ -60,25 +68,25 @@ function introCopy(
 ): { title: string; lead: string; rows: readonly IntroGuideRow[] } {
   if (intent === "wish") {
     return {
-      title: "This is a wishlist",
-      lead: "Cards you're looking for. Share it with a group and OpenRift matches your wants against what other members offer on their tradelists. Entries drop off as you add copies to your collection.",
-      rows: [FROM_LIBRARY, DYNAMIC_RULES, TRADE_PREFERENCES, SHARE],
+      title: m.lists_intro_wish_title(),
+      lead: m.lists_intro_wish_lead(),
+      rows: [fromLibraryRow(), dynamicRulesRow(), tradePreferencesRow(), shareRow()],
     };
   }
   if (intent === "trade") {
     return {
-      title: "This is a tradelist",
-      lead: "Specific copies from your collection you'd part with. A copy stays where it is, the list only flags it as available. When it leaves your collection it drops off the list.",
-      rows: [FROM_COLLECTION, DYNAMIC_RULES, TRADE_PREFERENCES, SHARE],
+      title: m.lists_intro_trade_title(),
+      lead: m.lists_intro_trade_lead(),
+      rows: [fromCollectionRow(), dynamicRulesRow(), tradePreferencesRow(), shareRow()],
     };
   }
   return {
-    title: "This is an organize list",
-    lead: "A pile for anything that isn't about trading: a brew pool, favourite alt-arts, a bulk box to sort. A group can see it once shared, but it never feeds trade matches.",
+    title: m.lists_intro_organize_title(),
+    lead: m.lists_intro_organize_lead(),
     rows:
       kind === "copy"
-        ? [FROM_COLLECTION, DYNAMIC_RULES, FILE_AWAY, SHARE]
-        : [FROM_LIBRARY, DYNAMIC_RULES, SHARE],
+        ? [fromCollectionRow(), dynamicRulesRow(), fileAwayRow(), shareRow()]
+        : [fromLibraryRow(), dynamicRulesRow(), shareRow()],
   };
 }
 
@@ -96,7 +104,7 @@ export function ListIntroBanner({
     <IntroBanner className="mb-3" title={copy.title} lead={copy.lead} onDismiss={onDismiss}>
       <IntroGuideList rows={copy.rows} />
       <TextLink render={<Link to="/help/$slug" params={{ slug: "lists" }} />}>
-        How wishlists and tradelists work →
+        {m.lists_intro_help_link()}
       </TextLink>
     </IntroBanner>
   );

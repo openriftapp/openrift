@@ -31,65 +31,63 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
+import { m } from "@/paraglide/messages.js";
 
-const LOCKED_FEATURES: Record<
+function lockedFeatures(): Record<
   LockedFeatureKey,
   { title: string; description: string; to: string; icon: typeof LibraryIcon }
-> = {
-  collections: {
-    title: "Collection",
-    description:
-      "Track every card you own, down to the printing, across as many collections as you like.",
-    to: "/collections",
-    icon: LibraryIcon,
-  },
-  scan: {
-    title: "Card scanner",
-    description:
-      "Hold your cards in front of the camera to add them to a collection, recognised on your device so no pictures are uploaded.",
-    to: "/scan",
-    icon: CameraIcon,
-  },
-  groups: {
-    title: "Groups",
-    description:
-      "Form a private group with friends or your local store, with shared collections and trade matching that shows who has the cards you want.",
-    to: "/groups",
-    icon: UsersIcon,
-  },
-  trades: {
-    title: "Trades",
-    description:
-      "Swap cards with people in your groups: matches from your wishlists and tradelists, requests, and swaps to confirm.",
-    to: "/trades",
-    icon: HandshakeIcon,
-  },
-  loans: {
-    title: "Lending",
-    description:
-      "Keep track of cards you lend to friends: who has them, and what you're borrowing back.",
-    to: "/loans",
-    icon: HandHeartIcon,
-  },
-  tournaments: {
-    title: "Tournaments",
-    description: "Run tournaments with pods, deck check, and judges all under one event.",
-    to: "/tournaments",
-    icon: TrophyIcon,
-  },
-  tierLists: {
-    title: "Tier lists",
-    description: "Rank a set on a drag-and-drop board, then share it as a link or an image.",
-    to: "/tier-lists",
-    icon: ListOrderedIcon,
-  },
-  contribute: {
-    title: "Contribute",
-    description: "Submit missing cards, corrections, and images to the catalogue for review.",
-    to: "/contribute",
-    icon: PencilLineIcon,
-  },
-};
+> {
+  return {
+    collections: {
+      title: m.nav_collection(),
+      description: m.nav_locked_collections_description(),
+      to: "/collections",
+      icon: LibraryIcon,
+    },
+    scan: {
+      title: m.nav_scan_full(),
+      description: m.nav_locked_scan_description(),
+      to: "/scan",
+      icon: CameraIcon,
+    },
+    groups: {
+      title: m.nav_groups(),
+      description: m.nav_locked_groups_description(),
+      to: "/groups",
+      icon: UsersIcon,
+    },
+    trades: {
+      title: m.nav_trades(),
+      description: m.nav_locked_trades_description(),
+      to: "/trades",
+      icon: HandshakeIcon,
+    },
+    loans: {
+      title: m.nav_lending(),
+      description: m.nav_locked_loans_description(),
+      to: "/loans",
+      icon: HandHeartIcon,
+    },
+    tournaments: {
+      title: m.nav_tournaments(),
+      description: m.nav_locked_tournaments_description(),
+      to: "/tournaments",
+      icon: TrophyIcon,
+    },
+    tierLists: {
+      title: m.nav_tier_lists(),
+      description: m.nav_locked_tier_lists_description(),
+      to: "/tier-lists",
+      icon: ListOrderedIcon,
+    },
+    contribute: {
+      title: m.nav_contribute(),
+      description: m.nav_locked_contribute_description(),
+      to: "/contribute",
+      icon: PencilLineIcon,
+    },
+  };
+}
 
 export interface NavSectionConfig {
   label: string;
@@ -97,131 +95,135 @@ export interface NavSectionConfig {
 }
 
 // Renders as the desktop top-level links and the mobile sheet's first block.
-// MORE_NAV_SECTIONS below renders in the desktop "More" panel and as titled
+// moreNavSections below renders in the desktop "More" panel and as titled
 // groups in the mobile sheet.
-export const PRIMARY_NAV_ITEMS: NavItemConfig[] = [
-  { label: "Cards", to: "/cards", icon: LayersIcon, keepSearch: true },
-  { label: "Collection", to: "/collections", icon: LibraryIcon, lockedKey: "collections" },
-  { label: "Scan", to: "/scan", icon: CameraIcon, lockedKey: "scan", platform: "mobile" },
-  // Decks are available logged out, so this entry is a plain link for everyone.
-  { label: "Decks", to: "/decks", icon: BookOpenIcon },
-  // Only here, not also under Explore: the mobile sheet renders both lists,
-  // so an entry in each would show up twice.
-  { label: "Meta", to: "/meta", icon: TrendingUpIcon, flag: "meta" },
-  { label: "Groups", to: "/groups", icon: UsersIcon, lockedKey: "groups", badge: "groups" },
-];
+export function primaryNavItems(): NavItemConfig[] {
+  return [
+    { label: m.nav_cards(), to: "/cards", icon: LayersIcon, keepSearch: true },
+    { label: m.nav_collection(), to: "/collections", icon: LibraryIcon, lockedKey: "collections" },
+    { label: m.nav_scan(), to: "/scan", icon: CameraIcon, lockedKey: "scan", platform: "mobile" },
+    // Decks are available logged out, so this entry is a plain link for everyone.
+    { label: m.nav_decks(), to: "/decks", icon: BookOpenIcon },
+    // Only here, not also under Explore: the mobile sheet renders both lists,
+    // so an entry in each would show up twice.
+    { label: m.nav_meta(), to: "/meta", icon: TrendingUpIcon, flag: "meta" },
+    { label: m.nav_groups(), to: "/groups", icon: UsersIcon, lockedKey: "groups", badge: "groups" },
+  ];
+}
 
-export const MORE_NAV_SECTIONS: NavSectionConfig[] = [
-  {
-    label: "Play",
-    items: [
-      {
-        label: "Rules",
-        to: "/rules",
-        icon: GavelIcon,
-        description: "Core and tournament rules",
-      },
-      {
-        label: "Glossary",
-        to: "/glossary",
-        icon: BookTextIcon,
-        flag: "glossary",
-        description: "Symbols, keywords, and shorthand",
-      },
-      {
-        label: "Match tracker",
-        to: "/match-tracker",
-        icon: SwordsIcon,
-        description: "Points and XP for 2–4 players during a game",
-      },
-    ],
-  },
-  {
-    label: "Organize",
-    items: [
-      {
-        label: "Scan",
-        to: "/scan",
-        icon: CameraIcon,
-        lockedKey: "scan",
-        platform: "desktop",
-        description: "Add cards to a collection with your camera",
-      },
-      {
-        label: "Tournaments",
-        to: "/tournaments",
-        icon: TrophyIcon,
-        lockedKey: "tournaments",
-        description: "Run pods, deck check, and judges under one event",
-      },
-      {
-        label: "Trades",
-        to: "/trades",
-        icon: HandshakeIcon,
-        lockedKey: "trades",
-        badge: "trades",
-        description: "Requests, swaps to confirm, and who you're trading with",
-      },
-      {
-        label: "Lending",
-        to: "/loans",
-        icon: HandHeartIcon,
-        lockedKey: "loans",
-        badge: "loans",
-        description: "Cards lent to friends and cards you're borrowing",
-      },
-    ],
-  },
-  {
-    label: "Create",
-    items: [
-      {
-        label: "Stage",
-        to: "/stage",
-        icon: MonitorPlayIcon,
-        platform: "desktop",
-        description: "A full-screen card show, or an overlay for OBS",
-      },
-      {
-        label: "Tier lists",
-        to: "/tier-lists",
-        icon: ListOrderedIcon,
-        lockedKey: "tierLists",
-        platform: "desktop",
-        description: "Rank a set on a board and share it",
-      },
-    ],
-  },
-  {
-    label: "Explore",
-    items: [
-      {
-        label: "Promos",
-        to: "/promos",
-        icon: GiftIcon,
-        description: "Alternate printings from events and giveaways",
-      },
-      {
-        label: "Products",
-        to: "/products",
-        icon: PackageIcon,
-        description: "Full card lists for official products",
-      },
-      {
-        label: "Pack opener",
-        to: "/pack-opener",
-        icon: PackagePlusIcon,
-        description: "Simulate opening boosters with real pull rates",
-      },
-      {
-        label: "Card designer",
-        to: "/card-designer",
-        icon: PaletteIcon,
-        description: "Make a custom card with your own background image",
-      },
-    ],
-  },
-];
+export function moreNavSections(): NavSectionConfig[] {
+  return [
+    {
+      label: m.nav_section_play(),
+      items: [
+        {
+          label: m.nav_rules(),
+          to: "/rules",
+          icon: GavelIcon,
+          description: m.nav_rules_description(),
+        },
+        {
+          label: m.nav_glossary(),
+          to: "/glossary",
+          icon: BookTextIcon,
+          flag: "glossary",
+          description: m.nav_glossary_description(),
+        },
+        {
+          label: m.nav_match_tracker(),
+          to: "/match-tracker",
+          icon: SwordsIcon,
+          description: m.nav_match_tracker_description(),
+        },
+      ],
+    },
+    {
+      label: m.nav_section_organize(),
+      items: [
+        {
+          label: m.nav_scan(),
+          to: "/scan",
+          icon: CameraIcon,
+          lockedKey: "scan",
+          platform: "desktop",
+          description: m.nav_scan_description(),
+        },
+        {
+          label: m.nav_tournaments(),
+          to: "/tournaments",
+          icon: TrophyIcon,
+          lockedKey: "tournaments",
+          description: m.nav_tournaments_description(),
+        },
+        {
+          label: m.nav_trades(),
+          to: "/trades",
+          icon: HandshakeIcon,
+          lockedKey: "trades",
+          badge: "trades",
+          description: m.nav_trades_description(),
+        },
+        {
+          label: m.nav_lending(),
+          to: "/loans",
+          icon: HandHeartIcon,
+          lockedKey: "loans",
+          badge: "loans",
+          description: m.nav_lending_description(),
+        },
+      ],
+    },
+    {
+      label: m.nav_section_create(),
+      items: [
+        {
+          label: m.nav_stage(),
+          to: "/stage",
+          icon: MonitorPlayIcon,
+          platform: "desktop",
+          description: m.nav_stage_description(),
+        },
+        {
+          label: m.nav_tier_lists(),
+          to: "/tier-lists",
+          icon: ListOrderedIcon,
+          lockedKey: "tierLists",
+          platform: "desktop",
+          description: m.nav_tier_lists_description(),
+        },
+      ],
+    },
+    {
+      label: m.nav_section_explore(),
+      items: [
+        {
+          label: m.nav_promos(),
+          to: "/promos",
+          icon: GiftIcon,
+          description: m.nav_promos_description(),
+        },
+        {
+          label: m.nav_products(),
+          to: "/products",
+          icon: PackageIcon,
+          description: m.nav_products_description(),
+        },
+        {
+          label: m.nav_pack_opener(),
+          to: "/pack-opener",
+          icon: PackagePlusIcon,
+          description: m.nav_pack_opener_description(),
+        },
+        {
+          label: m.nav_card_designer(),
+          to: "/card-designer",
+          icon: PaletteIcon,
+          description: m.nav_card_designer_description(),
+        },
+      ],
+    },
+  ];
+}
 
 export type NavFlags = Record<NonNullable<NavItemConfig["flag"]>, boolean>;
 
@@ -247,7 +249,7 @@ export function visibleMoreSections(opts: {
   flags: NavFlags;
   mobile: boolean;
 }): { label: string; items: NavItemConfig[] }[] {
-  const sections = MORE_NAV_SECTIONS.map((section) => ({
+  const sections = moreNavSections().map((section) => ({
     label: section.label,
     items: section.items.filter((item) => navItemVisible(item, opts)),
   }));
@@ -256,12 +258,12 @@ export function visibleMoreSections(opts: {
 
 export function badgeAriaLabel(badge: keyof NavBadgeCounts, count: number): string {
   if (badge === "loans") {
-    return `${count} loans need your confirmation`;
+    return m.nav_badge_loans({ count });
   }
   if (badge === "trades") {
-    return `${count} ${count === 1 ? "person is" : "people are"} waiting on you to trade`;
+    return count === 1 ? m.nav_badge_trades_one({ count }) : m.nav_badge_trades_other({ count });
   }
-  return `${count} join ${count === 1 ? "request" : "requests"} to review`;
+  return count === 1 ? m.nav_badge_requests_one({ count }) : m.nav_badge_requests_other({ count });
 }
 
 export function SignInRequiredDialog({
@@ -271,7 +273,7 @@ export function SignInRequiredDialog({
   featureKey: LockedFeatureKey | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const feature = featureKey ? LOCKED_FEATURES[featureKey] : null;
+  const feature = featureKey ? lockedFeatures()[featureKey] : null;
   return (
     <Dialog open={Boolean(feature)} onOpenChange={onOpenChange}>
       {feature && (
@@ -290,7 +292,7 @@ export function SignInRequiredDialog({
               className={buttonVariants({ variant: "ghost" })}
               onClick={() => onOpenChange(false)}
             >
-              Sign in
+              {m.common_sign_in()}
             </Link>
             <Link
               to="/signup"
@@ -298,7 +300,7 @@ export function SignInRequiredDialog({
               className={buttonVariants({ variant: "default" })}
               onClick={() => onOpenChange(false)}
             >
-              Sign up
+              {m.common_sign_up()}
             </Link>
           </DialogFooter>
         </DialogContent>

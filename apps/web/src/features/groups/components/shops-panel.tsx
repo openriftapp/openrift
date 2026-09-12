@@ -22,6 +22,7 @@ import {
   useLinkFriendGroupShop,
   useUnlinkFriendGroupShop,
 } from "@/features/groups/hooks/use-friend-group-shops";
+import { m } from "@/paraglide/messages.js";
 
 export function ShopsPanel({ slug }: { slug: string }) {
   const { data } = useFriendGroupShops(slug);
@@ -35,10 +36,10 @@ export function ShopsPanel({ slug }: { slug: string }) {
       title={
         <span className="flex items-center gap-2">
           <StoreIcon className="size-4" />
-          Local shops
+          {m.groups_shops_panel_title()}
         </span>
       }
-      description="Events at these shops show up on the group's Shop events page, and the next one appears on the group overview. Every member sees them; admins change the list."
+      description={m.groups_shops_panel_description()}
     >
       {data.items.length > 0 ? (
         <RowList>
@@ -51,8 +52,11 @@ export function ShopsPanel({ slug }: { slug: string }) {
                 ) : null}
                 <span className="text-muted-foreground text-xs">
                   {shop.nextEventAt === null
-                    ? "Nothing listed in the next weeks"
-                    : `Next ${formatDayTimeLocal(shop.nextEventAt)} · ${shop.upcomingCount} upcoming`}
+                    ? m.groups_shops_nothing_next_weeks()
+                    : m.groups_shops_next_event({
+                        when: formatDayTimeLocal(shop.nextEventAt),
+                        count: shop.upcomingCount,
+                      })}
                 </span>
               </div>
               <Button
@@ -62,18 +66,18 @@ export function ShopsPanel({ slug }: { slug: string }) {
                 disabled={unlink.isPending}
               >
                 <Trash2Icon className="size-4" />
-                Remove
+                {m.groups_members_remove()}
               </Button>
             </RowListItem>
           ))}
         </RowList>
       ) : (
-        <p className="text-muted-foreground text-sm">No shop linked yet.</p>
+        <p className="text-muted-foreground text-sm">{m.groups_shops_none_linked()}</p>
       )}
       <div className="flex flex-wrap items-center gap-2">
         <AddShopPicker slug={slug} disabled={atLimit} />
         <span className="text-muted-foreground text-xs">
-          {data.items.length} of {data.limit} shops linked
+          {m.groups_shops_linked_count({ count: data.items.length, limit: data.limit })}
         </span>
       </div>
     </SettingsSection>
@@ -110,16 +114,16 @@ function AddShopPicker({ slug, disabled }: { slug: string; disabled: boolean }) 
         render={<Button variant="outline" size="sm" disabled={disabled || link.isPending} />}
       >
         <PlusIcon className="size-4" />
-        Add shop
+        {m.groups_shops_add()}
       </ComboboxTrigger>
       <ComboboxContent className="w-96 max-w-[90vw]">
-        <ComboboxInput placeholder="Search by shop or town" showTrigger={false} />
+        <ComboboxInput placeholder={m.groups_shops_search_placeholder()} showTrigger={false} />
         <ComboboxEmpty>
           {term.trim().length < SHOP_SEARCH_MIN_LENGTH
-            ? "Type a shop or town name"
+            ? m.groups_shops_search_prompt()
             : search.isPending
-              ? "Searching"
-              : "No shop with upcoming Riftbound events"}
+              ? m.groups_shops_searching()
+              : m.groups_shops_search_empty()}
         </ComboboxEmpty>
         <ComboboxList>
           {(shop: FriendGroupShopSearchResult) => (
@@ -127,10 +131,14 @@ function AddShopPicker({ slug, disabled }: { slug: string; disabled: boolean }) 
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-medium">{shop.name}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {[shop.location, `${shop.upcomingCount} upcoming`].filter(Boolean).join(" · ")}
+                  {[shop.location, m.groups_shops_upcoming_count({ count: shop.upcomingCount })]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
               </span>
-              {shop.linked ? <span className="text-muted-foreground text-xs">Linked</span> : null}
+              {shop.linked ? (
+                <span className="text-muted-foreground text-xs">{m.groups_shops_linked()}</span>
+              ) : null}
             </ComboboxItem>
           )}
         </ComboboxList>

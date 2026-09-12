@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Hand-authored primitive (not shadcn-scaffolded).
 //
@@ -203,7 +204,7 @@ function GhostSeat({ rank }: { rank: number }) {
  */
 export function Podium({
   seats,
-  emptyLabel = "No results yet.",
+  emptyLabel = m.ui_podium_empty(),
   className,
 }: {
   seats: PodiumSeat[];

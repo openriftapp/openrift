@@ -16,13 +16,16 @@ import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-in
 import { authClient, signIn } from "@/features/account/lib/auth-client";
 import { otpErrorMessage, requestOtpErrorMessage, setServerError } from "@/lib/auth-errors";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
-const signInSchema = z.object({
-  email: z.email("Please enter a valid email address."),
-  password: z.string().min(1, "Password is required."),
-});
+function signInSchema() {
+  return z.object({
+    email: z.email(m.auth_invalid_email()),
+    password: z.string().min(1, m.auth_password_required()),
+  });
+}
 
-type SignInValues = z.infer<typeof signInSchema>;
+type SignInValues = z.infer<ReturnType<typeof signInSchema>>;
 
 /**
  * useWatch/useFormState/Controller stay in leaf components below, never in
@@ -42,21 +45,21 @@ export function LoginForm({
   const [method, setMethod] = useState<"password" | "otp">("password");
 
   const form = useForm<SignInValues>({
-    resolver: zodResolver(signInSchema),
+    resolver: zodResolver(signInSchema()),
     defaultValues: { email: initialEmail, password: "" },
   });
 
   return (
     <AuthFormCard
       className={className}
-      title="Welcome back"
-      subtitle="Sign in to your OpenRift account"
+      title={m.auth_login_title()}
+      subtitle={m.auth_login_subtitle()}
       {...props}
     >
       <Tabs value={method} onValueChange={(v) => setMethod(v as "password" | "otp")}>
         <TabsList className="w-full">
-          <TabsTrigger value="password">Password</TabsTrigger>
-          <TabsTrigger value="otp">Email code</TabsTrigger>
+          <TabsTrigger value="password">{m.auth_tab_password()}</TabsTrigger>
+          <TabsTrigger value="otp">{m.auth_tab_email_code()}</TabsTrigger>
         </TabsList>
         <TabsContent value="password" tabIndex={-1}>
           <PasswordSignIn
@@ -78,7 +81,7 @@ export function LoginForm({
       </Tabs>
       <SocialAuthButtons redirectTo={redirectTo} />
       <FieldDescription className="text-center">
-        Don&apos;t have an account? <SignupLink control={form.control} redirectTo={redirectTo} />
+        {m.auth_login_no_account()} <SignupLink control={form.control} redirectTo={redirectTo} />
       </FieldDescription>
     </AuthFormCard>
   );
@@ -107,7 +110,7 @@ function PasswordSignIn({
     const result = await signIn.email(values).catch(() => null);
     setLoading(false);
     if (!result) {
-      form.setError("root", { message: "Could not sign in. Please try again." });
+      form.setError("root", { message: m.auth_signin_failed() });
       return;
     }
     const { error } = result;
@@ -132,7 +135,7 @@ function PasswordSignIn({
       .catch(() => null);
     setResending(false);
     if (!result) {
-      form.setError("root", { message: "Could not send the code. Please try again." });
+      form.setError("root", { message: m.auth_send_code_failed() });
       return;
     }
     if (result.error) {
@@ -154,7 +157,7 @@ function PasswordSignIn({
               disabled={resending}
               onClick={() => void handleResend()}
             >
-              {resending ? "Sending..." : "Send a verification code"}
+              {resending ? m.auth_sending() : m.auth_send_verification_code()}
             </Button>
           )}
         </RootFormError>
@@ -163,7 +166,7 @@ function PasswordSignIn({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{m.auth_field_email()}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
@@ -186,7 +189,7 @@ function PasswordSignIn({
               {/* Grid places the Forgot link visually in the label row, but renders it DOM-after the input so tab order is input → Forgot */}
               <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
                 <FieldLabel htmlFor={field.name} className="col-start-1 row-start-1">
-                  Password
+                  {m.auth_field_password()}
                 </FieldLabel>
                 <Input
                   {...field}
@@ -207,7 +210,7 @@ function PasswordSignIn({
         />
         <Field>
           <Button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Login"}
+            {loading ? m.auth_signing_in() : m.auth_login_submit()}
           </Button>
         </Field>
       </FieldGroup>
@@ -235,7 +238,7 @@ function OtpSignIn({
   async function handleSendOtp() {
     const email = form.getValues("email").trim();
     if (!email || !email.includes("@")) {
-      setEmailError("Please enter a valid email address.");
+      setEmailError(m.auth_invalid_email());
       return;
     }
     setEmailError("");
@@ -245,7 +248,7 @@ function OtpSignIn({
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setEmailError("Could not send the code. Please try again.");
+      setEmailError(m.auth_send_code_failed());
       return;
     }
     if (result.error) {
@@ -266,7 +269,7 @@ function OtpSignIn({
       .catch(() => null);
     setLoading(false);
     if (!result) {
-      setOtpError("Could not sign in. Please try again.");
+      setOtpError(m.auth_signin_failed());
       return;
     }
     if (result.error) {
@@ -294,7 +297,7 @@ function OtpSignIn({
           <>
             {emailError && <FieldError>{emailError}</FieldError>}
             <Field>
-              <FieldLabel htmlFor="otp-email">Email</FieldLabel>
+              <FieldLabel htmlFor="otp-email">{m.auth_field_email()}</FieldLabel>
               <Controller
                 name="email"
                 control={form.control}
@@ -314,7 +317,7 @@ function OtpSignIn({
             </Field>
             <Field>
               <Button type="submit" disabled={loading}>
-                {loading ? "Sending..." : "Send code"}
+                {loading ? m.auth_sending() : m.auth_send_code()}
               </Button>
             </Field>
           </>
@@ -326,7 +329,7 @@ function OtpSignIn({
             </div>
             <Field>
               <Button type="submit" disabled={otp.length < 6 || loading}>
-                {loading ? "Verifying..." : "Verify"}
+                {loading ? m.auth_verifying() : m.auth_verify()}
               </Button>
             </Field>
             <Button
@@ -339,7 +342,7 @@ function OtpSignIn({
                 setOtpError("");
               }}
             >
-              Use a different email
+              {m.auth_use_different_email()}
             </Button>
           </>
         )}
@@ -381,7 +384,7 @@ function ForgotPasswordLink({
       className={className}
       render={<Link to="/reset-password" search={{ email }} />}
     >
-      Forgot your password?
+      {m.auth_forgot_password()}
     </TextLink>
   );
 }
@@ -396,7 +399,7 @@ function SignupLink({
   const email = useWatch({ control, name: "email" });
   return (
     <Link to="/signup" search={{ redirect: redirectTo, email: email || undefined }}>
-      Sign up
+      {m.common_sign_up()}
     </Link>
   );
 }

@@ -15,8 +15,8 @@ import {
   useSaveDeckCards,
 } from "@/features/decks/hooks/use-decks";
 import {
-  DEFAULT_IMPORT_DECK_NAME,
   dedupeMatchedEntries,
+  defaultImportDeckName,
 } from "@/features/decks/lib/deck-import-cards";
 import type {
   DeckMatchStatus,
@@ -25,7 +25,7 @@ import type {
 } from "@/features/decks/lib/deck-import-matcher";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import type { DeckImportMode } from "@/features/decks/lib/deck-import-modes";
-import { DETECTED_FORMAT_LABELS } from "@/features/decks/lib/deck-import-modes";
+import { detectedFormatLabels } from "@/features/decks/lib/deck-import-modes";
 import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import {
   entriesFromSharedDeck,
@@ -39,6 +39,7 @@ import { resolveReplaceTarget } from "@/features/decks/lib/deck-import-replace";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 type DeckImportStep = "input" | "preview";
 
@@ -131,8 +132,8 @@ export function useDeckImportFlow() {
     } catch (error) {
       setParseWarnings([
         error instanceof Error && error.message === "NOT_FOUND"
-          ? "That share link doesn't point to a shared deck anymore. It may have been unshared or the link rotated."
-          : "Couldn't load the shared deck. Please try again.",
+          ? m.decks_import_share_link_gone()
+          : m.decks_import_share_link_failed(),
       ]);
     }
     setIsResolvingLink(false);
@@ -147,10 +148,10 @@ export function useDeckImportFlow() {
       }
     }
     if (data.cards.length === 0) {
-      setParseWarnings(["That shared deck has no cards to import."]);
+      setParseWarnings([m.decks_import_shared_deck_empty()]);
       return;
     }
-    setSourceNote("from a shared deck link");
+    setSourceNote(m.decks_import_source_shared_link());
     finishParse(entriesFromSharedDeck(data.cards), []);
   };
 
@@ -166,15 +167,13 @@ export function useDeckImportFlow() {
           return;
         }
         case "deck-code": {
-          setSourceNote("deck code found in the pasted link");
+          setSourceNote(m.decks_import_source_code_in_link());
           const { entries, warnings } = parseDeckImportData(urlSniff.code, "piltover");
           finishParse(entries, warnings);
           return;
         }
         case "url-no-deck": {
-          setParseWarnings([
-            "Couldn't find a deck code or share link in that URL. Paste the deck itself instead.",
-          ]);
+          setParseWarnings([m.decks_import_no_deck_in_url()]);
           return;
         }
       }
@@ -182,7 +181,7 @@ export function useDeckImportFlow() {
 
     const format = importMode === "auto" ? sniffDeckImportFormat(text) : importMode;
     if (importMode === "auto") {
-      setSourceNote(`detected as ${DETECTED_FORMAT_LABELS[format]}`);
+      setSourceNote(m.decks_import_source_detected({ format: detectedFormatLabels()[format] }));
     }
     const { entries, warnings } = parseDeckImportData(text, format);
     finishParse(entries, warnings);
@@ -204,7 +203,7 @@ export function useDeckImportFlow() {
       setDeckName(prefillName);
     }
     const { format, entries, warnings } = parseDeckImportAuto(prefillCode);
-    setSourceNote(`${DETECTED_FORMAT_LABELS[format]} from the link`);
+    setSourceNote(m.decks_import_source_from_link({ format: detectedFormatLabels()[format] }));
     finishParse(entries, warnings);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount; the ref guard keeps re-runs out
   }, [prefillCode]);
@@ -261,11 +260,11 @@ export function useDeckImportFlow() {
     if (replaceTarget.mode === "none") {
       return;
     }
-    const targetName = replaceDeckName ?? "deck";
+    const targetName = replaceDeckName ?? m.decks_import_fallback_deck_name();
     setIsImporting(true);
     if (replaceTarget.mode === "local") {
       useLocalDecksStore.getState().setCards(replaceTarget.deckId, importCards);
-      toast.success(`Replaced cards in "${targetName}" with ${totalCards} cards.`);
+      toast.success(m.decks_import_replaced_toast({ name: targetName, count: totalCards }));
       void navigate({ to: "/decks/$deckId", params: { deckId: replaceTarget.deckId } });
       return;
     }
@@ -273,7 +272,7 @@ export function useDeckImportFlow() {
       { deckId: replaceTarget.deckId, cards: importCards },
       {
         onSuccess: () => {
-          toast.success(`Replaced cards in "${targetName}" with ${totalCards} cards.`);
+          toast.success(m.decks_import_replaced_toast({ name: targetName, count: totalCards }));
           void navigate({ to: "/decks/$deckId", params: { deckId: replaceTarget.deckId } });
         },
         // The failure itself is toasted by the global mutation onError; this
@@ -286,7 +285,7 @@ export function useDeckImportFlow() {
   };
 
   const executeCreate = () => {
-    const trimmedName = deckName.trim() || DEFAULT_IMPORT_DECK_NAME;
+    const trimmedName = deckName.trim() || defaultImportDeckName();
     const links = sourceLink ? [{ url: sourceLink }] : undefined;
 
     setIsImporting(true);
@@ -297,7 +296,7 @@ export function useDeckImportFlow() {
       if (links) {
         useLocalDecksStore.getState().updateDeck(localId, { links });
       }
-      toast.success(`Imported deck "${trimmedName}" with ${totalCards} cards.`);
+      toast.success(m.decks_import_created_toast({ name: trimmedName, count: totalCards }));
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });
       return;
     }
@@ -311,7 +310,9 @@ export function useDeckImportFlow() {
             { deckId: deck.id, cards: importCards },
             {
               onSuccess: () => {
-                toast.success(`Imported deck "${trimmedName}" with ${totalCards} cards.`);
+                toast.success(
+                  m.decks_import_created_toast({ name: trimmedName, count: totalCards }),
+                );
                 void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });
               },
               onError: () => {

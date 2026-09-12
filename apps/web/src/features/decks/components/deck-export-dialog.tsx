@@ -20,52 +20,65 @@ import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { m } from "@/paraglide/messages.js";
 
 type ExportFormat = "piltover" | "text" | "tts";
 
-const FORMAT_DESCRIPTIONS: Record<ExportFormat, React.ReactNode> = {
-  piltover: (
-    <>
-      A compact code that can be imported into{" "}
-      <TextLink variant="muted" href="https://piltoverarchive.com" target="_blank" rel="noreferrer">
-        Piltover Archive
-      </TextLink>
-      .
-    </>
-  ),
-  text: (
-    <>
-      A human-readable list grouped by zone. Used by many deck builders, including{" "}
-      <TextLink variant="muted" href="https://piltoverarchive.com" target="_blank" rel="noreferrer">
-        Piltover Archive
-      </TextLink>{" "}
-      and{" "}
-      <a
-        href="https://tcg-arena.fr/decks"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground underline"
-      >
-        TCG Arena
-      </a>
-      .
-    </>
-  ),
-  tts: (
-    <>
-      Space-separated short codes for the{" "}
-      <a
-        href="https://steamcommunity.com/sharedfiles/filedetails/?id=3606647746"
-        target="_blank"
-        rel="noreferrer"
-        className="text-foreground underline"
-      >
-        Tabletop Simulator mod
-      </a>
-      .
-    </>
-  ),
-};
+function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
+  return {
+    piltover: (
+      <>
+        {m.decks_dialog_export_desc_piltover()}{" "}
+        <TextLink
+          variant="muted"
+          href="https://piltoverarchive.com"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Piltover Archive
+        </TextLink>
+        .
+      </>
+    ),
+    text: (
+      <>
+        {m.decks_dialog_export_desc_text_before()}{" "}
+        <TextLink
+          variant="muted"
+          href="https://piltoverarchive.com"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Piltover Archive
+        </TextLink>
+        {m.decks_dialog_export_desc_text_between()}
+        <a
+          href="https://tcg-arena.fr/decks"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground underline"
+        >
+          TCG Arena
+        </a>
+        .
+      </>
+    ),
+    tts: (
+      <>
+        {m.decks_dialog_export_desc_tts()}{" "}
+        <a
+          href="https://steamcommunity.com/sharedfiles/filedetails/?id=3606647746"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground underline"
+        >
+          {m.decks_dialog_export_desc_tts_link()}
+        </a>
+        .
+      </>
+    ),
+  };
+}
 
 interface DeckExportDialogProps {
   deckId: string;
@@ -181,19 +194,17 @@ export function DeckExportDialog({
           onValueChange={(value) => handleTabChange(value as ExportFormat)}
         >
           <DialogHeader>
-            <DialogTitle>Export deck</DialogTitle>
+            <DialogTitle>{m.decks_dialog_export_title()}</DialogTitle>
             <TabsList>
-              <TabsTrigger value="text">Text</TabsTrigger>
-              <TabsTrigger value="piltover">Deck Code</TabsTrigger>
+              <TabsTrigger value="text">{m.decks_dialog_export_tab_text()}</TabsTrigger>
+              <TabsTrigger value="piltover">{m.decks_dialog_export_tab_code()}</TabsTrigger>
               <TabsTrigger value="tts">TTS</TabsTrigger>
             </TabsList>
-            <DialogDescription>{FORMAT_DESCRIPTIONS[tab]}</DialogDescription>
+            <DialogDescription>{formatDescriptions()[tab]}</DialogDescription>
           </DialogHeader>
 
           {isDirty && (
-            <p className="text-muted-foreground text-sm">
-              You have unsaved changes. The exported code reflects the last saved state.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.decks_dialog_export_dirty_note()}</p>
           )}
 
           <TabsContent value={tab}>
@@ -201,7 +212,7 @@ export function DeckExportDialog({
               <Textarea
                 readOnly
                 value={currentData?.code ?? ""}
-                placeholder={currentError ? "Failed to generate export." : ""}
+                placeholder={currentError ? m.decks_dialog_export_failed() : ""}
                 className="field-sizing-fixed font-mono text-xs break-all"
                 rows={8}
                 onClick={(event) => (event.target as HTMLTextAreaElement).select()}
@@ -215,12 +226,12 @@ export function DeckExportDialog({
                   {copied ? (
                     <>
                       <CheckIcon className="size-4" />
-                      Copied
+                      {m.common_copied()}
                     </>
                   ) : (
                     <>
                       <CopyIcon className="size-4" />
-                      Copy
+                      {m.common_copy()}
                     </>
                   )}
                 </Button>
@@ -228,7 +239,7 @@ export function DeckExportDialog({
 
               {currentData && currentData.warnings.length > 0 && (
                 <div className="text-muted-foreground text-xs">
-                  <p className="font-medium">Warnings:</p>
+                  <p className="font-medium">{m.decks_dialog_export_warnings()}</p>
                   <ul className="mt-1 list-inside list-disc">
                     {currentData.warnings.map((warning) => (
                       <li key={warning}>{warning}</li>

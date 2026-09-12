@@ -46,6 +46,7 @@ import { asDragData } from "@/lib/dnd-data";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { parseMoveDigit } from "@/lib/parse-digit-key";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/_authenticated/collections");
 
@@ -167,7 +168,11 @@ export function CollectionLayout() {
         { copyIds, toCollectionId: dropData.collectionId },
         {
           onSuccess: () => {
-            toast.success(`Moved ${count} card${count > 1 ? "s" : ""}`);
+            toast.success(
+              count === 1
+                ? m.collections_toast_moved_one()
+                : m.collections_toast_moved_other({ count }),
+            );
             if (dragData.fromSelection) {
               useGridSelectionStore.getState().clearSelection();
             }
@@ -180,7 +185,7 @@ export function CollectionLayout() {
     // Group-shared copies can't go on trade/wish lists; the server would
     // silently skip every one and report nothing added.
     if (dropData.listIntent !== "organize" && dragData.sourceAllGroupCopies) {
-      toast.info("Cards from a shared group collection can't go on trade or wish lists");
+      toast.info(m.collections_toast_shared_group_not_allowed());
       return;
     }
 
@@ -200,6 +205,22 @@ export function CollectionLayout() {
         },
       },
     );
+  }
+
+  function movedToListMessage(kind: string, count: number, list: string): string {
+    if (kind === "copy") {
+      return count === 1
+        ? m.collections_toast_moved_to_list_copies_one({ count, list })
+        : m.collections_toast_moved_to_list_copies_other({ count, list });
+    }
+    if (kind === "printing") {
+      return count === 1
+        ? m.collections_toast_moved_to_list_printings_one({ count, list })
+        : m.collections_toast_moved_to_list_printings_other({ count, list });
+    }
+    return count === 1
+      ? m.collections_toast_moved_to_list_cards_one({ count, list })
+      : m.collections_toast_moved_to_list_cards_other({ count, list });
   }
 
   function handleListEntryDrop(dragData: ListEntryDragData, dropData: SidebarListDropData) {
@@ -222,13 +243,7 @@ export function CollectionLayout() {
           if (result.moved === 0) {
             return;
           }
-          const noun =
-            dragData.sourceKind === "copy"
-              ? `cop${result.moved === 1 ? "y" : "ies"}`
-              : dragData.sourceKind === "printing"
-                ? `printing${result.moved === 1 ? "" : "s"}`
-                : `card${result.moved === 1 ? "" : "s"}`;
-          toast.success(`Moved ${result.moved} ${noun} to ${dropData.listName}`);
+          toast.success(movedToListMessage(dragData.sourceKind, result.moved, dropData.listName));
         },
       },
     );
@@ -301,6 +316,16 @@ function ListEntryDragPreview({ drag }: { drag: ListEntryDragData }) {
   );
 }
 
+function pluralNoun(noun: string, count: number): string {
+  if (noun === "copy") {
+    return m.collections_drag_copies_plural({ count });
+  }
+  if (noun === "printing") {
+    return m.collections_drag_printings_plural({ count });
+  }
+  return m.collections_drag_cards_plural({ count });
+}
+
 function DragPreview({ drag, modifier }: { drag: CardDragData; modifier: "all" | number | null }) {
   const printings = drag.previewPrintings.length > 0 ? drag.previewPrintings : [drag.printing];
   const selectionCount = useDragPreviewStore((s) => s.selectionCount);
@@ -310,14 +335,15 @@ function DragPreview({ drag, modifier }: { drag: CardDragData; modifier: "all" |
   let label: string;
   if (drag.fromSelection && selectionCount >= 1) {
     count = selectionCount;
-    const plural = selectionNoun === "copy" ? "copies" : `${selectionNoun}s`;
     label =
-      selectionCount === 1 ? legendDisplayName(drag.printing.card) : `${selectionCount} ${plural}`;
+      selectionCount === 1
+        ? legendDisplayName(drag.printing.card)
+        : pluralNoun(selectionNoun, selectionCount);
   } else {
     // Counted through the same helper the drop uses, so the badge can't
     // promise a number the drop won't deliver.
     count = resolveDropCopyIds(drag, modifier).length;
-    label = count === 1 ? legendDisplayName(drag.printing.card) : `${count} copies`;
+    label = count === 1 ? legendDisplayName(drag.printing.card) : pluralNoun("copy", count);
   }
   return <CardDragGhost printings={printings} label={label} count={count} />;
 }

@@ -14,6 +14,7 @@ import { PrintingCitationList } from "@/features/cards/components/card-detail/pr
 import { CardText } from "@/features/cards/components/card-text";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
+import { m } from "@/paraglide/messages.js";
 
 type DetailProduct = CardDetailResponse["products"][number];
 
@@ -30,14 +31,14 @@ export function CardPageFactRows({
   return (
     <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] gap-y-4">
       {printing.printedRulesText && (
-        <FactRow label="Rules">
+        <FactRow label={m.card_detail_row_rules()}>
           <p className="text-muted-foreground">
             <CardText text={card.errata?.correctedRulesText ?? printing.printedRulesText} />
           </p>
         </FactRow>
       )}
       {printing.printedEffectText && (
-        <FactRow label="Effect">
+        <FactRow label={m.card_detail_row_effect()}>
           <div
             className="rounded-md px-2 py-1.5"
             style={getDomainGradientStyle(card.domains, "18", domainColors)}
@@ -49,12 +50,12 @@ export function CardPageFactRows({
         </FactRow>
       )}
       {printing.flavorText && (
-        <FactRow label="Flavor">
+        <FactRow label={m.card_detail_row_flavor()}>
           <p className="text-muted-foreground/70 italic">{printing.flavorText}</p>
         </FactRow>
       )}
       {printing.markers.length > 0 && (
-        <FactRow label="Promo">
+        <FactRow label={m.card_detail_notes_promo()}>
           <div className="flex flex-wrap gap-1">
             {printing.markers.map((marker) => (
               <Badge key={marker.id} variant="secondary" title={marker.description ?? undefined}>
@@ -67,24 +68,23 @@ export function CardPageFactRows({
       <FoundInRow printing={printing} products={products} />
       <SourcesRow printing={printing} />
       {printing.comment && (
-        <FactRow label="Note">
+        <FactRow label={m.card_detail_notes_note()}>
           <p className="text-muted-foreground italic">{printing.comment}</p>
         </FactRow>
       )}
       {card.errata && <ErrataRow errata={card.errata} printing={printing} />}
       {card.bans.length > 0 && (
-        <FactRow label="Bans">
+        <FactRow label={m.card_detail_row_bans()}>
           <Alert variant="destructive" className="space-y-1.5">
             {card.bans.map((ban) => (
               <div key={ban.formatId}>
                 <AlertTitle>
-                  Banned in {ban.formatName} since {ban.bannedAt}
+                  {m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
                 </AlertTitle>
                 {ban.reason && <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>}
                 {!isBaseBanFormat(ban.formatId) && (
                   <AlertDescription className="mt-0.5">
-                    Applies to {ban.formatName} play only. The card stays legal in other constructed
-                    play.
+                    {m.card_detail_ban_other_format({ format: ban.formatName })}
                   </AlertDescription>
                 )}
               </div>
@@ -124,7 +124,7 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
     : errata.source;
 
   return (
-    <FactRow label="Errata">
+    <FactRow label={m.card_detail_errata_label()}>
       <Alert variant="warning">
         <TriangleAlertIcon className="size-3.5 shrink-0" />
         <AlertTitle className="font-semibold">
@@ -144,7 +144,7 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
         {hasRulesDiff && (
           <AlertDescription className="mt-1.5">
             <span className="text-muted-foreground/60 mr-1 text-xs font-medium">
-              Original rules:
+              {m.card_detail_errata_original_rules()}
             </span>
             <CardText text={printing.printedRulesText ?? ""} />
           </AlertDescription>
@@ -152,7 +152,7 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
         {hasEffectDiff && (
           <AlertDescription className="mt-1.5">
             <span className="text-muted-foreground/60 mr-1 text-xs font-medium">
-              Original effect:
+              {m.card_detail_errata_original_effect()}
             </span>
             <CardText text={printing.printedEffectText ?? ""} />
           </AlertDescription>
@@ -179,7 +179,7 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
     return null;
   }
   return (
-    <FactRow label="Found in">
+    <FactRow label={m.card_detail_row_found_in()}>
       <Callout variant="inset">
         {otherEntries.length === 0 ? (
           firstEntry.node
@@ -207,7 +207,13 @@ function SourcesRow({ printing }: { printing: Printing }) {
     return null;
   }
   return (
-    <FactRow label={citations.length === 1 ? "Source" : "Sources"}>
+    <FactRow
+      label={
+        citations.length === 1
+          ? m.card_detail_notes_source_one()
+          : m.card_detail_notes_source_other()
+      }
+    >
       <Callout variant="inset">
         <PrintingCitationList citations={citations} />
       </Callout>

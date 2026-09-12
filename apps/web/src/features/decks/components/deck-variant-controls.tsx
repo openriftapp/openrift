@@ -5,6 +5,7 @@ import { CountPillButton } from "@/components/ui/count-pill";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // z-10 keeps this above the row's stretched-link overlay so its clicks register.
 export function VariantCountToggle({
@@ -20,7 +21,7 @@ export function VariantCountToggle({
     <CountPillButton
       className={cn("relative z-10 shrink-0", className)}
       aria-expanded={family.expanded}
-      aria-label={family.expanded ? "Hide variants" : "Show variants"}
+      aria-label={family.expanded ? m.decks_dialog_variants_hide() : m.decks_dialog_variants_show()}
       onClick={() => {
         onToggle(family.id);
       }}
@@ -28,7 +29,7 @@ export function VariantCountToggle({
       <ChevronRightIcon
         className={cn("size-3 transition-transform", family.expanded && "rotate-90")}
       />
-      {family.memberCount} variants
+      {m.decks_dialog_variant_count({ count: family.memberCount })}
     </CountPillButton>
   );
 }
@@ -39,10 +40,10 @@ export function DraftBadge({ className }: { className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger render={<Badge variant="muted" className={cn("shrink-0", className)} />}>
-        Draft
+        {m.decks_dialog_draft_badge()}
       </TooltipTrigger>
       <TooltipContent className="max-w-56 text-center">
-        Marked as a work in progress. Everything else about the deck works as usual.
+        {m.decks_dialog_draft_badge_tooltip()}
       </TooltipContent>
     </Tooltip>
   );

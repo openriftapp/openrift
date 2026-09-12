@@ -26,7 +26,7 @@ import { formatProductCounts } from "@/features/cards/lib/product-counts";
 import { useSession } from "@/lib/auth-session";
 import { markdownTeaser } from "@/lib/markdown-teaser";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
-import { PRODUCTS_DESCRIPTION } from "@/routes/_app/products";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/products")({
   component: ProductsIndexPage,
@@ -90,12 +90,10 @@ function ProductsEmptyState() {
       <div aria-hidden="true" className="relative h-32 w-64 overflow-hidden">
         <CardFanOutline />
       </div>
-      <Heading className="mt-2">No products catalogued yet</Heading>
-      <p className="text-muted-foreground max-w-[44ch] text-sm">
-        Know what’s inside a box we’re missing? Help us fill in the gaps.
-      </p>
+      <Heading className="mt-2">{m.products_empty_title()}</Heading>
+      <p className="text-muted-foreground max-w-[44ch] text-sm">{m.products_empty_body()}</p>
       <Button className="mt-3" render={<Link to="/contribute" />}>
-        Contribute a card list
+        {m.products_empty_cta()}
       </Button>
     </div>
   );
@@ -103,7 +101,7 @@ function ProductsEmptyState() {
 
 function ProductGroupHeading({ set }: { set: ProductSet | null }) {
   if (!set) {
-    return <Heading className="mb-6">Other products</Heading>;
+    return <Heading className="mb-6">{m.products_other_group()}</Heading>;
   }
   return (
     <Heading className="mb-6">
@@ -146,7 +144,7 @@ function ProductGrid({
               variant="secondary"
               size="icon-sm"
               className="absolute top-2 right-2 shadow-sm"
-              aria-label={`Add ${product.name} to a collection`}
+              aria-label={m.products_add_aria({ name: product.name })}
               onClick={() => onAdd(product)}
             >
               <PlusIcon />
@@ -180,11 +178,11 @@ function ProductsIndexPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Products</PageTopBarTitle>
+          <PageTopBarTitle>{m.products_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{PRODUCTS_DESCRIPTION}</PageDescription>
+        <PageDescription className="pb-4">{m.products_description()}</PageDescription>
         {products.length === 0 ? (
           <ProductsEmptyState />
         ) : (

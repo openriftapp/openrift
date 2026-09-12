@@ -8,6 +8,7 @@ import { Field, FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { authClient } from "@/features/account/lib/auth-client";
 import { isPreview } from "@/lib/api-base";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function AuthFormCard({
   className,
@@ -53,14 +54,14 @@ export function SocialAuthButtons({ redirectTo }: { redirectTo?: string }) {
     try {
       await authClient.signIn.social({ provider, callbackURL });
     } catch {
-      toast.error("Could not reach the sign-in provider. Please try again.");
+      toast.error(m.auth_social_provider_failed());
     }
   }
 
   return (
     <>
       <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-        Or continue with
+        {m.auth_or_continue_with()}
       </FieldSeparator>
       <Field className="grid grid-cols-2 gap-4">
         <Button

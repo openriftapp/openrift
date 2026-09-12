@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useTransferFriendGroupOwnership } from "@/features/groups/hooks/use-friend-group-mutations";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function TransferOwnershipControl({
   data,
@@ -42,7 +43,7 @@ export function TransferOwnershipControl({
   }
   const items = candidates.map((member) => ({
     value: member.userId,
-    label: member.userName ?? "Unknown user",
+    label: member.userName ?? m.groups_unknown_user(),
   }));
   const target = candidates.find((member) => member.userId === targetId);
 
@@ -62,15 +63,13 @@ export function TransferOwnershipControl({
     <div className="flex flex-col gap-2">
       <Label className="flex items-center gap-2">
         <CrownIcon className="size-4" />
-        Transfer ownership
+        {m.groups_transfer_title()}
       </Label>
-      <p className="text-muted-foreground text-sm">
-        Hand the group to another member. You stay in the group as an admin.
-      </p>
+      <p className="text-muted-foreground text-sm">{m.groups_transfer_description()}</p>
       <div className="flex flex-wrap items-center gap-2">
         <Select items={items} value={targetId} onValueChange={(value) => setTargetId(value)}>
-          <SelectTrigger className="w-56" aria-label="New owner">
-            <SelectValue placeholder="Choose a member" />
+          <SelectTrigger className="w-56" aria-label={m.groups_transfer_select_aria()}>
+            <SelectValue placeholder={m.groups_transfer_placeholder()} />
           </SelectTrigger>
           <SelectContent>
             {items.map((item) => (
@@ -82,23 +81,24 @@ export function TransferOwnershipControl({
         </Select>
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogTrigger render={<Button variant="outline" disabled={target === undefined} />}>
-            Transfer ownership
+            {m.groups_transfer_title()}
           </DialogTrigger>
           <DialogContent>
             <DialogForm onSubmit={() => void handleTransfer()}>
               <DialogHeader>
-                <DialogTitle>Make {target?.userName ?? "this member"} the owner?</DialogTitle>
-                <DialogDescription>
-                  They take over the group immediately, including these settings. You become an
-                  admin and can&apos;t undo this yourself.
-                </DialogDescription>
+                <DialogTitle>
+                  {m.groups_transfer_confirm_title({
+                    member: target?.userName ?? m.groups_this_member(),
+                  })}
+                </DialogTitle>
+                <DialogDescription>{m.groups_transfer_confirm_description()}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                  Cancel
+                  {m.common_cancel()}
                 </Button>
                 <Button type="submit" variant="destructive" disabled={transfer.isPending}>
-                  Transfer
+                  {m.groups_transfer_button()}
                 </Button>
               </DialogFooter>
             </DialogForm>

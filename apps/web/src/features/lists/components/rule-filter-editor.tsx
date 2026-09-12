@@ -35,19 +35,14 @@ import { MultiSelectCombobox } from "@/features/cards/components/multi-select-co
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
-import { PRESENCE_LABELS, presenceToFlagState } from "@/features/cards/lib/presence-filter";
+import { presenceLabel, presenceToFlagState } from "@/features/cards/lib/presence-filter";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useCustomTagList, useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 export const CONTROL_WIDTH =
   "h-8 w-44 justify-between rounded-lg bg-transparent text-sm font-normal hover:bg-muted dark:bg-input/30 dark:hover:bg-input/50";
-
-const STANDARD_HINT =
-  "The most basic printing of a card: normal art, no signature or promo stamp, with commons and uncommons unfoiled and rarer cards foiled.";
-
-const PRICE_HINT =
-  "Compares each printing's latest market price on the marketplace you pick. Leave min or max empty for an open end.";
 
 const PRICE_MARKETPLACE_OPTIONS: { value: Marketplace; label: string }[] = [
   { value: "cardtrader", label: "CardTrader (EUR)" },
@@ -79,7 +74,7 @@ export function FilterRow({
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`Remove ${label} filter`}
+            aria-label={m.lists_rule_remove_filter({ label })}
             onClick={onRemove}
           >
             <XIcon />
@@ -210,9 +205,9 @@ export function RuleFilterEditor({
           <MultiSelectCombobox
             triggerStyle="button"
             triggerClassName={CONTROL_WIDTH}
-            placeholder="Any"
+            placeholder={m.lists_rule_placeholder_any()}
             label={label}
-            searchPlaceholder={`Search ${label.toLowerCase()}…`}
+            searchPlaceholder={m.lists_rule_search_placeholder({ label: label.toLowerCase() })}
             options={options}
             selected={value[includeKey]}
             excluded={value[excludeKey]}
@@ -226,7 +221,7 @@ export function RuleFilterEditor({
               presenceDimension
                 ? [
                     {
-                      label: PRESENCE_LABELS[presenceDimension],
+                      label: presenceLabel(presenceDimension),
                       state: presenceToFlagState(presenceState ?? null),
                       onToggle: () => {
                         const cycled = cycleIncludeExclude(
@@ -283,7 +278,7 @@ export function RuleFilterEditor({
           <MultiSelectCombobox
             triggerStyle="button"
             triggerClassName={CONTROL_WIDTH}
-            placeholder="Any"
+            placeholder={m.lists_rule_placeholder_any()}
             label={label}
             options={options}
             selected={value[field] === true ? ["1"] : []}
@@ -331,8 +326,8 @@ export function RuleFilterEditor({
       min={0}
       step="0.01"
       className="h-8 w-20"
-      placeholder={bound === "min" ? "Min" : "Max"}
-      aria-label={bound === "min" ? "Minimum price" : "Maximum price"}
+      placeholder={bound === "min" ? m.lists_rule_price_min() : m.lists_rule_price_max()}
+      aria-label={bound === "min" ? m.lists_rule_price_min_aria() : m.lists_rule_price_max_aria()}
       value={value.price[bound] ?? ""}
       onChange={(event) => {
         // oxlint-disable-next-line unicorn/prefer-number-coercion -- lenient parse of an input value; Number("") is 0, not the intended "no bound"
@@ -347,15 +342,15 @@ export function RuleFilterEditor({
 
   const priceEntry: DimEntry = {
     key: "price",
-    label: "Price",
+    label: m.lists_rule_dim_price(),
     group: "printing",
     available: true,
     active: priceActive,
     node: (
       <div key="price" className="flex flex-col gap-3">
         <FilterRow
-          label="Price"
-          hint={PRICE_HINT}
+          label={m.lists_rule_dim_price()}
+          hint={m.lists_rule_hint_price()}
           onRemove={() => {
             patch({ price: { min: null, max: null } });
             setShownKeys((current) => current.filter((entry) => entry !== "price"));
@@ -369,13 +364,16 @@ export function RuleFilterEditor({
             {priceBoundInput("max")}
           </div>
         </FilterRow>
-        <FilterRow label="Marketplace">
+        <FilterRow label={m.lists_rule_dim_marketplace()}>
           <Select
             items={PRICE_MARKETPLACE_OPTIONS}
             value={shownMarketplace}
             onValueChange={(next) => onPriceMarketplaceChange(next as Marketplace)}
           >
-            <SelectTrigger className={CONTROL_WIDTH} aria-label="Price marketplace">
+            <SelectTrigger
+              className={CONTROL_WIDTH}
+              aria-label={m.lists_rule_price_marketplace_aria()}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -390,11 +388,13 @@ export function RuleFilterEditor({
           </Select>
         </FilterRow>
         <p className="text-muted-foreground -mt-1 text-sm">
-          Market prices move daily, so cards can join or leave this list on their own.
+          {m.lists_rule_price_note()}
           {pricelessMatchCount > 0 &&
-            ` ${pricelessMatchCount} matching ${
-              pricelessMatchCount === 1 ? "printing has" : "printings have"
-            } no price there and ${pricelessMatchCount === 1 ? "is" : "are"} skipped.`}
+            ` ${
+              pricelessMatchCount === 1
+                ? m.lists_rule_price_skipped_one({ count: pricelessMatchCount })
+                : m.lists_rule_price_skipped_other({ count: pricelessMatchCount })
+            }`}
         </p>
       </div>
     ),
@@ -402,14 +402,14 @@ export function RuleFilterEditor({
 
   const searchEntry: DimEntry = {
     key: "search",
-    label: "Search",
+    label: m.lists_rule_dim_search(),
     group: "card",
     available: true,
     active: value.search.trim() !== "",
     node: (
       <FilterRow
         key="search"
-        label="Search"
+        label={m.lists_rule_dim_search()}
         onRemove={() => {
           patch({ search: "" });
           setShownKeys((current) => current.filter((entry) => entry !== "search"));
@@ -417,13 +417,13 @@ export function RuleFilterEditor({
       >
         <Input
           className="h-8 w-44"
-          placeholder="Name, text, keyword…"
+          placeholder={m.lists_rule_search_text_placeholder()}
           value={value.search}
           onChange={(event) => {
             pin("search");
             patch({ search: event.target.value });
           }}
-          aria-label="Search text"
+          aria-label={m.lists_rule_search_text_aria()}
         />
       </FilterRow>
     ),
@@ -432,17 +432,17 @@ export function RuleFilterEditor({
   const entries: DimEntry[] = [
     flag(
       "standard",
-      "Standard printings",
-      "Standard",
+      m.lists_rule_dim_standard_printings(),
+      m.lists_rule_flag_standard(),
       "isStandard",
       "standard",
       available.hasNonStandard,
-      STANDARD_HINT,
+      m.lists_rule_hint_standard(),
     ),
     searchEntry,
     dimension(
       "types",
-      "Types",
+      m.lists_rule_dim_types(),
       "card",
       "types",
       "typesExclude",
@@ -450,7 +450,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "superTypes",
-      "Supertype",
+      m.lists_rule_dim_super_type(),
       "card",
       "superTypes",
       "superTypesExclude",
@@ -459,7 +459,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "domains",
-      "Domains",
+      m.lists_rule_dim_domains(),
       "card",
       "domains",
       "domainsExclude",
@@ -467,7 +467,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "customTags",
-      "Custom Tags",
+      m.lists_rule_dim_custom_tags(),
       "card",
       "customTagSlugs",
       "customTagSlugsExclude",
@@ -476,7 +476,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "tags",
-      "Tags",
+      m.lists_rule_dim_tags(),
       "card",
       "tags",
       "tagsExclude",
@@ -485,17 +485,24 @@ export function RuleFilterEditor({
     ),
     dimension(
       "keywords",
-      "Keywords",
+      m.lists_rule_dim_keywords(),
       "card",
       "keywords",
       "keywordsExclude",
       available.keywords.map((keyword) => ({ value: keyword, label: keyword })),
       "keywords",
     ),
-    flag("banned", "Banned", "Banned", "isBanned", "card", available.hasBanned),
+    flag(
+      "banned",
+      m.lists_rule_dim_banned(),
+      m.lists_rule_flag_banned(),
+      "isBanned",
+      "card",
+      available.hasBanned,
+    ),
     dimension(
       "sets",
-      "Sets",
+      m.lists_rule_dim_sets(),
       "printing",
       "sets",
       "setsExclude",
@@ -503,7 +510,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "rarities",
-      "Rarities",
+      m.lists_rule_dim_rarities(),
       "printing",
       "rarities",
       "raritiesExclude",
@@ -511,7 +518,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "finishes",
-      "Finishes",
+      m.lists_rule_dim_finishes(),
       "printing",
       "finishes",
       "finishesExclude",
@@ -519,7 +526,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "artVariants",
-      "Art variants",
+      m.lists_rule_dim_art_variants(),
       "printing",
       "artVariants",
       "artVariantsExclude",
@@ -527,7 +534,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "languages",
-      "Languages",
+      m.lists_rule_dim_languages(),
       "printing",
       "languages",
       "languagesExclude",
@@ -535,7 +542,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "markers",
-      "Markers",
+      m.lists_rule_dim_markers(),
       "printing",
       "markerSlugs",
       "markerSlugsExclude",
@@ -544,7 +551,7 @@ export function RuleFilterEditor({
     ),
     dimension(
       "channels",
-      "Distribution Channels",
+      m.lists_rule_dim_channels(),
       "printing",
       "distributionChannelSlugs",
       "distributionChannelSlugsExclude",
@@ -556,13 +563,20 @@ export function RuleFilterEditor({
     ),
     flag(
       "overnumbered",
-      "Overnumbered",
-      "Overnumbered",
+      m.lists_rule_dim_overnumbered(),
+      m.lists_rule_flag_overnumbered(),
       "isOvernumbered",
       "printing",
       available.hasOvernumbered,
     ),
-    flag("signed", "Signed", "Signed", "isSigned", "printing", available.hasSigned),
+    flag(
+      "signed",
+      m.lists_rule_dim_signed(),
+      m.lists_rule_flag_signed(),
+      "isSigned",
+      "printing",
+      available.hasSigned,
+    ),
     priceEntry,
   ];
 
@@ -597,7 +611,7 @@ export function RuleFilterEditor({
             render={
               <Button type="button" variant="outline" size="sm" className="self-start">
                 <PlusIcon />
-                Add filter
+                {m.lists_rule_add_filter()}
               </Button>
             }
           />
@@ -608,13 +622,13 @@ export function RuleFilterEditor({
             )}
             {addCard.length > 0 && (
               <DropdownMenuGroup>
-                <DropdownMenuLabel>Card</DropdownMenuLabel>
+                <DropdownMenuLabel>{m.lists_rule_group_card()}</DropdownMenuLabel>
                 {renderItems(addCard)}
               </DropdownMenuGroup>
             )}
             {addPrinting.length > 0 && (
               <DropdownMenuGroup>
-                <DropdownMenuLabel>Printing</DropdownMenuLabel>
+                <DropdownMenuLabel>{m.lists_rule_group_printing()}</DropdownMenuLabel>
                 {renderItems(addPrinting)}
               </DropdownMenuGroup>
             )}

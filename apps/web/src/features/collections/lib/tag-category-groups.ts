@@ -1,3 +1,5 @@
+import { m } from "@/paraglide/messages.js";
+
 export interface TagCategoryGroup {
   slug: string;
   label: string;
@@ -26,7 +28,7 @@ export function groupTagsByCategory(
   }
   const other = byCategory.get(UNCLASSIFIED_TAG_GROUP) ?? [];
   if (other.length > 0) {
-    groups.push({ slug: UNCLASSIFIED_TAG_GROUP, label: "Other tags", tags: other });
+    groups.push({ slug: UNCLASSIFIED_TAG_GROUP, label: m.collections_tags_other(), tags: other });
   }
   return groups;
 }

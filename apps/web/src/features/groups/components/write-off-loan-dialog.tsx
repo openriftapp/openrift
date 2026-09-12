@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { m } from "@/paraglide/messages.js";
 
 interface WriteOffLoanDialogProps {
   open: boolean;
@@ -31,18 +32,18 @@ export function WriteOffLoanDialog({
   onConfirm,
 }: WriteOffLoanDialogProps) {
   const [removeCopies, setRemoveCopies] = useState(true);
-  const copiesNoun = outstanding === 1 ? "copy" : "copies";
+  const single = outstanding === 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogForm onSubmit={() => onConfirm(removeCopies)}>
           <DialogHeader>
-            <DialogTitle>Write off this loan</DialogTitle>
+            <DialogTitle>{m.loans_write_off_title()}</DialogTitle>
             <DialogDescription>
-              Closes the loan for good: {outstanding} {copiesNoun} of {cardName} won&apos;t come
-              back, whether they&apos;re keeping it or it&apos;s just gone. This can&apos;t be
-              undone.
+              {single
+                ? m.loans_write_off_description_one({ count: outstanding, card: cardName })
+                : m.loans_write_off_description_other({ count: outstanding, card: cardName })}
             </DialogDescription>
           </DialogHeader>
 
@@ -57,10 +58,11 @@ export function WriteOffLoanDialog({
             >
               <RadioGroupItem id="write-off-remove" value="remove" className="mt-0.5" />
               <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Also remove from my collection</span>
+                <span className="text-sm font-medium">{m.loans_write_off_remove_label()}</span>
                 <span className="text-muted-foreground text-xs">
-                  The {copiesNoun} left your hands, so your collection stops counting{" "}
-                  {outstanding === 1 ? "it" : "them"}.
+                  {single
+                    ? m.loans_write_off_remove_hint_one()
+                    : m.loans_write_off_remove_hint_other()}
                 </span>
               </span>
             </label>
@@ -70,19 +72,18 @@ export function WriteOffLoanDialog({
             >
               <RadioGroupItem id="write-off-keep" value="keep" className="mt-0.5" />
               <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Keep my collection as it is</span>
+                <span className="text-sm font-medium">{m.loans_write_off_keep_label()}</span>
                 <span className="text-muted-foreground text-xs">
-                  The {copiesNoun} will show as available again until you fix your collection by
-                  hand.
+                  {single ? m.loans_write_off_keep_hint_one() : m.loans_write_off_keep_hint_other()}
                 </span>
               </span>
             </label>
           </RadioGroup>
 
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button variant="outline" />}>{m.common_cancel()}</DialogClose>
             <Button type="submit" variant="destructive" disabled={pending}>
-              Write off
+              {m.loans_write_off_confirm()}
             </Button>
           </DialogFooter>
         </DialogForm>

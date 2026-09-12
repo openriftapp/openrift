@@ -7,6 +7,7 @@ import { isAlwaysFoilRarity, WellKnown } from "@openrift/shared/well-known";
 import { conditionSlugFromSource } from "@/features/collections/lib/condition-codes";
 import { parseCSV, parseCSVWithHeaders } from "@/features/collections/lib/csv";
 import { languageCodeFromSource } from "@/lib/language-names";
+import { m } from "@/paraglide/messages.js";
 
 /** Applied to every copy the entry expands into. Other tools only export a condition. */
 export interface ImportCopyMetadata {
@@ -80,7 +81,12 @@ export function detectImportFormat(text: string): ImportFormat | null {
 export function parseImportData(text: string): ParseResult {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
-    return { entries: [], errors: ["No data provided."], source: "piltover-archive", rowCount: 0 };
+    return {
+      entries: [],
+      errors: [m.collections_import_error_no_data()],
+      source: "piltover-archive",
+      rowCount: 0,
+    };
   }
 
   switch (detectImportFormat(trimmed)) {
@@ -99,9 +105,7 @@ export function parseImportData(text: string): ParseResult {
     default: {
       return {
         entries: [],
-        errors: [
-          "Couldn't recognize this format. We currently support OpenRift, Piltover Archive, RiftCore, and RiftMana CSV exports.",
-        ],
+        errors: [m.collections_import_error_unknown_format()],
         source: "piltover-archive",
         rowCount: 0,
       };
@@ -146,7 +150,7 @@ function parsePiltoverArchive(text: string): ParseResult {
   if (firstRecord === undefined) {
     return {
       entries: [],
-      errors: ["No data rows found."],
+      errors: [m.collections_import_error_no_rows()],
       source: "piltover-archive",
       rowCount: 0,
     };
@@ -155,7 +159,7 @@ function parsePiltoverArchive(text: string): ParseResult {
   const required = ["Variant Number", "Card Name", "Quantity", "Foil"];
   for (const col of required) {
     if (!(col in firstRecord)) {
-      errors.push(`Missing required column: "${col}".`);
+      errors.push(m.collections_import_error_missing_column({ column: col }));
     }
   }
   if (errors.length > 0) {
@@ -336,13 +340,18 @@ function parseOpenRift(text: string): ParseResult {
 
   const [firstRecord] = records;
   if (firstRecord === undefined) {
-    return { entries: [], errors: ["No data rows found."], source: "openrift", rowCount: 0 };
+    return {
+      entries: [],
+      errors: [m.collections_import_error_no_rows()],
+      source: "openrift",
+      rowCount: 0,
+    };
   }
 
   const required = ["Card ID", "Card Name", "Quantity"];
   for (const col of required) {
     if (!(col in firstRecord)) {
-      errors.push(`Missing required column: "${col}".`);
+      errors.push(m.collections_import_error_missing_column({ column: col }));
     }
   }
   if (errors.length > 0) {
@@ -366,7 +375,7 @@ function parseOpenRift(text: string): ParseResult {
 
     const parsed = parseOpenRiftCardId(cardId);
     if (!parsed) {
-      errors.push(`Could not parse Card ID: "${cardId}"`);
+      errors.push(m.collections_import_error_bad_card_id({ value: cardId }));
       continue;
     }
 
@@ -461,7 +470,7 @@ function parseRiftCore(text: string): ParseResult {
   if (headerIndex === -1) {
     return {
       entries: [],
-      errors: ['Could not find header row with "Card ID" column.'],
+      errors: [m.collections_import_error_no_header_row()],
       source: "riftcore",
       rowCount: 0,
     };
@@ -481,7 +490,7 @@ function parseRiftCore(text: string): ParseResult {
   if (cardIdCol === -1 || cardNameCol === -1) {
     return {
       entries: [],
-      errors: ['Missing required columns: "Card ID" and/or "Card Name".'],
+      errors: [m.collections_import_error_missing_riftcore_columns()],
       source: "riftcore",
       rowCount: 0,
     };
@@ -509,7 +518,7 @@ function parseRiftCore(text: string): ParseResult {
 
     const parsed = parseRiftCoreCardId(cardId);
     if (!parsed) {
-      errors.push(`Could not parse Card ID: "${cardId}"`);
+      errors.push(m.collections_import_error_bad_card_id({ value: cardId }));
       continue;
     }
 
@@ -588,13 +597,18 @@ function parseRiftMana(text: string): ParseResult {
 
   const [firstRecord] = records;
   if (firstRecord === undefined) {
-    return { entries: [], errors: ["No data rows found."], source: "riftmana", rowCount: 0 };
+    return {
+      entries: [],
+      errors: [m.collections_import_error_no_rows()],
+      source: "riftmana",
+      rowCount: 0,
+    };
   }
 
   const required = ["Normal Qty", "Card Name", "Card ID"];
   for (const col of required) {
     if (!(col in firstRecord)) {
-      errors.push(`Missing required column: "${col}".`);
+      errors.push(m.collections_import_error_missing_column({ column: col }));
     }
   }
   if (errors.length > 0) {
@@ -620,7 +634,7 @@ function parseRiftMana(text: string): ParseResult {
 
     const parsed = parseRiftManaCardId(cardId);
     if (!parsed) {
-      errors.push(`Could not parse Card ID: "${cardId}"`);
+      errors.push(m.collections_import_error_bad_card_id({ value: cardId }));
       continue;
     }
 

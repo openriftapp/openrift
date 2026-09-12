@@ -40,24 +40,27 @@ import { useGridViewportStore } from "@/features/cards/stores/grid-viewport-stor
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSmUp } from "@/hooks/use-sm-up";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
 import { FilterCustomizeControl } from "./filter-customize-control";
 import { FilterPanelContent } from "./filter-panel-content";
 
-const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "id", label: "ID" },
-  { value: "name", label: "Name" },
-  { value: "energy", label: "Energy" },
-  { value: "rarity", label: "Rarity" },
-  { value: "price", label: "Price" },
-];
+function sortOptionsList(): { value: SortOption; label: string }[] {
+  return [
+    { value: "id", label: m.cards_label_id() },
+    { value: "name", label: m.cards_label_name() },
+    { value: "energy", label: m.cards_label_energy() },
+    { value: "rarity", label: m.cards_label_rarity() },
+    { value: "price", label: m.cards_label_price() },
+  ];
+}
 
 // Excludes "collection" (copies-only); only /collections appends it back.
-export const defaultGroupByOptions = groupByOptionsFor(
-  GROUP_BY_FIELDS.filter((field) => !isCopiesOnlyGrouping(field)),
-);
+export function defaultGroupByOptions() {
+  return groupByOptionsFor(GROUP_BY_FIELDS.filter((field) => !isCopiesOnlyGrouping(field)));
+}
 
 /**
  * Cards view drops the printings-only axes (card / marker / distribution
@@ -65,8 +68,8 @@ export const defaultGroupByOptions = groupByOptionsFor(
  */
 function groupByOptionsForView(view: "cards" | "printings" | "copies") {
   return view === "cards"
-    ? defaultGroupByOptions.filter((option) => !isPrintingsOnlyGrouping(option.value))
-    : defaultGroupByOptions;
+    ? defaultGroupByOptions().filter((option) => !isPrintingsOnlyGrouping(option.value))
+    : defaultGroupByOptions();
 }
 
 /**
@@ -96,7 +99,7 @@ export function DetailPaneToggle({ className }: { className?: string }) {
   if (isMobile) {
     return null;
   }
-  const label = paneDocked ? "Hide the card detail panel" : "Show the card detail panel";
+  const label = paneDocked ? m.cards_detail_pane_hide() : m.cards_detail_pane_show();
   return (
     <Toggle
       variant="control"
@@ -120,7 +123,7 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
   }
   return (
     <ToggleGroup
-      aria-label="Display mode"
+      aria-label={m.cards_display_mode()}
       className={className}
       variant="control"
       size={compact ? "sm" : "default"}
@@ -136,18 +139,18 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
         <ToggleGroupItem
           value="grid"
           className="gap-1.5 text-xs"
-          aria-label="Grid view"
-          title="Grid view"
+          aria-label={m.cards_view_grid()}
+          title={m.cards_view_grid()}
         >
           <LayoutGridIcon />
-          Grid
+          {m.cards_grid()}
         </ToggleGroupItem>
       ) : (
         <ToggleGroupItem
           value="grid"
 
-          title="Grid view"
-          aria-label="Grid view"
+          title={m.cards_view_grid()}
+          aria-label={m.cards_view_grid()}
         >
           <LayoutGridIcon className="size-4" />
         </ToggleGroupItem>
@@ -156,18 +159,18 @@ function DisplayModeToggle({ compact, className }: { compact?: boolean; classNam
         <ToggleGroupItem
           value="table"
           className="gap-1.5 text-xs"
-          aria-label="Table view"
-          title="Table view"
+          aria-label={m.cards_view_table()}
+          title={m.cards_view_table()}
         >
           <Rows3Icon />
-          Table
+          {m.cards_table()}
         </ToggleGroupItem>
       ) : (
         <ToggleGroupItem
           value="table"
 
-          title="Table view"
-          aria-label="Table view"
+          title={m.cards_view_table()}
+          aria-label={m.cards_view_table()}
         >
           <Rows3Icon className="size-4" />
         </ToggleGroupItem>
@@ -191,7 +194,7 @@ function ViewModeToggle({
 }) {
   return (
     <ToggleGroup
-      aria-label="View mode"
+      aria-label={m.cards_view_mode()}
       className={className}
       variant="control"
       size={compact ? "sm" : "default"}
@@ -206,20 +209,20 @@ function ViewModeToggle({
       {compact ? (
         <ToggleGroupItem value="cards" className="gap-1.5 text-xs">
           <SquareIcon />
-          Cards
+          {m.cards_view_cards()}
         </ToggleGroupItem>
       ) : (
-        <ToggleGroupItem value="cards" title="One per card">
+        <ToggleGroupItem value="cards" title={m.cards_view_cards_title()}>
           <SquareIcon className="size-4" />
         </ToggleGroupItem>
       )}
       {compact ? (
         <ToggleGroupItem value="printings" className="gap-1.5 text-xs">
           <CopyIcon />
-          Printings
+          {m.cards_view_printings()}
         </ToggleGroupItem>
       ) : (
-        <ToggleGroupItem value="printings" title="Every printing">
+        <ToggleGroupItem value="printings" title={m.cards_view_printings_title()}>
           <CopyIcon className="size-4" />
         </ToggleGroupItem>
       )}
@@ -227,13 +230,13 @@ function ViewModeToggle({
         (compact ? (
           <ToggleGroupItem value="copies" className="gap-1.5 text-xs">
             <SquareStackIcon />
-            Copies
+            {m.cards_view_copies()}
           </ToggleGroupItem>
         ) : (
           <ToggleGroupItem
             value="copies"
 
-            title="Every individual copy"
+            title={m.cards_view_copies_title()}
           >
             <SquareStackIcon className="size-4" />
           </ToggleGroupItem>
@@ -317,7 +320,7 @@ export function DesktopOptionsBar({
   return (
     <div className={cn("items-center gap-2", className)}>
       <SortGroupControls
-        sortOptions={sortOptions}
+        sortOptions={sortOptionsList()}
         sortBy={sortBy}
         sortDir={sortDir}
         onSortByChange={setSortBy}
@@ -375,27 +378,29 @@ export function MobileOptionsDrawer({
               render={
                 <Button variant="outline" size="icon" className={cn("relative", className)} />
               }
-              aria-label="Options"
+              aria-label={m.cards_options()}
             />
           }
         >
           <SlidersHorizontalIcon className="size-4" />
         </TooltipTrigger>
-        <TooltipContent>Display options</TooltipContent>
+        <TooltipContent>{m.cards_display_options()}</TooltipContent>
       </Tooltip>
       <DrawerContent
         className="pb-4 data-ending-style:duration-250"
         keepMounted={openedOnce || idlePremounted}
       >
         <DrawerHeader className="sr-only">
-          <DrawerTitle>Options</DrawerTitle>
-          <DrawerDescription>Sort, display, and filter options</DrawerDescription>
+          <DrawerTitle>{m.cards_options()}</DrawerTitle>
+          <DrawerDescription>{m.cards_options_description()}</DrawerDescription>
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-2 pb-4">
           {children}
         </div>
         <DrawerFooter>
-          <DrawerClose render={<Button className="w-full" />}>{doneLabel ?? "Done"}</DrawerClose>
+          <DrawerClose render={<Button className="w-full" />}>
+            {doneLabel ?? m.common_done()}
+          </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
@@ -437,7 +442,7 @@ export function MobileOptionsContent({
 
   return (
     <div className="space-y-4">
-      <LabelledRow label="View">
+      <LabelledRow label={m.cards_view_label()}>
         <div className="flex flex-1 flex-wrap items-center gap-2">
           {!hideViewToggle && (
             <ViewModeToggle compact view={view} onViewChange={setView} showCopies={showCopies} />
@@ -452,7 +457,7 @@ export function MobileOptionsContent({
       </LabelledRow>
       <SortGroupControls
         compact
-        sortOptions={sortOptions}
+        sortOptions={sortOptionsList()}
         sortBy={sortBy}
         sortDir={sortDir}
         onSortByChange={setSortBy}
@@ -493,7 +498,7 @@ export function MobileFilterContent({
   return (
     <div className="flex flex-col gap-4 pt-4">
       <div className="flex items-center justify-between">
-        <SectionHeading>Filters</SectionHeading>
+        <SectionHeading>{m.cards_filters()}</SectionHeading>
         <FilterCustomizeControl />
       </div>
       <div className="flex flex-col gap-4">

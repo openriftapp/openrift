@@ -46,6 +46,7 @@ import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 const NO_TRADES: readonly CardTradeResponse[] = [];
 
@@ -283,11 +284,13 @@ function buildStrip({
             }
           },
           disabled: manualPart === 0,
-          ariaLabel: `Decrease ${legendDisplayName(displayPrinting.card)} quantity on list`,
+          ariaLabel: m.lists_entry_decrease_aria_list({
+            name: legendDisplayName(displayPrinting.card),
+          }),
         }}
         increment={{
           onClick: () => dispatchIncrement(displayPrinting),
-          ariaLabel: `Add ${legendDisplayName(displayPrinting.card)} to list`,
+          ariaLabel: m.lists_entry_add_aria({ name: legendDisplayName(displayPrinting.card) }),
         }}
         extras={
           <>
@@ -312,10 +315,10 @@ function buildStrip({
             <RuleSourceBadge
               quantity={kind === "copy" ? undefined : entry.ruleQuantity}
               onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}
-              excludeLabel={`Don't include ${entry.cardName}`}
+              excludeLabel={m.lists_entry_exclude_aria({ name: entry.cardName })}
             />
             {tradeChip}
-            {onLoan && <Badge variant="secondary">On loan</Badge>}
+            {onLoan && <Badge variant="secondary">{m.lists_entry_on_loan()}</Badge>}
           </>
         }
       />
@@ -348,7 +351,7 @@ function buildStrip({
         left={
           <>
             {tradeChip}
-            {onLoan && <Badge variant="secondary">On loan</Badge>}
+            {onLoan && <Badge variant="secondary">{m.lists_entry_on_loan()}</Badge>}
           </>
         }
         center={
@@ -361,7 +364,7 @@ function buildStrip({
           <StripIconButton
             className="text-muted-foreground hover:text-destructive"
             onClick={() => dispatchListBulkAction(entryId, "takeOff")}
-            aria-label={`Take ${entry.cardName} off list`}
+            aria-label={m.lists_entry_take_off_aria({ name: entry.cardName })}
           >
             <XIcon />
           </StripIconButton>
@@ -382,12 +385,12 @@ function buildStrip({
             ? dispatchRemoveEntry(entryId, entry.cardName)
             : dispatchEntryQuantityChange(entryId, manualPart - 1),
         disabled: isPending,
-        ariaLabel: `Decrease ${entry.cardName} quantity`,
+        ariaLabel: m.lists_entry_decrease_aria({ name: entry.cardName }),
       }}
       increment={{
         onClick: () => dispatchEntryQuantityChange(entryId, manualPart + 1),
         disabled: isPending,
-        ariaLabel: `Increase ${entry.cardName} quantity`,
+        ariaLabel: m.lists_entry_increase_aria({ name: entry.cardName }),
       }}
       extras={
         <>

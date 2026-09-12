@@ -33,6 +33,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { m } from "@/paraglide/messages.js";
 
 import { DeckExportDialog } from "./deck-export-dialog";
 import { DeckPrintDialog } from "./deck-print-dialog";
@@ -65,7 +66,7 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
   const handleDuplicate = () => {
     const newId = duplicateDeck(deck.id);
     if (newId) {
-      toast.success(`Duplicated "${deck.name}".`);
+      toast.success(m.decks_menu_duplicated({ name: deck.name }));
     }
   };
 
@@ -78,7 +79,9 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Deck actions" />}
+          render={
+            <Button variant="ghost" size="icon-sm" aria-label={m.decks_menu_actions_label()} />
+          }
         >
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
@@ -89,7 +92,7 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <Share2Icon className="size-4" />
-            Share…
+            {m.decks_menu_share()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -97,7 +100,7 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <DownloadIcon className="size-4" />
-            Export…
+            {m.decks_menu_export()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -105,7 +108,7 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PrinterIcon className="size-4" />
-            Print…
+            {m.decks_menu_print()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -113,11 +116,11 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             }}
           >
             <PencilIcon className="size-4" />
-            Rename
+            {m.decks_menu_rename()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDuplicate}>
             <CopyIcon className="size-4" />
-            Duplicate
+            {m.decks_menu_duplicate()}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
@@ -126,7 +129,7 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
             className="text-destructive focus:text-destructive"
           >
             <Trash2Icon className="size-4" />
-            Delete
+            {m.common_delete()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -166,15 +169,14 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
         <AlertDialogContent>
           <DialogForm onSubmit={handleDelete}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete deck</AlertDialogTitle>
+              <AlertDialogTitle>{m.decks_dialog_delete_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                Delete &ldquo;{deck.name}&rdquo;? It only exists on this device, so this cannot be
-                undone.
+                {m.decks_dialog_delete_local_description({ name: deck.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction type="submit">Delete</AlertDialogAction>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+              <AlertDialogAction type="submit">{m.common_delete()}</AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>
         </AlertDialogContent>

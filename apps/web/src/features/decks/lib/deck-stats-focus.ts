@@ -1,3 +1,4 @@
+import { enumLabel } from "@openrift/shared/enum-label";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -5,6 +6,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { chanceToDraw, OPENING_HAND_SIZE } from "@/features/decks/lib/deck-draw-odds";
 import type { OwnershipClass } from "@/features/decks/lib/deck-stat-lenses";
+import { m } from "@/paraglide/messages.js";
 
 export type StatsFocus =
   | { kind: "energy"; value: number }
@@ -41,12 +43,22 @@ export function cardMatchesStatsFocus(card: DeckBuilderCard, focus: StatsFocus):
   }
 }
 
-const OWNERSHIP_FOCUS_LABELS: Record<OwnershipClass, string> = {
-  exact: "Cards owned as shown",
-  other: "Cards owned in another printing",
-  borrowed: "Cards borrowed from friends",
-  missing: "Cards with missing copies",
-};
+function ownershipFocusLabel(ownershipClass: OwnershipClass): string {
+  switch (ownershipClass) {
+    case "exact": {
+      return m.decks_stats_focus_owned_exact();
+    }
+    case "other": {
+      return m.decks_stats_focus_owned_other();
+    }
+    case "borrowed": {
+      return m.decks_stats_focus_owned_borrowed();
+    }
+    case "missing": {
+      return m.decks_stats_focus_owned_missing();
+    }
+  }
+}
 
 export function statsFocusLabel(
   focus: StatsFocus,
@@ -55,19 +67,19 @@ export function statsFocusLabel(
 ): string {
   switch (focus.kind) {
     case "energy": {
-      return `${focus.value}-energy cards`;
+      return m.decks_stats_focus_energy({ value: focus.value });
     }
     case "power": {
-      return `${focus.value}-power cards`;
+      return m.decks_stats_focus_power({ value: focus.value });
     }
     case "type": {
-      return `${typeLabels[focus.value]}s`;
+      return m.decks_stats_focus_type({ label: enumLabel(typeLabels, focus.value) });
     }
     case "rarity": {
-      return `${rarityLabels[focus.value]} cards`;
+      return m.decks_stats_focus_rarity({ label: enumLabel(rarityLabels, focus.value) });
     }
     case "ownership": {
-      return OWNERSHIP_FOCUS_LABELS[focus.value];
+      return ownershipFocusLabel(focus.value);
     }
   }
 }

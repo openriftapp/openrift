@@ -34,7 +34,7 @@ export function TierListShareDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Share tier list"
-      noun="tier list"
+      noun="tier-list"
       link={{
         url: shareUrl,
         label: "Tier list share link",
@@ -55,7 +55,7 @@ export function TierListShareDialog({
             qr: choice.qr,
           }),
         scales: SCALES,
-        qrNoun: "tier list",
+        qrNoun: "tier-list",
         qrAvailable: shareUrl !== null,
         note: dirty ? (
           <p className="text-muted-foreground text-sm">

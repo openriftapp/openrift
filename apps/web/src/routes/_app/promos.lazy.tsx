@@ -2,6 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { Heading } from "@/components/heading";
 import { PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/promos")({
   component: PromosEmpty,
@@ -12,8 +13,8 @@ export const Route = createLazyFileRoute("/_app/promos")({
 function PromosEmpty() {
   return (
     <div className={PAGE_PADDING}>
-      <Heading level={1}>Promos</Heading>
-      <p className="text-muted-foreground mt-2 text-sm">No promos yet.</p>
+      <Heading level={1}>{m.promos_title()}</Heading>
+      <p className="text-muted-foreground mt-2 text-sm">{m.promos_empty()}</p>
     </div>
   );
 }

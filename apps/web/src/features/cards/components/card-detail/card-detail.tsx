@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainTintStyle } from "@/lib/domain";
 import { formatPublicCode } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 
 import { CardDetailArt } from "./card-detail-art";
 import { CardDetailHeading } from "./card-detail-heading";
@@ -49,7 +50,7 @@ function BanAlert({ printing }: { printing: Printing }) {
       {printing.card.bans.map((ban) => (
         <div key={ban.formatId}>
           <AlertTitle>
-            Banned in {ban.formatName} since {ban.bannedAt}
+            {m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
           </AlertTitle>
           {ban.reason && <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>}
         </div>
@@ -116,7 +117,7 @@ export function CardDetail({
                   size="icon"
                   onClick={onPrevCard}
                   disabled={!onPrevCard}
-                  aria-label="Previous card"
+                  aria-label={m.card_detail_prev_card()}
                 >
                   <ChevronLeftIcon className="size-4" />
                 </Button>
@@ -128,7 +129,7 @@ export function CardDetail({
                   size="icon"
                   onClick={onNextCard}
                   disabled={!onNextCard}
-                  aria-label="Next card"
+                  aria-label={m.card_detail_next_card()}
                 >
                   <ChevronRightIcon className="size-4" />
                 </Button>
@@ -173,7 +174,7 @@ export function CardDetail({
               variant="ghost"
               size="icon-sm"
               onClick={onClose}
-              aria-label="Close card details"
+              aria-label={m.card_detail_close()}
               className="absolute top-0 right-0"
             >
               <XIcon className="size-4" />
@@ -195,7 +196,7 @@ export function CardDetail({
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            aria-label="Close card details"
+            aria-label={m.card_detail_close()}
             className="absolute top-4 right-0"
           >
             <XIcon className="size-4" />
@@ -221,7 +222,7 @@ export function CardDetail({
               size="icon"
               onClick={onPrevCard}
               disabled={!onPrevCard}
-              aria-label="Previous card"
+              aria-label={m.card_detail_prev_card()}
               className="md:hidden"
             >
               <ChevronLeftIcon className="size-4" />
@@ -234,7 +235,7 @@ export function CardDetail({
               size="icon"
               onClick={onNextCard}
               disabled={!onNextCard}
-              aria-label="Next card"
+              aria-label={m.card_detail_next_card()}
               className="md:hidden"
             >
               <ChevronRightIcon className="size-4" />

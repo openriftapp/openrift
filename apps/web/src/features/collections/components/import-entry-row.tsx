@@ -29,6 +29,7 @@ import { getImportBucket } from "@/features/collections/lib/import-summary";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatImportPrintingLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const BUCKET_CONFIG: Record<ImportBucket, { icon: React.ElementType; className: string }> = {
   ready: { icon: CheckCircle2Icon, className: "text-success" },
@@ -75,7 +76,11 @@ export function ImportEntryRow({
             className="text-muted-foreground hover:text-foreground shrink-0"
             chevronClassName="text-inherit"
             onClick={() => onToggleExpand(index)}
-            aria-label={isExpanded ? "Collapse import details" : "Expand import details"}
+            aria-label={
+              isExpanded
+                ? m.collections_import_collapse_details()
+                : m.collections_import_expand_details()
+            }
           />
         }
         statusIcon={<StatusIcon className={cn("size-4 shrink-0", statusColor)} />}
@@ -87,7 +92,8 @@ export function ImportEntryRow({
           <>
             {entry.suggestedName && (
               <span className="text-muted-foreground text-xs">
-                Did you mean <em>{entry.suggestedName}</em>?
+                {m.collections_import_did_you_mean_before()} <em>{entry.suggestedName}</em>
+                {m.collections_import_did_you_mean_after()}
               </span>
             )}
             {showSearch ? (
@@ -109,7 +115,11 @@ export function ImportEntryRow({
               variant="ghost"
               size="xs"
               onClick={() => setShowSearch(!showSearch)}
-              aria-label={showSearch ? "Close search" : "Search catalog"}
+              aria-label={
+                showSearch
+                  ? m.collections_import_close_search()
+                  : m.collections_import_search_catalog()
+              }
             >
               {showSearch ? (
                 <XCircleIcon className="size-3.5" />
@@ -119,11 +129,11 @@ export function ImportEntryRow({
             </Button>
             {isSkipped ? (
               <Button variant="ghost" size="xs" onClick={() => onUnskip(index)}>
-                Unskip
+                {m.collections_import_unskip()}
               </Button>
             ) : (
               <Button variant="ghost" size="xs" onClick={() => onSkip(index)}>
-                Skip
+                {m.collections_import_skip()}
               </Button>
             )}
           </>
@@ -182,7 +192,7 @@ function VariantPicker({
       )}
     >
       <SelectTrigger size="sm" className="h-7 w-auto text-xs">
-        <SelectValue placeholder="Pick printing..." />
+        <SelectValue placeholder={m.collections_import_pick_printing_placeholder()} />
       </SelectTrigger>
       <SelectContent ref={popupRef} className="w-auto">
         {candidates.map((printing) => (

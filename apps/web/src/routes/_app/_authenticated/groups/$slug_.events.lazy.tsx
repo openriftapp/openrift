@@ -5,6 +5,7 @@ import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { FriendGroupSectionFrame, isAdmin } from "@/features/groups/components/friend-group-shell";
 import { useFriendGroupDetail } from "@/features/groups/hooks/use-friend-groups";
 import { GroupTournamentsLens } from "@/features/tournaments/components/group-tournaments-lens";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/_authenticated/groups/$slug_/events")({
   component: GroupTournamentsRoute,
@@ -17,14 +18,14 @@ function GroupTournamentsRoute() {
   return (
     <FriendGroupSectionFrame
       slug={slug}
-      title="Tournaments"
+      title={m.groups_nav_tournaments()}
       actions={
         canCreate ? (
           <PageTopBarPrimaryButton
             render={<Link to="/tournaments/new" search={{ group: data.group.id }} />}
           >
             <PlusIcon className="size-4" />
-            New tournament
+            {m.groups_events_new()}
           </PageTopBarPrimaryButton>
         ) : null
       }

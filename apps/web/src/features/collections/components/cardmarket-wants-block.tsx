@@ -3,6 +3,7 @@ import { CopyTextButton } from "@/components/copy-text-button";
 import { Textarea } from "@/components/ui/textarea";
 import type { CardLine } from "@/lib/export-text";
 import { formatCardmarketWants } from "@/lib/export-text";
+import { m } from "@/paraglide/messages.js";
 
 interface CardmarketWantsBlockProps {
   lines: readonly CardLine[];
@@ -22,15 +23,13 @@ export function CardmarketWantsBlock({ lines }: CardmarketWantsBlockProps) {
   return (
     <div className="flex min-w-0 flex-col gap-3 pt-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-medium">Cardmarket wants</h3>
+        <h3 className="font-medium">{m.collections_export_wants_title()}</h3>
         <div className="flex items-center gap-1.5">
           <CardmarketWantsLink />
-          <CopyTextButton label="Copy" getText={() => text} size="sm" />
+          <CopyTextButton label={m.common_copy()} getText={() => text} size="sm" />
         </div>
       </div>
-      <p className="text-muted-foreground text-sm">
-        Paste into Cardmarket&apos;s shopping wizard to price the list with your own filters.
-      </p>
+      <p className="text-muted-foreground text-sm">{m.collections_export_wants_description()}</p>
       <Textarea
         readOnly
         value={text}

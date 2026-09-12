@@ -2,6 +2,7 @@ import { RotateCcwIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { m } from "@/paraglide/messages.js";
 
 interface ResetButtonProps {
   onClick: () => void;
@@ -25,7 +26,7 @@ export function ResetButton({ onClick, label }: ResetButtonProps) {
       >
         <RotateCcwIcon className="size-3.5" />
       </TooltipTrigger>
-      <TooltipContent>Reset to default</TooltipContent>
+      <TooltipContent>{m.profile_reset_to_default()}</TooltipContent>
     </Tooltip>
   );
 }

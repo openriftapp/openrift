@@ -51,6 +51,7 @@ import type {
 } from "@/features/decks/lib/deck-plan";
 import { zoneExpected } from "@/features/decks/lib/deck-zone-labels";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function buildContext(deckCards: DeckBuilderCard[]): DeckPlanContext {
   const maindeck = new Map<string, number>();
@@ -79,22 +80,33 @@ function ColumnLabel({ children, className }: { children: ReactNode; className?:
 function warningMessage(warning: PlanWarning, nameOf: (cardId: string) => string): string {
   switch (warning.code) {
     case "matchup-no-opponent": {
-      return "Name this matchup or link a card.";
+      return m.decks_plan_warning_no_opponent();
     }
     case "swap-unbalanced": {
-      return `Swaps don’t balance: ${warning.outCount} out, ${warning.inCount} in.`;
+      return m.decks_plan_warning_unbalanced({
+        outCount: warning.outCount,
+        inCount: warning.inCount,
+      });
     }
     case "in-exceeds-sideboard": {
-      return `Bringing in ${warning.requested}× ${nameOf(warning.cardId)}, but the sideboard has ${warning.available}.`;
+      return m.decks_plan_warning_in_exceeds({
+        requested: warning.requested,
+        card: nameOf(warning.cardId),
+        available: warning.available,
+      });
     }
     case "out-exceeds-maindeck": {
-      return `Taking out ${warning.requested}× ${nameOf(warning.cardId)}, but the maindeck has ${warning.available}.`;
+      return m.decks_plan_warning_out_exceeds({
+        requested: warning.requested,
+        card: nameOf(warning.cardId),
+        available: warning.available,
+      });
     }
     case "battlefield-not-in-deck": {
-      return `${nameOf(warning.cardId)} isn’t a battlefield in this deck.`;
+      return m.decks_plan_warning_not_battlefield({ card: nameOf(warning.cardId) });
     }
     case "battlefield-duplicate": {
-      return `${nameOf(warning.cardId)} is chosen for more than one scenario.`;
+      return m.decks_plan_warning_battlefield_duplicate({ card: nameOf(warning.cardId) });
     }
   }
 }
@@ -161,7 +173,7 @@ function MatchupEditor({
     ? label
       ? `${cardName} · ${label}`
       : cardName
-    : label || "New matchup";
+    : label || m.decks_plan_new_matchup();
   const outCount = matchup.swaps
     .filter((swap) => swap.direction === "out")
     .reduce((total, swap) => total + swap.quantity, 0);
@@ -223,7 +235,7 @@ function MatchupEditor({
               size="icon-sm"
               disabled={isFirst}
               onClick={() => onMove(-1)}
-              aria-label="Move up"
+              aria-label={m.decks_plan_move_up()}
             >
               <ArrowUpIcon className="size-4" />
             </Button>
@@ -232,7 +244,7 @@ function MatchupEditor({
               size="icon-sm"
               disabled={isLast}
               onClick={() => onMove(1)}
-              aria-label="Move down"
+              aria-label={m.decks_plan_move_down()}
             >
               <ArrowDownIcon className="size-4" />
             </Button>
@@ -240,7 +252,7 @@ function MatchupEditor({
               variant="ghost"
               size="icon-sm"
               onClick={onRemove}
-              aria-label={`Remove matchup ${index + 1}`}
+              aria-label={m.decks_plan_remove_matchup({ index: index + 1 })}
             >
               <Trash2Icon className="size-4" />
             </Button>
@@ -250,7 +262,7 @@ function MatchupEditor({
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1 space-y-2">
-          <ColumnLabel>Key card</ColumnLabel>
+          <ColumnLabel>{m.decks_plan_key_card()}</ColumnLabel>
           <div className="h-8">
             {matchup.opponentCardId ? (
               <CardChip
@@ -263,18 +275,18 @@ function MatchupEditor({
               <CardPicker
                 candidates={cardCandidates}
                 onSelect={(cardId) => onChange({ opponentCardId: cardId })}
-                placeholder="Search a card (Diana, Aurora…)"
+                placeholder={m.decks_plan_card_search_placeholder()}
                 listAllWhenEmpty={false}
               />
             )}
           </div>
         </div>
         <div className="min-w-0 flex-1 space-y-2">
-          <ColumnLabel>Build</ColumnLabel>
+          <ColumnLabel>{m.decks_plan_build()}</ColumnLabel>
           <Input
             value={matchup.opponentLabel}
             onChange={(event) => onChange({ opponentLabel: event.target.value })}
-            placeholder="e.g. Scorn of the Moon, Aggro, Control"
+            placeholder={m.decks_plan_build_placeholder()}
             maxLength={120}
             className="h-8 w-full"
           />
@@ -295,11 +307,11 @@ function MatchupEditor({
       <WarningList warnings={warnings} nameOf={nameOf} />
 
       <div className="space-y-2">
-        <ColumnLabel>Matchup notes</ColumnLabel>
+        <ColumnLabel>{m.decks_plan_matchup_notes()}</ColumnLabel>
         <Textarea
           value={matchup.notes}
           onChange={(event) => onChange({ notes: event.target.value })}
-          placeholder="Optional"
+          placeholder={m.decks_plan_optional()}
           rows={2}
           maxLength={4000}
         />
@@ -335,7 +347,8 @@ export function DeckPlanEditor({
     (warning) =>
       warning.code === "battlefield-not-in-deck" || warning.code === "battlefield-duplicate",
   );
-  const nameOf = (cardId: string) => getPreferredPrinting(cardId)?.card.name ?? "a card";
+  const nameOf = (cardId: string) =>
+    getPreferredPrinting(cardId)?.card.name ?? m.decks_plan_a_card();
 
   const cardSeen = new Set<string>();
   const cardCandidates: { cardId: string; cardName: string; altNames: string[] }[] = [];
@@ -420,11 +433,11 @@ export function DeckPlanEditor({
           <CardPicker
             candidates={battlefieldCandidates}
             onSelect={(cardId) => setBattlefield(key, cardId)}
-            placeholder="Choose a battlefield…"
+            placeholder={m.decks_plan_choose_battlefield()}
           />
         ) : (
           <span className="text-muted-foreground text-sm">
-            Add battlefields to your deck to choose them here.
+            {m.decks_plan_add_battlefields_hint()}
           </span>
         )}
       </div>
@@ -437,13 +450,13 @@ export function DeckPlanEditor({
     <>
       {isDirty ? (
         <Badge variant="secondary" className="hidden sm:inline-flex">
-          Unsaved changes
+          {m.decks_plan_unsaved_changes()}
         </Badge>
       ) : null}
       {savePlan.isError ? (
         <span className="text-muted-foreground hidden items-center gap-1.5 text-sm sm:inline-flex">
           <CircleXIcon className="text-destructive size-4 shrink-0" />
-          Save failed
+          {m.decks_plan_save_failed()}
         </span>
       ) : null}
       {isPlanDraftEmpty(draft) ? null : (
@@ -451,11 +464,11 @@ export function DeckPlanEditor({
           variant="ghost"
           size="sm"
           className="text-destructive hover:text-destructive"
-          aria-label="Clear plan"
+          aria-label={m.decks_plan_clear_plan()}
           onClick={() => setClearConfirmOpen(true)}
         >
           <Trash2Icon />
-          <span className="hidden sm:inline">Clear plan</span>
+          <span className="hidden sm:inline">{m.decks_plan_clear_plan()}</span>
         </Button>
       )}
       <Button
@@ -463,7 +476,7 @@ export function DeckPlanEditor({
         onClick={() => savePlan.mutate({ deckId, plan: planDraftToSaveInput(draft) })}
         disabled={!isDirty || savePlan.isPending}
       >
-        {savePlan.isPending ? "Saving…" : "Save plan"}
+        {savePlan.isPending ? m.common_saving() : m.decks_plan_save_plan()}
       </Button>
     </>
   );
@@ -473,19 +486,17 @@ export function DeckPlanEditor({
       {actionsSlot === undefined && <div className="flex items-center gap-2">{actions}</div>}
       {actionsSlot ? createPortal(actions, actionsSlot) : null}
 
-      <p className="text-muted-foreground max-w-prose">
-        Optional notes on how to pilot this deck. They show up on the deck&apos;s share page.
-      </p>
+      <p className="text-muted-foreground max-w-prose">{m.decks_plan_intro()}</p>
 
       <section className="space-y-2">
-        <Label htmlFor="plan-strategy">General strategy</Label>
+        <Label htmlFor="plan-strategy">{m.decks_plan_general_strategy()}</Label>
         <Textarea
           id="plan-strategy"
           value={draft.generalStrategy}
           onChange={(event) =>
             setDraft((current) => ({ ...current, generalStrategy: event.target.value }))
           }
-          placeholder="How the deck wins, what to prioritise, lines to watch for…"
+          placeholder={m.decks_plan_strategy_placeholder()}
           rows={4}
           maxLength={8000}
         />
@@ -493,7 +504,7 @@ export function DeckPlanEditor({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <Heading level={3}>Mulligan priority</Heading>
+          <Heading level={3}>{m.decks_plan_mulligan_priority()}</Heading>
           <Label className="flex items-center gap-2 text-sm font-normal">
             <Switch
               checked={draft.mulliganSplit}
@@ -501,13 +512,13 @@ export function DeckPlanEditor({
                 setDraft((current) => ({ ...current, mulliganSplit: checked === true }))
               }
             />
-            Different on the play vs the draw
+            {m.decks_plan_mulligan_split_label()}
           </Label>
         </div>
         {draft.mulliganSplit ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <span className="text-muted-foreground text-sm">Going first</span>
+              <span className="text-muted-foreground text-sm">{m.decks_plan_going_first()}</span>
               <Textarea
                 value={draft.mulliganFirst}
                 onChange={(event) =>
@@ -518,7 +529,7 @@ export function DeckPlanEditor({
               />
             </div>
             <div className="space-y-1.5">
-              <span className="text-muted-foreground text-sm">Going second</span>
+              <span className="text-muted-foreground text-sm">{m.decks_plan_going_second()}</span>
               <Textarea
                 value={draft.mulliganSecond}
                 onChange={(event) =>
@@ -535,7 +546,7 @@ export function DeckPlanEditor({
             onChange={(event) =>
               setDraft((current) => ({ ...current, mulliganGeneral: event.target.value }))
             }
-            placeholder="Cards or hands to keep, what to ship…"
+            placeholder={m.decks_plan_mulligan_placeholder()}
             rows={3}
             maxLength={4000}
           />
@@ -544,7 +555,7 @@ export function DeckPlanEditor({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <Heading level={3}>Battlefields</Heading>
+          <Heading level={3}>{m.decks_plan_battlefields()}</Heading>
           <Label className="flex items-center gap-2 text-sm font-normal">
             <Switch
               checked={draft.battlefieldCustom}
@@ -552,7 +563,7 @@ export function DeckPlanEditor({
                 setDraft((current) => ({ ...current, battlefieldCustom: checked === true }))
               }
             />
-            Custom plan
+            {m.decks_plan_custom_plan()}
           </Label>
         </div>
         {draft.battlefieldCustom ? (
@@ -561,7 +572,7 @@ export function DeckPlanEditor({
             onChange={(event) =>
               setDraft((current) => ({ ...current, battlefieldNote: event.target.value }))
             }
-            placeholder="Describe your battlefield plan…"
+            placeholder={m.decks_plan_battlefield_note_placeholder()}
             rows={3}
             maxLength={4000}
           />
@@ -571,19 +582,19 @@ export function DeckPlanEditor({
               {singleBattlefield ? (
                 <>
                   {/* Extra picks saved before a format switch stay visible to be cleared. */}
-                  {battlefieldRow("Battlefield", "battlefieldGame1CardId")}
+                  {battlefieldRow(m.decks_plan_battlefield(), "battlefieldGame1CardId")}
                   {draft.battlefieldFirstCardId
-                    ? battlefieldRow("Going first", "battlefieldFirstCardId")
+                    ? battlefieldRow(m.decks_plan_going_first(), "battlefieldFirstCardId")
                     : null}
                   {draft.battlefieldSecondCardId
-                    ? battlefieldRow("Going second", "battlefieldSecondCardId")
+                    ? battlefieldRow(m.decks_plan_going_second(), "battlefieldSecondCardId")
                     : null}
                 </>
               ) : (
                 <>
-                  {battlefieldRow("Game 1", "battlefieldGame1CardId")}
-                  {battlefieldRow("Going first", "battlefieldFirstCardId")}
-                  {battlefieldRow("Going second", "battlefieldSecondCardId")}
+                  {battlefieldRow(m.decks_plan_game_1(), "battlefieldGame1CardId")}
+                  {battlefieldRow(m.decks_plan_going_first(), "battlefieldFirstCardId")}
+                  {battlefieldRow(m.decks_plan_going_second(), "battlefieldSecondCardId")}
                 </>
               )}
             </div>
@@ -595,7 +606,7 @@ export function DeckPlanEditor({
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <Heading level={3}>
-            Matchups
+            {m.decks_plan_matchups()}
             {completeMatchups > 0 ? (
               <span className="text-muted-foreground ml-1 font-normal">({completeMatchups})</span>
             ) : null}
@@ -611,13 +622,11 @@ export function DeckPlanEditor({
             }
           >
             <PlusIcon className="size-4" />
-            Add matchup
+            {m.decks_plan_add_matchup()}
           </Button>
         </div>
         {draft.matchups.length === 0 ? (
-          <p className="text-muted-foreground">
-            No matchups yet. Add one to plan your sideboard against a specific opponent.
-          </p>
+          <p className="text-muted-foreground">{m.decks_plan_no_matchups()}</p>
         ) : (
           <div className="space-y-3">
             {draft.matchups.map((matchup, index) => (
@@ -653,10 +662,10 @@ export function DeckPlanEditor({
       <ConfirmActionDialog
         open={clearConfirmOpen}
         onOpenChange={setClearConfirmOpen}
-        title="Clear this plan?"
-        description="This removes the strategy, mulligan notes, battlefields, and all matchups. This can't be undone."
-        confirmLabel="Clear plan"
-        pendingLabel="Clearing…"
+        title={m.decks_plan_clear_confirm_title()}
+        description={m.decks_plan_clear_confirm_description()}
+        confirmLabel={m.decks_plan_clear_plan()}
+        pendingLabel={m.decks_plan_clearing()}
         isPending={savePlan.isPending}
         onConfirm={() => {
           const empty = createEmptyPlanDraft();

@@ -14,6 +14,7 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
 import { disposeConfirmState } from "@/lib/dispose-confirm";
+import { m } from "@/paraglide/messages.js";
 
 interface DisposeDialogProps {
   open: boolean;
@@ -44,12 +45,18 @@ export function DisposeDialog({
   annotatedCount = 0,
 }: DisposeDialogProps) {
   const canChooseQuantity = singleCard && count > 1;
-  const cardNoun = `card${quantity === 1 ? "" : "s"}`;
   const { showListWarning, needsTypeConfirm, copiesOnAnyList } = disposeConfirmState(
     quantity,
     memberships,
   );
-  const onListNoun = `card${copiesOnAnyList === 1 ? "" : "s"}`;
+  const listNote =
+    quantity === 1
+      ? copiesOnAnyList === 1
+        ? m.collections_dialog_dispose_lists_note_one_one()
+        : m.collections_dialog_dispose_lists_note_one_other()
+      : copiesOnAnyList === 1
+        ? m.collections_dialog_dispose_lists_note_other_one()
+        : m.collections_dialog_dispose_lists_note_other_other();
 
   const [confirmText, setConfirmText] = useState("");
   // Start blank on every reopen so an earlier typed value can't carry over, and
@@ -67,15 +74,16 @@ export function DisposeDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={onConfirm}>
-          <AlertDialogTitle>Remove cards from collection</AlertDialogTitle>
+          <AlertDialogTitle>{m.collections_dialog_dispose_title()}</AlertDialogTitle>
           <AlertDialogDescription>
-            This permanently removes {quantity} {cardNoun} from your collection. It can&apos;t be
-            undone, but the removal is recorded in your activity history.
+            {quantity === 1
+              ? m.collections_dialog_dispose_description_one({ count: quantity })
+              : m.collections_dialog_dispose_description_other({ count: quantity })}
           </AlertDialogDescription>
 
           {canChooseQuantity && (
             <QuantityStepperField
-              label="Copies to remove"
+              label={m.collections_dialog_dispose_quantity_label()}
               value={quantity}
               onValueChange={onQuantityChange}
               max={count}
@@ -88,13 +96,11 @@ export function DisposeDialog({
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
                 <p className="font-medium">
-                  {copiesOnAnyList} of these {onListNoun} {copiesOnAnyList === 1 ? "is" : "are"} on
-                  your lists
+                  {copiesOnAnyList === 1
+                    ? m.collections_dialog_dispose_lists_heading_one({ count: copiesOnAnyList })
+                    : m.collections_dialog_dispose_lists_heading_other({ count: copiesOnAnyList })}
                 </p>
-                <p>
-                  Removing {quantity === 1 ? "it" : "them"} here deletes the {cardNoun} for good, so{" "}
-                  {copiesOnAnyList === 1 ? "it" : "they"} will also drop off:
-                </p>
+                <p>{listNote}</p>
                 <ul className="list-disc space-y-0.5 pl-4">
                   {memberships?.lists.map((list) => (
                     <li key={list.id}>
@@ -111,11 +117,15 @@ export function DisposeDialog({
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <p>
                 <span className="font-medium">
-                  {annotatedCount} of these {annotatedCount === 1 ? "card has" : "cards have"}{" "}
-                  details recorded
+                  {annotatedCount === 1
+                    ? m.collections_dialog_dispose_annotated_heading_one({ count: annotatedCount })
+                    : m.collections_dialog_dispose_annotated_heading_other({
+                        count: annotatedCount,
+                      })}
                 </span>{" "}
-                (condition, grading, notes, or photo links). Removing{" "}
-                {annotatedCount === 1 ? "it" : "them"} permanently deletes those details too.
+                {annotatedCount === 1
+                  ? m.collections_dialog_dispose_annotated_note_one()
+                  : m.collections_dialog_dispose_annotated_note_other()}
               </p>
             </Callout>
           )}
@@ -123,7 +133,9 @@ export function DisposeDialog({
           {needsTypeConfirm && (
             <div className="space-y-1.5">
               <label htmlFor="dispose-confirm" className="text-sm font-medium">
-                Type <span className="font-mono">{quantity}</span> to confirm
+                {m.collections_dialog_dispose_type_before()}{" "}
+                <span className="font-mono">{quantity}</span>{" "}
+                {m.collections_dialog_dispose_type_after()}
               </label>
               <Input
                 id="dispose-confirm"
@@ -139,18 +151,20 @@ export function DisposeDialog({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" variant="destructive" disabled={confirmDisabled}>
               {membershipsLoading ? (
                 <>
                   <LoaderIcon className="animate-spin" />
-                  Checking your lists…
+                  {m.collections_dialog_dispose_checking_lists()}
                 </>
               ) : isPending ? (
-                "Removing…"
+                m.collections_dialog_removing()
+              ) : quantity === 1 ? (
+                m.collections_dialog_dispose_confirm_one({ count: quantity })
               ) : (
-                `Remove ${quantity} ${cardNoun}`
+                m.collections_dialog_dispose_confirm_other({ count: quantity })
               )}
             </Button>
           </div>

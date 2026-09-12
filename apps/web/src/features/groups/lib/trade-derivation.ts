@@ -10,6 +10,8 @@ import type {
 } from "@openrift/shared/types/api/card-trade";
 import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-group";
 
+import { m } from "@/paraglide/messages.js";
+
 export type TradeSection = "action-needed" | "active" | "history";
 
 export function tradeSection(trade: CardTradeResponse): TradeSection {
@@ -247,22 +249,22 @@ export function summarizeMatchCopies(
 export function tradeStatusLabel(status: CardTradeResponse["status"]): string {
   switch (status) {
     case "pending": {
-      return "Pending";
+      return m.trades_status_pending();
     }
     case "reserved": {
-      return "Reserved";
+      return m.trades_status_reserved();
     }
     case "completed": {
-      return "Completed";
+      return m.trades_status_completed();
     }
     case "declined": {
-      return "Declined";
+      return m.trades_status_declined();
     }
     case "cancelled": {
-      return "Cancelled";
+      return m.trades_status_cancelled();
     }
     case "expired": {
-      return "Expired";
+      return m.trades_status_expired();
     }
   }
 }

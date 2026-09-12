@@ -2,6 +2,7 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { m } from "@/paraglide/messages.js";
 
 /** `maxColumns === null` means "Auto"; a number is the user's override, clamped to `[minColumns, maxColumnsLimit]`. */
 export function ColumnControls({
@@ -20,7 +21,7 @@ export function ColumnControls({
   onMaxColumnsChange: (value: number | null) => void;
 }) {
   return (
-    <ButtonGroup aria-label="Columns">
+    <ButtonGroup aria-label={m.cards_columns()}>
       <Button
         variant="control"
         size={compact ? "sm" : "icon"}
@@ -39,7 +40,7 @@ export function ColumnControls({
           (maxColumns !== null && maxColumns <= minColumns) ||
           (maxColumns === null && autoColumns <= minColumns)
         }
-        aria-label="Fewer columns"
+        aria-label={m.cards_columns_fewer()}
       >
         <MinusIcon className={compact ? undefined : "size-4"} />
       </Button>
@@ -52,10 +53,12 @@ export function ColumnControls({
             onMaxColumnsChange(null);
           }
         }}
-        title={maxColumns === null ? "Auto columns" : "Reset to auto"}
-        aria-label={maxColumns === null ? "Auto columns" : "Reset columns to auto"}
+        title={maxColumns === null ? m.cards_columns_auto_title() : m.cards_columns_reset_title()}
+        aria-label={
+          maxColumns === null ? m.cards_columns_auto_title() : m.cards_columns_reset_aria()
+        }
       >
-        {maxColumns ?? "Auto"}
+        {maxColumns ?? m.cards_columns_auto()}
       </Button>
       <Button
         variant="control"
@@ -70,7 +73,7 @@ export function ColumnControls({
         disabled={
           maxColumns === null ? autoColumns >= maxColumnsLimit : maxColumns >= maxColumnsLimit
         }
-        aria-label="More columns"
+        aria-label={m.cards_columns_more()}
       >
         <PlusIcon className={compact ? undefined : "size-4"} />
       </Button>

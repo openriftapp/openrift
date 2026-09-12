@@ -31,6 +31,7 @@ import { useDeleteDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 interface DeckEditorDialogsProps {
@@ -133,19 +134,19 @@ export function DeckEditorDialogs({
         <AlertDialogContent>
           <DialogForm onSubmit={handleDelete}>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete deck</AlertDialogTitle>
+              <AlertDialogTitle>{m.decks_editor_delete_title()}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete &ldquo;{deck.name}&rdquo;?{" "}
+                {m.decks_editor_delete_confirm({ name: deck.name })}{" "}
                 {isLocal
-                  ? "It only exists on this device, so this cannot be undone."
-                  : "This cannot be undone."}
-                {deck.familyId !== null && " The other versions of it stay."}
+                  ? m.decks_editor_delete_local_note()
+                  : m.decks_editor_delete_permanent_note()}
+                {deck.familyId !== null && ` ${m.decks_editor_delete_variants_note()}`}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
               <AlertDialogAction type="submit" disabled={deleteDeck.isPending}>
-                Delete
+                {m.common_delete()}
               </AlertDialogAction>
             </AlertDialogFooter>
           </DialogForm>

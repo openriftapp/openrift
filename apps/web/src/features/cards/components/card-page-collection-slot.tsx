@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 const CardPageCollectionActions = lazy(async () => {
-  const m = await import("@/features/cards/components/card-page-collection-actions");
-  return { default: m.CardPageCollectionActions };
+  const mod = await import("@/features/cards/components/card-page-collection-actions");
+  return { default: mod.CardPageCollectionActions };
 });
 
 // The counts come from a live query with no server snapshot, so this mounts
@@ -45,12 +46,9 @@ export function CollectionSlot({
 function TrackCollectionNudge({ cardSlug }: { cardSlug: string }) {
   return (
     <section className="flex flex-col gap-2">
-      <SectionHeading icon={PackageIcon}>Your copies</SectionHeading>
+      <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <p className="text-muted-foreground min-w-0 flex-1 text-sm">
-          Keep count of your copies of this card, with wishlists and tradelists that update
-          themselves.
-        </p>
+        <p className="text-muted-foreground min-w-0 flex-1 text-sm">{m.card_detail_nudge_text()}</p>
         <Button
           variant="outline"
           size="sm"
@@ -59,7 +57,7 @@ function TrackCollectionNudge({ cardSlug }: { cardSlug: string }) {
             <Link to="/signup" search={{ redirect: `/cards/${cardSlug}`, email: undefined }} />
           }
         >
-          Sign up free
+          {m.card_detail_nudge_signup()}
         </Button>
       </div>
     </section>

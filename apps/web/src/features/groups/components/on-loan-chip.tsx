@@ -1,6 +1,7 @@
 import { HandHeartIcon } from "lucide-react";
 
 import { CountPill } from "@/components/ui/count-pill";
+import { m } from "@/paraglide/messages.js";
 
 export function OnLoanChip({
   count,
@@ -16,10 +17,12 @@ export function OnLoanChip({
     return null;
   }
   const title = iconOnly
-    ? "On loan"
+    ? m.loans_on_loan()
     : showTotal
-      ? `${count} of this printing on loan (${totalCount} across all printings)`
-      : `${count} ${count === 1 ? "copy" : "copies"} on loan`;
+      ? m.loans_on_loan_printing({ count, total: totalCount })
+      : count === 1
+        ? m.loans_on_loan_count_one({ count })
+        : m.loans_on_loan_count_other({ count });
   return (
     <CountPill variant="ghost" title={title} aria-label={title}>
       <HandHeartIcon className="size-3" aria-hidden />

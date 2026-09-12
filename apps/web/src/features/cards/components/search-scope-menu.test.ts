@@ -1,7 +1,7 @@
 import { ALL_SEARCH_FIELDS } from "@openrift/shared/types/search";
 import { describe, expect, it } from "vitest";
 
-import { SEARCH_FIELD_LABELS, scopeSummary } from "./search-scope-menu";
+import { scopeSummary, searchFieldLabels } from "./search-scope-menu";
 
 describe("scopeSummary", () => {
   it("collapses a full scope to 'all'", () => {
@@ -34,11 +34,11 @@ describe("scopeSummary", () => {
   });
 });
 
-describe("SEARCH_FIELD_LABELS", () => {
+describe("searchFieldLabels", () => {
   it("carries a label and a unique prefix for every searchable field", () => {
     const prefixes = new Set<string>();
     for (const field of ALL_SEARCH_FIELDS) {
-      const entry = SEARCH_FIELD_LABELS[field];
+      const entry = searchFieldLabels()[field];
       expect(entry.label).not.toBe("");
       expect(entry.prefix).toMatch(/^[a-z]+:$/u);
       prefixes.add(entry.prefix);

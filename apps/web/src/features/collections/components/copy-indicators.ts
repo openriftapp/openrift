@@ -2,6 +2,8 @@ import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { LucideIcon } from "lucide-react";
 import { FileTextIcon, LinkIcon, LockIcon, PaintbrushIcon } from "lucide-react";
 
+import { m } from "@/paraglide/messages.js";
+
 // `content` is the fuller tooltip body that spacious surfaces show and compact
 // ones ignore.
 export interface CopyMarker {
@@ -17,13 +19,17 @@ export interface CopyMarker {
 export function copyMarkers(copy: CopyResponse): CopyMarker[] {
   const markers: CopyMarker[] = [];
   if (copy.isAltered) {
-    markers.push({ key: "altered", icon: PaintbrushIcon, label: "Altered" });
+    markers.push({
+      key: "altered",
+      icon: PaintbrushIcon,
+      label: m.collections_copies_marker_altered(),
+    });
   }
   if (copy.notesPublic !== null) {
     markers.push({
       key: "note",
       icon: FileTextIcon,
-      label: "Public note",
+      label: m.collections_copies_marker_note_public(),
       content: copy.notesPublic,
     });
   }
@@ -31,7 +37,7 @@ export function copyMarkers(copy: CopyResponse): CopyMarker[] {
     markers.push({
       key: "private-note",
       icon: LockIcon,
-      label: "Private note",
+      label: m.collections_copies_marker_note_private(),
       content: copy.notesPrivate,
     });
   }
@@ -39,7 +45,10 @@ export function copyMarkers(copy: CopyResponse): CopyMarker[] {
     markers.push({
       key: "links",
       icon: LinkIcon,
-      label: copy.links.length === 1 ? "1 link" : `${copy.links.length} links`,
+      label:
+        copy.links.length === 1
+          ? m.collections_copies_links_one({ count: copy.links.length })
+          : m.collections_copies_links_other({ count: copy.links.length }),
       count: copy.links.length,
       content: copy.links.map((link) => link.label ?? link.url).join("\n"),
     });

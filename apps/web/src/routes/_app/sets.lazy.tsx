@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/sets")({
   component: SetsPage,
@@ -57,8 +58,13 @@ function HeroSetCard({ set }: { set: SetListEntry }) {
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span className="flex items-center gap-1.5">
             <LayersIcon className="size-3.5" />
-            {set.cardCount} {set.cardCount === 1 ? "card" : "cards"}, {set.printingCount}{" "}
-            {set.printingCount === 1 ? "printing" : "printings"}
+            {set.cardCount === 1
+              ? m.common_cards_one({ count: set.cardCount })
+              : m.common_cards_other({ count: set.cardCount })}
+            {", "}
+            {set.printingCount === 1
+              ? m.common_printings_one({ count: set.printingCount })
+              : m.common_printings_other({ count: set.printingCount })}
           </span>
           {releaseLabels(set).map((label, index) => (
             <span key={label} className="flex items-center gap-1.5">
@@ -85,7 +91,7 @@ function SetsPage() {
   return (
     <div className={PAGE_PADDING}>
       <Heading level={1} className="mb-6">
-        Card Sets
+        {m.sets_title()}
       </Heading>
       <div className={SET_GRID}>
         {mainSets.map((set) => (
@@ -94,7 +100,7 @@ function SetsPage() {
       </div>
       {supplementalSets.length > 0 && (
         <>
-          <Heading className="mt-10 mb-6">Supplemental Sets</Heading>
+          <Heading className="mt-10 mb-6">{m.sets_supplemental()}</Heading>
           <div className={SET_GRID}>
             {supplementalSets.map((set) => (
               <HeroSetCard key={set.id} set={set} />

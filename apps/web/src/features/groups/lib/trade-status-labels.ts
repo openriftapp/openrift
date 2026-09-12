@@ -6,6 +6,8 @@ import type {
 import type { LucideIcon } from "lucide-react";
 import { ArrowDownLeftIcon, ArrowUpRightIcon } from "lucide-react";
 
+import { m } from "@/paraglide/messages.js";
+
 type LiveTradeTone = "soft" | "committed";
 
 export type LiveTradeDirection = "incoming" | "outgoing";
@@ -19,11 +21,19 @@ export interface LiveTradeStatusDescriptor {
 
 export type LiveTradeStatusInput = Pick<CardTradeLiveAnnotation, "role" | "phase">;
 
-const PHASE_LABELS: Record<CardTradeLivePhase, string> = {
-  asked: "Requested",
-  offered: "Offered",
-  reserved: "Reserved",
-};
+function phaseLabel(phase: CardTradeLivePhase): string {
+  switch (phase) {
+    case "asked": {
+      return m.trades_status_requested();
+    }
+    case "offered": {
+      return m.trades_status_offered();
+    }
+    case "reserved": {
+      return m.trades_status_reserved();
+    }
+  }
+}
 
 // Mirrors TradeDirectionIcon in components/friend-groups/trade-row-parts.tsx;
 // keep the arrows in sync.
@@ -34,7 +44,7 @@ const ROLE_ICONS: Record<CardTradeRole, LucideIcon> = {
 
 export function liveTradeStatus(annotation: LiveTradeStatusInput): LiveTradeStatusDescriptor {
   return {
-    label: PHASE_LABELS[annotation.phase],
+    label: phaseLabel(annotation.phase),
     direction: annotation.role === "giver" ? "outgoing" : "incoming",
     icon: ROLE_ICONS[annotation.role],
     tone: annotation.phase === "asked" ? "soft" : "committed",
@@ -56,12 +66,22 @@ export function tradeStatusTitle({
   count?: number;
   totalCount?: number;
 }): string {
-  const status = direction ? `${label} (${direction})` : label;
+  const status = direction
+    ? m.trades_status_with_direction({
+        label,
+        direction:
+          direction === "incoming"
+            ? m.trades_status_direction_incoming()
+            : m.trades_status_direction_outgoing(),
+      })
+    : label;
   if (count === undefined) {
     return status;
   }
   if (totalCount !== undefined && totalCount !== count) {
-    return `${status} · ${count} of this printing (${totalCount} across all printings)`;
+    return m.trades_status_count_printing({ status, count, total: totalCount });
   }
-  return `${status} · ${count} ${count === 1 ? "copy" : "copies"}`;
+  return count === 1
+    ? m.trades_status_count_copies_one({ status, count })
+    : m.trades_status_count_copies_other({ status, count });
 }

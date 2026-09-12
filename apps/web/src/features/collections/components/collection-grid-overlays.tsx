@@ -4,6 +4,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { PendingAnnotatedDispose } from "@/features/collections/hooks/use-quick-add-actions";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
+import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
 import { AnnotatedDisposeDialog } from "./annotated-dispose-dialog";
@@ -87,7 +88,7 @@ export function CollectionGridOverlays({
           open={quickAddOpen}
           onOpenChange={setQuickAddOpen}
           collectionId={addTarget}
-          collectionName={currentCollection?.name ?? "Collection"}
+          collectionName={currentCollection?.name ?? m.collections_fallback_title()}
           printingsByCardId={catalogAllPrintingsByCardId}
           ownedCountByPrinting={ownedCountByPrinting}
           preferredLanguages={preferredLanguages}
@@ -133,7 +134,7 @@ export function CollectionGridOverlays({
       {exportOpen && (
         <CollectionExportDialog
           collectionId={currentCollection?.id}
-          collectionName={currentCollection?.name ?? "All cards"}
+          collectionName={currentCollection?.name ?? m.collections_all_cards()}
           stacks={stacks}
           selectableCopyIds={selectableCopyIds}
           hasActiveFilters={hasActiveFilters}
