@@ -195,20 +195,11 @@ export function resolveLock(
   };
 }
 
-export function finishSiblingsOf(printing: Printing, index: ScanPrintingIndex): Printing[] {
-  const imageIds = new Set(printing.images.map((image) => image.imageId));
-  const variantKey = variantKeyOf(printing);
-  const siblings: Printing[] = [];
-  const seen = new Set<string>([printing.id]);
-  for (const imageId of imageIds) {
-    for (const candidate of index.byImageId.get(imageId) ?? []) {
-      if (!seen.has(candidate.id) && variantKeyOf(candidate) === variantKey) {
-        seen.add(candidate.id);
-        siblings.push(candidate);
-      }
-    }
-  }
-  return siblings;
+/** Every printing of each card, for labels that must name what sets a printing apart. */
+export function printingsByCardId(
+  allPrintings: readonly Printing[],
+): ReadonlyMap<string, Printing[]> {
+  return Map.groupBy(allPrintings, (printing) => printing.cardId);
 }
 
 /** Stable picker order: language, then set code, then finish (normal first via canonical rank). */

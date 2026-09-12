@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import {
   buildScanPrintingIndex,
-  finishSiblingsOf,
+  printingsByCardId,
   resolveLock,
 } from "@/features/scan/lib/scan-resolve";
 import { stubPrinting } from "@/test/factories";
@@ -349,23 +349,23 @@ describe("resolveLock", () => {
   });
 });
 
-describe("finishSiblingsOf", () => {
-  it("returns same-variant printings of the render, excluding the printing itself", () => {
-    const shared = { shortCode: "OGN-004", cardId: "card-4" };
-    const normal = withImage(
-      stubPrinting({ id: "p-normal", finish: "normal", ...shared }),
-      "img-a",
-    );
-    const foil = withImage(stubPrinting({ id: "p-foil", finish: "foil", ...shared }), "img-a");
-    const otherLanguage = withImage(
-      stubPrinting({ id: "p-de", finish: "foil", language: "DE", ...shared }),
-      "img-a",
-    );
-    const index = buildScanPrintingIndex(
-      [normal, foil, otherLanguage],
-      stubBank({ "img-a": "art-1" }),
-    );
-    expect(finishSiblingsOf(normal, index).map((sibling) => sibling.id)).toEqual(["p-foil"]);
-    expect(finishSiblingsOf(foil, index).map((sibling) => sibling.id)).toEqual(["p-normal"]);
+describe("printingsByCardId", () => {
+  it("groups every printing of a card together, whatever sets them apart", () => {
+    const normal = stubPrinting({ id: "p-normal", cardId: "card-4", shortCode: "OGN-004" });
+    const german = stubPrinting({
+      id: "p-de",
+      cardId: "card-4",
+      shortCode: "OGN-004",
+      language: "DE",
+    });
+    const promo = stubPrinting({ id: "p-promo", cardId: "card-4", shortCode: "OGN-004-P" });
+    const other = stubPrinting({ id: "p-other", cardId: "card-9" });
+    const byCard = printingsByCardId([normal, german, promo, other]);
+    expect(byCard.get("card-4")?.map((printing) => printing.id)).toEqual([
+      "p-normal",
+      "p-de",
+      "p-promo",
+    ]);
+    expect(byCard.get("card-9")?.map((printing) => printing.id)).toEqual(["p-other"]);
   });
 });

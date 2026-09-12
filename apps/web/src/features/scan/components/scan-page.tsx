@@ -37,7 +37,11 @@ import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import { ANY_LANGUAGE, scanLanguageItems } from "@/features/scan/lib/scan-language-items";
 import type { LockedCard } from "@/features/scan/lib/scan-locks";
 import type { PickerRequest } from "@/features/scan/lib/scan-resolve";
-import { buildScanPrintingIndex, resolveLock } from "@/features/scan/lib/scan-resolve";
+import {
+  buildScanPrintingIndex,
+  printingsByCardId,
+  resolveLock,
+} from "@/features/scan/lib/scan-resolve";
 import { describeLastScan, shouldPromptResume } from "@/features/scan/lib/scan-resume";
 import type { ScannerMode, ScannerSettings } from "@/features/scan/lib/scan-session";
 import { DEFAULT_SCANNER_SETTINGS } from "@/features/scan/lib/scan-session";
@@ -94,6 +98,7 @@ export function ScanPage() {
   const { assets, loaded, unavailableMessage } = useScanBank();
 
   const index = loaded ? buildScanPrintingIndex(allPrintings, loaded) : null;
+  const printingsByCard = printingsByCardId(allPrintings);
 
   const [pickerQueue, setPickerQueue] = useState<PickerRequest[]>([]);
 
@@ -312,7 +317,7 @@ export function ScanPage() {
     select: handleChangePrinting,
     pick: handleSwapPick,
     dismiss: handleSwapDismiss,
-  } = useScanSwap(allPrintings);
+  } = useScanSwap(printingsByCard);
 
   function handleStart() {
     void start();
@@ -359,7 +364,7 @@ export function ScanPage() {
 
   const tray = (
     <ScanSessionTray
-      index={index}
+      printingsByCard={printingsByCard}
       collections={collections}
       destination={destination}
       adding={adding}

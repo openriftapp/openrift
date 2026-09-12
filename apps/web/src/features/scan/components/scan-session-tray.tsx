@@ -43,8 +43,6 @@ import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { useScanTrayDisclosure } from "@/features/scan/hooks/use-scan-tray-disclosure";
 import { cardWord } from "@/features/scan/lib/scan-card-word";
 import type { UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
-import type { ScanPrintingIndex } from "@/features/scan/lib/scan-resolve";
-import { finishSiblingsOf } from "@/features/scan/lib/scan-resolve";
 import type { ScanSessionSummaryData } from "@/features/scan/lib/scan-session-summary";
 import { computeScanSessionSummary } from "@/features/scan/lib/scan-session-summary";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
@@ -58,7 +56,7 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface ScanSessionTrayProps {
-  index: ScanPrintingIndex | null;
+  printingsByCard: ReadonlyMap<string, Printing[]>;
   collections: CollectionResponse[];
   destination: CollectionResponse | null;
   adding: boolean;
@@ -77,7 +75,7 @@ interface ScanSessionTrayProps {
 }
 
 export function ScanSessionTray({
-  index,
+  printingsByCard,
   collections,
   destination,
   adding,
@@ -162,7 +160,7 @@ export function ScanSessionTray({
       key={row.printing.id}
       row={row}
       sequence={sequence}
-      siblings={index ? finishSiblingsOf(row.printing, index) : []}
+      siblings={printingsByCard.get(row.printing.cardId)}
       rarityLabels={labels.rarities}
       domainColors={domainColors}
       open={openId === row.printing.id}
@@ -329,7 +327,7 @@ function TrayFooter({
 interface TrayRowProps {
   row: ScanSessionRow;
   sequence: string[];
-  siblings: Printing[];
+  siblings?: Printing[];
   rarityLabels: Record<string, string>;
   domainColors: Record<string, string>;
   open: boolean;

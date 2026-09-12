@@ -15,16 +15,14 @@ interface ScanSwap {
   dismiss: () => void;
 }
 
-export function useScanSwap(allPrintings: Printing[]): ScanSwap {
+export function useScanSwap(printingsByCard: ReadonlyMap<string, Printing[]>): ScanSwap {
   const [row, setRow] = useState<ScanSessionRow | null>(null);
 
   const request: PickerRequest | null = row
     ? {
         artKey: "",
         label: legendDisplayName(row.printing.card),
-        candidates: sortForPicker(
-          allPrintings.filter((printing) => printing.cardId === row.printing.cardId),
-        ),
+        candidates: sortForPicker(printingsByCard.get(row.printing.cardId) ?? []),
         currentId: row.printing.id,
       }
     : null;
