@@ -1,7 +1,7 @@
 import type { AcceptPrintingField } from "@openrift/shared/contracts/admin/card-mutations";
 import { printingFieldRules } from "@openrift/shared/db-field-rules";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
-import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
+import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
@@ -50,18 +50,18 @@ export async function normalizePrintingFieldValue(
     normalized = parsed.data;
   }
 
-  if (source === "provider") {
-    if (TYPOGRAPHY_TEXT_FIELDS.has(field) && typeof normalized === "string") {
-      const costKeywords = await repos.keywords.listCostKeywords();
-      normalized = fixTypography(normalized, { costKeywords });
-    }
-    if (field === "flavorText" && typeof normalized === "string") {
-      normalized = fixTypography(normalized, { italicParens: false, keywordGlyphs: false });
-    }
-    if (field === "publicCode" && typeof normalized === "string") {
-      const setTotal = await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId);
-      normalized = appendSetTotal(normalized, setTotal?.printedTotal);
-    }
+  if (source === "provider" && typeof normalized === "string") {
+    const costKeywords = TYPOGRAPHY_TEXT_FIELDS.has(field)
+      ? await repos.keywords.listCostKeywords()
+      : [];
+    const setTotal =
+      field === "publicCode"
+        ? await repos.catalogMutations.getSetPrintedTotalForPrinting(printingId)
+        : null;
+    normalized = normalizeProvidedPrintingValue(field, normalized, {
+      costKeywords,
+      printedTotal: setTotal?.printedTotal ?? null,
+    });
   }
 
   return normalized;

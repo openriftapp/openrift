@@ -26,7 +26,7 @@ describe("buildAttentionSubmissions", () => {
         makeCandidateCard({ provider: "gallery", name: "Lux, Lady of Dusk", checkedAt: null }),
       ],
     });
-    const submissions = buildAttentionSubmissions(detail);
+    const submissions = buildAttentionSubmissions(detail, []);
     expect(submissions).toHaveLength(1);
     expect(submissions[0]?.groups[0]?.changes.map((change) => change.field)).toEqual(["name"]);
   });
@@ -46,7 +46,7 @@ describe("buildAttentionSubmissions", () => {
         }),
       ],
     });
-    expect(buildAttentionSubmissions(detail)).toHaveLength(0);
+    expect(buildAttentionSubmissions(detail, [])).toHaveLength(0);
   });
 
   it("records unchanged fields alongside the changes", () => {
@@ -55,7 +55,7 @@ describe("buildAttentionSubmissions", () => {
       card,
       sources: [makeCandidateCard({ name: card.name, might: 5 })],
     });
-    const group = buildAttentionSubmissions(detail)[0]?.groups[0];
+    const group = buildAttentionSubmissions(detail, [])[0]?.groups[0];
     expect(group?.changes.map((change) => change.field)).toEqual(["might"]);
     expect(group?.unchangedFields).toContain("Name");
   });
@@ -75,12 +75,37 @@ describe("buildAttentionSubmissions", () => {
         }),
       ],
     });
-    const groups = buildAttentionSubmissions(detail)[0]?.groups ?? [];
+    const groups = buildAttentionSubmissions(detail, [])[0]?.groups ?? [];
     expect(groups).toHaveLength(1);
     expect(groups[0]?.kind).toBe("printing");
     expect(groups[0]?.printingId).toBe(printing.id);
     expect(groups[0]?.printingLabel).toBe(printing.expectedPrintingId);
     expect(groups[0]?.changes.map((change) => change.field)).toEqual(["artist"]);
+  });
+
+  it("does not diff a source value the accept transforms would turn into the live value", () => {
+    const source = makeCandidateCard({ name: "Lux, Lady of Luminosity" });
+    const printing = makeAdminPrinting({
+      publicCode: "OGN-001/300",
+      printedRulesText: "Deal −1 to a unit… _(Not a real effect.)_",
+      flavorText: "“Light it up,” she said.",
+    });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [printing],
+      setTotals: { ogn: 300 },
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          publicCode: "OGN-001",
+          printedRulesText: "Deal -1 to a unit... (Not a real effect.)",
+          flavorText: '"Light it up," she said.',
+        }),
+      ],
+    });
+    expect(buildAttentionSubmissions(detail, [])[0]?.groups ?? []).toEqual([]);
   });
 
   it("treats an unlinked candidate printing as a new printing group", () => {
@@ -90,7 +115,7 @@ describe("buildAttentionSubmissions", () => {
       sources: [source],
       candidatePrintings: [makeCandidatePrinting({ candidateCardId: source.id, printingId: null })],
     });
-    const groups = buildAttentionSubmissions(detail)[0]?.groups ?? [];
+    const groups = buildAttentionSubmissions(detail, [])[0]?.groups ?? [];
     expect(groups[0]?.kind).toBe("new-printing");
     expect(groups[0]?.changes).toEqual([]);
   });
@@ -120,7 +145,7 @@ describe("buildAttentionSubmissions", () => {
         }),
       ],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     expect(submission?.kind).toBe("image");
     expect(submission?.groups[0]?.changes.map((change) => change.kind)).toEqual(["image"]);
   });
@@ -138,9 +163,11 @@ describe("buildAttentionSources", () => {
       card: makeAdminCard({ name: "Lux, Lady of Luminosity" }),
       sources: [source],
     });
-    const blocks = buildAttentionSources(detail, [
-      makeProviderSetting({ provider: "gallery", isFavorite: true }),
-    ]);
+    const blocks = buildAttentionSources(
+      detail,
+      [makeProviderSetting({ provider: "gallery", isFavorite: true })],
+      [],
+    );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.changedFields).toBe(1);
     expect(blocks[0]?.entries[0]?.groups[0]?.changes.map((change) => change.field)).toEqual([
@@ -169,9 +196,11 @@ describe("buildAttentionSources", () => {
         }),
       ],
     });
-    const blocks = buildAttentionSources(detail, [
-      makeProviderSetting({ provider: "gallery", isFavorite: true }),
-    ]);
+    const blocks = buildAttentionSources(
+      detail,
+      [makeProviderSetting({ provider: "gallery", isFavorite: true })],
+      [],
+    );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.entries).toHaveLength(2);
     expect(blocks[0]?.candidateCardIds).toHaveLength(2);
@@ -192,9 +221,11 @@ describe("buildAttentionSources", () => {
         }),
       ],
     });
-    const blocks = buildAttentionSources(detail, [
-      makeProviderSetting({ provider: "gallery", isFavorite: true }),
-    ]);
+    const blocks = buildAttentionSources(
+      detail,
+      [makeProviderSetting({ provider: "gallery", isFavorite: true })],
+      [],
+    );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.changedFields).toBe(0);
     expect(blocks[0]?.newPrintings).toBe(0);
@@ -206,9 +237,11 @@ describe("buildAttentionSources", () => {
       sources: [makeCandidateCard({ provider: "playloltcg", checkedAt: null })],
     });
     expect(
-      buildAttentionSources(detail, [
-        makeProviderSetting({ provider: "playloltcg", isFavorite: false }),
-      ]),
+      buildAttentionSources(
+        detail,
+        [makeProviderSetting({ provider: "playloltcg", isFavorite: false })],
+        [],
+      ),
     ).toEqual([]);
   });
 
@@ -217,9 +250,11 @@ describe("buildAttentionSources", () => {
       sources: [makeCandidateCard({ checkedAt: null })],
     });
     expect(
-      buildAttentionSources(detail, [
-        makeProviderSetting({ provider: "usersubmission", isFavorite: true }),
-      ]),
+      buildAttentionSources(
+        detail,
+        [makeProviderSetting({ provider: "usersubmission", isFavorite: true })],
+        [],
+      ),
     ).toEqual([]);
   });
 
@@ -235,9 +270,11 @@ describe("buildAttentionSources", () => {
         makeCandidatePrinting({ candidateCardId: source.id, printingId: null, checkedAt: null }),
       ],
     });
-    const blocks = buildAttentionSources(detail, [
-      makeProviderSetting({ provider: "gallery", isFavorite: true }),
-    ]);
+    const blocks = buildAttentionSources(
+      detail,
+      [makeProviderSetting({ provider: "gallery", isFavorite: true })],
+      [],
+    );
     expect(blocks[0]?.newPrintings).toBe(1);
     expect(blocks[0]?.changedFields).toBe(0);
   });

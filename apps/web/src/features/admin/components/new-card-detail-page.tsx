@@ -63,7 +63,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
-import { useKeywordStyles } from "@/hooks/use-keyword-styles";
+import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 interface NewCardColumnActionsProps {
@@ -167,10 +167,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
   const linkCard = useLinkCard();
   const reassignPrinting = useReassignCandidatePrinting(invalidateScope);
   const { data: allCards } = useAllCards();
-  const keywordStyles = useKeywordStyles();
-  const costKeywords = Object.entries(keywordStyles)
-    .filter(([, entry]) => entry.costKeyword)
-    .map(([name]) => name);
+  const costKeywords = useCostKeywords();
 
   // Null until the admin edits the Active column; from the first edit on it is
   // their explicit choice and the pre-seed (derived below) stops applying.

@@ -26,7 +26,7 @@ function cardOnlySubmission() {
     card,
     sources: [makeCandidateCard({ name: "Lux, Lady of Light", might: 5 })],
   });
-  const submission = buildAttentionSubmissions(detail)[0];
+  const submission = buildAttentionSubmissions(detail, [])[0];
   if (!submission) {
     throw new Error("expected a submission");
   }
@@ -82,7 +82,7 @@ describe("buildAcceptSubmissionInput", () => {
         }),
       ],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     if (!submission) {
       throw new Error("expected a submission");
     }
@@ -116,7 +116,7 @@ describe("buildAcceptSubmissionInput", () => {
         }),
       ],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     if (!submission) {
       throw new Error("expected a submission");
     }
@@ -154,7 +154,7 @@ describe("buildAcceptSubmissionInput", () => {
       printings: [printing],
       candidatePrintings: [candidate],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     if (!submission) {
       throw new Error("expected a submission");
     }
@@ -180,7 +180,7 @@ describe("buildAcceptSubmissionInput", () => {
       sources: [source],
       candidatePrintings: [candidate],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     if (!submission) {
       throw new Error("expected a submission");
     }
@@ -269,7 +269,7 @@ describe("printingGroupTickKeys", () => {
       printings: [moved, kept],
       candidatePrintings: [first, second, elsewhere],
     });
-    const submission = buildAttentionSubmissions(detail)[0];
+    const submission = buildAttentionSubmissions(detail, [])[0];
     if (!submission) {
       throw new Error("expected a submission");
     }

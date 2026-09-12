@@ -64,7 +64,7 @@ import {
 } from "@/features/admin/stores/admin-card-fold-store";
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
-import { useKeywordStyles } from "@/hooks/use-keyword-styles";
+import { useCostKeywords } from "@/hooks/use-keyword-styles";
 
 const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
 
@@ -135,7 +135,7 @@ export function ExistingCardDetailPage({
   const deletePrintingSource = useDeleteCandidatePrinting(invalidateScope);
   const linkPrintingSources = useLinkCandidatePrintings(invalidateScope);
   const { data: setsData } = useSets();
-  const keywordStyles = useKeywordStyles();
+  const costKeywords = useCostKeywords();
 
   const {
     prevNextCards,
@@ -219,9 +219,11 @@ export function ExistingCardDetailPage({
     enabled: isAdmin,
   });
   const { data: bansData } = useCardBans(identifier);
-  const attentionSubmissions = existingData ? buildAttentionSubmissions(existingData) : [];
+  const attentionSubmissions = existingData
+    ? buildAttentionSubmissions(existingData, costKeywords)
+    : [];
   const attentionSources = existingData
-    ? buildAttentionSources(existingData, providerSettings)
+    ? buildAttentionSources(existingData, providerSettings, costKeywords)
     : [];
   const attentionTotal = attentionCount(attentionSubmissions, attentionSources);
   const mappingGroup = mappingsData?.group ?? null;
@@ -334,9 +336,6 @@ export function ExistingCardDetailPage({
       setReleaseYears[set.slug] = Number(earliest.releasedAt.slice(0, 4));
     }
   }
-  const costKeywords = Object.entries(keywordStyles)
-    .filter(([, entry]) => entry.costKeyword)
-    .map(([name]) => name);
   const expectedCardId = existingData.expectedCardId;
   const card = existingData.card;
   if (!card) {

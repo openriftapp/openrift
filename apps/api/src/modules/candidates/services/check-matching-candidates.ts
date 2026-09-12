@@ -5,10 +5,13 @@ import {
   hasFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
 
+import type { keywordsRepo } from "../../catalog/repositories/keywords.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 
 type CandidateCardsRepo = ReturnType<typeof candidateCardsRepo>;
+type KeywordsRepo = ReturnType<typeof keywordsRepo>;
 
 export interface CheckMatchingResult {
   cardsChecked: number;
@@ -17,15 +20,17 @@ export interface CheckMatchingResult {
 
 /**
  * Checks every unchecked source row whose provided values all equal the live
- * catalog. A field the source has no value for never counts as a difference.
+ * catalog. A field the source has no value for never counts as a difference,
+ * and source values compare after the transforms the accept path applies.
  */
 export async function checkMatchingCandidates(
-  repos: { candidateCards: CandidateCardsRepo },
+  repos: { candidateCards: CandidateCardsRepo; keywords: KeywordsRepo },
   now: Date,
 ): Promise<CheckMatchingResult> {
-  const [cards, printings] = await Promise.all([
+  const [cards, printings, costKeywords] = await Promise.all([
     repos.candidateCards.listUncheckedCandidateCardsWithLive(USER_SUBMISSION_PROVIDER),
     repos.candidateCards.listUncheckedCandidatePrintingsWithLive(USER_SUBMISSION_PROVIDER),
+    repos.keywords.listCostKeywords(),
   ]);
 
   const matchingCardIds = cards
@@ -43,7 +48,11 @@ export async function checkMatchingCandidates(
       if (hasFieldValue(imageUrl) && !imageUrls.includes(imageUrl as string)) {
         return false;
       }
-      return differingFields(COMPARABLE_PRINTING_FIELDS, live, candidate).length === 0;
+      const normalized = normalizeProvidedPrintingRecord(candidate, {
+        costKeywords,
+        printedTotal: row.printedTotal,
+      });
+      return differingFields(COMPARABLE_PRINTING_FIELDS, live, normalized).length === 0;
     })
     .map((row) => row.id);
 

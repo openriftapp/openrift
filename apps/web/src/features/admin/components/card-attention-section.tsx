@@ -16,6 +16,7 @@ import {
   buildAttentionSources,
   buildAttentionSubmissions,
 } from "@/features/admin/lib/attention-items";
+import { useCostKeywords } from "@/hooks/use-keyword-styles";
 
 export function CardAttentionSection({
   detail,
@@ -33,8 +34,13 @@ export function CardAttentionSection({
   providerLabels: Record<string, string>;
 }) {
   const { data: providerSettingsData } = useProviderSettings();
-  const submissions = buildAttentionSubmissions(detail);
-  const sources = buildAttentionSources(detail, providerSettingsData.providerSettings);
+  const costKeywords = useCostKeywords();
+  const submissions = buildAttentionSubmissions(detail, costKeywords);
+  const sources = buildAttentionSources(
+    detail,
+    providerSettingsData.providerSettings,
+    costKeywords,
+  );
   const { data: queue } = useReviewQueueWhen(submissions.length > 0);
 
   if (attentionCount(submissions, sources) === 0) {

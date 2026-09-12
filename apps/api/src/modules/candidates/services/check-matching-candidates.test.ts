@@ -50,6 +50,9 @@ function makeRepos(cards: unknown[], printings: unknown[]) {
         checkCandidateCardsByIds,
         checkCandidatePrintingsByIds,
       },
+      keywords: {
+        listCostKeywords: vi.fn().mockResolvedValue([]),
+      },
     } as never,
     listUncheckedCandidateCardsWithLive,
     checkCandidateCardsByIds,
@@ -106,6 +109,39 @@ describe("checkMatchingCandidates", () => {
     const result = await checkMatchingCandidates(repos, NOW);
     expect(checkCandidatePrintingsByIds).toHaveBeenCalledWith(["same", "no-image"], NOW);
     expect(result).toEqual({ cardsChecked: 0, printingsChecked: 2 });
+  });
+
+  it("checks printings whose source values match once the accept transforms are applied", async () => {
+    const { repos, checkCandidatePrintingsByIds } = makeRepos(
+      [],
+      [
+        {
+          id: "typography",
+          printedTotal: 298,
+          candidate: {
+            ...livePrinting,
+            publicCode: "OGN-001",
+            printedRulesText: "Deal -1 to a unit... (Not a real effect.)",
+            flavorText: '"Burn it all," she said.',
+            imageUrl: null,
+          },
+          live: {
+            ...livePrinting,
+            printedRulesText: "Deal −1 to a unit… _(Not a real effect.)_",
+            flavorText: "“Burn it all,” she said.",
+          },
+        },
+        {
+          id: "still-differs",
+          printedTotal: 298,
+          candidate: { ...livePrinting, publicCode: "OGN-001-EN", imageUrl: null },
+          live: livePrinting,
+        },
+      ],
+    );
+    const result = await checkMatchingCandidates(repos, NOW);
+    expect(checkCandidatePrintingsByIds).toHaveBeenCalledWith(["typography"], NOW);
+    expect(result.printingsChecked).toBe(1);
   });
 
   it("excludes contributor submissions from the scan", async () => {

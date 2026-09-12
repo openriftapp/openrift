@@ -38,7 +38,7 @@ import { printingFormDefaults } from "@/features/cards/lib/printing-form-default
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
 import { useDistributionChannels } from "@/hooks/use-distribution-channels";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useKeywordStyles } from "@/hooks/use-keyword-styles";
+import { useCostKeywords } from "@/hooks/use-keyword-styles";
 import { useLanguages } from "@/hooks/use-languages";
 import { useMarkers } from "@/hooks/use-markers";
 import { cn } from "@/lib/utils";
@@ -61,10 +61,7 @@ export function CreatePrintingPage({
   const { data: languagesData } = useLanguages();
   const { data: channelsData } = useDistributionChannels();
   const { orders, labels } = useEnumOrders();
-  const keywordStyles = useKeywordStyles();
-  const costKeywords = Object.entries(keywordStyles)
-    .filter(([, entry]) => entry.costKeyword)
-    .map(([name]) => name);
+  const costKeywords = useCostKeywords();
   const reformatRules = (value: string) => fixTypography(value, { costKeywords });
   const reformatFlavor = (value: string) =>
     fixTypography(value, { italicParens: false, keywordGlyphs: false });

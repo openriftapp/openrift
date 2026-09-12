@@ -5,6 +5,7 @@ import {
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import type {
   AdminCardDetailResponse,
   AdminPrintingImageResponse,
@@ -66,6 +67,12 @@ export interface AttentionSourceEntry {
   newPrintings: number;
 }
 
+/** What the accept path would make of a source value, so a matching row reads as unchanged. */
+export interface AcceptTransforms {
+  costKeywords: readonly string[];
+  setTotals: Record<string, number>;
+}
+
 export interface AttentionSourceBlock {
   provider: string;
   candidateCardIds: string[];
@@ -98,11 +105,13 @@ function compareFields(
   labels: Record<string, string>,
   current: Record<string, unknown> | null,
   proposed: Record<string, unknown>,
+  normalize?: (field: string, value: unknown) => unknown,
 ): { changes: AttentionChange[]; unchangedFields: string[] } {
   const changes: AttentionChange[] = [];
   const unchangedFields: string[] = [];
   for (const field of fields) {
-    const proposedValue = proposed[field];
+    const raw = proposed[field];
+    const proposedValue = normalize ? normalize(field, raw) : raw;
     if (!hasFieldValue(proposedValue)) {
       continue;
     }
@@ -156,14 +165,21 @@ function buildLinkedPrintingGroup(
   candidate: CandidatePrintingResponse,
   printing: AdminPrintingResponse,
   images: readonly AdminPrintingImageResponse[] | null,
+  accept: AcceptTransforms,
 ): AttentionGroup | null {
   const groupKey = `printing:${candidate.id}`;
+  const printedTotal = accept.setTotals[printing.setSlug] ?? null;
   const { changes, unchangedFields } = compareFields(
     groupKey,
     COMPARABLE_PRINTING_FIELDS,
     PRINTING_FIELD_LABELS,
     printing as unknown as Record<string, unknown>,
     candidate as unknown as Record<string, unknown>,
+    (field, value) =>
+      normalizeProvidedPrintingValue(field, value, {
+        costKeywords: accept.costKeywords,
+        printedTotal,
+      }),
   );
 
   if (images !== null) {
@@ -216,7 +232,11 @@ function buildNewPrintingGroup(
   };
 }
 
-export function buildAttentionSubmissions(detail: AdminCardDetailResponse): AttentionSubmission[] {
+export function buildAttentionSubmissions(
+  detail: AdminCardDetailResponse,
+  costKeywords: readonly string[],
+): AttentionSubmission[] {
+  const accept: AcceptTransforms = { costKeywords, setTotals: detail.setTotals };
   const printingsById = new Map(detail.printings.map((printing) => [printing.id, printing]));
   const groupByCandidateId = new Map(
     detail.candidatePrintingGroups.flatMap((group) =>
@@ -245,7 +265,7 @@ export function buildAttentionSubmissions(detail: AdminCardDetailResponse): Atte
         if (!printing) {
           continue;
         }
-        const group = buildLinkedPrintingGroup(candidate, printing, detail.printingImages);
+        const group = buildLinkedPrintingGroup(candidate, printing, detail.printingImages, accept);
         if (group) {
           groups.push(group);
         }
@@ -277,6 +297,7 @@ function buildSourceEntry(
   detail: AdminCardDetailResponse,
   source: CandidateCardResponse,
   printingsById: ReadonlyMap<string, AdminPrintingResponse>,
+  accept: AcceptTransforms,
 ): SourceEntryDraft | null {
   const unchecked = detail.candidatePrintings.filter(
     (candidate) => candidate.candidateCardId === source.id && candidate.checkedAt === null,
@@ -303,7 +324,7 @@ function buildSourceEntry(
     if (!printing) {
       continue;
     }
-    const group = buildLinkedPrintingGroup(candidate, printing, null);
+    const group = buildLinkedPrintingGroup(candidate, printing, null, accept);
     if (group) {
       groups.push(group);
     }
@@ -335,7 +356,9 @@ function disambiguateLabels(entries: readonly SourceEntryDraft[]): AttentionSour
 export function buildAttentionSources(
   detail: AdminCardDetailResponse,
   providerSettings: readonly ProviderSettingResponse[],
+  costKeywords: readonly string[],
 ): AttentionSourceBlock[] {
+  const accept: AcceptTransforms = { costKeywords, setTotals: detail.setTotals };
   const trusted = new Set(
     providerSettings.filter((setting) => setting.isFavorite).map((setting) => setting.provider),
   );
@@ -345,7 +368,7 @@ export function buildAttentionSources(
     if (source.provider === USER_SUBMISSION_PROVIDER || !trusted.has(source.provider)) {
       return [];
     }
-    const entry = buildSourceEntry(detail, source, printingsById);
+    const entry = buildSourceEntry(detail, source, printingsById, accept);
     return entry === null ? [] : [entry];
   });
 

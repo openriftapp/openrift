@@ -1,5 +1,5 @@
 import { cardFieldsSchema } from "@openrift/shared/contracts/admin/card-mutations";
-import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
+import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import { findStandardArtFallback } from "@openrift/shared/standard";
 import type {
   AdminPrintingImageResponse,
@@ -428,27 +428,12 @@ export function buildPreseededActivePrinting(
   return seed;
 }
 
-const TYPOGRAPHY_FIELDS = new Set(["printedRulesText", "printedEffectText"]);
-
 export function buildPrintingNormalizer(
   setTotals: Record<string, number>,
   candidateSetSlug?: string | null,
   costKeywords: readonly string[] = [],
 ): (fieldKey: string, value: unknown) => unknown {
   const printedTotal = candidateSetSlug ? (setTotals[candidateSetSlug] ?? null) : null;
-  return (fieldKey: string, value: unknown): unknown => {
-    if (typeof value !== "string") {
-      return value;
-    }
-    if (TYPOGRAPHY_FIELDS.has(fieldKey)) {
-      return fixTypography(value, { costKeywords });
-    }
-    if (fieldKey === "flavorText") {
-      return fixTypography(value, { italicParens: false, keywordGlyphs: false });
-    }
-    if (fieldKey === "publicCode") {
-      return appendSetTotal(value, printedTotal);
-    }
-    return value;
-  };
+  return (fieldKey: string, value: unknown): unknown =>
+    normalizeProvidedPrintingValue(fieldKey, value, { costKeywords, printedTotal });
 }

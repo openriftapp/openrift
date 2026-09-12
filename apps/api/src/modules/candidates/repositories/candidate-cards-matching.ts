@@ -44,6 +44,7 @@ interface ComparablePrintingValues {
 
 export interface UncheckedCandidatePrintingWithLive {
   id: string;
+  printedTotal: number | null;
   candidate: ComparablePrintingValues & { imageUrl: string | null };
   live: ComparablePrintingValues & { imageUrls: string[] };
 }
@@ -89,6 +90,7 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
       const rows = await sql<UncheckedCandidatePrintingWithLive>`
         select
           cp.id,
+          s.printed_total as "printedTotal",
           jsonb_build_object(
             'shortCode', cp.short_code, 'setId', cp.set_id, 'rarity', cp.rarity,
             'artVariant', cp.art_variant, 'isSigned', cp.is_signed,
