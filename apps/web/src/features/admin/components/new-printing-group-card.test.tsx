@@ -12,6 +12,10 @@ vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
   },
 }));
 
+vi.mock("@/components/language-chip", () => ({
+  LanguageChip: ({ code }: { code: string }) => code,
+}));
+
 // The group card pulls its mutations from useCardDetailData; stub them so the
 // component renders without a QueryClient. buildPrintingNormalizer stays real.
 vi.mock("@/features/admin/components/card-detail-shared", async () => {
@@ -145,5 +149,61 @@ describe("NewPrintingGroupCard", () => {
 
     expect(getByText("Assign all to existing")).toBeTruthy();
     expect(queryByText(/Assign all to OGN-066/u)).toBeNull();
+  });
+
+  it("derives the header short code from the public code", () => {
+    const seededGroup = {
+      groupKey: "g1",
+      expectedPrintingId: "undefined::foil",
+      candidates: [
+        {
+          id: "cp-1",
+          candidateCardId: "cc-1",
+          rarity: "rare",
+          artVariant: "standard",
+          isSigned: false,
+          finish: "foil",
+          language: "EN",
+          artist: "Someone",
+          publicCode: "SFD-118a/221-P",
+        },
+      ],
+    } as unknown as PrintingGroup & { groupKey: string };
+    const printingFields = [
+      { key: "rarity", label: "Rarity" },
+      { key: "artVariant", label: "Art Variant" },
+      { key: "isSigned", label: "Signed", type: "boolean" },
+      { key: "finish", label: "Finish" },
+      { key: "language", label: "Language" },
+      { key: "artist", label: "Artist" },
+      { key: "publicCode", label: "Public Code" },
+    ] as never[];
+
+    const { getByText, queryByText } = render(
+      <NewPrintingGroupCard
+        group={seededGroup}
+        existingPrintings={[]}
+        providerLabels={{}}
+        providerNames={{}}
+        providerSubmitters={{}}
+        providerSettings={[]}
+        setTotals={{}}
+        setReleaseYears={{}}
+        isExpanded={false}
+        onToggle={noop}
+        onAccept={noop}
+        onLink={noop}
+        onCopy={noop}
+        onDelete={noop}
+        onIgnore={noop}
+        isAccepting={false}
+        isAdmin
+        printingFields={printingFields}
+        invalidates={[]}
+      />,
+    );
+
+    expect(getByText("SFD-118a::foil")).toBeTruthy();
+    expect(queryByText(/undefined/u)).toBeNull();
   });
 });

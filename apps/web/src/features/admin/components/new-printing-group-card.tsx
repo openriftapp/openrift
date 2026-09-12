@@ -234,14 +234,17 @@ export function NewPrintingGroupCard({
   const markerSlugs = Array.isArray(activePrinting.markerSlugs)
     ? (activePrinting.markerSlugs as string[])
     : [];
-  const printingLabel = hasRequired
-    ? formatPrintingLabel(
-        activePrinting.shortCode as string,
-        markerSlugs,
-        activePrinting.finish as string,
-        (activePrinting.language as string | undefined) ?? null,
-      )
-    : "";
+  const derivedPrinting = withDerivedCodes(activePrinting);
+  const derivedShortCode = derivedPrinting.shortCode;
+  const printingLabel =
+    hasRequired && typeof derivedShortCode === "string"
+      ? formatPrintingLabel(
+          derivedShortCode,
+          markerSlugs,
+          activePrinting.finish as string,
+          (activePrinting.language as string | undefined) ?? null,
+        )
+      : "";
 
   const guessedId = group.expectedPrintingId;
 
@@ -334,7 +337,7 @@ export function NewPrintingGroupCard({
             disabled={!hasRequired || isAccepting}
             onClick={() =>
               onAccept(
-                withDerivedCodes(activePrinting),
+                derivedPrinting,
                 group.candidates.map((s) => s.id),
               )
             }
