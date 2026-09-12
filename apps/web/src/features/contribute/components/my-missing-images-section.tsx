@@ -7,15 +7,23 @@ export function MyMissingImagesSection({ layout = "list" }: { layout?: "list" | 
   const { data } = useMyMissingImages();
 
   const items = data?.items ?? [];
-  if (items.length === 0) {
+  const count = items.length;
+  if (count === 0) {
     return null;
   }
 
+  const single = count === 1;
+
   return (
     <section className="flex flex-col gap-3">
-      <Heading level={2}>Cards you own that have no image</Heading>
+      <Heading level={2}>
+        {single
+          ? "We don't have a photo for one of your owned cards"
+          : `We don't have photos for ${count} of your owned cards`}
+      </Heading>
       <p className="text-muted-foreground">
-        You have these in hand, so a quick phone photo from you is the fastest way to fill the gap.
+        Could you snap {single ? "it" : "them"} for us? Every photo helps, and it earns you a
+        Contributor badge on your profile.
       </p>
       {layout === "tiles" ? (
         <MissingImagesTiles items={items} />

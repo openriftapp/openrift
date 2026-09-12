@@ -67,7 +67,7 @@ describe("MyMissingImagesSection", () => {
     renderSection([stubMissingImagePrinting(1, { cardName: "Ahri, Alluring" })]);
 
     expect(
-      screen.getByRole("heading", { name: "Cards you own that have no image" }),
+      screen.getByRole("heading", { name: "We don't have a photo for one of your owned cards" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Ahri, Alluring/u })).toHaveAttribute(
       "href",
