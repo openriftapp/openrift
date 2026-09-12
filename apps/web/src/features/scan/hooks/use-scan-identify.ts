@@ -1,3 +1,4 @@
+import type { Printing } from "@openrift/shared/types/catalog";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ interface ScanIdentifyOptions {
   unidentified: UnidentifiedCard[];
   dismissUnidentified: (id: string) => void;
   onPick: (candidate: IdentifyCandidate) => void;
+  onPickPrinting: (printing: Printing) => void;
 }
 
 interface ScanIdentify {
@@ -23,6 +25,7 @@ interface ScanIdentify {
   run: () => void;
   dismiss: () => void;
   pick: (candidate: IdentifyCandidate) => void;
+  pickPrinting: (printing: Printing) => void;
   answerMissed: (id: string) => void;
 }
 
@@ -32,6 +35,7 @@ export function useScanIdentify({
   unidentified,
   dismissUnidentified,
   onPick,
+  onPickPrinting,
 }: ScanIdentifyOptions): ScanIdentify {
   const [identify, setIdentify] = useState<{
     snapshot: string | null;
@@ -81,14 +85,23 @@ export function useScanIdentify({
     setAnsweringId(null);
   }
 
-  function pick(candidate: IdentifyCandidate) {
+  function answered() {
     identifySeqRef.current += 1;
     setIdentify(null);
     if (answeringId !== null) {
       dismissUnidentified(answeringId);
       setAnsweringId(null);
     }
+  }
+
+  function pick(candidate: IdentifyCandidate) {
+    answered();
     onPick(candidate);
+  }
+
+  function pickPrinting(printing: Printing) {
+    answered();
+    onPickPrinting(printing);
   }
 
   function answerMissed(id: string) {
@@ -118,6 +131,7 @@ export function useScanIdentify({
     run,
     dismiss,
     pick,
+    pickPrinting,
     answerMissed,
   };
 }

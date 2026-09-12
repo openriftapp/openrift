@@ -1,9 +1,11 @@
+import type { Printing } from "@openrift/shared/types/catalog";
 import { Loader2Icon } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { Pressable } from "@/components/ui/pressable";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
+import { ScanIdentifySearch } from "@/features/scan/components/scan-identify-search";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { m } from "@/paraglide/messages.js";
@@ -13,7 +15,9 @@ interface ScanIdentifySheetProps {
   snapshot: string | null;
   pending: boolean;
   candidates: IdentifyCandidate[];
+  allPrintings: Printing[];
   onPick: (candidate: IdentifyCandidate) => void;
+  onPickPrinting: (printing: Printing) => void;
   onDismiss: () => void;
 }
 
@@ -24,7 +28,9 @@ export function ScanIdentifySheet({
   snapshot,
   pending,
   candidates,
+  allPrintings,
   onPick,
+  onPickPrinting,
   onDismiss,
 }: ScanIdentifySheetProps) {
   const isMobile = useIsMobile();
@@ -67,28 +73,31 @@ export function ScanIdentifySheet({
   );
 
   const body = (
-    <div className="flex gap-3">
-      {/* The guide is an upright card outline whatever the card's orientation,
+    <div className="flex min-h-0 flex-col gap-3">
+      <div className="flex gap-3">
+        {/* The guide is an upright card outline whatever the card's orientation,
           so the snapshot always has the same shape. */}
-      {snapshot !== null && (
-        <img
-          src={snapshot}
-          alt=""
-          className="bg-muted h-32 w-24 shrink-0 rounded-md object-cover"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        {pending && (
-          <p className="text-muted-foreground flex items-center gap-2">
-            <Loader2Icon className="size-4 animate-spin" />
-            {m.scan_identify_recognising()}
-          </p>
+        {snapshot !== null && (
+          <img
+            src={snapshot}
+            alt=""
+            className="bg-muted h-32 w-24 shrink-0 rounded-md object-cover"
+          />
         )}
-        {!pending && candidates.length === 0 && (
-          <p className="text-muted-foreground">{m.scan_identify_empty()}</p>
-        )}
-        {!pending && candidates.length > 0 && list}
+        <div className="min-w-0 flex-1">
+          {pending && (
+            <p className="text-muted-foreground flex items-center gap-2">
+              <Loader2Icon className="size-4 animate-spin" />
+              {m.scan_identify_recognising()}
+            </p>
+          )}
+          {!pending && candidates.length === 0 && (
+            <p className="text-muted-foreground">{m.scan_identify_empty()}</p>
+          )}
+          {!pending && candidates.length > 0 && list}
+        </div>
       </div>
+      {!pending && <ScanIdentifySearch allPrintings={allPrintings} onPick={onPickPrinting} />}
     </div>
   );
 

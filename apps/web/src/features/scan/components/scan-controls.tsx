@@ -1,4 +1,4 @@
-import { CameraIcon, CameraOffIcon, ScanSearchIcon, XIcon } from "lucide-react";
+import { CameraIcon, CameraOffIcon, ScanSearchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScanShutter } from "@/features/scan/components/scan-shutter";
@@ -10,9 +10,6 @@ import { m } from "@/paraglide/messages.js";
 
 interface ScanControlsProps {
   hint: AimHint | null;
-  suggestionLabel: string | null;
-  onSuggestionAdd: () => void;
-  onSuggestionDismiss: () => void;
   active: boolean;
   immersive: boolean;
   shutter: boolean;
@@ -29,9 +26,6 @@ interface ScanControlsProps {
 
 export function ScanControls({
   hint,
-  suggestionLabel,
-  onSuggestionAdd,
-  onSuggestionDismiss,
   active,
   immersive,
   shutter,
@@ -51,25 +45,6 @@ export function ScanControls({
         <p key={hint.kind} className="rounded-full bg-black/60 px-3 py-1 text-sm text-white">
           {hint.message}
         </p>
-      )}
-      {suggestionLabel !== null && (
-        <div className="flex max-w-[90%] items-center gap-1.5 rounded-full bg-black/70 py-1 pr-1 pl-3 text-sm text-white">
-          <span className="truncate">
-            {m.scan_controls_suggestion_question({ name: suggestionLabel.split(" (")[0] ?? "" })}
-          </span>
-          <Button size="sm" onClick={onSuggestionAdd}>
-            {m.scan_controls_suggestion_add()}
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="text-white hover:bg-white/20 hover:text-white"
-            onClick={onSuggestionDismiss}
-            aria-label={m.scan_controls_suggestion_dismiss()}
-          >
-            <XIcon className="size-4" />
-          </Button>
-        </div>
       )}
       {immersive && !active && (
         <div className="flex flex-col items-center gap-3 text-white">

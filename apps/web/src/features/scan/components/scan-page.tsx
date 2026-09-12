@@ -22,12 +22,12 @@ import { ScanTopBar } from "@/features/scan/components/scan-top-bar";
 import { ScanViewfinder } from "@/features/scan/components/scan-viewfinder";
 import { useCardScanner } from "@/features/scan/hooks/use-card-scanner";
 import { useScanAdd } from "@/features/scan/hooks/use-scan-add";
+import { useScanAimIdentify } from "@/features/scan/hooks/use-scan-aim-identify";
 import { useScanBank } from "@/features/scan/hooks/use-scan-bank";
 import { useScanClear } from "@/features/scan/hooks/use-scan-clear";
 import { useScanIdentify } from "@/features/scan/hooks/use-scan-identify";
 import { useScanLayout } from "@/features/scan/hooks/use-scan-layout";
 import { useScanSessionRestore } from "@/features/scan/hooks/use-scan-session-restore";
-import { useScanSuggestion } from "@/features/scan/hooks/use-scan-suggestion";
 import { useScanSwap } from "@/features/scan/hooks/use-scan-swap";
 import { ghostConfidence } from "@/features/scan/lib/scan-confidence";
 import { playLockTick } from "@/features/scan/lib/scan-feedback";
@@ -222,6 +222,13 @@ export function ScanPage() {
     setSettings((previous) => ({ ...previous, paused: detailOpen }));
   }
 
+  function addSearchedPrinting(printing: Printing) {
+    if (!muted) {
+      playLockTick();
+    }
+    recordScanned(printing);
+  }
+
   function lockCandidate(candidate: IdentifyCandidate) {
     handleLock({
       key: candidate.key,
@@ -239,6 +246,7 @@ export function ScanPage() {
     run: handleIdentifyNow,
     dismiss: handleIdentifyDismiss,
     pick: handleIdentifyPick,
+    pickPrinting: handleIdentifyPickPrinting,
     answerMissed: handleIdentifyMissed,
   } = useScanIdentify({
     loaded,
@@ -246,18 +254,13 @@ export function ScanPage() {
     unidentified,
     dismissUnidentified,
     onPick: lockCandidate,
+    onPickPrinting: addSearchedPrinting,
   });
 
-  const {
-    showing: suggesting,
-    label: suggestionLabel,
-    hint: suggestionHint,
-    add: handleSuggestionAdd,
-    dismiss: handleSuggestionDismiss,
-  } = useScanSuggestion({ active, blocked: identifyOpen, loaded, readout, onLock: handleLock });
+  useScanAimIdentify({ active, blocked: identifyOpen, readout, onIdentify: handleIdentifyNow });
 
   // readout.aim.key is a bank image id; byImageId resolves it only to check orientation.
-  const ghostImageId = active && !suggesting ? (readout.aim?.key ?? null) : null;
+  const ghostImageId = active && !identifyOpen ? (readout.aim?.key ?? null) : null;
   const ghostPrinting = ghostImageId ? index?.byImageId.get(ghostImageId)?.[0] : undefined;
   const ghostLandscape =
     ghostPrinting !== undefined && getOrientation(ghostPrinting.card.types) === "landscape";
@@ -414,10 +417,7 @@ export function ScanPage() {
         chrome={<ScanChrome active={active} settings={settingsProps} onStop={handleStop} />}
         controls={
           <ScanControls
-            hint={suggestionHint}
-            suggestionLabel={suggestionLabel}
-            onSuggestionAdd={handleSuggestionAdd}
-            onSuggestionDismiss={handleSuggestionDismiss}
+            hint={active ? readout.aimHint : null}
             active={active}
             immersive={immersive}
             shutter={shutter}
@@ -466,7 +466,9 @@ export function ScanPage() {
         snapshot={identifySnapshot}
         pending={identifyPending}
         candidates={identifyCandidates}
+        allPrintings={allPrintings}
         onPick={handleIdentifyPick}
+        onPickPrinting={handleIdentifyPickPrinting}
         onDismiss={handleIdentifyDismiss}
       />
       <ScanClearDialog
