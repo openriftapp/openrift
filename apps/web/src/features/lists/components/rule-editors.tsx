@@ -1,13 +1,13 @@
 import { evaluateListRule, evaluateListRules, expandList } from "@openrift/shared/list-rule-eval";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
-import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
 import { RuleList } from "@/features/lists/components/rule-list";
 import {
   ownedCopiesFromCopyList,
@@ -50,12 +50,8 @@ export function CopyRuleEditor({
     label: collection.name,
   }));
 
-  // Fetched without suspending so the editor renders immediately and counts
-  // fill in once the (possibly large) copy list loads.
-  const { data: copies } = useQuery({
-    ...copiesQueryOptions(userId),
-    enabled: rules.length > 0,
-  });
+  const copiesStore = useCopies();
+  const copies = copiesStore.isReady ? copiesStore.data : undefined;
 
   const serialized = serializeRules(rules, kind);
   const priceLookup = usePrices();

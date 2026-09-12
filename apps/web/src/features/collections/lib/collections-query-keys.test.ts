@@ -13,8 +13,8 @@ describe("copiesKeys", () => {
     expect(copiesKeys.all("user-1")).toEqual(["copies", "user-1"]);
   });
 
-  it("byCollection keys per (user, collection)", () => {
-    expect(copiesKeys.byCollection("user-1", "abc")).toEqual(["copies", "user-1", "abc"]);
+  it("syncedStore keys per user under the copies prefix", () => {
+    expect(copiesKeys.syncedStore("user-1")).toEqual(["copies", "user-1", "store"]);
   });
 
   it("listMemberships keys per (user, copyIds) with a null exclude slot by default", () => {

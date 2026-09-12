@@ -1,13 +1,11 @@
 import type { ListKind } from "@openrift/shared/types/api/list";
 import { legendDisplayName } from "@openrift/shared/utils";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { XIcon } from "lucide-react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
+import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 function ExclusionChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -70,10 +68,12 @@ export function RuleExclusions({
 }
 
 function CopyExclusions({ index, copyIds }: { index: number; copyIds: string[] }) {
-  const userId = useRequiredUserId();
-  const { data: copies } = useSuspenseQuery(copiesQueryOptions(userId));
+  const { data: copies, isReady } = useCopies();
   const { printingsById } = useCards();
   const toggleExcludeCopyId = useRuleEditorStore((state) => state.toggleExcludeCopyId);
+  if (!isReady) {
+    return null;
+  }
 
   const printingIdByCopyId = new Map(copies.map((copy) => [copy.id, copy.printingId]));
 

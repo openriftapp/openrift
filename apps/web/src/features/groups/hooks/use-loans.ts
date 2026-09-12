@@ -164,13 +164,8 @@ export function useBorrowedLenders(): { data: Record<string, string[]> | undefin
   return { data: aggregateBorrowedLendersByCard(data.items) };
 }
 
-/**
- * Loan mutations change the `onLoan` flag on the copies feed, so both
- * `copies.all` and `copies.syncedStore` need invalidating to resync the
- * client-side copies store.
- */
 function loanInvalidationKeys(userId: string): (readonly unknown[])[] {
-  return [loansKeys.all(userId), copiesKeys.all(userId), copiesKeys.syncedStore(userId)];
+  return [loansKeys.all(userId), copiesKeys.all(userId)];
 }
 
 export function useCreateLoan() {

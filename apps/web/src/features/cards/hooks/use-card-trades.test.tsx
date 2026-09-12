@@ -91,9 +91,6 @@ describe("trade mutations invalidate the copies and lists caches", () => {
       queryKey: ["copies", "test-user-id"],
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["copies-collection", "test-user-id"],
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["lists", "test-user-id"],
     });
     expect(invalidateSpy).toHaveBeenCalledWith({

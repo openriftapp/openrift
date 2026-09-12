@@ -329,9 +329,7 @@ export function useDeleteCollection() {
       return id;
     },
     onSuccess: (deletedId) => {
-      // Server atomically moved the remaining copies to the inbox; mirror that in the
-      // synced copies collection since it's keyed separately as ["copies-collection", userId]
-      // and invalidating copiesKeys.all alone won't reach it.
+      // The server moved the remaining copies to the inbox; mirror that in the store.
       const cached = queryClient.getQueryData<CollectionsResponse>(collectionsKeys.all(userId));
       const inboxId = cached?.items.find((col) => col.isInbox)?.id;
       if (inboxId && copiesCollection) {

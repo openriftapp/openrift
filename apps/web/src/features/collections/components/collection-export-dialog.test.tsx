@@ -27,17 +27,13 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
-let queryResult: { data: CopyResponse[] | undefined; isLoading: boolean } = {
+let queryResult: { data: CopyResponse[]; isReady: boolean } = {
   data: [],
-  isLoading: false,
+  isReady: true,
 };
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => queryResult,
-}));
-
-vi.mock("@/features/collections/lib/copies-query", () => ({
-  copiesQueryOptions: (_userId: string, collectionId?: string) => ({ collectionId }),
+vi.mock("@/features/collections/hooks/use-copies", () => ({
+  useCopies: () => queryResult,
 }));
 
 const toastSuccess = vi.fn();
@@ -78,7 +74,7 @@ const filterCheckbox = (label: string) => screen.getByRole("checkbox", { name: l
 
 describe("CollectionExportDialog", () => {
   beforeEach(() => {
-    queryResult = { data: [], isLoading: false };
+    queryResult = { data: [], isReady: true };
     toastSuccess.mockReset();
     downloadedBlobs = [];
     vi.stubGlobal(
@@ -101,7 +97,7 @@ describe("CollectionExportDialog", () => {
   });
 
   it("disables Export while the copies are still loading", () => {
-    queryResult = { data: undefined, isLoading: true };
+    queryResult = { data: [], isReady: false };
     setup();
 
     expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
@@ -178,7 +174,7 @@ describe("CollectionExportDialog", () => {
         stubCopy({ id: "c-2", printingId: yasuo.id, condition: "played" }),
         stubCopy({ id: "c-3", printingId: jinx.id, condition: "near-mint" }),
       ],
-      isLoading: false,
+      isReady: true,
     };
     setup();
 

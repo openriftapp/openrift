@@ -1,11 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExportDialog } from "@/features/collections/components/export-dialog";
-import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
+import { useCopies } from "@/features/collections/hooks/use-copies";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 interface CollectionExportDialogProps {
@@ -43,16 +41,15 @@ export function CollectionExportDialog({
   open,
   onOpenChange,
 }: CollectionExportDialogProps) {
-  const userId = useRequiredUserId();
   const [applyFilters, setApplyFilters] = useState(true);
 
-  const { data: copies, isLoading } = useQuery(copiesQueryOptions(userId, collectionId));
+  const { data: copies, isReady } = useCopies(collectionId);
 
   const totalCopies = stacks.reduce((sum, stack) => sum + stack.copyIds.length, 0);
   const exportStacks =
     hasActiveFilters && applyFilters ? narrowToCopyIds(stacks, selectableCopyIds) : stacks;
 
-  const copiesById = new Map((copies ?? []).map((copy) => [copy.id, copy]));
+  const copiesById = new Map(copies.map((copy) => [copy.id, copy]));
 
   const scopeControls = hasActiveFilters && (
     <div className="flex items-center gap-2">
@@ -78,7 +75,7 @@ export function CollectionExportDialog({
       unit="copy"
       successMessage={m.collections_export_collection_success()}
       scopeControls={scopeControls}
-      isLoading={isLoading}
+      isLoading={!isReady}
       open={open}
       onOpenChange={onOpenChange}
     />

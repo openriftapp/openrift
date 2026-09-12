@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { stubCopy } from "@/test/factories";
 
-import { copiesQueryOptions, fetchCopies } from "./copies-query";
+import { fetchCopies } from "./copies-query";
 
 function makeCopy(id: string): CopyResponse {
   return stubCopy({ id, printingId: `print-${id}`, collectionId: "col-1" });
@@ -15,7 +15,7 @@ function fetchedUrl(call: unknown[]): string {
   return first instanceof Request ? first.url : String(first);
 }
 
-describe("copiesQueryOptions", () => {
+describe("fetchCopies", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -62,22 +62,6 @@ describe("copiesQueryOptions", () => {
     expect(response.nextCursor).toBeNull();
   });
 
-  it("targets the per-collection endpoint when a collectionId is supplied", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        Response.json({ items: [makeCopy("a")], nextCursor: null }, { status: 200 }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    // oRPC percent-encodes path params, so the slash/space survive as %2F/%20.
-    await fetchCopies("col/with spaces");
-
-    expect(fetchedUrl(fetchMock.mock.calls[0]!)).toContain(
-      "/api/v1/collections/col%2Fwith%20spaces/copies",
-    );
-  });
-
   it("throws when the server responds with a non-ok status", async () => {
     const fetchMock = vi
       .fn()
@@ -87,17 +71,5 @@ describe("copiesQueryOptions", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchCopies()).rejects.toThrow();
-  });
-
-  it("uses distinct query keys for the global and per-collection variants", () => {
-    const globalKey = copiesQueryOptions("user-1").queryKey;
-    const scopedKey = copiesQueryOptions("user-1", "col-1").queryKey;
-    expect(globalKey).not.toEqual(scopedKey);
-  });
-
-  it("isolates query keys across users", () => {
-    const aliceKey = copiesQueryOptions("alice").queryKey;
-    const bobKey = copiesQueryOptions("bob").queryKey;
-    expect(aliceKey).not.toEqual(bobKey);
   });
 });

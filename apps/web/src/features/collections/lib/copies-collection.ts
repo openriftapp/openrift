@@ -11,7 +11,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { markOrphaned } from "@/features/collections/lib/collection-cleanup";
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
-import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
+import { fetchCopies } from "@/features/collections/lib/copies-query";
 import { useSession } from "@/lib/auth-session";
 
 interface CacheEntry {
@@ -33,21 +33,13 @@ export function getCopiesCollection(
     markOrphaned(existing.collection, `copies:${existing.userId}`);
   }
 
-  const options = copiesQueryOptions(userId);
   const collection = createCollection(
     queryCollectionOptions<CopyResponse>({
       id: `copies:${userId}`,
       queryClient,
-      // Distinct from copiesQueryOptions' queryKey: this one stores the array QueryCollection
-      // expects, not the full CopyListResponse object.
       queryKey: [...copiesKeys.syncedStore(userId)],
       queryFn: async () => {
-        // staleTime: "static" always returns cached data regardless of staleness, which
-        // breaks invalidateQueries-driven refetches after mutations. Use the default.
-        const response = await queryClient.query({
-          queryKey: options.queryKey,
-          queryFn: options.queryFn,
-        });
+        const response = await fetchCopies();
         return response.items;
       },
       getKey: (copy) => copy.id,

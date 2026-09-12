@@ -1,19 +1,17 @@
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import type { ExportPayload } from "@/features/collections/components/export-dialog";
 import { ExportDialog } from "@/features/collections/components/export-dialog";
-import { copiesQueryOptions } from "@/features/collections/lib/copies-query";
+import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useFilteredListEntries } from "@/features/lists/hooks/use-filtered-list-entries";
 import {
   hasReservedCopies,
   stacksFromListEntries,
   withoutReservedCopies,
 } from "@/features/lists/lib/list-export";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 interface ListExportDialogProps {
@@ -31,7 +29,6 @@ export function ListExportDialog({
   open,
   onOpenChange,
 }: ListExportDialogProps) {
-  const userId = useRequiredUserId();
   const { printingsById, sets } = useCards();
   const [applyFilters, setApplyFilters] = useState(true);
   const [excludeReserved, setExcludeReserved] = useState(true);
@@ -43,10 +40,8 @@ export function ListExportDialog({
   const exportEntries =
     hasReserved && excludeReserved ? withoutReservedCopies(scopedEntries) : scopedEntries;
 
-  const { data: copies, isLoading } = useQuery({
-    ...copiesQueryOptions(userId),
-    enabled: kind === "copy",
-  });
+  const { data: copies, isReady } = useCopies();
+  const isLoading = kind === "copy" && !isReady;
 
   const payload: ExportPayload =
     kind === "card"
@@ -61,7 +56,7 @@ export function ListExportDialog({
           mode: "printings",
           stacks: stacksFromListEntries(exportEntries, printingsById, sets),
           ...(kind === "copy"
-            ? { copiesById: new Map((copies ?? []).map((copy) => [copy.id, copy])) }
+            ? { copiesById: new Map(copies.map((copy) => [copy.id, copy])) }
             : {}),
         };
 

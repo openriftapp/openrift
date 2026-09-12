@@ -38,12 +38,8 @@ vi.mock("@/features/lists/hooks/use-filtered-list-entries", () => ({
 
 let copies: CopyResponse[] = [];
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: copies, isLoading: false }),
-}));
-
-vi.mock("@/features/collections/lib/copies-query", () => ({
-  copiesQueryOptions: (_userId: string) => ({}),
+vi.mock("@/features/collections/hooks/use-copies", () => ({
+  useCopies: () => ({ data: copies, isReady: true }),
 }));
 
 const toastSuccess = vi.fn();

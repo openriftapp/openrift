@@ -8,10 +8,7 @@ export const collectionsKeys = {
 
 export const copiesKeys = {
   all: (userId: string) => ["copies", userId] as const,
-  // The react-db copies store's queryFn re-reads `copies.all`, so
-  // invalidate BOTH keys to sync fresh rows into the store.
-  syncedStore: (userId: string) => ["copies-collection", userId] as const,
-  byCollection: (userId: string, id: string) => ["copies", userId, id] as const,
+  syncedStore: (userId: string) => ["copies", userId, "store"] as const,
   listMemberships: (userId: string, copyIds: readonly string[], excludeListId?: string) =>
     ["copies", userId, "list-memberships", copyIds, excludeListId ?? null] as const,
 } as const;

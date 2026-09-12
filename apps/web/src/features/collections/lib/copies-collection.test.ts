@@ -3,8 +3,12 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
+import { stubCopy } from "@/test/factories";
 
 import { getCopiesCollection } from "./copies-collection";
+
+const fetchCopies = vi.hoisted(() => vi.fn());
+vi.mock("@/features/collections/lib/copies-query", () => ({ fetchCopies }));
 
 let queryClient: QueryClient;
 
@@ -12,6 +16,8 @@ const userA = "user-a";
 const userB = "user-b";
 
 beforeEach(() => {
+  fetchCopies.mockReset();
+  fetchCopies.mockResolvedValue({ items: [], nextCursor: null });
   queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -43,19 +49,46 @@ describe("getCopiesCollection", () => {
   });
 
   it("uses a per-user queryKey so two users' caches never share a slot", () => {
-    queryClient.setQueryData(copiesKeys.all(userA), { items: [{ id: "alice-1" }] });
-    queryClient.setQueryData(copiesKeys.all(userB), { items: [{ id: "bob-1" }] });
+    queryClient.setQueryData(copiesKeys.syncedStore(userA), [{ id: "alice-1" }]);
+    queryClient.setQueryData(copiesKeys.syncedStore(userB), [{ id: "bob-1" }]);
 
-    expect(queryClient.getQueryData(copiesKeys.all(userA))).toEqual({
-      items: [{ id: "alice-1" }],
+    expect(queryClient.getQueryData(copiesKeys.syncedStore(userA))).toEqual([{ id: "alice-1" }]);
+    expect(queryClient.getQueryData(copiesKeys.syncedStore(userB))).toEqual([{ id: "bob-1" }]);
+  });
+
+  it("refetches on every invalidation instead of reusing a request started before the last write", async () => {
+    const copies = getCopiesCollection(queryClient, userA);
+    const liveQuery = createLiveQueryCollection({
+      query: (q) => q.from({ copy: copies }),
+      startSync: true,
     });
-    expect(queryClient.getQueryData(copiesKeys.all(userB))).toEqual({
-      items: [{ id: "bob-1" }],
+    const subscription = liveQuery.subscribeChanges(() => {});
+    await vi.waitFor(() => expect(copies.status).toBe("ready"));
+
+    let releaseFirstWrite: (value: { items: unknown[]; nextCursor: null }) => void = () => {};
+    // oxlint-disable-next-line promise/avoid-new -- a promise the test resolves by hand to hold the refetch open
+    const afterFirstWrite = new Promise<{ items: unknown[]; nextCursor: null }>((resolve) => {
+      releaseFirstWrite = resolve;
     });
+    fetchCopies.mockReturnValueOnce(afterFirstWrite).mockResolvedValueOnce({
+      items: [stubCopy({ id: "c1" }), stubCopy({ id: "c2" })],
+      nextCursor: null,
+    });
+    void queryClient.invalidateQueries({ queryKey: copiesKeys.all(userA) });
+    await vi.waitFor(() => expect(fetchCopies).toHaveBeenCalledTimes(2));
+    void queryClient.invalidateQueries({ queryKey: copiesKeys.all(userA) });
+    releaseFirstWrite({ items: [stubCopy({ id: "c1" })], nextCursor: null });
+
+    await vi.waitFor(() =>
+      expect(copies.toArray.map((copy) => copy.id).toSorted()).toEqual(["c1", "c2"]),
+    );
+    expect(fetchCopies).toHaveBeenCalledTimes(3);
+
+    subscription.unsubscribe();
+    await liveQuery.cleanup();
   });
 
   it("does not surface [Live Query Error] when the active user changes mid-subscription", async () => {
-    queryClient.setQueryData(copiesKeys.all(userA), { items: [], nextCursor: null });
     const aliceCopies = getCopiesCollection(queryClient, userA);
 
     const liveQuery = createLiveQueryCollection({

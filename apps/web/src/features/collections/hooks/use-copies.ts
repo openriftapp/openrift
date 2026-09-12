@@ -194,8 +194,6 @@ export function useAddCopies() {
             copiesCollection.utils.writeUpsert(realRows);
           });
         }
-        // Marks the cache stale without refetching, so a later refetch (e.g. on
-        // reconnect) doesn't hand back pre-mutation data and clobber the synced store.
         void queryClient.invalidateQueries({
           queryKey: copiesKeys.all(userId),
           refetchType: "none",

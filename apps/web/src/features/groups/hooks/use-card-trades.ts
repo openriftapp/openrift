@@ -245,15 +245,10 @@ export function tradeCopyOptionsQueryOptions(userId: string, tradeId: string) {
   });
 }
 
-/**
- * `copies.syncedStore` only refetches when `copies.all` is also invalidated;
- * both keys are required. `trades.all`/`lists.all` are prefix matches for their nested keys.
- */
 function tradeInvalidationKeys(userId: string, groupSlug?: string): (readonly unknown[])[] {
   const keys: (readonly unknown[])[] = [
     tradesKeys.all(userId),
     copiesKeys.all(userId),
-    copiesKeys.syncedStore(userId),
     listsKeys.all(userId),
   ];
   if (groupSlug !== undefined) {
