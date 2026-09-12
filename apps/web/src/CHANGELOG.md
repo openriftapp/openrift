@@ -23,6 +23,7 @@
 - fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
 - fix(Collection): **Scanned rows name their printing** — picking another printing for a scanned card now shows on the row, which used to keep reading "Standard" for a different language, promo or signed copy.
 - fix(Collection): **The missing-photo nudge names the cards** — it lists the first few by name, each linking straight to that card's photo upload page.
+- fix(Groups): **Setup nudges match the rest of the app** — the "Members can't reach you" and "This group can't see any of your lists" prompts now sit in the same notice style as other tips, instead of a plain list row.
 - feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation covers the site footer, the navigation, the command palette, sign-in and sign-up, the card browser with card, set, product and promo pages, collections and lists, decks, the pack opener, the rules pages and glossary, groups, trades and loans, the whole profile page, the card scanner, the contribute pages, the card designer, the match tracker and the Cardmarket extension pages so far and will expand page by page.
 
 ## 2026-09-11

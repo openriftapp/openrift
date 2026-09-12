@@ -1,10 +1,10 @@
 import type { FriendGroupDetailResponse } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
-import { HandshakeIcon, MessageCircleIcon, XIcon } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import { XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { RowList, RowListItem } from "@/components/ui/row-list";
+import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import type { GroupNudgeKind } from "@/features/account/stores/onboarding-store";
 import { groupNudgeKey, useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useRequiredUserId } from "@/lib/auth-session";
@@ -30,7 +30,6 @@ export function pendingGroupNudges(
 }
 
 interface NudgeCopy {
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
   title: string;
   description: string;
   hash: string;
@@ -41,7 +40,6 @@ interface NudgeCopy {
 function nudgeCopy(kind: GroupNudgeKind): NudgeCopy {
   if (kind === "contacts") {
     return {
-      icon: MessageCircleIcon,
       title: m.groups_nudge_contacts_title(),
       description: m.groups_nudge_contacts_description(),
       hash: "contacts",
@@ -50,7 +48,6 @@ function nudgeCopy(kind: GroupNudgeKind): NudgeCopy {
     };
   }
   return {
-    icon: HandshakeIcon,
     title: m.groups_nudge_lists_title(),
     description: m.groups_nudge_lists_description(),
     hash: "lists",
@@ -78,38 +75,41 @@ export function GroupSetupNudges({
   }
 
   return (
-    <RowList variant="divided">
+    <div className="flex flex-col gap-3">
       {kinds.map((kind) => {
         const copy = nudgeCopy(kind);
         return (
-          <RowListItem key={kind} className="items-start">
-            <copy.icon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+          <Callout key={kind} className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-sm">
-                <span className="font-medium">{copy.title}</span>{" "}
-                <span className="text-muted-foreground">{copy.description}</span>
+              <p className="text-muted-foreground text-sm">
+                <span className="text-foreground font-medium">{copy.title}</span> {copy.description}
               </p>
-              <span className="flex flex-wrap items-center gap-x-3 text-sm">
-                <Link to="/groups/$slug/manage" params={{ slug }} hash={copy.hash}>
-                  {copy.actionLabel}
-                </Link>
-                <Link to="/help/$slug" params={{ slug: "groups" }}>
+              <p className="text-muted-foreground text-sm">
+                <TextLink render={<Link to="/help/$slug" params={{ slug: "groups" }} />}>
                   {copy.helpLabel}
-                </Link>
-              </span>
+                </TextLink>
+              </p>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => dismiss(slug, kind)}
-              aria-label={m.groups_nudge_dismiss({ title: copy.title })}
-            >
-              <XIcon className="size-4" />
-            </Button>
-          </RowListItem>
+            <div className="-my-1 flex shrink-0 items-center gap-1">
+              <Button
+                size="sm"
+                render={<Link to="/groups/$slug/manage" params={{ slug }} hash={copy.hash} />}
+              >
+                {copy.actionLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => dismiss(slug, kind)}
+                aria-label={m.groups_nudge_dismiss({ title: copy.title })}
+              >
+                <XIcon className="size-4" />
+              </Button>
+            </div>
+          </Callout>
         );
       })}
-    </RowList>
+    </div>
   );
 }
