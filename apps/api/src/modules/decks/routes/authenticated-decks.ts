@@ -430,7 +430,7 @@ export const decksRouter = {
   }),
 
   // Copy a deck into its variant family as an editable sibling. Creates the
-  // family (and marks the source primary) on first use.
+  // family on first use; the copy becomes the family's primary.
   createVariant: os.createVariant.handler(async ({ input, context }) => {
     const { decks } = context.repos;
     const newDeck = await decks.createVariantCopy(input.id, context.userId, {

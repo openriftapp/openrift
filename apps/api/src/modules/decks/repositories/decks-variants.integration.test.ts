@@ -9,6 +9,7 @@ import {
   PRINTING_1,
 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { deckFoldersRepo } from "./deck-folders.js";
 import { deckPlansRepo } from "./deck-plans.js";
 import { decksRepo } from "./decks.js";
 
@@ -53,6 +54,7 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
   const { db } = ctx!;
   const decks = decksRepo(db);
   const plans = deckPlansRepo(db);
+  const folders = deckFoldersRepo(db);
 
   async function makeDeck(
     name: string,
@@ -113,28 +115,31 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
   }
 
   describe("family creation", () => {
-    it("creates the family on the first copy and makes the source primary", async () => {
+    it("creates the family on the first copy and makes the copy primary", async () => {
       const source = await makeDeck("DV Family Source");
       expect(source.familyId).toBeNull();
       expect(source.isPrimary).toBe(false);
 
       const copy = await copyOf(source.id, {});
       expect(copy.familyId).toBeTypeOf("string");
+      expect(copy.isPrimary).toBe(true);
 
       const reloadedSource = await reload(source.id);
       expect(reloadedSource.familyId).toBe(copy.familyId);
-      expect(reloadedSource.isPrimary).toBe(true);
-      expect(copy.isPrimary).toBe(false);
+      expect(reloadedSource.isPrimary).toBe(false);
     });
 
-    it("reuses the existing family for later copies", async () => {
+    it("reuses the existing family for later copies and hands the primary on", async () => {
       const source = await makeDeck("DV Family Reuse");
       const first = await copyOf(source.id, {});
       const second = await copyOf(source.id, {});
 
       expect(second.familyId).toBe(first.familyId);
+      expect(second.isPrimary).toBe(true);
+      const reloadedFirst = await reload(first.id);
+      expect(reloadedFirst.isPrimary).toBe(false);
       const reloadedSource = await reload(source.id);
-      expect(reloadedSource.isPrimary).toBe(true);
+      expect(reloadedSource.isPrimary).toBe(false);
       const members = await db
         .selectFrom("decks")
         .select("id")
@@ -301,6 +306,26 @@ describe.skipIf(!ctx)("decksRepo variants", () => {
       expect(copy.isPinned).toBe(false);
       expect(copy.isDraft).toBe(false);
       expect(copy.archivedAt).toBeNull();
+    });
+
+    it("adds the copy to every folder the source is in", async () => {
+      const source = await makeDeck("DV Folder Source");
+      const folder = await folders.create(userId, "DV Folder");
+      await folders.setForDeck(source.id, userId, [folder.id]);
+
+      const copy = await copyOf(source.id, {});
+
+      const byDeck = await folders.folderIdsByDeckIds([source.id, copy.id], userId);
+      expect(byDeck.get(copy.id)).toEqual([folder.id]);
+      expect(byDeck.get(source.id)).toEqual([folder.id]);
+    });
+
+    it("leaves a copy of a folderless deck out of every folder", async () => {
+      const source = await makeDeck("DV No Folder Source");
+      const copy = await copyOf(source.id, {});
+
+      const byDeck = await folders.folderIdsByDeckIds([copy.id], userId);
+      expect(byDeck.has(copy.id)).toBe(false);
     });
 
     it("leaves the copy out of the source's deck box", async () => {

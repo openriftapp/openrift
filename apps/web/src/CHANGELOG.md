@@ -9,6 +9,7 @@
 
 ### Other
 
+- feat(Decks): **A new variant takes the lead** — creating a variant makes it the one the deck list shows for that family, and it joins the same folders as the deck it was copied from.
 - feat(Decks): **The next variant has a place in the tree** — the add-variant button now shows as the next slot in the branch graph instead of floating outside it, and the separate Variants button by the graph is gone (the same list is one tap away from the ⋮ menu).
 - feat(Meta): **Player pages open on their whole career** — a player's page in the Meta Archive now defaults to all time instead of the current set, so their record doesn't look empty until you clear the era.
 - feat(Meta): **One link instead of a toggle** — a legend's or player's Best/All finishes and a legend's archived decklists now expand with a single "Show all" link next to the heading.

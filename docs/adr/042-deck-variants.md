@@ -25,7 +25,7 @@ A deck is one live list: every edit autosaves into `decks` + `deck_cards`, so th
 
 Every variant is an ordinary deck. Four columns on `decks` carry the whole feature: `family_id` (uuid, null for standalone decks) groups variants, `predecessor_deck_id` (uuid, FK to `decks`, ON DELETE SET NULL) expresses lineage, `is_primary` marks the variant that fronts the family (one per family via partial unique index), and `is_draft` is a lifecycle badge. Because a variant is a deck, the editor, plans, ownership panel, wants, share tokens, and formats all work per variant with zero changes, and a 2v2 or budget variant legitimately owns its own plan notes and share link.
 
-"Checkpoint" is a verb, not a storage type: copy the current variant (cards, preferred printings, plans, matchup plans) into a new row and point the live deck's `predecessor_deck_id` at the copy. The live deck keeps its id, so share links and folder membership never move. "New variant" is the same copy with the pointer on the copy instead. Opening a checkpoint as a fresh variant gives branch-from-history for free. When a deck without a family gains its first copy, both rows get a fresh `family_id` and the original becomes primary.
+"Checkpoint" is a verb, not a storage type: copy the current variant (cards, preferred printings, plans, matchup plans) into a new row and point the live deck's `predecessor_deck_id` at the copy. The live deck keeps its id, so share links and folder membership never move. "New variant" is the same copy with the pointer on the copy instead. Opening a checkpoint as a fresh variant gives branch-from-history for free. When a deck without a family gains its first copy, both rows get a fresh `family_id`. The copy becomes the family's primary, since "New variant" opens it as the deck you continue in, and it joins every folder the source is in.
 
 Predecessors stay editable: they are presented as history but nothing locks them. Immutability by construction (option 2) was the main argument for a snapshot table, but it costs a second storage format, a second rendering path, and a read-only viewer, while enforcement on real rows (option 4) needs a guard in every mutation route that touches decks and one missed route silently breaks the guarantee. Convention is enough for a personal tool; an opt-in lock flag remains a bolt-on if it ever isn't. Option 3 is the cleanest concept and the largest refactor, since everything in the app keys on `deck_id`; rejected on cost.
 
@@ -37,7 +37,7 @@ The deck list shows one expandable entry per family, fronted by the primary vari
 - Good, because checkpoint, variant, and branch-from-checkpoint are the same operation differing only in where the predecessor pointer lands.
 - Good, because the live deck keeps its identity through a checkpoint, so nothing that references it (share links, folders, tournament deck-check keys) ever dangles.
 - Bad, because checkpoints are frozen by convention only; an edit to a predecessor rewrites history with no warning.
-- Bad, because family rows multiply real decks: list grouping, folder membership (which follows each variant individually), and deletion of a primary (which must promote a survivor) all need explicit handling.
+- Bad, because family rows multiply real decks: list grouping, folder membership (which follows each variant individually after the copy inherits the source's folders), and deletion of a primary (which must promote a survivor) all need explicit handling.
 
 ## More Information
 

@@ -20,7 +20,7 @@ import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from "@ta
 import { createServerFn } from "@tanstack/react-start";
 
 import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
-import { decksKeys } from "@/features/decks/lib/decks-query-keys";
+import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
@@ -437,11 +437,12 @@ const createDeckVariantFn = createServerFn({ method: "POST" })
     }),
   );
 
+/** The variant joins the source's folders, so the folder counts move too. */
 export function useCreateDeckVariant() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<DeckResponse, { deckId: string; name?: string }>({
     mutationFn: (input) => createDeckVariantFn({ data: input }),
-    invalidates: [decksKeys.all(userId)],
+    invalidates: [decksKeys.all(userId), deckFoldersKeys.all(userId)],
   });
 }
 
