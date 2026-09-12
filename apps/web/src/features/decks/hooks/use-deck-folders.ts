@@ -17,7 +17,7 @@ const fetchDeckFolders = createServerFn({ method: "GET" })
     apiOrpcClient(deckFoldersContract, context.cookie).list(),
   );
 
-function deckFoldersQueryOptions(userId: string) {
+export function deckFoldersQueryOptions(userId: string) {
   return queryOptions({
     queryKey: deckFoldersKeys.all(userId),
     queryFn: () => fetchDeckFolders(),

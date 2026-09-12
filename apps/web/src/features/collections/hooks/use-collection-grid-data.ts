@@ -18,6 +18,8 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/lib/auth-session";
 import type { GroupInfo } from "@/lib/card-group-types";
 
+const EMPTY_SORTED_CARDS: Printing[] = [];
+
 interface UseCollectionGridDataParams {
   collectionId?: string;
   filters: ReturnType<typeof useFilterValues>["filters"];
@@ -194,9 +196,12 @@ export function useCollectionGridData({
       )
     : collectionOwnedCountMax;
 
-  const deferredSortedCards = useDeferredValue(sortedCards);
+  // The empty initial value lets the first commit paint the page shell before
+  // the tiles render, so a navigation into the grid swaps pages immediately.
+  const deferredSortedCards = useDeferredValue(sortedCards, EMPTY_SORTED_CARDS);
   // 150ms debounce: without it, the grid flashes grayed out on every +/- click.
   const stalePending = deferredSortedCards !== sortedCards;
+  const mountPending = stalePending && deferredSortedCards === EMPTY_SORTED_CARDS;
   const [isGridStale, setIsGridStale] = useState(false);
   if (!stalePending && isGridStale) {
     setIsGridStale(false);
@@ -235,7 +240,7 @@ export function useCollectionGridData({
     catalogPrintingsByCardId,
     catalogPriceRangeByCardId,
     deferredSortedCards,
-    isGridStale,
+    isGridStale: isGridStale || mountPending,
     ownedCountByPrinting,
   };
 }

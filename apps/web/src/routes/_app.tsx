@@ -6,6 +6,7 @@ import { AppBackground } from "@/components/layout/app-background";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
+import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
 import { setSentryUser } from "@/lib/report-error";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { data: session } = useSession();
   usePreferencesSync(Boolean(session?.user));
+  useIdleAreaPrefetch(session?.user?.id ?? null);
   useEffect(() => {
     if (session !== undefined) {
       setSentryUser(session?.user?.id ?? null);

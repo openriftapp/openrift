@@ -88,7 +88,9 @@ export function CardViewer({
       rightPane={rightPane}
       stale={stale}
       gridSlot={
-        useTable ? (
+        stale && items.length === 0 ? (
+          <div className="flex flex-1 flex-col" />
+        ) : useTable ? (
           <HydratedTable
             items={items}
             totalItems={totalItems}

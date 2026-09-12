@@ -60,6 +60,7 @@ export function decksQueryOptions(userId: string) {
     queryKey: decksKeys.all(userId),
     queryFn: () => fetchDecks(),
     select: (data: DeckListResponse) => data.items,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
