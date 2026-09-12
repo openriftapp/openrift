@@ -25,6 +25,8 @@ import {
 import { promoteMetaEvent, promoteNewEvent } from "./services/meta-promote.js";
 import { repromoteMetaEvents } from "./services/meta-repromote.js";
 import { retierMetaEvents } from "./services/meta-retier.js";
+import { notifyAdminsOfMetaSubmission } from "./services/meta-submission-notifications.js";
+import type { MetaSubmissionEmailDeps } from "./services/meta-submission-notifications.js";
 import { submitMetaDeck, submitMetaEventCorrection } from "./services/meta-submission.js";
 
 export interface MetaRepos {
@@ -54,6 +56,7 @@ export interface MetaServices {
   suggestMetaPlayerMatches: typeof suggestMetaPlayerMatches;
   submitMetaDeck: typeof submitMetaDeck;
   submitMetaEventCorrection: typeof submitMetaEventCorrection;
+  notifyAdminsOfMetaSubmission: typeof notifyAdminsOfMetaSubmission;
 }
 
 export function createMetaRepos(db: Kysely<Database>): MetaRepos {
@@ -71,7 +74,7 @@ export function createMetaRepos(db: Kysely<Database>): MetaRepos {
   };
 }
 
-export function createMetaServices(): MetaServices {
+export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaServices {
   return {
     ingestMetaOverlays,
     promoteMetaEvent,
@@ -86,5 +89,9 @@ export function createMetaServices(): MetaServices {
     suggestMetaPlayerMatches,
     submitMetaDeck,
     submitMetaEventCorrection,
+    notifyAdminsOfMetaSubmission:
+      emailDeps === undefined
+        ? notifyAdminsOfMetaSubmission
+        : (repos, submission) => notifyAdminsOfMetaSubmission(repos, submission, emailDeps),
   };
 }

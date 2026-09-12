@@ -18,6 +18,9 @@ export interface MatchDigestRecipient {
 /** An admin who has opted into the card-submission alert. */
 export type CardSubmissionRecipient = MatchDigestRecipient;
 
+/** An admin who has opted into the meta-submission alert. */
+export type MetaSubmissionRecipient = MatchDigestRecipient;
+
 /** A group owner/admin who has not opted out of the join-request alert. */
 export type GroupJoinRequestRecipient = MatchDigestRecipient;
 
@@ -100,6 +103,18 @@ export function userPreferencesRepo(db: Kysely<Database>) {
         .select(["u.id as userId", "u.email as email", "u.name as name"])
         .where("u.emailVerified", "=", true)
         .where(sql<boolean>`(up.data -> 'emailNotifications' ->> 'cardSubmissions') = 'true'`)
+        .execute();
+      return rows;
+    },
+
+    async listMetaSubmissionRecipients(): Promise<MetaSubmissionRecipient[]> {
+      const rows = await db
+        .selectFrom("userPreferences as up")
+        .innerJoin("users as u", "u.id", "up.userId")
+        .innerJoin("admins as a", "a.userId", "u.id")
+        .select(["u.id as userId", "u.email as email", "u.name as name"])
+        .where("u.emailVerified", "=", true)
+        .where(sql<boolean>`(up.data -> 'emailNotifications' ->> 'metaSubmissions') = 'true'`)
         .execute();
       return rows;
     },

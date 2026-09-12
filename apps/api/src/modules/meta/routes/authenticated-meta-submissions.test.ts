@@ -14,6 +14,7 @@ const mockSubmissions = { listByUser: vi.fn(), shareTokensForDecks: vi.fn() };
 const mockMeta = { creditVisibility: vi.fn(), setCreditVisibility: vi.fn() };
 const mockSubmitMetaDeck = vi.fn();
 const mockSubmitMetaEventCorrection = vi.fn();
+const mockNotifyAdmins = vi.fn();
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const EVENT_ID = "b0000000-0001-4000-a000-000000000001";
@@ -25,6 +26,7 @@ app.use("*", async (c, next) => {
   c.set("services", {
     submitMetaDeck: mockSubmitMetaDeck,
     submitMetaEventCorrection: mockSubmitMetaEventCorrection,
+    notifyAdminsOfMetaSubmission: mockNotifyAdmins,
   } as never);
   c.set("transact", vi.fn() as never);
   await next();
@@ -91,6 +93,7 @@ describe("POST /meta/submissions", () => {
     mockSubmitMetaDeck.mockResolvedValue({
       status: "ok",
       submissionId: "sub-1",
+      eventName: "Summoner Skirmish Berlin",
       candidatePlayerId: "cand-1",
       unresolvedNames: ["Shock"],
     });
@@ -99,6 +102,13 @@ describe("POST /meta/submissions", () => {
 
     expect(res.status).toBe(201);
     expect(await readJson(res)).toEqual({ id: "sub-1", unresolvedNames: ["Shock"] });
+    expect(mockNotifyAdmins).toHaveBeenCalledWith(expect.anything(), {
+      submitterUserId: USER_ID,
+      kind: "new_list",
+      eventName: "Summoner Skirmish Berlin",
+      playerName: "Renata",
+      note: "Copied from the stream overlay.",
+    });
     expect(mockSubmitMetaDeck).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -204,6 +214,7 @@ describe("POST /meta/submissions", () => {
     const res = await submit(submissionBody());
 
     expect(res.status).toBe(429);
+    expect(mockNotifyAdmins).not.toHaveBeenCalled();
     const json = await readJson(res);
     expect(json.message).toContain("10");
   });
@@ -397,7 +408,11 @@ describe("POST /meta/submissions/event-corrections", () => {
   }
 
   it("records the note and the proposed values", async () => {
-    mockSubmitMetaEventCorrection.mockResolvedValue({ status: "ok", submissionId: "sub-9" });
+    mockSubmitMetaEventCorrection.mockResolvedValue({
+      status: "ok",
+      submissionId: "sub-9",
+      eventName: "Summoner Skirmish Berlin",
+    });
 
     const res = await correct({
       metaEventId: EVENT_ID,
@@ -419,9 +434,21 @@ describe("POST /meta/submissions/event-corrections", () => {
   });
 
   it("defaults a correction with no field edits to an empty set", async () => {
-    mockSubmitMetaEventCorrection.mockResolvedValue({ status: "ok", submissionId: "sub-10" });
+    mockSubmitMetaEventCorrection.mockResolvedValue({
+      status: "ok",
+      submissionId: "sub-10",
+      eventName: "Summoner Skirmish Berlin",
+    });
 
     await correct({ metaEventId: EVENT_ID, note: "The winner's name is misspelled." });
+
+    expect(mockNotifyAdmins).toHaveBeenCalledWith(expect.anything(), {
+      submitterUserId: USER_ID,
+      kind: "event_correction",
+      eventName: "Summoner Skirmish Berlin",
+      playerName: null,
+      note: "The winner's name is misspelled.",
+    });
 
     expect(mockSubmitMetaEventCorrection).toHaveBeenCalledWith(
       expect.anything(),

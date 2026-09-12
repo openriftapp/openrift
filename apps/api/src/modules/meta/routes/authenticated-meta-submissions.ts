@@ -49,6 +49,14 @@ export const metaSubmissionsRouter = {
       throw errors.BAD_REQUEST({ message: result.errors.join("; ") });
     }
 
+    await context.services.notifyAdminsOfMetaSubmission(context.repos, {
+      submitterUserId: context.userId,
+      kind: input.kind,
+      eventName: result.eventName,
+      playerName: input.playerName,
+      note: input.note,
+    });
+
     return { id: result.submissionId, unresolvedNames: result.unresolvedNames };
   }),
 
@@ -66,6 +74,14 @@ export const metaSubmissionsRouter = {
         message: `You already have ${result.limit} submissions awaiting review. Please wait until they are looked at.`,
       });
     }
+    await context.services.notifyAdminsOfMetaSubmission(context.repos, {
+      submitterUserId: context.userId,
+      kind: "event_correction",
+      eventName: result.eventName,
+      playerName: null,
+      note: input.note,
+    });
+
     return { id: result.submissionId };
   }),
 

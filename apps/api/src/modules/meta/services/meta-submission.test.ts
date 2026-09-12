@@ -338,7 +338,11 @@ describe("submitMetaEventCorrection", () => {
       now: NOW,
     });
 
-    expect(result).toEqual({ status: "ok", submissionId: "submission-1" });
+    expect(result).toEqual({
+      status: "ok",
+      submissionId: "submission-1",
+      eventName: "Summoner Skirmish Berlin",
+    });
     expect(h.insertPlayer).not.toHaveBeenCalled();
     expect(h.insertEvent).not.toHaveBeenCalled();
     expect(h.insertSubmission).toHaveBeenCalledWith(

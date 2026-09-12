@@ -89,6 +89,7 @@ export type MetaSubmissionResult =
   | {
       status: "ok";
       submissionId: string;
+      eventName: string;
       playerOverlayId: string;
       /**
        * Card names that matched nothing. The submission is still staged: an
@@ -203,7 +204,7 @@ interface MetaEventCorrectionArgs {
 }
 
 type MetaEventCorrectionResult =
-  | { status: "ok"; submissionId: string }
+  | { status: "ok"; submissionId: string; eventName: string }
   | { status: "rate_limited"; limit: number };
 
 /**
@@ -249,7 +250,7 @@ export function submitMetaEventCorrection(
       note: args.note,
     });
 
-    return { status: "ok", submissionId };
+    return { status: "ok", submissionId, eventName: event.name };
   });
 }
 
@@ -385,6 +386,7 @@ export function submitMetaDeck(
     return {
       status: "ok",
       submissionId,
+      eventName,
       playerOverlayId,
       unresolvedNames: [...new Set(cards.filter((c) => c.cardId === null).map((c) => c.cardName))],
     };

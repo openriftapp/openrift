@@ -24,6 +24,18 @@ export function AdminNotificationsSection() {
           onCheckedChange={(checked: boolean) => setChannel("cardSubmissions", checked)}
         />
       </SettingsRow>
+      <SettingsRow
+        label="New meta submissions"
+        htmlFor="pref-email-meta-submissions"
+        description="Get an email each time someone submits a tournament decklist or event correction to the meta archive, with a link to the review queue."
+      >
+        <Switch
+          id="pref-email-meta-submissions"
+          checked={gates.metaSubmissions}
+          disabled={disabled}
+          onCheckedChange={(checked: boolean) => setChannel("metaSubmissions", checked)}
+        />
+      </SettingsRow>
     </SettingsSection>
   );
 }

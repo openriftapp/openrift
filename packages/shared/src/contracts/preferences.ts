@@ -22,6 +22,7 @@ export const emailNotificationPreferenceSchema = z
     tradeStatus: z.boolean().optional(),
     tradeRequestCadence: z.enum(TRADE_REQUEST_EMAIL_CADENCES).optional(),
     cardSubmissions: z.boolean().optional(),
+    metaSubmissions: z.boolean().optional(),
     groupJoinRequests: z.boolean().optional(),
     groupApprovals: z.boolean().optional(),
   })

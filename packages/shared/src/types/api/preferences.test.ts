@@ -4,6 +4,7 @@ import {
   DEFAULT_TRADE_REQUEST_EMAIL_CADENCE,
   getTradeRequestEmailCadence,
   isCardSubmissionEmailEnabled,
+  isMetaSubmissionEmailEnabled,
   isTradeStatusEmailEnabled,
 } from "./preferences.js";
 
@@ -28,6 +29,18 @@ describe("isTradeStatusEmailEnabled", () => {
   it("is off only when explicitly disabled", () => {
     expect(isTradeStatusEmailEnabled({ tradeStatus: false })).toBe(false);
     expect(isTradeStatusEmailEnabled({ tradeStatus: true })).toBe(true);
+  });
+});
+
+describe("isMetaSubmissionEmailEnabled", () => {
+  it("defaults off (opt-in) when unset", () => {
+    expect(isMetaSubmissionEmailEnabled(undefined)).toBe(false);
+    expect(isMetaSubmissionEmailEnabled({})).toBe(false);
+  });
+
+  it("is on only when explicitly enabled", () => {
+    expect(isMetaSubmissionEmailEnabled({ metaSubmissions: true })).toBe(true);
+    expect(isMetaSubmissionEmailEnabled({ metaSubmissions: false })).toBe(false);
   });
 });
 

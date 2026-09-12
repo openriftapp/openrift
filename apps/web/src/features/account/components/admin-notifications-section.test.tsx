@@ -22,6 +22,7 @@ beforeEach(() => {
       tradeStatus: true,
       tradeRequestCadence: "5min",
       cardSubmissions: false,
+      metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
     },
@@ -52,6 +53,12 @@ describe("AdminNotificationsSection", () => {
     render(<AdminNotificationsSection />);
     await userEvent.click(screen.getByRole("switch", { name: "New card submissions" }));
     expect(setChannel).toHaveBeenCalledWith("cardSubmissions", false);
+  });
+
+  it("turning the meta switch on calls setChannel with metaSubmissions", async () => {
+    render(<AdminNotificationsSection />);
+    await userEvent.click(screen.getByRole("switch", { name: "New meta submissions" }));
+    expect(setChannel).toHaveBeenCalledWith("metaSubmissions", true);
   });
 
   it("disables the switch while the saved values are loading", () => {

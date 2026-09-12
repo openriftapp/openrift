@@ -8,6 +8,7 @@ import {
   isCardSubmissionEmailEnabled,
   isGroupApprovalEmailEnabled,
   isGroupJoinRequestEmailEnabled,
+  isMetaSubmissionEmailEnabled,
   isTradeMatchDigestEnabled,
   isTradeRequestEmailEnabled,
   isTradeStatusEmailEnabled,
@@ -19,6 +20,7 @@ export interface EmailNotificationGates {
   tradeStatus: boolean;
   tradeRequestCadence: TradeRequestEmailCadence;
   cardSubmissions: boolean;
+  metaSubmissions: boolean;
   groupJoinRequests: boolean;
   groupApprovals: boolean;
 }
@@ -32,6 +34,7 @@ export function resolveEmailNotificationGates(
     tradeStatus: isTradeStatusEmailEnabled(prefs),
     tradeRequestCadence: getTradeRequestEmailCadence(prefs),
     cardSubmissions: isCardSubmissionEmailEnabled(prefs),
+    metaSubmissions: isMetaSubmissionEmailEnabled(prefs),
     groupJoinRequests: isGroupJoinRequestEmailEnabled(prefs),
     groupApprovals: isGroupApprovalEmailEnabled(prefs),
   };

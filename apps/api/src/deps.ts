@@ -114,7 +114,7 @@ export function createServices(emailDeps?: TradeEmailDeps): Services {
     ...createGroupsServices(emailDeps),
     ...createListsServices(),
     ...createMarketplaceServices(),
-    ...createMetaServices(),
+    ...createMetaServices(emailDeps),
     ...createScanServices(),
     ...createSystemServices(),
   };

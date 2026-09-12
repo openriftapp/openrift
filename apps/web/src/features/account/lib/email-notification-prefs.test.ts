@@ -14,6 +14,7 @@ describe("resolveEmailNotificationGates", () => {
       tradeStatus: true, // status email is opt-out
       tradeRequestCadence: "5min", // default cadence
       cardSubmissions: false, // admin alert is opt-in
+      metaSubmissions: false, // admin alert is opt-in
       groupJoinRequests: true, // group join alert is opt-out
       groupApprovals: true, // group welcome is opt-out
     });
@@ -23,6 +24,7 @@ describe("resolveEmailNotificationGates", () => {
       tradeStatus: true,
       tradeRequestCadence: "5min",
       cardSubmissions: false,
+      metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
     });
@@ -31,6 +33,11 @@ describe("resolveEmailNotificationGates", () => {
   it("the admin card-submission alert is on only when explicitly true", () => {
     expect(resolveEmailNotificationGates({ cardSubmissions: true }).cardSubmissions).toBe(true);
     expect(resolveEmailNotificationGates({ cardSubmissions: false }).cardSubmissions).toBe(false);
+  });
+
+  it("the admin meta-submission alert is on only when explicitly true", () => {
+    expect(resolveEmailNotificationGates({ metaSubmissions: true }).metaSubmissions).toBe(true);
+    expect(resolveEmailNotificationGates({ metaSubmissions: false }).metaSubmissions).toBe(false);
   });
 
   it("the group join-request alert is off only when explicitly false", () => {

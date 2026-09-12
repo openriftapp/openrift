@@ -90,6 +90,24 @@ describe("previewUnsubscribe", () => {
     expect(onPreview.alreadyUnsubscribed).toBe(false);
   });
 
+  it("reads the meta-submission channel as opt-in", async () => {
+    const token = signUnsubscribeToken(SECRET, USER_ID, "metaSubmissions");
+    const offPreview = await previewUnsubscribe(makeRepos({}).repos, SECRET, token);
+    expect(offPreview).toEqual({
+      valid: true,
+      channel: "metaSubmissions",
+      channelLabel: "meta deck submission alerts",
+      alreadyUnsubscribed: true,
+    });
+
+    const onPreview = await previewUnsubscribe(
+      makeRepos({ metaSubmissions: true }).repos,
+      SECRET,
+      token,
+    );
+    expect(onPreview.alreadyUnsubscribed).toBe(false);
+  });
+
   it("reads the opt-out status channel against its own default", async () => {
     const token = signUnsubscribeToken(SECRET, USER_ID, "tradeStatus");
     const onPreview = await previewUnsubscribe(makeRepos({}).repos, SECRET, token);

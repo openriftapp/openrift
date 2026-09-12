@@ -6,6 +6,7 @@ import {
   EMAIL_NOTIFICATION_CHANNEL_LABELS,
   isCardSubmissionEmailEnabled,
   isGroupApprovalEmailEnabled,
+  isMetaSubmissionEmailEnabled,
   isGroupJoinRequestEmailEnabled,
   isTradeMatchDigestEnabled,
   isTradeRequestEmailEnabled,
@@ -27,7 +28,7 @@ export interface UnsubscribeResult {
   channelLabel: string;
 }
 
-/** `tradeMatches` and `cardSubmissions` are opt-in; every other channel is opt-out. */
+/** `tradeMatches`, `cardSubmissions` and `metaSubmissions` are opt-in; every other channel is opt-out. */
 function isChannelOff(
   channel: EmailNotificationChannel,
   prefs: EmailNotificationPreference | undefined,
@@ -41,6 +42,9 @@ function isChannelOff(
     }
     case "cardSubmissions": {
       return !isCardSubmissionEmailEnabled(prefs);
+    }
+    case "metaSubmissions": {
+      return !isMetaSubmissionEmailEnabled(prefs);
     }
     case "groupJoinRequests": {
       return !isGroupJoinRequestEmailEnabled(prefs);

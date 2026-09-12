@@ -114,6 +114,7 @@ export type EmailNotificationChannel =
   | "tradeRequests"
   | "tradeStatus"
   | "cardSubmissions"
+  | "metaSubmissions"
   | "groupJoinRequests"
   | "groupApprovals";
 
@@ -126,6 +127,7 @@ export const EMAIL_NOTIFICATION_CHANNEL_LABELS: Record<EmailNotificationChannel,
   tradeRequests: "trade-request emails",
   tradeStatus: "trade status updates",
   cardSubmissions: "card submission alerts",
+  metaSubmissions: "meta deck submission alerts",
   groupJoinRequests: "group join requests",
   groupApprovals: "group welcome emails",
 };
@@ -149,6 +151,13 @@ export function isCardSubmissionEmailEnabled(
   prefs: EmailNotificationPreference | undefined,
 ): boolean {
   return prefs?.cardSubmissions === true;
+}
+
+/** Opt-in like {@link isCardSubmissionEmailEnabled}, for the same reason. */
+export function isMetaSubmissionEmailEnabled(
+  prefs: EmailNotificationPreference | undefined,
+): boolean {
+  return prefs?.metaSubmissions === true;
 }
 
 /** Default-on, unlike {@link isCardSubmissionEmailEnabled}: creating the group made you the addressee of the request. */

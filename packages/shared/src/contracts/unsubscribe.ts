@@ -12,6 +12,7 @@ const channelSchema = z.enum([
   "tradeRequests",
   "tradeStatus",
   "cardSubmissions",
+  "metaSubmissions",
   "groupJoinRequests",
   "groupApprovals",
 ]);
