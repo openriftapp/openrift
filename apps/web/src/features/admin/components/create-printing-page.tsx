@@ -447,7 +447,7 @@ export function CreatePrintingPage({
 
             <div className="flex gap-2">
               <Button disabled={!canSubmit} onClick={handleSubmit}>
-                <PlusIcon className="mr-1 size-4" />
+                <PlusIcon className="size-4" />
                 Create printing
               </Button>
               <Button

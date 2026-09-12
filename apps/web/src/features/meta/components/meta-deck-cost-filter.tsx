@@ -164,7 +164,7 @@ export function MetaDeckCostFilter({
           <ChevronDownIcon />
         </PopoverTrigger>
       )}
-      <PopoverContent align="start" className="w-80 gap-3 p-2.5">
+      <PopoverContent align="start" className="w-80 gap-4 p-2.5">
         <ToCompleteSection
           withCollection={withCollection}
           countUnderCost={countUnderCost}
@@ -176,14 +176,12 @@ export function MetaDeckCostFilter({
           onMaxCostChange={onMaxCostChange}
           onIncludeSideboardChange={onIncludeSideboardChange}
         />
-        <div className="bg-border -mx-2.5 h-px" />
         <ValueSection
           maxValue={maxValue}
           format={format}
           valueRange={value.valueRange}
           onValueRangeChange={onValueRangeChange}
         />
-        <div className="bg-border -mx-2.5 h-px" />
         <div className="flex justify-end">
           <Button type="button" variant="ghost" size="sm" onClick={() => onClear()}>
             Clear

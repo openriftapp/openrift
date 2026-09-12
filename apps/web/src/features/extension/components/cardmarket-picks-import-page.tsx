@@ -1,6 +1,7 @@
 import type { ListResponse } from "@openrift/shared/types/api/list";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Loader2Icon, PlusSquareIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ import {
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { CountPill } from "@/components/ui/count-pill";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RowList } from "@/components/ui/row-list";
@@ -56,7 +58,7 @@ export function CardmarketPicksImportPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         <PageDescription>
           The cards you picked on a seller&apos;s Cardmarket offers with the OpenRift extension,
           ready to become a list you can share with them.
@@ -128,26 +130,18 @@ function TargetPicker({
         value={choice.selected}
         onValueChange={(value) => onChange({ ...choice, selected: String(value) })}
       >
-        <label
-          htmlFor="picks-target-new"
-          className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
-        >
-          <RadioGroupItem id="picks-target-new" value={NEW_LIST} />
-          <span className="flex-1 font-medium">New list</span>
+        <TargetOption id="picks-target-new" value={NEW_LIST} label="New list">
           <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
-        </label>
+        </TargetOption>
         {lists.map((list) => (
-          <label
+          <TargetOption
             key={list.id}
-            htmlFor={`picks-target-${list.id}`}
-            className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-2"
+            id={`picks-target-${list.id}`}
+            value={list.id}
+            label={list.name}
           >
-            <RadioGroupItem id={`picks-target-${list.id}`} value={list.id} />
-            <span className="min-w-0 flex-1 truncate font-medium">{list.name}</span>
-            <span className="text-muted-foreground shrink-0 text-xs">
-              {list.entryCount} {list.entryCount === 1 ? "card" : "cards"}
-            </span>
-          </label>
+            <CountPill>{list.entryCount}</CountPill>
+          </TargetOption>
         ))}
       </RadioGroup>
       {choice.selected === NEW_LIST ? (
@@ -163,6 +157,29 @@ function TargetPicker({
         Picks go to an organize list, so your wishlists stay as they are.
       </p>
     </SettingsSection>
+  );
+}
+
+function TargetOption({
+  id,
+  value,
+  label,
+  children,
+}: {
+  id: string;
+  value: string;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className="hover:bg-muted/50 -mx-2 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1"
+    >
+      <RadioGroupItem id={id} value={value} />
+      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -267,23 +284,25 @@ function PicksEditor({
   );
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <p className="text-muted-foreground text-sm">
-        {matchedEntries.length} {matchedEntries.length === 1 ? "card" : "cards"} picked from{" "}
-        <span className="text-foreground font-medium">{seller}</span>.
-      </p>
+    <div className="flex min-w-0 flex-col gap-8">
+      <div className="flex min-w-0 flex-col gap-4">
+        <p className="text-muted-foreground text-sm">
+          {matchedEntries.length} {matchedEntries.length === 1 ? "card" : "cards"} picked from{" "}
+          <span className="text-foreground font-medium">{seller}</span>.
+        </p>
 
-      {problematicEntries.length > 0 && (
-        <RowList>
-          {problematicEntries.map(({ entry, index }) => (
-            <li key={`${entry.entry.cardName}-${index}`}>{renderRow({ entry, index })}</li>
-          ))}
-        </RowList>
-      )}
+        {problematicEntries.length > 0 && (
+          <RowList>
+            {problematicEntries.map(({ entry, index }) => (
+              <li key={`${entry.entry.cardName}-${index}`}>{renderRow({ entry, index })}</li>
+            ))}
+          </RowList>
+        )}
 
-      <ImportExactMatchesDisclosure count={exactEntries.length}>
-        {exactEntries.map((item) => renderRow(item))}
-      </ImportExactMatchesDisclosure>
+        <ImportExactMatchesDisclosure count={exactEntries.length}>
+          {exactEntries.map((item) => renderRow(item))}
+        </ImportExactMatchesDisclosure>
+      </div>
 
       <TargetPicker lists={printingLists} choice={choice} onChange={setChoice} />
 

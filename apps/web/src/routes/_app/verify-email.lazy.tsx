@@ -6,7 +6,7 @@ import { Heading } from "@/components/heading";
 import { AuthPageLayout } from "@/components/layout/auth-page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FieldError, FieldGroup } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup } from "@/components/ui/field";
 import { SixDigitOtpInput } from "@/features/account/components/six-digit-otp-input";
 import { authClient } from "@/features/account/lib/auth-client";
 import { otpErrorMessage } from "@/lib/auth-errors";
@@ -62,46 +62,52 @@ function VerifyEmailPage() {
   return (
     <AuthPageLayout>
       <Card className="overflow-hidden p-0">
-        <CardContent className="flex flex-col items-center gap-4 p-6 text-center md:p-8">
-          <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
-          <Heading level={1}>Verify your email</Heading>
-          <p className="text-muted-foreground text-balance">
-            We sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your
-            account.
-          </p>
-          <FieldGroup className="items-center">
-            {error && <FieldError>{error}</FieldError>}
-            <SixDigitOtpInput
-              autoFocusOnMount
-              value={otp}
-              onChange={setOtp}
-              onComplete={(code) => void handleVerify(code)}
-            />
-            <Button
-              className="w-full"
-              disabled={otp.length < 6 || verifying}
-              onClick={() => void handleVerify(otp)}
-            >
-              {verifying ? "Verifying..." : "Verify"}
-            </Button>
-            <Button
-              type="button"
-              variant="link-muted"
-              disabled={resending}
-              onClick={() => void handleResend()}
-            >
-              {resending ? "Sending..." : "Resend code"}
-            </Button>
+        <CardContent className="p-6 md:p-8">
+          <FieldGroup>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
+              <Heading level={1}>Verify your email</Heading>
+              <p className="text-muted-foreground text-balance">
+                We sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your
+                account.
+              </p>
+            </div>
+            <Field className="items-center">
+              {error && <FieldError>{error}</FieldError>}
+              <SixDigitOtpInput
+                autoFocusOnMount
+                value={otp}
+                onChange={setOtp}
+                onComplete={(code) => void handleVerify(code)}
+              />
+            </Field>
+            <Field>
+              <Button
+                className="w-full"
+                disabled={otp.length < 6 || verifying}
+                onClick={() => void handleVerify(otp)}
+              >
+                {verifying ? "Verifying..." : "Verify"}
+              </Button>
+              <Button
+                type="button"
+                variant="link-muted"
+                disabled={resending}
+                onClick={() => void handleResend()}
+              >
+                {resending ? "Sending..." : "Resend code"}
+              </Button>
+            </Field>
+            <p className="text-muted-foreground text-center text-sm">
+              <Link
+                to="/login"
+                search={{ redirect: redirectTo, email: undefined }}
+                className="underline underline-offset-2"
+              >
+                Back to login
+              </Link>
+            </p>
           </FieldGroup>
-          <p className="text-muted-foreground text-sm">
-            <Link
-              to="/login"
-              search={{ redirect: redirectTo, email: undefined }}
-              className="underline underline-offset-2"
-            >
-              Back to login
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </AuthPageLayout>

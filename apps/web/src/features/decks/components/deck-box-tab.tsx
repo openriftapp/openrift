@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PickerGroup, PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
@@ -27,6 +26,7 @@ import {
 import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { DECK_LIST_SECTION_CLASS } from "@/features/decks/components/deck-overview-list";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckBox } from "@/features/decks/hooks/use-deck-box";
 import type { DeckBoxCard, DeckBoxCopy, DeckBoxSlot } from "@/features/decks/lib/deck-box";
 import { toBoxCardFromDeck } from "@/features/decks/lib/deck-box";
@@ -238,14 +238,11 @@ export function DeckBoxTab({
 
         {plan.extras.length > 0 && (
           <section className={DECK_LIST_SECTION_CLASS}>
-            <div className="flex h-6 items-center gap-2 border-b">
-              <SectionHeading as="span" size="sm">
-                Not in this deck
-              </SectionHeading>
+            <DeckZoneHeader label="Not in this deck">
               <span className="text-muted-foreground ml-auto text-xs tabular-nums">
                 {plan.extraCount}
               </span>
-            </div>
+            </DeckZoneHeader>
             <div className="flex flex-col gap-0.5">
               {plan.extras.flatMap((entry) =>
                 entry.copies.map((copy) => (
@@ -323,10 +320,7 @@ function ZoneSection({
 
   return (
     <section className={DECK_LIST_SECTION_CLASS}>
-      <div className="flex h-6 items-center gap-2 border-b">
-        <SectionHeading as="span" size="sm">
-          {ZONE_LABELS[zone]}
-        </SectionHeading>
+      <DeckZoneHeader label={ZONE_LABELS[zone]}>
         <span
           className={cn(
             "ml-auto text-xs tabular-nums",
@@ -335,7 +329,7 @@ function ZoneSection({
         >
           {inBox}/{zoneSlots.length}
         </span>
-      </div>
+      </DeckZoneHeader>
 
       {groups ? (
         <div className="flex flex-col gap-3">

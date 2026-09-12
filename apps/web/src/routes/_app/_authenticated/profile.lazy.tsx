@@ -1,10 +1,10 @@
 import { formatDay } from "@openrift/shared/format-date";
 import { createLazyFileRoute } from "@tanstack/react-router";
 
+import { Heading } from "@/components/heading";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { SettingsGroup } from "@/components/layout/settings-group";
 import { SettingsLayout } from "@/components/layout/settings-layout";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { AccountInfoSection } from "@/features/account/components/account-info-section";
 import { AdminNotificationsSection } from "@/features/account/components/admin-notifications-section";
@@ -69,25 +69,23 @@ function ProfilePage() {
   const createdAt = user.createdAt ? formatDay(user.createdAt) : null;
 
   return (
-    <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING)}>
-      <SettingsLayout toc={isAdmin ? ADMIN_NAV_SECTIONS : NAV_SECTIONS}>
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
-            <UserAvatar
-              image={user.image}
-              name={user.name}
-              email={user.email}
-              gravatarHash={gravatarHash}
-              size="lg"
-            />
-            <div className="flex flex-col gap-0.5">
-              <CardTitle>{user.name || user.email}</CardTitle>
-              <CardDescription>{user.email}</CardDescription>
-              {createdAt && <p className="text-muted-foreground text-xs">Joined {createdAt}</p>}
-            </div>
-          </CardHeader>
-        </Card>
+    <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING, "flex flex-col gap-8")}>
+      <div className="flex items-center gap-4">
+        <UserAvatar
+          image={user.image}
+          name={user.name}
+          email={user.email}
+          gravatarHash={gravatarHash}
+          size="lg"
+        />
+        <div className="flex min-w-0 flex-col gap-1">
+          <Heading level={1}>{user.name || user.email}</Heading>
+          <p className="text-muted-foreground">{user.email}</p>
+          {createdAt && <p className="text-muted-foreground text-sm">Joined {createdAt}</p>}
+        </div>
+      </div>
 
+      <SettingsLayout toc={isAdmin ? ADMIN_NAV_SECTIONS : NAV_SECTIONS}>
         <SettingsGroup id="sharing" title="Public sharing">
           <PublicSharingSection />
           <PublicProfileSection

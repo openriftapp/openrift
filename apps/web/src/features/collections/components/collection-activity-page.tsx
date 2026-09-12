@@ -474,7 +474,7 @@ export function CollectionActivityPage() {
                   <SectionHeading>{formatDayLocal(firstEvent.createdAt)}</SectionHeading>
                   <DaySummary events={events} marketplace={marketplace} formatPrice={formatPrice} />
                 </div>
-                <div className="divide-y">
+                <div>
                   {grouped.map((g) => {
                     const collectionId = g.event.toCollectionId ?? g.event.fromCollectionId ?? "";
                     return (

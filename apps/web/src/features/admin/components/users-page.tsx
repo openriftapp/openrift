@@ -80,7 +80,7 @@ function GrantsCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   }
   const granted = data.grants.filter((g) => g.userId === row.id).map((g) => g.section);
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex items-center gap-1">
       {granted.map((section) => (
         <Badge key={section} variant="secondary">
           {ADMIN_SECTION_LABELS[section]}
@@ -184,7 +184,6 @@ const columns: AdminColumnDef<AdminUserResponse>[] = [
   {
     header: "Grants",
     headerTitle: "Per-section admin access for non-admin users",
-    align: "center",
     width: "w-36",
     cell: <GrantsCell />,
   },

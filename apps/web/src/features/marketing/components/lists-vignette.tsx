@@ -136,7 +136,7 @@ export function ListsVignette() {
           <RuleSwitch />
         </RuleRow>
       </RuleBlock>
-      <div className="border-border/60 flex flex-col gap-2.5 border-t pt-4">
+      <div className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">Playset gaps</span>
           <span title="Kept up to date by a rule" className="flex shrink-0 items-center">

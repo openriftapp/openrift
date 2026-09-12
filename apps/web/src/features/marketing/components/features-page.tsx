@@ -502,9 +502,7 @@ export function FeaturesPage() {
             </div>
           );
         })}
-        <div className="border-border/60 border-t">
-          <ClosingBlock signedOut={!isPending && !session?.user} />
-        </div>
+        <ClosingBlock signedOut={!isPending && !session?.user} />
       </div>
     </PageTopBarHeightContext>
   );

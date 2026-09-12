@@ -84,7 +84,7 @@ function SetsPage() {
 
   return (
     <div className={PAGE_PADDING}>
-      <Heading level={1} className="mb-4">
+      <Heading level={1} className="mb-6">
         Card Sets
       </Heading>
       <div className={SET_GRID}>
@@ -94,7 +94,7 @@ function SetsPage() {
       </div>
       {supplementalSets.length > 0 && (
         <>
-          <Heading className="mt-8 mb-4">Supplemental Sets</Heading>
+          <Heading className="mt-10 mb-6">Supplemental Sets</Heading>
           <div className={SET_GRID}>
             {supplementalSets.map((set) => (
               <HeroSetCard key={set.id} set={set} />
@@ -109,7 +109,7 @@ function SetsPage() {
 function SetsPending() {
   return (
     <div className={PAGE_PADDING}>
-      <Skeleton className="mb-4 h-8 w-32" />
+      <Skeleton className="mb-6 h-8 w-32" />
       <div className={SET_GRID}>
         {Array.from({ length: 8 }, (_, i) => (
           <Skeleton key={i} className="h-36 rounded-lg" />

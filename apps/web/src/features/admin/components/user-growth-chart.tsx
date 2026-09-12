@@ -4,6 +4,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { UserGrowthPoint, UserGrowthRange } from "@/features/admin/lib/user-growth";
 import {
@@ -89,7 +90,11 @@ export function UserGrowthChart({ signups }: { signups: AdminSignupDay[] }) {
       </div>
 
       {series.length === 0 ? (
-        <p className="text-muted-foreground py-8 text-center text-sm">No signups yet.</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>No signups yet.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ChartContainer config={chartConfig} className="aspect-[3/1] w-full">
           <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>

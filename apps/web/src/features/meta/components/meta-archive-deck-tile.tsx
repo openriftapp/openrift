@@ -22,9 +22,9 @@ function PlacementPlate({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize?
   if (deck.rank <= MEDAL_RANKS) {
     return (
       <span
-        className={cn(PLATE_CLASS, "bottom-2 left-2 flex items-center gap-1.5 py-0.5 pr-2 pl-0.5")}
+        className={cn(PLATE_CLASS, "bottom-2 left-2 flex items-center gap-1.5 py-0.5 pr-2 pl-1")}
       >
-        <Medal rank={deck.rank} variant="onArt" />
+        <Medal rank={deck.rank} variant="onArt" fill={false} />
         {field}
       </span>
     );

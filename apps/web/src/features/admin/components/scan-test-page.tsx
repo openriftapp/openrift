@@ -465,7 +465,7 @@ export function ScanTestPage() {
   return (
     <>
       <AdminPageTopBar title="Scan Test" />
-      <div className={cn(PAGE_WIDTH.capped, "px-safe px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe pb-12")}>
         <PageDescription>
           Point the camera at a card and hold steady. A card locks once several frames agree, and
           the lock time is the number the phone is judged on.

@@ -3,6 +3,7 @@ import type { CardErrata } from "@openrift/shared/types/catalog";
 import { PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
@@ -78,8 +79,8 @@ export function CardErrataSection({
   const [removing, setRemoving] = useState(false);
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Errata</h2>
+    <section className="flex flex-col gap-4">
+      <Heading level={2}>Errata</Heading>
 
       {errata === null && !editing && (
         <p className="text-muted-foreground text-sm">

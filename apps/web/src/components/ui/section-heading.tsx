@@ -16,7 +16,7 @@ interface SectionHeadingProps {
   /** Heading tag; pick by document outline, not by size. `span` is for labels
    * inside interactive elements (collapsible triggers), which only allow
    * phrasing content. */
-  as?: "h2" | "h3" | "span";
+  as?: "h2" | "h3" | "h4" | "span";
   /** Leading icon, rendered as a small tinted {@link IconChip}. Used by
    * section headers that carry a per-surface identity (the Trades page). */
   icon?: ComponentType<SVGProps<SVGSVGElement>>;

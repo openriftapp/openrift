@@ -386,7 +386,7 @@ export function ExistingCardDetailPage({
     allPrintingKeys.length > 0 && allPrintingKeys.every((k) => !collapsedPrintings.has(k));
 
   return (
-    <div className="space-y-6 pt-3">
+    <div className="space-y-6">
       <CardDetailHeader
         card={card}
         cardId={cardId}
@@ -401,7 +401,7 @@ export function ExistingCardDetailPage({
         isAdmin={isAdmin}
       />
 
-      <div className="grid grid-cols-1 gap-6 pt-3 md:grid-cols-[11rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[11rem_minmax(0,1fr)]">
         <CardSectionNav
           cardSlug={cardId}
           sections={sections}
@@ -497,7 +497,7 @@ export function ExistingCardDetailPage({
                 <div className="overflow-hidden rounded-md border">
                   {printingsByLanguage.map(([language, languagePrintings]) => (
                     <div key={language}>
-                      <PrintingLanguageHeader code={language} />
+                      <PrintingLanguageHeader code={language} className="px-3 pt-4 pb-2" />
                       {languagePrintings.map((printing) => (
                         <PrintingReviewCard
                           key={printing.id}

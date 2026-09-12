@@ -49,28 +49,32 @@ export function MetaArchivedDecks({
 
   return (
     <section className="flex flex-col gap-3">
-      <Heading>Archived decklists</Heading>
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {shown.map((deck) => (
-          <li key={deck.deckId}>
-            <MetaArchiveDeckTile deck={deck} marketplace={marketplace} showEvent />
-          </li>
-        ))}
-      </ul>
-      {remaining > 0 && (
-        <div className="flex justify-center">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <Heading>Archived decklists</Heading>
+        {(remaining > 0 || expanded) && (
           <Button
-            variant="ghost"
-            size="sm"
+            variant="link"
+            className="h-auto p-0 text-sm font-medium"
             onClick={() => {
-              setExpanded(true);
-              onShowAll?.();
+              setExpanded(!expanded);
+              if (!expanded) {
+                onShowAll?.();
+              }
             }}
           >
-            Show all {total.toLocaleString("en-US")} decklists
+            {expanded ? "Show fewer" : `Show all ${total.toLocaleString("en-US")}`}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+      <div>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {shown.map((deck) => (
+            <li key={deck.deckId}>
+              <MetaArchiveDeckTile deck={deck} marketplace={marketplace} showEvent />
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

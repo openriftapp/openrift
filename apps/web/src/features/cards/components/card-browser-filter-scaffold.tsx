@@ -140,7 +140,7 @@ export function BrowserToolbar({
   const smUp = useSmUp();
   return (
     <>
-      <div className={cn("flex items-start gap-3", hasActiveFilters ? "mb-2 sm:mb-3" : "mb-3")}>
+      <div className={cn("flex items-start gap-2", hasActiveFilters ? "mb-2 sm:mb-3" : "mb-3")}>
         <SearchBar totalCards={totalCards} filteredCount={filteredCount} />
         {smUp && (
           <DesktopOptionsBar

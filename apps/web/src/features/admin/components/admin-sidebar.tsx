@@ -49,7 +49,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
@@ -187,7 +186,6 @@ export function AdminSidebar() {
       </SidebarContent>
       {isAdmin && (
         <SidebarFooter>
-          <SidebarSeparator />
           <SidebarMenu className="gap-1">
             <SidebarMenuItem>
               <SidebarMenuButton

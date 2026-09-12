@@ -25,7 +25,7 @@ export function SettingsSection({
     <section
       id={id}
       data-slot="settings-section"
-      className={cn("flex scroll-mt-16 flex-col gap-4", className)}
+      className={cn("flex scroll-mt-16 flex-col gap-6", className)}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">

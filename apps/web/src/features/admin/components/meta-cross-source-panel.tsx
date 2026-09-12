@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { rankLabel } from "@/features/admin/components/meta-review-shared";
 import { MetaStandingsRowPicker } from "@/features/admin/components/meta-standings-row-picker";
@@ -98,7 +99,7 @@ function EntryRow({
   const current = row.suggestions.find((suggestion) => suggestion.isCurrent);
 
   return (
-    <li className="space-y-1 border-b py-2 last:border-0">
+    <RowListItem className="flex-col items-stretch gap-1">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground w-8 shrink-0 tabular-nums">
           {rankLabel(row.rank, false)}
@@ -182,7 +183,7 @@ function EntryRow({
           </div>
         </div>
       )}
-    </li>
+    </RowListItem>
   );
 }
 
@@ -311,7 +312,7 @@ export function MetaCrossSourcePanel({
         </Button>
       )}
 
-      <ul>
+      <RowList>
         {data.rows.map((row) => (
           <EntryRow
             key={`${row.provider}:${row.sourceIdentity}`}
@@ -326,7 +327,7 @@ export function MetaCrossSourcePanel({
             }}
           />
         ))}
-      </ul>
+      </RowList>
     </div>
   );
 }

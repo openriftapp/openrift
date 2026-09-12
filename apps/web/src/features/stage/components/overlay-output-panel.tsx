@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon, XIcon } from "l
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
@@ -62,18 +63,19 @@ function LivePreview({
     status = "Hidden";
   }
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold">On stream</h2>
+    <SettingsSection
+      title="On stream"
+      action={
         <span
           className={cn(
-            "font-mono text-sm tracking-wide uppercase",
+            "self-center font-mono text-sm tracking-wide uppercase",
             live ? "text-primary" : "text-muted-foreground",
           )}
         >
           {status}
         </span>
-      </div>
+      }
+    >
       {/* Literal colors, not theme tokens: the checkerboard stands for "no
           background at all" and must read the same in either theme. */}
       <div
@@ -101,7 +103,7 @@ function LivePreview({
         <p className="text-muted-foreground min-w-0 flex-1 truncate text-sm">{caption}</p>
         {controls}
       </div>
-    </section>
+    </SettingsSection>
   );
 }
 
@@ -189,47 +191,51 @@ export function OverlayOutputPanel() {
       : deriveOverlayBoardScene(liveBoard, cardsById, printingsByCardId);
 
   return (
-    <div className="flex flex-col gap-6">
-      <LivePreview
-        payload={draftScale === null ? channel.payload : { ...channel.payload, scale: draftScale }}
-        printing={livePrintingId === null ? undefined : printingsById[livePrintingId]}
-        board={boardScene}
-        controls={
-          <div className="flex shrink-0 items-center gap-2">
-            <WalkControls
-              queue={queue}
-              livePrintingId={livePrintingId}
-              onPush={(printingId) => pushCard.mutate({ printingId })}
-              isPending={pushCard.isPending}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setHidden.mutate({ hidden: !hidden })}
-              disabled={setHidden.isPending}
-            >
-              {hidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
-              {hidden ? "Show" : "Hide"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => clearOverlay.mutate()}
-              disabled={clearOverlay.isPending || (livePrintingId === null && liveBoard === null)}
-            >
-              <XIcon className="size-4" />
-              Clear
-            </Button>
-          </div>
-        }
-      />
-      <p className="text-muted-foreground text-sm">
-        Open a{" "}
-        <TextLink variant="muted" render={<Link to="/tier-lists" />}>
-          tier list
-        </TextLink>
-        , press Present, and turn on &ldquo;Board on OBS&rdquo;.
-      </p>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2">
+        <LivePreview
+          payload={
+            draftScale === null ? channel.payload : { ...channel.payload, scale: draftScale }
+          }
+          printing={livePrintingId === null ? undefined : printingsById[livePrintingId]}
+          board={boardScene}
+          controls={
+            <div className="flex shrink-0 items-center gap-2">
+              <WalkControls
+                queue={queue}
+                livePrintingId={livePrintingId}
+                onPush={(printingId) => pushCard.mutate({ printingId })}
+                isPending={pushCard.isPending}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHidden.mutate({ hidden: !hidden })}
+                disabled={setHidden.isPending}
+              >
+                {hidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
+                {hidden ? "Show" : "Hide"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => clearOverlay.mutate()}
+                disabled={clearOverlay.isPending || (livePrintingId === null && liveBoard === null)}
+              >
+                <XIcon className="size-4" />
+                Clear
+              </Button>
+            </div>
+          }
+        />
+        <p className="text-muted-foreground text-sm">
+          Open a{" "}
+          <TextLink variant="muted" render={<Link to="/tier-lists" />}>
+            tier list
+          </TextLink>
+          , press Present, and turn on &ldquo;Board on OBS&rdquo;.
+        </p>
+      </div>
       <OverlaySettingsPanel
         channel={channel}
         draftScale={draftScale}

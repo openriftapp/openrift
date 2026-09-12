@@ -1,23 +1,25 @@
 import type { UploadErrataResponse } from "@openrift/shared/contracts/admin/card-mutations";
-import {
-  CheckIcon,
-  ChevronRightIcon,
-  EyeIcon,
-  FileWarningIcon,
-  LoaderIcon,
-  UploadIcon,
-  XIcon,
-} from "lucide-react";
+import { CheckIcon, EyeIcon, FileWarningIcon, LoaderIcon, UploadIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import type { BulkErrataEntry } from "@/features/cards/hooks/use-card-errata";
 import { useUploadErrata } from "@/features/cards/hooks/use-card-errata";
 
@@ -116,93 +118,90 @@ export function ErrataUploadPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Errata" />
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <SettingsSection
+        title={
+          <span className="flex items-center gap-2">
             <FileWarningIcon className="size-5 shrink-0" />
             Upload Errata
-          </CardTitle>
-          <CardDescription>
-            Each entry replaces the corrected text for one card, keyed by slug.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormatHelp />
+          </span>
+        }
+        description="Each entry replaces the corrected text for one card, keyed by slug."
+      >
+        <FormatHelp />
 
-          <div className="space-y-2">
-            <Label htmlFor="errata-file">JSON file</Label>
-            <Input
-              id="errata-file"
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={(event) => void handleFileChange(event)}
-            />
-            {fileName && entries && (
-              <p className="text-muted-foreground text-sm">
-                {fileName} ({entries.length} entr{entries.length === 1 ? "y" : "ies"})
-              </p>
-            )}
-            {parseError && (
-              <p className="text-muted-foreground flex items-center gap-1 text-sm">
-                <XIcon className="text-destructive size-4 shrink-0" />
-                {parseError}
-              </p>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Button disabled={!entries || upload.isPending} onClick={handlePreview}>
-              {upload.isPending && preview === null ? (
-                <>
-                  <LoaderIcon className="size-4 animate-spin" />
-                  Previewing...
-                </>
-              ) : (
-                <>
-                  <EyeIcon className="size-4" />
-                  Preview
-                </>
-              )}
-            </Button>
-            <Button
-              variant="default"
-              disabled={!entries || !preview || upload.isPending}
-              onClick={handleApply}
-            >
-              {upload.isPending && preview !== null ? (
-                <>
-                  <LoaderIcon className="size-4 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                <>
-                  <UploadIcon className="size-4" />
-                  Apply
-                </>
-              )}
-            </Button>
-          </div>
-
-          {preview && <PreviewSummary data={preview} />}
-
-          {upload.isSuccess && !preview && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <CheckIcon className="text-success size-4 shrink-0" />
-              Errata applied successfully
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="errata-file">JSON file</Label>
+          <Input
+            id="errata-file"
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => void handleFileChange(event)}
+          />
+          {fileName && entries && (
+            <p className="text-muted-foreground text-sm">
+              {fileName} ({entries.length} entr{entries.length === 1 ? "y" : "ies"})
             </p>
           )}
-
-          {upload.isError && (
+          {parseError && (
             <p className="text-muted-foreground flex items-center gap-1 text-sm">
               <XIcon className="text-destructive size-4 shrink-0" />
-              {upload.error.message}
+              {parseError}
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="flex gap-2">
+          <Button disabled={!entries || upload.isPending} onClick={handlePreview}>
+            {upload.isPending && preview === null ? (
+              <>
+                <LoaderIcon className="size-4 animate-spin" />
+                Previewing...
+              </>
+            ) : (
+              <>
+                <EyeIcon className="size-4" />
+                Preview
+              </>
+            )}
+          </Button>
+          <Button
+            variant="default"
+            disabled={!entries || !preview || upload.isPending}
+            onClick={handleApply}
+          >
+            {upload.isPending && preview !== null ? (
+              <>
+                <LoaderIcon className="size-4 animate-spin" />
+                Applying...
+              </>
+            ) : (
+              <>
+                <UploadIcon className="size-4" />
+                Apply
+              </>
+            )}
+          </Button>
+        </div>
+
+        {preview && <PreviewSummary data={preview} />}
+
+        {upload.isSuccess && !preview && (
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <CheckIcon className="text-success size-4 shrink-0" />
+            Errata applied successfully
+          </p>
+        )}
+
+        {upload.isError && (
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <XIcon className="text-destructive size-4 shrink-0" />
+            {upload.error.message}
+          </p>
+        )}
+      </SettingsSection>
     </div>
   );
 }
@@ -220,45 +219,39 @@ const EXAMPLE_ERRATA_JSON = `[
 
 function FormatHelp() {
   return (
-    <Collapsible className="rounded-md border">
-      <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm font-medium select-none">
-        Format and example
-        <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-3 border-t px-3 py-3 text-sm">
-        <p>
-          The file must contain a JSON array of entries (or an object with an <Code>entries</Code>{" "}
-          field holding the array). Each entry has these fields:
-        </p>
-        <ul className="ml-5 list-disc space-y-1">
-          <li>
-            <Code>cardSlug</Code> (string, required): slug of the card to errata.
-          </li>
-          <li>
-            <Code>correctedRulesText</Code> (string or <Code>null</Code>): corrected rules text. At
-            least one of rules or effect text must be set.
-          </li>
-          <li>
-            <Code>correctedEffectText</Code> (string or <Code>null</Code>): corrected effect text.
-          </li>
-          <li>
-            <Code>source</Code> (string, required): short label describing where the correction
-            comes from.
-          </li>
-          <li>
-            <Code>sourceUrl</Code> (string or <Code>null</Code>, optional): link to the source.
-          </li>
-          <li>
-            <Code>effectiveDate</Code> (string <Code>YYYY-MM-DD</Code> or <Code>null</Code>,
-            optional): date the errata took effect.
-          </li>
-        </ul>
-        <p>Example:</p>
-        <pre className="bg-muted overflow-x-auto rounded-md p-3">
-          <code>{EXAMPLE_ERRATA_JSON}</code>
-        </pre>
-      </CollapsibleContent>
-    </Collapsible>
+    <AdminDisclosure title="Format and example" contentClassName="space-y-3">
+      <p>
+        The file must contain a JSON array of entries (or an object with an <Code>entries</Code>{" "}
+        field holding the array). Each entry has these fields:
+      </p>
+      <ul className="ml-5 list-disc space-y-1">
+        <li>
+          <Code>cardSlug</Code> (string, required): slug of the card to errata.
+        </li>
+        <li>
+          <Code>correctedRulesText</Code> (string or <Code>null</Code>): corrected rules text. At
+          least one of rules or effect text must be set.
+        </li>
+        <li>
+          <Code>correctedEffectText</Code> (string or <Code>null</Code>): corrected effect text.
+        </li>
+        <li>
+          <Code>source</Code> (string, required): short label describing where the correction comes
+          from.
+        </li>
+        <li>
+          <Code>sourceUrl</Code> (string or <Code>null</Code>, optional): link to the source.
+        </li>
+        <li>
+          <Code>effectiveDate</Code> (string <Code>YYYY-MM-DD</Code> or <Code>null</Code>,
+          optional): date the errata took effect.
+        </li>
+      </ul>
+      <p>Example:</p>
+      <pre className="bg-muted overflow-x-auto rounded-md p-3">
+        <code>{EXAMPLE_ERRATA_JSON}</code>
+      </pre>
+    </AdminDisclosure>
   );
 }
 
@@ -327,25 +320,27 @@ function EntryList({
   entries: { cardSlug: string; cardName: string }[];
 }) {
   return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-sm font-medium">{label}:</p>
+    <div className="flex flex-col gap-2">
+      <SectionHeading as="h3" size="sm">
+        {label}
+      </SectionHeading>
       <div className="max-h-64 overflow-y-auto rounded-md border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted sticky top-0">
-            <tr className="text-left">
-              <th className="px-2 py-1">Name</th>
-              <th className="px-2 py-1">Slug</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
+        <Table className={ADMIN_TABLE_CLASS}>
+          <TableHeader className="bg-muted sticky top-0">
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Slug</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {entries.map((entry) => (
-              <tr key={entry.cardSlug}>
-                <td className="px-2 py-1 font-medium">{entry.cardName}</td>
-                <td className="text-muted-foreground px-2 py-1">{entry.cardSlug}</td>
-              </tr>
+              <TableRow key={entry.cardSlug}>
+                <TableCell className="font-medium">{entry.cardName}</TableCell>
+                <TableCell className="text-muted-foreground">{entry.cardSlug}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
@@ -363,41 +358,43 @@ function DiffList({
   }[];
 }) {
   return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-sm font-medium">{label}:</p>
+    <div className="flex flex-col gap-2">
+      <SectionHeading as="h3" size="sm">
+        {label}
+      </SectionHeading>
       <div className="max-h-64 overflow-y-auto rounded-md border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted sticky top-0">
-            <tr className="text-left">
-              <th className="px-2 py-1">Card</th>
-              <th className="px-2 py-1">Field</th>
-              <th className="px-2 py-1">From</th>
-              <th className="px-2 py-1">To</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
+        <Table className={ADMIN_TABLE_CLASS}>
+          <TableHeader className="bg-muted sticky top-0">
+            <TableRow>
+              <TableHead>Card</TableHead>
+              <TableHead>Field</TableHead>
+              <TableHead>From</TableHead>
+              <TableHead>To</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {entries.flatMap((entry) =>
               entry.fields.map((field, fieldIndex) => (
-                <tr key={`${entry.cardSlug}-${fieldIndex}`}>
-                  <td className="px-2 py-1 font-medium">{entry.cardName}</td>
-                  <td className="px-2 py-1">{field.field}</td>
-                  <td
-                    className="text-destructive max-w-48 truncate px-2 py-1"
+                <TableRow key={`${entry.cardSlug}-${fieldIndex}`}>
+                  <TableCell className="font-medium">{entry.cardName}</TableCell>
+                  <TableCell>{field.field}</TableCell>
+                  <TableCell
+                    className="text-destructive max-w-48 truncate"
                     title={JSON.stringify(field.from)}
                   >
                     {JSON.stringify(field.from)}
-                  </td>
-                  <td
-                    className="text-success max-w-48 truncate px-2 py-1"
+                  </TableCell>
+                  <TableCell
+                    className="text-success max-w-48 truncate"
                     title={JSON.stringify(field.to)}
                   >
                     {JSON.stringify(field.to)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )),
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

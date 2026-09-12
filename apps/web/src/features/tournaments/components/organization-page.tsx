@@ -22,6 +22,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
   SelectContent,
@@ -110,18 +111,18 @@ export function OrganizationPage({ id }: { id: string }) {
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-semibold">Members</h2>
+            <SectionHeading count={data.members.length}>Members</SectionHeading>
             {canManage ? (
               <Button variant="secondary" onClick={() => setAddOpen(true)}>
                 Add member
               </Button>
             ) : null}
           </div>
-          <CardList className="divide-border divide-y p-0">
+          <CardList>
             {data.members.map((member) => (
               <li
                 key={member.userId}
-                className="flex flex-wrap items-center justify-between gap-2 p-3"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate font-medium">{member.name ?? member.userId}</span>
@@ -186,7 +187,7 @@ export function OrganizationPage({ id }: { id: string }) {
 
         {canManage ? (
           <section className="flex flex-col gap-3">
-            <h2 className="font-semibold">Integrations</h2>
+            <SectionHeading>Integrations</SectionHeading>
             <OrgDeckCheckKeysSection orgId={id} enabled={canManage} />
           </section>
         ) : null}

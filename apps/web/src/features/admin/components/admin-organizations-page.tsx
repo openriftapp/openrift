@@ -19,6 +19,7 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -82,8 +83,8 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
               organization&apos;s member roles.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor={`edit-org-slug-${org.id}`}>Slug</Label>
               <Input
                 id={`edit-org-slug-${org.id}`}
@@ -92,7 +93,7 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
                 className="font-mono"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <Label htmlFor={`edit-org-name-${org.id}`}>Name</Label>
               <Input
                 id={`edit-org-name-${org.id}`}
@@ -100,7 +101,7 @@ function EditOrgDialog({ org }: { org: OrganizationSummaryResponse }) {
                 onChange={(event) => setName(event.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor={`edit-org-desc-${org.id}`}>Description</Label>
               <Input
                 id={`edit-org-desc-${org.id}`}
@@ -135,7 +136,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
   }
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 p-3">
+    <RowListItem className="flex-wrap justify-between gap-2">
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-2">
           <span className="font-medium">{org.name}</span>
@@ -148,7 +149,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
           {org.memberCount === 1 ? "" : "s"}
         </span>
       </span>
-      <span className="flex items-center gap-1">
+      <span className="-mr-2 flex items-center gap-1">
         <EditOrgDialog org={org} />
         <Button
           size="sm"
@@ -182,7 +183,7 @@ function OrgRow({ org }: { org: OrganizationSummaryResponse }) {
           </Button>
         )}
       </span>
-    </li>
+    </RowListItem>
   );
 }
 
@@ -228,10 +229,10 @@ export function AdminOrganizationsPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-8">
       <AdminPageTopBar title="Organizations" />
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-6">
         <Heading level={2}>Create organization</Heading>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="org-slug">Slug</Label>
             <Input
               id="org-slug"
@@ -241,7 +242,7 @@ export function AdminOrganizationsPage() {
               className="font-mono"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="org-name">Name</Label>
             <Input
               id="org-name"
@@ -250,7 +251,7 @@ export function AdminOrganizationsPage() {
               placeholder="Rift League"
             />
           </div>
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <div className="flex flex-col gap-2 sm:col-span-2">
             <Label htmlFor="org-desc">Description</Label>
             <Input
               id="org-desc"
@@ -259,7 +260,7 @@ export function AdminOrganizationsPage() {
               placeholder="Optional"
             />
           </div>
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <div className="flex flex-col gap-2 sm:col-span-2">
             <Label>Owner</Label>
             <Select
               items={userItems}
@@ -288,16 +289,16 @@ export function AdminOrganizationsPage() {
         </Button>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-6">
         <Heading level={2}>Organizations</Heading>
         {data.items.length === 0 ? (
           <p className="text-muted-foreground">No organizations yet.</p>
         ) : (
-          <ul className="divide-border divide-y rounded-lg border">
+          <RowList variant="divided">
             {data.items.map((org) => (
               <OrgRow key={org.id} org={org} />
             ))}
-          </ul>
+          </RowList>
         )}
       </section>
     </div>

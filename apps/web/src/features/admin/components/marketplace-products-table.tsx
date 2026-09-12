@@ -2,6 +2,7 @@ import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
 import { WandSparklesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type {
   AssignableCard,
@@ -117,9 +118,9 @@ function MarketplaceTable({
         minWidth="min-w-[60rem]"
         toolbar={
           <div className="flex w-full items-center gap-2">
-            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            <SectionHeading as="h3" size="sm">
               {MARKETPLACE_CONFIGS[marketplace].displayName}
-            </span>
+            </SectionHeading>
             <div className="ml-auto flex items-center gap-2">
               <AcceptSuggestionsButton
                 mappings={strong}

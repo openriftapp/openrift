@@ -10,9 +10,7 @@ export function UnmatchedProductsPage() {
         back={<PageTopBarBack to="/admin/cards" aria-label="Back to cards" />}
       />
 
-      <div className="pt-3">
-        <UnmatchedProductsPanel />
-      </div>
+      <UnmatchedProductsPanel />
     </>
   );
 }

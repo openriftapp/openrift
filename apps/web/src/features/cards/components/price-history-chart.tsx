@@ -9,6 +9,7 @@ import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis }
 import { MarketplaceIcon } from "@/components/marketplace-icon";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TIME_RANGES } from "@/features/cards/components/price-history-chart-constants";
@@ -224,9 +225,9 @@ export function PriceHistoryChart({
       )}
 
       {!isLoading && !error && snapshots.length === 0 && (
-        <p className="text-muted-foreground py-8 text-center text-sm">
-          No price data available for this time range.
-        </p>
+        <Empty className="py-8">
+          <EmptyDescription>No price data available for this time range.</EmptyDescription>
+        </Empty>
       )}
 
       {!isLoading && !error && snapshots.length > 0 && (

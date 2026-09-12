@@ -379,7 +379,7 @@ function ThroneModule({
           <ul className="flex flex-col">
             {trailing.map(({ row, rank }) => (
               <li key={row.playerId} className={RAIL_ROW_CLASS}>
-                <span className="text-muted-foreground w-4 shrink-0 text-center text-sm tabular-nums">
+                <span className="text-muted-foreground w-6 shrink-0 text-right text-sm tabular-nums">
                   {rank}
                 </span>
                 <UserAvatar name={row.displayName} size="sm" />

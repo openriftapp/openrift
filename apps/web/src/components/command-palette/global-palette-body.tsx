@@ -135,7 +135,8 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
     >
       {/* Not ui/command's CommandInput, which is styled for the inline pickers. */}
       <InputGroup className="h-11 border-0 has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-transparent">
-        <InputGroupAddon align="inline-start">
+        {/* pl-3 lines the icon up with the result rows' inset (CommandGroup p-1 + CommandItem px-2). */}
+        <InputGroupAddon align="inline-start" className="pl-3">
           <SearchIcon className="text-muted-foreground size-4" />
         </InputGroupAddon>
         <CommandPrimitive.Input

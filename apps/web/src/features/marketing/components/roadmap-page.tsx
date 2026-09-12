@@ -3,8 +3,6 @@ import {
   ArrowRightLeftIcon,
   BanIcon,
   BotIcon,
-  CheckIcon,
-  CircleDotIcon,
   ClipboardListIcon,
   FileWarningIcon,
   FolderSyncIcon,
@@ -42,6 +40,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateLeaf } from "@/components/ui/date-leaf";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -340,44 +339,32 @@ export function RoadmapPage() {
               <li key={item.title}>
                 {showHeader && (
                   <div className="flex gap-4">
-                    <div className="flex w-20 shrink-0 justify-center md:w-28">
-                      {isFirstDone && <div className="bg-muted-foreground/15 w-0.5" />}
-                    </div>
+                    <div className="w-11 shrink-0" />
                     <SectionHeading className="flex-1 py-3">{headerLabel}</SectionHeading>
                   </div>
                 )}
                 <div className="flex gap-4">
-                  <div className="flex w-20 shrink-0 flex-col items-center md:w-28">
-                    <span
-                      className={cn(
-                        "mb-2 hidden text-xs md:block",
-                        item.done ? "text-muted-foreground" : "text-muted-foreground/60 italic",
-                      )}
-                    >
-                      {item.done ? item.date : "Soon™"}
-                    </span>
-
-                    <div
-                      className={cn(
-                        "z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2",
-                        item.done
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/30 bg-background text-muted-foreground/50",
-                      )}
-                    >
-                      {item.done ? (
-                        <CheckIcon className="size-3.5" />
-                      ) : (
-                        <CircleDotIcon className="size-3" />
-                      )}
-                    </div>
-
+                  <div className="flex w-11 shrink-0 flex-col items-center gap-2 self-stretch">
+                    {item.done && item.date !== undefined ? (
+                      <DateLeaf
+                        month={item.date.slice(0, 3)}
+                        caption={item.date.slice(-4)}
+                        size="sm"
+                      />
+                    ) : (
+                      <DateLeaf
+                        month="Soon"
+                        size="sm"
+                        className="text-muted-foreground border-dashed"
+                      />
+                    )}
                     {!isLast && (
-                      <div
+                      <span
+                        aria-hidden="true"
                         className={cn(
-                          "w-0.5 flex-1",
+                          "w-px flex-1",
                           item.done && roadmapItems[i + 1]?.done
-                            ? "bg-primary/30"
+                            ? "bg-border-accent/60"
                             : "bg-muted-foreground/15",
                         )}
                       />

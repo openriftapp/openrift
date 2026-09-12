@@ -5,6 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { PaletteIcon, TagIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Card as CardPanel } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
@@ -29,27 +30,30 @@ export function CardPagePrintings({
     return null;
   }
   return (
-    <>
-      {[...Map.groupBy(printings, (p) => p.language)].map(([lang, group]) => (
-        <div key={lang}>
-          <SectionHeading className="mb-2 flex items-center gap-2">
-            <LanguageChip code={lang} />
-            {languageLabels[lang] ?? lang}
-          </SectionHeading>
-          {/* grid-cols-1: an implicit column would size to the widest printing card and push the page past a phone viewport. */}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {group.map((printing) => (
-              <PrintingCard
-                key={printing.id}
-                printing={printing}
-                isSelected={printing.id === selectedPrintingId}
-                onSelect={() => onSelect(printing)}
-              />
-            ))}
+    <section className="flex flex-col gap-6">
+      <Heading level={2}>Printings</Heading>
+      <div className="flex flex-col gap-6">
+        {[...Map.groupBy(printings, (p) => p.language)].map(([lang, group]) => (
+          <div key={lang} className="flex flex-col gap-4">
+            <SectionHeading as="h3" size="sm" className="flex items-center gap-2">
+              <LanguageChip code={lang} />
+              {languageLabels[lang] ?? lang}
+            </SectionHeading>
+            {/* grid-cols-1: an implicit column would size to the widest printing card and push the page past a phone viewport. */}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {group.map((printing) => (
+                <PrintingCard
+                  key={printing.id}
+                  printing={printing}
+                  isSelected={printing.id === selectedPrintingId}
+                  onSelect={() => onSelect(printing)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-    </>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -17,6 +17,7 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/components/deck-thumb-metrics";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { ZoneThumb } from "@/features/decks/components/deck-zone-thumbs";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -32,6 +33,10 @@ import type { CollapsibleDeckSection } from "@/features/decks/stores/deck-builde
 import { cn } from "@/lib/utils";
 
 const MAX_UNKNOWN_SLOTS = 3;
+const SINGLE_CARD_ZONES = new Set<DeckZone>([
+  WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.CHAMPION,
+]);
 
 function UnknownSlots({ count, isLandscape }: { count: number; isLandscape: boolean }) {
   const slots = count <= MAX_UNKNOWN_SLOTS ? count : 1;
@@ -118,6 +123,8 @@ export function ZoneTile({
   const quantity = cards.reduce((sum, card) => sum + card.quantity, 0);
   const isEmpty = cards.length === 0;
   const isComplete = !hasViolation && expected !== undefined && quantity === expected;
+  const hideCount =
+    isComplete && (zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION);
   const isLandscape = LANDSCAPE_ZONES.has(zone);
   const hoverCard = overviewHoverHandler(stacked, onHoverCard);
 
@@ -133,10 +140,6 @@ export function ZoneTile({
     disabled: readOnly,
   });
 
-  const headerLabel = (
-    <span className="text-2xs font-semibold tracking-wide uppercase">{label}</span>
-  );
-
   return (
     <div
       ref={readOnly ? undefined : dropRef}
@@ -148,28 +151,30 @@ export function ZoneTile({
         className,
       )}
     >
-      {/* Fixed height keeps sibling zone headers aligned whether the violation icon shows or not. */}
-      <div className="flex h-6 items-center gap-2 border-b">
-        <ExpandToggle
-          expanded={!collapsed}
-          onClick={() => onToggleCollapsed(zone)}
-          aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
-          chevronClassName="size-3.5"
-          className="shrink-0 rounded-md"
-        />
-        {onClick && !readOnly ? (
-          <Pressable
-            onClick={onClick}
-            aria-label={`Edit ${label}`}
-            className="text-muted-foreground hover:text-foreground flex min-w-0 flex-1 items-center gap-2 text-left transition-colors"
-          >
-            {headerLabel}
-          </Pressable>
-        ) : (
-          <span className="text-muted-foreground flex min-w-0 flex-1 items-center gap-2">
-            {headerLabel}
-          </span>
-        )}
+      <DeckZoneHeader
+        label={label}
+        leading={
+          <ExpandToggle
+            expanded={!collapsed}
+            onClick={() => onToggleCollapsed(zone)}
+            aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+            chevronClassName="size-3.5"
+            className="shrink-0 rounded-md"
+          />
+        }
+        labelClassName="group-hover/zone-label:text-foreground transition-colors"
+        labelRender={
+          onClick && !readOnly ? (
+            <Pressable
+              onClick={onClick}
+              aria-label={`Edit ${label}`}
+              className="group/zone-label flex min-w-0 flex-1 items-center gap-2 text-left"
+            />
+          ) : (
+            <span className="flex min-w-0 flex-1 items-center gap-2" />
+          )
+        }
+      >
         {hasViolation && (
           <Popover>
             <PopoverTrigger
@@ -196,37 +201,59 @@ export function ZoneTile({
             </PopoverContent>
           </Popover>
         )}
-        <span
-          className={cn(
-            "ml-auto text-xs tabular-nums",
-            hasViolation
-              ? "text-destructive"
-              : isComplete
-                ? "text-success"
-                : "text-muted-foreground",
-          )}
-        >
-          {unknownCount > 0 && expected !== undefined ? (
-            `${quantity} of ${expected} known`
-          ) : (
-            <>
-              {quantity}
-              {expected !== undefined && `/${expected}`}
-              {/* Sideboard's number is a cap, not a goal, so it never gets a "more" hint. */}
-              {expected !== undefined &&
-                zone !== WellKnown.deckZone.SIDEBOARD &&
-                quantity > 0 &&
-                quantity < expected && (
-                  <span className="text-muted-foreground/70"> · {expected - quantity} more</span>
-                )}
-            </>
-          )}
-        </span>
-      </div>
+        {!hideCount && (
+          <span
+            className={cn(
+              "ml-auto text-xs tabular-nums",
+              hasViolation
+                ? "text-destructive"
+                : isComplete
+                  ? "text-success"
+                  : "text-muted-foreground",
+            )}
+          >
+            {unknownCount > 0 && expected !== undefined ? (
+              `${quantity} of ${expected} known`
+            ) : (
+              <>
+                {quantity}
+                {expected !== undefined && quantity !== expected && `/${expected}`}
+              </>
+            )}
+          </span>
+        )}
+      </DeckZoneHeader>
 
       {collapsed ? null : isEmpty ? (
         unknownSlots ? (
           <div className="flex flex-wrap items-center gap-1.5">{unknownSlots}</div>
+        ) : SINGLE_CARD_ZONES.has(zone) ? (
+          onClick && !readOnly ? (
+            <Button
+              type="button"
+              variant="dashed"
+              onClick={onClick}
+              aria-label={`Edit ${label}`}
+              style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
+              className={cn(
+                isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
+                "h-auto shrink-0 flex-col gap-2 rounded-md px-2 text-xs font-normal whitespace-normal",
+              )}
+            >
+              <PlusIcon className="size-4" />
+              <span>{emptyHint}</span>
+            </Button>
+          ) : (
+            <div
+              style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
+              className={cn(
+                isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
+                "text-muted-foreground flex shrink-0 items-center justify-center rounded-md border border-dashed px-2 text-center text-xs",
+              )}
+            >
+              {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}
+            </div>
+          )
         ) : zone === WellKnown.deckZone.RUNES || readOnly || !onClick ? (
           <div className="text-muted-foreground flex items-center justify-center rounded-md border border-dashed px-3 py-4 text-center">
             {readOnly ? zoneEmptyReadOnlyLabel(zone) : emptyHint}

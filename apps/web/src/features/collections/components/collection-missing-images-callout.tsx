@@ -1,9 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
+import { Fragment } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
+import { TextLink } from "@/components/ui/text-link";
 import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+
+const PREVIEW_LIMIT = 3;
 
 export function CollectionMissingImagesCallout() {
   const dismissedPrintings = useOnboardingStore((state) => state.dismissedMissingImagePrintings);
@@ -18,18 +23,41 @@ export function CollectionMissingImagesCallout() {
   }
 
   const single = count === 1;
+  const preview = items.slice(0, PREVIEW_LIMIT);
+  const rest = count - preview.length;
   const title = single
-    ? "1 card you own has no photo yet"
-    : `${count} cards you own have no photo yet`;
+    ? "We don't have a photo for one of your owned cards."
+    : `We don't have photos for ${count} of your owned cards.`;
 
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <p className="text-muted-foreground text-sm">
-        <span className="text-foreground font-medium">{title}</span> You have{" "}
-        {single ? "it" : "them"} in hand, so you&rsquo;re the one who can fix that.
-      </p>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button size="sm" variant="ghost" render={<Link to="/contribute" />}>
+    <Callout className="mb-3 flex items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="text-muted-foreground text-sm">
+          <span className="text-foreground font-medium">{title}</span> Could you snap{" "}
+          {single ? "it" : "them"} for us? Every photo helps, and it earns you a Contributor badge
+          on your profile.
+        </p>
+        <p className="text-muted-foreground text-sm">
+          {preview.map((item, index) => (
+            <Fragment key={item.printingId}>
+              {index > 0 ? " · " : null}
+              <TextLink
+                render={
+                  <Link
+                    to="/contribute/card/$cardSlug/printing/$printingId/image"
+                    params={{ cardSlug: item.cardSlug, printingId: item.printingId }}
+                  />
+                }
+              >
+                {item.cardName}
+              </TextLink>
+            </Fragment>
+          ))}
+          {rest > 0 ? ` and ${rest} more` : null}
+        </p>
+      </div>
+      <div className="-my-1 flex shrink-0 items-center gap-1">
+        <Button size="sm" render={<Link to="/contribute" />}>
           {single ? "Add a photo" : "Add photos"}
         </Button>
         <Button
@@ -44,6 +72,6 @@ export function CollectionMissingImagesCallout() {
           <XIcon className="size-4" />
         </Button>
       </div>
-    </div>
+    </Callout>
   );
 }

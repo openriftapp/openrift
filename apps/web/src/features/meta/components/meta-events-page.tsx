@@ -11,7 +11,6 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList } from "@/components/ui/row-list";
 import {
@@ -30,6 +29,7 @@ import {
 } from "@/features/meta/components/meta-event-index-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
+import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaCounts, useMetaEvents } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import {
@@ -229,11 +229,9 @@ function EventList({ events }: { events: MetaEventSummary[] }) {
         ))}
       </RowList>
       {remaining > 0 && (
-        <div className="border-border flex justify-center border-t p-2">
-          <Button variant="ghost" size="sm" onClick={() => setShown(shown + PAGE_SIZE)}>
-            {remaining.toLocaleString()} more {remaining === 1 ? "event" : "events"}
-          </Button>
-        </div>
+        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
+          {remaining.toLocaleString()} more {remaining === 1 ? "event" : "events"}
+        </MetaShowMore>
       )}
     </>
   );
@@ -252,7 +250,7 @@ function SortHeader({
     <div
       className={cn(
         EVENT_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
+        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
       <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>

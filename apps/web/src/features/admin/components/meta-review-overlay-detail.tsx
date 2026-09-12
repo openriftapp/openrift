@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MetaCardNamePicker } from "@/features/admin/components/meta-card-name-picker";
 import { MetaEventSearchPicker } from "@/features/admin/components/meta-event-search-picker";
@@ -100,10 +101,10 @@ function ZoneLines({ cards }: { cards: MetaOverlayQueueRow["cards"] }) {
         const lines = byZone.get(zone) ?? [];
         const copies = lines.reduce((sum, card) => sum + card.quantity, 0);
         return (
-          <section key={zone} className="space-y-1">
-            <h3 className="text-muted-foreground text-xs font-medium">
+          <section key={zone} className="flex flex-col gap-2">
+            <SectionHeading as="h3" size="sm">
               {zoneLabels[zone as DeckZone] ?? zone} · {copies}
-            </h3>
+            </SectionHeading>
             <ul className="space-y-0.5 text-sm">
               {lines.map((card) => (
                 <li key={card.lineNumber} className="flex items-baseline gap-2">
@@ -353,7 +354,7 @@ export function SubmissionLedger({ overlay }: { overlay: MetaOverlayQueueRow }) 
     return null;
   }
   return (
-    <div className="border-t pt-2">
+    <div className="pt-4">
       <MetaSubmissionResolve submission={submission} playerOverlayId={overlay.id} />
     </div>
   );

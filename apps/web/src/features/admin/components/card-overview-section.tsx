@@ -6,6 +6,7 @@ import type {
 import { WellKnown } from "@openrift/shared/well-known";
 import { CheckCheckIcon } from "lucide-react";
 
+import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,7 +143,7 @@ export function CardOverviewSection({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0 space-y-6">
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Facts</h3>
+          <Heading level={3}>Facts</Heading>
           <dl className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-sm">
             <div className="contents">
               <dt className="text-muted-foreground">Card ID</dt>
@@ -163,16 +164,16 @@ export function CardOverviewSection({
           </dl>
         </section>
 
-        <section className="space-y-3">
-          <h3 className="text-sm font-medium">
+        <section className="flex flex-col gap-6">
+          <Heading level={3}>
             Printings{detail.printings.length > 0 ? ` (${detail.printings.length})` : ""}
-          </h3>
+          </Heading>
           {byLanguage.length === 0 ? (
             <p className="text-muted-foreground text-sm">No printings yet.</p>
           ) : (
             byLanguage.map(([language, printings]) => (
-              <div key={language} className="space-y-1.5">
-                <PrintingLanguageHeader code={language} className="rounded-md" />
+              <div key={language} className="flex flex-col gap-2">
+                <PrintingLanguageHeader code={language} />
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(8rem,8rem))] items-start gap-2">
                   {printings.map((printing) => (
                     <PrintingTile
@@ -193,7 +194,7 @@ export function CardOverviewSection({
       <div className="min-w-0 space-y-4">
         {attentionCount > 0 && (
           <section className="space-y-2">
-            <h3 className="text-sm font-medium">Attention</h3>
+            <Heading level={3}>Attention</Heading>
             <CardList>
               <li>
                 <Pressable
@@ -209,7 +210,7 @@ export function CardOverviewSection({
         )}
 
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Sources</h3>
+          <Heading level={3}>Sources</Heading>
           {sourceGroups.length === 0 ? (
             <p className="text-muted-foreground text-sm">No sources.</p>
           ) : (

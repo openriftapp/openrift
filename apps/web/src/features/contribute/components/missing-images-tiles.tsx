@@ -23,8 +23,8 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
   const visible = showAll ? items : items.slice(0, VISIBLE_LIMIT);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {visible.map((item) => (
           <CardLink
             key={item.printingId}
@@ -37,7 +37,7 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
             }
           >
             <CardContent className="flex flex-col gap-1.5">
-              <div className="aspect-card border-border bg-card text-muted-foreground flex w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed">
+              <div className="aspect-card bg-muted text-muted-foreground flex w-full flex-col items-center justify-center gap-1.5 rounded-md">
                 <CameraIcon className="size-5" />
                 <span className="text-2xs">No image yet</span>
               </div>

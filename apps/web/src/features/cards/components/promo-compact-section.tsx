@@ -1,6 +1,8 @@
 import type { Printing } from "@openrift/shared/types/catalog";
+import { Fragment } from "react";
 
 import { MarkdownText } from "@/components/markdown-text";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import {
   CardTableGroupHeader,
   CardTableRow,
@@ -102,19 +104,16 @@ function CompactBranchGrid({
   return (
     <>
       {legend.length > 0 && (
-        <dl className="mx-auto mb-3 max-w-2xl space-y-0.5 text-center text-sm">
+        <DefinitionList className="mb-3 max-w-2xl">
           {legend.map((child) => (
-            <div
-              key={child.channel.id}
-              className="flex flex-wrap items-baseline justify-center gap-x-2"
-            >
-              <dt className="font-semibold">{child.channel.label}</dt>
-              <dd className="text-muted-foreground min-w-0">
+            <Fragment key={child.channel.id}>
+              <DefinitionTerm>{child.channel.label}</DefinitionTerm>
+              <DefinitionDetail className="text-muted-foreground">
                 <MarkdownText text={child.channel.description ?? ""} links="any" />
-              </dd>
-            </div>
+              </DefinitionDetail>
+            </Fragment>
           ))}
-        </dl>
+        </DefinitionList>
       )}
       <div {...grid}>
         {entries.map(({ printing, leafLabel, anchorId }) => (

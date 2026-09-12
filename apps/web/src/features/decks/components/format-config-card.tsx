@@ -32,7 +32,7 @@ export function FormatConfigCard({ deckId, format, formatConfig, readOnly }: Pro
   const formatLabel = formatLabels[format] ?? format;
 
   return (
-    <Card className="flex-row items-center justify-between gap-3 p-3">
+    <Card className="flex-row items-center justify-between gap-4 px-4">
       <div className="min-w-0">
         <span className="text-muted-foreground text-xs leading-4">{formatLabel}</span>
         <div className="text-lg leading-7 font-semibold">

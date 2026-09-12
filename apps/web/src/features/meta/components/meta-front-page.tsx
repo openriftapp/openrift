@@ -165,7 +165,7 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
   const leaf = dateLeafPartsUtc(next.eventDate);
 
   return (
-    <div className="border-border border-y py-2 lg:hidden">
+    <div className="lg:hidden">
       <Link
         from="/meta"
         search={(prev) => prev}

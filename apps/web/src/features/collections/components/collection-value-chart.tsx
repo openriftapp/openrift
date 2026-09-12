@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
 import { MarketplaceIcon } from "@/components/marketplace-icon";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
   ChartContainer,
   ChartLegend,
@@ -14,6 +15,7 @@ import {
   ChartTooltip,
 } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollectionValueHistory } from "@/features/collections/hooks/use-collection-value-history";
@@ -173,16 +175,18 @@ export function CollectionValueChart({ collectionId, scope }: CollectionValueCha
       )}
 
       {error && (
-        <p className="text-muted-foreground flex items-center justify-center gap-1.5 py-8 text-sm">
-          <CircleXIcon className="text-destructive size-4 shrink-0" />
-          Failed to load value history.
-        </p>
+        <Alert variant="destructive">
+          <CircleXIcon />
+          <AlertTitle>Failed to load value history.</AlertTitle>
+        </Alert>
       )}
 
       {!isLoading && !error && series.length === 0 && (
-        <p className="text-muted-foreground py-8 text-center text-sm">
-          No value history available. Add cards to your collection to start tracking.
-        </p>
+        <Empty>
+          <EmptyDescription>
+            No value history available. Add cards to your collection to start tracking.
+          </EmptyDescription>
+        </Empty>
       )}
 
       {!isLoading && !error && series.length > 0 && (

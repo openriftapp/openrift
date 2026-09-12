@@ -3,6 +3,7 @@ import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { CheckIcon, EraserIcon, LoaderIcon, RefreshCwIcon, TrashIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -15,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Code } from "@/components/ui/code";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useCacheStatus, usePurgeCache } from "@/features/admin/hooks/use-cache-purge";
@@ -96,19 +97,13 @@ export function CachePage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Cache" />
-      <Card>
-        <CardHeader>
-          <CardTitle>SSR Cache</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Clears the in-memory query cache the SSR layer uses to deduplicate API calls during a
-            single render. Use this when you&apos;ve fixed bad data on the API and want
-            server-rendered pages to pick up the change immediately instead of waiting for the cache
-            TTL.
-          </p>
+      <SettingsSection
+        title="SSR Cache"
+        description="Clears the in-memory query cache the SSR layer uses to deduplicate API calls during a single render. Use this when you've fixed bad data on the API and want server-rendered pages to pick up the change immediately instead of waiting for the cache TTL."
+      >
+        <div>
           <Button
             variant="outline"
             onClick={() => clearSsrCache.mutate()}
@@ -121,19 +116,14 @@ export function CachePage() {
             )}
             {clearSsrCache.isSuccess ? "Cache Cleared" : "Clear SSR Cache"}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Materialized Views</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Rebuilds the latest-prices and card-aggregates materialized views in Postgres. Cron
-            normally keeps these in sync, but you can refresh them on demand after a manual price
-            import or a fix that would otherwise leave stale aggregates around.
-          </p>
+      <SettingsSection
+        title="Materialized Views"
+        description="Rebuilds the latest-prices and card-aggregates materialized views in Postgres. Cron normally keeps these in sync, but you can refresh them on demand after a manual price import or a fix that would otherwise leave stale aggregates around."
+      >
+        <div>
           <Button
             variant="outline"
             onClick={() =>
@@ -148,23 +138,17 @@ export function CachePage() {
             )}
             Refresh materialized views
           </Button>
-          {matviewsRun.data && (
-            <JobRunStatusLine run={matviewsRun.data} succeededText="Materialized views refreshed" />
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        {matviewsRun.data && (
+          <JobRunStatusLine run={matviewsRun.data} succeededText="Materialized views refreshed" />
+        )}
+      </SettingsSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Card Tokens</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Re-reads every card&apos;s English rules text and rebuilds the list of tokens each one
-            tells the player to create, which is what the deck pages show under Tokens. Card and
-            errata edits already update the card they touch, so this is for the first backfill and
-            after a bulk set import. Manually corrected entries are left alone.
-          </p>
+      <SettingsSection
+        title="Card Tokens"
+        description="Re-reads every card's English rules text and rebuilds the list of tokens each one tells the player to create, which is what the deck pages show under Tokens. Card and errata edits already update the card they touch, so this is for the first backfill and after a bulk set import. Manually corrected entries are left alone."
+      >
+        <div>
           <Button
             variant="outline"
             onClick={() =>
@@ -181,27 +165,20 @@ export function CachePage() {
             )}
             Re-derive card tokens
           </Button>
-          {cardTokensRun.data && (
-            <JobRunStatusLine
-              run={cardTokensRun.data}
-              succeededText={cardTokensSucceededText(cardTokensRun.data.result)}
-            />
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        {cardTokensRun.data && (
+          <JobRunStatusLine
+            run={cardTokensRun.data}
+            succeededText={cardTokensSucceededText(cardTokensRun.data.result)}
+          />
+        )}
+      </SettingsSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cloudflare Cache</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Purges everything cached by Cloudflare for this zone (HTML pages, API responses,
-            images). Use this after deploying changes that affect cached URLs, or when fixing bad
-            data that visitors may still see. The next request for each URL will re-fetch from the
-            origin.
-          </p>
-
+      <SettingsSection
+        title="Cloudflare Cache"
+        description="Purges everything cached by Cloudflare for this zone (HTML pages, API responses, images). Use this after deploying changes that affect cached URLs, or when fixing bad data that visitors may still see. The next request for each URL will re-fetch from the origin."
+      >
+        <div>
           {data.configured ? (
             <AlertDialog>
               <AlertDialogTrigger
@@ -238,16 +215,15 @@ export function CachePage() {
           ) : (
             <Alert variant="warning">
               <AlertDescription>
-                Cloudflare cache purging is not configured. Set{" "}
-                <code className="font-mono">CLOUDFLARE_API_TOKEN</code> and{" "}
-                <code className="font-mono">CLOUDFLARE_ZONE_ID</code> in the API environment to
-                enable this button. The token needs the <strong>Zone.Cache Purge</strong> permission
-                scoped to your zone.
+                Cloudflare cache purging is not configured. Set <Code>CLOUDFLARE_API_TOKEN</Code>{" "}
+                and <Code>CLOUDFLARE_ZONE_ID</Code> in the API environment to enable this button.
+                The token needs the <strong>Zone.Cache Purge</strong> permission scoped to your
+                zone.
               </AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

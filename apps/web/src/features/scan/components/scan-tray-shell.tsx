@@ -22,7 +22,7 @@ export function ScanTrayShell({ layout, fullscreen, anchorRef, children }: ScanT
     return (
       <div
         ref={anchorRef}
-        className="md:bg-card/40 flex min-h-0 flex-col md:col-start-2 md:row-start-2 md:h-full md:rounded-lg md:border md:px-3 md:pb-3"
+        className="md:bg-muted/30 flex min-h-0 flex-col md:col-start-2 md:row-start-2 md:h-full md:rounded-lg md:border md:px-4 md:pb-4"
       >
         {children}
       </div>
@@ -59,7 +59,7 @@ export function ScanTrayShell({ layout, fullscreen, anchorRef, children }: ScanT
       showSwipeHandle
     >
       <DrawerContent>
-        <div ref={anchorRef} className="px-safe pb-safe flex min-h-0 flex-1 flex-col px-4">
+        <div ref={anchorRef} className="px-safe pb-safe flex min-h-0 flex-1 flex-col">
           {children}
         </div>
       </DrawerContent>

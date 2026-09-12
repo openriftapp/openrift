@@ -15,6 +15,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
@@ -34,7 +35,7 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
   const cardLink = submission.cardSlug;
 
   return (
-    <RowListItem className="flex-col items-stretch gap-2 py-4">
+    <RowListItem className="flex-col items-stretch gap-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {cardLink ? (
@@ -68,9 +69,9 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
       {!explanation && hint ? <p className="text-muted-foreground">{hint}</p> : null}
 
       {submission.note ? (
-        <p className="text-muted-foreground border-border border-l-2 pl-3 text-sm italic">
+        <Callout variant="inset" className="text-muted-foreground text-sm italic">
           {submission.note}
-        </p>
+        </Callout>
       ) : null}
     </RowListItem>
   );
@@ -94,11 +95,11 @@ export function MySubmissionsPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         <PageDescription>Every card and correction you&apos;ve sent in.</PageDescription>
 
         {isPending ? (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-4">
             <Skeleton className="h-28 w-full" />
             <Skeleton className="h-28 w-full" />
           </div>
@@ -115,7 +116,7 @@ export function MySubmissionsPage() {
         ) : null}
 
         {submissions.length > 0 ? (
-          <RowList variant="divided">
+          <RowList variant="divided" className="[&>li]:py-4">
             {submissions.map((submission) => (
               <SubmissionRow key={submission.id} submission={submission} />
             ))}

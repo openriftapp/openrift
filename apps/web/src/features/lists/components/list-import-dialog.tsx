@@ -21,6 +21,8 @@ import type { ImportInputStepProps } from "@/features/collections/components/imp
 import {
   ImportExactMatchesDisclosure,
   ImportParseErrorDetails,
+  ImportPreviewStack,
+  ImportRowsSection,
   ImportStatusBadges,
 } from "@/features/collections/components/import-preview-chrome";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
@@ -208,8 +210,8 @@ function PreviewStep({
 
   return (
     <DialogForm onSubmit={onImport}>
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex items-center justify-between text-sm">
+      <ImportPreviewStack className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-muted-foreground">
             {rowCount} line{rowCount === 1 ? "" : "s"} parsed, {matchedEntries.length} unique card
             {matchedEntries.length === 1 ? "" : "s"}
@@ -220,9 +222,9 @@ function PreviewStep({
         </div>
 
         {problematicEntries.length > 0 && (
-          <div className="divide-border divide-y rounded-lg border">
+          <ImportRowsSection title="Needs review" count={problematicEntries.length}>
             {problematicEntries.map((item) => renderRow(item))}
-          </div>
+          </ImportRowsSection>
         )}
 
         <ImportParseErrorDetails errors={parseErrors} unit="line" />
@@ -252,7 +254,7 @@ function PreviewStep({
             )}
           </Button>
         </Callout>
-      </div>
+      </ImportPreviewStack>
     </DialogForm>
   );
 }

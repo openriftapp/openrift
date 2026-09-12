@@ -42,24 +42,24 @@ export function HelpIndexPage() {
         ))}
       </div>
 
-      <div className="text-muted-foreground mt-8 text-center text-sm">
+      <div className="text-muted-foreground mt-8">
         <p>
           Can&apos;t find what you&apos;re looking for?{" "}
           <TextLink
             variant="inherit"
-            className="text-foreground"
+            className="text-foreground inline-flex items-baseline gap-1"
             href={SOCIAL_LINKS.discordInvite}
             target="_blank"
             rel="noreferrer"
           >
             <svg
               viewBox="0 0 24 24"
-              className="mr-0.5 mb-px inline size-3.5 fill-current align-middle"
+              className="size-3.5 self-center fill-current"
               aria-hidden="true"
             >
               <path d={siDiscord.path} />
             </svg>
-            Ask on Discord
+            <span>Ask on Discord</span>
           </TextLink>
         </p>
       </div>

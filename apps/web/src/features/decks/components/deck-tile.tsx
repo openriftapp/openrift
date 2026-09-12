@@ -286,7 +286,7 @@ export function DeckTile({
         }
       />
 
-      <div className="flex flex-1 flex-col gap-2 p-3">
+      <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             {deck.isPinned && (

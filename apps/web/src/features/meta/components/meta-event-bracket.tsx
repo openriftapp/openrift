@@ -44,7 +44,7 @@ function Seat({ seat, player }: { seat: MetaBracketSeat; player: MetaEventPlayer
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-3 py-1.5 text-sm not-last:border-b",
+        "flex items-center gap-2 px-3 py-2.5 text-sm not-last:border-b",
         seat.isWinner ? "font-semibold" : "text-muted-foreground",
       )}
     >

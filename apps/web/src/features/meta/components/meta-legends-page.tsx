@@ -205,7 +205,7 @@ function SortHeader({
     <div
       className={cn(
         LEGEND_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold md:grid",
+        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold md:grid",
       )}
     >
       <span />

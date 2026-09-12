@@ -228,8 +228,9 @@ describe("MetaPlayerPage", () => {
     captured.decks = [deck("d1", "tok-1"), deck("d2", "tok-other")];
     render(<MetaPlayerPage />);
 
-    const grid = screen.getByRole("heading", { name: "Archived decklists" })
-      .parentElement as HTMLElement;
+    const grid = screen
+      .getByRole("heading", { name: "Archived decklists" })
+      .closest("section") as HTMLElement;
     expect(within(grid).getAllByRole("listitem")).toHaveLength(1);
   });
 
@@ -247,8 +248,9 @@ describe("MetaPlayerPage", () => {
     captured.decks = [deck("d1", "tok-1")];
     render(<MetaPlayerPage />);
 
-    const grid = screen.getByRole("heading", { name: "Archived decklists" })
-      .parentElement as HTMLElement;
+    const grid = screen
+      .getByRole("heading", { name: "Archived decklists" })
+      .closest("section") as HTMLElement;
     expect(within(grid).getAllByRole("listitem")).toHaveLength(1);
   });
 

@@ -1,11 +1,12 @@
-import { CoinsIcon, CopyIcon, SquareIcon, SquareStackIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CoinsIcon, CopyIcon, ImageOffIcon, SquareIcon, SquareStackIcon } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
-import { CollectionMissingImagesTile } from "@/features/collections/components/collection-missing-images-tile";
 import type { CollectionStats } from "@/features/collections/hooks/use-collection-stats";
+import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
 
 function HeroStat({
   icon: Icon,
@@ -32,58 +33,70 @@ function HeroStat({
 
 export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
   const marketplace = MARKETPLACE_META[stats.marketplace];
+  const { data: missingImages } = useMyMissingImages();
+  const missingImageCount = missingImages?.items.length ?? 0;
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap gap-x-10 gap-y-5">
+    <div className="flex flex-wrap gap-x-10 gap-y-5">
+      <HeroStat icon={SquareIcon} label="Unique Cards" value={stats.uniqueCards.toLocaleString()} />
+      <HeroStat
+        icon={CopyIcon}
+        label="Unique Printings"
+        value={stats.uniquePrintings.toLocaleString()}
+      />
+      <HeroStat
+        icon={SquareStackIcon}
+        label="Total Copies"
+        value={stats.totalCopies.toLocaleString()}
+      />
+      <HeroStat
+        icon={CoinsIcon}
+        label="Estimated Value"
+        value={
+          <TextLink
+            variant="inherit"
+            className="text-foreground no-underline"
+            render={
+              <MarketplaceLink
+                marketplace={stats.marketplace}
+                href={marketplace.searchUrl("riftbound")}
+              />
+            }
+          >
+            {stats.formatPrice(stats.estimatedValue)}
+          </TextLink>
+        }
+      >
+        <span className="text-muted-foreground text-xs">
+          <span className="flex items-center gap-1">
+            <img src={marketplace.icon} alt="" className="h-3 invert dark:invert-0" />
+            {marketplace.label}
+          </span>
+          {stats.unpricedCount > 0 && (
+            <span className="block">
+              {stats.unpricedCount} {stats.unpricedCount === 1 ? "copy" : "copies"} unpriced
+            </span>
+          )}
+        </span>
+      </HeroStat>
+      {missingImageCount > 0 && (
         <HeroStat
-          icon={SquareIcon}
-          label="Unique Cards"
-          value={stats.uniqueCards.toLocaleString()}
-        />
-        <HeroStat
-          icon={CopyIcon}
-          label="Unique Printings"
-          value={stats.uniquePrintings.toLocaleString()}
-        />
-        <HeroStat
-          icon={SquareStackIcon}
-          label="Total Copies"
-          value={stats.totalCopies.toLocaleString()}
-        />
-        <HeroStat
-          icon={CoinsIcon}
-          label="Estimated Value"
+          icon={ImageOffIcon}
+          label="Without an Image"
           value={
             <TextLink
               variant="inherit"
               className="text-foreground no-underline"
-              render={
-                <MarketplaceLink
-                  marketplace={stats.marketplace}
-                  href={marketplace.searchUrl("riftbound")}
-                />
-              }
+              render={<Link to="/contribute" />}
             >
-              {stats.formatPrice(stats.estimatedValue)}
+              {missingImageCount.toLocaleString()}
             </TextLink>
           }
         >
           <span className="text-muted-foreground text-xs">
-            <span className="flex items-center gap-1">
-              <img src={marketplace.icon} alt="" className="h-3 invert dark:invert-0" />
-              {marketplace.label}
-            </span>
-            {stats.unpricedCount > 0 && (
-              <span className="block">
-                {stats.unpricedCount} {stats.unpricedCount === 1 ? "copy" : "copies"} unpriced
-              </span>
-            )}
+            Owned cards the catalogue has no picture for yet
           </span>
         </HeroStat>
-      </div>
-      <div className="sm:max-w-xs">
-        <CollectionMissingImagesTile />
-      </div>
+      )}
     </div>
   );
 }

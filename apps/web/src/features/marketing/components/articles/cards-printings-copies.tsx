@@ -6,6 +6,7 @@ import { Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { Code } from "@/components/ui/code";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
@@ -304,28 +305,28 @@ function Arrow() {
 
 function ExampleTable({ rows }: { rows: React.ReactNode[][] }) {
   return (
-    <div className="mt-3 overflow-x-auto rounded-lg border text-sm">
-      <table className="w-full">
-        <tbody className="divide-border divide-y">
+    <div className="mt-3">
+      <Table>
+        <TableBody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
+            <TableRow key={rowIndex}>
               {row.map((cell, cellIndex) => (
-                <td
+                <TableCell
                   key={cellIndex}
                   className={cn(
-                    "px-3 py-2",
+                    "align-top",
                     cellIndex === 0
-                      ? "bg-muted/50 font-medium whitespace-nowrap"
-                      : "text-muted-foreground min-w-32",
+                      ? "font-medium"
+                      : "text-muted-foreground min-w-32 whitespace-normal",
                   )}
                 >
                   {cell === null ? "—" : cell}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

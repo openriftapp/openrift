@@ -1,6 +1,5 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -78,7 +77,18 @@ export function MetaEventLegendFinishes({ players }: { players: readonly MetaEve
 
   return (
     <section className="mt-8">
-      <Heading className="mb-3">Best finish per legend</Heading>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <Heading>Best finish per legend</Heading>
+        {entries.length > TILES_SHOWN && (
+          <Button
+            variant="link"
+            className="h-auto p-0 text-sm font-medium"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Show fewer" : `Show all ${entries.length.toLocaleString("en-US")}`}
+          </Button>
+        )}
+      </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {shown.map((entry) => (
           <li key={entry.legend.cardId}>
@@ -86,12 +96,6 @@ export function MetaEventLegendFinishes({ players }: { players: readonly MetaEve
           </li>
         ))}
       </ul>
-      {entries.length > TILES_SHOWN && (
-        <Button variant="link" className="mt-1 px-0" onClick={() => setExpanded(!expanded)}>
-          {expanded ? "Show fewer" : `Show all ${entries.length.toLocaleString("en-US")} legends`}
-          {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-        </Button>
-      )}
     </section>
   );
 }

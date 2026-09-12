@@ -53,6 +53,7 @@ interface DeckHeroProps {
   heading?: React.ReactNode;
   lead?: React.ReactNode;
   actions?: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
 const CHIP_CLASS =
@@ -164,6 +165,7 @@ export function DeckHero({
   heading,
   lead,
   actions,
+  footer,
 }: DeckHeroProps) {
   const domainColors = useDomainColors();
   const fmtPrice = formatterForMarketplace(marketplace);
@@ -469,6 +471,8 @@ export function DeckHero({
           {fanSlots}
         </div>
       </div>
+
+      {footer && <div className="relative px-4 pb-4 sm:px-5 sm:pb-5">{footer}</div>}
 
       {domainDistribution.length > 0 && (
         <DomainBar

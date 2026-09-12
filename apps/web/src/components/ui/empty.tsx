@@ -9,7 +9,8 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="empty"
       className={cn(
         // custom: rounded-lg (scaffold ships rounded-xl) — app-wide surface radius matches form controls
-        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg border-dashed p-6 text-center text-balance",
+        // custom: no `border-dashed` — the base draws no border for it to style
+        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg p-6 text-center text-balance",
         className,
       )}
       {...props}
@@ -21,7 +22,8 @@ function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty-header"
-      className={cn("flex max-w-sm flex-col items-center gap-2", className)}
+      // custom: gap-1 (scaffold gap-2) — the title-to-description tier
+      className={cn("flex max-w-sm flex-col items-center gap-1", className)}
       {...props}
     />
   );

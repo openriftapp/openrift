@@ -15,6 +15,8 @@ interface Guard {
   title: string;
   pattern: RegExp;
   exempt?: ReadonlySet<string>;
+  /** Directory prefixes the guard never scans (the primitives that own the pattern). */
+  exemptDirs?: readonly string[];
 }
 
 const GUARDS: readonly Guard[] = [
@@ -74,6 +76,17 @@ const GUARDS: readonly Guard[] = [
       "routes/_app/verify-email.lazy.tsx",
     ]),
   },
+  {
+    title: "separates sibling sections with spacing, never a Separator",
+    pattern: /<Separator\b/u,
+    exemptDirs: ["components/ui/"],
+    // Call sites still on the old pattern; remove each as it is swept.
+    exempt: new Set(["features/admin/components/design/layout-section.tsx"]),
+  },
+  {
+    title: "pads a page column with the gutter, never a hard-coded px",
+    pattern: /PAGE_WIDTH\.(?:capped|full)\b[^\n]*\bpx-\d/u,
+  },
 ];
 
 async function listSourceFiles(dir: string): Promise<string[]> {
@@ -100,7 +113,7 @@ describe("design guards", () => {
       const offenders: string[] = [];
       for (const file of files) {
         const rel = relative(SRC_DIR, file);
-        if (guard.exempt?.has(rel)) {
+        if (guard.exempt?.has(rel) || guard.exemptDirs?.some((dir) => rel.startsWith(dir))) {
           continue;
         }
         const contents = await readFile(file, "utf-8");

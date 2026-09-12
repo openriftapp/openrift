@@ -86,7 +86,7 @@ export function TeamsSection({
   }
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-3">
       <SectionHeading icon={UsersIcon} count={teams.length}>
         Teams
       </SectionHeading>
@@ -96,7 +96,7 @@ export function TeamsSection({
           be paired.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-col gap-2">
           {teams.map((team) => {
             const name = teamDisplayName(team.members.map((member) => member.displayName));
             return (
@@ -175,7 +175,7 @@ function TeamMemberPicker({
 }) {
   const items = players.map((player) => ({ value: player.id, label: player.displayName }));
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <span className="text-muted-foreground text-sm">{label}</span>
       <Select items={items} value={value} onValueChange={(next) => next && onChange(next)}>
         <SelectTrigger className="w-48" aria-label={label}>

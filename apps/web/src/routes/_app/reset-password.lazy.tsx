@@ -101,24 +101,32 @@ function ResetPasswordPage() {
   return (
     <AuthPageLayout>
       <Card className="overflow-hidden p-0">
-        <CardContent className="flex flex-col items-center gap-4 p-6 text-center md:p-8">
-          <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
-          <Heading level={1}>Reset your password</Heading>
-
-          {step === "email" ? (
-            <>
+        <CardContent className="p-6 md:p-8">
+          <FieldGroup>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
+              <Heading level={1}>Reset your password</Heading>
               <p className="text-muted-foreground text-balance">
-                Enter your email and we&apos;ll send you a code to reset your password.
+                {step === "email" ? (
+                  <>Enter your email and we&apos;ll send you a code to reset your password.</>
+                ) : (
+                  <>
+                    Enter the 6-digit code sent to <strong>{email.trim()}</strong> and your new
+                    password.
+                  </>
+                )}
               </p>
+            </div>
+
+            {step === "email" ? (
               <form
-                className="w-full"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void handleSendCode();
                 }}
                 noValidate
               >
-                <FieldGroup className="w-full">
+                <FieldGroup>
                   {emailError && <FieldError>{emailError}</FieldError>}
                   <Field>
                     <FieldLabel htmlFor="reset-email">Email</FieldLabel>
@@ -141,25 +149,20 @@ function ResetPasswordPage() {
                   </Field>
                 </FieldGroup>
               </form>
-            </>
-          ) : (
-            <>
-              <p className="text-muted-foreground text-balance">
-                Enter the 6-digit code sent to <strong>{email.trim()}</strong> and your new
-                password.
-              </p>
+            ) : (
               <form
-                className="w-full"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void handleReset();
                 }}
                 noValidate
               >
-                <FieldGroup className="w-full items-center">
+                <FieldGroup>
                   {error && <FieldError>{error}</FieldError>}
-                  <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
-                  <Field className="w-full">
+                  <Field className="items-center">
+                    <SixDigitOtpInput autoFocusOnMount value={otp} onChange={setOtp} />
+                  </Field>
+                  <Field>
                     <FieldLabel htmlFor="new-password">New password</FieldLabel>
                     <Input
                       id="new-password"
@@ -169,7 +172,7 @@ function ResetPasswordPage() {
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                   </Field>
-                  <Field className="w-full">
+                  <Field>
                     <FieldLabel htmlFor="confirm-password">Confirm password</FieldLabel>
                     <Input
                       id="confirm-password"
@@ -179,38 +182,40 @@ function ResetPasswordPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                   </Field>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={otp.length < 6 || !newPassword || loading}
-                  >
-                    {loading ? "Resetting..." : "Reset password"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="link-muted"
-                    disabled={resending}
-                    onClick={() => void handleResend()}
-                  >
-                    {resending ? "Sending..." : "Resend code"}
-                  </Button>
-                  <p className="text-muted-foreground text-sm text-balance">
-                    Didn&apos;t get a code within a minute? Check your spam folder, then resend.
-                  </p>
+                  <Field>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={otp.length < 6 || !newPassword || loading}
+                    >
+                      {loading ? "Resetting..." : "Reset password"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="link-muted"
+                      disabled={resending}
+                      onClick={() => void handleResend()}
+                    >
+                      {resending ? "Sending..." : "Resend code"}
+                    </Button>
+                    <p className="text-muted-foreground text-sm">
+                      Didn&apos;t get a code within a minute? Check your spam folder, then resend.
+                    </p>
+                  </Field>
                 </FieldGroup>
               </form>
-            </>
-          )}
+            )}
 
-          <p className="text-muted-foreground text-sm">
-            <Link
-              to="/login"
-              search={{ redirect: undefined, email: email.trim() || undefined }}
-              className="underline underline-offset-2"
-            >
-              Back to login
-            </Link>
-          </p>
+            <p className="text-muted-foreground text-center text-sm">
+              <Link
+                to="/login"
+                search={{ redirect: undefined, email: email.trim() || undefined }}
+                className="underline underline-offset-2"
+              >
+                Back to login
+              </Link>
+            </p>
+          </FieldGroup>
         </CardContent>
       </Card>
     </AuthPageLayout>

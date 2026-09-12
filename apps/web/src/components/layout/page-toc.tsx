@@ -45,14 +45,16 @@ function TocLink({
     onSelect?.();
   }
 
+  const restTone = level > 0 ? "text-muted-foreground/70" : "text-muted-foreground";
+
   return (
     <a
       href={`#${id}`}
       onClick={handleClick}
-      style={level > 0 ? { paddingLeft: `${level * 0.75}rem` } : undefined}
+      style={level > 0 ? { paddingLeft: `${level}rem` } : undefined}
       className={cn(
         "block truncate text-sm transition-colors",
-        isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground",
+        isActive ? "text-foreground font-medium" : `${restTone} hover:text-foreground`,
       )}
     >
       {label}
@@ -111,7 +113,7 @@ export function PageToc({ items, className }: { items: PageTocItem[]; className?
       )}
     >
       <ScrollArea className="h-full">
-        <nav className="space-y-0.5">
+        <nav className="space-y-1.5">
           {items.map((item) => (
             <TocLink key={item.id} id={item.id} label={item.label} level={item.level ?? 0} />
           ))}
@@ -158,7 +160,7 @@ export function PageTocMobileTrigger({
         </DrawerHeader>
         {/* Native overflow scroll, not ScrollArea: the Drawer's touch handling
             doesn't recognize ScrollArea's custom overflow:scroll viewport. */}
-        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-4 pb-6">
+        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-6">
           {items.map((item) => (
             <TocLink
               key={item.id}

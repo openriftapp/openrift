@@ -9,6 +9,7 @@ import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CardList } from "@/components/ui/card-list";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
@@ -278,7 +279,7 @@ function MatchRow({
   const incoming = match.direction === "incoming";
   // Mouse-only: iOS Safari synthesizes hover on tap, which would otherwise
   // open this 400px preview over most of the phone screen with no way to dismiss it.
-  const rowRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLLIElement>(null);
   const { enterX, hoverProps } = useMouseHover();
   // sellPref is always the seller's side, buyPref the buyer's: the counterparty
   // is the seller when the card comes to the viewer, the buyer when it goes to them.
@@ -288,10 +289,10 @@ function MatchRow({
     counterpartyPref.pricePref !== null || counterpartyPref.tradeType !== null;
 
   return (
-    <div
+    <li
       ref={rowRef}
       {...hoverProps}
-      className="group bg-muted/30 hover:bg-muted/50 flex flex-col gap-2 rounded-md border border-dashed p-2 transition-colors sm:flex-row sm:items-center sm:gap-3"
+      className="group hover:bg-muted/50 flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-3"
     >
       <div className="flex min-w-0 items-center gap-3 sm:contents">
         <TradeDirectionIcon incoming={incoming} />
@@ -346,7 +347,7 @@ function MatchRow({
       {enterX !== undefined && match.printing ? (
         <PrintingHoverPreview printing={match.printing} anchorRef={rowRef} cursorX={enterX} />
       ) : null}
-    </div>
+    </li>
   );
 }
 
@@ -476,10 +477,8 @@ function MatchTradeRowGroup({
       : null;
 
   return (
-    <div className="bg-muted/30 overflow-hidden rounded-md border border-dashed">
-      {/* The toggle's overlay stretches over the header, so the whole row folds;
-          the copies popover rises above it to keep its own clicks. */}
-      <div className="hover:bg-muted/50 relative flex flex-col gap-2 p-2 transition-colors sm:flex-row sm:items-center sm:gap-3">
+    <CardList className="gap-2">
+      <li className="hover:bg-muted/50 relative flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-3">
         <div className="flex min-w-0 items-center gap-3 sm:contents">
           <TradeDirectionIcon incoming={incoming} />
 
@@ -543,11 +542,10 @@ function MatchTradeRowGroup({
             <TradeStatusBadge status={headerStatus} className="min-w-0 shrink" />
           </div>
         ) : null}
-      </div>
+      </li>
 
-      {expanded ? (
-        <div className="flex flex-col gap-2 border-t p-2">
-          {group.variants.map((variant) => (
+      {expanded
+        ? group.variants.map((variant) => (
             <MatchRow
               key={`${variant.counterpartyListId}\0${variant.printingId}`}
               match={variant}
@@ -556,10 +554,9 @@ function MatchTradeRowGroup({
                 liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
               )}
             />
-          ))}
-        </div>
-      ) : null}
-    </div>
+          ))
+        : null}
+    </CardList>
   );
 }
 
@@ -583,13 +580,15 @@ function MatchGroupItem({
   }
   const variant = group.variants[0];
   return (
-    <MatchRow
-      match={variant}
-      marketplaceInfos={infosByPrinting[variant.printingId] ?? null}
-      liveTrade={liveTradeByKey.get(
-        liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
-      )}
-    />
+    <CardList>
+      <MatchRow
+        match={variant}
+        marketplaceInfos={infosByPrinting[variant.printingId] ?? null}
+        liveTrade={liveTradeByKey.get(
+          liveTradeKey(variant.groupSlug, variant.counterpartyUserId, variant.printingId),
+        )}
+      />
+    </CardList>
   );
 }
 

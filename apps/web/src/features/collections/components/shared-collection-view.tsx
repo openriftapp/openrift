@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 
 import {
   PAGE_TOP_BAR_STICKY,
+  PageDescription,
   PageTopBar,
   PageTopBarHeightContext,
   PageTopBarTitle,
@@ -119,7 +120,7 @@ export function SharedCollectionView({
           <div className="flex min-w-0 flex-1 flex-col px-3 pb-3">
             {notice}
             {collection.description ? (
-              <p className="text-muted-foreground py-3 text-sm">{collection.description}</p>
+              <PageDescription className="pt-2 pb-4">{collection.description}</PageDescription>
             ) : null}
             <SharedCollectionBody data={data} />
           </div>
@@ -136,7 +137,7 @@ function SharedCollectionBody({ data }: { data: PublicCollectionDetailResponse }
     return null;
   }
   return (
-    <Suspense fallback={<p className="text-muted-foreground py-3 text-sm">Loading cards…</p>}>
+    <Suspense fallback={<p className="text-muted-foreground py-3">Loading cards…</p>}>
       <SharedCollectionGrid data={data} />
     </Suspense>
   );

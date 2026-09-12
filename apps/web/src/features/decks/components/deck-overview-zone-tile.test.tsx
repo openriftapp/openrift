@@ -51,11 +51,11 @@ function renderZone({
       expected={expected}
       emptyHint="Choose 3 unique Battlefield cards"
       unknownCount={unknownCount}
-      collapsedZones={new Set()}
-      onToggleCollapsed={vi.fn()}
       zoneViolations={[]}
       format="constructed"
       getThumbnail={() => undefined}
+      collapsedZones={new Set()}
+      onToggleCollapsed={vi.fn()}
       readOnly
     />,
   );

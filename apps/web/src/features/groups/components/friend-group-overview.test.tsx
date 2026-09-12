@@ -304,7 +304,7 @@ describe("OverviewContent tournaments tile", () => {
     renderOverview("member");
     const tile = screen.getByRole("link", { name: /Tournaments/u });
     expect(tile).toHaveAttribute("href", "/groups/bothfeld/events");
-    expect(tile).toHaveTextContent("None open");
+    expect(tile).toHaveTextContent("0");
     expect(tile).toHaveTextContent("no tournaments yet");
   });
 
@@ -376,19 +376,10 @@ describe("OverviewContent trades hub", () => {
     currentTournaments = [];
   });
 
-  it("links to the trades page from the hub header", () => {
+  it("leaves the hub out when nothing needs the viewer", () => {
     renderOverview("member");
-    expect(screen.getByRole("link", { name: /View trades/u })).toHaveAttribute(
-      "href",
-      "/groups/bothfeld/trades",
-    );
-  });
-
-  it("shrinks to a headline when nothing needs the viewer", () => {
-    renderOverview("member");
-    expect(screen.getByText("No matches in this group yet")).toBeInTheDocument();
-    expect(screen.queryByText("You could get")).not.toBeInTheDocument();
-    expect(screen.queryByText("To hand over")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /View trades/u })).not.toBeInTheDocument();
+    expect(screen.queryByText("No matches in this group yet")).not.toBeInTheDocument();
   });
 });
 

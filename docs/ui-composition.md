@@ -6,6 +6,8 @@ How the web app's page chrome and card-browser surfaces are assembled. Read this
 
 There are exactly two page widths, both in `PAGE_WIDTH` (`apps/web/src/lib/utils.ts`). A page is `full` (`CONTAINER_WIDTH`: 1280, then 1720 `wide`, 2160 `xwide`, 2560 `xxwide`) when its main content is a card grid, a virtualized list, or a wide table. Every other page is `capped` (`max-w-5xl`). `PageTopBarSticky` takes a required `width` prop of those two values, so a page cannot pick a third by omission, and the content column below the bar uses the matching `PAGE_WIDTH[width]`. `apps/web/src/lib/page-width.test.ts` fails on any new hand-rolled `mx-auto max-w-{2xl…7xl}` page column.
 
+The horizontal gutter on every page is `px-safe` (`--page-gutter` in `apps/web/src/index.css`): 12px on phones, 24px from `sm`, 32px from `lg`, always at least the iOS safe-area inset. `pl-safe`, `pr-safe`, `ml-safe` and the `-neg` cancels track the same variable, so never pair a gutter with a hard-coded `px-3`/`-mx-3`. The interior edge of a content column beside a persistent sidebar (collections, admin) is `pl-gutter` (`--sidebar-gap`, 16px, no safe-area term), cancelled by `ml-gutter-neg` on its bars.
+
 Three things are component widths, not page widths: a long-form text block capped at `max-w-prose` inside a `capped` page (`ProsePage`, `/help/$slug`), the settings content column (`SettingsLayout` caps it at `max-w-xl` beside the TOC, and everything inside fills that column), a stand-alone form column (`FORM_COLUMN`, `max-w-md`, applied to the field stack on full pages; dialogs and grids size their own fields), and the landing hero. Admin pages carry no page-width wrapper at all. The sidebar layout's content column is their width.
 
 ## Top bars and sticky stacking

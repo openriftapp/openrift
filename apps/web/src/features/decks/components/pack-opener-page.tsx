@@ -21,7 +21,6 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,7 +36,7 @@ import {
   publicSetDetailQueryOptions,
   publicSetListQueryOptions,
 } from "@/features/cards/hooks/use-public-sets";
-import { PackBulkGrid } from "@/features/decks/components/pack-bulk-grid";
+import { PackBulkGrid, PackHeading } from "@/features/decks/components/pack-bulk-grid";
 import { isBoosterEligible, toPackPrinting } from "@/features/decks/components/pack-opener-utils";
 import { PackReveal } from "@/features/decks/components/pack-reveal";
 import { PackStats } from "@/features/decks/components/pack-stats";
@@ -105,12 +104,12 @@ export function PackOpenerPage() {
         <ToggleField label="Foil shimmer" checked={shimmer} onChange={setShimmer} />
         <ToggleField label="Auto-reveal" checked={autoReveal} onChange={setAutoReveal} />
       </PackOpenerTopBar>
-      <div className={cn(PAGE_PADDING_NO_TOP, "pt-3")}>
-        <PageDescription className="mb-6">
+      <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
+        <PageDescription>
           Pull rates match the real booster. No cards are added to your collection.
         </PageDescription>
 
-        <Card className="mb-6 grid gap-4 p-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
           <SetPickerField
             sets={mainSets}
             value={setSlug}
@@ -134,7 +133,7 @@ export function PackOpenerPage() {
             onCustomChange={setCustomCount}
           />
           <OpenAction setSlug={setSlug} language={language} count={count} onOpened={setPacks} />
-        </Card>
+        </div>
 
         {packs.length === 1 && packs[0] && (
           <SinglePackResult
@@ -414,13 +413,8 @@ function BulkPackResult({
   return (
     <section className="space-y-6">
       {packs.map((pack, i) => (
-        <div key={i}>
-          <div className="mb-2 flex items-baseline justify-between border-b pb-1">
-            <h3 className="font-semibold">Pack {i + 1}</h3>
-            <span className="text-muted-foreground text-xs">
-              {pack.pulls.length} {pack.pulls.length === 1 ? "card" : "cards"}
-            </span>
-          </div>
+        <div key={i} className="flex flex-col gap-2">
+          <PackHeading index={i + 1} count={pack.pulls.length} />
           <PackReveal
             pack={pack}
             imagesByPrintingId={imagesByPrintingId}

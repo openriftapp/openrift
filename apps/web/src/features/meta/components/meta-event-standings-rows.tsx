@@ -133,7 +133,7 @@ export function PhoneRow({
       {...slot}
       {...rowToggleProps(token, expanded, onToggle)}
       className={cn(
-        "focus-visible:ring-ring aria-expanded:bg-muted/50 flex flex-col gap-2 px-3 py-2 text-sm not-last:border-b focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
+        "focus-visible:ring-ring aria-expanded:bg-muted/50 flex flex-col gap-2 px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
         player.rank === 1 && "bg-border-accent/10",
         token !== null && "cursor-pointer",
       )}

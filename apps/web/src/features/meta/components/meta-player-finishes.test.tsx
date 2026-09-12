@@ -118,26 +118,25 @@ describe("MetaPlayerFinishes", () => {
   it("opens on the best placings and names the whole record on the toggle", async () => {
     render(<MetaPlayerFinishes finishes={manyFinishes(9)} playerName="Renata" />);
 
-    expect(screen.getByRole("button", { name: "All 9" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show all 9" })).toBeInTheDocument();
     expect(screen.getAllByText("Event 0").length).toBeGreaterThan(0);
     expect(screen.queryByText("Event 6")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "All 9" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 9" }));
     expect(screen.getAllByText("Event 6").length).toBeGreaterThan(0);
   });
 
-  it("switches to the whole record from the footer", async () => {
+  it("keeps the show-all link in the header, with no footer link", () => {
     render(<MetaPlayerFinishes finishes={manyFinishes(9)} playerName="Renata" />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 9 finishes" }));
-    expect(screen.getAllByText("Event 6").length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: /Show all/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show all 9" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /more finish/u })).not.toBeInTheDocument();
   });
 
   it("grows the whole record a page at a time", async () => {
     render(<MetaPlayerFinishes finishes={manyFinishes(30)} playerName="Renata" />);
 
-    await userEvent.click(screen.getByRole("button", { name: "All 30" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 30" }));
     expect(screen.getByRole("button", { name: "5 more finishes" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "5 more finishes" }));

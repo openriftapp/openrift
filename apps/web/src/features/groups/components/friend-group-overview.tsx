@@ -13,6 +13,7 @@ import {
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
 import { DateLeaf } from "@/components/ui/date-leaf";
+import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty";
 import { IconChip } from "@/components/ui/icon-chip";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -53,6 +54,15 @@ export function OverviewContent({ slug, data }: { slug: string; data: FriendGrou
         <OverviewRail slug={slug} data={data} />
       </div>
     </div>
+  );
+}
+
+function OverviewSlotEmpty({ description, action }: { description: string; action?: ReactNode }) {
+  return (
+    <Empty className="gap-3 py-8">
+      <EmptyDescription>{description}</EmptyDescription>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }
 
@@ -132,14 +142,13 @@ function GroupTournamentsTile({ slug, data }: { slug: string; data: FriendGroupD
         icon={TrophyIcon}
         tone="violet"
         label="Tournaments"
-        value="None open"
-        valueClassName="text-muted-foreground truncate text-lg"
+        value={tournaments.items.length}
         hint={
           isAdmin(data.viewerRole)
             ? "Plan one for the next game night →"
             : tournaments.items.length === 0
               ? "no tournaments yet"
-              : `${tournaments.items.length} total`
+              : "none open"
         }
       />
     );
@@ -251,22 +260,24 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
           })}
         </RowList>
       ) : (
-        <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-          <p className="text-muted-foreground text-sm">
-            {feed.shops.length === 0
+        <OverviewSlotEmpty
+          description={
+            feed.shops.length === 0
               ? "No shop linked yet. Link the store you play at and its next events show up here."
-              : `Nothing listed at your shops in the next ${feed.horizonDays} days.`}
-          </p>
-          {admin && feed.shops.length === 0 ? (
-            <TextLink
-              className="inline-flex items-center gap-1 text-sm font-medium"
-              render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
-            >
-              Link a shop
-              <ChevronRightIcon className="size-4" />
-            </TextLink>
-          ) : null}
-        </div>
+              : `Nothing listed at your shops in the next ${feed.horizonDays} days.`
+          }
+          action={
+            admin && feed.shops.length === 0 ? (
+              <TextLink
+                className="inline-flex items-center gap-1 text-sm font-medium"
+                render={<Link to="/groups/$slug/manage" params={{ slug }} hash="shops" />}
+              >
+                Link a shop
+                <ChevronRightIcon className="size-4" />
+              </TextLink>
+            ) : null
+          }
+        />
       )}
     </section>
   );
@@ -283,7 +294,9 @@ type SharedRow = {
 function RailRowBody({ row }: { row: SharedRow }) {
   return (
     <>
-      <IconChip icon={row.icon} size="sm" shape="round" />
+      <span className="flex w-11 shrink-0 justify-center">
+        <IconChip icon={row.icon} size="sm" shape="round" />
+      </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">{row.name}</span>
         <span className="text-muted-foreground truncate text-xs">{row.sub}</span>
@@ -293,7 +306,7 @@ function RailRowBody({ row }: { row: SharedRow }) {
 }
 
 function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
-  const rows: SharedRow[] = [
+  const all: SharedRow[] = [
     ...data.shares.map((share): SharedRow => ({
       key: `list:${share.listId}`,
       sharedAt: share.sharedAt,
@@ -312,16 +325,25 @@ function NewestShared({ slug, data }: { slug: string; data: FriendGroupDetailRes
       target: "collection",
       collectionId: share.collectionId,
     })),
-  ]
-    .toSorted((a, b) => b.sharedAt.localeCompare(a.sharedAt))
-    .slice(0, 3);
+  ].toSorted((a, b) => b.sharedAt.localeCompare(a.sharedAt));
+  const rows = all.slice(0, 3);
 
   if (rows.length === 0) {
     return null;
   }
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Newest shared</SectionHeading>
+      <div className="flex items-baseline justify-between gap-3">
+        <SectionHeading>Newest shared</SectionHeading>
+        {all.length > rows.length ? (
+          <TextLink
+            className="shrink-0 text-xs font-medium"
+            render={<Link to="/groups/$slug/shared" params={{ slug }} />}
+          >
+            Show all
+          </TextLink>
+        ) : null}
+      </div>
       <RowList>
         {rows.map((row) => (
           <RowListItem key={row.key}>
@@ -361,13 +383,25 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
   const admin = isAdmin(data.viewerRole);
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Next up</SectionHeading>
+      <div className="flex items-baseline justify-between gap-3">
+        <SectionHeading>Next up</SectionHeading>
+        {tournaments.items.length > 0 ? (
+          <TextLink
+            className="shrink-0 text-xs font-medium"
+            render={<Link to="/groups/$slug/events" params={{ slug }} />}
+          >
+            Show all
+          </TextLink>
+        ) : null}
+      </div>
       {current.length > 0 ? (
         <RowList>
           {current.map((tournament) => (
             <RowListItem key={tournament.id}>
               <RowListLink render={<Link to="/tournaments/$id" params={{ id: tournament.id }} />}>
-                <IconChip icon={TrophyIcon} tone="violet" size="sm" shape="round" />
+                <span className="flex w-11 shrink-0 justify-center">
+                  <IconChip icon={TrophyIcon} tone="violet" size="sm" shape="round" />
+                </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium">{tournament.name}</span>
                   <span className="text-muted-foreground truncate text-xs">
@@ -379,22 +413,24 @@ function TournamentNudge({ slug, data }: { slug: string; data: FriendGroupDetail
           ))}
         </RowList>
       ) : (
-        <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-          <p className="text-muted-foreground text-sm">
-            {admin
+        <OverviewSlotEmpty
+          description={
+            admin
               ? "No tournaments planned. Set one up for the next game night."
-              : "No tournaments planned yet. When an admin sets one up, it will show up here."}
-          </p>
-          {admin ? (
-            <TextLink
-              className="inline-flex items-center gap-1 text-sm font-medium"
-              render={<Link to="/groups/$slug/events" params={{ slug }} />}
-            >
-              Plan a tournament
-              <ChevronRightIcon className="size-4" />
-            </TextLink>
-          ) : null}
-        </div>
+              : "No tournaments planned yet. When an admin sets one up, it will show up here."
+          }
+          action={
+            admin ? (
+              <TextLink
+                className="inline-flex items-center gap-1 text-sm font-medium"
+                render={<Link to="/groups/$slug/events" params={{ slug }} />}
+              >
+                Plan a tournament
+                <ChevronRightIcon className="size-4" />
+              </TextLink>
+            ) : null
+          }
+        />
       )}
     </section>
   );

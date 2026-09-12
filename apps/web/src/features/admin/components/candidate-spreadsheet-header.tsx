@@ -136,13 +136,13 @@ export function CandidateSpreadsheetHeader<TRow extends CandidateSpreadsheetRow>
                   <DropdownMenuContent align="end">
                     {onCheck && !isChecked(row) && (
                       <DropdownMenuItem onClick={() => onCheck(row.id)}>
-                        <CheckIcon className="mr-2 size-3.5" />
+                        <CheckIcon className="size-3.5" />
                         Mark as checked
                       </DropdownMenuItem>
                     )}
                     {onUncheck && isChecked(row) && (
                       <DropdownMenuItem onClick={() => onUncheck(row.id)}>
-                        <XIcon className="mr-2 size-3.5" />
+                        <XIcon className="size-3.5" />
                         Mark as unchecked
                       </DropdownMenuItem>
                     )}

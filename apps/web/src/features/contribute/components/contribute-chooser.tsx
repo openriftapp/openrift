@@ -50,9 +50,9 @@ export function ContributeChooser() {
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-8")}>
         <MyMissingImagesSection layout="tiles" />
 
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <Heading level={2}>Four ways to help</Heading>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <ChoiceTile
               to="/contribute/card"
               icon={PlusIcon}
@@ -85,9 +85,9 @@ export function ContributeChooser() {
         </section>
 
         <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <Heading level={2}>What happens next</Heading>
-            <ol className="flex flex-col gap-3.5">
+            <ol className="flex flex-col gap-3">
               {STEPS.map((step, index) => (
                 <li key={step.title} className="flex items-start gap-3">
                   <span className="bg-primary text-primary-foreground font-heading flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
@@ -131,7 +131,7 @@ function ChoiceTile({
 }) {
   return (
     <CardLink render={<Link to={to} />}>
-      <CardContent className="flex gap-3.5">
+      <CardContent className="flex gap-4">
         <IconTile icon={icon} />
         <div className="flex flex-1 flex-col gap-1">
           <CardTitle>{title}</CardTitle>

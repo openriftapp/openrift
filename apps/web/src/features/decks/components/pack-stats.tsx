@@ -6,7 +6,9 @@ import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { compactFormatterForMarketplace, formatterForMarketplace } from "@/lib/format";
 
@@ -291,14 +293,11 @@ function NotablePullsList({
   compactFmt: ((n: number) => string) | null;
 }) {
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold">Notable pulls</h3>
-      <ul className="grid gap-x-8 text-sm md:grid-cols-2">
+    <div className="flex flex-col gap-2">
+      <Heading level={3}>Notable pulls</Heading>
+      <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
-          <li
-            key={`${pull.shortCode}-${i}`}
-            className="border-border/40 flex items-baseline justify-between gap-3 border-b py-1 last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
-          >
+          <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">
             <span className="min-w-0 truncate">
               {pull.cardName}
               <span className="text-muted-foreground ml-1 font-mono text-xs">{pull.shortCode}</span>
@@ -309,31 +308,28 @@ function NotablePullsList({
                 {pull.value !== undefined && compactFmt ? compactFmt(pull.value) : "—"}
               </span>
             </span>
-          </li>
+          </RowListItem>
         ))}
-      </ul>
+      </RowList>
     </div>
   );
 }
 
 function UnpricedPullsList({ pulls }: { pulls: UnpricedPull[] }) {
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold">Cards without price data</h3>
-      <ul className="grid gap-x-8 text-sm md:grid-cols-2">
+    <div className="flex flex-col gap-2">
+      <Heading level={3}>Cards without price data</Heading>
+      <RowList className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
         {pulls.map((pull, i) => (
-          <li
-            key={`${pull.shortCode}-${i}`}
-            className="border-border/40 flex items-baseline justify-between gap-3 border-b py-1 last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
-          >
+          <RowListItem key={`${pull.shortCode}-${i}`} className="items-baseline justify-between">
             <span className="min-w-0 truncate">
               {pull.cardName}
               <span className="text-muted-foreground ml-1 font-mono text-xs">{pull.shortCode}</span>
             </span>
             <span className="text-muted-foreground shrink-0 text-xs">{pull.rarity}</span>
-          </li>
+          </RowListItem>
         ))}
-      </ul>
+      </RowList>
     </div>
   );
 }

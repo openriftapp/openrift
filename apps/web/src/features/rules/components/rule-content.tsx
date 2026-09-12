@@ -6,6 +6,7 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
+import { Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
 import type { HastNode, MdNode } from "@/features/rules/lib/rules-markdown";
@@ -258,8 +259,12 @@ const VERSION_COMMENT_COMPONENTS: Components = {
   ),
   ul: ({ children }) => <ul className="my-2 ml-6 list-disc">{children}</ul>,
   ol: ({ children }) => <ol className="my-2 ml-6 list-decimal">{children}</ol>,
-  h2: ({ children }) => <h2 className="font-heading mt-3 text-lg font-semibold">{children}</h2>,
-  h3: ({ children }) => <h3 className="mt-3 font-semibold">{children}</h3>,
+  h2: ({ children }) => <Heading className="mt-3">{children}</Heading>,
+  h3: ({ children }) => (
+    <Heading level={3} className="mt-3">
+      {children}
+    </Heading>
+  ),
   blockquote: ({ children }) => (
     <blockquote className="border-border text-muted-foreground my-2 border-l-2 pl-3">
       {children}

@@ -4,6 +4,7 @@ import { useRouter } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
@@ -23,16 +24,14 @@ function HeroStats({
   cardCount,
   printingCount,
   copyCount,
-  className,
 }: {
   cardCount: number;
   printingCount: number;
   copyCount: number;
-  className?: string;
 }) {
   const numberClass = "font-heading text-muted-foreground font-semibold";
   return (
-    <p className={cn("text-muted-foreground/50 text-center text-sm tabular-nums", className)}>
+    <p className="text-muted-foreground/50 text-left text-sm tabular-nums">
       <span className={numberClass}>{cardCount.toLocaleString()}</span> cards &middot;{" "}
       <span className={numberClass}>{printingCount.toLocaleString()}</span> printings &middot;{" "}
       <span className={numberClass}>{copyCount.toLocaleString()}</span> copies tracked
@@ -103,10 +102,10 @@ export function LandingPage() {
               </Button>
               <span className="font-heading text-4xl font-bold md:text-5xl">OpenRift</span>
             </div>
-            <h1 className="font-heading text-2xl font-bold text-balance md:text-4xl">
+            <Heading level={1} className="text-balance md:text-4xl">
               Track your Riftbound collection. Build decks. Trade with friends.
-            </h1>
-            <p className="text-muted-foreground text-lg">
+            </Heading>
+            <p className="text-muted-foreground text-left text-lg">
               Scan cards with your phone, follow prices, and match wishlists with your playgroup.
               Fast, free, and open source.
             </p>
@@ -116,7 +115,6 @@ export function LandingPage() {
                 cardCount={animatedCards}
                 printingCount={animatedPrintings}
                 copyCount={animatedCopies}
-                className="lg:text-left"
               />
             )}
           </div>

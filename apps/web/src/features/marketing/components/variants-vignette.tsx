@@ -245,7 +245,7 @@ export function VariantsVignette() {
         </div>
       </div>
 
-      <div className="border-border/60 grid border-t pt-3">
+      <div className="grid">
         <StepDiff
           from="Azir (Spiritforged)"
           to="Azir (Unleashed)"

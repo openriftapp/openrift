@@ -150,7 +150,7 @@ function PrintingDescriptor({ printing, siblings }: { printing: Printing; siblin
   const hasMixedRarities = new Set(siblings.map((p) => p.rarity)).size > 1;
   const rarityIcon = getFilterIconPath("rarities", printing.rarity);
   return (
-    <>
+    <span className="inline-flex items-center gap-1">
       <PrintingVariantLabel
         printing={printing}
         siblings={siblings}
@@ -165,10 +165,10 @@ function PrintingDescriptor({ printing, siblings }: { printing: Printing; siblin
           title={printing.rarity}
           width={28}
           height={28}
-          className="ml-1 inline size-3.5 align-text-bottom"
+          className="size-3.5"
         />
       )}
-    </>
+    </span>
   );
 }
 

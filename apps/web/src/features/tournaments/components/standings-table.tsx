@@ -3,6 +3,7 @@ import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
 import { Badge } from "@/components/ui/badge";
 import { Medal } from "@/components/ui/podium";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Table,
   TableBody,
@@ -87,12 +88,11 @@ export function StandingsTable({
   const ranked = rankedStandings(standings);
   return (
     <>
-      <ul className="divide-y sm:hidden">
+      <RowList variant="divided" className="sm:hidden">
         {ranked.map(({ row, rank }) => (
-          <li
+          <RowListItem
             key={row.playerId}
             className={cn(
-              "flex items-center gap-3 py-2",
               row.status === "dropped" && "opacity-50",
               rank === 1 && "bg-border-accent/5",
             )}
@@ -114,9 +114,9 @@ export function StandingsTable({
               </div>
             </div>
             <span className="shrink-0 font-semibold tabular-nums">{formatScore(row.score)}</span>
-          </li>
+          </RowListItem>
         ))}
-      </ul>
+      </RowList>
 
       <div className="hidden sm:block">
         <Table>

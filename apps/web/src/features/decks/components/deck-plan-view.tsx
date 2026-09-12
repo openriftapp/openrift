@@ -6,9 +6,10 @@ import type {
 } from "@openrift/shared/types/api/deck";
 import { getOrientation } from "@openrift/shared/utils";
 
+import { Heading } from "@/components/heading";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { MatchupCard } from "@/features/decks/components/deck-matchup-card";
-import { cn } from "@/lib/utils";
 
 type CardMetaLookup = (cardId: string) => DeckPlanCardMetaResponse | undefined;
 
@@ -60,9 +61,9 @@ function SwapColumn({
 }) {
   return (
     <div className="flex-1 space-y-1.5">
-      <div className={cn("text-2xs font-semibold tracking-wide uppercase", tone)}>
+      <SectionHeading size="sm" className={tone}>
         {sign} {label}
-      </div>
+      </SectionHeading>
       {swaps.length === 0 ? (
         <div className="text-muted-foreground text-sm">No changes</div>
       ) : (
@@ -105,12 +106,12 @@ export function DeckPlanView({
     : battlefields.length > 0;
 
   return (
-    <section className="space-y-5">
-      {!hideHeading && <h2 className="text-lg font-semibold">Deck plan</h2>}
+    <section className="space-y-6">
+      {!hideHeading && <Heading>Deck plan</Heading>}
 
       {plan.generalStrategy !== "" && (
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">Strategy</h3>
+        <div className="space-y-2">
+          <Heading level={3}>Strategy</Heading>
           <p className="text-muted-foreground max-w-prose whitespace-pre-wrap">
             {plan.generalStrategy}
           </p>
@@ -118,8 +119,8 @@ export function DeckPlanView({
       )}
 
       {hasMulligan ? (
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">Mulligan priority</h3>
+        <div className="space-y-2">
+          <Heading level={3}>Mulligan priority</Heading>
           {plan.mulliganSplit ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -140,8 +141,8 @@ export function DeckPlanView({
       ) : null}
 
       {hasBattlefields ? (
-        <div className="space-y-1.5">
-          <h3 className="text-sm font-medium">Battlefields</h3>
+        <div className="space-y-2">
+          <Heading level={3}>Battlefields</Heading>
           {plan.battlefieldCustom ? (
             <p className="text-muted-foreground max-w-prose whitespace-pre-wrap">
               {plan.battlefieldNote}
@@ -161,8 +162,8 @@ export function DeckPlanView({
 
       {plan.matchups.length > 0 ? (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Matchups</h3>
-          <div className="grid gap-3 @2xl:grid-cols-2">
+          <Heading level={3}>Matchups</Heading>
+          <div className="grid gap-4 @2xl:grid-cols-2">
             {plan.matchups.map((matchup) => {
               const outSwaps = matchup.swaps.filter((swap) => swap.direction === "out");
               const inSwaps = matchup.swaps.filter((swap) => swap.direction === "in");

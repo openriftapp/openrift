@@ -1,12 +1,7 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 
-import {
-  SectionHeader,
-  SectionHeaderDescription,
-  SectionHeaderGroup,
-  SectionHeaderTitle,
-} from "@/components/section-header";
-import { Label } from "@/components/ui/label";
+import { SettingsRow } from "@/components/layout/settings-row";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Switch } from "@/components/ui/switch";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useAdminSettingsStore } from "@/features/admin/hooks/use-admin-settings";
@@ -20,31 +15,24 @@ function SettingsPage() {
   const update = useAdminSettingsStore((s) => s.update);
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Settings" />
-      <section className="space-y-4">
-        <SectionHeader>
-          <SectionHeaderGroup>
-            <SectionHeaderTitle level={2}>Developer Tools</SectionHeaderTitle>
-            <SectionHeaderDescription>
-              Diagnostic overlays and debugging aids. These settings are stored in your browser.
-            </SectionHeaderDescription>
-          </SectionHeaderGroup>
-        </SectionHeader>
-        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-          <div className="space-y-0.5">
-            <Label htmlFor="debug-overlay">Debug overlay</Label>
-            <p className="text-muted-foreground text-sm">
-              Show card grid layout metrics (row heights, column count, virtualizer state)
-            </p>
-          </div>
+      <SettingsSection
+        title="Developer Tools"
+        description="Diagnostic overlays and debugging aids. These settings are stored in your browser."
+      >
+        <SettingsRow
+          label="Debug overlay"
+          htmlFor="debug-overlay"
+          description="Show card grid layout metrics (row heights, column count, virtualizer state)"
+        >
           <Switch
             id="debug-overlay"
             checked={settings.debugOverlay}
             onCheckedChange={(checked: boolean) => update({ debugOverlay: checked })}
           />
-        </div>
-      </section>
+        </SettingsRow>
+      </SettingsSection>
     </div>
   );
 }

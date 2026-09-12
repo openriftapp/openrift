@@ -1,7 +1,9 @@
 import type { RuleKind, RuleResponse } from "@openrift/shared/types/api/rules";
 import { useNavigate } from "@tanstack/react-router";
+import { BookOpenIcon } from "lucide-react";
 import { useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import {
@@ -12,6 +14,7 @@ import {
   PageTopBarTitle,
   useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -92,6 +95,16 @@ export function RulesPage({ kind, version }: { kind: RuleKind; version: string |
   return <RulesContent kind={kind} version={version} />;
 }
 
+function NoRulesYet() {
+  return (
+    <EmptyState
+      icon={BookOpenIcon}
+      title="No rules available yet"
+      description="Rules will appear here once imported by an administrator."
+    />
+  );
+}
+
 function RulesEmpty({ kind }: { kind: RuleKind }) {
   return (
     <>
@@ -104,10 +117,7 @@ function RulesEmpty({ kind }: { kind: RuleKind }) {
         <div className="mb-4">
           <KindTabs kind={kind} />
         </div>
-        <div className="text-muted-foreground py-16 text-center">
-          <p className="text-lg font-medium">No rules available yet</p>
-          <p>Rules will appear here once imported by an administrator.</p>
-        </div>
+        <NoRulesYet />
       </div>
     </>
   );
@@ -232,10 +242,7 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
         </div>
 
         {isEmpty ? (
-          <div className="text-muted-foreground py-16 text-center">
-            <p className="text-lg font-medium">No rules available yet</p>
-            <p>Rules will appear here once imported by an administrator.</p>
-          </div>
+          <NoRulesYet />
         ) : (
           <div className="flex gap-6">
             <PageToc items={tocItems} />
@@ -271,10 +278,12 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                 />
               )}
               {noSearchResults ? (
-                <div className="text-muted-foreground py-16 text-center">
-                  <p className="text-lg font-medium">No rules match your search</p>
-                  <p>Try fewer or different terms.</p>
-                </div>
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>No rules match your search</EmptyTitle>
+                    <EmptyDescription>Try fewer or different terms.</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : searchResult === null ? (
                 rules.map((rule) => (
                   <RuleRow

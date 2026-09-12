@@ -19,6 +19,7 @@ import { Heading } from "@/components/heading";
 import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
 import { CardList, CardListRow, CardRow } from "@/components/ui/card-list";
 import { Medal, Podium } from "@/components/ui/podium";
@@ -233,7 +234,7 @@ export function TilesSection() {
             value={1}
             sub="person waiting to join"
           >
-            <div className="bg-muted flex items-center gap-2.5 rounded-lg px-2.5 py-2">
+            <Callout variant="inset" className="flex items-center gap-2.5">
               <span className="min-w-0 flex-1 truncate text-sm">
                 <span className="font-medium">Powder Undercity</span>
                 <span className="text-muted-foreground"> · requested 2h ago</span>
@@ -246,7 +247,7 @@ export function TilesSection() {
                 <XIcon className="size-4" />
                 Deny
               </Button>
-            </div>
+            </Callout>
           </ActionBand>
         </div>
       </DemoRow>

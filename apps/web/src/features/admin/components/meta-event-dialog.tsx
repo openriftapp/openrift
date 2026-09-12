@@ -26,10 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import { MetaCrossSourcePanel } from "@/features/admin/components/meta-cross-source-panel";
 import { MetaEventDriftPanel } from "@/features/admin/components/meta-event-drift-panel";
 import { MetaEventSourcesEditor } from "@/features/admin/components/meta-event-sources-editor";
-import { ReviewDisclosure } from "@/features/admin/components/meta-review-shared";
 import { useCreateMetaEvent, useUpdateMetaEvent } from "@/features/admin/hooks/use-admin-meta";
 import { useWriteMetaEventOverlayFields } from "@/features/admin/hooks/use-admin-meta-overlays";
 import type { MetaEventBody, MetaEventDraft } from "@/features/admin/lib/admin-meta-draft";
@@ -258,15 +258,15 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
         {event && <MetaEventSourcesEditor eventId={event.id} />}
 
         {event && (
-          <ReviewDisclosure title="Source drift" onOpenChange={setDriftOpen}>
+          <AdminDisclosure title="Source drift" onOpenChange={setDriftOpen}>
             <MetaEventDriftPanel metaEventId={event.id} enabled={driftOpen} />
-          </ReviewDisclosure>
+          </AdminDisclosure>
         )}
 
         {event && (
-          <ReviewDisclosure title="Cross-source players" onOpenChange={setCrossSourceOpen}>
+          <AdminDisclosure title="Cross-source players" onOpenChange={setCrossSourceOpen}>
             <MetaCrossSourcePanel metaEventId={event.id} enabled={crossSourceOpen} />
-          </ReviewDisclosure>
+          </AdminDisclosure>
         )}
 
         <DialogFooter>

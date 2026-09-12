@@ -65,18 +65,20 @@ function StatTile({
         ),
         children: (
           <>
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <IconChip icon={Icon} tone={accent ? "primary" : tone} />
-              <span className="text-muted-foreground text-sm font-medium">{label}</span>
-              <span
-                className={cn(
-                  "font-heading ml-auto min-w-0 text-3xl font-semibold tabular-nums",
-                  valueClassName,
-                )}
-              >
-                {value}
+              <span className="flex min-w-0 flex-1 items-center gap-3">
+                <span className="text-muted-foreground text-sm font-medium">{label}</span>
+                <span
+                  className={cn(
+                    "font-heading ml-auto min-w-0 text-3xl font-semibold tabular-nums",
+                    valueClassName,
+                  )}
+                >
+                  {value}
+                </span>
               </span>
-              <ChevronRightIcon className="text-muted-foreground/40 group-hover/stat-tile:text-muted-foreground size-4 shrink-0 transition-transform group-hover/stat-tile:translate-x-0.5" />
+              <ChevronRightIcon className="text-muted-foreground/40 group-hover/stat-tile:text-muted-foreground mt-2.5 size-4 shrink-0 transition-transform group-hover/stat-tile:translate-x-0.5" />
             </div>
             {children}
             {hint ? <span className="text-muted-foreground mt-auto text-xs">{hint}</span> : null}

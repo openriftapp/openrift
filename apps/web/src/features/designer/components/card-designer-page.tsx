@@ -109,7 +109,7 @@ export function CardDesignerPage() {
           <CardDesignerForm />
         </div>
         <div className="order-1 flex flex-col gap-4 lg:sticky lg:top-20 lg:order-2">
-          <CardDesignerPreview interactive className="mx-auto w-full max-w-xs" />
+          <CardDesignerPreview interactive className="w-full" />
           <BackgroundImageControl />
           <CardExportControls
             onDownload={() => void runExport("download")}

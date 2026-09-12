@@ -105,7 +105,11 @@ function SelectLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) 
   return (
     <SelectPrimitive.GroupLabel
       data-slot="select-label"
-      className={cn("text-muted-foreground px-1.5 py-1 text-xs", className)}
+      className={cn(
+        // custom: px-2 py-1.5 label — popup rows sit on the h-8 rhythm, not below it
+        "text-muted-foreground px-2 py-1.5 text-xs",
+        className,
+      )}
       {...props}
     />
   );
@@ -117,7 +121,8 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       data-slot="select-item"
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "focus:bg-muted focus:text-foreground relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        // custom: py-1.5 pl-2 rows — popup rows sit on the h-8 rhythm, not below it
+        "focus:bg-muted focus:text-foreground relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}
@@ -140,7 +145,11 @@ function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Prop
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("bg-border pointer-events-none -mx-1 my-1 h-px", className)}
+      className={cn(
+        // custom: my-1.5 — matches the new row padding so a divider doesn't read as another row
+        "bg-border pointer-events-none -mx-1 my-1.5 h-px",
+        className,
+      )}
       {...props}
     />
   );

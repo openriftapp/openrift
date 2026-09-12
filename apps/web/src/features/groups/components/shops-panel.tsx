@@ -70,7 +70,7 @@ export function ShopsPanel({ slug }: { slug: string }) {
       ) : (
         <p className="text-muted-foreground text-sm">No shop linked yet.</p>
       )}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <AddShopPicker slug={slug} disabled={atLimit} />
         <span className="text-muted-foreground text-xs">
           {data.items.length} of {data.limit} shops linked

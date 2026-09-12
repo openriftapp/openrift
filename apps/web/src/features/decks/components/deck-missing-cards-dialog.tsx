@@ -320,7 +320,7 @@ function MissingCardsDialogBody({
         </div>
 
         {totalMissingValue !== undefined && (
-          <div className="text-muted-foreground flex items-center justify-between border-t px-2 pt-2 text-sm">
+          <div className="text-muted-foreground flex items-center justify-between px-2 pt-4 text-sm">
             <span>Total</span>
             <span className="text-foreground font-medium">{fmt(totalMissingValue)}</span>
           </div>

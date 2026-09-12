@@ -203,7 +203,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
             <div className="max-h-[400px] overflow-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0">
-                  <tr className="border-border bg-muted border-b">
+                  <tr className="border-border bg-background border-b">
                     <th scope="col" className="px-3 py-2 text-left font-medium">
                       Date
                     </th>
@@ -218,10 +218,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
                   {tableRows.map((row) => (
                     <tr
                       key={row.date}
-                      className={cn(
-                        "border-border border-b transition-colors last:border-b-0",
-                        hoveredDate === row.date && "bg-muted",
-                      )}
+                      className={cn("transition-colors", hoveredDate === row.date && "bg-muted")}
                       onMouseEnter={() => setHoveredDate(row.date)}
                       onMouseLeave={() => setHoveredDate(null)}
                     >

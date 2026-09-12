@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import { DeckImportEntryRow } from "@/features/collections/components/deck-import-entry-row";
 import {
+  ImportPreviewStack,
+  ImportRowsSection,
   ImportStatusBadges,
   ImportToVerifyNote,
   ImportTroubleNote,
@@ -141,7 +143,7 @@ export function DeckImportPreviewStep({
     >
       {isImporting ? (
         <>
-          <Loader2Icon className="mr-2 size-4 animate-spin" />
+          <Loader2Icon className="size-4 animate-spin" />
           {isReplaceMode ? "Replacing..." : "Importing..."}
         </>
       ) : isReplaceMode ? (
@@ -166,7 +168,7 @@ export function DeckImportPreviewStep({
           <PageTopBarTitle>{isReplaceMode ? "Replace Preview" : "Import Preview"}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 pt-3", PAGE_PADDING_NO_TOP)}>
+      <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <PageDescription>
           {matchedEntries.length} card{matchedEntries.length === 1 ? "" : "s"} parsed
           {sourceNote ? ` (${sourceNote})` : null}
@@ -180,11 +182,16 @@ export function DeckImportPreviewStep({
           isLoggedIn={isLoggedIn}
         />
 
-        <Accordion
-          multiple
-          value={expandedValues}
-          onValueChange={(value) => onExpandedValuesChange(value as string[])}
-          className="divide-border divide-y rounded-lg border"
+        <ImportRowsSection
+          title="Cards"
+          count={matchedEntries.length}
+          render={
+            <Accordion
+              multiple
+              value={expandedValues}
+              onValueChange={(value) => onExpandedValuesChange(value as string[])}
+            />
+          }
         >
           {matchedEntries.map((entry, index) => (
             <DeckImportEntryRow
@@ -201,7 +208,7 @@ export function DeckImportPreviewStep({
               onUnskip={onUnskip}
             />
           ))}
-        </Accordion>
+        </ImportRowsSection>
 
         {parseWarnings.length > 0 && (
           <Alert variant="warning">
@@ -298,7 +305,7 @@ export function DeckImportPreviewStep({
             {importButton}
           </div>
         )}
-      </div>
+      </ImportPreviewStack>
     </>
   );
 }

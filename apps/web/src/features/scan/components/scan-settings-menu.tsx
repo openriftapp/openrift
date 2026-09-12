@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 
+import { SettingsRow } from "@/components/layout/settings-row";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
@@ -50,8 +51,8 @@ export function ScanSettingsMenu({
   return (
     <Popover>
       <PopoverTrigger render={trigger}>{triggerContent}</PopoverTrigger>
-      <PopoverContent align="end" className="w-88 max-w-[calc(100vw-1.5rem)] gap-0 p-0">
-        <SettingRow label="Card language" description="Used to pick the printing">
+      <PopoverContent align="end" className="w-88 max-w-[calc(100vw-1.5rem)] gap-4 p-4">
+        <SettingsRow label="Card language" description="Used to pick the printing">
           <Select
             items={languageItems}
             value={language}
@@ -72,9 +73,9 @@ export function ScanSettingsMenu({
               ))}
             </SelectContent>
           </Select>
-        </SettingRow>
+        </SettingsRow>
 
-        <SettingRow
+        <SettingsRow
           label="Count every copy"
           description="Keeps counting while cards are dealt past the camera. Off: each card once."
         >
@@ -83,45 +84,28 @@ export function ScanSettingsMenu({
             checked={autoScan}
             onCheckedChange={onAutoScanChange}
           />
-        </SettingRow>
+        </SettingsRow>
 
-        <SettingRow label="Sounds" description="A tick when a card is recognised">
+        <SettingsRow label="Sounds" description="A tick when a card is recognised">
           <Switch
             aria-label="Sounds"
             checked={!muted}
             onCheckedChange={(checked: boolean) => onMutedChange(!checked)}
           />
-        </SettingRow>
+        </SettingsRow>
 
-        <SettingRow label="Tap to scan" description="For slow devices: recognise only when you tap">
+        <SettingsRow
+          label="Tap to scan"
+          description="For slow devices: recognise only when you tap"
+        >
           <Switch
             aria-label="Tap to scan"
             checked={deviceTooSlow || tapToScan}
             disabled={deviceTooSlow}
             onCheckedChange={onTapToScanChange}
           />
-        </SettingRow>
+        </SettingsRow>
       </PopoverContent>
     </Popover>
-  );
-}
-
-function SettingRow({
-  label,
-  description,
-  children,
-}: {
-  label: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-4 border-b p-3 last:border-b-0">
-      <div className="min-w-0 flex-1">
-        <span className="block font-medium">{label}</span>
-        <p className="text-muted-foreground text-sm">{description}</p>
-      </div>
-      {children}
-    </div>
   );
 }

@@ -138,7 +138,7 @@ export function CardDetail({
 
           <div className="min-w-0 space-y-4">
             {hasBans && <BanAlert printing={printing} />}
-            <CardDetailStats printing={printing} />
+            <CardDetailStats printing={printing} align="start" />
             {text}
             {notes}
             {holdings}
@@ -148,7 +148,7 @@ export function CardDetail({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <CardDetailLinks card={card} printing={printing} />
           {footerSlot}
         </div>

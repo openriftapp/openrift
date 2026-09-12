@@ -107,9 +107,13 @@ function PendingApprovalStub({ data }: { data: FriendGroupDetailResponse }) {
   }
 
   return (
-    <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4 text-center", PAGE_PADDING)}>
-      <Heading level={1}>{data.group.name}</Heading>
-      <p className="text-muted-foreground">Waiting for an admin to approve your request to join.</p>
+    <div className={cn(PAGE_WIDTH.capped, "flex flex-col items-center gap-6", PAGE_PADDING)}>
+      <div className="flex flex-col items-center gap-2 text-center">
+        <Heading level={1}>{data.group.name}</Heading>
+        <p className="text-muted-foreground">
+          Waiting for an admin to approve your request to join.
+        </p>
+      </div>
       <Button
         variant="ghost"
         onClick={() => void handleCancel()}

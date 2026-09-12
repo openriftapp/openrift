@@ -1,6 +1,15 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import type { ReactNode } from "react";
 
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import type { DrawOddsRow } from "@/features/decks/lib/deck-draw-odds";
@@ -42,41 +51,38 @@ export function DeckDrawOddsPanel({
   onCardClick,
 }: DeckDrawOddsPanelProps) {
   return (
-    <div>
-      <div className="text-muted-foreground text-2xs mb-1.5 flex items-center font-semibold tracking-wide uppercase">
-        Draw odds
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <SectionHeading size="sm">Draw odds</SectionHeading>
         {picker}
       </div>
-      <div className="max-h-96 overflow-y-auto rounded-md border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-muted-foreground text-xs">
-              <th className="px-2 py-1.5 text-left font-medium">Card</th>
-              <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">Hand</th>
-              <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">First 7</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="max-h-96 overflow-y-auto">
+        <Table interactive={false}>
+          <TableHeader>
+            <TableRow className="text-muted-foreground text-xs">
+              <TableHead>Card</TableHead>
+              <TableHead className="w-px text-right">Hand</TableHead>
+              <TableHead className="w-px text-right">First 7</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {/* Group rows first, then per-card rows below. */}
             {groupRows.map((row) => {
               const inHand = inHandGroupCounts.get(row.key) ?? 0;
               return (
-                <tr key={row.key} className="bg-muted/50 border-t">
-                  <td
-                    className="max-w-0 truncate px-2 py-1"
-                    title={oddsRowTitle(row.label, inHand)}
-                  >
+                <TableRow key={row.key} className="bg-muted/50">
+                  <TableCell className="max-w-0 truncate" title={oddsRowTitle(row.label, inHand)}>
                     <InHandDot inHand={inHand} />
                     {row.label}{" "}
                     <span className="text-muted-foreground tabular-nums">· {row.copies}</span>
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
+                  </TableCell>
+                  <TableCell className="w-px text-right tabular-nums">
                     {formatChancePct(row.openingChance)}
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
+                  </TableCell>
+                  <TableCell className="w-px text-right tabular-nums">
                     {formatChancePct(row.earlyChance)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
             {oddsRows.map((row) => {
@@ -91,33 +97,33 @@ export function DeckDrawOddsPanel({
                     })
                 : undefined;
               return (
-                <tr
+                <TableRow
                   key={row.cardId}
-                  className={cn("border-t", openCard && "hover:bg-muted/50 cursor-pointer")}
+                  className={cn(openCard && "cursor-pointer")}
                   {...cardHoverProps(onHoverCard, row.cardId, preferredPrintingId)}
                   {...rowActivateProps(openCard)}
                 >
-                  <td
-                    className="max-w-0 truncate px-2 py-1"
+                  <TableCell
+                    className="max-w-0 truncate"
                     title={oddsRowTitle(row.cardName, inHand)}
                   >
                     <InHandDot inHand={inHand} />
                     <span className="text-muted-foreground tabular-nums">{row.copies}×</span>{" "}
                     {row.cardName}
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
+                  </TableCell>
+                  <TableCell className="w-px text-right tabular-nums">
                     {formatChancePct(row.openingChance)}
-                  </td>
-                  <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">
+                  </TableCell>
+                  <TableCell className="w-px text-right tabular-nums">
                     {formatChancePct(row.earlyChance)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <p className="text-muted-foreground text-2xs mt-1.5">
+      <p className="text-muted-foreground text-2xs">
         Chance of at least one copy in your opening hand, and anywhere in your first 7 cards.
       </p>
       {showHandDots && (

@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 import type { ReactNode } from "react";
 
 import { Pane } from "@/components/layout/panes";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
@@ -87,9 +88,9 @@ export function SelectionDetailPane({
 
 function PaneEmptyState() {
   return (
-    <div className="text-muted-foreground flex h-40 items-center justify-center rounded-lg border border-dashed px-6 text-center text-sm">
-      Select a card to see its details
-    </div>
+    <Empty className="h-40">
+      <EmptyDescription>Select a card to see its details</EmptyDescription>
+    </Empty>
   );
 }
 

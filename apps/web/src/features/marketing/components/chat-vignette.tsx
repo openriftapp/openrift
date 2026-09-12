@@ -58,7 +58,7 @@ export function ChatVignette() {
         </div>
       </div>
 
-      <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+      <p className="text-muted-foreground text-xs">
         Works the same in StreamElements and Fossabot. A name that matches nothing comes back as a
         search link, so a typo still lands somewhere useful.
       </p>

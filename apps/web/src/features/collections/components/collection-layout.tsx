@@ -276,12 +276,12 @@ function CollectionContent({
   setTopBarSlot: (el: HTMLDivElement | null) => void;
 }) {
   return (
-    <div className="pr-safe flex min-w-0 flex-1 flex-col pb-3 pl-3">
+    <div className="pr-safe pl-gutter flex min-w-0 flex-1 flex-col pb-3">
       {/* No px-safe here: the column already clears iOS safe areas, and px-safe
           would double-inset the bar on notched phones in landscape. */}
       <div
         ref={setTopBarSlot}
-        className={cn(PAGE_TOP_BAR_STICKY_BASE, "mr-safe-neg pr-safe -ml-3 pl-3")}
+        className={cn(PAGE_TOP_BAR_STICKY_BASE, "mr-safe-neg pr-safe ml-gutter-neg pl-gutter")}
       />
       <div className="flex flex-1 flex-col pb-3">
         <Outlet />

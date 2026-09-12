@@ -87,8 +87,8 @@ function ActionBand({
                 chip plus the gap-x-3), so the wrapped line stays under the label
                 instead of sliding back under the icon. From sm up the row is
                 single-line and sub truncates. */}
-            <div className="flex min-w-0 items-center gap-x-3 gap-y-2 max-sm:flex-wrap">
-              <IconChip icon={icon} tone={tone} />
+            <div className="flex min-w-0 items-baseline gap-x-3 gap-y-2 max-sm:flex-wrap">
+              <IconChip icon={icon} tone={tone} className="self-center" />
               <span className="text-muted-foreground text-sm font-medium whitespace-nowrap">
                 {label}
               </span>
@@ -105,7 +105,9 @@ function ActionBand({
                   {sub}
                 </span>
               ) : null}
-              {action ? <span className="ml-auto flex shrink-0 items-center">{action}</span> : null}
+              {action ? (
+                <span className="ml-auto flex shrink-0 items-center self-center">{action}</span>
+              ) : null}
             </div>
             {children}
           </>

@@ -89,7 +89,7 @@ function ChampionPlate({
 
   return (
     <div className="flex w-full shrink-0 items-center gap-4 sm:w-auto">
-      <div className="bg-background/60 ring-border flex w-full flex-col gap-2 rounded-lg p-4 ring-1 sm:w-64">
+      <div className="flex w-full flex-col gap-2 sm:w-64">
         <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
           Champion
         </span>
@@ -195,7 +195,7 @@ export function MetaEventHeader({
       <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           <div className="flex items-center gap-3">
-            <DateLeaf month={leaf.month} day={leaf.day} year={leaf.year} />
+            <DateLeaf month={leaf.month} day={leaf.day} caption={leaf.year} />
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <h1 className="font-heading text-2xl font-bold">{event.name}</h1>

@@ -13,7 +13,7 @@ export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
     <Link
       to="/meta/$slug"
       params={{ slug: event.slug }}
-      className="hover:bg-muted/50 focus-visible:ring-ring/50 flex items-center gap-2.5 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
+      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 flex items-center gap-2.5 rounded-md px-2 py-2 outline-none focus-visible:ring-2 focus-visible:ring-inset"
     >
       <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
 

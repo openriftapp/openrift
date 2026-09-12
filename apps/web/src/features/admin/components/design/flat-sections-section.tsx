@@ -6,6 +6,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
@@ -19,7 +20,7 @@ export function FlatSectionsSection() {
     <DemoSection
       id="flat-sections"
       title="Flat sections & lists"
-      note="A box means an entity, a popup or a destructive boundary. Everything else is typography and spacing. SettingsSection is the settings or form section (title, description, fields, a hairline to the next); SettingsGroup draws the hairlines. RowList is the flat list under a SectionHeading, rows separated by spacing; RowListLink gives a row the hover wash; variant divided adds hairlines for tall multi-line rows only. Callout inset is the borderless note inside another surface."
+      note="A box means an entity, a popup or a destructive boundary. Everything else is typography and spacing. SettingsSection is the settings or form section (title, description, fields); SettingsGroup stacks siblings by spacing under a labelled ornament rule, no hairlines. RowList is the flat list under a SectionHeading, rows separated by spacing; RowListLink gives a row the hover wash; variant divided adds hairlines for tall multi-line rows only. Callout inset is the borderless note inside another surface. DefinitionList is the flat label/value list, pairs on one baseline."
       docs="docs/design-language.md → When not to box"
     >
       <DemoRow label="SettingsGroup + SettingsSection" className="block">
@@ -82,6 +83,16 @@ export function FlatSectionsSection() {
             </RowListItem>
           </RowList>
         </div>
+      </DemoRow>
+      <DemoRow label="DefinitionList" className="block">
+        <DefinitionList className="max-w-md">
+          <DefinitionTerm>Set</DefinitionTerm>
+          <DefinitionDetail>Origins</DefinitionDetail>
+          <DefinitionTerm>Rarity</DefinitionTerm>
+          <DefinitionDetail>Epic</DefinitionDetail>
+          <DefinitionTerm>Artist</DefinitionTerm>
+          <DefinitionDetail>Sixmorevodka</DefinitionDetail>
+        </DefinitionList>
       </DemoRow>
     </DemoSection>
   );

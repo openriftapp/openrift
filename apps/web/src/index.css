@@ -40,6 +40,30 @@ body,
   }
 }
 
+/* Horizontal page gutter behind px-safe and its siblings. Steps up with the
+   viewport so the frame around the page always exceeds a Card's 16px padding. */
+:root {
+  --page-gutter: 0.75rem;
+}
+@media (min-width: 40rem) {
+  :root {
+    --page-gutter: 1.5rem;
+  }
+}
+@media (min-width: 64rem) {
+  :root {
+    --page-gutter: 2rem;
+  }
+}
+
+/* Interior gap beside a persistent sidebar. The resolved gutters are
+   variables so a sidebar column can narrow the gutter every utility below reads. */
+:root {
+  --sidebar-gap: 1rem;
+  --gutter-left: max(var(--page-gutter), env(safe-area-inset-left, 0px));
+  --gutter-right: max(var(--page-gutter), env(safe-area-inset-right, 0px));
+}
+
 html {
   scroll-padding-top: calc(var(--header-height) + 0.5rem);
 }
@@ -1505,32 +1529,43 @@ html.hide-scrollbar::-webkit-scrollbar {
 
 /* Horizontal page inset that clears the iOS safe areas. In landscape the
    Dynamic Island and rounded corners intrude from the sides, so edge content
-   must clear env(safe-area-inset-left/right); max() keeps the normal 0.75rem
+   must clear env(safe-area-inset-left/right); max() keeps the normal page
    gutter in portrait and on every non-notched device (insets resolve to 0).
    Apply to inner content containers so a parent's background/blur still bleeds
    to the physical edge while its content stays clear. */
 @utility px-safe {
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  padding-left: var(--gutter-left);
+  padding-right: var(--gutter-right);
 }
 
 /* Single-side variants of px-safe, for elements where only one edge meets the
    physical viewport edge (e.g. the content column next to a sidebar: its right
-   edge clears the island, its left edge is an interior gap). Same 0.75rem floor,
-   so they're drop-in replacements for pl-3 / pr-3 with no change off iOS. */
+   edge clears the island, its left edge is an interior gap). Same gutter floor,
+   so they track px-safe with no change off iOS. */
 @utility pl-safe {
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-left: var(--gutter-left);
 }
 
 @utility pr-safe {
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  padding-right: var(--gutter-right);
+}
+
+/* No safe-area term: the sidebar already clears the notch. Narrows
+   --gutter-left so nested px-safe / mx-safe-neg bars bleed to the column edge. */
+@utility pl-gutter {
+  --gutter-left: var(--sidebar-gap);
+  padding-left: var(--gutter-left);
+}
+
+@utility ml-gutter-neg {
+  margin-left: calc(-1 * var(--sidebar-gap));
 }
 
 /* Left margin that clears the iOS safe area, for the leading edge of a sidebar
-   that sits flush-ish against the viewport. Drop-in for ml-3 (same 0.75rem
-   floor); in landscape the Dynamic Island no longer eats the sidebar's edge. */
+   that sits flush-ish against the viewport. Same gutter floor as px-safe; in
+   landscape the Dynamic Island no longer eats the sidebar's edge. */
 @utility ml-safe {
-  margin-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  margin-left: var(--gutter-left);
 }
 
 /* Bottom inset that clears the iOS home indicator, with the same max() floor. */
@@ -1547,11 +1582,10 @@ html.hide-scrollbar::-webkit-scrollbar {
 
 /* Negative horizontal margin that exactly cancels a `px-safe` parent gutter, so
    a full-bleed background (sticky toolbar blur) reaches the physical edge. Pair
-   with `px-safe` to re-inset the content. Matches `-mx-3` on non-notched
-   devices. */
+   with `px-safe` to re-inset the content. */
 @utility mx-safe-neg {
-  margin-left: calc(-1 * max(0.75rem, env(safe-area-inset-left, 0px)));
-  margin-right: calc(-1 * max(0.75rem, env(safe-area-inset-right, 0px)));
+  margin-left: calc(-1 * var(--gutter-left));
+  margin-right: calc(-1 * var(--gutter-right));
 }
 
 /* Right-side-only variant of mx-safe-neg, for a bar inside a sidebar content
@@ -1559,7 +1593,7 @@ html.hide-scrollbar::-webkit-scrollbar {
    clears the safe area via ml-safe), so only the right margin must cancel a
    pr-safe parent gutter. Pair with pr-safe to re-inset the content. */
 @utility mr-safe-neg {
-  margin-right: calc(-1 * max(0.75rem, env(safe-area-inset-right, 0px)));
+  margin-right: calc(-1 * var(--gutter-right));
 }
 
 /* The rules page renders one copy-link affordance per rule — around 2,400 of

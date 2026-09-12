@@ -22,7 +22,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -169,7 +168,7 @@ function ListReadback({
         <Alert variant="info">
           <AlertTitle>Check these two are the same card</AlertTitle>
           <AlertDescription>
-            <ul className="list-inside list-disc">
+            <ul className="list-outside list-disc pl-4">
               {parsed.reinterpreted.map((row) => (
                 <li key={row.source}>
                   {row.source} → {row.matched}
@@ -189,7 +188,7 @@ function ListReadback({
               : `${parsed.unmatched.length} lines don't match a card we know`}
           </AlertTitle>
           <AlertDescription>
-            <ul className="list-inside list-disc">
+            <ul className="list-outside list-disc pl-4">
               {parsed.unmatched.map((name) => (
                 <li key={name}>{name}</li>
               ))}
@@ -207,7 +206,7 @@ function ListReadback({
           <TriangleAlertIcon />
           <AlertTitle>Some lines were skipped</AlertTitle>
           <AlertDescription>
-            <ul className="list-inside list-disc">
+            <ul className="list-outside list-disc pl-4">
               {parsed.warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}
@@ -250,7 +249,7 @@ function SubmissionSent({
               : `We couldn't place ${unresolved.length} of your cards`}
           </AlertTitle>
           <AlertDescription>
-            <ul className="list-inside list-disc">
+            <ul className="list-outside list-disc pl-4">
               {unresolved.map((name) => (
                 <li key={name}>{name}</li>
               ))}
@@ -402,7 +401,7 @@ export function MetaSubmitPage({
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         {result ? (
           <SubmissionSent
             result={result}
@@ -668,34 +667,35 @@ export function MetaSubmitPage({
               )}
 
               <SettingsSection title="Decklist">
-                <Label htmlFor="meta-submit-deck">Decklist</Label>
-                <Textarea
-                  id="meta-submit-deck"
-                  value={draft.deckText}
-                  rows={12}
-                  className="max-w-2xl font-mono text-sm"
-                  placeholder={DECK_PLACEHOLDER}
-                  onChange={(event) => set("deckText", event.target.value)}
-                />
-                <p className="text-muted-foreground text-sm">{deckHint}</p>
+                <Field className="max-w-2xl">
+                  <FieldLabel htmlFor="meta-submit-deck">Decklist</FieldLabel>
+                  <Textarea
+                    id="meta-submit-deck"
+                    value={draft.deckText}
+                    rows={12}
+                    className="font-mono text-sm"
+                    placeholder={DECK_PLACEHOLDER}
+                    onChange={(event) => set("deckText", event.target.value)}
+                  />
+                  <FieldDescription>{deckHint}</FieldDescription>
+                </Field>
 
                 {parsed && parsed.cards.length > 0 ? (
                   <ListReadback parsed={parsed} prefill={row} />
                 ) : null}
 
                 {noteExpanded ? (
-                  <div className="flex flex-col gap-2 pt-2">
-                    <Label htmlFor="meta-submit-note">
+                  <Field className="max-w-2xl">
+                    <FieldLabel htmlFor="meta-submit-note">
                       {kind === "correction"
                         ? "What's wrong with the list we have"
                         : "Note for the reviewer (optional)"}
-                    </Label>
+                    </FieldLabel>
                     <Textarea
                       id="meta-submit-note"
                       value={draft.note}
                       rows={3}
                       maxLength={2000}
-                      className="max-w-2xl"
                       placeholder={
                         kind === "correction"
                           ? "What we got wrong, and where the right list came from"
@@ -703,7 +703,7 @@ export function MetaSubmitPage({
                       }
                       onChange={(event) => set("note", event.target.value)}
                     />
-                  </div>
+                  </Field>
                 ) : (
                   <Button
                     type="button"

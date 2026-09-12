@@ -32,6 +32,8 @@ import { ImportEntryRow } from "@/features/collections/components/import-entry-r
 import {
   ImportExactMatchesDisclosure,
   ImportParseErrorDetails,
+  ImportPreviewStack,
+  ImportRowsSection,
   ImportStatusBadges,
   ImportToVerifyNote,
   ImportTroubleNote,
@@ -141,7 +143,7 @@ export function CollectionImportPreviewStep({
   );
 
   return (
-    <div className={cn(PAGE_WIDTH.capped, "space-y-4 pt-3")}>
+    <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3")}>
       <SectionHeader>
         <SectionHeaderGroup>
           <SectionHeaderTitle>Import Preview</SectionHeaderTitle>
@@ -158,9 +160,9 @@ export function CollectionImportPreviewStep({
       </SectionHeader>
 
       {problematicEntries.length > 0 && (
-        <div className="divide-border divide-y rounded-lg border">
+        <ImportRowsSection title="Needs review" count={problematicEntries.length}>
           {problematicEntries.map((item) => renderRow(item))}
-        </div>
+        </ImportRowsSection>
       )}
 
       <ImportParseErrorDetails errors={parseErrors} unit="row" />
@@ -246,7 +248,7 @@ export function CollectionImportPreviewStep({
           >
             {isImporting ? (
               <>
-                <Loader2Icon className="mr-2 size-4 animate-spin" />
+                <Loader2Icon className="size-4 animate-spin" />
                 Importing...
               </>
             ) : (
@@ -303,6 +305,6 @@ export function CollectionImportPreviewStep({
           </div>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </ImportPreviewStack>
   );
 }

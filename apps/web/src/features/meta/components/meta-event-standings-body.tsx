@@ -32,7 +32,7 @@ export function DesktopStandings({
 
   return (
     <div className="hidden md:block">
-      <Table className="block">
+      <Table variant="divided" className="block">
         <TableHeader className="block">
           <TableRow className="flex w-full">
             <TableHead className="flex w-20 shrink-0 items-center justify-center">Rank</TableHead>
@@ -85,7 +85,11 @@ export function PhoneStandings({
   const { containerRef, height, rows } = useRowWindow(players);
 
   return (
-    <ul ref={containerRef} className="relative block md:hidden" style={{ height }}>
+    <ul
+      ref={containerRef}
+      className="relative -mx-3 block md:hidden [&>li+li]:border-t"
+      style={{ height }}
+    >
       {rows.map(({ player, slot }) => (
         <PhoneRow
           key={player.id}

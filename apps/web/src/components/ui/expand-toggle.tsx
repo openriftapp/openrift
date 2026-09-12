@@ -1,5 +1,7 @@
 import { ChevronRightIcon } from "lucide-react";
+import { createContext, use } from "react";
 
+import { OrnamentFoldGem } from "@/components/ui/ornament";
 import { cn } from "@/lib/utils";
 
 // Hand-authored primitive (not shadcn-scaffolded).
@@ -19,9 +21,13 @@ import { cn } from "@/lib/utils";
  *
  * @returns The expand/collapse button element.
  */
+/** Headers on a gold rule set this to `gem` so every toggle inside draws the ornament fold gem. */
+const ExpandToggleChevronContext = createContext<"chevron" | "gem">("chevron");
+
 function ExpandToggle({
   expanded,
   chevronPosition = "start",
+  chevron,
   chevronClassName,
   className,
   children,
@@ -29,17 +35,23 @@ function ExpandToggle({
 }: React.ComponentProps<"button"> & {
   expanded: boolean;
   chevronPosition?: "start" | "end";
+  /** `gem` draws the ornament fold gem instead of the chevron, for headers on a gold rule. */
+  chevron?: "chevron" | "gem";
   chevronClassName?: string;
 }) {
-  const chevron = (
-    <ChevronRightIcon
-      className={cn(
-        "text-muted-foreground size-4 shrink-0 transition-transform",
-        expanded && "rotate-90",
-        chevronClassName,
-      )}
-    />
-  );
+  const chevronKind = chevron ?? use(ExpandToggleChevronContext);
+  const glyph =
+    chevronKind === "gem" ? (
+      <OrnamentFoldGem expanded={expanded} className={chevronClassName} />
+    ) : (
+      <ChevronRightIcon
+        className={cn(
+          "text-muted-foreground size-4 shrink-0 transition-transform",
+          expanded && "rotate-90",
+          chevronClassName,
+        )}
+      />
+    );
   return (
     <button
       data-slot="expand-toggle"
@@ -51,11 +63,11 @@ function ExpandToggle({
       )}
       {...props}
     >
-      {chevronPosition === "start" && chevron}
+      {chevronPosition === "start" && glyph}
       {children}
-      {chevronPosition === "end" && chevron}
+      {chevronPosition === "end" && glyph}
     </button>
   );
 }
 
-export { ExpandToggle };
+export { ExpandToggle, ExpandToggleChevronContext };

@@ -9,16 +9,16 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
 export default function WhyOpenRiftArticle() {
   return (
     <div className="space-y-8">
       <section>
-        <Heading className="mb-3">Why this exists</Heading>
+        <Heading className="mb-2">Why this exists</Heading>
         <div className="text-muted-foreground space-y-3">
           <p>Honestly? I just wanted to track my collection.</p>
           <p>
@@ -51,7 +51,7 @@ export default function WhyOpenRiftArticle() {
       </section>
 
       <section>
-        <Heading className="mb-3">What this site is (and isn&apos;t)</Heading>
+        <Heading className="mb-2">What this site is (and isn&apos;t)</Heading>
         <div className="grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<Code2Icon className="size-4" />}
@@ -85,7 +85,7 @@ export default function WhyOpenRiftArticle() {
       </section>
 
       <section>
-        <Heading className="mb-3">Where OpenRift is catching up</Heading>
+        <Heading className="mb-2">Where OpenRift is catching up</Heading>
         <p className="text-muted-foreground mb-3">
           An honest pitch names the gaps too. Two things first, because no feature list captures
           them:
@@ -131,7 +131,7 @@ export default function WhyOpenRiftArticle() {
       </section>
 
       <section>
-        <Heading className="mb-3">What only OpenRift has</Heading>
+        <Heading className="mb-2">What only OpenRift has</Heading>
         <p className="text-muted-foreground mb-3">
           These are OpenRift features with no counterpart on the other sites, as far as I know. For
           the full tour of everything the app does, unique or not, see the{" "}
@@ -205,23 +205,27 @@ export default function WhyOpenRiftArticle() {
       </section>
 
       <section>
-        <Heading className="mb-3">Tech stack</Heading>
-        <p className="text-muted-foreground mb-3">
+        <Heading className="mb-2">Tech stack</Heading>
+        <p className="text-muted-foreground">
           For the technically curious, or if you&apos;re thinking about contributing:
         </p>
-        <DefinitionList>
-          <DefinitionRow label="Runtime">
+        <DefinitionList className="mt-3">
+          <DefinitionTerm>Runtime</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://bun.com">Bun</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="Language">
+          </DefinitionDetail>
+          <DefinitionTerm>Language</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://www.typescriptlang.org">TypeScript</TechLink> end-to-end, linted
             with <TechLink href="https://oxc.rs">oxlint + oxfmt</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="Frontend">
+          </DefinitionDetail>
+          <DefinitionTerm>Frontend</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://react.dev">React 19</TechLink> with React Compiler, built with{" "}
             <TechLink href="https://vite.dev">Vite</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="TanStack">
+          </DefinitionDetail>
+          <DefinitionTerm>TanStack</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://tanstack.com/start">Start</TechLink> (SSR),{" "}
             <TechLink href="https://tanstack.com/router">Router</TechLink>,{" "}
             <TechLink href="https://tanstack.com/query">Query</TechLink>,{" "}
@@ -229,34 +233,40 @@ export default function WhyOpenRiftArticle() {
             <TechLink href="https://tanstack.com/table">Table</TechLink>,{" "}
             <TechLink href="https://tanstack.com/virtual">Virtual</TechLink>,{" "}
             <TechLink href="https://tanstack.com/hotkeys">Hotkeys</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="UI">
+          </DefinitionDetail>
+          <DefinitionTerm>UI</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://tailwindcss.com">Tailwind CSS</TechLink> +{" "}
             <TechLink href="https://ui.shadcn.com">shadcn/ui</TechLink> +{" "}
             <TechLink href="https://base-ui.com">BaseUI</TechLink> primitives
-          </DefinitionRow>
-          <DefinitionRow label="State & forms">
+          </DefinitionDetail>
+          <DefinitionTerm>State &amp; forms</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://zustand.docs.pmnd.rs">Zustand</TechLink>,{" "}
             <TechLink href="https://react-hook-form.com">React Hook Form</TechLink>,{" "}
             <TechLink href="https://zod.dev">Zod</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="Backend">
+          </DefinitionDetail>
+          <DefinitionTerm>Backend</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://hono.dev">Hono</TechLink> +{" "}
             <TechLink href="https://orpc.unnoq.com">oRPC</TechLink> +{" "}
             <TechLink href="https://www.better-auth.com">better-auth</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="Database">
+          </DefinitionDetail>
+          <DefinitionTerm>Database</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://www.postgresql.org">PostgreSQL</TechLink> via{" "}
             <TechLink href="https://kysely.dev">Kysely</TechLink>
-          </DefinitionRow>
-          <DefinitionRow label="Monorepo">
+          </DefinitionDetail>
+          <DefinitionTerm>Monorepo</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://turborepo.com">Turborepo</TechLink> (web, api, shared)
-          </DefinitionRow>
-          <DefinitionRow label="Quality">
+          </DefinitionDetail>
+          <DefinitionTerm>Quality</DefinitionTerm>
+          <DefinitionDetail>
             <TechLink href="https://vitest.dev">Vitest</TechLink> +{" "}
             <TechLink href="https://playwright.dev">Playwright</TechLink> +{" "}
             <TechLink href="https://sentry.io">Sentry</TechLink>
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
       </section>
     </div>

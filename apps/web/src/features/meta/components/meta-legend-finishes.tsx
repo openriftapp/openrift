@@ -8,18 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Medal } from "@/components/ui/podium";
 import { RowList } from "@/components/ui/row-list";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
+import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { useUserId } from "@/lib/auth-session";
-import { cn } from "@/lib/utils";
-
-const FINISH_GRID =
-  "grid grid-cols-[1.75rem_minmax(0,1fr)_6rem_9rem_4.5rem_5rem] items-center gap-x-3.5";
 
 function Rank({ finish }: { finish: MetaLegendFinish }) {
   if (finish.rank <= MEDAL_RANKS) {
@@ -72,39 +76,43 @@ function eventFacts(finish: MetaLegendFinish): string {
   return parts.join(" · ");
 }
 
-function FinishRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: boolean }) {
+function FinishTableRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: boolean }) {
   const record = formatRecord(finish.wins, finish.losses, finish.draws);
 
   return (
-    <li className="py-2.5">
-      <div className={cn(FINISH_GRID, "hidden sm:grid")}>
+    <TableRow>
+      <TableCell className="w-12">
         <Rank finish={finish} />
-        <div className="min-w-0">
-          <TextLink
-            variant="inherit"
-            className="truncate font-medium"
-            render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
-          >
-            {finish.event.name}
-          </TextLink>
-          <p className="text-muted-foreground truncate text-xs tabular-nums">
-            {eventFacts(finish)}
-          </p>
-        </div>
-        <div>
-          <MetaTierBadge tier={finish.event.tier} />
-        </div>
-        <MetaPlayerName
-          name={finish.playerName}
-          playerKey={finish.playerKey}
-          className="truncate text-sm font-medium"
-        />
-        <span className="text-right text-sm tabular-nums">{record}</span>
-        <span className="text-right text-sm">
-          <ListLink finish={finish} canSubmit={canSubmit} />
-        </span>
-      </div>
+      </TableCell>
+      <TableCell>
+        <TextLink
+          variant="inherit"
+          className="block truncate font-medium"
+          render={<Link to="/meta/$slug" params={{ slug: finish.event.slug }} />}
+        >
+          {finish.event.name}
+        </TextLink>
+        <p className="text-muted-foreground truncate text-xs tabular-nums">{eventFacts(finish)}</p>
+      </TableCell>
+      <TableCell className="w-24">
+        <MetaTierBadge tier={finish.event.tier} />
+      </TableCell>
+      <TableCell className="w-40 max-w-40 truncate font-medium">
+        <MetaPlayerName name={finish.playerName} playerKey={finish.playerKey} />
+      </TableCell>
+      <TableCell className="w-20 text-right tabular-nums">{record}</TableCell>
+      <TableCell className="w-24 text-right">
+        <ListLink finish={finish} canSubmit={canSubmit} />
+      </TableCell>
+    </TableRow>
+  );
+}
 
+function FinishPhoneRow({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: boolean }) {
+  const record = formatRecord(finish.wins, finish.losses, finish.draws);
+
+  return (
+    <li>
       <div className="flex items-start gap-2.5 sm:hidden">
         <span className="mt-0.5">
           <Rank finish={finish} />
@@ -179,47 +187,47 @@ export function MetaLegendFinishes({
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Heading>Finishes</Heading>
-        <div className="ml-auto">
-          <ToggleGroup
-            variant="outline"
-            size="sm"
-            spacing={0}
-            value={[view]}
-            onValueChange={([next]) => {
-              if (next === "best" || next === "all") {
-                setView(next);
-              }
-            }}
-            aria-label="Which finishes to show"
+        {total > best.length && (
+          <Button
+            variant="link"
+            className="h-auto p-0 text-sm font-medium"
+            onClick={() => setView(view === "best" ? "all" : "best")}
           >
-            <ToggleGroupItem value="best">Best</ToggleGroupItem>
-            <ToggleGroupItem value="all">All {total.toLocaleString("en-US")}</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+            {view === "best" ? `Show all ${total.toLocaleString("en-US")}` : "Show fewer"}
+          </Button>
+        )}
       </div>
 
-      <div className="text-sm">
-        <RowList className="flex flex-col">
+      <div>
+        <Table variant="divided" className="hidden table-fixed sm:table">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">Rank</TableHead>
+              <TableHead>Event</TableHead>
+              <TableHead className="w-24">Tier</TableHead>
+              <TableHead className="w-40">Player</TableHead>
+              <TableHead className="w-20 text-right">Record</TableHead>
+              <TableHead className="w-24 text-right">Decklist</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((finish) => (
+              <FinishTableRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
+            ))}
+          </TableBody>
+        </Table>
+        <RowList variant="divided" className="sm:hidden">
           {rows.map((finish) => (
-            <FinishRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
+            <FinishPhoneRow key={finish.playerId} finish={finish} canSubmit={canSubmit} />
           ))}
         </RowList>
 
-        {remaining > 0 && (
-          <div className="border-t">
-            <Button
-              variant="ghost"
-              className="w-full"
-              disabled={view === "all" && loadingMore}
-              onClick={view === "best" ? () => setView("all") : onShowMore}
-            >
-              {view === "best"
-                ? `Show all ${total.toLocaleString("en-US")} finishes`
-                : `${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "finish" : "finishes"}`}
-            </Button>
-          </div>
+        {view === "all" && remaining > 0 && (
+          <MetaShowMore disabled={loadingMore} onClick={onShowMore}>
+            {`${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "finish" : "finishes"}`}
+          </MetaShowMore>
         )}
       </div>
     </section>

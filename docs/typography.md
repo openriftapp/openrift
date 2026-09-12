@@ -40,6 +40,7 @@ One narrow exception sits above the Hero size: a **display numeral** — a singl
 4. **Heading size and weight go together.** Always write the size _and_ weight together (`text-2xl font-bold`, `text-lg font-semibold`). The weight is part of the role.
 5. **Don't override shadcn defaults to land back on the same size.** `CardTitle` is already `text-base font-medium`; writing `<CardTitle className="text-base">` is noise. Only override when the role genuinely changes.
 6. **Prose pages map onto this scale.** When using the `prose` plugin (e.g. legal/privacy pages, markdown rules), set `prose-h1:font-heading prose-h1:text-2xl prose-h1:font-bold prose-h2:font-heading prose-h2:text-lg prose-h2:font-semibold prose-h3:text-base prose-h3:font-semibold` so prose matches the rest of the app — h1/h2 carry the display face just like `Heading` levels 1-2. `ProsePage` (`apps/web/src/components/prose-page.tsx`) already does this; prefer it over repeating the string.
+7. **A heading inside a compact surface has no size class.** Inside a dialog, popover or `text-sm` card the sub-heading is `font-medium` on the surface's own size; `Heading` level 3 (`text-base`) would outgrow the copy around it. Reserve `Heading` for page-level structure.
 
 ## shadcn defaults (for reference)
 

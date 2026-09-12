@@ -2,11 +2,19 @@
 
 ## 2026-09-12
 
+### Highlights
+
+- feat(Decks): **A clearer stats band** — turn-1 and curve-out odds sit in their own row at the top, chart titles read at a glance, and Types, Rarity and Collection is a single switch instead of a row of mixed chart headers.
+- feat(Groups): **A friendlier overview** — recent activity groups by day under a gold rail, the shared items, shop events and upcoming tournaments lists share a "Show all" link and one column width, and the banner hero no longer overlaps its own content or crowds the member avatars on a phone.
+
 ### Other
 
-- fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
 - feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation is starting with the site footer and will expand page by page.
+- feat(Decks): **The next variant has a place in the tree** — the add-variant button now shows as the next slot in the branch graph instead of floating outside it, and the separate Variants button by the graph is gone (the same list is one tap away from the ⋮ menu).
 - feat(Meta): **Player pages open on their whole career** — a player's page in the Meta Archive now defaults to all time instead of the current set, so their record doesn't look empty until you clear the era.
+- feat(Meta): **One link instead of a toggle** — a legend's or player's Best/All finishes and a legend's archived decklists now expand with a single "Show all" link next to the heading.
+- fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
+- fix(Collection): **The missing-photo nudge names the cards** — it lists the first few by name, each linking straight to that card's photo upload page.
 
 ## 2026-09-11
 
@@ -18,12 +26,13 @@
 ### Other
 
 - feat(App): **Quieter text, narrower forms, labelled icons** — status messages now sit in proper notice boxes instead of red or green sentences, settings fields stop stretching across the page, every inline link looks the same, icon-only buttons explain themselves on hover, and buttons in dark mode use darker text on their fill.
+- feat(App): **More room around everything** — pages get a wider side margin on tablets and desktops, menus, selects and tabs have roomier rows, tables, lists and accordions drop the lines between rows, dialog and card footers lose their grey band, numbers sit on the same baseline as their labels, and the dividers and boxes that used to split sections on the card page, the deck editor, the meta archive, tournaments, groups, help articles and the rules browser are replaced by spacing.
 - feat(App): **Fewer boxes on every page** — settings pages, lists, standings and stats now use headings and spacing instead of stacked bordered cards, so pages read lighter and rows line up with their headings.
 - feat(App): **Share links turn off instead of rotating** — group invites, tournament sign-up links and the OBS browser source link now have a single Disable control, and the confirmation says that turning the link back on hands out a different one.
 - feat(App): **A link to Cardmarket beside every wants list** — the export dialogs for collections, lists, decks and group trades that copy cards in Cardmarket's format now have an Open Cardmarket button that takes you straight to your want lists.
 - feat(App): **One look for filters and fields** — search boxes, filter chips and view switches now share one fill, so an active filter no longer looks like one you are hovering.
 - fix(Cards): **Photos you send in now count as applied** — a photo suggestion that we used showed up as "Already correct" on your submissions instead of "Applied", and did not count towards your applied total. Submissions reviewed before today have been corrected by hand.
-- fix(Collection): **The missing photo nudge comes back for new cards** — dismissing the note about cards with no photo used to hide it for good; it now stays hidden only for the cards you dismissed it on and returns when you add another card the catalogue has no photo of.
+- fix(Collection): **The missing photo nudge comes back for new cards** — dismissing the note about cards with no photo used to hide it for good; it now stays hidden only for the cards you dismissed it on and returns when you add another card the catalogue has no photo of. The note is a callout again and asks you to snap the cards.
 
 ## 2026-09-10
 

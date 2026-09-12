@@ -2,6 +2,7 @@ import type { PackResult } from "@openrift/shared/pack-opener/types";
 import type { CatalogPrintingResponse } from "@openrift/shared/types/api/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { Heading } from "@/components/heading";
 import { PullCard } from "@/features/decks/components/pull-card";
 
 interface PackBulkGridProps {
@@ -19,6 +20,17 @@ const RARITY_RANK: Record<string, number> = {
   Common: 5,
 };
 
+export function PackHeading({ index, count }: { index: number; count: number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <Heading level={3}>Pack {index}</Heading>
+      <span className="text-muted-foreground text-xs">
+        {count} {count === 1 ? "card" : "cards"}
+      </span>
+    </div>
+  );
+}
+
 export function PackBulkGrid({ packs, imagesByPrintingId, shimmer }: PackBulkGridProps) {
   return (
     <div className="space-y-6">
@@ -29,13 +41,8 @@ export function PackBulkGrid({ packs, imagesByPrintingId, shimmer }: PackBulkGri
           return (RARITY_RANK[keyA] ?? 99) - (RARITY_RANK[keyB] ?? 99);
         });
         return (
-          <div key={packIndex}>
-            <div className="mb-2 flex items-baseline justify-between border-b pb-1">
-              <h3 className="font-semibold">Pack {packIndex + 1}</h3>
-              <span className="text-muted-foreground text-xs">
-                {pack.pulls.length} {pack.pulls.length === 1 ? "card" : "cards"}
-              </span>
-            </div>
+          <div key={packIndex} className="flex flex-col gap-2">
+            <PackHeading index={packIndex + 1} count={pack.pulls.length} />
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-7">
               {sorted.map((pull, i) => (
                 <PullCard

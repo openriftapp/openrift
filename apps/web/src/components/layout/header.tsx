@@ -570,7 +570,7 @@ function MobileNav({
             />
           ))}
         </nav>
-        <SheetFooter className="border-t px-4 pt-4">
+        <SheetFooter className="px-5 pt-6">
           <a
             href={SOCIAL_LINKS.discordInvite}
             target="_blank"

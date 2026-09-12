@@ -38,7 +38,7 @@ export function PrintingSourceActions({
       {targets.length > 0 && onAssign && (
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <MoveIcon className="mr-2 size-3.5" />
+            <MoveIcon className="size-3.5" />
             Assign to…
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
@@ -53,7 +53,7 @@ export function PrintingSourceActions({
       {targets.length > 0 && onCopy && (
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <CopyIcon className="mr-2 size-3.5" />
+            <CopyIcon className="size-3.5" />
             Copy to…
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
@@ -67,25 +67,25 @@ export function PrintingSourceActions({
       )}
       {onAcceptAll && (
         <DropdownMenuItem onClick={onAcceptAll}>
-          <CopyCheckIcon className="mr-2 size-3.5" />
+          <CopyCheckIcon className="size-3.5" />
           Accept all fields
         </DropdownMenuItem>
       )}
       {onUnassign && (
         <DropdownMenuItem onClick={onUnassign}>
-          <XIcon className="mr-2 size-3.5" />
+          <XIcon className="size-3.5" />
           Unassign
         </DropdownMenuItem>
       )}
       {onIgnore && (
         <DropdownMenuItem onClick={onIgnore}>
-          <BanIcon className="mr-2 size-3.5" />
+          <BanIcon className="size-3.5" />
           Ignore permanently
         </DropdownMenuItem>
       )}
       {onDelete && (
         <DropdownMenuItem onClick={onDelete}>
-          <Trash2Icon className="mr-2 size-3.5" />
+          <Trash2Icon className="size-3.5" />
           Delete
         </DropdownMenuItem>
       )}

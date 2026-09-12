@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -96,7 +97,7 @@ function FlagStatusCell({ row }: AdminCellSlotProps<FeatureFlagResponse>) {
     return null;
   }
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center gap-2">
       <Switch
         checked={row.enabled}
         onCheckedChange={(checked: boolean) =>
@@ -151,7 +152,6 @@ const globalFlagColumns: AdminColumnDef<FeatureFlagResponse, FlagDraft>[] = [
   },
   {
     header: "Status",
-    align: "center",
     width: "w-24",
     cell: <FlagStatusCell />,
   },
@@ -203,9 +203,9 @@ function GlobalFlagsSection() {
       />
 
       {missingKnown.length > 0 && (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Eyebrow className="mb-0">Available flags</Eyebrow>
-          <div className="divide-border divide-y rounded-md border">
+          <RowList>
             {missingKnown.map((known) => (
               <KnownFlagRow
                 key={known.key}
@@ -219,7 +219,7 @@ function GlobalFlagsSection() {
                 }
               />
             ))}
-          </div>
+          </RowList>
         </div>
       )}
     </div>
@@ -249,17 +249,23 @@ function KnownFlagRow({
   }
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3">
+    <RowListItem className="gap-4">
       <div className="min-w-0 flex-1">
         <span className="text-muted-foreground font-mono text-sm">{known.key}</span>
         <p className="text-muted-foreground mt-0.5 text-xs">{known.description}</p>
       </div>
-      <Button variant="ghost" size="sm" onClick={() => void handleCreate()} disabled={pending}>
-        <PlusIcon className="mr-1 size-3.5" />
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-mr-2.5"
+        onClick={() => void handleCreate()}
+        disabled={pending}
+      >
+        <PlusIcon className="size-3.5" />
         Set up
       </Button>
       {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
-    </div>
+    </RowListItem>
   );
 }
 
@@ -302,7 +308,7 @@ function OverrideStatusCell({ row }: AdminCellSlotProps<OverrideRow>) {
     return null;
   }
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center gap-2">
       <Switch
         checked={row.enabled}
         onCheckedChange={(checked: boolean) =>
@@ -412,7 +418,6 @@ const overrideColumns: AdminColumnDef<OverrideRow, OverrideDraft>[] = [
   },
   {
     header: "Override",
-    align: "center",
     width: "w-24",
     cell: <OverrideStatusCell />,
     addCell: <OverrideStatusAddCell />,

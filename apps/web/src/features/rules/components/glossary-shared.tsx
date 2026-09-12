@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Heading } from "@/components/heading";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { Card } from "@/components/ui/card";
+import { OrnamentRule } from "@/components/ui/ornament";
 import { RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
@@ -25,14 +26,16 @@ export function RuleRef({ ruleNumber, className }: { ruleNumber: string; classNa
 export function GroupHeading({ id, title }: { id: string; title: string }) {
   return (
     <div id={id} className="scroll-mt-20">
-      <SectionHeading className="border-b pb-2">{title}</SectionHeading>
+      <OrnamentRule fade="tips">
+        <SectionHeading>{title}</SectionHeading>
+      </OrnamentRule>
     </div>
   );
 }
 
 export function GlossarySectionHeading({ id, title }: Section) {
   return (
-    <Heading level={2} as="h3" id={id} className="mt-8 scroll-mt-20">
+    <Heading level={2} as="h3" id={id} className="scroll-mt-20">
       {title}
     </Heading>
   );

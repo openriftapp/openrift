@@ -123,7 +123,7 @@ function TypeSpecimen({ role, cls, note }: { role: string; cls: string; note?: s
   const { ref, spec } = useElementSpec<HTMLDivElement>();
   const fontSize = spec ? parsePx(spec.fontSize) : Number.NaN;
   return (
-    <div className="flex flex-col gap-0.5 border-b pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
       <div ref={ref} className="min-w-0">
         <p className={cn("truncate", cls)}>Summoner Skirmish</p>
       </div>
@@ -226,7 +226,7 @@ export function TokensSection() {
         label="Type scale"
         hint="Pick a tier from docs/typography.md, never invent a size. h1/h2 carry font-heading (Chakra Petch); everything else keeps the default face. Measured sizes update with the viewport."
       >
-        <div className="w-full space-y-3">
+        <div className="flex w-full flex-col gap-4">
           {TYPE_TIERS.map((tier) => (
             <TypeSpecimen key={tier.role} role={tier.role} cls={tier.cls} note={tier.note} />
           ))}

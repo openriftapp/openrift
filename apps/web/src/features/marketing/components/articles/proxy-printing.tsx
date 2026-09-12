@@ -1,6 +1,6 @@
 import { ImageIcon, InfoIcon, RulerIcon, ScissorsIcon, ShieldCheckIcon } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
@@ -15,20 +15,18 @@ export default function ProxyPrintingArticle() {
       </p>
 
       <Callout>
-        <p className="text-muted-foreground mb-3 text-center text-xs font-medium tracking-wide uppercase">
-          PDF page layout
-        </p>
+        <Eyebrow>PDF page layout</Eyebrow>
         <div className="mx-auto grid max-w-xs grid-cols-3 gap-1.5">
           {Array.from({ length: 9 }, (_, index) => (
             <div
               key={index}
-              className="bg-muted/30 aspect-card flex items-center justify-center rounded-md border"
+              className="bg-background aspect-card flex items-center justify-center rounded-md"
             >
               <span className="text-muted-foreground/40 text-2xs tabular-nums">{index + 1}</span>
             </div>
           ))}
         </div>
-        <p className="text-muted-foreground mt-2 text-center text-xs">
+        <p className="text-muted-foreground mt-4">
           3&times;3 grid, 9 cards per page, centered on A4 or US Letter
         </p>
       </Callout>

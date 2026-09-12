@@ -5,6 +5,7 @@ import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartHeading } from "@/features/decks/components/stats/chart-heading";
 import {
   CrispBar,
   CrispBarActive,
@@ -103,11 +104,7 @@ export function TypeBreakdown({
       }
     : undefined;
 
-  const heading = hideHeading ? null : (
-    <div className="mb-1 flex items-center text-xs">
-      <h4 className="font-medium">Types</h4>
-    </div>
-  );
+  const heading = hideHeading ? null : <ChartHeading title="Types" />;
 
   if (singleColor) {
     const singleConfig: ChartConfig = {

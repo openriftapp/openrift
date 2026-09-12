@@ -1,7 +1,7 @@
 import type { TournamentHostInfo } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 
-import { Card } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
 import { getSiteUrl } from "@/lib/site-config";
 
@@ -72,7 +72,7 @@ export function DeckCheckIngestGuide({
     );
 
   return (
-    <Card className="p-3">
+    <Callout>
       <details>
         <summary className="cursor-pointer text-sm font-medium">
           Push decklists with an API key
@@ -188,6 +188,6 @@ export function DeckCheckIngestGuide({
           </div>
         </div>
       </details>
-    </Card>
+    </Callout>
   );
 }

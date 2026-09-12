@@ -2,8 +2,7 @@ import type { MetaEventDetail, MetaEventPlayer } from "@openrift/shared/types/ap
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { BAND_GLOW } from "@/features/meta/components/meta-contribute-band";
+import { MetaContributeBandShell } from "@/features/meta/components/meta-contribute-band";
 import { useUserId } from "@/lib/auth-session";
 
 export function MetaEventContributeBand({
@@ -22,22 +21,18 @@ export function MetaEventContributeBand({
   }
 
   const missing = players.filter((player) => player.shareToken === null).length;
-  const title = `Were you at ${event.name}?`;
   const body =
     missing === 0
       ? "Every entry has its decklist. Corrections are still welcome."
       : `${missing} of ${players.length} entries are still missing their decklist. Contributors are credited on every event.`;
 
   return (
-    <Card className="ring-border-accent" style={{ backgroundImage: BAND_GLOW }}>
-      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="font-semibold">{title}</p>
-          <p className="text-muted-foreground">{body}</p>
-        </div>
-        {userId === null ? (
+    <MetaContributeBandShell
+      title={`Were you at ${event.name}?`}
+      description={body}
+      action={
+        userId === null ? (
           <Button
-            className="shrink-0 sm:ml-auto"
             render={
               <Link to="/login" search={{ redirect: `/meta/${slug}/submit`, email: undefined }} />
             }
@@ -45,14 +40,11 @@ export function MetaEventContributeBand({
             Sign in to add a decklist
           </Button>
         ) : (
-          <Button
-            className="shrink-0 sm:ml-auto"
-            render={<Link to="/meta/$slug/submit" params={{ slug }} />}
-          >
+          <Button render={<Link to="/meta/$slug/submit" params={{ slug }} />}>
             Add a decklist
           </Button>
-        )}
-      </CardContent>
-    </Card>
+        )
+      }
+    />
   );
 }

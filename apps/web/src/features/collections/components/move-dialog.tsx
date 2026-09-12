@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle } from "@/components/
 import { Button } from "@/components/ui/button";
 import { CommandEmpty } from "@/components/ui/command";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
 import { cn } from "@/lib/utils";
@@ -75,9 +76,9 @@ export function MoveDialog({
           {/* No overflow here — CommandList scrolls internally, keeping the filter input pinned. */}
           <div>
             {collections.length === 0 ? (
-              <p className="text-muted-foreground py-4 text-center text-sm">
-                No other collections available.
-              </p>
+              <Empty>
+                <EmptyDescription>No other collections available.</EmptyDescription>
+              </Empty>
             ) : (
               <PickerList
                 searchPlaceholder="Filter collections…"

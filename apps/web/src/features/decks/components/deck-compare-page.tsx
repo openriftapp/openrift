@@ -286,7 +286,7 @@ function DeckPicker({
                 </CommandGroup>
               )}
             </PickerList>
-            <div className="border-t p-1">
+            <div className="p-1 pt-4">
               <Button
                 variant="ghost"
                 size="sm"
@@ -590,7 +590,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
       </PageTopBarSticky>
 
       <div ref={containerRef} className="relative">
-        <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-5 pt-3")}>
+        <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-6 pt-3")}>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-2">
             <DeckPicker
               label="From"
@@ -653,7 +653,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
             </div>
           )}
 
-          <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-6">
             {zones.map((zone) => {
               const zoneRows = changesOnly
                 ? zone.rows.filter((row) => row.kind !== "same")

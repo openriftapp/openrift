@@ -5,9 +5,10 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { PaletteIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { Fragment } from "react";
 
 import { LanguageChip } from "@/components/language-chip";
-import { InfoRow } from "@/features/cards/components/card-page-info-row";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatPublicCode } from "@/lib/format";
@@ -136,49 +137,24 @@ export function CardPageInfoTable({
     rightRows.push(["Might bonus", <MightValue key="mightbonus" value={card.mightBonus} bonus />]);
   }
 
-  const infoRowCount = Math.max(leftRows.length, rightRows.length);
-
   return (
-    <table className="w-full table-fixed text-sm">
-      <tbody>
-        {Array.from({ length: infoRowCount }, (_, i) => {
-          const left = leftRows[i];
-          const right = rightRows[i];
-          return (
-            // oxlint-disable-next-line jsx-a11y/control-has-associated-label -- presentational info-table row, not a control
-            <tr key={i}>
-              <td className="text-muted-foreground w-24 py-1 pr-2 align-top text-xs font-medium">
-                <div className="flex min-h-6 flex-col justify-center">{left?.[0]}</div>
-              </td>
-              <td className="w-[calc(50%-6rem)] py-1 pr-6 align-top">
-                <div className="flex min-h-6 flex-col justify-center">{left?.[1]}</div>
-              </td>
-              <td className="text-muted-foreground hidden w-24 py-1 pr-2 align-top text-xs font-medium sm:table-cell">
-                <div className="flex min-h-6 flex-col justify-center">{right?.[0]}</div>
-              </td>
-              <td className="hidden w-[calc(50%-6rem)] py-1 align-top sm:table-cell">
-                <div className="flex min-h-6 flex-col justify-center">{right?.[1]}</div>
-              </td>
-            </tr>
-          );
-        })}
-        {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- presentational info-table row, not a control */}
-        <tr className="sm:hidden">
-          {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- presentational info-table cell, not a control */}
-          <td colSpan={2} className="pt-2">
-            <table className="w-full text-sm">
-              <tbody>
-                {rightRows.map(([label, value], i) => (
-                  <InfoRow key={i} label={label}>
-                    {value}
-                  </InfoRow>
-                ))}
-              </tbody>
-            </table>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+      <InfoList rows={leftRows} />
+      <InfoList rows={rightRows} />
+    </div>
+  );
+}
+
+function InfoList({ rows }: { rows: InfoTableRow[] }) {
+  return (
+    <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] content-start">
+      {rows.map(([label, value]) => (
+        <Fragment key={label}>
+          <DefinitionTerm>{label}</DefinitionTerm>
+          <DefinitionDetail>{value}</DefinitionDetail>
+        </Fragment>
+      ))}
+    </DefinitionList>
   );
 }
 

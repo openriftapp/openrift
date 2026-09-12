@@ -25,10 +25,12 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ColumnControls } from "@/features/cards/components/column-controls";
+import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
@@ -313,7 +315,7 @@ export function DesktopOptionsBar({
   const options = groupByOptions ?? groupByOptionsForView(view);
 
   return (
-    <div className={cn("items-center gap-3", className)}>
+    <div className={cn("items-center gap-2", className)}>
       <SortGroupControls
         sortOptions={sortOptions}
         sortBy={sortBy}
@@ -434,9 +436,8 @@ export function MobileOptionsContent({
   const options = groupByOptions ?? groupByOptionsForView(view);
 
   return (
-    <div className="space-y-2">
-      <div className="flex min-w-0 items-start gap-2">
-        <p className="text-muted-foreground w-18 text-xs font-medium">View</p>
+    <div className="space-y-4">
+      <LabelledRow label="View">
         <div className="flex flex-1 flex-wrap items-center gap-2">
           {!hideViewToggle && (
             <ViewModeToggle compact view={view} onViewChange={setView} showCopies={showCopies} />
@@ -448,7 +449,7 @@ export function MobileOptionsContent({
             </div>
           )}
         </div>
-      </div>
+      </LabelledRow>
       <SortGroupControls
         compact
         sortOptions={sortOptions}
@@ -490,9 +491,9 @@ export function MobileFilterContent({
   topLevelUnits?: ReadonlySet<string>;
 }) {
   return (
-    <div className="border-t pt-4">
-      <div className="mb-2.5 flex items-center justify-between">
-        <p className="text-sm font-medium">Filters</p>
+    <div className="flex flex-col gap-4 pt-4">
+      <div className="flex items-center justify-between">
+        <SectionHeading>Filters</SectionHeading>
         <FilterCustomizeControl />
       </div>
       <div className="flex flex-col gap-4">

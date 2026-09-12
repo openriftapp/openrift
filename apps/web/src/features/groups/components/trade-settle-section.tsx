@@ -293,7 +293,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
             </div>
           </div>
 
-          <RowList className="divide-border px-3">
+          <RowList className="px-3">
             {trades.map((trade) => (
               <TallyRow key={trade.id} trade={trade} sequence={sequence} disabled={busy} />
             ))}
@@ -311,7 +311,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               Settle {cards} {cards === 1 ? "card" : "cards"}
             </Button>
             {rowsAtZero === 0 ? null : (
-              <p className="text-muted-foreground text-center text-xs">
+              <p className="text-muted-foreground text-xs">
                 {rowsAtZero} {rowsAtZero === 1 ? "swap" : "swaps"} left at 0, staying open for next
                 time.
               </p>
@@ -319,7 +319,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
           </div>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
           {trades.map((trade) => (
             <TradeRow
               key={trade.id}
@@ -328,7 +328,7 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               redundantStatus="ready-to-swap"
             />
           ))}
-        </div>
+        </ul>
       )}
 
       <TradeAddTargetDialog open={targetOpen} onOpenChange={setTargetOpen} />

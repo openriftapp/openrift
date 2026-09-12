@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { EyeOffIcon } from "lucide-react";
+import { Fragment } from "react";
 
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/text-link";
 import { StepRow } from "@/features/marketing/components/article-cards";
@@ -59,20 +61,20 @@ export default function StageArticle() {
         <p className="text-muted-foreground">
           The show fills the screen with nothing but the cards, driven from the keyboard:
         </p>
-        <dl className="divide-border mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-6 divide-y">
+        <DefinitionList className="text-muted-foreground mt-3">
           {KEYS.map((row) => (
-            <div key={row.does} className="col-span-2 grid grid-cols-subgrid items-center py-1.5">
-              <dt>
+            <Fragment key={row.does}>
+              <DefinitionTerm className="self-center">
                 <KbdGroup>
                   {row.keys.map((key) => (
                     <Kbd key={key}>{key}</Kbd>
                   ))}
                 </KbdGroup>
-              </dt>
-              <dd className="text-muted-foreground text-sm">{row.does}</dd>
-            </div>
+              </DefinitionTerm>
+              <DefinitionDetail className="self-center">{row.does}</DefinitionDetail>
+            </Fragment>
           ))}
-        </dl>
+        </DefinitionList>
       </section>
 
       <section>

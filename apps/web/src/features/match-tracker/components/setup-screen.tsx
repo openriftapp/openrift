@@ -166,7 +166,7 @@ export function SetupScreen() {
           <PageTopBarTitle>Match tracker</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.capped, "space-y-6 px-3 pt-3 pb-6")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-6")}>
         <PageDescription>
           Keep score and XP for everyone at the table on one device.
         </PageDescription>
@@ -220,9 +220,9 @@ export function SetupScreen() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-4">
           <Label>Seats</Label>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {players.map((player, index) => (
               <SeatRow
                 key={player.id}
@@ -237,13 +237,17 @@ export function SetupScreen() {
               />
             ))}
           </div>
-          <p className="text-muted-foreground text-xs">
-            A legend is optional. It sets the art and colors on that player&apos;s side of the
-            board.
-          </p>
-          {teamsActive && !teamsBalanced && (
-            <p className="text-muted-foreground text-xs">Put two players on each team for a 2v2.</p>
-          )}
+          <div className="flex flex-col gap-1">
+            <p className="text-muted-foreground text-xs">
+              A legend is optional. It sets the art and colors on that player&apos;s side of the
+              board.
+            </p>
+            {teamsActive && !teamsBalanced && (
+              <p className="text-muted-foreground text-xs">
+                Put two players on each team for a 2v2.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">

@@ -7,7 +7,7 @@ import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { formatRecord } from "@/features/meta/lib/meta-format";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 
-import { Demo, DemoRow, DemoSection, Swatch, SwatchRow } from "./demo-primitives";
+import { Demo, DemoGrid, DemoRow, DemoSection, Swatch, SwatchRow } from "./demo-primitives";
 
 const DEMO_LEGEND = "Lux, Lady of Luminosity";
 
@@ -35,26 +35,28 @@ export function MetaArchiveSection() {
       <DemoRow
         label="MetaIdentity"
         hint="Champion name, legend card title, domain runes. The card title always renders — the compact top-8 bracket is the one surface allowed to drop it. Pass a slug to link the champion; omit it inside a wrapper that is itself a link."
-        className="items-start gap-6"
+        className="block"
       >
-        <Demo name="row" hint="Bylines and headers.">
-          <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} />
-        </Demo>
-        <Demo name="stacked" hint="Two-line table cell.">
-          <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="stacked" />
-        </Demo>
-        <Demo name="tile" hint="Deck tiles and winner cards.">
-          <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="tile" />
-        </Demo>
-        <Demo name="championOnly" hint="The compact bracket, and nowhere else.">
-          <MetaIdentity name={DEMO_LEGEND} championOnly />
-        </Demo>
-        <Demo name="linked" hint="Links the champion at its card page.">
-          <MetaIdentity name={DEMO_LEGEND} slug="lady-of-luminosity" />
-        </Demo>
-        <Demo name="untagged" hint="A legend with no champion is all champion.">
-          <MetaIdentity name="Emperor of the Sands" />
-        </Demo>
+        <DemoGrid>
+          <Demo name="row" hint="Bylines and headers.">
+            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} />
+          </Demo>
+          <Demo name="stacked" hint="Two-line table cell.">
+            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="stacked" />
+          </Demo>
+          <Demo name="tile" hint="Deck tiles and winner cards.">
+            <MetaIdentity name={DEMO_LEGEND} domains={["order", "calm"]} layout="tile" />
+          </Demo>
+          <Demo name="championOnly" hint="The compact bracket, and nowhere else.">
+            <MetaIdentity name={DEMO_LEGEND} championOnly />
+          </Demo>
+          <Demo name="linked" hint="Links the champion at its card page.">
+            <MetaIdentity name={DEMO_LEGEND} slug="lady-of-luminosity" />
+          </Demo>
+          <Demo name="untagged" hint="A legend with no champion is all champion.">
+            <MetaIdentity name="Emperor of the Sands" />
+          </Demo>
+        </DemoGrid>
       </DemoRow>
 
       <DemoRow

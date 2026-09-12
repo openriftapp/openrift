@@ -40,7 +40,7 @@ export function ScanStage({
   const landscape = immersive && layout === "landscape";
 
   return (
-    <div className={cn(immersive ? "contents" : cn(PAGE_WIDTH.capped, "px-safe px-4 pt-3 pb-12"))}>
+    <div className={cn(immersive ? "contents" : cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-12"))}>
       <div className={cn(immersive ? "contents" : BOXED_GRID)}>
         <div className="empty:hidden md:col-span-2 md:row-start-1">
           {immersive ? null : notices}

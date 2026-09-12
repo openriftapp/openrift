@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
 export default function ListsArticle() {
   return (
@@ -46,18 +46,21 @@ export default function ListsArticle() {
           <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
           what these mean.
         </p>
-        <DefinitionList className="mt-3">
-          <DefinitionRow icon={<SquareIcon className="size-3.5" />} label="Cards">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm icon={<SquareIcon className="size-3.5" />}>Cards</DefinitionTerm>
+          <DefinitionDetail>
             Any printing satisfies the entry. &quot;I need three Fury Runes, art doesn&apos;t
             matter.&quot; Available for wishlists and organize lists.
-          </DefinitionRow>
-          <DefinitionRow icon={<CopyIcon className="size-3.5" />} label="Printings">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Printings</DefinitionTerm>
+          <DefinitionDetail>
             A specific version: set, art, finish. For when you want one particular printing, like a
             foil alt-art from one specific set. Available for wishlists and organize lists.
-          </DefinitionRow>
-          <DefinitionRow icon={<SquareStackIcon className="size-3.5" />} label="Copies">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<SquareStackIcon className="size-3.5" />}>Copies</DefinitionTerm>
+          <DefinitionDetail>
             Specific physical copies from your collections. Tradelists are always copy-kind.
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
       </section>
 
@@ -185,27 +188,34 @@ export default function ListsArticle() {
           <strong className="text-foreground">You:</strong> lines on match rows.
         </p>
 
-        <h3 className="mt-4 font-semibold">List defaults</h3>
-        <p className="text-muted-foreground mt-1">
+        <Heading level={3} className="mt-4 mb-2">
+          List defaults
+        </Heading>
+        <p className="text-muted-foreground">
           Set in the create dialog, or later from <strong className="text-foreground">Edit</strong>{" "}
           on the list page. Three fields:
         </p>
-        <DefinitionList className="mt-3">
-          <DefinitionRow label="Price reference">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm>Price reference</DefinitionTerm>
+          <DefinitionDetail>
             A <strong className="text-foreground">marketplace price</strong> (Cardmarket, TCGplayer,
             or CardTrader), a <strong className="text-foreground">fixed</strong> amount you type in,
             or blank to say &quot;let&apos;s negotiate&quot;.
-          </DefinitionRow>
-          <DefinitionRow label="Currency">EUR or USD. Used for fixed amounts.</DefinitionRow>
-          <DefinitionRow label="Accepts">
+          </DefinitionDetail>
+          <DefinitionTerm>Currency</DefinitionTerm>
+          <DefinitionDetail>EUR or USD. Used for fixed amounts.</DefinitionDetail>
+          <DefinitionTerm>Accepts</DefinitionTerm>
+          <DefinitionDetail>
             <strong className="text-foreground">Cards</strong>,{" "}
             <strong className="text-foreground">Money</strong>, or{" "}
             <strong className="text-foreground">Both</strong>.
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
 
-        <h3 className="mt-4 font-semibold">Per-card overrides</h3>
-        <p className="text-muted-foreground mt-1">
+        <Heading level={3} className="mt-4 mb-2">
+          Per-card overrides
+        </Heading>
+        <p className="text-muted-foreground">
           Each entry has a pill showing its current preference (inherited from the list, or
           overridden). Click it to set a different price or accepts value for that one card. An
           override only replaces the fields you change; the others still fall through to the list

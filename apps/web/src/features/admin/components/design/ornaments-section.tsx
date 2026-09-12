@@ -1,7 +1,8 @@
 import { LayersIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
-import { OrnamentBase, OrnamentRule } from "@/components/ui/ornament";
+import { OrnamentBase, OrnamentFoldGem, OrnamentRule } from "@/components/ui/ornament";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { ClipFrame } from "@/features/marketing/components/clip-frame";
 
 import { DemoRow, DemoSection } from "./demo-primitives";
@@ -36,6 +37,20 @@ export function OrnamentsSection() {
             <span className="text-muted-foreground font-medium">OGN</span>
             <span className="font-semibold">Origins</span>
           </span>
+        </OrnamentRule>
+      </DemoRow>
+      <DemoRow
+        label="Start-aligned divider"
+        hint='align="start" with trailing, the deck zone headers'
+      >
+        <OrnamentRule
+          align="start"
+          fade="tips"
+          className="w-full"
+          leadingGem={<OrnamentFoldGem expanded />}
+          trailing={<span className="text-muted-foreground text-xs tabular-nums">12/12</span>}
+        >
+          <SectionHeading as="span">Runes</SectionHeading>
         </OrnamentRule>
       </DemoRow>
       <DemoRow

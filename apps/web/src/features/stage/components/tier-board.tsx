@@ -20,6 +20,8 @@ interface TierRowFrameProps {
   active?: boolean;
   tileWidth?: number;
   clip?: boolean;
+  /** Drops the row's own edge, for rows nested inside a surface that already has one. */
+  flat?: boolean;
   children: ReactNode;
 }
 
@@ -36,6 +38,7 @@ export function TierRowFrame({
   active,
   tileWidth,
   clip,
+  flat,
   children,
 }: TierRowFrameProps) {
   // Called unconditionally, override or not — a hook behind a `??` would be a
@@ -46,8 +49,9 @@ export function TierRowFrame({
   return (
     <div
       className={cn(
-        "bg-card/40 flex items-stretch overflow-hidden rounded-md ring-1 transition-colors",
-        active ? "ring-ring ring-2" : "ring-border",
+        "flex items-stretch overflow-hidden rounded-md transition-colors",
+        flat ? "bg-muted" : "bg-card/40 ring-1",
+        !flat && (active ? "ring-ring ring-2" : "ring-border"),
       )}
     >
       {leading}

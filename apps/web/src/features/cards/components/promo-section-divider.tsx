@@ -1,6 +1,7 @@
 import { LinkIcon } from "lucide-react";
 
 import { MarkdownText } from "@/components/markdown-text";
+import { OrnamentRule } from "@/components/ui/ornament";
 
 export function SectionDivider({
   title,
@@ -14,9 +15,8 @@ export function SectionDivider({
   anchorId?: string;
 }) {
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-3">
-        <div className="bg-border h-px flex-1" />
+    <div className="mb-3 flex flex-col gap-1">
+      <OrnamentRule fade="tips">
         <div className="flex items-baseline gap-2 text-sm">
           <span className="font-semibold">{title}</span>
           <span className="text-muted-foreground tabular-nums">({count})</span>
@@ -30,13 +30,12 @@ export function SectionDivider({
             </a>
           )}
         </div>
-        <div className="bg-border h-px flex-1" />
-      </div>
+      </OrnamentRule>
       {description && (
         <MarkdownText
           text={description}
           links="any"
-          className="text-muted-foreground mx-auto mt-1 max-w-2xl text-center text-sm"
+          className="text-muted-foreground max-w-2xl text-sm"
         />
       )}
     </div>

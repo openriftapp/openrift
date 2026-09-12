@@ -14,12 +14,9 @@ function Accordion({ className, ...props }: AccordionPrimitive.Root.Props) {
 }
 
 function AccordionItem({ className, ...props }: AccordionPrimitive.Item.Props) {
+  // custom: no `not-last:border-b` — the trigger's padding separates the items
   return (
-    <AccordionPrimitive.Item
-      data-slot="accordion-item"
-      className={cn("not-last:border-b", className)}
-      {...props}
-    />
+    <AccordionPrimitive.Item data-slot="accordion-item" className={cn(className)} {...props} />
   );
 }
 
@@ -30,7 +27,8 @@ function AccordionTrigger({ className, children, ...props }: AccordionPrimitive.
         data-slot="accordion-trigger"
         className={cn(
           // custom: ring-2 focus ring — app-wide focus width (scaffold ships ring-3)
-          "group/accordion-trigger focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:after:border-ring **:data-[slot=accordion-trigger-icon]:text-muted-foreground relative flex flex-1 items-start justify-between rounded-lg border border-transparent py-2.5 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4",
+          // custom: py-3 — the row pitch that separates items now the hairline is gone
+          "group/accordion-trigger focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:after:border-ring **:data-[slot=accordion-trigger-icon]:text-muted-foreground relative flex flex-1 items-start justify-between rounded-lg border border-transparent py-3 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-2 aria-disabled:pointer-events-none aria-disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4",
           className,
         )}
         {...props}

@@ -1,4 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { OwnedVariantBreakdown } from "@/features/cards/components/owned-variant-breakdown";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import type { VariantCollectionBreakdownEntry } from "@/features/collections/hooks/use-owned-count";
@@ -33,10 +34,10 @@ function AvailableCopiesBreakdown({ cardId }: { cardId: string }) {
   return (
     <>
       <div className="flex items-baseline justify-between gap-2 px-3 pt-2.5 pb-1">
-        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        <SectionHeading as="h3" size="sm">
           In your collections
-        </p>
-        <span className="text-muted-foreground text-xs tabular-nums">
+        </SectionHeading>
+        <span className="text-muted-foreground/70 text-2xs tabular-nums">
           {countCopies(breakdown)} total
         </span>
       </div>

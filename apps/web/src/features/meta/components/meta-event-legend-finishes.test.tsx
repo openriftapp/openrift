@@ -126,7 +126,7 @@ describe("MetaEventLegendFinishes", () => {
     renderFinishes(field(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]));
 
     expect(tiles()).toHaveLength(8);
-    await user.click(screen.getByRole("button", { name: "Show all 10 legends" }));
+    await user.click(screen.getByRole("button", { name: "Show all 10" }));
     expect(tiles()).toHaveLength(10);
 
     await user.click(screen.getByRole("button", { name: "Show fewer" }));

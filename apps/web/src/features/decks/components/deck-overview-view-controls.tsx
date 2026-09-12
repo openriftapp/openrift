@@ -61,12 +61,7 @@ function OptionSwitchRow({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <Label
-      className={cn(
-        "justify-between gap-3 leading-normal font-normal",
-        nested && "border-border ml-1 border-l pl-3",
-      )}
-    >
+    <Label className={cn("justify-between gap-3 leading-normal font-normal", nested && "pl-4")}>
       <span className="flex flex-col gap-0.5">
         <span>{label}</span>
         {description && <span className="text-muted-foreground text-xs">{description}</span>}
@@ -289,7 +284,7 @@ export function DeckOverviewViewControls({
           )}
           <DeckOrderingControl compact ordering={ordering} />
           {optionSwitchRows.length > 0 && (
-            <div className="flex flex-col gap-4 border-t pt-4">{optionSwitchRows}</div>
+            <div className="flex flex-col gap-4 pt-4">{optionSwitchRows}</div>
           )}
         </MobileOptionsDrawer>
       </>

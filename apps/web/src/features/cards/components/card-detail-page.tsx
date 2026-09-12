@@ -12,7 +12,6 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { Card as CardPanel } from "@/components/ui/card";
 import { CollectionSlot } from "@/features/cards/components/card-page-collection-slot";
 import { CardPageFactRows } from "@/features/cards/components/card-page-fact-rows";
 import { CardPageHero } from "@/features/cards/components/card-page-hero";
@@ -87,18 +86,18 @@ export function CardDetailPage() {
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-4 pt-3")}>
-        <div className="flex flex-col gap-6 md:flex-row">
+      <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-10 pt-3")}>
+        <div className="flex flex-col gap-8 md:flex-row">
           <CardPageHero card={card} printing={selectedPrinting} siblings={printings} />
 
-          <CardPanel className="min-w-0 flex-1 p-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-6">
             <CardPageInfoTable card={card} printing={selectedPrinting} sets={sets} />
             <CardPageFactRows
               card={card}
               printing={selectedPrinting}
               products={data.productsByPrinting.get(selectedPrinting.id) ?? []}
             />
-          </CardPanel>
+          </div>
         </div>
 
         <CollectionSlot cardSlug={cardSlug} printing={selectedPrinting} siblings={printings} />

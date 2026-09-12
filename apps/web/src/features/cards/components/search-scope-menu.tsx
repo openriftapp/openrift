@@ -10,7 +10,6 @@ import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pressable } from "@/components/ui/pressable";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 /**
@@ -121,7 +120,7 @@ export function SearchScopeChip({
       </Badge>
       <PopoverContent align="start" finalFocus={inputRef} className={cn("w-64 gap-1 p-1.5")}>
         <span className="text-muted-foreground px-1.5 text-xs">Search in</span>
-        <div className="flex items-center gap-2 rounded-md px-1.5 py-1.5">
+        <div className="mb-1 flex items-center gap-2 rounded-md px-1.5 py-1.5">
           <Checkbox
             id={`${rowId}-all`}
             checked={allSelected}
@@ -134,7 +133,6 @@ export function SearchScopeChip({
             All fields
           </Label>
         </div>
-        <Separator />
         {ALL_SEARCH_FIELDS.map((field) => {
           const { label, prefix } = SEARCH_FIELD_LABELS[field];
           const checked = scope.includes(field);

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTournamentReport } from "@/features/tournaments/hooks/use-tournament-run";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 
@@ -19,35 +20,26 @@ const STATUS_LABEL: Record<PodTournamentStatus, string> = {
 
 export type ReportTab = "rounds" | "standings";
 
-function tabLinkClass(isActive: boolean): string {
-  return cn(
-    "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 font-medium transition-colors",
-    isActive
-      ? "border-primary text-foreground"
-      : "text-muted-foreground hover:text-foreground border-transparent",
-  );
-}
-
 function ReportTabLink({
   to,
   token,
   label,
+  value,
   isActive,
 }: {
   to: "/tournaments/report/$token" | "/tournaments/report/$token/standings";
   token: string;
   label: string;
+  value: ReportTab;
   isActive: boolean;
 }) {
   return (
-    <Link
-      to={to}
-      params={{ token }}
-      aria-current={isActive ? "page" : undefined}
-      className={tabLinkClass(isActive)}
+    <TabsTrigger
+      value={value}
+      render={<Link to={to} params={{ token }} aria-current={isActive ? "page" : undefined} />}
     >
       {label}
-    </Link>
+    </TabsTrigger>
   );
 }
 
@@ -79,20 +71,24 @@ export function TournamentReportFrame({
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
-        <nav className="flex gap-1 border-b">
-          <ReportTabLink
-            to="/tournaments/report/$token"
-            token={token}
-            label="Rounds"
-            isActive={active === "rounds"}
-          />
-          <ReportTabLink
-            to="/tournaments/report/$token/standings"
-            token={token}
-            label="Standings"
-            isActive={active === "standings"}
-          />
-        </nav>
+        <Tabs value={active} render={<nav />} className="border-b">
+          <TabsList variant="line" className="-mb-px">
+            <ReportTabLink
+              to="/tournaments/report/$token"
+              token={token}
+              label="Rounds"
+              value="rounds"
+              isActive={active === "rounds"}
+            />
+            <ReportTabLink
+              to="/tournaments/report/$token/standings"
+              token={token}
+              label="Standings"
+              value="standings"
+              isActive={active === "standings"}
+            />
+          </TabsList>
+        </Tabs>
         {render(data)}
       </div>
     </>

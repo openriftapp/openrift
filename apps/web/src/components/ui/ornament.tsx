@@ -25,12 +25,52 @@ function Gem({ className }: { className?: string }) {
   );
 }
 
+/** The gem's outline as a fold arrow: turns down when expanded; `pointerClassName` can drive the turn from a group state. */
+export function OrnamentFoldGem({
+  expanded = false,
+  tone = "gold",
+  className,
+  pointerClassName,
+}: {
+  expanded?: boolean;
+  tone?: OrnamentTone;
+  className?: string;
+  pointerClassName?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      className={cn("size-3.5 shrink-0", TONE_CLASS[tone], className)}
+      aria-hidden="true"
+    >
+      <path
+        d="M7 1 13 7 7 13"
+        className={cn(
+          "origin-center fill-none stroke-current transition-transform",
+          expanded && "rotate-90",
+          pointerClassName,
+        )}
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 type OrnamentRuleProps = Omit<ComponentProps<"div">, "children"> & {
   /** `both` fades along the whole line; `tips` stays solid and fades only the last stretch, for a long labelled divider. */
   fade?: OrnamentFade;
   tone?: OrnamentTone;
   /** Rendered between two gems, in place of the single gem. */
   children?: ReactNode;
+  /** `start` drops the leading line and the closing gem so the label sits on the left edge and the rule runs out from it. */
+  align?: "center" | "start";
+  /** Rendered after the trailing line, on the far edge (counts, controls). */
+  trailing?: ReactNode;
+  /** Replaces the leading gem (a fold toggle); `null` draws none. */
+  leadingGem?: ReactNode;
 };
 
 /**
@@ -42,6 +82,9 @@ type OrnamentRuleProps = Omit<ComponentProps<"div">, "children"> & {
 export function OrnamentRule({
   fade = "both",
   tone = "gold",
+  align = "center",
+  trailing,
+  leadingGem,
   className,
   children,
   ...props
@@ -58,15 +101,16 @@ export function OrnamentRule({
       className={cn("flex items-center gap-2.5", className)}
       {...props}
     >
-      <span className={cn(line, "bg-linear-to-l")} />
-      <Gem className={TONE_CLASS[tone]} />
+      {align === "center" && <span className={cn(line, "bg-linear-to-l")} />}
+      {leadingGem === undefined ? <Gem className={TONE_CLASS[tone]} /> : leadingGem}
       {children && (
         <>
           {children}
-          <Gem className={TONE_CLASS[tone]} />
+          {align === "center" && <Gem className={TONE_CLASS[tone]} />}
         </>
       )}
       <span className={cn(line, "bg-linear-to-r")} />
+      {trailing}
     </div>
   );
 }

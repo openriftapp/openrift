@@ -248,7 +248,7 @@ function CardDetailModalSkeleton() {
 function CardDetailPaneSkeleton() {
   return (
     <div className="bg-background rounded-lg px-3">
-      <div className="border-border/30 border-b p-4">
+      <div className="p-4">
         <div className="flex items-center gap-2">
           <Skeleton className="size-8 rounded-md" />
           <div className="space-y-1.5">

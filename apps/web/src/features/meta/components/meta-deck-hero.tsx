@@ -19,7 +19,7 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
   const record = formatRecord(meta.wins, meta.losses, meta.draws);
   const field = meta.event.playerCount;
   return (
-    <div className="border-border flex shrink-0 flex-col items-start gap-1 self-center border-r pr-4 sm:pr-5">
+    <div className="flex shrink-0 flex-col items-start gap-1 self-center pr-2 sm:pr-3">
       <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
         Finish
       </span>

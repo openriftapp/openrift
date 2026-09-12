@@ -2,13 +2,16 @@ import { isRegenerateImagesCheckpoint } from "@openrift/shared/contracts/admin/j
 import type { RehostImageResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, LoaderIcon, XIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pressable } from "@/components/ui/pressable";
 import { Progress } from "@/components/ui/progress";
+import { RowList, RowListItem } from "@/components/ui/row-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { ConfirmClearButton } from "@/features/admin/components/confirm-clear-button";
@@ -218,10 +221,10 @@ function ManageSection() {
     regenRunning;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Manage Rehosted Images</CardTitle>
-        <CardDescription>
+    <SettingsSection
+      title="Manage Rehosted Images"
+      description={
+        <>
           {status.rehosted} / {status.total} images rehosted
           {status.disk.totalBytes > 0 &&
             ` · ${totalFiles} files · ${formatBytes(status.disk.totalBytes)}`}
@@ -234,156 +237,154 @@ function ManageSection() {
             </>
           )}
           {status.orphanedFiles > 0 && ` · ${status.orphanedFiles} orphaned`}
-        </CardDescription>
-        <Progress value={pct} className="h-1.5" />
-      </CardHeader>
+        </>
+      }
+    >
+      <Progress value={pct} className="h-1.5" />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          disabled={anyPending || migrateMutation.isSuccess}
+          onClick={() => migrateMutation.mutate()}
+        >
+          {migrateMutation.isPending ? (
+            <LoaderIcon className="size-4 animate-spin" />
+          ) : (
+            "Migrate directories"
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={anyPending || !status.disk.totalBytes}
+          onClick={() => regenMutation.mutate({ skipExisting: true, reset: true })}
+        >
+          {regenMutation.isPending ? (
+            <LoaderIcon className="size-4 animate-spin" />
+          ) : (
+            "Fill missing variants"
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={anyPending || !status.disk.totalBytes}
+          onClick={() => regenMutation.mutate({ scansOnly: true })}
+        >
+          Regenerate scans
+        </Button>
+        <Button
+          variant="outline"
+          disabled={anyPending || !status.disk.totalBytes}
+          onClick={() => regenMutation.mutate({})}
+        >
+          {regenRunning ? (
+            <LoaderIcon className="size-4 animate-spin" />
+          ) : resumableCheckpoint && canResume ? (
+            `Resume regeneration (${resumableCheckpoint.lastProcessedIndex + 1}/${resumableCheckpoint.totalFiles})`
+          ) : (
+            "Regenerate resolutions"
+          )}
+        </Button>
+        {canResume && (
+          <Button
+            variant="outline"
+            disabled={anyPending || !status.disk.totalBytes}
+            onClick={() => regenMutation.mutate({ reset: true })}
+          >
+            Start fresh
+          </Button>
+        )}
+        {regenRunning && (
+          <Button
+            variant="outline"
+            disabled={cancelRegenMutation.isPending}
+            onClick={() => cancelRegenMutation.mutate()}
+          >
+            {cancelRegenMutation.isPending ? (
+              <LoaderIcon className="size-4 animate-spin" />
+            ) : (
+              "Cancel regeneration"
+            )}
+          </Button>
+        )}
+        <Button disabled={anyPending || allDone} onClick={() => rehostMutation.mutate()}>
+          {rehostMutation.isPending ? (
+            <LoaderIcon className="size-4 animate-spin" />
+          ) : (
+            "Rehost missing"
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={anyPending || !status.orphanedFiles}
+          onClick={() => cleanupMutation.mutate()}
+        >
+          {cleanupMutation.isPending ? (
+            <LoaderIcon className="size-4 animate-spin" />
+          ) : (
+            "Delete orphaned"
+          )}
+        </Button>
+        <ConfirmClearButton
+          title="Delete all rehosted images?"
+          description="This will delete all locally cached images. They can be re-fetched by running rehost again."
+          onConfirm={() => clearMutation.mutate()}
+          disabled={anyPending || !status.rehosted}
+          isPending={clearMutation.isPending}
+        />
+      </div>
 
-      <CardContent className="space-y-3 pt-0">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            disabled={anyPending || migrateMutation.isSuccess}
-            onClick={() => migrateMutation.mutate()}
-          >
-            {migrateMutation.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              "Migrate directories"
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={anyPending || !status.disk.totalBytes}
-            onClick={() => regenMutation.mutate({ skipExisting: true, reset: true })}
-          >
-            {regenMutation.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              "Fill missing variants"
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={anyPending || !status.disk.totalBytes}
-            onClick={() => regenMutation.mutate({ scansOnly: true })}
-          >
-            Regenerate scans
-          </Button>
-          <Button
-            variant="outline"
-            disabled={anyPending || !status.disk.totalBytes}
-            onClick={() => regenMutation.mutate({})}
-          >
-            {regenRunning ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : resumableCheckpoint && canResume ? (
-              `Resume regeneration (${resumableCheckpoint.lastProcessedIndex + 1}/${resumableCheckpoint.totalFiles})`
-            ) : (
-              "Regenerate resolutions"
-            )}
-          </Button>
-          {canResume && (
-            <Button
-              variant="outline"
-              disabled={anyPending || !status.disk.totalBytes}
-              onClick={() => regenMutation.mutate({ reset: true })}
-            >
-              Start fresh
-            </Button>
-          )}
-          {regenRunning && (
-            <Button
-              variant="outline"
-              disabled={cancelRegenMutation.isPending}
-              onClick={() => cancelRegenMutation.mutate()}
-            >
-              {cancelRegenMutation.isPending ? (
-                <LoaderIcon className="size-4 animate-spin" />
-              ) : (
-                "Cancel regeneration"
-              )}
-            </Button>
-          )}
-          <Button disabled={anyPending || allDone} onClick={() => rehostMutation.mutate()}>
-            {rehostMutation.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              "Rehost missing"
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={anyPending || !status.orphanedFiles}
-            onClick={() => cleanupMutation.mutate()}
-          >
-            {cleanupMutation.isPending ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              "Delete orphaned"
-            )}
-          </Button>
-          <ConfirmClearButton
-            title="Delete all rehosted images?"
-            description="This will delete all locally cached images. They can be re-fetched by running rehost again."
-            onConfirm={() => clearMutation.mutate()}
-            disabled={anyPending || !status.rehosted}
-            isPending={clearMutation.isPending}
-          />
+      {latestRegenRun && <RegenerateJobStatus run={latestRegenRun} />}
+
+      {migrateMutation.isSuccess && migrateMutation.data && (
+        <div>
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <CheckIcon className="text-success size-4 shrink-0" />
+            Scanned {migrateMutation.data.scanned} files: {migrateMutation.data.moved} moved,{" "}
+            {migrateMutation.data.skipped} skipped
+            {migrateMutation.data.failed > 0 && `, ${migrateMutation.data.failed} failed`}
+          </p>
+          <ErrorsList errors={migrateMutation.data.errors} />
         </div>
+      )}
+      {migrateMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {migrateMutation.error?.message}
+        </p>
+      )}
 
-        {latestRegenRun && <RegenerateJobStatus run={latestRegenRun} />}
+      <MutationStatus mutation={rehostMutation} label="rehost" />
+      {regenMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {regenMutation.error?.message}
+        </p>
+      )}
+      {cancelRegenMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {cancelRegenMutation.error?.message}
+        </p>
+      )}
 
-        {migrateMutation.isSuccess && migrateMutation.data && (
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <CheckIcon className="text-success size-4 shrink-0" />
-              Scanned {migrateMutation.data.scanned} files: {migrateMutation.data.moved} moved,{" "}
-              {migrateMutation.data.skipped} skipped
-              {migrateMutation.data.failed > 0 && `, ${migrateMutation.data.failed} failed`}
-            </p>
-            <ErrorsList errors={migrateMutation.data.errors} />
-          </div>
-        )}
-        {migrateMutation.isError && (
-          <p className="text-muted-foreground flex items-center gap-1 text-sm">
-            <XIcon className="text-destructive size-4 shrink-0" />
-            {migrateMutation.error?.message}
-          </p>
-        )}
-
-        <MutationStatus mutation={rehostMutation} label="rehost" />
-        {regenMutation.isError && (
-          <p className="text-muted-foreground flex items-center gap-1 text-sm">
-            <XIcon className="text-destructive size-4 shrink-0" />
-            {regenMutation.error?.message}
-          </p>
-        )}
-        {cancelRegenMutation.isError && (
-          <p className="text-muted-foreground flex items-center gap-1 text-sm">
-            <XIcon className="text-destructive size-4 shrink-0" />
-            {cancelRegenMutation.error?.message}
-          </p>
-        )}
-
-        {cleanupMutation.isSuccess && cleanupMutation.data && (
-          <div>
-            <SimpleMutationResult
-              mutation={cleanupMutation}
-              renderSuccess={(d: { scanned: number; deleted: number }) =>
-                `Scanned ${d.scanned} files, deleted ${d.deleted} orphaned`
-              }
-            />
-            <ErrorsList errors={cleanupMutation.data.errors} />
-          </div>
-        )}
-        {cleanupMutation.isError && (
-          <p className="text-muted-foreground flex items-center gap-1 text-sm">
-            <XIcon className="text-destructive size-4 shrink-0" />
-            {cleanupMutation.error?.message}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {cleanupMutation.isSuccess && cleanupMutation.data && (
+        <div>
+          <SimpleMutationResult
+            mutation={cleanupMutation}
+            renderSuccess={(d: { scanned: number; deleted: number }) =>
+              `Scanned ${d.scanned} files, deleted ${d.deleted} orphaned`
+            }
+          />
+          <ErrorsList errors={cleanupMutation.data.errors} />
+        </div>
+      )}
+      {cleanupMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {cleanupMutation.error?.message}
+        </p>
+      )}
+    </SettingsSection>
   );
 }
 
@@ -403,60 +404,84 @@ function MissingImagesSection() {
   const shown = filterMissingImagesByLanguage(cards, language);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Missing Images</CardTitle>
-        <CardDescription>
+    <SettingsSection
+      title="Missing Images"
+      description={
+        <>
           {shown.length} {shown.length === 1 ? "card has" : "cards have"} printings without an
           active front-face image
           {language === null ? "" : ` in ${language}`}.
-        </CardDescription>
-        <div className="flex flex-wrap gap-1.5 pt-2">
+        </>
+      }
+    >
+      <div className="flex flex-wrap gap-1.5">
+        <Badge
+          variant={language === null ? "default" : "outline"}
+          className="cursor-pointer"
+          render={<Pressable onClick={() => setLanguage(null)} />}
+        >
+          All {cards.length}
+        </Badge>
+        {summaries.map((summary) => (
           <Badge
-            variant={language === null ? "default" : "outline"}
+            key={summary.language}
+            variant={language === summary.language ? "default" : "outline"}
             className="cursor-pointer"
-            render={<Pressable onClick={() => setLanguage(null)} />}
+            render={
+              <Pressable
+                onClick={() => setLanguage(language === summary.language ? null : summary.language)}
+              />
+            }
           >
-            All {cards.length}
+            {summary.language} {summary.cards}
           </Badge>
-          {summaries.map((summary) => (
-            <Badge
-              key={summary.language}
-              variant={language === summary.language ? "default" : "outline"}
-              className="cursor-pointer"
-              render={
-                <Pressable
-                  onClick={() =>
-                    setLanguage(language === summary.language ? null : summary.language)
-                  }
-                />
-              }
+        ))}
+      </div>
+      <RowList className="text-sm">
+        {shown.map((card) => (
+          <RowListItem key={card.cardId} className="flex-wrap gap-1.5">
+            <TextLink
+              variant="muted"
+              render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: card.slug }} />}
             >
-              {summary.language} {summary.cards}
-            </Badge>
-          ))}
+              <span className="text-muted-foreground/60">{card.slug}</span> {card.name}
+            </TextLink>
+            {card.byLanguage.map((entry) => (
+              <Badge key={entry.language} variant="muted">
+                {entry.language} {entry.count}
+              </Badge>
+            ))}
+          </RowListItem>
+        ))}
+      </RowList>
+    </SettingsSection>
+  );
+}
+
+function BySetList<T extends { imageId: string }>({
+  groups,
+  renderEntry,
+}: {
+  groups: readonly (readonly [string, readonly T[]])[];
+  renderEntry: (entry: T) => ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {groups.map(([setSlug, entries]) => (
+        <div key={setSlug} className="flex flex-col gap-2">
+          <SectionHeading as="h4" size="sm">
+            {setSlug}
+          </SectionHeading>
+          <RowList className="text-sm">
+            {entries.map((entry) => (
+              <RowListItem key={entry.imageId} className="items-baseline gap-2">
+                {renderEntry(entry)}
+              </RowListItem>
+            ))}
+          </RowList>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <ul className="space-y-1 text-sm">
-          {shown.map((card) => (
-            <li key={card.cardId} className="flex flex-wrap items-center gap-1.5">
-              <TextLink
-                variant="muted"
-                render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: card.slug }} />}
-              >
-                <span className="text-muted-foreground/60">{card.slug}</span> {card.name}
-              </TextLink>
-              {card.byLanguage.map((entry) => (
-                <Badge key={entry.language} variant="muted">
-                  {entry.language} {entry.count}
-                </Badge>
-              ))}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }
 
@@ -467,40 +492,24 @@ function BrokenImagesSection() {
 
   if (!enabled) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>Broken Images</CardTitle>
-            <Button variant="outline" onClick={() => setEnabled(true)}>
-              Check
-            </Button>
-          </div>
-          <CardDescription>Scan disk for rehosted images with missing files.</CardDescription>
-        </CardHeader>
-      </Card>
+      <SettingsSection
+        title="Broken Images"
+        description="Scan disk for rehosted images with missing files."
+        action={
+          <Button variant="outline" onClick={() => setEnabled(true)}>
+            Check
+          </Button>
+        }
+      />
     );
   }
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Broken Images</CardTitle>
-          <CardDescription>Scanning disk for missing files…</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <SettingsSection title="Broken Images" description="Scanning disk for missing files…" />;
   }
 
   if (!data || data.broken.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Broken Images</CardTitle>
-          <CardDescription>No broken images found.</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <SettingsSection title="Broken Images" description="No broken images found." />;
   }
 
   const bySet = new Map<string, typeof data.broken>();
@@ -513,65 +522,56 @@ function BrokenImagesSection() {
   const imageIds = data.broken.map((entry) => entry.imageId);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle>Broken Images</CardTitle>
-          <ConfirmClearButton
-            label="Un-rehost all"
-            title={`Un-rehost ${data.broken.length} broken ${data.broken.length === 1 ? "image" : "images"}?`}
-            description="Clears the rehosted URL on each image so the next Rehost missing run re-downloads and regenerates them from the original source."
-            onConfirm={() => unrehostMutation.mutate(imageIds)}
-            disabled={unrehostMutation.isPending}
-            isPending={unrehostMutation.isPending}
-          />
-        </div>
-        <CardDescription>
+    <SettingsSection
+      title="Broken Images"
+      description={
+        <>
           {data.broken.length} of {data.total} rehosted{" "}
           {data.broken.length === 1 ? "image is" : "images are"} missing files on disk.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {unrehostMutation.isSuccess && unrehostMutation.data && (
-          <div className="mb-3">
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <CheckIcon className="text-success size-4 shrink-0" />
-              Un-rehosted {unrehostMutation.data.unrehosted} / {unrehostMutation.data.total} images
-            </p>
-            <ErrorsList errors={unrehostMutation.data.errors} />
-          </div>
-        )}
-        {unrehostMutation.isError && (
-          <p className="text-muted-foreground mb-3 flex items-center gap-1 text-sm">
-            <XIcon className="text-destructive size-4 shrink-0" />
-            {unrehostMutation.error?.message}
+        </>
+      }
+      action={
+        <ConfirmClearButton
+          label="Un-rehost all"
+          title={`Un-rehost ${data.broken.length} broken ${data.broken.length === 1 ? "image" : "images"}?`}
+          description="Clears the rehosted URL on each image so the next Rehost missing run re-downloads and regenerates them from the original source."
+          onConfirm={() => unrehostMutation.mutate(imageIds)}
+          disabled={unrehostMutation.isPending}
+          isPending={unrehostMutation.isPending}
+        />
+      }
+    >
+      {unrehostMutation.isSuccess && unrehostMutation.data && (
+        <div>
+          <p className="text-muted-foreground flex items-center gap-1 text-sm">
+            <CheckIcon className="text-success size-4 shrink-0" />
+            Un-rehosted {unrehostMutation.data.unrehosted} / {unrehostMutation.data.total} images
           </p>
-        )}
-        <div className="space-y-3">
-          {[...bySet.entries()].map(([setSlug, entries]) => (
-            <div key={setSlug}>
-              <p className="text-muted-foreground mb-1 font-medium uppercase">{setSlug}</p>
-              <ul className="space-y-1 text-sm">
-                {entries.map((entry) => (
-                  <li key={entry.imageId} className="flex items-baseline gap-2">
-                    <TextLink
-                      variant="inherit"
-                      render={
-                        <Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />
-                      }
-                    >
-                      <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
-                      {entry.cardName}
-                    </TextLink>
-                    <span className="text-muted-foreground truncate">{entry.rehostedUrl}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <ErrorsList errors={unrehostMutation.data.errors} />
         </div>
-      </CardContent>
-    </Card>
+      )}
+      {unrehostMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {unrehostMutation.error?.message}
+        </p>
+      )}
+      <BySetList
+        groups={[...bySet.entries()]}
+        renderEntry={(entry) => (
+          <>
+            <TextLink
+              variant="inherit"
+              render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />}
+            >
+              <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
+              {entry.cardName}
+            </TextLink>
+            <span className="text-muted-foreground truncate">{entry.rehostedUrl}</span>
+          </>
+        )}
+      />
+    </SettingsSection>
   );
 }
 
@@ -581,41 +581,30 @@ function LowResImagesSection() {
 
   if (!enabled) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>Low-Resolution Images</CardTitle>
-            <Button variant="outline" onClick={() => setEnabled(true)}>
-              Check
-            </Button>
-          </div>
-          <CardDescription>
-            Scan rehosted images for any whose source short edge is under 400px.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <SettingsSection
+        title="Low-Resolution Images"
+        description="Scan rehosted images for any whose source short edge is under 400px."
+        action={
+          <Button variant="outline" onClick={() => setEnabled(true)}>
+            Check
+          </Button>
+        }
+      />
     );
   }
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Low-Resolution Images</CardTitle>
-          <CardDescription>Scanning image dimensions…</CardDescription>
-        </CardHeader>
-      </Card>
+      <SettingsSection title="Low-Resolution Images" description="Scanning image dimensions…" />
     );
   }
 
   if (!data || data.lowRes.length === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Low-Resolution Images</CardTitle>
-          <CardDescription>No low-resolution images found.</CardDescription>
-        </CardHeader>
-      </Card>
+      <SettingsSection
+        title="Low-Resolution Images"
+        description="No low-resolution images found."
+      />
     );
   }
 
@@ -627,49 +616,40 @@ function LowResImagesSection() {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Low-Resolution Images</CardTitle>
-        <CardDescription>
+    <SettingsSection
+      title="Low-Resolution Images"
+      description={
+        <>
           {data.lowRes.length} of {data.total} rehosted{" "}
           {data.lowRes.length === 1 ? "image has" : "images have"} a full-resolution width under
           600px.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          {[...bySet.entries()].map(([setSlug, entries]) => (
-            <div key={setSlug}>
-              <p className="text-muted-foreground mb-1 font-medium uppercase">{setSlug}</p>
-              <ul className="space-y-1 text-sm">
-                {entries.map((entry) => (
-                  <li key={entry.imageId} className="flex items-baseline gap-2">
-                    <TextLink
-                      variant="inherit"
-                      render={
-                        <Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />
-                      }
-                    >
-                      <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
-                      {entry.cardName}
-                    </TextLink>
-                    <span className="text-muted-foreground">
-                      {entry.width}×{entry.height}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+    >
+      <BySetList
+        groups={[...bySet.entries()]}
+        renderEntry={(entry) => (
+          <>
+            <TextLink
+              variant="inherit"
+              render={<Link to="/admin/cards/$cardSlug" params={{ cardSlug: entry.cardSlug }} />}
+            >
+              <span className="text-muted-foreground/60">{entry.printingShortCode}</span>{" "}
+              {entry.cardName}
+            </TextLink>
+            <span className="text-muted-foreground">
+              {entry.width}×{entry.height}
+            </span>
+          </>
+        )}
+      />
+    </SettingsSection>
   );
 }
 
 export function ImagesPage() {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Images" />
       <BrokenImagesSection />
       <LowResImagesSection />

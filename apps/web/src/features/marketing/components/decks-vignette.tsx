@@ -209,7 +209,7 @@ export function DecksVignette() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex h-6 items-center gap-2 border-b">
+        <div className="flex h-6 items-center gap-2">
           <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
             Main Deck
           </span>
@@ -266,7 +266,7 @@ export function DecksVignette() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="text-muted-foreground flex h-6 items-center gap-1.5 border-b">
+        <div className="text-muted-foreground flex h-6 items-center gap-1.5">
           <ChevronRightIcon aria-hidden="true" className="size-3.5 shrink-0 rotate-90" />
           <span className="text-2xs shrink-0 font-semibold tracking-wide uppercase">Stats</span>
           <span aria-hidden="true" className="mx-1 flex h-2.5 flex-1 overflow-hidden rounded-full">

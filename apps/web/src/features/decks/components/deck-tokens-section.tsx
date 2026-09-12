@@ -5,7 +5,6 @@ import { ImageOffIcon, InfoIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ExpandToggle } from "@/components/ui/expand-toggle";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
@@ -19,6 +18,7 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/components/deck-thumb-metrics";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import type { DeckTokenEntry } from "@/features/decks/hooks/use-deck-tokens";
 import { useDeckTokens } from "@/features/decks/hooks/use-deck-tokens";
@@ -186,13 +186,10 @@ export function DeckTokensSection({
   if (variant === "list") {
     return (
       <section className={DECK_LIST_SECTION_CLASS}>
-        <div className="flex h-6 items-center gap-2 border-b">
-          <SectionHeading as="h3" size="sm">
-            {TOKENS_LABEL}
-          </SectionHeading>
+        <DeckZoneHeader label={TOKENS_LABEL} labelAs="h3">
           <TokensHint />
           {count}
-        </div>
+        </DeckZoneHeader>
         <div className="flex flex-col gap-0.5">
           {tokens.map((entry) => (
             <TokenRow
@@ -211,20 +208,22 @@ export function DeckTokensSection({
 
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex h-6 items-center gap-2 border-b">
-        <ExpandToggle
-          expanded={!collapsed}
-          onClick={() => toggleCollapsed("tokens")}
-          aria-label={collapsed ? `Expand ${TOKENS_LABEL}` : `Collapse ${TOKENS_LABEL}`}
-          chevronClassName="size-3.5"
-          className="shrink-0 rounded-md"
-        />
-        <SectionHeading as="h3" size="sm">
-          {TOKENS_LABEL}
-        </SectionHeading>
+      <DeckZoneHeader
+        label={TOKENS_LABEL}
+        labelAs="h3"
+        leading={
+          <ExpandToggle
+            expanded={!collapsed}
+            onClick={() => toggleCollapsed("tokens")}
+            aria-label={collapsed ? `Expand ${TOKENS_LABEL}` : `Collapse ${TOKENS_LABEL}`}
+            chevronClassName="size-3.5"
+            className="shrink-0 rounded-md"
+          />
+        }
+      >
         <TokensHint />
         {count}
-      </div>
+      </DeckZoneHeader>
       {!collapsed && (
         <div className="flex flex-wrap items-center gap-1.5">
           {tokens.map((entry) => (

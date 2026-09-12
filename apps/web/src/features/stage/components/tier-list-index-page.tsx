@@ -25,7 +25,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,7 +95,7 @@ export function TierListIndexPage() {
             </Button>
           </EmptyState>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-6">
             {tierLists.map((tierList) => (
               <TierListRow key={tierList.id} tierList={tierList} />
             ))}
@@ -114,47 +121,48 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
   }));
 
   return (
-    <Card className="flex flex-col gap-3 p-3">
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
+    <Card>
+      <CardHeader>
+        <CardTitle className="min-w-0">
           <TextLink
             variant="inherit"
-            className="font-heading"
             render={<Link to="/tier-lists/$tierListId" params={{ tierListId: tierList.id }} />}
           >
             {tierList.title}
           </TextLink>
-          <p className="text-muted-foreground text-sm">
-            {tierList.cardCount} {tierList.cardCount === 1 ? "card" : "cards"} across{" "}
-            {tierList.tierCount} {tierList.tierCount === 1 ? "tier" : "tiers"} · edited{" "}
-            {formatDay(tierList.updatedAt)}
-          </p>
-        </div>
-        {tierList.isPublic && tierList.shareToken && <Badge variant="outline">Shared</Badge>}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="ghost" size="icon-sm" aria-label={`${tierList.title} options`} />
-            }
-          >
-            <EllipsisVerticalIcon className="size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setShareOpen(true)}>
-              <Share2Icon />
-              Share
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2Icon />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+        </CardTitle>
+        <CardDescription>
+          {tierList.cardCount} {tierList.cardCount === 1 ? "card" : "cards"} across{" "}
+          {tierList.tierCount} {tierList.tierCount === 1 ? "tier" : "tiers"} · edited{" "}
+          {formatDay(tierList.updatedAt)}
+        </CardDescription>
+        <CardAction className="flex items-center gap-2">
+          {tierList.isPublic && tierList.shareToken && <Badge variant="outline">Shared</Badge>}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label={`${tierList.title} options`} />
+              }
+            >
+              <EllipsisVerticalIcon className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShareOpen(true)}>
+                <Share2Icon />
+                Share
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2Icon />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardAction>
+      </CardHeader>
 
       {preview.length > 0 && (
-        <div className="flex flex-col gap-1">
+        <CardContent className="flex flex-col gap-1">
           {preview.map((row) => (
             <TierRowFrame
               key={row.rowIndex}
@@ -163,13 +171,14 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
               label={row.label}
               tileWidth={PREVIEW_TILE_WIDTH}
               clip
+              flat
             >
               {row.cards.map((view) => (
                 <TierCardTile key={view.cardId} view={view} width={PREVIEW_TILE_WIDTH} />
               ))}
             </TierRowFrame>
           ))}
-        </div>
+        </CardContent>
       )}
 
       <TierListShareDialog

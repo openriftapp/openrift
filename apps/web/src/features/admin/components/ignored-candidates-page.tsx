@@ -238,7 +238,7 @@ function PinnedPrintingLinks({ links }: { links: readonly PrintingLink[] }) {
       virtualize={{ rowHeight: PRINTING_LINK_ROW_HEIGHT }}
       minWidth="min-w-[720px]"
       toolbar={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <DebouncedSearchInput
             urlValue={query}
             onCommit={setQuery}

@@ -1,12 +1,12 @@
 import { CoinsIcon, FlagIcon, SwordIcon, TimerIcon, TrophyIcon, ZapIcon } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
 export default function HowToPlayArticle() {
   return (
@@ -82,10 +82,8 @@ export default function HowToPlayArticle() {
         </p>
 
         <Callout className="mt-3">
-          <p className="text-muted-foreground text-2xs mb-2 text-center font-medium tracking-wide uppercase">
-            Board layout (placeholder)
-          </p>
-          <div className="bg-background flex h-56 items-center justify-center rounded-md border border-dashed">
+          <Eyebrow>Board layout (placeholder)</Eyebrow>
+          <div className="bg-background flex h-56 items-center justify-center rounded-md">
             <span className="text-muted-foreground text-sm">
               [Diagram: opponent base on top, three battlefields in the middle, your base on the
               bottom, runes and decks to the side]
@@ -146,22 +144,28 @@ export default function HowToPlayArticle() {
           Battlefields are how you score, so they are where the fights happen.
         </p>
 
-        <DefinitionList className="mt-3">
-          <DefinitionRow icon={<FlagIcon className="text-success size-3.5" />} label="Move in">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm icon={<FlagIcon className="text-success size-3.5" />}>
+            Move in
+          </DefinitionTerm>
+          <DefinitionDetail>
             Units deploy to your base, then move to a battlefield. Some units have Ganking, which
             lets them hop between battlefields without going home first.
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<SwordIcon className="text-destructive size-3.5" />}
-            label="Showdown"
-          >
+          </DefinitionDetail>
+          <DefinitionTerm icon={<SwordIcon className="text-destructive size-3.5" />}>
+            Showdown
+          </DefinitionTerm>
+          <DefinitionDetail>
             When both players have units at the same battlefield, every unit there deals damage
             equal to its Might at the same time. A unit dies if damage meets or exceeds its Might.
-          </DefinitionRow>
-          <DefinitionRow icon={<TrophyIcon className="text-warning size-3.5" />} label="Conquer">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<TrophyIcon className="text-warning size-3.5" />}>
+            Conquer
+          </DefinitionTerm>
+          <DefinitionDetail>
             Hold a battlefield with no opposing units present and you score a point. You score one
             more for every turn you keep it.
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
       </section>
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { CitationEntry } from "@/features/cards/components/card-detail/printing-citations";
 
 export interface EditableCitation {
@@ -81,7 +82,7 @@ function CitationRow<T extends EditableCitation>({
 
   if (editing) {
     return (
-      <li className="flex flex-wrap items-center gap-2 border-b py-1.5 last:border-b-0">
+      <RowListItem className="flex-wrap gap-2">
         <Input
           aria-label="Source name"
           className="min-w-40 flex-1"
@@ -115,12 +116,12 @@ function CitationRow<T extends EditableCitation>({
         >
           Cancel
         </Button>
-      </li>
+      </RowListItem>
     );
   }
 
   return (
-    <li className="flex items-center gap-2 border-b py-1.5 last:border-b-0">
+    <RowListItem className="gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <CitationEntry citation={citation} />
         {renderBadge?.(citation)}
@@ -140,6 +141,7 @@ function CitationRow<T extends EditableCitation>({
           <Button
             variant="ghost"
             size="icon-sm"
+            className="-mr-1.5"
             aria-label={`Delete source link ${citation.label}`}
             disabled={deleting}
             onClick={() => onDelete(citation.id)}
@@ -150,7 +152,7 @@ function CitationRow<T extends EditableCitation>({
       ) : (
         <span className="text-muted-foreground shrink-0 text-sm">{locked}</span>
       )}
-    </li>
+    </RowListItem>
   );
 }
 
@@ -218,7 +220,7 @@ export function SourceCitationsEditor<T extends EditableCitation>({
         <p className="text-muted-foreground text-sm">{emptyText}</p>
       )}
       {citations.length > 0 && (
-        <ul className="rounded-md border px-3">
+        <RowList>
           {citations.map((citation) => (
             <CitationRow
               key={citation.id}
@@ -232,7 +234,7 @@ export function SourceCitationsEditor<T extends EditableCitation>({
               lockedReason={lockedReason}
             />
           ))}
-        </ul>
+        </RowList>
       )}
 
       {adding ? (

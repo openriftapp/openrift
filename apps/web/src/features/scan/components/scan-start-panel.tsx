@@ -31,7 +31,7 @@ export function ScanTips({ className }: { className?: string }) {
 
 export function ScanStartHint({ className }: { className?: string }) {
   return (
-    <p className={cn("max-w-64 text-center text-white/70", className)}>
+    <p className={cn("max-w-80 text-white/70", className)}>
       Hold a card in the frame. Recognised cards appear in the list{" "}
       <span className="md:hidden">below</span>
       <span className="hidden md:inline">on the right</span>.
@@ -87,7 +87,7 @@ export function ScanStartPanel({
       </div>
 
       {!immersive && (
-        <div className="relative flex w-64 max-w-full flex-col items-center gap-4 px-3">
+        <div className="relative flex w-80 max-w-full flex-col items-center gap-4 px-3">
           {ready ? (
             <>
               <ScanStartHint />

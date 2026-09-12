@@ -130,26 +130,25 @@ describe("MetaLegendFinishes", () => {
     const rows = manyFinishes(9);
     renderFinishes(rows, { best: rows.slice(0, 5) });
 
-    expect(screen.getByRole("button", { name: "All 9" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show all 9" })).toBeInTheDocument();
     expect(screen.getAllByText("Pilot 0").length).toBeGreaterThan(0);
     expect(screen.queryByText("Pilot 6")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "All 9" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 9" }));
     expect(screen.getAllByText("Pilot 6").length).toBeGreaterThan(0);
   });
 
-  it("switches to the whole record from the footer", async () => {
+  it("keeps the show-all link in the header, with no footer link", () => {
     renderFinishes(manyFinishes(9));
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 9 finishes" }));
-    expect(screen.getAllByText("Pilot 6").length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: /Show all/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show all 9" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /more finish/u })).not.toBeInTheDocument();
   });
 
   it("asks the page for the next server page rather than slicing what it holds", async () => {
     const onShowMore = renderFinishes(manyFinishes(25), { total: 30 });
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 30 finishes" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 30" }));
     await userEvent.click(screen.getByRole("button", { name: "5 more finishes" }));
 
     expect(onShowMore).toHaveBeenCalledTimes(1);
@@ -158,14 +157,14 @@ describe("MetaLegendFinishes", () => {
   it("counts the rows still to come off the scope's total, not the page it holds", async () => {
     renderFinishes(manyFinishes(25), { total: 26 });
 
-    await userEvent.click(screen.getByRole("button", { name: "All 26" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 26" }));
     expect(screen.getByRole("button", { name: "1 more finish" })).toBeInTheDocument();
   });
 
   it("takes no second click while a page is on the way", async () => {
     const onShowMore = renderFinishes(manyFinishes(25), { total: 30, loadingMore: true });
 
-    await userEvent.click(screen.getByRole("button", { name: "All 30" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 30" }));
     await userEvent.click(screen.getByRole("button", { name: "5 more finishes" }));
 
     expect(onShowMore).not.toHaveBeenCalled();

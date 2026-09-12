@@ -82,7 +82,7 @@ function PrintingList({
               }
             }}
             className={cn(
-              "flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+              "-mx-2.5 flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
               isActive ? "bg-muted ring-border ring-1" : "hover:bg-muted/50",
             )}
           >

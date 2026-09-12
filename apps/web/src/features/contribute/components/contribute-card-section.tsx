@@ -2,7 +2,7 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useState } from "react";
 
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Input } from "@/components/ui/input";
@@ -61,129 +61,120 @@ export function ContributeCardSection({
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Card</CardTitle>
-        {!lockedSlug && (
-          <CardAction>
-            <ExistingCardPicker onPick={prefillFromExisting} />
-          </CardAction>
-        )}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <FieldRow
-          label="Name"
-          required
-          field="card.name"
-          error={errorAt("card.name") ?? errorAt("slug")}
-        >
-          <Input
-            value={form.card.name}
-            onChange={(e) => setCardField("name", e.target.value)}
-            placeholder="Ahri, Alluring"
-          />
-        </FieldRow>
+    <SettingsSection
+      title="Card"
+      action={lockedSlug ? undefined : <ExistingCardPicker onPick={prefillFromExisting} />}
+      contentClassName="gap-8"
+    >
+      <FieldRow
+        label="Name"
+        required
+        field="card.name"
+        error={errorAt("card.name") ?? errorAt("slug")}
+      >
+        <Input
+          value={form.card.name}
+          onChange={(e) => setCardField("name", e.target.value)}
+          placeholder="Ahri, Alluring"
+        />
+      </FieldRow>
 
-        <Collapsible open={open} onOpenChange={setOpen}>
-          <CollapsibleTrigger
-            render={
-              <ExpandToggle expanded={open} className="text-muted-foreground hover:text-foreground">
-                Card details
-              </ExpandToggle>
-            }
-          />
-          <CollapsibleContent className="mt-4 flex flex-col gap-4">
-            <FieldRow label="Domains" field="card.domains">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger
+          render={
+            <ExpandToggle expanded={open} className="text-muted-foreground hover:text-foreground">
+              Card details
+            </ExpandToggle>
+          }
+        />
+        <CollapsibleContent className="mt-6 flex flex-col gap-4">
+          <FieldRow label="Domains" field="card.domains">
+            <ToggleGroup
+              multiple
+              variant="outline"
+              spacing={0}
+              value={form.card.domains}
+              onValueChange={(next) => setCardField("domains", next)}
+            >
+              {orders.domains.map((slug) => {
+                const selected = form.card.domains.includes(slug);
+                const disabled = !selected && domainDisabled.has(slug);
+                const iconSrc = domainIcons[slug];
+                const isColorless = slug === WellKnown.domain.COLORLESS;
+                return (
+                  <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
+                    {iconSrc && (
+                      <img
+                        src={iconSrc}
+                        alt=""
+                        className={cn("size-4 shrink-0", isColorless && "brightness-0 dark:invert")}
+                      />
+                    )}
+                    {enumLabel(labels.domains, slug)}
+                  </ToggleGroupItem>
+                );
+              })}
+            </ToggleGroup>
+          </FieldRow>
+          <FieldRow label="Types" field="card.types">
+            <ToggleGroup
+              multiple
+              variant="outline"
+              spacing={0}
+              value={form.card.types}
+              onValueChange={(next) => setCardField("types", next)}
+            >
+              {orders.cardTypes.map((slug) => (
+                <ToggleGroupItem key={slug} value={slug}>
+                  {enumLabel(labels.cardTypes, slug)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </FieldRow>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FieldRow label="Supertypes">
               <ToggleGroup
                 multiple
                 variant="outline"
                 spacing={0}
-                value={form.card.domains}
-                onValueChange={(next) => setCardField("domains", next)}
+                value={form.card.superTypes}
+                onValueChange={(next) => setCardField("superTypes", next)}
               >
-                {orders.domains.map((slug) => {
-                  const selected = form.card.domains.includes(slug);
-                  const disabled = !selected && domainDisabled.has(slug);
-                  const iconSrc = domainIcons[slug];
-                  const isColorless = slug === WellKnown.domain.COLORLESS;
-                  return (
-                    <ToggleGroupItem key={slug} value={slug} disabled={disabled}>
-                      {iconSrc && (
-                        <img
-                          src={iconSrc}
-                          alt=""
-                          className={cn(
-                            "size-4 shrink-0",
-                            isColorless && "brightness-0 dark:invert",
-                          )}
-                        />
-                      )}
-                      {enumLabel(labels.domains, slug)}
-                    </ToggleGroupItem>
-                  );
-                })}
-              </ToggleGroup>
-            </FieldRow>
-            <FieldRow label="Types" field="card.types">
-              <ToggleGroup
-                multiple
-                variant="outline"
-                spacing={0}
-                value={form.card.types}
-                onValueChange={(next) => setCardField("types", next)}
-              >
-                {orders.cardTypes.map((slug) => (
+                {orders.superTypes.map((slug) => (
                   <ToggleGroupItem key={slug} value={slug}>
-                    {enumLabel(labels.cardTypes, slug)}
+                    {enumLabel(labels.superTypes, slug)}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
             </FieldRow>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FieldRow label="Supertypes">
-                <ToggleGroup
-                  multiple
-                  variant="outline"
-                  spacing={0}
-                  value={form.card.superTypes}
-                  onValueChange={(next) => setCardField("superTypes", next)}
-                >
-                  {orders.superTypes.map((slug) => (
-                    <ToggleGroupItem key={slug} value={slug}>
-                      {enumLabel(labels.superTypes, slug)}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </FieldRow>
-            </div>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              <FieldRow label="Might" field="card.might">
-                <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
-              </FieldRow>
-              <FieldRow label="Energy" field="card.energy">
-                <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
-              </FieldRow>
-              <FieldRow label="Power" field="card.power">
-                <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
-              </FieldRow>
-              <FieldRow label="Might bonus" field="card.mightBonus">
-                <NumberInput
-                  value={form.card.mightBonus}
-                  onChange={(v) => setCardField("mightBonus", v)}
-                />
-              </FieldRow>
-            </div>
-            <FieldRow label="Tags" hint="Press Enter or comma to add." field="card.tags">
-              <ChipInput
-                value={form.card.tags}
-                onChange={(v) => setCardField("tags", v)}
-                placeholder="Poro"
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <FieldRow label="Might" field="card.might">
+              <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
+            </FieldRow>
+            <FieldRow label="Energy" field="card.energy">
+              <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
+            </FieldRow>
+            <FieldRow label="Power" field="card.power">
+              <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
+            </FieldRow>
+            <FieldRow label="Might bonus" field="card.mightBonus">
+              <NumberInput
+                value={form.card.mightBonus}
+                onChange={(v) => setCardField("mightBonus", v)}
               />
             </FieldRow>
-          </CollapsibleContent>
-        </Collapsible>
-      </CardContent>
-    </Card>
+          </div>
+          <FieldRow label="Tags" hint="Press Enter or comma to add." field="card.tags">
+            <ChipInput
+              value={form.card.tags}
+              onChange={(v) => setCardField("tags", v)}
+              placeholder="Poro"
+            />
+          </FieldRow>
+        </CollapsibleContent>
+      </Collapsible>
+    </SettingsSection>
   );
 }

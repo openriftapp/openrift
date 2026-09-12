@@ -650,6 +650,7 @@ function AdminTableHead<TData extends RowData>({
                 {canSort ? (
                   <SortHeaderButton
                     sorted={sorted}
+                    align={meta?.align}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <FlexRender header={header} />

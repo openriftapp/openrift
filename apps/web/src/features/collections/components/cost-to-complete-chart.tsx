@@ -11,6 +11,7 @@ import { Area, AreaChart, ReferenceArea, ReferenceDot, XAxis, YAxis } from "rech
 import { trackMarketplaceClick } from "@/components/marketplace-link";
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { CustomTagAssignments } from "@/features/collections/hooks/use-collection-stats";
@@ -432,11 +433,13 @@ export function CostToCompleteChart({
 
   if (data.curve.length <= 1) {
     return (
-      <p className="text-muted-foreground py-4 text-center text-sm">
-        {data.startPercent >= 100
-          ? "Collection is complete!"
-          : "No price data available for missing items."}
-      </p>
+      <Empty>
+        <EmptyDescription>
+          {data.startPercent >= 100
+            ? "Collection is complete!"
+            : "No price data available for missing items."}
+        </EmptyDescription>
+      </Empty>
     );
   }
 

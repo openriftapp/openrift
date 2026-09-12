@@ -68,7 +68,8 @@ function DropdownMenuLabel({
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(
-        "text-muted-foreground px-1.5 py-1 text-xs font-medium data-inset:pl-7",
+        // custom: px-2 py-1.5 label — popup rows sit on the h-8 rhythm, not below it
+        "text-muted-foreground px-2 py-1.5 text-xs font-medium data-inset:pl-7",
         className,
       )}
       {...props}
@@ -92,7 +93,8 @@ function DropdownMenuItem({
       data-variant={variant}
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "group/dropdown-menu-item focus:bg-muted focus:text-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:*:[svg]:text-destructive relative flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // custom: px-2 py-1.5 rows — popup rows sit on the h-8 rhythm, not below it
+        "group/dropdown-menu-item focus:bg-muted focus:text-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:*:[svg]:text-destructive relative flex cursor-default items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -118,7 +120,8 @@ function DropdownMenuSubTrigger({
       data-inset={inset}
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "focus:bg-muted focus:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground data-open:bg-muted data-open:text-foreground flex cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // custom: px-2 py-1.5 rows — popup rows sit on the h-8 rhythm, not below it
+        "focus:bg-muted focus:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground data-open:bg-muted data-open:text-foreground flex cursor-default items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -169,7 +172,8 @@ function DropdownMenuCheckboxItem({
       data-inset={inset}
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "focus:bg-muted focus:text-foreground relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // custom: py-1.5 pl-2 rows — popup rows sit on the h-8 rhythm, not below it
+        "focus:bg-muted focus:text-foreground relative flex cursor-default items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       checked={checked}
@@ -206,7 +210,8 @@ function DropdownMenuRadioItem({
       data-inset={inset}
       className={cn(
         // custom: bg-muted highlight — --accent resolves to --primary, so the scaffold's accent wash paints the brand color at full strength
-        "focus:bg-muted focus:text-foreground relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // custom: py-1.5 pl-2 rows — popup rows sit on the h-8 rhythm, not below it
+        "focus:bg-muted focus:text-foreground relative flex cursor-default items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -228,7 +233,11 @@ function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn(
+        // custom: my-1.5 — matches the new row padding so a divider doesn't read as another row
+        "bg-border -mx-1 my-1.5 h-px",
+        className,
+      )}
       {...props}
     />
   );

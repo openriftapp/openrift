@@ -230,7 +230,7 @@ export function SubmissionBlock({
           queueItem={queueItem}
         />
 
-        <div className="space-y-3 border-t p-3">
+        <div className="space-y-3 p-3">
           {submission.note && (
             <Callout className="text-sm">
               <p className="text-muted-foreground mb-1 text-xs">Their note</p>

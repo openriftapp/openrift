@@ -20,7 +20,7 @@ function ChatBotSetups() {
     <div className="flex flex-col gap-5">
       {chatBotSetups(getSiteUrl()).map((setup) => (
         <div key={setup.id} className="flex flex-col gap-2">
-          <h3 className="font-medium">{setup.name}</h3>
+          <Heading level={3}>{setup.name}</Heading>
           <CopyField value={setup.command} label={`${setup.name} command`} mono />
           <p className="text-muted-foreground text-sm">{setup.note}</p>
         </div>

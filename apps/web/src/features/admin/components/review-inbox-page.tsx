@@ -167,7 +167,7 @@ export function ReviewInboxPage() {
       defaultSort={{ column: "Waiting", direction: "asc" }}
       minWidth="min-w-[820px]"
       toolbar={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <DebouncedSearchInput
             urlValue={query}
             placeholder="Search by card, source or contributor…"

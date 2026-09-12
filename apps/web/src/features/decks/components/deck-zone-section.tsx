@@ -13,6 +13,7 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
 import { DeckCardRow } from "@/features/decks/components/deck-card-row";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { lockedReasonText } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckZoneDrop } from "@/features/decks/hooks/use-deck-zone-drop";
@@ -221,24 +222,30 @@ export function DeckZoneSection({
     >
       {/* Two separate controls, never nested: the chevron collapses the
           section, the label opens the zone in the main area. */}
-      <div className={cn("flex h-6 items-center gap-1.5 border-b", isActive && "border-primary")}>
-        <ExpandToggle
-          expanded={open}
-          chevronClassName="size-3.5"
-          aria-label={`${open ? "Collapse" : "Expand"} ${zoneLabel}`}
-          onClick={() => setOpen((prev) => !prev)}
-          className="shrink-0"
-        />
-        <Pressable
-          onClick={activateZone}
-          aria-label={`Edit ${zoneLabel}`}
-          className={cn(
-            "text-muted-foreground hover:text-foreground text-2xs min-w-0 flex-1 truncate font-semibold tracking-wide uppercase transition-colors",
-            isActive && "text-foreground",
-          )}
-        >
-          {zoneLabel}
-        </Pressable>
+      <DeckZoneHeader
+        label={zoneLabel}
+        className="gap-1.5"
+        leading={
+          <ExpandToggle
+            expanded={open}
+            chevronClassName="size-3.5"
+            aria-label={`${open ? "Collapse" : "Expand"} ${zoneLabel}`}
+            onClick={() => setOpen((prev) => !prev)}
+            className="shrink-0"
+          />
+        }
+        labelClassName={cn(
+          "group-hover/zone-label:text-foreground transition-colors",
+          isActive && "text-foreground",
+        )}
+        labelRender={
+          <Pressable
+            onClick={activateZone}
+            aria-label={`Edit ${zoneLabel}`}
+            className="group/zone-label min-w-0 flex-1 truncate"
+          />
+        }
+      >
         {dropDisabled ? (
           <BanIcon className="text-muted-foreground size-3.5 shrink-0" />
         ) : hasZoneViolations ? (
@@ -266,20 +273,30 @@ export function DeckZoneSection({
             </PopoverContent>
           </Popover>
         ) : null}
-        <span
-          className={cn(
-            "ml-auto text-xs tabular-nums",
-            hasZoneViolations
-              ? "text-destructive"
-              : expected !== undefined && totalQuantity === expected
-                ? "text-success"
-                : "text-muted-foreground",
-          )}
-        >
-          {totalQuantity}
-          {expected !== null && expected !== undefined && `/${expected}`}
-        </span>
-      </div>
+        {!(
+          !hasZoneViolations &&
+          expected !== undefined &&
+          totalQuantity === expected &&
+          SINGLE_CARD_ZONES.has(zone)
+        ) && (
+          <span
+            className={cn(
+              "ml-auto text-xs tabular-nums",
+              hasZoneViolations
+                ? "text-destructive"
+                : expected !== undefined && totalQuantity === expected
+                  ? "text-success"
+                  : "text-muted-foreground",
+            )}
+          >
+            {totalQuantity}
+            {expected !== null &&
+              expected !== undefined &&
+              totalQuantity !== expected &&
+              `/${expected}`}
+          </span>
+        )}
+      </DeckZoneHeader>
 
       {open &&
         (cards.length === 0 ? (

@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
@@ -60,45 +60,50 @@ export function ContributePrintingsSection({
 
   const single = scope === "printing";
 
+  const list = (
+    <div className="flex flex-col gap-4">
+      {form.printings.map((printing, index) => (
+        <PrintingCard
+          key={index}
+          index={index}
+          printing={printing}
+          variant={printingVariants[index]}
+          siblings={printingVariants}
+          open={single || index === activePrinting}
+          hasError={printingsWithErrors.has(index)}
+          onToggle={() => setActivePrinting(index === activePrinting ? null : index)}
+          collapsible={!single}
+          reveal={reveal}
+          errorAt={errorAt}
+          sets={setListData.sets}
+          languages={languages}
+          markers={markerOptions}
+          channels={channelOptions}
+          orders={orders}
+          labels={labels}
+          onChange={(key, value) => setPrintingField(index, key, value)}
+          onCopy={single ? undefined : () => duplicatePrinting(index)}
+          onRemove={single || form.printings.length <= 1 ? undefined : () => removePrinting(index)}
+        />
+      ))}
+    </div>
+  );
+
+  if (single) {
+    return list;
+  }
+
   return (
-    <section className="flex flex-col gap-4">
-      {!single && (
-        <div className="flex items-center justify-between">
-          <Heading level={2}>Printings</Heading>
-          <Button type="button" variant="outline" size="sm" onClick={addPrinting}>
-            <PlusIcon className="size-4" />
-            Add printing
-          </Button>
-        </div>
-      )}
-      <div className="flex flex-col gap-3">
-        {form.printings.map((printing, index) => (
-          <PrintingCard
-            key={index}
-            index={index}
-            printing={printing}
-            variant={printingVariants[index]}
-            siblings={printingVariants}
-            open={single || index === activePrinting}
-            hasError={printingsWithErrors.has(index)}
-            onToggle={() => setActivePrinting(index === activePrinting ? null : index)}
-            collapsible={!single}
-            reveal={reveal}
-            errorAt={errorAt}
-            sets={setListData.sets}
-            languages={languages}
-            markers={markerOptions}
-            channels={channelOptions}
-            orders={orders}
-            labels={labels}
-            onChange={(key, value) => setPrintingField(index, key, value)}
-            onCopy={single ? undefined : () => duplicatePrinting(index)}
-            onRemove={
-              single || form.printings.length <= 1 ? undefined : () => removePrinting(index)
-            }
-          />
-        ))}
-      </div>
-    </section>
+    <SettingsSection
+      title="Printings"
+      action={
+        <Button type="button" variant="outline" size="sm" onClick={addPrinting}>
+          <PlusIcon className="size-4" />
+          Add printing
+        </Button>
+      }
+    >
+      {list}
+    </SettingsSection>
   );
 }

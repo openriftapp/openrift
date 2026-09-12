@@ -36,12 +36,12 @@ function AdminLayout() {
 
 function AdminContent({ setTopBarSlot }: { setTopBarSlot: (el: HTMLDivElement | null) => void }) {
   return (
-    <div className="pr-safe flex min-w-0 flex-1 flex-col pl-3">
+    <div className="pr-safe pl-gutter flex min-w-0 flex-1 flex-col">
       {/* Column already clears iOS safe areas (ml-safe sidebar, pr-safe right);
           adding px-safe here would double-inset on notched phones in landscape. */}
       <div
         ref={setTopBarSlot}
-        className={cn(PAGE_TOP_BAR_STICKY_BASE, "mr-safe-neg pr-safe -ml-3 pl-3")}
+        className={cn(PAGE_TOP_BAR_STICKY_BASE, "mr-safe-neg pr-safe ml-gutter-neg pl-gutter")}
       />
       <div className="flex flex-1 flex-col pt-3 pb-6">
         <Outlet />

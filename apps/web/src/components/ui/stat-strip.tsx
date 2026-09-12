@@ -39,9 +39,15 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
   return (
     <div data-slot="stat-strip" className={cn("flex flex-wrap gap-2", className)}>
       {items.map((item) => (
-        <div key={item.key} className="flex min-w-28 items-center gap-2 py-1 pr-4">
+        <div key={item.key} className="flex min-w-28 items-baseline gap-2 py-1 pr-4">
           {item.icon ? (
-            <IconChip icon={item.icon} tone={item.iconTone} size="sm" shape="round" />
+            <IconChip
+              icon={item.icon}
+              tone={item.iconTone}
+              size="sm"
+              shape="round"
+              className="self-center"
+            />
           ) : null}
           <span
             className={cn(

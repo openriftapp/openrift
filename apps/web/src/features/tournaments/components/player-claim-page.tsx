@@ -1,11 +1,12 @@
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Building2Icon, CalendarIcon, UsersIcon } from "lucide-react";
+import { Building2Icon, CalendarIcon, LinkIcon, UsersIcon } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeckCheckInfoCardSkeleton } from "@/features/tournaments/components/deck-check-skeletons";
 import {
@@ -40,9 +41,12 @@ export function PlayerClaimPage({ token }: { token: string }) {
   }
   if (isError || !data) {
     return (
-      <p className="text-muted-foreground p-6 text-center">
-        This claim link is not valid. Ask the organizer for a current one.
-      </p>
+      <EmptyState
+        className="py-12"
+        icon={LinkIcon}
+        title="This claim link is not valid"
+        description="Ask the organizer for a current one."
+      />
     );
   }
 
@@ -75,27 +79,31 @@ export function PlayerClaimPage({ token }: { token: string }) {
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4", PAGE_PADDING)}>
-        <Card className="gap-2 p-4">
-          <h2 className="font-medium">{data.tournamentName}</h2>
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="flex items-center gap-1.5">
-              <CalendarIcon className="size-4 shrink-0" />
-              {formatDayTimeLocal(data.startsAt)}
-            </span>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <Building2Icon className="size-4 shrink-0" />
-              <span className="truncate">{data.hostName}</span>
-            </span>
-            {data.groupName ? (
-              <span className="flex min-w-0 items-center gap-1.5">
-                <UsersIcon className="size-4 shrink-0" />
-                <span className="truncate">{data.groupName}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>{data.tournamentName}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="flex items-center gap-1.5">
+                <CalendarIcon className="size-4 shrink-0" />
+                {formatDayTimeLocal(data.startsAt)}
               </span>
-            ) : null}
-          </div>
-          <p className="text-sm">
-            Your spot: <span className="font-medium">{data.participantName}</span>
-          </p>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Building2Icon className="size-4 shrink-0" />
+                <span className="truncate">{data.hostName}</span>
+              </span>
+              {data.groupName ? (
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <UsersIcon className="size-4 shrink-0" />
+                  <span className="truncate">{data.groupName}</span>
+                </span>
+              ) : null}
+            </div>
+            <p className="text-sm">
+              Your spot: <span className="font-medium">{data.participantName}</span>
+            </p>
+          </CardContent>
         </Card>
 
         {outcome === "conflict" ? (

@@ -224,7 +224,7 @@ describe("TournamentParticipantsTab roster groups", () => {
       .parentElement as HTMLElement;
     expect(within(droppedGroup).getByText("Braum")).toBeInTheDocument();
     expect(within(droppedGroup).getByText("Caitlyn")).toBeInTheDocument();
-    expect(within(droppedGroup).getByText("Braum").closest("[data-slot='card']")).toHaveClass(
+    expect(within(droppedGroup).getByText("Braum").closest("[data-slot='card-row']")).toHaveClass(
       "opacity-50",
     );
   });

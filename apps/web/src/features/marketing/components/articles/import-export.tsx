@@ -7,14 +7,21 @@ import {
   XCircleIcon,
 } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 import { SOCIAL_LINKS } from "@/lib/social-links";
-import { cn } from "@/lib/utils";
 
 export default function ImportExportArticle() {
   return (
@@ -37,7 +44,9 @@ export default function ImportExportArticle() {
       </section>
 
       <section>
-        <h3 className="mb-2 font-semibold">Step 1: Provide your data</h3>
+        <Heading level={3} className="mb-2">
+          Step 1: Provide your data
+        </Heading>
         <p className="text-muted-foreground">
           Paste a CSV into the text area, or click the upload button to pick a <Code>.csv</Code>{" "}
           file, then move to the next step. OpenRift auto-detects the source format for the
@@ -124,35 +133,36 @@ export default function ImportExportArticle() {
       </section>
 
       <section>
-        <h3 className="mb-2 font-semibold">Step 2: Review matches</h3>
+        <Heading level={3} className="mb-2">
+          Step 2: Review matches
+        </Heading>
         <p className="text-muted-foreground">
           OpenRift tries to match each row to a printing in the catalog. Every entry gets a match
           status so you can see what needs attention before importing.
         </p>
 
-        <DefinitionList className="mt-3">
-          <DefinitionRow icon={<CheckCircle2Icon className="text-success size-4" />} label="Exact">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm icon={<CheckCircle2Icon className="text-success size-4" />}>
+            Exact
+          </DefinitionTerm>
+          <DefinitionDetail>
             Perfect match: code, finish, and art variant all resolved. Ready to import.
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<AlertTriangleIcon className="text-warning size-4" />}
-            label="Needs review"
-          >
+          </DefinitionDetail>
+          <DefinitionTerm icon={<AlertTriangleIcon className="text-warning size-4" />}>
+            Needs review
+          </DefinitionTerm>
+          <DefinitionDetail>
             OpenRift found a likely match but isn&apos;t sure (e.g. multiple printings fit, or only
             a similar name was found). Use the dropdown to confirm or pick the right one.
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<XCircleIcon className="text-destructive size-4" />}
-            label="Unresolved"
-          >
-            No match found. This row won&apos;t be imported.
-          </DefinitionRow>
+          </DefinitionDetail>
+          <DefinitionTerm icon={<XCircleIcon className="text-destructive size-4" />}>
+            Unresolved
+          </DefinitionTerm>
+          <DefinitionDetail>No match found. This row won&apos;t be imported.</DefinitionDetail>
         </DefinitionList>
 
-        <Callout className="mt-4 p-3">
-          <p className="text-muted-foreground mb-3 text-center text-xs font-medium tracking-wide uppercase">
-            Example preview
-          </p>
+        <Callout className="mt-4">
+          <Eyebrow>Example preview</Eyebrow>
           <div className="divide-border divide-y text-sm">
             <MockMatchRow status="exact" quantity={3} code="OGN-007" name="Fury Rune" tags={[]} />
             <MockMatchRow
@@ -210,10 +220,10 @@ export default function ImportExportArticle() {
           wizard.
         </p>
 
-        <div className="mt-3 overflow-x-auto rounded-lg border text-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="border-border border-b">
+        <div className="mt-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {[
                   "Card ID",
                   "Card Name",
@@ -225,16 +235,11 @@ export default function ImportExportArticle() {
                   "Promo",
                   "Quantity",
                 ].map((header) => (
-                  <th
-                    key={header}
-                    className="bg-muted/50 px-3 py-2 text-left text-xs font-medium whitespace-nowrap"
-                  >
-                    {header}
-                  </th>
+                  <TableHead key={header}>{header}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody className="divide-border divide-y">
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               <ExampleExportRow
                 values={[
                   "OGN-001",
@@ -274,8 +279,8 @@ export default function ImportExportArticle() {
                   "1",
                 ]}
               />
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         <p className="text-muted-foreground mt-3">
@@ -411,18 +416,15 @@ function MockMatchRow({
 
 function ExampleExportRow({ values }: { values: string[] }) {
   return (
-    <tr>
+    <TableRow>
       {values.map((value, index) => (
-        <td
+        <TableCell
           key={index}
-          className={cn(
-            "px-3 py-1.5 whitespace-nowrap",
-            index === 0 ? "font-mono text-xs" : "text-muted-foreground",
-          )}
+          className={index === 0 ? "font-mono text-xs" : "text-muted-foreground"}
         >
           {value}
-        </td>
+        </TableCell>
       ))}
-    </tr>
+    </TableRow>
   );
 }

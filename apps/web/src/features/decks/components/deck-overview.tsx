@@ -11,6 +11,7 @@ import { PencilIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
@@ -466,9 +467,9 @@ export function DeckOverview({
         heading={heroHeading}
         lead={heroLead}
         actions={heroActions}
+        footer={variantRailSlot}
       />
       {notice}
-      {variantRailSlot}
       <TabStrip
         tab={activeTab}
         onTabChange={setTab}
@@ -503,37 +504,37 @@ export function DeckOverview({
         />
       )}
       {showOverviewContent && (description || hasLinks) && (
-        <div className="flex flex-col gap-3">
-          {description && (
-            <div className="flex min-w-0 items-start gap-2">
+        <Callout variant="inset" className="flex items-start gap-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            {description && (
               <DeckDescription
                 text={description}
-                className="text-muted-foreground min-w-0 flex-1 text-sm"
+                className="text-muted-foreground max-w-prose min-w-0 text-sm"
                 onHoverCard={onHoverCard}
                 onCardClick={onCardClick}
               />
-              {!readOnly && onEditDescription && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0"
-                        aria-label="Edit description"
-                        onClick={onEditDescription}
-                      />
-                    }
-                  >
-                    <PencilIcon className="size-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>Edit description</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+            )}
+            {hasLinks && <DeckLinkChips links={deck.links ?? []} />}
+          </div>
+          {!readOnly && onEditDescription && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="-my-1 -mr-1 shrink-0"
+                    aria-label="Edit description"
+                    onClick={onEditDescription}
+                  />
+                }
+              >
+                <PencilIcon className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent>Edit description</TooltipContent>
+            </Tooltip>
           )}
-          {hasLinks && <DeckLinkChips links={deck.links ?? []} />}
-        </div>
+        </Callout>
       )}
       {showOverviewContent && showIntroBanner && (
         <DeckBuilderIntroBanner format={deck.format} onDismiss={dismissIntro} />
@@ -635,16 +636,16 @@ export function DeckOverview({
               tokensSlot={tokensSection}
             />
           ) : (
-            <div ref={containerRef} style={cardWidthStyle} className="flex flex-col gap-3">
+            <div ref={containerRef} style={cardWidthStyle} className="flex flex-col gap-8">
               {/* Column gap must match the thumb gap (card width derives from it),
                   or a two-card tile comes out short and wraps. */}
-              <div className="grid gap-x-1.5 gap-y-3" style={smallZoneTemplateStyle}>
+              <div className="grid gap-x-1.5 gap-y-8" style={smallZoneTemplateStyle}>
                 {SMALL_ZONES.map((zone) => renderZone(zone, smallZoneStyles[zone]))}
               </div>
               <div
                 className={
                   displayMode === "stacks"
-                    ? "flex flex-wrap items-start gap-x-8 gap-y-3"
+                    ? "flex flex-wrap items-start gap-x-8 gap-y-8"
                     : "contents"
                 }
               >

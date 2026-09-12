@@ -58,7 +58,7 @@ export function MetaEventCorrectionCard({ correction }: { correction: AdminMetaE
         </p>
       )}
 
-      <div className="border-t pt-2">
+      <div className="pt-4">
         <MetaSubmissionResolve submission={submission} playerOverlayId={null} />
       </div>
     </div>

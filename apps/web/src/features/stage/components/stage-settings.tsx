@@ -49,7 +49,7 @@ function PlateFieldSettings() {
   const togglePlateField = usePresentationStore((state) => state.togglePlateField);
 
   return (
-    <div className="border-border ml-1 flex flex-col gap-2 border-l pl-3">
+    <div className="ml-4 flex flex-col gap-2">
       {PLATE_FIELDS.map((field) => (
         <StageToggleRow
           key={field.key}

@@ -1,5 +1,7 @@
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
+import { ShieldCheckIcon } from "lucide-react";
 
+import { EmptyState } from "@/components/empty-state";
 import { TournamentDeckCheckEntries } from "@/features/tournaments/components/deck-check-event-page";
 import { DeckCheckIngestGuide } from "@/features/tournaments/components/deck-check-ingest-guide";
 import { canCheckDecks, canManageTournament } from "@/features/tournaments/lib/tournament-display";
@@ -9,13 +11,15 @@ export function TournamentDeckCheckTab({ detail }: { detail: TournamentDetailRes
   const canManage = canManageTournament(detail.myRoles);
   if (!canCheckDecks(detail.myRoles)) {
     return (
-      <p className="text-muted-foreground p-6 text-center">
-        Deck check is for judges. Ask an organizer to add you.
-      </p>
+      <EmptyState
+        icon={ShieldCheckIcon}
+        title="Deck check is for judges"
+        description="Ask an organizer to add you as a judge for this tournament."
+      />
     );
   }
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {canManage && detail.deckSubmission !== "none" ? (
         <DeckCheckIngestGuide tournamentId={detail.id} host={detail.host} />
       ) : null}

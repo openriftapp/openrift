@@ -3,8 +3,8 @@ import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
 import { CheckIcon, LoaderIcon, XIcon } from "lucide-react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { refreshActions } from "@/features/admin/hooks/refresh-actions";
 import {
@@ -102,66 +102,57 @@ function PriceSection({
   const anyPending = isRefreshRunning || clearMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <CardTitle>{label} Prices</CardTitle>
-            <CardDescription>
-              {groups} groups · {mapped} mapped · {staged} staged
-              {nextRun && ` · next refresh ${formatRelativeTime(nextRun, { compound: true })}`}
-            </CardDescription>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <ConfirmClearButton
-              title={`Clear all ${label} price data?`}
-              description="This will delete all price sources, snapshots, and staging data. Prices will be repopulated on the next refresh."
-              onConfirm={() => clearMutation.mutate()}
-              disabled={anyPending}
-              isPending={clearMutation.isPending}
-            />
-            <Button
-              disabled={anyPending}
-              onClick={() =>
-                refreshMutation.mutate(undefined, {
-                  onSuccess: () => void latestRun.refetch(),
-                })
-              }
-            >
-              {isRefreshRunning ? <LoaderIcon className="size-4 animate-spin" /> : "Refresh"}
-            </Button>
-          </div>
+    <SettingsSection
+      title={`${label} Prices`}
+      description={
+        <>
+          {groups} groups · {mapped} mapped · {staged} staged
+          {nextRun && ` · next refresh ${formatRelativeTime(nextRun, { compound: true })}`}
+        </>
+      }
+      action={
+        <div className="flex shrink-0 gap-2">
+          <ConfirmClearButton
+            title={`Clear all ${label} price data?`}
+            description="This will delete all price sources, snapshots, and staging data. Prices will be repopulated on the next refresh."
+            onConfirm={() => clearMutation.mutate()}
+            disabled={anyPending}
+            isPending={clearMutation.isPending}
+          />
+          <Button
+            disabled={anyPending}
+            onClick={() =>
+              refreshMutation.mutate(undefined, {
+                onSuccess: () => void latestRun.refetch(),
+              })
+            }
+          >
+            {isRefreshRunning ? <LoaderIcon className="size-4 animate-spin" /> : "Refresh"}
+          </Button>
         </div>
-      </CardHeader>
-      {(latestRun.data ||
-        refreshMutation.isError ||
-        clearMutation.isSuccess ||
-        clearMutation.isError) && (
-        <CardContent className="pt-0">
-          {latestRun.data && <JobRunDisplay run={latestRun.data} />}
-          {refreshMutation.isError && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <XIcon className="text-destructive size-4 shrink-0" />
-              {refreshMutation.error.message}
-            </p>
-          )}
-          {clearMutation.isSuccess && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <CheckIcon className="text-success size-4 shrink-0" />
-              Cleared {clearMutation.data.deleted.products} products,{" "}
-              {clearMutation.data.deleted.variants} variants, {clearMutation.data.deleted.prices}{" "}
-              prices
-            </p>
-          )}
-          {clearMutation.isError && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <XIcon className="text-destructive size-4 shrink-0" />
-              {clearMutation.error.message}
-            </p>
-          )}
-        </CardContent>
+      }
+    >
+      {latestRun.data && <JobRunDisplay run={latestRun.data} />}
+      {refreshMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {refreshMutation.error.message}
+        </p>
       )}
-    </Card>
+      {clearMutation.isSuccess && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <CheckIcon className="text-success size-4 shrink-0" />
+          Cleared {clearMutation.data.deleted.products} products,{" "}
+          {clearMutation.data.deleted.variants} variants, {clearMutation.data.deleted.prices} prices
+        </p>
+      )}
+      {clearMutation.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {clearMutation.error.message}
+        </p>
+      )}
+    </SettingsSection>
   );
 }
 
@@ -197,44 +188,37 @@ function SiblingVariantSection() {
   const drift = useSiblingVariantDrift(isRunning);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <CardTitle>Language Fan-out</CardTitle>
-            <CardDescription>{driftText(drift.data?.missing, drift.isError)}</CardDescription>
-          </div>
-          <Button
-            className="shrink-0"
-            disabled={isRunning}
-            onClick={() =>
-              backfill.mutate(undefined, {
-                onSuccess: () => void latestRun.refetch(),
-              })
-            }
-          >
-            {isRunning ? <LoaderIcon className="size-4 animate-spin" /> : "Backfill"}
-          </Button>
-        </div>
-      </CardHeader>
-      {(latestRun.data || backfill.isError) && (
-        <CardContent className="pt-0">
-          {latestRun.data && (
-            <JobRunDisplay
-              run={latestRun.data}
-              failedText="Backfill failed"
-              succeededText={backfillSucceededText(latestRun.data.result)}
-            />
-          )}
-          {backfill.isError && (
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <XIcon className="text-destructive size-4 shrink-0" />
-              {backfill.error.message}
-            </p>
-          )}
-        </CardContent>
+    <SettingsSection
+      title="Language Fan-out"
+      description={driftText(drift.data?.missing, drift.isError)}
+      action={
+        <Button
+          className="shrink-0"
+          disabled={isRunning}
+          onClick={() =>
+            backfill.mutate(undefined, {
+              onSuccess: () => void latestRun.refetch(),
+            })
+          }
+        >
+          {isRunning ? <LoaderIcon className="size-4 animate-spin" /> : "Backfill"}
+        </Button>
+      }
+    >
+      {latestRun.data && (
+        <JobRunDisplay
+          run={latestRun.data}
+          failedText="Backfill failed"
+          succeededText={backfillSucceededText(latestRun.data.result)}
+        />
       )}
-    </Card>
+      {backfill.isError && (
+        <p className="text-muted-foreground flex items-center gap-1 text-sm">
+          <XIcon className="text-destructive size-4 shrink-0" />
+          {backfill.error.message}
+        </p>
+      )}
+    </SettingsSection>
   );
 }
 
@@ -256,7 +240,7 @@ export function MarketplaceOverviewPage() {
   const ctStaged = ctGroups.reduce((sum, g) => sum + g.stagedCount, 0);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-8">
       <AdminPageTopBar title="Marketplace Overview" />
       <PriceSection
         label="TCGplayer"

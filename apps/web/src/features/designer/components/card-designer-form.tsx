@@ -3,10 +3,10 @@ import type { Domain, Rarity } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { EraserIcon } from "lucide-react";
 
+import { SettingsRow } from "@/components/layout/settings-row";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -42,17 +42,17 @@ export function CardDesignerForm() {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Card details</CardTitle>
-        <CardAction>
-          <Button type="button" variant="ghost" size="sm" onClick={reset}>
-            <EraserIcon className="size-4" />
-            Clear
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <SettingsSection
+      title="Card details"
+      action={
+        <Button type="button" variant="ghost" size="sm" onClick={reset}>
+          <EraserIcon className="size-4" />
+          Clear
+        </Button>
+      }
+      contentClassName="gap-8"
+    >
+      <div className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <FieldRow label="Name">
             <Input
@@ -144,7 +144,9 @@ export function CardDesignerForm() {
             placeholder="Cat"
           />
         </FieldRow>
+      </div>
 
+      <div className="flex flex-col gap-4">
         <CardTextInput
           label="Rules text"
           value={card.rulesText}
@@ -162,44 +164,44 @@ export function CardDesignerForm() {
             onChange={(e) => setCardField("flavorText", e.target.value)}
           />
         </FieldRow>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <FieldRow label="Rarity">
-            <SingleSelect
-              value={card.rarity}
-              onChange={(value) => setCardField("rarity", value as Rarity | null)}
-              options={orders.rarities}
-              labels={labels.rarities}
-              placeholder="Pick a rarity"
-            />
-          </FieldRow>
-          <FieldRow label="Code">
-            <Input
-              value={card.publicCode}
-              onChange={(e) => setCardField("publicCode", e.target.value)}
-              placeholder="MEOW-009/009"
-            />
-          </FieldRow>
-          <FieldRow label="Artist">
-            <Input
-              value={card.artist}
-              onChange={(e) => setCardField("artist", e.target.value)}
-              placeholder="Whiskers von Catsworth"
-            />
-          </FieldRow>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="card-designer-attribution">
-            Add openrift.app to help spread the word
-          </Label>
-          <Switch
-            id="card-designer-attribution"
-            checked={showAttribution}
-            onCheckedChange={setShowAttribution}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FieldRow label="Rarity">
+          <SingleSelect
+            value={card.rarity}
+            onChange={(value) => setCardField("rarity", value as Rarity | null)}
+            options={orders.rarities}
+            labels={labels.rarities}
+            placeholder="Pick a rarity"
           />
-        </div>
-      </CardContent>
-    </Card>
+        </FieldRow>
+        <FieldRow label="Code">
+          <Input
+            value={card.publicCode}
+            onChange={(e) => setCardField("publicCode", e.target.value)}
+            placeholder="MEOW-009/009"
+          />
+        </FieldRow>
+        <FieldRow label="Artist">
+          <Input
+            value={card.artist}
+            onChange={(e) => setCardField("artist", e.target.value)}
+            placeholder="Whiskers von Catsworth"
+          />
+        </FieldRow>
+      </div>
+
+      <SettingsRow
+        label="Add openrift.app to help spread the word"
+        htmlFor="card-designer-attribution"
+      >
+        <Switch
+          id="card-designer-attribution"
+          checked={showAttribution}
+          onCheckedChange={setShowAttribution}
+        />
+      </SettingsRow>
+    </SettingsSection>
   );
 }

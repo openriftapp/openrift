@@ -447,13 +447,13 @@ function PaletteInner({
         className={cn("overflow-y-auto", !isMobile && expandedCardId ? "max-h-112" : "max-h-72")}
       >
         {query.length === 0 && (
-          <div className="text-muted-foreground px-3 py-8 text-center text-sm">
+          <div className="text-muted-foreground px-3 py-8 text-sm">
             {inMoveMode ? "Type a card name to move" : "Type a card name to add"}
           </div>
         )}
 
         {query.length > 0 && results.length === 0 && (
-          <div className="text-muted-foreground px-3 py-8 text-center text-sm">
+          <div className="text-muted-foreground px-3 py-8 text-sm">
             No cards matching &ldquo;{query}&rdquo;
           </div>
         )}
@@ -502,7 +502,7 @@ function PaletteInner({
               </Pressable>
 
               {isExpanded && (
-                <div className="bg-muted/50 px-1 py-1">
+                <div className="bg-muted px-1 py-1">
                   {card.printings.map((printing, printingIndex) => {
                     const isPrintingSelected = printingIndex === expandedIndex;
                     // Optimistic adds are already reflected here (temp copy row); don't add sessionAdded on top.
@@ -617,44 +617,41 @@ function PaletteInner({
 
       {/* Shown with an empty result list too: that's when the Backspace hint matters most. */}
       {!isMobile && (
-        <>
-          <div className="border-border border-t" />
-          <div className="text-muted-foreground flex items-center gap-3 px-3 py-2 text-xs">
-            {results.length > 0 && (
-              <>
-                <span>
-                  <Kbd>↑↓</Kbd> navigate
-                </span>
-                <span>
-                  <Kbd>↵</Kbd> {expandedCardId ? (inMoveMode ? "move" : "add") : "select"}
-                </span>
-              </>
-            )}
-            {expandedCardId && canUndoSelected && (
+        <div className="text-muted-foreground flex items-center gap-3 px-3 pt-4 pb-2 text-xs">
+          {results.length > 0 && (
+            <>
               <span>
-                <Kbd>⇧↵</Kbd> undo
+                <Kbd>↑↓</Kbd> navigate
               </span>
-            )}
-            {expandedCardId && (
               <span>
-                <Kbd>←</Kbd> back
+                <Kbd>↵</Kbd> {expandedCardId ? (inMoveMode ? "move" : "add") : "select"}
               </span>
-            )}
-            {expandedCardId && selectedSourceCount > 1 && (
-              <span>
-                <Kbd>→</Kbd> source
-              </span>
-            )}
-            {query.length === 0 && !expandedCardId && (
-              <span>
-                <Kbd>⌫</Kbd> search everything
-              </span>
-            )}
+            </>
+          )}
+          {expandedCardId && canUndoSelected && (
             <span>
-              <Kbd>esc</Kbd> close
+              <Kbd>⇧↵</Kbd> undo
             </span>
-          </div>
-        </>
+          )}
+          {expandedCardId && (
+            <span>
+              <Kbd>←</Kbd> back
+            </span>
+          )}
+          {expandedCardId && selectedSourceCount > 1 && (
+            <span>
+              <Kbd>→</Kbd> source
+            </span>
+          )}
+          {query.length === 0 && !expandedCardId && (
+            <span>
+              <Kbd>⌫</Kbd> search everything
+            </span>
+          )}
+          <span>
+            <Kbd>esc</Kbd> close
+          </span>
+        </div>
       )}
 
       <AnnotatedDisposeDialog

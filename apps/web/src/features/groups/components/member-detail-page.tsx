@@ -197,7 +197,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
                 return (
                   <section key={intent} className="flex flex-col gap-3">
                     <SectionHeading>{heading}</SectionHeading>
-                    <div className="flex flex-col gap-2">
+                    <ul className="flex flex-col gap-2">
                       {sectionShares.map((share) => (
                         <SharedListRow
                           key={share.listId}
@@ -207,7 +207,7 @@ export function MemberDetailPage({ slug, userId }: MemberDetailPageProps) {
                           showMember={false}
                         />
                       ))}
-                    </div>
+                    </ul>
                   </section>
                 );
               })

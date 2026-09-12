@@ -5,6 +5,7 @@ import type { Card } from "@openrift/shared/types/catalog";
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, GitBranchIcon, GitCompareArrowsIcon, PlusIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,6 @@ import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 
 import { DeckVariantCreateDialog } from "./deck-variant-create-dialog";
-import { DeckVariantsDialog } from "./deck-variants-dialog";
 
 // HTML nodes positioned over an SVG that draws only the connections. Geometry
 // lives here; the graph itself (who sits where, which lane, which column)
@@ -127,6 +127,10 @@ function selectDeckCards(detail: DeckDetailResponse): DeckCardResponse[] {
   return detail.cards;
 }
 
+function RailPopoverFooter({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-1 pt-4">{children}</div>;
+}
+
 function RailDiffRows({ diff }: { diff: DeckDiff }) {
   if (diff.zones.length === 0) {
     return <p className="text-muted-foreground">The two lists match, card for card.</p>;
@@ -213,7 +217,7 @@ function EdgeCounts({
           theirCards={cardsByDeck[toId]}
           cardsById={cardsById}
         />
-        <div className="border-t pt-2">
+        <RailPopoverFooter>
           {/* Not a PopoverClose: the navigation unmounts the whole rail, and
               closing first would only race the route change. */}
           <Button
@@ -223,7 +227,7 @@ function EdgeCounts({
           >
             Show full changes
           </Button>
-        </div>
+        </RailPopoverFooter>
       </PopoverContent>
     </Popover>
   );
@@ -267,7 +271,7 @@ function RailCurrentPopover({
           </span>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-1 border-t pt-2">
+      <RailPopoverFooter>
         {compareFrom !== null && (
           // Not a PopoverClose: the navigation unmounts the whole rail, and
           // closing first would only race the route change.
@@ -284,7 +288,7 @@ function RailCurrentPopover({
           <GitBranchIcon className="size-4" />
           Branch from here
         </PopoverClose>
-      </div>
+      </RailPopoverFooter>
     </PopoverContent>
   );
 }
@@ -319,7 +323,7 @@ function RailNodePopover({
         )}
       </div>
       <RailNodeDiff ourCards={ourCards} theirCards={theirCards} cardsById={cardsById} />
-      <div className="flex flex-wrap items-center gap-1 border-t pt-2">
+      <RailPopoverFooter>
         {/* Neither link is a PopoverClose: the navigation unmounts the whole
             rail, and closing first would only race the route change. */}
         <Button
@@ -341,7 +345,7 @@ function RailNodePopover({
           <GitBranchIcon className="size-4" />
           Branch from here
         </PopoverClose>
-      </div>
+      </RailPopoverFooter>
     </PopoverContent>
   );
 }
@@ -393,7 +397,6 @@ function VariantRailBody({ deckId }: { deckId: string }) {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createTarget, setCreateTarget] = useState<{ id: string; name: string } | null>(null);
-  const [variantsOpen, setVariantsOpen] = useState(false);
 
   const current = items.find((item) => item.deck.id === deckId);
   const familyId = current?.deck.familyId ?? null;
@@ -437,7 +440,9 @@ function VariantRailBody({ deckId }: { deckId: string }) {
   const updatedById = new Map(members.map((member) => [member.id, member.updatedAt]));
   const maxLane = layout.nodes.reduce((deepest, node) => Math.max(deepest, node.lane), 0);
   const height = laneY(maxLane) + LANE_BOTTOM_PAD;
-  const maxX = layout.nodes.reduce((widest, node) => Math.max(widest, node.x), 0);
+  const currentNode = layout.nodes.find((node) => node.isCurrent);
+  const ghost = currentNode ? { x: currentNode.x + 1, lane: currentNode.lane } : null;
+  const maxX = layout.nodes.reduce((widest, node) => Math.max(widest, node.x), ghost?.x ?? 0);
   const width = PAD_X + maxX * SLOT_WIDTH + TRAILING_X;
   const compareFrom = defaultCompareFrom(layout, members, deckId);
   const createTargetId = createTarget?.id ?? deckId;
@@ -475,6 +480,18 @@ function VariantRailBody({ deckId }: { deckId: string }) {
                 />
               );
             })}
+            {currentNode && ghost && (
+              <line
+                x1={nodeX(currentNode)}
+                y1={laneY(currentNode.lane)}
+                x2={nodeX(ghost)}
+                y2={laneY(ghost.lane)}
+                className="stroke-border"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeDasharray="2 6"
+              />
+            )}
           </svg>
 
           {layout.edges.map((edge) => {
@@ -549,49 +566,33 @@ function VariantRailBody({ deckId }: { deckId: string }) {
               </Popover>
             );
           })}
+          {ghost && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="New variant"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed"
+                    style={{ left: nodeX(ghost), top: laneY(ghost.lane) }}
+                    onClick={() => handleCreate({ id: deckId, name: openDeckName })}
+                  />
+                }
+              >
+                <PlusIcon className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent>New variant</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </nav>
-
-      {/* Outside the scroller, so the actions stay pinned to the right edge
-          instead of trailing a wide graph off-screen. */}
-      <div className="flex shrink-0 items-center gap-1" style={{ height: LANE_TOP_Y * 2 }}>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="New variant"
-                className="rounded-full border border-dashed"
-                onClick={() => handleCreate({ id: deckId, name: openDeckName })}
-              />
-            }
-          >
-            <PlusIcon className="size-4" />
-          </TooltipTrigger>
-          <TooltipContent>New variant</TooltipContent>
-        </Tooltip>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          onClick={() => setVariantsOpen(true)}
-        >
-          {layout.overflowCount > 0 ? `Variants (+${layout.overflowCount})` : "Variants"}
-        </Button>
-      </div>
 
       <DeckVariantCreateDialog
         deckId={createTargetId}
         deckName={createTargetName}
         open={createOpen}
         onOpenChange={setCreateOpen}
-      />
-      <DeckVariantsDialog
-        deckId={deckId}
-        deckName={openDeckName}
-        open={variantsOpen}
-        onOpenChange={setVariantsOpen}
       />
     </div>
   );

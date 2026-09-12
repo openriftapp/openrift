@@ -3,6 +3,7 @@ import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartHeading } from "@/features/decks/components/stats/chart-heading";
 import {
   CrispBar,
   CrispBarActive,
@@ -198,12 +199,7 @@ function SingleChart({
   const chartMargin = { top: showTotals ? 14 : 0, right: 0, bottom: 0, left: 0 };
 
   const heading = (
-    <div className="mb-1 flex items-center text-xs">
-      <h4 className="font-medium">{label}</h4>
-      {average !== null && (
-        <span className="text-muted-foreground ml-auto">Ø {average.toFixed(1)}</span>
-      )}
-    </div>
+    <ChartHeading title={label} detail={average === null ? undefined : `Ø ${average.toFixed(1)}`} />
   );
 
   if (singleColor) {

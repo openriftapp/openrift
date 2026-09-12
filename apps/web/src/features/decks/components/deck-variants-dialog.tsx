@@ -400,7 +400,7 @@ function VariantsDialogBody({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-6">
       <ul className="flex min-w-0 flex-col">
         {graph.rows.map((row) => {
           const deck = membersById.get(row.id);
@@ -427,7 +427,7 @@ function VariantsDialogBody({
         })}
       </ul>
 
-      <div className="flex min-w-0 flex-col gap-3 border-t pt-4">
+      <div className="flex min-w-0 flex-col gap-3 pt-4">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setPanel("create")}>
             <CopyIcon className="size-4" />

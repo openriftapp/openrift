@@ -227,7 +227,7 @@ export function ScanSessionTray({
         {head}
         <ul className="-mx-2 flex flex-col">{newest && renderRow(newest)}</ul>
         {footer}
-        <div className="-mx-2 min-h-0 flex-auto overflow-x-hidden overflow-y-auto overscroll-contain px-2 [&:has(>*)]:border-t [&:has(>*)]:pt-2">
+        <div className="-mx-2 min-h-0 flex-auto overflow-x-hidden overflow-y-auto overscroll-contain px-2 [&:has(>*)]:pt-4">
           {facts}
           {alerts}
           {older.length > 0 && (

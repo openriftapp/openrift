@@ -14,6 +14,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { AdminSourcesTable } from "@/features/admin/components/admin-sources-table";
@@ -162,17 +164,22 @@ export function AdminSourcesPage() {
         }
       />
 
-      <div className="space-y-4 pt-3">
+      <div className="flex flex-col gap-8">
         {isLoading ? <Skeleton className="h-64 w-full" /> : <AdminSourcesTable sources={sources} />}
 
-        <dl className="grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-          {SWITCH_HELP.map((entry) => (
-            <div key={entry.term} className="contents">
-              <dt className="font-medium">{entry.term}</dt>
-              <dd className="text-muted-foreground">{entry.description}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className="flex flex-col gap-2">
+          <SectionHeading>What the switches do</SectionHeading>
+          <DefinitionList className="grid-cols-[9rem_minmax(0,1fr)]">
+            {SWITCH_HELP.map((entry) => (
+              <div key={entry.term} className="contents">
+                <DefinitionTerm className="text-foreground">{entry.term}</DefinitionTerm>
+                <DefinitionDetail className="text-muted-foreground">
+                  {entry.description}
+                </DefinitionDetail>
+              </div>
+            ))}
+          </DefinitionList>
+        </div>
       </div>
 
       {uploadFor !== null && (

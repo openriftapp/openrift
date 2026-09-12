@@ -159,13 +159,17 @@ export function PageTopBarTitle({ onToggleSidebar, children }: PageTopBarTitlePr
           </TooltipTrigger>
           <TooltipContent>Toggle sidebar</TooltipContent>
         </Tooltip>
-        <h1 className="font-heading mr-2 hidden min-w-0 truncate text-lg font-semibold md:block">
+        <h1 className="font-heading mr-2 hidden min-w-0 truncate text-lg leading-8 font-semibold md:block">
           {children}
         </h1>
       </>
     );
   }
-  return <h1 className="font-heading mr-2 min-w-0 truncate text-lg font-semibold">{children}</h1>;
+  return (
+    <h1 className="font-heading mr-2 min-w-0 truncate text-lg leading-8 font-semibold">
+      {children}
+    </h1>
+  );
 }
 
 export function PageTopBarActions({ children, className }: PageTopBarProps) {

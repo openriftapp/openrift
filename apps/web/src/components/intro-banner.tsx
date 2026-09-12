@@ -47,7 +47,7 @@ export function IntroBanner({
         size="icon-xs"
         onClick={onDismiss}
         aria-label="Dismiss this guide"
-        className="text-muted-foreground absolute top-2 right-2"
+        className="text-muted-foreground absolute top-3 right-3"
       >
         <XIcon className="size-4" />
       </Button>
@@ -56,7 +56,7 @@ export function IntroBanner({
         <div className="flex flex-col gap-3">
           <div>
             <p className="font-medium">{title}</p>
-            <p className="text-muted-foreground mt-0.5">{lead}</p>
+            <p className="text-muted-foreground mt-1">{lead}</p>
           </div>
           {children}
         </div>
@@ -73,7 +73,7 @@ export function IntroGuideList({
   className?: string;
 }) {
   return (
-    <ul className={cn("grid gap-2 @lg:grid-cols-2", className)}>
+    <ul className={cn("grid gap-4 @lg:grid-cols-2", className)}>
       {rows.map((row) => (
         <li key={row.title} className={guideRowClass(row)}>
           <IntroGuideIcons icons={row.icons} />

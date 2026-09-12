@@ -67,7 +67,7 @@ export function GroupVisibilitySection({
   };
 
   return (
-    <div className="flex flex-col gap-3 border-t pt-4">
+    <div className="flex flex-col gap-3">
       <div>
         <h3 className="font-medium">Group visibility</h3>
         <p className="text-muted-foreground text-sm">{description}</p>
@@ -94,7 +94,7 @@ export function GroupVisibilitySection({
             })}
           </RadioGroup>
           {mode === "selected" ? (
-            <ul className="space-y-2 border-s ps-4">
+            <ul className="flex flex-col gap-2 ps-6">
               {groups.map((group) => {
                 const checkboxId = `${idPrefix}-group-${group.id}`;
                 return (

@@ -229,7 +229,7 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
           </div>
         ))}
       </div>
-      <div className="border-border/60 flex flex-col gap-1 border-t pt-4">
+      <div className="flex flex-col gap-1">
         <VignetteHeading>Copies of Hidden Blade</VignetteHeading>
         <VariantHeaderRow label="EN · OGN-213 · Standard" count={4} expanded />
         {COPY_LOCATIONS.map((row) => (

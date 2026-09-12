@@ -34,7 +34,7 @@ export function ChangesSummary({
     return null;
   }
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-b pb-2 text-xs">
+    <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
       <span className="text-muted-foreground">Changes from v{previousVersion}:</span>
       <span className="text-success">
         <span className="font-semibold">{newCount}</span> new

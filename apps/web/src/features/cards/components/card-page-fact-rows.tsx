@@ -4,12 +4,13 @@ import type { CardErrata, Printing } from "@openrift/shared/types/catalog";
 import { isBaseBanFormat } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { TriangleAlertIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
-import { InfoRow } from "@/features/cards/components/card-page-info-row";
 import { CardText } from "@/features/cards/components/card-text";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -27,75 +28,80 @@ export function CardPageFactRows({
 }) {
   const domainColors = useDomainColors();
   return (
-    <table className="w-full table-fixed text-sm">
-      <tbody>
-        {printing.printedRulesText && (
-          <InfoRow label="Rules">
+    <DefinitionList className="grid-cols-[6rem_minmax(0,1fr)] gap-y-4">
+      {printing.printedRulesText && (
+        <FactRow label="Rules">
+          <p className="text-muted-foreground">
+            <CardText text={card.errata?.correctedRulesText ?? printing.printedRulesText} />
+          </p>
+        </FactRow>
+      )}
+      {printing.printedEffectText && (
+        <FactRow label="Effect">
+          <div
+            className="rounded-md px-2 py-1.5"
+            style={getDomainGradientStyle(card.domains, "18", domainColors)}
+          >
             <p className="text-muted-foreground">
-              <CardText text={card.errata?.correctedRulesText ?? printing.printedRulesText} />
+              <CardText text={card.errata?.correctedEffectText ?? printing.printedEffectText} />
             </p>
-          </InfoRow>
-        )}
-        {printing.printedEffectText && (
-          <InfoRow label="Effect">
-            <div
-              className="rounded-md px-2 py-1.5"
-              style={getDomainGradientStyle(card.domains, "18", domainColors)}
-            >
-              <p className="text-muted-foreground">
-                <CardText text={card.errata?.correctedEffectText ?? printing.printedEffectText} />
-              </p>
-            </div>
-          </InfoRow>
-        )}
-        {printing.flavorText && (
-          <InfoRow label="Flavor">
-            <p className="text-muted-foreground/70 italic">{printing.flavorText}</p>
-          </InfoRow>
-        )}
-        {printing.markers.length > 0 && (
-          <InfoRow label="Promo">
-            <div className="flex flex-wrap gap-1">
-              {printing.markers.map((marker) => (
-                <Badge key={marker.id} variant="secondary" title={marker.description ?? undefined}>
-                  {marker.label}
-                </Badge>
-              ))}
-            </div>
-          </InfoRow>
-        )}
-        <FoundInRow printing={printing} products={products} />
-        <SourcesRow printing={printing} />
-        {printing.comment && (
-          <InfoRow label="Note">
-            <p className="text-muted-foreground italic">{printing.comment}</p>
-          </InfoRow>
-        )}
-        {card.errata && <ErrataRow errata={card.errata} printing={printing} />}
-        {card.bans.length > 0 && (
-          <InfoRow label="Bans">
-            <Alert variant="destructive" className="space-y-1.5">
-              {card.bans.map((ban) => (
-                <div key={ban.formatId}>
-                  <AlertTitle>
-                    Banned in {ban.formatName} since {ban.bannedAt}
-                  </AlertTitle>
-                  {ban.reason && (
-                    <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>
-                  )}
-                  {!isBaseBanFormat(ban.formatId) && (
-                    <AlertDescription className="mt-0.5">
-                      Applies to {ban.formatName} play only. The card stays legal in other
-                      constructed play.
-                    </AlertDescription>
-                  )}
-                </div>
-              ))}
-            </Alert>
-          </InfoRow>
-        )}
-      </tbody>
-    </table>
+          </div>
+        </FactRow>
+      )}
+      {printing.flavorText && (
+        <FactRow label="Flavor">
+          <p className="text-muted-foreground/70 italic">{printing.flavorText}</p>
+        </FactRow>
+      )}
+      {printing.markers.length > 0 && (
+        <FactRow label="Promo">
+          <div className="flex flex-wrap gap-1">
+            {printing.markers.map((marker) => (
+              <Badge key={marker.id} variant="secondary" title={marker.description ?? undefined}>
+                {marker.label}
+              </Badge>
+            ))}
+          </div>
+        </FactRow>
+      )}
+      <FoundInRow printing={printing} products={products} />
+      <SourcesRow printing={printing} />
+      {printing.comment && (
+        <FactRow label="Note">
+          <p className="text-muted-foreground italic">{printing.comment}</p>
+        </FactRow>
+      )}
+      {card.errata && <ErrataRow errata={card.errata} printing={printing} />}
+      {card.bans.length > 0 && (
+        <FactRow label="Bans">
+          <Alert variant="destructive" className="space-y-1.5">
+            {card.bans.map((ban) => (
+              <div key={ban.formatId}>
+                <AlertTitle>
+                  Banned in {ban.formatName} since {ban.bannedAt}
+                </AlertTitle>
+                {ban.reason && <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>}
+                {!isBaseBanFormat(ban.formatId) && (
+                  <AlertDescription className="mt-0.5">
+                    Applies to {ban.formatName} play only. The card stays legal in other constructed
+                    play.
+                  </AlertDescription>
+                )}
+              </div>
+            ))}
+          </Alert>
+        </FactRow>
+      )}
+    </DefinitionList>
+  );
+}
+
+function FactRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <DefinitionTerm>{label}</DefinitionTerm>
+      <DefinitionDetail>{children}</DefinitionDetail>
+    </>
   );
 }
 
@@ -118,7 +124,7 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
     : errata.source;
 
   return (
-    <InfoRow label="Errata">
+    <FactRow label="Errata">
       <Alert variant="warning">
         <TriangleAlertIcon className="size-3.5 shrink-0" />
         <AlertTitle className="font-semibold">
@@ -152,7 +158,7 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
           </AlertDescription>
         )}
       </Alert>
-    </InfoRow>
+    </FactRow>
   );
 }
 
@@ -173,7 +179,7 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
     return null;
   }
   return (
-    <InfoRow label="Found in">
+    <FactRow label="Found in">
       <Callout variant="inset">
         {otherEntries.length === 0 ? (
           firstEntry.node
@@ -190,7 +196,7 @@ function FoundInRow({ printing, products }: { printing: Printing; products: Deta
           </ul>
         )}
       </Callout>
-    </InfoRow>
+    </FactRow>
   );
 }
 
@@ -201,11 +207,11 @@ function SourcesRow({ printing }: { printing: Printing }) {
     return null;
   }
   return (
-    <InfoRow label={citations.length === 1 ? "Source" : "Sources"}>
+    <FactRow label={citations.length === 1 ? "Source" : "Sources"}>
       <Callout variant="inset">
         <PrintingCitationList citations={citations} />
       </Callout>
-    </InfoRow>
+    </FactRow>
   );
 }
 

@@ -1,8 +1,9 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { ChevronRightIcon } from "lucide-react";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { OrnamentFoldGem } from "@/components/ui/ornament";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { EnergyPowerChart } from "@/features/decks/components/stats/energy-power-chart";
 import { TypeBreakdown } from "@/features/decks/components/stats/type-breakdown";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
@@ -109,17 +110,25 @@ export function DeckStatsPanel({ deckId }: { deckId: string }) {
 
   return (
     <Collapsible defaultOpen={defaultOpen} className="flex flex-col gap-1.5">
-      <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex h-6 w-full items-center gap-1.5 border-b text-left transition-colors">
-        <ChevronRightIcon className="size-3.5 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
-        <span className="text-2xs shrink-0 font-semibold tracking-wide uppercase">Stats</span>
+      <DeckZoneHeader
+        label="Stats"
+        labelClassName="group-hover/zone-label:text-foreground shrink-0 transition-colors"
+        className="group/zone-label w-full gap-1.5 text-left"
+        leading={
+          <OrnamentFoldGem pointerClassName="group-data-[panel-open]/zone-label:rotate-90" />
+        }
+        render={<CollapsibleTrigger />}
+      >
         <DomainBar
           data={stats.domainDistribution}
           total={stats.totalCards}
           colors={domainColors}
           className="mx-1"
         />
-        <span className="shrink-0 text-xs tabular-nums">{stats.totalCards} cards</span>
-      </CollapsibleTrigger>
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+          {stats.totalCards} cards
+        </span>
+      </DeckZoneHeader>
 
       <CollapsibleContent>
         <DeckStatsBody stats={stats} />

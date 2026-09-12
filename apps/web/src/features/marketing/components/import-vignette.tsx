@@ -55,7 +55,7 @@ export function ImportVignette() {
           Upload file
         </span>
       </div>
-      <div className="border-border/60 motion-safe:animate-vignette-now flex flex-col gap-3 border-t pt-4">
+      <div className="motion-safe:animate-vignette-now flex flex-col gap-3">
         <span className="font-heading font-medium">Import Preview</span>
         <div className="flex flex-col">
           {IMPORT_MATCHES.map((match) => (

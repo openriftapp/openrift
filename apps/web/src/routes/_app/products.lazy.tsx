@@ -103,10 +103,10 @@ function ProductsEmptyState() {
 
 function ProductGroupHeading({ set }: { set: ProductSet | null }) {
   if (!set) {
-    return <Heading className="mb-4">Other products</Heading>;
+    return <Heading className="mb-6">Other products</Heading>;
   }
   return (
-    <Heading className="mb-4">
+    <Heading className="mb-6">
       <TextLink
         variant="inherit"
         render={<Link to="/sets/$setSlug" params={{ setSlug: set.slug }} />}

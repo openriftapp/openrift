@@ -203,7 +203,7 @@ export function PrintingImageSwitcher({
                       disabled={rehostPrintingImage.isPending}
                       onClick={() => rehostPrintingImage.mutate(effectiveImage.id)}
                     >
-                      <DownloadIcon className="mr-2 size-3.5" />
+                      <DownloadIcon className="size-3.5" />
                       Rehost
                     </DropdownMenuItem>
                   )}
@@ -212,7 +212,7 @@ export function PrintingImageSwitcher({
                       <DropdownMenuItem onClick={() => setStraightening(true)}>
                         <CropIcon
                           className={cn(
-                            "mr-2 size-3.5",
+                            "size-3.5",
                             imageQuadOf(effectiveImage) !== null && "text-success",
                           )}
                         />
@@ -229,7 +229,7 @@ export function PrintingImageSwitcher({
                           })
                         }
                       >
-                        <RotateCcwIcon className="mr-2 size-3.5" />
+                        <RotateCcwIcon className="size-3.5" />
                         Rotate left ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -241,7 +241,7 @@ export function PrintingImageSwitcher({
                           })
                         }
                       >
-                        <RotateCwIcon className="mr-2 size-3.5" />
+                        <RotateCwIcon className="size-3.5" />
                         Rotate right ({effectiveImage.rotation}&deg;)
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -254,9 +254,9 @@ export function PrintingImageSwitcher({
                         }
                       >
                         {effectiveImage.needsTrim ? (
-                          <ScissorsIcon className="text-success mr-2 size-3.5" />
+                          <ScissorsIcon className="text-success size-3.5" />
                         ) : (
-                          <ScissorsLineDashedIcon className="mr-2 size-3.5" />
+                          <ScissorsLineDashedIcon className="size-3.5" />
                         )}
                         {effectiveImage.needsTrim ? "Auto-trim is on" : "Auto-trim is off"}
                       </DropdownMenuItem>
@@ -267,7 +267,7 @@ export function PrintingImageSwitcher({
                       disabled={unrehostPrintingImage.isPending}
                       onClick={() => unrehostPrintingImage.mutate(effectiveImage.id)}
                     >
-                      <XIcon className="mr-2 size-3.5" />
+                      <XIcon className="size-3.5" />
                       Un-rehost (delete files)
                     </DropdownMenuItem>
                   )}
@@ -276,7 +276,7 @@ export function PrintingImageSwitcher({
                       disabled={deletePrintingImage.isPending}
                       onClick={() => deletePrintingImage.mutate(effectiveImage.id)}
                     >
-                      <Trash2Icon className="text-destructive mr-2 size-3.5" />
+                      <Trash2Icon className="text-destructive size-3.5" />
                       <span className="text-destructive">Remove</span>
                     </DropdownMenuItem>
                   )}
@@ -286,14 +286,14 @@ export function PrintingImageSwitcher({
                 <>
                   {effectiveImage && <DropdownMenuSeparator />}
                   <DropdownMenuItem onClick={() => setShowUrlInput(true)}>
-                    <ImagePlusIcon className="mr-2 size-3.5" />
+                    <ImagePlusIcon className="size-3.5" />
                     Add from URL…
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={uploadPrintingImage.isPending}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <UploadIcon className="mr-2 size-3.5" />
+                    <UploadIcon className="size-3.5" />
                     Upload an image…
                   </DropdownMenuItem>
                 </>
@@ -302,14 +302,14 @@ export function PrintingImageSwitcher({
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowFallbackUrlInput(true)}>
-                    <ImagePlusIcon className="mr-2 size-3.5" />
+                    <ImagePlusIcon className="size-3.5" />
                     Pin substitute from URL…
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={uploadFallbackArt.isPending}
                     onClick={() => fallbackFileInputRef.current?.click()}
                   >
-                    <UploadIcon className="mr-2 size-3.5" />
+                    <UploadIcon className="size-3.5" />
                     Upload a pinned substitute…
                   </DropdownMenuItem>
                 </>
@@ -413,7 +413,7 @@ export function PrintingImageSwitcher({
 
       {/* Shown only while the printing has no active front image; a pin persists and reactivates if that image is later removed. */}
       {!activeFrontImage && (
-        <div className="space-y-1 border-t pt-2">
+        <div className="space-y-1 pt-4">
           <div className="flex min-h-6 items-center gap-1">
             <span className="text-muted-foreground shrink-0 text-xs">Substitute</span>
             {fallbackArtMode === "pinned" && fallbackImageFileId !== null && (

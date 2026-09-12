@@ -36,6 +36,7 @@ import type {
   AdminColumnDef,
   AdminDraftSlotProps,
 } from "@/features/admin/components/admin-table";
+import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { CountBadge } from "@/features/admin/components/count-badge";
 import { flatReorder } from "@/features/admin/lib/admin-reorder";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
@@ -441,13 +442,9 @@ function SetReleasesTable({ sets }: { sets: AdminSetResponse[] }) {
               </TableRow>
             )}
             {groups.flatMap((group) => [
-              <TableRow key={group.language} className="hover:bg-transparent">
-                <TableCell colSpan={5} className="bg-muted/30 py-1">
-                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    {group.language}
-                  </span>
-                </TableCell>
-              </TableRow>,
+              <AdminTableGroupRow key={group.language} colSpan={5}>
+                {group.language}
+              </AdminTableGroupRow>,
               ...group.rows.map((row) => (
                 <TableRow key={`${row.setId}-${row.language}`}>
                   <TableCell className="font-mono">{row.setSlug}</TableCell>

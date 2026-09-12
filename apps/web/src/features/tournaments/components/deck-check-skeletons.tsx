@@ -2,9 +2,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function DeckCheckListSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {Array.from({ length: count }, (_unused, index) => (
-        <div key={index} className="flex items-center gap-3 rounded-md border p-3">
+        <div
+          key={index}
+          className="ring-border flex items-center gap-3 rounded-lg px-3 py-2 ring-1"
+        >
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-56" />

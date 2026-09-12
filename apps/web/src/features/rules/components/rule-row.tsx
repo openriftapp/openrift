@@ -63,10 +63,10 @@ export function RuleRow({
     <div
       id={`rule-${rule.ruleNumber}`}
       className={cn(
-        "border-border/50 flex scroll-mt-14 items-baseline border-b py-1.5 text-sm",
+        "flex scroll-mt-14 items-baseline py-2 text-sm",
         isHidden && "hidden",
-        isTitle && "border-border mt-4 first:mt-0",
-        isSubtitle && "border-border mt-2",
+        isTitle && "border-border mt-6 border-b first:mt-0",
+        isSubtitle && "mt-4",
         isContext && "opacity-60",
         isRemoved && "line-through decoration-from-font opacity-60",
         isFolded && hasChildren && "bg-muted/50",

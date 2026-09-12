@@ -2,7 +2,7 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { getOrientation } from "@openrift/shared/utils";
 
-import { Card } from "@/components/ui/card";
+import { CardRow } from "@/components/ui/card-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -45,7 +45,7 @@ export function TradeRow({
   const badgeState = tradeBadgeState({ status: trade.status, awaitingViewer, viewerSettled });
 
   return (
-    <Card className="relative flex-row flex-wrap items-center gap-x-3 gap-y-2 p-2">
+    <CardRow className="relative flex-wrap justify-start gap-x-3 gap-y-2">
       <TradeDirectionIcon incoming={incoming} />
 
       <CardArtThumb
@@ -101,6 +101,6 @@ export function TradeRow({
       </div>
 
       <TradeRowActions trade={trade} cardName={cardName} />
-    </Card>
+    </CardRow>
   );
 }

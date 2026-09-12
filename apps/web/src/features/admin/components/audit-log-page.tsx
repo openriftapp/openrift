@@ -91,7 +91,7 @@ function AuditEventRow({ event }: { event: AdminAuditEventResponse }) {
         {changes.length === 0 ? (
           <span className="text-muted-foreground/60">—</span>
         ) : (
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {changes.map((change) => (
               <li key={change.field} className="text-sm">
                 <span className="text-muted-foreground font-mono">{change.field}:</span>{" "}
@@ -231,7 +231,7 @@ export function AuditLogPage() {
             onClick={() => void events.fetchNextPage()}
             disabled={events.isFetchingNextPage}
           >
-            {events.isFetchingNextPage && <LoaderIcon className="mr-1 size-4 animate-spin" />}
+            {events.isFetchingNextPage && <LoaderIcon className="size-4 animate-spin" />}
             Load more
           </Button>
         </div>

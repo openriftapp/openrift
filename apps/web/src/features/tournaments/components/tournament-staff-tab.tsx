@@ -20,6 +20,7 @@ import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { ActionBand } from "@/components/ui/action-band";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import {
   Dialog,
   DialogContent,
@@ -120,7 +121,7 @@ function StaffRoleSection({
     <section className="flex flex-col gap-3">
       <SectionHeading count={members.length}>{section.heading}</SectionHeading>
       {members.length === 0 ? (
-        <Empty className="border py-8">
+        <Empty className="py-8">
           <EmptyHeader>
             <EmptyMedia>
               <section.icon className="text-muted-foreground size-8" />
@@ -261,7 +262,7 @@ function StaffInviteRow({
   }
 
   return (
-    <div className="bg-muted flex flex-col gap-2 rounded-lg px-2.5 py-2">
+    <Callout variant="inset" className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="shrink-0">
           {roleLabel}
@@ -310,7 +311,7 @@ function StaffInviteRow({
           />
         </>
       ) : null}
-    </div>
+    </Callout>
   );
 }
 

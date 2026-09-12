@@ -4,7 +4,7 @@ import { ChevronRightIcon, Share2Icon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
 import { IconChip } from "@/components/ui/icon-chip";
 import { TextLink } from "@/components/ui/text-link";
@@ -107,7 +107,7 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
 
   if (tradable.length === 0) {
     return (
-      <Card className="flex-row items-center gap-3 p-3">
+      <Callout className="flex items-center gap-3">
         <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
         <p className="text-muted-foreground min-w-0 flex-1">
           You don&apos;t have a wishlist or tradelist yet.{" "}
@@ -116,12 +116,12 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
           </TextLink>{" "}
           and share it with {groupName} to start finding trades.
         </p>
-      </Card>
+      </Callout>
     );
   }
 
   return (
-    <Card className="flex-row items-center gap-3 p-3">
+    <Callout className="flex items-center gap-3">
       <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="font-medium">
@@ -148,6 +148,6 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
           />
         </>
       )}
-    </Card>
+    </Callout>
   );
 }

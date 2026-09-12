@@ -3,8 +3,12 @@ import { useState } from "react";
 
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { InfoHint } from "@/components/ui/info-hint";
-import { Pressable } from "@/components/ui/pressable";
+import { StatStrip } from "@/components/ui/stat-strip";
+import type { StatStripItem } from "@/components/ui/stat-strip";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SECTION_SCROLL_MARGIN } from "@/features/decks/components/deck-overview-tabs";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
+import { ChartHeading } from "@/features/decks/components/stats/chart-heading";
 import { EnergyChart, PowerChart } from "@/features/decks/components/stats/energy-power-chart";
 import { LensBar } from "@/features/decks/components/stats/lens-bar";
 import { TypeBreakdown } from "@/features/decks/components/stats/type-breakdown";
@@ -198,7 +202,6 @@ export function DeckStatsBand({
         stacks={stats.energyCurveStacks}
         average={stats.averageEnergy}
         revealDomainsOnHover
-        footnote="Counts the main deck. Click a bar to see its cards."
         showTotals
         onBarClick={(value) => applyStatsFocus({ kind: "energy", value })}
         focusValue={statsFocus?.kind === "energy" ? statsFocus.value : null}
@@ -235,21 +238,27 @@ export function DeckStatsBand({
 
   const thirdSlotNode = hasLensCharts ? (
     <div>
-      <div className="mb-1 flex items-center gap-3 text-xs">
-        {lensOptions.map((option) => (
-          <Pressable
-            key={option.key}
-            onClick={() => setStatsLens(option.key)}
-            aria-pressed={statsLens === option.key}
-            className={cn(
-              "font-medium transition-colors",
-              statsLens !== option.key && "text-muted-foreground hover:text-foreground",
-            )}
+      <ChartHeading
+        control={
+          <ToggleGroup
+            variant="outline"
+            spacing={0}
+            size="sm"
+            value={[statsLens]}
+            onValueChange={([next]) => {
+              if (next) {
+                setStatsLens(next as StatsLens);
+              }
+            }}
           >
-            {option.label}
-          </Pressable>
-        ))}
-      </div>
+            {lensOptions.map((option) => (
+              <ToggleGroupItem key={option.key} value={option.key}>
+                {option.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        }
+      />
       {statsLens === "types"
         ? typesChart(false)
         : statsLens === "rarity"
@@ -268,39 +277,18 @@ export function DeckStatsBand({
   const statsCharts = (
     <div
       ref={setStatsChartsEl}
-      className={cn("grid gap-y-4", !wideStats && "@lg:grid-cols-2 @3xl:grid-cols-3")}
+      className={cn("grid gap-x-10 gap-y-4", !wideStats && "@lg:grid-cols-2 @3xl:grid-cols-3")}
       style={
         wideStats
           ? { gridTemplateColumns: chartTracks.map((chart) => chart.track).join(" ") }
           : undefined
       }
     >
-      {wideStats
-        ? wideCells.map((cell, index) => (
-            <div
-              key={cell.key}
-              className={cn(
-                "min-w-0",
-                index > 0 && "border-l pl-5",
-                index < wideCells.length - 1 && "pr-5",
-              )}
-            >
-              {cell.node}
-            </div>
-          ))
-        : narrowCells.map((cell, index) => (
-            <div
-              key={cell.key}
-              className={cn(
-                "min-w-0",
-                index === 0 && "@lg:pr-5",
-                index === 1 && "@lg:border-l @lg:pl-5 @3xl:pr-5",
-                index === 2 && "@3xl:border-l @3xl:pl-5",
-              )}
-            >
-              {cell.node}
-            </div>
-          ))}
+      {(wideStats ? wideCells : narrowCells).map((cell) => (
+        <div key={cell.key} className="min-w-0">
+          {cell.node}
+        </div>
+      ))}
     </div>
   );
 
@@ -313,30 +301,43 @@ export function DeckStatsBand({
     : null;
   const curveOutFirst = curveOutRate(cards, { goingSecond: false });
   const curveOutSecond = curveOutRate(cards, { goingSecond: true });
-  const headlineChips = (
-    <div className="text-muted-foreground hidden items-center gap-3 text-xs tabular-nums @lg:flex">
-      {turnOneFirstChance !== null && turnOneSecondChance !== null && (
-        <span className="flex items-center gap-1">
-          Turn-1 play {formatChancePct(turnOneFirstChance)} · {formatChancePct(turnOneSecondChance)}
-          <InfoHint label="Turn-1 play" side="bottom">
-            The chance your opening hand holds a turn-one play. First number: going first (a unit or
-            gear at 2 energy or less). Second: going second (3 or less). Spells don&rsquo;t count
-            &mdash; there&rsquo;s nothing to react to yet.
-          </InfoHint>
-        </span>
-      )}
-      {curveOutFirst !== null && curveOutSecond !== null && (
-        <span className="flex items-center gap-1">
-          Curve-out {formatChancePct(curveOutFirst)} · {formatChancePct(curveOutSecond)}
-          <InfoHint label="Curve-out" side="bottom">
-            How often you can play at least one card on each of turns 1&ndash;3 &mdash; first number
-            going first, second going second. A card needs energy plus power runes, and you channel
-            two runes a turn (one extra on your first turn going second).
-          </InfoHint>
-        </span>
-      )}
-    </div>
-  );
+  const headlineItems: StatStripItem[] = [
+    ...(turnOneFirstChance !== null && turnOneSecondChance !== null
+      ? [
+          {
+            key: "turn-one",
+            value: `${formatChancePct(turnOneFirstChance)} · ${formatChancePct(turnOneSecondChance)}`,
+            label: (
+              <span className="inline-flex items-center gap-1">
+                Turn-1 play
+                <InfoHint label="Turn-1 play" side="bottom">
+                  The chance your opening hand holds a turn-one play. First number: going first (a
+                  unit or gear at 2 energy or less). Second: going second (3 or less). Spells
+                  don&rsquo;t count, there&rsquo;s nothing to react to yet.
+                </InfoHint>
+              </span>
+            ),
+          },
+        ]
+      : []),
+    ...(curveOutFirst !== null && curveOutSecond !== null
+      ? [
+          {
+            key: "curve-out",
+            value: `${formatChancePct(curveOutFirst)} · ${formatChancePct(curveOutSecond)}`,
+            label: (
+              <span className="inline-flex items-center gap-1">
+                Curve-out
+                <InfoHint label="Curve-out" side="bottom">
+                  How often you can play at least one card on each of turns 1 to 3. First number:
+                  going first. Second: going second.
+                </InfoHint>
+              </span>
+            ),
+          },
+        ]
+      : []),
+  ];
 
   if (!hasStats) {
     return null;
@@ -346,20 +347,30 @@ export function DeckStatsBand({
     <div
       id="deck-stats"
       style={{ scrollMarginTop: SECTION_SCROLL_MARGIN }}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-4"
     >
-      <div className="flex h-6 items-center gap-2 border-b">
-        <ExpandToggle
-          expanded={statsOpen}
-          chevronClassName="size-3.5"
-          onClick={() => onStatsOpenChange(!statsOpen)}
-          className="text-muted-foreground hover:text-foreground flex-1 transition-colors"
-        >
-          <span className="text-2xs font-semibold tracking-wide uppercase">Stats</span>
-        </ExpandToggle>
-        {headlineChips}
-      </div>
-      {statsOpen && statsCharts}
+      <DeckZoneHeader
+        label="Stats"
+        labelClassName="group-hover/zone-label:text-foreground transition-colors"
+        labelRender={
+          <ExpandToggle
+            expanded={statsOpen}
+            chevronClassName="size-3.5"
+            onClick={() => onStatsOpenChange(!statsOpen)}
+            className="group/zone-label flex-1"
+          />
+        }
+      >
+        <InfoHint label="About these stats" side="bottom">
+          Counts the main deck. Click a bar to see its cards.
+        </InfoHint>
+      </DeckZoneHeader>
+      {statsOpen && (
+        <div className="flex flex-col gap-6">
+          <StatStrip items={headlineItems} />
+          {statsCharts}
+        </div>
+      )}
     </div>
   );
 }

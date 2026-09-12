@@ -25,7 +25,7 @@ export function MetaFrontEventBlock({ event }: { event: MetaEventSummary }) {
   const showsLegendArt = event.topFinishes.some((finish) => finish.legend !== null);
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="bg-card relative -mx-2 overflow-hidden rounded-md">
       <ArtBandBackdrop
         thumbnail={bandArtId === null ? null : imageUrl(bandArtId, "400w")}
         domains={bandLegend?.domains ?? []}
@@ -33,7 +33,7 @@ export function MetaFrontEventBlock({ event }: { event: MetaEventSummary }) {
       <Link
         to="/meta/$slug"
         params={{ slug: event.slug }}
-        className="hover:bg-muted/50 focus-visible:ring-ring/50 relative flex flex-col gap-2.5 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
+        className="hover:bg-muted/50 focus-visible:ring-ring/50 relative flex flex-col gap-2.5 px-2 py-3 outline-none focus-visible:ring-2 focus-visible:-outline-offset-2"
       >
         <MetaEventHeading event={event} />
 
@@ -41,7 +41,8 @@ export function MetaFrontEventBlock({ event }: { event: MetaEventSummary }) {
           <span
             className={cn(
               "relative flex flex-col gap-0.5",
-              fanCovers.length > 0 && "sm:min-h-26 sm:pr-40",
+              "sm:pr-40",
+              fanCovers.length > 0 && "sm:min-h-26",
               "sm:pl-12",
             )}
           >

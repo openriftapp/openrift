@@ -62,6 +62,9 @@ export function TradesHubBand({ slug, data }: { slug: string; data: FriendGroupD
   });
 
   const needsAction = shelf.waitingPeople > 0;
+  if (shelf.rows.length === 0) {
+    return null;
+  }
   return (
     <ActionBand
       render={<Link to="/groups/$slug/trades" params={{ slug }} />}

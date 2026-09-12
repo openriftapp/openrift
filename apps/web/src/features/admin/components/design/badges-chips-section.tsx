@@ -56,7 +56,7 @@ export function BadgesChipsSection() {
           <DateLeaf month="AUG" day="8" />
         </Swatch>
         <Swatch label="with year">
-          <DateLeaf month="AUG" day="8" year="2026" size="sm" />
+          <DateLeaf month="AUG" day="8" caption="2026" size="sm" />
         </Swatch>
       </SwatchRow>
       <SwatchRow

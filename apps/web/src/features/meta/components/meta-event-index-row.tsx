@@ -38,7 +38,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
 
       <div className={cn(EVENT_INDEX_GRID, "hidden sm:grid")}>
         <span aria-hidden className="contents">
-          <DateLeaf month={leaf.month} day={leaf.day} year={leaf.year} size="sm" />
+          <DateLeaf month={leaf.month} day={leaf.day} caption={leaf.year} size="sm" />
         </span>
         <div className="min-w-0">
           <p className="truncate font-medium">{event.name}</p>
@@ -72,7 +72,7 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
           <DateLeaf
             month={leaf.month}
             day={leaf.day}
-            year={leaf.year}
+            caption={leaf.year}
             size="sm"
             className="mt-0.5"
           />

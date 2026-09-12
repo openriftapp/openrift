@@ -1,5 +1,13 @@
 import { Heading } from "@/components/heading";
 import { Code } from "@/components/ui/code";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
@@ -214,23 +222,25 @@ export default function TournamentDecklistApiArticle() {
           MB, and each key may push 60 times per minute (responses include standard{" "}
           <Code>RateLimit</Code> headers). Larger fields simply split across several pushes.
         </p>
-        <div className="mt-3 overflow-x-auto rounded-lg border text-sm">
-          <table className="w-full">
-            <thead>
-              <tr className="border-border border-b">
-                <th className="bg-muted/50 px-3 py-2 text-left text-xs font-medium">Status</th>
-                <th className="bg-muted/50 px-3 py-2 text-left text-xs font-medium">Meaning</th>
-              </tr>
-            </thead>
-            <tbody className="divide-border divide-y">
+        <div className="mt-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Meaning</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {ERROR_ROWS.map(([status, meaning]) => (
-                <tr key={status}>
-                  <td className="px-3 py-1.5 align-top font-mono text-xs">{status}</td>
-                  <td className="text-muted-foreground px-3 py-1.5">{meaning}</td>
-                </tr>
+                <TableRow key={status}>
+                  <TableCell className="align-top font-mono text-xs">{status}</TableCell>
+                  <TableCell className="text-muted-foreground align-top whitespace-normal">
+                    {meaning}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         <p className="text-muted-foreground mt-3">
           Failed pushes import nothing, so it is always safe to fix the problem and send the same

@@ -278,11 +278,7 @@ export function VariantLocationsPopover({
             <PickerRow
               value={variantRowValue(group.printing)}
               onSelect={onVariantSelect}
-              className={cn(
-                "bg-muted/50 py-0.5",
-                collapsible && "cursor-pointer",
-                groupIndex > 0 && "mt-1.5",
-              )}
+              className={cn("py-0.5", collapsible && "cursor-pointer", groupIndex > 0 && "mt-3")}
             >
               <div className="flex flex-1 items-center gap-1.5 whitespace-nowrap">
                 {collapsible &&
@@ -304,7 +300,7 @@ export function VariantLocationsPopover({
                             title={group.printing.rarity}
                             width={28}
                             height={28}
-                            className="mr-1 inline size-3.5 align-text-bottom"
+                            className="size-3.5"
                           />
                         )}
                         {formatCardId(group.printing)}

@@ -72,13 +72,15 @@ export function ListHeader({
         {backLink}
         {backLink ? <TopBarBreadcrumbSeparator className="hidden sm:inline" /> : null}
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{list.name}</PageTopBarTitle>
-        <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-          <IntentIcon className="mr-1 inline-block size-3 align-text-bottom" />
-          {INTENT_LABEL[list.intent]}
+        <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
+          <IntentIcon className="size-3 self-center" />
+          <span>{INTENT_LABEL[list.intent]}</span>
         </span>
-        <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-          <KindIcon className="mr-1 inline-block size-3 align-text-bottom" />
-          {count} {kindNoun}
+        <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
+          <KindIcon className="size-3 self-center" />
+          <span>
+            {count} {kindNoun}
+          </span>
         </span>
         {hydrated && count > 0 && <ListValueLabel kind={list.kind} entries={entries} />}
         {attribution.kind === "owner" && attribution.ownerName ? (

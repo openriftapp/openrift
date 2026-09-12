@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { StatStripItem } from "@/components/ui/stat-strip";
 import { StatStrip } from "@/components/ui/stat-strip";
-import { ReviewDisclosure } from "@/features/admin/components/meta-review-shared";
+import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import { useUploadMetaOverlays } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { parseMetaUploadFile } from "@/features/meta/lib/meta-source-review";
 
@@ -60,7 +60,7 @@ const EXAMPLE_UPLOAD_JSON = `{
 
 function FormatHelp() {
   return (
-    <ReviewDisclosure title="Format and example" contentClassName="space-y-3 py-3">
+    <AdminDisclosure title="Format and example" contentClassName="space-y-3 py-3">
       <p>
         The file is the whole request body: a <Code>provider</Code> string and a non-empty{" "}
         <Code>events</Code> array. Each event replaces its own staged copy in full, keyed by{" "}
@@ -72,7 +72,7 @@ function FormatHelp() {
       <pre className="bg-muted overflow-x-auto rounded-md p-3">
         <code>{EXAMPLE_UPLOAD_JSON}</code>
       </pre>
-    </ReviewDisclosure>
+    </AdminDisclosure>
   );
 }
 
@@ -97,7 +97,7 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
       <StatStrip items={summaryItems(result)} />
 
       {result.newEventDetails.length > 0 && (
-        <ReviewDisclosure title={`New events (${result.newEventDetails.length})`}>
+        <AdminDisclosure title={`New events (${result.newEventDetails.length})`}>
           <ul className="space-y-1">
             {result.newEventDetails.map((event) => (
               <li key={event.externalId}>
@@ -106,11 +106,11 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </ReviewDisclosure>
+        </AdminDisclosure>
       )}
 
       {result.updatedEventDetails.length > 0 && (
-        <ReviewDisclosure title={`Updated events (${result.updatedEventDetails.length})`}>
+        <AdminDisclosure title={`Updated events (${result.updatedEventDetails.length})`}>
           <ul className="space-y-1">
             {result.updatedEventDetails.map((event) => (
               <li key={event.externalId}>
@@ -119,11 +119,11 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </ReviewDisclosure>
+        </AdminDisclosure>
       )}
 
       {result.unresolvedCards.length > 0 && (
-        <ReviewDisclosure
+        <AdminDisclosure
           title={`Lists with unmatched card names (${result.unresolvedCards.length})`}
         >
           <ul className="space-y-2">
@@ -136,17 +136,17 @@ function UploadSummary({ result }: { result: MetaUploadResponse }) {
               </li>
             ))}
           </ul>
-        </ReviewDisclosure>
+        </AdminDisclosure>
       )}
 
       {result.errors.length > 0 && (
-        <ReviewDisclosure title={`Errors (${result.errors.length})`}>
+        <AdminDisclosure title={`Errors (${result.errors.length})`}>
           <ul className="text-muted-foreground space-y-1">
             {result.errors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </ReviewDisclosure>
+        </AdminDisclosure>
       )}
     </div>
   );

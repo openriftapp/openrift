@@ -22,7 +22,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { CardRow } from "@/components/ui/card-list";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,7 +130,7 @@ export function ParticipantRow({
   }
 
   return (
-    <Card className={cn("flex-row flex-wrap items-center gap-3 p-3", dimmed && "opacity-50")}>
+    <CardRow className={cn("flex-wrap gap-3", dimmed && "opacity-50")}>
       <UserAvatar
         name={participant.userName ?? participant.displayName}
         className="size-9 shrink-0"
@@ -365,6 +365,6 @@ export function ParticipantRow({
           </Button>
         </span>
       ) : null}
-    </Card>
+    </CardRow>
   );
 }

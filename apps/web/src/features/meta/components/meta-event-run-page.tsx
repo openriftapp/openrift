@@ -140,7 +140,7 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
     opponent === undefined ? null : formatRecord(opponent.wins, opponent.losses, opponent.draws);
 
   return (
-    <li style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}>
+    <li className="-mx-2" style={isFinal ? { backgroundImage: FINAL_GLOW } : undefined}>
       <div className={cn(grid, "hidden px-2 py-2.5 sm:grid")}>
         <span className="font-heading text-sm font-semibold tabular-nums">{label}</span>
         <span className="text-muted-foreground text-xs tabular-nums">
@@ -255,7 +255,7 @@ function RunSection({
       </div>
 
       <div className="text-sm">
-        <div className={cn(grid, "hidden h-10 border-b px-2 font-medium sm:grid")}>
+        <div className={cn(grid, "-mx-2 hidden h-10 border-b px-2 font-medium sm:grid")}>
           <span>Round</span>
           <span />
           <span>Opponent</span>
@@ -346,28 +346,29 @@ export function MetaEventRunPage() {
           <MetaHeroArt imageId={player.legend?.imageId ?? null} alt={champion ?? ""} />
 
           <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
-            <p className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
-              {player.rank === 1 ? "Road to the title" : "Tournament run"}
-            </p>
-            <h2 className="font-heading text-2xl font-bold">{player.playerName}</h2>
-
-            <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
-              <MetaIdentity
-                name={player.legend?.name}
-                slug={player.legend?.slug}
-                archiveSlug={player.legend?.archiveSlug}
-                domains={player.legend?.domains}
-                className="text-foreground"
-              />
-              {player.champion !== null && (
-                <>
-                  <span aria-hidden className="text-muted-foreground/60">
-                    ·
-                  </span>
-                  <span>{player.champion.name}</span>
-                </>
-              )}
-            </p>
+            <div className="flex flex-col gap-1">
+              <p className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
+                {player.rank === 1 ? "Road to the title" : "Tournament run"}
+              </p>
+              <h2 className="font-heading text-2xl font-bold">{player.playerName}</h2>
+              <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                <MetaIdentity
+                  name={player.legend?.name}
+                  slug={player.legend?.slug}
+                  archiveSlug={player.legend?.archiveSlug}
+                  domains={player.legend?.domains}
+                  className="text-foreground"
+                />
+                {player.champion !== null && (
+                  <>
+                    <span aria-hidden className="text-muted-foreground/60">
+                      ·
+                    </span>
+                    <span>{player.champion.name}</span>
+                  </>
+                )}
+              </p>
+            </div>
 
             <div className="flex flex-wrap gap-x-9 gap-y-3">
               <MetaHeroCounter

@@ -24,7 +24,10 @@ export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] })
       {parent?.link
         ? cloneElement(parent.link, {
             "aria-label": `Back to ${parent.label}`,
-            className: cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "sm:hidden"),
+            className: cn(
+              buttonVariants({ variant: "ghost", size: "icon-sm" }),
+              "-ml-1.5 sm:hidden",
+            ),
             children: <ArrowLeftIcon className="size-4" />,
           })
         : null}

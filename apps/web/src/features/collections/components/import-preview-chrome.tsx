@@ -1,10 +1,52 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { CheckCircle2Icon, ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { cn } from "@/lib/utils";
+
+export function ImportPreviewStack({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={cn("space-y-8", className)}>{children}</div>;
+}
+
+// `render` lets a list that needs its own root element (the deck step's Accordion) supply one.
+export function ImportRowsSection({
+  title,
+  count,
+  render,
+  children,
+}: {
+  title: ReactNode;
+  count?: number;
+  render?: useRender.ComponentProps<"div">["render"];
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <SectionHeading count={count}>{title}</SectionHeading>
+      <ImportRowList render={render}>{children}</ImportRowList>
+    </section>
+  );
+}
+
+function ImportRowList({ className, render, ...props }: useRender.ComponentProps<"div">) {
+  return useRender({
+    defaultTagName: "div",
+    props: mergeProps<"div">({ className: cn("divide-border -mx-4 divide-y", className) }, props),
+    render,
+  });
+}
 
 export function ImportStatusBadges({
   readyCount,

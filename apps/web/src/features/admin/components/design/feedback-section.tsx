@@ -94,7 +94,7 @@ export function FeedbackSection() {
           </Avatar>
         </Demo>
         <Demo name="Empty" hint="Zero state with icon, copy, and one clear next action.">
-          <Empty className="w-full border">
+          <Empty className="w-full">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <PackageIcon />

@@ -8,10 +8,8 @@ import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ConfirmActionButton,
-  ReviewDisclosure,
-} from "@/features/admin/components/meta-review-shared";
+import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
+import { ConfirmActionButton } from "@/features/admin/components/meta-review-shared";
 import {
   useMetaEventMatchSuggestions,
   useMetaEventUploads,
@@ -119,9 +117,9 @@ function UploadCard({ upload }: { upload: MetaUploadSummary }) {
         Revert this upload
       </ConfirmActionButton>
 
-      <ReviewDisclosure title="Move to another event" onOpenChange={setMoveOpen}>
+      <AdminDisclosure title="Move to another event" onOpenChange={setMoveOpen}>
         {moveOpen && <MoveTargets eventOverlayId={upload.eventOverlayId} />}
-      </ReviewDisclosure>
+      </AdminDisclosure>
     </div>
   );
 }

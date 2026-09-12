@@ -120,7 +120,7 @@ export function FilterCustomizeControl({
           })}
         </div>
         {placementOverridden && (
-          <div className="flex items-center justify-end border-t pt-2">
+          <div className="flex items-center justify-end pt-2">
             <Button variant="ghost" size="sm" onClick={() => resetPreference("topLevelFilters")}>
               Reset to default
             </Button>

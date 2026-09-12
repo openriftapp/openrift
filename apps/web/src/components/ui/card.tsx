@@ -80,8 +80,8 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        // custom: rounded-b-lg (scaffold ships rounded-b-xl) — app-wide surface radius matches form controls
-        "bg-muted/50 flex items-center rounded-b-lg border-t p-(--card-spacing)",
+        // custom: plain action row — the card's own gap separates it (scaffold ships a bordered tonal band)
+        "flex items-center px-(--card-spacing) pb-(--card-spacing)",
         className,
       )}
       {...props}

@@ -155,7 +155,7 @@ export function DeckListToolbar({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           value={localSearch}
           onValueChange={setLocalSearch}
@@ -166,7 +166,7 @@ export function DeckListToolbar({
         />
 
         {/* Below md the controls live in the drawer; the bar keeps only the search box and triggers. */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           {sortGroupControls}
           <DensityToggle className="ml-auto" />
         </div>

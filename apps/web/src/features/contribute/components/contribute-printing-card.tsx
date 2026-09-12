@@ -155,52 +155,54 @@ export function PrintingCard({
         </CardAction>
       </CardHeader>
       {open && (
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FieldRow
-              label="Code"
-              required
-              field="printing.publicCode"
-              error={errorAt(`printings[${index.toString()}].publicCode`)}
-            >
-              <Input
-                value={printing.publicCode ?? ""}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                placeholder="OGN-066/298"
-              />
-            </FieldRow>
-            <FieldRow
-              label="Image URL"
-              hint="Direct link to the best image you can find. A clear scan works too."
-              error={errorAt(`printings[${index.toString()}].imageUrl`)}
-            >
-              <ImageUrlInput
-                value={printing.imageUrl ?? ""}
-                onChange={(next) => onChange("imageUrl", next || null)}
-              />
-            </FieldRow>
-          </div>
+        <CardContent className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FieldRow
+                label="Code"
+                required
+                field="printing.publicCode"
+                error={errorAt(`printings[${index.toString()}].publicCode`)}
+              >
+                <Input
+                  value={printing.publicCode ?? ""}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  placeholder="OGN-066/298"
+                />
+              </FieldRow>
+              <FieldRow
+                label="Image URL"
+                hint="Direct link to the best image you can find. A clear scan works too."
+                error={errorAt(`printings[${index.toString()}].imageUrl`)}
+              >
+                <ImageUrlInput
+                  value={printing.imageUrl ?? ""}
+                  onChange={(next) => onChange("imageUrl", next || null)}
+                />
+              </FieldRow>
+            </div>
 
-          {codeEntered &&
-            (resolvedSet ? (
-              <p className="text-muted-foreground text-sm">Set: {resolvedSet.name}</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-muted-foreground text-sm">
-                  That code starts with a set we don&apos;t have yet. Pick the right one if it is a
-                  typo, otherwise leave it and we&apos;ll add the set.
-                </p>
-                <FieldRow label="Set">
-                  <SingleSelect
-                    value={printing.setId}
-                    onChange={handleSetChange}
-                    options={sets.map((s) => s.slug)}
-                    labels={Object.fromEntries(sets.map((s) => [s.slug, s.name]))}
-                    placeholder="Pick a set"
-                  />
-                </FieldRow>
-              </div>
-            ))}
+            {codeEntered &&
+              (resolvedSet ? (
+                <p className="text-muted-foreground text-sm">Set: {resolvedSet.name}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-muted-foreground text-sm">
+                    That code starts with a set we don&apos;t have yet. Pick the right one if it is
+                    a typo, otherwise leave it and we&apos;ll add the set.
+                  </p>
+                  <FieldRow label="Set">
+                    <SingleSelect
+                      value={printing.setId}
+                      onChange={handleSetChange}
+                      options={sets.map((s) => s.slug)}
+                      labels={Object.fromEntries(sets.map((s) => [s.slug, s.name]))}
+                      placeholder="Pick a set"
+                    />
+                  </FieldRow>
+                </div>
+              ))}
+          </div>
 
           <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
             <CollapsibleTrigger
@@ -213,102 +215,106 @@ export function PrintingCard({
                 </ExpandToggle>
               }
             />
-            <CollapsibleContent className="mt-4 flex flex-col gap-4">
-              <FieldRow
-                label="Name"
-                hint="Defaults to the card name. Edit only if the printed name differs (e.g. for non-English versions)."
-              >
-                <Input
-                  value={printing.printedName}
-                  onChange={(e) => onChange("printedName", e.target.value)}
-                />
-              </FieldRow>
-              <div className="grid gap-4 sm:grid-cols-3">
+            <CollapsibleContent className="mt-6 flex flex-col gap-8">
+              <div className="flex flex-col gap-4">
                 <FieldRow
-                  label="Language"
-                  error={errorAt(`printings[${index.toString()}].language`)}
+                  label="Name"
+                  hint="Defaults to the card name. Edit only if the printed name differs (e.g. for non-English versions)."
                 >
-                  <SingleSelect
-                    value={printing.language}
-                    onChange={(v) => onChange("language", v)}
-                    options={languages.map((language) => language.code)}
-                    labels={Object.fromEntries(
-                      languages.map((language) => [language.code, language.name]),
-                    )}
-                    placeholder="Pick a language"
-                  />
-                </FieldRow>
-                <FieldRow label="Rarity" field="printing.rarity">
-                  <SingleSelect
-                    value={printing.rarity}
-                    onChange={(v) => onChange("rarity", v)}
-                    options={orders.rarities}
-                    labels={labels.rarities}
-                    placeholder="Pick a rarity"
-                  />
-                </FieldRow>
-                <FieldRow label="Finish">
-                  <SingleSelect
-                    value={printing.finish}
-                    onChange={(v) => onChange("finish", v)}
-                    options={orders.finishes}
-                    labels={labels.finishes}
-                    placeholder="Pick a finish"
-                  />
-                </FieldRow>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <FieldRow label="Art variant">
-                  <SingleSelect
-                    value={printing.artVariant}
-                    onChange={(v) => onChange("artVariant", v)}
-                    options={orders.artVariants}
-                    labels={labels.artVariants}
-                    placeholder="Pick a variant"
-                  />
-                </FieldRow>
-                <FieldRow label="Artist" field="printing.artist">
                   <Input
-                    value={printing.artist ?? ""}
-                    onChange={(e) => onChange("artist", e.target.value || null)}
+                    value={printing.printedName}
+                    onChange={(e) => onChange("printedName", e.target.value)}
                   />
                 </FieldRow>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <FieldRow
+                    label="Language"
+                    error={errorAt(`printings[${index.toString()}].language`)}
+                  >
+                    <SingleSelect
+                      value={printing.language}
+                      onChange={(v) => onChange("language", v)}
+                      options={languages.map((language) => language.code)}
+                      labels={Object.fromEntries(
+                        languages.map((language) => [language.code, language.name]),
+                      )}
+                      placeholder="Pick a language"
+                    />
+                  </FieldRow>
+                  <FieldRow label="Rarity" field="printing.rarity">
+                    <SingleSelect
+                      value={printing.rarity}
+                      onChange={(v) => onChange("rarity", v)}
+                      options={orders.rarities}
+                      labels={labels.rarities}
+                      placeholder="Pick a rarity"
+                    />
+                  </FieldRow>
+                  <FieldRow label="Finish">
+                    <SingleSelect
+                      value={printing.finish}
+                      onChange={(v) => onChange("finish", v)}
+                      options={orders.finishes}
+                      labels={labels.finishes}
+                      placeholder="Pick a finish"
+                    />
+                  </FieldRow>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <FieldRow label="Art variant">
+                    <SingleSelect
+                      value={printing.artVariant}
+                      onChange={(v) => onChange("artVariant", v)}
+                      options={orders.artVariants}
+                      labels={labels.artVariants}
+                      placeholder="Pick a variant"
+                    />
+                  </FieldRow>
+                  <FieldRow label="Artist" field="printing.artist">
+                    <Input
+                      value={printing.artist ?? ""}
+                      onChange={(e) => onChange("artist", e.target.value || null)}
+                    />
+                  </FieldRow>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <FieldRow label="Signed">
+                    <Switch
+                      checked={printing.isSigned}
+                      onCheckedChange={(checked) => onChange("isSigned", checked)}
+                      className="mt-1"
+                    />
+                  </FieldRow>
+                  <FieldRow label="Overnumbered">
+                    <Switch
+                      checked={printing.isOvernumbered}
+                      onCheckedChange={(checked) => onChange("isOvernumbered", checked)}
+                      className="mt-1"
+                    />
+                  </FieldRow>
+                </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <FieldRow label="Signed">
-                  <Switch
-                    checked={printing.isSigned}
-                    onCheckedChange={(checked) => onChange("isSigned", checked)}
-                    className="mt-1"
-                  />
-                </FieldRow>
-                <FieldRow label="Overnumbered">
-                  <Switch
-                    checked={printing.isOvernumbered}
-                    onCheckedChange={(checked) => onChange("isOvernumbered", checked)}
-                    className="mt-1"
-                  />
-                </FieldRow>
+              <div className="flex flex-col gap-4">
+                <CardTextInput
+                  label="Rules text"
+                  field="printing.printedRulesText"
+                  value={printing.printedRulesText ?? ""}
+                  onChange={(v) => onChange("printedRulesText", v || null)}
+                />
+                <CardTextInput
+                  label="Effect text"
+                  field="printing.printedEffectText"
+                  value={printing.printedEffectText ?? ""}
+                  onChange={(v) => onChange("printedEffectText", v || null)}
+                />
+                <CardTextInput
+                  label="Flavor text"
+                  field="printing.flavorText"
+                  variant="flavor"
+                  value={printing.flavorText ?? ""}
+                  onChange={(v) => onChange("flavorText", v || null)}
+                />
               </div>
-              <CardTextInput
-                label="Rules text"
-                field="printing.printedRulesText"
-                value={printing.printedRulesText ?? ""}
-                onChange={(v) => onChange("printedRulesText", v || null)}
-              />
-              <CardTextInput
-                label="Effect text"
-                field="printing.printedEffectText"
-                value={printing.printedEffectText ?? ""}
-                onChange={(v) => onChange("printedEffectText", v || null)}
-              />
-              <CardTextInput
-                label="Flavor text"
-                field="printing.flavorText"
-                variant="flavor"
-                value={printing.flavorText ?? ""}
-                onChange={(v) => onChange("flavorText", v || null)}
-              />
 
               <Collapsible open={rareOpen} onOpenChange={setRareOpen}>
                 <CollapsibleTrigger
@@ -321,7 +327,7 @@ export function PrintingCard({
                     </ExpandToggle>
                   }
                 />
-                <CollapsibleContent className="mt-4 grid gap-4 sm:grid-cols-2">
+                <CollapsibleContent className="mt-6 grid gap-4 sm:grid-cols-2">
                   <FieldRow label="Size">
                     <SingleSelect
                       value={printing.size}

@@ -220,7 +220,7 @@ export function MetaReviewPlayerRow({ overlay }: { overlay: MetaOverlayQueueRow 
         </TableCell>
       </TableRow>
       {expanded && (
-        <TableRow className="bg-muted/40">
+        <TableRow className="bg-muted/30">
           <TableCell colSpan={PLAYER_ROW_COLUMNS} className="p-4 whitespace-normal">
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
               <div className="space-y-3">

@@ -97,7 +97,7 @@ export function CollectionTopBar({
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{title}</PageTopBarTitle>
 
         {boxLabel && (
-          <Badge variant="muted" className="shrink-0 gap-1 self-center">
+          <Badge variant="muted" className="shrink-0 gap-1">
             <BoxIcon className="size-3" />
             {singleHomeDeck ? (
               <TextLink

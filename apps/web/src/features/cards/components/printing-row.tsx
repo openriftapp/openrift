@@ -25,7 +25,7 @@ export function PrintingVariantLine({
       siblings={siblings}
       className={className}
       code={
-        <>
+        <span className="inline-flex items-baseline gap-1">
           {hasMixedRarities && rarityIcon && (
             <img
               src={rarityIcon}
@@ -33,11 +33,11 @@ export function PrintingVariantLine({
               title={printing.rarity}
               width={28}
               height={28}
-              className="mr-1 inline size-3.5 align-text-bottom"
+              className="size-3.5 shrink-0 self-center"
             />
           )}
           <span className="text-muted-foreground font-mono text-xs">{code}</span>
-        </>
+        </span>
       }
     />
   );

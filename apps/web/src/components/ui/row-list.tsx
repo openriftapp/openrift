@@ -18,7 +18,12 @@ function RowList({
     <ul
       data-slot="row-list"
       data-variant={variant}
-      className={cn(variant === "divided" ? "divide-y" : "[&>li]:py-1", className)}
+      className={cn(
+        variant === "divided"
+          ? "[&>li]:py-2.5 [&>li+li]:border-t [&>li:first-child]:pt-0 [&>li:last-child]:pb-0"
+          : "flex flex-col gap-2",
+        className,
+      )}
       {...props}
     />
   );
@@ -28,7 +33,7 @@ function RowListItem({ className, ...props }: React.ComponentProps<"li">) {
   return (
     <li
       data-slot="row-list-item"
-      className={cn("flex min-w-0 items-center gap-3 py-2.5 first:pt-0 last:pb-0", className)}
+      className={cn("flex min-w-0 items-center gap-3", className)}
       {...props}
     />
   );

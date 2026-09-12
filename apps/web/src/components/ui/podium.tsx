@@ -59,6 +59,12 @@ const MEDAL_ON_ART_CLASS: Record<number, string> = {
   3: "bg-amber-700 text-amber-50",
 };
 
+/** Silver and bronze text tint for a medal already inside a dark plate. */
+const MEDAL_ON_ART_TEXT_CLASS: Record<number, string> = {
+  2: "text-zinc-300",
+  3: "text-amber-400",
+};
+
 /** The winner's crown tint, per surface: over art it needs its own shadow. */
 const CROWN_CLASS: Record<MedalVariant, string> = {
   flat: "text-amber-500 dark:text-amber-400",
@@ -112,10 +118,13 @@ const COLUMNS_CLASS: Record<number, string> = {
 export function Medal({
   rank,
   variant = "flat",
+  fill = true,
   className,
 }: {
   rank: number;
   variant?: MedalVariant;
+  /** `false` drops the disc and tints the numeral, for a medal already sitting on a plate. */
+  fill?: boolean;
   className?: string;
 }) {
   if (rank === 1) {
@@ -139,8 +148,8 @@ export function Medal({
       data-slot="medal"
       className={cn(
         "font-heading text-2xs flex size-5 shrink-0 items-center justify-center rounded-full font-bold tabular-nums",
-        medalClass(rank, variant),
-        variant === "onArt" && "shadow-md ring-1 ring-black/20",
+        fill ? medalClass(rank, variant) : MEDAL_ON_ART_TEXT_CLASS[rank],
+        fill && variant === "onArt" && "shadow-md ring-1 ring-black/20",
         className,
       )}
     >

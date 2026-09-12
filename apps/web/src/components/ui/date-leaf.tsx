@@ -3,13 +3,10 @@ import { cn } from "@/lib/utils";
 interface DateLeafProps {
   /** Short month label, e.g. "JUL" (caller formats; keeps the leaf SSR-agnostic). */
   month: string;
-  /** Day-of-month label, e.g. "13". */
-  day: string;
-  /**
-   * Year label, e.g. "2026". Omitted where every date on the surface is recent
-   * enough for the month and day to place it; passed where a list spans years.
-   */
-  year?: string;
+  /** Day-of-month label, e.g. "13". Omitted for a month-only date. */
+  day?: string;
+  /** Third line: the year where a list spans years, or a relative time. */
+  caption?: string;
   size?: "sm" | "default";
   className?: string;
 }
@@ -22,7 +19,7 @@ interface DateLeafProps {
  *
  * @returns The date leaf element.
  */
-export function DateLeaf({ month, day, year, size = "default", className }: DateLeafProps) {
+export function DateLeaf({ month, day, caption, size = "default", className }: DateLeafProps) {
   return (
     <div
       data-slot="date-leaf"
@@ -35,16 +32,18 @@ export function DateLeaf({ month, day, year, size = "default", className }: Date
       <span className="text-primary text-2xs leading-none font-bold tracking-widest uppercase">
         {month}
       </span>
-      <span
-        className={cn(
-          "font-heading leading-none font-semibold tabular-nums",
-          size === "default" ? "text-2xl" : "text-lg",
-        )}
-      >
-        {day}
-      </span>
-      {year !== undefined && (
-        <span className="text-muted-foreground text-2xs leading-none tabular-nums">{year}</span>
+      {day !== undefined && (
+        <span
+          className={cn(
+            "font-heading leading-none font-semibold tabular-nums",
+            size === "default" ? "text-2xl" : "text-lg",
+          )}
+        >
+          {day}
+        </span>
+      )}
+      {caption !== undefined && (
+        <span className="text-muted-foreground text-2xs leading-none tabular-nums">{caption}</span>
       )}
     </div>
   );

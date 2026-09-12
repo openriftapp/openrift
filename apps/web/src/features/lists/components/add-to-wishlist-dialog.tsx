@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { useBulkAddListEntries, useLists } from "@/features/lists/hooks/use-lists";
 import type { InitialEntry } from "@/features/lists/lib/list-initial-entry";
@@ -87,9 +88,9 @@ export function AddToWishlistDialog({
               ))}
             </PickerList>
           ) : (
-            <p className="text-muted-foreground py-4 text-center text-sm">
-              No wishlists yet. Create one below.
-            </p>
+            <Empty>
+              <EmptyDescription>No wishlists yet. Create one below.</EmptyDescription>
+            </Empty>
           )}
         </div>
         <div className="flex items-center justify-between gap-2 pt-1">

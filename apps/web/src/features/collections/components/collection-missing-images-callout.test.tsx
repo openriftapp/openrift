@@ -66,7 +66,7 @@ describe("CollectionMissingImagesCallout", () => {
     useOnboardingStore.getState().dismissMissingImagesNudge(["printing-1"]);
     renderCallout([stubMissingImagePrinting(1), stubMissingImagePrinting(2)]);
 
-    expect(screen.getByText("2 cards you own have no photo yet")).toBeInTheDocument();
+    expect(screen.getByText("We don't have photos for 2 of your owned cards.")).toBeInTheDocument();
   });
 
   it("stays hidden when a dismissed printing gains an image", () => {
@@ -88,20 +88,31 @@ describe("CollectionMissingImagesCallout", () => {
     ]);
   });
 
-  it("points its only link at the contribute page", () => {
+  it("points its action at the contribute page", () => {
     renderCallout([stubMissingImagePrinting(1), stubMissingImagePrinting(2)]);
 
-    expect(screen.getByText("2 cards you own have no photo yet")).toBeInTheDocument();
-    const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveAccessibleName("Add photos");
-    expect(links[0]).toHaveAttribute("href", "/contribute");
+    expect(screen.getByText("We don't have photos for 2 of your owned cards.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Add photos" })).toHaveAttribute("href", "/contribute");
   });
 
   it("uses singular copy for a single card", () => {
     renderCallout([stubMissingImagePrinting(1)]);
 
-    expect(screen.getByText("1 card you own has no photo yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("We don't have a photo for one of your owned cards."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Add a photo" })).toBeInTheDocument();
+  });
+
+  it("lists the first three cards as links and counts the rest", () => {
+    renderCallout([1, 2, 3, 4, 5].map((index) => stubMissingImagePrinting(index)));
+
+    expect(screen.getByRole("link", { name: "Card 1" })).toHaveAttribute(
+      "href",
+      "/contribute/card/$cardSlug/printing/$printingId/image",
+    );
+    expect(screen.getByRole("link", { name: "Card 3" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Card 4" })).not.toBeInTheDocument();
+    expect(screen.getByText(/and 2 more/u)).toBeInTheDocument();
   });
 });

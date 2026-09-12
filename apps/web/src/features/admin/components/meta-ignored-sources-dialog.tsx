@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import type {
   IgnoredMetaSourceEvent,
   IgnoredMetaSourcePlayer,
@@ -41,7 +42,7 @@ function IgnoredRow({
   pending,
 }: IgnoredRowProps) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2">
+    <RowListItem className="justify-between">
       <div className="flex min-w-0 items-center gap-2">
         <Badge variant="outline">{provider}</Badge>
         {eventExternalId !== undefined && (
@@ -53,12 +54,18 @@ function IgnoredRow({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <span className="text-muted-foreground text-sm">{formatDay(createdAt)}</span>
-        <Button variant="ghost" size="sm" disabled={pending} onClick={onUnignore}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-mr-2.5"
+          disabled={pending}
+          onClick={onUnignore}
+        >
           <Undo2Icon />
           Unignore
         </Button>
       </div>
-    </li>
+    </RowListItem>
   );
 }
 
@@ -74,7 +81,7 @@ function IgnoredList({ title, emptyText, count, children }: IgnoredListProps) {
     <section className="space-y-2">
       <Heading level={3}>{title}</Heading>
       {count === 0 && <p className="text-muted-foreground text-sm">{emptyText}</p>}
-      <ul className="divide-y">{children}</ul>
+      <RowList>{children}</RowList>
     </section>
   );
 }

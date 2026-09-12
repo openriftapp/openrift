@@ -223,6 +223,11 @@ export function DeckOverviewList({
     const zoneViolations = violations.filter(
       (violation) => violation.zone === zone && !violation.cardId,
     );
+    const hideCount =
+      zoneViolations.length === 0 &&
+      showExpected &&
+      quantity === expected &&
+      (zone === WellKnown.deckZone.LEGEND || zone === WellKnown.deckZone.CHAMPION);
     const cardViolations = new Map<string, string>();
     for (const violation of violations) {
       if (violation.zone === zone && violation.cardId && !cardViolations.has(violation.cardId)) {
@@ -261,19 +266,21 @@ export function DeckOverviewList({
               </PopoverContent>
             </Popover>
           )}
-          <span
-            className={cn(
-              "ml-auto text-xs tabular-nums",
-              zoneViolations.length > 0
-                ? "text-destructive"
-                : showExpected && quantity === expected
-                  ? "text-success"
-                  : "text-muted-foreground",
-            )}
-          >
-            {quantity}
-            {showExpected && `/${expected}`}
-          </span>
+          {!hideCount && (
+            <span
+              className={cn(
+                "ml-auto text-xs tabular-nums",
+                zoneViolations.length > 0
+                  ? "text-destructive"
+                  : showExpected && quantity === expected
+                    ? "text-success"
+                    : "text-muted-foreground",
+              )}
+            >
+              {quantity}
+              {showExpected && quantity !== expected && `/${expected}`}
+            </span>
+          )}
         </DeckZoneHeader>
 
         {zoneCards.length === 0 ? null : GROUPED_ZONES.has(zone) ? (

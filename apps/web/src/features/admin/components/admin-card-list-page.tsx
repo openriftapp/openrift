@@ -62,14 +62,12 @@ export function AdminCardListPage() {
         }
       />
 
-      <div className="pt-3">
-        <AdminCardsTable
-          data={cards}
-          assignBucketsBySlug={buildPriceAssignBucketsBySlug(unified?.groups ?? [])}
-          setOptions={setOptions}
-          isAdmin={isAdmin}
-        />
-      </div>
+      <AdminCardsTable
+        data={cards}
+        assignBucketsBySlug={buildPriceAssignBucketsBySlug(unified?.groups ?? [])}
+        setOptions={setOptions}
+        isAdmin={isAdmin}
+      />
     </>
   );
 }

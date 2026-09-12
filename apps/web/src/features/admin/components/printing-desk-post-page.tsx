@@ -149,7 +149,7 @@ export function PrintingDeskPostPage({ slides, label, aspect, date }: PrintingDe
 
 function NoSlides() {
   return (
-    <Empty className="border">
+    <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <ImageIcon />

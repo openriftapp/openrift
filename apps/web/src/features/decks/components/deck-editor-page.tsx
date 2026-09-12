@@ -370,7 +370,7 @@ function DeckEditorContent({
           >
             <MobileSidebarHeader />
             <SidebarContent>
-              <div className="p-3">
+              <div className="p-4">
                 <DeckZonePanel
                   deckId={deckId}
                   onZoneClick={handleZoneClick}

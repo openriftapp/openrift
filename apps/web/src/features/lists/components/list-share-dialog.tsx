@@ -101,7 +101,7 @@ export function ListShareDialog({
       }}
       linkNote={
         intent === "organize" ? null : (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground">
             One link covers every wishlist and tradelist you have, under{" "}
             <Button
               variant="link"

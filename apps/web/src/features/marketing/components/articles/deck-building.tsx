@@ -6,12 +6,12 @@ import {
   ShuffleIcon,
 } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
 export default function DeckBuildingArticle() {
   return (
@@ -46,9 +46,7 @@ export default function DeckBuildingArticle() {
       </Alert>
 
       <Callout>
-        <p className="text-muted-foreground mb-3 text-center text-xs font-medium tracking-wide uppercase">
-          Deck structure
-        </p>
+        <Eyebrow>Deck structure</Eyebrow>
         <div className="grid gap-2 text-sm sm:grid-cols-2">
           <ZoneCard
             name="Legend"
@@ -180,40 +178,36 @@ export default function DeckBuildingArticle() {
           means your deck is legal. A yellow banner shows the next issue to fix.
         </p>
 
-        <DefinitionList className="mt-3">
-          <DefinitionRow
-            icon={<TypeIcon src="/images/types/legend.svg" alt="Legend" />}
-            label="Legend"
-          >
-            Exactly 1 legend
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<TypeIcon src="/images/supertypes/champion.svg" alt="Champion" />}
-            label="Chosen Champion"
-          >
-            Exactly 1 champion that shares a tag with your legend
-          </DefinitionRow>
-          <DefinitionRow icon={<TypeIcon src="/images/types/rune.svg" alt="Rune" />} label="Runes">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm icon={<TypeIcon src="/images/types/legend.svg" alt="Legend" />}>
+            Legend
+          </DefinitionTerm>
+          <DefinitionDetail>Exactly 1 legend</DefinitionDetail>
+          <DefinitionTerm icon={<TypeIcon src="/images/supertypes/champion.svg" alt="Champion" />}>
+            Chosen Champion
+          </DefinitionTerm>
+          <DefinitionDetail>Exactly 1 champion that shares a tag with your legend</DefinitionDetail>
+          <DefinitionTerm icon={<TypeIcon src="/images/types/rune.svg" alt="Rune" />}>
+            Runes
+          </DefinitionTerm>
+          <DefinitionDetail>
             Exactly 12 runes, all matching the legend&apos;s domains
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<TypeIcon src="/images/types/battlefield.svg" alt="Battlefield" />}
-            label="Battlefield"
-          >
-            Exactly 3 unique battlefields
-          </DefinitionRow>
-          <DefinitionRow icon={<CopyIcon className="size-3.5" />} label="Main">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<TypeIcon src="/images/types/battlefield.svg" alt="Battlefield" />}>
+            Battlefield
+          </DefinitionTerm>
+          <DefinitionDetail>Exactly 3 unique battlefields</DefinitionDetail>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Main</DefinitionTerm>
+          <DefinitionDetail>
             Exactly 39 cards, plus the champion for a total of 40. Max 3 copies of any card. Max 3
             Signature cards total, all sharing a Champion tag with the legend. All card domains must
             be within the legend&apos;s domains or colorless.
-          </DefinitionRow>
-          <DefinitionRow
-            icon={<CopyIcon className="text-muted-foreground size-3.5" />}
-            label="Sideboard"
-          >
+          </DefinitionDetail>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Sideboard</DefinitionTerm>
+          <DefinitionDetail>
             Up to 8 cards. Copy limits are shared with the main deck (e.g. if you have 2 copies of a
             card in main, you can only have 1 more in the sideboard).
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
 
         <p className="text-muted-foreground mt-3">

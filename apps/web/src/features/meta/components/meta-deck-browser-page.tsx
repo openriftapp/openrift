@@ -10,7 +10,6 @@ import {
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { RowList } from "@/components/ui/row-list";
 import {
@@ -28,6 +27,7 @@ import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
 import { DECK_INDEX_GRID, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
+import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaDecks, useMetaEvents } from "@/features/meta/hooks/use-meta";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
@@ -164,7 +164,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
 
       <MetaDeckFilterControls options={options} counts={counts} eras={eras} cost={cost} />
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <ViewToggle view={view} onChange={setView} />
         <ToggleGroup
           variant="outline"
@@ -196,7 +196,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
       </div>
 
       {view === "list" ? (
-        <div className="mt-3 text-sm">
+        <div className="mt-6 text-sm">
           <SortHeader
             sort={filters.sort}
             direction={filters.direction}
@@ -221,13 +221,15 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
           </EmptyHeader>
         </Empty>
       ) : (
-        <DeckGrid
-          key={listKey}
-          decks={decks}
-          summaries={summaries}
-          costs={costs}
-          marketplace={marketplace}
-        />
+        <div className="mt-6">
+          <DeckGrid
+            key={listKey}
+            decks={decks}
+            summaries={summaries}
+            costs={costs}
+            marketplace={marketplace}
+          />
+        </div>
       )}
     </>
   );
@@ -341,7 +343,7 @@ function SortHeader({
     <div
       className={cn(
         DECK_INDEX_GRID,
-        "border-border text-muted-foreground hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
+        "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
       <SortButton column="finish" sort={sort} direction={direction} onSort={onSort}>
@@ -394,11 +396,9 @@ function DeckList({ decks, summaries, costs, marketplace }: DeckListProps) {
         ))}
       </RowList>
       {remaining > 0 && (
-        <div className="border-border flex justify-center border-t p-2">
-          <Button variant="ghost" size="sm" onClick={() => setShown(shown + PAGE_SIZE)}>
-            {remaining.toLocaleString("en-US")} more {remaining === 1 ? "deck" : "decks"}
-          </Button>
-        </div>
+        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
+          {remaining.toLocaleString("en-US")} more {remaining === 1 ? "deck" : "decks"}
+        </MetaShowMore>
       )}
     </>
   );
@@ -410,7 +410,7 @@ function DeckGrid({ decks, summaries, costs, marketplace }: DeckListProps) {
 
   return (
     <>
-      <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {decks.slice(0, shown).map((deck) => (
           <li key={deck.deckId}>
             <MetaArchiveDeckTile
@@ -424,11 +424,9 @@ function DeckGrid({ decks, summaries, costs, marketplace }: DeckListProps) {
         ))}
       </ul>
       {remaining > 0 && (
-        <div className="flex justify-center pt-5">
-          <Button variant="outline" onClick={() => setShown(shown + PAGE_SIZE)}>
-            Show {Math.min(PAGE_SIZE, remaining)} more of {remaining.toLocaleString("en-US")}
-          </Button>
-        </div>
+        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
+          Show {Math.min(PAGE_SIZE, remaining)} more of {remaining.toLocaleString("en-US")}
+        </MetaShowMore>
       )}
     </>
   );

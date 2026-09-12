@@ -20,7 +20,7 @@ export function CardmarketWantsBlock({ lines }: CardmarketWantsBlockProps) {
   const lineCount = text.split("\n").length;
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 border-t pt-4">
+    <div className="flex min-w-0 flex-col gap-3 pt-2">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-medium">Cardmarket wants</h3>
         <div className="flex items-center gap-1.5">

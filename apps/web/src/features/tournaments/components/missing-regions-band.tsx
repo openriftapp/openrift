@@ -3,6 +3,7 @@ import { GlobeIcon } from "lucide-react";
 
 import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { UserAvatar } from "@/components/user-avatar";
 import type { ParticipantTarget } from "@/features/tournaments/components/participant-row";
 
@@ -24,10 +25,7 @@ export function MissingRegionsBand({
     >
       <div className="flex flex-col gap-2">
         {players.map((player) => (
-          <div
-            key={player.id}
-            className="bg-muted flex items-center gap-2.5 rounded-lg px-2.5 py-2"
-          >
+          <Callout key={player.id} variant="inset" className="flex items-center gap-2.5">
             <UserAvatar name={player.userName ?? player.displayName} className="size-7 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">
               {player.displayName}
@@ -47,7 +45,7 @@ export function MissingRegionsBand({
               <GlobeIcon className="size-4" />
               Set region
             </Button>
-          </div>
+          </Callout>
         ))}
       </div>
     </ActionBand>

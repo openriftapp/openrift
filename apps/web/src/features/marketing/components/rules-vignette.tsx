@@ -33,7 +33,7 @@ function RuleRow({
   toggle?: boolean;
 }) {
   return (
-    <div className="border-border/50 flex items-baseline border-b py-1.5 text-sm">
+    <div className="flex items-baseline py-2 text-sm">
       <span className="text-muted-foreground mr-3 shrink-0 font-mono text-xs">{number}</span>
       <span className={cn("min-w-0 flex-1", INDENT[depth])}>
         {toggle && (

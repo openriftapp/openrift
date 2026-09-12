@@ -15,8 +15,10 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
   metaSubmissionExplanation,
@@ -41,7 +43,7 @@ function SubmissionRow({
   const hint = metaSubmissionStatusHints[submission.status];
 
   return (
-    <RowListItem className="flex-col items-stretch gap-2 py-4">
+    <RowListItem className="flex-col items-stretch gap-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="font-medium">{submission.eventName}</span>
@@ -66,9 +68,9 @@ function SubmissionRow({
       {!explanation && hint ? <p className="text-muted-foreground">{hint}</p> : null}
 
       {submission.note ? (
-        <p className="text-muted-foreground border-border border-l-2 pl-3 text-sm italic">
+        <Callout variant="inset" className="text-muted-foreground text-sm italic">
           {submission.note}
-        </p>
+        </Callout>
       ) : null}
 
       {shareToken ? (
@@ -102,13 +104,13 @@ export function MetaSubmissionsPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
         <PageDescription>
           Everything you&apos;ve sent to the archive, and what happened to each one.
         </PageDescription>
 
         {isPending ? (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             <Skeleton className="h-28 w-full" />
             <Skeleton className="h-28 w-full" />
           </div>
@@ -125,26 +127,22 @@ export function MetaSubmissionsPage() {
         ) : null}
 
         {submissions.length > 0 ? (
-          <RowList variant="divided">
-            {submissions.map((submission) => (
-              <SubmissionRow
-                key={submission.id}
-                submission={submission}
-                shareToken={submission.acceptedDeckToken}
-              />
-            ))}
-          </RowList>
-        ) : null}
-
-        {hasNextPage ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={isFetchingNextPage}
-            onClick={() => void fetchNextPage()}
-          >
-            {isFetchingNextPage ? "Loading…" : "Show older contributions"}
-          </Button>
+          <div>
+            <RowList variant="divided" className="[&>li]:py-4">
+              {submissions.map((submission) => (
+                <SubmissionRow
+                  key={submission.id}
+                  submission={submission}
+                  shareToken={submission.acceptedDeckToken}
+                />
+              ))}
+            </RowList>
+            {hasNextPage ? (
+              <MetaShowMore disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+                {isFetchingNextPage ? "Loading…" : "Show older contributions"}
+              </MetaShowMore>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </>

@@ -15,8 +15,8 @@ import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { cardLinkVariants } from "@/components/ui/card-link";
+import { CardRow } from "@/components/ui/card-list";
 import {
   Dialog,
   DialogContent,
@@ -123,7 +123,7 @@ export function TournamentDeckCheckEntries({
             : "No players match the search."}
         </p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
           {visible.map((entry) => (
             <EntryRow
               key={entry.id}
@@ -132,7 +132,7 @@ export function TournamentDeckCheckEntries({
               canManage={canManage}
             />
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
@@ -198,7 +198,7 @@ function EntryRow({
   const participantInactive =
     entry.participantStatus === "dropped" || entry.participantStatus === "no_show";
   return (
-    <Card className={cn(cardLinkVariants(), "flex-row items-center gap-3 p-3")}>
+    <CardRow className={cn(cardLinkVariants(), "gap-3")}>
       <Link
         to="/tournaments/$id/decks/$entryId"
         params={{ id: tournamentId, entryId: entry.id }}
@@ -254,7 +254,7 @@ function EntryRow({
         )}
       </Link>
       {canManage ? <EntryRowMenu tournamentId={tournamentId} entry={entry} /> : null}
-    </Card>
+    </CardRow>
   );
 }
 

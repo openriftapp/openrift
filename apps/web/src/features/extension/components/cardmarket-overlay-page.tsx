@@ -16,6 +16,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CountPill } from "@/components/ui/count-pill";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import { useCardmarketOverlaySnapshot } from "@/features/extension/hooks/use-cardmarket-overlay";
 import { useOverlayCaptured } from "@/features/extension/hooks/use-overlay-captured";
@@ -103,7 +104,7 @@ export function CardmarketOverlayPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         <PageDescription>
           The OpenRift extension marks every card on a Cardmarket seller&apos;s offers with how many
           copies you own and how many you still want. Pick the wishlists it counts.
@@ -115,22 +116,24 @@ export function CardmarketOverlayPage() {
               You have no wishlists yet. Create one from your collection and it shows up here.
             </p>
           ) : (
-            wishlists.map((list) => (
-              <div key={list.id} className="flex items-center gap-3">
-                <Checkbox
-                  id={`overlay-wishlist-${list.id}`}
-                  checked={!excludedIds.has(list.id)}
-                  onCheckedChange={(checked) => togglePicked(list.id, checked === true)}
-                />
-                <label
-                  htmlFor={`overlay-wishlist-${list.id}`}
-                  className="min-w-0 flex-1 cursor-pointer truncate text-sm"
-                >
-                  {list.name}
-                </label>
-                <CountPill>{list.entryCount}</CountPill>
-              </div>
-            ))
+            <RowList>
+              {wishlists.map((list) => (
+                <RowListItem key={list.id}>
+                  <Checkbox
+                    id={`overlay-wishlist-${list.id}`}
+                    checked={!excludedIds.has(list.id)}
+                    onCheckedChange={(checked) => togglePicked(list.id, checked === true)}
+                  />
+                  <label
+                    htmlFor={`overlay-wishlist-${list.id}`}
+                    className="min-w-0 flex-1 cursor-pointer truncate text-sm"
+                  >
+                    {list.name}
+                  </label>
+                  <CountPill>{list.entryCount}</CountPill>
+                </RowListItem>
+              ))}
+            </RowList>
           )}
         </SettingsSection>
 

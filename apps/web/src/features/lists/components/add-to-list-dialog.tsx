@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
@@ -149,9 +150,9 @@ export function AddToListDialog({
               })}
             </PickerList>
           ) : createIntent === null ? (
-            <p className="text-muted-foreground py-4 text-center text-sm">
-              No copy lists yet. Create one below.
-            </p>
+            <Empty>
+              <EmptyDescription>No copy lists yet. Create one below.</EmptyDescription>
+            </Empty>
           ) : null}
         </div>
         {groupOwnedOnly && (

@@ -97,7 +97,7 @@ export function WishlistHeart({
           ))}
         </ul>
         {onAdd && (
-          <div className="border-t p-1">
+          <div className="p-1 pt-2">
             <Button
               type="button"
               variant="ghost"

@@ -10,7 +10,7 @@ export function RelatedCardsSection({ related }: { related: CardDetailRelatedCar
     return null;
   }
   return (
-    <div className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       <Heading level={2}>Related cards</Heading>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {related.map((relatedCard) => (
@@ -30,12 +30,12 @@ export function RelatedCardsSection({ related }: { related: CardDetailRelatedCar
               loading="lazy"
               className="w-full transition-transform group-hover:scale-[1.02]"
             />
-            <span className="group-hover:text-primary truncate text-center text-sm transition-colors">
+            <span className="group-hover:text-primary truncate text-sm transition-colors">
               {relatedCard.name}
             </span>
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

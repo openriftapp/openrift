@@ -14,12 +14,13 @@ import { use, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -69,14 +70,9 @@ function buildContext(deckCards: DeckBuilderCard[]): DeckPlanContext {
 
 function ColumnLabel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={cn(
-        "text-2xs text-muted-foreground font-semibold tracking-wide uppercase",
-        className,
-      )}
-    >
+    <SectionHeading size="sm" className={className}>
       {children}
-    </div>
+    </SectionHeading>
   );
 }
 
@@ -473,7 +469,7 @@ export function DeckPlanEditor({
   );
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-8 pb-8">
       {actionsSlot === undefined && <div className="flex items-center gap-2">{actions}</div>}
       {actionsSlot ? createPortal(actions, actionsSlot) : null}
 
@@ -495,11 +491,9 @@ export function DeckPlanEditor({
         />
       </section>
 
-      <Separator />
-
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-medium">Mulligan priority</h3>
+          <Heading level={3}>Mulligan priority</Heading>
           <Label className="flex items-center gap-2 text-sm font-normal">
             <Switch
               checked={draft.mulliganSplit}
@@ -548,11 +542,9 @@ export function DeckPlanEditor({
         )}
       </section>
 
-      <Separator />
-
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-medium">Battlefields</h3>
+          <Heading level={3}>Battlefields</Heading>
           <Label className="flex items-center gap-2 text-sm font-normal">
             <Switch
               checked={draft.battlefieldCustom}
@@ -600,16 +592,14 @@ export function DeckPlanEditor({
         )}
       </section>
 
-      <Separator />
-
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-medium">
+          <Heading level={3}>
             Matchups
             {completeMatchups > 0 ? (
               <span className="text-muted-foreground ml-1 font-normal">({completeMatchups})</span>
             ) : null}
-          </h3>
+          </Heading>
           <Button
             variant="outline"
             size="sm"

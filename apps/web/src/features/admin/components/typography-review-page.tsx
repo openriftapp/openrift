@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import { PageDescription } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import {
   useAcceptTypographyFix,
@@ -77,27 +79,27 @@ export function TypographyReviewPage() {
     return (
       <>
         {topBar}
-        <div className="flex flex-col items-center justify-center py-16">
-          <p className="text-muted-foreground text-sm">All text fields have correct typography.</p>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>All text fields have correct typography.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-8">
       {topBar}
-      <div className="flex items-center justify-between">
-        <PageDescription>
-          {String(data.diffs.length)} {data.diffs.length === 1 ? "mismatch" : "mismatches"} found
-        </PageDescription>
-      </div>
+      <PageDescription>
+        {String(data.diffs.length)} {data.diffs.length === 1 ? "mismatch" : "mismatches"} found
+      </PageDescription>
 
-      <div className="divide-y rounded-lg border">
+      <RowList variant="divided">
         {data.diffs.map((diff) => {
           const key = `${diff.target.entity}-${diff.target.id}-${diff.target.field}`;
           return (
-            <div key={key} className="space-y-2 p-4">
+            <RowListItem key={key} className="flex-col items-stretch gap-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{diff.name}</span>
@@ -115,10 +117,10 @@ export function TypographyReviewPage() {
               </div>
 
               <DiffComparison current={diff.current} proposed={diff.proposed} />
-            </div>
+            </RowListItem>
           );
         })}
-      </div>
+      </RowList>
     </div>
   );
 }

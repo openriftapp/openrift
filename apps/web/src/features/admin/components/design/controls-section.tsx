@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
   SelectContent,
@@ -186,7 +187,7 @@ export function ControlsSection() {
       note="Every variant, size and state of the interactive primitives in one place. Hover or focus a sample to read its settled colors — hover and focus are the two states no attribute can force."
       docs="docs/design-language.md"
     >
-      <div ref={rootRef} className="space-y-8">
+      <div ref={rootRef} className="flex flex-col gap-8">
         <SurfaceReadout surface={surface} />
 
         <DemoGroup {...GROUPS.button}>
@@ -436,7 +437,7 @@ export function ControlsSection() {
 
 function SurfaceReadout({ surface }: { surface: Surface | null }) {
   return (
-    <div className="bg-background/85 no-scrollbar sticky top-(--sticky-top) z-10 flex h-9 items-center gap-x-5 overflow-x-auto rounded-lg border px-3 backdrop-blur">
+    <div className="bg-background/85 no-scrollbar sticky top-(--sticky-top) z-10 flex h-8 items-center gap-x-5 overflow-x-auto rounded-lg px-3 backdrop-blur">
       {surface ? (
         <>
           <p className="shrink-0 font-mono text-xs font-medium whitespace-nowrap">{surface.name}</p>
@@ -490,12 +491,9 @@ function Matrix<S extends { label: string }>({
         >
           <div />
           {states.map((state) => (
-            <p
-              key={state.label}
-              className="text-muted-foreground text-2xs font-medium tracking-wide uppercase"
-            >
+            <SectionHeading key={state.label} as="span" size="sm">
               {state.label}
-            </p>
+            </SectionHeading>
           ))}
           {rows.map((row) => (
             <Fragment key={row.label}>

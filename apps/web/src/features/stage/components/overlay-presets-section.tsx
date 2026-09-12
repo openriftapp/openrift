@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import { StagePresetNameDialog } from "@/features/stage/components/stage-preset-name-dialog";
 import { useUpdateOverlaySettings } from "@/features/stage/hooks/use-overlay";
 import {
@@ -66,17 +68,16 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
   const items = presets ?? [];
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-semibold">Presets</h2>
+    <SettingsSection
+      title="Presets"
+      description="A saved scene. Apply one, or point a second browser source at its own link."
+      action={
         <Button variant="outline" onClick={() => setSaveOpen(true)}>
           <BookmarkPlusIcon />
           Save current
         </Button>
-      </div>
-      <p className="text-muted-foreground text-sm">
-        A saved scene. Apply one, or point a second browser source at its own link.
-      </p>
+      }
+    >
       {channel.token ? null : (
         <p className="text-muted-foreground text-sm">
           Preset links need the browser source link turned on.
@@ -88,7 +89,7 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
           Nothing saved yet. Dress the scene the way you want it, then save it.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1">
+        <RowList>
           {items.map((preset) => (
             <OverlayPresetRow
               key={preset.id}
@@ -98,7 +99,7 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
               onApply={() => updateSettings.mutate(presetToOverlaySettings(preset.config))}
             />
           ))}
-        </ul>
+        </RowList>
       )}
 
       <StagePresetNameDialog
@@ -110,7 +111,7 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
         pending={createPreset.isPending}
         onConfirm={save}
       />
-    </section>
+    </SettingsSection>
   );
 }
 
@@ -148,10 +149,10 @@ function OverlayPresetRow({
   };
 
   return (
-    <li className="flex items-center gap-1">
+    <RowListItem className="gap-1">
       <Button
         variant="ghost"
-        className="flex-1 justify-start"
+        className="-ml-2 flex-1 justify-start"
         disabled={applying}
         onClick={onApply}
       >
@@ -210,6 +211,6 @@ function OverlayPresetRow({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </li>
+    </RowListItem>
   );
 }

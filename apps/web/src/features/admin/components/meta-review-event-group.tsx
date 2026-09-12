@@ -293,7 +293,7 @@ export function MetaReviewEventGroup({ group }: { group: MetaReviewGroup }) {
       </div>
 
       {expanded && (
-        <div className="border-t">
+        <div>
           {(group.proposal !== null ||
             group.eventPatches.length > 0 ||
             group.corrections.length > 0) && (

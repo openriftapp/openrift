@@ -136,7 +136,7 @@ export function SharePanel({
   const activeTab = tab ?? outputs[0]?.value ?? "";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {link ? (
         <div className="flex flex-col gap-3">
           {url === null ? (
@@ -187,7 +187,7 @@ export function SharePanel({
       {access}
 
       {outputs.length === 0 ? null : (
-        <div className="flex flex-col gap-3 border-t pt-4">
+        <div className="flex flex-col gap-3">
           <h3 className="font-medium">Share it as</h3>
           {outputs.length === 1 ? (
             outputs[0]?.body

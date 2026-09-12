@@ -145,11 +145,9 @@ export function CardTableHeader({
       }}
     >
       {visibleStaticColumns(groupBy, options).map((column) => (
-        <div key={column.key} className="px-3">
-          {STATIC_COLUMN_HEADER[column.key]}
-        </div>
+        <div key={column.key}>{STATIC_COLUMN_HEADER[column.key]}</div>
       ))}
-      {actionsColumn !== "none" && <div className="px-3 text-right">{actionsLabel}</div>}
+      {actionsColumn !== "none" && <div className="text-right">{actionsLabel}</div>}
     </div>
   );
 }
@@ -180,7 +178,7 @@ export function CardTableGroupHeader({
   );
   return (
     <div
-      className="grid items-center gap-3 px-3"
+      className="grid items-center gap-3"
       style={{ gridTemplateColumns: columns, height: CARD_TABLE_HEADER_HEIGHT }}
     >
       <div className="col-span-full flex items-center justify-center gap-2 py-2">
@@ -249,7 +247,7 @@ export function CardTableRow({
 
   const staticCellByKey: Record<StaticColumnKey, ReactNode> = {
     image: (
-      <div className="px-3 py-1">
+      <div className="py-1">
         {/* Art only — the table already spends columns on rarity and code, so
             the CardMiniRow cluster would duplicate them. */}
         <CardArtThumb
@@ -264,7 +262,7 @@ export function CardTableRow({
       </div>
     ),
     name: (
-      <div className="min-w-0 px-3">
+      <div className="min-w-0">
         <div className="truncate font-medium" title={cardName}>
           {cardName}
         </div>
@@ -274,9 +272,9 @@ export function CardTableRow({
         </div>
       </div>
     ),
-    set: <div className="text-muted-foreground min-w-0 truncate px-3">{setName}</div>,
+    set: <div className="text-muted-foreground min-w-0 truncate">{setName}</div>,
     type: (
-      <div className="text-muted-foreground flex min-w-0 items-center gap-2 px-3">
+      <div className="text-muted-foreground flex min-w-0 items-center gap-2">
         {typeIconPaths.map((path) => (
           <img key={path} src={path} alt="" className="size-4 shrink-0 brightness-0 dark:invert" />
         ))}
@@ -284,7 +282,7 @@ export function CardTableRow({
       </div>
     ),
     rarity: (
-      <div className="text-muted-foreground flex min-w-0 items-center gap-2 px-3">
+      <div className="text-muted-foreground flex min-w-0 items-center gap-2">
         {rarityIconPath && (
           <img src={rarityIconPath} alt="" width={28} height={28} className="size-4 shrink-0" />
         )}
@@ -292,12 +290,12 @@ export function CardTableRow({
       </div>
     ),
     channel: (
-      <div className="min-w-0 px-3">
+      <div className="min-w-0">
         <PrintingChannelCell channels={printing.distributionChannels} />
       </div>
     ),
     notes: (
-      <div className="min-w-0 overflow-hidden px-3">
+      <div className="min-w-0 overflow-hidden">
         <PrintingNotesCell
           comment={printing.comment}
           markers={printing.markers}
@@ -324,9 +322,9 @@ export function CardTableRow({
         <Fragment key={column.key}>{staticCellByKey[column.key]}</Fragment>
       ))}
       {actionsColumn === "wide" || actionsColumn === "stepper" ? (
-        <div className="flex items-center justify-end gap-1.5 px-3">{actionsCell}</div>
+        <div className="flex items-center justify-end gap-1.5">{actionsCell}</div>
       ) : actionsColumn === "narrow" ? (
-        <div className="px-3 text-right tabular-nums">{actionsCell}</div>
+        <div className="text-right tabular-nums">{actionsCell}</div>
       ) : null}
     </div>
   );

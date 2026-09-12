@@ -198,7 +198,7 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
     return null;
   }
   return (
-    <div className="text-muted-foreground mt-2 mb-1 flex items-center gap-2 text-sm font-medium">
+    <div className="text-muted-foreground mb-2 flex items-center gap-2 text-sm font-medium">
       <span>{label}</span>
       <span className="text-xs tabular-nums">({count})</span>
     </div>
@@ -483,7 +483,7 @@ export function DeckListPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="flex flex-col gap-2 pt-3">
+            <div className="flex flex-col gap-8 pt-3">
               {groups.map((group) => {
                 const entries = collapseFamilies(group.items, expandedFamilies);
                 return (

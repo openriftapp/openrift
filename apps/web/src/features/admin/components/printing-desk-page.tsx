@@ -250,7 +250,7 @@ export function PrintingDeskPage() {
       {isPending && !data ? (
         <Skeleton className="h-64 w-full" />
       ) : rows.length === 0 ? (
-        <Empty className="border">
+        <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <PlusIcon />

@@ -1,6 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,8 +66,8 @@ export function CardBansSection({ cardId }: { cardId: string }) {
   }
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Bans</h2>
+    <section className="flex flex-col gap-4">
+      <Heading level={2}>Bans</Heading>
 
       {isPending && <Skeleton className="h-16 w-full" />}
 

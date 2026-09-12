@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { PlayIcon } from "lucide-react";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OverlayOutputPanel } from "@/features/stage/components/overlay-output-panel";
@@ -16,15 +17,14 @@ export function StageOutputBlock({
   const userId = useUserId();
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">Output</h2>
+    <SettingsSection title="Output">
       <Tabs defaultValue="screen">
         <TabsList className="w-full">
           <TabsTrigger value="screen">This screen</TabsTrigger>
           <TabsTrigger value="obs">OBS</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="screen" className="flex flex-col gap-3">
+        <TabsContent value="screen" className="flex flex-col gap-4">
           <p className="text-muted-foreground text-sm">
             One card at a time, full screen, with nothing of the site around it. Point a window
             capture at this browser and your audience sees the card rather than a website.
@@ -39,7 +39,7 @@ export function StageOutputBlock({
           </p>
         </TabsContent>
 
-        <TabsContent value="obs" className="flex flex-col gap-3">
+        <TabsContent value="obs" className="flex flex-col gap-4">
           {userId === null ? (
             <p className="text-muted-foreground text-sm">
               <Link
@@ -56,6 +56,6 @@ export function StageOutputBlock({
           )}
         </TabsContent>
       </Tabs>
-    </section>
+    </SettingsSection>
   );
 }

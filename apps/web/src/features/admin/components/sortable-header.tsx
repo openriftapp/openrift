@@ -37,19 +37,32 @@ function SortIcon({ sorted }: { sorted: SortedState }) {
 export function SortHeaderButton({
   sorted,
   onClick,
+  align,
   children,
 }: {
   sorted: SortedState;
   onClick?: ComponentProps<"button">["onClick"];
+  /** `right` puts the icon before the label, keeping the label on the column edge. */
+  align?: "left" | "center" | "right";
   children: ReactNode;
 }) {
+  const icon = <SortIcon sorted={sorted} />;
   return (
     <Pressable
       className="group inline-flex items-center gap-1 rounded-sm select-none"
       onClick={onClick}
     >
-      {children}
-      <SortIcon sorted={sorted} />
+      {align === "right" ? (
+        <>
+          {icon}
+          {children}
+        </>
+      ) : (
+        <>
+          {children}
+          {icon}
+        </>
+      )}
     </Pressable>
   );
 }

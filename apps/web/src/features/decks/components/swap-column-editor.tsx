@@ -1,3 +1,4 @@
+import { SectionHeading } from "@/components/ui/section-heading";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { CardChip, CardPicker } from "@/features/decks/components/deck-card-picker";
 import type { PlanSwapDraft, SwapDirection } from "@/features/decks/lib/deck-plan";
@@ -74,13 +75,12 @@ function SwapColumn({
   const open = candidates.filter((candidate) => !used.has(candidate.cardId));
   return (
     <div className="flex-1 space-y-2">
-      <div className="text-2xs font-semibold tracking-wide uppercase">
-        {direction === "out" ? (
-          <span className="text-destructive">− Out (maindeck)</span>
-        ) : (
-          <span className="text-success">+ In (sideboard)</span>
-        )}
-      </div>
+      <SectionHeading
+        size="sm"
+        className={direction === "out" ? "text-destructive" : "text-success"}
+      >
+        {direction === "out" ? "− Out (maindeck)" : "+ In (sideboard)"}
+      </SectionHeading>
       {columnSwaps.map(({ swap, swapIndex }) => {
         const limit = maxQuantityFor?.(swap.cardId, direction);
         // Reads the unfiltered `candidates`, not `open` — a swapped card is gone from the picker list but still needs its count here.

@@ -84,7 +84,8 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-0.5 p-4", className)}
+      // custom: gap-1 — title-to-description sits on the 4px tier
+      className={cn("flex flex-col gap-1 p-4", className)}
       {...props}
     />
   );

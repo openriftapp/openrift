@@ -228,7 +228,7 @@ export function TournamentParticipantsTab({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {canAssignRegion && missingRegionPlayers.length > 0 ? (
         <MissingRegionsBand players={missingRegionPlayers} onSetRegion={setRegionTarget} />
       ) : null}
@@ -258,33 +258,32 @@ export function TournamentParticipantsTab({
         <p className="text-muted-foreground">No players match the search.</p>
       ) : (
         groups.map((group) => (
-          <section key={group.key} className="flex flex-col gap-2">
+          <section key={group.key} className="flex flex-col gap-3">
             <SectionHeading count={group.players.length} icon={group.icon} tone="gold">
               {group.heading}
             </SectionHeading>
             <ul className="flex flex-col gap-2">
               {group.players.map((participant) => (
-                <li key={participant.id}>
-                  <ParticipantRow
-                    participant={participant}
-                    tournamentId={id}
-                    regionsEnabled={detail.regionsEnabled}
-                    manage={manage}
-                    canAssignRegion={canAssignRegion}
-                    canAssignLegend={canAssignLegend}
-                    legendTiebreak={groupCut && detail.legendTiebreak}
-                    dimmed={group.dimmed}
-                    teammateName={teammateNames.get(participant.id)}
-                    deckEntryId={entryByParticipant.get(participant.id)?.id}
-                    actionPending={participantAction.isPending}
-                    onAction={fireAction}
-                    onRename={setRenameTarget}
-                    onSetLegend={setLegendTarget}
-                    onSetRegion={setRegionTarget}
-                    onSetFixedTable={setFixedTableTarget}
-                    onRemove={setRemoveTarget}
-                  />
-                </li>
+                <ParticipantRow
+                  key={participant.id}
+                  participant={participant}
+                  tournamentId={id}
+                  regionsEnabled={detail.regionsEnabled}
+                  manage={manage}
+                  canAssignRegion={canAssignRegion}
+                  canAssignLegend={canAssignLegend}
+                  legendTiebreak={groupCut && detail.legendTiebreak}
+                  dimmed={group.dimmed}
+                  teammateName={teammateNames.get(participant.id)}
+                  deckEntryId={entryByParticipant.get(participant.id)?.id}
+                  actionPending={participantAction.isPending}
+                  onAction={fireAction}
+                  onRename={setRenameTarget}
+                  onSetLegend={setLegendTarget}
+                  onSetRegion={setRegionTarget}
+                  onSetFixedTable={setFixedTableTarget}
+                  onRemove={setRemoveTarget}
+                />
               ))}
             </ul>
           </section>

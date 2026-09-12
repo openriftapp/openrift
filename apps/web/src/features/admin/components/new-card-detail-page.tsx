@@ -105,12 +105,12 @@ function NewCardColumnActions({
           }
         }}
       >
-        <CopyCheckIcon className="mr-2 size-3.5" />
+        <CopyCheckIcon className="size-3.5" />
         Accept all fields
       </DropdownMenuItem>
       {isAdmin && isUserSubmission && (
         <DropdownMenuItem onClick={() => onResolveSubmission(cardRow.id, "reply")}>
-          <MessageSquareIcon className="mr-2 size-3.5" />
+          <MessageSquareIcon className="size-3.5" />
           Reply to contributor
         </DropdownMenuItem>
       )}
@@ -124,7 +124,7 @@ function NewCardColumnActions({
             onIgnoreSource({ provider: cardRow.provider, externalId: row.externalId });
           }}
         >
-          <BanIcon className="mr-2 size-3.5" />
+          <BanIcon className="size-3.5" />
           {isUserSubmission ? "Reject submission" : "Ignore permanently"}
         </DropdownMenuItem>
       )}
@@ -355,7 +355,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
               disabled={!linkCardId.trim() || linkCard.isPending}
               onClick={handleLink}
             >
-              <LinkIcon className="mr-1 size-4" />
+              <LinkIcon className="size-4" />
               Link
             </Button>
           </div>
@@ -375,7 +375,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
             disabled={!hasRequiredFields || !newModeCardId.trim() || acceptNewCard.isPending}
             onClick={handleAcceptAsNew}
           >
-            <PlusIcon className="mr-1 size-4" />
+            <PlusIcon className="size-4" />
             Accept as new card
           </Button>
         </div>
@@ -436,7 +436,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
                                 );
                               }}
                             >
-                              <ArrowRightIcon className="mr-2 size-3.5" />
+                              <ArrowRightIcon className="size-3.5" />
                               Merge into {targetId}
                             </DropdownMenuItem>
                           );
@@ -445,7 +445,7 @@ export function NewCardDetailPage({ identifier }: { identifier: string }) {
                   </DropdownMenu>
                 )}
               </div>
-              <div className="flex flex-col gap-3 border-t p-3 lg:flex-row">
+              <div className="flex flex-col gap-3 p-3 lg:flex-row">
                 <GroupImagePreview
                   sources={group.candidates}
                   providerLabels={sourceLabels}

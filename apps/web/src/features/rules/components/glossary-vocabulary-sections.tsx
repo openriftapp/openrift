@@ -1,3 +1,4 @@
+import { Heading } from "@/components/heading";
 import { Badge } from "@/components/ui/badge";
 import { RowList } from "@/components/ui/row-list";
 import { keywordAnchorSlug } from "@/features/rules/lib/glossary";
@@ -138,7 +139,9 @@ export function CardTypesSection({
       )}
       {visibleSupertypes.length > 0 && (
         <>
-          <h4 className="mt-6 text-base font-semibold">Supertypes</h4>
+          <Heading level={3} as="h4" className="mt-6">
+            Supertypes
+          </Heading>
           <p className="text-muted-foreground mt-1">
             Supertypes apply on top of a card&apos;s type and are listed before it on the card face.
             They mostly affect deckbuilding.

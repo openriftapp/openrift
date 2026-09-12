@@ -292,7 +292,7 @@ export function NewPrintingGroupCard({
                 });
               }}
             >
-              <CheckCheckIcon className="mr-1 size-3" />
+              <CheckCheckIcon className="size-3" />
               Check {group.candidates.filter((s) => !s.checkedAt).length} unchecked
             </Button>
           )}
@@ -308,7 +308,7 @@ export function NewPrintingGroupCard({
                 )
               }
             >
-              <ArrowRightIcon className="mr-1 size-3.5" />
+              <ArrowRightIcon className="size-3.5" />
               Assign all to existing
             </Button>
           )}
@@ -324,7 +324,7 @@ export function NewPrintingGroupCard({
                 )
               }
             >
-              <ArrowRightIcon className="mr-1 size-3.5" />
+              <ArrowRightIcon className="size-3.5" />
               Assign all to {suggestedExisting.expectedPrintingId}
             </Button>
           )}
@@ -339,7 +339,7 @@ export function NewPrintingGroupCard({
               )
             }
           >
-            <PlusIcon className="mr-1 size-3.5" />
+            <PlusIcon className="size-3.5" />
             Accept as new printing
           </Button>
         </div>

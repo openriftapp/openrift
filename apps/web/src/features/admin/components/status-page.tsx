@@ -8,11 +8,14 @@ import {
   ServerIcon,
   TagIcon,
 } from "lucide-react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import { toast } from "sonner";
 
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import { useThrowInApi, useThrowInSsr } from "@/features/admin/hooks/use-sentry-test";
@@ -46,10 +49,25 @@ function formatNumber(num: number): string {
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-muted-foreground text-sm">{label}</span>
-      <span className="font-mono text-sm">{value}</span>
-    </div>
+    <>
+      <DefinitionTerm>{label}</DefinitionTerm>
+      <DefinitionDetail className="font-mono">{value}</DefinitionDetail>
+    </>
+  );
+}
+
+function SectionTitle({
+  icon: Icon,
+  children,
+}: {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  children: ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <Icon className="text-muted-foreground size-4" />
+      {children}
+    </span>
   );
 }
 
@@ -77,78 +95,54 @@ export function StatusPage() {
   const { server, database, app, pricing } = data;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-8">
       {topBar}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ServerIcon className="text-muted-foreground size-4" />
-              Server
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0.5">
+      <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+        <SettingsSection title={<SectionTitle icon={ServerIcon}>Server</SectionTitle>}>
+          <DefinitionList>
             <StatRow label="Uptime" value={formatUptime(server.uptimeSeconds)} />
             <StatRow label="Environment" value={server.environment} />
             <StatRow label="Bun" value={`v${server.bunVersion}`} />
-          </CardContent>
-        </Card>
+          </DefinitionList>
+        </SettingsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CpuIcon className="text-muted-foreground size-4" />
-              Memory
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0.5">
+        <SettingsSection title={<SectionTitle icon={CpuIcon}>Memory</SectionTitle>}>
+          <DefinitionList>
             <StatRow label="RSS" value={`${server.memoryMb.rss} MB`} />
             <StatRow label="Heap used" value={`${server.memoryMb.heapUsed} MB`} />
             <StatRow label="Heap total" value={`${server.memoryMb.heapTotal} MB`} />
-          </CardContent>
-        </Card>
+          </DefinitionList>
+        </SettingsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DatabaseIcon className="text-muted-foreground size-4" />
-              Database
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0.5">
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-muted-foreground text-sm">Status</span>
+        <SettingsSection title={<SectionTitle icon={DatabaseIcon}>Database</SectionTitle>}>
+          <DefinitionList>
+            <DefinitionTerm>Status</DefinitionTerm>
+            <DefinitionDetail className="self-center">
               <Badge variant={database.status === "connected" ? "default" : "destructive"}>
                 {database.status}
               </Badge>
-            </div>
+            </DefinitionDetail>
             {database.sizeMb !== null && <StatRow label="Size" value={`${database.sizeMb} MB`} />}
             {database.activeConnections !== null && (
               <StatRow label="Connections" value={database.activeConnections} />
             )}
             <StatRow label="Migrations" value={database.totalMigrations} />
             {database.latestMigration && (
-              <div className="flex items-center justify-between gap-2 py-1.5">
-                <span className="text-muted-foreground shrink-0 text-sm">Latest</span>
-                <span className="truncate font-mono" title={database.latestMigration}>
+              <>
+                <DefinitionTerm>Latest</DefinitionTerm>
+                <DefinitionDetail className="truncate font-mono" title={database.latestMigration}>
                   {database.latestMigration}
-                </span>
-              </div>
+                </DefinitionDetail>
+              </>
             )}
-          </CardContent>
-        </Card>
+          </DefinitionList>
+        </SettingsSection>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ActivityIcon className="text-muted-foreground size-4" />
-              Application
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0.5">
+      <div className="grid gap-8 sm:grid-cols-2">
+        <SettingsSection title={<SectionTitle icon={ActivityIcon}>Application</SectionTitle>}>
+          <DefinitionList>
             <StatRow label="Users" value={formatNumber(app.totalUsers)} />
             <StatRow label="Signups (7d)" value={formatNumber(app.recentSignups7d)} />
             <StatRow label="Cards" value={formatNumber(app.totalCards)} />
@@ -161,55 +155,46 @@ export function StatusPage() {
             <StatRow label="Tradelists" value={formatNumber(app.totalTradelists)} />
             <StatRow label="Friend groups" value={formatNumber(app.totalFriendGroups)} />
             <StatRow label="Copies" value={formatNumber(app.totalCopies)} />
-          </CardContent>
-        </Card>
+          </DefinitionList>
+        </SettingsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TagIcon className="text-muted-foreground size-4" />
-              Pricing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0.5">
+        <SettingsSection title={<SectionTitle icon={TagIcon}>Pricing</SectionTitle>}>
+          <DefinitionList>
             <StatRow label="Total prices" value={formatNumber(pricing.totalPrices)} />
-            {pricing.sources.map((source) => (
-              <div key={source.marketplace} className="mt-2 first:mt-0">
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-sm font-medium">{source.marketplace}</span>
-                  <span className="font-mono text-sm">
-                    {formatNumber(source.products)} products
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-muted-foreground text-sm">Price rows</span>
-                  <span className="font-mono text-sm">{formatNumber(source.prices)}</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-muted-foreground text-sm">Latest price</span>
-                  {source.latestPrice ? (
-                    <span className="font-mono text-sm">
-                      {formatRelativeTime(source.latestPrice)}
-                    </span>
-                  ) : (
+          </DefinitionList>
+          {pricing.sources.map((source) => (
+            <div key={source.marketplace} className="flex flex-col gap-2">
+              <SectionHeading as="h3" size="sm">
+                {source.marketplace}
+              </SectionHeading>
+              <DefinitionList>
+                <StatRow label="Products" value={formatNumber(source.products)} />
+                <StatRow label="Price rows" value={formatNumber(source.prices)} />
+                <DefinitionTerm>Latest price</DefinitionTerm>
+                {source.latestPrice ? (
+                  <DefinitionDetail className="font-mono">
+                    {formatRelativeTime(source.latestPrice)}
+                  </DefinitionDetail>
+                ) : (
+                  <DefinitionDetail className="self-center">
                     <Badge variant="secondary">none</Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-            {pricing.sources.length === 0 && (
-              <p className="text-muted-foreground text-sm">No marketplace data</p>
-            )}
-          </CardContent>
-        </Card>
+                  </DefinitionDetail>
+                )}
+              </DefinitionList>
+            </div>
+          ))}
+          {pricing.sources.length === 0 && (
+            <p className="text-muted-foreground text-sm">No marketplace data</p>
+          )}
+        </SettingsSection>
       </div>
 
-      <SentrySmokeTestCard />
+      <SentrySmokeTestSection />
     </div>
   );
 }
 
-function SentrySmokeTestCard() {
+function SentrySmokeTestSection() {
   const throwSsr = useThrowInSsr();
   const throwApi = useThrowInApi();
 
@@ -243,34 +228,24 @@ function SentrySmokeTestCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BugIcon className="text-muted-foreground size-4" />
-          Sentry smoke test
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-muted-foreground text-sm">
-          Triggers a distinctly-tagged error on each surface so you can verify the event reaches
-          Sentry. No-op when the DSN is unset. Each click creates a new issue (timestamp in
-          message).
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleBrowser}>
-            <BugIcon />
-            Throw in browser
-          </Button>
-          <Button variant="outline" onClick={() => void handleSsr()} disabled={throwSsr.isPending}>
-            {throwSsr.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
-            Throw in SSR
-          </Button>
-          <Button variant="outline" onClick={() => void handleApi()} disabled={throwApi.isPending}>
-            {throwApi.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
-            Throw in API
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <SettingsSection
+      title={<SectionTitle icon={BugIcon}>Sentry smoke test</SectionTitle>}
+      description="Triggers a distinctly-tagged error on each surface so you can verify the event reaches Sentry. No-op when the DSN is unset. Each click creates a new issue (timestamp in message)."
+    >
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={handleBrowser}>
+          <BugIcon />
+          Throw in browser
+        </Button>
+        <Button variant="outline" onClick={() => void handleSsr()} disabled={throwSsr.isPending}>
+          {throwSsr.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
+          Throw in SSR
+        </Button>
+        <Button variant="outline" onClick={() => void handleApi()} disabled={throwApi.isPending}>
+          {throwApi.isPending ? <LoaderIcon className="animate-spin" /> : <BugIcon />}
+          Throw in API
+        </Button>
+      </div>
+    </SettingsSection>
   );
 }

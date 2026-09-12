@@ -16,6 +16,7 @@ import {
 import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ export default function CollectionsArticle() {
 
       <Callout>
         <div className="flex flex-col gap-3 text-sm sm:flex-row">
-          <div className="bg-background flex flex-col gap-1.5 rounded-lg border p-3 sm:w-48">
+          <div className="bg-background flex flex-col gap-1.5 rounded-lg p-3 sm:w-48">
             <span className="text-muted-foreground text-2xs mb-1 font-medium tracking-wide uppercase">
               Collections
             </span>
@@ -197,20 +198,20 @@ export default function CollectionsArticle() {
           Collections support the same three view modes as the card browser. You can also filter,
           sort, and group cards inside any collection just like in the catalog.
         </p>
-        <div className="divide-border mt-3 divide-y rounded-lg border text-sm">
-          <ViewModeRow
-            mode="Cards"
-            description="One entry per unique card. Owned count sums across all printings of that card."
-          />
-          <ViewModeRow
-            mode="Printings"
-            description="One entry per printing. See exactly which versions you own."
-          />
-          <ViewModeRow
-            mode="Copies"
-            description="Every individual copy on the grid, no stacking. Useful for managing specific copies."
-          />
-        </div>
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm>Cards</DefinitionTerm>
+          <DefinitionDetail>
+            One entry per unique card. Owned count sums across all printings of that card.
+          </DefinitionDetail>
+          <DefinitionTerm>Printings</DefinitionTerm>
+          <DefinitionDetail>
+            One entry per printing. See exactly which versions you own.
+          </DefinitionDetail>
+          <DefinitionTerm>Copies</DefinitionTerm>
+          <DefinitionDetail>
+            Every individual copy on the grid, no stacking. Useful for managing specific copies.
+          </DefinitionDetail>
+        </DefinitionList>
       </section>
 
       <section>
@@ -264,15 +265,6 @@ function SidebarItem({
       >
         {count}
       </span>
-    </div>
-  );
-}
-
-function ViewModeRow({ mode, description }: { mode: string; description: string }) {
-  return (
-    <div className="flex gap-3 px-3 py-2.5">
-      <span className="w-20 shrink-0 font-medium">{mode}</span>
-      <span className="text-muted-foreground">{description}</span>
     </div>
   );
 }

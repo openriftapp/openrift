@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { PageTopBar, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { TopBarSlotContext } from "@/components/layout/top-bar-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { CompactFilterBar } from "@/features/cards/components/compact-filter-bar";
 import { usePrices } from "@/features/cards/hooks/use-prices";
@@ -87,7 +86,7 @@ export function CollectionStatsPage() {
       {/* `flex` unhides the bar below sm: this page has no mobile filter
           drawer, so the chips just wrap there. */}
       <CompactFilterBar
-        className="flex"
+        className="mb-8 flex"
         availableFilters={availableFilters}
         availableLanguages={availableLanguages}
         setDisplayLabel={setDisplayLabel}
@@ -99,7 +98,7 @@ export function CollectionStatsPage() {
         stats.totalCopies === 0 ? (
           <StatsEmptyState />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-10">
             <section className="space-y-4">
               <SectionHeading variant="display">Completion</SectionHeading>
               <CompletionSection
@@ -109,8 +108,6 @@ export function CollectionStatsPage() {
                 scope={scope}
               />
             </section>
-
-            <Separator />
 
             <section className="space-y-4">
               <SectionHeading variant="display">Cost to Complete</SectionHeading>
@@ -126,17 +123,11 @@ export function CollectionStatsPage() {
             </section>
 
             {priceHistoryEnabled && (
-              <>
-                <Separator />
-
-                <section className="space-y-4">
-                  <SectionHeading variant="display">Value Over Time</SectionHeading>
-                  <CollectionValueChart collectionId={collectionId} scope={scope} />
-                </section>
-              </>
+              <section className="space-y-4">
+                <SectionHeading variant="display">Value Over Time</SectionHeading>
+                <CollectionValueChart collectionId={collectionId} scope={scope} />
+              </section>
             )}
-
-            <Separator />
 
             <section className="space-y-4">
               <SectionHeading variant="display">Stats</SectionHeading>

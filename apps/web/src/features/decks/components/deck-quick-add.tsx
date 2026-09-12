@@ -401,8 +401,6 @@ function QuickAddInner({
         )}
       </InputGroup>
 
-      <div className="border-border border-t" />
-
       <div ref={listRef} className={cn("overflow-y-auto", isMobile ? "max-h-72" : "max-h-96")}>
         {query.length === 0 && (
           <div className="text-muted-foreground px-3 py-8 text-center text-sm">
@@ -539,40 +537,37 @@ function QuickAddInner({
       </div>
 
       {!isMobile && (
-        <>
-          <div className="border-border border-t" />
-          <div className="text-muted-foreground flex items-center gap-3 px-3 py-2 text-xs">
+        <div className="text-muted-foreground flex items-center gap-3 px-3 py-2 text-xs">
+          <span>
+            <Kbd>↑↓</Kbd> navigate
+          </span>
+          <span>
+            <Kbd>↵</Kbd> add
+          </span>
+          {selectedTargets.length > 1 && !expanded && (
             <span>
-              <Kbd>↑↓</Kbd> navigate
+              <Kbd>→</Kbd> zone
             </span>
+          )}
+          {expanded && (
             <span>
-              <Kbd>↵</Kbd> add
+              <Kbd>←</Kbd> back
             </span>
-            {selectedTargets.length > 1 && !expanded && (
-              <span>
-                <Kbd>→</Kbd> zone
-              </span>
-            )}
-            {expanded && (
-              <span>
-                <Kbd>←</Kbd> back
-              </span>
-            )}
-            {addsSinceOpen > 0 && (
-              <span>
-                <Kbd>⇧↵</Kbd> undo
-              </span>
-            )}
-            {query.length === 0 && !expanded && (
-              <span>
-                <Kbd>⌫</Kbd> search everything
-              </span>
-            )}
+          )}
+          {addsSinceOpen > 0 && (
             <span>
-              <Kbd>esc</Kbd> close
+              <Kbd>⇧↵</Kbd> undo
             </span>
-          </div>
-        </>
+          )}
+          {query.length === 0 && !expanded && (
+            <span>
+              <Kbd>⌫</Kbd> search everything
+            </span>
+          )}
+          <span>
+            <Kbd>esc</Kbd> close
+          </span>
+        </div>
       )}
     </div>
   );

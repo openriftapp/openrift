@@ -691,7 +691,11 @@ export function CollectionSidebar() {
         ))}
         <ListsSidebarGroups activeId={listId} isReorderActive={isReorderActive} />
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel className="gap-1.5">
+            {/* Reserves the collapsible groups' chevron column so every group label starts on one text origin. */}
+            <span aria-hidden className="size-3 shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-left">Manage</span>
+          </SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             <SidebarMenuItem>
               <SidebarMenuButton

@@ -4,6 +4,7 @@ import { CheckIcon, UserPlusIcon, XIcon } from "lucide-react";
 
 import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { UserAvatar } from "@/components/user-avatar";
 import {
   useAcceptFriendGroupInvite,
@@ -29,7 +30,7 @@ export function PendingRequestsBand({
     >
       <div className="flex flex-col gap-2">
         {requests.map((req) => (
-          <div key={req.id} className="bg-muted flex items-center gap-2.5 rounded-lg px-2.5 py-2">
+          <Callout key={req.id} variant="inset" className="flex items-center gap-2.5">
             <UserAvatar
               image={req.userImage}
               name={req.userName}
@@ -61,7 +62,7 @@ export function PendingRequestsBand({
               <XIcon className="size-4" />
               Deny
             </Button>
-          </div>
+          </Callout>
         ))}
       </div>
     </ActionBand>

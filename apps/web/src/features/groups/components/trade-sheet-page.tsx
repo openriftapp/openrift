@@ -76,7 +76,7 @@ function LedgerSection({
         </SectionHeading>
         {bulk}
       </div>
-      <div className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
         {trades.map((trade) => (
           <TradeRow
             key={trade.id}
@@ -85,7 +85,7 @@ function LedgerSection({
             redundantStatus={redundantStatus}
           />
         ))}
-      </div>
+      </ul>
     </section>
   );
 }
@@ -105,11 +105,11 @@ function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
         </CollapsibleTrigger>
       </SectionHeading>
       <CollapsibleContent>
-        <div className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
           {trades.map((trade) => (
             <TradeRow key={trade.id} trade={trade} sequence={sequence} />
           ))}
-        </div>
+        </ul>
       </CollapsibleContent>
     </Collapsible>
   );

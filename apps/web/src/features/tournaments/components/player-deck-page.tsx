@@ -5,10 +5,11 @@ import type {
 } from "@openrift/shared/types/api/deck-check";
 import { WellKnown } from "@openrift/shared/well-known";
 import { useNavigate } from "@tanstack/react-router";
-import { TriangleAlertIcon } from "lucide-react";
+import { FileQuestionIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
@@ -68,9 +69,12 @@ export function PlayerDeckPage({ tournamentId }: { tournamentId: string }) {
             <DeckCheckCardZonesSkeleton cellWidth={PLAYER_CELL_WIDTH} />
           </div>
         ) : isError || !data ? (
-          <p className="text-muted-foreground py-12 text-center">
-            Your deck for this tournament is no longer available. Contact a judge.
-          </p>
+          <EmptyState
+            className="py-12"
+            icon={FileQuestionIcon}
+            title="Deck no longer available"
+            description="Your deck for this tournament is no longer available. Contact a judge."
+          />
         ) : (
           <PlayerDeckBody data={data} />
         )

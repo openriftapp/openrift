@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { displayedProductLanguage } from "@/features/admin/components/marketplace-product-entries";
 import {
   useUnifiedAssignToCard,
@@ -37,6 +39,7 @@ import {
   useUnifiedIgnoreVariants,
   useUnifiedMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
+import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
 import type {
   AssignableCard,
   SourceMappingConfig,
@@ -216,13 +219,19 @@ export function UnmatchedProductsPanel() {
       />
 
       {filtered.length === 0 ? (
-        <div className="text-muted-foreground py-8 text-center text-sm">
-          {allRows.length === 0 ? "No unmatched products." : "No matches for the current filters."}
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyDescription>
+              {allRows.length === 0
+                ? "No unmatched products."
+                : "No matches for the current filters."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
-        <div className="bg-card ring-border overflow-hidden rounded-lg ring-1">
-          <Table>
-            <TableHeader className="[&_th]:text-muted-foreground [&_th]:text-xs [&_th]:font-medium [&_th]:tracking-wide [&_th]:uppercase">
+        <div className={ADMIN_TABLE_SURFACE}>
+          <Table className={ADMIN_TABLE_CLASS}>
+            <TableHeader>
               <TableRow>
                 <TableHead className="w-20">ID</TableHead>
                 <TableHead>Product</TableHead>
@@ -233,7 +242,7 @@ export function UnmatchedProductsPanel() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="[&_tr]:border-0">
+            <TableBody>
               {sortedRows.map((row, index) => {
                 const { marketplace, product } = row;
                 const key = `${marketplace}::${product.externalId}::${product.finish}::${product.language}`;
@@ -243,14 +252,9 @@ export function UnmatchedProductsPanel() {
                 return (
                   <React.Fragment key={key}>
                     {isFirstOfMarketplace && (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell
-                          colSpan={COLUMN_COUNT}
-                          className="bg-muted/50 text-muted-foreground py-1.5 text-xs font-medium tracking-wide uppercase"
-                        >
-                          {CONFIG_BY_MARKETPLACE[marketplace].displayName}
-                        </TableCell>
-                      </TableRow>
+                      <AdminTableGroupRow colSpan={COLUMN_COUNT}>
+                        {CONFIG_BY_MARKETPLACE[marketplace].displayName}
+                      </AdminTableGroupRow>
                     )}
                     <UnmatchedProductRow
                       marketplace={marketplace}

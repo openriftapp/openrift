@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CommandEmpty } from "@/components/ui/command";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { cn } from "@/lib/utils";
 
@@ -44,9 +45,9 @@ export function MoveToListDialog({
           {/* Do not add overflow here: CommandList scrolls internally. */}
           <div>
             {lists.length === 0 ? (
-              <p className="text-muted-foreground py-4 text-center text-sm">
-                No other matching lists available.
-              </p>
+              <Empty>
+                <EmptyDescription>No other matching lists available.</EmptyDescription>
+              </Empty>
             ) : (
               <PickerList
                 searchPlaceholder="Filter lists…"

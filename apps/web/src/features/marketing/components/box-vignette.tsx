@@ -150,7 +150,7 @@ export function BoxVignette() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex h-6 items-center gap-2 border-b">
+        <div className="flex h-6 items-center gap-2">
           <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
             Main Deck
           </span>

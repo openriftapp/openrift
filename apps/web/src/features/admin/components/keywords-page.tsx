@@ -4,11 +4,13 @@ import { useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { PageDescription } from "@/components/layout/page-top-bar";
+import { SettingsRow } from "@/components/layout/settings-row";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -314,95 +316,73 @@ export function KeywordsPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="space-y-4 pt-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Recompute keywords</p>
-              <p className="text-muted-foreground text-sm">
-                Re-extract keywords from all card and printing text fields
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {recomputeKeywords.isSuccess && (
-                <p className="text-muted-foreground text-sm">
-                  Updated {recomputeKeywords.data.updated} of {recomputeKeywords.data.totalCards}{" "}
-                  cards
-                </p>
-              )}
-              {recomputeKeywords.isError && (
-                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                  <CircleXIcon className="text-destructive size-4 shrink-0" />
-                  Failed
-                </p>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => recomputeKeywords.mutate()}
-                disabled={recomputeKeywords.isPending}
-              >
-                {recomputeKeywords.isPending ? (
-                  <LoaderIcon className="animate-spin" />
-                ) : (
-                  "Recompute"
-                )}
-              </Button>
-            </div>
-          </div>
+    <div className="flex flex-col gap-8">
+      <SettingsSection title="Maintenance">
+        <SettingsRow
+          label="Recompute keywords"
+          description="Re-extract keywords from all card and printing text fields"
+        >
+          {recomputeKeywords.isSuccess && (
+            <p className="text-muted-foreground text-sm">
+              Updated {recomputeKeywords.data.updated} of {recomputeKeywords.data.totalCards} cards
+            </p>
+          )}
+          {recomputeKeywords.isError && (
+            <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+              <CircleXIcon className="text-destructive size-4 shrink-0" />
+              Failed
+            </p>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => recomputeKeywords.mutate()}
+            disabled={recomputeKeywords.isPending}
+          >
+            {recomputeKeywords.isPending ? <LoaderIcon className="animate-spin" /> : "Recompute"}
+          </Button>
+        </SettingsRow>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Auto-discover translations</p>
-              <p className="text-muted-foreground text-sm">
-                Correlate EN and non-EN printings to find keyword translations
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {discoverTranslations.isSuccess && (
-                <p className="text-muted-foreground text-sm">
-                  Found {discoverTranslations.data.discovered.length}, inserted{" "}
-                  {discoverTranslations.data.inserted}
-                  {discoverTranslations.data.conflicts.length > 0 &&
-                    `, ${discoverTranslations.data.conflicts.length} conflicts`}
-                </p>
-              )}
-              {discoverTranslations.isError && (
-                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                  <CircleXIcon className="text-destructive size-4 shrink-0" />
-                  Failed
-                </p>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => discoverTranslations.mutate()}
-                disabled={discoverTranslations.isPending}
-              >
-                {discoverTranslations.isPending ? (
-                  <LoaderIcon className="animate-spin" />
-                ) : (
-                  "Discover"
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <SettingsRow
+          label="Auto-discover translations"
+          description="Correlate EN and non-EN printings to find keyword translations"
+        >
+          {discoverTranslations.isSuccess && (
+            <p className="text-muted-foreground text-sm">
+              Found {discoverTranslations.data.discovered.length}, inserted{" "}
+              {discoverTranslations.data.inserted}
+              {discoverTranslations.data.conflicts.length > 0 &&
+                `, ${discoverTranslations.data.conflicts.length} conflicts`}
+            </p>
+          )}
+          {discoverTranslations.isError && (
+            <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+              <CircleXIcon className="text-destructive size-4 shrink-0" />
+              Failed
+            </p>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => discoverTranslations.mutate()}
+            disabled={discoverTranslations.isPending}
+          >
+            {discoverTranslations.isPending ? <LoaderIcon className="animate-spin" /> : "Discover"}
+          </Button>
+        </SettingsRow>
+      </SettingsSection>
 
       {discoverTranslations.isSuccess && discoverTranslations.data.conflicts.length > 0 && (
-        <Card>
-          <CardContent className="pt-5">
-            <p className="mb-2 text-sm font-medium">Translation conflicts (needs manual review)</p>
-            <div className="space-y-1">
-              {discoverTranslations.data.conflicts.map((conflict) => (
-                <p key={`${conflict.keyword}-${conflict.language}`} className="text-sm">
+        <SettingsSection title="Translation conflicts (needs manual review)">
+          <RowList className="text-sm">
+            {discoverTranslations.data.conflicts.map((conflict) => (
+              <RowListItem key={`${conflict.keyword}-${conflict.language}`}>
+                <span>
                   <span className="font-medium">{conflict.keyword}</span> ({conflict.language}):{" "}
                   {conflict.labels.join(" / ")}
-                </p>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                </span>
+              </RowListItem>
+            ))}
+          </RowList>
+        </SettingsSection>
       )}
 
       <AdminTable

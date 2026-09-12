@@ -22,7 +22,7 @@ export const DECK_INDEX_GRID =
 
 function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number | null }) {
   return (
-    <span className="flex flex-col items-center gap-0.5 text-center">
+    <span className="flex flex-col items-start gap-0.5">
       {deck.rank <= MEDAL_RANKS ? (
         <Medal rank={deck.rank} />
       ) : (

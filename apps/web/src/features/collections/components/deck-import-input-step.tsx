@@ -139,7 +139,7 @@ export function DeckImportInputStep({
             </Select>
           </div>
 
-          <p className="text-muted-foreground text-sm">{IMPORT_DESCRIPTIONS[importMode]}</p>
+          <p className="text-muted-foreground">{IMPORT_DESCRIPTIONS[importMode]}</p>
           <Textarea
             value={rawText}
             onChange={(event) => onTextChange(event.target.value)}
@@ -158,9 +158,9 @@ export function DeckImportInputStep({
               disabled={rawText.trim().length === 0 || isParsing}
             >
               {isParsing ? (
-                <Loader2Icon className="mr-2 size-4 animate-spin" />
+                <Loader2Icon className="size-4 animate-spin" />
               ) : (
-                <UploadIcon className="mr-2 size-4" />
+                <UploadIcon className="size-4" />
               )}
               Parse
             </Button>
@@ -168,7 +168,7 @@ export function DeckImportInputStep({
             <div className="text-muted-foreground text-sm">or</div>
 
             <Button variant="outline" onClick={() => fileRef.current?.click()}>
-              <FileUpIcon className="mr-2 size-4" />
+              <FileUpIcon className="size-4" />
               Upload file
             </Button>
             <Input

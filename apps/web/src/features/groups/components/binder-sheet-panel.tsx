@@ -97,7 +97,7 @@ export function BinderSheetPanel({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="binder-sheet-title">Title</Label>
@@ -228,7 +228,7 @@ export function BinderSheetPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-t pt-4">
+      <div className="flex flex-col gap-2">
         <p className="text-muted-foreground text-sm">
           Print at 100% (Actual size), not Fit to page.
         </p>

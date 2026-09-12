@@ -6,7 +6,7 @@ import { siDiscord, siGithub, siGithubsponsors, siKofi, siX } from "simple-icons
 import { Heading } from "@/components/heading";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -140,7 +140,7 @@ export function SupportPage() {
         <Heading level={1} className="mb-4">
           Support the Rift
         </Heading>
-        <div className="text-muted-foreground space-y-3 text-sm leading-relaxed">
+        <div className="text-muted-foreground space-y-3 leading-relaxed">
           <p>
             Every day, my server burns Energy to keep the Rift open so you can browse cards instead
             of whatever you were supposed to be doing.
@@ -159,8 +159,8 @@ export function SupportPage() {
       </div>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Fuel the Rift</h2>
-        <p className="text-muted-foreground mb-4 text-sm">
+        <Heading className="mb-1">Fuel the Rift</Heading>
+        <p className="text-muted-foreground mb-4">
           Add Energy to the pool.{" "}
           <span className="italic">
             These tiers are purely cosmetic. Like foils, but for your soul.
@@ -175,7 +175,7 @@ export function SupportPage() {
             />
           ))}
         </div>
-        <div className="mt-4 flex justify-center gap-3">
+        <div className="mt-4 flex flex-wrap gap-3">
           <a
             href={KOFI_URL}
             target="_blank"
@@ -195,14 +195,14 @@ export function SupportPage() {
             Sponsor on GitHub
           </a>
         </div>
-        <p className="text-muted-foreground mt-2 text-center text-sm">
+        <p className="text-muted-foreground mt-2">
           Recurring or one-time, every contribution helps keep the Rift open.
         </p>
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Widen the Rift</h2>
-        <p className="text-muted-foreground mb-4 text-sm">
+        <Heading className="mb-1">Widen the Rift</Heading>
+        <p className="text-muted-foreground mb-4">
           Can&apos;t spare the Energy? Cast a sharing spell instead. Every share adds Power to the
           community.
         </p>
@@ -226,8 +226,8 @@ export function SupportPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Shop Through the Rift</h2>
-        <p className="text-muted-foreground text-sm">
+        <Heading className="mb-1">Shop Through the Rift</Heading>
+        <p className="text-muted-foreground">
           When you click a{" "}
           <TextLink
             render={
@@ -258,8 +258,8 @@ export function SupportPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Join the Party</h2>
-        <p className="text-muted-foreground mb-4 text-sm">
+        <Heading className="mb-1">Join the Party</Heading>
+        <p className="text-muted-foreground mb-4">
           Got feedback, questions, or just want to nerd out about Riftbound? Come hang out on
           Discord.
         </p>
@@ -275,31 +275,25 @@ export function SupportPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Gear Up</h2>
-        <Card size="sm" className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-muted-foreground flex items-center gap-2 italic">
-              Coming Soon&trade;
-            </CardTitle>
-            <CardDescription>
-              My Gear department (population: one) is working on it. Check back before the heat
-              death of the universe.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm italic">
-              <Suspense fallback="[Equip]: Attach one mass-produced mug to your desk. It reads: &ldquo;I fund the Rift and all I got was this Common-rarity mug.&rdquo;">
-                <CardText
-                  text='[Equip]: Attach one mass-produced mug to your desk. It reads: "I fund the Rift and all I got was this Common-rarity mug."'
-                  interactive={false}
-                />
-              </Suspense>
-            </p>
-          </CardContent>
-        </Card>
+        <Heading className="mb-1">Gear Up</Heading>
+        <div className="flex flex-col gap-2">
+          <p className="text-muted-foreground font-medium italic">Coming Soon&trade;</p>
+          <p className="text-muted-foreground">
+            My Gear department (population: one) is working on it. Check back before the heat death
+            of the universe.
+          </p>
+          <p className="text-muted-foreground italic">
+            <Suspense fallback="[Equip]: Attach one mass-produced mug to your desk. It reads: &ldquo;I fund the Rift and all I got was this Common-rarity mug.&rdquo;">
+              <CardText
+                text='[Equip]: Attach one mass-produced mug to your desk. It reads: "I fund the Rift and all I got was this Common-rarity mug."'
+                interactive={false}
+              />
+            </Suspense>
+          </p>
+        </div>
       </section>
 
-      <section className="text-muted-foreground mt-auto max-w-prose border-t pt-6 text-sm">
+      <section className="text-muted-foreground mt-auto max-w-prose">
         <p>
           OpenRift is a free, open-source project. No one here is getting rich (well, except in
           Power, and you can&apos;t pay hosting bills with Power).

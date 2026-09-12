@@ -3,7 +3,6 @@ import { useState } from "react";
 
 import { PageTopBar, PageTopBarSticky, PageTopBarTitle } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSendScanReport } from "@/features/scan/hooks/use-scan-report";
@@ -67,44 +66,40 @@ export function ScanReportPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-4 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         <p>
           This sends the scan log stored on this device: what was scanned and added, and when. No
           card images and nothing from your account.
         </p>
 
         {reference === null ? (
-          <Card>
-            <CardContent className={cn("flex flex-col gap-4", FORM_COLUMN)}>
-              <p className="text-muted-foreground">{summarize(journal)}</p>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="scan-report-note">What happened?</Label>
-                <Textarea
-                  id="scan-report-note"
-                  value={note}
-                  rows={5}
-                  maxLength={2000}
-                  placeholder="Optional. Anything you noticed that the log will not show."
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </div>
-              <div>
-                <Button
-                  disabled={nothingToSend || sendReport.isPending}
-                  onClick={() => void handleSend()}
-                >
-                  {sendReport.isPending ? "Sending…" : "Send report"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className={cn("flex flex-col gap-4", FORM_COLUMN)}>
+            <p className="text-muted-foreground">{summarize(journal)}</p>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="scan-report-note">What happened?</Label>
+              <Textarea
+                id="scan-report-note"
+                value={note}
+                rows={5}
+                maxLength={2000}
+                placeholder="Optional. Anything you noticed that the log will not show."
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </div>
+            <div>
+              <Button
+                disabled={nothingToSend || sendReport.isPending}
+                onClick={() => void handleSend()}
+              >
+                {sendReport.isPending ? "Sending…" : "Send report"}
+              </Button>
+            </div>
+          </div>
         ) : (
-          <Card>
-            <CardContent className="flex flex-col gap-3">
-              <p className="font-heading text-4xl font-bold">{reference}</p>
-              <p>Mention this reference on Discord and we can look it up.</p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-2">
+            <p className="font-heading text-4xl font-bold">{reference}</p>
+            <p>Mention this reference on Discord and we can look it up.</p>
+          </div>
         )}
       </div>
     </>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { CardIcon } from "@/components/card-icon";
 import { Badge } from "@/components/ui/badge";
+import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { cn } from "@/lib/utils";
 
 export function FilterSection({
@@ -41,8 +42,7 @@ export function FilterSection({
   }
 
   return (
-    <div className={cn("flex min-w-0 gap-2", wide && "lg:col-span-2")}>
-      <p className="text-muted-foreground w-18 text-xs font-medium">{label}</p>
+    <LabelledRow label={label} className={cn(wide && "lg:col-span-2")}>
       {children ? (
         <div className="flex flex-1 flex-wrap gap-1">{children}</div>
       ) : (
@@ -59,7 +59,7 @@ export function FilterSection({
           trailing={trailing}
         />
       )}
-    </div>
+    </LabelledRow>
   );
 }
 

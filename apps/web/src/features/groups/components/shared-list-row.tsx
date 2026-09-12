@@ -5,8 +5,8 @@ import type {
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import { Link } from "@tanstack/react-router";
 
-import { Card } from "@/components/ui/card";
 import { cardLinkVariants } from "@/components/ui/card-link";
+import { CardRow } from "@/components/ui/card-list";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ export function SharedListRow({
       ? LIST_KIND_NOUN[share.listKind].singular
       : LIST_KIND_NOUN[share.listKind].plural;
   return (
-    <Card className={cn(cardLinkVariants(), "relative flex-row items-center gap-3 p-2")}>
+    <CardRow className={cn(cardLinkVariants(), "relative gap-3")}>
       <IntentIcon className="text-muted-foreground size-5 shrink-0" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <Link
@@ -65,6 +65,6 @@ export function SharedListRow({
           <span className="hidden text-sm sm:inline">{member.userName ?? "Member"}</span>
         </Link>
       ) : null}
-    </Card>
+    </CardRow>
   );
 }

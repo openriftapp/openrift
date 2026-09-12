@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AdminDisclosure } from "@/features/admin/components/admin-disclosure";
 import type { UploadCandidatesBody } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useUploadCandidates } from "@/features/admin/hooks/use-admin-image-mutations";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
@@ -90,42 +91,37 @@ const EXAMPLE_SOURCE_JSON = `[
 
 function UploadFormatHelp() {
   return (
-    <details className="rounded-md border">
-      <summary className="text-muted-foreground hover:text-foreground cursor-pointer px-3 py-2 text-sm font-medium select-none">
-        Format and example
-      </summary>
-      <div className="space-y-3 border-t px-3 py-3 text-sm">
-        <p>
-          The file must contain a JSON array of entries (or an object with a <Code>candidates</Code>{" "}
-          field holding the array). Each entry has a <Code>card</Code> object and a{" "}
-          <Code>printings</Code> array. Field names use snake_case.
-        </p>
-        <p>
-          <span className="font-medium">Required card fields:</span> <Code>name</Code>,{" "}
-          <Code>external_id</Code>. Optional: <Code>type</Code>, <Code>super_types</Code>,{" "}
-          <Code>domains</Code>, <Code>might</Code>, <Code>energy</Code>, <Code>power</Code>,{" "}
-          <Code>might_bonus</Code>, <Code>rules_text</Code>, <Code>effect_text</Code>,{" "}
-          <Code>tags</Code>, <Code>short_code</Code>, <Code>extra_data</Code>.
-        </p>
-        <p>
-          <span className="font-medium">Required printing fields:</span> <Code>short_code</Code>,{" "}
-          <Code>external_id</Code>. Optional: <Code>set_id</Code>, <Code>set_name</Code>,{" "}
-          <Code>rarity</Code>, <Code>art_variant</Code>, <Code>is_signed</Code>,{" "}
-          <Code>marker_slugs</Code>, <Code>distribution_channel_slugs</Code>, <Code>finish</Code>,{" "}
-          <Code>artist</Code>, <Code>public_code</Code>, <Code>printed_rules_text</Code>,{" "}
-          <Code>printed_effect_text</Code>, <Code>image_url</Code>, <Code>flavor_text</Code>,{" "}
-          <Code>language</Code>, <Code>printed_name</Code>, <Code>printed_year</Code>,{" "}
-          <Code>extra_data</Code>.
-        </p>
-        <p className="text-muted-foreground">
-          Export the catalog to download a real file in the same format.
-        </p>
-        <p>Example:</p>
-        <pre className="bg-muted overflow-x-auto rounded-md p-3">
-          <code>{EXAMPLE_SOURCE_JSON}</code>
-        </pre>
-      </div>
-    </details>
+    <AdminDisclosure title="Format and example" contentClassName="space-y-3">
+      <p>
+        The file must contain a JSON array of entries (or an object with a <Code>candidates</Code>{" "}
+        field holding the array). Each entry has a <Code>card</Code> object and a{" "}
+        <Code>printings</Code> array. Field names use snake_case.
+      </p>
+      <p>
+        <span className="font-medium">Required card fields:</span> <Code>name</Code>,{" "}
+        <Code>external_id</Code>. Optional: <Code>type</Code>, <Code>super_types</Code>,{" "}
+        <Code>domains</Code>, <Code>might</Code>, <Code>energy</Code>, <Code>power</Code>,{" "}
+        <Code>might_bonus</Code>, <Code>rules_text</Code>, <Code>effect_text</Code>,{" "}
+        <Code>tags</Code>, <Code>short_code</Code>, <Code>extra_data</Code>.
+      </p>
+      <p>
+        <span className="font-medium">Required printing fields:</span> <Code>short_code</Code>,{" "}
+        <Code>external_id</Code>. Optional: <Code>set_id</Code>, <Code>set_name</Code>,{" "}
+        <Code>rarity</Code>, <Code>art_variant</Code>, <Code>is_signed</Code>,{" "}
+        <Code>marker_slugs</Code>, <Code>distribution_channel_slugs</Code>, <Code>finish</Code>,{" "}
+        <Code>artist</Code>, <Code>public_code</Code>, <Code>printed_rules_text</Code>,{" "}
+        <Code>printed_effect_text</Code>, <Code>image_url</Code>, <Code>flavor_text</Code>,{" "}
+        <Code>language</Code>, <Code>printed_name</Code>, <Code>printed_year</Code>,{" "}
+        <Code>extra_data</Code>.
+      </p>
+      <p className="text-muted-foreground">
+        Export the catalog to download a real file in the same format.
+      </p>
+      <p>Example:</p>
+      <pre className="bg-muted overflow-x-auto rounded-md p-3">
+        <code>{EXAMPLE_SOURCE_JSON}</code>
+      </pre>
+    </AdminDisclosure>
   );
 }
 

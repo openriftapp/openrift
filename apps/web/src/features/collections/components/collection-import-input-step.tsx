@@ -1,8 +1,9 @@
 import { FileUpIcon, UploadIcon } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { PageDescription } from "@/components/layout/page-top-bar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Code } from "@/components/ui/code";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ImportInputStepProps } from "@/features/collections/components/import-input-step-props";
@@ -18,13 +19,10 @@ export function CollectionImportInputStep({
 }: ImportInputStepProps) {
   return (
     <div className={cn(PAGE_WIDTH.capped, "space-y-6")}>
-      <div>
-        <Heading level={2}>Import Cards</Heading>
-        <p className="text-muted-foreground text-sm">
-          Paste or upload a CSV export, or a plain list with one{" "}
-          <code className="text-foreground">quantity cardname</code> per line.
-        </p>
-      </div>
+      <PageDescription>
+        Paste or upload a CSV export, or a plain list with one <Code>quantity cardname</Code> per
+        line.
+      </PageDescription>
 
       <div className="space-y-3">
         <Textarea
@@ -38,14 +36,14 @@ export function CollectionImportInputStep({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={() => onParse(rawText)} disabled={rawText.trim().length === 0}>
-            <UploadIcon className="mr-2 size-4" />
+            <UploadIcon className="size-4" />
             Parse
           </Button>
 
           <div className="text-muted-foreground text-sm">or</div>
 
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
-            <FileUpIcon className="mr-2 size-4" />
+            <FileUpIcon className="size-4" />
             Upload file
           </Button>
           <Input

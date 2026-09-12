@@ -149,7 +149,7 @@ function SharedListBody({
     return null;
   }
   return (
-    <Suspense fallback={<p className="text-muted-foreground py-3 text-sm">Loading cards…</p>}>
+    <Suspense fallback={<p className="text-muted-foreground py-3">Loading cards…</p>}>
       <SharedListGrid data={data} exchange={exchange} />
     </Suspense>
   );

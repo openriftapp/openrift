@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RadioGroup } from "@/components/ui/radio-group";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { cn } from "@/lib/utils";
 
 export interface SortGroupOption<TValue extends string> {
@@ -82,8 +83,7 @@ function BadgeRow<TValue extends string>({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-start gap-2">
-      <p className="text-muted-foreground w-18 text-xs font-medium">{label}</p>
+    <LabelledRow label={label}>
       <div className="flex flex-1 flex-wrap gap-1">
         {options.map((option) => {
           const isSelected = option.value === value;
@@ -99,8 +99,8 @@ function BadgeRow<TValue extends string>({
           );
         })}
       </div>
-      {action && <span className="shrink-0">{action}</span>}
-    </div>
+      {action && <span className="shrink-0 self-center">{action}</span>}
+    </LabelledRow>
   );
 }
 

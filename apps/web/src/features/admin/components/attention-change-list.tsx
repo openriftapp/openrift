@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { Textarea } from "@/components/ui/textarea";
 import { DiffText } from "@/features/admin/components/candidate-cell-display";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
@@ -234,14 +235,14 @@ export function AttentionChangeList({
   const [editing, setEditing] = useState<ReadonlySet<string>>(() => new Set());
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
       {groups.map((group) => {
         const blocker =
           group.candidate === null ? undefined : blockedNewPrintings?.get(group.candidate.id);
         return (
-          <div key={group.key}>
-            <div className="bg-muted flex items-center gap-2 rounded-md px-3 py-1">
-              <span className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1 text-xs font-medium">
+          <div key={group.key} className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-3">
+              <SectionHeading as="h3" size="sm" className="flex min-w-0 flex-1 items-center gap-1">
                 <span className="shrink-0">{group.title}</span>
                 {group.printingLabel !== null && (
                   <span className="min-w-0 truncate">
@@ -249,7 +250,7 @@ export function AttentionChangeList({
                     <PrintingIdLabel label={group.printingLabel} language={group.language} />)
                   </span>
                 )}
-              </span>
+              </SectionHeading>
               {onMoveGroup && group.kind === "printing" && (
                 <PrintingTargetMenu
                   label="Move to another printing…"

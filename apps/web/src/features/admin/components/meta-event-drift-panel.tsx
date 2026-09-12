@@ -233,11 +233,11 @@ function FieldRow({
   const editable = isOverlayField(field.field) ? field.field : null;
 
   return (
-    <tr className="border-b last:border-0">
-      <td className="w-1 py-1.5 pr-1">
+    <tr>
+      <td className="w-1 py-2.5 pr-1">
         {contested && <span className="bg-warning block size-1.5 rounded-full" aria-hidden />}
       </td>
-      <td className="text-muted-foreground py-1.5 pr-3 font-mono">
+      <td className="text-muted-foreground py-2.5 pr-3 font-mono">
         <span className="flex items-center gap-1.5">
           {field.claimedByOverlay && <LockIcon className="size-3" aria-label="Set by an overlay" />}
           {field.field}
@@ -247,7 +247,7 @@ function FieldRow({
         <td
           key={sources[index]?.id ?? index}
           className={cn(
-            "py-1.5 pr-3 align-top",
+            "py-2.5 pr-3 align-top",
             field.claimedByOverlay && "text-muted-foreground/50 line-through",
             contested && cell.value !== field.live && cell.value !== null && "text-warning",
           )}
@@ -258,7 +258,7 @@ function FieldRow({
           )}
         </td>
       ))}
-      <td className="py-1.5 align-top">
+      <td className="py-2.5 align-top">
         <span className="flex items-center gap-2">
           {claiming && editable !== null ? (
             <ClaimForm

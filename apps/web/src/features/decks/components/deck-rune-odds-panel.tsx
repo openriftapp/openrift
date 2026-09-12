@@ -1,6 +1,15 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { useState } from "react";
 
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PowerDomainIcon } from "@/features/decks/components/deck-card-row";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
@@ -20,9 +29,9 @@ export function DeckRuneOddsPanel({ cards }: { cards: DeckBuilderCard[] }) {
     return null;
   }
   return (
-    <div>
-      <div className="text-muted-foreground text-2xs mb-1.5 flex items-center gap-2 font-semibold tracking-wide uppercase">
-        Rune odds
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <SectionHeading size="sm">Rune odds</SectionHeading>
         <ToggleGroup
           variant="outline"
           spacing={0}
@@ -36,51 +45,45 @@ export function DeckRuneOddsPanel({ cards }: { cards: DeckBuilderCard[] }) {
           <ToggleGroupItem value="second">Going second</ToggleGroupItem>
         </ToggleGroup>
       </div>
-      <div className="max-h-96 overflow-y-auto rounded-md border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-muted-foreground text-xs">
-              <th className="px-2 py-1.5 text-left font-medium">Runes</th>
+      <div className="max-h-96 overflow-y-auto">
+        <Table interactive={false}>
+          <TableHeader>
+            <TableRow className="text-muted-foreground text-xs">
+              <TableHead>Runes</TableHead>
               {RUNE_ODDS_TURNS.map((turn) => (
-                <th
-                  key={turn}
-                  className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap"
-                >
+                <TableHead key={turn} className="w-px text-right">
                   Turn {turn}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((row) => (
-              <tr key={`${row.domain}-${row.threshold}`} className="border-t">
-                <td className="max-w-0 px-2 py-1">
+              <TableRow key={`${row.domain}-${row.threshold}`}>
+                <TableCell className="max-w-0">
                   <span className="flex items-center gap-1.5">
                     <PowerDomainIcon domains={[row.domain]} colors={domainColors} />
                     <span className="truncate">
                       {row.threshold}+ {enumLabel(labels.domains, row.domain)}
                     </span>
                   </span>
-                </td>
+                </TableCell>
                 {row.byTurn.map((chance, index) => (
-                  <td
-                    key={RUNE_ODDS_TURNS[index]}
-                    className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums"
-                  >
+                  <TableCell key={RUNE_ODDS_TURNS[index]} className="w-px text-right tabular-nums">
                     {/* 0 is structurally impossible; show a dash, not 0%. */}
                     {chance === 0 ? (
                       <span className="text-muted-foreground/60">–</span>
                     ) : (
                       formatChancePct(chance)
                     )}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <p className="text-muted-foreground text-2xs mt-1.5">
+      <p className="text-muted-foreground text-2xs">
         Chance of having channeled at least that many runes of a domain by the end of each turn. You
         channel two runes a turn{goingSecond ? ", plus one more on your first turn" : ""}.
       </p>

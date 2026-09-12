@@ -10,12 +10,12 @@ import {
   UsersIcon,
 } from "lucide-react";
 
-import { Heading } from "@/components/heading";
+import { Eyebrow, Heading } from "@/components/heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
+import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
-import { DefinitionList, DefinitionRow } from "@/features/marketing/components/definition-list";
 
 export default function GroupsArticle() {
   return (
@@ -28,10 +28,8 @@ export default function GroupsArticle() {
       </p>
 
       <Callout>
-        <p className="text-muted-foreground mb-3 text-center text-xs font-medium tracking-wide uppercase">
-          A group page at a glance
-        </p>
-        <div className="bg-background flex flex-col gap-3 rounded-lg border p-3">
+        <Eyebrow>A group page at a glance</Eyebrow>
+        <div className="bg-background flex flex-col gap-3 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <span className="text-base font-semibold">Tuesday Night Crew</span>
             <span className="bg-secondary text-secondary-foreground text-2xs rounded-full px-2 py-0.5 font-medium">
@@ -73,19 +71,22 @@ export default function GroupsArticle() {
         <p className="text-muted-foreground">
           Every member has one of three roles. Each group has exactly one owner.
         </p>
-        <DefinitionList className="mt-3">
-          <DefinitionRow icon={<CrownIcon className="size-3.5" />} label="Owner">
+        <DefinitionList className="text-muted-foreground mt-3">
+          <DefinitionTerm icon={<CrownIcon className="size-3.5" />}>Owner</DefinitionTerm>
+          <DefinitionDetail>
             Everything an admin can do, plus delete the group and transfer ownership. The role stays
             with the person who created the group until they hand it off.
-          </DefinitionRow>
-          <DefinitionRow icon={<ShieldIcon className="size-3.5" />} label="Admin">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<ShieldIcon className="size-3.5" />}>Admin</DefinitionTerm>
+          <DefinitionDetail>
             Approve or deny join requests, turn the invite link on or off, edit the group&apos;s
             name and description, promote members, and remove members.
-          </DefinitionRow>
-          <DefinitionRow icon={<UserIcon className="size-3.5" />} label="Member">
+          </DefinitionDetail>
+          <DefinitionTerm icon={<UserIcon className="size-3.5" />}>Member</DefinitionTerm>
+          <DefinitionDetail>
             Share their own lists, create shared collections, choose which contact methods to share,
             and leave the group at any time.
-          </DefinitionRow>
+          </DefinitionDetail>
         </DefinitionList>
       </section>
 

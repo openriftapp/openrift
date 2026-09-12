@@ -7,6 +7,8 @@ import type {
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { SettingsRow } from "@/components/layout/settings-row";
+import { SettingsSection } from "@/components/layout/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,12 +76,11 @@ export function OverlaySettingsPanel({
   const sourceUrl = channel.token ? `${getSiteUrl()}/stage/source/${channel.token}` : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Browser source</h2>
-        <p className="text-muted-foreground text-sm">
-          Add a Browser source in OBS and paste this URL. Anyone with the link sees what you push.
-        </p>
+    <div className="flex flex-col gap-8">
+      <SettingsSection
+        title="Browser source"
+        description="Add a Browser source in OBS and paste this URL. Anyone with the link sees what you push."
+      >
         {sourceUrl ? (
           <ShareLinkRow
             url={sourceUrl}
@@ -105,7 +106,7 @@ export function OverlaySettingsPanel({
             Enable browser source link
           </Button>
         )}
-      </section>
+      </SettingsSection>
 
       <ConfirmActionDialog
         open={confirmDisable}
@@ -121,9 +122,7 @@ export function OverlaySettingsPanel({
         }}
       />
 
-      <section className="flex flex-col gap-4">
-        <h2 className="font-semibold">Placement</h2>
-
+      <SettingsSection title="Placement">
         <div className="flex flex-col gap-2">
           <Label>Corner</Label>
           <ToggleGroup
@@ -168,19 +167,19 @@ export function OverlaySettingsPanel({
             }}
           />
         </div>
-      </section>
+      </SettingsSection>
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="font-semibold">Card plate</h2>
+      <SettingsSection
+        title="Card plate"
+        action={
           <Switch
             id="overlay-plate"
             aria-label="Card plate"
             checked={payload.showPlate}
             onCheckedChange={(checked) => updateSettings.mutate({ showPlate: checked })}
           />
-        </div>
-
+        }
+      >
         {payload.showPlate && (
           <>
             <div className="flex flex-col gap-2">
@@ -207,13 +206,14 @@ export function OverlaySettingsPanel({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <Label>What it shows</Label>
               {PLATE_FIELDS.map((field) => (
-                <div key={field.key} className="flex items-center justify-between gap-4">
-                  <Label htmlFor={`overlay-plate-${field.key}`} className="font-normal">
-                    {field.label}
-                  </Label>
+                <SettingsRow
+                  key={field.key}
+                  label={field.label}
+                  htmlFor={`overlay-plate-${field.key}`}
+                >
                   <Switch
                     id={`overlay-plate-${field.key}`}
                     checked={payload.plateFields[field.key]}
@@ -221,31 +221,32 @@ export function OverlaySettingsPanel({
                       updateSettings.mutate({ plateFields: { [field.key]: checked } })
                     }
                   />
-                </div>
+                </SettingsRow>
               ))}
             </div>
           </>
         )}
-      </section>
+      </SettingsSection>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">QR code</h2>
-        <Label htmlFor="overlay-qr-url">Link to put on screen</Label>
-        <Input
-          id="overlay-qr-url"
-          type="url"
-          defaultValue={payload.qrUrl ?? ""}
-          placeholder="https://openrift.app/decks/share/…"
-          onBlur={(event) => {
-            const next = event.target.value.trim();
-            const current = payload.qrUrl ?? "";
-            if (next !== current) {
-              updateSettings.mutate({ qrUrl: next === "" ? null : next });
-            }
-          }}
-        />
-        <p className="text-muted-foreground text-sm">Any link. Leave empty to hide the code.</p>
-      </section>
+      <SettingsSection title="QR code">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="overlay-qr-url">Link to put on screen</Label>
+          <Input
+            id="overlay-qr-url"
+            type="url"
+            defaultValue={payload.qrUrl ?? ""}
+            placeholder="https://openrift.app/decks/share/…"
+            onBlur={(event) => {
+              const next = event.target.value.trim();
+              const current = payload.qrUrl ?? "";
+              if (next !== current) {
+                updateSettings.mutate({ qrUrl: next === "" ? null : next });
+              }
+            }}
+          />
+          <p className="text-muted-foreground text-sm">Any link. Leave empty to hide the code.</p>
+        </div>
+      </SettingsSection>
 
       <OverlayPresetsSection channel={channel} />
     </div>

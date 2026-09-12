@@ -260,8 +260,9 @@ function counterValue(label: string): string {
 }
 
 function deckTiles(): HTMLElement[] {
-  const grid = screen.getByRole("heading", { name: "Archived decklists" })
-    .parentElement as HTMLElement;
+  const grid = screen
+    .getByRole("heading", { name: "Archived decklists" })
+    .closest("section") as HTMLElement;
   return within(grid).getAllByRole("listitem");
 }
 
@@ -297,7 +298,7 @@ describe("MetaLegendPage", () => {
 
     expect(screen.queryByText("Pilot p6")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 8 finishes" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 8" }));
 
     expect(screen.getAllByText("Pilot p6").length).toBeGreaterThan(0);
   });
@@ -309,7 +310,7 @@ describe("MetaLegendPage", () => {
     captured.nextPages = [[finish(26, null, "late", "event-late")]];
     renderPage({ finishes: first, total: 26 });
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 26 finishes" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 26" }));
     expect(screen.queryByText("Pilot late")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "1 more finish" }));
@@ -345,7 +346,7 @@ describe("MetaLegendPage", () => {
     renderPage({ decks, counts: { wins: 0, finishes: 12, decklists: 12 } });
 
     expect(deckTiles()).toHaveLength(8);
-    await userEvent.click(screen.getByRole("button", { name: "Show all 12 decklists" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 12" }));
 
     expect(captured.deckQueries.at(-1)).not.toHaveProperty("limit", 8);
     expect(deckTiles()).toHaveLength(12);
@@ -358,7 +359,7 @@ describe("MetaLegendPage", () => {
       counts: { wins: 0, finishes: 9, decklists: 9 },
     });
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all 9 decklists" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 9" }));
 
     expect(deckTiles()).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /Show all/u })).not.toBeInTheDocument();
@@ -427,7 +428,7 @@ describe("MetaLegendPage", () => {
       finish(index + 1, null, `p${String(index)}`, `event-${String(index)}`),
     );
     const page = renderPage({ finishes: rows, total: 8 });
-    await userEvent.click(screen.getByRole("button", { name: "Show all 8 finishes" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show all 8" }));
     expect(screen.getAllByRole("listitem")).toHaveLength(8);
 
     page.navigateTo({ era: "all", formats: [], tiers: ["competitive"] });

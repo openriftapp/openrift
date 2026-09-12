@@ -3,16 +3,12 @@ import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Eyebrow } from "@/components/heading";
+import { SettingsRow } from "@/components/layout/settings-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Select,
   SelectContent,
@@ -300,9 +296,9 @@ export function SiteSettingsPage() {
       />
 
       {missingKnown.length > 0 && (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Eyebrow className="mb-0">Available settings</Eyebrow>
-          <div className="divide-border divide-y rounded-md border">
+          <RowList>
             {missingKnown.map((known) => (
               <KnownSettingRow
                 key={known.key}
@@ -316,12 +312,12 @@ export function SiteSettingsPage() {
                 }
               />
             ))}
-          </div>
+          </RowList>
         </div>
       )}
 
-      <div>
-        <Eyebrow>Analytics (this browser)</Eyebrow>
+      <div className="flex flex-col gap-2">
+        <Eyebrow className="mb-0">Analytics (this browser)</Eyebrow>
         <AnalyticsExclusionPanel />
       </div>
     </div>
@@ -352,22 +348,18 @@ function AnalyticsExclusionPanel() {
   }
 
   return (
-    <Field orientation="horizontal" className="rounded-md border px-4 py-3">
-      <FieldContent>
-        <FieldLabel htmlFor="umami-exclude" className="cursor-pointer">
-          Exclude this browser from Umami analytics
-        </FieldLabel>
-        <FieldDescription>
-          Disables Umami tracking in this browser. Clear site data to reset.
-        </FieldDescription>
-      </FieldContent>
+    <SettingsRow
+      label="Exclude this browser from Umami analytics"
+      htmlFor="umami-exclude"
+      description="Disables Umami tracking in this browser. Clear site data to reset."
+    >
       <Switch
         id="umami-exclude"
         checked={excluded}
         disabled={!hydrated}
         onCheckedChange={handleToggle}
       />
-    </Field>
+    </SettingsRow>
   );
 }
 
@@ -418,7 +410,7 @@ function KnownSettingRow({
   }
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3">
+    <RowListItem className="gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground font-mono text-sm">{known.key}</span>
@@ -433,10 +425,11 @@ function KnownSettingRow({
           <Button
             variant="ghost"
             size="sm"
+            className="-mr-2.5"
             onClick={() => void handleCreateOn()}
             disabled={pending}
           >
-            <PlusIcon className="mr-1 size-3.5" />
+            <PlusIcon className="size-3.5" />
             Set up
           </Button>
           {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
@@ -465,11 +458,11 @@ function KnownSettingRow({
           {saveError && <FieldError className="text-xs">{saveError}</FieldError>}
         </div>
       ) : (
-        <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-          <PlusIcon className="mr-1 size-3.5" />
+        <Button variant="ghost" size="sm" className="-mr-2.5" onClick={() => setEditing(true)}>
+          <PlusIcon className="size-3.5" />
           Set up
         </Button>
       )}
-    </div>
+    </RowListItem>
   );
 }

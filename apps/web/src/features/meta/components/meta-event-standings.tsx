@@ -242,7 +242,11 @@ export function MetaEventStandings({
         )}
 
         {matching.length === 0 ? (
-          <p className="text-muted-foreground py-6 text-center text-sm">No entries match.</p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyDescription>No entries match.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <>
             <DesktopStandings {...body} />

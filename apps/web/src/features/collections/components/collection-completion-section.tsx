@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
 
 import { CardIcon } from "@/components/card-icon";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
@@ -31,7 +32,7 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
   const percent = totalAll > 0 ? (totalOwned / totalAll) * 100 : 0;
 
   return (
-    <div className="bg-muted/50 -mx-2 flex items-center gap-3 rounded-md px-2 py-1.5">
+    <div className="mb-4 flex items-center gap-3 py-1.5">
       <span className="flex w-36 shrink-0 items-center text-sm font-semibold sm:w-48">Overall</span>
       <ProgressPrimitive.Root value={Math.min(percent, 100)} className="flex-1">
         <ProgressTrack className="h-1.5">
@@ -182,7 +183,9 @@ export function CompletionSection({
       <CompletionTotalRow entries={entries} />
 
       {mainEntries.length === 0 && supplementalEntries.length === 0 ? (
-        <p className="text-muted-foreground py-4 text-center text-sm">No data</p>
+        <Empty>
+          <EmptyDescription>No data</EmptyDescription>
+        </Empty>
       ) : (
         <>
           <div>
@@ -197,8 +200,8 @@ export function CompletionSection({
             ))}
           </div>
           {supplementalEntries.length > 0 && (
-            <div className="mt-3">
-              <SectionHeading as="h3" className="mb-1">
+            <div className="mt-8">
+              <SectionHeading as="h3" className="mb-2">
                 Supplemental
               </SectionHeading>
               {supplementalEntries.map((entry) => (

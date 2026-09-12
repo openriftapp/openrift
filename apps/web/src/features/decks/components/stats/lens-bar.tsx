@@ -1,4 +1,5 @@
 import { Pressable } from "@/components/ui/pressable";
+import { ChartHeading } from "@/features/decks/components/stats/chart-heading";
 import type { LensRow, LensSeries } from "@/features/decks/lib/deck-stat-lenses";
 import { cn } from "@/lib/utils";
 
@@ -43,11 +44,7 @@ export function LensBar({
 
   return (
     <div>
-      {title !== undefined && (
-        <div className="mb-1 flex items-center text-xs">
-          <h4 className="font-medium">{title}</h4>
-        </div>
-      )}
+      {title !== undefined && <ChartHeading title={title} />}
       <div className="bg-muted flex h-2.5 w-full overflow-hidden rounded-full">
         {rows
           .filter((row) => row.total > 0)

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Slider } from "@/components/ui/slider";
 import type { FilterPanelContentProps } from "@/features/cards/components/filter-panel-content";
+import { LabelledRow } from "@/features/cards/components/labelled-row";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { compactFormatterForMarketplace } from "@/lib/format";
@@ -278,10 +279,7 @@ function RangeFilterSection({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <p className={cn("text-muted-foreground w-18 text-xs font-medium", labelClassName)}>
-        {label}
-      </p>
+    <LabelledRow label={label} labelClassName={labelClassName}>
       <div className="flex flex-1 items-center gap-1">
         <span
           className={cn(
@@ -322,6 +320,6 @@ function RangeFilterSection({
           {renderValue(displayMax)}
         </span>
       </div>
-    </div>
+    </LabelledRow>
   );
 }

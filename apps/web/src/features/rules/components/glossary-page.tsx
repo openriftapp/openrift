@@ -89,14 +89,14 @@ export function GlossaryPage() {
       <div className="flex gap-6">
         <PageToc items={TOC_ITEMS} />
         <div className="min-w-0 flex-1 space-y-12">
-          <section>
+          <section className="space-y-10">
             <GroupHeading id="game-vocabulary" title="Game vocabulary" />
             <DomainsSection domains={domains} query={query} />
             <CardTypesSection types={cardTypes} query={query} />
             <KeywordsSection keywords={keywordRows} query={query} />
             <SymbolsSection query={query} />
           </section>
-          <section>
+          <section className="space-y-10">
             <GroupHeading id="printing-variants" title="Printing variants" />
             <RaritiesSection rarities={rarities} query={query} />
             <BoosterPacksSection query={query} />
@@ -105,7 +105,7 @@ export function GlossaryPage() {
             <MarkersSection markers={markers} query={query} />
             <PrintingDetailsSection query={query} />
           </section>
-          <section>
+          <section className="space-y-10">
             <GroupHeading id="sets-and-numbering" title="Sets and numbering" />
             <SetsSection sets={sets} query={query} />
             <NumberingSection query={query} />

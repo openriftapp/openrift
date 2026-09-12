@@ -15,7 +15,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { CardRow } from "@/components/ui/card-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -82,7 +82,7 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
       : `${loan.quantity}× ${cardName}`;
 
   return (
-    <Card className="gap-2 p-2 sm:flex-row sm:items-center sm:gap-3">
+    <CardRow className="flex-col items-stretch justify-start gap-2 sm:flex-row sm:items-center sm:gap-3">
       <div className="flex min-w-0 items-center gap-3 sm:contents">
         <CardArtThumb
           shape="strip"
@@ -221,7 +221,7 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
           }
         />
       ) : null}
-    </Card>
+    </CardRow>
   );
 }
 
@@ -266,13 +266,13 @@ function LoanGroup({ heading, loans }: { heading: string; loans: LoanResponse[] 
     return null;
   }
   return (
-    <section className="space-y-2">
+    <section className="flex flex-col gap-3">
       <SectionHeading>{heading}</SectionHeading>
-      <div className="space-y-2">
+      <ul className="flex flex-col gap-2">
         {loans.map((loan) => (
           <LoanRow key={loan.id} loan={loan} />
         ))}
-      </div>
+      </ul>
     </section>
   );
 }
@@ -309,7 +309,7 @@ export function LoansPage() {
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "space-y-6 px-4 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
         <PageDescription>
           Cards you&apos;ve lent to friends and cards you&apos;re borrowing.
         </PageDescription>
@@ -339,10 +339,12 @@ export function LoansPage() {
                 History
               </SectionHeading>
             </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-2 pt-2">
-              {history.map((loan) => (
-                <LoanRow key={loan.id} loan={loan} />
-              ))}
+            <CollapsibleContent className="pt-2">
+              <ul className="flex flex-col gap-2">
+                {history.map((loan) => (
+                  <LoanRow key={loan.id} loan={loan} />
+                ))}
+              </ul>
             </CollapsibleContent>
           </Collapsible>
         ) : null}

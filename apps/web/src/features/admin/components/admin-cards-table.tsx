@@ -554,7 +554,7 @@ export function AdminCardsTable({
       rowClassName={(row) => (row.card.cardSlug === null ? "border-violet border-l-2" : undefined)}
       actions={<RowActions />}
       toolbar={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <DebouncedSearchInput
             urlValue={globalFilter}
             onCommit={commitQuery}
