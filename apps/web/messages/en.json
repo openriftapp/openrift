@@ -2244,7 +2244,7 @@
   "decks_overview_borrowed_hint": "Copies you're borrowing from friends. They count as buildable while you have them, but they aren't part of your collection.",
   "decks_overview_box_copy_hint": "The copy this row stands for",
   "decks_overview_box_graded": "graded {grade}",
-  "decks_overview_box_graded_hint": "This copy is graded — swap it for a plain one if you'd rather keep it in the binder",
+  "decks_overview_box_graded_hint": "This copy is graded — swap it for a plain one if you'd rather keep it in the binder.",
   "decks_overview_box_in": "in",
   "decks_overview_box_intro": "Tick cards off as you put them in the box. Each tick moves that copy into this deck's collection. A red tick marks a card the deck doesn't want, and clearing it sends that copy to your inbox.",
   "decks_overview_box_keep_other": "Keep a different copy of {card}",

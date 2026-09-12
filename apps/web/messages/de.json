@@ -504,7 +504,7 @@
   "unsubscribe_confirm_body": "{channel} nicht mehr erhalten? Du kannst das jederzeit in deinem OpenRift-Profil wieder einschalten.",
   "unsubscribe_error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
   "unsubscribe_submitting": "Wird abgemeldet…",
-  "unsubscribe_submit": "Abmelden",
+  "unsubscribe_submit": "Abbestellen",
   "unsubscribe_keep": "Abo behalten",
   "unsubscribe_go_home": "Zu OpenRift",
   "common_retry": "Erneut versuchen",
