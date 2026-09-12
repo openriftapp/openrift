@@ -70,6 +70,6 @@ The card data is maintained by a single person with help from contributors. Wher
 
 ## Review
 
-New contributors translate in suggestion mode: your work is queued, not published. A reviewer for your language approves it, and the string ships with the next deploy. If you want to review for a language you speak natively, ask in a Weblate comment or on [Discord](https://discord.gg/Qb6RcjXq6z).
+New contributors translate in suggestion mode: your work is queued, not published. A reviewer for your language approves it, and the string ships with the next deploy. Approved strings reach the repository as `chore(l10n)` commits from Weblate; interface punctuation uses the ellipsis character (…) and never an em dash, and Weblate flags both. If you want to review for a language you speak natively, ask in a Weblate comment or on [Discord](https://discord.gg/Qb6RcjXq6z).
 
 Machine translation is available in the editor as a starting point. It is a starting point. A suggestion that is visibly untouched machine output gets rejected, because the whole reason for a human translator is the part the machine gets wrong.

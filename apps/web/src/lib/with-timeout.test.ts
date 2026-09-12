@@ -29,7 +29,7 @@ describe("withTimeout", () => {
 
     const result = withTimeout(never, { label: "Loading collection", timeoutMs: 3000 });
     const assertion = expect(result).rejects.toThrow(
-      "Loading collection timed out after 3s — check your connection",
+      "Loading collection timed out after 3s. Check your connection.",
     );
     await vi.advanceTimersByTimeAsync(3000);
 
@@ -42,7 +42,7 @@ describe("withTimeout", () => {
 
     const result = withTimeout(never, { label: "load" });
     const assertion = expect(result).rejects.toThrow(
-      "load timed out after 5s — check your connection",
+      "load timed out after 5s. Check your connection.",
     );
     await vi.advanceTimersByTimeAsync(5000);
 

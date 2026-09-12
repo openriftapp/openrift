@@ -99,7 +99,7 @@ describe("GenerateRoundControls", () => {
     renderControls();
 
     await user.click(screen.getByRole("button", { name: "Sit players out" }));
-    await user.type(screen.getByPlaceholderText("Search players..."), "Cait");
+    await user.type(screen.getByPlaceholderText("Search players…"), "Cait");
     await user.click(await screen.findByRole("option", { name: /Caitlyn/u }));
 
     expect(screen.getByRole("button", { name: "Sitting out 1" })).toBeInTheDocument();

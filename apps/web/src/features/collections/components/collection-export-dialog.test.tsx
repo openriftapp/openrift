@@ -100,7 +100,7 @@ describe("CollectionExportDialog", () => {
     queryResult = { data: [], isReady: false };
     setup();
 
-    expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Loading…" })).toBeDisabled();
   });
 
   it("disables Export when the collection has no copies", () => {

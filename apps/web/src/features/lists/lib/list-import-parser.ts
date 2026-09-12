@@ -35,9 +35,7 @@ export function parseCardListText(text: string): ListImportParseResult {
     const rawQuantity = match?.[1];
     const rawName = match?.[2];
     if (rawQuantity === undefined || rawName === undefined) {
-      errors.push(
-        `Line ${index + 1}: couldn't read "${line}" — expected "<quantity> <card name>".`,
-      );
+      errors.push(`Line ${index + 1}: couldn't read "${line}", expected "<quantity> <card name>".`);
       continue;
     }
 

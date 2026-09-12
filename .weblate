@@ -1,0 +1,5 @@
+[weblate]
+url = https://hosted.weblate.org/
+
+[keys]
+translation = openrift/web-app

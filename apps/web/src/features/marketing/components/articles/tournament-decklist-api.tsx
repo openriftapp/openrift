@@ -128,28 +128,34 @@ export default function TournamentDecklistApiArticle() {
         </pre>
         <ul className="text-muted-foreground mt-3 space-y-2">
           <li>
-            <Code>tournamentId</Code> {m.help_tournament_api_field_tournament_id()}
+            <Code>tournamentId</Code>
+            {m.help_tournament_api_field_tournament_id()}
           </li>
           <li>
-            <Code>externalId</Code> {m.help_tournament_api_field_external_id_before()}{" "}
-            <Code>openrift:</Code> {m.help_tournament_api_field_external_id_after()}
+            <Code>externalId</Code>
+            {m.help_tournament_api_field_external_id_before()} <Code>openrift:</Code>
+            {m.help_tournament_api_field_external_id_after()}
           </li>
           <li>
-            <Code>playerName</Code> {m.help_tournament_api_field_player_name_before()}{" "}
-            <Code>riotId</Code> {m.help_tournament_api_field_player_name_mid()}{" "}
-            <Code>submittedAt</Code> {m.help_tournament_api_field_player_name_after()}
+            <Code>playerName</Code>
+            {m.help_tournament_api_field_player_name_before()} <Code>riotId</Code>
+            {m.help_tournament_api_field_player_name_mid()} <Code>submittedAt</Code>
+            {m.help_tournament_api_field_player_name_after()}
           </li>
           <li>
             <Code>allowDeckPublishing</Code>, <Code>allowNameSharing</Code>,{" "}
-            <Code>allowRiotIdSharing</Code> {m.help_tournament_api_field_consent_before()}{" "}
-            <Code>false</Code> {m.help_tournament_api_field_consent_after()}
+            <Code>allowRiotIdSharing</Code>
+            {m.help_tournament_api_field_consent_before()} <Code>false</Code>
+            {m.help_tournament_api_field_consent_after()}
           </li>
           <li>
-            <Code>withdrawn</Code> {m.help_tournament_api_field_withdrawn_before()}{" "}
-            <Code>true</Code> {m.help_tournament_api_field_withdrawn_after()}
+            <Code>withdrawn</Code>
+            {m.help_tournament_api_field_withdrawn_before()} <Code>true</Code>
+            {m.help_tournament_api_field_withdrawn_after()}
           </li>
           <li>
-            <Code>cards</Code> {m.help_tournament_api_field_cards()}
+            <Code>cards</Code>
+            {m.help_tournament_api_field_cards()}
           </li>
         </ul>
         <p className="text-muted-foreground mt-3">

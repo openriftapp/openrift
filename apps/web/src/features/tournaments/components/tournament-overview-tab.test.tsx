@@ -561,7 +561,7 @@ describe("TournamentOverviewTab", () => {
 
       const tile = screen.getByRole("link", { name: /My deck/u });
       expect(within(tile).getByText("Not submitted")).toBeInTheDocument();
-      expect(within(tile).getByText(/send it in for review/u)).toBeInTheDocument();
+      expect(within(tile).getByText(/send it in for review/iu)).toBeInTheDocument();
     });
 
     it("stops nagging about an unsubmitted deck once the window shuts", () => {

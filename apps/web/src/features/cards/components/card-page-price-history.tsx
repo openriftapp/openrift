@@ -110,7 +110,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Heading level={2}>
-          {m.card_detail_price_history_title()} — {formatPublicCode(printing)}
+          {m.card_detail_price_history_title()} · {formatPublicCode(printing)}
           {printing.finish !== WellKnown.finish.NORMAL &&
             ` ${enumLabel(labels.finishes, printing.finish)}`}
           {printing.markers.length > 0 &&

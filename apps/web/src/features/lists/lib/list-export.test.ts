@@ -388,9 +388,9 @@ describe("formatListShareText", () => {
       currency: "USD",
       ctPriceFor: (printingId) => (printingId === "p-e2" ? 4.5 : undefined),
     });
-    expect(output).toContain("1x Teemo, Scout · OGN-001 — $2.50");
-    expect(output).toContain("1x Jinx, Rebel · OGN-002 — $4.50");
+    expect(output).toContain("1x Teemo, Scout · OGN-001 · $2.50");
+    expect(output).toContain("1x Jinx, Rebel · OGN-002 · $4.50");
     expect(output).toContain("1x Cleave · OGN-003");
-    expect(output).not.toContain("OGN-003 —");
+    expect(output).not.toContain("OGN-003 ·");
   });
 });

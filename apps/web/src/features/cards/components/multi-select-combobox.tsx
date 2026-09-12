@@ -212,7 +212,7 @@ export function MultiSelectCombobox({
     if (!option) {
       return decodeId(id).value;
     }
-    return option.prefix ? `${option.prefix} — ${option.label}` : option.label;
+    return option.prefix ? `${option.prefix} · ${option.label}` : option.label;
   };
   const summarise = (section: Section, values: readonly string[]) =>
     values.length === 1

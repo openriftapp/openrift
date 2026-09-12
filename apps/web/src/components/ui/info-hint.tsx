@@ -42,7 +42,7 @@ export function InfoHint({
   side?: "top" | "bottom" | "left" | "right";
 }) {
   const coarsePointer = useCoarsePointer();
-  const triggerLabel = `${label} — what's this?`;
+  const triggerLabel = `${label}: what's this?`;
   const icon = <InfoIcon className={cn("size-3.5", className)} />;
 
   if (coarsePointer) {

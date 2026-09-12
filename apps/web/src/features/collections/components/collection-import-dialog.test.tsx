@@ -49,7 +49,7 @@ describe("CollectionImportDialog", () => {
     setup();
 
     await user.type(
-      screen.getByPlaceholderText("Paste CSV data or a plain text list here..."),
+      screen.getByPlaceholderText("Paste CSV data or a plain text list here…"),
       "1 Yasuo",
     );
 
@@ -61,7 +61,7 @@ describe("CollectionImportDialog", () => {
     const { onOpenChange } = setup({ collectionId: "col-1" });
 
     await user.type(
-      screen.getByPlaceholderText("Paste CSV data or a plain text list here..."),
+      screen.getByPlaceholderText("Paste CSV data or a plain text list here…"),
       "1 Yasuo",
     );
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -79,7 +79,7 @@ describe("CollectionImportDialog", () => {
     setup();
 
     await user.type(
-      screen.getByPlaceholderText("Paste CSV data or a plain text list here..."),
+      screen.getByPlaceholderText("Paste CSV data or a plain text list here…"),
       "1 Yasuo",
     );
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -112,7 +112,7 @@ describe("CollectionImportDialog", () => {
     );
     rerender(<CollectionImportDialog collectionId={undefined} open onOpenChange={vi.fn()} />);
 
-    expect(screen.getByPlaceholderText("Paste CSV data or a plain text list here...")).toHaveValue(
+    expect(screen.getByPlaceholderText("Paste CSV data or a plain text list here…")).toHaveValue(
       "",
     );
   });

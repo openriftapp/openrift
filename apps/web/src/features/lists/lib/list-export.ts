@@ -108,7 +108,7 @@ function tradePriceText(entry: ListEntryDetailResponse, pricing: SharePricing): 
   if (value === undefined) {
     return "";
   }
-  return ` — ${pricing.currency === "EUR" ? formatPriceEur(value) : formatPrice(value)}`;
+  return ` · ${pricing.currency === "EUR" ? formatPriceEur(value) : formatPrice(value)}`;
 }
 
 export function formatListShareText(
