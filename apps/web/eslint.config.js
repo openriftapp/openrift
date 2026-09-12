@@ -8,6 +8,7 @@ export default defineConfig(
     // generated dirs and flags their eslint-disable comments as unused under --max-warnings=0.
     ignores: [
       "src/routeTree.gen.ts",
+      "src/paraglide/",
       ".output/",
       ".tanstack/",
       ".sonda/",
