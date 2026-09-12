@@ -11,6 +11,7 @@ import type {
 import { revealedRows } from "@/features/stage/lib/tier-list-presentation";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function TierStageMain({
   rows,
@@ -95,7 +96,7 @@ export function TierStageMain({
           focusCardId={focusCardId}
           spotlight={!reveal}
           onCardClick={handleCardClick}
-          emptyRowLabel={reveal ? "" : "Nothing here"}
+          emptyRowLabel={reveal ? "" : m.tier_lists_stage_empty_row()}
           // Rows are drawn on a translucent card colour; on a chroma ground
           // they'd key out with the background without the plate.
           className={cn("w-full max-w-5xl", plate)}

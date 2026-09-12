@@ -10,6 +10,7 @@ import type {
   MetaDeckSubmissionKind,
   MetaSubmissionCompleteness,
 } from "@/features/meta/lib/meta-submission-copy";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Every field is held as a string while it is being edited. Its bounds
@@ -222,32 +223,32 @@ export function validateMetaSubmissionDraft(
 ): string | null {
   const playerName = draft.playerName.trim();
   if (playerName.length === 0 || playerName.length > 80) {
-    return "Enter the player's name (80 characters or fewer).";
+    return m.meta_validate_player_name();
   }
   const rank = draft.rank.trim();
   if (!WHOLE_NUMBER_PATTERN.test(rank) || Number(rank) < 1) {
-    return "Enter where the player finished, as a number.";
+    return m.meta_validate_rank();
   }
   if (!isRecordPart(draft.wins) || !isRecordPart(draft.losses) || !isRecordPart(draft.draws)) {
-    return "A match record is whole numbers of wins, losses, and draws.";
+    return m.meta_validate_record_parts();
   }
   // The archive derives "5-1" from the two, so one without the other would
   // display as nothing and quietly lose what was typed.
   if ((draft.wins.trim() === "") !== (draft.losses.trim() === "")) {
-    return "A match record needs both wins and losses, or neither.";
+    return m.meta_validate_record_pair();
   }
   if (draft.note.trim().length > 2000) {
-    return "The note must be 2000 characters or fewer.";
+    return m.meta_validate_note_length();
   }
   // A correction disputes what the archive already holds, so the reviewer needs to be told what's wrong with it.
   if (draft.kind === "correction" && draft.note.trim().length === 0) {
-    return "Say what's wrong with the list we have, and where the right one came from.";
+    return m.meta_validate_correction_note();
   }
   if (options.cardCount === 0) {
-    return "Paste the decklist before sending.";
+    return m.meta_validate_paste_decklist();
   }
   if (options.cardCount > 200) {
-    return "That is more than 200 different lines. Send the deck without its sideboard.";
+    return m.meta_validate_too_many_lines();
   }
   if (!options.proposing) {
     return null;
@@ -255,24 +256,24 @@ export function validateMetaSubmissionDraft(
 
   const eventName = draft.eventName.trim();
   if (eventName.length === 0 || eventName.length > 120) {
-    return "Enter the tournament's name (120 characters or fewer).";
+    return m.meta_validate_event_name();
   }
   if (!ISO_DATE_PATTERN.test(draft.eventDate.trim())) {
-    return "Pick the day the tournament was played.";
+    return m.meta_validate_event_date();
   }
   if (draft.eventFormat.trim().length === 0) {
-    return "Pick the format that was played.";
+    return m.meta_validate_event_format();
   }
   const players = draft.eventPlayerCount.trim();
   if (players.length > 0 && (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1)) {
-    return "The number of players must be a whole number of at least 1.";
+    return m.meta_validate_player_count();
   }
   if (draft.eventOrganizer.trim().length > 120) {
-    return "The organizer must be 120 characters or fewer.";
+    return m.meta_validate_organizer();
   }
   const sourceUrl = draft.eventSourceUrl.trim();
   if (sourceUrl.length > 2000) {
-    return "The results link must be 2000 characters or fewer.";
+    return m.meta_validate_source_url();
   }
   return null;
 }

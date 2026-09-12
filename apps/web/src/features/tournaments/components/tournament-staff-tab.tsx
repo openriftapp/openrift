@@ -55,27 +55,50 @@ import {
   useSetTournamentStaffInvite,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffCandidates } from "@/features/tournaments/hooks/use-tournaments";
-import { isTournamentHost, STAFF_ROLE_LABEL } from "@/features/tournaments/lib/tournament-display";
+import { isTournamentHost, staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
-const ROLE_ITEMS: { value: TournamentStaffRole; label: string }[] = [
-  { value: "organizer", label: "Organizer" },
-  { value: "judge", label: "Judge" },
-];
+function roleItems(): { value: TournamentStaffRole; label: string }[] {
+  const labels = staffRoleLabels();
+  return [
+    { value: "organizer", label: labels.organizer },
+    { value: "judge", label: labels.judge },
+  ];
+}
 
-const ORG_ROLE_LABEL: Record<"owner" | "manager" | "judge", string> = {
-  owner: "Owner",
-  manager: "Manager",
-  judge: "Judge",
-};
+function orgRoleLabels(): Record<"owner" | "manager" | "judge", string> {
+  return {
+    owner: m.tournaments_staff_org_role_owner(),
+    manager: m.tournaments_staff_org_role_manager(),
+    judge: m.tournaments_lib_staff_role_judge(),
+  };
+}
 
-const ROLE_SECTION: Record<
+function roleSections(): Record<
   TournamentStaffRole,
-  { heading: string; icon: ComponentType<SVGProps<SVGSVGElement>>; empty: string }
-> = {
-  organizer: { heading: "Organizers", icon: ShieldIcon, empty: "No organizers yet" },
-  judge: { heading: "Judges", icon: GavelIcon, empty: "No judges yet" },
-};
+  {
+    heading: string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    empty: string;
+    emptyHint: string;
+  }
+> {
+  return {
+    organizer: {
+      heading: m.tournaments_staff_organizers_heading(),
+      icon: ShieldIcon,
+      empty: m.tournaments_staff_empty_organizers(),
+      emptyHint: m.tournaments_staff_empty_hint_organizer(),
+    },
+    judge: {
+      heading: m.tournaments_staff_judges_heading(),
+      icon: GavelIcon,
+      empty: m.tournaments_staff_empty_judges(),
+      emptyHint: m.tournaments_staff_empty_hint_judge(),
+    },
+  };
+}
 
 export function TournamentStaffTab({ detail }: { detail: TournamentDetailResponse }) {
   const host = isTournamentHost(detail.myRoles);
@@ -87,16 +110,15 @@ export function TournamentStaffTab({ detail }: { detail: TournamentDetailRespons
 
       {detail.host.type === "organization" && detail.host.orgId ? (
         <p className="text-muted-foreground text-sm">
-          Owners and managers of{" "}
+          {m.tournaments_staff_org_note_prefix()}
           <Link
             to="/organizations/$id"
             params={{ id: detail.host.orgId }}
             className="font-medium underline"
           >
             {detail.host.displayName}
-          </Link>{" "}
-          are staff automatically and cannot be removed here. Manage who has that access on the
-          organization page.
+          </Link>
+          {m.tournaments_staff_org_note_suffix()}
         </p>
       ) : null}
 
@@ -114,7 +136,7 @@ function StaffRoleSection({
   staffRole: TournamentStaffRole;
   host: boolean;
 }) {
-  const section = ROLE_SECTION[staffRole];
+  const section = roleSections()[staffRole];
   const members = detail.staff.filter((member) => member.role === staffRole);
 
   return (
@@ -128,11 +150,7 @@ function StaffRoleSection({
             </EmptyMedia>
             <EmptyDescription>
               {section.empty}
-              {host
-                ? ` — add someone directly, or share the ${STAFF_ROLE_LABEL[
-                    staffRole
-                  ].toLowerCase()} invite link below.`
-                : "."}
+              {host ? section.emptyHint : "."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -181,16 +199,25 @@ function StaffRow({
           <Badge
             variant="subtle"
             className="shrink-0"
-            title={`${ORG_ROLE_LABEL[member.orgRole]} of ${detail.host.displayName}`}
+            title={m.tournaments_staff_org_role_title({
+              role: orgRoleLabels()[member.orgRole],
+              org: detail.host.displayName,
+            })}
           >
-            via org
+            {m.tournaments_staff_via_org()}
           </Badge>
         ) : null}
       </span>
       {canRemove ? (
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<Button size="icon-sm" variant="ghost" aria-label="Staff actions" />}
+            render={
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label={m.tournaments_staff_actions_aria()}
+              />
+            }
           >
             <EllipsisVerticalIcon className="size-4" />
           </DropdownMenuTrigger>
@@ -201,7 +228,7 @@ function StaffRow({
               onClick={() => void handleRemove()}
             >
               <Trash2Icon className="size-4" />
-              Remove
+              {m.tournaments_roster_remove()}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -221,9 +248,9 @@ function StaffInviteBand({ detail }: { detail: TournamentDetailResponse }) {
   return (
     <ActionBand
       icon={LinkIcon}
-      label="Invite links"
+      label={m.tournaments_staff_invite_links_label()}
       value={activeCount}
-      sub="active · anyone with the link can claim the role"
+      sub={m.tournaments_staff_invite_links_sub()}
     >
       <div className="flex flex-col gap-2">
         <StaffInviteRow id={detail.id} staffRole="organizer" token={detail.organizerInviteToken} />
@@ -244,8 +271,8 @@ function StaffInviteRow({
 }) {
   const setInvite = useSetTournamentStaffInvite();
   const [disableOpen, setDisableOpen] = useState(false);
-  const roleLabel = STAFF_ROLE_LABEL[staffRole];
-  const roleNoun = staffRole === "judge" ? "a judge" : "an organizer";
+  const judge = staffRole === "judge";
+  const roleLabel = staffRoleLabels()[staffRole];
   const url = token ? `${getSiteUrl()}/tournaments/staff-invite/${token}` : null;
 
   async function run(enabled: boolean) {
@@ -269,15 +296,21 @@ function StaffInviteRow({
         </Badge>
         {url ? null : (
           <>
-            <span className="text-muted-foreground text-xs">No link yet</span>
+            <span className="text-muted-foreground text-xs">
+              {m.tournaments_staff_no_link_yet()}
+            </span>
             <Button
               size="sm"
               className="ml-auto"
-              aria-label={`Create link for ${roleLabel.toLowerCase()}`}
+              aria-label={
+                judge
+                  ? m.tournaments_staff_create_link_aria_judge()
+                  : m.tournaments_staff_create_link_aria_organizer()
+              }
               disabled={setInvite.isPending}
               onClick={() => void run(true)}
             >
-              Create link
+              {m.tournaments_staff_create_link()}
             </Button>
           </>
         )}
@@ -286,26 +319,38 @@ function StaffInviteRow({
         <>
           <ShareLinkRow
             url={url}
-            label={`${roleLabel} invite link`}
+            label={m.tournaments_staff_invite_link_label({ role: roleLabel })}
             actions={
               <Button
                 variant="ghost"
                 className="text-destructive"
-                aria-label={`Disable ${roleLabel.toLowerCase()} invite link`}
+                aria-label={
+                  judge
+                    ? m.tournaments_staff_disable_aria_judge()
+                    : m.tournaments_staff_disable_aria_organizer()
+                }
                 disabled={setInvite.isPending}
                 onClick={() => setDisableOpen(true)}
               >
-                Disable
+                {m.tournaments_staff_disable()}
               </Button>
             }
           />
           <ConfirmActionDialog
             open={disableOpen}
             onOpenChange={setDisableOpen}
-            title={`Disable the ${roleLabel.toLowerCase()} link?`}
-            description={`Anyone you've shared it with can no longer use it to become ${roleNoun}. You can create a link again any time, and it will be a different one.`}
-            confirmLabel="Disable link"
-            pendingLabel="Disabling..."
+            title={
+              judge
+                ? m.tournaments_staff_disable_title_judge()
+                : m.tournaments_staff_disable_title_organizer()
+            }
+            description={
+              judge
+                ? m.tournaments_staff_disable_description_judge()
+                : m.tournaments_staff_disable_description_organizer()
+            }
+            confirmLabel={m.tournaments_staff_disable_link()}
+            pendingLabel={m.tournaments_staff_disabling()}
             isPending={setInvite.isPending}
             onConfirm={() => void handleDisable()}
           />
@@ -322,7 +367,7 @@ export function TournamentStaffAddButton({ tournamentId }: { tournamentId: strin
     <>
       <PageTopBarPrimaryButton onClick={() => setAddOpen(true)}>
         <PlusIcon />
-        Add staff
+        {m.tournaments_staff_add()}
       </PageTopBarPrimaryButton>
       <AddStaffDialog tournamentId={tournamentId} open={addOpen} onOpenChange={setAddOpen} />
     </>
@@ -346,8 +391,8 @@ function AddStaffDialog({
 
   const items = (candidates?.items ?? []).map((candidate) => ({
     value: candidate.userId,
-    label: `${candidate.name ?? "Unnamed player"}${
-      candidate.source === "participant" ? " · participant" : ""
+    label: `${candidate.name ?? m.tournaments_staff_candidate_unnamed()}${
+      candidate.source === "participant" ? m.tournaments_staff_candidate_participant_suffix() : ""
     }`,
   }));
 
@@ -376,48 +421,46 @@ function AddStaffDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleAdd()}>
           <DialogHeader>
-            <DialogTitle>Add staff</DialogTitle>
-            <DialogDescription>
-              To add someone who isn&apos;t listed, share a staff invite link instead.
-            </DialogDescription>
+            <DialogTitle>{m.tournaments_staff_add()}</DialogTitle>
+            <DialogDescription>{m.tournaments_staff_add_description()}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>Role</Label>
+              <Label>{m.tournaments_staff_role_label()}</Label>
               <Select
-                items={ROLE_ITEMS}
+                items={roleItems()}
                 value={role}
                 onValueChange={(value) => value && setRole(value as TournamentStaffRole)}
               >
-                <SelectTrigger aria-label="Role">
-                  <SelectValue placeholder="Choose a role" />
+                <SelectTrigger aria-label={m.tournaments_staff_role_label()}>
+                  <SelectValue placeholder={m.tournaments_staff_role_placeholder()} />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_ITEMS.map((item) => (
+                  {roleItems().map((item) => (
                     <SelectItem key={item.value} value={item.value}>
                       {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-muted-foreground text-sm">
-                Organizers manage the event. Judges run deck check.
-              </p>
+              <p className="text-muted-foreground text-sm">{m.tournaments_staff_role_hint()}</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Person</Label>
+              <Label>{m.tournaments_staff_person_label()}</Label>
               {isLoading ? (
-                <p className="text-muted-foreground text-sm">Loading…</p>
+                <p className="text-muted-foreground text-sm">{m.tournaments_staff_loading()}</p>
               ) : items.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No one to add yet.</p>
+                <p className="text-muted-foreground text-sm">
+                  {m.tournaments_staff_no_candidates()}
+                </p>
               ) : (
                 <Select
                   items={items}
                   value={userId}
                   onValueChange={(value) => value && setUserId(value)}
                 >
-                  <SelectTrigger aria-label="Person">
-                    <SelectValue placeholder="Choose a person" />
+                  <SelectTrigger aria-label={m.tournaments_staff_person_label()}>
+                    <SelectValue placeholder={m.tournaments_staff_person_placeholder()} />
                   </SelectTrigger>
                   <SelectContent>
                     {items.map((item) => (
@@ -432,10 +475,10 @@ function AddStaffDialog({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={!userId || addStaff.isPending}>
-              Add
+              {m.tournaments_roster_add()}
             </Button>
           </DialogFooter>
         </DialogForm>

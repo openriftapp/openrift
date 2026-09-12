@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { cardSearchLeading } from "@/features/cards/components/printing-option-content";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { m } from "@/paraglide/messages.js";
 
 export interface LegendTarget {
   participantId: string;
@@ -39,19 +40,23 @@ export function LegendPickerDialog({
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Set Legend for {target?.name}</DialogTitle>
+          <DialogTitle>
+            {m.tournaments_legend_picker_title({ name: target?.name ?? "" })}
+          </DialogTitle>
           <DialogDescription>
             The Legend this player brings. It shows in the standings and the participant list.
           </DialogDescription>
         </DialogHeader>
         {target ? (
-          <Suspense fallback={<Input placeholder="Loading cards…" disabled />}>
+          <Suspense
+            fallback={<Input placeholder={m.tournaments_legend_picker_loading()} disabled />}
+          >
             <LegendSearch onPick={(legendCardId) => onPick(target.participantId, legendCardId)} />
           </Suspense>
         ) : null}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           {target?.legendName ? (
             <Button
@@ -59,7 +64,7 @@ export function LegendPickerDialog({
               disabled={pending}
               onClick={() => onPick(target.participantId, null)}
             >
-              Clear Legend
+              {m.tournaments_legend_picker_clear()}
             </Button>
           ) : null}
         </DialogFooter>
@@ -77,9 +82,9 @@ function LegendSearch({ onPick }: { onPick: (legendCardId: string) => void }) {
       results={results}
       onSearch={setSearch}
       onSelect={onPick}
-      placeholder="Search Legends…"
+      placeholder={m.tournaments_legend_picker_search()}
       className="w-full"
-      emptyMessage="No matching Legends"
+      emptyMessage={m.tournaments_legend_picker_empty()}
       // oxlint-disable-next-line jsx-a11y/no-autofocus -- the dialog opens onto this single field
       autoFocus
     />

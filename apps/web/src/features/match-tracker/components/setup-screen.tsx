@@ -21,7 +21,7 @@ import {
   teamMemberCounts,
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
-import { TEAM_LABELS } from "@/features/tournaments/lib/match-teams";
+import { teamLabels } from "@/features/tournaments/lib/match-teams";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -60,7 +60,7 @@ function TeamToggle({
           value={String(option)}
           aria-label={m.tracker_setup_put_on_team({
             player: playerName,
-            team: TEAM_LABELS[option],
+            team: teamLabels()[option],
           })}
           className="w-9"
         >

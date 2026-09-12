@@ -106,9 +106,9 @@ export function MetaCreditSection() {
                   className="mt-1"
                 />
                 <label htmlFor={radioId} className="cursor-pointer">
-                  <span className="block">{metaCreditVisibilityLabels[option]}</span>
+                  <span className="block">{metaCreditVisibilityLabels()[option]}</span>
                   <span className="text-muted-foreground block text-sm">
-                    {metaCreditVisibilityHints[option]}
+                    {metaCreditVisibilityHints()[option]}
                   </span>
                 </label>
               </div>

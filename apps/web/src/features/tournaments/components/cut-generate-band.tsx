@@ -9,9 +9,10 @@ import { useState } from "react";
 import { ActionBand } from "@/components/ui/action-band";
 import { Button } from "@/components/ui/button";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
-import { cutRoundLabel } from "@/features/tournaments/lib/group-cut-display";
+import { cutRoundGenerateLabel, cutRoundLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupUnits, waitingUnitsLabel } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 import { LegendMetaSharesDialog } from "./legend-meta-shares-dialog";
 
@@ -30,16 +31,16 @@ export function NextCutRoundBand({
     <ActionBand
       icon={TrophyIcon}
       accent
-      label="Bracket"
+      label={m.tournaments_cut_band_bracket()}
       value={label}
       valueClassName="font-sans text-base font-medium"
-      sub="winners of the last round"
+      sub={m.tournaments_cut_band_bracket_sub()}
       action={
         <Button
           disabled={generateRound.isPending}
           onClick={() => void runReportedMutation(() => generateRound.mutateAsync({ id }))}
         >
-          Generate {label.toLowerCase()}
+          {cutRoundGenerateLabel(cutSize, nextRoundNumber)}
         </Button>
       }
     />
@@ -71,30 +72,38 @@ export function CutGenerateBand({
       <ActionBand
         icon={TrophyIcon}
         accent={!blocked}
-        label="Top cut"
+        label={m.tournaments_cut_band_top_cut()}
         value={cutSize}
-        sub={waiting ? `waiting for ${waiting}` : "qualifiers seeded from the group standings"}
+        sub={
+          waiting
+            ? m.tournaments_cut_band_waiting_for({ units: waiting })
+            : m.tournaments_cut_band_seeded_sub()
+        }
         action={
           <span className="flex items-center gap-2">
             {needsShares && staff ? (
               <Button variant="outline" onClick={() => setSharesOpen(true)}>
-                Enter meta shares
+                {m.tournaments_cut_enter_meta_shares()}
               </Button>
             ) : null}
             <Button
               disabled={blocked || generateRound.isPending}
               onClick={() => void runReportedMutation(() => generateRound.mutateAsync({ id }))}
             >
-              Generate top {cutSize}
+              {m.tournaments_cut_generate_top({ size: cutSize })}
             </Button>
           </span>
         }
       >
         {needsShares ? (
           <p className="text-muted-foreground text-sm">
-            Enter meta shares first. A tie in the group standings needs the meta share of{" "}
-            {groupStage.pendingMetaShares.length} Legend
-            {groupStage.pendingMetaShares.length === 1 ? "" : "s"} before the seeds can be locked.
+            {groupStage.pendingMetaShares.length === 1
+              ? m.tournaments_cut_meta_shares_needed_one({
+                  count: groupStage.pendingMetaShares.length,
+                })
+              : m.tournaments_cut_meta_shares_needed_other({
+                  count: groupStage.pendingMetaShares.length,
+                })}
           </p>
         ) : null}
       </ActionBand>

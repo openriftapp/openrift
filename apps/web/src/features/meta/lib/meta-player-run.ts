@@ -6,6 +6,7 @@ import type {
 } from "@openrift/shared/types/api/meta";
 
 import { isSingleElimination } from "@/features/meta/lib/meta-bracket";
+import { m } from "@/paraglide/messages.js";
 
 export type MetaRoundOutcome = "win" | "loss" | "draw" | "bye" | "unknown";
 
@@ -125,11 +126,14 @@ export function metaRunRecord(rounds: readonly MetaPlayerRound[]): MetaRunRecord
   return record;
 }
 
-const CUT_ROUND_LABELS = ["Final", "Semifinal", "Quarterfinal"];
-
 export function metaCutRoundLabel(roundNumber: number, lastRoundNumber: number): string {
   const fromEnd = lastRoundNumber - roundNumber;
-  return CUT_ROUND_LABELS[fromEnd] ?? `Top ${2 ** (fromEnd + 1)}`;
+  const labels = [
+    m.meta_bracket_round_final(),
+    m.meta_bracket_round_semifinal(),
+    m.meta_bracket_round_quarterfinal(),
+  ];
+  return labels[fromEnd] ?? m.meta_bracket_top_n({ size: String(2 ** (fromEnd + 1)) });
 }
 
 // Two rows of one event can share a key when the source told same-named entrants

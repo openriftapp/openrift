@@ -15,6 +15,7 @@ import {
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function PlayerClaimPage({ token }: { token: string }) {
   const { data, isPending, isError } = useClaimLanding(token);
@@ -28,7 +29,7 @@ export function PlayerClaimPage({ token }: { token: string }) {
       <div>
         <PageTopBarSticky width="capped">
           <PageTopBar>
-            <PageTopBarTitle>Claim your spot</PageTopBarTitle>
+            <PageTopBarTitle>{m.tournaments_claim_page_title_loading()}</PageTopBarTitle>
           </PageTopBar>
         </PageTopBarSticky>
         <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4", PAGE_PADDING)}>
@@ -44,8 +45,8 @@ export function PlayerClaimPage({ token }: { token: string }) {
       <EmptyState
         className="py-12"
         icon={LinkIcon}
-        title="This claim link is not valid"
-        description="Ask the organizer for a current one."
+        title={m.tournaments_claim_invalid_title()}
+        description={m.tournaments_claim_invalid_description()}
       />
     );
   }
@@ -75,7 +76,7 @@ export function PlayerClaimPage({ token }: { token: string }) {
     <div>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Claim your deck</PageTopBarTitle>
+          <PageTopBarTitle>{m.tournaments_claim_page_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-4", PAGE_PADDING)}>
@@ -101,26 +102,19 @@ export function PlayerClaimPage({ token }: { token: string }) {
               ) : null}
             </div>
             <p className="text-sm">
-              Your spot: <span className="font-medium">{data.participantName}</span>
+              {m.tournaments_claim_your_spot_label()}{" "}
+              <span className="font-medium">{data.participantName}</span>
             </p>
           </CardContent>
         </Card>
 
         {outcome === "conflict" ? (
-          <p className="text-muted-foreground">
-            This spot is already linked to another account. If that was not you, contact the
-            organizer.
-          </p>
+          <p className="text-muted-foreground">{m.tournaments_claim_conflict()}</p>
         ) : outcome === "blocked" ? (
-          <p className="text-muted-foreground">
-            A judge detached this spot. Contact a judge to get it linked again.
-          </p>
+          <p className="text-muted-foreground">{m.tournaments_claim_blocked()}</p>
         ) : outcome === "duplicate" ? (
           <div className="flex flex-col gap-3">
-            <p className="text-muted-foreground">
-              Your account already holds a different spot in this tournament. If that&apos;s a
-              mistake, contact the organizer.
-            </p>
+            <p className="text-muted-foreground">{m.tournaments_claim_duplicate()}</p>
             {claim.data?.tournamentId ? (
               <div>
                 <Button
@@ -131,7 +125,9 @@ export function PlayerClaimPage({ token }: { token: string }) {
                     />
                   }
                 >
-                  {claim.data.entryId ? "Go to your deck" : "Go to the tournament"}
+                  {claim.data.entryId
+                    ? m.tournaments_claim_go_to_deck()
+                    : m.tournaments_claim_go_to_tournament()}
                 </Button>
               </div>
             ) : null}
@@ -140,18 +136,22 @@ export function PlayerClaimPage({ token }: { token: string }) {
           <>
             <p className="text-muted-foreground">
               {data.deckSubmission === "none"
-                ? "Link this spot to your OpenRift account to follow this tournament and its standings any time."
-                : "Link this spot to your OpenRift account to hand in your decklist and follow this tournament any time."}
-              {userId ? "" : " You will sign in or create an account first."}
+                ? m.tournaments_claim_link_no_deck()
+                : m.tournaments_claim_link_with_deck()}
+              {userId ? "" : m.tournaments_claim_sign_in_note()}
             </p>
             <div>
               <Button onClick={() => void onConfirm()} disabled={claim.isPending}>
-                {claim.isPending ? "Claiming..." : userId ? "Claim this spot" : "Sign in to claim"}
+                {claim.isPending
+                  ? m.tournaments_claim_claiming()
+                  : userId
+                    ? m.tournaments_claim_claim_spot()
+                    : m.tournaments_claim_sign_in_to_claim()}
               </Button>
             </div>
             {claim.isError ? (
               <Alert variant="destructive">
-                <AlertDescription>Something went wrong. Please try again.</AlertDescription>
+                <AlertDescription>{m.tournaments_claim_error()}</AlertDescription>
               </Alert>
             ) : null}
           </>

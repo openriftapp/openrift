@@ -7,6 +7,7 @@ import type { MetaEra, MetaScope, ScopeFacetDefaults } from "@/features/meta/lib
 import { isScopeCustomized } from "@/features/meta/lib/meta-scope";
 import { scopeMatches } from "@/features/meta/lib/meta-scope-match";
 import { normalizeCountryCode } from "@/lib/country";
+import { m } from "@/paraglide/messages.js";
 
 const DEFAULT_DECK_TIERS: readonly string[] = ["premier", "competitive"];
 
@@ -33,12 +34,14 @@ export interface MetaDeckFilterContext {
   costs?: ReadonlyMap<string, MetaDeckCost>;
 }
 
-export const META_FINISH_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: "Winner" },
-  { value: 4, label: "Top 4" },
-  { value: 8, label: "Top 8" },
-  { value: 16, label: "Top 16" },
-];
+export function metaFinishOptions(): { value: number; label: string }[] {
+  return [
+    { value: 1, label: m.meta_finish_winner() },
+    { value: 4, label: m.meta_finish_top_4() },
+    { value: 8, label: m.meta_finish_top_8() },
+    { value: 16, label: m.meta_finish_top_16() },
+  ];
+}
 
 type MetaDeckFilterAxis = "scope" | "events" | "legends" | "finish" | "cost" | "value";
 
@@ -171,18 +174,20 @@ export function nextDeckSort(
   return { sort: column, direction: column === "date" ? "desc" : "asc" };
 }
 
-export const META_DECK_SORT_PRESETS: {
+export function metaDeckSortPresets(): {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
   label: string;
-}[] = [
-  { sort: "date", direction: "desc", label: "Newest first" },
-  { sort: "date", direction: "asc", label: "Oldest first" },
-  { sort: "finish", direction: "asc", label: "Best finish" },
-  { sort: "cost", direction: "asc", label: "Cheapest to complete" },
-  { sort: "value", direction: "asc", label: "Lowest value" },
-  { sort: "value", direction: "desc", label: "Highest value" },
-];
+}[] {
+  return [
+    { sort: "date", direction: "desc", label: m.meta_sort_newest_first() },
+    { sort: "date", direction: "asc", label: m.meta_sort_oldest_first() },
+    { sort: "finish", direction: "asc", label: m.meta_sort_best_finish() },
+    { sort: "cost", direction: "asc", label: m.meta_sort_cheapest() },
+    { sort: "value", direction: "asc", label: m.meta_sort_lowest_value() },
+    { sort: "value", direction: "desc", label: m.meta_sort_highest_value() },
+  ];
+}
 
 // Curated after filtering, like the grid, or a count would promise decks the grid folds away.
 function shownWithoutAxis(
@@ -232,7 +237,7 @@ export function metaDeckFilterCounts(
     }
   }
   for (const deck of shownWithout("finish")) {
-    for (const option of META_FINISH_OPTIONS) {
+    for (const option of metaFinishOptions()) {
       if (deck.rank <= option.value) {
         bump(counts.finish, option.value);
       }

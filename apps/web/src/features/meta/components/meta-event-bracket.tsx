@@ -16,6 +16,7 @@ import type {
 } from "@/features/meta/lib/meta-bracket";
 import { metaEventBracket } from "@/features/meta/lib/meta-bracket";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const FINAL_GLOW = accentGlow(12);
 
@@ -29,7 +30,11 @@ function SeatName({
   player: MetaEventPlayer | undefined;
 }) {
   if (player === undefined) {
-    return <span className={SEAT_NAME_CLASS}>{seat.playerId === null ? "Bye" : "Unknown"}</span>;
+    return (
+      <span className={SEAT_NAME_CLASS}>
+        {seat.playerId === null ? m.meta_bracket_bye() : m.meta_bracket_unknown()}
+      </span>
+    );
   }
   return (
     <MetaPlayerName

@@ -49,8 +49,25 @@ import { TierListShareDialog } from "@/features/stage/components/tier-list-share
 import { useDeleteTierList, useTierLists } from "@/features/stage/hooks/use-tier-lists";
 import { resolveTierRows } from "@/features/stage/lib/tier-list-presentation";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const PREVIEW_TILE_WIDTH = 40;
+
+function tierListSummary(tierList: TierListSummaryResponse): string {
+  const params = {
+    cards: tierList.cardCount,
+    tiers: tierList.tierCount,
+    date: formatDay(tierList.updatedAt),
+  };
+  if (tierList.cardCount === 1) {
+    return tierList.tierCount === 1
+      ? m.tier_lists_row_summary_one_one(params)
+      : m.tier_lists_row_summary_one_other(params);
+  }
+  return tierList.tierCount === 1
+    ? m.tier_lists_row_summary_other_one(params)
+    : m.tier_lists_row_summary_other_other(params);
+}
 
 export function TierListIndexPage() {
   const { data: tierLists } = useTierLists();
@@ -60,38 +77,35 @@ export function TierListIndexPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Tier lists</PageTopBarTitle>
+          <PageTopBarTitle>{m.tier_lists_page_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
               <PlusIcon />
-              New tier list
+              {m.tier_lists_new()}
             </PageTopBarPrimaryButton>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING, "flex flex-col gap-4 pt-3 pb-6")}>
-        <PageDescription>
-          Rank a set, then share the link or drop the exported image into a video.
-        </PageDescription>
+        <PageDescription>{m.tier_lists_page_description()}</PageDescription>
 
         {tierLists.length === 0 ? (
           <EmptyState
             icon={LayersIcon}
-            title="No tier lists yet"
+            title={m.tier_lists_empty_title()}
             description={
               <>
-                Stack cards into rows you name yourself, then share the board as a link, download it
-                as an image, or rank it live on stream.{" "}
+                {m.tier_lists_empty_description()}{" "}
                 <TextLink render={<Link to="/help/$slug" params={{ slug: "tier-lists" }} />}>
-                  Learn how tier lists work.
+                  {m.tier_lists_empty_learn_more()}
                 </TextLink>
               </>
             }
           >
             <Button onClick={() => setCreateOpen(true)}>
               <PlusIcon />
-              New tier list
+              {m.tier_lists_new()}
             </Button>
           </EmptyState>
         ) : (
@@ -131,17 +145,19 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
             {tierList.title}
           </TextLink>
         </CardTitle>
-        <CardDescription>
-          {tierList.cardCount} {tierList.cardCount === 1 ? "card" : "cards"} across{" "}
-          {tierList.tierCount} {tierList.tierCount === 1 ? "tier" : "tiers"} · edited{" "}
-          {formatDay(tierList.updatedAt)}
-        </CardDescription>
+        <CardDescription>{tierListSummary(tierList)}</CardDescription>
         <CardAction className="flex items-center gap-2">
-          {tierList.isPublic && tierList.shareToken && <Badge variant="outline">Shared</Badge>}
+          {tierList.isPublic && tierList.shareToken && (
+            <Badge variant="outline">{m.tier_lists_badge_shared()}</Badge>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="ghost" size="icon-sm" aria-label={`${tierList.title} options`} />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={m.tier_lists_row_options_aria({ name: tierList.title })}
+                />
               }
             >
               <EllipsisVerticalIcon className="size-4" />
@@ -149,12 +165,12 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShareOpen(true)}>
                 <Share2Icon />
-                Share
+                {m.tier_lists_row_share()}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
                 <Trash2Icon />
-                Delete
+                {m.common_delete()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -192,20 +208,20 @@ function TierListRow({ tierList }: { tierList: TierListSummaryResponse }) {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this tier list?</AlertDialogTitle>
+            <AlertDialogTitle>{m.tier_lists_delete_title()}</AlertDialogTitle>
             <AlertDialogDescription>
-              {tierList.title} and its ranking are removed for good. Any share link stops working.
+              {m.tier_lists_delete_description({ name: tierList.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{m.tier_lists_delete_keep()}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 deleteTierList.mutate(tierList.id);
               }}
               disabled={deleteTierList.isPending}
             >
-              Delete
+              {m.common_delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

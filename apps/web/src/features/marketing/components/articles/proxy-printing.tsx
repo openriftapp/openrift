@@ -4,18 +4,15 @@ import { Eyebrow, Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Callout } from "@/components/ui/callout";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { m } from "@/paraglide/messages.js";
 
 export default function ProxyPrintingArticle() {
   return (
     <div className="space-y-8">
-      <p className="text-muted-foreground">
-        Proxy printing lets you generate a printable PDF of cards from any deck, perfect for
-        playtesting before you buy. Cards are laid out at standard size (63&times;88&nbsp;mm), nine
-        per page, ready to cut and sleeve.
-      </p>
+      <p className="text-muted-foreground">{m.help_proxy_printing_intro()}</p>
 
       <Callout>
-        <Eyebrow>PDF page layout</Eyebrow>
+        <Eyebrow>{m.help_proxy_printing_layout_eyebrow()}</Eyebrow>
         <div className="mx-auto grid max-w-xs grid-cols-3 gap-1.5">
           {Array.from({ length: 9 }, (_, index) => (
             <div
@@ -26,90 +23,74 @@ export default function ProxyPrintingArticle() {
             </div>
           ))}
         </div>
-        <p className="text-muted-foreground mt-4">
-          3&times;3 grid, 9 cards per page, centered on A4 or US Letter
-        </p>
+        <p className="text-muted-foreground mt-4">{m.help_proxy_printing_layout_caption()}</p>
       </Callout>
 
       <section>
-        <Heading className="mb-2">Getting started</Heading>
-        <p className="text-muted-foreground">There are two ways to open the proxy printing:</p>
+        <Heading className="mb-2">{m.help_proxy_printing_start_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_proxy_printing_start_intro()}</p>
         <div className="mt-3 space-y-2">
           <StepRow
             step={1}
-            title="From the deck editor"
-            description="Open a deck in the editor, open the three-dot menu in the top bar, and choose Print. Proxies are the first tab of the print dialog."
+            title={m.help_proxy_printing_step_editor_title()}
+            description={m.help_proxy_printing_step_editor_description()}
           />
           <StepRow
             step={2}
-            title="From the deck list"
-            description="On the Decks page, open the three-dot menu on any deck tile and choose Print."
+            title={m.help_proxy_printing_step_list_title()}
+            description={m.help_proxy_printing_step_list_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Export options</Heading>
+        <Heading className="mb-2">{m.help_proxy_printing_options_heading()}</Heading>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<ImageIcon className="size-4" />}
-            title="Render mode"
-            description="Card images shows the actual card art. Text placeholders shows a simplified card with name, stats, and rules text, which can be easier to read during playtesting."
+            title={m.help_proxy_printing_option_render_title()}
+            description={m.help_proxy_printing_option_render_description()}
           />
           <FeatureCard
             icon={<RulerIcon className="size-4" />}
-            title="Page size"
-            description="Choose A4 (210 × 297 mm) or US Letter (8.5 × 11 in). Cards are centered on the page regardless of size."
+            title={m.help_proxy_printing_option_page_title()}
+            description={m.help_proxy_printing_option_page_description()}
           />
           <FeatureCard
             icon={<ScissorsIcon className="size-4" />}
-            title="Cut lines"
-            description="Adds light gray lines along the edges of each card to guide you when cutting. Helpful if you're not using a paper cutter."
+            title={m.help_proxy_printing_option_cut_title()}
+            description={m.help_proxy_printing_option_cut_description()}
           />
           <FeatureCard
             icon={<ShieldCheckIcon className="size-4" />}
-            title="Proxy watermark"
-            description="Stamps each card with a small 'PROXY' badge so they can't be mistaken for real cards. Enabled by default."
+            title={m.help_proxy_printing_option_watermark_title()}
+            description={m.help_proxy_printing_option_watermark_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Generating the PDF</Heading>
+        <Heading className="mb-2">{m.help_proxy_printing_generate_heading()}</Heading>
         <p className="text-muted-foreground">
-          Click <strong className="text-foreground">Generate PDF</strong> to start. The dialog shows
-          a progress indicator as each unique card is rendered. Once all cards are ready,
-          they&apos;re assembled into a multi-page PDF and downloaded automatically.
+          {m.help_proxy_printing_generate_before()}{" "}
+          <strong className="text-foreground">{m.help_proxy_printing_generate_button()}</strong>{" "}
+          {m.help_proxy_printing_generate_after()}
         </p>
-        <p className="text-muted-foreground mt-2">
-          Cards with multiple copies in your deck appear the correct number of times in the PDF (a
-          3&times; card takes up three slots). Each unique card is only rendered once and then
-          reused, so even large decks generate quickly.
-        </p>
+        <p className="text-muted-foreground mt-2">{m.help_proxy_printing_generate_copies()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">Current limitations</Heading>
+        <Heading className="mb-2">{m.help_proxy_printing_limits_heading()}</Heading>
         <Alert>
           <InfoIcon className="text-primary" />
-          <AlertDescription>
-            Right now, proxy printing requires a deck. You can&apos;t yet print arbitrary cards from
-            your collection or a custom selection. The deck editor also picks a default printing for
-            each card, so you can&apos;t choose which specific art or edition appears on the proxy.
-            I&apos;m working on improving this so you can select concrete printings and print
-            proxies without needing a deck.
-          </AlertDescription>
+          <AlertDescription>{m.help_proxy_printing_limits_body()}</AlertDescription>
         </Alert>
       </section>
 
       <section>
-        <Heading className="mb-2">Printing</Heading>
-        <p className="text-muted-foreground">
-          Make sure scaling is set to 100% or &quot;Actual size&quot; in your print dialog,
-          otherwise the cards won&apos;t be standard size. After cutting, slip each proxy in front
-          of a basic card inside an opaque sleeve for the right weight and feel.
-        </p>
+        <Heading className="mb-2">{m.help_proxy_printing_printing_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_proxy_printing_printing_body()}</p>
       </section>
     </div>
   );

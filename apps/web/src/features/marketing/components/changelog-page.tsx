@@ -16,6 +16,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const changelogGroups = parseChangelog(changelogMd);
 
@@ -67,9 +68,11 @@ export function ChangelogPage() {
     <>
       <PageTopBarSticky ref={setBarEl} width="capped">
         <PageTopBar>
-          <PageTopBarTitle>What&apos;s new</PageTopBarTitle>
+          <PageTopBarTitle>{m.layout_header_whats_new()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarButton render={<Link to="/roadmap" />}>Roadmap</PageTopBarButton>
+            <PageTopBarButton render={<Link to="/roadmap" />}>
+              {m.marketing_changelog_roadmap()}
+            </PageTopBarButton>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -105,7 +108,9 @@ export function ChangelogPage() {
                   {group.highlights.length > 0 && (
                     <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-sm">
                       <ChevronRightIcon className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
-                      {group.other.length} more {group.other.length === 1 ? "change" : "changes"}
+                      {group.other.length === 1
+                        ? m.marketing_changelog_more_one({ count: group.other.length })
+                        : m.marketing_changelog_more_other({ count: group.other.length })}
                     </CollapsibleTrigger>
                   )}
                   <CollapsibleContent>

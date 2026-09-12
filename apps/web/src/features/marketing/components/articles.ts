@@ -19,6 +19,7 @@ import {
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled } from "@/lib/feature-flags";
 import type { HelpArticle } from "@/lib/help-article";
+import { m } from "@/paraglide/messages.js";
 
 export const helpArticles = new Map<string, HelpArticle>([
   [
@@ -187,6 +188,74 @@ export const helpArticles = new Map<string, HelpArticle>([
     },
   ],
 ]);
+
+const ARTICLE_LABELS: Record<string, () => { title: string; description: string }> = {
+  "why-openrift": () => ({
+    title: m.help_article_why_openrift_title(),
+    description: m.help_article_why_openrift_description(),
+  }),
+  "how-to-play": () => ({
+    title: m.help_article_how_to_play_title(),
+    description: m.help_article_how_to_play_description(),
+  }),
+  "cards-printings-copies": () => ({
+    title: m.help_article_cards_printings_copies_title(),
+    description: m.help_article_cards_printings_copies_description(),
+  }),
+  collections: () => ({
+    title: m.help_article_collections_title(),
+    description: m.help_article_collections_description(),
+  }),
+  "import-export": () => ({
+    title: m.help_article_import_export_title(),
+    description: m.help_article_import_export_description(),
+  }),
+  "browser-extension": () => ({
+    title: m.help_article_browser_extension_title(),
+    description: m.help_article_browser_extension_description(),
+  }),
+  lists: () => ({
+    title: m.help_article_lists_title(),
+    description: m.help_article_lists_description(),
+  }),
+  groups: () => ({
+    title: m.help_article_groups_title(),
+    description: m.help_article_groups_description(),
+  }),
+  "deck-building": () => ({
+    title: m.help_article_deck_building_title(),
+    description: m.help_article_deck_building_description(),
+  }),
+  "proxy-printing": () => ({
+    title: m.help_article_proxy_printing_title(),
+    description: m.help_article_proxy_printing_description(),
+  }),
+  "discord-bot": () => ({
+    title: m.help_article_discord_bot_title(),
+    description: m.help_article_discord_bot_description(),
+  }),
+  stage: () => ({
+    title: m.help_article_stage_title(),
+    description: m.help_article_stage_description(),
+  }),
+  "tier-lists": () => ({
+    title: m.help_article_tier_lists_title(),
+    description: m.help_article_tier_lists_description(),
+  }),
+  "chat-commands": () => ({
+    title: m.help_article_chat_commands_title(),
+    description: m.help_article_chat_commands_description(),
+  }),
+  "tournament-decklist-api": () => ({
+    title: m.help_article_tournament_decklist_api_title(),
+    description: m.help_article_tournament_decklist_api_description(),
+  }),
+};
+
+export function helpArticleLabels(article: HelpArticle): { title: string; description: string } {
+  const labels = ARTICLE_LABELS[article.slug];
+  return labels ? labels() : { title: article.title, description: article.description };
+}
 
 export const helpArticleList = [...helpArticles.values()];
 

@@ -11,6 +11,7 @@ import { MAX_CARD_SCALE, MIN_CARD_SCALE } from "@/features/cards/lib/card-scale"
 import { StagePresetSettings } from "@/features/stage/components/stage-preset-settings";
 import { StageTileSizeSlider } from "@/features/stage/components/stage-shell";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
+import { m } from "@/paraglide/messages.js";
 
 function StageToggleRow({
   id,
@@ -36,26 +37,28 @@ function StageToggleRow({
   );
 }
 
-const PLATE_FIELDS: { key: keyof OverlayPlateFields; label: string }[] = [
-  { key: "name", label: "Card name" },
-  { key: "code", label: "Set code and foil" },
-  { key: "stats", label: "Energy, power and might" },
-  { key: "rulesText", label: "Rules text" },
-  { key: "flavorText", label: "Flavor text" },
-];
+function plateFields(): { key: keyof OverlayPlateFields; label: string }[] {
+  return [
+    { key: "name", label: m.stage_plate_field_name() },
+    { key: "code", label: m.stage_plate_field_code() },
+    { key: "stats", label: m.stage_plate_field_stats() },
+    { key: "rulesText", label: m.stage_plate_field_rules_text() },
+    { key: "flavorText", label: m.stage_plate_field_flavor_text() },
+  ];
+}
 
 function PlateFieldSettings() {
-  const plateFields = usePresentationStore((state) => state.plateFields);
+  const plateFieldState = usePresentationStore((state) => state.plateFields);
   const togglePlateField = usePresentationStore((state) => state.togglePlateField);
 
   return (
     <div className="ml-4 flex flex-col gap-2">
-      {PLATE_FIELDS.map((field) => (
+      {plateFields().map((field) => (
         <StageToggleRow
           key={field.key}
           id={`stage-plate-${field.key}`}
           label={field.label}
-          checked={plateFields[field.key]}
+          checked={plateFieldState[field.key]}
           onToggle={() => togglePlateField(field.key)}
         />
       ))}
@@ -63,14 +66,18 @@ function PlateFieldSettings() {
   );
 }
 
-const GROUNDS: { value: StageGround; label: string }[] = [
-  { value: "black", label: "Black" },
-  { value: "green", label: "Green" },
-  { value: "magenta", label: "Magenta" },
-];
+const GROUND_VALUES: StageGround[] = ["black", "green", "magenta"];
+
+function grounds(): { value: StageGround; label: string }[] {
+  return [
+    { value: "black", label: m.stage_ground_black() },
+    { value: "green", label: m.stage_ground_green() },
+    { value: "magenta", label: m.stage_ground_magenta() },
+  ];
+}
 
 function isGround(value: unknown): value is StageGround {
-  return GROUNDS.some((option) => option.value === value);
+  return GROUND_VALUES.some((option) => option === value);
 }
 
 function GroundSettings() {
@@ -79,9 +86,9 @@ function GroundSettings() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Label>Ground</Label>
+      <Label>{m.stage_ground_label()}</Label>
       <ToggleGroup
-        aria-label="Ground"
+        aria-label={m.stage_ground_label()}
         variant="outline"
         value={[ground]}
         onValueChange={([next]) => {
@@ -91,7 +98,7 @@ function GroundSettings() {
         }}
         className="grid w-full grid-cols-3"
       >
-        {GROUNDS.map((option) => (
+        {grounds().map((option) => (
           <ToggleGroupItem key={option.value} value={option.value}>
             {option.label}
           </ToggleGroupItem>
@@ -121,28 +128,28 @@ function BoardSettings({ obs }: { obs?: StageObsControls }) {
     <>
       <StageToggleRow
         id="stage-board-mode"
-        label="Whole board"
+        label={m.stage_toggle_whole_board()}
         hotkey="B"
         checked={boardMode}
         onToggle={toggleBoard}
       />
       <StageToggleRow
         id="stage-show-rank"
-        label="Tier badge"
+        label={m.stage_toggle_tier_badge()}
         hotkey="K"
         checked={showRank}
         onToggle={toggleRank}
       />
       <StageToggleRow
         id="stage-reveal"
-        label="Fill as you go"
+        label={m.stage_toggle_fill_as_you_go()}
         hotkey="R"
         checked={reveal}
         onToggle={toggleReveal}
       />
       <StageToggleRow
         id="stage-direction"
-        label="Start at the bottom"
+        label={m.stage_toggle_start_at_bottom()}
         hotkey="D"
         checked={direction === "worst-first"}
         onToggle={toggleDirection}
@@ -151,7 +158,7 @@ function BoardSettings({ obs }: { obs?: StageObsControls }) {
       {handleObsToggle && (
         <StageToggleRow
           id="stage-obs-board"
-          label="Board on OBS"
+          label={m.stage_toggle_board_on_obs()}
           hotkey="O"
           checked={obs?.enabled === true}
           onToggle={handleObsToggle}
@@ -203,7 +210,7 @@ export function StageSettings({
   const editRow = handleEditToggle && (
     <StageToggleRow
       id="stage-edit"
-      label="Edit the board"
+      label={m.stage_toggle_edit_board()}
       hotkey="E"
       checked={editing}
       onToggle={handleEditToggle}
@@ -217,7 +224,7 @@ export function StageSettings({
         <StageTileSizeSlider />
         <StageToggleRow
           id="stage-show-help"
-          label="Key list"
+          label={m.stage_toggle_key_list()}
           hotkey="?"
           checked={showHelp}
           onToggle={toggleHelp}
@@ -237,7 +244,7 @@ export function StageSettings({
       {heroSwitchApplies && (
         <StageToggleRow
           id="stage-show-hero"
-          label="Current card"
+          label={m.stage_toggle_current_card()}
           hotkey="C"
           // A reveal always shows the hero, regardless of this switch.
           checked={showHero || reveal}
@@ -247,14 +254,14 @@ export function StageSettings({
       {cardOnStage && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="stage-card-size">Card size</Label>
+            <Label htmlFor="stage-card-size">{m.stage_card_size()}</Label>
             <span className="text-muted-foreground font-mono text-sm tabular-nums">
               {Math.round(cardScale * 100)}%
             </span>
           </div>
           <Slider
             id="stage-card-size"
-            aria-label="Card size"
+            aria-label={m.stage_card_size()}
             min={Math.round(MIN_CARD_SCALE * 100)}
             max={Math.round(MAX_CARD_SCALE * 100)}
             step={5}
@@ -265,7 +272,7 @@ export function StageSettings({
       )}
       <StageToggleRow
         id="stage-show-text"
-        label="Text panel"
+        label={m.stage_toggle_text_panel()}
         hotkey="T"
         checked={showText}
         onToggle={toggleText}
@@ -273,14 +280,14 @@ export function StageSettings({
       {showText && <PlateFieldSettings />}
       <StageToggleRow
         id="stage-show-strip"
-        label="Thumbnail strip"
+        label={m.stage_toggle_thumbnail_strip()}
         hotkey="F"
         checked={showStrip}
         onToggle={toggleStrip}
       />
       <StageToggleRow
         id="stage-show-help"
-        label="Key list"
+        label={m.stage_toggle_key_list()}
         hotkey="?"
         checked={showHelp}
         onToggle={toggleHelp}

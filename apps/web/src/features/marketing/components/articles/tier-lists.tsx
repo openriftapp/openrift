@@ -11,85 +11,75 @@ import {
 import { Heading } from "@/components/heading";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
+import { m } from "@/paraglide/messages.js";
 
 export default function TierListsArticle() {
   return (
     <div className="space-y-8">
-      <p className="text-muted-foreground">
-        A tier list stacks cards into rows you name yourself. Drag cards out of the catalog onto a
-        row, rearrange until the board looks right, then share it as a link, download it as an image
-        for a thumbnail, or put it on stream and rank live.
-      </p>
+      <p className="text-muted-foreground">{m.help_tier_lists_intro()}</p>
       <p>
         <TextLink className="font-medium" render={<Link to="/tier-lists" />}>
-          Open the tier list maker
+          {m.help_tier_lists_open_link()}
         </TextLink>
       </p>
 
       <section>
-        <Heading className="mb-2">Build the board</Heading>
-        <p className="text-muted-foreground">
-          A new list opens on an empty board with five rows, S to D, purely as a starting point. The
-          card pool beside it is the full catalog with the whole filter bar, so narrowing to one
-          set, or to Legends, is a filter like any other.
-        </p>
+        <Heading className="mb-2">{m.help_tier_lists_build_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_tier_lists_build_intro()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<GripVerticalIcon className="size-4" />}
-            title="Drag cards onto a tier"
-            description="Drag from the pool onto a row, and between rows to re-rank. Cards can be reordered within a row too, so the left end of a tier can mean the strongest."
+            title={m.help_tier_lists_card_drag_title()}
+            description={m.help_tier_lists_card_drag_description()}
           />
           <FeatureCard
             icon={<PencilIcon className="size-4" />}
-            title="Rename and reorder tiers"
-            description="Rows are not fixed to S through D. Rename them, move them, add rows, or remove ones you don't need."
+            title={m.help_tier_lists_card_rename_title()}
+            description={m.help_tier_lists_card_rename_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Save, share, and export</Heading>
+        <Heading className="mb-2">{m.help_tier_lists_share_heading()}</Heading>
         <p className="text-muted-foreground">
-          The board is only stored when you press Save, and an unsaved board shows an{" "}
-          <span className="font-medium">Unsaved changes</span> badge next to the title. Sharing is
-          opt-in: until you turn it on, the list has no share link at all.
+          {m.help_tier_lists_share_intro_before()}{" "}
+          <span className="font-medium">{m.help_tier_lists_share_intro_badge()}</span>{" "}
+          {m.help_tier_lists_share_intro_after()}
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<Link2Icon className="size-4" />}
-            title="Share link"
-            description="Turn sharing on and the list gets a link anyone can open, no account needed. Pasting it into a video description, Discord, or a chat shows a preview image of the board."
+            title={m.help_tier_lists_card_share_title()}
+            description={m.help_tier_lists_card_share_description()}
           />
           <FeatureCard
             icon={<ImageDownIcon className="size-4" />}
-            title="Download as an image"
-            description="The same board as a picture, for a thumbnail or a slide. It is drawn from the saved version, so save before you download."
+            title={m.help_tier_lists_card_download_title()}
+            description={m.help_tier_lists_card_download_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Put it on stream</Heading>
-        <p className="text-muted-foreground">
-          Both routes onto the Stage read the saved board, so they stay disabled while a draft is
-          unsaved.
-        </p>
+        <Heading className="mb-2">{m.help_tier_lists_stream_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_tier_lists_stream_intro()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<MonitorPlayIcon className="size-4" />}
-            title="Present"
-            description="Opens the finished board on the Stage, ready for a full-screen show or the OBS overlay."
+            title={m.help_tier_lists_card_present_title()}
+            description={m.help_tier_lists_card_present_description()}
           />
           <FeatureCard
             icon={<ListOrderedIcon className="size-4" />}
-            title="Rank live on stage"
-            description="Starts from an empty board and fills it in as you talk through it, with the overlay updating for viewers as each card lands."
+            title={m.help_tier_lists_card_live_title()}
+            description={m.help_tier_lists_card_live_description()}
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          Setting up the browser source is covered in{" "}
+          {m.help_tier_lists_stage_link_before()}{" "}
           <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
-            Stage &amp; OBS Overlay
+            {m.help_tier_lists_stage_link_label()}
           </TextLink>
           .
         </p>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { cornerClip } from "./clip-frame";
 import type { FeatureChapter } from "./features-chapters";
@@ -122,7 +123,7 @@ export function FeaturesRail({ chapters }: { chapters: FeatureChapter[] }) {
 
   return (
     <nav
-      aria-label="Chapters"
+      aria-label={m.marketing_nav_chapters_label()}
       className="bg-background/80 fixed top-1/2 right-3 z-40 hidden -translate-y-1/2 flex-col py-1 backdrop-blur-lg xl:flex"
     >
       {chapters.map((chapter) => {
@@ -178,7 +179,7 @@ export function FeaturesChipNav({ chapters }: { chapters: FeatureChapter[] }) {
       style={{ top: `calc(var(--header-height) - 1px + ${topBarHeight}px)` }}
     >
       <nav
-        aria-label="Chapters"
+        aria-label={m.marketing_nav_chapters_label()}
         ref={setScroller}
         className={cn(
           PAGE_WIDTH.capped,

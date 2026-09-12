@@ -1,3 +1,4 @@
+import type { TournamentStaffRole } from "@openrift/shared/types/api/tournament";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -8,19 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignedOutAuthButtons } from "@/features/account/components/signed-out-cta";
 import { useClaimStaffInvite } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useTournamentStaffInviteLanding } from "@/features/tournaments/hooks/use-tournaments";
-import { STAFF_ROLE_LABEL } from "@/features/tournaments/lib/tournament-display";
+import { staffRoleLabels } from "@/features/tournaments/lib/tournament-display";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function StaffInviteAction({
   alreadyStaff,
-  roleLabel,
+  role,
   signedIn,
   pending,
   onConfirm,
 }: {
   alreadyStaff: boolean;
-  roleLabel: string;
+  role: TournamentStaffRole;
   signedIn: boolean;
   pending: boolean;
   onConfirm: () => void;
@@ -28,24 +30,26 @@ function StaffInviteAction({
   if (!signedIn) {
     return (
       <>
-        <p className="text-muted-foreground text-sm">
-          Sign in to accept. Nothing is granted until you confirm.
-        </p>
-        <SignedOutAuthButtons signInLabel="Sign in to accept" />
+        <p className="text-muted-foreground text-sm">{m.tournaments_staff_invite_signin_hint()}</p>
+        <SignedOutAuthButtons signInLabel={m.tournaments_staff_invite_signin_label()} />
       </>
     );
   }
   if (alreadyStaff) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <CheckIcon className="size-4" /> You&apos;re already {roleLabel.toLowerCase()} for this
-        event.
+        <CheckIcon className="size-4" />{" "}
+        {role === "judge"
+          ? m.tournaments_staff_invite_already_judge()
+          : m.tournaments_staff_invite_already_organizer()}
       </div>
     );
   }
   return (
     <Button onClick={onConfirm} disabled={pending}>
-      Accept and become {roleLabel.toLowerCase()}
+      {role === "judge"
+        ? m.tournaments_staff_invite_accept_judge()
+        : m.tournaments_staff_invite_accept_organizer()}
     </Button>
   );
 }
@@ -56,10 +60,13 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
   const claim = useClaimStaffInvite();
   const navigate = useNavigate();
   const userId = useUserId();
-  const roleLabel = STAFF_ROLE_LABEL[data.role];
+  const roleLabel = staffRoleLabels()[data.role];
 
   async function handleConfirm() {
-    const successMessage = `You're now ${roleLabel === "Judge" ? "a judge" : "an organizer"}`;
+    const successMessage =
+      data.role === "judge"
+        ? m.tournaments_staff_invite_success_judge()
+        : m.tournaments_staff_invite_success_organizer();
     try {
       const result = await claim.mutateAsync(token);
       toast.success(successMessage);
@@ -73,7 +80,7 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Staff invite</PageTopBarTitle>
+          <PageTopBarTitle>{m.tournaments_staff_invite_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
@@ -83,19 +90,20 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-muted-foreground">
-              Hosted by {data.hostDisplayName}. You&apos;ve been invited to help as{" "}
-              <span className="text-foreground font-medium">{roleLabel}</span>.
+              {m.tournaments_staff_invite_hosted_prefix({ host: data.hostDisplayName })}
+              <span className="text-foreground font-medium">{roleLabel}</span>
+              {m.tournaments_staff_invite_hosted_suffix()}
             </p>
             <StaffInviteAction
               alreadyStaff={data.alreadyStaff}
-              roleLabel={roleLabel}
+              role={data.role}
               signedIn={Boolean(userId)}
               pending={claim.isPending}
               onConfirm={() => void handleConfirm()}
             />
             {userId ? (
               <Button variant="ghost" render={<Link to="/tournaments" />} className="w-fit">
-                Go to my tournaments
+                {m.tournaments_staff_invite_go_to_tournaments()}
               </Button>
             ) : null}
           </CardContent>

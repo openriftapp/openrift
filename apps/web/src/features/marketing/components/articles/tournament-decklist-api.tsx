@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { m } from "@/paraglide/messages.js";
 
 const EXAMPLE_REQUEST = `POST /api/v1/ingest/deck-check
 Authorization: Bearer orpk_your-key-here
@@ -51,218 +52,184 @@ const EXAMPLE_RESPONSE = `{
   ]
 }`;
 
-const ERROR_ROWS = [
-  ["400", "The body is not valid JSON or doesn't match the payload shape."],
-  ["401", "The API key is missing, unknown, or revoked."],
-  [
-    "404",
-    "No tournament with that id belongs to the key's host, or the tournament has deck submission turned off.",
-  ],
-  ["409", "The tournament is archived. Un-archive it before pushing."],
-  ["413", "The body is larger than 1 MB."],
-  [
-    "422",
-    "A card uses an unknown section, or an external id starts with the reserved “openrift:” prefix. Nothing from the push is imported.",
-  ],
-  ["429", "More than 60 pushes in a minute with this key. Wait and retry."],
-] as const;
+function errorRows(): { status: string; meaning: string }[] {
+  return [
+    { status: "400", meaning: m.help_tournament_api_error_400() },
+    { status: "401", meaning: m.help_tournament_api_error_401() },
+    { status: "404", meaning: m.help_tournament_api_error_404() },
+    { status: "409", meaning: m.help_tournament_api_error_409() },
+    { status: "413", meaning: m.help_tournament_api_error_413() },
+    { status: "422", meaning: m.help_tournament_api_error_422() },
+    { status: "429", meaning: m.help_tournament_api_error_429() },
+  ];
+}
 
 export default function TournamentDecklistApiArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        If players register for your tournament on your own website or in your own tool, OpenRift
-        can receive their decklists over an API. Judges then check the physical decks against the
-        submitted lists on the tournament&apos;s{" "}
-        <strong className="text-foreground">Deck check</strong> tab, with full card images, and
-        every player gets a personal link to view their own submitted deck. This article is for
-        organizers and the developers wiring a registration system up.
+        {m.help_tournament_api_intro_before()}{" "}
+        <strong className="text-foreground">{m.help_tournament_api_intro_tab()}</strong>{" "}
+        {m.help_tournament_api_intro_after()}
       </p>
 
       <section>
-        <Heading className="mb-2">How it fits together</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_flow_heading()}</Heading>
         <ol className="text-muted-foreground list-inside list-decimal space-y-2">
           <li>
-            <strong className="text-foreground">Create the tournament in OpenRift</strong> with deck
-            submission enabled. The API can never create tournaments, it only fills existing ones
-            with decklists.
+            <strong className="text-foreground">{m.help_tournament_api_flow_1_strong()}</strong>{" "}
+            {m.help_tournament_api_flow_1_rest()}
           </li>
           <li>
-            <strong className="text-foreground">Create an API key</strong> for whoever hosts the
-            tournament: you, or your organization.
+            <strong className="text-foreground">{m.help_tournament_api_flow_2_strong()}</strong>{" "}
+            {m.help_tournament_api_flow_2_rest()}
           </li>
           <li>
-            <strong className="text-foreground">Push entries</strong> from your system, one at a
-            time as registrations arrive or the whole field at once. Both work the same way.
+            <strong className="text-foreground">{m.help_tournament_api_flow_3_strong()}</strong>{" "}
+            {m.help_tournament_api_flow_3_rest()}
           </li>
           <li>
-            <strong className="text-foreground">Judges check decks</strong> on the tournament&apos;s
-            Deck check tab as usual.
+            <strong className="text-foreground">{m.help_tournament_api_flow_4_strong()}</strong>{" "}
+            {m.help_tournament_api_flow_4_rest()}
           </li>
           <li>
-            <strong className="text-foreground">Players claim their deck</strong> through the claim
-            link the API returns for each entry, typically forwarded in your confirmation email.
+            <strong className="text-foreground">{m.help_tournament_api_flow_5_strong()}</strong>{" "}
+            {m.help_tournament_api_flow_5_rest()}
           </li>
         </ol>
-        <p className="text-muted-foreground mt-3">
-          The tournament&apos;s Deck check tab shows this same guide pre-filled with the real
-          tournament id, ready to copy into your integration.
-        </p>
+        <p className="text-muted-foreground mt-3">{m.help_tournament_api_flow_note()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">API keys</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_keys_heading()}</Heading>
         <p className="text-muted-foreground">
-          Personal keys are managed under <strong className="text-foreground">API keys</strong> on
-          your <TextLink href="/profile">profile</TextLink>. For a tournament hosted by an
-          organization, keys live on the organization&apos;s page instead and can be managed by its
-          owners and managers. A push must use a key that belongs to the tournament&apos;s host: a
-          personal key cannot push into an organization&apos;s tournament, and the other way around.
+          {m.help_tournament_api_keys_before()}{" "}
+          <strong className="text-foreground">{m.help_tournament_api_keys_section()}</strong>{" "}
+          {m.help_tournament_api_keys_mid()}{" "}
+          <TextLink href="/profile">{m.help_tournament_api_keys_profile_link()}</TextLink>
+          {m.help_tournament_api_keys_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          A key looks like <Code>orpk_…</Code> and is shown once, right when it is created. Store it
-          like a password: it lets its holder send decklists to every tournament of your account or
-          organization. You can rename keys, see when each was last used, and revoke one at any
-          time. A revoked key stops working immediately.
+          {m.help_tournament_api_keys_format_before()} <Code>orpk_…</Code>{" "}
+          {m.help_tournament_api_keys_format_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Pushing decklists</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_push_heading()}</Heading>
         <p className="text-muted-foreground">
-          Send a <Code>POST</Code> to <Code>/api/v1/ingest/deck-check</Code> on this site, with your
-          key in the <Code>Authorization</Code> header and a JSON body:
+          {m.help_tournament_api_push_intro_before()} <Code>POST</Code>{" "}
+          {m.help_tournament_api_push_intro_mid()} <Code>/api/v1/ingest/deck-check</Code>{" "}
+          {m.help_tournament_api_push_intro_after()} <Code>Authorization</Code>{" "}
+          {m.help_tournament_api_push_intro_end()}
         </p>
         <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
           {EXAMPLE_REQUEST}
         </pre>
         <ul className="text-muted-foreground mt-3 space-y-2">
           <li>
-            <Code>tournamentId</Code> — the tournament&apos;s id, copied from its Deck check tab.
+            <Code>tournamentId</Code> {m.help_tournament_api_field_tournament_id()}
           </li>
           <li>
-            <Code>externalId</Code> — your own id for the player. Pushing the same id again updates
-            that entry instead of creating a new one. Ids starting with <Code>openrift:</Code> are
-            reserved for decks players submit themselves and are rejected.
+            <Code>externalId</Code> {m.help_tournament_api_field_external_id_before()}{" "}
+            <Code>openrift:</Code> {m.help_tournament_api_field_external_id_after()}
           </li>
           <li>
-            <Code>playerName</Code> — shown to judges next to the entry. <Code>riotId</Code> and{" "}
-            <Code>submittedAt</Code> are optional and also shown to judges.
+            <Code>playerName</Code> {m.help_tournament_api_field_player_name_before()}{" "}
+            <Code>riotId</Code> {m.help_tournament_api_field_player_name_mid()}{" "}
+            <Code>submittedAt</Code> {m.help_tournament_api_field_player_name_after()}
           </li>
           <li>
             <Code>allowDeckPublishing</Code>, <Code>allowNameSharing</Code>,{" "}
-            <Code>allowRiotIdSharing</Code> — the player&apos;s consent to publish their deck, name,
-            and Riot ID after the event. Send <Code>false</Code> when a player declined; omit a flag
-            to keep what is already stored (new entries default to allowed).
+            <Code>allowRiotIdSharing</Code> {m.help_tournament_api_field_consent_before()}{" "}
+            <Code>false</Code> {m.help_tournament_api_field_consent_after()}
           </li>
           <li>
-            <Code>withdrawn</Code> — set <Code>true</Code> to withdraw a player. Pushing the entry
-            again without the flag restores them.
+            <Code>withdrawn</Code> {m.help_tournament_api_field_withdrawn_before()}{" "}
+            <Code>true</Code> {m.help_tournament_api_field_withdrawn_after()}
           </li>
           <li>
-            <Code>cards</Code> — one line per card with its English name as printed, the quantity,
-            and the deck section.
+            <Code>cards</Code> {m.help_tournament_api_field_cards()}
           </li>
         </ul>
         <p className="text-muted-foreground mt-3">
-          Sections map onto OpenRift&apos;s deck zones: <Code>legend</Code>, <Code>champion</Code>,{" "}
-          <Code>main</Code>, <Code>runes</Code>, <Code>battlefield</Code>, <Code>sideboard</Code>,
-          and <Code>overflow</Code>. Common variants like <Code>deck</Code>, <Code>maindeck</Code>,{" "}
-          <Code>side</Code>, and plurals work too; any other section rejects the whole push, so
-          nothing is half-imported. Card names don&apos;t have to resolve, though: a misspelled or
-          unknown name never blocks a push, the line is flagged and judges see the raw name exactly
-          as you sent it.
+          {m.help_tournament_api_sections_before()} <Code>legend</Code>, <Code>champion</Code>,{" "}
+          <Code>main</Code>, <Code>runes</Code>, <Code>battlefield</Code>, <Code>sideboard</Code>,{" "}
+          {m.help_tournament_api_sections_mid()} <Code>overflow</Code>
+          {m.help_tournament_api_sections_variants()} <Code>deck</Code>, <Code>maindeck</Code>,{" "}
+          <Code>side</Code>, {m.help_tournament_api_sections_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">What a push changes</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_changes_heading()}</Heading>
         <p className="text-muted-foreground">
-          Pushes are partial: only the entries you send are touched, and leaving a player out of a
-          push never withdraws them. Withdrawing is always the explicit <Code>withdrawn</Code> flag.
-          That makes pushes safe to repeat: re-sending an unchanged entry does nothing, so you can
-          push on every registration event without bookkeeping.
+          {m.help_tournament_api_changes_before()} <Code>withdrawn</Code>{" "}
+          {m.help_tournament_api_changes_after()}
         </p>
-        <p className="text-muted-foreground mt-2">
-          When a re-pushed entry&apos;s card list actually changed, the stored deck is replaced. If
-          a judge had already checked that deck, the check is reset and the judge sees exactly which
-          cards were added, removed, or changed, so a stale check can never pass a changed deck.
-          Your system stays the source of truth for the list: a push also replaces any edits the
-          player made in OpenRift in the meantime.
-        </p>
+        <p className="text-muted-foreground mt-2">{m.help_tournament_api_changes_replace()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">The response and claim links</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_response_heading()}</Heading>
         <p className="text-muted-foreground">
-          A successful push returns counts of what happened plus one result per entry, keyed by your
-          own <Code>externalId</Code>:
+          {m.help_tournament_api_response_before()} <Code>externalId</Code>
+          {m.help_tournament_api_response_after()}
         </p>
         <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
           {EXAMPLE_RESPONSE}
         </pre>
         <p className="text-muted-foreground mt-3">
-          <Code>entryId</Code> is the stable OpenRift id for the entry. <Code>claimUrl</Code> is a
-          personal link for that player: put it in your confirmation email. A player who opens it
-          signs in (or creates an account), confirms, and from then on sees their own submitted deck
-          in OpenRift, and only their own. Nothing about the deck or the player is visible before
-          the claim is confirmed, and OpenRift never needs the player&apos;s email address for this.
+          <Code>entryId</Code> {m.help_tournament_api_response_entry_before()} <Code>claimUrl</Code>{" "}
+          {m.help_tournament_api_response_entry_after()}
         </p>
-        <p className="text-muted-foreground mt-2">
-          The link is stable: re-pushing the same entry returns the same URL, so it is safe to
-          re-send in a follow-up email. If a link ever reaches the wrong person, a judge can unlink
-          the entry, which also blocks it from being claimed again.
-        </p>
+        <p className="text-muted-foreground mt-2">{m.help_tournament_api_response_stable_link()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">Limits and errors</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_limits_heading()}</Heading>
         <p className="text-muted-foreground">
-          A push carries at most 500 entries with up to 200 card lines each, the body is capped at 1
-          MB, and each key may push 60 times per minute (responses include standard{" "}
-          <Code>RateLimit</Code> headers). Larger fields simply split across several pushes.
+          {m.help_tournament_api_limits_before()} <Code>RateLimit</Code>{" "}
+          {m.help_tournament_api_limits_after()}
         </p>
         <div className="mt-3">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Meaning</TableHead>
+                <TableHead>{m.help_tournament_api_table_status()}</TableHead>
+                <TableHead>{m.help_tournament_api_table_meaning()}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ERROR_ROWS.map(([status, meaning]) => (
-                <TableRow key={status}>
-                  <TableCell className="align-top font-mono text-xs">{status}</TableCell>
+              {errorRows().map((row) => (
+                <TableRow key={row.status}>
+                  <TableCell className="align-top font-mono text-xs">{row.status}</TableCell>
                   <TableCell className="text-muted-foreground align-top whitespace-normal">
-                    {meaning}
+                    {row.meaning}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
-        <p className="text-muted-foreground mt-3">
-          Failed pushes import nothing, so it is always safe to fix the problem and send the same
-          push again.
-        </p>
+        <p className="text-muted-foreground mt-3">{m.help_tournament_api_failed_note()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">Reference and support</Heading>
+        <Heading className="mb-2">{m.help_tournament_api_reference_heading()}</Heading>
         <p className="text-muted-foreground">
-          The full request and response schemas are part of the{" "}
-          <TextLink href="/api/doc">OpenAPI specification</TextLink>, browsable in{" "}
-          <TextLink href="/api/ui">Swagger UI</TextLink>. Building an integration and something is
-          missing or unclear? Let me know on{" "}
+          {m.help_tournament_api_reference_before()}{" "}
+          <TextLink href="/api/doc">{m.help_tournament_api_reference_openapi()}</TextLink>
+          {m.help_tournament_api_reference_mid()} <TextLink href="/api/ui">Swagger UI</TextLink>
+          {m.help_tournament_api_reference_after()}{" "}
           <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
           </TextLink>{" "}
-          or{" "}
+          {m.help_tournament_api_reference_or()}{" "}
           <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
           </TextLink>{" "}
-          and I&apos;ll do my best to help.
+          {m.help_tournament_api_reference_end()}
         </p>
       </section>
     </div>

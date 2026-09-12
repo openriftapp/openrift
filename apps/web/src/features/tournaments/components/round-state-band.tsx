@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { pairingPluralNoun } from "@/features/tournaments/lib/tournament-display";
+import { m } from "@/paraglide/messages.js";
 
 function roundReportProgress(round: PodRoundResponse) {
   const total = round.pods.length;
@@ -27,24 +28,28 @@ export function OpenRoundBand({
   const { total, reported, noun } = roundReportProgress(round);
   const allReported = total > 0 && reported === total;
   const percent = total === 0 ? 0 : Math.round((reported / total) * 100);
-  const progressLabel = `${reported} of ${total} ${noun} reported`;
+  const progressLabel = m.tournaments_round_band_progress({ reported, total, noun });
 
   return (
     <ActionBand
       icon={SwordsIcon}
       accent={!allReported}
-      label={`Round ${round.roundNumber}`}
+      label={m.tournaments_round_band_round({ number: round.roundNumber })}
       value={`${reported}/${total}`}
       sub={
         suggested > 0
-          ? `${noun} reported · round ${round.roundNumber} of ~${suggested}`
-          : `${noun} reported`
+          ? m.tournaments_round_band_sub_suggested({
+              noun,
+              number: round.roundNumber,
+              suggested,
+            })
+          : m.tournaments_round_band_sub({ noun })
       }
       action={
         <span className="flex items-center gap-2">
-          <Badge variant="warning">Reporting</Badge>
+          <Badge variant="warning">{m.tournaments_round_band_reporting()}</Badge>
           <Button size="sm" disabled={!allReported || finalizing} onClick={onFinalize}>
-            Finalize round
+            {m.tournaments_round_band_finalize()}
           </Button>
         </span>
       }
@@ -58,10 +63,14 @@ export function CompletedRoundsBand({ finalizedCount }: { finalizedCount: number
   return (
     <ActionBand
       icon={TrophyIcon}
-      label="Tournament over"
+      label={m.tournaments_round_band_over()}
       value={finalizedCount}
-      sub={`round${finalizedCount === 1 ? "" : "s"} finalized · reopen in Settings to make changes`}
-      action={<Badge variant="secondary">Read-only</Badge>}
+      sub={
+        finalizedCount === 1
+          ? m.tournaments_round_band_over_sub_one()
+          : m.tournaments_round_band_over_sub_other()
+      }
+      action={<Badge variant="secondary">{m.tournaments_round_band_read_only()}</Badge>}
     />
   );
 }

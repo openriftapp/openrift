@@ -17,6 +17,7 @@ import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupUnits } from "@/features/tournaments/lib/group-cut-units";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 import { CutBracketCompact } from "./cut-bracket-compact";
 import { CutBracketView } from "./cut-bracket-view";
@@ -51,7 +52,7 @@ export function GroupCutPairingsSection({
 
   if (data.rounds.length === 0 || groupStage === null || groupStage.groups.length === 0) {
     if (!staff) {
-      return <p className="text-muted-foreground">The groups have not been drawn yet.</p>;
+      return <p className="text-muted-foreground">{m.tournaments_group_not_drawn_yet()}</p>;
     }
     return <GenerateGroupsBand id={id} legendTiebreak={tournament.legendTiebreak} />;
   }
@@ -135,10 +136,10 @@ export function GroupCutPairingsSection({
                 size="sm"
                 variant="outline"
                 disabled={cutHasResult}
-                title={cutHasResult ? "Results are already entered for this round." : undefined}
+                title={cutHasResult ? m.tournaments_cut_results_entered_hint() : undefined}
                 onClick={() => setEditingCut(true)}
               >
-                Edit bracket pairing
+                {m.tournaments_cut_edit_bracket_pairing()}
               </Button>
             </div>
           ) : null}
@@ -167,13 +168,13 @@ export function GroupCutPairingsSection({
         <ActionBand
           icon={LayoutGridIcon}
           accent={lockstepReady}
-          label={`Round ${lockstepRound}`}
+          label={m.tournaments_group_round_label({ number: lockstepRound })}
           value={units.length}
-          sub="groups start together"
+          sub={m.tournaments_group_start_together_sub()}
           action={
             <StartGroupRoundButton
               roundNumber={lockstepRound}
-              scopeLabel="all groups"
+              scopeLabel={m.tournaments_group_all_groups()}
               disabled={!lockstepReady}
               pending={startGroupStageRound.isPending}
               size="default"
@@ -191,7 +192,7 @@ export function GroupCutPairingsSection({
       {canRerollGroups && !editingGroups ? (
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setEditingGroups(true)}>
-            Edit groups
+            {m.tournaments_group_edit_groups()}
           </Button>
           <Button
             size="sm"
@@ -201,7 +202,7 @@ export function GroupCutPairingsSection({
               void runReportedMutation(() => rerollRound.mutateAsync({ id, roundNumber: 1 }))
             }
           >
-            Re-draw groups
+            {m.tournaments_group_redraw()}
           </Button>
         </div>
       ) : null}

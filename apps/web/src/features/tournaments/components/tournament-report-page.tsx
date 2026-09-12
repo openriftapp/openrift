@@ -9,6 +9,7 @@ import {
 import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import { useRegionLabel } from "@/hooks/use-region-label";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 import { CutBracketCompact } from "./cut-bracket-compact";
 import { CutBracketView } from "./cut-bracket-view";
@@ -31,7 +32,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
   async function submit(podId: string, results: { playerId: string; gamePoints: number }[]) {
     try {
       await submitResult.mutateAsync({ podId, results });
-      toast.success("Result submitted");
+      toast.success(m.tournaments_report_result_submitted());
     } catch {
       // Reported by the global mutation error toast.
     }
@@ -40,7 +41,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
   async function submitPlayer(podId: string, playerId: string, gamePoints: number) {
     try {
       await submitPlayerResult.mutateAsync({ podId, playerId, gamePoints });
-      toast.success("Score saved");
+      toast.success(m.tournaments_report_score_saved());
     } catch {
       // Reported by the global mutation error toast.
     }
@@ -51,9 +52,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
     return (
       <div className="flex flex-col gap-6">
         {canSubmit ? (
-          <p className="text-muted-foreground text-sm">
-            Enter your games won next to your name. Points are worked out automatically.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.tournaments_report_enter_games_won()}</p>
         ) : null}
         {bracketRounds.length > 0 && !canSubmit ? (
           <CutBracketCompact
@@ -104,10 +103,10 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
       {hasOpenRound && canSubmit ? (
         <p className="text-muted-foreground text-sm">
           {data.playMode === "2v2"
-            ? "Enter your team's games won. Points are worked out automatically."
+            ? m.tournaments_report_enter_team_games_won()
             : swiss
-              ? "Enter your games won next to your name. Points are worked out automatically."
-              : "Enter your game points next to your name. Places are worked out automatically."}
+              ? m.tournaments_report_enter_games_won()
+              : m.tournaments_report_enter_game_points()}
         </p>
       ) : null}
       <PairingsView
@@ -124,7 +123,7 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
         canEnterResult={(round) => canSubmit && round.status === "reporting"}
         onSubmitResult={submit}
         onSubmitPlayerResult={canSubmit ? submitPlayer : undefined}
-        emptyMessage="No rounds yet."
+        emptyMessage={m.tournaments_report_no_rounds()}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import type { PodiumSeat } from "@/components/ui/podium";
 import { Podium } from "@/components/ui/podium";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
+import { m } from "@/paraglide/messages.js";
 
 import {
   decidingTieBreak,
@@ -49,7 +50,7 @@ export function StandingsPodium({
   return (
     <Podium
       seats={podiumSeats(rows, variant === "swiss")}
-      emptyLabel="The throne fills after round 1 is finalized."
+      emptyLabel={m.tournaments_standings_podium_empty()}
     />
   );
 }

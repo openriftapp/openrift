@@ -1,6 +1,7 @@
 import { Heading } from "@/components/heading";
 import { TextLink } from "@/components/ui/text-link";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 import { SectionRule } from "./feature-section";
@@ -11,7 +12,14 @@ import { MiniCardArt } from "./vignette-parts";
 
 const SPREAD_CARD_WIDTH = 100;
 
-const TRUST_POINTS = ["Fast", "Free", "No ads", "Open source"];
+function trustPoints(): string[] {
+  return [
+    m.marketing_hero_trust_fast(),
+    m.marketing_hero_trust_free(),
+    m.marketing_hero_trust_no_ads(),
+    m.marketing_hero_trust_open_source(),
+  ];
+}
 
 const SPREAD = [
   { left: 0, top: 32, rotate: -9 },
@@ -112,14 +120,12 @@ export function FeaturesHero({
           <div className="flex flex-col items-start gap-4">
             {/* The page's h1 is the "Features" title in the top bar. */}
             <Heading level={1} as="h2" className="text-4xl md:text-5xl">
-              Everything OpenRift does
+              {m.marketing_hero_title()}
             </Heading>
             <SectionRule />
-            <p className="text-muted-foreground max-w-prose">
-              Your collection, your decks, and your game nights, in one app.
-            </p>
+            <p className="text-muted-foreground max-w-prose">{m.marketing_hero_subtitle()}</p>
             <ul className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              {TRUST_POINTS.map((point, index) => (
+              {trustPoints().map((point, index) => (
                 <li key={point} className="flex items-center gap-x-3">
                   {index > 0 && (
                     <span aria-hidden="true" className="bg-border-accent size-1 rotate-45" />
@@ -129,13 +135,13 @@ export function FeaturesHero({
               ))}
             </ul>
             <p className="text-muted-foreground max-w-prose">
-              Coming from another app?{" "}
+              {m.marketing_hero_switch_before()}{" "}
               <TextLink
                 className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
                 href="#import"
                 onClick={smoothAnchorClick}
               >
-                Importing your collection takes a minute
+                {m.marketing_hero_switch_link()}
               </TextLink>
               .
             </p>
@@ -143,7 +149,7 @@ export function FeaturesHero({
           <CardFlourish urls={thumbnailUrls} />
         </div>
         <nav
-          aria-label="Chapter overview"
+          aria-label={m.marketing_hero_chapters_nav_label()}
           className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
         >
           {chapters.map((chapter) => (

@@ -37,6 +37,7 @@ import { StatStrip } from "@/components/ui/stat-strip";
 import { UserAvatar } from "@/components/user-avatar";
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { isAllMatchRound } from "@/features/tournaments/lib/tournament-display";
+import { m } from "@/paraglide/messages.js";
 
 import { snapshotToPlayers } from "./pairing-warnings";
 import { PodCard } from "./pod-card";
@@ -128,7 +129,10 @@ export function PairingsView({
   // also resolves teams to their joined member names.
   const memberRows = rounds.flatMap((round) =>
     round.pods.flatMap((pod) =>
-      pod.members.map((m) => ({ teamId: m.teamId ?? null, displayName: m.displayName })),
+      pod.members.map((member) => ({
+        teamId: member.teamId ?? null,
+        displayName: member.displayName,
+      })),
     ),
   );
   const teamNames = teamMode ? teamNamesById(memberRows) : new Map<string, string>();
@@ -202,7 +206,9 @@ export function PairingsView({
         const countLabel = [
           formatPodCount(round, teamMode),
           round.byes.length > 0
-            ? `${round.byes.length} bye${round.byes.length === 1 ? "" : "s"}`
+            ? round.byes.length === 1
+              ? m.tournaments_pairings_byes_count_one({ count: round.byes.length })
+              : m.tournaments_pairings_byes_count_other({ count: round.byes.length })
             : null,
         ]
           .filter((part) => part !== null)
@@ -212,9 +218,13 @@ export function PairingsView({
           <section key={round.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <SectionHeading as="h3">Round {round.roundNumber}</SectionHeading>
+                <SectionHeading as="h3">
+                  {m.tournaments_group_round_label({ number: round.roundNumber })}
+                </SectionHeading>
                 <Badge variant={round.status === "finalized" ? "secondary" : "warning"}>
-                  {round.status === "finalized" ? "Finalized" : "Reporting"}
+                  {round.status === "finalized"
+                    ? m.tournaments_pairings_round_finalized()
+                    : m.tournaments_pairings_round_reporting()}
                 </Badge>
                 <span className="text-muted-foreground text-sm">{countLabel}</span>
               </div>
@@ -347,7 +357,7 @@ function ByesSection({
   return (
     <div className="flex flex-col gap-2">
       <SectionHeading as="h3" size="sm" icon={UserMinusIcon} count={byes.length}>
-        Byes
+        {m.tournaments_pairing_editor_byes()}
       </SectionHeading>
       <RowList>
         {byes.map((bye) => {

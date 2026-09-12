@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { UserAvatar } from "@/components/user-avatar";
 import type { ParticipantTarget } from "@/features/tournaments/components/participant-row";
+import { m } from "@/paraglide/messages.js";
 
 // Holds real buttons, so no `render` prop: a nested anchor would be invalid HTML.
 export function MissingRegionsBand({
@@ -19,9 +20,13 @@ export function MissingRegionsBand({
     <ActionBand
       icon={GlobeIcon}
       accent
-      label="Missing regions"
+      label={m.tournaments_missing_regions_label()}
       value={players.length}
-      sub={`${players.length === 1 ? "player blocks" : "players block"} region-aware pairing`}
+      sub={
+        players.length === 1
+          ? m.tournaments_missing_regions_sub_one()
+          : m.tournaments_missing_regions_sub_other()
+      }
     >
       <div className="flex flex-col gap-2">
         {players.map((player) => (
@@ -43,7 +48,7 @@ export function MissingRegionsBand({
               }
             >
               <GlobeIcon className="size-4" />
-              Set region
+              {m.tournaments_missing_regions_set_region()}
             </Button>
           </Callout>
         ))}

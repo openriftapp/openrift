@@ -23,6 +23,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tournament-run";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { m } from "@/paraglide/messages.js";
 
 export function GenerateRoundControls({
   id,
@@ -117,7 +118,9 @@ export function GenerateRoundControls({
     // Resolved before the try: React Compiler cannot lower a conditional that
     // sits inside a try/catch.
     const action = dropped ? "drop" : "reactivate";
-    const message = dropped ? `Dropped ${player.displayName}` : `${player.displayName} is back in`;
+    const message = dropped
+      ? m.tournaments_pairings_dropped_toast({ name: player.displayName })
+      : m.tournaments_pairings_reactivated_toast({ name: player.displayName });
     // A dropped player can't be seated, so they can't hold a bye either. In
     // 2v2 the server drops the whole team, so the teammate's bye goes too.
     const goneIds =
@@ -148,16 +151,28 @@ export function GenerateRoundControls({
     <ActionBand
       icon={UserMinusIcon}
       accent
-      label={`Round ${nextRoundNumber}`}
+      label={m.tournaments_group_round_label({ number: nextRoundNumber })}
       value={teamMode ? Math.floor(seatedCount / 2) : seatedCount}
       sub={
         suggested > 0
-          ? `${teamMode ? "teams" : "players"} to pair · round ${nextRoundNumber} of ~${suggested}`
-          : `${teamMode ? "teams" : "players"} to pair`
+          ? m.tournaments_pairings_pair_sub_with_total({
+              unit: teamMode
+                ? m.tournaments_pairings_unit_teams()
+                : m.tournaments_pairings_unit_players(),
+              round: nextRoundNumber,
+              suggested,
+            })
+          : m.tournaments_pairings_pair_sub({
+              unit: teamMode
+                ? m.tournaments_pairings_unit_teams()
+                : m.tournaments_pairings_unit_players(),
+            })
       }
       action={
         <Button disabled={generateRound.isPending || blocked} onClick={() => void generate()}>
-          {isFirstRound ? "Generate round 1" : "Generate next round"}
+          {isFirstRound
+            ? m.tournaments_pairings_generate_round_one()
+            : m.tournaments_pairings_generate_next_round()}
         </Button>
       }
     >
@@ -171,16 +186,24 @@ export function GenerateRoundControls({
                 <UserMinusIcon />
                 {selectedUnits.length === 0
                   ? teamMode
-                    ? "Sit teams out"
-                    : "Sit players out"
-                  : `Sitting out ${selectedUnits.length}`}
+                    ? m.tournaments_pairings_sit_teams_out()
+                    : m.tournaments_pairings_sit_players_out()
+                  : m.tournaments_pairings_sitting_out_count({ count: selectedUnits.length })}
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0" align="start">
                 <Command>
-                  <CommandInput placeholder={teamMode ? "Search teams..." : "Search players..."} />
+                  <CommandInput
+                    placeholder={
+                      teamMode
+                        ? m.tournaments_pairings_search_teams()
+                        : m.tournaments_pairings_search_players()
+                    }
+                  />
                   <CommandList>
                     <CommandEmpty>
-                      {teamMode ? "No teams found." : "No players found."}
+                      {teamMode
+                        ? m.tournaments_pairings_no_teams_found()
+                        : m.tournaments_pairings_no_players_found()}
                     </CommandEmpty>
                     <CommandGroup>
                       {byeUnits.map((unit) => {
@@ -198,7 +221,9 @@ export function GenerateRoundControls({
                             <span className="truncate">{unit.label}</span>
                             {priorByes > 0 ? (
                               <Badge variant="warning">
-                                {priorByes} bye{priorByes === 1 ? "" : "s"}
+                                {priorByes === 1
+                                  ? m.tournaments_pairings_byes_count_one({ count: priorByes })
+                                  : m.tournaments_pairings_byes_count_other({ count: priorByes })}
                               </Badge>
                             ) : null}
                           </CommandItem>
@@ -213,14 +238,14 @@ export function GenerateRoundControls({
           <Popover>
             <PopoverTrigger render={<Button variant="outline" size="sm" />}>
               <UserXIcon />
-              Drop players
+              {m.tournaments_pairings_drop_players()}
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0" align="start">
               <Command>
-                <CommandInput placeholder="Search players..." />
+                <CommandInput placeholder={m.tournaments_pairings_search_players()} />
                 <CommandList>
-                  <CommandEmpty>No players found.</CommandEmpty>
-                  <CommandGroup heading="Active">
+                  <CommandEmpty>{m.tournaments_pairings_no_players_found()}</CommandEmpty>
+                  <CommandGroup heading={m.tournaments_pairings_group_active()}>
                     {activePlayers.map((player) => (
                       <CommandItem
                         key={player.id}
@@ -237,7 +262,7 @@ export function GenerateRoundControls({
                     ))}
                   </CommandGroup>
                   {droppedPlayers.length > 0 ? (
-                    <CommandGroup heading="Dropped">
+                    <CommandGroup heading={m.tournaments_pairings_group_dropped()}>
                       {droppedPlayers.map((player) => (
                         <CommandItem
                           key={player.id}
@@ -262,7 +287,7 @@ export function GenerateRoundControls({
             <Badge key={unit.key} variant="secondary">
               {unit.label}
               <ChipRemoveButton
-                aria-label={`Don't sit ${unit.label} out`}
+                aria-label={m.tournaments_pairings_dont_sit_out({ name: unit.label })}
                 onClick={() => toggleByeUnit(unit)}
               />
             </Badge>
@@ -273,8 +298,13 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {repeatByeUnits.map((unit) => unit.label).join(", ")}{" "}
-            {repeatByeUnits.length === 1 ? "has" : "have"} already had a bye.
+            {repeatByeUnits.length === 1
+              ? m.tournaments_pairings_repeat_bye_one({
+                  names: repeatByeUnits.map((unit) => unit.label).join(", "),
+                })
+              : m.tournaments_pairings_repeat_bye_other({
+                  names: repeatByeUnits.map((unit) => unit.label).join(", "),
+                })}
           </AlertTitle>
         </Alert>
       ) : null}
@@ -282,12 +312,19 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {seatedWithoutRegion.map((playerId) => nameById.get(playerId) ?? "A player").join(", ")}{" "}
-            {seatedWithoutRegion.length === 1 ? "has" : "have"} no region yet. Set regions on the{" "}
+            {(seatedWithoutRegion.length === 1
+              ? m.tournaments_pairings_no_region_one
+              : m.tournaments_pairings_no_region_other)({
+              names: seatedWithoutRegion
+                .map(
+                  (playerId) => nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
+                )
+                .join(", "),
+            })}{" "}
             <Link to="/tournaments/$id/participants" params={{ id }}>
-              Participants page
+              {m.tournaments_pairings_participants_page_link()}
             </Link>{" "}
-            (or sit them out) before pairing.
+            {m.tournaments_pairings_before_pairing_suffix()}
           </AlertTitle>
         </Alert>
       ) : null}
@@ -295,25 +332,32 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {seatedWithoutTeam.map((playerId) => nameById.get(playerId) ?? "A player").join(", ")}{" "}
-            {seatedWithoutTeam.length === 1 ? "is" : "are"} not on a team yet. Pair them on the{" "}
+            {(seatedWithoutTeam.length === 1
+              ? m.tournaments_pairings_no_team_one
+              : m.tournaments_pairings_no_team_other)({
+              names: seatedWithoutTeam
+                .map(
+                  (playerId) => nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
+                )
+                .join(", "),
+            })}{" "}
             <Link to="/tournaments/$id/participants" params={{ id }}>
-              Participants page
+              {m.tournaments_pairings_participants_page_link()}
             </Link>{" "}
-            (or sit them out) before pairing.
+            {m.tournaments_pairings_before_pairing_suffix()}
           </AlertTitle>
         </Alert>
       ) : null}
       {swissAutoBye ? (
         <p className="text-muted-foreground text-sm">
           {teamMode
-            ? "With an odd number of teams, the lowest-ranked team with the fewest byes sits out automatically. Pick byes above to override."
-            : "The lowest-ranked player with the fewest byes sits out. Pick byes above to override."}
+            ? m.tournaments_pairings_auto_bye_teams()
+            : m.tournaments_pairings_auto_bye_players()}
         </p>
       ) : null}
       {reachedSuggestion ? (
         <p className="text-muted-foreground text-sm">
-          Suggested {suggested} rounds reached. End the tournament in Settings, or keep going.
+          {m.tournaments_pairings_suggested_reached({ count: suggested })}
         </p>
       ) : null}
     </ActionBand>

@@ -18,6 +18,7 @@ import {
   useDeleteTournament,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 export function DangerZoneCard({ detail }: { detail: TournamentDetailResponse }) {
   const navigate = useNavigate();
@@ -42,21 +43,18 @@ export function DangerZoneCard({ detail }: { detail: TournamentDetailResponse })
     <>
       <Card className="ring-destructive/50">
         <CardHeader>
-          <CardTitle>Danger zone</CardTitle>
-          <CardDescription>
-            Cancel makes the tournament read-only but keeps its data. Delete removes it and
-            everything in it for good.
-          </CardDescription>
+          <CardTitle>{m.tournaments_settings_danger_zone_title()}</CardTitle>
+          <CardDescription>{m.tournaments_settings_danger_zone_description()}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {detail.status === "cancelled" ? null : (
               <Button variant="secondary" onClick={() => setConfirmCancel(true)}>
-                Cancel tournament
+                {m.tournaments_settings_cancel_tournament()}
               </Button>
             )}
             <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
-              Delete tournament
+              {m.tournaments_settings_delete_tournament()}
             </Button>
           </div>
         </CardContent>
@@ -66,17 +64,19 @@ export function DangerZoneCard({ detail }: { detail: TournamentDetailResponse })
         <DialogContent>
           <DialogForm onSubmit={() => void handleCancel()}>
             <DialogHeader>
-              <DialogTitle>Cancel {detail.name}?</DialogTitle>
+              <DialogTitle>
+                {m.tournaments_settings_cancel_confirm_title({ name: detail.name })}
+              </DialogTitle>
               <DialogDescription>
-                The tournament becomes read-only for everyone. Its data is kept.
+                {m.tournaments_settings_cancel_confirm_description()}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setConfirmCancel(false)}>
-                Keep it
+                {m.tournaments_settings_keep_it()}
               </Button>
               <Button type="submit" variant="secondary" disabled={cancelTournament.isPending}>
-                Cancel tournament
+                {m.tournaments_settings_cancel_tournament()}
               </Button>
             </DialogFooter>
           </DialogForm>
@@ -87,18 +87,19 @@ export function DangerZoneCard({ detail }: { detail: TournamentDetailResponse })
         <DialogContent>
           <DialogForm onSubmit={() => void handleDelete()}>
             <DialogHeader>
-              <DialogTitle>Delete {detail.name}?</DialogTitle>
+              <DialogTitle>
+                {m.tournaments_settings_delete_confirm_title({ name: detail.name })}
+              </DialogTitle>
               <DialogDescription>
-                This permanently removes the tournament, its participants, rounds, and results. This
-                cannot be undone.
+                {m.tournaments_settings_delete_confirm_description()}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
-                Cancel
+                {m.common_cancel()}
               </Button>
               <Button type="submit" variant="destructive" disabled={deleteTournament.isPending}>
-                Delete
+                {m.common_delete()}
               </Button>
             </DialogFooter>
           </DialogForm>

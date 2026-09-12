@@ -7,222 +7,203 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow, ZoneCard } from "@/features/marketing/components/article-cards";
+import { m } from "@/paraglide/messages.js";
 
 export default function HowToPlayArticle() {
   return (
     <div className="space-y-8">
-      <p className="text-muted-foreground">
-        Riftbound is a two-player trading card game from Riot Games. Two champions clash across a
-        row of battlefields, and the first to score enough points wins. This is a quick primer, not
-        the full rulebook. For the official rules, see the links at the bottom.
-      </p>
+      <p className="text-muted-foreground">{m.help_how_to_play_intro()}</p>
 
       <Alert>
         <TrophyIcon className="text-warning" />
-        <AlertTitle>The goal</AlertTitle>
+        <AlertTitle>{m.help_how_to_play_goal_title()}</AlertTitle>
         <AlertDescription>
-          Score <strong className="text-foreground">8 points</strong> (11 in team play) to win. You
-          score by controlling battlefields. Take a battlefield to bank a point, then earn one more
-          point each turn you keep it.
+          {m.help_how_to_play_goal_before()}{" "}
+          <strong className="text-foreground">{m.help_how_to_play_goal_points()}</strong>{" "}
+          {m.help_how_to_play_goal_after()}
         </AlertDescription>
       </Alert>
 
       <section>
-        <Heading className="mb-2">What you bring to the table</Heading>
-        <p className="text-muted-foreground">
-          Each player builds a kit around a single legend. The legend sets your two domains
-          (colors), and every other card has to fit those domains.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_bring_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_bring_intro()}</p>
 
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <ZoneCard
-            name="Legend"
+            name={m.help_how_to_play_zone_legend_name()}
             count="1"
-            description="Your champion legend. Defines the deck's two domains."
+            description={m.help_how_to_play_zone_legend_description()}
             color="text-warning"
           />
           <ZoneCard
-            name="Chosen Champion"
+            name={m.help_how_to_play_zone_champion_name()}
             count="1"
-            description="A champion unit that shares a tag with your legend."
+            description={m.help_how_to_play_zone_champion_description()}
             color="text-violet"
           />
           <ZoneCard
-            name="Battlefields"
+            name={m.help_how_to_play_zone_battlefields_name()}
             count="3"
-            description="Three unique battlefields. Brought to the table by both players."
+            description={m.help_how_to_play_zone_battlefields_description()}
             color="text-success"
           />
           <ZoneCard
-            name="Runes"
+            name={m.help_how_to_play_zone_runes_name()}
             count="12"
-            description="A separate side deck of resources, not your main draw pile."
+            description={m.help_how_to_play_zone_runes_description()}
             color="text-info"
           />
           <ZoneCard
-            name="Main Deck"
+            name={m.help_how_to_play_zone_main_deck_name()}
             count="40"
-            description="Units, spells, and gear. Your champion counts toward the 40."
+            description={m.help_how_to_play_zone_main_deck_description()}
             color="text-foreground"
           />
         </div>
 
         <p className="text-muted-foreground mt-3">
-          OpenRift&apos;s <TextLink href="/help/deck-building">deck builder</TextLink> enforces all
-          of this for you in Constructed format.
+          {m.help_how_to_play_deck_builder_before()}{" "}
+          <TextLink href="/help/deck-building">{m.help_how_to_play_deck_builder_link()}</TextLink>{" "}
+          {m.help_how_to_play_deck_builder_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">The board</Heading>
+        <Heading className="mb-2">{m.help_how_to_play_board_heading()}</Heading>
         <p className="text-muted-foreground">
-          Each player has a <strong className="text-foreground">base</strong> where their units
-          deploy. Between the players sits a row of battlefields, contributed from both kits but up
-          for grabs by either player once the game starts.
+          {m.help_how_to_play_board_before()}{" "}
+          <strong className="text-foreground">{m.help_how_to_play_board_base()}</strong>{" "}
+          {m.help_how_to_play_board_after()}
         </p>
 
         <Callout className="mt-3">
-          <Eyebrow>Board layout (placeholder)</Eyebrow>
+          <Eyebrow>{m.help_how_to_play_board_eyebrow()}</Eyebrow>
           <div className="bg-background flex h-56 items-center justify-center rounded-md">
             <span className="text-muted-foreground text-sm">
-              [Diagram: opponent base on top, three battlefields in the middle, your base on the
-              bottom, runes and decks to the side]
+              {m.help_how_to_play_board_diagram()}
             </span>
           </div>
         </Callout>
       </section>
 
       <section>
-        <Heading className="mb-2">A turn at a glance</Heading>
-        <p className="text-muted-foreground">
-          Players alternate turns. Each turn moves through three phases.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_turn_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_turn_intro()}</p>
 
         <div className="mt-3 space-y-2">
           <StepRow
             step={1}
-            title="Start phase"
-            description="Draw a card. Gain two new runes from your rune deck. Ready any cards that were exhausted last turn."
+            title={m.help_how_to_play_step_start_title()}
+            description={m.help_how_to_play_step_start_description()}
           />
           <StepRow
             step={2}
-            title="Action phase"
-            description="Spend power to play units, gear, and spells. Move units to battlefields. Most of the game happens here, with both players passing actions back and forth."
+            title={m.help_how_to_play_step_action_title()}
+            description={m.help_how_to_play_step_action_description()}
           />
           <StepRow
             step={3}
-            title="End phase"
-            description="Cleanup. Damage on units resets, and play passes to your opponent."
+            title={m.help_how_to_play_step_end_title()}
+            description={m.help_how_to_play_step_end_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Runes and power</Heading>
-        <p className="text-muted-foreground">
-          Runes are your resource. They live in a separate 12-card deck and you gain two new ones
-          every turn. There are two ways to spend a rune.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_runes_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_runes_intro()}</p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<TimerIcon className="size-4" />}
-            title="Turn it sideways"
-            description="Exhaust a rune to pay for a normal card cost. It readies again at the start of your next turn."
+            title={m.help_how_to_play_rune_exhaust_title()}
+            description={m.help_how_to_play_rune_exhaust_description()}
           />
           <FeatureCard
             icon={<ZapIcon className="size-4" />}
-            title="Send it back"
-            description="Return a rune to your rune deck to pay for stronger effects. It is gone for the rest of the turn."
+            title={m.help_how_to_play_rune_return_title()}
+            description={m.help_how_to_play_rune_return_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Battlefields and Showdowns</Heading>
-        <p className="text-muted-foreground">
-          Battlefields are how you score, so they are where the fights happen.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_battlefields_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_battlefields_intro()}</p>
 
         <DefinitionList className="text-muted-foreground mt-3">
           <DefinitionTerm icon={<FlagIcon className="text-success size-3.5" />}>
-            Move in
+            {m.help_how_to_play_term_move_in()}
           </DefinitionTerm>
-          <DefinitionDetail>
-            Units deploy to your base, then move to a battlefield. Some units have Ganking, which
-            lets them hop between battlefields without going home first.
-          </DefinitionDetail>
+          <DefinitionDetail>{m.help_how_to_play_term_move_in_detail()}</DefinitionDetail>
           <DefinitionTerm icon={<SwordIcon className="text-destructive size-3.5" />}>
-            Showdown
+            {m.help_how_to_play_term_showdown()}
           </DefinitionTerm>
-          <DefinitionDetail>
-            When both players have units at the same battlefield, every unit there deals damage
-            equal to its Might at the same time. A unit dies if damage meets or exceeds its Might.
-          </DefinitionDetail>
+          <DefinitionDetail>{m.help_how_to_play_term_showdown_detail()}</DefinitionDetail>
           <DefinitionTerm icon={<TrophyIcon className="text-warning size-3.5" />}>
-            Conquer
+            {m.help_how_to_play_term_conquer()}
           </DefinitionTerm>
-          <DefinitionDetail>
-            Hold a battlefield with no opposing units present and you score a point. You score one
-            more for every turn you keep it.
-          </DefinitionDetail>
+          <DefinitionDetail>{m.help_how_to_play_term_conquer_detail()}</DefinitionDetail>
         </DefinitionList>
       </section>
 
       <section>
-        <Heading className="mb-2">The six domains</Heading>
-        <p className="text-muted-foreground">
-          Domains are Riftbound&apos;s colors. Every legend has two, and your deck can only use
-          cards from those two domains plus colorless. Each domain has a flavor.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_domains_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_domains_intro()}</p>
 
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <DomainTile name="Fury" image="/images/domains/fury.webp" flavor="Aggression and burn" />
-          <DomainTile name="Calm" image="/images/domains/calm.webp" flavor="Resources and growth" />
-          <DomainTile name="Mind" image="/images/domains/mind.webp" flavor="Draw and tricks" />
-          <DomainTile name="Body" image="/images/domains/body.webp" flavor="Beef and durability" />
+          <DomainTile
+            name="Fury"
+            image="/images/domains/fury.webp"
+            flavor={m.help_how_to_play_domain_fury_flavor()}
+          />
+          <DomainTile
+            name="Calm"
+            image="/images/domains/calm.webp"
+            flavor={m.help_how_to_play_domain_calm_flavor()}
+          />
+          <DomainTile
+            name="Mind"
+            image="/images/domains/mind.webp"
+            flavor={m.help_how_to_play_domain_mind_flavor()}
+          />
+          <DomainTile
+            name="Body"
+            image="/images/domains/body.webp"
+            flavor={m.help_how_to_play_domain_body_flavor()}
+          />
           <DomainTile
             name="Chaos"
             image="/images/domains/chaos.webp"
-            flavor="Disruption and swings"
+            flavor={m.help_how_to_play_domain_chaos_flavor()}
           />
           <DomainTile
             name="Order"
             image="/images/domains/order.webp"
-            flavor="Control and structure"
+            flavor={m.help_how_to_play_domain_order_flavor()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Keywords</Heading>
-        <p className="text-muted-foreground">
-          Cards use short keywords (Shield, Deflect, Ganking, Accelerate, and more) as shorthand for
-          rules text. You don&apos;t need to memorize them upfront. The starter decks introduce a
-          handful at a time, and the rest you pick up by reading cards as they show up.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_keywords_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_keywords_text()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">Reading a card</Heading>
-        <p className="text-muted-foreground">
-          Most cards show an energy cost in the top corner, a name and type, an effect, and (for
-          units) a Might value used in Showdowns. Costs include both colored pips, which require
-          runes of that domain, and generic pips, which any rune can pay for.
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_reading_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_reading_text()}</p>
         <div className="mt-3 flex items-center gap-3 rounded-lg border border-dashed p-3">
           <CoinsIcon className="text-muted-foreground size-5" />
           <span className="text-muted-foreground text-sm">
-            [Annotated card image placeholder: name, cost, type line, effect, Might]
+            {m.help_how_to_play_reading_placeholder()}
           </span>
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Where to go next</Heading>
-        <p className="text-muted-foreground">
-          That covers the shape of a game. For the full rules, jump in here:
-        </p>
+        <Heading className="mb-2">{m.help_how_to_play_next_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_how_to_play_next_intro()}</p>
         <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">
           <li>
             <TextLink
@@ -230,7 +211,7 @@ export default function HowToPlayArticle() {
               target="_blank"
               rel="noreferrer"
             >
-              Riot&apos;s official how-to-play guide
+              {m.help_how_to_play_next_riot_link()}
             </TextLink>
           </li>
           <li>
@@ -239,13 +220,13 @@ export default function HowToPlayArticle() {
               target="_blank"
               rel="noreferrer"
             >
-              Riftbound Guide&apos;s deeper walk-through
+              {m.help_how_to_play_next_guide_link()}
             </TextLink>
           </li>
           <li>
-            Once you&apos;re ready to brew, OpenRift&apos;s{" "}
-            <TextLink href="/help/deck-building">deck builder</TextLink> handles the legality checks
-            for you.
+            {m.help_how_to_play_next_brew_before()}{" "}
+            <TextLink href="/help/deck-building">{m.help_how_to_play_next_brew_link()}</TextLink>{" "}
+            {m.help_how_to_play_next_brew_after()}
           </li>
         </ul>
       </section>

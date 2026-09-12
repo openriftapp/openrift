@@ -16,6 +16,7 @@ import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
+import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
 import { TournamentLegend } from "./tournament-legend";
@@ -182,9 +183,11 @@ function PlaceholderMatch({ label, match }: { label: string; match: BracketMatch
       </CardHeader>
       <CardContent className="text-muted-foreground flex flex-col gap-1 text-sm">
         {match.feeders ? (
-          match.feeders.map((feeder) => <span key={feeder}>Winner of {feeder}</span>)
+          match.feeders.map((feeder) => (
+            <span key={feeder}>{m.tournaments_cut_winner_of({ match: feeder })}</span>
+          ))
         ) : (
-          <span>Not drawn yet</span>
+          <span>{m.tournaments_cut_not_drawn_yet()}</span>
         )}
       </CardContent>
     </Card>

@@ -16,7 +16,9 @@ import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display
 import { groupLabelByPlayer, isWalkoverPod } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
+import { pairingLabel } from "@/features/tournaments/lib/tournament-display";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { TournamentLegend } from "./tournament-legend";
 
@@ -129,13 +131,15 @@ function Match({
     >
       <div className="text-muted-foreground flex items-center justify-between border-b px-3 py-1.5 text-xs font-semibold">
         <span>{cutMatchShortLabel(context.cutSize, roundNumber, match.podNumber)}</span>
-        <span className="font-normal">Table {match.podNumber}</span>
+        <span className="font-normal">{pairingLabel(match.podNumber)}</span>
       </div>
       {match.pod === null ? (
-        (match.feeders ?? ["Not drawn yet", "Not drawn yet"]).map((feeder, index) => (
+        (
+          match.feeders ?? [m.tournaments_cut_not_drawn_yet(), m.tournaments_cut_not_drawn_yet()]
+        ).map((feeder, index) => (
           <EmptySeat
             key={`${match.key}:${index}`}
-            label={match.feeders ? `Winner of ${feeder}` : feeder}
+            label={match.feeders ? m.tournaments_cut_winner_of({ match: feeder }) : feeder}
           />
         ))
       ) : (

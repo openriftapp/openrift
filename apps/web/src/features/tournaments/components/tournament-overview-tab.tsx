@@ -29,7 +29,7 @@ import { finalStandingsSeats } from "@/features/tournaments/components/final-sta
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
   formatPlayerRecord,
-  POD_WINS_HINT,
+  podWinsHint,
   standingRanks,
 } from "@/features/tournaments/components/standings-display";
 import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
@@ -45,10 +45,11 @@ import {
   isTournamentStaff,
   pairingLabel,
   pairingPluralNoun,
-  STAFF_ROLE_LABEL,
+  staffRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const RAIL_ROW_CLASS = "flex items-center gap-2.5 rounded-md px-2 py-2";
 
@@ -75,9 +76,12 @@ function DecksTile({ id }: { id: string }) {
       render={<Link to="/tournaments/$id/decks" params={{ id }} />}
       icon={ClipboardCheckIcon}
       tone="info"
-      label="Decks"
+      label={m.tournaments_section_decks()}
       value={data?.event.entryCount ?? 0}
-      hint={`${data?.event.approvedCount ?? 0} approved · ${data?.event.checkedCount ?? 0} checked`}
+      hint={m.tournaments_overview_decks_hint({
+        approved: data?.event.approvedCount ?? 0,
+        checked: data?.event.checkedCount ?? 0,
+      })}
     />
   );
 }
@@ -89,21 +93,21 @@ function myDeckStatus(
 ): { hint: string; needsViewer: boolean } {
   const windowOpen = deckPhase === "open";
   if (entry.state === "editable" && windowOpen) {
-    return { hint: "Not submitted yet — send it in for review.", needsViewer: true };
+    return { hint: m.tournaments_overview_my_deck_not_submitted(), needsViewer: true };
   }
   if (entry.reviewOutcome === "issue" && entry.state !== "checked") {
-    return { hint: "A judge asked for changes.", needsViewer: true };
+    return { hint: m.tournaments_overview_my_deck_changes(), needsViewer: true };
   }
   if (entry.unlockRequested) {
-    return { hint: "Waiting on a judge to unlock it.", needsViewer: false };
+    return { hint: m.tournaments_overview_my_deck_unlock(), needsViewer: false };
   }
   if (entry.state === "withdrawn") {
-    return { hint: "The organizer withdrew this entry.", needsViewer: false };
+    return { hint: m.tournaments_overview_my_deck_withdrawn(), needsViewer: false };
   }
   if (entry.hasPlayerMessage) {
-    return { hint: "A judge left you a message.", needsViewer: false };
+    return { hint: m.tournaments_overview_my_deck_message(), needsViewer: false };
   }
-  return { hint: "View your list.", needsViewer: false };
+  return { hint: m.tournaments_overview_my_deck_view(), needsViewer: false };
 }
 
 /** The one deck-check surface a plain entrant sees; the Decks tile beside it stays staff-gated. */
@@ -123,24 +127,26 @@ function MyDeckTile({
       icon={ScrollTextIcon}
       tone="violet"
       accent={needsViewer}
-      label="My deck"
-      value={MY_DECK_STATE_LABEL[entry.state]}
+      label={m.tournaments_section_my_deck()}
+      value={myDeckStateLabels()[entry.state]}
       valueClassName="truncate text-lg"
       hint={hint}
     />
   );
 }
 
-const MY_DECK_STATE_LABEL: Record<
+function myDeckStateLabels(): Record<
   NonNullable<TournamentDetailResponse["myDeckEntry"]>["state"],
   string
-> = {
-  editable: "Not submitted",
-  submitted: "Submitted",
-  approved: "Approved",
-  checked: "Checked",
-  withdrawn: "Withdrawn",
-};
+> {
+  return {
+    editable: m.tournaments_overview_my_deck_state_editable(),
+    submitted: m.tournaments_overview_my_deck_state_submitted(),
+    approved: m.tournaments_overview_my_deck_state_approved(),
+    checked: m.tournaments_overview_my_deck_state_checked(),
+    withdrawn: m.tournaments_overview_my_deck_state_withdrawn(),
+  };
+}
 
 function ParticipantsTile({
   id,
@@ -154,8 +160,10 @@ function ParticipantsTile({
   missingRegionCount: number;
 }) {
   const hints = [
-    ...(droppedCount > 0 ? [`${droppedCount} dropped`] : []),
-    ...(missingRegionCount > 0 ? [`${missingRegionCount} without a region`] : []),
+    ...(droppedCount > 0 ? [m.tournaments_overview_hint_dropped({ count: droppedCount })] : []),
+    ...(missingRegionCount > 0
+      ? [m.tournaments_overview_hint_without_region({ count: missingRegionCount })]
+      : []),
   ];
   // The roster page is staff-only (its route redirects others back here), so
   // the tile is only a link for staff.
@@ -165,7 +173,7 @@ function ParticipantsTile({
       render={staff ? <Link to="/tournaments/$id/participants" params={{ id }} /> : <div />}
       icon={UsersIcon}
       tone="success"
-      label="Participants"
+      label={m.tournaments_section_participants()}
       value={detail.participantCount}
       hint={hints.length > 0 ? hints.join(" · ") : undefined}
     >
@@ -202,7 +210,7 @@ function JoinRequestsSection({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading icon={InboxIcon} tone="gold" count={pending.length}>
-        Join requests
+        {m.tournaments_overview_join_requests()}
       </SectionHeading>
       <RowList>
         {pending.map((participant) => (
@@ -224,7 +232,7 @@ function JoinRequestsSection({
                   )
                 }
               >
-                Approve
+                {m.tournaments_overview_approve()}
               </Button>
               <Button
                 size="sm"
@@ -241,7 +249,7 @@ function JoinRequestsSection({
                   )
                 }
               >
-                Deny
+                {m.tournaments_overview_deny()}
               </Button>
             </span>
           </RowListItem>
@@ -286,12 +294,18 @@ function RoundBand({
         render={<Link to="/tournaments/$id/pairings" params={{ id }} />}
         icon={SwordsIcon}
         accent={manage && !finished}
-        label="Rounds"
+        label={m.tournaments_standings_col_rounds()}
         value="—"
-        sub={finished ? "no rounds were run" : "nothing paired yet"}
+        sub={
+          finished
+            ? m.tournaments_overview_rounds_none_finished()
+            : m.tournaments_overview_rounds_nothing_paired()
+        }
         action={
           <BandCta accent={manage && !finished}>
-            {manage && !finished ? "Generate round 1" : "View pairings"}
+            {manage && !finished
+              ? m.tournaments_overview_generate_round_1()
+              : m.tournaments_overview_view_pairings()}
           </BandCta>
         }
       />
@@ -307,12 +321,14 @@ function RoundBand({
       render={<Link to="/tournaments/$id/pairings" params={{ id }} />}
       icon={SwordsIcon}
       accent={needsViewer}
-      label={`Round ${round.roundNumber}`}
+      label={m.tournaments_round_band_round({ number: round.roundNumber })}
       value={`${reported}/${round.pods.length}`}
-      sub={`${noun} reported`}
+      sub={m.tournaments_round_band_sub({ noun })}
       action={
         <BandCta accent={needsViewer}>
-          {finished ? "View pairings" : open.length > 0 ? "Report results" : "View pairings"}
+          {!finished && open.length > 0
+            ? m.tournaments_overview_report_results()
+            : m.tournaments_overview_view_pairings()}
         </BandCta>
       }
     >
@@ -326,7 +342,10 @@ function RoundBand({
                 className="bg-muted text-muted-foreground truncate rounded-lg px-2.5 py-1.5 text-sm"
               >
                 <span className="text-foreground font-medium">{pairingLabel(pod.podNumber)}</span> ·{" "}
-                {scoresIn} of {pod.members.length} scores in
+                {m.tournaments_overview_scores_in({
+                  scored: scoresIn,
+                  total: pod.members.length,
+                })}
               </li>
             );
           })}
@@ -384,18 +403,18 @@ function ThroneModule({
       <Card className="hover:ring-primary/30 p-5 transition-all hover:shadow-md">
         <div className="flex min-w-0 items-center gap-2.5">
           <IconChip icon={TrophyIcon} tone="gold" size="sm" />
-          <SectionHeading>Standings</SectionHeading>
+          <SectionHeading>{m.tournaments_section_standings()}</SectionHeading>
           {finalized > 0 ? (
             <span className="text-muted-foreground/60 truncate text-sm tabular-nums">
-              after round {finalized}
+              {m.tournaments_overview_after_round({ number: finalized })}
             </span>
           ) : null}
           <span className="text-muted-foreground ml-auto flex shrink-0 items-center gap-1 text-sm">
-            Full table
+            {m.tournaments_overview_full_table()}
             <ChevronRightIcon className="size-4 transition-transform group-hover/throne:translate-x-0.5" />
           </span>
         </div>
-        <Podium seats={seats} emptyLabel="The throne fills after round 1 is finalized." />
+        <Podium seats={seats} emptyLabel={m.tournaments_standings_podium_empty()} />
         {trailing.length > 0 ? (
           <ul className="flex flex-col">
             {trailing.map(({ row, rank }) => (
@@ -409,7 +428,7 @@ function ThroneModule({
                 </span>
                 <span
                   className="text-muted-foreground shrink-0 text-xs"
-                  title={swiss ? undefined : POD_WINS_HINT}
+                  title={swiss ? undefined : podWinsHint()}
                 >
                   {formatPlayerRecord(row, swiss)}
                 </span>
@@ -447,7 +466,7 @@ function RoundsRail({
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Rounds</SectionHeading>
+      <SectionHeading>{m.tournaments_standings_col_rounds()}</SectionHeading>
       <RowList>
         {run.rounds.map((round) => (
           <RowListItem key={round.id}>
@@ -457,10 +476,12 @@ function RoundsRail({
                 aria-hidden="true"
               />
               <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                Round {round.roundNumber}
+                {m.tournaments_round_band_round({ number: round.roundNumber })}
               </span>
               <span className="text-muted-foreground shrink-0 text-xs">
-                {round.status === "finalized" ? "Finalized" : "Reporting"}
+                {round.status === "finalized"
+                  ? m.tournaments_overview_round_finalized()
+                  : m.tournaments_overview_round_reporting()}
               </span>
             </RowListLink>
             {snapshotLinkable(round, groupCut) ? (
@@ -471,7 +492,9 @@ function RoundsRail({
                     to="/tournaments/$id/standings"
                     params={{ id }}
                     search={{ round: round.roundNumber }}
-                    aria-label={`Standings after round ${round.roundNumber}`}
+                    aria-label={m.tournaments_overview_standings_after_round({
+                      number: round.roundNumber,
+                    })}
                   />
                 }
               >
@@ -487,13 +510,17 @@ function RoundsRail({
               aria-hidden="true"
             />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              Round {run.rounds.length + 1}
+              {m.tournaments_round_band_round({ number: run.rounds.length + 1 })}
             </span>
-            <span className="text-muted-foreground shrink-0 text-xs">Not generated</span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {m.tournaments_overview_round_not_generated()}
+            </span>
           </RowListItem>
         ) : null}
         {run.rounds.length === 0 && !showNext ? (
-          <RowListItem className="text-muted-foreground text-sm">No rounds were run.</RowListItem>
+          <RowListItem className="text-muted-foreground text-sm">
+            {m.tournaments_overview_no_rounds_were_run()}
+          </RowListItem>
         ) : null}
       </RowList>
     </section>
@@ -505,27 +532,27 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
   const hasJudges = detail.staff.some((member) => member.role === "judge");
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Staff</SectionHeading>
+      <SectionHeading>{m.tournaments_section_staff()}</SectionHeading>
       <RowList>
         {detail.staff.map((member) => (
           <RowListItem key={`${member.userId}:${member.role}`}>
             <UserAvatar name={member.name} size="sm" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {member.name ?? "Unnamed"}
+              {member.name ?? m.tournaments_overview_staff_unnamed()}
             </span>
             <span className="text-muted-foreground shrink-0 text-xs">
-              {STAFF_ROLE_LABEL[member.role]}
+              {staffRoleLabels()[member.role]}
             </span>
           </RowListItem>
         ))}
         {hasJudges ? null : (
           <RowListItem className="text-muted-foreground text-sm">
-            <span className="min-w-0 flex-1">No judges yet.</span>
+            <span className="min-w-0 flex-1">{m.tournaments_overview_no_judges()}</span>
             <TextLink
               className="shrink-0 text-sm font-medium"
               render={<Link to="/tournaments/$id/staff" params={{ id }} />}
             >
-              Add
+              {m.tournaments_overview_add()}
             </TextLink>
           </RowListItem>
         )}

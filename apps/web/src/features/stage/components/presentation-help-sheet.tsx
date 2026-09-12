@@ -1,38 +1,49 @@
 import { Kbd } from "@/components/ui/kbd";
+import { m } from "@/paraglide/messages.js";
 
 interface KeyHelpRow {
   keys: string[];
   what: string;
 }
 
-const WALK_KEY_HELP: KeyHelpRow[] = [
-  { keys: ["←", "→"], what: "Step through the queue" },
-  { keys: ["Space"], what: "Next card" },
-  { keys: ["Home", "End"], what: "First / last card" },
-  { keys: ["T"], what: "Text panel" },
-  { keys: ["F"], what: "Thumbnail strip" },
-];
+function walkKeyHelp(): KeyHelpRow[] {
+  return [
+    { keys: ["←", "→"], what: m.stage_help_step_queue() },
+    { keys: ["Space"], what: m.stage_help_next_card() },
+    { keys: ["Home", "End"], what: m.stage_help_first_last() },
+    { keys: ["T"], what: m.stage_toggle_text_panel() },
+    { keys: ["F"], what: m.stage_toggle_thumbnail_strip() },
+  ];
+}
 
-const BOARD_KEY_HELP: KeyHelpRow[] = [
-  { keys: ["B"], what: "Whole board / one card" },
-  { keys: ["C"], what: "Current card beside the board" },
-  { keys: ["K"], what: "The current card's tier, large" },
-  { keys: ["R"], what: "Fill the board as you go" },
-  { keys: ["D"], what: "Start from the bottom tier" },
-];
+function boardKeyHelp(): KeyHelpRow[] {
+  return [
+    { keys: ["B"], what: m.stage_help_board_toggle() },
+    { keys: ["C"], what: m.stage_help_card_beside_board() },
+    { keys: ["K"], what: m.stage_help_tier_large() },
+    { keys: ["R"], what: m.stage_help_fill_board() },
+    { keys: ["D"], what: m.stage_help_start_bottom() },
+  ];
+}
 
-const PUSH_KEY_HELP: KeyHelpRow[] = [{ keys: ["P"], what: "Push this card to the OBS overlay" }];
+function pushKeyHelp(): KeyHelpRow[] {
+  return [{ keys: ["P"], what: m.stage_help_push_card() }];
+}
 
-const OBS_BOARD_KEY_HELP: KeyHelpRow[] = [
-  { keys: ["O"], what: "Show this board on the OBS overlay" },
-];
+function obsBoardKeyHelp(): KeyHelpRow[] {
+  return [{ keys: ["O"], what: m.stage_help_show_board_obs() }];
+}
 
-const HIDE_KEY_HELP: KeyHelpRow[] = [{ keys: ["H"], what: "Hide / show the OBS overlay" }];
+function hideKeyHelp(): KeyHelpRow[] {
+  return [{ keys: ["H"], what: m.stage_help_hide_overlay() }];
+}
 
-const COMMON_KEY_HELP: KeyHelpRow[] = [
-  { keys: ["?"], what: "This help" },
-  { keys: ["Esc"], what: "Leave the stage" },
-];
+function commonKeyHelp(): KeyHelpRow[] {
+  return [
+    { keys: ["?"], what: m.stage_help_this_help() },
+    { keys: ["Esc"], what: m.stage_help_leave() },
+  ];
+}
 
 export function PresentationHelpSheet({
   boardControls,
@@ -48,15 +59,15 @@ export function PresentationHelpSheet({
   editing: boolean;
 }) {
   const rows: KeyHelpRow[] = [
-    ...(editing ? [] : WALK_KEY_HELP),
-    ...(boardControls && !editing ? BOARD_KEY_HELP : []),
-    ...(pushControls && !editing ? PUSH_KEY_HELP : []),
-    ...(obsControls && !editing ? OBS_BOARD_KEY_HELP : []),
-    ...(pushControls ? HIDE_KEY_HELP : []),
+    ...(editing ? [] : walkKeyHelp()),
+    ...(boardControls && !editing ? boardKeyHelp() : []),
+    ...(pushControls && !editing ? pushKeyHelp() : []),
+    ...(obsControls && !editing ? obsBoardKeyHelp() : []),
+    ...(pushControls ? hideKeyHelp() : []),
     ...(editControls
-      ? [{ keys: ["E"], what: editing ? "Back to the show" : "Edit the board" }]
+      ? [{ keys: ["E"], what: editing ? m.stage_help_back_to_show() : m.stage_toggle_edit_board() }]
       : []),
-    ...COMMON_KEY_HELP,
+    ...commonKeyHelp(),
   ];
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center pb-8">

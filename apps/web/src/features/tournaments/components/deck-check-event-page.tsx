@@ -55,10 +55,11 @@ import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tour
 import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
 import {
   compareParticipantsForList,
-  PARTICIPANT_STATUS_LABEL,
+  participantStatusLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { useZoneOrder } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** Actionable entries first: submissions to review, then drafts, then done. */
 const STATE_ORDER: Record<DeckCheckEntrySummaryResponse["state"], number> = {
@@ -107,20 +108,24 @@ export function TournamentDeckCheckEntries({
         <SearchInput
           value={search}
           onValueChange={setSearch}
-          placeholder="Search players"
-          ariaLabel="Search players"
+          placeholder={m.tournaments_deck_check_search_players()}
+          ariaLabel={m.tournaments_deck_check_search_players()}
           className="w-full max-w-xs"
         />
         <p className="text-muted-foreground text-sm">
-          {`${event.approvedCount} approved · ${event.checkedCount} checked of ${event.entryCount}`}
+          {m.tournaments_deck_check_counts_summary({
+            approved: event.approvedCount,
+            checked: event.checkedCount,
+            total: event.entryCount,
+          })}
         </p>
       </div>
 
       {visible.length === 0 ? (
         <p className="text-muted-foreground">
           {entries.length === 0
-            ? "No decks yet. They appear as players submit or your organizer system pushes lists."
-            : "No players match the search."}
+            ? m.tournaments_deck_check_no_decks_yet()
+            : m.tournaments_deck_check_no_player_matches()}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -150,11 +155,11 @@ export function TournamentDeckCheckAddButton({ tournamentId }: { tournamentId: s
   return (
     <>
       <PageTopBarPrimaryButton
-        title="Attach a decklist to a participant by hand"
+        title={m.tournaments_deck_check_add_deck_title_attr()}
         onClick={() => setAddOpen(true)}
       >
         <PlusIcon />
-        Add deck
+        {m.tournaments_deck_check_add_deck()}
       </PageTopBarPrimaryButton>
       <AddDeckDialog
         tournamentId={tournamentId}
@@ -175,7 +180,7 @@ function CheckedProgressChip({ verified, total }: { verified: number; total: num
     <Badge
       variant={done ? "success" : verified > 0 ? "warning" : "muted"}
       className="tabular-nums"
-      title={`${verified} of ${total} cards checked`}
+      title={m.tournaments_deck_check_progress_title({ verified, total })}
     >
       {done ? <CheckIcon /> : null}
       {verified} / {total}
@@ -217,13 +222,13 @@ function EntryRow({
             {entry.playerName}
           </span>
           {entry.source === "api" ? (
-            <Badge variant="outline" title="Submitted by the organizer system">
+            <Badge variant="outline" title={m.tournaments_deck_check_source_api_title()}>
               API
             </Badge>
           ) : null}
           {entry.source === "self" ? (
-            <Badge variant="outline" title="Submitted by the player through OpenRift">
-              Self
+            <Badge variant="outline" title={m.tournaments_deck_check_source_self_title()}>
+              {m.tournaments_deck_check_source_self_badge()}
             </Badge>
           ) : null}
         </span>
@@ -231,23 +236,25 @@ function EntryRow({
           <CheckedProgressChip verified={entry.verifiedCopyCount} total={entry.copyCount} />
         )}
         {entry.unlockRequestedAt ? (
-          <Badge variant="destructive" title="The player asked to unlock this approved deck">
-            Unlock requested
+          <Badge variant="destructive" title={m.tournaments_deck_check_unlock_badge_title()}>
+            {m.tournaments_deck_check_unlock_requested()}
           </Badge>
         ) : null}
         {entry.changedSinceReview ? (
-          <Badge variant="destructive">Changed since review</Badge>
+          <Badge variant="destructive">{m.tournaments_deck_check_changed_since_review()}</Badge>
         ) : null}
         {entry.unmatchedLineCount > 0 ? (
-          <Badge variant="secondary">{entry.unmatchedLineCount} unmatched</Badge>
+          <Badge variant="secondary">
+            {m.tournaments_deck_check_unmatched_count({ count: entry.unmatchedLineCount })}
+          </Badge>
         ) : null}
         {participantInactive && entry.participantStatus ? (
           <Badge
             variant="outline"
             className="text-muted-foreground"
-            title="This player has left the tournament. Their deck is kept"
+            title={m.tournaments_deck_check_participant_left_title()}
           >
-            {PARTICIPANT_STATUS_LABEL[entry.participantStatus]}
+            {participantStatusLabels()[entry.participantStatus]}
           </Badge>
         ) : (
           <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
@@ -283,7 +290,11 @@ function EntryRowMenu({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button size="sm" variant="ghost" aria-label={`Actions for ${entry.playerName}`} />
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={m.tournaments_deck_check_row_actions({ name: entry.playerName })}
+            />
           }
         >
           <EllipsisVerticalIcon className="size-4" />
@@ -297,7 +308,7 @@ function EntryRowMenu({
               }
             >
               <RotateCcwIcon className="size-4" />
-              Restore entry
+              {m.tournaments_deck_check_restore_entry()}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
@@ -307,23 +318,23 @@ function EntryRowMenu({
               }
             >
               <BanIcon className="size-4" />
-              Withdraw
+              {m.tournaments_deck_check_withdraw()}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
             <Trash2Icon className="size-4" />
-            Delete entry
+            {m.tournaments_deck_check_delete_entry()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ConfirmActionDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this entry?"
-        description="The player's list and check history are removed. This cannot be undone. Withdraw the entry instead if they only dropped out."
-        confirmLabel="Delete"
-        pendingLabel="Deleting..."
+        title={m.tournaments_deck_check_delete_entry_title()}
+        description={m.tournaments_deck_check_delete_entry_description()}
+        confirmLabel={m.common_delete()}
+        pendingLabel={m.tournaments_deck_check_deleting()}
         isPending={deleteEntry.isPending}
         onConfirm={() => void handleDelete()}
       />
@@ -339,25 +350,25 @@ export function EntryStateBadge({
   reviewOutcome: DeckCheckEntrySummaryResponse["reviewOutcome"];
 }) {
   if (state === "editable") {
-    return <Badge variant="outline">Editing</Badge>;
+    return <Badge variant="outline">{m.tournaments_deck_check_state_editing()}</Badge>;
   }
   if (state === "approved") {
-    return <Badge>Approved</Badge>;
+    return <Badge>{m.tournaments_deck_check_state_approved()}</Badge>;
   }
   if (state === "checked") {
     return reviewOutcome === "issue" ? (
-      <Badge variant="destructive">Checked · issue</Badge>
+      <Badge variant="destructive">{m.tournaments_deck_check_state_checked_issue()}</Badge>
     ) : (
-      <Badge>Checked</Badge>
+      <Badge>{m.tournaments_deck_check_state_checked()}</Badge>
     );
   }
   if (state === "withdrawn") {
-    return <Badge variant="secondary">Withdrawn</Badge>;
+    return <Badge variant="secondary">{m.tournaments_deck_check_state_withdrawn()}</Badge>;
   }
   return reviewOutcome === "issue" ? (
-    <Badge variant="destructive">Submitted · issue</Badge>
+    <Badge variant="destructive">{m.tournaments_deck_check_state_submitted_issue()}</Badge>
   ) : (
-    <Badge variant="secondary">Submitted</Badge>
+    <Badge variant="secondary">{m.tournaments_deck_check_state_submitted()}</Badge>
   );
 }
 
@@ -388,7 +399,7 @@ function AddDeckDialog({
     .toSorted(compareParticipantsForList);
   const rosterItems = available.map((participant) => ({
     value: participant.id,
-    label: `${participant.displayName} (${PARTICIPANT_STATUS_LABEL[participant.status]})`,
+    label: `${participant.displayName} (${participantStatusLabels()[participant.status]})`,
   }));
 
   const parsed = parseManualDecklist(decklist);
@@ -413,7 +424,7 @@ function AddDeckDialog({
       participantId,
       cards: parsed.cards,
     });
-    toast.success("Deck added");
+    toast.success(m.tournaments_deck_check_deck_added_toast());
     reset();
     onOpenChange(false);
     void navigate({
@@ -435,12 +446,14 @@ function AddDeckDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleSubmit()}>
           <DialogHeader>
-            <DialogTitle>Add a deck</DialogTitle>
-            <DialogDescription>Attach a decklist to someone on the roster.</DialogDescription>
+            <DialogTitle>{m.tournaments_deck_check_add_deck_dialog_title()}</DialogTitle>
+            <DialogDescription>
+              {m.tournaments_deck_check_add_deck_dialog_description()}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Participant</Label>
+              <Label>{m.tournaments_deck_check_participant_label()}</Label>
               {rosterItems.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   No participants without a deck. Add them on the Participants tab, then attach a
@@ -452,8 +465,8 @@ function AddDeckDialog({
                   value={participantId}
                   onValueChange={(value) => value && setParticipantId(value)}
                 >
-                  <SelectTrigger aria-label="Participant">
-                    <SelectValue placeholder="Choose a participant" />
+                  <SelectTrigger aria-label={m.tournaments_deck_check_participant_label()}>
+                    <SelectValue placeholder={m.tournaments_deck_check_choose_participant()} />
                   </SelectTrigger>
                   <SelectContent>
                     {rosterItems.map((item) => (
@@ -466,7 +479,9 @@ function AddDeckDialog({
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="manual-entry-decklist">Decklist</Label>
+              <Label htmlFor="manual-entry-decklist">
+                {m.tournaments_deck_check_decklist_label()}
+              </Label>
               <Textarea
                 id="manual-entry-decklist"
                 value={decklist}
@@ -478,12 +493,15 @@ function AddDeckDialog({
                 }
               />
               <p className="text-muted-foreground text-sm">
-                One card per line as <code>2 Card Name</code>, with optional zone headers. Matches
-                are checked after you save.
+                {m.tournaments_deck_check_manual_format_prefix()} <code>2 Card Name</code>
+                {m.tournaments_deck_check_manual_format_suffix()}
               </p>
               {parsed.cards.length > 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  {parsed.totalCopies} {parsed.totalCopies === 1 ? "copy" : "copies"} ·{" "}
+                  {parsed.totalCopies === 1
+                    ? m.common_copies_one({ count: parsed.totalCopies })
+                    : m.common_copies_other({ count: parsed.totalCopies })}{" "}
+                  ·{" "}
                   {perZone
                     .map(
                       ({ section, copies }) =>
@@ -501,10 +519,12 @@ function AddDeckDialog({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={createEntry.isPending || !participantId}>
-              {createEntry.isPending ? "Adding..." : "Add deck"}
+              {createEntry.isPending
+                ? m.tournaments_deck_check_adding()
+                : m.tournaments_deck_check_add_deck()}
             </Button>
           </DialogFooter>
         </DialogForm>

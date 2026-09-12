@@ -20,10 +20,9 @@ import {
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
 import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
-import { formatWinRate, GROUP_CUT_TIER_LABEL } from "@/features/tournaments/lib/group-cut-display";
+import { formatWinRate, groupCutTierLabels } from "@/features/tournaments/lib/group-cut-display";
 import { cn } from "@/lib/utils";
-
-const DECIDED_BY_HEAD = "Below the row above by";
+import { m } from "@/paraglide/messages.js";
 
 function DecidedByBadge({ tier }: { tier: GroupCutTierView | null }) {
   if (tier === null) {
@@ -31,7 +30,7 @@ function DecidedByBadge({ tier }: { tier: GroupCutTierView | null }) {
   }
   return (
     <Badge variant={tier === "meta_pending" ? "warning" : "muted"}>
-      {GROUP_CUT_TIER_LABEL[tier]}
+      {groupCutTierLabels()[tier]}
     </Badge>
   );
 }
@@ -49,7 +48,9 @@ function PlayerCell({ row }: { row: Pick<GroupStandingRowView, "displayName" | "
       <UserAvatar name={row.displayName} size="sm" className="shrink-0" />
       <span className="truncate font-medium">{row.displayName}</span>
       {row.status === "dropped" ? (
-        <span className="text-muted-foreground shrink-0 text-sm">(dropped)</span>
+        <span className="text-muted-foreground shrink-0 text-sm">
+          {m.tournaments_group_dropped_marker()}
+        </span>
       ) : null}
     </div>
   );
@@ -57,10 +58,13 @@ function PlayerCell({ row }: { row: Pick<GroupStandingRowView, "displayName" | "
 
 function groupDescription(group: GroupStageGroupView): string {
   const count = group.playerIds.length;
-  const players = `${count} player${count === 1 ? "" : "s"}`;
+  const players =
+    count === 1
+      ? m.tournaments_group_players_count_one({ count })
+      : m.tournaments_group_players_count_other({ count });
   return group.pairedGroupLabel === null
     ? players
-    : `${players} · one cross-group match each, counted for the cut only`;
+    : m.tournaments_group_cross_group_suffix({ players });
 }
 
 export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
@@ -68,9 +72,11 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <SectionHeading>Group {group.label}</SectionHeading>
+          <SectionHeading>{m.tournaments_group_heading({ label: group.label })}</SectionHeading>
           {group.pairedGroupLabel === null ? null : (
-            <Badge variant="info">Paired with Group {group.pairedGroupLabel}</Badge>
+            <Badge variant="info">
+              {m.tournaments_group_paired_with({ label: group.pairedGroupLabel })}
+            </Badge>
           )}
         </div>
         <p className="text-muted-foreground text-sm">{groupDescription(group)}</p>
@@ -79,12 +85,12 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">#</TableHead>
-            <TableHead>Player</TableHead>
-            <TableHead>Legend</TableHead>
-            <TableHead className="text-right">Points</TableHead>
+            <TableHead>{m.tournaments_group_col_player()}</TableHead>
+            <TableHead>{m.tournaments_group_col_legend()}</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_points()}</TableHead>
             <TableHead className="text-right">W-L-D</TableHead>
             <TableHead className="text-right">GW%</TableHead>
-            <TableHead>{DECIDED_BY_HEAD}</TableHead>
+            <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -138,32 +144,31 @@ export function CutSeedsCard({
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <SectionHeading>Top {cutSize} seeds</SectionHeading>
-          {groupStage.cutGenerated ? <Badge variant="secondary">Locked</Badge> : null}
+          <SectionHeading>
+            {m.tournaments_group_top_seeds_heading({ size: cutSize })}
+          </SectionHeading>
+          {groupStage.cutGenerated ? (
+            <Badge variant="secondary">{m.tournaments_group_seeds_locked()}</Badge>
+          ) : null}
         </div>
-        <p className="text-muted-foreground text-sm">
-          All group winners first, then all runners-up, and so on until the cut is full.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_group_seeds_description()}</p>
       </div>
       {groupStage.seedsDiverged ? (
         <Alert variant="warning">
           <TriangleAlertIcon />
-          <AlertDescription>
-            A group result was corrected after the cut. Group standings now differ from the locked
-            seeds.
-          </AlertDescription>
+          <AlertDescription>{m.tournaments_group_seeds_diverged()}</AlertDescription>
         </Alert>
       ) : null}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12">Seed</TableHead>
-            <TableHead>Player</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead className="text-right">Place</TableHead>
+            <TableHead className="w-12">{m.tournaments_group_col_seed()}</TableHead>
+            <TableHead>{m.tournaments_group_col_player()}</TableHead>
+            <TableHead>{m.tournaments_group_col_group()}</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_place()}</TableHead>
             <TableHead className="text-right">MW%</TableHead>
             <TableHead className="text-right">GW%</TableHead>
-            <TableHead>{DECIDED_BY_HEAD}</TableHead>
+            <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -199,7 +204,9 @@ export function CutSeedsCard({
       </Table>
       {missedOut.length > 0 ? (
         <p className="text-muted-foreground text-sm">
-          Did not qualify: {missedOut.map((row) => row.displayName).join(", ")}.
+          {m.tournaments_group_did_not_qualify({
+            names: missedOut.map((row) => row.displayName).join(", "),
+          })}
         </p>
       ) : null}
     </section>
@@ -209,11 +216,9 @@ export function CutSeedsCard({
 export function GroupTiebreakNote({ legendTiebreak }: { legendTiebreak: boolean }) {
   return (
     <p className="text-muted-foreground text-sm">
-      Inside a group, match points come first, then the head-to-head result, a mini-table when three
-      or more are level, and the game win rate
-      {legendTiebreak ? ", then the rarer Legend in the field and its meta share" : ""}. For the
-      cut, all group winners rank above all runners-up, and match win rate over all three matches
-      orders each tier.
+      {m.tournaments_group_tiebreak_note({
+        legend: legendTiebreak ? m.tournaments_group_tiebreak_note_legend() : "",
+      })}
     </p>
   );
 }

@@ -3,8 +3,12 @@ import { CheckIcon, CopyIcon, QrCodeIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
+
+const DECK_NAME = "Yasuo Aggro";
+const AUTHOR = "Mira";
 
 const SHARE_URL = "https://openrift.app/decks/share/AbCdEf123456";
 
@@ -45,13 +49,13 @@ function OgImage() {
     >
       <div className="flex items-baseline gap-2">
         <span className="truncate text-sm font-bold" style={{ color: OG.text }}>
-          Yasuo Aggro
+          {DECK_NAME}
         </span>
         <span className="text-2xs shrink-0 font-semibold" style={{ color: OG.gold }}>
-          by Mira
+          {m.marketing_share_og_by({ name: AUTHOR })}
         </span>
         <span className="text-2xs ml-auto shrink-0" style={{ color: OG.muted }}>
-          Constructed · 30 + 2 cards
+          {m.marketing_share_og_meta()}
         </span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
@@ -89,11 +93,11 @@ export function ShareVignette() {
           >
             <span className="motion-safe:animate-share-before flex items-center gap-1.5">
               <CopyIcon className="size-4" />
-              Copy
+              {m.common_copy()}
             </span>
             <span className="motion-safe:animate-share-after absolute inset-0 flex items-center justify-center gap-1.5 opacity-0">
               <CheckIcon className="size-4" />
-              Copied
+              {m.common_copied()}
             </span>
           </span>
           <span
@@ -103,16 +107,18 @@ export function ShareVignette() {
             <QrCodeIcon />
           </span>
         </div>
-        <QrCode value={SHARE_URL} size={96} label="QR code for the deck share link" />
+        <QrCode value={SHARE_URL} size={96} label={m.share_qr_label_deck()} />
       </div>
 
       <div className="border-border/60 motion-safe:animate-share-unfurl overflow-hidden rounded-lg border">
         <OgImage />
         <div className="flex flex-col gap-0.5 px-3 py-2">
           <span className="text-muted-foreground text-2xs">OpenRift</span>
-          <span className="truncate text-sm font-medium">Yasuo Aggro (Constructed deck)</span>
+          <span className="truncate text-sm font-medium">
+            {m.marketing_share_preview_title({ deck: DECK_NAME })}
+          </span>
           <span className="text-muted-foreground text-xs">
-            A Constructed Riftbound deck shared by Mira.
+            {m.marketing_share_preview_description({ name: AUTHOR })}
           </span>
         </div>
       </div>

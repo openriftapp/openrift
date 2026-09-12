@@ -6,6 +6,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function PresentationFilmstrip({
   items,
@@ -39,7 +40,9 @@ export function PresentationFilmstrip({
                 itemRefs.current[itemIndex] = node;
               }}
               onClick={() => onSelect(itemIndex)}
-              aria-label={`Show ${legendDisplayName(item.printing.card)}`}
+              aria-label={m.stage_filmstrip_show_aria({
+                name: legendDisplayName(item.printing.card),
+              })}
               aria-current={isCurrent ? "true" : undefined}
               className={cn(
                 "shrink-0 rounded-md transition-all duration-200",

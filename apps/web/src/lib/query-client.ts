@@ -1,6 +1,8 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { m } from "@/paraglide/messages.js";
+
 import { sessionQueryOptions } from "./auth-session";
 import { captureHandledError } from "./report-error";
 import { errorStatus, isApiError, isSessionExpiredError } from "./server-fns/api-error";
@@ -29,10 +31,7 @@ export function reportMutationError(err: Error, queryClient: QueryClient): void 
   if (status === undefined || status >= 500) {
     captureHandledError(err, { mutation: "true" });
   }
-  toast.error(
-    toastableMessage(err.message, "Something went wrong. Please try again."),
-    PERSISTENT_ERROR_TOAST,
-  );
+  toast.error(toastableMessage(err.message, m.common_error_generic()), PERSISTENT_ERROR_TOAST);
 }
 
 /** Called once per request on the server, to avoid cross-request data leakage, and once on the client. */

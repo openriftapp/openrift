@@ -32,12 +32,13 @@ import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { metaCutLineRecord } from "@/features/meta/lib/meta-player-run";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 /** Every citation is printed, never collapsed behind a "+2 more". */
 function EventSources({ sources }: { sources: MetaEventDetail["sources"] }) {
   return (
     <p className="text-muted-foreground text-xs">
-      {sources.length === 1 ? "Source" : "Sources"}:{" "}
+      {sources.length === 1 ? m.meta_event_source_one() : m.meta_event_source_other()}:{" "}
       {sources.map((source, index) => (
         <Fragment key={source.id}>
           {index > 0 && <span aria-hidden="true"> · </span>}
@@ -91,7 +92,7 @@ function ChampionPlate({
     <div className="flex w-full shrink-0 items-center gap-4 sm:w-auto">
       <div className="flex w-full flex-col gap-2 sm:w-64">
         <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
-          Champion
+          {m.meta_event_header_champion()}
         </span>
         <p className="font-heading font-semibold">
           <MetaPlayerName name={player.playerName} playerKey={player.playerKey} />
@@ -117,7 +118,7 @@ function ChampionPlate({
             className="inline-flex items-center gap-0.5 text-xs font-medium"
             render={<Link to="/meta/$slug/players/$key" params={{ slug, key: player.playerKey }} />}
           >
-            Road to the title
+            {m.meta_event_header_road_to_title()}
             <ChevronRightIcon className="size-3.5" />
           </TextLink>
         )}
@@ -168,7 +169,7 @@ export function MetaEventHeader({
 
   const byline: string[] = [];
   if (event.organizer !== null) {
-    byline.push(`Organized by ${event.organizer}`);
+    byline.push(m.meta_event_organized_by({ organizer: event.organizer }));
   }
   byline.push(enumLabel(formatLabels, event.format));
   if (structure.sentence !== null) {
@@ -176,7 +177,7 @@ export function MetaEventHeader({
   }
   const liveLine: string[] = [];
   if (live) {
-    liveLine.push(describeEventProgress(matches, phases) ?? "Round 1 under way");
+    liveLine.push(describeEventProgress(matches, phases) ?? m.meta_event_header_round_one());
     // Relative to the reader's clock, so it only renders once hydrated.
     if (hydrated && event.sourceCheckedAt !== null) {
       liveLine.push(`checked ${formatRelativeTime(event.sourceCheckedAt)}`);
@@ -222,12 +223,21 @@ export function MetaEventHeader({
 
           <div className="flex flex-wrap gap-x-9 gap-y-3">
             {event.playerCount !== null && (
-              <Counter value={counterValue(event.playerCount)} label="players in the field" />
+              <Counter
+                value={counterValue(event.playerCount)}
+                label={m.meta_event_header_players()}
+              />
             )}
-            <Counter value={counterValue(event.playerRowCount)} label="results archived" />
-            <Counter value={counterValue(event.deckCount)} label="decklists on file" />
+            <Counter
+              value={counterValue(event.playerRowCount)}
+              label={m.meta_event_header_results()}
+            />
+            <Counter
+              value={counterValue(event.deckCount)}
+              label={m.meta_event_header_decklists()}
+            />
             {cutLineRecord !== null && (
-              <Counter value={cutLineRecord} label="record at the cut line" />
+              <Counter value={cutLineRecord} label={m.meta_event_header_cut_record()} />
             )}
           </div>
 

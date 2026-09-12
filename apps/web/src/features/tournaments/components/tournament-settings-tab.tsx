@@ -19,6 +19,7 @@ import {
   effectiveTournamentState,
   hasPairing,
 } from "@/features/tournaments/lib/tournament-display";
+import { m } from "@/paraglide/messages.js";
 
 function buildTocItems({
   isHost,
@@ -28,28 +29,30 @@ function buildTocItems({
   runsRounds: boolean;
 }): PageTocItem[] {
   return [
-    { id: "general", label: "General" },
-    { id: "name", label: "Name", level: 1 },
+    { id: "general", label: m.tournaments_settings_toc_general() },
+    { id: "name", label: m.common_name(), level: 1 },
     ...(isHost
       ? [
-          { id: "host", label: "Host", level: 1 },
-          { id: "group", label: "Group", level: 1 },
+          { id: "host", label: m.tournaments_lib_viewer_role_host(), level: 1 },
+          { id: "group", label: m.tournaments_settings_toc_group(), level: 1 },
         ]
       : []),
-    { id: "schedule", label: "Schedule", level: 1 },
-    { id: "pairings-decks", label: "Pairings & decks" },
-    { id: "pairings", label: "Format", level: 1 },
+    { id: "schedule", label: m.tournaments_settings_toc_schedule(), level: 1 },
+    { id: "pairings-decks", label: m.tournaments_settings_toc_pairings_decks() },
+    { id: "pairings", label: m.tournaments_settings_toc_format(), level: 1 },
     ...(runsRounds
       ? [
-          { id: "points", label: "Points", level: 1 },
-          { id: "regions", label: "Regions", level: 1 },
+          { id: "points", label: m.tournaments_standings_col_points(), level: 1 },
+          { id: "regions", label: m.tournaments_region_overview_heading(), level: 1 },
         ]
       : []),
-    { id: "decks", label: "Decks", level: 1 },
-    { id: "sharing", label: "Sharing" },
-    { id: "signup-links", label: "Sign-up links", level: 1 },
-    ...(runsRounds ? [{ id: "follow-along", label: "Follow-along", level: 1 }] : []),
-    { id: "danger-zone", label: "Danger zone" },
+    { id: "decks", label: m.tournaments_section_decks(), level: 1 },
+    { id: "sharing", label: m.tournaments_settings_toc_sharing() },
+    { id: "signup-links", label: m.tournaments_settings_toc_signup_links(), level: 1 },
+    ...(runsRounds
+      ? [{ id: "follow-along", label: m.tournaments_settings_toc_follow_along(), level: 1 }]
+      : []),
+    { id: "danger-zone", label: m.tournaments_settings_toc_danger_zone() },
   ];
 }
 
@@ -62,7 +65,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
 
   return (
     <SettingsLayout toc={buildTocItems({ isHost, runsRounds })}>
-      <SettingsGroup id="general" title="General">
+      <SettingsGroup id="general" title={m.tournaments_settings_toc_general()}>
         <NameSection detail={detail} locked={locked} />
 
         {isHost ? (
@@ -75,7 +78,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
         <ScheduleSection detail={detail} locked={locked} canEndEarly={canEndEarly} />
       </SettingsGroup>
 
-      <SettingsGroup id="pairings-decks" title="Pairings & decks">
+      <SettingsGroup id="pairings-decks" title={m.tournaments_settings_toc_pairings_decks()}>
         <FormatSection detail={detail} locked={locked} />
         {runsRounds ? <PointsSection detail={detail} locked={locked} /> : null}
         {runsRounds && detail.playMode !== "2v2" ? (
@@ -84,12 +87,12 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
         <DecksSection detail={detail} locked={locked} />
       </SettingsGroup>
 
-      <SettingsGroup id="sharing" title="Sharing">
+      <SettingsGroup id="sharing" title={m.tournaments_settings_toc_sharing()}>
         <SignupLinksSection detail={detail} locked={locked} />
         {runsRounds ? <FollowAlongSection detail={detail} locked={locked} /> : null}
       </SettingsGroup>
 
-      <SettingsGroup id="danger-zone" title="Danger zone">
+      <SettingsGroup id="danger-zone" title={m.tournaments_settings_toc_danger_zone()}>
         <DangerZoneCard detail={detail} />
       </SettingsGroup>
     </SettingsLayout>

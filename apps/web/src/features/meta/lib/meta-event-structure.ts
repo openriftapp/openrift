@@ -1,6 +1,7 @@
 import type { MetaEventMatch, MetaEventPhase } from "@openrift/shared/types/api/meta";
 
 import { isSingleElimination } from "@/features/meta/lib/meta-bracket";
+import { m } from "@/paraglide/messages.js";
 
 export interface MetaEventStructure {
   swissRounds: number | null;
@@ -50,16 +51,19 @@ function sentenceFor(
   cutSize: number | null,
   bestOf: number | null,
 ): string | null {
-  const rounds = swissRounds === 1 ? "1 Swiss round" : `${swissRounds} Swiss rounds`;
-  const games = bestOf === null ? "" : `, best of ${bestOf}`;
+  const rounds =
+    swissRounds === 1
+      ? m.meta_structure_swiss_rounds_one()
+      : m.meta_structure_swiss_rounds_other({ count: String(swissRounds) });
+  const games = bestOf === null ? "" : m.meta_structure_best_of({ count: String(bestOf) });
   if (swissRounds !== null && cutSize !== null) {
-    return `${rounds}${games}, then a top ${cutSize} cut`;
+    return m.meta_structure_swiss_then_cut({ rounds, games, cut: String(cutSize) });
   }
   if (swissRounds !== null) {
     return `${rounds}${games}`;
   }
   if (cutSize !== null) {
-    return `Top ${cutSize} cut${games}`;
+    return m.meta_structure_cut_only({ cut: String(cutSize), games });
   }
   return null;
 }
@@ -83,11 +87,15 @@ export function describeEventProgress(
   const phase = phases.find((candidate) => candidate.phaseOrder === phaseOrder);
   if (phase !== undefined && isSingleElimination(phase.roundType)) {
     const cutSize = cutSizeOf(phases);
-    return cutSize === null ? "Top cut under way" : `Top ${cutSize} under way`;
+    return cutSize === null
+      ? m.meta_progress_top_cut_under_way()
+      : m.meta_progress_top_n_under_way({ cut: String(cutSize) });
   }
   const played = Math.max(
     ...matches.filter((match) => match.phaseOrder === phaseOrder).map((match) => match.roundNumber),
   );
   const total = phase?.roundCount ?? null;
-  return total === null ? `After round ${played}` : `After round ${played} of ${total}`;
+  return total === null
+    ? m.meta_progress_after_round({ played: String(played) })
+    : m.meta_progress_after_round_of({ played: String(played), total: String(total) });
 }

@@ -20,6 +20,7 @@ import { resolveTierRows, tierRowsToQueue } from "@/features/stage/lib/tier-list
 import { useHydrated } from "@/hooks/use-hydrated";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
@@ -42,7 +43,15 @@ export function TierListShareView({ data, token }: TierListSharePageProps) {
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
             <PageTopBarTitle>{tierList.title}</PageTopBarTitle>
             <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-              by {owner.displayName} · {rankedCount} {rankedCount === 1 ? "card" : "cards"} ranked
+              {rankedCount === 1
+                ? m.tier_lists_share_byline_one({
+                    owner: owner.displayName,
+                    count: rankedCount,
+                  })
+                : m.tier_lists_share_byline_other({
+                    owner: owner.displayName,
+                    count: rankedCount,
+                  })}
             </span>
           </div>
           {rankedCount > 0 && (
@@ -51,7 +60,7 @@ export function TierListShareView({ data, token }: TierListSharePageProps) {
                 render={
                   <Link to="/stage" search={{ tierShare: token, i: 0 }}>
                     <MonitorPlayIcon />
-                    Present
+                    {m.tier_lists_present()}
                   </Link>
                 }
               />

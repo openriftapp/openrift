@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CountPill } from "@/components/ui/count-pill";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 import { MiniCardArt, Vignette } from "./vignette-parts";
 
@@ -68,8 +69,8 @@ export function CatalogVignette({
     cardCount === undefined
       ? undefined
       : filtered === undefined
-        ? `${cardCount} cards`
-        : `${filtered} / ${cardCount} cards`;
+        ? m.common_cards_other({ count: cardCount })
+        : m.marketing_catalog_count_filtered({ filtered, total: cardCount });
   const search =
     filter === null
       ? {}
@@ -82,11 +83,17 @@ export function CatalogVignette({
       <Link
         to="/cards"
         search={search}
-        aria-label={active ? `Browse ${active.label} cards` : "Browse the catalog"}
+        aria-label={
+          active
+            ? m.marketing_catalog_browse_facet({ label: active.label })
+            : m.marketing_catalog_browse_all()
+        }
         className="border-input hover:bg-muted focus-visible:ring-ring flex h-8 w-full items-center gap-2 rounded-lg border px-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
         <SearchIcon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-        <span className="text-muted-foreground flex-1 truncate text-sm">Search...</span>
+        <span className="text-muted-foreground flex-1 truncate text-sm">
+          {m.marketing_catalog_search_placeholder()}
+        </span>
         {count && <span className="text-muted-foreground text-xs font-normal">{count}</span>}
       </Link>
 
@@ -96,7 +103,7 @@ export function CatalogVignette({
           variant="outline"
           size="sm"
           spacing={0}
-          aria-label="Domain filter"
+          aria-label={m.marketing_catalog_domain_filter()}
           value={filter?.axis === "domain" ? [filter.slug] : []}
           onValueChange={(next) => {
             const slug = (next as string[]).at(-1);
@@ -124,7 +131,7 @@ export function CatalogVignette({
           variant="outline"
           size="sm"
           spacing={0}
-          aria-label="Rarity filter"
+          aria-label={m.marketing_catalog_rarity_filter()}
           value={filter?.axis === "rarity" ? [filter.slug] : []}
           onValueChange={(next) => {
             const slug = (next as string[]).at(-1);
@@ -149,8 +156,8 @@ export function CatalogVignette({
           <Button
             variant="ghost"
             size="icon-sm"
-            title="Clear all filters"
-            aria-label="Clear all filters"
+            title={m.cards_clear_all_filters()}
+            aria-label={m.cards_clear_all_filters()}
             className="ml-auto"
             onClick={() => setFilter(null)}
           >

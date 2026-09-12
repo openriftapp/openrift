@@ -3,6 +3,7 @@ import { SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function MetaArchiveSearch({
   value,
@@ -23,8 +24,8 @@ export function MetaArchiveSearch({
       />
       <Input
         type="search"
-        aria-label="Search the archive"
-        placeholder="Search events, venues, organizers…"
+        aria-label={m.meta_search_aria()}
+        placeholder={m.meta_search_placeholder()}
         value={typed}
         onChange={(event) => setTyped(event.target.value)}
         className="pl-8"

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MultiSelectCombobox } from "@/features/cards/components/multi-select-combobox";
-import { META_EVENT_TIER_LABELS } from "@/features/meta/lib/meta-format";
+import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import type {
   MetaEra,
   MetaScope,
@@ -35,6 +35,7 @@ import {
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { countryLabel } from "@/lib/country";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface MetaScopeBarProps extends MetaScopeControls {
   eras: readonly MetaEra[];
@@ -63,15 +64,15 @@ export function MetaScopeBar({
 }: MetaScopeBarProps) {
   const { formats } = useDeckFormatList();
 
-  const eraItems: Record<string, string> = { [ERA_ALL]: "All time" };
+  const eraItems: Record<string, string> = { [ERA_ALL]: m.meta_scope_era_all() };
   for (const era of eras) {
     eraItems[era.id] = era.label;
   }
-  eraItems[ERA_CUSTOM] = "Custom range";
+  eraItems[ERA_CUSTOM] = m.meta_scope_era_custom();
 
   const formatOptions = formats.map((format) => ({ value: format.slug, label: format.label }));
 
-  const tierOptions = Object.entries(META_EVENT_TIER_LABELS).map(([value, label]) => ({
+  const tierOptions = Object.entries(metaEventTierLabels()).map(([value, label]) => ({
     value,
     label,
   }));
@@ -83,7 +84,7 @@ export function MetaScopeBar({
   return (
     <div data-slot="meta-scope-bar" className={cn("flex flex-wrap items-center gap-2", className)}>
       <ScopeSelect
-        label="Era"
+        label={m.meta_scope_era()}
         value={scope.era ?? defaultEra ?? defaultEraId(eras) ?? ERA_ALL}
         fallback={ERA_ALL}
         items={eraItems}
@@ -104,14 +105,14 @@ export function MetaScopeBar({
             value={scope.from ?? ""}
             onChange={(iso) => setScope({ from: iso })}
             onClear={() => setScope({ from: undefined })}
-            placeholder="From"
+            placeholder={m.meta_scope_from()}
             className="w-40"
           />
           <DatePicker
             value={scope.to ?? ""}
             onChange={(iso) => setScope({ to: iso })}
             onClear={() => setScope({ to: undefined })}
-            placeholder="To"
+            placeholder={m.meta_scope_to()}
             className="w-40"
           />
         </>
@@ -119,7 +120,7 @@ export function MetaScopeBar({
 
       {showTier && (
         <ScopeFacet
-          label="Tier"
+          label={m.meta_scope_tier()}
           facet="tiers"
           options={tierOptions}
           scope={scope}
@@ -139,7 +140,7 @@ export function MetaScopeBar({
 
       {(isScopeCustomized(scope, defaultEra) || extrasActive) && (
         <Button type="button" variant="ghost" size="sm" onClick={clearScope}>
-          Reset
+          {m.common_reset()}
         </Button>
       )}
     </div>
@@ -173,7 +174,7 @@ function ScopeFacet({
       selected={[...included]}
       excluded={[...excluded]}
       onCycle={(value) => setScope(cycleScopeFacet(scope, facet, value, defaults))}
-      searchPlaceholder={`Search ${label.toLowerCase()}…`}
+      searchPlaceholder={m.meta_scope_search_label({ label: label.toLowerCase() })}
     />
   );
 }
@@ -203,15 +204,18 @@ function ScopeFilterMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" />} aria-label="More filters">
+      <DropdownMenuTrigger
+        render={<Button variant="outline" />}
+        aria-label={m.meta_scope_more_filters()}
+      >
         <SlidersHorizontalIcon className="size-4" />
-        Filters
+        {m.common_filters()}
         {active > 0 && <span className="text-muted-foreground tabular-nums">({active})</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {formats.length > 0 && (
           <ScopeFacet
-            label="Format"
+            label={m.meta_scope_format()}
             facet="formats"
             options={formats}
             scope={scope}
@@ -221,7 +225,7 @@ function ScopeFilterMenu({
         )}
         {countries.length > 0 && (
           <ScopeFacet
-            label="Country"
+            label={m.meta_scope_country()}
             facet="countries"
             options={countries}
             scope={scope}

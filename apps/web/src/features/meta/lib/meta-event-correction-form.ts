@@ -1,5 +1,7 @@
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
 
+import { m } from "@/paraglide/messages.js";
+
 /**
  * An unchanged box and an emptied box both propose nothing: clearing a value
  * is not expressible here, only replacing it.
@@ -96,34 +98,34 @@ export function validateMetaEventCorrectionDraft(
   const edits = metaEventCorrectionEdits(draft, event);
   const note = draft.note.trim();
   if (note.length === 0) {
-    return "Tell us what's wrong, and where you saw the right version.";
+    return m.meta_validate_correction_reason();
   }
   if (note.length > 2000) {
-    return "The note must be 2000 characters or fewer.";
+    return m.meta_validate_note_length();
   }
   if (edits.name !== undefined && edits.name.length > 120) {
-    return "The tournament's name must be 120 characters or fewer.";
+    return m.meta_validate_event_name_length();
   }
   if (edits.eventDate !== undefined && !ISO_DATE_PATTERN.test(edits.eventDate)) {
-    return "Pick the day the tournament was played.";
+    return m.meta_validate_event_date();
   }
   const players = draft.playerCount.trim();
   if (players.length > 0) {
     if (!WHOLE_NUMBER_PATTERN.test(players) || Number(players) < 1) {
-      return "The number of players must be a whole number of at least 1.";
+      return m.meta_validate_player_count();
     }
     if (Number(players) > MAX_PLAYER_COUNT) {
-      return "That is more players than any tournament has had. Check the number.";
+      return m.meta_validate_player_count_max();
     }
   }
   if (edits.organizer !== undefined && edits.organizer.length > 120) {
-    return "The organizer must be 120 characters or fewer.";
+    return m.meta_validate_organizer();
   }
   if (edits.location !== undefined && edits.location.length > 200) {
-    return "The venue must be 200 characters or fewer.";
+    return m.meta_validate_venue();
   }
   if (edits.country !== undefined && !COUNTRY_PATTERN.test(edits.country)) {
-    return "Write the country as its two-letter code, like DE or US.";
+    return m.meta_validate_country();
   }
   return null;
 }

@@ -71,9 +71,9 @@ function ResolvedSummary({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
-        {metaSubmissionStatusLabels[submission.status]}
+        {metaSubmissionStatusLabels()[submission.status]}
       </Badge>
-      <Badge variant="muted">{metaSubmissionKindLabels[submission.kind]}</Badge>
+      <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
       {submission.resolvedAt !== null && (
         <span className="text-muted-foreground text-sm tabular-nums">
           {formatDayTime(submission.resolvedAt)}
@@ -179,9 +179,9 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Badge variant={metaSubmissionStatusBadgeVariant.pending}>
-        {metaSubmissionStatusLabels.pending}
+        {metaSubmissionStatusLabels().pending}
       </Badge>
-      <Badge variant="muted">{metaSubmissionKindLabels[submission.kind]}</Badge>
+      <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
       <span className="text-muted-foreground min-w-0 text-sm">
         Nothing has been sent back to this contributor yet.
       </span>
@@ -231,7 +231,7 @@ export function MetaSubmissionResolve({ submission, playerOverlayId }: MetaSubmi
                 idPrefix="meta-resolution"
                 reasonOrder={metaSubmissionReasonsFor(submission.kind)}
                 reasonLabels={metaSubmissionReasonLabels}
-                reasonSentences={metaSubmissionReasonSentences}
+                reasonSentences={metaSubmissionReasonSentences()}
                 reason={reason}
                 note={note}
                 onReasonChange={setReason}

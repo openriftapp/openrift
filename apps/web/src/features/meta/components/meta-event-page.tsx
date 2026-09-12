@@ -27,6 +27,7 @@ import { MetaEventStandings } from "@/features/meta/components/meta-event-standi
 import { useMetaEvent } from "@/features/meta/hooks/use-meta";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function EventActionsMenu({ event }: { event: MetaEventDetail }) {
   const userId = useUserId();
@@ -41,12 +42,12 @@ function EventActionsMenu({ event }: { event: MetaEventDetail }) {
       <DropdownMenu>
         <DropdownMenuTrigger render={<PageTopBarIconButton />}>
           <EllipsisVerticalIcon className="size-4" />
-          <span className="sr-only">Tournament actions</span>
+          <span className="sr-only">{m.meta_event_actions_sr()}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => setCorrecting(true)}>
             <MessageSquareWarningIcon className="size-4" />
-            Suggest a correction
+            {m.meta_event_suggest_correction()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -69,7 +70,7 @@ export function MetaEventPage({ slug }: { slug: string }) {
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <TopBarBreadcrumbTrail
               segments={[
-                { label: "Meta Archive", link: <Link to="/meta" /> },
+                { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
                 { label: event.name },
               ]}
             />
@@ -115,7 +116,7 @@ export function MetaEventPage({ slug }: { slug: string }) {
 
         <p className="text-muted-foreground mt-8 text-sm">
           <TextLink variant="inherit" render={<Link to="/meta/decks" />}>
-            Browse every archived deck
+            {m.meta_event_browse_all_decks()}
           </TextLink>
         </p>
       </div>

@@ -38,19 +38,24 @@ import {
   useUpdateOrganizationMemberRole,
 } from "@/features/tournaments/hooks/use-organizations";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-const ROLE_LABEL: Record<OrganizationRole, string> = {
-  owner: "Owner",
-  manager: "Manager",
-  judge: "Judge",
-};
+function roleLabel(role: OrganizationRole): string {
+  return {
+    owner: m.tournaments_org_role_owner(),
+    manager: m.tournaments_org_role_manager(),
+    judge: m.tournaments_org_role_judge(),
+  }[role];
+}
 
 // The server enforces the last-owner guard, not this list.
-const MEMBER_ROLE_ITEMS = [
-  { value: "owner", label: "Owner" },
-  { value: "manager", label: "Manager" },
-  { value: "judge", label: "Judge" },
-] satisfies { value: OrganizationRole; label: string }[];
+function memberRoleItems() {
+  return [
+    { value: "owner", label: m.tournaments_org_role_owner() },
+    { value: "manager", label: m.tournaments_org_role_manager() },
+    { value: "judge", label: m.tournaments_org_role_judge() },
+  ] satisfies { value: OrganizationRole; label: string }[];
+}
 
 export function OrganizationPage({ id }: { id: string }) {
   const { data } = useOrganization(id);
@@ -69,9 +74,8 @@ export function OrganizationPage({ id }: { id: string }) {
   );
 
   // Owners may grant any role; managers can't hand out (or revoke) ownership.
-  const roleItems = isOwner
-    ? MEMBER_ROLE_ITEMS
-    : MEMBER_ROLE_ITEMS.filter((item) => item.value !== "owner");
+  const allRoleItems = memberRoleItems();
+  const roleItems = isOwner ? allRoleItems : allRoleItems.filter((item) => item.value !== "owner");
 
   async function run(action: () => Promise<unknown>) {
     try {
@@ -111,10 +115,12 @@ export function OrganizationPage({ id }: { id: string }) {
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <SectionHeading count={data.members.length}>Members</SectionHeading>
+            <SectionHeading count={data.members.length}>
+              {m.tournaments_org_members_heading()}
+            </SectionHeading>
             {canManage ? (
               <Button variant="secondary" onClick={() => setAddOpen(true)}>
-                Add member
+                {m.tournaments_org_add_member()}
               </Button>
             ) : null}
           </div>
@@ -128,7 +134,7 @@ export function OrganizationPage({ id }: { id: string }) {
                   <span className="truncate font-medium">{member.name ?? member.userId}</span>
                   {isOwner ? (
                     <Select
-                      items={MEMBER_ROLE_ITEMS}
+                      items={allRoleItems}
                       value={member.role}
                       disabled={updateMemberRole.isPending}
                       onValueChange={(value) => {
@@ -148,12 +154,14 @@ export function OrganizationPage({ id }: { id: string }) {
                     >
                       <SelectTrigger
                         size="sm"
-                        aria-label={`Role for ${member.name ?? member.userId}`}
+                        aria-label={m.tournaments_org_role_for({
+                          name: member.name ?? member.userId,
+                        })}
                       >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {MEMBER_ROLE_ITEMS.map((item) => (
+                        {allRoleItems.map((item) => (
                           <SelectItem key={item.value} value={item.value}>
                             {item.label}
                           </SelectItem>
@@ -161,7 +169,7 @@ export function OrganizationPage({ id }: { id: string }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge variant="outline">{ROLE_LABEL[member.role]}</Badge>
+                    <Badge variant="outline">{roleLabel(member.role)}</Badge>
                   )}
                 </span>
                 {canManage ? (
@@ -177,7 +185,7 @@ export function OrganizationPage({ id }: { id: string }) {
                       })
                     }
                   >
-                    Remove
+                    {m.tournaments_org_remove()}
                   </Button>
                 ) : null}
               </li>
@@ -187,7 +195,7 @@ export function OrganizationPage({ id }: { id: string }) {
 
         {canManage ? (
           <section className="flex flex-col gap-3">
-            <SectionHeading>Integrations</SectionHeading>
+            <SectionHeading>{m.tournaments_org_integrations_heading()}</SectionHeading>
             <OrgDeckCheckKeysSection orgId={id} enabled={canManage} />
           </section>
         ) : null}
@@ -197,14 +205,12 @@ export function OrganizationPage({ id }: { id: string }) {
         <DialogContent>
           <DialogForm onSubmit={() => void handleAddMember()}>
             <DialogHeader>
-              <DialogTitle>Add member</DialogTitle>
-              <DialogDescription>
-                Add an account by its email address. Owners can grant any role.
-              </DialogDescription>
+              <DialogTitle>{m.tournaments_org_add_member()}</DialogTitle>
+              <DialogDescription>{m.tournaments_org_add_member_description()}</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="org-member">Email</Label>
+                <Label htmlFor="org-member">{m.tournaments_org_email_label()}</Label>
                 <Input
                   id="org-member"
                   type="email"
@@ -214,14 +220,14 @@ export function OrganizationPage({ id }: { id: string }) {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Role</Label>
+                <Label>{m.tournaments_org_role_label()}</Label>
                 <Select
                   items={roleItems}
                   value={role}
                   onValueChange={(value) => value && setRole(value as OrganizationRole)}
                 >
-                  <SelectTrigger aria-label="Role">
-                    <SelectValue placeholder="Choose a role" />
+                  <SelectTrigger aria-label={m.tournaments_org_role_label()}>
+                    <SelectValue placeholder={m.tournaments_org_choose_role()} />
                   </SelectTrigger>
                   <SelectContent>
                     {roleItems.map((item) => (
@@ -235,10 +241,10 @@ export function OrganizationPage({ id }: { id: string }) {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setAddOpen(false)}>
-                Cancel
+                {m.common_cancel()}
               </Button>
               <Button type="submit" disabled={!email.trim() || addMember.isPending}>
-                Add
+                {m.tournaments_org_add()}
               </Button>
             </DialogFooter>
           </DialogForm>
@@ -252,14 +258,14 @@ export function OrganizationPage({ id }: { id: string }) {
             setMemberToRemove(null);
           }
         }}
-        title="Remove member"
+        title={m.tournaments_org_remove_member_title()}
         description={
           memberToRemove
-            ? `Remove ${memberToRemove.name} from this organization? They will lose access to its tournaments.`
+            ? m.tournaments_org_remove_member_description({ name: memberToRemove.name })
             : ""
         }
-        confirmLabel="Remove"
-        pendingLabel="Removing..."
+        confirmLabel={m.tournaments_org_remove()}
+        pendingLabel={m.tournaments_org_removing()}
         isPending={removeMember.isPending}
         onConfirm={() => void handleRemoveMember()}
       />

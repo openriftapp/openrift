@@ -11,6 +11,7 @@ import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-archive";
 import { medalRank } from "@/features/meta/lib/meta-deck-archive";
 import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { m } from "@/paraglide/messages.js";
 
 type MetaDeckContext = MetaDeckDetailResponse["meta"];
 
@@ -21,7 +22,7 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
   return (
     <div className="flex shrink-0 flex-col items-start gap-1 self-center pr-2 sm:pr-3">
       <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
-        Finish
+        {m.meta_filter_finish()}
       </span>
       <span className="flex items-center gap-1.5">
         {medal !== null && <Medal rank={medal} />}

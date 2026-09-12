@@ -16,12 +16,21 @@ import { deckDetailQueryOptions, decksQueryOptions } from "@/features/decks/hook
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/hooks/use-lists";
 import { deckPrintingIds, listPrintingIds } from "@/features/stage/lib/present-queue-sources";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
-const INTENT_LABEL: Record<ListIntent, string> = {
-  wish: "Wishlist",
-  trade: "Tradelist",
-  organize: "Organize",
-};
+function intentLabel(intent: ListIntent): string {
+  switch (intent) {
+    case "wish": {
+      return m.lists_intent_label_wish();
+    }
+    case "trade": {
+      return m.lists_intent_label_trade();
+    }
+    default: {
+      return m.lists_intent_label_organize();
+    }
+  }
+}
 
 export interface QueueSource {
   label: string;
@@ -103,7 +112,7 @@ async function loadDeckCards(queryClient: QueryClient, userId: string, deckId: s
     });
     return detail.cards;
   } catch {
-    toast.error("Couldn't load that deck.");
+    toast.error(m.stage_queue_source_deck_error());
     return [];
   }
 }
@@ -116,7 +125,7 @@ async function loadListEntries(queryClient: QueryClient, userId: string, listId:
     });
     return detail.entries;
   } catch {
-    toast.error("Couldn't load that list.");
+    toast.error(m.stage_queue_source_list_error());
     return [];
   }
 }
@@ -162,31 +171,35 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
           search={{ redirect: "/stage", email: undefined }}
           className="underline underline-offset-2"
         >
-          Sign in
+          {m.common_sign_in()}
         </Link>{" "}
-        to fill the queue from one of your organize lists or decks in one go.
+        {m.stage_queue_source_signin_suffix()}
       </p>
     );
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-muted-foreground text-sm">Fill from</span>
+      <span className="text-muted-foreground text-sm">{m.stage_queue_fill_from()}</span>
 
       <SourcePopover
-        label="a list"
+        label={m.stage_queue_source_list()}
         icon={<ListIcon className="size-4" />}
         open={openSource === "list"}
         onOpenChange={(open) => setOpenSource(open ? "list" : null)}
-        searchPlaceholder="Search your lists…"
+        searchPlaceholder={m.stage_queue_source_list_search()}
       >
-        <CommandEmpty>{lists.isPending ? "Loading lists…" : "No lists yet."}</CommandEmpty>
+        <CommandEmpty>
+          {lists.isPending
+            ? m.stage_queue_source_lists_loading()
+            : m.stage_queue_source_lists_empty()}
+        </CommandEmpty>
         {(lists.data ?? []).map((list) => (
           <SourceRow
             key={list.id}
             id={list.id}
             name={list.name}
-            detail={INTENT_LABEL[list.intent]}
+            detail={intentLabel(list.intent)}
             busy={busyId === list.id}
             onSelect={() => void pickList(list.id, list.name)}
           />
@@ -194,13 +207,17 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
       </SourcePopover>
 
       <SourcePopover
-        label="a deck"
+        label={m.stage_queue_source_deck()}
         icon={<LayersIcon className="size-4" />}
         open={openSource === "deck"}
         onOpenChange={(open) => setOpenSource(open ? "deck" : null)}
-        searchPlaceholder="Search your decks…"
+        searchPlaceholder={m.stage_queue_source_deck_search()}
       >
-        <CommandEmpty>{decks.isPending ? "Loading decks…" : "No decks yet."}</CommandEmpty>
+        <CommandEmpty>
+          {decks.isPending
+            ? m.stage_queue_source_decks_loading()
+            : m.stage_queue_source_decks_empty()}
+        </CommandEmpty>
         {(decks.data ?? [])
           .filter((item) => item.deck.archivedAt === null)
           .map(({ deck }) => (

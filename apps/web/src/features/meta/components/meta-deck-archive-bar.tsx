@@ -14,6 +14,7 @@ import {
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-archive";
+import { m } from "@/paraglide/messages.js";
 
 export function MetaDeckArchiveBar({
   event,
@@ -34,7 +35,7 @@ export function MetaDeckArchiveBar({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <TopBarBreadcrumbTrail
             segments={[
-              { label: "Meta Archive", link: <Link to="/meta" /> },
+              { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
               {
                 label: event.name,
                 link: <Link to="/meta/$slug" params={{ slug: event.slug }} />,

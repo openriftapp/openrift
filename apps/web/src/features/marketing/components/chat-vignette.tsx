@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { m } from "@/paraglide/messages.js";
 
 import { Vignette, VignetteHeading } from "./vignette-parts";
 
@@ -9,10 +10,12 @@ const QUERY = "!card viktor innovator";
 const REPLY = "Viktor, Innovator — Champion Unit · Mind · Energy 4 · Might 3 · Power 1 —";
 const REPLY_URL = "openrift.app/cards/viktor-innovator";
 
-const BACKLOG = [
-  { name: "riftcaptain", text: "that top end is nuts" },
-  { name: "mothbite", text: "wait what does viktor even do" },
-];
+function backlog() {
+  return [
+    { name: "riftcaptain", text: m.marketing_chat_backlog_top_end() },
+    { name: "mothbite", text: m.marketing_chat_backlog_what_does() },
+  ];
+}
 
 function ChatLine({ name, children }: { name: string; children: ReactNode }) {
   return (
@@ -27,10 +30,10 @@ function ChatLine({ name, children }: { name: string; children: ReactNode }) {
 export function ChatVignette() {
   return (
     <Vignette>
-      <VignetteHeading>Stream chat</VignetteHeading>
+      <VignetteHeading>{m.marketing_chat_heading()}</VignetteHeading>
 
       <div className="flex flex-col gap-2">
-        {BACKLOG.map((line) => (
+        {backlog().map((line) => (
           <ChatLine key={line.name} name={line.name}>
             <span className="text-muted-foreground">{line.text}</span>
           </ChatLine>
@@ -58,10 +61,7 @@ export function ChatVignette() {
         </div>
       </div>
 
-      <p className="text-muted-foreground text-xs">
-        Works the same in StreamElements and Fossabot. A name that matches nothing comes back as a
-        search link, so a typo still lands somewhere useful.
-      </p>
+      <p className="text-muted-foreground text-xs">{m.marketing_chat_footnote()}</p>
     </Vignette>
   );
 }

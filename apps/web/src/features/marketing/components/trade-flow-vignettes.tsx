@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ArtStrip, MiniCardArt, Vignette, VignetteHeading } from "./vignette-parts";
 
@@ -25,7 +26,10 @@ export function tradedCard(cards: LandingThumbnailCard[]): TradedCard {
   const card = cards[0];
   return {
     url: card?.url ?? "",
-    name: card?.name === undefined || card.name === "" ? "That card you wanted" : card.name,
+    name:
+      card?.name === undefined || card.name === ""
+        ? m.marketing_trade_flow_fallback_card()
+        : card.name,
     detail: card?.shortCode ?? "",
   };
 }
@@ -148,22 +152,24 @@ export function TradeMatchVignette({ thumbnailUrls }: { thumbnailUrls: string[] 
           <span className="bg-warning-soft text-warning flex size-9 shrink-0 items-center justify-center rounded-lg">
             <ZapIcon className="size-4.5" aria-hidden="true" />
           </span>
-          <span className="text-muted-foreground text-sm font-medium">Trades</span>
-          <span className="min-w-0 flex-1 truncate font-medium">3 people are waiting on you</span>
+          <span className="text-muted-foreground text-sm font-medium">{m.nav_trades()}</span>
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {m.marketing_trade_flow_waiting()}
+          </span>
         </div>
         <ShelfRow
-          label="You could get"
+          label={m.marketing_trade_flow_you_could_get()}
           tone="success"
           urls={thumbnailUrls.slice(0, 4)}
           extra={5}
-          detail="9 cards from 4 members"
+          detail={m.marketing_trade_flow_get_detail()}
         />
         <ShelfRow
-          label="They'd want"
+          label={m.marketing_trade_flow_theyd_want()}
           tone="success"
           urls={thumbnailUrls.slice(4, 6)}
           extra={3}
-          detail="5 cards, wanted by 3 members"
+          detail={m.marketing_trade_flow_want_detail()}
         />
       </MiniPanel>
     </Vignette>
@@ -173,7 +179,7 @@ export function TradeMatchVignette({ thumbnailUrls }: { thumbnailUrls: string[] 
 export function TradeRequestVignette({ card }: { card: TradedCard }) {
   return (
     <Vignette>
-      <VignetteHeading>Suggestions with {THEM}</VignetteHeading>
+      <VignetteHeading>{m.marketing_trade_flow_suggestions_with({ name: THEM })}</VignetteHeading>
       <MiniPanel>
         <div className="flex min-w-0 items-center gap-2.5">
           <DirectionBadge incoming />
@@ -181,16 +187,14 @@ export function TradeRequestVignette({ card }: { card: TradedCard }) {
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium">{card.name}</span>
             <span className="text-muted-foreground truncate text-xs">
-              Near Mint · matched from your wishlist
+              {m.marketing_trade_flow_matched()}
             </span>
           </span>
           <UserAvatar name={THEM} size="sm" />
-          <MiniButton>Request</MiniButton>
+          <MiniButton>{m.lists_share_request()}</MiniButton>
         </div>
       </MiniPanel>
-      <p className="text-muted-foreground text-xs">
-        Requests expire after a week if nobody answers.
-      </p>
+      <p className="text-muted-foreground text-xs">{m.marketing_trade_flow_requests_expire()}</p>
     </Vignette>
   );
 }
@@ -198,7 +202,7 @@ export function TradeRequestVignette({ card }: { card: TradedCard }) {
 export function TradeReservedVignette({ card }: { card: TradedCard }) {
   return (
     <Vignette>
-      <VignetteHeading>Your trades with {THEM}</VignetteHeading>
+      <VignetteHeading>{m.marketing_trade_flow_your_trades_with({ name: THEM })}</VignetteHeading>
       <MiniPanel>
         <div className="flex min-w-0 items-center gap-2.5">
           <DirectionBadge incoming />
@@ -206,15 +210,13 @@ export function TradeReservedVignette({ card }: { card: TradedCard }) {
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium">{card.name}</span>
             <span className="text-muted-foreground truncate text-xs">
-              Coming to you from {THEM}
+              {m.marketing_trade_flow_coming_from({ name: THEM })}
             </span>
           </span>
-          <MiniBadge tone="warning">Reserved</MiniBadge>
+          <MiniBadge tone="warning">{m.trades_status_reserved()}</MiniBadge>
         </div>
       </MiniPanel>
-      <p className="text-muted-foreground text-xs">
-        A reserved copy stops counting for their decks, so nobody else is promised it.
-      </p>
+      <p className="text-muted-foreground text-xs">{m.marketing_trade_flow_reserved_note()}</p>
     </Vignette>
   );
 }
@@ -222,32 +224,30 @@ export function TradeReservedVignette({ card }: { card: TradedCard }) {
 export function TradeSettleVignette() {
   return (
     <Vignette>
-      <VignetteHeading>Settling up</VignetteHeading>
+      <VignetteHeading>{m.marketing_trade_flow_settling_up()}</VignetteHeading>
       <MiniPanel>
         <div className="flex min-w-0 items-center gap-2.5">
           <UserAvatar name={THEM} size="sm" />
           <span className="min-w-0 flex-1 truncate text-sm">
             <span className="font-medium">{THEM}</span>
-            <span className="text-muted-foreground"> handed it over</span>
+            <span className="text-muted-foreground">{m.marketing_trade_flow_handed_over()}</span>
           </span>
           <MiniBadge tone="success">
             <CheckIcon className="mr-1 size-3" aria-hidden="true" />
-            Done
+            {m.common_done()}
           </MiniBadge>
         </div>
         <div className="flex min-w-0 items-center gap-2.5">
-          <UserAvatar name="You" size="sm" />
+          <UserAvatar name={m.groups_members_badge_you()} size="sm" />
           <span className="min-w-0 flex-1 truncate text-sm">
-            <span className="font-medium">You</span>
-            <span className="text-muted-foreground"> receive it into </span>
-            <span className="font-medium">Main binder</span>
+            <span className="font-medium">{m.groups_members_badge_you()}</span>
+            <span className="text-muted-foreground">{m.marketing_trade_flow_receive_into()}</span>
+            <span className="font-medium">{m.marketing_collections_main_binder()}</span>
           </span>
-          <MiniButton muted>Mark received</MiniButton>
+          <MiniButton muted>{m.marketing_trade_flow_mark_received()}</MiniButton>
         </div>
       </MiniPanel>
-      <p className="text-muted-foreground text-xs">
-        Each side confirms its own half. Neither can log the swap for the other.
-      </p>
+      <p className="text-muted-foreground text-xs">{m.marketing_trade_flow_confirm_note()}</p>
     </Vignette>
   );
 }
@@ -255,7 +255,7 @@ export function TradeSettleVignette() {
 export function TradeArrivedVignette({ card }: { card: TradedCard }) {
   return (
     <Vignette>
-      <VignetteHeading>Main binder</VignetteHeading>
+      <VignetteHeading>{m.marketing_collections_main_binder()}</VignetteHeading>
       <div className="flex items-center gap-4">
         <MiniCardArt url={card.url} className="w-24 shrink-0" />
         <div className="flex min-w-0 flex-col gap-1.5">
@@ -263,11 +263,11 @@ export function TradeArrivedVignette({ card }: { card: TradedCard }) {
           {/* No "traded from Mira" badge: a copy carries no provenance today,
               and the tour must not advertise a field that does not exist. */}
           <span className="flex flex-wrap items-center gap-1.5">
-            <MiniBadge tone="success">×1 owned</MiniBadge>
-            <MiniBadge>Near Mint</MiniBadge>
+            <MiniBadge tone="success">{m.marketing_trade_flow_owned_badge()}</MiniBadge>
+            <MiniBadge>{m.marketing_trade_flow_condition()}</MiniBadge>
           </span>
           <span className="text-muted-foreground text-xs">
-            Off your wishlist, and out of {THEM}&apos;s collection.
+            {m.marketing_trade_flow_off_wishlist({ name: THEM })}
           </span>
         </div>
       </div>

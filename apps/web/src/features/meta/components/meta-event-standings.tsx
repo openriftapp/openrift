@@ -47,17 +47,18 @@ import {
 } from "@/features/meta/lib/meta-standings-cost";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 type StandingsFilter = "all" | "withList";
 
 function emptyStandingsCopy(status: MetaEventStatus, eventDate: string): string {
   if (status === "in_progress") {
-    return "This event is under way. Standings appear here once the first round is in the books.";
+    return m.meta_standings_in_progress();
   }
   if (status === "upcoming" || eventDate > todayUtc()) {
-    return "This event has not been played yet. Standings will appear here once it has.";
+    return m.meta_standings_upcoming();
   }
-  return "No standings on file for this event yet.";
+  return m.meta_standings_none();
 }
 
 export function MetaEventStandings({
@@ -92,7 +93,7 @@ export function MetaEventStandings({
   if (players.length === 0) {
     return (
       <section className="mt-8">
-        <Heading className="mb-3">Standings</Heading>
+        <Heading className="mb-3">{m.meta_standings_heading()}</Heading>
         <Empty>
           <EmptyHeader>
             <EmptyDescription>{emptyStandingsCopy(status, eventDate)}</EmptyDescription>
@@ -147,7 +148,7 @@ export function MetaEventStandings({
         )}
 
         <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <Heading>Standings</Heading>
+          <Heading>{m.meta_standings_heading()}</Heading>
           <p className="text-muted-foreground text-sm">{subtitleFor(players.length, withLists)}</p>
           {status === "in_progress" && (
             <p className="text-foreground text-sm font-medium">
@@ -168,10 +169,12 @@ export function MetaEventStandings({
                     setFilter(next);
                   }
                 }}
-                aria-label="Which entries to show"
+                aria-label={m.meta_standings_which_entries()}
               >
-                <ToggleGroupItem value="all">All entries</ToggleGroupItem>
-                <ToggleGroupItem value="withList">With decklist ({withLists})</ToggleGroupItem>
+                <ToggleGroupItem value="all">{m.meta_standings_all_entries()}</ToggleGroupItem>
+                <ToggleGroupItem value="withList">
+                  {m.meta_standings_with_decklist({ count: String(withLists) })}
+                </ToggleGroupItem>
               </ToggleGroup>
             )}
             {showSearch && (
@@ -182,8 +185,8 @@ export function MetaEventStandings({
                 />
                 <Input
                   type="search"
-                  aria-label="Find a player"
-                  placeholder="Find a player…"
+                  aria-label={m.meta_standings_find_player()}
+                  placeholder={m.meta_standings_find_player_placeholder()}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   className="pl-8"
@@ -196,7 +199,7 @@ export function MetaEventStandings({
                 onValueChange={(value) => setLegendId((value as string | null) ?? ANY_LEGEND)}
                 items={legends}
               >
-                <SelectTrigger className="w-56" aria-label="Filter by legend">
+                <SelectTrigger className="w-56" aria-label={m.meta_standings_filter_legend()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -244,7 +247,7 @@ export function MetaEventStandings({
         {matching.length === 0 ? (
           <Empty>
             <EmptyHeader>
-              <EmptyDescription>No entries match.</EmptyDescription>
+              <EmptyDescription>{m.meta_standings_no_entries()}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

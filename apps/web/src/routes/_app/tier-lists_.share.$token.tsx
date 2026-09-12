@@ -11,6 +11,7 @@ import { seoHead } from "@/lib/seo";
 import { shareImageVersion, tierListShareImageUrl } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/tier-lists_/share/$token")({
   head: ({ loaderData, params }) => {
@@ -74,11 +75,11 @@ function SharedTierListNotFound() {
       <EmptyState
         className="py-16"
         icon={Link2OffIcon}
-        title="This share link no longer works"
-        description="The creator may have stopped sharing this tier list, or the link wasn't copied completely."
+        title={m.tier_lists_share_gone_title()}
+        description={m.tier_lists_share_gone_description()}
       >
         <Link to="/cards" className={buttonVariants()}>
-          Browse cards
+          {m.tier_lists_share_gone_action()}
         </Link>
       </EmptyState>
     </div>

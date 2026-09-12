@@ -2,6 +2,7 @@ import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, RefreshCwIcon } from "luci
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -20,13 +21,13 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
     <ClipFrame className="flex flex-col gap-6 p-5">
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="font-semibold">On stream</span>
+          <span className="font-semibold">{m.marketing_stage_on_stream()}</span>
           <span className="grid justify-items-end font-mono text-sm tracking-wide uppercase">
             <span className="text-muted-foreground motion-safe:animate-stage-idle col-start-1 row-start-1 opacity-0">
-              Nothing up
+              {m.marketing_stage_nothing_up()}
             </span>
             <span className="text-primary motion-safe:animate-stage-live col-start-1 row-start-1">
-              ● Live
+              ● {m.marketing_stage_live()}
             </span>
           </span>
         </div>
@@ -68,7 +69,7 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground grid min-w-0 flex-1 justify-items-start text-sm">
             <span className="motion-safe:animate-stage-idle col-start-1 row-start-1 truncate opacity-0">
-              Push a card or a tier list to put it on screen.
+              {m.marketing_stage_push_hint()}
             </span>
             <span className="motion-safe:animate-stage-live col-start-1 row-start-1 truncate">
               Azir, Sovereign
@@ -95,21 +96,19 @@ export function StageVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[]
       </section>
 
       <section className="flex flex-col gap-2">
-        <span className="font-semibold">Browser source</span>
-        <p className="text-muted-foreground text-sm">
-          Add a Browser source in OBS and paste this URL. Anyone with the link sees what you push.
-        </p>
+        <span className="font-semibold">{m.marketing_stage_browser_source()}</span>
+        <p className="text-muted-foreground text-sm">{m.marketing_stage_browser_source_hint()}</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn(INPUT_CHROME, "truncate")}>
             https://openrift.app/stage/source/Kf3nQ7ZaVb2p
           </span>
           <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
             <CopyIcon />
-            Copy
+            {m.common_copy()}
           </span>
           <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
             <RefreshCwIcon />
-            New link
+            {m.marketing_stage_new_link()}
           </span>
         </div>
       </section>

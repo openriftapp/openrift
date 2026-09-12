@@ -28,6 +28,7 @@ import {
   metaSubmissionStatusLabels,
 } from "@/features/meta/lib/meta-submission-copy";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function SubmissionRow({
   submission,
@@ -40,7 +41,7 @@ function SubmissionRow({
     submission.resolutionReason,
     submission.resolutionNote,
   );
-  const hint = metaSubmissionStatusHints[submission.status];
+  const hint = metaSubmissionStatusHints()[submission.status];
 
   return (
     <RowListItem className="flex-col items-stretch gap-2">
@@ -52,9 +53,9 @@ function SubmissionRow({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="muted">{metaSubmissionKindLabels[submission.kind]}</Badge>
+          <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
           <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
-            {metaSubmissionStatusLabels[submission.status]}
+            {metaSubmissionStatusLabels()[submission.status]}
           </Badge>
         </div>
       </div>
@@ -79,7 +80,7 @@ function SubmissionRow({
           params={{ token: shareToken }}
           className="text-sm underline underline-offset-4"
         >
-          See the deck on the archive
+          {m.meta_submissions_see_deck()}
         </Link>
       ) : null}
     </RowListItem>
@@ -95,10 +96,10 @@ export function MetaSubmissionsPage() {
       <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarBack to="/meta" />
-          <PageTopBarTitle>Your contributions</PageTopBarTitle>
+          <PageTopBarTitle>{m.meta_submissions_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarPrimaryButton render={<Link to="/meta/submit" />}>
-              Send a decklist
+              {m.meta_contribute_send_decklist()}
             </PageTopBarPrimaryButton>
           </PageTopBarActions>
         </PageTopBar>
@@ -119,10 +120,10 @@ export function MetaSubmissionsPage() {
         {!isPending && submissions.length === 0 ? (
           <EmptyState
             icon={ScrollTextIcon}
-            title="Nothing sent in yet"
-            description="Watched a tournament and know what people played? Send in a decklist and track its review here. Help us fill in the gaps."
+            title={m.meta_submissions_empty_title()}
+            description={m.meta_submissions_empty_description()}
           >
-            <Button render={<Link to="/meta/submit" />}>Send a decklist</Button>
+            <Button render={<Link to="/meta/submit" />}>{m.meta_contribute_send_decklist()}</Button>
           </EmptyState>
         ) : null}
 
@@ -139,7 +140,7 @@ export function MetaSubmissionsPage() {
             </RowList>
             {hasNextPage ? (
               <MetaShowMore disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
-                {isFetchingNextPage ? "Loading…" : "Show older contributions"}
+                {isFetchingNextPage ? m.meta_loading() : m.meta_submissions_show_older()}
               </MetaShowMore>
             ) : null}
           </div>

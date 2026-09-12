@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -89,7 +90,7 @@ export function EnergyGlyph({ energy }: { energy: number }) {
   return (
     <span
       role="img"
-      aria-label={`Energy ${energy}`}
+      aria-label={m.decks_editor_energy({ value: energy })}
       className="text-2xs flex size-4 shrink-0 items-center justify-center rounded-full bg-white leading-none font-bold text-[#013951]"
     >
       {energy}
@@ -102,7 +103,11 @@ export function PowerPips({ power, domain }: { power: number; domain: string }) 
     return null;
   }
   return (
-    <span role="img" aria-label={`Power ${power}`} className="flex shrink-0 items-center gap-0.5">
+    <span
+      role="img"
+      aria-label={m.decks_editor_power({ power })}
+      className="flex shrink-0 items-center gap-0.5"
+    >
       {Array.from({ length: power }, (_, index) => (
         <img key={index} src={`/images/domains/${domain}.webp`} alt="" className="inline size-3" />
       ))}

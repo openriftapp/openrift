@@ -4,51 +4,65 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { UserAvatar } from "@/components/user-avatar";
+import { m } from "@/paraglide/messages.js";
 
 import { Vignette } from "./vignette-parts";
 
-const PAIRINGS = [
-  {
-    label: "Match 1",
-    status: "Reported",
-    sides: [
-      { name: "Alice", score: "2", points: "+3" },
-      { name: "Mira", score: "1", points: "+0" },
-    ],
-  },
-  {
-    label: "Match 2",
-    status: "1 of 2 in",
-    sides: [
-      { name: "Nour", score: "2", points: null },
-      { name: "Ravi", score: null, points: null },
-    ],
-  },
-] as const;
+interface Pairing {
+  label: string;
+  status: string;
+  reported: boolean;
+  sides: { name: string; score: string | null; points: string | null }[];
+}
+
+function pairings(): Pairing[] {
+  return [
+    {
+      label: m.marketing_tournaments_match({ number: 1 }),
+      status: m.marketing_tournaments_reported(),
+      reported: true,
+      sides: [
+        { name: "Alice", score: "2", points: "+3" },
+        { name: "Mira", score: "1", points: "+0" },
+      ],
+    },
+    {
+      label: m.marketing_tournaments_match({ number: 2 }),
+      status: m.marketing_tournaments_partial(),
+      reported: false,
+      sides: [
+        { name: "Nour", score: "2", points: null },
+        { name: "Ravi", score: null, points: null },
+      ],
+    },
+  ];
+}
 
 export function TournamentsVignette() {
   return (
     <Vignette>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-heading font-medium">Round 3</span>
-        <Badge variant="warning">Reporting</Badge>
-        <span className="text-muted-foreground text-sm">2 matches · 1 bye</span>
+        <span className="font-heading font-medium">
+          {m.tournaments_round_band_round({ number: 3 })}
+        </span>
+        <Badge variant="warning">{m.tournaments_round_band_reporting()}</Badge>
+        <span className="text-muted-foreground text-sm">
+          {m.marketing_tournaments_matches_byes()}
+        </span>
       </div>
       <div className="flex flex-col gap-3">
-        {PAIRINGS.map((pairing) => (
+        {pairings().map((pairing) => (
           <Card key={pairing.label} className="gap-3 p-4">
             <div className="flex items-center gap-2">
               <IconChip
                 icon={SwordsIcon}
-                tone={pairing.status === "Reported" ? "success" : "neutral"}
+                tone={pairing.reported ? "success" : "neutral"}
                 size="sm"
                 shape="round"
               />
               <span className="font-heading font-medium">{pairing.label}</span>
               <span className="ml-auto">
-                <Badge variant={pairing.status === "Reported" ? "success" : "warning"}>
-                  {pairing.status}
-                </Badge>
+                <Badge variant={pairing.reported ? "success" : "warning"}>{pairing.status}</Badge>
               </span>
             </div>
             <ul className="flex flex-col gap-1.5 text-sm">
@@ -75,14 +89,14 @@ export function TournamentsVignette() {
       <div className="flex flex-col gap-2">
         <span className="text-muted-foreground flex items-center gap-1.5 text-sm font-medium">
           <UserMinusIcon className="size-4" aria-hidden="true" />
-          Byes
+          {m.tournaments_standings_col_byes()}
         </span>
         <div className="flex items-center justify-between gap-2 text-sm">
           <span className="flex min-w-0 items-center gap-2">
             <UserAvatar name="Sina" size="sm" />
             <span className="truncate font-medium">Sina</span>
           </span>
-          <span className="font-semibold tabular-nums">+3 bye</span>
+          <span className="font-semibold tabular-nums">{m.marketing_tournaments_bye_points()}</span>
         </div>
       </div>
     </Vignette>

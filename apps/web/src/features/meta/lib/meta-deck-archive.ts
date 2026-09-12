@@ -4,6 +4,8 @@ import type { DeckFormat, DeckZone, MetaListStatus } from "@openrift/shared/type
 import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
+import { m } from "@/paraglide/messages.js";
+
 export interface ArchivedDeckIdentity {
   cardId: string;
   name: string;
@@ -53,27 +55,30 @@ export function unknownZoneCounts(
   return counts;
 }
 
-const ZONE_NOUNS: Record<DeckZone, string> = {
-  legend: "Legend",
-  champion: "Chosen Champion",
-  runes: "runes",
-  battlefield: "battlefields",
-  main: "main deck cards",
-  sideboard: "sideboard cards",
-  overflow: "spares",
-};
+function zoneNouns(): Record<DeckZone, string> {
+  return {
+    legend: m.meta_zone_noun_legend(),
+    champion: m.meta_zone_noun_champion(),
+    runes: m.meta_zone_noun_runes(),
+    battlefield: m.meta_zone_noun_battlefield(),
+    main: m.meta_zone_noun_main(),
+    sideboard: m.meta_zone_noun_sideboard(),
+    overflow: m.meta_zone_noun_overflow(),
+  };
+}
 
 function joinNouns(parts: readonly string[]): string {
   if (parts.length <= 1) {
     return parts[0] ?? "";
   }
-  return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+  return m.meta_join_and({ names: parts.slice(0, -1).join(", "), last: parts.at(-1) ?? "" });
 }
 
 export function describeIncompleteList(
   format: DeckFormat,
   unknown: ReadonlyMap<DeckZone, number>,
 ): string | null {
+  const nouns = zoneNouns();
   const known: string[] = [];
   const missing: string[] = [];
   for (const zone of REQUIRED_ZONES) {
@@ -84,22 +89,26 @@ export function describeIncompleteList(
     }
     const held = expected - short;
     if (held > 0) {
-      known.push(`${held} of ${expected} ${ZONE_NOUNS[zone]}`);
+      known.push(
+        m.meta_zone_known({ held: String(held), expected: String(expected), noun: nouns[zone] }),
+      );
     } else {
-      missing.push(`the ${ZONE_NOUNS[zone]}`);
+      missing.push(m.meta_zone_missing({ noun: nouns[zone] }));
     }
   }
   if (known.length === 0 && missing.length === 0) {
     return null;
   }
   if (missing.length === 0) {
-    return `${joinNouns(known)} are known.`;
+    return m.meta_incomplete_all_known({ parts: joinNouns(known) });
   }
   const notKnown = joinNouns(missing);
   if (known.length === 0) {
-    return `${notKnown[0]?.toUpperCase()}${notKnown.slice(1)} are not known.`;
+    return m.meta_incomplete_none_known({
+      parts: `${notKnown[0]?.toUpperCase()}${notKnown.slice(1)}`,
+    });
   }
-  return `${joinNouns(known)} are known; ${notKnown} are not.`;
+  return m.meta_incomplete_partial({ known: joinNouns(known), missing: notKnown });
 }
 
 /** Sources publishing cut buckets only know the top two ranks exactly; rank 3 gets no medal. */

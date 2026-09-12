@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import {
-  EFFECTIVE_STATE_LABEL,
-  VIEWER_ROLE_LABEL,
+  effectiveStateLabels,
   effectiveTournamentState,
   primaryViewerRole,
+  viewerRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 export function TournamentCard({ tournament }: { tournament: TournamentSummaryResponse }) {
   const role = primaryViewerRole(tournament.myRoles);
@@ -38,24 +39,30 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
               ) : null}
               <span className="flex items-center gap-1.5">
                 <UsersIcon className="size-4 shrink-0" />
-                {tournament.participantCount} participant
-                {tournament.participantCount === 1 ? "" : "s"}
+                {tournament.participantCount === 1
+                  ? m.tournaments_card_participants_one({ count: tournament.participantCount })
+                  : m.tournaments_card_participants_other({ count: tournament.participantCount })}
               </span>
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
           <Badge variant={state === "in_progress" ? "subtle" : "secondary"}>
-            {EFFECTIVE_STATE_LABEL[state]}
+            {effectiveStateLabels()[state]}
           </Badge>
-          {role ? <Badge variant="outline">{VIEWER_ROLE_LABEL[role]}</Badge> : null}
+          {role ? <Badge variant="outline">{viewerRoleLabels()[role]}</Badge> : null}
           {tournament.host.type === "organization" ? (
             <Badge variant="outline">{tournament.host.displayName}</Badge>
           ) : null}
           {tournament.pendingRequestCount > 0 ? (
             <Badge variant="warning">
-              {tournament.pendingRequestCount} pending request
-              {tournament.pendingRequestCount === 1 ? "" : "s"}
+              {tournament.pendingRequestCount === 1
+                ? m.tournaments_card_pending_requests_one({
+                    count: tournament.pendingRequestCount,
+                  })
+                : m.tournaments_card_pending_requests_other({
+                    count: tournament.pendingRequestCount,
+                  })}
             </Badge>
           ) : null}
         </div>

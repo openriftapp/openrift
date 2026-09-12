@@ -43,14 +43,17 @@ import { zoneFixAllowed } from "@/features/tournaments/lib/deck-check-actions";
 import type { DeckCheckSort } from "@/features/tournaments/lib/deck-check-sort";
 import { useDeckCheckViewStore } from "@/features/tournaments/stores/deck-check-view-store";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-const CHECK_SORT_OPTIONS: SortGroupOption<DeckCheckSort>[] = [
-  { value: "deck", label: "Deck order" },
-  { value: "id", label: "ID" },
-  { value: "name", label: "Name" },
-  { value: "domain", label: "Domain" },
-  { value: "energy", label: "Energy" },
-];
+function checkSortOptions(): SortGroupOption<DeckCheckSort>[] {
+  return [
+    { value: "deck", label: m.tournaments_deck_check_sort_deck_order() },
+    { value: "id", label: m.cards_label_id() },
+    { value: "name", label: m.cards_label_name() },
+    { value: "domain", label: m.cards_label_domain() },
+    { value: "energy", label: m.cards_label_energy() },
+  ];
+}
 
 // Polls so concurrent judges reconcile.
 export function TournamentDeckCheckEntry({
@@ -178,7 +181,7 @@ export function TournamentDeckCheckEntry({
                 setNotes(event.target.value);
                 setNotesDirty(true);
               }}
-              placeholder="Notes for this entry (saved with a state change, not shared with the player)"
+              placeholder={m.tournaments_deck_check_notes_placeholder()}
               maxLength={4000}
               rows={3}
               className="flex-1"
@@ -198,7 +201,7 @@ export function TournamentDeckCheckEntry({
         />
         {listHidden ? (
           <Callout className="text-muted-foreground text-sm">
-            Hidden from judges until the player submits, or submissions close.
+            {m.tournaments_deck_check_hidden_until_submit()}
           </Callout>
         ) : null}
       </div>
@@ -213,11 +216,11 @@ export function TournamentDeckCheckEntry({
             {detail.entry.state === "submitted" ? (
               <Button variant="outline" onClick={() => setAddCardOpen(true)}>
                 <PlusIcon className="size-4" />
-                Add card
+                {m.tournaments_deck_check_add_card_title()}
               </Button>
             ) : null}
             <SortGroupControls
-              sortOptions={CHECK_SORT_OPTIONS}
+              sortOptions={checkSortOptions()}
               sortBy={sortBy}
               sortDir={sortDir}
               onSortByChange={setSortBy}
@@ -241,7 +244,9 @@ export function TournamentDeckCheckEntry({
                 onClick={() => setWide(!wide)}
               >
                 {wide ? <ShrinkIcon className="size-4" /> : <ExpandIcon className="size-4" />}
-                {wide ? "Narrow view" : "Wide view"}
+                {wide
+                  ? m.tournaments_deck_check_narrow_view()
+                  : m.tournaments_deck_check_wide_view()}
               </Button>
             ) : null}
           </div>
@@ -281,10 +286,10 @@ export function TournamentDeckCheckEntry({
         <ConfirmActionDialog
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
-          title="Delete this entry?"
-          description="The player's list and check history are removed. This cannot be undone. Withdraw the entry instead if they only dropped out."
-          confirmLabel="Delete"
-          pendingLabel="Deleting..."
+          title={m.tournaments_deck_check_delete_entry_title()}
+          description={m.tournaments_deck_check_delete_entry_description()}
+          confirmLabel={m.common_delete()}
+          pendingLabel={m.tournaments_deck_check_deleting()}
           isPending={deleteEntry.isPending}
           onConfirm={() => void handleDelete()}
         />

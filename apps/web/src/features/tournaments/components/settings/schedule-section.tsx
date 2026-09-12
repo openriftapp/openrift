@@ -14,6 +14,7 @@ import {
 } from "@/features/tournaments/lib/tournament-display";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Start and end times, entered in the host's local timezone and stored as UTC.
@@ -58,18 +59,13 @@ export function ScheduleSection({
   return (
     <SettingsSection
       id="schedule"
-      title="Schedule"
-      description={
-        <>
-          Times are in {tzLabel}. Without an end, the tournament auto-completes 24 hours after it
-          starts.
-        </>
-      }
+      title={m.tournaments_settings_schedule_title()}
+      description={m.tournaments_settings_schedule_description({ timezone: tzLabel })}
       contentClassName="gap-3"
     >
       <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
         <div className="flex flex-col gap-1.5">
-          <Label>Starts</Label>
+          <Label>{m.tournaments_settings_starts_label()}</Label>
           <div className="flex flex-wrap items-center gap-2">
             <DatePicker
               value={startDate}
@@ -83,17 +79,19 @@ export function ScheduleSection({
               disabled={locked}
               onChange={(event) => setStartTime(event.target.value)}
               placeholder="HH:mm"
-              aria-label="Start time (24h)"
+              aria-label={m.tournaments_settings_start_time_aria()}
               className="w-24 tabular-nums"
             />
           </div>
           {nextStartsAt === null ? (
-            <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
+            <FieldError>{m.tournaments_settings_start_invalid()}</FieldError>
           ) : null}
         </div>
-        <span className="text-muted-foreground mb-2 text-sm">to</span>
+        <span className="text-muted-foreground mb-2 text-sm">
+          {m.tournaments_settings_schedule_to()}
+        </span>
         <div className="flex flex-col gap-1.5">
-          <Label>Ends (optional)</Label>
+          <Label>{m.tournaments_settings_ends_label()}</Label>
           <div className="flex flex-wrap items-center gap-2">
             <DatePicker
               value={endDate}
@@ -107,16 +105,14 @@ export function ScheduleSection({
               disabled={locked}
               onChange={(event) => setEndTime(event.target.value)}
               placeholder="HH:mm"
-              aria-label="End time (24h)"
+              aria-label={m.tournaments_settings_end_time_aria()}
               className="w-24 tabular-nums"
             />
           </div>
           {endIncomplete ? (
-            <FieldError>
-              Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
-            </FieldError>
+            <FieldError>{m.tournaments_settings_end_incomplete()}</FieldError>
           ) : endBeforeStart ? (
-            <FieldError>The end must be at or after the start.</FieldError>
+            <FieldError>{m.tournaments_settings_end_before_start()}</FieldError>
           ) : null}
         </div>
       </div>
@@ -136,7 +132,7 @@ export function ScheduleSection({
             );
           }}
         >
-          Save schedule
+          {m.tournaments_settings_save_schedule()}
         </Button>
         {canEndEarly ? (
           <Button
@@ -151,12 +147,12 @@ export function ScheduleSection({
               )
             }
           >
-            End now
+            {m.tournaments_settings_end_now()}
           </Button>
         ) : null}
       </div>
       {locked ? (
-        <p className="text-muted-foreground">This tournament is cancelled and read-only.</p>
+        <p className="text-muted-foreground">{m.tournaments_settings_cancelled_note()}</p>
       ) : null}
     </SettingsSection>
   );

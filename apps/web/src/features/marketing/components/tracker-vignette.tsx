@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -52,7 +53,7 @@ function Panel({
 }) {
   return (
     <section
-      aria-label={`${name} scorepad`}
+      aria-label={m.tracker_panel_scorepad({ player: name })}
       className={cn(
         "bg-card relative flex h-32 min-w-0 flex-col items-center justify-between overflow-hidden rounded-lg border p-2",
         rotated && "rotate-180",

@@ -24,6 +24,7 @@ import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 function Rank({ finish }: { finish: MetaLegendFinish }) {
   if (finish.rank <= MEDAL_RANKS) {
@@ -44,7 +45,9 @@ function ListLink({ finish, canSubmit }: { finish: MetaLegendFinish; canSubmit: 
         className="font-medium whitespace-nowrap"
         render={<Link to="/meta/decks/$token" params={{ token: finish.shareToken }} />}
       >
-        {finish.listStatus === "partial" ? "Partial" : "Decklist"}
+        {finish.listStatus === "partial"
+          ? m.meta_list_partial_short()
+          : m.meta_standings_decklist()}
       </TextLink>
     );
   }
@@ -168,13 +171,11 @@ export function MetaLegendFinishes({
   if (total === 0) {
     return (
       <section className="flex flex-col gap-3">
-        <Heading>Finishes</Heading>
+        <Heading>{m.meta_finishes_heading()}</Heading>
         <Empty>
           <EmptyHeader>
             <EmptyDescription>
-              {narrowed
-                ? "No finish on this legend's record falls in this scope."
-                : "No archived event has this legend on its standings yet."}
+              {narrowed ? m.meta_finishes_legend_scope_empty() : m.meta_finishes_legend_empty()}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -188,14 +189,16 @@ export function MetaLegendFinishes({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>Finishes</Heading>
+        <Heading>{m.meta_finishes_heading()}</Heading>
         {total > best.length && (
           <Button
             variant="link"
             className="h-auto p-0 text-sm font-medium"
             onClick={() => setView(view === "best" ? "all" : "best")}
           >
-            {view === "best" ? `Show all ${total.toLocaleString("en-US")}` : "Show fewer"}
+            {view === "best"
+              ? m.meta_show_all_n({ count: total.toLocaleString("en-US") })
+              : m.meta_show_fewer()}
           </Button>
         )}
       </div>
@@ -204,12 +207,12 @@ export function MetaLegendFinishes({
         <Table variant="divided" className="hidden table-fixed sm:table">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">Rank</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead className="w-24">Tier</TableHead>
-              <TableHead className="w-40">Player</TableHead>
-              <TableHead className="w-20 text-right">Record</TableHead>
-              <TableHead className="w-24 text-right">Decklist</TableHead>
+              <TableHead className="w-12">{m.meta_standings_col_rank()}</TableHead>
+              <TableHead>{m.meta_finishes_col_event()}</TableHead>
+              <TableHead className="w-24">{m.meta_finishes_col_tier()}</TableHead>
+              <TableHead className="w-40">{m.meta_standings_col_player()}</TableHead>
+              <TableHead className="w-20 text-right">{m.meta_finishes_col_record()}</TableHead>
+              <TableHead className="w-24 text-right">{m.meta_standings_decklist()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,7 +229,9 @@ export function MetaLegendFinishes({
 
         {view === "all" && remaining > 0 && (
           <MetaShowMore disabled={loadingMore} onClick={onShowMore}>
-            {`${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "finish" : "finishes"}`}
+            {remaining === 1
+              ? m.meta_finishes_more_one({ count: remaining.toLocaleString("en-US") })
+              : m.meta_finishes_more_other({ count: remaining.toLocaleString("en-US") })}
           </MetaShowMore>
         )}
       </div>

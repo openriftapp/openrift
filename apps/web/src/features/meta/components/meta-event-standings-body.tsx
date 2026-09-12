@@ -6,6 +6,7 @@ import { useRowWindow } from "@/features/meta/hooks/use-standings-row-window";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { StandingsColumns } from "@/features/meta/lib/meta-event-standings";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
+import { m } from "@/paraglide/messages.js";
 
 export interface StandingsBodyProps {
   players: readonly MetaEventPlayer[];
@@ -35,18 +36,30 @@ export function DesktopStandings({
       <Table variant="divided" className="block">
         <TableHeader className="block">
           <TableRow className="flex w-full">
-            <TableHead className="flex w-20 shrink-0 items-center justify-center">Rank</TableHead>
+            <TableHead className="flex w-20 shrink-0 items-center justify-center">
+              {m.meta_standings_col_rank()}
+            </TableHead>
             {columns.legend && (
-              <TableHead className="flex w-64 shrink-0 items-center">Legend</TableHead>
+              <TableHead className="flex w-64 shrink-0 items-center">
+                {m.meta_standings_col_legend()}
+              </TableHead>
             )}
-            <TableHead className="flex min-w-0 flex-1 items-center">Player</TableHead>
-            {columns.run && <TableHead className="flex w-52 shrink-0 items-center">Run</TableHead>}
+            <TableHead className="flex min-w-0 flex-1 items-center">
+              {m.meta_standings_col_player()}
+            </TableHead>
+            {columns.run && (
+              <TableHead className="flex w-52 shrink-0 items-center">
+                {m.meta_standings_col_run()}
+              </TableHead>
+            )}
             {columns.value && (
-              <TableHead className="flex w-28 shrink-0 items-center justify-end">Value</TableHead>
+              <TableHead className="flex w-28 shrink-0 items-center justify-end">
+                {m.meta_standings_col_value()}
+              </TableHead>
             )}
             {columns.deck && (
               <TableHead className="flex w-36 shrink-0 items-center justify-end">
-                Decklist
+                {m.meta_standings_decklist()}
               </TableHead>
             )}
           </TableRow>

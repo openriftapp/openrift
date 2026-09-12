@@ -12,6 +12,7 @@ import {
   useTournamentSubmissionPage,
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 export function PlayerSubmitDeckSection({ token }: { token: string }) {
   const { data, isPending, isError } = useTournamentSubmissionPage(token);
@@ -30,11 +31,7 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
     );
   }
   if (isError || !data) {
-    return (
-      <p className="text-muted-foreground">
-        This submission link is not valid for a deck. Ask the organizer for a current one.
-      </p>
-    );
+    return <p className="text-muted-foreground">{m.tournaments_submit_link_invalid()}</p>;
   }
 
   // Local time zone is safe only because this route is `data-only`.
@@ -42,13 +39,13 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
   const linkedState = data.linkedEntry?.state;
   const blockedMessage =
     linkedState === "withdrawn"
-      ? "Your entry in this event was withdrawn by the organizer. Contact a judge before submitting again."
+      ? m.tournaments_submit_blocked_withdrawn()
       : linkedState === "approved"
-        ? "Your deck for this event was already approved by a judge. To change it, request an unlock from your deck page."
+        ? m.tournaments_submit_blocked_approved()
         : linkedState === "checked"
-          ? "Your deck for this event was already checked by a judge. Contact a judge to change it."
+          ? m.tournaments_submit_blocked_checked()
           : data.linkedEntry && !data.linkedEntry.canReplace
-            ? "Your deck for this event is already submitted and locked. To change it, request an unlock from your deck page."
+            ? m.tournaments_submit_blocked_locked()
             : null;
 
   const submit = async (input: DeckSourceInput) => {
@@ -61,19 +58,21 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
   return (
     <div className="flex flex-col gap-4">
       <Card className="gap-1 p-4">
-        <h2 className="font-medium">Submit your deck</h2>
+        <h2 className="font-medium">{m.tournaments_submit_heading()}</h2>
         {data.format ? (
           <p className="text-muted-foreground text-sm">
-            Format: {formatLabels[data.format] ?? data.format}
+            {m.tournaments_submit_format({ format: formatLabels[data.format] ?? data.format })}
           </p>
         ) : null}
         {data.allowedSets && data.allowedSets.length > 0 ? (
           <p className="text-muted-foreground text-sm">
-            Allowed sets: {data.allowedSets.join(", ")}
+            {m.tournaments_submit_allowed_sets({ sets: data.allowedSets.join(", ") })}
           </p>
         ) : null}
         {closesAt ? (
-          <p className="text-muted-foreground text-sm">Submissions close {closesAt}</p>
+          <p className="text-muted-foreground text-sm">
+            {m.tournaments_submit_closes_at({ time: closesAt })}
+          </p>
         ) : null}
       </Card>
 
@@ -82,14 +81,15 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
       ) : data.submissionsOpen ? (
         <>
           {data.linkedEntry ? (
-            <p className="text-muted-foreground text-sm">
-              You already have a deck entered for this event; submitting replaces it and sends the
-              new list for review.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.tournaments_submit_replace_note()}</p>
           ) : null}
           <PlayerDeckSourceForm
-            submitLabel={data.linkedEntry ? "Replace my deck" : "Submit deck"}
-            pendingLabel="Submitting..."
+            submitLabel={
+              data.linkedEntry
+                ? m.tournaments_submit_replace_my_deck()
+                : m.tournaments_submit_submit_deck()
+            }
+            pendingLabel={m.tournaments_submit_submitting()}
             isSubmitting={submitDeck.isPending}
             onSubmit={(input) => void submit(input)}
             onPreview={(input) => preview.mutate({ token, ...input })}
@@ -101,7 +101,7 @@ export function PlayerSubmitDeckSection({ token }: { token: string }) {
           />
         </>
       ) : (
-        <p className="text-muted-foreground">Submissions for this event are closed.</p>
+        <p className="text-muted-foreground">{m.tournaments_submit_closed()}</p>
       )}
     </div>
   );

@@ -20,6 +20,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-run";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 export function FollowAlongSection({
   detail,
@@ -54,19 +55,19 @@ export function FollowAlongSection({
     <>
       <SettingsSection
         id="follow-along"
-        title="Participant follow-along"
-        description="The reporting link also lets anyone holding it enter their pod result. Nothing counts until you finalize the round."
+        title={m.tournaments_settings_follow_title()}
+        description={m.tournaments_settings_follow_description()}
         contentClassName="gap-6"
       >
         <div className="flex flex-col gap-2">
-          <Label>Result reporting link</Label>
+          <Label>{m.tournaments_settings_report_link_label()}</Label>
           <p className="text-muted-foreground text-sm">
-            Anyone with this link can follow along and enter pod results.
+            {m.tournaments_settings_report_link_hint()}
           </p>
           {reportUrl ? (
             <ShareLinkRow
               url={reportUrl}
-              label="Result reporting link"
+              label={m.tournaments_settings_report_link_label()}
               defaultQrOpen
               actions={
                 <Button
@@ -75,7 +76,7 @@ export function FollowAlongSection({
                   disabled={setReportToken.isPending}
                   onClick={() => setConfirmDisableReport(true)}
                 >
-                  Disable
+                  {m.tournaments_settings_disable()}
                 </Button>
               }
             />
@@ -89,20 +90,20 @@ export function FollowAlongSection({
                 )
               }
             >
-              Enable reporting link
+              {m.tournaments_settings_enable_report_link()}
             </Button>
           )}
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Follow-only link</Label>
+          <Label>{m.tournaments_settings_follow_link_label()}</Label>
           <p className="text-muted-foreground text-sm">
-            Anyone with this link can follow along but cannot enter results.
+            {m.tournaments_settings_follow_link_hint()}
           </p>
           {followUrl ? (
             <ShareLinkRow
               url={followUrl}
-              label="Follow-only link"
+              label={m.tournaments_settings_follow_link_label()}
               defaultQrOpen
               actions={
                 <Button
@@ -111,7 +112,7 @@ export function FollowAlongSection({
                   disabled={setFollowToken.isPending}
                   onClick={() => setConfirmDisableFollow(true)}
                 >
-                  Disable
+                  {m.tournaments_settings_disable()}
                 </Button>
               }
             />
@@ -125,7 +126,7 @@ export function FollowAlongSection({
                 )
               }
             >
-              Enable follow-only link
+              {m.tournaments_settings_enable_follow_link()}
             </Button>
           )}
         </div>
@@ -135,17 +136,17 @@ export function FollowAlongSection({
         <DialogContent>
           <DialogForm onSubmit={() => void handleDisableReport()}>
             <DialogHeader>
-              <DialogTitle>Disable the result reporting link?</DialogTitle>
+              <DialogTitle>{m.tournaments_settings_disable_report_title()}</DialogTitle>
               <DialogDescription>
-                The link stops working for everyone. Re-enabling creates a different link.
+                {m.tournaments_settings_disable_link_description()}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setConfirmDisableReport(false)}>
-                Keep it
+                {m.tournaments_settings_keep_it()}
               </Button>
               <Button type="submit" variant="destructive" disabled={setReportToken.isPending}>
-                Disable link
+                {m.tournaments_settings_disable_link()}
               </Button>
             </DialogFooter>
           </DialogForm>
@@ -156,17 +157,17 @@ export function FollowAlongSection({
         <DialogContent>
           <DialogForm onSubmit={() => void handleDisableFollow()}>
             <DialogHeader>
-              <DialogTitle>Disable the follow-only link?</DialogTitle>
+              <DialogTitle>{m.tournaments_settings_disable_follow_title()}</DialogTitle>
               <DialogDescription>
-                The link stops working for everyone. Re-enabling creates a different link.
+                {m.tournaments_settings_disable_link_description()}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setConfirmDisableFollow(false)}>
-                Keep it
+                {m.tournaments_settings_keep_it()}
               </Button>
               <Button type="submit" variant="destructive" disabled={setFollowToken.isPending}>
-                Disable link
+                {m.tournaments_settings_disable_link()}
               </Button>
             </DialogFooter>
           </DialogForm>

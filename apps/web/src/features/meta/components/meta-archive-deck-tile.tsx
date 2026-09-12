@@ -12,6 +12,7 @@ import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // The artwork under the plate ignores the theme, so the plate does too.
 const PLATE_CLASS = "absolute rounded-full bg-black/60 text-xs font-medium text-white tabular-nums";
@@ -67,8 +68,8 @@ function OwnedRow({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Mar
       >
         {complete ? (
           <>
-            <span>All {cost.needed} owned</span>
-            <span>Buildable</span>
+            <span>{m.meta_deck_all_owned({ count: String(cost.needed) })}</span>
+            <span>{m.meta_deck_buildable()}</span>
           </>
         ) : (
           <>

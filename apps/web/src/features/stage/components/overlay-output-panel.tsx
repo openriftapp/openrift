@@ -24,6 +24,7 @@ import { deriveOverlayWalk } from "@/features/stage/lib/overlay-walk";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const OBS_CANVAS = { width: 1920, height: 1080 };
 
@@ -45,7 +46,7 @@ function LivePreview({
   const liveCard = payload.printingId !== null && printing !== undefined;
   const holding = liveCard || payload.board !== null;
   const live = holding && !payload.hidden;
-  let caption = "Push a card or a tier list to put it on screen.";
+  let caption: string = m.stage_overlay_caption_empty();
   if (payload.board !== null) {
     caption = payload.board.title;
   } else if (liveCard) {
@@ -54,17 +55,17 @@ function LivePreview({
   // Append "(hidden)": without it, a named caption over an empty preview
   // looks like a failed push.
   if (payload.hidden && holding) {
-    caption = `${caption} (hidden)`;
+    caption = m.stage_overlay_caption_hidden({ caption });
   }
-  let status = "Nothing up";
+  let status = m.stage_overlay_status_empty();
   if (live) {
-    status = "● Live";
+    status = m.stage_overlay_status_live();
   } else if (holding) {
-    status = "Hidden";
+    status = m.stage_overlay_status_hidden();
   }
   return (
     <SettingsSection
-      title="On stream"
+      title={m.stage_overlay_on_stream()}
       action={
         <span
           className={cn(
@@ -138,7 +139,7 @@ function WalkControls({
           }
         }}
         disabled={previousId === null || isPending}
-        aria-label="Push the previous queued card"
+        aria-label={m.stage_overlay_push_previous()}
       >
         <ChevronLeftIcon className="size-4" />
       </Button>
@@ -157,7 +158,7 @@ function WalkControls({
           }
         }}
         disabled={nextId === null || isPending}
-        aria-label="Push the next queued card"
+        aria-label={m.stage_overlay_push_next()}
       >
         <ChevronRightIcon className="size-4" />
       </Button>
@@ -214,7 +215,7 @@ export function OverlayOutputPanel() {
                 disabled={setHidden.isPending}
               >
                 {hidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
-                {hidden ? "Show" : "Hide"}
+                {hidden ? m.stage_overlay_show() : m.stage_overlay_hide()}
               </Button>
               <Button
                 variant="outline"
@@ -223,17 +224,17 @@ export function OverlayOutputPanel() {
                 disabled={clearOverlay.isPending || (livePrintingId === null && liveBoard === null)}
               >
                 <XIcon className="size-4" />
-                Clear
+                {m.stage_overlay_clear()}
               </Button>
             </div>
           }
         />
         <p className="text-muted-foreground text-sm">
-          Open a{" "}
+          {m.stage_overlay_board_hint_before()}{" "}
           <TextLink variant="muted" render={<Link to="/tier-lists" />}>
-            tier list
+            {m.stage_overlay_board_hint_link()}
           </TextLink>
-          , press Present, and turn on &ldquo;Board on OBS&rdquo;.
+          {m.stage_overlay_board_hint_after()}
         </p>
       </div>
       <OverlaySettingsPanel

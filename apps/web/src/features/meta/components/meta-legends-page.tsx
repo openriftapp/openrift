@@ -18,7 +18,6 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { DomainIcon } from "@/features/decks/components/domain-icon";
-import { META_LEGENDS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
@@ -45,6 +44,7 @@ import {
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import { CLEARED_SCOPE, nextScopeSearch, resolveScopeRange } from "@/features/meta/lib/meta-scope";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/legends");
 
@@ -187,7 +187,7 @@ function LegendSearchBox({
       className="min-w-56 flex-1"
       value={value}
       onValueChange={setValue}
-      placeholder="Search legends"
+      placeholder={m.meta_legends_search_placeholder()}
     />
   );
 }
@@ -210,16 +210,16 @@ function SortHeader({
     >
       <span />
       <SortButton column="name" sort={sort} direction={direction} onSort={onSort}>
-        Legend
+        {m.meta_standings_col_legend()}
       </SortButton>
       <SortButton column="best" sort={sort} direction={direction} onSort={onSort}>
-        Best finish in this scope
+        {m.meta_legends_col_best_finish()}
       </SortButton>
       <SortButton column="decklists" sort={sort} direction={direction} onSort={onSort} align="end">
-        Decklists
+        {m.meta_legends_col_decklists()}
       </SortButton>
       <SortButton column="finishes" sort={sort} direction={direction} onSort={onSort} align="end">
-        Finishes
+        {m.meta_legends_col_finishes()}
       </SortButton>
     </div>
   );
@@ -261,26 +261,26 @@ export function MetaLegendsPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarBack to="/meta" aria-label="Meta archive" />
-          <PageTopBarTitle>Legends</PageTopBarTitle>
+          <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
+          <PageTopBarTitle>{m.meta_legends_title()}</PageTopBarTitle>
           <span className="text-muted-foreground shrink-0 tabular-nums">
             {metaShownLabel(entries.length, all.length, {
-              singular: "legend",
-              plural: "legends",
+              singular: m.meta_legends_noun_one(),
+              plural: m.meta_legends_noun_other(),
             })}
           </span>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{META_LEGENDS_DESCRIPTION}</PageDescription>
+        <PageDescription className="pb-4">{m.meta_legends_page_description()}</PageDescription>
 
         {all.length === 0 ? (
           <EmptyState
             className="py-12"
             icon={SwordsIcon}
-            title="No legends on record yet"
-            description="Legends appear here as soon as an event's standings are archived."
+            title={m.meta_legends_empty_title()}
+            description={m.meta_legends_empty_description()}
           />
         ) : (
           <>
@@ -300,7 +300,7 @@ export function MetaLegendsPage() {
               {entries.length === 0 ? (
                 <Empty className="py-10">
                   <EmptyHeader>
-                    <EmptyDescription>No legend matches these filters.</EmptyDescription>
+                    <EmptyDescription>{m.meta_legends_no_match()}</EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               ) : (

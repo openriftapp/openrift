@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CountPill } from "@/components/ui/count-pill";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { StripGlyph, Vignette } from "./vignette-parts";
 
@@ -24,7 +25,7 @@ function RuleSourceBadge({ children }: { children: ReactNode }) {
     <Badge
       variant="subtle"
       className="rounded-md border-0 bg-transparent"
-      title="Added by a list rule"
+      title={m.lists_rule_badge_title()}
     >
       <SparklesIcon aria-hidden="true" />
       {children}
@@ -111,45 +112,51 @@ export function ListsVignette() {
   return (
     <Vignette>
       <div className="flex flex-col gap-1">
-        <span className="font-heading font-medium">Dynamic rules</span>
-        <p className="text-muted-foreground text-sm">
-          Automatically want every card that matches these filters.
-        </p>
+        <span className="font-heading font-medium">{m.lists_rule_dialog_title()}</span>
+        <p className="text-muted-foreground text-sm">{m.lists_rule_wording_wish_description()}</p>
       </div>
       <RuleBlock
-        title="Rule 1"
-        count={<ListsCount was="missing 214 cards" now="missing 213 cards" />}
+        title={m.lists_rule_block_title({ number: 1 })}
+        count={
+          <ListsCount
+            was={m.marketing_lists_missing_cards({ count: 214 })}
+            now={m.marketing_lists_missing_cards({ count: 213 })}
+          />
+        }
       >
-        <RuleRow label="Sets">
+        <RuleRow label={m.lists_rule_dim_sets()}>
           <RuleControl>Origins</RuleControl>
         </RuleRow>
-        <RuleRow label="Languages">
+        <RuleRow label={m.lists_rule_dim_languages()}>
           <RuleControl>English</RuleControl>
         </RuleRow>
-        <RuleRow label="Finishes">
+        <RuleRow label={m.lists_rule_dim_finishes()}>
           <RuleControl>&minus;Metal</RuleControl>
         </RuleRow>
-        <RuleRow label="Want quantity">
-          <QuantityControl mode="Playset &times;" amount="1" />
+        <RuleRow label={m.lists_rule_wording_wish_quantity_label()}>
+          <QuantityControl mode={m.lists_rule_quantity_playset()} amount="1" />
         </RuleRow>
-        <RuleRow label="Only what I'm missing">
+        <RuleRow label={m.lists_rule_net_owned_label()}>
           <RuleSwitch />
         </RuleRow>
       </RuleBlock>
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">Playset gaps</span>
-          <span title="Kept up to date by a rule" className="flex shrink-0 items-center">
+          <span className="font-medium">{m.marketing_lists_playset_gaps()}</span>
+          <span title={m.collections_sidebar_rule_title()} className="flex shrink-0 items-center">
             <SparklesIcon className="text-primary size-3.5" aria-hidden="true" />
-            <span className="sr-only">Dynamic list</span>
+            <span className="sr-only">{m.collections_sidebar_dynamic_list()}</span>
           </span>
           <span className="text-muted-foreground flex items-center gap-1 text-sm">
             <HeartIcon className="size-3.5" aria-hidden="true" />
-            Wishlist
+            {m.lists_intent_label_wish()}
           </span>
           <span className="text-muted-foreground flex items-center gap-1 text-sm">
             <SquareIcon className="size-3.5" aria-hidden="true" />
-            <ListsCount was="214 Cards" now="213 Cards" />
+            <ListsCount
+              was={m.marketing_lists_card_count({ count: 214 })}
+              now={m.marketing_lists_card_count({ count: 213 })}
+            />
           </span>
         </div>
         <ul className="flex flex-col text-sm">
@@ -169,7 +176,7 @@ export function ListsVignette() {
                 <span className="motion-safe:animate-lists-owned-now col-start-1 row-start-1">
                   <CountPill variant="success">
                     <CheckCircle2Icon className="size-3" aria-hidden="true" />
-                    Full Playset
+                    {m.cards_filter_owned_full()}
                   </CountPill>
                 </span>
               </span>
@@ -186,7 +193,9 @@ export function ListsVignette() {
             <RuleSourceBadge>3</RuleSourceBadge>
           </li>
         </ul>
-        <span className="text-muted-foreground text-xs">210 more</span>
+        <span className="text-muted-foreground text-xs">
+          {m.decks_overview_zone_more({ count: 210 })}
+        </span>
       </div>
     </Vignette>
   );

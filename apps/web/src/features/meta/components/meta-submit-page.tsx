@@ -53,6 +53,7 @@ import {
 } from "@/features/meta/lib/meta-submission-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const DECK_PLACEHOLDER = `Legend:
 1 Emperor of the Sands
@@ -67,31 +68,30 @@ MainDeck:
 Battlefields:
 1 Seat of Power`;
 
-function plural(count: number, noun: string): string {
-  return `${count} ${count === 1 ? noun : `${noun}s`}`;
-}
-
 function joinMissing(parts: readonly string[]): string {
   if (parts.length <= 1) {
     return parts.join("");
   }
-  return `${parts.slice(0, -1).join(", ")} or ${parts.at(-1)}`;
+  return m.meta_submit_join_or({
+    parts: parts.slice(0, -1).join(", "),
+    last: parts.at(-1) ?? "",
+  });
 }
 
 function partialListSentence(parsed: MetaSubmissionParsedList): string {
   const missing: string[] = [];
   if (parsed.legend === null) {
-    missing.push("legend");
+    missing.push(m.meta_submit_missing_legend());
   }
   if (parsed.zones.battlefield === 0) {
-    missing.push("battlefields");
+    missing.push(m.meta_submit_missing_battlefields());
   }
   if (parsed.zones.runes === 0) {
-    missing.push("runes");
+    missing.push(m.meta_submit_missing_runes());
   }
   const tail =
-    missing.length === 1 ? "Paste it too if you have it." : "Paste them too if you have them.";
-  return `No ${joinMissing(missing)} in the list, so it goes in as a partial list. ${tail}`;
+    missing.length === 1 ? m.meta_submit_partial_tail_one() : m.meta_submit_partial_tail_other();
+  return m.meta_submit_partial_sentence({ missing: joinMissing(missing), tail });
 }
 
 function parsedList(text: string, allPrintings: Printing[]): MetaSubmissionParsedList | null {
@@ -108,7 +108,11 @@ function finishLabel(rank: number | undefined, rankIsTier: boolean | undefined):
 function eventFacts(event: MetaEventSummary, formatLabel: string): string {
   const facts = [formatDay(event.eventDate), formatLabel];
   if (event.playerCount !== null) {
-    facts.push(plural(event.playerCount, "player"));
+    facts.push(
+      event.playerCount === 1
+        ? m.meta_submit_players_one({ count: String(event.playerCount) })
+        : m.meta_submit_players_other({ count: String(event.playerCount) }),
+    );
   }
   return facts.join(" · ");
 }
@@ -124,17 +128,17 @@ function LegendCheck({
     return null;
   }
   if (!metaSubmissionLegendMismatch(parsed, prefill.legendCardId)) {
-    return <p className="text-muted-foreground text-sm">Legend matches the standings.</p>;
+    return <p className="text-muted-foreground text-sm">{m.meta_submit_legend_matches()}</p>;
   }
   return (
     <Alert variant="info">
       <AlertTitle>
-        This list&apos;s legend is {parsed.legend.cardName}, but the standings have{" "}
-        {prefill.legendName}
+        {m.meta_submit_legend_mismatch({
+          listLegend: parsed.legend.cardName,
+          standingsLegend: prefill.legendName ?? "",
+        })}
       </AlertTitle>
-      <AlertDescription>
-        Check you opened the right row. If the list is right, send it and the reviewer sees both.
-      </AlertDescription>
+      <AlertDescription>{m.meta_submit_legend_mismatch_hint()}</AlertDescription>
     </Alert>
   );
 }
@@ -150,11 +154,17 @@ function ListReadback({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={parsed.listStatus === "full" ? "success" : "muted"}>
-          {metaSubmissionCompletenessLabels[parsed.listStatus]}
+          {metaSubmissionCompletenessLabels()[parsed.listStatus]}
         </Badge>
         <span className="text-muted-foreground text-sm">
-          {parsed.zones.main} main · {plural(parsed.zones.battlefield, "battlefield")} ·{" "}
-          {plural(parsed.zones.runes, "rune")}
+          {m.meta_submit_main_count({ count: String(parsed.zones.main) })} ·{" "}
+          {parsed.zones.battlefield === 1
+            ? m.meta_submit_battlefields_one({ count: String(parsed.zones.battlefield) })
+            : m.meta_submit_battlefields_other({ count: String(parsed.zones.battlefield) })}{" "}
+          ·{" "}
+          {parsed.zones.runes === 1
+            ? m.meta_submit_runes_one({ count: String(parsed.zones.runes) })
+            : m.meta_submit_runes_other({ count: String(parsed.zones.runes) })}
         </span>
       </div>
 
@@ -166,7 +176,7 @@ function ListReadback({
 
       {parsed.reinterpreted.length > 0 && (
         <Alert variant="info">
-          <AlertTitle>Check these two are the same card</AlertTitle>
+          <AlertTitle>{m.meta_submit_reinterpreted_title()}</AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
               {parsed.reinterpreted.map((row) => (
@@ -184,8 +194,8 @@ function ListReadback({
           <TriangleAlertIcon />
           <AlertTitle>
             {parsed.unmatched.length === 1
-              ? "One line doesn't match a card we know"
-              : `${parsed.unmatched.length} lines don't match a card we know`}
+              ? m.meta_submit_unmatched_one()
+              : m.meta_submit_unmatched_other({ count: String(parsed.unmatched.length) })}
           </AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
@@ -193,10 +203,7 @@ function ListReadback({
                 <li key={name}>{name}</li>
               ))}
             </ul>
-            <p>
-              Fix the spelling if it&apos;s a typo. If the card really is missing from our
-              catalogue, send it anyway and say so in the note.
-            </p>
+            <p>{m.meta_submit_unmatched_hint()}</p>
           </AlertDescription>
         </Alert>
       )}
@@ -204,7 +211,7 @@ function ListReadback({
       {parsed.warnings.length > 0 && (
         <Alert variant="warning">
           <TriangleAlertIcon />
-          <AlertTitle>Some lines were skipped</AlertTitle>
+          <AlertTitle>{m.meta_submit_skipped_title()}</AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
               {parsed.warnings.map((warning) => (
@@ -234,19 +241,16 @@ function SubmissionSent({
       {unresolved.length === 0 ? (
         <Alert>
           <CheckCircle2Icon />
-          <AlertTitle>Your decklist is with us</AlertTitle>
-          <AlertDescription>
-            Someone reads every list by hand before it goes up, so this can take a while. You can
-            follow it on your own page.
-          </AlertDescription>
+          <AlertTitle>{m.meta_submit_sent_title()}</AlertTitle>
+          <AlertDescription>{m.meta_submit_sent_description()}</AlertDescription>
         </Alert>
       ) : (
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
             {unresolved.length === 1
-              ? "We couldn't place one of your cards"
-              : `We couldn't place ${unresolved.length} of your cards`}
+              ? m.meta_submit_unresolved_one()
+              : m.meta_submit_unresolved_other({ count: String(unresolved.length) })}
           </AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
@@ -254,9 +258,7 @@ function SubmissionSent({
                 <li key={name}>{name}</li>
               ))}
             </ul>
-            <p>
-              Send the list again with the spelling fixed, or say in the note what the card was.
-            </p>
+            <p>{m.meta_submit_unresolved_hint()}</p>
           </AlertDescription>
         </Alert>
       )}
@@ -264,18 +266,20 @@ function SubmissionSent({
       <div className="flex flex-wrap gap-2">
         {eventSlug !== undefined && (
           <Button render={<Link to="/meta/$slug" params={{ slug: eventSlug }} />}>
-            Back to the standings
+            {m.meta_submit_back_to_standings()}
           </Button>
         )}
         <Button
           variant={eventSlug === undefined ? "default" : "outline"}
           render={<Link to="/meta/submissions" />}
         >
-          Your contributions
+          {m.meta_submissions_title()}
         </Button>
         {showRetry && (
           <Button variant="outline" onClick={onSendAnother}>
-            {unresolved.length === 0 ? "Send another" : "Fix the list and send again"}
+            {unresolved.length === 0
+              ? m.meta_submit_send_another()
+              : m.meta_submit_fix_and_resend()}
           </Button>
         )}
       </div>
@@ -344,11 +348,11 @@ export function MetaSubmitPage({
       return;
     }
     if (!proposing && selectedEventId === "") {
-      setFormError("Pick the tournament this deck came from.");
+      setFormError(m.meta_submit_error_pick_event());
       return;
     }
     if (parsed === null) {
-      setFormError("Paste the decklist before sending.");
+      setFormError(m.meta_validate_paste_decklist());
       return;
     }
 
@@ -380,8 +384,8 @@ export function MetaSubmitPage({
   const finish = finishLabel(row.rank, row.rankIsTier);
   const cancelSlug = lockedToEvent ? slug : undefined;
   const deckHint = startedFromArchivedList
-    ? "This is the list the archive has. Edit it and send the whole thing back."
-    : "A deck code, a TTS export, or one card per line.";
+    ? m.meta_submit_deck_hint_archived()
+    : m.meta_submit_deck_hint_default();
 
   return (
     <>
@@ -392,10 +396,10 @@ export function MetaSubmitPage({
           ) : (
             <PageTopBarBack to="/meta/$slug" params={{ slug: cancelSlug }} />
           )}
-          <PageTopBarTitle>{metaSubmissionFormTitles[kind]}</PageTopBarTitle>
+          <PageTopBarTitle>{metaSubmissionFormTitles()[kind]}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarButton render={<Link to="/meta/submissions" />}>
-              Your contributions
+              {m.meta_submissions_title()}
             </PageTopBarButton>
           </PageTopBarActions>
         </PageTopBar>
@@ -426,7 +430,9 @@ export function MetaSubmitPage({
                       <span className="text-muted-foreground tabular-nums">{record}</span>
                     )}
                     {row.legendName !== undefined && (
-                      <span className="text-muted-foreground">Legend {row.legendName}</span>
+                      <span className="text-muted-foreground">
+                        {m.meta_submit_row_legend({ name: row.legendName })}
+                      </span>
                     )}
                   </div>
                 </SettingsSection>
@@ -435,11 +441,11 @@ export function MetaSubmitPage({
               {!fromRow && (
                 <>
                   <SettingsSection
-                    title="The tournament"
+                    title={m.meta_submit_section_tournament()}
                     description={
                       lockedToEvent
-                        ? "Where this deck was played."
-                        : "Pick the tournament this deck came from, or tell us about one we don't have."
+                        ? m.meta_submit_section_tournament_locked()
+                        : m.meta_submit_section_tournament_pick()
                     }
                   >
                     <FieldGroup className={FORM_COLUMN}>
@@ -457,14 +463,16 @@ export function MetaSubmitPage({
 
                       {!lockedToEvent && !proposing ? (
                         <Field>
-                          <FieldLabel htmlFor="meta-submit-event">Tournament</FieldLabel>
+                          <FieldLabel htmlFor="meta-submit-event">
+                            {m.meta_submit_event_label()}
+                          </FieldLabel>
                           <Select
                             items={eventItems}
                             value={selectedEventId}
                             onValueChange={(value) => setSelectedEventId((value as string) ?? "")}
                           >
                             <SelectTrigger id="meta-submit-event" className="w-full">
-                              <SelectValue placeholder="Pick a tournament" />
+                              <SelectValue placeholder={m.meta_submit_event_placeholder()} />
                             </SelectTrigger>
                             <SelectContent>
                               {Object.entries(eventItems).map(([value, label]) => (
@@ -482,7 +490,7 @@ export function MetaSubmitPage({
                               className="h-auto p-0"
                               onClick={() => setProposing(true)}
                             >
-                              We don&apos;t have your tournament? Tell us about it
+                              {m.meta_submit_event_missing_link()}
                             </Button>
                           </FieldDescription>
                         </Field>
@@ -492,7 +500,7 @@ export function MetaSubmitPage({
                         <>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-name">
-                              Tournament name
+                              {m.meta_submit_event_name()}
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-name"
@@ -504,7 +512,7 @@ export function MetaSubmitPage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-date">
-                              Day it was played
+                              {m.meta_submit_event_date()}
                             </FieldLabel>
                             <DatePicker
                               value={draft.eventDate}
@@ -512,19 +520,21 @@ export function MetaSubmitPage({
                               onClear={() => set("eventDate", "")}
                               className="w-full"
                             />
-                            <FieldDescription>
-                              For a tournament over several days, use the first one.
-                            </FieldDescription>
+                            <FieldDescription>{m.meta_submit_event_date_hint()}</FieldDescription>
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor="meta-submit-event-format">Format</FieldLabel>
+                            <FieldLabel htmlFor="meta-submit-event-format">
+                              {m.meta_submit_event_format()}
+                            </FieldLabel>
                             <Select
                               items={formatItems}
                               value={draft.eventFormat}
                               onValueChange={(value) => set("eventFormat", (value as string) ?? "")}
                             >
                               <SelectTrigger id="meta-submit-event-format" className="w-full">
-                                <SelectValue placeholder="Pick a format" />
+                                <SelectValue
+                                  placeholder={m.meta_submit_event_format_placeholder()}
+                                />
                               </SelectTrigger>
                               <SelectContent>
                                 {Object.entries(formatItems).map(([value, label]) => (
@@ -537,7 +547,7 @@ export function MetaSubmitPage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-players">
-                              How many played (optional)
+                              {m.meta_submit_event_players()}
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-players"
@@ -549,7 +559,7 @@ export function MetaSubmitPage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-organizer">
-                              Who ran it (optional)
+                              {m.meta_submit_event_organizer()}
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-organizer"
@@ -561,18 +571,16 @@ export function MetaSubmitPage({
                           </Field>
                           <Field>
                             <FieldLabel htmlFor="meta-submit-event-source">
-                              Where you saw the results (optional)
+                              {m.meta_submit_event_source()}
                             </FieldLabel>
                             <Input
                               id="meta-submit-event-source"
                               value={draft.eventSourceUrl}
                               maxLength={2000}
-                              placeholder="A results page, a stream VOD, a post"
+                              placeholder={m.meta_submit_event_source_placeholder()}
                               onChange={(event) => set("eventSourceUrl", event.target.value)}
                             />
-                            <FieldDescription>
-                              A link is quickest to check and gets the tournament credited.
-                            </FieldDescription>
+                            <FieldDescription>{m.meta_submit_event_source_hint()}</FieldDescription>
                           </Field>
                           <Field>
                             <FieldDescription>
@@ -583,7 +591,7 @@ export function MetaSubmitPage({
                                 className="h-auto p-0"
                                 onClick={() => setProposing(false)}
                               >
-                                Pick one we already have instead
+                                {m.meta_submit_event_pick_existing()}
                               </Button>
                             </FieldDescription>
                           </Field>
@@ -592,20 +600,24 @@ export function MetaSubmitPage({
                     </FieldGroup>
                   </SettingsSection>
 
-                  <SettingsSection title="The player">
+                  <SettingsSection title={m.meta_submit_section_player()}>
                     <FieldGroup className={FORM_COLUMN}>
                       <Field>
-                        <FieldLabel htmlFor="meta-submit-player">Who played it</FieldLabel>
+                        <FieldLabel htmlFor="meta-submit-player">
+                          {m.meta_submit_player_label()}
+                        </FieldLabel>
                         <Input
                           id="meta-submit-player"
                           value={draft.playerName}
                           maxLength={80}
-                          placeholder="The player's name, as the results list it"
+                          placeholder={m.meta_submit_player_placeholder()}
                           onChange={(event) => set("playerName", event.target.value)}
                         />
                       </Field>
                       <Field>
-                        <FieldLabel htmlFor="meta-submit-rank">Where they finished</FieldLabel>
+                        <FieldLabel htmlFor="meta-submit-rank">
+                          {m.meta_submit_rank_label()}
+                        </FieldLabel>
                         <Input
                           id="meta-submit-rank"
                           inputMode="numeric"
@@ -622,53 +634,56 @@ export function MetaSubmitPage({
                             className="mt-0.5"
                           />
                           <label htmlFor="meta-submit-rank-is-tier" className="cursor-pointer">
-                            <span className="block">Only the bracket is known</span>
+                            <span className="block">{m.meta_submit_rank_is_tier()}</span>
                             <span className="text-muted-foreground block text-sm">
-                              Tick this when the results say &ldquo;top 8&rdquo; rather than an
-                              exact placing. The archive will print it as T8.
+                              {m.meta_submit_rank_is_tier_hint()}
                             </span>
                           </label>
                         </div>
                       </Field>
                       <Field>
-                        <FieldLabel htmlFor="meta-submit-wins">Match record (optional)</FieldLabel>
+                        <FieldLabel htmlFor="meta-submit-wins">
+                          {m.meta_submit_record_label()}
+                        </FieldLabel>
                         <div className="flex items-center gap-2">
                           <Input
                             id="meta-submit-wins"
                             inputMode="numeric"
                             value={draft.wins}
-                            placeholder="W"
-                            aria-label="Wins"
+                            placeholder={m.meta_submit_record_wins_placeholder()}
+                            aria-label={m.meta_submit_record_wins_aria()}
                             className="w-16"
                             onChange={(event) => set("wins", event.target.value)}
                           />
                           <Input
                             inputMode="numeric"
                             value={draft.losses}
-                            placeholder="L"
-                            aria-label="Losses"
+                            placeholder={m.meta_submit_record_losses_placeholder()}
+                            aria-label={m.meta_submit_record_losses_aria()}
                             className="w-16"
                             onChange={(event) => set("losses", event.target.value)}
                           />
                           <Input
                             inputMode="numeric"
                             value={draft.draws}
-                            placeholder="D"
-                            aria-label="Draws"
+                            placeholder={m.meta_submit_record_draws_placeholder()}
+                            aria-label={m.meta_submit_record_draws_aria()}
                             className="w-16"
                             onChange={(event) => set("draws", event.target.value)}
                           />
                         </div>
-                        <FieldDescription>Wins, losses, and draws.</FieldDescription>
+                        <FieldDescription>{m.meta_submit_record_hint()}</FieldDescription>
                       </Field>
                     </FieldGroup>
                   </SettingsSection>
                 </>
               )}
 
-              <SettingsSection title="Decklist">
+              <SettingsSection title={m.meta_submit_section_decklist()}>
                 <Field className="max-w-2xl">
-                  <FieldLabel htmlFor="meta-submit-deck">Decklist</FieldLabel>
+                  <FieldLabel htmlFor="meta-submit-deck">
+                    {m.meta_submit_section_decklist()}
+                  </FieldLabel>
                   <Textarea
                     id="meta-submit-deck"
                     value={draft.deckText}
@@ -688,8 +703,8 @@ export function MetaSubmitPage({
                   <Field className="max-w-2xl">
                     <FieldLabel htmlFor="meta-submit-note">
                       {kind === "correction"
-                        ? "What's wrong with the list we have"
-                        : "Note for the reviewer (optional)"}
+                        ? m.meta_submit_note_correction_label()
+                        : m.meta_submit_note_label()}
                     </FieldLabel>
                     <Textarea
                       id="meta-submit-note"
@@ -698,8 +713,8 @@ export function MetaSubmitPage({
                       maxLength={2000}
                       placeholder={
                         kind === "correction"
-                          ? "What we got wrong, and where the right list came from"
-                          : "Where you got the list, anything you're unsure about"
+                          ? m.meta_submit_note_correction_placeholder()
+                          : m.meta_submit_note_placeholder()
                       }
                       onChange={(event) => set("note", event.target.value)}
                     />
@@ -711,7 +726,7 @@ export function MetaSubmitPage({
                     className="h-auto self-start p-0"
                     onClick={() => setNoteOpen(true)}
                   >
-                    Add a note for the reviewer
+                    {m.meta_submit_note_add()}
                   </Button>
                 )}
               </SettingsSection>
@@ -729,18 +744,18 @@ export function MetaSubmitPage({
                 disabled={submit.isPending || parsed === null || parsed.cards.length === 0}
                 onClick={() => void handleSubmit()}
               >
-                {submit.isPending ? "Sending…" : "Send decklist"}
+                {submit.isPending ? m.meta_submit_sending() : m.meta_submit_send()}
               </Button>
               {cancelSlug === undefined ? (
                 <Button variant="outline" render={<Link to="/meta" />}>
-                  Cancel
+                  {m.common_cancel()}
                 </Button>
               ) : (
                 <Button
                   variant="outline"
                   render={<Link to="/meta/$slug" params={{ slug: cancelSlug }} />}
                 >
-                  Cancel
+                  {m.common_cancel()}
                 </Button>
               )}
             </div>

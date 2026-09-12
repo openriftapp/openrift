@@ -56,6 +56,7 @@ import { useDeleteTierList, useUpdateTierList } from "@/features/stage/hooks/use
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { m } from "@/paraglide/messages.js";
 
 interface TierListBuilderPageProps {
   tierList: TierListResponse;
@@ -156,9 +157,9 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
           }
           topBar={
             <PageTopBar>
-              <PageTopBarBack to="/tier-lists" aria-label="All tier lists" />
+              <PageTopBarBack to="/tier-lists" aria-label={m.tier_lists_back_aria()} />
               <PageTopBarTitle>{tierList.title}</PageTopBarTitle>
-              {dirty && <Badge variant="outline">Unsaved changes</Badge>}
+              {dirty && <Badge variant="outline">{m.tier_lists_unsaved_changes()}</Badge>}
               <PageTopBarActions>
                 <TierTileSizeControls />
                 {rankedCount > 0 && (
@@ -171,23 +172,23 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
                     }}
                   >
                     <MonitorPlayIcon />
-                    Present
+                    {m.tier_lists_present()}
                   </PageTopBarButton>
                 )}
                 <PageTopBarButton onClick={() => setShareOpen(true)}>
                   <Share2Icon />
-                  Share
+                  {m.tier_lists_row_share()}
                 </PageTopBarButton>
                 <PageTopBarPrimaryButton
                   onClick={handleSave}
                   disabled={!dirty || updateTierList.isPending}
                 >
                   <SaveIcon />
-                  Save
+                  {m.common_save()}
                 </PageTopBarPrimaryButton>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    render={<PageTopBarIconButton aria-label="Tier list options" />}
+                    render={<PageTopBarIconButton aria-label={m.tier_lists_options_aria()} />}
                   >
                     <EllipsisVerticalIcon className="size-4" />
                   </DropdownMenuTrigger>
@@ -204,16 +205,16 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
                       }}
                     >
                       <ListOrderedIcon />
-                      Rank live on stage
+                      {m.tier_lists_rank_live_on_stage()}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
                       <PencilIcon />
-                      Rename and describe
+                      {m.tier_lists_rename_and_describe()}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
                       <Trash2Icon />
-                      Delete tier list
+                      {m.tier_lists_delete_action()}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -240,15 +241,15 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this tier list?</AlertDialogTitle>
+            <AlertDialogTitle>{m.tier_lists_delete_title()}</AlertDialogTitle>
             <AlertDialogDescription>
-              {tierList.title} and its ranking are removed for good. Any share link stops working.
+              {m.tier_lists_delete_description({ name: tierList.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{m.tier_lists_delete_keep()}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleteTierList.isPending}>
-              Delete
+              {m.common_delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

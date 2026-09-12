@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ordinalPlace } from "@/features/tournaments/lib/tournament-display";
+import { m } from "@/paraglide/messages.js";
 
 interface PodResultFormProps {
   pod: PodResponse;
@@ -107,7 +108,7 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
           </span>
           <span className="flex shrink-0 items-center gap-2">
             <Label htmlFor={`pts-${member.playerId}`} className="text-muted-foreground">
-              Points
+              {m.tournaments_pod_points_label()}
             </Label>
             <Input
               id={`pts-${member.playerId}`}
@@ -123,28 +124,26 @@ export function PodResultForm({ pod, scheme, onSubmit, submitting, onCancel }: P
           </span>
         </div>
       ))}
-      <p className="text-muted-foreground">
-        Game points per player (8 wins, more is possible). Places are worked out automatically.
-      </p>
+      <p className="text-muted-foreground">{m.tournaments_pod_points_hint()}</p>
       {changedRemotely ? (
         <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2">
           <span className="flex items-center gap-1.5">
             <TriangleAlertIcon className="text-warning size-4 shrink-0" />
-            Someone else saved scores for this pod while you were editing.
+            {m.tournaments_pod_changed_remotely()}
           </span>
           <Button variant="outline" size="sm" onClick={loadLatest}>
-            Show latest
+            {m.tournaments_pod_show_latest()}
           </Button>
         </div>
       ) : null}
       <div className="flex justify-end gap-2">
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
-            Cancel
+            {m.common_cancel()}
           </Button>
         ) : null}
         <Button onClick={() => void handleSubmit()} disabled={!allSet || submitting}>
-          {submitting ? "Saving…" : "Save result"}
+          {submitting ? m.tournaments_pod_saving() : m.tournaments_pod_save_result()}
         </Button>
       </div>
     </div>

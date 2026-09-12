@@ -9,7 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CUT_SIZE_ITEMS, parseCutSize } from "@/features/tournaments/lib/group-cut-display";
+import { cutSizeItems, parseCutSize } from "@/features/tournaments/lib/group-cut-display";
+import { m } from "@/paraglide/messages.js";
 
 export interface GroupCutSettings {
   cutSize: CutSize;
@@ -30,12 +31,13 @@ export function GroupCutSettingsFields({
   disabled?: boolean;
   onChange: (patch: Partial<GroupCutSettings>) => void;
 }) {
+  const cutItems = cutSizeItems();
   return (
     <div className="flex flex-col gap-4">
       <div className="flex w-40 flex-col gap-1.5">
-        <Label>Cut</Label>
+        <Label>{m.tournaments_group_cut_label()}</Label>
         <Select
-          items={CUT_SIZE_ITEMS}
+          items={cutItems}
           value={String(value.cutSize)}
           disabled={disabled}
           onValueChange={(next) => {
@@ -45,11 +47,11 @@ export function GroupCutSettingsFields({
             }
           }}
         >
-          <SelectTrigger className="w-full" aria-label="Cut">
-            <SelectValue placeholder="Cut" />
+          <SelectTrigger className="w-full" aria-label={m.tournaments_group_cut_label()}>
+            <SelectValue placeholder={m.tournaments_group_cut_label()} />
           </SelectTrigger>
           <SelectContent>
-            {CUT_SIZE_ITEMS.map((item) => (
+            {cutItems.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>
@@ -59,24 +61,24 @@ export function GroupCutSettingsFields({
       </div>
       <SwitchField
         id={`${idPrefix}-self-paced`}
-        label="Groups advance on their own"
-        hint="Each group starts its next round when its results are in. Off: you start every round for all groups."
+        label={m.tournaments_group_self_paced_label()}
+        hint={m.tournaments_group_self_paced_hint()}
         checked={value.groupsSelfPaced}
         disabled={disabled}
         onCheckedChange={(checked) => onChange({ groupsSelfPaced: checked })}
       />
       <SwitchField
         id={`${idPrefix}-rematch`}
-        label="Rematch avoidance"
-        hint="Keep group opponents apart in the bracket where possible"
+        label={m.tournaments_group_rematch_label()}
+        hint={m.tournaments_group_rematch_hint()}
         checked={value.cutRematchAvoidance}
         disabled={disabled}
         onCheckedChange={(checked) => onChange({ cutRematchAvoidance: checked })}
       />
       <SwitchField
         id={`${idPrefix}-legend-tiebreak`}
-        label="Legend tiebreak"
-        hint="Rarer Legend in the field wins a tie, then lower meta share. Every player needs a Legend when groups are generated."
+        label={m.tournaments_group_legend_tiebreak_label()}
+        hint={m.tournaments_group_legend_tiebreak_hint()}
         checked={value.legendTiebreak}
         disabled={disabled}
         onCheckedChange={(checked) => onChange({ legendTiebreak: checked })}

@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { chatBotSetups } from "@/lib/creator-chat-commands";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Client-only: `getSiteUrl()` can disagree between server and browser, and
@@ -21,7 +22,11 @@ function ChatBotSetups() {
       {chatBotSetups(getSiteUrl()).map((setup) => (
         <div key={setup.id} className="flex flex-col gap-2">
           <Heading level={3}>{setup.name}</Heading>
-          <CopyField value={setup.command} label={`${setup.name} command`} mono />
+          <CopyField
+            value={setup.command}
+            label={m.help_chat_commands_copy_label({ name: setup.name })}
+            mono
+          />
           <p className="text-muted-foreground text-sm">{setup.note}</p>
         </div>
       ))}
@@ -33,18 +38,13 @@ export default function ChatCommandsArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        Add one command to your chat bot and viewers can look up any Riftbound card without leaving
-        chat. They type <InlineCode>!card Jinx</InlineCode> and the bot answers with the card and a
-        link to its page. If nothing matches, the reply links to a card search for what they typed,
-        so even a typo lands somewhere useful.
+        {m.help_chat_commands_intro_before()} <InlineCode>!card Jinx</InlineCode>{" "}
+        {m.help_chat_commands_intro_after()}
       </p>
 
       <section>
-        <Heading className="mb-2">Pick your bot</Heading>
-        <p className="text-muted-foreground">
-          Each line below is pasted verbatim, either into your own chat as a moderator or into the
-          bot&apos;s dashboard. Nothing to install and no account needed.
-        </p>
+        <Heading className="mb-2">{m.help_chat_commands_pick_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_chat_commands_pick_intro()}</p>
         <div className="mt-4">
           <ChatBotSetups />
         </div>

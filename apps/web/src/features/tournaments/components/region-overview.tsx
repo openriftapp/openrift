@@ -2,6 +2,7 @@ import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { computeRegionOverview } from "@/features/tournaments/lib/region-overview";
+import { m } from "@/paraglide/messages.js";
 
 import { formatScore } from "./standings-display";
 
@@ -36,7 +37,7 @@ export function RegionOverview({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading as="h3" count={rows.length}>
-        Regions
+        {m.tournaments_region_overview_heading()}
       </SectionHeading>
       <ul className="flex flex-col gap-3">
         {rows.map((row) => (
@@ -47,7 +48,9 @@ export function RegionOverview({
                 <span className="text-foreground font-semibold tabular-nums">
                   {formatScore(row.avgScore)}
                 </span>{" "}
-                avg · {row.playerCount} player{row.playerCount === 1 ? "" : "s"}
+                {row.playerCount === 1
+                  ? m.tournaments_region_overview_avg_players_one({ count: row.playerCount })
+                  : m.tournaments_region_overview_avg_players_other({ count: row.playerCount })}
               </span>
             </div>
             <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
@@ -61,7 +64,9 @@ export function RegionOverview({
       </ul>
       {unassignedCount > 0 ? (
         <p className="text-muted-foreground text-sm">
-          {unassignedCount} player{unassignedCount === 1 ? "" : "s"} without a region.
+          {unassignedCount === 1
+            ? m.tournaments_region_overview_unassigned_one({ count: unassignedCount })
+            : m.tournaments_region_overview_unassigned_other({ count: unassignedCount })}
         </p>
       ) : null}
     </section>

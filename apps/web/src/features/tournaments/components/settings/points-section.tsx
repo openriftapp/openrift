@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { m } from "@/paraglide/messages.js";
 
 export function PointsSection({
   detail,
@@ -50,56 +51,60 @@ export function PointsSection({
     };
     try {
       await updateTournament.mutateAsync(patch);
-      toast.success("Points updated");
+      toast.success(m.tournaments_settings_points_updated());
     } catch {
       // Reported by the global mutation error toast (see reportMutationError).
     }
   }
 
   const description = isSwiss
-    ? "Points a match win, a draw, and a bye are worth. Changing these recalculates the standings of played rounds too."
-    : "Points a bye (sitting a round out) is worth. Changing this recalculates the standings of played rounds too.";
+    ? m.tournaments_settings_points_description_swiss()
+    : m.tournaments_settings_points_description_bye();
 
   return (
-    <SettingsSection id="points" title="Points" description={description}>
+    <SettingsSection
+      id="points"
+      title={m.tournaments_settings_points_title()}
+      description={description}
+    >
       <div className="flex flex-wrap items-end gap-3">
         {isSwiss ? (
           <>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="t-win-points">Win</Label>
+              <Label htmlFor="t-win-points">{m.tournaments_settings_points_win()}</Label>
               <Input
                 id="t-win-points"
                 value={winText}
                 disabled={locked}
                 inputMode="numeric"
                 className="w-20 tabular-nums"
-                aria-label="Points for a match win"
+                aria-label={m.tournaments_settings_points_win_aria()}
                 onChange={(event) => setWinText(event.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="t-draw-points">Draw</Label>
+              <Label htmlFor="t-draw-points">{m.tournaments_settings_points_draw()}</Label>
               <Input
                 id="t-draw-points"
                 value={drawText}
                 disabled={locked}
                 inputMode="numeric"
                 className="w-20 tabular-nums"
-                aria-label="Points for a draw"
+                aria-label={m.tournaments_settings_points_draw_aria()}
                 onChange={(event) => setDrawText(event.target.value)}
               />
             </div>
           </>
         ) : null}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="t-bye-points">Bye</Label>
+          <Label htmlFor="t-bye-points">{m.tournaments_settings_points_bye()}</Label>
           <Input
             id="t-bye-points"
             value={byeText}
             disabled={locked}
             inputMode="numeric"
             className="w-20 tabular-nums"
-            aria-label="Points for a bye"
+            aria-label={m.tournaments_settings_points_bye_aria()}
             onChange={(event) => setByeText(event.target.value)}
           />
         </div>
@@ -107,10 +112,10 @@ export function PointsSection({
           disabled={locked || invalid || !changed || updateTournament.isPending}
           onClick={() => void save()}
         >
-          Save
+          {m.common_save()}
         </Button>
       </div>
-      {invalid ? <FieldError>Points must be whole numbers between 0 and 99.</FieldError> : null}
+      {invalid ? <FieldError>{m.tournaments_settings_points_invalid()}</FieldError> : null}
     </SettingsSection>
   );
 }

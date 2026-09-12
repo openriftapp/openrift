@@ -10,6 +10,7 @@ import {
 } from "@/features/stage/components/tier-card-tile";
 import type { ResolvedTierRow, TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface TierRowFrameProps {
   rowIndex: number;
@@ -92,7 +93,7 @@ export function TierBoard({
   onCardClick,
   focusCardId,
   spotlight,
-  emptyRowLabel = "Nothing here",
+  emptyRowLabel,
   tileWidth,
   className,
 }: TierBoardProps) {
@@ -118,7 +119,9 @@ export function TierBoard({
           tileWidth={tileWidth}
         >
           {row.cards.length === 0 ? (
-            <span className="text-muted-foreground px-1 text-sm italic">{emptyRowLabel}</span>
+            <span className="text-muted-foreground px-1 text-sm italic">
+              {emptyRowLabel ?? m.tier_lists_stage_empty_row()}
+            </span>
           ) : (
             row.cards.map((view) => {
               const focused = Boolean(focusCardId) && view.cardId === focusCardId;

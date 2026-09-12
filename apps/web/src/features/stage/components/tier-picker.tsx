@@ -20,6 +20,7 @@ import {
 import { Pressable } from "@/components/ui/pressable";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface TierPickerRow {
   label: string;
@@ -57,7 +58,7 @@ export function TierPicker({
           <DrawerContent>
             <DrawerHeader>
               <DrawerTitle>{cardName}</DrawerTitle>
-              <DrawerDescription>Pick a tier for this card.</DrawerDescription>
+              <DrawerDescription>{m.tier_lists_picker_description()}</DrawerDescription>
             </DrawerHeader>
             <div className="flex flex-col gap-1 p-3 pt-0">
               {rows.map((row, rowIndex) => (
@@ -75,7 +76,9 @@ export function TierPicker({
                   <TierSwatch label={row.label} rowIndex={rowIndex} unranked={row.unranked} />
                   <span className="min-w-0 flex-1 truncate">{row.label}</span>
                   {rowIndex === currentRowIndex && (
-                    <span className="text-muted-foreground text-sm">Current</span>
+                    <span className="text-muted-foreground text-sm">
+                      {m.tier_lists_picker_current()}
+                    </span>
                   )}
                 </Pressable>
               ))}
@@ -88,7 +91,7 @@ export function TierPicker({
                   }}
                 >
                   <CornerUpLeftIcon className="size-4" />
-                  Move back to the pool
+                  {m.tier_lists_picker_back_to_pool()}
                 </Pressable>
               )}
             </div>
@@ -107,7 +110,7 @@ export function TierPicker({
             <TierSwatch label={row.label} rowIndex={rowIndex} unranked={row.unranked} />
             <span className="min-w-0 flex-1 truncate">{row.label}</span>
             {rowIndex === currentRowIndex && (
-              <span className="text-muted-foreground text-sm">Current</span>
+              <span className="text-muted-foreground text-sm">{m.tier_lists_picker_current()}</span>
             )}
           </DropdownMenuItem>
         ))}
@@ -116,7 +119,7 @@ export function TierPicker({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onUnrank}>
               <CornerUpLeftIcon />
-              Move back to the pool
+              {m.tier_lists_picker_back_to_pool()}
             </DropdownMenuItem>
           </>
         )}

@@ -22,41 +22,51 @@ import {
 } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { m } from "@/paraglide/messages.js";
 
 export default function ImportExportArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        OpenRift can import cards from other collection tools and export a collection as a CSV file
-        or a Cardmarket want list. <strong className="text-foreground">Import…</strong> and{" "}
-        <strong className="text-foreground">Export…</strong> live in a collection&apos;s three-dot
-        menu, or start an import from <strong className="text-foreground">Import</strong> in the{" "}
-        <TextLink href="/collections">collection</TextLink> sidebar.
+        {m.help_import_export_intro_before()}{" "}
+        <strong className="text-foreground">{m.help_import_export_intro_import_label()}</strong>{" "}
+        {m.help_import_export_intro_mid1()}{" "}
+        <strong className="text-foreground">{m.help_import_export_intro_export_label()}</strong>{" "}
+        {m.help_import_export_intro_mid2()}{" "}
+        <strong className="text-foreground">{m.help_import_export_intro_import_nav()}</strong>{" "}
+        {m.help_import_export_intro_mid3()}{" "}
+        <TextLink href="/collections">{m.help_import_export_intro_collection_link()}</TextLink>{" "}
+        {m.help_import_export_intro_after()}
       </p>
 
       <section>
-        <Heading className="mb-2">Importing cards</Heading>
+        <Heading className="mb-2">{m.help_import_export_importing_heading()}</Heading>
         <p className="text-muted-foreground">
-          Import brings cards from an external CSV file into one of your collections.{" "}
-          <strong className="text-foreground">Paste or upload</strong> your data, then{" "}
-          <strong className="text-foreground">review matches</strong> before confirming.
+          {m.help_import_export_importing_p_before()}{" "}
+          <strong className="text-foreground">
+            {m.help_import_export_importing_paste_label()}
+          </strong>{" "}
+          {m.help_import_export_importing_p_mid()}{" "}
+          <strong className="text-foreground">
+            {m.help_import_export_importing_review_label()}
+          </strong>{" "}
+          {m.help_import_export_importing_p_after()}
         </p>
       </section>
 
       <section>
         <Heading level={3} className="mb-2">
-          Step 1: Provide your data
+          {m.help_import_export_step1_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          Paste a CSV into the text area, or click the upload button to pick a <Code>.csv</Code>{" "}
-          file, then move to the next step. OpenRift auto-detects the source format for the
-          supported tools listed below.
+          {m.help_import_export_step1_p_before()} <Code>.csv</Code>{" "}
+          {m.help_import_export_step1_p_after()}
         </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FormatCard
             name="OpenRift"
-            description='Detected by the "Art Variant" column. Re-import files exported by OpenRift itself, for example to transfer cards between accounts or restore after a reset.'
+            description={m.help_import_export_format_openrift_desc()}
             columns={[
               "Card ID",
               "Card Name",
@@ -71,7 +81,7 @@ export default function ImportExportArticle() {
           />
           <FormatCard
             name="Piltover Archive"
-            description='Detected by the "Variant Number" column. Supports finish, art variant, and condition fields.'
+            description={m.help_import_export_format_piltover_desc()}
             columns={[
               "Variant Number",
               "Card Name",
@@ -87,7 +97,7 @@ export default function ImportExportArticle() {
           />
           <FormatCard
             name="RiftCore"
-            description='Detected by the "RIFTCORE COLLECTION EXPORT" header row. Separates normal and foil quantities.'
+            description={m.help_import_export_format_riftcore_desc()}
             columns={[
               "Card ID",
               "Card Name",
@@ -102,7 +112,7 @@ export default function ImportExportArticle() {
           />
           <FormatCard
             name="RiftMana"
-            description='Detected by the "Normal Qty" column. Separates normal and foil quantities and tracks per-condition counts and language.'
+            description={m.help_import_export_format_riftmana_desc()}
             columns={[
               "Card ID",
               "Card Name",
@@ -119,50 +129,41 @@ export default function ImportExportArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          Using a different tool? Export it as CSV and try importing. If the format isn&apos;t
-          recognized, OpenRift will tell you. Let me know on{" "}
+          {m.help_import_export_other_tools_before()}{" "}
           <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
           </TextLink>{" "}
-          or{" "}
+          {m.help_import_export_other_tools_mid()}{" "}
           <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
           </TextLink>{" "}
-          if you&apos;d like support for another tool and I&apos;ll do my best to add it.
+          {m.help_import_export_other_tools_after()}
         </p>
       </section>
 
       <section>
         <Heading level={3} className="mb-2">
-          Step 2: Review matches
+          {m.help_import_export_step2_heading()}
         </Heading>
-        <p className="text-muted-foreground">
-          OpenRift tries to match each row to a printing in the catalog. Every entry gets a match
-          status so you can see what needs attention before importing.
-        </p>
+        <p className="text-muted-foreground">{m.help_import_export_step2_p()}</p>
 
         <DefinitionList className="text-muted-foreground mt-3">
           <DefinitionTerm icon={<CheckCircle2Icon className="text-success size-4" />}>
-            Exact
+            {m.help_import_export_status_exact()}
           </DefinitionTerm>
-          <DefinitionDetail>
-            Perfect match: code, finish, and art variant all resolved. Ready to import.
-          </DefinitionDetail>
+          <DefinitionDetail>{m.help_import_export_status_exact_detail()}</DefinitionDetail>
           <DefinitionTerm icon={<AlertTriangleIcon className="text-warning size-4" />}>
-            Needs review
+            {m.help_import_export_status_review()}
           </DefinitionTerm>
-          <DefinitionDetail>
-            OpenRift found a likely match but isn&apos;t sure (e.g. multiple printings fit, or only
-            a similar name was found). Use the dropdown to confirm or pick the right one.
-          </DefinitionDetail>
+          <DefinitionDetail>{m.help_import_export_status_review_detail()}</DefinitionDetail>
           <DefinitionTerm icon={<XCircleIcon className="text-destructive size-4" />}>
-            Unresolved
+            {m.help_import_export_status_unresolved()}
           </DefinitionTerm>
-          <DefinitionDetail>No match found. This row won&apos;t be imported.</DefinitionDetail>
+          <DefinitionDetail>{m.help_import_export_status_unresolved_detail()}</DefinitionDetail>
         </DefinitionList>
 
         <Callout className="mt-4">
-          <Eyebrow>Example preview</Eyebrow>
+          <Eyebrow>{m.help_import_export_example_preview()}</Eyebrow>
           <div className="divide-border divide-y text-sm">
             <MockMatchRow status="exact" quantity={3} code="OGN-007" name="Fury Rune" tags={[]} />
             <MockMatchRow
@@ -184,40 +185,37 @@ export default function ImportExportArticle() {
         </Callout>
 
         <p className="text-muted-foreground mt-3">
-          Exact matches appear first, followed by entries that need review and unresolved ones.
-          Click any row to expand it and see the original data from your CSV. For entries that need
-          review, use the dropdown to pick the correct printing, or click the search icon to look up
-          any printing in the catalog. You can also{" "}
-          <strong className="text-foreground">Skip</strong> entries you don&apos;t want to import
-          and <strong className="text-foreground">Unskip</strong> if you change your mind. If the
-          same card appears in multiple rows, quantities are combined automatically.
+          {m.help_import_export_review_p1_before()}{" "}
+          <strong className="text-foreground">{m.help_import_export_review_skip_label()}</strong>{" "}
+          {m.help_import_export_review_p1_mid_v2()}{" "}
+          <strong className="text-foreground">{m.help_import_export_review_unskip_label()}</strong>{" "}
+          {m.help_import_export_review_p1_after_v2()}
         </p>
 
         <p className="text-muted-foreground mt-2">
-          Finally, pick a target collection (or create a new one), and click{" "}
-          <strong className="text-foreground">Import</strong>. A summary at the bottom shows how
-          many copies are ready and how many need attention. Don&apos;t import the same file twice:
-          OpenRift tracks individual copies, so a second import adds duplicates rather than updating
-          totals.
+          {m.help_import_export_review_p2_before()}{" "}
+          <strong className="text-foreground">{m.help_import_export_import_button()}</strong>
+          {m.help_import_export_review_p2_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Exporting cards</Heading>
+        <Heading className="mb-2">{m.help_import_export_exporting_heading()}</Heading>
         <p className="text-muted-foreground">
-          Open a collection&apos;s three-dot menu and pick{" "}
-          <strong className="text-foreground">Export…</strong> to download it (or{" "}
-          <strong className="text-foreground">All Cards</strong>) as a CSV file. Pick a format and
-          click <strong className="text-foreground">Export</strong>. Choose{" "}
-          <strong className="text-foreground">OpenRift CSV</strong> for the columns shown below, or
-          one of <strong className="text-foreground">Piltover Archive</strong>,{" "}
-          <strong className="text-foreground">RiftMana</strong>, or{" "}
-          <strong className="text-foreground">RiftCore</strong> to produce a file in that
-          tool&apos;s own layout. Every format re-imports cleanly into OpenRift, though the other
-          tools&apos; formats can&apos;t carry everything (RiftMana keeps conditions but not which
-          promo a card is, RiftCore has no languages or conditions at all). The dialog also lists
-          your cards as a Cardmarket want list, ready to paste into Cardmarket&apos;s shopping
-          wizard.
+          {m.help_import_export_export_p_before()}{" "}
+          <strong className="text-foreground">{m.help_import_export_intro_export_label()}</strong>{" "}
+          {m.help_import_export_export_p_mid1()}{" "}
+          <strong className="text-foreground">{m.help_import_export_all_cards_label()}</strong>
+          {m.help_import_export_export_p_mid2()}{" "}
+          <strong className="text-foreground">{m.help_import_export_export_button()}</strong>
+          {m.help_import_export_export_p_mid3()}{" "}
+          <strong className="text-foreground">{m.help_import_export_openrift_csv_label()}</strong>{" "}
+          {m.help_import_export_export_p_mid4()}{" "}
+          <strong className="text-foreground">Piltover Archive</strong>,{" "}
+          <strong className="text-foreground">RiftMana</strong>
+          {m.help_import_export_export_p_mid6()}{" "}
+          <strong className="text-foreground">RiftCore</strong>{" "}
+          {m.help_import_export_export_p_after()}
         </p>
 
         <div className="mt-3">
@@ -284,37 +282,40 @@ export default function ImportExportArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          One row per unique printing, with the quantity summing all your copies of that printing.
-          The file is named{" "}
+          {m.help_import_export_file_p_before()}{" "}
           <Code>
-            openrift-<em>collection</em>-<em>date</em>.csv
+            openrift-<em>{m.help_import_export_file_collection()}</em>-
+            <em>{m.help_import_export_file_date()}</em>.csv
           </Code>{" "}
-          (or <Code>piltover-…</Code>, <Code>riftmana-…</Code>, <Code>riftcore-…</Code> for the
-          other formats). The exported CSV uses the same short code format as import, so you can
-          re-import an OpenRift export into another account or after a reset.
+          {m.help_import_export_file_p_mid()} <Code>piltover-…</Code>, <Code>riftmana-…</Code>,{" "}
+          <Code>riftcore-…</Code> {m.help_import_export_file_p_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">How matching works</Heading>
-        <p className="text-muted-foreground">
-          When you import, OpenRift tries to identify each card automatically:
-        </p>
+        <Heading className="mb-2">{m.help_import_export_matching_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_import_export_matching_p()}</p>
         <ol className="text-muted-foreground mt-2 list-inside list-decimal space-y-2">
           <li>
-            <strong className="text-foreground">Code lookup:</strong> looks up the short code (e.g.{" "}
-            <Code>OGN-007</Code>) in the <TextLink href="/cards">catalog</TextLink>, then narrows by
-            finish, art variant, and promo type. If multiple printings still match, the entry is
-            flagged for review.
+            <strong className="text-foreground">
+              {m.help_import_export_matching_code_label()}
+            </strong>{" "}
+            {m.help_import_export_matching_code_before()} <Code>OGN-007</Code>
+            {m.help_import_export_matching_code_mid()}{" "}
+            <TextLink href="/cards">{m.help_import_export_matching_catalog_link()}</TextLink>
+            {m.help_import_export_matching_code_after()}
           </li>
           <li>
-            <strong className="text-foreground">Name matching:</strong> if the code isn&apos;t
-            found, falls back to fuzzy name comparison. Cards with a similar name are offered as
-            suggestions.
+            <strong className="text-foreground">
+              {m.help_import_export_matching_name_label()}
+            </strong>{" "}
+            {m.help_import_export_matching_name_detail()}
           </li>
           <li>
-            <strong className="text-foreground">Unresolved:</strong> nothing matched. You can skip
-            these or use the search icon to find the right printing manually.
+            <strong className="text-foreground">
+              {m.help_import_export_matching_unresolved_label()}
+            </strong>{" "}
+            {m.help_import_export_matching_unresolved_detail()}
           </li>
         </ol>
       </section>
@@ -409,7 +410,7 @@ function MockMatchRow({
         </span>
       )}
       <SearchIcon className="text-muted-foreground size-3" />
-      <span className="text-muted-foreground text-2xs">Skip</span>
+      <span className="text-muted-foreground text-2xs">{m.help_import_export_mock_skip()}</span>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { captureStagePreset } from "@/features/stage/lib/stage-preset-apply";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { applyStagePresetConfig } from "@/features/stage/stores/stage-preset-actions";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 // Presets never auto-apply on load.
@@ -67,7 +68,7 @@ export function StagePresetSettings() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="stage-preset">Presets</Label>
+      <Label htmlFor="stage-preset">{m.stage_presets_title()}</Label>
       <div className="flex items-center gap-2">
         <Select
           items={items}
@@ -79,7 +80,13 @@ export function StagePresetSettings() {
           }}
         >
           <SelectTrigger id="stage-preset" className="flex-1" disabled={items.length === 0}>
-            <SelectValue placeholder={items.length === 0 ? "None saved yet" : "Apply a preset"} />
+            <SelectValue
+              placeholder={
+                items.length === 0
+                  ? m.stage_preset_select_empty()
+                  : m.stage_preset_select_placeholder()
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {items.map((item) => (
@@ -92,8 +99,10 @@ export function StagePresetSettings() {
         <Button
           variant="outline"
           size="icon"
-          aria-label={naming ? "Cancel saving a preset" : "Save current as preset"}
-          title={naming ? "Cancel" : "Save current as preset"}
+          aria-label={
+            naming ? m.stage_preset_save_cancel_aria() : m.stage_preset_save_current_aria()
+          }
+          title={naming ? m.common_cancel() : m.stage_preset_save_current_aria()}
           onClick={() => {
             setName("");
             setNaming(!naming);
@@ -108,10 +117,10 @@ export function StagePresetSettings() {
           <Input
             // oxlint-disable-next-line jsx-a11y/no-autofocus -- the button just swapped itself for this field; leaving focus behind would strand a keyboard user on the stage
             autoFocus
-            aria-label="Preset name"
+            aria-label={m.stage_preset_name_aria()}
             value={name}
             maxLength={MAX_PRESET_NAME_LENGTH}
-            placeholder="Green screen, plate off"
+            placeholder={m.stage_preset_name_placeholder()}
             className="flex-1"
             onChange={(event) => setName(event.target.value)}
             // The stage's key handler stands down inside a text field, so Enter is free here.
@@ -122,7 +131,7 @@ export function StagePresetSettings() {
             }}
           />
           <Button size="sm" disabled={trimmedName === "" || createPreset.isPending} onClick={save}>
-            Save
+            {m.common_save()}
           </Button>
         </div>
       )}

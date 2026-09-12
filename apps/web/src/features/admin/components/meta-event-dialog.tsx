@@ -40,7 +40,7 @@ import {
   metaEventToDraft,
   validateMetaEventDraft,
 } from "@/features/admin/lib/admin-meta-draft";
-import { META_EVENT_TIER_LABELS } from "@/features/meta/lib/meta-format";
+import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
 
@@ -177,7 +177,7 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
                     set("tier", value as MetaEventTier);
                   }
                 }}
-                items={META_EVENT_TIER_LABELS}
+                items={metaEventTierLabels()}
               >
                 <SelectTrigger id="meta-event-tier" className="mb-0 w-full">
                   <SelectValue />
@@ -185,7 +185,7 @@ export function MetaEventDialog({ event, onClose }: MetaEventDialogProps) {
                 <SelectContent>
                   {META_EVENT_TIERS.map((tier) => (
                     <SelectItem key={tier} value={tier}>
-                      {META_EVENT_TIER_LABELS[tier]}
+                      {metaEventTierLabels()[tier]}
                     </SelectItem>
                   ))}
                 </SelectContent>

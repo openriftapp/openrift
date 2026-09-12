@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -145,14 +146,14 @@ export function BoxVignette() {
           <span className="tabular-nums">
             <TextSwap before="12 / 40" after="13 / 40" />
           </span>{" "}
-          in Azir Order
+          {m.marketing_box_in_collection({ name: "Azir Order" })}
         </span>
       </div>
 
       <div className="flex flex-col gap-1.5">
         <div className="flex h-6 items-center gap-2">
           <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-            Main Deck
+            {m.marketing_decks_main_deck()}
           </span>
           <span className="ml-auto text-xs tabular-nums">
             <TextSwap
@@ -178,7 +179,7 @@ export function BoxVignette() {
             thumb={<Thumb shortCode="SFD-049" rarity="rare" domain="calm" />}
             name="Aphelios, Exalted"
             muted
-            trailing={<Detail>not owned</Detail>}
+            trailing={<Detail>{m.decks_overview_box_not_owned()}</Detail>}
           />
           <div className="relative">
             <Row
@@ -193,17 +194,22 @@ export function BoxVignette() {
               details={<Detail className="motion-safe:animate-box-before">Showcase</Detail>}
               trailing={
                 <span className="text-muted-foreground flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-xs">
-                  <Swap before={<span>Bulk box</span>} after={<span>Binder</span>} />
+                  <Swap
+                    before={<span>{m.marketing_collections_bulk_box()}</span>}
+                    after={<span>{m.marketing_collections_binder()}</span>}
+                  />
                   <span>+2</span>
                 </span>
               }
             />
             <div className="bg-popover text-popover-foreground ring-border motion-safe:animate-box-picker absolute right-0 bottom-full z-10 mb-1 w-72 rounded-lg text-sm opacity-0 shadow-md ring-1">
-              <p className="text-muted-foreground px-2.5 pt-2 text-xs">Take this copy instead</p>
+              <p className="text-muted-foreground px-2.5 pt-2 text-xs">
+                {m.decks_overview_box_take_prompt()}
+              </p>
               <div className="p-1">
-                <PickerGroupLabel>Binder</PickerGroupLabel>
+                <PickerGroupLabel>{m.marketing_collections_binder()}</PickerGroupLabel>
                 <PickerRow shortCode="SFD-177" rarity="epic" highlighted />
-                <PickerGroupLabel>Bulk box</PickerGroupLabel>
+                <PickerGroupLabel>{m.marketing_collections_bulk_box()}</PickerGroupLabel>
                 <PickerRow shortCode="SFD-177a" rarity="showcase" details="Showcase" count={2} />
               </div>
             </div>

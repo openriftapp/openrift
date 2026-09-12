@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useMyOrganizations } from "@/features/tournaments/hooks/use-organizations";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { m } from "@/paraglide/messages.js";
 
 export function HostSection({
   detail,
@@ -23,7 +24,7 @@ export function HostSection({
   const updateTournament = useUpdateTournament();
   const currentValue = detail.host.type === "user" ? "user" : (detail.host.orgId ?? "user");
   const hostItems = [
-    { value: "user", label: "You (personal)" },
+    { value: "user", label: m.tournaments_settings_host_personal() },
     ...data.items.map((org) => ({ value: org.id, label: org.name })),
   ];
 
@@ -34,7 +35,7 @@ export function HostSection({
         : ({ type: "organization", orgId: value } as const);
     try {
       await updateTournament.mutateAsync({ id: detail.id, host });
-      toast.success("Host updated");
+      toast.success(m.tournaments_settings_host_updated());
     } catch {
       // Reported by the global mutation error toast (see reportMutationError).
     }
@@ -43,8 +44,8 @@ export function HostSection({
   return (
     <SettingsSection
       id="host"
-      title="Host"
-      description="An organization brings in its owners, managers, and judges. You can invite extra staff either way."
+      title={m.tournaments_settings_host_title()}
+      description={m.tournaments_settings_host_description()}
     >
       <Select
         items={hostItems}
@@ -56,8 +57,8 @@ export function HostSection({
           }
         }}
       >
-        <SelectTrigger className="max-w-sm" aria-label="Host">
-          <SelectValue placeholder="Host" />
+        <SelectTrigger className="max-w-sm" aria-label={m.tournaments_settings_host_title()}>
+          <SelectValue placeholder={m.tournaments_settings_host_title()} />
         </SelectTrigger>
         <SelectContent>
           {hostItems.map((item) => (

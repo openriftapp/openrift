@@ -4,10 +4,14 @@
  * some themes) so the two teams stay clearly distinguishable around the table.
  */
 
-export const TEAM_LABELS: Record<0 | 1, string> = {
-  0: "Team 1",
-  1: "Team 2",
-};
+import { m } from "@/paraglide/messages.js";
+
+export function teamLabels(): Record<0 | 1, string> {
+  return {
+    0: m.tournaments_lib_team_label_1(),
+    1: m.tournaments_lib_team_label_2(),
+  };
+}
 
 export const TEAM_PANEL_BORDER: Record<0 | 1, string> = {
   0: "border-info/70",

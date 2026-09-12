@@ -2,6 +2,7 @@ import { CheckCircle2Icon, FileUpIcon, UploadIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { Swap, Vignette } from "./vignette-parts";
 
@@ -26,7 +27,7 @@ export function ImportVignette() {
           className="w-full"
           was={
             <span className="text-muted-foreground">
-              Paste CSV data or a plain text list here...
+              {m.collections_import_textarea_placeholder()}
             </span>
           }
           now={
@@ -47,16 +48,16 @@ export function ImportVignette() {
       <div className="flex items-center gap-3">
         <span className={buttonVariants()}>
           <UploadIcon className="size-4" aria-hidden="true" />
-          Parse
+          {m.collections_import_parse()}
         </span>
-        <span className="text-muted-foreground text-sm">or</span>
+        <span className="text-muted-foreground text-sm">{m.collections_import_or()}</span>
         <span className={buttonVariants({ variant: "outline" })}>
           <FileUpIcon className="size-4" aria-hidden="true" />
-          Upload file
+          {m.collections_import_upload_file()}
         </span>
       </div>
       <div className="motion-safe:animate-vignette-now flex flex-col gap-3">
-        <span className="font-heading font-medium">Import Preview</span>
+        <span className="font-heading font-medium">{m.collections_import_preview_title()}</span>
         <div className="flex flex-col">
           {IMPORT_MATCHES.map((match) => (
             <span key={match.code} className="flex items-center gap-3 py-1 text-sm">
@@ -71,9 +72,13 @@ export function ImportVignette() {
               <CheckCircle2Icon className="text-success size-4 shrink-0" aria-hidden="true" />
             </span>
           ))}
-          <span className="text-muted-foreground py-1 text-xs">219 more</span>
+          <span className="text-muted-foreground py-1 text-xs">
+            {m.decks_overview_zone_more({ count: 219 })}
+          </span>
         </div>
-        <span className={cn(buttonVariants(), "w-fit")}>Import 412 copies</span>
+        <span className={cn(buttonVariants(), "w-fit")}>
+          {m.collections_import_button_import_copies_other({ count: 412 })}
+        </span>
       </div>
     </Vignette>
   );

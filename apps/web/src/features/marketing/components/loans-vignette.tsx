@@ -10,6 +10,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -58,7 +59,7 @@ function LoanRow({ loan, trailing }: { loan: LoanCard; trailing: ReactNode }) {
         </div>
         <span className="flex shrink-0 items-center gap-1.5 px-1.5 py-1">
           <UserAvatar name={loan.counterparty} size="sm" />
-          <span className="text-sm">to {loan.counterparty}</span>
+          <span className="text-sm">{m.loans_to_person({ name: loan.counterparty })}</span>
         </span>
       </div>
       <div className="flex items-center gap-2 sm:contents">
@@ -78,7 +79,7 @@ function MarkReturned({ pressing }: { pressing?: boolean }) {
           pressing && "motion-safe:animate-loans-press",
         )}
       >
-        Mark returned
+        {m.loans_mark_returned()}
       </span>
       <span
         aria-hidden="true"
@@ -121,7 +122,7 @@ export function LoansVignette() {
   return (
     <ClipFrame className="flex flex-col gap-5 p-5">
       <section className="flex flex-col gap-2">
-        <SectionHeading>Lent out</SectionHeading>
+        <SectionHeading>{m.loans_group_lent()}</SectionHeading>
         <div className="motion-safe:animate-loans-out grid grid-rows-[1fr]">
           <div className="overflow-hidden">
             <div className="pb-2">
@@ -136,7 +137,7 @@ export function LoansVignette() {
         <span className="flex items-center gap-1.5">
           <ChevronRightIcon className="text-muted-foreground size-4 rotate-90" aria-hidden="true" />
           <SectionHeading as="span">
-            History
+            {m.loans_group_history()}
             <span className="text-muted-foreground/60 relative ml-1.5 inline-block tabular-nums">
               <span className="motion-safe:animate-loans-out">1</span>
               <span className="motion-safe:animate-loans-in absolute inset-0 opacity-0">2</span>
@@ -146,11 +147,17 @@ export function LoansVignette() {
         <div className="motion-safe:animate-loans-in grid grid-rows-[0fr] opacity-0">
           <div className="overflow-hidden">
             <div className="pb-2">
-              <LoanRow loan={YASUO} trailing={<Badge variant="secondary">Returned</Badge>} />
+              <LoanRow
+                loan={YASUO}
+                trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
+              />
             </div>
           </div>
         </div>
-        <LoanRow loan={GUARDS} trailing={<Badge variant="secondary">Returned</Badge>} />
+        <LoanRow
+          loan={GUARDS}
+          trailing={<Badge variant="secondary">{m.loans_status_returned()}</Badge>}
+        />
       </section>
     </ClipFrame>
   );

@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { TournamentsOverview } from "@/features/tournaments/components/tournaments-overview";
 import { useGroupTournaments } from "@/features/tournaments/hooks/use-tournaments";
+import { m } from "@/paraglide/messages.js";
 
 interface GroupTournamentsLensProps {
   slug: string;
@@ -20,11 +21,11 @@ export function GroupTournamentsLens({ slug, canCreate, groupId }: GroupTourname
       <EmptyState
         className="py-12"
         icon={TrophyIcon}
-        title="No tournaments yet"
+        title={m.tournaments_group_lens_empty_title()}
         description={
           canCreate
-            ? "Tournaments you run for this group land here, with pairings, standings, and decklists kept for the record. Set one up for the next game night."
-            : "Tournaments run for this group land here, with pairings, standings, and decklists kept for the record. An admin can set one up."
+            ? m.tournaments_group_lens_empty_can_create()
+            : m.tournaments_group_lens_empty_member()
         }
       >
         {canCreate ? (
@@ -34,7 +35,7 @@ export function GroupTournamentsLens({ slug, canCreate, groupId }: GroupTourname
             className={buttonVariants({ variant: "default" })}
           >
             <PlusIcon />
-            New tournament
+            {m.tournaments_group_lens_new_tournament()}
           </Link>
         ) : null}
       </EmptyState>
@@ -46,8 +47,8 @@ export function GroupTournamentsLens({ slug, canCreate, groupId }: GroupTourname
       tournaments={data.items}
       noUpcomingText={
         canCreate
-          ? "No upcoming tournaments. Create one to get the next event on the calendar."
-          : "No upcoming tournaments."
+          ? m.tournaments_group_lens_no_upcoming_can_create()
+          : m.tournaments_group_lens_no_upcoming()
       }
     />
   );

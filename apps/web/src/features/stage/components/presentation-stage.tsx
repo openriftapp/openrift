@@ -23,6 +23,7 @@ import { stepIndex } from "@/features/stage/lib/presentation-queue";
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { useUserId } from "@/lib/auth-session";
 import { isTypingTarget } from "@/lib/keyboard-target";
+import { m } from "@/paraglide/messages.js";
 
 export function PresentationStage({
   items,
@@ -223,7 +224,7 @@ export function PresentationStage({
             <PresentationFilmstrip items={items} index={index} onSelect={onIndexChange} />
           ) : null
         }
-        hint="Press ? for keys"
+        hint={m.stage_hint_press_help()}
         overlay={
           showHelp ? (
             <PresentationHelpSheet
@@ -238,7 +239,7 @@ export function PresentationStage({
       >
         {empty ? (
           <div className="flex flex-1 items-center justify-center p-8 text-center text-white/50">
-            {edit ? "Nothing on the board yet. Press E to start ranking." : "Nothing to show here."}
+            {edit ? m.stage_empty_editable() : m.stage_empty()}
           </div>
         ) : (
           children

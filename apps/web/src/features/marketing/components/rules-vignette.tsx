@@ -2,6 +2,7 @@ import { ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -62,7 +63,7 @@ export function RulesVignette() {
         <SearchIcon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
         <span className="relative min-w-0 flex-1">
           <span className="text-muted-foreground motion-safe:animate-rules-placeholder">
-            Search rules...
+            {m.rules_search_placeholder()}
           </span>
           <span
             className="motion-safe:animate-rules-type absolute inset-y-0 left-0 flex items-center whitespace-nowrap"
@@ -73,10 +74,10 @@ export function RulesVignette() {
         </span>
         <span className="text-muted-foreground grid shrink-0 justify-items-end text-xs">
           <span className="motion-safe:animate-rules-before col-start-1 row-start-1">
-            1443 rules
+            {m.marketing_rules_count({ count: 1443 })}
           </span>
           <span className="motion-safe:animate-rules-after col-start-1 row-start-1 opacity-0">
-            2 / 1443 rules
+            {m.marketing_rules_filtered({ shown: 2, total: 1443 })}
           </span>
         </span>
         <span

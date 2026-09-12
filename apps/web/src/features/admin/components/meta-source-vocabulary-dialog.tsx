@@ -52,15 +52,17 @@ import {
 } from "@/features/admin/hooks/use-admin-meta-catalog";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { runningRunId } from "@/features/meta/lib/meta-catalog-display";
-import { META_EVENT_TIER_LABELS } from "@/features/meta/lib/meta-format";
+import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList } from "@/hooks/use-enums";
 
 const UNMAPPED = "__unmapped";
 
-const TIER_ITEMS: Record<string, string> = {
-  [UNMAPPED]: "Unmapped",
-  ...META_EVENT_TIER_LABELS,
-};
+function tierItems(): Record<string, string> {
+  return {
+    [UNMAPPED]: "Unmapped",
+    ...metaEventTierLabels(),
+  };
+}
 
 function TemplateRow({
   template,
@@ -123,12 +125,12 @@ function TemplateRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Select value={template.tier ?? UNMAPPED} onValueChange={setTier} items={TIER_ITEMS}>
+          <Select value={template.tier ?? UNMAPPED} onValueChange={setTier} items={tierItems()}>
             <SelectTrigger className="w-36" aria-label={`Tier for ${name}`} disabled={busy}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(TIER_ITEMS).map(([value, label]) => (
+              {Object.entries(tierItems()).map(([value, label]) => (
                 <SelectItem key={value} value={value}>
                   {label}
                 </SelectItem>
@@ -143,7 +145,7 @@ function TemplateRow({
               disabled={busy}
               onClick={() => setTier(template.suggestedTier)}
             >
-              Suggest: {META_EVENT_TIER_LABELS[template.suggestedTier]}
+              Suggest: {metaEventTierLabels()[template.suggestedTier]}
             </Button>
           )}
         </div>

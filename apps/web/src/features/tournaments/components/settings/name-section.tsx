@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
+import { m } from "@/paraglide/messages.js";
 
 export function NameSection({
   detail,
@@ -25,14 +26,18 @@ export function NameSection({
   }
 
   return (
-    <SettingsSection id="name" title="Name" description="The tournament's display name.">
+    <SettingsSection
+      id="name"
+      title={m.tournaments_settings_name_title()}
+      description={m.tournaments_settings_name_description()}
+    >
       <div className="flex max-w-sm gap-2">
         <Input
           id="t-rename"
           value={name}
           maxLength={120}
           disabled={locked}
-          aria-label="Tournament name"
+          aria-label={m.tournaments_settings_name_aria()}
           onChange={(event) => setName(event.target.value)}
         />
         <Button
@@ -41,7 +46,7 @@ export function NameSection({
           }
           onClick={() => void save()}
         >
-          Save
+          {m.common_save()}
         </Button>
       </div>
     </SettingsSection>

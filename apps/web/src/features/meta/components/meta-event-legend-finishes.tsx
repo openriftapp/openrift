@@ -12,6 +12,7 @@ import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import type { MetaLegendBestFinish } from "@/features/meta/lib/meta-player-run";
 import { metaBestFinishPerLegend } from "@/features/meta/lib/meta-player-run";
+import { m } from "@/paraglide/messages.js";
 
 const TILES_SHOWN = 8;
 
@@ -78,14 +79,16 @@ export function MetaEventLegendFinishes({ players }: { players: readonly MetaEve
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>Best finish per legend</Heading>
+        <Heading>{m.meta_legend_finishes_best_per_legend()}</Heading>
         {entries.length > TILES_SHOWN && (
           <Button
             variant="link"
             className="h-auto p-0 text-sm font-medium"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "Show fewer" : `Show all ${entries.length.toLocaleString("en-US")}`}
+            {expanded
+              ? m.meta_show_fewer()
+              : m.meta_show_all_n({ count: entries.length.toLocaleString("en-US") })}
           </Button>
         )}
       </div>

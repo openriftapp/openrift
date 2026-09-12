@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { m } from "@/paraglide/messages.js";
 
 const BAND_GLOW =
   "radial-gradient(120% 90% at 50% 115%, color-mix(in oklab, var(--border-accent) 16%, transparent), transparent 70%)";
@@ -32,9 +33,11 @@ export function MetaContributeBandShell({
 export function MetaContributeBand() {
   return (
     <MetaContributeBandShell
-      title="Help complete the record"
-      description="Decklists, results, and corrections are all welcome, whether you played, judged, or just watched. Contributors are credited on every event."
-      action={<Button render={<Link to="/meta/submit" />}>Send a decklist</Button>}
+      title={m.meta_contribute_title()}
+      description={m.meta_contribute_description()}
+      action={
+        <Button render={<Link to="/meta/submit" />}>{m.meta_contribute_send_decklist()}</Button>
+      }
     />
   );
 }

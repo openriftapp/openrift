@@ -21,6 +21,7 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Self-registration toggle plus the shareable sign-up / deck submission link.
@@ -42,7 +43,9 @@ export function SignupLinksSection({
     : null;
   const deckExpected = detail.deckSubmission !== "none";
   const showLink = detail.selfRegistration || deckExpected;
-  const linkLabel = detail.selfRegistration ? "Registration link" : "Deck submission link";
+  const linkLabel = detail.selfRegistration
+    ? m.tournaments_settings_registration_link()
+    : m.tournaments_settings_deck_submission_link();
 
   async function handleDisable() {
     await runReportedMutation(() =>
@@ -55,12 +58,10 @@ export function SignupLinksSection({
     <>
       <SettingsSection
         id="signup-links"
-        title="Sign-up & deck links"
+        title={m.tournaments_settings_signup_title()}
         description={
-          <>
-            Anyone with the link can request a spot. Requests appear on the Overview tab.
-            {deckExpected ? " Players also submit their decks through this link." : ""}
-          </>
+          m.tournaments_settings_signup_description() +
+          (deckExpected ? m.tournaments_settings_signup_deck_note() : "")
         }
         contentClassName="gap-3"
       >
@@ -75,7 +76,7 @@ export function SignupLinksSection({
               )
             }
           />
-          <Label htmlFor="t-self-reg">Open self-registration</Label>
+          <Label htmlFor="t-self-reg">{m.tournaments_settings_self_registration()}</Label>
         </div>
         {showLink ? (
           <div className="flex flex-col gap-2">
@@ -92,7 +93,7 @@ export function SignupLinksSection({
                     disabled={locked || setSubmissionToken.isPending}
                     onClick={() => setConfirmDisable(true)}
                   >
-                    Disable
+                    {m.tournaments_settings_disable()}
                   </Button>
                 }
               />
@@ -106,7 +107,9 @@ export function SignupLinksSection({
                   )
                 }
               >
-                Enable {linkLabel.toLowerCase()}
+                {detail.selfRegistration
+                  ? m.tournaments_settings_enable_registration_link()
+                  : m.tournaments_settings_enable_deck_submission_link()}
               </Button>
             )}
           </div>
@@ -117,21 +120,25 @@ export function SignupLinksSection({
         <DialogContent>
           <DialogForm onSubmit={() => void handleDisable()}>
             <DialogHeader>
-              <DialogTitle>Disable the {linkLabel.toLowerCase()}?</DialogTitle>
+              <DialogTitle>
+                {detail.selfRegistration
+                  ? m.tournaments_settings_disable_registration_link_title()
+                  : m.tournaments_settings_disable_deck_link_title()}
+              </DialogTitle>
               <DialogDescription>
-                The link stops working for everyone. Re-enabling creates a different link.
+                {m.tournaments_settings_disable_link_description()}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setConfirmDisable(false)}>
-                Keep it
+                {m.tournaments_settings_keep_it()}
               </Button>
               <Button
                 type="submit"
                 variant="destructive"
                 disabled={locked || setSubmissionToken.isPending}
               >
-                Disable link
+                {m.tournaments_settings_disable_link()}
               </Button>
             </DialogFooter>
           </DialogForm>

@@ -15,6 +15,7 @@ import { moveQueueEntry } from "@/features/cards/lib/card-queue";
 import type { StageQueueRowData } from "@/features/stage/components/stage-dnd-types";
 import { formatPublicCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function QueueThumb({ printing }: { printing: Printing }) {
   return (
@@ -106,7 +107,7 @@ function QueueRow({
         {...attributes}
         {...listeners}
         type="button"
-        aria-label={`Reorder ${legendDisplayName(printing.card)}`}
+        aria-label={m.stage_queue_reorder_aria({ name: legendDisplayName(printing.card) })}
         className={cn(
           "text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md outline-hidden",
           "cursor-grab active:cursor-grabbing",
@@ -137,7 +138,7 @@ function QueueRow({
         size="icon-sm"
         onClick={() => onMove(index, -1)}
         disabled={index === 0}
-        aria-label={`Move ${legendDisplayName(printing.card)} earlier`}
+        aria-label={m.stage_queue_move_earlier_aria({ name: legendDisplayName(printing.card) })}
       >
         <ChevronUpIcon className="size-4" />
       </Button>
@@ -146,13 +147,13 @@ function QueueRow({
         size="icon-sm"
         onClick={() => onMove(index, 1)}
         disabled={isLast}
-        aria-label={`Move ${legendDisplayName(printing.card)} later`}
+        aria-label={m.stage_queue_move_later_aria({ name: legendDisplayName(printing.card) })}
       >
         <ChevronDownIcon className="size-4" />
       </Button>
       <ChipRemoveButton
         onClick={() => onRemove(index)}
-        aria-label={`Remove ${legendDisplayName(printing.card)} from the queue`}
+        aria-label={m.stage_queue_remove_aria({ name: legendDisplayName(printing.card) })}
       />
     </CardRow>
   );

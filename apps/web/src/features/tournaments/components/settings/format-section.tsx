@@ -17,13 +17,14 @@ import {
   hasPairing,
   isGroupCutChoice,
   MATCH_FORMAT_LABEL,
-  PAIRING_STYLE_LABEL,
+  pairingStyleLabels,
   PLAY_MODE_ITEMS,
   pairingFromRoundsChoice,
-  ROUNDS_CHOICE_ITEMS,
+  roundsChoiceItems,
   roundsChoiceFor,
 } from "@/features/tournaments/lib/tournament-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 export function FormatSection({
   detail,
@@ -37,34 +38,44 @@ export function FormatSection({
   const isSwiss = detail.pairingStyle === "swiss";
   const groupCut = detail.format === "group_cut";
   const roundsChoice = roundsChoiceFor(detail.pairingStyle, detail.matchFormat, detail.format);
-  const roundsItems = ROUNDS_CHOICE_ITEMS.filter(
+  const roundsItems = roundsChoiceItems().filter(
     (item) => detail.playMode !== "2v2" || (item.value !== "pod" && !isGroupCutChoice(item.value)),
   );
   const playModeItems = groupCut
     ? PLAY_MODE_ITEMS.filter((item) => item.value === "1v1")
     : PLAY_MODE_ITEMS;
   const description = detail.hasRounds
-    ? `${detail.playMode === "2v2" ? "2v2 teams · " : ""}${PAIRING_STYLE_LABEL[detail.pairingStyle]}. The pairing engine is fixed once a round has been generated.`
-    : "Can only change before the first round.";
+    ? m.tournaments_settings_format_description_rounds({
+        teams: detail.playMode === "2v2" ? m.tournaments_settings_format_teams_prefix() : "",
+        style: pairingStyleLabels()[detail.pairingStyle],
+      })
+    : m.tournaments_settings_format_description_locked();
 
   return (
-    <SettingsSection id="pairings" title="Format" description={description}>
+    <SettingsSection
+      id="pairings"
+      title={m.tournaments_settings_format_title()}
+      description={description}
+    >
       {detail.hasRounds ? (
         groupCut ? (
           <p className="text-muted-foreground text-sm">
-            {MATCH_FORMAT_LABEL[detail.matchFormat]}, group stage with a top {detail.cutSize} cut.
-            The format is fixed once the groups have been drawn.
+            {m.tournaments_settings_format_group_cut_note({
+              format: MATCH_FORMAT_LABEL[detail.matchFormat],
+              size: detail.cutSize,
+            })}
           </p>
         ) : isSwiss ? (
           <p className="text-muted-foreground text-sm">
-            {MATCH_FORMAT_LABEL[detail.matchFormat]}. The match format is fixed once a round has
-            been generated.
+            {m.tournaments_settings_format_swiss_note({
+              format: MATCH_FORMAT_LABEL[detail.matchFormat],
+            })}
           </p>
         ) : null
       ) : (
         <div className="flex flex-wrap gap-x-4 gap-y-3">
           <div className="flex flex-col gap-1.5">
-            <Label>Play mode</Label>
+            <Label>{m.tournaments_settings_play_mode_label()}</Label>
             <Select
               items={playModeItems}
               value={detail.playMode}
@@ -83,8 +94,8 @@ export function FormatSection({
                 }
               }}
             >
-              <SelectTrigger aria-label="Play mode">
-                <SelectValue placeholder="Play mode" />
+              <SelectTrigger aria-label={m.tournaments_settings_play_mode_label()}>
+                <SelectValue placeholder={m.tournaments_settings_play_mode_label()} />
               </SelectTrigger>
               <SelectContent>
                 {playModeItems.map((item) => (
@@ -96,7 +107,7 @@ export function FormatSection({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="t-pairings-enabled">Pairings</Label>
+            <Label htmlFor="t-pairings-enabled">{m.tournaments_settings_pairings_label()}</Label>
             <div className="flex h-8 items-center">
               <Switch
                 id="t-pairings-enabled"
@@ -119,7 +130,7 @@ export function FormatSection({
           </div>
           {roundsChoice ? (
             <div className="flex flex-col gap-1.5">
-              <Label>Rounds</Label>
+              <Label>{m.tournaments_settings_rounds_label()}</Label>
               <Select
                 items={roundsItems}
                 value={roundsChoice}
@@ -140,8 +151,8 @@ export function FormatSection({
                   );
                 }}
               >
-                <SelectTrigger aria-label="Rounds">
-                  <SelectValue placeholder="Rounds" />
+                <SelectTrigger aria-label={m.tournaments_settings_rounds_label()}>
+                  <SelectValue placeholder={m.tournaments_settings_rounds_label()} />
                 </SelectTrigger>
                 <SelectContent>
                   {roundsItems.map((item) => (

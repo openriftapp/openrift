@@ -9,6 +9,7 @@ import { CardStageMain } from "@/features/stage/components/card-stage-main";
 import { PresentationStage } from "@/features/stage/components/presentation-stage";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Kept as its own component so the deck queries are never called on the
@@ -53,7 +54,7 @@ export function DeckPresentation({
       index={index}
       onIndexChange={onIndexChange}
       onExit={onExit}
-      exitLabel="Back to the deck"
+      exitLabel={m.stage_exit_back_to_deck()}
       title={data.deck.name}
     >
       <CardStageMain items={shown} index={index} />

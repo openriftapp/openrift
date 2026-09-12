@@ -8,6 +8,7 @@ import {
   compareTournamentsForList,
   partitionTournaments,
 } from "@/features/tournaments/lib/tournament-display";
+import { m } from "@/paraglide/messages.js";
 
 function UpcomingGrid({ tournaments }: { tournaments: TournamentSummaryResponse[] }) {
   return (
@@ -45,14 +46,16 @@ export function TournamentsOverview({
       )}
       {alsoUpcoming.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <SectionHeading variant="display">Also coming up</SectionHeading>
+          <SectionHeading variant="display">
+            {m.tournaments_overview_also_coming_up()}
+          </SectionHeading>
           <UpcomingGrid tournaments={alsoUpcoming} />
         </section>
       ) : null}
       {pastSorted.length > 0 ? (
         <section className="flex flex-col gap-3">
           <SectionHeading variant="display" count={pastSorted.length}>
-            Past events
+            {m.tournaments_overview_past_events()}
           </SectionHeading>
           <PastEventsTimeline tournaments={pastSorted} showContext={showContext} />
         </section>

@@ -7,17 +7,25 @@ import {
   formatPlayerRecord,
   formatScore,
 } from "@/features/tournaments/components/standings-display";
-import { cutRoundLabels } from "@/features/tournaments/lib/group-cut-display";
+import { m } from "@/paraglide/messages.js";
 
 export function exitLabel(row: FinalStandingRow, cutSize: CutSize): string {
   if (row.place === 1) {
-    return "Champion";
+    return m.tournaments_champion_label();
   }
   if (row.exitRound === null) {
-    return "Group stage";
+    return m.tournaments_final_exit_group_stage();
   }
-  const label = cutRoundLabels(cutSize)[row.exitRound - GROUP_STAGE_ROUNDS - 1];
-  return label === undefined ? `Round ${row.exitRound}` : `Lost in ${label.toLowerCase()}`;
+  const all = [
+    m.tournaments_final_exit_lost_round_16(),
+    m.tournaments_final_exit_lost_quarter(),
+    m.tournaments_final_exit_lost_semi(),
+    m.tournaments_final_exit_lost_final(),
+  ];
+  return (
+    all.slice(all.length - Math.log2(cutSize))[row.exitRound - GROUP_STAGE_ROUNDS - 1] ??
+    m.tournaments_round_band_round({ number: row.exitRound })
+  );
 }
 
 export function finalStandingsSeats(

@@ -38,6 +38,7 @@ import {
   useUpdateTournamentDeckCheckEntry,
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 export function EditPlayerDialog({
   tournamentId,
@@ -94,7 +95,7 @@ export function EditPlayerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit player details</DialogTitle>
+          <DialogTitle>{m.tournaments_deck_check_edit_player_title()}</DialogTitle>
         </DialogHeader>
         <form
           className="flex flex-col gap-4"
@@ -104,7 +105,7 @@ export function EditPlayerDialog({
           }}
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-check-player-name">Name</Label>
+            <Label htmlFor="deck-check-player-name">{m.common_name()}</Label>
             <Input
               id="deck-check-player-name"
               value={playerName}
@@ -113,7 +114,7 @@ export function EditPlayerDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="deck-check-riot-id">Riot ID (optional)</Label>
+            <Label htmlFor="deck-check-riot-id">{m.tournaments_deck_check_riot_id_label()}</Label>
             <Input
               id="deck-check-riot-id"
               value={riotId}
@@ -123,7 +124,7 @@ export function EditPlayerDialog({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Public sharing</Label>
+            <Label>{m.tournaments_deck_check_public_sharing()}</Label>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="deck-check-publish"
@@ -131,7 +132,7 @@ export function EditPlayerDialog({
                 onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
               />
               <Label htmlFor="deck-check-publish" className="font-normal">
-                Deck list may be published publicly after the event
+                {m.tournaments_deck_check_publish_deck()}
               </Label>
             </div>
             <div className="ml-6 flex items-center gap-2">
@@ -146,7 +147,7 @@ export function EditPlayerDialog({
                 className="font-normal data-[disabled]:opacity-50"
                 data-disabled={!allowDeckPublishing || undefined}
               >
-                ...including the name
+                {m.tournaments_deck_check_publish_name()}
               </Label>
             </div>
             <div className="ml-6 flex items-center gap-2">
@@ -161,16 +162,16 @@ export function EditPlayerDialog({
                 className="font-normal data-[disabled]:opacity-50"
                 data-disabled={!allowDeckPublishing || undefined}
               >
-                ...including the Riot ID
+                {m.tournaments_deck_check_publish_riot_id()}
               </Label>
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={updateEntry.isPending || !playerName.trim()}>
-              {updateEntry.isPending ? "Saving..." : "Save"}
+              {updateEntry.isPending ? m.tournaments_deck_check_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </form>
@@ -199,8 +200,8 @@ function CardNameSearchField({
 
   return (
     <CardSearchDropdown
-      ariaLabel="Card name"
-      placeholder="Search card name"
+      ariaLabel={m.tournaments_deck_check_card_name_aria()}
+      placeholder={m.tournaments_deck_check_card_name_placeholder()}
       initialQuery={initialName}
       className="w-full"
       results={results}
@@ -310,22 +311,26 @@ export function FixCardDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleSave()}>
           <DialogHeader>
-            <DialogTitle>{zoneOnly ? "Move card" : "Fix card"}</DialogTitle>
+            <DialogTitle>
+              {zoneOnly
+                ? m.tournaments_deck_check_move_card_title()
+                : m.tournaments_deck_check_fix_card_title()}
+            </DialogTitle>
             <DialogDescription>
               {zoneOnly
-                ? "Move the card to the right zone. Its name can't be changed once the list is approved, but ticks stay."
-                : "Correct the submitted name or move the card to the right zone. The name is matched against the catalog again, but ticks stay."}
+                ? m.tournaments_deck_check_move_card_description()
+                : m.tournaments_deck_check_fix_card_description()}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {zoneOnly ? (
               <div className="flex flex-col gap-1.5">
-                <Label>Card name</Label>
+                <Label>{m.tournaments_deck_check_card_name_label()}</Label>
                 <p className="text-muted-foreground text-sm">{card.rawName}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
-                <Label>Card name</Label>
+                <Label>{m.tournaments_deck_check_card_name_label()}</Label>
                 <CardNameSearchField
                   key={String(open)}
                   initialName={card.rawName}
@@ -335,7 +340,7 @@ export function FixCardDialog({
             )}
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Zone</Label>
+                <Label>{m.tournaments_deck_check_zone_label()}</Label>
                 <Select value={section} onValueChange={(value) => setSection(value ?? card.zone)}>
                   <SelectTrigger className="w-full">
                     <SelectValue>
@@ -353,7 +358,9 @@ export function FixCardDialog({
               </div>
               {splittable ? (
                 <div className="flex w-28 flex-col gap-1.5">
-                  <Label htmlFor="deck-check-fix-copies">Copies to move</Label>
+                  <Label htmlFor="deck-check-fix-copies">
+                    {m.tournaments_deck_check_copies_to_move()}
+                  </Label>
                   <Input
                     id="deck-check-fix-copies"
                     inputMode="numeric"
@@ -366,17 +373,24 @@ export function FixCardDialog({
             {splittable ? (
               <p className="text-muted-foreground text-sm">
                 {parsedCopies >= card.quantity
-                  ? `Moves all ${card.quantity} copies to ${zoneLabels[section as never] ?? section}.`
-                  : `Moves ${copiesValid ? parsedCopies : "?"} of ${card.quantity} copies. The rest stay in ${zoneLabels[card.zone]}.`}
+                  ? m.tournaments_deck_check_moves_all({
+                      count: card.quantity,
+                      zone: zoneLabels[section as never] ?? section,
+                    })
+                  : m.tournaments_deck_check_moves_some({
+                      moved: copiesValid ? parsedCopies : "?",
+                      count: card.quantity,
+                      zone: zoneLabels[card.zone],
+                    })}
               </p>
             ) : null}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={fixCard.isPending || !name.trim() || !copiesValid}>
-              {fixCard.isPending ? "Saving..." : "Save"}
+              {fixCard.isPending ? m.tournaments_deck_check_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>
@@ -430,16 +444,18 @@ export function AddCardDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleAdd()}>
           <DialogHeader>
-            <DialogTitle>Add card</DialogTitle>
+            <DialogTitle>{m.tournaments_deck_check_add_card_title()}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Card name</Label>
+              <Label>{m.tournaments_deck_check_card_name_label()}</Label>
               <CardNameSearchField key={String(open)} onNameChange={setName} />
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor="deck-check-card-quantity">Copies</Label>
+                <Label htmlFor="deck-check-card-quantity">
+                  {m.tournaments_deck_check_copies_label()}
+                </Label>
                 <Input
                   id="deck-check-card-quantity"
                   inputMode="numeric"
@@ -448,7 +464,7 @@ export function AddCardDialog({
                 />
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Zone</Label>
+                <Label>{m.tournaments_deck_check_zone_label()}</Label>
                 <Select
                   value={section}
                   onValueChange={(value) => setSection(value ?? WellKnown.deckZone.MAIN)}
@@ -471,10 +487,12 @@ export function AddCardDialog({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={addCard.isPending || !name.trim()}>
-              {addCard.isPending ? "Adding..." : "Add"}
+              {addCard.isPending
+                ? m.tournaments_deck_check_adding()
+                : m.tournaments_deck_check_add()}
             </Button>
           </DialogFooter>
         </DialogForm>

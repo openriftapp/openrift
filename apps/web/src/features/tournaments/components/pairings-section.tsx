@@ -10,6 +10,7 @@ import {
   useRerollTournamentRound,
   useSubmitTournamentResult,
 } from "@/features/tournaments/hooks/use-tournament-run";
+import { m } from "@/paraglide/messages.js";
 
 import { GenerateRoundControls } from "./generate-round-controls";
 import { GroupCutPairingsSection } from "./group-cut-pairings-section";
@@ -107,10 +108,7 @@ export function PodPairingsSection({
         />
       )}
       {finalizedCount > 1 && !completed ? (
-        <p className="text-muted-foreground text-sm">
-          Editing a finalized round fixes scores, but it does not redraw pods that later rounds
-          already used.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_pairings_finalized_note()}</p>
       ) : null}
       {editing && openRound && data.openRoundSnapshot ? (
         <PodPairingEditor
@@ -152,10 +150,16 @@ export function PodPairingsSection({
                 variant="outline"
                 pressed={warningsExpanded}
                 onPressedChange={setWarningsExpanded}
-                aria-label={warningsExpanded ? "Show warnings as icons" : "Show warnings in full"}
+                aria-label={
+                  warningsExpanded
+                    ? m.tournaments_pairings_warnings_as_icons_aria()
+                    : m.tournaments_pairings_warnings_in_full_aria()
+                }
               >
                 <TriangleAlertIcon />
-                {warningsExpanded ? "Warnings: full" : "Warnings: icons"}
+                {warningsExpanded
+                  ? m.tournaments_pairings_warnings_full()
+                  : m.tournaments_pairings_warnings_icons()}
               </Toggle>
               <Button
                 size="sm"
@@ -163,7 +167,7 @@ export function PodPairingsSection({
                 disabled={anyReported}
                 onClick={() => setEditingRound(round.roundNumber)}
               >
-                Edit pairing
+                {m.tournaments_pairings_edit_pairing()}
               </Button>
               <Button
                 size="sm"
@@ -173,13 +177,13 @@ export function PodPairingsSection({
                   void run(() => rerollRound.mutateAsync({ id, roundNumber: round.roundNumber }))
                 }
               >
-                Re-roll
+                {m.tournaments_pairings_reroll()}
               </Button>
             </>
           );
         }}
-        emptyMessage={editing ? "" : "No rounds yet"}
-        emptyDescription="Generate the first round to begin."
+        emptyMessage={editing ? "" : m.tournaments_pairings_no_rounds_yet()}
+        emptyDescription={m.tournaments_pairings_no_rounds_description()}
       />
     </div>
   );

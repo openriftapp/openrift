@@ -33,6 +33,7 @@ import {
 } from "@/features/stage/lib/presentation-queue-search";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { applyStagePresetConfig } from "@/features/stage/stores/stage-preset-actions";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/stage")({
   component: StagePage,
@@ -195,15 +196,20 @@ function StageBuilder({ initialIds }: { initialIds: readonly string[] }) {
     const { added, dropped } = usePresentQueueStore.getState().addMany(source.printingIds);
     if (dropped > 0) {
       toast.warning(
-        `Added ${added} of ${source.printingIds.length} cards from ${source.label}. The queue holds ${MAX_QUEUE_LENGTH}.`,
+        m.stage_add_source_partial({
+          added,
+          total: source.printingIds.length,
+          source: source.label,
+          max: MAX_QUEUE_LENGTH,
+        }),
       );
       return;
     }
     if (added === 0) {
-      toast.warning(`Nothing to add from ${source.label}.`);
+      toast.warning(m.stage_add_source_none({ source: source.label }));
       return;
     }
-    toast.success(`Added ${added} cards from ${source.label}.`);
+    toast.success(m.stage_add_source_success({ added, source: source.label }));
   };
 
   return (
@@ -213,7 +219,11 @@ function StageBuilder({ initialIds }: { initialIds: readonly string[] }) {
         // output's scene setup, whose placement controls need the room.
         asideClassName="lg:w-[38%] lg:max-w-md"
         aside={
-          <Suspense fallback={<div className="text-muted-foreground text-sm">Loading cards…</div>}>
+          <Suspense
+            fallback={
+              <div className="text-muted-foreground text-sm">{m.stage_loading_cards()}</div>
+            }
+          >
             <div className="flex flex-col gap-6">
               {queued === 0 && !introDismissed && (
                 <StageIntroBanner onDismiss={() => dismissIntro("stage")} />
@@ -225,18 +235,22 @@ function StageBuilder({ initialIds }: { initialIds: readonly string[] }) {
         }
         topBar={
           <PageTopBar>
-            <PageTopBarTitle>Stage</PageTopBarTitle>
-            {queued > 0 && <Badge variant="outline">{queued} queued</Badge>}
+            <PageTopBarTitle>{m.nav_stage()}</PageTopBarTitle>
+            {queued > 0 && (
+              <Badge variant="outline">{m.stage_queued_badge({ count: queued })}</Badge>
+            )}
             <PageTopBarActions>
               <PageTopBarPrimaryButton onClick={start} disabled={queued === 0}>
                 <PlayIcon />
-                Start presenting
+                {m.stage_output_start()}
               </PageTopBarPrimaryButton>
             </PageTopBarActions>
           </PageTopBar>
         }
       >
-        <Suspense fallback={<div className="text-muted-foreground text-sm">Loading cards…</div>}>
+        <Suspense
+          fallback={<div className="text-muted-foreground text-sm">{m.stage_loading_cards()}</div>}
+        >
           <PresentCardBrowser />
         </Suspense>
       </BuilderWorkbench>

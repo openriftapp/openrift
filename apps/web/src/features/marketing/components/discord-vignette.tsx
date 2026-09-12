@@ -2,6 +2,7 @@ import { siDiscord } from "simple-icons";
 
 import { Badge } from "@/components/ui/badge";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
+import { m } from "@/paraglide/messages.js";
 
 import { Vignette } from "./vignette-parts";
 
@@ -104,7 +105,7 @@ export function DiscordVignette({ card }: { card?: LandingThumbnailCard }) {
             <span className="text-muted-foreground text-xs">{footer}</span>
           </div>
           <div className="bg-muted text-muted-foreground w-fit rounded-md px-3 py-1 text-xs font-medium">
-            Details
+            {m.marketing_details()}
           </div>
         </div>
       </div>

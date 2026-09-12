@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { m } from "@/paraglide/messages.js";
 
 /** Clamps a requested round to the finalized ones; null means the latest table. */
 export function snapshotRound(requested: number | undefined, latestRound: number): number | null {
@@ -36,7 +37,10 @@ export function StandingsRoundPicker({
     const round = index + 1;
     return {
       value: String(round),
-      label: round === latestRound ? `After round ${round} (latest)` : `After round ${round}`,
+      label:
+        round === latestRound
+          ? m.tournaments_standings_after_round_latest({ number: round })
+          : m.tournaments_standings_after_round({ number: round }),
     };
   });
   const value = String(selected ?? latestRound);

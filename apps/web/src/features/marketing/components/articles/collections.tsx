@@ -20,43 +20,48 @@ import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/u
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export default function CollectionsArticle() {
   return (
     <div className="space-y-8">
-      <p className="text-muted-foreground">
-        A collection is where your cards physically live. Think of it as a real-world location:{" "}
-        &quot;Red Deck Box&quot;, &quot;Binder 1&quot;, &quot;Main Storage Box&quot;, or even
-        &quot;Lent to Sebastian&quot;. Every copy in your collection lives in exactly one place.
-      </p>
+      <p className="text-muted-foreground">{m.help_collections_intro()}</p>
 
       <Callout>
         <div className="flex flex-col gap-3 text-sm sm:flex-row">
           <div className="bg-background flex flex-col gap-1.5 rounded-lg p-3 sm:w-48">
             <span className="text-muted-foreground text-2xs mb-1 font-medium tracking-wide uppercase">
-              Collections
+              {m.help_collections_mock_collections()}
             </span>
-            <SidebarItem icon={<PackageIcon className="size-3.5" />} label="All Cards" count={94} />
+            <SidebarItem
+              icon={<PackageIcon className="size-3.5" />}
+              label={m.help_collections_mock_all_cards()}
+              count={94}
+            />
             <SidebarItem
               icon={<InboxIcon className="size-3.5" />}
-              label="Inbox"
+              label={m.help_collections_mock_inbox()}
               count={12}
               active
             />
             <SidebarItem
               icon={<BookOpenIcon className="size-3.5" />}
-              label="Red Deck Box"
+              label={m.help_collections_mock_red_deck_box()}
               count={40}
             />
-            <SidebarItem icon={<BookOpenIcon className="size-3.5" />} label="Binder 1" count={31} />
             <SidebarItem
               icon={<BookOpenIcon className="size-3.5" />}
-              label="Lent to Sebastian"
+              label={m.help_collections_mock_binder()}
+              count={31}
+            />
+            <SidebarItem
+              icon={<BookOpenIcon className="size-3.5" />}
+              label={m.help_collections_mock_lent()}
               count={11}
             />
             <div className="border-border mt-1 border-t pt-1">
               <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <PlusIcon className="size-3" /> New collection
+                <PlusIcon className="size-3" /> {m.help_collections_mock_new_collection()}
               </span>
             </div>
           </div>
@@ -65,10 +70,10 @@ export default function CollectionsArticle() {
             <div className="flex items-center gap-2">
               <div className="bg-muted flex-1 rounded-md px-2 py-1 text-xs">
                 <SearchIcon className="text-muted-foreground mr-1 inline size-3" />
-                <span className="text-muted-foreground">Search cards&hellip;</span>
+                <span className="text-muted-foreground">{m.help_collections_mock_search()}</span>
               </div>
               <div className="bg-primary/10 text-primary text-2xs rounded-md px-2 py-0.5 font-medium">
-                12 cards
+                {m.help_collections_mock_card_count()}
               </div>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
@@ -81,156 +86,140 @@ export default function CollectionsArticle() {
       </Callout>
 
       <section>
-        <Heading className="mb-2">Collections as physical locations</Heading>
-        <p className="text-muted-foreground">
-          Collections mirror where your cards actually are in the real world. Moving a copy from
-          &quot;Inbox&quot; to &quot;Red Deck Box&quot; records that you physically put that card in
-          that box.
-        </p>
+        <Heading className="mb-2">{m.help_collections_physical_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_collections_physical_p1()}</p>
         <p className="text-muted-foreground mt-2">
-          Collections track <strong className="text-foreground">copies</strong> (specific physical
-          cards), not the cards as game concepts. If you own three copies of the same card, each one
-          lives in a collection, whether that&apos;s the same collection or different ones. See{" "}
-          <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
-          more on how these relate.
+          {m.help_collections_physical_p2_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_physical_p2_copies()}</strong>{" "}
+          {m.help_collections_physical_p2_mid()}{" "}
+          <TextLink href="/help/cards-printings-copies">
+            {m.help_collections_physical_p2_link()}
+          </TextLink>{" "}
+          {m.help_collections_physical_p2_after()}
         </p>
       </section>
 
       <section>
         <Heading id="deck-building-availability" className="mb-2">
-          Deck building availability
+          {m.help_collections_availability_heading()}
         </Heading>
         <Alert>
           <ShieldCheckIcon className="text-primary" />
           <AlertDescription>
             <p>
-              Each collection has an &quot;available for deck building&quot; toggle. Open a
-              collection, hit the three-dot menu, and pick <em>Edit</em> to change it. When turned
-              off, copies in that collection don&apos;t count toward owned cards in the deck builder
-              or the shopping list.
+              {m.help_collections_availability_p1_before()}{" "}
+              <em>{m.help_collections_availability_p1_edit()}</em>{" "}
+              {m.help_collections_availability_p1_after()}
             </p>
-            <p>
-              This is useful for cards you don&apos;t want to cannibalise: a high-value card you
-              keep in a display case, cards lent to a friend, or copies already committed to a
-              specific deck. Locked-away copies still show up in the deck builder&apos;s ownership
-              panel as &quot;locked&quot;, so you can see what you&apos;d have available if you
-              turned the collection back on.
-            </p>
+            <p>{m.help_collections_availability_p2()}</p>
           </AlertDescription>
         </Alert>
       </section>
 
       <section>
-        <Heading className="mb-2">Getting started</Heading>
+        <Heading className="mb-2">{m.help_collections_start_heading()}</Heading>
         <p className="text-muted-foreground">
-          Open <strong className="text-foreground">Collections</strong> from the top navigation.
-          Your first collection is the <strong className="text-foreground">Inbox</strong>, which is
-          always present. It&apos;s where quick-added cards land unless you choose a different
-          target.
+          {m.help_collections_start_p1_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_mock_collections()}</strong>{" "}
+          {m.help_collections_start_p1_mid()}{" "}
+          <strong className="text-foreground">{m.help_collections_mock_inbox()}</strong>
+          {m.help_collections_start_p1_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          To create a new collection, click{" "}
-          <strong className="text-foreground">New collection</strong> in the sidebar, type a name,
-          and press Enter. Name it after the real-world location where you keep those cards.
+          {m.help_collections_start_p2_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_mock_new_collection()}</strong>{" "}
+          {m.help_collections_start_p2_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Adding cards</Heading>
-        <p className="text-muted-foreground">There are a few ways to add cards to a collection:</p>
+        <Heading className="mb-2">{m.help_collections_adding_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_collections_adding_lead()}</p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<SearchIcon className="size-4" />}
-            title="Quick add"
+            title={m.help_collections_adding_quick_title()}
             shortcut="Ctrl+K"
-            description="A fast search palette. Type a card name, use arrow keys to navigate, and press Enter to add. Shift+Enter to undo."
+            description={m.help_collections_adding_quick_desc()}
           />
           <FeatureCard
             icon={<MousePointerClickIcon className="size-4" />}
-            title="Browse & add"
-            description="Browse the full catalog with all filters available. Click the plus button on any card to add it. A pulsing red dot shows you're in add mode."
+            title={m.help_collections_adding_browse_title()}
+            description={m.help_collections_adding_browse_desc()}
           />
           <FeatureCard
             icon={<KeyboardIcon className="size-4" />}
-            title="Add several at once"
+            title={m.help_collections_adding_several_title()}
             shortcut="1-9"
-            description="Click a card in the grid to select it, then press a number key to add that many copies in one press. Plus and minus add or remove one."
+            description={m.help_collections_adding_several_desc()}
           />
         </div>
 
         <p className="text-muted-foreground mt-3">
-          Both modes track what you&apos;ve added during the session. Click{" "}
-          <strong className="text-foreground">Done</strong> when you&apos;re finished.
+          {m.help_collections_adding_done_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_adding_done_label()}</strong>{" "}
+          {m.help_collections_adding_done_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Organizing your cards</Heading>
+        <Heading className="mb-2">{m.help_collections_organizing_heading()}</Heading>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<GripVerticalIcon className="size-4" />}
-            title="Drag & drop"
-            description="Drag cards from the grid onto a collection or a list in the sidebar. A blue ring highlights the target. One copy comes along by default: hold a number key while dragging to bring that many, or Shift for the whole stack."
+            title={m.help_collections_organizing_drag_title()}
+            description={m.help_collections_organizing_drag_desc()}
           />
           <FeatureCard
             icon={<ListChecksIcon className="size-4" />}
-            title="Bulk select"
-            description="Click the checkbox icon in the toolbar, or Ctrl-click any card to start selecting. A floating action bar appears at the bottom."
+            title={m.help_collections_organizing_bulk_title()}
+            description={m.help_collections_organizing_bulk_desc()}
           />
           <FeatureCard
             icon={<ArrowRightLeftIcon className="size-4" />}
-            title="Move"
-            description="Select cards, then click Move. Pick the target collection from the dialog and confirm. Each copy belongs to exactly one collection, so moving it removes it from the source."
+            title={m.help_collections_organizing_move_title()}
+            description={m.help_collections_organizing_move_desc()}
           />
           <FeatureCard
             icon={<Trash2Icon className="size-4" />}
-            title="Dispose"
-            description="Select cards, then click Dispose to permanently remove them. The removal is recorded in your activity history."
+            title={m.help_collections_organizing_dispose_title()}
+            description={m.help_collections_organizing_dispose_desc()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">View modes in collections</Heading>
-        <p className="text-muted-foreground">
-          Collections support the same three view modes as the card browser. You can also filter,
-          sort, and group cards inside any collection just like in the catalog.
-        </p>
+        <Heading className="mb-2">{m.help_collections_views_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_collections_views_p()}</p>
         <DefinitionList className="text-muted-foreground mt-3">
-          <DefinitionTerm>Cards</DefinitionTerm>
-          <DefinitionDetail>
-            One entry per unique card. Owned count sums across all printings of that card.
-          </DefinitionDetail>
-          <DefinitionTerm>Printings</DefinitionTerm>
-          <DefinitionDetail>
-            One entry per printing. See exactly which versions you own.
-          </DefinitionDetail>
-          <DefinitionTerm>Copies</DefinitionTerm>
-          <DefinitionDetail>
-            Every individual copy on the grid, no stacking. Useful for managing specific copies.
-          </DefinitionDetail>
+          <DefinitionTerm>{m.help_collections_views_cards_term()}</DefinitionTerm>
+          <DefinitionDetail>{m.help_collections_views_cards_detail()}</DefinitionDetail>
+          <DefinitionTerm>{m.help_collections_views_printings_term()}</DefinitionTerm>
+          <DefinitionDetail>{m.help_collections_views_printings_detail()}</DefinitionDetail>
+          <DefinitionTerm>{m.help_collections_views_copies_term()}</DefinitionTerm>
+          <DefinitionDetail>{m.help_collections_views_copies_detail()}</DefinitionDetail>
         </DefinitionList>
       </section>
 
       <section>
-        <Heading className="mb-2">The sidebar</Heading>
+        <Heading className="mb-2">{m.help_collections_sidebar_heading()}</Heading>
         <p className="text-muted-foreground">
-          The sidebar lists all your collections with a copy count badge. At the top,{" "}
-          <strong className="text-foreground">All Cards</strong> shows everything you own across all
-          collections in one view, including your total collection value from your preferred
-          marketplace. Below your collections are links to{" "}
-          <strong className="text-foreground">Import</strong> (bring cards in from a CSV or plain
-          list) and <strong className="text-foreground">Activity</strong> (a log of all additions,
-          moves, and removals). Export sits in each collection&apos;s three-dot menu.
+          {m.help_collections_sidebar_p1_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_mock_all_cards()}</strong>{" "}
+          {m.help_collections_sidebar_p1_mid1()}{" "}
+          <strong className="text-foreground">{m.help_collections_sidebar_p1_import()}</strong>{" "}
+          {m.help_collections_sidebar_p1_mid2()}{" "}
+          <strong className="text-foreground">{m.help_collections_sidebar_p1_activity()}</strong>{" "}
+          {m.help_collections_sidebar_p1_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          Right-click a collection or a list for its actions: rename, share, delete, and{" "}
-          <strong className="text-foreground">Hide behind Show more</strong>. Hidden entries move
-          behind a <strong className="text-foreground">Show more</strong> toggle at the foot of
-          their section, which keeps a long sidebar down to what you actually use. On a phone, press
-          and hold instead of right-clicking.
+          {m.help_collections_sidebar_p2_before()}{" "}
+          <strong className="text-foreground">{m.help_collections_sidebar_p2_hide()}</strong>
+          {m.help_collections_sidebar_p2_mid()}{" "}
+          <strong className="text-foreground">{m.help_collections_sidebar_p2_show_more()}</strong>{" "}
+          {m.help_collections_sidebar_p2_after()}
         </p>
       </section>
     </div>

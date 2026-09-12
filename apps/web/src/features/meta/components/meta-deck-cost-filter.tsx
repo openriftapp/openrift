@@ -12,6 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { MetaPriceFormat as PriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface MetaCostFilterValue {
   maxCost: number | null;
@@ -50,7 +51,9 @@ const VALUE_PRESETS = [25, 50, 100];
 const ANY_PRESET = "any";
 
 function metaCostBoundLabel(maxCost: number, format: PriceFormat): string {
-  return maxCost === 0 ? "Buildable now" : `≤ ${format(maxCost)} to complete`;
+  return maxCost === 0
+    ? m.meta_cost_buildable_now()
+    : m.meta_cost_to_complete_max({ amount: format(maxCost) });
 }
 
 function metaValueRangeLabel(
@@ -59,13 +62,13 @@ function metaValueRangeLabel(
   format: PriceFormat,
 ): string | null {
   if (min !== null && max !== null) {
-    return `Value ${format(min)} – ${format(max)}`;
+    return m.meta_cost_value_range({ min: format(min), max: format(max) });
   }
   if (min !== null) {
-    return `Value ≥ ${format(min)}`;
+    return m.meta_cost_value_min({ min: format(min) });
   }
   if (max !== null) {
-    return `Value ≤ ${format(max)}`;
+    return m.meta_cost_value_max({ max: format(max) });
   }
   return null;
 }
@@ -124,7 +127,11 @@ export function MetaDeckCostFilter({
   const summary = parts.join(" · ");
   const isActive = ready && summary.length > 0;
   // The visible spans concatenate without a separator in the accessible name.
-  const triggerLabel = ready ? (isActive ? `Cost: ${summary}` : "Cost: Any") : "Cost";
+  const triggerLabel = ready
+    ? isActive
+      ? m.meta_cost_trigger_active({ summary })
+      : m.meta_cost_trigger_any()
+    : m.meta_cost_trigger();
 
   return (
     <Popover>
@@ -140,8 +147,8 @@ export function MetaDeckCostFilter({
             />
           }
         >
-          <span className="text-muted-foreground font-normal">Cost</span>
-          {ready && <span>{isActive ? summary : "Any"}</span>}
+          <span className="text-muted-foreground font-normal">{m.meta_cost_trigger()}</span>
+          {ready && <span>{isActive ? summary : m.meta_cost_any()}</span>}
           <ChevronDownIcon />
         </PopoverTrigger>
       ) : (
@@ -158,9 +165,9 @@ export function MetaDeckCostFilter({
           }
         >
           <span className={isActive ? "text-primary-foreground/70" : "text-muted-foreground"}>
-            Cost
+            {m.meta_cost_trigger()}
           </span>
-          {ready && <span>{isActive ? summary : "Any"}</span>}
+          {ready && <span>{isActive ? summary : m.meta_cost_any()}</span>}
           <ChevronDownIcon />
         </PopoverTrigger>
       )}
@@ -184,7 +191,7 @@ export function MetaDeckCostFilter({
         />
         <div className="flex justify-end">
           <Button type="button" variant="ghost" size="sm" onClick={() => onClear()}>
-            Clear
+            {m.common_clear()}
           </Button>
         </div>
       </PopoverContent>
@@ -258,10 +265,8 @@ function ToCompleteSection({
   if (!withCollection) {
     return (
       <div className="flex flex-col gap-1.5">
-        <SectionLabel>To complete</SectionLabel>
-        <p className="text-muted-foreground text-sm">
-          Sign in to see what each list costs you to complete.
-        </p>
+        <SectionLabel>{m.meta_cost_to_complete()}</SectionLabel>
+        <p className="text-muted-foreground text-sm">{m.meta_cost_sign_in()}</p>
       </div>
     );
   }
@@ -274,15 +279,15 @@ function ToCompleteSection({
 
   return (
     <div className="flex flex-col gap-2">
-      <SectionLabel>To complete</SectionLabel>
+      <SectionLabel>{m.meta_cost_to_complete()}</SectionLabel>
       <PresetPills
-        label="Cost to complete presets"
+        label={m.meta_cost_presets()}
         options={[
-          { value: ANY_PRESET, label: "Any" },
-          { value: "0", label: "Buildable" },
+          { value: ANY_PRESET, label: m.meta_cost_any() },
+          { value: "0", label: m.meta_cost_preset_buildable() },
           ...TO_COMPLETE_PRESETS.filter((preset) => preset <= bound).map((preset) => ({
             value: String(preset),
-            label: `≤ ${format(preset)}`,
+            label: m.meta_cost_preset_max({ amount: format(preset) }),
           })),
         ]}
         selected={maxCost === null ? ANY_PRESET : String(maxCost)}
@@ -294,7 +299,7 @@ function ToCompleteSection({
         step={scale.step}
         value={[value]}
         disabled={scale.max === 0}
-        aria-label="Maximum cost to complete"
+        aria-label={m.meta_cost_max_aria()}
         onValueChange={(next, details) => {
           const resolved = firstNumber(next, bound);
           setDraft(resolved);
@@ -306,10 +311,20 @@ function ToCompleteSection({
       />
       <div className="flex items-center gap-2 text-sm">
         <span className="tabular-nums">
-          {value >= bound ? "Any" : value === 0 ? "Buildable now" : format(value)}
+          {value >= bound
+            ? m.meta_cost_any()
+            : value === 0
+              ? m.meta_cost_buildable_now()
+              : format(value)}
         </span>
         <span className="text-muted-foreground ml-auto text-xs tabular-nums">
-          {matches === 1 ? `1 ${noun} matches` : `${matches} ${noun}s match`}
+          {noun === "deck"
+            ? matches === 1
+              ? m.meta_cost_matches_decks_one()
+              : m.meta_cost_matches_decks_other({ count: String(matches) })
+            : matches === 1
+              ? m.meta_cost_matches_lists_one()
+              : m.meta_cost_matches_lists_other({ count: String(matches) })}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -319,7 +334,7 @@ function ToCompleteSection({
           onCheckedChange={(checked) => onIncludeSideboardChange(checked === true)}
         />
         <Label htmlFor={sideboardId} className="cursor-pointer font-normal">
-          Count the sideboard too
+          {m.meta_cost_include_sideboard()}
         </Label>
       </div>
     </div>
@@ -360,14 +375,14 @@ function ValueSection({
 
   return (
     <div className="flex flex-col gap-2">
-      <SectionLabel>Deck value</SectionLabel>
+      <SectionLabel>{m.meta_cost_deck_value()}</SectionLabel>
       <PresetPills
-        label="Deck value presets"
+        label={m.meta_cost_deck_value_presets()}
         options={[
-          { value: ANY_PRESET, label: "Any" },
+          { value: ANY_PRESET, label: m.meta_cost_any() },
           ...VALUE_PRESETS.filter((preset) => preset <= bound).map((preset) => ({
             value: String(preset),
-            label: `≤ ${format(preset)}`,
+            label: m.meta_cost_preset_max({ amount: format(preset) }),
           })),
         ]}
         selected={selectedPreset}
@@ -387,7 +402,7 @@ function ValueSection({
           step={scale.step}
           value={range}
           disabled={scale.max === 0}
-          aria-label="Deck value range"
+          aria-label={m.meta_cost_deck_value_range_aria()}
           onValueChange={(next, details) => {
             const resolved = pair(next, [0, bound]);
             setDraft(resolved);
@@ -399,7 +414,7 @@ function ValueSection({
           className="flex-1"
         />
         <span className="text-muted-foreground w-12 shrink-0 text-xs tabular-nums">
-          {range[1] >= bound ? "Any" : format(range[1])}
+          {range[1] >= bound ? m.meta_cost_any() : format(range[1])}
         </span>
       </div>
     </div>

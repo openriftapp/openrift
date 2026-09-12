@@ -30,6 +30,7 @@ import {
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/legends_/$slug");
 
@@ -122,8 +123,8 @@ export function MetaLegendPage() {
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <TopBarBreadcrumbTrail
               segments={[
-                { label: "Meta Archive", link: <Link to="/meta" /> },
-                { label: "Legends", link: <Link to="/meta/legends" /> },
+                { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
+                { label: m.meta_legends_title(), link: <Link to="/meta/legends" /> },
               ]}
             />
             <TopBarBreadcrumbSeparator className="hidden sm:inline" />

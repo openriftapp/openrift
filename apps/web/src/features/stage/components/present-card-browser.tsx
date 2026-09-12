@@ -12,6 +12,7 @@ import type { StagePoolCardDragData } from "@/features/stage/components/stage-dn
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { m } from "@/paraglide/messages.js";
 
 export function PresentCardBrowser() {
   return <PickerCardBrowser cell={QueueCardCell} detailActions={queueDetailActions} />;
@@ -33,7 +34,7 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
       left={
         queued > 0 && (
           <StripIconButton
-            aria-label={`Remove ${legendDisplayName(printing.card)} from the queue`}
+            aria-label={m.stage_queue_remove_aria({ name: legendDisplayName(printing.card) })}
             onClick={() => removePrinting(printing.id)}
           >
             <MinusIcon className="size-3" />
@@ -42,15 +43,15 @@ function QueueCardStrip({ printing }: { printing: Printing }) {
       }
       center={
         queued > 0 && (
-          <CountPill variant="primary" title={`${queued} in the queue`}>
+          <CountPill variant="primary" title={m.stage_queue_count_title({ count: queued })}>
             <span>{queued}</span>
-            <span className="sr-only">in the queue</span>
+            <span className="sr-only">{m.stage_queue_count_sr()}</span>
           </CountPill>
         )
       }
       right={
         <StripIconButton
-          aria-label={`Add ${legendDisplayName(printing.card)} to the queue`}
+          aria-label={m.stage_queue_add_aria({ name: legendDisplayName(printing.card) })}
           disabled={isFull}
           onClick={() => add(printing.id)}
         >

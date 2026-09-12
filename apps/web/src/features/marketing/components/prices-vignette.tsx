@@ -15,6 +15,7 @@ import {
 } from "@/features/marketing/lib/vignette-price-chart";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { Vignette, VignetteHeading } from "./vignette-parts";
 
@@ -71,7 +72,7 @@ export function PricesVignette() {
         <span className="text-muted-foreground text-xs">SFD-177/221</span>
       </div>
       <div className="flex flex-col gap-1.5">
-        <VignetteHeading>Buy on</VignetteHeading>
+        <VignetteHeading>{m.card_detail_buy_on_label()}</VignetteHeading>
         <div className="divide-border grid grid-cols-3 divide-x rounded-lg border">
           {PRICE_SOURCES.map((entry) => (
             <span key={entry.marketplace} className="flex flex-col items-center gap-1 px-2 py-2">
@@ -91,7 +92,7 @@ export function PricesVignette() {
           variant="outline"
           size="sm"
           spacing={0}
-          aria-label="Time range"
+          aria-label={m.card_detail_time_range()}
           value={[range.value]}
           onValueChange={([next]) => {
             const match = PRICE_RANGES.find((entry) => entry.value === next);
@@ -128,7 +129,7 @@ export function PricesVignette() {
           variant="outline"
           size="sm"
           spacing={0}
-          aria-label="Price source"
+          aria-label={m.marketing_prices_price_source()}
           className="ml-auto"
           value={[source.marketplace]}
           onValueChange={([next]) => {
@@ -149,7 +150,12 @@ export function PricesVignette() {
           ))}
         </ToggleGroup>
       </div>
-      <svg viewBox="0 0 300 110" className="w-full" role="img" aria-label="Price history">
+      <svg
+        viewBox="0 0 300 110"
+        className="w-full"
+        role="img"
+        aria-label={m.card_detail_price_history_title()}
+      >
         <defs>
           <linearGradient id="vignette-price-fill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.2" />

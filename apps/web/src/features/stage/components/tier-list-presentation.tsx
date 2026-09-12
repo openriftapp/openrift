@@ -22,6 +22,7 @@ import {
 import { usePresentationStore } from "@/features/stage/stores/presentation-store";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface TierPresentationProps {
   index: number;
@@ -68,7 +69,7 @@ export function OwnedTierListPresentation({
       edit={{
         editing,
         onToggle: () => onEditingChange(!editing),
-        status: autosave.saving ? "Saving…" : "Saved",
+        status: autosave.saving ? m.common_saving() : m.tier_lists_autosave_saved(),
       }}
       {...rest}
       onExit={() => {
@@ -105,7 +106,10 @@ export function SharedTierListPresentation({
   const { data } = usePublicTierList(token);
   return (
     <TierBoardPresentation
-      title={`${data.tierList.title} · ${data.owner.displayName}`}
+      title={m.tier_lists_presentation_title_shared({
+        title: data.tierList.title,
+        owner: data.owner.displayName,
+      })}
       boardTitle={data.tierList.title}
       tiers={data.tierList.tiers}
       {...rest}
@@ -168,7 +172,7 @@ function TierBoardPresentation({
       index={stopIndex}
       onIndexChange={onIndexChange}
       onExit={onExit}
-      exitLabel="Back to the tier list"
+      exitLabel={m.stage_exit_back_to_tier_list()}
       title={title}
       boardControls
       obsBoard={{

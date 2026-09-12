@@ -28,13 +28,14 @@ import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/m
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const SKELETON_THUMBS = 12;
 
 /** Module scope so the copy handler's `try` stays branch-free (React Compiler). */
 function reportEncodeWarnings(warnings: readonly string[]): void {
   if (warnings.length > 0) {
-    toast.warning("The deck code left some cards out.", { description: warnings.join(" ") });
+    toast.warning(m.meta_deck_code_warning(), { description: warnings.join(" ") });
   }
 }
 
@@ -178,7 +179,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
             ))}
           </span>
         )}
-        {sideboardCount > 0 && <span className="tabular-nums">Sideboard {sideboardCount}</span>}
+        {sideboardCount > 0 && (
+          <span className="tabular-nums">
+            {m.meta_deck_preview_sideboard({ count: String(sideboardCount) })}
+          </span>
+        )}
         {missing !== null && <span>{missing}</span>}
         <MetaContributors contributors={data.meta.contributors} className="text-xs" />
         {!copyToMyDecks.isLoggedIn && (
@@ -190,14 +195,16 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
               />
             }
           >
-            Sign in to compare with your collection
+            {m.meta_deck_preview_sign_in_compare()}
           </TextLink>
         )}
         <span className="ml-auto" />
         <span className="flex items-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-sm" aria-label="Decklist actions" />}
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label={m.meta_deck_preview_actions()} />
+              }
             >
               <EllipsisVerticalIcon />
             </DropdownMenuTrigger>
@@ -216,12 +223,12 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 onClick={() => void handleCopyCode()}
               >
                 {copied ? <CheckIcon /> : <CopyIcon />}
-                {copied ? "Copied" : "Copy deck code"}
+                {copied ? m.common_copied() : m.meta_deck_preview_copy_code()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button size="sm" render={<Link to="/meta/decks/$token" params={{ token }} />}>
-            Open deck
+            {m.meta_deck_preview_open_deck()}
           </Button>
         </span>
       </div>

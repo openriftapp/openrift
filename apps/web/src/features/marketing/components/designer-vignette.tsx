@@ -2,6 +2,7 @@ import { DEFAULT_DOMAIN_COLORS } from "@openrift/shared/domain-colors";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { Vignette, VignetteHeading } from "./vignette-parts";
 
@@ -56,14 +57,14 @@ function MiniCardPreview() {
       />
       <span
         role="img"
-        aria-label={`Energy ${CARD_ENERGY}`}
+        aria-label={m.decks_editor_energy({ value: CARD_ENERGY })}
         className="font-numeric text-2xs absolute top-[5%] left-[6%] flex size-4 items-center justify-center rounded-full bg-white/70 font-semibold text-black ring-1 ring-black/70"
       >
         {CARD_ENERGY}
       </span>
       <span
         role="img"
-        aria-label={`Might ${CARD_MIGHT}`}
+        aria-label={m.marketing_designer_might_aria({ value: CARD_MIGHT })}
         className="font-numeric text-2xs absolute top-[5%] right-[7%] flex h-4 items-stretch overflow-hidden font-semibold"
         style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 13% 100%)" }}
       >
@@ -91,24 +92,24 @@ function MiniCardPreview() {
 export function DesignerVignette() {
   return (
     <Vignette>
-      <VignetteHeading>Card details</VignetteHeading>
+      <VignetteHeading>{m.designer_form_title()}</VignetteHeading>
       <div className="flex items-start gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <ControlRow label="Name">
+          <ControlRow label={m.designer_field_name()}>
             <span className={FAKE_INPUT}>
               <span className="truncate">
                 {CARD_NAME}, {CARD_EPITHET}
               </span>
             </span>
           </ControlRow>
-          <ControlRow label="Domains">
+          <ControlRow label={m.designer_field_domains()}>
             <DomainSwatches />
           </ControlRow>
           <div className="grid grid-cols-2 gap-3">
-            <ControlRow label="Energy">
+            <ControlRow label={m.designer_field_energy()}>
               <span className={cn(FAKE_INPUT, "tabular-nums")}>{CARD_ENERGY}</span>
             </ControlRow>
-            <ControlRow label="Might">
+            <ControlRow label={m.designer_field_might()}>
               <span className={cn(FAKE_INPUT, "tabular-nums")}>{CARD_MIGHT}</span>
             </ControlRow>
           </div>

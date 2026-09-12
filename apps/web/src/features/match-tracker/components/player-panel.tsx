@@ -12,7 +12,7 @@ import {
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
 import type { MedallionSize, XpSize } from "@/features/tournaments/lib/match-layout";
-import { TEAM_CHIP, TEAM_LABELS, TEAM_PANEL_BORDER } from "@/features/tournaments/lib/match-teams";
+import { TEAM_CHIP, TEAM_PANEL_BORDER, teamLabels } from "@/features/tournaments/lib/match-teams";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
@@ -333,7 +333,7 @@ function TeamChip({ team }: { team: TeamId }) {
         TEAM_CHIP[team],
       )}
     >
-      {TEAM_LABELS[team]}
+      {teamLabels()[team]}
     </span>
   );
 }

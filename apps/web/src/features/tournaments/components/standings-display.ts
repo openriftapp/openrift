@@ -1,5 +1,7 @@
 import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 
+import { m } from "@/paraglide/messages.js";
+
 /**
  * Renders as an integer when whole, otherwise up to two decimals (avoids
  * rounding an average like 1.75 to 1.8).
@@ -35,9 +37,18 @@ export function rankedStandings<T extends PodStandingRow>(
 // Engine's tie-break chain below the score, in order. `podWins` is omitted:
 // the seat already shows the win count.
 const TIE_BREAKS: { read: (row: PodStandingRow) => number; label: (value: number) => string }[] = [
-  { read: (row) => row.avgOpponentScore, label: (value) => `opp ${formatScore(value)}` },
-  { read: (row) => row.gamePoints, label: (value) => `${formatScore(value)} game pts` },
-  { read: (row) => row.avgOpponentGamePoints, label: (value) => `opp game ${formatScore(value)}` },
+  {
+    read: (row) => row.avgOpponentScore,
+    label: (value) => m.tournaments_standings_tiebreak_opp({ value: formatScore(value) }),
+  },
+  {
+    read: (row) => row.gamePoints,
+    label: (value) => m.tournaments_standings_tiebreak_game_points({ value: formatScore(value) }),
+  },
+  {
+    read: (row) => row.avgOpponentGamePoints,
+    label: (value) => m.tournaments_standings_tiebreak_opp_game({ value: formatScore(value) }),
+  },
 ];
 
 /**
@@ -56,14 +67,19 @@ export function decidingTieBreak(row: PodStandingRow, other: PodStandingRow): st
   return null;
 }
 
-export const POD_WINS_HINT = "Pods won outright. A shared 1st place doesn't count.";
+export function podWinsHint(): string {
+  return m.tournaments_standings_pod_wins_hint();
+}
 
 /**
  * Swiss keeps W-L-D; the engine only tracks win/loss/draw for 1v1s, so an
  * FFA pod reports its win count instead.
  */
 export function formatPlayerRecord(row: PodStandingRow, swiss: boolean): string {
-  return swiss
-    ? `${row.wins}-${row.losses}-${row.draws}`
-    : `${row.podWins} pod win${row.podWins === 1 ? "" : "s"}`;
+  if (swiss) {
+    return `${row.wins}-${row.losses}-${row.draws}`;
+  }
+  return row.podWins === 1
+    ? m.tournaments_standings_pod_wins_one({ count: row.podWins })
+    : m.tournaments_standings_pod_wins_other({ count: row.podWins });
 }

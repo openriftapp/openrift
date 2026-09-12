@@ -2,6 +2,7 @@ import { API_FORMAT_HEADER, API_FORMAT_VERSION } from "@openrift/shared/contract
 import { toast } from "sonner";
 
 import { appendScanJournal, hasScanJournal } from "@/features/scan/lib/scan-journal";
+import { m } from "@/paraglide/messages.js";
 
 import { COMMIT_HASH } from "./env";
 import {
@@ -26,11 +27,11 @@ function announceNewVersion(reason: string): void {
   if (hasScanJournal()) {
     appendScanJournal({ type: "reload-prompt" });
   }
-  toast("A new version of OpenRift is available.", {
+  toast(m.common_new_version_available(), {
     id: NEW_VERSION_TOAST_ID,
     duration: Number.POSITIVE_INFINITY,
     action: {
-      label: "Reload",
+      label: m.common_reload(),
       onClick: () => forceReload(reason),
     },
   });

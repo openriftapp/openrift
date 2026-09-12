@@ -3,6 +3,7 @@ import { CardStageMain } from "@/features/stage/components/card-stage-main";
 import { PresentationStage } from "@/features/stage/components/presentation-stage";
 import type { PresentationItem } from "@/features/stage/lib/presentation-queue";
 import { resolveQueuePrintings } from "@/features/stage/lib/presentation-queue";
+import { m } from "@/paraglide/messages.js";
 
 export function QueuePresentation({
   printingIds,
@@ -28,7 +29,7 @@ export function QueuePresentation({
       index={index}
       onIndexChange={onIndexChange}
       onExit={onExit}
-      exitLabel="Back to the queue"
+      exitLabel={m.stage_exit_back_to_queue()}
     >
       <CardStageMain items={items} index={index} />
     </PresentationStage>

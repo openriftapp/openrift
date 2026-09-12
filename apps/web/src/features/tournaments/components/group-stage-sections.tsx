@@ -23,6 +23,7 @@ import {
 } from "@/features/tournaments/lib/group-cut-units";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
+import { m } from "@/paraglide/messages.js";
 
 import { PodCard } from "./pod-card";
 import { StartGroupRoundButton } from "./start-group-round-button";
@@ -106,14 +107,14 @@ function UnitProgressBadge({
   total: number;
 }) {
   if (unit.done) {
-    return <Badge variant="success">Done</Badge>;
+    return <Badge variant="success">{m.tournaments_group_unit_done()}</Badge>;
   }
   if (unit.roundsStarted === 0) {
-    return <Badge variant="muted">Not started</Badge>;
+    return <Badge variant="muted">{m.tournaments_group_unit_not_started()}</Badge>;
   }
   return (
     <Badge variant={reported === total ? "success" : "warning"}>
-      Round {unit.roundsStarted} · {reported} of {total} in
+      {m.tournaments_group_unit_progress({ round: unit.roundsStarted, reported, total })}
     </Badge>
   );
 }
@@ -166,7 +167,9 @@ function GroupUnitSection({
         <div className="flex flex-wrap items-center gap-2">
           <SectionHeading as="h3">{unit.label}</SectionHeading>
           <UnitProgressBadge unit={unit} reported={progress.reported} total={progress.total} />
-          {unit.paired ? <Badge variant="outline">One cross-group match each</Badge> : null}
+          {unit.paired ? (
+            <Badge variant="outline">{m.tournaments_group_cross_group_match()}</Badge>
+          ) : null}
         </div>
         {showStart ? (
           unit.canStartNextRound ? (
@@ -179,7 +182,9 @@ function GroupUnitSection({
             />
           ) : (
             <span className="text-muted-foreground text-sm">
-              {missing} result{missing === 1 ? "" : "s"} missing
+              {missing === 1
+                ? m.tournaments_group_results_missing_one({ count: missing })
+                : m.tournaments_group_results_missing_other({ count: missing })}
             </span>
           )
         ) : null}
@@ -264,7 +269,11 @@ function EarlierRound({
     <div className="flex flex-col gap-3">
       <ExpandToggle
         expanded={expanded}
-        aria-label={`${expanded ? "Collapse" : "Expand"} round ${roundNumber}`}
+        aria-label={
+          expanded
+            ? m.tournaments_group_round_collapse({ number: roundNumber })
+            : m.tournaments_group_round_expand({ number: roundNumber })
+        }
         className="text-muted-foreground max-w-full text-sm"
         onClick={() => {
           setExpanded((open) => !open);

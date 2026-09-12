@@ -16,6 +16,7 @@ import type { OverlayBoardScene } from "@/features/stage/lib/overlay-board-scene
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const CORNER_JUSTIFY: Record<OverlayCorner, string> = {
   "top-left": "justify-start",
@@ -136,7 +137,7 @@ function OverlayBoardPanel({
 function OverlayFooter({ qrUrl }: { qrUrl: string | null }) {
   return (
     <div className="flex items-end gap-3">
-      {qrUrl && <QrCode value={qrUrl} size={92} label="QR code for the linked page" />}
+      {qrUrl && <QrCode value={qrUrl} size={92} label={m.stage_overlay_qr_alt()} />}
       <span className="pb-1 font-mono text-sm tracking-widest text-white/45">
         {new URL(getSiteUrl()).host}
       </span>

@@ -4,6 +4,7 @@ import { SettingsSection } from "@/components/layout/settings-section";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
+import { m } from "@/paraglide/messages.js";
 
 export function RegionsSection({
   detail,
@@ -25,8 +26,8 @@ export function RegionsSection({
   return (
     <SettingsSection
       id="regions"
-      title="Regions"
-      description="Pairings avoid same-region matchups, and standings add a per-region leaderboard."
+      title={m.tournaments_settings_regions_title()}
+      description={m.tournaments_settings_regions_description()}
     >
       <div className="flex items-center gap-3">
         <Switch
@@ -35,7 +36,7 @@ export function RegionsSection({
           disabled={locked || updateTournament.isPending}
           onCheckedChange={(checked) => void toggle(checked)}
         />
-        <Label htmlFor="t-regions">Track player regions</Label>
+        <Label htmlFor="t-regions">{m.tournaments_settings_regions_toggle()}</Label>
       </div>
     </SettingsSection>
   );

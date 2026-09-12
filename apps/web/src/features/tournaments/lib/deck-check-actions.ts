@@ -5,6 +5,8 @@ import type {
 } from "@openrift/shared/types/api/deck-check";
 import { CheckIcon, RotateCcwIcon, ThumbsUpIcon } from "lucide-react";
 
+import { m } from "@/paraglide/messages.js";
+
 interface JudgeActionEntry {
   state: DeckCheckEntryState;
   reviewOutcome: DeckCheckReviewOutcome | null;
@@ -29,19 +31,36 @@ export function primaryActionFor(state: DeckCheckEntryDetailResponse["entry"]["s
 } | null {
   switch (state) {
     case "editable": {
-      return { label: "Lock as submitted", icon: CheckIcon, state: "submitted" };
+      return { label: m.tournaments_lib_deck_action_lock(), icon: CheckIcon, state: "submitted" };
     }
     case "submitted": {
-      return { label: "Approve list", icon: ThumbsUpIcon, state: "approved" };
+      return {
+        label: m.tournaments_lib_deck_action_approve(),
+        icon: ThumbsUpIcon,
+        state: "approved",
+      };
     }
     case "approved": {
-      return { label: "Mark checked", icon: CheckIcon, state: "checked", reviewOutcome: "ok" };
+      return {
+        label: m.tournaments_lib_deck_action_mark_checked(),
+        icon: CheckIcon,
+        state: "checked",
+        reviewOutcome: "ok",
+      };
     }
     case "checked": {
-      return { label: "Re-open", icon: RotateCcwIcon, state: "submitted" };
+      return {
+        label: m.tournaments_lib_deck_action_reopen(),
+        icon: RotateCcwIcon,
+        state: "submitted",
+      };
     }
     case "withdrawn": {
-      return { label: "Restore entry", icon: RotateCcwIcon, state: "submitted" };
+      return {
+        label: m.tournaments_lib_deck_action_restore(),
+        icon: RotateCcwIcon,
+        state: "submitted",
+      };
     }
     default: {
       return null;

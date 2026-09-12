@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -78,18 +79,20 @@ export function TestVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] 
       <div className="flex flex-wrap items-center gap-2">
         <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
           <RotateCcwIcon className="size-4" />
-          Draw a hand
+          {m.decks_editor_draw_hand()}
           <Kbd className="max-sm:hidden">N</Kbd>
         </span>
         <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
-          Mulligan
+          {m.decks_editor_mulligan()}
           <Kbd className="max-sm:hidden">M</Kbd>
         </span>
         <span aria-hidden="true" className={cn(buttonVariants({ variant: "outline" }))}>
-          Draw a card
+          {m.decks_editor_draw_card()}
           <Kbd className="max-sm:hidden">D</Kbd>
         </span>
-        <span className="text-muted-foreground text-xs tabular-nums">35 left in deck</span>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {m.decks_editor_left_in_deck({ count: 35 })}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-start gap-2">
@@ -106,23 +109,25 @@ export function TestVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] 
 
       <div>
         <div className="text-muted-foreground text-2xs mb-1.5 font-semibold tracking-wide uppercase">
-          Draw odds
+          {m.decks_odds_draw_title()}
         </div>
         <div className="overflow-hidden rounded-md border">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground text-xs">
-                <th className="px-2 py-1.5 text-left font-medium">Card</th>
-                <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">Hand</th>
+                <th className="px-2 py-1.5 text-left font-medium">{m.decks_odds_col_card()}</th>
                 <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">
-                  First 7
+                  {m.decks_odds_col_hand()}
+                </th>
+                <th className="w-px px-2 py-1.5 text-right font-medium whitespace-nowrap">
+                  {m.decks_odds_col_first_seven()}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr className="bg-muted/50 border-t">
                 <td className="max-w-0 truncate px-2 py-1">
-                  Turn-1 unit going first (≤2 energy){" "}
+                  {m.marketing_test_turn_one()}{" "}
                   <span className="text-muted-foreground tabular-nums">· 9</span>
                 </td>
                 <td className="w-px px-2 py-1 text-right whitespace-nowrap tabular-nums">67%</td>
@@ -145,9 +150,7 @@ export function TestVignette({ thumbnailUrls = [] }: { thumbnailUrls?: string[] 
             </tbody>
           </table>
         </div>
-        <p className="text-muted-foreground text-2xs mt-1.5">
-          Chance of at least one copy in your opening hand, and anywhere in your first 7 cards.
-        </p>
+        <p className="text-muted-foreground text-2xs mt-1.5">{m.decks_odds_draw_footnote()}</p>
       </div>
     </ClipFrame>
   );

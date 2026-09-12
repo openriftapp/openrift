@@ -26,6 +26,7 @@ import {
   validateMetaEventCorrectionDraft,
 } from "@/features/meta/lib/meta-event-correction-form";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 /** Submits to the review queue; nothing here edits the event, an admin applies it by hand. */
 export function MetaEventCorrectionDialog({
@@ -80,11 +81,9 @@ export function MetaEventCorrectionDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogForm onSubmit={() => void handleSubmit()}>
           <DialogHeader>
-            <DialogTitle>Suggest a correction</DialogTitle>
+            <DialogTitle>{m.meta_correction_title()}</DialogTitle>
             <DialogDescription>
-              {sent
-                ? "Thank you. Someone reads every correction by hand, so this can take a while."
-                : "Change what the archive has wrong about this tournament. Nothing changes until someone reads it."}
+              {sent ? m.meta_correction_sent() : m.meta_correction_description()}
             </DialogDescription>
           </DialogHeader>
 
@@ -92,19 +91,23 @@ export function MetaEventCorrectionDialog({
             <div className="max-h-[60vh] overflow-y-auto py-2">
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-note">What&apos;s wrong</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-note">
+                    {m.meta_correction_whats_wrong()}
+                  </FieldLabel>
                   <Textarea
                     id="meta-correction-note"
                     value={draft.note}
                     rows={3}
                     maxLength={2000}
-                    placeholder="What we got wrong, and where you saw the right version"
+                    placeholder={m.meta_correction_note_placeholder()}
                     onChange={(e) => set("note", e.target.value)}
                   />
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-name">Tournament name</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-name">
+                    {m.meta_correction_event_name()}
+                  </FieldLabel>
                   <Input
                     id="meta-correction-name"
                     value={draft.name}
@@ -114,7 +117,9 @@ export function MetaEventCorrectionDialog({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-date">Day it was played</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-date">
+                    {m.meta_correction_event_date()}
+                  </FieldLabel>
                   <DatePicker
                     value={draft.eventDate}
                     onChange={(iso) => set("eventDate", iso)}
@@ -124,7 +129,9 @@ export function MetaEventCorrectionDialog({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-players">How many played</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-players">
+                    {m.meta_correction_players()}
+                  </FieldLabel>
                   <Input
                     id="meta-correction-players"
                     inputMode="numeric"
@@ -135,7 +142,9 @@ export function MetaEventCorrectionDialog({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-organizer">Who ran it</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-organizer">
+                    {m.meta_correction_organizer()}
+                  </FieldLabel>
                   <Input
                     id="meta-correction-organizer"
                     value={draft.organizer}
@@ -146,7 +155,9 @@ export function MetaEventCorrectionDialog({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-location">Venue</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-location">
+                    {m.meta_correction_venue()}
+                  </FieldLabel>
                   <Input
                     id="meta-correction-location"
                     value={draft.location}
@@ -157,7 +168,9 @@ export function MetaEventCorrectionDialog({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="meta-correction-country">Country</FieldLabel>
+                  <FieldLabel htmlFor="meta-correction-country">
+                    {m.meta_correction_country()}
+                  </FieldLabel>
                   <Input
                     id="meta-correction-country"
                     value={draft.country}
@@ -166,13 +179,14 @@ export function MetaEventCorrectionDialog({
                     className="w-20 uppercase"
                     onChange={(e) => set("country", e.target.value)}
                   />
-                  <FieldDescription>Two-letter code, like DE or US.</FieldDescription>
+                  <FieldDescription>{m.meta_correction_country_hint()}</FieldDescription>
                 </Field>
 
                 <Field>
                   <FieldDescription>
-                    The format stays as we have it ({formatLabels[event.format] ?? event.format}).
-                    If that is wrong too, say so in the note.
+                    {m.meta_correction_format_hint({
+                      format: formatLabels[event.format] ?? event.format,
+                    })}
                   </FieldDescription>
                 </Field>
               </FieldGroup>
@@ -188,11 +202,11 @@ export function MetaEventCorrectionDialog({
 
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>
-              {sent ? "Close" : "Cancel"}
+              {sent ? m.common_close() : m.common_cancel()}
             </DialogClose>
             {!sent && (
               <Button type="submit" disabled={submit.isPending}>
-                {submit.isPending ? "Sending…" : "Send the correction"}
+                {submit.isPending ? m.meta_correction_sending() : m.meta_correction_send()}
               </Button>
             )}
           </DialogFooter>

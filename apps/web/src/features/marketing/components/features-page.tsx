@@ -19,6 +19,7 @@ import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnai
 import { useSession } from "@/lib/auth-session";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { BoxVignette } from "./box-vignette";
 import { CatalogVignette } from "./catalog-vignette";
@@ -37,7 +38,7 @@ import {
   FeatureSection,
   SectionRule,
 } from "./feature-section";
-import { FEATURE_CHAPTERS } from "./features-chapters";
+import { featureChapters } from "./features-chapters";
 import { FeaturesHero } from "./features-hero";
 import { FeaturesChipNav, FeaturesRail } from "./features-nav";
 import { GroupsVignette } from "./groups-vignette";
@@ -98,19 +99,17 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
     <Reveal>
       <section className="flex flex-col items-start gap-4 py-14 sm:py-20">
         <Heading level={1} as="h2" className={FEATURE_HEADING_CLASS}>
-          Fast. Free. No ads. Open source.
+          {m.marketing_features_closing_title()}
         </Heading>
         <SectionRule />
-        <p className="text-muted-foreground max-w-prose">
-          OpenRift is built by one person, with help welcome. The code is on GitHub.
-        </p>
+        <p className="text-muted-foreground max-w-prose">{m.marketing_features_closing_body()}</p>
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/cards"
             className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
             style={{ clipPath: cornerClip(CTA_CUT) }}
           >
-            Browse cards
+            {m.collections_activity_browse_cards()}
           </Link>
           {signedOut && (
             <span
@@ -123,7 +122,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
                 className="bg-background hover:bg-secondary focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
                 style={{ clipPath: cornerClip(CTA_CUT) }}
               >
-                Sign up free
+                {m.card_detail_nudge_signup()}
               </Link>
             </span>
           )}
@@ -137,7 +136,7 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
           <svg role="img" viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden="true">
             <path d={siGithub.path} />
           </svg>
-          OpenRift on GitHub
+          {m.marketing_features_closing_github()}
         </TextLink>
       </section>
     </Reveal>
@@ -188,53 +187,47 @@ export function FeaturesPage() {
       fulls: [
         {
           id: "catalog",
-          title: "All the cards, easy to browse",
-          description:
-            "OpenRift aims to have all cards and promos catalogued in all available languages. Currently that means English, Chinese, French, and Korean printings and around 800 promos. We have exhaustive filtering and sorting options, so you can easily find the cards you're looking for.",
-          action: sectionAction("Open the catalog", "/cards"),
+          title: m.marketing_features_catalog_title(),
+          description: m.marketing_features_catalog_description(),
+          action: sectionAction(m.marketing_features_action_open_catalog(), "/cards"),
           vignette: <CatalogVignette thumbnails={taggedThumbnails} cardCount={data?.cardCount} />,
         },
         {
           id: "import",
-          title: "Import from anywhere, export anytime",
-          description:
-            "Moving in from another tool, or just want to try things out? You can start your OpenRift collection by pasting a plain text list or uploading a CSV from Piltover Archive, RiftCore, or RiftMana. Nothing to convert, nothing to retype. If you ever want to leave, you can export your collection back to those formats (and more).",
-          action: sectionAction("Import now", "/collections/import"),
+          title: m.marketing_features_import_title(),
+          description: m.marketing_features_import_description(),
+          action: sectionAction(m.marketing_features_action_import_now(), "/collections/import"),
           vignette: <ImportVignette />,
           flip: true,
         },
         {
           id: "scan",
-          title: "Scan cards with your phone",
-          description:
-            "Point your camera at a card and it appears in a list on your device, with its price and whether you own it already. One button adds the whole list to a collection when you are done. The scanner works offline, is not fooled easily by bad lighting, and takes less than a second to recognize cards on modern phones. Works with desktop webcams as well. No usage limits and completely free.",
-          action: sectionAction("Open the scanner", "/scan"),
+          title: m.marketing_features_scan_title(),
+          description: m.marketing_features_scan_description(),
+          action: sectionAction(m.marketing_features_action_open_scanner(), "/scan"),
           vignette: <ScanVignette cards={thumbnailCards.slice(8, 12)} />,
           emphasis: true,
         },
         {
           id: "collections",
-          title: "Unlimited collections, organized your way",
-          description:
-            "Create as many as you like: binders, storage drawers, shoe boxes, deck boxes. View them separately, or all together. Never lose track of where you put that card again.",
-          action: sectionAction("Open collections", "/collections"),
+          title: m.marketing_features_collections_title(),
+          description: m.marketing_features_collections_description(),
+          action: sectionAction(m.marketing_features_action_open_collections(), "/collections"),
           vignette: <CollectionsVignette thumbnailUrls={thumbnailUrls.slice(4, 7)} />,
           flip: true,
         },
         {
           id: "lists",
-          title: "Lists that maintain themselves",
-          description:
-            'Fill a list by hand, by rule, or both. A rule is the card browser\'s entire filter language pointed at a list, and every dimension can exclude as well as include. A rule could be "A playset of every Origins printing I\'m still missing, in English, no metal printings". Lists can combine multiple rules as well. Tradelists run the same machinery in reverse, e.g. "Keep three of each card and offer the surplus."',
-          action: sectionAction("Open your lists", "/collections"),
+          title: m.marketing_features_lists_title(),
+          description: m.marketing_features_lists_description(),
+          action: sectionAction(m.marketing_features_action_open_your_lists(), "/collections"),
           vignette: <ListsVignette />,
         },
         {
           id: "prices",
-          title: "Three marketplaces, side by side",
-          description:
-            "Daily prices from TCGplayer, Cardmarket, and CardTrader on every printing, with history charts showing where a card has been heading. Your collection's total value is tracked over time too, for any marketplace and any set of your collections.",
-          action: sectionAction("Open the catalog", "/cards"),
+          title: m.marketing_features_prices_title(),
+          description: m.marketing_features_prices_description(),
+          action: sectionAction(m.marketing_features_action_open_catalog(), "/cards"),
           vignette: <PricesVignette />,
           flip: true,
         },
@@ -242,10 +235,9 @@ export function FeaturesPage() {
       cards: [
         {
           id: "promos",
-          title: "Every promo stamp, every source",
-          description:
-            "Stamps like Promo, Judge and Prerelease are tracked per printing. Where the card was handed out is a separate axis, a channel tree four levels deep. You can group the page by either.",
-          action: sectionAction("See all promos", "/promos"),
+          title: m.marketing_features_promos_title(),
+          description: m.marketing_features_promos_description(),
+          action: sectionAction(m.marketing_features_action_see_all_promos(), "/promos"),
           vignette: <PromosVignette sections={data?.promoSections} />,
         },
       ],
@@ -255,36 +247,32 @@ export function FeaturesPage() {
       fulls: [
         {
           id: "decks",
-          title: "Deck building, strict or freeform",
-          description:
-            "Legality checked against the official rules as you build, or switched off entirely. Energy curves, matchup plans, and deck codes that other tools can read.",
-          action: sectionAction("Build a deck", "/decks"),
+          title: m.marketing_features_decks_title(),
+          description: m.marketing_features_decks_description(),
+          action: sectionAction(m.marketing_features_action_build_a_deck(), "/decks"),
           vignette: <DecksVignette />,
         },
       ],
       cards: [
         {
           id: "variants",
-          title: "One deck, many variants",
-          description:
-            "Fork a deck to try a change without losing the build that works. Each variant sits on a small graph showing what you added and what you cut.",
-          action: sectionAction("Open your decks", "/decks"),
+          title: m.marketing_features_variants_title(),
+          description: m.marketing_features_variants_description(),
+          action: sectionAction(m.marketing_features_action_open_your_decks(), "/decks"),
           vignette: <VariantsVignette />,
         },
         {
           id: "test",
-          title: "Test a deck before you sleeve it",
-          description:
-            "Deal sample opening hands and try the mulligan. The odds table gives every card's chance of landing in the opening four, and anywhere in your first seven.",
-          action: sectionAction("Open your decks", "/decks"),
+          title: m.marketing_features_test_title(),
+          description: m.marketing_features_test_description(),
+          action: sectionAction(m.marketing_features_action_open_your_decks(), "/decks"),
           vignette: <TestVignette thumbnailUrls={thumbnailUrls.slice(18, 23)} />,
         },
         {
           id: "box",
-          title: "From decklist to deck box",
-          description:
-            "Link a deck to the box you keep it in, then tick each card off as it goes in. Missing and surplus are counted for you, and each row names which copy to pull and which collection it's sitting in.",
-          action: sectionAction("Open your decks", "/decks"),
+          title: m.marketing_features_box_title(),
+          description: m.marketing_features_box_description(),
+          action: sectionAction(m.marketing_features_action_open_your_decks(), "/decks"),
           vignette: <BoxVignette />,
         },
       ],
@@ -294,10 +282,9 @@ export function FeaturesPage() {
       fulls: [
         {
           id: "tournaments",
-          title: "From pod night to store event",
-          description:
-            "Swiss pairings for 1v1, pods for three or four players, and fixed teams for 2v2. Deck submission, judges, and deck checks are optional per tournament. Players report their own results from a link, and spectators can follow the standings.",
-          action: sectionAction("Open tournaments", "/tournaments"),
+          title: m.marketing_features_tournaments_title(),
+          description: m.marketing_features_tournaments_description(),
+          action: sectionAction(m.marketing_features_action_open_tournaments(), "/tournaments"),
           vignette: <TournamentsVignette />,
           flip: true,
         },
@@ -305,17 +292,16 @@ export function FeaturesPage() {
       cards: [
         {
           id: "rules",
-          title: "The rules, down to the paragraph",
-          description:
-            "Every core and tournament rule, filtered as you type. Game terms and cross-references are jump links, so you land on the exact ruling instead of scrolling a PDF. Older versions stay online with the changes since the last one marked up.",
-          action: sectionAction("Open the rules", "/rules"),
+          title: m.marketing_features_rules_title(),
+          description: m.marketing_features_rules_description(),
+          action: sectionAction(m.marketing_features_action_open_rules(), "/rules"),
           vignette: <RulesVignette />,
         },
         {
           id: "tracker",
-          title: "Keep score at the table",
-          description: "Track points and XP in 1v1, 2v2 and FFA games, on one phone.",
-          action: sectionAction("Open the match tracker", "/match-tracker"),
+          title: m.marketing_features_tracker_title(),
+          description: m.marketing_features_tracker_description(),
+          action: sectionAction(m.marketing_features_action_open_tracker(), "/match-tracker"),
           vignette: <TrackerVignette thumbnailUrls={thumbnailUrls.slice(12, 14)} />,
         },
       ],
@@ -325,62 +311,59 @@ export function FeaturesPage() {
       fulls: [
         {
           id: "groups",
-          title: "Trade inside your playgroup",
-          description:
-            "Start a private group for your store crew or your kitchen table. Each group's card sums up what's waiting inside: trades you could make, requests waiting on your answer, and swaps left to confirm. A group can also hold shared collections: a bulk box of spares anyone can take from, or the one collection you and a partner keep together.",
-          action: sectionAction("Open your groups", "/groups"),
+          title: m.marketing_features_groups_title(),
+          description: m.marketing_features_groups_description(),
+          action: sectionAction(m.marketing_features_action_open_your_groups(), "/groups"),
           vignette: <GroupsVignette thumbnailUrls={tradeStripUrls} />,
         },
         {
           id: "trade-match",
-          eyebrow: "Step 1 of 5",
+          eyebrow: m.marketing_features_trade_eyebrow_1(),
           compact: true,
-          title: "It starts with a match",
-          description:
-            "Your wishlist meets everyone's tradelists, across the lists people have shared with the group. The group's band leads with the cards you could pick up, so you see the opportunity before you go looking for it.",
-          action: sectionAction("Open your groups", "/groups"),
+          title: m.marketing_features_trade_match_title(),
+          description: m.marketing_features_trade_match_description(),
+          action: sectionAction(m.marketing_features_action_open_your_groups(), "/groups"),
           vignette: <TradeMatchVignette thumbnailUrls={tradeStripUrls} />,
           flip: true,
         },
         {
           id: "trade-request",
-          eyebrow: "Step 2 of 5",
+          eyebrow: m.marketing_features_trade_eyebrow_2(),
           compact: true,
-          title: "Ask for the one you want",
-          description:
-            "Every suggestion says whose copy it is, what condition it is in, and which of your lists asked for it. One press sends the request, and they have a week to answer before it lapses on its own.",
-          action: sectionAction("Open your trades", "/trades"),
+          title: m.marketing_features_trade_request_title(),
+          description: m.marketing_features_trade_request_description(),
+          action: sectionAction(m.marketing_features_action_open_your_trades(), "/trades"),
           vignette: <TradeRequestVignette card={tradedFlowCard} />,
         },
         {
           id: "trade-reserved",
-          eyebrow: "Step 3 of 5",
+          eyebrow: m.marketing_features_trade_eyebrow_3(),
           compact: true,
-          title: "They accept, the copy is held",
-          description:
-            "An accepted trade reserves that exact copy. It stops counting for their decks and drops out of everyone else's suggestions, so two people are never promised the same card.",
-          action: sectionAction("Open your trades", "/trades"),
+          title: m.marketing_features_trade_reserved_title(),
+          description: m.marketing_features_trade_reserved_description(),
+          action: sectionAction(m.marketing_features_action_open_your_trades(), "/trades"),
           vignette: <TradeReservedVignette card={tradedFlowCard} />,
           flip: true,
         },
         {
           id: "trade-settle",
-          eyebrow: "Step 4 of 5",
+          eyebrow: m.marketing_features_trade_eyebrow_4(),
           compact: true,
-          title: "Swap at the table, confirm in the app",
-          description:
-            "You meet up and trade the cards. Then each of you confirms your own half: theirs takes the copy out of their collection, yours puts it into whichever collection you pick. Neither side can log the swap on the other's behalf.",
-          action: sectionAction("Open your trades", "/trades"),
+          title: m.marketing_features_trade_settle_title(),
+          description: m.marketing_features_trade_settle_description(),
+          action: sectionAction(m.marketing_features_action_open_your_trades(), "/trades"),
           vignette: <TradeSettleVignette />,
         },
         {
           id: "trade-arrived",
-          eyebrow: "Step 5 of 5",
+          eyebrow: m.marketing_features_trade_eyebrow_5(),
           compact: true,
-          title: "It lands in your collection",
-          description:
-            "The copy is yours, gone from theirs, and off your wishlist. Your decks can use it straight away, and the group's traded count moves. Nothing else in OpenRift spans two people and two collections.",
-          action: sectionAction("Open your collections", "/collections"),
+          title: m.marketing_features_trade_arrived_title(),
+          description: m.marketing_features_trade_arrived_description(),
+          action: sectionAction(
+            m.marketing_features_action_open_your_collections(),
+            "/collections",
+          ),
           vignette: <TradeArrivedVignette card={tradedFlowCard} />,
           flip: true,
         },
@@ -388,25 +371,22 @@ export function FeaturesPage() {
       cards: [
         {
           id: "loans",
-          title: "Know where your cards are",
-          description:
-            "Lend cards to a friend and OpenRift remembers who has them. A lent copy stays in your collection but stops counting for decks and trades until you mark it returned.",
-          action: sectionAction("Open your loans", "/loans"),
+          title: m.marketing_features_loans_title(),
+          description: m.marketing_features_loans_description(),
+          action: sectionAction(m.marketing_features_action_open_your_loans(), "/loans"),
           vignette: <LoansVignette />,
         },
         {
           id: "share",
-          title: "Share anything with one link",
-          description:
-            "Paste a deck link into chat and it unfurls into a preview with the cards, the format, and who built it. The same works for collections, lists, and tier lists. Or download it as an image sized for a post or a vertical story, up to 4K.",
-          action: sectionAction("Open your decks", "/decks"),
+          title: m.marketing_features_share_title(),
+          description: m.marketing_features_share_description(),
+          action: sectionAction(m.marketing_features_action_open_your_decks(), "/decks"),
           vignette: <ShareVignette />,
         },
         {
           id: "discord",
-          title: "A bot for your Discord server",
-          description:
-            "Type [[card name]] and the bot replies with the art, a link, and prices from TCGplayer, Cardmarket, and CardTrader. Link the server to your group and it also says who has the card on their tradelist. Slash commands unfurl deck codes and look up rulings.",
+          title: m.marketing_features_discord_title(),
+          description: m.marketing_features_discord_description(),
           action: (
             <TextLink
               href={SOCIAL_LINKS.discordBotInvite}
@@ -414,7 +394,7 @@ export function FeaturesPage() {
               rel="noreferrer"
               className={FEATURE_ACTION_CLASS}
             >
-              Add the bot to your server
+              {m.marketing_features_action_add_bot()}
               <ActionArrow />
             </TextLink>
           ),
@@ -427,18 +407,16 @@ export function FeaturesPage() {
       fulls: [
         {
           id: "stage",
-          title: "Put cards on stream",
-          description:
-            "Queue up cards and show them two ways: a full-screen view for window capture, or a transparent overlay you paste into OBS as a browser source. Both run off the same queue, and the show is driven from the keyboard, so you can step through a reveal without looking away from the camera.",
-          action: sectionAction("Open the Stage", "/stage"),
+          title: m.marketing_features_stage_title(),
+          description: m.marketing_features_stage_description(),
+          action: sectionAction(m.marketing_features_action_open_stage(), "/stage"),
           vignette: <StageVignette thumbnailUrls={thumbnailUrls.slice(23, 24)} />,
         },
         {
           id: "tier-lists",
-          title: "Rank a set on a board",
-          description:
-            "Drag cards out of the catalog onto a board and stack them into rows you name yourself, adding and reordering tiers as the argument develops. Share the finished board as a link, download it as an image for a thumbnail, or open it on the Stage and fill it in live while chat weighs in.",
-          action: sectionAction("Open the tier list maker", "/tier-lists"),
+          title: m.marketing_features_tier_lists_title(),
+          description: m.marketing_features_tier_lists_description(),
+          action: sectionAction(m.marketing_features_action_open_tier_lists(), "/tier-lists"),
           vignette: <TierListVignette legendUrls={legendUrls} />,
           flip: true,
         },
@@ -446,15 +424,14 @@ export function FeaturesPage() {
       cards: [
         {
           id: "chat-lookups",
-          title: "Card lookups in chat",
-          description:
-            "Paste one line into Nightbot, StreamElements, or Fossabot and viewers can look up any card without leaving chat. The reply carries the stats and a link, and a name that matches nothing comes back as a search instead of an error.",
+          title: m.marketing_features_chat_title(),
+          description: m.marketing_features_chat_description(),
           action: (
             <TextLink
               className={FEATURE_ACTION_CLASS}
               render={<Link to="/help/$slug" params={{ slug: "chat-commands" }} />}
             >
-              Set up the command
+              {m.marketing_features_action_setup_command()}
               <ActionArrow />
             </TextLink>
           ),
@@ -462,29 +439,30 @@ export function FeaturesPage() {
         },
         {
           id: "designer",
-          title: "Design your own cards",
-          description:
-            "Fill in the name, type, domains, stats, and rules text, add your own art, and the card renders as you type. Download it as a PNG or copy it straight to the clipboard.",
-          action: sectionAction("Open the card designer", "/card-designer"),
+          title: m.marketing_features_designer_title(),
+          description: m.marketing_features_designer_description(),
+          action: sectionAction(m.marketing_features_action_open_designer(), "/card-designer"),
           vignette: <DesignerVignette />,
         },
       ],
     },
   ];
 
+  const chapterList = featureChapters();
+
   return (
     <PageTopBarHeightContext value={topBarHeight}>
       <PageTopBarSticky width="capped" ref={setTopBarSlot}>
         <PageTopBar>
-          <PageTopBarTitle>Features</PageTopBarTitle>
+          <PageTopBarTitle>{m.footer_features()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
-      <FeaturesChipNav chapters={FEATURE_CHAPTERS} />
-      <FeaturesRail chapters={FEATURE_CHAPTERS} />
-      <FeaturesHero chapters={FEATURE_CHAPTERS} thumbnailUrls={thumbnailUrls.slice(0, 5)} />
+      <FeaturesChipNav chapters={chapterList} />
+      <FeaturesRail chapters={chapterList} />
+      <FeaturesHero chapters={chapterList} thumbnailUrls={thumbnailUrls.slice(0, 5)} />
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP)}>
         {chapters.map((content) => {
-          const chapter = FEATURE_CHAPTERS.find((entry) => entry.id === content.chapterId);
+          const chapter = chapterList.find((entry) => entry.id === content.chapterId);
           if (!chapter) {
             return null;
           }

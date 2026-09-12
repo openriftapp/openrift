@@ -11,6 +11,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
 import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const DIAGRAM_SHORT_CODES = ["OGN-007", "OGN-007a", "SFD-R01b"];
 
@@ -43,21 +44,25 @@ export default function CardsPrintingsCopiesArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        OpenRift organizes the Riftbound catalog using three levels:{" "}
-        <strong className="text-foreground">cards</strong>,{" "}
-        <strong className="text-foreground">printings</strong>, and{" "}
-        <strong className="text-foreground">copies</strong>.
+        {m.help_cards_printings_copies_intro_before()}
+        <strong className="text-foreground">{m.help_cards_printings_copies_term_cards()}</strong>
+        {m.help_cards_printings_copies_intro_sep()}
+        <strong className="text-foreground">
+          {m.help_cards_printings_copies_term_printings()}
+        </strong>
+        {m.help_cards_printings_copies_intro_and()}
+        <strong className="text-foreground">{m.help_cards_printings_copies_term_copies()}</strong>.
       </p>
 
       <Callout>
         <div className="flex flex-col items-center gap-3 text-sm">
           <div className="bg-primary/10 text-primary w-full rounded-md px-4 py-2.5 text-center font-semibold">
-            Card: &quot;Fury Rune&quot;
+            {m.help_cards_printings_copies_diagram_card()}
           </div>
           <Arrow />
           <div className="bg-primary/10 w-full rounded-md p-3">
             <span className="text-primary mb-2 block text-center font-semibold tracking-wide">
-              Printings
+              {m.help_cards_printings_copies_view_printings()}
             </span>
             <div className="flex flex-col gap-2 sm:flex-row">
               <PrintingCard
@@ -80,7 +85,7 @@ export default function CardsPrintingsCopiesArticle() {
           <Arrow />
           <div className="bg-primary/10 w-full rounded-md p-3">
             <span className="text-primary mb-2 block text-center font-semibold tracking-wide">
-              Copies
+              {m.help_cards_printings_copies_view_copies()}
             </span>
             <div className="flex justify-center gap-6">
               {DIAGRAM_SHORT_CODES.map((code) => {
@@ -105,7 +110,10 @@ export default function CardsPrintingsCopiesArticle() {
                         >
                           <CardImage
                             src={image}
-                            alt={`${code} copy ${index + 1}`}
+                            alt={m.help_cards_printings_copies_copy_alt({
+                              code,
+                              index: index + 1,
+                            })}
                             className="h-full w-full shadow-sm"
                           />
                         </div>
@@ -121,42 +129,43 @@ export default function CardsPrintingsCopiesArticle() {
       </Callout>
 
       <section>
-        <Heading className="mb-2">Cards</Heading>
+        <Heading className="mb-2">{m.help_cards_printings_copies_view_cards()}</Heading>
         <p className="text-muted-foreground">
-          A <strong className="text-foreground">card</strong> is the game concept itself: the name,
-          rules text, type, domains, stats, and keywords. It&apos;s the same card regardless of
-          which set or art it appears in. &quot;Fury Rune&quot; is a card no matter how many times
-          it has been printed.
+          {m.help_cards_printings_copies_cards_p1_before()}
+          <strong className="text-foreground">{m.help_cards_printings_copies_term_card()}</strong>
+          {m.help_cards_printings_copies_cards_p1_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          In the <TextLink href="/cards">browser</TextLink>,{" "}
-          <strong className="text-foreground">Cards</strong> view shows one entry per unique card.
-          Use it to answer &quot;do I have this card at all?&quot; The detail panel lists every
-          available printing under <em>Printings</em>.
+          {m.help_cards_printings_copies_cards_p2_before()}
+          <TextLink href="/cards">{m.help_cards_printings_copies_browser_link()}</TextLink>
+          {m.help_cards_printings_copies_cards_p2_mid()}
+          <strong className="text-foreground">{m.help_cards_printings_copies_view_cards()}</strong>
+          {m.help_cards_printings_copies_cards_p2_after()}
+          <em>{m.help_cards_printings_copies_view_printings()}</em>.
         </p>
         <ExampleTable
           rows={[
             [
-              "Name",
+              m.help_cards_printings_copies_field_name(),
               <strong key="fury-rune">Fury Rune</strong>,
               <strong key="zero-drive">The Zero Drive</strong>,
               <strong key="master-yi">Master Yi, Unstoppable</strong>,
             ],
-            ["Type", "Rune", "Gear", "Unit"],
-            ["Supertypes", "Basic", null, "Champion"],
-            ["Domains", "Fury", "Mind", "Calm"],
-            ["Might", null, null, "12"],
-            ["Energy", null, "3", "12"],
-            ["Power", null, null, "3"],
-            ["Might Bonus", null, "2", null],
+            [m.help_cards_printings_copies_field_type(), "Rune", "Gear", "Unit"],
+            [m.help_cards_printings_copies_field_supertypes(), "Basic", null, "Champion"],
+            [m.help_cards_printings_copies_field_domains(), "Fury", "Mind", "Calm"],
+            [m.help_cards_printings_copies_field_might(), null, null, "12"],
+            [m.help_cards_printings_copies_field_energy(), null, "3", "12"],
+            [m.help_cards_printings_copies_field_power(), null, null, "3"],
+            [m.help_cards_printings_copies_field_might_bonus(), null, "2", null],
             [
-              "Keywords",
+              m.help_cards_printings_copies_field_keywords(),
               null,
               <CardText key="kw" text="[Equip], [Deathknell]" interactive={false} />,
               null,
             ],
             [
-              "Rules Text",
+              m.help_cards_printings_copies_field_rules_text(),
               null,
               <CardText
                 key="rules"
@@ -166,7 +175,7 @@ export default function CardsPrintingsCopiesArticle() {
               null,
             ],
             [
-              "Effect Text",
+              m.help_cards_printings_copies_field_effect_text(),
               null,
               <CardText
                 key="effect"
@@ -180,73 +189,87 @@ export default function CardsPrintingsCopiesArticle() {
       </section>
 
       <section>
-        <Heading className="mb-2">Printings</Heading>
+        <Heading className="mb-2">{m.help_cards_printings_copies_view_printings()}</Heading>
         <p className="text-muted-foreground">
-          A <strong className="text-foreground">printing</strong> is a specific physical version of
-          a card. It belongs to a set (like Origins or Spiritforged) and has its own short code,
-          rarity, finish, art variant, artist, language, and printed text. Each printing has its own
-          image and market price.
+          {m.help_cards_printings_copies_printings_p1_before()}
+          <strong className="text-foreground">
+            {m.help_cards_printings_copies_term_printing()}
+          </strong>
+          {m.help_cards_printings_copies_printings_p1_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          The short code is visible at the bottom left of the physical card, like{" "}
-          <Code>SFD-R01b</Code>. Two printings can share the same short code and still be different,
-          for example a normal finish and a foil finish, or a special promo edition.
+          {m.help_cards_printings_copies_printings_p2_before()}
+          <Code>SFD-R01b</Code>
+          {m.help_cards_printings_copies_printings_p2_after()}
         </p>
+        <p className="text-muted-foreground mt-2">{m.help_cards_printings_copies_printings_p3()}</p>
         <p className="text-muted-foreground mt-2">
-          Printed text can vary too: some alt art cards omit reminder text, newer printings may
-          carry updated wording after an errata, and flavor text often differs.
-        </p>
-        <p className="text-muted-foreground mt-2">
-          In the <TextLink href="/cards">browser</TextLink>,{" "}
-          <strong className="text-foreground">Printings</strong> view shows every version
-          separately, each with its own image, rarity, and price. Use this when you care about
-          specific editions.
+          {m.help_cards_printings_copies_printings_p4_before()}
+          <TextLink href="/cards">{m.help_cards_printings_copies_browser_link()}</TextLink>
+          {m.help_cards_printings_copies_printings_p4_mid()}
+          <strong className="text-foreground">
+            {m.help_cards_printings_copies_view_printings()}
+          </strong>
+          {m.help_cards_printings_copies_printings_p4_after()}
         </p>
         <ExampleTable
           rows={[
-            ["Code", "OGN-007", "OGN-007a", "SFD-R01b"],
-            ["Set", "Origins", "Origins", "Spiritforged"],
-            ["Rarity", "Common", "Showcase", "Showcase"],
-            ["Finish", "Normal", "Foil", "Foil"],
-            ["Art Variant", "Normal", "Alt Art", "Alt Art"],
-            ["Is Signed", "No", "No", "No"],
-            ["Artist", "Greg Ghielmetti & Leah Chen", "Fairfoul", "华锐"],
-            ["Promo Type", null, null, "Promo"],
-            ["Printed Rules Text", null, null, null],
-            ["Printed Effect Text", null, null, null],
-            ["Flavor Text", null, null, null],
+            [m.help_cards_printings_copies_field_code(), "OGN-007", "OGN-007a", "SFD-R01b"],
+            [m.help_cards_printings_copies_field_set(), "Origins", "Origins", "Spiritforged"],
+            [m.help_cards_printings_copies_field_rarity(), "Common", "Showcase", "Showcase"],
+            [m.help_cards_printings_copies_field_finish(), "Normal", "Foil", "Foil"],
+            [m.help_cards_printings_copies_field_art_variant(), "Normal", "Alt Art", "Alt Art"],
+            [
+              m.help_cards_printings_copies_field_is_signed(),
+              m.help_cards_printings_copies_value_no(),
+              m.help_cards_printings_copies_value_no(),
+              m.help_cards_printings_copies_value_no(),
+            ],
+            [
+              m.help_cards_printings_copies_field_artist(),
+              "Greg Ghielmetti & Leah Chen",
+              "Fairfoul",
+              "华锐",
+            ],
+            [m.help_cards_printings_copies_field_promo_type(), null, null, "Promo"],
+            [m.help_cards_printings_copies_field_printed_rules_text(), null, null, null],
+            [m.help_cards_printings_copies_field_printed_effect_text(), null, null, null],
+            [m.help_cards_printings_copies_field_flavor_text(), null, null, null],
           ]}
         />
       </section>
 
       <section>
-        <Heading className="mb-2">Copies</Heading>
+        <Heading className="mb-2">{m.help_cards_printings_copies_view_copies()}</Heading>
         <p className="text-muted-foreground">
-          Every time you add a card to your collection, you&apos;re recording a{" "}
-          <strong className="text-foreground">copy</strong> of a specific printing. Three of the
-          same foil printing means three copies. In the real world, each copy could have its own
-          condition details (like a PSA grading or a coffee stain), but those aren&apos;t tracked
-          yet.
+          {m.help_cards_printings_copies_copies_p1_before()}
+          <strong className="text-foreground">{m.help_cards_printings_copies_term_copy()}</strong>
+          {m.help_cards_printings_copies_copies_p1_after()}
         </p>
         <p className="text-muted-foreground mt-2">
-          In your <TextLink href="/collections">collection</TextLink>,{" "}
-          <strong className="text-foreground">Copies</strong> view shows every individual copy as
-          its own entry, with no stacking. Where the other views show a count badge like{" "}
-          <strong className="text-foreground">&times;3</strong>, Copies view shows three separate
-          cards on the grid.
+          {m.help_cards_printings_copies_copies_p2_before()}
+          <TextLink href="/collections">{m.help_cards_printings_copies_collection_link()}</TextLink>
+          {m.help_cards_printings_copies_copies_p2_mid()}
+          <strong className="text-foreground">{m.help_cards_printings_copies_view_copies()}</strong>
+          {m.help_cards_printings_copies_copies_p2_after()}
+          <strong className="text-foreground">&times;3</strong>
+          {m.help_cards_printings_copies_copies_p2_end()}
         </p>
         <ExampleTable
           rows={[
             [
-              "Printing",
+              m.help_cards_printings_copies_field_printing(),
               "OGN-007 · Common · Normal",
               "OGN-007 · Common · Normal",
               "OGN-007a · Showcase · Foil",
             ],
-            ["Collection", "Main", "Main", "Main"],
+            [m.help_cards_printings_copies_field_collection(), "Main", "Main", "Main"],
             [
               <span key="condition">
-                Condition <span className="text-muted-foreground/60 italic">(planned)</span>
+                {m.help_cards_printings_copies_field_condition()}{" "}
+                <span className="text-muted-foreground/60 italic">
+                  {m.help_cards_printings_copies_field_condition_planned()}
+                </span>
               </span>,
               "Near Mint",
               "Played",

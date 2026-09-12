@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_NAMED_CONTRIBUTORS = 3;
 
@@ -6,11 +7,12 @@ function contributorLine(names: readonly string[]): string {
   const hiddenCount = names.length - MAX_NAMED_CONTRIBUTORS;
   const shown = hiddenCount > 1 ? names.slice(0, MAX_NAMED_CONTRIBUTORS) : [...names];
   const remainder = names.length - shown.length;
-  const tail = remainder > 0 ? `${remainder} others` : shown.pop();
+  const tail =
+    remainder > 0 ? m.meta_contributors_others({ count: String(remainder) }) : shown.pop();
   if (shown.length === 0) {
     return tail ?? "";
   }
-  return `${shown.join(", ")} and ${tail}`;
+  return m.meta_join_and({ names: shown.join(", "), last: tail ?? "" });
 }
 
 // Names arrive already filtered by each contributor's visibility setting and
@@ -27,7 +29,7 @@ export function MetaContributors({
   }
   return (
     <p className={cn("text-muted-foreground text-sm", className)}>
-      Contributed by {contributorLine(contributors)}
+      {m.meta_contributors_line({ names: contributorLine(contributors) })}
     </p>
   );
 }

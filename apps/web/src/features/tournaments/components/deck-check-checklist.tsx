@@ -29,6 +29,7 @@ import type { DeckCheckDisplayMode } from "@/features/tournaments/stores/deck-ch
 import { useEnumOrders, useZoneOrder } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface HoveredPreview {
   thumbnailUrl: string;
@@ -210,7 +211,7 @@ export function DisplayModeToggle({
 }) {
   return (
     <ToggleGroup
-      aria-label="Display mode"
+      aria-label={m.tournaments_deck_check_display_mode()}
       variant="outline"
       spacing={0}
       value={[mode]}
@@ -220,10 +221,18 @@ export function DisplayModeToggle({
         }
       }}
     >
-      <ToggleGroupItem value="grid" title="Grid view" aria-label="Grid view">
+      <ToggleGroupItem
+        value="grid"
+        title={m.tournaments_deck_check_grid_view()}
+        aria-label={m.tournaments_deck_check_grid_view()}
+      >
         <LayoutGridIcon className="size-4" />
       </ToggleGroupItem>
-      <ToggleGroupItem value="list" title="List view" aria-label="List view">
+      <ToggleGroupItem
+        value="list"
+        title={m.tournaments_deck_check_list_view()}
+        aria-label={m.tournaments_deck_check_list_view()}
+      >
         <Rows3Icon className="size-4" />
       </ToggleGroupItem>
     </ToggleGroup>
@@ -389,7 +398,7 @@ function ChecklistRow({
         found: !found,
       });
     } catch {
-      toast.info("This list changed, reloading now");
+      toast.info(m.tournaments_deck_check_list_changed());
       onStale();
     }
   };
@@ -438,11 +447,15 @@ function ChecklistRow({
         </span>
         {matched ? null : (
           <span className="text-muted-foreground shrink-0 text-sm">
-            {card.matchStatus === "ambiguous" ? "Several matches" : "Not in catalog"}
+            {card.matchStatus === "ambiguous"
+              ? m.tournaments_deck_check_several_matches()
+              : m.tournaments_deck_check_not_in_catalog()}
           </span>
         )}
         {card.quantity > 1 ? (
-          <span className="text-muted-foreground text-2xs shrink-0">copy {copyIndex + 1}</span>
+          <span className="text-muted-foreground text-2xs shrink-0">
+            {m.tournaments_deck_check_copy_index({ index: copyIndex + 1 })}
+          </span>
         ) : null}
       </Pressable>
       {fixLocked && locked ? null : (
@@ -452,7 +465,11 @@ function ChecklistRow({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label={fixZoneOnly ? `Move ${name}` : `Fix ${name}`}
+                aria-label={
+                  fixZoneOnly
+                    ? m.tournaments_deck_check_move_card({ name })
+                    : m.tournaments_deck_check_fix_card({ name })
+                }
                 className="text-muted-foreground"
                 onClick={() => setFixOpen(true)}
               >
@@ -472,7 +489,7 @@ function ChecklistRow({
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={`Remove this copy of ${card.rawName}`}
+              aria-label={m.tournaments_deck_check_remove_copy({ name: card.rawName })}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => setRemoveOpen(true)}
             >
@@ -484,14 +501,14 @@ function ChecklistRow({
       <ConfirmActionDialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}
-        title={`Remove ${card.rawName}?`}
+        title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
         description={
           card.quantity > 1
-            ? "Only this copy is removed from the list."
-            : "The card is removed from this list."
+            ? m.tournaments_deck_check_remove_only_copy()
+            : m.tournaments_deck_check_remove_whole_card()
         }
-        confirmLabel="Remove"
-        pendingLabel="Removing..."
+        confirmLabel={m.tournaments_deck_check_remove_confirm()}
+        pendingLabel={m.tournaments_deck_check_remove_pending()}
         isPending={removeCard.isPending}
         onConfirm={() => void handleRemove()}
       />
@@ -544,7 +561,7 @@ function ChecklistCell({
       });
     } catch {
       // A 409 means the list was re-imported under us; reload the entry.
-      toast.info("This list changed, reloading now");
+      toast.info(m.tournaments_deck_check_list_changed());
       onStale();
     }
   };
@@ -575,7 +592,11 @@ function ChecklistCell({
               {fixLocked ? null : (
                 <StripIconButton
                   className="text-muted-foreground hover:text-foreground"
-                  aria-label={fixZoneOnly ? `Move ${card.rawName}` : `Fix ${card.rawName}`}
+                  aria-label={
+                    fixZoneOnly
+                      ? m.tournaments_deck_check_move_card({ name: card.rawName })
+                      : m.tournaments_deck_check_fix_card({ name: card.rawName })
+                  }
                   onClick={() => setFixOpen(true)}
                 >
                   <PencilIcon />
@@ -584,7 +605,7 @@ function ChecklistCell({
               {locked ? null : (
                 <StripIconButton
                   className="text-muted-foreground hover:text-destructive"
-                  aria-label={`Remove this copy of ${card.rawName}`}
+                  aria-label={m.tournaments_deck_check_remove_copy({ name: card.rawName })}
                   onClick={() => setRemoveOpen(true)}
                 >
                   <XIcon />
@@ -607,14 +628,14 @@ function ChecklistCell({
           <ConfirmActionDialog
             open={removeOpen}
             onOpenChange={setRemoveOpen}
-            title={`Remove ${card.rawName}?`}
+            title={m.tournaments_deck_check_remove_title({ name: card.rawName })}
             description={
               card.quantity > 1
-                ? "Only this copy is removed from the list."
-                : "The card is removed from this list."
+                ? m.tournaments_deck_check_remove_only_copy()
+                : m.tournaments_deck_check_remove_whole_card()
             }
-            confirmLabel="Remove"
-            pendingLabel="Removing..."
+            confirmLabel={m.tournaments_deck_check_remove_confirm()}
+            pendingLabel={m.tournaments_deck_check_remove_pending()}
             isPending={removeCard.isPending}
             onConfirm={() => void handleRemove()}
           />
@@ -640,7 +661,9 @@ function ChecklistCell({
           >
             <span className="font-medium break-all">{card.rawName}</span>
             <span className="text-muted-foreground">
-              {card.matchStatus === "ambiguous" ? "Several matches" : "Not in catalog"}
+              {card.matchStatus === "ambiguous"
+                ? m.tournaments_deck_check_several_matches()
+                : m.tournaments_deck_check_not_in_catalog()}
             </span>
           </Pressable>
           {foundOverlay}

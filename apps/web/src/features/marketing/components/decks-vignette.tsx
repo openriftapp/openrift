@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { getDomainColor } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { EnergyGlyph, PowerPips, Swap, Vignette } from "./vignette-parts";
 
@@ -211,7 +212,7 @@ export function DecksVignette() {
       <div className="flex flex-col gap-1.5">
         <div className="flex h-6 items-center gap-2">
           <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-            Main Deck
+            {m.marketing_decks_main_deck()}
           </span>
           <span className="ml-auto text-xs">
             <Swap
@@ -268,7 +269,9 @@ export function DecksVignette() {
       <div className="flex flex-col gap-1.5">
         <div className="text-muted-foreground flex h-6 items-center gap-1.5">
           <ChevronRightIcon aria-hidden="true" className="size-3.5 shrink-0 rotate-90" />
-          <span className="text-2xs shrink-0 font-semibold tracking-wide uppercase">Stats</span>
+          <span className="text-2xs shrink-0 font-semibold tracking-wide uppercase">
+            {m.decks_stats_title()}
+          </span>
           <span aria-hidden="true" className="mx-1 flex h-2.5 flex-1 overflow-hidden rounded-full">
             {DOMAIN_SPLIT.map((entry) => (
               <span
@@ -284,15 +287,15 @@ export function DecksVignette() {
           <span className="shrink-0 text-xs tabular-nums">
             <Swap
               className="justify-items-end"
-              was={`${STATS_DECK_SIZE - 1} cards`}
-              now={`${STATS_DECK_SIZE} cards`}
+              was={m.common_cards_other({ count: STATS_DECK_SIZE - 1 })}
+              now={m.common_cards_other({ count: STATS_DECK_SIZE })}
             />
           </span>
         </div>
 
         <div>
           <div className="mb-1 flex items-center text-xs">
-            <span className="font-medium">Energy</span>
+            <span className="font-medium">{m.decks_stats_energy()}</span>
             <span className="text-muted-foreground ml-auto">Ø 2.3</span>
           </div>
           <div className="flex h-24 items-end gap-1.5">
@@ -310,7 +313,9 @@ export function DecksVignette() {
               </span>
             ))}
           </div>
-          <span className="text-muted-foreground text-2xs">Counts the main deck only.</span>
+          <span className="text-muted-foreground text-2xs">
+            {m.decks_stats_footnote_main_only()}
+          </span>
         </div>
       </div>
     </Vignette>

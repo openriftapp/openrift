@@ -14,23 +14,31 @@ import type {
   TournamentViewerRole,
 } from "@openrift/shared/types/api/tournament";
 
-export const DECK_SUBMISSION_LABEL: Record<TournamentDeckSubmission, string> = {
-  none: "No decklist",
-  optional: "Decklist optional",
-  required: "Decklist required",
-};
+import { m } from "@/paraglide/messages.js";
 
-export const DECK_PHASE_LABEL: Record<TournamentDeckPhase, string> = {
-  open: "Open for submissions",
-  closed: "Closed",
-  locked: "Locked",
-};
+export function deckSubmissionLabels(): Record<TournamentDeckSubmission, string> {
+  return {
+    none: m.tournaments_lib_deck_submission_none(),
+    optional: m.tournaments_lib_deck_submission_optional(),
+    required: m.tournaments_lib_deck_submission_required(),
+  };
+}
 
-export const PAIRING_STYLE_LABEL: Record<TournamentPairingStyle, string> = {
-  pod: "Pod rounds",
-  swiss: "Swiss rounds",
-  none: "None",
-};
+export function deckPhaseLabels(): Record<TournamentDeckPhase, string> {
+  return {
+    open: m.tournaments_lib_deck_phase_open(),
+    closed: m.tournaments_lib_deck_phase_closed(),
+    locked: m.tournaments_lib_deck_phase_locked(),
+  };
+}
+
+export function pairingStyleLabels(): Record<TournamentPairingStyle, string> {
+  return {
+    pod: m.tournaments_lib_pairing_style_pod(),
+    swiss: m.tournaments_lib_pairing_style_swiss(),
+    none: m.tournaments_lib_pairing_style_none(),
+  };
+}
 
 export const PLAY_MODE_ITEMS: { value: TournamentPlayMode; label: string }[] = [
   { value: "1v1", label: "1v1" },
@@ -50,13 +58,15 @@ export type TournamentRoundsChoice =
   | "group-cut-bo1"
   | "group-cut-bo3";
 
-export const ROUNDS_CHOICE_ITEMS: { value: TournamentRoundsChoice; label: string }[] = [
-  { value: "swiss-bo1", label: "Swiss - BO1" },
-  { value: "swiss-bo3", label: "Swiss - BO3" },
-  { value: "pod", label: "FFA" },
-  { value: "group-cut-bo1", label: "Group stage + top cut - BO1" },
-  { value: "group-cut-bo3", label: "Group stage + top cut - BO3" },
-];
+export function roundsChoiceItems(): { value: TournamentRoundsChoice; label: string }[] {
+  return [
+    { value: "swiss-bo1", label: m.tournaments_lib_rounds_choice_swiss_bo1() },
+    { value: "swiss-bo3", label: m.tournaments_lib_rounds_choice_swiss_bo3() },
+    { value: "pod", label: m.tournaments_lib_rounds_choice_pod() },
+    { value: "group-cut-bo1", label: m.tournaments_lib_rounds_choice_group_cut_bo1() },
+    { value: "group-cut-bo3", label: m.tournaments_lib_rounds_choice_group_cut_bo3() },
+  ];
+}
 
 export function roundsChoiceFor(
   pairingStyle: TournamentPairingStyle,
@@ -114,16 +124,20 @@ export function isMatchPairing(size: number): boolean {
 
 /** The pod number is the table the pairing sits at. */
 export function pairingLabel(podNumber: number): string {
-  return `Table ${podNumber}`;
+  return m.tournaments_lib_pairing_label_table({ number: podNumber });
 }
 
 export function ordinalPlace(place: number): string {
   const teen = place % 100;
   if (teen >= 11 && teen <= 13) {
-    return `${place}th`;
+    return m.tournaments_lib_ordinal_other({ place });
   }
-  const suffix = { 1: "st", 2: "nd", 3: "rd" }[place % 10] ?? "th";
-  return `${place}${suffix}`;
+  const format = {
+    1: m.tournaments_lib_ordinal_1,
+    2: m.tournaments_lib_ordinal_2,
+    3: m.tournaments_lib_ordinal_3,
+  }[place % 10];
+  return format === undefined ? m.tournaments_lib_ordinal_other({ place }) : format({ place });
 }
 
 export function isAllMatchRound(sizes: readonly number[]): boolean {
@@ -131,34 +145,45 @@ export function isAllMatchRound(sizes: readonly number[]): boolean {
 }
 
 export function pairingPluralNoun(sizes: readonly number[]): string {
-  return isAllMatchRound(sizes) ? "matches" : "pods";
+  return isAllMatchRound(sizes)
+    ? m.tournaments_lib_pairing_noun_matches()
+    : m.tournaments_lib_pairing_noun_pods();
 }
 
-export const DECK_SUBMISSION_ITEMS: { value: TournamentDeckSubmission; label: string }[] = [
-  { value: "none", label: DECK_SUBMISSION_LABEL.none },
-  { value: "optional", label: DECK_SUBMISSION_LABEL.optional },
-  { value: "required", label: DECK_SUBMISSION_LABEL.required },
-];
+export function deckSubmissionItems(): { value: TournamentDeckSubmission; label: string }[] {
+  const labels = deckSubmissionLabels();
+  return [
+    { value: "none", label: labels.none },
+    { value: "optional", label: labels.optional },
+    { value: "required", label: labels.required },
+  ];
+}
 
-export const PARTICIPANT_STATUS_LABEL: Record<TournamentParticipantStatus, string> = {
-  requested: "Requested",
-  invited: "Invited",
-  active: "Active",
-  dropped: "Dropped",
-  no_show: "No show",
-};
+export function participantStatusLabels(): Record<TournamentParticipantStatus, string> {
+  return {
+    requested: m.tournaments_lib_participant_status_requested(),
+    invited: m.tournaments_lib_participant_status_invited(),
+    active: m.tournaments_lib_participant_status_active(),
+    dropped: m.tournaments_lib_participant_status_dropped(),
+    no_show: m.tournaments_lib_participant_status_no_show(),
+  };
+}
 
-export const STAFF_ROLE_LABEL: Record<TournamentStaffRole, string> = {
-  organizer: "Organizer",
-  judge: "Judge",
-};
+export function staffRoleLabels(): Record<TournamentStaffRole, string> {
+  return {
+    organizer: m.tournaments_lib_staff_role_organizer(),
+    judge: m.tournaments_lib_staff_role_judge(),
+  };
+}
 
-export const VIEWER_ROLE_LABEL: Record<TournamentViewerRole, string> = {
-  host: "Host",
-  organizer: "Organizer",
-  judge: "Judge",
-  participant: "Participant",
-};
+export function viewerRoleLabels(): Record<TournamentViewerRole, string> {
+  return {
+    host: m.tournaments_lib_viewer_role_host(),
+    organizer: m.tournaments_lib_staff_role_organizer(),
+    judge: m.tournaments_lib_staff_role_judge(),
+    participant: m.tournaments_lib_viewer_role_participant(),
+  };
+}
 
 export function canManageTournament(myRoles: readonly TournamentViewerRole[]): boolean {
   return myRoles.includes("host") || myRoles.includes("organizer");
@@ -257,23 +282,25 @@ export function formatStartsIn(iso: string, now: Date = new Date()): string | nu
     new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const days = Math.round((startOfDay(start) - startOfDay(now)) / DAY_MS);
   if (days <= 0) {
-    return "today";
+    return m.tournaments_lib_starts_in_today();
   }
   if (days === 1) {
-    return "tomorrow";
+    return m.tournaments_lib_starts_in_tomorrow();
   }
-  return `in ${days} days`;
+  return m.tournaments_lib_starts_in_days({ days });
 }
 
 export { effectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 export type { EffectiveTournamentState } from "@openrift/shared/tournament-lifecycle";
 
-export const EFFECTIVE_STATE_LABEL: Record<EffectiveTournamentState, string> = {
-  upcoming: "Upcoming",
-  in_progress: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
+export function effectiveStateLabels(): Record<EffectiveTournamentState, string> {
+  return {
+    upcoming: m.tournaments_lib_state_upcoming(),
+    in_progress: m.tournaments_lib_state_in_progress(),
+    completed: m.tournaments_lib_state_completed(),
+    cancelled: m.tournaments_lib_state_cancelled(),
+  };
+}
 
 const EFFECTIVE_STATE_ORDER: Record<EffectiveTournamentState, number> = {
   in_progress: 0,

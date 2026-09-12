@@ -19,6 +19,7 @@ import { useGenerateTournamentRound } from "@/features/tournaments/hooks/use-tou
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import { checkGroupPlayerCount } from "@/features/tournaments/lib/group-cut-display";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 /** Staff-only: the roster endpoint it reads is staff-gated. */
 export function GenerateGroupsBand({
@@ -65,12 +66,12 @@ export function GenerateGroupsBand({
       <ActionBand
         icon={LayoutGridIcon}
         accent
-        label="Groups"
+        label={m.tournaments_group_band_groups()}
         value={active.length}
-        sub="players to place in groups of four"
+        sub={m.tournaments_group_band_groups_sub()}
         action={
           <Button disabled={!count.valid || generateRound.isPending} onClick={handleGenerate}>
-            Generate groups
+            {m.tournaments_group_generate_groups()}
           </Button>
         }
       >
@@ -80,9 +81,7 @@ export function GenerateGroupsBand({
             <AlertTitle>{count.message}</AlertTitle>
           </Alert>
         ) : null}
-        <p className="text-muted-foreground text-sm">
-          Every group plays three rounds. The cut is generated once every group is done.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_group_three_rounds_note()}</p>
       </ActionBand>
       <MissingLegendDialog
         id={id}
@@ -116,12 +115,11 @@ function MissingLegendDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {players.length} player{players.length === 1 ? " has" : "s have"} no Legend on file
+            {players.length === 1
+              ? m.tournaments_group_missing_legend_title_one({ count: players.length })
+              : m.tournaments_group_missing_legend_title_other({ count: players.length })}
           </DialogTitle>
-          <DialogDescription>
-            The Legend tiebreak needs a Legend for every player. Enter the missing ones on the
-            participants page, or drop the tiebreak for this tournament.
-          </DialogDescription>
+          <DialogDescription>{m.tournaments_group_missing_legend_description()}</DialogDescription>
         </DialogHeader>
         <ul className="flex flex-col gap-1">
           {players.map((player) => (
@@ -132,16 +130,16 @@ function MissingLegendDialog({
         </ul>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button
             variant="outline"
             render={<Link to="/tournaments/$id/participants" params={{ id }} />}
           >
-            Set Legends
+            {m.tournaments_group_set_legends()}
           </Button>
           <Button variant="secondary" disabled={pending} onClick={onSkip}>
-            Skip Legend tiebreak
+            {m.tournaments_group_skip_legend_tiebreak()}
           </Button>
         </DialogFooter>
       </DialogContent>

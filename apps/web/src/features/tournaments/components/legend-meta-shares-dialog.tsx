@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSetLegendMetaShares } from "@/features/tournaments/hooks/use-tournament-run";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 /** Percent with at most one decimal, 0 to 100. */
 function parseMetaShare(draft: string): number | null {
@@ -82,12 +83,11 @@ export function LegendMetaSharesDialog({
         <DialogForm onSubmit={() => void save()}>
           <DialogHeader>
             <DialogTitle>
-              Enter meta shares for {pending.length} Legend{pending.length === 1 ? "" : "s"}
+              {pending.length === 1
+                ? m.tournaments_legend_meta_shares_title_one({ count: pending.length })
+                : m.tournaments_legend_meta_shares_title_other({ count: pending.length })}
             </DialogTitle>
-            <DialogDescription>
-              Enter the current meta share of each Legend from the source you use; the lower share
-              ranks higher. The numbers stay in this tournament and are not shown anywhere else.
-            </DialogDescription>
+            <DialogDescription>{m.tournaments_legend_meta_shares_description()}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             {pending.map((entry) => (
@@ -107,7 +107,9 @@ export function LegendMetaSharesDialog({
                       }))
                     }
                     className="w-20 tabular-nums"
-                    aria-label={`Meta share for ${entry.legendName ?? entry.legendCardId}`}
+                    aria-label={m.tournaments_legend_meta_share_aria({
+                      name: entry.legendName ?? entry.legendCardId,
+                    })}
                   />
                   <span className="text-muted-foreground text-sm">%</span>
                 </span>
@@ -116,10 +118,10 @@ export function LegendMetaSharesDialog({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={!complete || setShares.isPending}>
-              Save
+              {m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

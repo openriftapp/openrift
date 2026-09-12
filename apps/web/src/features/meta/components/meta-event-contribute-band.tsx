@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { MetaContributeBandShell } from "@/features/meta/components/meta-contribute-band";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function MetaEventContributeBand({
   event,
@@ -23,12 +24,15 @@ export function MetaEventContributeBand({
   const missing = players.filter((player) => player.shareToken === null).length;
   const body =
     missing === 0
-      ? "Every entry has its decklist. Corrections are still welcome."
-      : `${missing} of ${players.length} entries are still missing their decklist. Contributors are credited on every event.`;
+      ? m.meta_event_contribute_complete()
+      : m.meta_event_contribute_missing({
+          missing: String(missing),
+          total: String(players.length),
+        });
 
   return (
     <MetaContributeBandShell
-      title={`Were you at ${event.name}?`}
+      title={m.meta_event_contribute_title({ event: event.name })}
       description={body}
       action={
         userId === null ? (
@@ -37,11 +41,11 @@ export function MetaEventContributeBand({
               <Link to="/login" search={{ redirect: `/meta/${slug}/submit`, email: undefined }} />
             }
           >
-            Sign in to add a decklist
+            {m.meta_event_contribute_sign_in()}
           </Button>
         ) : (
           <Button render={<Link to="/meta/$slug/submit" params={{ slug }} />}>
-            Add a decklist
+            {m.meta_event_contribute_add()}
           </Button>
         )
       }

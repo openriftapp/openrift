@@ -7,6 +7,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Named so the React Compiler can reorder it.
 const rawRegionSlug = (slug: string): string => slug;
@@ -35,33 +36,58 @@ function describeWarning(
   nameById: Map<string, string>,
   regionLabel: (slug: string) => string,
 ): string {
-  const name = (id: string) => nameById.get(id) ?? "A player";
+  const name = (id: string) => nameById.get(id) ?? m.tournaments_warning_fallback_player();
   switch (warning.kind) {
     case "rematch": {
-      return `${name(warning.playerIds[0])} & ${name(warning.playerIds[1])} have met ${
-        warning.meetings === 1 ? "once" : `${warning.meetings} times`
-      } before`;
+      return warning.meetings === 1
+        ? m.tournaments_warning_rematch_once({
+            first: name(warning.playerIds[0]),
+            second: name(warning.playerIds[1]),
+          })
+        : m.tournaments_warning_rematch_times({
+            first: name(warning.playerIds[0]),
+            second: name(warning.playerIds[1]),
+            count: warning.meetings,
+          });
     }
     case "largeSpread": {
-      return `Wide score spread (${warning.spread})`;
+      return m.tournaments_warning_wide_spread({ spread: warning.spread });
     }
     case "repeatedThreePod": {
-      return `${name(warning.playerId)} has already been in ${warning.priorThreePods} 3-pod${
-        warning.priorThreePods === 1 ? "" : "s"
-      }`;
+      return warning.priorThreePods === 1
+        ? m.tournaments_warning_three_pods_one({
+            name: name(warning.playerId),
+            count: warning.priorThreePods,
+          })
+        : m.tournaments_warning_three_pods_other({
+            name: name(warning.playerId),
+            count: warning.priorThreePods,
+          });
     }
     case "repeatBye": {
-      return `${name(warning.playerId)} has already had ${warning.priorByes} bye${
-        warning.priorByes === 1 ? "" : "s"
-      }`;
+      return warning.priorByes === 1
+        ? m.tournaments_warning_byes_one({
+            name: name(warning.playerId),
+            count: warning.priorByes,
+          })
+        : m.tournaments_warning_byes_other({
+            name: name(warning.playerId),
+            count: warning.priorByes,
+          });
     }
     case "sameRegion": {
-      return `${name(warning.playerIds[0])} & ${name(warning.playerIds[1])} both play ${regionLabel(
-        warning.region,
-      )}`;
+      return m.tournaments_warning_same_region({
+        first: name(warning.playerIds[0]),
+        second: name(warning.playerIds[1]),
+        region: regionLabel(warning.region),
+      });
     }
     case "fixedSeatDisplaced": {
-      return `${name(warning.playerId)} moves from table ${warning.fixedTable} to table ${warning.assignedTable} this round`;
+      return m.tournaments_warning_fixed_seat({
+        name: name(warning.playerId),
+        from: warning.fixedTable,
+        to: warning.assignedTable,
+      });
     }
   }
 }

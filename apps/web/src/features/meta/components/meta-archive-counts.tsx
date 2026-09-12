@@ -1,3 +1,4 @@
+import { m } from "@/paraglide/messages.js";
 // Pinned to `en-US` grouping (not the runtime's locale): the page is server-rendered,
 // and a server on a different locale would otherwise mismatch what the browser renders.
 function grouped(value: number): string {
@@ -15,9 +16,9 @@ export function MetaArchiveCounts({
 }) {
   return (
     <div className="flex flex-wrap gap-x-10 gap-y-4 sm:gap-x-12">
-      <CountItem value={eventCount} label="archived events" />
-      <CountItem value={playerResultCount} label="player results" />
-      <CountItem value={deckCount} label="decklists" />
+      <CountItem value={eventCount} label={m.meta_counts_archived_events()} />
+      <CountItem value={playerResultCount} label={m.meta_counts_player_results()} />
+      <CountItem value={deckCount} label={m.meta_counts_decklists()} />
     </div>
   );
 }

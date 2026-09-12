@@ -10,8 +10,9 @@ import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-import { visibleHelpArticles } from "./articles";
+import { helpArticleLabels, visibleHelpArticles } from "./articles";
 
 export function HelpIndexPage() {
   // Requires featureFlagsQueryOptions prefetched in the root loader, or this suspends during SSR.
@@ -21,30 +22,33 @@ export function HelpIndexPage() {
   return (
     <div className={cn(PAGE_WIDTH.capped, "flex-1", PAGE_PADDING)}>
       <div className="mb-6">
-        <Heading level={1}>Help Center</Heading>
+        <Heading level={1}>{m.help_index_heading()}</Heading>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {articles.map((article) => (
-          <CardLink
-            key={article.slug}
-            render={<Link to="/help/$slug" params={{ slug: article.slug }} />}
-            size="sm"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <article.icon className="text-muted-foreground size-4" />
-                {article.title}
-              </CardTitle>
-              <CardDescription>{article.description}</CardDescription>
-            </CardHeader>
-          </CardLink>
-        ))}
+        {articles.map((article) => {
+          const labels = helpArticleLabels(article);
+          return (
+            <CardLink
+              key={article.slug}
+              render={<Link to="/help/$slug" params={{ slug: article.slug }} />}
+              size="sm"
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <article.icon className="text-muted-foreground size-4" />
+                  {labels.title}
+                </CardTitle>
+                <CardDescription>{labels.description}</CardDescription>
+              </CardHeader>
+            </CardLink>
+          );
+        })}
       </div>
 
       <div className="text-muted-foreground mt-8">
         <p>
-          Can&apos;t find what you&apos;re looking for?{" "}
+          {m.help_index_missing_question()}{" "}
           <TextLink
             variant="inherit"
             className="text-foreground inline-flex items-baseline gap-1"
@@ -59,7 +63,7 @@ export function HelpIndexPage() {
             >
               <path d={siDiscord.path} />
             </svg>
-            <span>Ask on Discord</span>
+            <span>{m.help_index_ask_on_discord()}</span>
           </TextLink>
         </p>
       </div>

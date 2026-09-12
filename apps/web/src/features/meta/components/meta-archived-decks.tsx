@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
 import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 type MetaArchivedDecksSubject = "legend" | "player";
 
-const EMPTY_DESCRIPTION: Record<MetaArchivedDecksSubject, string> = {
-  legend: "No list on this legend's record falls in this scope.",
-  player: "No list on this player's record falls in this scope.",
-};
+function emptyDescriptions(): Record<MetaArchivedDecksSubject, string> {
+  return {
+    legend: m.meta_archived_decks_empty_legend(),
+    player: m.meta_archived_decks_empty_player(),
+  };
+}
 
 /** `total` may exceed `decks.length`; `onShowAll` fetches the rest. */
 export function MetaArchivedDecks({
@@ -37,10 +40,10 @@ export function MetaArchivedDecks({
   if (decks.length === 0) {
     return (
       <section className="flex flex-col gap-3">
-        <Heading>Archived decklists</Heading>
+        <Heading>{m.meta_archived_decks_heading()}</Heading>
         <Empty>
           <EmptyHeader>
-            <EmptyDescription>{EMPTY_DESCRIPTION[subject]}</EmptyDescription>
+            <EmptyDescription>{emptyDescriptions()[subject]}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       </section>
@@ -50,7 +53,7 @@ export function MetaArchivedDecks({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>Archived decklists</Heading>
+        <Heading>{m.meta_archived_decks_heading()}</Heading>
         {(remaining > 0 || expanded) && (
           <Button
             variant="link"
@@ -62,7 +65,9 @@ export function MetaArchivedDecks({
               }
             }}
           >
-            {expanded ? "Show fewer" : `Show all ${total.toLocaleString("en-US")}`}
+            {expanded
+              ? m.meta_show_fewer()
+              : m.meta_show_all_n({ count: total.toLocaleString("en-US") })}
           </Button>
         )}
       </div>

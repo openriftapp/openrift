@@ -1,7 +1,7 @@
 import type { MetaListStatus } from "@openrift/shared/types/enums";
 
 import { Badge } from "@/components/ui/badge";
-import { META_LIST_STATUS_LABELS } from "@/features/meta/lib/meta-format";
+import { metaListStatusLabels } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
 
 /** Renders nothing for "full" or "none" on purpose; only "partial" gets a badge. */
@@ -17,7 +17,7 @@ export function MetaListStatusBadge({
   }
   return (
     <Badge variant="muted" className={cn("shrink-0", className)}>
-      {META_LIST_STATUS_LABELS[listStatus]}
+      {metaListStatusLabels()[listStatus]}
     </Badge>
   );
 }

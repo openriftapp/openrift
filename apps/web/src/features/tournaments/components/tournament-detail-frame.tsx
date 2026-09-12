@@ -21,6 +21,7 @@ import { TournamentHero } from "@/features/tournaments/components/tournament-her
 import { useTournamentDetail } from "@/features/tournaments/hooks/use-tournaments";
 import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 type TournamentTab =
   | "overview"
@@ -34,16 +35,18 @@ type TournamentTab =
 
 export type TournamentSection = Exclude<TournamentTab, "overview">;
 
-const TOURNAMENT_SECTION_LABEL: Record<TournamentSection, string> = {
-  participants: "Participants",
-  pairings: "Pairings",
-  standings: "Standings",
-  // "Decks" is the judging queue (every entrant); "My deck" is the player's own.
-  decks: "Decks",
-  "my-deck": "My deck",
-  staff: "Staff",
-  settings: "Settings",
-};
+function tournamentSectionLabels(): Record<TournamentSection, string> {
+  return {
+    participants: m.tournaments_section_participants(),
+    pairings: m.tournaments_section_pairings(),
+    standings: m.tournaments_section_standings(),
+    // "Decks" is the judging queue (every entrant); "My deck" is the player's own.
+    decks: m.tournaments_section_decks(),
+    "my-deck": m.tournaments_section_my_deck(),
+    staff: m.tournaments_section_staff(),
+    settings: m.tournaments_section_settings(),
+  };
+}
 
 /**
  * The overview has no title in its bar: the hero below is the title row, so
@@ -63,14 +66,14 @@ export function TournamentOverviewFrame({
     <>
       <TopBarBreadcrumbBar
         segments={[
-          { label: "Tournaments", link: <Link to="/tournaments" /> },
+          { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
           { label: data.name },
         ]}
         actions={
           manage ? (
             <PageTopBarButton render={<Link to="/tournaments/$id/settings" params={{ id }} />}>
               <SettingsIcon className="size-4" />
-              Settings
+              {m.tournaments_section_settings()}
             </PageTopBarButton>
           ) : undefined
         }
@@ -105,12 +108,12 @@ export function TournamentSectionFrame({
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
             <TopBarBreadcrumbTrail
               segments={[
-                { label: "Tournaments", link: <Link to="/tournaments" /> },
+                { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
                 { label: data.name, link: <Link to="/tournaments/$id" params={{ id }} /> },
               ]}
             />
             <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-            <PageTopBarTitle>{TOURNAMENT_SECTION_LABEL[section]}</PageTopBarTitle>
+            <PageTopBarTitle>{tournamentSectionLabels()[section]}</PageTopBarTitle>
           </div>
           {actions ? <PageTopBarActions>{actions}</PageTopBarActions> : null}
         </PageTopBar>

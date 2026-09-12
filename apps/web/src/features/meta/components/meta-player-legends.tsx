@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import type { MetaPlayerLegendEntry } from "@/features/meta/lib/meta-player-page";
+import { m } from "@/paraglide/messages.js";
 
 function countLabel(value: number, singular: string, plural: string): string {
   return `${value.toLocaleString("en-US")} ${value === 1 ? singular : plural}`;
@@ -69,7 +70,7 @@ export function MetaPlayerLegends({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>Legends played</Heading>
+        <Heading>{m.meta_player_legends_played()}</Heading>
         {withoutLegend > 0 && (
           <p className="text-muted-foreground text-xs">
             {countLabel(withoutLegend, "finish has", "finishes have")} no legend on file

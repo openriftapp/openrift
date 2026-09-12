@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   checkGroupPlayerCount,
-  CUT_SIZE_ITEMS,
+  cutSizeItems,
   cutMatchShortLabel,
   cutRoundLabel,
   cutRoundLabels,
   formatWinRate,
-  GROUP_CUT_TIER_LABEL,
+  groupCutTierLabels,
   parseCutSize,
 } from "./group-cut-display";
 
@@ -64,7 +64,7 @@ describe("cut round labels", () => {
 
 describe("cut size", () => {
   it("offers only the three supported sizes", () => {
-    expect(CUT_SIZE_ITEMS.map((item) => item.label)).toEqual(["Top 4", "Top 8", "Top 16"]);
+    expect(cutSizeItems().map((item) => item.label)).toEqual(["Top 4", "Top 8", "Top 16"]);
   });
 
   it("parses a select value and rejects anything else", () => {
@@ -74,20 +74,20 @@ describe("cut size", () => {
   });
 });
 
-describe("GROUP_CUT_TIER_LABEL", () => {
+describe("groupCutTierLabels", () => {
   it("labels every tier the API can send", () => {
     for (const tier of GROUP_CUT_TIERS) {
-      expect(GROUP_CUT_TIER_LABEL[tier]).toBeTruthy();
+      expect(groupCutTierLabels()[tier]).toBeTruthy();
     }
   });
 
   it("tells the two win rates apart", () => {
-    expect(GROUP_CUT_TIER_LABEL.mw).toBe("MW%");
-    expect(GROUP_CUT_TIER_LABEL.gw).toBe("GW%");
+    expect(groupCutTierLabels().mw).toBe("MW%");
+    expect(groupCutTierLabels().gw).toBe("GW%");
   });
 
   it("warns in words on the pending meta tier", () => {
-    expect(GROUP_CUT_TIER_LABEL.meta_pending).toBe("Needs meta share");
+    expect(groupCutTierLabels().meta_pending).toBe("Needs meta share");
   });
 });
 

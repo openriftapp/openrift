@@ -18,6 +18,7 @@ import {
   standingRanks,
 } from "@/features/tournaments/components/standings-display";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 interface Champion {
   playerId: string;
@@ -64,7 +65,7 @@ function ChampionText({
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
-        Champion
+        {m.tournaments_champion_label()}
       </span>
       {name === null ? null : <p className="font-heading text-xl font-semibold">{name}</p>}
       {legend}

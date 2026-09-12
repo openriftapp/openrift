@@ -7,6 +7,7 @@ import { QueueSourcePicker } from "@/features/stage/components/queue-source-pick
 import { MAX_QUEUE_LENGTH } from "@/features/stage/lib/presentation-queue";
 import { usePresentQueueStore } from "@/features/stage/stores/present-queue-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /** The whole list is a drop target: a card released anywhere over it goes on the end, over a stop it goes there instead. */
 export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => void }) {
@@ -28,9 +29,7 @@ export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => v
         )}
       >
         {ids.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Nothing queued yet. Drag cards here or add them with +.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.stage_queue_empty()}</p>
         ) : (
           <QueueList
             ids={ids}
@@ -43,7 +42,7 @@ export function PresentQueuePanel({ onAdd }: { onAdd: (source: QueueSource) => v
 
       {ids.length >= MAX_QUEUE_LENGTH && (
         <p className="text-muted-foreground text-sm">
-          The queue holds {MAX_QUEUE_LENGTH} cards. Remove one to add another.
+          {m.stage_queue_full({ max: MAX_QUEUE_LENGTH })}
         </p>
       )}
     </div>

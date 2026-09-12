@@ -12,7 +12,7 @@ import {
 
 describe("metaSubmissionFormTitles", () => {
   it("names each of the three deck-submission kinds", () => {
-    expect(metaSubmissionFormTitles).toEqual({
+    expect(metaSubmissionFormTitles()).toEqual({
       new_list: "Add decklist",
       completion: "Complete decklist",
       correction: "Suggest a correction",
@@ -22,7 +22,7 @@ describe("metaSubmissionFormTitles", () => {
 
 describe("metaSubmissionCompletenessLabels", () => {
   it("names the two list-completeness states a player sees", () => {
-    expect(metaSubmissionCompletenessLabels).toEqual({
+    expect(metaSubmissionCompletenessLabels()).toEqual({
       full: "Whole deck",
       partial: "Main deck only",
     });
@@ -111,8 +111,8 @@ describe("metaSubmissionReasonsFor", () => {
 
   it("has a sentence for every reason it offers", () => {
     for (const reason of metaSubmissionReasonsFor("event_correction")) {
-      expect(metaSubmissionReasonSentences[reason]).toBeTruthy();
-      expect(metaSubmissionReasonSentences[reason]).not.toContain("list");
+      expect(metaSubmissionReasonSentences()[reason]).toBeTruthy();
+      expect(metaSubmissionReasonSentences()[reason]).not.toContain("list");
     }
   });
 });

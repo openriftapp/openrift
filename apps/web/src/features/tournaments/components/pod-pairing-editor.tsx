@@ -45,6 +45,7 @@ import type {
 import { teamNamesById } from "@/features/tournaments/lib/team-display";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { snapshotToPlayers, WarningList } from "./pairing-warnings";
 
@@ -234,19 +235,21 @@ export function PodPairingEditor({
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Heading as="h3">Edit round {round.roundNumber} pairing</Heading>
+          <Heading as="h3">
+            {m.tournaments_pairing_editor_title({ number: round.roundNumber })}
+          </Heading>
           <span className="text-muted-foreground text-sm tabular-nums">
-            Penalty {Math.round(totalPenalty)}
+            {m.tournaments_pairing_editor_penalty({ value: Math.round(totalPenalty) })}
           </span>
         </div>
         <p className="text-muted-foreground text-sm">
           {mode === "team"
-            ? "Drag teams between matches, onto New match, or into Byes. Every match must have exactly 2 teams to save. Warnings are advisory."
+            ? m.tournaments_pairing_editor_hint_team()
             : mode === "cut"
-              ? "Drag players between the bracket slots. Every match must have exactly 2 players to save; the slot order stays as it is."
+              ? m.tournaments_pairing_editor_hint_cut()
               : mode === "swiss"
-                ? "Drag players between matches, onto New match, or into Byes. Every match must have exactly 2 players to save. Warnings are advisory."
-                : "Every pod needs 3 or 4 players. Warnings are advisory."}
+                ? m.tournaments_pairing_editor_hint_swiss()
+                : m.tournaments_pairing_editor_hint_pod()}
         </p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {state.pods.map((pod, index) => (
@@ -265,7 +268,7 @@ export function PodPairingEditor({
                 <PlayerChip
                   key={playerId}
                   playerId={playerId}
-                  name={nameById.get(playerId) ?? "Unknown"}
+                  name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
                   score={scoreById.get(playerId) ?? 0}
                 />
               ))}
@@ -279,7 +282,7 @@ export function PodPairingEditor({
                   <PlayerChip
                     key={playerId}
                     playerId={playerId}
-                    name={nameById.get(playerId) ?? "Unknown"}
+                    name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
                     score={scoreById.get(playerId) ?? 0}
                   />
                 ))}
@@ -300,17 +303,17 @@ export function PodPairingEditor({
         ) : null}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button onClick={() => void handleSave()} disabled={!canSave || saving}>
-            {saving ? "Saving…" : "Save pairing"}
+            {saving ? m.tournaments_pairing_editor_saving() : m.tournaments_pairing_editor_save()}
           </Button>
         </div>
       </div>
       <DragOverlay>
         {draggingId ? (
           <ChipBody
-            name={nameById.get(draggingId) ?? "Unknown"}
+            name={nameById.get(draggingId) ?? m.tournaments_pairing_editor_unknown_player()}
             score={scoreById.get(draggingId) ?? 0}
             dragging
           />
@@ -412,11 +415,20 @@ function PodDropZone({
         <CardTitle className="flex items-center justify-between gap-2">
           {/* Named by the event's style, not seat count like pairingLabel():
               a match dragged through 1 or 3 players is still a match. */}
-          <span>{label ?? (mode === "pod" ? `Pod ${index + 1}` : `Match ${index + 1}`)}</span>
+          <span>
+            {label ??
+              (mode === "pod"
+                ? m.tournaments_pairing_editor_pod_title({ number: index + 1 })
+                : m.tournaments_pod_match_title({ number: index + 1 }))}
+          </span>
           <span className={cn("font-normal", valid ? "text-muted-foreground" : "text-destructive")}>
             {mode === "team"
-              ? `${count} team${count === 1 ? "" : "s"}`
-              : `${count} player${count === 1 ? "" : "s"}`}
+              ? count === 1
+                ? m.tournaments_pairing_editor_teams_count_one({ count })
+                : m.tournaments_pairing_editor_teams_count_other({ count })
+              : count === 1
+                ? m.tournaments_group_players_count_one({ count })
+                : m.tournaments_group_players_count_other({ count })}
           </span>
         </CardTitle>
         <WarningList warnings={warnings} nameById={nameById} regionLabel={regionLabel} />
@@ -437,17 +449,21 @@ function NewPodDropZone({ mode }: { mode: EditorMode }) {
     <Card ref={setNodeRef} className={cn("gap-2 border-dashed", isOver && "ring-primary ring-2")}>
       <CardHeader className="gap-1">
         <CardTitle className="flex items-center justify-between gap-2">
-          <span>{mode === "pod" ? "New pod" : "New match"}</span>
+          <span>
+            {mode === "pod"
+              ? m.tournaments_pairing_editor_new_pod()
+              : m.tournaments_pairing_editor_new_match()}
+          </span>
           <PlusIcon className="text-muted-foreground size-4" />
         </CardTitle>
       </CardHeader>
       <CardContent className="flex min-h-12 items-center">
         <p className="text-muted-foreground text-sm">
           {mode === "team"
-            ? "Drop a team here to open a new match."
+            ? m.tournaments_pairing_editor_drop_team()
             : mode === "swiss"
-              ? "Drop a player here to open a new match."
-              : "Drop a player here to open a new pod."}
+              ? m.tournaments_pairing_editor_drop_player_match()
+              : m.tournaments_pairing_editor_drop_player_pod()}
         </p>
       </CardContent>
     </Card>
@@ -473,8 +489,10 @@ function ByeDropZone({
     <Card ref={setNodeRef} className={cn("gap-2 border-dashed", isOver && "ring-primary ring-2")}>
       <CardHeader className="gap-1">
         <CardTitle className="flex items-center justify-between gap-2">
-          <span>Byes</span>
-          <span className="text-muted-foreground font-normal">{byeIds.length} sitting out</span>
+          <span>{m.tournaments_pairing_editor_byes()}</span>
+          <span className="text-muted-foreground font-normal">
+            {m.tournaments_pairing_editor_sitting_out({ count: byeIds.length })}
+          </span>
         </CardTitle>
         <WarningList warnings={warnings} nameById={nameById} />
       </CardHeader>

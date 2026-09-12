@@ -9,6 +9,7 @@ import { tierListQueryOptions } from "@/features/stage/hooks/use-tier-lists";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/_authenticated/tier-lists_/$tierListId")({
   ssr: "data-only",
@@ -50,11 +51,11 @@ function TierListNotFound() {
       <EmptyState
         className="py-16"
         icon={Link2OffIcon}
-        title="This tier list is gone"
-        description="It may have been deleted, or it belongs to another account."
+        title={m.tier_lists_not_found_title()}
+        description={m.tier_lists_not_found_description()}
       >
         <Link to="/tier-lists" className={buttonVariants()}>
-          Go to your tier lists
+          {m.tier_lists_not_found_action()}
         </Link>
       </EmptyState>
     </div>

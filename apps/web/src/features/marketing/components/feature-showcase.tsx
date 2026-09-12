@@ -7,6 +7,7 @@ import { Reveal } from "@/features/marketing/components/reveal";
 import { ScanVignette } from "@/features/marketing/components/scan-vignette";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { GroupsVignette } from "./groups-vignette";
 import { ListsVignette } from "./lists-vignette";
@@ -21,34 +22,30 @@ export function FeatureShowcase({
 }) {
   const features = [
     {
-      title: "Scan cards with your camera",
-      description:
-        "Point your phone at a card and OpenRift recognizes the exact printing. Sort a fresh box into your collection in one sitting.",
-      cta: "Open the scanner",
+      title: m.marketing_showcase_scan_title(),
+      description: m.marketing_showcase_scan_description(),
+      cta: m.marketing_showcase_scan_cta(),
       to: "/scan",
       vignette: <ScanVignette cards={scanCards} />,
     },
     {
-      title: "A collection that keeps itself current",
-      description:
-        "Track every copy across binders, deck boxes, and loans. Write a rule once, like every card missing for a playset, and your wishlist updates itself from then on.",
-      cta: "Open collections",
+      title: m.marketing_showcase_collection_title(),
+      description: m.marketing_showcase_collection_description(),
+      cta: m.marketing_showcase_collection_cta(),
       to: "/collections",
       vignette: <ListsVignette />,
     },
     {
-      title: "See who has what you need",
-      description:
-        "Start a private group with your playgroup or store. OpenRift matches wishlists against tradelists and shows exactly who to talk to. The trade itself happens at the table.",
-      cta: "Open groups",
+      title: m.marketing_showcase_groups_title(),
+      description: m.marketing_showcase_groups_description(),
+      cta: m.marketing_showcase_groups_cta(),
       to: "/groups",
       vignette: <GroupsVignette thumbnailUrls={thumbnailUrls} />,
     },
     {
-      title: "Know what your cards are worth",
-      description:
-        "Daily prices from TCGplayer, Cardmarket, and CardTrader side by side on every printing, with history charts and your collection's value tracked over time.",
-      cta: "Open the catalog",
+      title: m.marketing_showcase_prices_title(),
+      description: m.marketing_showcase_prices_description(),
+      cta: m.marketing_showcase_prices_cta(),
       to: "/cards",
       vignette: <PricesVignette />,
     },

@@ -5,6 +5,7 @@ import { CalendarPlusIcon, ChevronRightIcon, ListOrderedIcon, ListPlusIcon } fro
 import type { ComponentType } from "react";
 
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
+import { m } from "@/paraglide/messages.js";
 
 const KIND_ICON: Record<MetaActivityItem["kind"], ComponentType<{ className?: string }>> = {
   "event-added": CalendarPlusIcon,
@@ -15,13 +16,17 @@ const KIND_ICON: Record<MetaActivityItem["kind"], ComponentType<{ className?: st
 function itemHeadline(item: MetaActivityItem): string {
   switch (item.kind) {
     case "event-added": {
-      return "New event on record";
+      return m.meta_activity_event_added();
     }
     case "decks-added": {
-      return item.count === 1 ? "1 decklist added" : `${item.count} decklists added`;
+      return item.count === 1
+        ? m.meta_activity_decks_added_one()
+        : m.meta_activity_decks_added_other({ count: String(item.count) });
     }
     case "results-added": {
-      return item.count === 1 ? "1 result added" : `${item.count} results added`;
+      return item.count === 1
+        ? m.meta_activity_results_added_one()
+        : m.meta_activity_results_added_other({ count: String(item.count) });
     }
   }
 }

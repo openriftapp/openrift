@@ -32,7 +32,7 @@ import {
   useSetMetaSourcePriority,
   useWriteMetaEventOverlayFields,
 } from "@/features/admin/hooks/use-admin-meta-overlays";
-import { META_EVENT_TIER_LABELS } from "@/features/meta/lib/meta-format";
+import { metaEventTierLabels } from "@/features/meta/lib/meta-format";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +133,7 @@ function ClaimForm({
               setDraft(value as string);
             }
           }}
-          items={META_EVENT_TIER_LABELS}
+          items={metaEventTierLabels()}
         >
           <SelectTrigger className="w-36">
             <SelectValue />
@@ -141,7 +141,7 @@ function ClaimForm({
           <SelectContent>
             {META_EVENT_TIERS.map((tier) => (
               <SelectItem key={tier} value={tier}>
-                {META_EVENT_TIER_LABELS[tier]}
+                {metaEventTierLabels()[tier]}
               </SelectItem>
             ))}
           </SelectContent>

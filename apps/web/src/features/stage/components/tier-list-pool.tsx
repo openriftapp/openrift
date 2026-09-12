@@ -14,6 +14,7 @@ import { TierPicker } from "@/features/stage/components/tier-picker";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function TierListPool() {
   const { setNodeRef, isOver } = useDroppable({ id: "tier-pool", data: { type: "tier-pool" } });
@@ -143,7 +144,11 @@ function PoolCardStrip({
           onOpenChange={handleOpenChange}
           trigger={
             <CountPillButton
-              aria-label={label === null ? `Rank ${cardName}` : `${cardName}: tier ${label}`}
+              aria-label={
+                label === null
+                  ? m.tier_lists_pool_rank_aria({ name: cardName })
+                  : m.tier_lists_pool_tier_aria({ name: cardName, label })
+              }
               className="max-w-16 truncate font-bold"
               style={
                 label === null
@@ -154,7 +159,7 @@ function PoolCardStrip({
                     }
               }
             >
-              {label ?? "Rank"}
+              {label ?? m.tier_lists_pool_rank_pill()}
             </CountPillButton>
           }
         />

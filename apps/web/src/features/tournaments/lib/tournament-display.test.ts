@@ -16,7 +16,7 @@ import {
   pairingFromRoundsChoice,
   pairingLabel,
   pairingPluralNoun,
-  ROUNDS_CHOICE_ITEMS,
+  roundsChoiceItems,
   roundsChoiceFor,
   combineLocalDateTimeToUtc,
   compareParticipantsForList,
@@ -465,7 +465,7 @@ describe("pairingPluralNoun", () => {
 
 describe("rounds choice", () => {
   it("offers both Swiss formats, FFA pods and both group-stage formats", () => {
-    expect(ROUNDS_CHOICE_ITEMS.map((item) => item.value)).toEqual([
+    expect(roundsChoiceItems().map((item) => item.value)).toEqual([
       "swiss-bo1",
       "swiss-bo3",
       "pod",
@@ -532,12 +532,14 @@ describe("rounds choice", () => {
 
   it("tells the group-stage choices from the rest", () => {
     expect(
-      ROUNDS_CHOICE_ITEMS.filter((item) => isGroupCutChoice(item.value)).map((i) => i.value),
+      roundsChoiceItems()
+        .filter((item) => isGroupCutChoice(item.value))
+        .map((i) => i.value),
     ).toEqual(["group-cut-bo1", "group-cut-bo3"]);
   });
 
   it("round-trips every dropdown option", () => {
-    for (const item of ROUNDS_CHOICE_ITEMS) {
+    for (const item of roundsChoiceItems()) {
       const { pairingStyle, matchFormat, format } = pairingFromRoundsChoice(item.value);
       expect(roundsChoiceFor(pairingStyle, matchFormat, format)).toBe(item.value);
     }

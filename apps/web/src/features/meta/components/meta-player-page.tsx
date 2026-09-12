@@ -31,6 +31,7 @@ import {
   scopeWithDefaultEra,
 } from "@/features/meta/lib/meta-scope";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/players_/$key");
 
@@ -66,7 +67,7 @@ export function MetaPlayerPage() {
         <PageTopBar className="gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <TopBarBreadcrumbTrail
-              segments={[{ label: "Meta Archive", link: <Link to="/meta" /> }]}
+              segments={[{ label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> }]}
             />
             <TopBarBreadcrumbSeparator className="hidden sm:inline" />
             <PageTopBarTitle>{data.name}</PageTopBarTitle>

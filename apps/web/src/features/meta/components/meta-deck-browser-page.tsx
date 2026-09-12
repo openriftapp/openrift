@@ -22,7 +22,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
-import { META_DECKS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-bridge";
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
 import { DECK_INDEX_GRID, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
@@ -36,7 +35,7 @@ import {
   countMetaDecksUnderCost,
   curateMetaDecks,
   filterMetaDecks,
-  META_DECK_SORT_PRESETS,
+  metaDeckSortPresets,
   metaDeckFilterCounts,
   metaDeckFilterOptions,
   sortMetaDecks,
@@ -48,12 +47,15 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/lib/auth-session";
 import type { MetaDeckView } from "@/lib/sanitize-preferences";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 /** How many lists the page opens with, and how many each "more" adds. */
 const PAGE_SIZE = 40;
 
-const DECK_NOUN = { singular: "archived deck", plural: "archived decks" };
+function deckNoun() {
+  return { singular: m.meta_decks_noun_one(), plural: m.meta_decks_noun_other() };
+}
 
 function highest(
   costs: ReadonlyMap<string, MetaDeckCost> | undefined,
@@ -176,10 +178,10 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
               filters.setShowAll(next === "all");
             }
           }}
-          aria-label="Lists shown"
+          aria-label={m.meta_browser_lists_shown()}
         >
-          <ToggleGroupItem value="best">Best list per legend</ToggleGroupItem>
-          <ToggleGroupItem value="all">Every list</ToggleGroupItem>
+          <ToggleGroupItem value="best">{m.meta_browser_best_per_legend()}</ToggleGroupItem>
+          <ToggleGroupItem value="all">{m.meta_browser_every_list()}</ToggleGroupItem>
         </ToggleGroup>
         <p className="text-muted-foreground text-sm tabular-nums">
           {decks.length} {decks.length === 1 ? "deck" : "decks"} · {eventCount}{" "}
@@ -217,7 +219,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
       ) : decks.length === 0 ? (
         <Empty className="mt-6">
           <EmptyHeader>
-            <EmptyDescription>No decks match these filters.</EmptyDescription>
+            <EmptyDescription>{m.meta_browser_no_match()}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -239,7 +241,7 @@ function NoMatches() {
   return (
     <Empty className="py-10">
       <EmptyHeader>
-        <EmptyDescription>No decks match these filters.</EmptyDescription>
+        <EmptyDescription>{m.meta_browser_no_match()}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
@@ -263,15 +265,15 @@ function ViewToggle({
           onChange(next);
         }
       }}
-      aria-label="Layout"
+      aria-label={m.meta_browser_layout()}
     >
       <ToggleGroupItem value="list">
         <ListIcon aria-hidden />
-        List
+        {m.meta_browser_view_list()}
       </ToggleGroupItem>
       <ToggleGroupItem value="grid">
         <LayoutGridIcon aria-hidden />
-        Grid
+        {m.meta_browser_view_grid()}
       </ToggleGroupItem>
     </ToggleGroup>
   );
@@ -292,7 +294,7 @@ function SortSelect({
   className?: string;
 }) {
   const items: Record<string, string> = {};
-  for (const preset of META_DECK_SORT_PRESETS) {
+  for (const preset of metaDeckSortPresets()) {
     items[presetKey(preset.sort, preset.direction)] = preset.label;
   }
   const current = presetKey(sort, direction);
@@ -301,7 +303,7 @@ function SortSelect({
     <Select
       value={value}
       onValueChange={(next) => {
-        const preset = META_DECK_SORT_PRESETS.find(
+        const preset = metaDeckSortPresets().find(
           (entry) => presetKey(entry.sort, entry.direction) === next,
         );
         if (preset !== undefined) {
@@ -310,7 +312,7 @@ function SortSelect({
       }}
       items={items}
     >
-      <SelectTrigger size="sm" className={cn("w-48", className)} aria-label="Sort">
+      <SelectTrigger size="sm" className={cn("w-48", className)} aria-label={m.meta_browser_sort()}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -347,20 +349,20 @@ function SortHeader({
       )}
     >
       <SortButton column="finish" sort={sort} direction={direction} onSort={onSort}>
-        Finish
+        {m.meta_filter_finish()}
       </SortButton>
       <span />
-      <span>Legend</span>
-      <span>Player</span>
-      <span>Event</span>
+      <span>{m.meta_standings_col_legend()}</span>
+      <span>{m.meta_standings_col_player()}</span>
+      <span>{m.meta_finishes_col_event()}</span>
       <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>
-        Date
+        {m.meta_col_date()}
       </SortButton>
       <SortButton column="value" sort={sort} direction={direction} onSort={onSort} align="end">
-        Value
+        {m.meta_standings_col_value()}
       </SortButton>
       <SortButton column="cost" sort={sort} direction={direction} onSort={onSort}>
-        To complete
+        {m.meta_cost_to_complete()}
       </SortButton>
     </div>
   );
@@ -445,17 +447,17 @@ export function MetaDeckBrowserPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageTopBarSticky width="full">
         <PageTopBar>
-          <PageTopBarBack to="/meta" aria-label="Meta archive" />
-          <PageTopBarTitle>Archived decks</PageTopBarTitle>
+          <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
+          <PageTopBarTitle>{m.meta_browser_title()}</PageTopBarTitle>
           {count !== undefined && (
             <span className="text-muted-foreground shrink-0 tabular-nums">
-              {metaShownLabel(count.shown, count.total, DECK_NOUN)}
+              {metaShownLabel(count.shown, count.total, deckNoun())}
             </span>
           )}
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.full, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{META_DECKS_DESCRIPTION}</PageDescription>
+        <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
 
         {hydrated ? (
           <Suspense fallback={<MetaDeckBrowserFallback />}>

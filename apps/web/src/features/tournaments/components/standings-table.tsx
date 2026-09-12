@@ -18,20 +18,13 @@ import { TournamentLegend } from "@/features/tournaments/components/tournament-l
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-import {
-  formatPlayerRecord,
-  formatScore,
-  POD_WINS_HINT,
-  rankedStandings,
-} from "./standings-display";
+import { formatPlayerRecord, formatScore, podWinsHint, rankedStandings } from "./standings-display";
 
 // Named module-level default: an inline arrow default is not reorderable and
 // makes the React Compiler bail out.
 const rawRegionSlug = (slug: string): string => slug;
-
-const OPP_TITLE = "Average opponent points";
-const GAME_TITLE = "Game points";
 
 function RankMark({ rank }: { rank: number }) {
   if (rank <= 3) {
@@ -59,7 +52,9 @@ function PlayerIdentity({
         </Badge>
       ) : null}
       {row.status === "dropped" ? (
-        <span className="text-muted-foreground shrink-0 text-sm">(dropped)</span>
+        <span className="text-muted-foreground shrink-0 text-sm">
+          {m.tournaments_standings_dropped()}
+        </span>
       ) : null}
     </div>
   );
@@ -91,7 +86,7 @@ export function StandingsTable({
   const teamMode = playMode === "2v2";
   const standings = teamMode ? collapseTeamStandings(standingsInput) : standingsInput;
   if (standings.length === 0) {
-    return <p className="text-muted-foreground">No players yet.</p>;
+    return <p className="text-muted-foreground">{m.tournaments_standings_empty()}</p>;
   }
   const swiss = variant === "swiss";
   const ranked = rankedStandings(standings);
@@ -119,12 +114,18 @@ export function StandingsTable({
               <div className="text-muted-foreground flex gap-x-3 text-sm">
                 <span
                   className={swiss ? "tabular-nums" : undefined}
-                  title={swiss ? undefined : POD_WINS_HINT}
+                  title={swiss ? undefined : podWinsHint()}
                 >
                   {formatPlayerRecord(row, swiss)}
                 </span>
-                <span title={OPP_TITLE}>opp {formatScore(row.avgOpponentScore)}</span>
-                <span title={GAME_TITLE}>{row.gamePoints} game pts</span>
+                <span title={m.tournaments_standings_opp_title()}>
+                  {m.tournaments_standings_tiebreak_opp({
+                    value: formatScore(row.avgOpponentScore),
+                  })}
+                </span>
+                <span title={m.tournaments_standings_game_title()}>
+                  {m.tournaments_standings_tiebreak_game_points({ value: row.gamePoints })}
+                </span>
               </div>
             </div>
             <span className="shrink-0 font-semibold tabular-nums">{formatScore(row.score)}</span>
@@ -137,31 +138,41 @@ export function StandingsTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">#</TableHead>
-              <TableHead>{teamMode ? "Team" : "Player"}</TableHead>
-              {showLegend ? <TableHead>Legend</TableHead> : null}
-              {showRun ? <TableHead>Run</TableHead> : null}
-              <TableHead className="text-right">{swiss ? "Points" : "Score"}</TableHead>
+              <TableHead>
+                {teamMode
+                  ? m.tournaments_standings_col_team()
+                  : m.tournaments_standings_col_player()}
+              </TableHead>
+              {showLegend ? <TableHead>{m.tournaments_standings_col_legend()}</TableHead> : null}
+              {showRun ? <TableHead>{m.tournaments_standings_col_run()}</TableHead> : null}
+              <TableHead className="text-right">
+                {swiss ? m.tournaments_standings_col_points() : m.tournaments_standings_col_score()}
+              </TableHead>
               {swiss ? (
-                <TableHead className="text-right">W-L-D</TableHead>
+                <TableHead className="text-right">{m.tournaments_standings_col_record()}</TableHead>
               ) : (
-                <TableHead className="text-right" title={POD_WINS_HINT}>
-                  Pod wins
+                <TableHead className="text-right" title={podWinsHint()}>
+                  {m.tournaments_standings_col_pod_wins()}
                 </TableHead>
               )}
-              <TableHead className="text-right" title={OPP_TITLE}>
-                Opp
+              <TableHead className="text-right" title={m.tournaments_standings_opp_title()}>
+                {m.tournaments_standings_col_opp()}
               </TableHead>
-              <TableHead className="text-right" title={GAME_TITLE}>
-                Game
+              <TableHead className="text-right" title={m.tournaments_standings_game_title()}>
+                {m.tournaments_standings_col_game()}
               </TableHead>
-              <TableHead className="text-right">Rounds</TableHead>
+              <TableHead className="text-right">{m.tournaments_standings_col_rounds()}</TableHead>
               {swiss ? null : (
                 <>
-                  <TableHead className="text-right">3-pods</TableHead>
-                  <TableHead className="text-right">4-pods</TableHead>
+                  <TableHead className="text-right">
+                    {m.tournaments_standings_col_pods3()}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {m.tournaments_standings_col_pods4()}
+                  </TableHead>
                 </>
               )}
-              <TableHead className="text-right">Byes</TableHead>
+              <TableHead className="text-right">{m.tournaments_standings_col_byes()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

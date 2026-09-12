@@ -15,6 +15,7 @@ import { getFilterIconPath } from "@/lib/icons";
 import { getSiteUrl } from "@/lib/site-config";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/eikowagenknecht";
 const KOFI_URL = "https://ko-fi.com/eikowagenknecht";
@@ -25,34 +26,15 @@ interface SupportTier {
   effect: string;
 }
 
-const tiers: SupportTier[] = [
-  {
-    rarity: "common",
-    price: "$1/mo",
-    effect: "I see you over there. [Reaction]: I nod in your general direction.",
-  },
-  {
-    rarity: "uncommon",
-    price: "$3/mo",
-    effect: "A warm fuzzy feeling. [Shield]: Protects me from existential dread for 72 hours.",
-  },
-  {
-    rarity: "rare",
-    price: "$5/mo",
-    effect: "My server gains +1 :rb_might:. It survives approximately 4.7 more minutes per month.",
-  },
-  {
-    rarity: "epic",
-    price: "$10/mo",
-    effect: "You're keeping the lights on. [Deathknell]: I name a bug after you.",
-  },
-  {
-    rarity: "showcase",
-    price: "$25/mo",
-    effect:
-      "You basically own the site now. [Buff]: My morale goes through the roof. A sticker may or may not materialize.",
-  },
-];
+function tiers(): SupportTier[] {
+  return [
+    { rarity: "common", price: "$1/mo", effect: m.marketing_support_tier_common_effect() },
+    { rarity: "uncommon", price: "$3/mo", effect: m.marketing_support_tier_uncommon_effect() },
+    { rarity: "rare", price: "$5/mo", effect: m.marketing_support_tier_rare_effect() },
+    { rarity: "epic", price: "$10/mo", effect: m.marketing_support_tier_epic_effect() },
+    { rarity: "showcase", price: "$25/mo", effect: m.marketing_support_tier_showcase_effect() },
+  ];
+}
 
 function SimpleIcon({ icon, className }: { icon: { path: string }; className?: string }) {
   return (
@@ -124,13 +106,17 @@ function CopyButton({ text, label, icon }: { text: string; label: string; icon: 
   const { copied, copy } = useCopyToClipboard();
 
   return (
-    <ShareButton label={copied ? "Copied!" : label} icon={icon} onClick={() => void copy(text)} />
+    <ShareButton
+      label={copied ? m.marketing_support_copied() : label}
+      icon={icon}
+      onClick={() => void copy(text)}
+    />
   );
 }
 
 export function SupportPage() {
   const siteUrl = getSiteUrl();
-  const shareText = `Check out OpenRift, a free card browser for Riftbound! ${siteUrl}`;
+  const shareText = m.marketing_support_share_text({ url: siteUrl });
   const tweetText = encodeURIComponent(shareText);
   const { labels } = useEnumOrders();
 
@@ -138,36 +124,23 @@ export function SupportPage() {
     <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING)}>
       <div className="mb-10">
         <Heading level={1} className="mb-4">
-          Support the Rift
+          {m.marketing_support_title()}
         </Heading>
         <div className="text-muted-foreground space-y-3 leading-relaxed">
-          <p>
-            Every day, my server burns Energy to keep the Rift open so you can browse cards instead
-            of whatever you were supposed to be doing.
-          </p>
-          <p>
-            This site has no ads, no trackers, and no venture capital guys asking about my
-            &ldquo;growth metrics.&rdquo; Just me, a database, and an alarming hosting bill. (Just
-            kidding, this is running on a Hetzner CPX32 found in a Falkenstein scrapyard. But
-            upgrading it would be nice.)
-          </p>
-          <p>
-            However you pitch in, whether it&apos;s a donation, a share, or just showing up to
-            browse, it genuinely helps. Thanks for being here.
-          </p>
+          <p>{m.marketing_support_intro_p1()}</p>
+          <p>{m.marketing_support_intro_p2()}</p>
+          <p>{m.marketing_support_intro_p3()}</p>
         </div>
       </div>
 
       <section className="mb-10">
-        <Heading className="mb-1">Fuel the Rift</Heading>
+        <Heading className="mb-1">{m.marketing_support_fuel_title()}</Heading>
         <p className="text-muted-foreground mb-4">
-          Add Energy to the pool.{" "}
-          <span className="italic">
-            These tiers are purely cosmetic. Like foils, but for your soul.
-          </span>
+          {m.marketing_support_fuel_lead()}{" "}
+          <span className="italic">{m.marketing_support_fuel_lead_italic()}</span>
         </p>
         <div className="space-y-3">
-          {tiers.map((tier) => (
+          {tiers().map((tier) => (
             <TierCard
               key={tier.rarity}
               tier={tier}
@@ -183,7 +156,7 @@ export function SupportPage() {
             className={cn(buttonVariants(), "gap-2")}
           >
             <SimpleIcon icon={siKofi} className="size-4" />
-            Support on Ko-fi
+            {m.marketing_support_kofi()}
           </a>
           <a
             href={GITHUB_SPONSORS_URL}
@@ -192,33 +165,28 @@ export function SupportPage() {
             className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
           >
             <SimpleIcon icon={siGithubsponsors} className="size-4" />
-            Sponsor on GitHub
+            {m.marketing_support_sponsor()}
           </a>
         </div>
-        <p className="text-muted-foreground mt-2">
-          Recurring or one-time, every contribution helps keep the Rift open.
-        </p>
+        <p className="text-muted-foreground mt-2">{m.marketing_support_recurring_note()}</p>
       </section>
 
       <section className="mb-10">
-        <Heading className="mb-1">Widen the Rift</Heading>
-        <p className="text-muted-foreground mb-4">
-          Can&apos;t spare the Energy? Cast a sharing spell instead. Every share adds Power to the
-          community.
-        </p>
+        <Heading className="mb-1">{m.marketing_support_widen_title()}</Heading>
+        <p className="text-muted-foreground mb-4">{m.marketing_support_widen_lead()}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <ShareButton
-            label="Star on GitHub"
+            label={m.marketing_support_star_github()}
             icon={<SimpleIcon icon={siGithub} />}
             href={SOCIAL_LINKS.githubRepo}
           />
           <ShareButton
-            label="Summon your X followers"
+            label={m.marketing_support_share_x()}
             icon={<SimpleIcon icon={siX} />}
             href={`https://x.com/intent/tweet?text=${tweetText}`}
           />
           <CopyButton
-            label="Send a Carrier Pigeon"
+            label={m.marketing_support_share_copy()}
             icon={<CopyIcon className="size-4" />}
             text={shareText}
           />
@@ -226,9 +194,9 @@ export function SupportPage() {
       </section>
 
       <section className="mb-10">
-        <Heading className="mb-1">Shop Through the Rift</Heading>
+        <Heading className="mb-1">{m.marketing_support_shop_title()}</Heading>
         <p className="text-muted-foreground">
-          When you click a{" "}
+          {m.marketing_support_shop_before()}{" "}
           <TextLink
             render={
               <MarketplaceLink
@@ -239,7 +207,7 @@ export function SupportPage() {
           >
             TCGplayer
           </TextLink>{" "}
-          or{" "}
+          {m.marketing_support_shop_or()}{" "}
           <TextLink
             render={
               <MarketplaceLink
@@ -250,19 +218,13 @@ export function SupportPage() {
           >
             Cardtrader
           </TextLink>{" "}
-          link from a card&apos;s prices and end up buying something, I get a very small commission
-          at no extra cost to you. (Cardmarket doesn&apos;t do this, so those links are just regular
-          links.) Buying cards you were going to buy anyway through these links is a sneaky-easy way
-          to help out.
+          {m.marketing_support_shop_after()}
         </p>
       </section>
 
       <section className="mb-10">
-        <Heading className="mb-1">Join the Party</Heading>
-        <p className="text-muted-foreground mb-4">
-          Got feedback, questions, or just want to nerd out about Riftbound? Come hang out on
-          Discord.
-        </p>
+        <Heading className="mb-1">{m.marketing_support_party_title()}</Heading>
+        <p className="text-muted-foreground mb-4">{m.marketing_support_party_lead()}</p>
         <a
           href={SOCIAL_LINKS.discordInvite}
           target="_blank"
@@ -270,37 +232,28 @@ export function SupportPage() {
           className={cn(buttonVariants(), "gap-2 bg-[#5865F2] text-white [a]:hover:bg-[#4752C4]")}
         >
           <SimpleIcon icon={siDiscord} className="size-4" />
-          Join the Discord
+          {m.marketing_support_join_discord()}
         </a>
       </section>
 
       <section className="mb-10">
-        <Heading className="mb-1">Gear Up</Heading>
+        <Heading className="mb-1">{m.marketing_support_gear_title()}</Heading>
         <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground font-medium italic">Coming Soon&trade;</p>
-          <p className="text-muted-foreground">
-            My Gear department (population: one) is working on it. Check back before the heat death
-            of the universe.
+          <p className="text-muted-foreground font-medium italic">
+            {m.marketing_support_gear_soon()}
           </p>
+          <p className="text-muted-foreground">{m.marketing_support_gear_body()}</p>
           <p className="text-muted-foreground italic">
-            <Suspense fallback="[Equip]: Attach one mass-produced mug to your desk. It reads: &ldquo;I fund the Rift and all I got was this Common-rarity mug.&rdquo;">
-              <CardText
-                text='[Equip]: Attach one mass-produced mug to your desk. It reads: "I fund the Rift and all I got was this Common-rarity mug."'
-                interactive={false}
-              />
+            <Suspense fallback={m.marketing_support_gear_mug()}>
+              <CardText text={m.marketing_support_gear_mug()} interactive={false} />
             </Suspense>
           </p>
         </div>
       </section>
 
       <section className="text-muted-foreground mt-auto max-w-prose">
-        <p>
-          OpenRift is a free, open-source project. No one here is getting rich (well, except in
-          Power, and you can&apos;t pay hosting bills with Power).
-        </p>
-        <p className="mt-2 font-medium">
-          Built with Fury. Maintained with Calm. Funded by people like you.
-        </p>
+        <p>{m.marketing_support_footer_p1()}</p>
+        <p className="mt-2 font-medium">{m.marketing_support_footer_p2()}</p>
         <HeartIcon className="text-primary/40 mx-auto mt-4 size-5" />
       </section>
     </div>

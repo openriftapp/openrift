@@ -54,23 +54,26 @@ import {
 } from "@/features/meta/lib/meta-scope";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta");
 
-const ARCHIVE_INDEXES = [
-  {
-    to: "/meta/decks",
-    icon: LayersIcon,
-    title: "Decklists",
-    description: "Every list the archive holds, filterable by legend, domain and card.",
-  },
-  {
-    to: "/meta/legends",
-    icon: SwordsIcon,
-    title: "Legends",
-    description: "How each legend has finished, and the players who took it there.",
-  },
-] as const;
+function archiveIndexes() {
+  return [
+    {
+      to: "/meta/decks",
+      icon: LayersIcon,
+      title: m.meta_front_tile_decklists_title(),
+      description: m.meta_front_tile_decklists_description(),
+    },
+    {
+      to: "/meta/legends",
+      icon: SwordsIcon,
+      title: m.meta_front_tile_legends_title(),
+      description: m.meta_front_tile_legends_description(),
+    },
+  ] as const;
+}
 
 const PREMIER_LIMIT = 3;
 const COMPETITIVE_LIMIT = 4;
@@ -85,14 +88,16 @@ function ContributionsLink() {
     return null;
   }
   return (
-    <PageTopBarButton render={<Link to="/meta/submissions" />}>Your contributions</PageTopBarButton>
+    <PageTopBarButton render={<Link to="/meta/submissions" />}>
+      {m.meta_submissions_title()}
+    </PageTopBarButton>
   );
 }
 
 function ArchiveIndexTiles() {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {ARCHIVE_INDEXES.map((index) => (
+      {archiveIndexes().map((index) => (
         <CardLink key={index.to} render={<Link to={index.to} />} size="sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -114,10 +119,12 @@ function MetaEmptyState() {
     <EmptyState
       className="py-12"
       icon={TrophyIcon}
-      title="No events archived yet"
-      description="Tournament results land here as soon as they are entered."
+      title={m.meta_front_empty_title()}
+      description={m.meta_front_empty_description()}
     >
-      {isAdmin === true && <Button render={<Link to="/admin/meta" />}>Add an event</Button>}
+      {isAdmin === true && (
+        <Button render={<Link to="/admin/meta" />}>{m.meta_front_add_event()}</Button>
+      )}
     </EmptyState>
   );
 }
@@ -156,7 +163,7 @@ function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number
       className="text-sm font-medium"
       render={<Link to="/meta/events" search={{ ...UNSCOPED, tiers }} />}
     >
-      Browse all {count}
+      {m.meta_front_browse_all({ count: String(count) })}
     </TextLink>
   );
 }
@@ -176,12 +183,14 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
         <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate">
-            <span className="font-semibold">Next up</span>
+            <span className="font-semibold">{m.meta_front_next_up()}</span>
             <span className="text-muted-foreground"> · </span>
             {next.name}
           </span>
           <span className="text-muted-foreground text-xs">
-            {count === 1 ? "1 upcoming event" : `${count} upcoming events`}
+            {count === 1
+              ? m.meta_front_upcoming_one()
+              : m.meta_front_upcoming_other({ count: String(count) })}
           </span>
         </span>
         <ChevronDownIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
@@ -225,7 +234,7 @@ export function MetaFrontPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Meta Archive</PageTopBarTitle>
+          <PageTopBarTitle>{m.meta_front_title()}</PageTopBarTitle>
           <PageTopBarActions>{userId !== null && <ContributionsLink />}</PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
@@ -259,7 +268,7 @@ export function MetaFrontPage() {
               <>
                 <Empty>
                   <EmptyHeader>
-                    <EmptyDescription>No archived events match this scope.</EmptyDescription>
+                    <EmptyDescription>{m.meta_front_no_match()}</EmptyDescription>
                   </EmptyHeader>
                 </Empty>
                 <MetaContributeBand />
@@ -282,7 +291,7 @@ export function MetaFrontPage() {
                       <>
                         {sections.premier.length > 0 && (
                           <Section
-                            title="Premier"
+                            title={m.meta_event_tier_premier()}
                             accent="bg-border-accent"
                             action={
                               <TierIndexLink
@@ -303,7 +312,7 @@ export function MetaFrontPage() {
 
                         {sections.competitive.length > 0 && (
                           <Section
-                            title="Competitive"
+                            title={m.meta_event_tier_competitive()}
                             accent="bg-primary"
                             action={
                               <TierIndexLink
@@ -324,14 +333,16 @@ export function MetaFrontPage() {
 
                         {sections.local.length > 0 && (
                           <Section
-                            title="Local"
+                            title={m.meta_event_tier_local()}
                             accent="bg-muted-foreground/40"
                             action={
                               <TextLink
                                 className="text-sm font-medium"
                                 render={<Link to="/meta/events" search={UNSCOPED} />}
                               >
-                                Browse all {counts.totalEvents} events
+                                {m.meta_front_browse_all_events({
+                                  count: String(counts.totalEvents),
+                                })}
                               </TextLink>
                             }
                           >
@@ -348,9 +359,7 @@ export function MetaFrontPage() {
                     ) : (
                       <Empty>
                         <EmptyHeader>
-                          <EmptyDescription>
-                            No results on file for this scope yet.
-                          </EmptyDescription>
+                          <EmptyDescription>{m.meta_front_scope_empty()}</EmptyDescription>
                         </EmptyHeader>
                       </Empty>
                     )}
@@ -361,7 +370,7 @@ export function MetaFrontPage() {
                       {sections.upcoming.length > 0 && (
                         <Section
                           id="coming-up"
-                          title="Coming up"
+                          title={m.meta_front_coming_up()}
                           action={
                             <TextLink
                               className="text-sm font-medium"
@@ -372,7 +381,7 @@ export function MetaFrontPage() {
                                 />
                               }
                             >
-                              All {sections.upcoming.length}
+                              {m.meta_front_all_n({ count: String(sections.upcoming.length) })}
                             </TextLink>
                           }
                         >
@@ -387,7 +396,7 @@ export function MetaFrontPage() {
                       )}
 
                       {showActivity && activityData.items.length > 0 && (
-                        <Section title="Fresh in the archive">
+                        <Section title={m.meta_front_fresh()}>
                           <MetaArchiveActivity items={activityData.items} />
                         </Section>
                       )}

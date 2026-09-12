@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
-import { META_EVENTS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import {
   EVENT_INDEX_GRID,
   MetaEventIndexRow,
@@ -57,6 +56,7 @@ import {
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/events");
 
@@ -100,26 +100,26 @@ export function MetaEventsPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarBack to="/meta" aria-label="Meta archive" />
-          <PageTopBarTitle>Events</PageTopBarTitle>
+          <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
+          <PageTopBarTitle>{m.meta_events_title()}</PageTopBarTitle>
           <span className="text-muted-foreground shrink-0 tabular-nums">
             {metaShownLabel(events.length, counts.totalEvents, {
-              singular: "archived event",
-              plural: "archived events",
+              singular: m.meta_events_noun_one(),
+              plural: m.meta_events_noun_other(),
             })}
           </span>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{META_EVENTS_DESCRIPTION}</PageDescription>
+        <PageDescription className="pb-4">{m.meta_events_page_description()}</PageDescription>
 
         {counts.totalEvents === 0 ? (
           <EmptyState
             className="py-12"
             icon={TrophyIcon}
-            title="No events archived yet"
-            description="Standings and decklists land here as soon as an event is entered."
+            title={m.meta_events_empty_title()}
+            description={m.meta_events_empty_description()}
           />
         ) : (
           <>
@@ -146,7 +146,7 @@ export function MetaEventsPage() {
               {events.length === 0 ? (
                 <Empty className="py-10">
                   <EmptyHeader>
-                    <EmptyDescription>No events match these filters.</EmptyDescription>
+                    <EmptyDescription>{m.meta_events_no_match()}</EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               ) : (
@@ -160,12 +160,14 @@ export function MetaEventsPage() {
   );
 }
 
-const HOLDINGS_ITEMS: Record<string, string> = {
-  [ANY_HOLDINGS]: "Any events",
-  decks: "With decklists",
-  standings: "With standings",
-  upcoming: "Upcoming",
-};
+function holdingsItems(): Record<string, string> {
+  return {
+    [ANY_HOLDINGS]: m.meta_events_holdings_any(),
+    decks: m.meta_events_holdings_decks(),
+    standings: m.meta_events_holdings_standings(),
+    upcoming: m.meta_event_status_upcoming(),
+  };
+}
 
 function HoldingsSelect({
   value,
@@ -181,13 +183,13 @@ function HoldingsSelect({
         const chosen = (next as string | null) ?? ANY_HOLDINGS;
         onChange(META_EVENT_HOLDINGS.find((entry) => entry === chosen));
       }}
-      items={HOLDINGS_ITEMS}
+      items={holdingsItems()}
     >
-      <SelectTrigger className="w-40" aria-label="Archive holdings">
+      <SelectTrigger className="w-40" aria-label={m.meta_events_holdings_aria()}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(HOLDINGS_ITEMS).map(([itemValue, label]) => (
+        {Object.entries(holdingsItems()).map(([itemValue, label]) => (
           <SelectItem key={itemValue} value={itemValue}>
             {label}
           </SelectItem>
@@ -210,7 +212,7 @@ function EventSearchBox({
       className="min-w-56 flex-1"
       value={value}
       onValueChange={setValue}
-      placeholder="Search events, venues, organizers"
+      placeholder={m.meta_events_search_placeholder()}
     />
   );
 }
@@ -254,24 +256,24 @@ function SortHeader({
       )}
     >
       <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>
-        Date
+        {m.meta_col_date()}
       </SortButton>
       <SortButton column="name" sort={sort} direction={direction} onSort={onSort}>
-        Event
+        {m.meta_finishes_col_event()}
       </SortButton>
       <SortButton column="tier" sort={sort} direction={direction} onSort={onSort}>
-        Tier
+        {m.meta_finishes_col_tier()}
       </SortButton>
       <SortButton column="country" sort={sort} direction={direction} onSort={onSort}>
-        Country
+        {m.meta_scope_country()}
       </SortButton>
       <SortButton column="players" sort={sort} direction={direction} onSort={onSort} align="end">
-        Players
+        {m.meta_events_col_players()}
       </SortButton>
       <SortButton column="decks" sort={sort} direction={direction} onSort={onSort} align="end">
-        Decks
+        {m.meta_events_col_decks()}
       </SortButton>
-      <span>Winner</span>
+      <span>{m.meta_events_winner()}</span>
     </div>
   );
 }

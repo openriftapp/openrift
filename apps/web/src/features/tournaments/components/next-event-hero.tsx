@@ -12,13 +12,14 @@ import { CardFan, CardFanOutline } from "@/features/cards/components/card-fan";
 import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar-cluster";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
-  VIEWER_ROLE_LABEL,
+  viewerRoleLabels,
   effectiveTournamentState,
   formatStartsIn,
   primaryViewerRole,
   tournamentContextLabel,
 } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 function HeroBandContent({ tournament }: { tournament: TournamentSummaryResponse }) {
   if (tournament.coverLegends.length > 0) {
@@ -75,7 +76,9 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
         <HeroBandContent tournament={tournament} />
       </CoverBand>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-5">
-        <Eyebrow variant="kicker">{live ? "Happening now" : "Next event"}</Eyebrow>
+        <Eyebrow variant="kicker">
+          {live ? m.tournaments_next_event_happening_now() : m.tournaments_next_event_next()}
+        </Eyebrow>
         <div className="flex min-w-0 items-center gap-3.5">
           <DateLeaf month={leaf.month} day={leaf.day} />
           <div className="min-w-0">
@@ -98,11 +101,11 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {live ? (
-            <Badge variant="subtle">Live</Badge>
+            <Badge variant="subtle">{m.tournaments_next_event_live()}</Badge>
           ) : startsIn ? (
             <Badge variant="subtle">{startsIn}</Badge>
           ) : null}
-          {role ? <Badge variant="outline">{VIEWER_ROLE_LABEL[role]}</Badge> : null}
+          {role ? <Badge variant="outline">{viewerRoleLabels()[role]}</Badge> : null}
           {showContext && tournamentContextLabel(tournament) ? (
             <Badge variant="outline">{tournamentContextLabel(tournament)}</Badge>
           ) : null}

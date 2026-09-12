@@ -7,28 +7,36 @@ import type {
 } from "@openrift/shared/types/enums";
 import { META_PLAYER_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 
+import { m } from "@/paraglide/messages.js";
+
 // The deck share image also uses these; they live in `shared` for both to import.
 export { formatRank, formatRecord } from "@openrift/shared/meta-standings";
 
-export const META_LIST_STATUS_LABELS: Record<MetaListStatus, string> = {
-  full: "Full list",
-  partial: "Partial list",
-  none: "No list",
-};
+export function metaListStatusLabels(): Record<MetaListStatus, string> {
+  return {
+    full: m.meta_list_status_full(),
+    partial: m.meta_list_status_partial(),
+    none: m.meta_list_status_none(),
+  };
+}
 
 export const MEDAL_RANKS = 3;
 
-export const META_EVENT_TIER_LABELS: Record<MetaEventTier, string> = {
-  premier: "Premier",
-  competitive: "Competitive",
-  local: "Local",
-};
+export function metaEventTierLabels(): Record<MetaEventTier, string> {
+  return {
+    premier: m.meta_event_tier_premier(),
+    competitive: m.meta_event_tier_competitive(),
+    local: m.meta_event_tier_local(),
+  };
+}
 
-export const META_EVENT_STATUS_LABELS: Record<MetaEventStatus, string> = {
-  upcoming: "Upcoming",
-  in_progress: "In progress",
-  complete: "Complete",
-};
+export function metaEventStatusLabels(): Record<MetaEventStatus, string> {
+  return {
+    upcoming: m.meta_event_status_upcoming(),
+    in_progress: m.meta_event_status_in_progress(),
+    complete: m.meta_event_status_complete(),
+  };
+}
 
 /** Grouping is pinned to `en-US`: SSR would otherwise send a different locale's separator than the browser renders. */
 export function metaShownLabel(
@@ -38,9 +46,13 @@ export function metaShownLabel(
 ): string {
   const label = total === 1 ? noun.singular : noun.plural;
   if (shown === total) {
-    return `${total.toLocaleString("en-US")} ${label}`;
+    return m.meta_shown_all({ total: total.toLocaleString("en-US"), label });
   }
-  return `${shown.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} ${label}`;
+  return m.meta_shown_partial({
+    shown: shown.toLocaleString("en-US"),
+    total: total.toLocaleString("en-US"),
+    label,
+  });
 }
 
 /** Not `Intl.ListFormat`: this must render the same string for every reader regardless of locale. */
@@ -48,7 +60,7 @@ export function joinNames(names: readonly string[]): string {
   if (names.length <= 1) {
     return names[0] ?? "";
   }
-  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return m.meta_join_and({ names: names.slice(0, -1).join(", "), last: names.at(-1) ?? "" });
 }
 
 export interface LegendNameParts {
@@ -136,12 +148,12 @@ export interface MetaCountedEvent {
 
 function emptyStatusFor(event: MetaCountedEvent, today: string): string {
   if (event.status === "in_progress") {
-    return "In progress";
+    return m.meta_event_status_in_progress();
   }
   if (event.status === "upcoming" || event.eventDate > today) {
-    return "Not played yet";
+    return m.meta_event_not_played();
   }
-  return "No results on file";
+  return m.meta_event_no_results();
 }
 
 export function metaEventEmptyStatus(event: MetaCountedEvent, today = todayUtc()): string | null {
@@ -161,12 +173,20 @@ export function metaEventCounts(event: MetaCountedEvent, today = todayUtc()): st
   const size = metaEventFieldSize(event);
   const parts: string[] = [];
   if (size !== null) {
-    parts.push(`${size.toLocaleString("en-US")} ${size === 1 ? "player" : "players"}`);
+    const count = size.toLocaleString("en-US");
+    parts.push(
+      size === 1 ? m.meta_count_players_one({ count }) : m.meta_count_players_other({ count }),
+    );
   }
   if (event.playerRowCount === 0) {
     parts.push(emptyStatusFor(event, today));
   } else {
-    parts.push(`${event.deckCount} ${event.deckCount === 1 ? "deck" : "decks"}`);
+    const count = String(event.deckCount);
+    parts.push(
+      event.deckCount === 1
+        ? m.meta_count_decks_one({ count })
+        : m.meta_count_decks_other({ count }),
+    );
   }
   return parts;
 }

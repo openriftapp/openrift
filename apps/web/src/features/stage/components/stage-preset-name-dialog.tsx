@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { m } from "@/paraglide/messages.js";
 
 export const MAX_PRESET_NAME_LENGTH = 60;
 
@@ -53,19 +54,19 @@ export function StagePresetNameDialog({
         </DialogHeader>
 
         <Field>
-          <FieldLabel htmlFor="stage-preset-name">Name</FieldLabel>
+          <FieldLabel htmlFor="stage-preset-name">{m.common_name()}</FieldLabel>
           <Input
             id="stage-preset-name"
             value={name}
             maxLength={MAX_PRESET_NAME_LENGTH}
-            placeholder="Green screen, plate off"
+            placeholder={m.stage_preset_name_placeholder()}
             onChange={(event) => setName(event.target.value)}
           />
         </Field>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button onClick={() => onConfirm(trimmed)} disabled={trimmed === "" || pending}>
             {confirmLabel}

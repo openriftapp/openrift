@@ -2,6 +2,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
 import { Pressable } from "@/components/ui/pressable";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function IndexSortButton<TColumn extends string>({
   column,
@@ -20,7 +21,7 @@ export function IndexSortButton<TColumn extends string>({
 }) {
   const active = sort === column;
   const Arrow = direction === "asc" ? ChevronUpIcon : ChevronDownIcon;
-  const order = direction === "asc" ? "ascending" : "descending";
+  const order = direction === "asc" ? m.meta_sort_ascending() : m.meta_sort_descending();
   return (
     <Pressable
       className={cn(
@@ -28,7 +29,11 @@ export function IndexSortButton<TColumn extends string>({
         active && "text-foreground",
         align === "end" && "justify-end",
       )}
-      aria-label={active ? `${children}, sorted ${order}` : `Sort by ${children.toLowerCase()}`}
+      aria-label={
+        active
+          ? m.meta_sort_aria_active({ column: children, order })
+          : m.meta_sort_aria_inactive({ column: children.toLowerCase() })
+      }
       onClick={() => onSort(column)}
     >
       <span className="truncate">{children}</span>

@@ -8,6 +8,8 @@ import {
 } from "@openrift/shared/pairing/points";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
 
+import { m } from "@/paraglide/messages.js";
+
 export interface SwissResultPreset {
   label: string;
   gamePoints: [number, number];
@@ -21,7 +23,7 @@ export function swissResultPresets(matchFormat: TournamentMatchFormat): SwissRes
   if (matchFormat === "bo1") {
     return [
       { label: "1–0", gamePoints: [1, 0] },
-      { label: "Draw", gamePoints: [0, 0] },
+      { label: m.tournaments_submit_draw(), gamePoints: [0, 0] },
       { label: "0–1", gamePoints: [0, 1] },
     ];
   }
@@ -29,8 +31,8 @@ export function swissResultPresets(matchFormat: TournamentMatchFormat): SwissRes
     { label: "2–0", gamePoints: [2, 0] },
     { label: "2–1", gamePoints: [2, 1] },
     { label: "1–0", gamePoints: [1, 0] },
-    { label: "Draw 1–1", gamePoints: [1, 1] },
-    { label: "Draw 0–0", gamePoints: [0, 0] },
+    { label: m.tournaments_lib_swiss_preset_draw_1_1(), gamePoints: [1, 1] },
+    { label: m.tournaments_lib_swiss_preset_draw_0_0(), gamePoints: [0, 0] },
     { label: "0–1", gamePoints: [0, 1] },
     { label: "1–2", gamePoints: [1, 2] },
     { label: "0–2", gamePoints: [0, 2] },

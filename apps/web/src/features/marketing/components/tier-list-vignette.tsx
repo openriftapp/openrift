@@ -2,17 +2,31 @@ import { TIER_LABEL_INK, tierColor } from "@openrift/shared/tier-colors";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { MiniCardArt, Swap, Vignette, VignetteHeading } from "./vignette-parts";
 
 const TILE = "w-11 shrink-0";
 
-// Must never render "S"/"D": row labels are user-renamed from those defaults.
-const TIER_1 = { label: "Tier 1", index: 0 };
-const TIER_2 = { label: "Tier 2", index: 1 };
-const FRINGE = { label: "Fringe", index: 2 };
+interface Tier {
+  label: string;
+  index: number;
+}
 
-function TierRow({ tier, children }: { tier: typeof TIER_1; children: ReactNode }) {
+// Must never render "S"/"D": row labels are user-renamed from those defaults.
+function tier1(): Tier {
+  return { label: m.marketing_tier_list_tier_1(), index: 0 };
+}
+
+function tier2(): Tier {
+  return { label: m.marketing_tier_list_tier_2(), index: 1 };
+}
+
+function fringe(): Tier {
+  return { label: m.marketing_tier_list_fringe(), index: 2 };
+}
+
+function TierRow({ tier, children }: { tier: Tier; children: ReactNode }) {
   return (
     // No overflow-hidden: the tile animating in from the pool must pass over rows below.
     <div className="ring-border bg-background/40 flex items-stretch rounded-md ring-1">
@@ -38,7 +52,7 @@ function Tile({ url, className }: { url?: string; className?: string }) {
 // which nothing in a miniature may be.
 const PILL = "text-2xs inline-flex h-5 max-w-11 items-center truncate rounded-md px-1.5 font-bold";
 
-function TierPill({ tier }: { tier: typeof TIER_1 }) {
+function TierPill({ tier }: { tier: Tier }) {
   return (
     <span
       className={PILL}
@@ -50,18 +64,14 @@ function TierPill({ tier }: { tier: typeof TIER_1 }) {
 }
 
 function RankPill() {
-  return <span className={cn(PILL, "bg-muted text-muted-foreground")}>Rank</span>;
+  return (
+    <span className={cn(PILL, "bg-muted text-muted-foreground")}>
+      {m.marketing_tier_list_rank()}
+    </span>
+  );
 }
 
-function PoolCell({
-  url,
-  tier,
-  animate,
-}: {
-  url?: string;
-  tier?: typeof TIER_1;
-  animate?: boolean;
-}) {
+function PoolCell({ url, tier, animate }: { url?: string; tier?: Tier; animate?: boolean }) {
   return (
     <span className="flex flex-col items-center gap-1">
       <Tile
@@ -86,14 +96,17 @@ export function TierListVignette({ legendUrls = [] }: { legendUrls?: string[] })
   return (
     <Vignette>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-medium">Current meta, best legends</span>
+        <span className="font-medium">{m.marketing_tier_list_heading()}</span>
         <VignetteHeading>
-          <Swap was={<>8 ranked</>} now={<>9 ranked</>} />
+          <Swap
+            was={<>{m.marketing_tier_list_ranked({ count: 8 })}</>}
+            now={<>{m.marketing_tier_list_ranked({ count: 9 })}</>}
+          />
         </VignetteHeading>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <TierRow tier={TIER_1}>
+        <TierRow tier={tier1()}>
           <Tile url={art(0)} />
           <Tile url={art(1)} />
           <Tile url={art(2)} />
@@ -102,23 +115,23 @@ export function TierListVignette({ legendUrls = [] }: { legendUrls?: string[] })
               DOM and would otherwise paint over it. */}
           <Tile url={art(4)} className="motion-safe:animate-tier-land relative z-10" />
         </TierRow>
-        <TierRow tier={TIER_2}>
+        <TierRow tier={tier2()}>
           <Tile url={art(5)} />
           <Tile url={art(6)} />
           <Tile url={art(7)} />
         </TierRow>
-        <TierRow tier={FRINGE}>
+        <TierRow tier={fringe()}>
           <Tile url={art(8)} />
         </TierRow>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <VignetteHeading>Card pool</VignetteHeading>
+        <VignetteHeading>{m.marketing_tier_list_card_pool()}</VignetteHeading>
         <div className="flex items-start gap-1.5">
-          <PoolCell url={art(0)} tier={TIER_1} />
-          <PoolCell url={art(5)} tier={TIER_2} />
-          <PoolCell url={art(4)} tier={TIER_1} animate />
-          <PoolCell url={art(8)} tier={FRINGE} />
+          <PoolCell url={art(0)} tier={tier1()} />
+          <PoolCell url={art(5)} tier={tier2()} />
+          <PoolCell url={art(4)} tier={tier1()} animate />
+          <PoolCell url={art(8)} tier={fringe()} />
           <PoolCell url={art(9)} />
         </div>
       </div>

@@ -13,6 +13,7 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useCreateTierList } from "@/features/stage/hooks/use-tier-lists";
+import { m } from "@/paraglide/messages.js";
 
 interface CreateTierListDialogProps {
   open: boolean;
@@ -44,27 +45,27 @@ export function CreateTierListDialog({ open, onOpenChange }: CreateTierListDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New tier list</DialogTitle>
-          <DialogDescription>Starts with tiers S to D.</DialogDescription>
+          <DialogTitle>{m.tier_lists_new()}</DialogTitle>
+          <DialogDescription>{m.tier_lists_create_description()}</DialogDescription>
         </DialogHeader>
 
         <Field>
-          <FieldLabel htmlFor="new-tier-list-title">Title</FieldLabel>
+          <FieldLabel htmlFor="new-tier-list-title">{m.tier_lists_field_title()}</FieldLabel>
           <Input
             id="new-tier-list-title"
             value={title}
             maxLength={120}
-            placeholder="Origins — best commons"
+            placeholder={m.tier_lists_field_title_placeholder()}
             onChange={(event) => setTitle(event.target.value)}
           />
         </Field>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button onClick={handleCreate} disabled={trimmedTitle === "" || createTierList.isPending}>
-            Create
+            {m.common_create()}
           </Button>
         </DialogFooter>
       </DialogContent>

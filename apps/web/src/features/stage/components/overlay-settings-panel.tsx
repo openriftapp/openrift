@@ -23,37 +23,48 @@ import {
   useUpdateOverlaySettings,
 } from "@/features/stage/hooks/use-overlay";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
-const CORNERS: { value: OverlayCorner; label: string }[] = [
-  { value: "top-left", label: "Top left" },
-  { value: "top-right", label: "Top right" },
-  { value: "bottom-left", label: "Bottom left" },
-  { value: "bottom-right", label: "Bottom right" },
-];
+const CORNER_VALUES: OverlayCorner[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
+
+function corners(): { value: OverlayCorner; label: string }[] {
+  return [
+    { value: "top-left", label: m.stage_corner_top_left() },
+    { value: "top-right", label: m.stage_corner_top_right() },
+    { value: "bottom-left", label: m.stage_corner_bottom_left() },
+    { value: "bottom-right", label: m.stage_corner_bottom_right() },
+  ];
+}
 
 function isCorner(value: unknown): value is OverlayCorner {
-  return CORNERS.some((corner) => corner.value === value);
+  return CORNER_VALUES.some((corner) => corner === value);
 }
 
-const PLATE_POSITIONS: { value: OverlayPlatePosition; label: string }[] = [
-  { value: "auto", label: "Auto" },
-  { value: "left", label: "Left" },
-  { value: "right", label: "Right" },
-  { value: "above", label: "Above" },
-  { value: "below", label: "Below" },
-];
+const PLATE_POSITION_VALUES: OverlayPlatePosition[] = ["auto", "left", "right", "above", "below"];
+
+function platePositions(): { value: OverlayPlatePosition; label: string }[] {
+  return [
+    { value: "auto", label: m.stage_plate_position_auto() },
+    { value: "left", label: m.stage_plate_position_left() },
+    { value: "right", label: m.stage_plate_position_right() },
+    { value: "above", label: m.stage_plate_position_above() },
+    { value: "below", label: m.stage_plate_position_below() },
+  ];
+}
 
 function isPlatePosition(value: unknown): value is OverlayPlatePosition {
-  return PLATE_POSITIONS.some((position) => position.value === value);
+  return PLATE_POSITION_VALUES.some((position) => position === value);
 }
 
-const PLATE_FIELDS: { key: keyof OverlayPlateFields; label: string }[] = [
-  { key: "name", label: "Card name" },
-  { key: "code", label: "Set code and foil" },
-  { key: "stats", label: "Energy, power and might" },
-  { key: "rulesText", label: "Rules text" },
-  { key: "flavorText", label: "Flavor text" },
-];
+function plateFields(): { key: keyof OverlayPlateFields; label: string }[] {
+  return [
+    { key: "name", label: m.stage_plate_field_name() },
+    { key: "code", label: m.stage_plate_field_code() },
+    { key: "stats", label: m.stage_plate_field_stats() },
+    { key: "rulesText", label: m.stage_plate_field_rules_text() },
+    { key: "flavorText", label: m.stage_plate_field_flavor_text() },
+  ];
+}
 
 export function OverlaySettingsPanel({
   channel,
@@ -78,13 +89,13 @@ export function OverlaySettingsPanel({
   return (
     <div className="flex flex-col gap-8">
       <SettingsSection
-        title="Browser source"
-        description="Add a Browser source in OBS and paste this URL. Anyone with the link sees what you push."
+        title={m.stage_browser_source_title()}
+        description={m.stage_browser_source_description()}
       >
         {sourceUrl ? (
           <ShareLinkRow
             url={sourceUrl}
-            label="OBS browser source URL"
+            label={m.stage_browser_source_url_label()}
             hideQr
             actions={
               <Button
@@ -93,7 +104,7 @@ export function OverlaySettingsPanel({
                 onClick={() => setConfirmDisable(true)}
                 disabled={disableToken.isPending}
               >
-                Disable
+                {m.stage_browser_source_disable()}
               </Button>
             }
           />
@@ -103,7 +114,7 @@ export function OverlaySettingsPanel({
             onClick={() => enableToken.mutate()}
             disabled={enableToken.isPending}
           >
-            Enable browser source link
+            {m.stage_browser_source_enable()}
           </Button>
         )}
       </SettingsSection>
@@ -111,10 +122,10 @@ export function OverlaySettingsPanel({
       <ConfirmActionDialog
         open={confirmDisable}
         onOpenChange={setConfirmDisable}
-        title="Disable the browser source link?"
-        description="Every source pointed at it goes blank, including preset links. Enabling it again creates a different link."
-        confirmLabel="Disable link"
-        pendingLabel="Disabling…"
+        title={m.stage_browser_source_disable_title()}
+        description={m.stage_browser_source_disable_description()}
+        confirmLabel={m.stage_browser_source_disable_confirm()}
+        pendingLabel={m.stage_browser_source_disable_pending()}
         isPending={disableToken.isPending}
         onConfirm={() => {
           disableToken.mutate();
@@ -122,11 +133,11 @@ export function OverlaySettingsPanel({
         }}
       />
 
-      <SettingsSection title="Placement">
+      <SettingsSection title={m.stage_placement_title()}>
         <div className="flex flex-col gap-2">
-          <Label>Corner</Label>
+          <Label>{m.stage_corner_label()}</Label>
           <ToggleGroup
-            aria-label="Corner"
+            aria-label={m.stage_corner_label()}
             variant="outline"
             value={[payload.corner]}
             onValueChange={([next]) => {
@@ -136,7 +147,7 @@ export function OverlaySettingsPanel({
             }}
             className="grid w-full grid-cols-2"
           >
-            {CORNERS.map((corner) => (
+            {corners().map((corner) => (
               <ToggleGroupItem key={corner.value} value={corner.value}>
                 {corner.label}
               </ToggleGroupItem>
@@ -145,9 +156,9 @@ export function OverlaySettingsPanel({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Card size — {shownScale}% of the canvas height</Label>
+          <Label>{m.stage_overlay_card_size_label({ scale: shownScale })}</Label>
           <Slider
-            aria-label="Card size"
+            aria-label={m.stage_card_size()}
             min={20}
             max={100}
             step={5}
@@ -170,11 +181,11 @@ export function OverlaySettingsPanel({
       </SettingsSection>
 
       <SettingsSection
-        title="Card plate"
+        title={m.stage_plate_title()}
         action={
           <Switch
             id="overlay-plate"
-            aria-label="Card plate"
+            aria-label={m.stage_plate_title()}
             checked={payload.showPlate}
             onCheckedChange={(checked) => updateSettings.mutate({ showPlate: checked })}
           />
@@ -183,9 +194,9 @@ export function OverlaySettingsPanel({
         {payload.showPlate && (
           <>
             <div className="flex flex-col gap-2">
-              <Label>Where it sits</Label>
+              <Label>{m.stage_plate_position_label()}</Label>
               <ToggleGroup
-                aria-label="Plate position"
+                aria-label={m.stage_plate_position_aria()}
                 variant="outline"
                 value={[payload.platePosition]}
                 onValueChange={([next]) => {
@@ -195,20 +206,18 @@ export function OverlaySettingsPanel({
                 }}
                 className="grid w-full grid-cols-5"
               >
-                {PLATE_POSITIONS.map((position) => (
+                {platePositions().map((position) => (
                   <ToggleGroupItem key={position.value} value={position.value}>
                     {position.label}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              <p className="text-muted-foreground text-sm">
-                Auto keeps the plate on the card&apos;s inward side, so it follows the corner.
-              </p>
+              <p className="text-muted-foreground text-sm">{m.stage_plate_position_auto_hint()}</p>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>What it shows</Label>
-              {PLATE_FIELDS.map((field) => (
+              <Label>{m.stage_plate_fields_label()}</Label>
+              {plateFields().map((field) => (
                 <SettingsRow
                   key={field.key}
                   label={field.label}
@@ -228,9 +237,9 @@ export function OverlaySettingsPanel({
         )}
       </SettingsSection>
 
-      <SettingsSection title="QR code">
+      <SettingsSection title={m.stage_qr_title()}>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="overlay-qr-url">Link to put on screen</Label>
+          <Label htmlFor="overlay-qr-url">{m.stage_qr_url_label()}</Label>
           <Input
             id="overlay-qr-url"
             type="url"
@@ -244,7 +253,7 @@ export function OverlaySettingsPanel({
               }
             }}
           />
-          <p className="text-muted-foreground text-sm">Any link. Leave empty to hide the code.</p>
+          <p className="text-muted-foreground text-sm">{m.stage_qr_url_hint()}</p>
         </div>
       </SettingsSection>
 

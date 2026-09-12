@@ -2,6 +2,7 @@ import { ArrowRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -96,7 +97,7 @@ function NodeLabel({
           </span>
         </span>
       )}
-      {draft && <span className="text-warning shrink-0">Draft</span>}
+      {draft && <span className="text-warning shrink-0">{m.decks_dialog_draft_badge()}</span>}
     </span>
   );
 }
@@ -167,7 +168,7 @@ function StepDiff({
       </div>
       <div className="flex min-w-0 flex-col gap-1 text-sm">
         <span className="text-muted-foreground text-2xs font-semibold tracking-wide uppercase">
-          Main Deck
+          {m.marketing_variants_main_deck()}
         </span>
         {entries.map((entry) => (
           <div key={entry.name} className="flex items-baseline gap-2">

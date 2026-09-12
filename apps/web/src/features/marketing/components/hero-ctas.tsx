@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import { cornerClip } from "@/features/marketing/components/clip-frame";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const CTA_CLIP = cornerClip(12);
 
@@ -14,7 +15,7 @@ export function HeroCtas({ className }: { className?: string }) {
         className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         style={{ clipPath: CTA_CLIP }}
       >
-        Browse cards
+        {m.collections_activity_browse_cards()}
       </Link>
       {/* clip-path clips the border off the diagonal edge, so the gold hairline
           is a clipped wrapper showing through 1px of padding. */}
@@ -25,7 +26,7 @@ export function HeroCtas({ className }: { className?: string }) {
           className="bg-background hover:bg-secondary focus-visible:ring-ring font-heading inline-flex h-11 items-center px-7 font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
           style={{ clipPath: CTA_CLIP }}
         >
-          Sign up free
+          {m.card_detail_nudge_signup()}
         </Link>
       </span>
     </div>

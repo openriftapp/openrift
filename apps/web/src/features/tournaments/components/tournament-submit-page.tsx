@@ -13,22 +13,22 @@ import { useRequestJoinTournament } from "@/features/tournaments/hooks/use-tourn
 import { useTournamentSubmitLanding } from "@/features/tournaments/hooks/use-tournaments";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
-
-const CLAIM_LINK_HINT =
-  "The organizer adds players directly. Open the personal claim link they sent you to take your spot.";
+import { m } from "@/paraglide/messages.js";
 
 function SignedOutJoinState({ data }: { data: PublicTournamentLandingResponse }) {
   if (!data.selfRegistrationOpen) {
-    return <p className="text-muted-foreground text-sm">{CLAIM_LINK_HINT}</p>;
+    return (
+      <p className="text-muted-foreground text-sm">{m.tournaments_submit_claim_link_hint()}</p>
+    );
   }
   return (
     <>
       <p className="text-muted-foreground text-sm">
         {data.deckExpected
-          ? "Sign in to request a spot and hand in your decklist."
-          : "Sign in to request a spot."}
+          ? m.tournaments_submit_signin_deck()
+          : m.tournaments_submit_signin_spot()}
       </p>
-      <SignedOutAuthButtons signInLabel="Sign in to request a spot" />
+      <SignedOutAuthButtons signInLabel={m.tournaments_submit_signin_label()} />
     </>
   );
 }
@@ -47,25 +47,25 @@ function SignedInJoinState({
   if (joined) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <CheckIcon className="size-4" /> Your request was sent. The host will review it.
+        <CheckIcon className="size-4" /> {m.tournaments_submit_request_sent_inline()}
       </div>
     );
   }
   if (data.selfRegistrationOpen) {
     return (
       <Button onClick={onJoin} disabled={pending}>
-        Request to join
+        {m.tournaments_submit_request_to_join()}
       </Button>
     );
   }
   if (data.viewerIsParticipant) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <CheckIcon className="size-4" /> You have a spot in this event.
+        <CheckIcon className="size-4" /> {m.tournaments_submit_have_spot()}
       </div>
     );
   }
-  return <p className="text-muted-foreground text-sm">{CLAIM_LINK_HINT}</p>;
+  return <p className="text-muted-foreground text-sm">{m.tournaments_submit_claim_link_hint()}</p>;
 }
 
 export function TournamentSubmitPage({ token }: { token: string }) {
@@ -83,7 +83,11 @@ export function TournamentSubmitPage({ token }: { token: string }) {
       return;
     }
     setJoined(true);
-    toast.success(result.alreadyJoined ? "You are already registered" : "Request sent");
+    toast.success(
+      result.alreadyJoined
+        ? m.tournaments_submit_already_registered_toast()
+        : m.tournaments_submit_request_sent_toast(),
+    );
   }
 
   const canSubmitDeck =
@@ -93,7 +97,7 @@ export function TournamentSubmitPage({ token }: { token: string }) {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Join tournament</PageTopBarTitle>
+          <PageTopBarTitle>{m.tournaments_submit_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn("flex flex-col gap-6 pt-3", PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP)}>
@@ -102,12 +106,14 @@ export function TournamentSubmitPage({ token }: { token: string }) {
             <CardTitle>{data.name}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground">Hosted by {data.hostDisplayName}.</p>
+            <p className="text-muted-foreground">
+              {m.tournaments_submit_hosted_by({ host: data.hostDisplayName })}
+            </p>
             {data.deckExpected && canSubmitDeck ? (
               <p className="text-muted-foreground text-sm">
                 {data.selfRegistrationOpen
-                  ? "This event expects a decklist. Request a spot, then submit your deck below."
-                  : "Submit your deck for this event below."}
+                  ? m.tournaments_submit_deck_expected_register()
+                  : m.tournaments_submit_deck_below()}
               </p>
             ) : null}
             {userId ? (
@@ -119,7 +125,7 @@ export function TournamentSubmitPage({ token }: { token: string }) {
                   onJoin={() => void handleJoin()}
                 />
                 <Button variant="ghost" render={<Link to="/tournaments" />} className="w-fit">
-                  Go to my tournaments
+                  {m.tournaments_staff_invite_go_to_tournaments()}
                 </Button>
               </>
             ) : (

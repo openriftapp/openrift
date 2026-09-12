@@ -8,62 +8,59 @@ import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/u
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/text-link";
 import { StepRow } from "@/features/marketing/components/article-cards";
+import { m } from "@/paraglide/messages.js";
 
-const KEYS: { keys: string[]; does: string }[] = [
-  { keys: ["→", "↓", "Space"], does: "Next card" },
-  { keys: ["←", "↑"], does: "Previous card" },
-  { keys: ["Home", "End"], does: "First or last card" },
-  { keys: ["T"], does: "Show or hide the card text" },
-  { keys: ["F"], does: "Show or hide the thumbnail strip" },
-  { keys: ["P"], does: "Push this card to the OBS overlay" },
-  { keys: ["O"], does: "Show the tier board on the OBS overlay" },
-  { keys: ["?"], does: "Show the key list on screen" },
-  { keys: ["Esc"], does: "Leave the show" },
-];
+function keyRows(): { id: string; keys: string[]; does: string }[] {
+  return [
+    { id: "next", keys: ["→", "↓", "Space"], does: m.help_stage_key_next_card() },
+    { id: "previous", keys: ["←", "↑"], does: m.help_stage_key_previous_card() },
+    { id: "first-last", keys: ["Home", "End"], does: m.help_stage_key_first_last() },
+    { id: "text", keys: ["T"], does: m.help_stage_key_toggle_text() },
+    { id: "strip", keys: ["F"], does: m.help_stage_key_toggle_strip() },
+    { id: "push", keys: ["P"], does: m.help_stage_key_push_overlay() },
+    { id: "board", keys: ["O"], does: m.help_stage_key_show_board() },
+    { id: "keys", keys: ["?"], does: m.help_stage_key_show_keys() },
+    { id: "leave", keys: ["Esc"], does: m.help_stage_key_leave() },
+  ];
+}
 
-const OBS_STEPS: { title: string; description: string }[] = [
-  {
-    title: "Open the Stage, switch the output to OBS, and copy the browser source URL",
-    description: "You need to be signed in for this.",
-  },
-  {
-    title: "Add a Browser source in OBS and paste the link",
-    description: "Set its width and height to your canvas size, usually 1920 by 1080.",
-  },
-  {
-    title: "Pick the corner and the card size",
-    description: "Both are in the OBS tab, with a live preview of exactly what your audience sees.",
-  },
-  {
-    title: "Keep the Stage open on your phone during the stream",
-    description:
-      "Step through your queue with the arrows beside the preview, and clear the screen when the segment is over.",
-  },
-];
+function obsSteps(): { title: string; description: string }[] {
+  return [
+    {
+      title: m.help_stage_obs_step_1_title(),
+      description: m.help_stage_obs_step_1_description(),
+    },
+    {
+      title: m.help_stage_obs_step_2_title(),
+      description: m.help_stage_obs_step_2_description(),
+    },
+    {
+      title: m.help_stage_obs_step_3_title(),
+      description: m.help_stage_obs_step_3_description(),
+    },
+    {
+      title: m.help_stage_obs_step_4_title(),
+      description: m.help_stage_obs_step_4_description(),
+    },
+  ];
+}
 
 export default function StageArticle() {
   return (
     <div className="space-y-8">
-      <p className="text-muted-foreground">
-        The Stage puts Riftbound cards in front of an audience. It has two outputs: a full-screen
-        show you run on this screen and capture as a window, and a transparent overlay you paste
-        into OBS as a browser source. Both are driven from the same card queue, so you can pick a
-        card once and decide later where it appears.
-      </p>
+      <p className="text-muted-foreground">{m.help_stage_intro()}</p>
       <p>
         <TextLink className="font-medium" render={<Link to="/stage" />}>
-          Open the Stage
+          {m.help_stage_open_link()}
         </TextLink>
       </p>
 
       <section>
-        <Heading className="mb-2">The full-screen show</Heading>
-        <p className="text-muted-foreground">
-          The show fills the screen with nothing but the cards, driven from the keyboard:
-        </p>
+        <Heading className="mb-2">{m.help_stage_show_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_stage_show_intro()}</p>
         <DefinitionList className="text-muted-foreground mt-3">
-          {KEYS.map((row) => (
-            <Fragment key={row.does}>
+          {keyRows().map((row) => (
+            <Fragment key={row.id}>
               <DefinitionTerm className="self-center">
                 <KbdGroup>
                   {row.keys.map((key) => (
@@ -78,13 +75,10 @@ export default function StageArticle() {
       </section>
 
       <section>
-        <Heading className="mb-2">The OBS overlay</Heading>
-        <p className="text-muted-foreground">
-          The overlay sends single cards, or a ranking that fills in as you talk through it, to a
-          transparent browser source in OBS. Setting it up takes a few minutes:
-        </p>
+        <Heading className="mb-2">{m.help_stage_obs_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_stage_obs_intro()}</p>
         <div className="mt-3 space-y-2">
-          {OBS_STEPS.map((step, index) => (
+          {obsSteps().map((step, index) => (
             <StepRow
               key={step.title}
               step={index + 1}
@@ -97,9 +91,7 @@ export default function StageArticle() {
 
       <Alert>
         <EyeOffIcon className="size-4" />
-        <AlertDescription>
-          The browser source link is unique to you, so keep it off screen and out of screen shares.
-        </AlertDescription>
+        <AlertDescription>{m.help_stage_alert_private_link()}</AlertDescription>
       </Alert>
     </div>
   );

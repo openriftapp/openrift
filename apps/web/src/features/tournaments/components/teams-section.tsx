@@ -21,6 +21,7 @@ import {
   useDissolveTeam,
 } from "@/features/tournaments/hooks/use-tournament-mutations";
 import { teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * The 2v2 team roster. Dissolving is only possible until the team has played
@@ -79,7 +80,7 @@ export function TeamsSection({
   async function handleDissolve(teamId: string, name: string) {
     try {
       await dissolveTeam.mutateAsync({ id, teamId });
-      toast.success(`Dissolved ${name}`);
+      toast.success(m.tournaments_teams_dissolved_toast({ name }));
     } catch {
       // Reported by the global mutation error toast (see reportMutationError).
     }
@@ -88,13 +89,10 @@ export function TeamsSection({
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading icon={UsersIcon} count={teams.length}>
-        Teams
+        {m.tournaments_teams_heading()}
       </SectionHeading>
       {teams.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No teams yet. Pair two players below; every active player needs a team before round 1 can
-          be paired.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_teams_empty()}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {teams.map((team) => {
@@ -105,12 +103,14 @@ export function TeamsSection({
                   <UserAvatar name={name} size="sm" />
                   <span className="truncate font-medium">{name}</span>
                   {team.dropped ? (
-                    <span className="text-muted-foreground shrink-0 text-sm">(dropped)</span>
+                    <span className="text-muted-foreground shrink-0 text-sm">
+                      {m.tournaments_standings_dropped()}
+                    </span>
                   ) : null}
                 </span>
                 {manage ? (
                   <ChipRemoveButton
-                    aria-label={`Dissolve ${name}`}
+                    aria-label={m.tournaments_teams_dissolve_aria({ name })}
                     onClick={() => void handleDissolve(team.teamId, name)}
                   />
                 ) : null}
@@ -124,24 +124,25 @@ export function TeamsSection({
           <TriangleAlertIcon />
           <AlertTitle>
             {soleUnteamed !== undefined && otherUnteamed.length === 0
-              ? `${soleUnteamed.displayName} has no team yet.`
-              : `${unteamed.length} players have no team yet: ${unteamed
-                  .map((player) => player.displayName)
-                  .join(", ")}.`}{" "}
-            Every active player needs a team (or a bye) before a round can be paired.
+              ? m.tournaments_teams_unteamed_one({ name: soleUnteamed.displayName })
+              : m.tournaments_teams_unteamed_other({
+                  count: unteamed.length,
+                  names: unteamed.map((player) => player.displayName).join(", "),
+                })}{" "}
+            {m.tournaments_teams_unteamed_hint()}
           </AlertTitle>
         </Alert>
       ) : null}
       {manage && unteamed.length >= 2 ? (
         <div className="flex flex-wrap items-end gap-2">
           <TeamMemberPicker
-            label="First player"
+            label={m.tournaments_teams_first_player()}
             value={firstId}
             players={pickable(secondId)}
             onChange={setFirstId}
           />
           <TeamMemberPicker
-            label="Second player"
+            label={m.tournaments_teams_second_player()}
             value={secondId}
             players={pickable(firstId)}
             onChange={setSecondId}
@@ -151,12 +152,12 @@ export function TeamsSection({
             disabled={!firstId || !secondId || firstId === secondId || createTeam.isPending}
             onClick={() => void handleCreate()}
           >
-            Pair as team
+            {m.tournaments_teams_pair()}
           </Button>
         </div>
       ) : null}
       {manage && unteamed.length === 1 ? (
-        <p className="text-muted-foreground text-sm">One player is waiting for a partner.</p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_teams_waiting()}</p>
       ) : null}
     </section>
   );
@@ -179,7 +180,7 @@ function TeamMemberPicker({
       <span className="text-muted-foreground text-sm">{label}</span>
       <Select items={items} value={value} onValueChange={(next) => next && onChange(next)}>
         <SelectTrigger className="w-48" aria-label={label}>
-          <SelectValue placeholder="Pick a player" />
+          <SelectValue placeholder={m.tournaments_teams_pick_player()} />
         </SelectTrigger>
         <SelectContent>
           {items.map((item) => (

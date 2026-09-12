@@ -4,50 +4,50 @@ import { GripVerticalIcon, MonitorPlayIcon, PencilIcon, PointerIcon, SaveIcon } 
 import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { TextLink } from "@/components/ui/text-link";
+import { m } from "@/paraglide/messages.js";
 
-const GUIDE_ROWS: readonly IntroGuideRow[] = [
-  {
-    icons: [GripVerticalIcon],
-    title: "Drag to rank",
-    description:
-      "Drag a card from the pool onto a row, and between rows to re-rank. Order within a row counts too.",
-    desktopOnly: true,
-  },
-  {
-    icons: [PointerIcon],
-    title: "Tap to rank",
-    description: "Tap a card in the pool and pick its tier.",
-    mobileOnly: true,
-  },
-  {
-    icons: [PencilIcon],
-    title: "Your rows, your names",
-    description: "Rename, reorder, add or remove rows. S to D is only a starting point.",
-  },
-  {
-    icons: [SaveIcon],
-    title: "Save before you share",
-    description:
-      "Share links, the image download, and the stage all read the saved board, so save first.",
-  },
-  {
-    icons: [MonitorPlayIcon],
-    title: "Take it on stream",
-    description:
-      "Present the finished board on the Stage, or rank it live while the overlay fills in for viewers.",
-  },
-];
+function guideRows(): readonly IntroGuideRow[] {
+  return [
+    {
+      icons: [GripVerticalIcon],
+      title: m.tier_lists_intro_drag_title(),
+      description: m.tier_lists_intro_drag_description(),
+      desktopOnly: true,
+    },
+    {
+      icons: [PointerIcon],
+      title: m.tier_lists_intro_tap_title(),
+      description: m.tier_lists_intro_tap_description(),
+      mobileOnly: true,
+    },
+    {
+      icons: [PencilIcon],
+      title: m.tier_lists_intro_rows_title(),
+      description: m.tier_lists_intro_rows_description(),
+    },
+    {
+      icons: [SaveIcon],
+      title: m.tier_lists_intro_save_title(),
+      description: m.tier_lists_intro_save_description(),
+    },
+    {
+      icons: [MonitorPlayIcon],
+      title: m.tier_lists_intro_stream_title(),
+      description: m.tier_lists_intro_stream_description(),
+    },
+  ];
+}
 
 export function TierListIntroBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <IntroBanner
-      title="Rank cards on your board"
-      lead="The pool beside the board is the whole catalog with the usual filters, so narrowing it to one set or just Legends is a filter like any other."
+      title={m.tier_lists_intro_title()}
+      lead={m.tier_lists_intro_lead()}
       onDismiss={onDismiss}
     >
-      <IntroGuideList rows={GUIDE_ROWS} />
+      <IntroGuideList rows={guideRows()} />
       <TextLink render={<Link to="/help/$slug" params={{ slug: "tier-lists" }} />}>
-        Read the full guide →
+        {m.stage_intro_read_guide()}
       </TextLink>
     </IntroBanner>
   );

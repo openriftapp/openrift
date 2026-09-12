@@ -1,5 +1,7 @@
 import type { MetaEventMatch, MetaEventPhase } from "@openrift/shared/types/api/meta";
 
+import { m } from "@/paraglide/messages.js";
+
 export interface MetaBracketSeat {
   playerId: string | null;
   isWinner: boolean;
@@ -22,10 +24,13 @@ export interface MetaBracket {
   rounds: MetaBracketRound[];
 }
 
-const ROUND_LABELS = ["Final", "Semifinals", "Quarterfinals"];
-
 function roundLabel(fromEnd: number): string {
-  return ROUND_LABELS[fromEnd] ?? `Top ${2 ** (fromEnd + 1)}`;
+  const labels = [
+    m.meta_bracket_round_final(),
+    m.meta_bracket_round_semifinals(),
+    m.meta_bracket_round_quarterfinals(),
+  ];
+  return labels[fromEnd] ?? m.meta_bracket_top_n({ size: String(2 ** (fromEnd + 1)) });
 }
 
 /**
@@ -128,7 +133,7 @@ export function metaEventBracket(
 
   const lastIndex = rounds.length - 1;
   return {
-    title: `Top ${phase?.rankRequired ?? 2 ** rounds.length}`,
+    title: m.meta_bracket_top_n({ size: String(phase?.rankRequired ?? 2 ** rounds.length) }),
     rounds: rounds.map((round, index) => ({
       label: roundLabel(lastIndex - index),
       matches: round.map((match) => toBracketMatch(match)),

@@ -8,29 +8,37 @@ import type {
   MetaSubmissionStatus,
 } from "@openrift/shared/types/enums";
 
-export const metaSubmissionKindLabels: Record<MetaSubmissionKind, string> = {
-  new_list: "New list",
-  completion: "Completion",
-  correction: "Correction",
-  event_correction: "Event correction",
-};
+import { m } from "@/paraglide/messages.js";
+
+export function metaSubmissionKindLabels(): Record<MetaSubmissionKind, string> {
+  return {
+    new_list: m.meta_submission_kind_new_list(),
+    completion: m.meta_submission_kind_completion(),
+    correction: m.meta_submission_kind_correction(),
+    event_correction: m.meta_submission_kind_event_correction(),
+  };
+}
 
 /** The three the decklist form covers; an event correction has its own dialog. */
 export type MetaDeckSubmissionKind = Exclude<MetaSubmissionKind, "event_correction">;
 
-export const metaSubmissionFormTitles: Record<MetaDeckSubmissionKind, string> = {
-  new_list: "Add decklist",
-  completion: "Complete decklist",
-  correction: "Suggest a correction",
-};
+export function metaSubmissionFormTitles(): Record<MetaDeckSubmissionKind, string> {
+  return {
+    new_list: m.meta_submission_form_title_new_list(),
+    completion: m.meta_submission_form_title_completion(),
+    correction: m.meta_submission_form_title_correction(),
+  };
+}
 
-export const metaSubmissionStatusLabels: Record<MetaSubmissionStatus, string> = {
-  pending: "Waiting for review",
-  accepted: "Added to the archive",
-  already_correct: "Already there",
-  not_applied: "Not used",
-  rejected: "Not used",
-};
+export function metaSubmissionStatusLabels(): Record<MetaSubmissionStatus, string> {
+  return {
+    pending: m.meta_submission_status_pending(),
+    accepted: m.meta_submission_status_accepted(),
+    already_correct: m.meta_submission_status_already_correct(),
+    not_applied: m.meta_submission_status_not_used(),
+    rejected: m.meta_submission_status_not_used(),
+  };
+}
 
 /** `not_applied` and `rejected` share a variant: the split is an internal signal, not something to show a submitter. */
 export const metaSubmissionStatusBadgeVariant: Record<
@@ -44,13 +52,15 @@ export const metaSubmissionStatusBadgeVariant: Record<
   rejected: "outline",
 };
 
-export const metaSubmissionStatusHints: Record<MetaSubmissionStatus, string | null> = {
-  pending: "Someone reads everything sent in by hand, so this can take a while.",
-  accepted: "The list is on the archive now. Thank you.",
-  already_correct: "The archive already had this.",
-  not_applied: null,
-  rejected: null,
-};
+export function metaSubmissionStatusHints(): Record<MetaSubmissionStatus, string | null> {
+  return {
+    pending: m.meta_submission_hint_pending(),
+    accepted: m.meta_submission_hint_accepted(),
+    already_correct: m.meta_submission_hint_already_correct(),
+    not_applied: null,
+    rejected: null,
+  };
+}
 
 /** An event correction carries no decklist, so it drops the two list-related reasons. */
 export function metaSubmissionReasonsFor(
@@ -63,14 +73,15 @@ export function metaSubmissionReasonsFor(
 }
 
 /** Worded to cover every kind: a wrong-date submitter must not read that the archive already had their list. */
-export const metaSubmissionReasonSentences: Record<MetaSubmissionReason, string> = {
-  duplicate: "Someone had already sent this in.",
-  already_correct: "The archive already had this.",
-  unverified:
-    "We could not confirm this against a published result, so we left the event as it is.",
-  incomplete_list: "Too much of the deck was missing to archive it.",
-  not_an_event: "We could not find a tournament behind this.",
-};
+export function metaSubmissionReasonSentences(): Record<MetaSubmissionReason, string> {
+  return {
+    duplicate: m.meta_submission_reason_duplicate(),
+    already_correct: m.meta_submission_reason_already_correct(),
+    unverified: m.meta_submission_reason_unverified(),
+    incomplete_list: m.meta_submission_reason_incomplete_list(),
+    not_an_event: m.meta_submission_reason_not_an_event(),
+  };
+}
 
 export const metaSubmissionReasonLabels: Record<MetaSubmissionReason, string> = {
   duplicate: "Already submitted",
@@ -100,28 +111,34 @@ export function metaSubmissionExplanation(
   if (note) {
     return note;
   }
-  return reason ? metaSubmissionReasonSentences[reason] : null;
+  return reason ? metaSubmissionReasonSentences()[reason] : null;
 }
 
 /** `none` is not among them: a submission is a decklist, a standings-only entry never comes from a person. */
 export type MetaSubmissionCompleteness = Exclude<MetaListStatus, "none">;
 
-export const metaSubmissionCompletenessLabels: Record<MetaSubmissionCompleteness, string> = {
-  full: "Whole deck",
-  partial: "Main deck only",
-};
+export function metaSubmissionCompletenessLabels(): Record<MetaSubmissionCompleteness, string> {
+  return {
+    full: m.meta_submission_completeness_full(),
+    partial: m.meta_submission_completeness_partial(),
+  };
+}
 
-export const metaCreditVisibilityLabels: Record<MetaCreditVisibility, string> = {
-  hidden: "Don't credit me",
-  name: "Credit my display name",
-  riot_id: "Credit my Riot ID",
-};
+export function metaCreditVisibilityLabels(): Record<MetaCreditVisibility, string> {
+  return {
+    hidden: m.meta_credit_visibility_hidden_label(),
+    name: m.meta_credit_visibility_name_label(),
+    riot_id: m.meta_credit_visibility_riot_id_label(),
+  };
+}
 
-export const metaCreditVisibilityHints: Record<MetaCreditVisibility, string> = {
-  hidden: "Your decks still count towards the archive, but nothing names you.",
-  name: "Your account name appears on events you contributed to.",
-  riot_id: "Your Riot ID appears instead. Without one, your display name is used.",
-};
+export function metaCreditVisibilityHints(): Record<MetaCreditVisibility, string> {
+  return {
+    hidden: m.meta_credit_visibility_hidden_hint(),
+    name: m.meta_credit_visibility_name_hint(),
+    riot_id: m.meta_credit_visibility_riot_id_hint(),
+  };
+}
 
 /** Must mirror the server's own two fallbacks or it promises a line the event page won't produce. */
 export interface MetaCreditPreview {

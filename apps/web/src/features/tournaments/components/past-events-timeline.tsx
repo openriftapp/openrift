@@ -14,6 +14,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import { tournamentContextLabel } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 function WinnerChip({ winner }: { winner: TournamentWinner }) {
   return (
@@ -23,7 +24,7 @@ function WinnerChip({ winner }: { winner: TournamentWinner }) {
         <CardArtThumb shape="strip" imageId={winner.legendImageId} className="h-7" />
       ) : null}
       <span className="text-sm">
-        <span className="sr-only">Winner: </span>
+        <span className="sr-only">{m.tournaments_past_events_winner_label()}</span>
         <span className="font-medium">{winner.name}</span>
       </span>
     </span>
@@ -44,7 +45,9 @@ function PastEventCard({
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-2">
             <span className="truncate text-base font-medium">{tournament.name}</span>
-            {tournament.status === "cancelled" ? <Badge variant="muted">Cancelled</Badge> : null}
+            {tournament.status === "cancelled" ? (
+              <Badge variant="muted">{m.tournaments_past_events_cancelled()}</Badge>
+            ) : null}
             {showContext && tournamentContextLabel(tournament) ? (
               <Badge variant="outline" className="max-sm:hidden">
                 {tournamentContextLabel(tournament)}

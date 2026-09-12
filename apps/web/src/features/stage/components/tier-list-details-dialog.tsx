@@ -14,6 +14,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdateTierList } from "@/features/stage/hooks/use-tier-lists";
+import { m } from "@/paraglide/messages.js";
 
 interface TierListDetailsDialogProps {
   tierList: TierListResponse;
@@ -57,40 +58,40 @@ export function TierListDetailsDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tier list details</DialogTitle>
-          <DialogDescription>
-            The title heads the share page and the exported image.
-          </DialogDescription>
+          <DialogTitle>{m.tier_lists_details_title()}</DialogTitle>
+          <DialogDescription>{m.tier_lists_details_description()}</DialogDescription>
         </DialogHeader>
 
         <Field>
-          <FieldLabel htmlFor="tier-list-title">Title</FieldLabel>
+          <FieldLabel htmlFor="tier-list-title">{m.tier_lists_field_title()}</FieldLabel>
           <Input
             id="tier-list-title"
             value={title}
             maxLength={120}
-            placeholder="Origins — best commons"
+            placeholder={m.tier_lists_field_title_placeholder()}
             onChange={(event) => setTitle(event.target.value)}
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="tier-list-description">Description</FieldLabel>
+          <FieldLabel htmlFor="tier-list-description">
+            {m.tier_lists_field_description()}
+          </FieldLabel>
           <Textarea
             id="tier-list-description"
             value={description}
             maxLength={2000}
             rows={3}
-            placeholder="What the ranking assumes: format, deck, anything a viewer should know."
+            placeholder={m.tier_lists_field_description_placeholder()}
             onChange={(event) => setDescription(event.target.value)}
           />
         </Field>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button onClick={handleSave} disabled={trimmedTitle === "" || updateTierList.isPending}>
-            Save
+            {m.common_save()}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -37,6 +37,7 @@ import { resolveTierRows } from "@/features/stage/lib/tier-list-presentation";
 import type { TierCardView } from "@/features/stage/lib/tier-list-presentation";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const MAX_LABEL_LENGTH = 24;
 
@@ -84,12 +85,12 @@ export function TierBoardEditor({
         <div className="flex gap-1.5">
           <Button variant="outline" className="flex-1 border-dashed" onClick={addRow}>
             <PlusIcon />
-            Add a tier
+            {m.tier_lists_add_tier()}
           </Button>
           {!hasUnranked && (
             <Button variant="outline" className="flex-1 border-dashed" onClick={addUnrankedRow}>
               <PlusIcon />
-              Add an unranked row
+              {m.tier_lists_add_unranked_row()}
             </Button>
           )}
         </div>
@@ -132,7 +133,7 @@ function EditableTierRow({
       value={label}
       rows={1}
       maxLength={MAX_LABEL_LENGTH}
-      aria-label={`Tier ${rowIndex + 1} label`}
+      aria-label={m.tier_lists_row_label_aria({ position: rowIndex + 1 })}
       // A tier label is one line of text however many lines it wraps onto, so
       // Enter is swallowed and a pasted newline collapses to a space.
       onKeyDown={(event) => {
@@ -164,7 +165,11 @@ function EditableTierRow({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" size="icon-sm" aria-label={`Tier ${label} options`}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={m.tier_lists_row_options_menu_aria({ label })}
+            >
               <EllipsisVerticalIcon />
             </Button>
           }
@@ -177,14 +182,14 @@ function EditableTierRow({
                 onClick={() => moveRow(rowIndex, rowIndex - 1)}
               >
                 <ChevronUpIcon />
-                Move up
+                {m.tier_lists_row_move_up()}
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={rowIndex >= lastMovableIndex}
                 onClick={() => moveRow(rowIndex, rowIndex + 1)}
               >
                 <ChevronDownIcon />
-                Move down
+                {m.tier_lists_row_move_down()}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -193,11 +198,11 @@ function EditableTierRow({
             <Trash2Icon />
             {unranked === true
               ? cards.length > 0
-                ? "Remove row and return its cards to the pool"
-                : "Remove row"
+                ? m.tier_lists_row_remove_with_cards()
+                : m.tier_lists_row_remove()
               : cards.length > 0
-                ? "Remove tier and unrank its cards"
-                : "Remove tier"}
+                ? m.tier_lists_tier_remove_with_cards()
+                : m.tier_lists_tier_remove()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -216,7 +221,7 @@ function EditableTierRow({
       >
         {cards.length === 0 ? (
           <span className="text-muted-foreground px-1 text-sm italic">
-            {tapToAssign ? "Tap a card below to rank it" : "Drop cards here"}
+            {tapToAssign ? m.tier_lists_row_empty_tap() : m.tier_lists_row_empty_drop()}
           </span>
         ) : (
           cards.map((view, position) => (
@@ -250,7 +255,7 @@ function RowDragHandle({ rowIndex, label }: { rowIndex: number; label: string })
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      aria-label={`Reorder tier ${label}`}
+      aria-label={m.tier_lists_row_reorder_aria({ label })}
       // touch-none: dnd-kit's PointerSensor needs pointer events here, not touch-scroll.
       className={cn(
         "text-muted-foreground hover:text-foreground flex cursor-grab touch-none items-center justify-center active:cursor-grabbing",
@@ -327,7 +332,10 @@ function BoardCard({ view, rowIndex, position, width, tapToAssign, onHoverCard }
           });
         }}
         trigger={
-          <Pressable aria-label={`Move ${view.card.name}`} className="rounded-sm">
+          <Pressable
+            aria-label={m.tier_lists_move_card_aria({ name: view.card.name })}
+            className="rounded-sm"
+          >
             <TierCardTile view={view} width={width} />
           </Pressable>
         }

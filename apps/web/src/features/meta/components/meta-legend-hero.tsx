@@ -8,15 +8,16 @@ import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-he
 import { splitLegendName } from "@/features/meta/lib/meta-format";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
+import { m } from "@/paraglide/messages.js";
 
 type MetaLegendCounts = MetaLegendDetailResponse["counts"];
 
 function FactCounters({ counts }: { counts: MetaLegendCounts }) {
   return (
     <div className="flex flex-wrap gap-x-9 gap-y-3">
-      <MetaHeroCounter value={counts.wins} label="event wins" />
-      <MetaHeroCounter value={counts.finishes} label="archived finishes" />
-      <MetaHeroCounter value={counts.decklists} label="decklists" />
+      <MetaHeroCounter value={counts.wins} label={m.meta_legend_hero_event_wins()} />
+      <MetaHeroCounter value={counts.finishes} label={m.meta_legend_hero_finishes()} />
+      <MetaHeroCounter value={counts.decklists} label={m.meta_legend_hero_decklists()} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { MetaRoundOutcome } from "@/features/meta/lib/meta-player-run";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const OUTCOME_CLASS: Record<MetaRoundOutcome, string> = {
   win: "bg-success-soft text-success",
@@ -9,13 +10,15 @@ const OUTCOME_CLASS: Record<MetaRoundOutcome, string> = {
   unknown: "bg-muted text-muted-foreground",
 };
 
-const OUTCOME_LABEL: Record<MetaRoundOutcome, string> = {
-  win: "Win",
-  loss: "Loss",
-  draw: "Draw",
-  bye: "Bye",
-  unknown: "No result",
-};
+function outcomeLabels(): Record<MetaRoundOutcome, string> {
+  return {
+    win: m.meta_outcome_win(),
+    loss: m.meta_outcome_loss(),
+    draw: m.meta_outcome_draw(),
+    bye: m.meta_outcome_bye(),
+    unknown: m.meta_outcome_none(),
+  };
+}
 
 export interface MetaResultChipProps {
   outcome: MetaRoundOutcome;
@@ -41,7 +44,7 @@ export function MetaResultChip({
         className,
       )}
     >
-      {OUTCOME_LABEL[outcome]}
+      {outcomeLabels()[outcome]}
       {score !== null && <span className="font-medium">{score}</span>}
     </span>
   );

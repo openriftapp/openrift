@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogForm } from "@/components/ui/dialog-form";
+import { m } from "@/paraglide/messages.js";
 
 export function StartGroupRoundButton({
   roundNumber,
@@ -34,22 +35,25 @@ export function StartGroupRoundButton({
     <AlertDialog>
       <AlertDialogTrigger disabled={disabled || pending} render={<Button size={size} />}>
         <PlayIcon />
-        Start round {roundNumber}
+        {m.tournaments_start_round_cta({ number: roundNumber })}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <DialogForm onSubmit={onConfirm}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Start round {roundNumber} for {scopeLabel}?
+              {m.tournaments_start_round_confirm_title({
+                number: roundNumber,
+                scope: scopeLabel,
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Please tell a judge before you start the next round.
+              {m.tournaments_start_round_confirm_description()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
             <AlertDialogPrimitive.Close render={<Button type="submit" />}>
-              Start round {roundNumber}
+              {m.tournaments_start_round_cta({ number: roundNumber })}
             </AlertDialogPrimitive.Close>
           </AlertDialogFooter>
         </DialogForm>

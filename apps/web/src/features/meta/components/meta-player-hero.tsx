@@ -10,14 +10,15 @@ import type { MetaPlayerCounts, MetaPlayerFacts } from "@/features/meta/lib/meta
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { countryName } from "@/lib/country";
 import { deckGlowStyle } from "@/lib/domain";
+import { m } from "@/paraglide/messages.js";
 
 function FactCounters({ counts }: { counts: MetaPlayerCounts }) {
   return (
     <div className="flex flex-wrap gap-x-9 gap-y-3">
-      <MetaHeroCounter value={counts.eventWins} label="event wins" />
-      <MetaHeroCounter value={counts.topEights} label="top 8 finishes" />
-      <MetaHeroCounter value={counts.finishes} label="archived finishes" />
-      <MetaHeroCounter value={counts.decklists} label="decklists" />
+      <MetaHeroCounter value={counts.eventWins} label={m.meta_player_hero_event_wins()} />
+      <MetaHeroCounter value={counts.topEights} label={m.meta_player_hero_top_eights()} />
+      <MetaHeroCounter value={counts.finishes} label={m.meta_legend_hero_finishes()} />
+      <MetaHeroCounter value={counts.decklists} label={m.meta_legend_hero_decklists()} />
     </div>
   );
 }
@@ -37,10 +38,18 @@ function FactsLine({ facts }: { facts: MetaPlayerFacts }) {
     });
   }
   if (facts.firstDate !== null) {
-    parts.push({ key: "since", node: <span>On record since {formatMonth(facts.firstDate)}</span> });
+    parts.push({
+      key: "since",
+      node: (
+        <span>{m.meta_player_hero_on_record_since({ month: formatMonth(facts.firstDate) })}</span>
+      ),
+    });
   }
   if (facts.lastDate !== null) {
-    parts.push({ key: "last", node: <span>Last seen {formatDay(facts.lastDate)}</span> });
+    parts.push({
+      key: "last",
+      node: <span>{m.meta_player_hero_last_seen({ day: formatDay(facts.lastDate) })}</span>,
+    });
   }
 
   if (parts.length === 0) {

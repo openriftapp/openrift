@@ -14,275 +14,266 @@ import { Heading } from "@/components/heading";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard, StepRow } from "@/features/marketing/components/article-cards";
+import { m } from "@/paraglide/messages.js";
 
 export default function ListsArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        A <strong className="text-foreground">wishlist</strong> is what you&apos;re looking for. A{" "}
-        <strong className="text-foreground">tradelist</strong> is what you&apos;d give up. Share
-        either one with a <TextLink href="/help/groups">group</TextLink> and OpenRift matches your
-        wants against other members&apos; haves.
+        {m.help_lists_intro_before()}{" "}
+        <strong className="text-foreground">{m.help_lists_intro_wishlist()}</strong>{" "}
+        {m.help_lists_intro_mid()}{" "}
+        <strong className="text-foreground">{m.help_lists_intro_tradelist()}</strong>{" "}
+        {m.help_lists_intro_mid2()}{" "}
+        <TextLink href="/help/groups">{m.help_lists_intro_group_link()}</TextLink>{" "}
+        {m.help_lists_intro_after()}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <FeatureCard
           icon={<HeartIcon className="size-4" />}
-          title="Wishlist"
-          description="Cards you want. Entries drop off as you add copies to your collection."
+          title={m.help_lists_card_wishlist_title()}
+          description={m.help_lists_card_wishlist_desc()}
         />
         <FeatureCard
           icon={<HandshakeIcon className="size-4" />}
-          title="Tradelist"
-          description="Specific copies you'd part with. Entries drop off as those copies leave your collection."
+          title={m.help_lists_card_tradelist_title()}
+          description={m.help_lists_card_tradelist_desc()}
         />
       </div>
 
       <section>
-        <Heading className="mb-2">What lists can be made of</Heading>
+        <Heading className="mb-2">{m.help_lists_kinds_heading()}</Heading>
         <p className="text-muted-foreground">
-          Every list has a <strong className="text-foreground">kind</strong>, picked when you create
-          it. The kind decides what goes on the list. See{" "}
-          <TextLink href="/help/cards-printings-copies">Cards, Printings &amp; Copies</TextLink> for
-          what these mean.
+          {m.help_lists_kinds_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_kinds_p_kind()}</strong>
+          {m.help_lists_kinds_p_mid()}{" "}
+          <TextLink href="/help/cards-printings-copies">{m.help_lists_kinds_p_link()}</TextLink>{" "}
+          {m.help_lists_kinds_p_after()}
         </p>
         <DefinitionList className="text-muted-foreground mt-3">
-          <DefinitionTerm icon={<SquareIcon className="size-3.5" />}>Cards</DefinitionTerm>
-          <DefinitionDetail>
-            Any printing satisfies the entry. &quot;I need three Fury Runes, art doesn&apos;t
-            matter.&quot; Available for wishlists and organize lists.
-          </DefinitionDetail>
-          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>Printings</DefinitionTerm>
-          <DefinitionDetail>
-            A specific version: set, art, finish. For when you want one particular printing, like a
-            foil alt-art from one specific set. Available for wishlists and organize lists.
-          </DefinitionDetail>
-          <DefinitionTerm icon={<SquareStackIcon className="size-3.5" />}>Copies</DefinitionTerm>
-          <DefinitionDetail>
-            Specific physical copies from your collections. Tradelists are always copy-kind.
-          </DefinitionDetail>
+          <DefinitionTerm icon={<SquareIcon className="size-3.5" />}>
+            {m.help_lists_kinds_cards_term()}
+          </DefinitionTerm>
+          <DefinitionDetail>{m.help_lists_kinds_cards_detail()}</DefinitionDetail>
+          <DefinitionTerm icon={<CopyIcon className="size-3.5" />}>
+            {m.help_lists_kinds_printings_term()}
+          </DefinitionTerm>
+          <DefinitionDetail>{m.help_lists_kinds_printings_detail()}</DefinitionDetail>
+          <DefinitionTerm icon={<SquareStackIcon className="size-3.5" />}>
+            {m.help_lists_kinds_copies_term()}
+          </DefinitionTerm>
+          <DefinitionDetail>{m.help_lists_kinds_copies_detail()}</DefinitionDetail>
         </DefinitionList>
       </section>
 
       <section>
-        <Heading className="mb-2">Creating a wishlist</Heading>
+        <Heading className="mb-2">{m.help_lists_create_wishlist_heading()}</Heading>
         <p className="text-muted-foreground">
-          Open the <strong className="text-foreground">Collections</strong> sidebar and click{" "}
-          <strong className="text-foreground">+ New wishlist</strong>.
+          {m.help_lists_create_wishlist_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_collections_label()}</strong>{" "}
+          {m.help_lists_create_wishlist_p_mid()}{" "}
+          <strong className="text-foreground">{m.help_lists_new_wishlist_label()}</strong>.
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
             step={1}
-            title="Pick a name"
-            description="'For my Yasuo deck', 'Missing rares', whatever you'll recognize."
+            title={m.help_lists_wishlist_step1_title()}
+            description={m.help_lists_wishlist_step1_desc()}
           />
           <StepRow
             step={2}
-            title="Choose a kind"
-            description="Cards or printings. Pick cards unless you want one specific printing."
+            title={m.help_lists_wishlist_step2_title()}
+            description={m.help_lists_wishlist_step2_desc()}
           />
           <StepRow
             step={3}
-            title="Set the trade defaults (or skip for now)"
-            description="A price reference, currency, and accepts value. You can fill these in later from List → Edit."
+            title={m.help_lists_wishlist_step3_title()}
+            description={m.help_lists_wishlist_step3_desc()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Filling a wishlist</Heading>
+        <Heading className="mb-2">{m.help_lists_fill_wishlist_heading()}</Heading>
         <p className="text-muted-foreground">
-          A fresh wishlist opens with a <strong className="text-foreground">Browse catalog</strong>{" "}
-          button. Clicking it puts the catalog into add-mode (a small pulsing dot in the toolbar
-          marks the mode); from there, the <strong className="text-foreground">+</strong> on any
-          card adds it to the list.
+          {m.help_lists_fill_wishlist_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_browse_catalog_label()}</strong>{" "}
+          {m.help_lists_fill_wishlist_p_mid()} <strong className="text-foreground">+</strong>{" "}
+          {m.help_lists_fill_wishlist_p_after()}
         </p>
-        <p className="text-muted-foreground mt-2">Other paths in:</p>
+        <p className="text-muted-foreground mt-2">{m.help_lists_fill_wishlist_other_paths()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<ListPlusIcon className="size-4" />}
-            title="From the catalog"
-            description="Any card cell's overflow menu has an Add to list action."
+            title={m.help_lists_fill_catalog_title()}
+            description={m.help_lists_fill_catalog_desc()}
           />
           <FeatureCard
             icon={<UploadIcon className="size-4" />}
-            title="Bulk import"
+            title={m.help_lists_fill_bulk_title()}
             description={
               <>
-                Paste a text list of card names and quantities. Card-kind lists only. See{" "}
-                <TextLink href="/help/import-export">Importing &amp; Exporting</TextLink> for the
-                format.
+                {m.help_lists_fill_bulk_desc_before()}{" "}
+                <TextLink href="/help/import-export">{m.help_lists_import_export_link()}</TextLink>{" "}
+                {m.help_lists_fill_bulk_desc_after()}
               </>
             }
           />
           <FeatureCard
             icon={<PencilIcon className="size-4" />}
-            title="From a deck"
-            description="The deck builder's missing-cards view can spin up a wishlist pre-filled with the cards in the deck you don't own yet."
+            title={m.help_lists_fill_deck_title()}
+            description={m.help_lists_fill_deck_desc()}
           />
           <FeatureCard
             icon={<TagIcon className="size-4" />}
-            title="Drag"
-            description="Drag any card from the catalog grid onto the wishlist in the sidebar."
+            title={m.help_lists_fill_drag_title()}
+            description={m.help_lists_fill_drag_desc()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Creating a tradelist</Heading>
+        <Heading className="mb-2">{m.help_lists_create_tradelist_heading()}</Heading>
         <p className="text-muted-foreground">
-          Open the <strong className="text-foreground">Collections</strong> sidebar and click{" "}
-          <strong className="text-foreground">+ New tradelist</strong>.
+          {m.help_lists_create_wishlist_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_collections_label()}</strong>{" "}
+          {m.help_lists_create_wishlist_p_mid()}{" "}
+          <strong className="text-foreground">{m.help_lists_new_tradelist_label()}</strong>.
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
             step={1}
-            title="Pick a name"
-            description="'Spare foils', 'For Tuesday Night Crew', 'Sell pile'."
+            title={m.help_lists_wishlist_step1_title()}
+            description={m.help_lists_tradelist_step1_desc()}
           />
           <StepRow
             step={2}
-            title="Kind is fixed to copies"
-            description="No choice. Tradelists track real cards from your collection."
+            title={m.help_lists_tradelist_step2_title()}
+            description={m.help_lists_tradelist_step2_desc()}
           />
           <StepRow
             step={3}
-            title="Set the trade defaults"
-            description="A price reference, currency, and accepts value. Setting these is what other members see before they reach out."
+            title={m.help_lists_tradelist_step3_title()}
+            description={m.help_lists_tradelist_step3_desc()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Filling a tradelist</Heading>
+        <Heading className="mb-2">{m.help_lists_fill_tradelist_heading()}</Heading>
         <p className="text-muted-foreground">
-          Tradelists hold individual copies, so you fill them from the{" "}
-          <TextLink href="/help/collections">collection</TextLink> side, not the catalog side. Two
-          paths:
+          {m.help_lists_fill_tradelist_p_before()}{" "}
+          <TextLink href="/help/collections">{m.help_lists_collection_link()}</TextLink>{" "}
+          {m.help_lists_fill_tradelist_p_after()}
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<ListPlusIcon className="size-4" />}
-            title="From a collection"
-            description="Open the collection, hit Manage cards in the top bar, pick the copies you want, and use Add to list in the floating action bar."
+            title={m.help_lists_fill_from_collection_title()}
+            description={m.help_lists_fill_from_collection_desc()}
           />
           <FeatureCard
             icon={<TagIcon className="size-4" />}
-            title="Drag"
-            description="Drag a copy from the grid onto the tradelist in the sidebar."
+            title={m.help_lists_fill_drag_title()}
+            description={m.help_lists_fill_tradelist_drag_desc()}
           />
         </div>
-        <p className="text-muted-foreground mt-3">
-          Adding a copy to a tradelist doesn&apos;t move it out of its collection. The copy stays
-          where it physically is; the tradelist just flags it as available. When you trade it away,
-          dispose or move it like any other copy and it drops off the tradelist.
-        </p>
+        <p className="text-muted-foreground mt-3">{m.help_lists_fill_tradelist_note()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">Setting prices and trade preferences</Heading>
+        <Heading className="mb-2">{m.help_lists_prices_heading()}</Heading>
         <p className="text-muted-foreground">
-          Trade preferences live in two layers: a default that applies to the whole list, and
-          optional per-card overrides. When the list is shared into a group, these are what show up
-          as the <strong className="text-foreground">They:</strong> and{" "}
-          <strong className="text-foreground">You:</strong> lines on match rows.
+          {m.help_lists_prices_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_prices_them()}</strong>{" "}
+          {m.help_lists_prices_mid()}{" "}
+          <strong className="text-foreground">{m.help_lists_prices_you()}</strong>{" "}
+          {m.help_lists_prices_after()}
         </p>
 
         <Heading level={3} className="mt-4 mb-2">
-          List defaults
+          {m.help_lists_defaults_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          Set in the create dialog, or later from <strong className="text-foreground">Edit</strong>{" "}
-          on the list page. Three fields:
+          {m.help_lists_defaults_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_edit_label()}</strong>{" "}
+          {m.help_lists_defaults_p_after()}
         </p>
         <DefinitionList className="text-muted-foreground mt-3">
-          <DefinitionTerm>Price reference</DefinitionTerm>
+          <DefinitionTerm>{m.help_lists_defaults_price_term()}</DefinitionTerm>
           <DefinitionDetail>
-            A <strong className="text-foreground">marketplace price</strong> (Cardmarket, TCGplayer,
-            or CardTrader), a <strong className="text-foreground">fixed</strong> amount you type in,
-            or blank to say &quot;let&apos;s negotiate&quot;.
+            {m.help_lists_defaults_price_before()}{" "}
+            <strong className="text-foreground">{m.help_lists_defaults_price_marketplace()}</strong>{" "}
+            {m.help_lists_defaults_price_mid()}{" "}
+            <strong className="text-foreground">{m.help_lists_defaults_price_fixed()}</strong>{" "}
+            {m.help_lists_defaults_price_after()}
           </DefinitionDetail>
-          <DefinitionTerm>Currency</DefinitionTerm>
-          <DefinitionDetail>EUR or USD. Used for fixed amounts.</DefinitionDetail>
-          <DefinitionTerm>Accepts</DefinitionTerm>
+          <DefinitionTerm>{m.help_lists_defaults_currency_term()}</DefinitionTerm>
+          <DefinitionDetail>{m.help_lists_defaults_currency_detail()}</DefinitionDetail>
+          <DefinitionTerm>{m.help_lists_defaults_accepts_term()}</DefinitionTerm>
           <DefinitionDetail>
-            <strong className="text-foreground">Cards</strong>,{" "}
-            <strong className="text-foreground">Money</strong>, or{" "}
-            <strong className="text-foreground">Both</strong>.
+            <strong className="text-foreground">{m.help_lists_defaults_accepts_cards()}</strong>,{" "}
+            <strong className="text-foreground">{m.help_lists_defaults_accepts_money()}</strong>,{" "}
+            {m.help_lists_defaults_accepts_or()}{" "}
+            <strong className="text-foreground">{m.help_lists_defaults_accepts_both()}</strong>.
           </DefinitionDetail>
         </DefinitionList>
 
         <Heading level={3} className="mt-4 mb-2">
-          Per-card overrides
+          {m.help_lists_overrides_heading()}
         </Heading>
+        <p className="text-muted-foreground">{m.help_lists_overrides_p()}</p>
+      </section>
+
+      <section>
+        <Heading className="mb-2">{m.help_lists_quantities_heading()}</Heading>
         <p className="text-muted-foreground">
-          Each entry has a pill showing its current preference (inherited from the list, or
-          overridden). Click it to set a different price or accepts value for that one card. An
-          override only replaces the fields you change; the others still fall through to the list
-          default.
+          {m.help_lists_quantities_before()} <strong className="text-foreground">−</strong> /{" "}
+          <strong className="text-foreground">+</strong> {m.help_lists_quantities_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Adjusting quantities and removing entries</Heading>
+        <Heading className="mb-2">{m.help_lists_filing_heading()}</Heading>
         <p className="text-muted-foreground">
-          Wishlists have <strong className="text-foreground">−</strong> /{" "}
-          <strong className="text-foreground">+</strong> next to the quantity. Tradelists show a
-          count of copies (one per physical card). Right-click an entry or use the row actions menu
-          to remove it.
+          {m.help_lists_filing_p1_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_filing_move_label()}</strong>{" "}
+          {m.help_lists_filing_p1_mid1()}{" "}
+          <strong className="text-foreground">{m.help_lists_filing_manage_label()}</strong>{" "}
+          {m.help_lists_filing_p1_mid2()}{" "}
+          <strong className="text-foreground">{m.help_lists_filing_select_all_label()}</strong>
+          {m.help_lists_filing_p1_after()}
+        </p>
+        <p className="text-muted-foreground mt-2">{m.help_lists_filing_p2()}</p>
+      </section>
+
+      <section>
+        <Heading className="mb-2">{m.help_lists_importing_heading()}</Heading>
+        <p className="text-muted-foreground">
+          {m.help_lists_importing_p_before()}{" "}
+          <TextLink href="/help/import-export">{m.help_lists_import_export_link()}</TextLink>{" "}
+          {m.help_lists_importing_p_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Filing a copy list into another collection</Heading>
+        <Heading className="mb-2">{m.help_lists_sharing_heading()}</Heading>
         <p className="text-muted-foreground">
-          Copy-kind lists sit on top of real copies, so you can move those copies into a different
-          collection without leaving the list. Right-click a single card and pick{" "}
-          <strong className="text-foreground">Move to collection…</strong> to move just that one. To
-          file the whole list at once, tap{" "}
-          <strong className="text-foreground">Manage copies</strong> in the top bar, then{" "}
-          <strong className="text-foreground">Select all</strong>, and pick the same action from any
-          selected card. In select mode it covers everything you have selected.
-        </p>
-        <p className="text-muted-foreground mt-2">
-          This is the &quot;sorted out, now put it in the bulk box&quot; path: build an organize
-          list with a dynamic rule that finds your surplus, check it over, then move it in one step.
-          If the rule is limited to specific source collections, the cards drop off the list as soon
-          as they land elsewhere, so the list empties as you work through it. Cards you added by
-          hand stay on the list, since a list entry follows the copy wherever it goes.
+          {m.help_lists_sharing_p_before()}{" "}
+          <TextLink href="/help/groups">{m.help_lists_intro_group_link()}</TextLink>
+          {m.help_lists_sharing_p_mid()}{" "}
+          <strong className="text-foreground">{m.help_lists_sharing_settings_label()}</strong>
+          {m.help_lists_sharing_p_after()}
         </p>
       </section>
 
       <section>
-        <Heading className="mb-2">Importing and exporting</Heading>
+        <Heading className="mb-2">{m.help_lists_organize_heading()}</Heading>
         <p className="text-muted-foreground">
-          Card-kind lists can be imported from and exported to plain text (one card per line with
-          quantities). Printing-kind and copy-kind lists can&apos;t be imported that way, since
-          pasted text can&apos;t identify a specific printing or copy, but they export as a CSV file
-          in the same formats as a collection (OpenRift, Piltover Archive, RiftMana, RiftCore). See{" "}
-          <TextLink href="/help/import-export">Importing &amp; Exporting</TextLink> for the formats.
-        </p>
-      </section>
-
-      <section>
-        <Heading className="mb-2">Sharing a list with a group</Heading>
-        <p className="text-muted-foreground">
-          Lists are private by default. To share one with a{" "}
-          <TextLink href="/help/groups">group</TextLink>, open the group page, scroll to{" "}
-          <strong className="text-foreground">Settings &rarr; Share your lists</strong>, and tick
-          the list. Each list is shared per-group, so sharing a wishlist with one group doesn&apos;t
-          share it with any other group you&apos;re also in. Untick at any time to stop sharing.
-        </p>
-      </section>
-
-      <section>
-        <Heading className="mb-2">A note on organize lists</Heading>
-        <p className="text-muted-foreground">
-          Alongside wishlists and tradelists there&apos;s an{" "}
-          <strong className="text-foreground">organize list</strong> for grouping cards that
-          aren&apos;t about trading: a brew pool, a custom-format pile, favorite alt-arts. Organize
-          lists support all three kinds. They can be shared into a group and members can see them,
-          but they don&apos;t feed into matches.
+          {m.help_lists_organize_p_before()}{" "}
+          <strong className="text-foreground">{m.help_lists_organize_label()}</strong>{" "}
+          {m.help_lists_organize_p_after()}
         </p>
       </section>
     </div>

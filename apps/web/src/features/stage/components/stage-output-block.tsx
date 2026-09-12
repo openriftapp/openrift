@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OverlayOutputPanel } from "@/features/stage/components/overlay-output-panel";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 export function StageOutputBlock({
   onStart,
@@ -17,26 +18,20 @@ export function StageOutputBlock({
   const userId = useUserId();
 
   return (
-    <SettingsSection title="Output">
+    <SettingsSection title={m.stage_output_title()}>
       <Tabs defaultValue="screen">
         <TabsList className="w-full">
-          <TabsTrigger value="screen">This screen</TabsTrigger>
-          <TabsTrigger value="obs">OBS</TabsTrigger>
+          <TabsTrigger value="screen">{m.stage_output_tab_screen()}</TabsTrigger>
+          <TabsTrigger value="obs">{m.stage_output_tab_obs()}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="screen" className="flex flex-col gap-4">
-          <p className="text-muted-foreground text-sm">
-            One card at a time, full screen, with nothing of the site around it. Point a window
-            capture at this browser and your audience sees the card rather than a website.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.stage_output_screen_description()}</p>
           <Button onClick={onStart} disabled={!canStart} className="w-full">
             <PlayIcon />
-            Start presenting
+            {m.stage_output_start()}
           </Button>
-          <p className="text-muted-foreground text-sm">
-            What the card sits on is in the show&apos;s own settings: black, or a green or magenta
-            ground to key out in your editor.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.stage_output_ground_note()}</p>
         </TabsContent>
 
         <TabsContent value="obs" className="flex flex-col gap-4">
@@ -47,9 +42,9 @@ export function StageOutputBlock({
                 search={{ redirect: "/stage", email: undefined }}
                 className="underline underline-offset-2"
               >
-                Sign in
+                {m.common_sign_in()}
               </Link>{" "}
-              to get a browser source link for OBS and push cards to it from here.
+              {m.stage_output_obs_signin_suffix()}
             </p>
           ) : (
             <OverlayOutputPanel />

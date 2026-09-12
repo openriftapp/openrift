@@ -15,6 +15,7 @@ import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // Shared by the rows and the sort header above them; keep both in sync.
 export const DECK_INDEX_GRID =
@@ -87,8 +88,8 @@ function Owned({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Market
       >
         {complete ? (
           <>
-            <span>All {cost.needed} owned</span>
-            <span>Buildable</span>
+            <span>{m.meta_deck_all_owned({ count: String(cost.needed) })}</span>
+            <span>{m.meta_deck_buildable()}</span>
           </>
         ) : (
           <>
@@ -112,8 +113,8 @@ function Owned({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Market
 
 function deckLabel(deck: MetaDeckSummary): string {
   return deck.legendName === null
-    ? `${deck.playerName}'s decklist`
-    : `${deck.playerName}'s ${deck.legendName} decklist`;
+    ? m.meta_deck_label({ player: deck.playerName })
+    : m.meta_deck_label_with_legend({ player: deck.playerName, legend: deck.legendName });
 }
 
 export function MetaDeckIndexRow({
@@ -206,7 +207,7 @@ export function MetaDeckIndexRow({
             {cost.owned !== undefined && cost.needed > 0 && (
               <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
                 {cost.owned >= cost.needed ? (
-                  <span className="text-border-accent font-medium">Buildable</span>
+                  <span className="text-border-accent font-medium">{m.meta_deck_buildable()}</span>
                 ) : (
                   cost.toComplete !== undefined && (
                     <>

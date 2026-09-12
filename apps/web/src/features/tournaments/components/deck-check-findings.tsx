@@ -26,24 +26,34 @@ import {
 } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { zoneFixAllowed } from "@/features/tournaments/lib/deck-check-actions";
 import { useZoneOrder } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 export function ChangeBanner({ summary }: { summary: DeckCheckChangeSummary }) {
   const describe = (line: { name: string; quantity: number }) => `${line.quantity}× ${line.name}`;
   return (
     <div className="border-destructive/40 bg-destructive-soft flex flex-col gap-1 rounded-md border p-3 text-sm">
-      <span className="font-medium">This list changed since a judge last reviewed it.</span>
+      <span className="font-medium">{m.tournaments_deck_check_change_banner_title()}</span>
       {summary.added.length > 0 ? (
-        <span>Added: {summary.added.map((line) => describe(line)).join(", ")}</span>
+        <span>
+          {m.tournaments_deck_check_change_added({
+            lines: summary.added.map((line) => describe(line)).join(", "),
+          })}
+        </span>
       ) : null}
       {summary.removed.length > 0 ? (
-        <span>Removed: {summary.removed.map((line) => describe(line)).join(", ")}</span>
+        <span>
+          {m.tournaments_deck_check_change_removed({
+            lines: summary.removed.map((line) => describe(line)).join(", "),
+          })}
+        </span>
       ) : null}
       {summary.changed.length > 0 ? (
         <span>
-          Changed:{" "}
-          {summary.changed
-            .map((line) => `${line.name} ${line.oldQuantity}× → ${line.newQuantity}×`)
-            .join(", ")}
+          {m.tournaments_deck_check_change_changed({
+            lines: summary.changed
+              .map((line) => `${line.name} ${line.oldQuantity}× → ${line.newQuantity}×`)
+              .join(", "),
+          })}
         </span>
       ) : null}
     </div>
@@ -51,7 +61,9 @@ export function ChangeBanner({ summary }: { summary: DeckCheckChangeSummary }) {
 }
 
 function reResolveMessage(updatedLines: number): string {
-  return `${updatedLines} ${updatedLines === 1 ? "line" : "lines"} now resolve`;
+  return updatedLines === 1
+    ? m.tournaments_deck_check_resolved_lines_one({ count: updatedLines })
+    : m.tournaments_deck_check_resolved_lines_other({ count: updatedLines });
 }
 
 export function FindingsBanner({
@@ -77,7 +89,7 @@ export function FindingsBanner({
     try {
       const result = await reResolve.mutateAsync({ tournamentId });
       if (result.updatedLines === 0) {
-        toast.info("No new matches found");
+        toast.info(m.tournaments_deck_check_no_new_matches());
       } else {
         toast.info(reResolveMessage(result.updatedLines));
       }
@@ -89,18 +101,20 @@ export function FindingsBanner({
 
   return (
     <div className="border-warning/40 bg-warning-soft flex flex-col gap-2 rounded-md border p-3 text-sm">
-      <span className="font-medium">Possible deck problems</span>
+      <span className="font-medium">{m.tournaments_deck_check_findings_title()}</span>
       <ul className="list-disc pl-5">
         {unmatched.length > 0 ? (
           <li>
-            {unmatched.length} {unmatched.length === 1 ? "card" : "cards"} could not be matched to
-            the catalog and cannot be validated.
+            {unmatched.length === 1
+              ? m.tournaments_deck_check_unmatched_finding_one({ count: unmatched.length })
+              : m.tournaments_deck_check_unmatched_finding_other({ count: unmatched.length })}
           </li>
         ) : null}
         {suggestions.length > 0 ? (
           <li>
-            {suggestions.length} {suggestions.length === 1 ? "card looks" : "cards look"} mis-zoned:
-            their type belongs in a different zone than the import put them in.
+            {suggestions.length === 1
+              ? m.tournaments_deck_check_mis_zoned_finding_one({ count: suggestions.length })
+              : m.tournaments_deck_check_mis_zoned_finding_other({ count: suggestions.length })}
           </li>
         ) : null}
         {detail.violations.map((violation) => (
@@ -115,17 +129,17 @@ export function FindingsBanner({
             size="sm"
             variant="outline"
             disabled={reResolve.isPending}
-            title="Try matching the unidentified cards against the catalog again, e.g. after a catalog fix"
+            title={m.tournaments_deck_check_re_resolve_title()}
             onClick={() => void handleReResolve()}
           >
             <RefreshCwIcon className="size-4" />
-            Re-resolve cards
+            {m.tournaments_deck_check_re_resolve()}
           </Button>
         ) : null}
         {canFixZones ? (
           <Button size="sm" variant="outline" onClick={() => setFixZonesOpen(true)}>
             <WandSparklesIcon className="size-4" />
-            Fix zones
+            {m.tournaments_deck_check_fix_zones()}
           </Button>
         ) : null}
       </div>
@@ -191,9 +205,9 @@ function FixZonesDialog({
       <DialogContent>
         <DialogForm onSubmit={() => void handleApply()}>
           <DialogHeader>
-            <DialogTitle>Fix card zones</DialogTitle>
+            <DialogTitle>{m.tournaments_deck_check_fix_zones_title()}</DialogTitle>
             <DialogDescription>
-              Based on card type, these belong in a different zone than the import put them.
+              {m.tournaments_deck_check_fix_zones_description()}
             </DialogDescription>
           </DialogHeader>
           <ul className="flex flex-col gap-2">
@@ -226,10 +240,12 @@ function FixZonesDialog({
           </ul>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.common_cancel()}
             </Button>
             <Button type="submit" disabled={applyZoneFixes.isPending || selected.size === 0}>
-              {applyZoneFixes.isPending ? "Applying..." : `Move ${selected.size}`}
+              {applyZoneFixes.isPending
+                ? m.tournaments_deck_check_applying()
+                : m.tournaments_deck_check_move_count({ count: selected.size })}
             </Button>
           </DialogFooter>
         </DialogForm>

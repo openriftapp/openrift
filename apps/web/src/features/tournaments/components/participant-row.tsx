@@ -31,11 +31,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
-import { PARTICIPANT_STATUS_LABEL } from "@/features/tournaments/lib/tournament-display";
+import { participantStatusLabels } from "@/features/tournaments/lib/tournament-display";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useRegionLabel } from "@/hooks/use-region-label";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export type ParticipantAction =
   | "drop"
@@ -123,9 +124,9 @@ export function ParticipantRow({
       return;
     }
     if (await copy(`${getSiteUrl()}/tournaments/claim/${token}`)) {
-      toast.success("Claim link copied");
+      toast.success(m.tournaments_participant_claim_link_copied());
     } else {
-      toast.error("Could not copy the claim link");
+      toast.error(m.tournaments_participant_claim_link_copy_failed());
     }
   }
 
@@ -138,10 +139,13 @@ export function ParticipantRow({
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <span className="truncate font-medium">{participant.displayName}</span>
         <Badge variant={statusBadgeVariant(participant.status)}>
-          {PARTICIPANT_STATUS_LABEL[participant.status]}
+          {participantStatusLabels()[participant.status]}
         </Badge>
         {teammateName ? (
-          <Badge variant="outline" title={`Teamed with ${teammateName}`}>
+          <Badge
+            variant="outline"
+            title={m.tournaments_participant_teamed_with({ name: teammateName })}
+          >
             <UsersIcon className="size-3" />
             {teammateName}
           </Badge>
@@ -151,11 +155,13 @@ export function ParticipantRow({
         ) : missesRegion ? (
           <Badge variant="warning">
             <GlobeIcon className="size-3" />
-            No region
+            {m.tournaments_participant_no_region()}
           </Badge>
         ) : null}
         {participant.groupLabel === null ? null : (
-          <Badge variant="info">Group {participant.groupLabel}</Badge>
+          <Badge variant="info">
+            {m.tournaments_group_heading({ label: participant.groupLabel })}
+          </Badge>
         )}
         {participant.legendName ? (
           <Badge variant="subtle">
@@ -165,16 +171,16 @@ export function ParticipantRow({
         ) : missesLegend ? (
           <Badge variant="muted">
             <CrownIcon className="size-3" />
-            No Legend
+            {m.tournaments_participant_no_legend()}
           </Badge>
         ) : null}
         {participant.fixedTable === null ? null : (
           <Badge
             variant="outline"
-            title={`Normally seated at table ${participant.fixedTable}. Pairings are unaffected; the table steers where their match is placed.`}
+            title={m.tournaments_participant_fixed_table_title({ table: participant.fixedTable })}
           >
             <ArmchairIcon className="size-3" />
-            Table {participant.fixedTable}
+            {m.tournaments_participant_table_badge({ table: participant.fixedTable })}
           </Badge>
         )}
         {participant.userId ? (
@@ -182,12 +188,12 @@ export function ParticipantRow({
             variant="subtle"
             title={
               participant.userName
-                ? `Linked to the OpenRift account of ${participant.userName}`
-                : "Linked to an OpenRift account"
+                ? m.tournaments_participant_linked_to_named({ name: participant.userName })
+                : m.tournaments_participant_linked_to_account()
             }
           >
             <Link2Icon className="size-3" />
-            {participant.userName ?? "Linked"}
+            {participant.userName ?? m.tournaments_participant_linked_badge()}
           </Badge>
         ) : null}
       </span>
@@ -201,7 +207,7 @@ export function ParticipantRow({
               onClick={() => onSetRegion({ ...target, region: "none" })}
             >
               <GlobeIcon className="size-4" />
-              Set region
+              {m.tournaments_missing_regions_set_region()}
             </Button>
           ) : null}
           {missesLegend && canAssignLegend && onSetLegend ? (
@@ -212,7 +218,7 @@ export function ParticipantRow({
               onClick={() => onSetLegend({ ...target, legendName: null })}
             >
               <CrownIcon className="size-4" />
-              Set Legend
+              {m.tournaments_participant_set_legend()}
             </Button>
           ) : null}
           {deckEntryId ? (
@@ -227,36 +233,42 @@ export function ParticipantRow({
               }
             >
               <LayersIcon className="size-4" />
-              Deck
+              {m.tournaments_participant_deck()}
             </Button>
           ) : null}
           {participant.status === "requested" ? (
             <>
               <Button
                 size="sm"
-                aria-label="Approve"
+                aria-label={m.tournaments_participant_approve()}
                 disabled={actionPending}
                 onClick={() => onAction(participant.id, "approve")}
               >
                 <CheckIcon className="size-4" />
-                <span className="hidden sm:inline">Approve</span>
+                <span className="hidden sm:inline">{m.tournaments_participant_approve()}</span>
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                aria-label="Deny"
+                aria-label={m.tournaments_participant_deny()}
                 className="text-destructive"
                 disabled={actionPending}
                 onClick={() => onAction(participant.id, "deny")}
               >
                 <XIcon className="size-4" />
-                <span className="hidden sm:inline">Deny</span>
+                <span className="hidden sm:inline">{m.tournaments_participant_deny()}</span>
               </Button>
             </>
           ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button size="sm" variant="ghost" aria-label="Participant actions" />}
+              render={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={m.tournaments_participant_actions()}
+                />
+              }
             >
               <EllipsisVerticalIcon className="size-4" />
             </DropdownMenuTrigger>
@@ -271,19 +283,19 @@ export function ParticipantRow({
                   }
                 >
                   <LayersIcon className="size-4" />
-                  Deck
+                  {m.tournaments_participant_deck()}
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem onClick={() => onRename(target)}>
                 <PencilIcon className="size-4" />
-                Rename
+                {m.tournaments_participant_rename()}
               </DropdownMenuItem>
               {canAssignRegion ? (
                 <DropdownMenuItem
                   onClick={() => onSetRegion({ ...target, region: participant.region ?? "none" })}
                 >
                   <GlobeIcon className="size-4" />
-                  Set region
+                  {m.tournaments_missing_regions_set_region()}
                 </DropdownMenuItem>
               ) : null}
               {canAssignLegend && onSetLegend ? (
@@ -291,7 +303,7 @@ export function ParticipantRow({
                   onClick={() => onSetLegend({ ...target, legendName: participant.legendName })}
                 >
                   <CrownIcon className="size-4" />
-                  Set Legend
+                  {m.tournaments_participant_set_legend()}
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem
@@ -304,7 +316,7 @@ export function ParticipantRow({
                 }
               >
                 <ArmchairIcon className="size-4" />
-                Set fixed table
+                {m.tournaments_participant_set_fixed_table()}
               </DropdownMenuItem>
               {participant.status === "active" ? (
                 <DropdownMenuItem
@@ -312,7 +324,7 @@ export function ParticipantRow({
                   onClick={() => onAction(participant.id, "drop")}
                 >
                   <UserMinusIcon className="size-4" />
-                  Drop
+                  {m.tournaments_participant_drop()}
                 </DropdownMenuItem>
               ) : participant.status === "dropped" || participant.status === "no_show" ? (
                 <DropdownMenuItem
@@ -320,7 +332,7 @@ export function ParticipantRow({
                   onClick={() => onAction(participant.id, "reactivate")}
                 >
                   <UserPlusIcon className="size-4" />
-                  Reactivate
+                  {m.tournaments_participant_reactivate()}
                 </DropdownMenuItem>
               ) : null}
               {participant.userId ? (
@@ -329,7 +341,7 @@ export function ParticipantRow({
                   onClick={() => onAction(participant.id, "unlink")}
                 >
                   <UnlinkIcon className="size-4" />
-                  Unlink
+                  {m.tournaments_participant_unlink()}
                 </DropdownMenuItem>
               ) : participant.claimBlocked ? (
                 <DropdownMenuItem
@@ -337,18 +349,18 @@ export function ParticipantRow({
                   onClick={() => onAction(participant.id, "reissue")}
                 >
                   <RotateCcwIcon className="size-4" />
-                  Re-issue claim link
+                  {m.tournaments_participant_reissue_claim_link()}
                 </DropdownMenuItem>
               ) : participant.claimToken ? (
                 <DropdownMenuItem onClick={() => void handleCopyClaimLink()}>
                   <CopyIcon className="size-4" />
-                  Copy claim link
+                  {m.tournaments_participant_copy_claim_link()}
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => onRemove(target)}>
                 <Trash2Icon className="size-4" />
-                Remove
+                {m.tournaments_participant_remove()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -361,7 +373,7 @@ export function ParticipantRow({
             onClick={() => onSetRegion({ ...target, region: participant.region ?? "none" })}
           >
             <GlobeIcon className="size-4" />
-            Set region
+            {m.tournaments_missing_regions_set_region()}
           </Button>
         </span>
       ) : null}

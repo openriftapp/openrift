@@ -45,6 +45,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface RoadmapItem {
   title: string;
@@ -54,286 +55,273 @@ interface RoadmapItem {
   date?: string;
 }
 
-const roadmapItems: RoadmapItem[] = [
-  {
-    title: "Tournament Results Archive",
-    description:
-      "Archived Riftbound events with winners, full standings, top-cut brackets, and decklists you can fork into your own.",
-    icon: <TrophyIcon className="size-4" />,
-    done: true,
-    date: "Aug 2026",
-  },
-  {
-    title: "Streamer Tools",
-    description:
-      "The Stage for showing cards full-screen or as an OBS overlay, tier list boards, and card lookups for your chat bot.",
-    icon: <MonitorPlayIcon className="size-4" />,
-    done: true,
-    date: "Aug 2026",
-  },
-  {
-    title: "Discord Card Bot",
-    description:
-      "Card, deck, and rule lookups in your own server, including [[card name]] mentions with prices and links.",
-    icon: <BotIcon className="size-4" />,
-    done: true,
-    date: "Aug 2026",
-  },
-  {
-    title: "Deck Variants",
-    description:
-      "Fork a deck to try a change without losing the build that works, on a small graph of what each variant adds and cuts.",
-    icon: <GitBranchIcon className="size-4" />,
-    done: true,
-    date: "Aug 2026",
-  },
-  {
-    title: "Card Scanner",
-    description:
-      "Point your camera at a card, recognised on your own device, and it goes on a list you add to a collection in one step.",
-    icon: <ScanLineIcon className="size-4" />,
-    done: true,
-    date: "Aug 2026",
-  },
-  {
-    title: "Swiss & 2v2 Events",
-    description:
-      "Swiss pairings with optional regions, and fixed-team 2v2 tournaments alongside the free-for-all pods.",
-    icon: <SwordsIcon className="size-4" />,
-    done: true,
-    date: "Jul 2026",
-  },
-  {
-    title: "Card Lending",
-    description:
-      "Lend cards to friends: they stay owned but stop counting for decks and trades until they're back.",
-    icon: <HandHeartIcon className="size-4" />,
-    done: true,
-    date: "Jul 2026",
-  },
-  {
-    title: "Condition Tracking",
-    description:
-      "Record each copy's condition or professional grade, plus an altered flag, notes, and photo links.",
-    icon: <MedalIcon className="size-4" />,
-    done: true,
-    date: "Jul 2026",
-  },
-  {
-    title: "Tournament Tools",
-    description:
-      "Run free-for-all pod events with standings, plus player deck submission and judge deck-check tools.",
-    icon: <SwordsIcon className="size-4" />,
-    done: true,
-    date: "Jun 2026",
-  },
-  {
-    title: "Deck Plans",
-    description:
-      "Document how to pilot a deck: gameplan, opening hand, battlefield, and per-matchup sideboarding.",
-    icon: <ClipboardListIcon className="size-4" />,
-    done: true,
-    date: "Jun 2026",
-  },
-  {
-    title: "Match Tracker",
-    description: "Keep score and XP for 2 to 4 players on one device, works offline.",
-    icon: <Gamepad2Icon className="size-4" />,
-    done: true,
-    date: "Jun 2026",
-  },
-  {
-    title: "Dynamic Lists",
-    description:
-      "Wishlists and tradelists that fill themselves from rules, like a playset of every card, and stay current on their own.",
-    icon: <ListChecksIcon className="size-4" />,
-    done: true,
-    date: "Jun 2026",
-  },
-  {
-    title: "Card Designer",
-    description:
-      "Design your own Riftbound-style card with your own art, then download or copy it to share.",
-    icon: <PaletteIcon className="size-4" />,
-    done: true,
-    date: "Jun 2026",
-  },
-  {
-    title: "Groups",
-    description:
-      "Small private groups to share wishlists and tradelists, with live matches of who has the cards you want.",
-    icon: <UsersIcon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "Trades",
-    description:
-      "Trade matching across your groups, with one-tap requests, price preferences, and email alerts.",
-    icon: <ArrowRightLeftIcon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "Wishlists & Tradelists",
-    description:
-      "Track cards you want to acquire or have for trade, shareable publicly or with groups.",
-    icon: <HeartIcon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "Rules Reference",
-    description: "Searchable comprehensive rules reference alongside official text.",
-    icon: <ScrollTextIcon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "Public Sharing",
-    description:
-      "Share collections, decks, and lists with public links. No sign-in needed to view.",
-    icon: <Share2Icon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "More Deck Formats",
-    description: "Freeform and Custom-Region formats alongside Constructed.",
-    icon: <ShuffleIcon className="size-4" />,
-    done: true,
-    date: "May 2026",
-  },
-  {
-    title: "Set Completion Tracking",
-    description: "See how close you are to completing each set across your collections.",
-    icon: <PieChartIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Bans",
-    description: "Banned cards are flagged in the browser and blocked from deck building.",
-    icon: <BanIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Card Errata",
-    description: "Official errata displayed alongside original card text.",
-    icon: <FileWarningIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Deck Import/Export",
-    description: "Import and export decks as deck codes, text lists, or Tabletop Simulator format.",
-    icon: <FolderSyncIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Collection Import/Export",
-    description: "Import and export collections as CSV files.",
-    icon: <UploadIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Pack Opener",
-    description:
-      "Open virtual boosters at the real published pull rates to see what you might pull.",
-    icon: <PackageOpenIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Proxy Printing",
-    description: "Print proxy cards for playtesting.",
-    icon: <PrinterIcon className="size-4" />,
-    done: true,
-    date: "Apr 2026",
-  },
-  {
-    title: "Deck Building",
-    description:
-      "Build, validate, and share decks with stats, deck codes, and collection availability.",
-    icon: <LayersIcon className="size-4" />,
-    done: true,
-    date: "Mar 2026",
-  },
-  {
-    title: "Collections",
-    description: "Multiple collections with activity timeline, market values, and sharing.",
-    icon: <LibraryIcon className="size-4" />,
-    done: true,
-    date: "Mar 2026",
-  },
-  {
-    title: "Price History",
-    description: "Charts showing how card prices change over time.",
-    icon: <WalletIcon className="size-4" />,
-    done: true,
-    date: "Mar 2026",
-  },
-  {
-    title: "Triple Marketplace",
-    description: "TCGplayer, Cardmarket, and Cardtrader prices, refreshed daily.",
-    icon: <ScaleIcon className="size-4" />,
-    done: true,
-    date: "Mar 2026",
-  },
-  {
-    title: "User Accounts",
-    description:
-      "Sign up with email or social login (Google, Discord), email verification, and profiles.",
-    icon: <UsersIcon className="size-4" />,
-    done: true,
-    date: "Mar 2026",
-  },
-  {
-    title: "Launch",
-    description: "Card browser with filters, search, and smooth virtual scrolling.",
-    icon: <RocketIcon className="size-4" />,
-    done: true,
-    date: "Feb 2026",
-  },
-];
+function roadmapItems(): RoadmapItem[] {
+  return [
+    {
+      title: m.marketing_roadmap_archive_title(),
+      description: m.marketing_roadmap_archive_description(),
+      icon: <TrophyIcon className="size-4" />,
+      done: true,
+      date: "Aug 2026",
+    },
+    {
+      title: m.marketing_roadmap_streamer_title(),
+      description: m.marketing_roadmap_streamer_description(),
+      icon: <MonitorPlayIcon className="size-4" />,
+      done: true,
+      date: "Aug 2026",
+    },
+    {
+      title: m.marketing_roadmap_discord_title(),
+      description: m.marketing_roadmap_discord_description(),
+      icon: <BotIcon className="size-4" />,
+      done: true,
+      date: "Aug 2026",
+    },
+    {
+      title: m.marketing_roadmap_variants_title(),
+      description: m.marketing_roadmap_variants_description(),
+      icon: <GitBranchIcon className="size-4" />,
+      done: true,
+      date: "Aug 2026",
+    },
+    {
+      title: m.marketing_roadmap_scanner_title(),
+      description: m.marketing_roadmap_scanner_description(),
+      icon: <ScanLineIcon className="size-4" />,
+      done: true,
+      date: "Aug 2026",
+    },
+    {
+      title: m.marketing_roadmap_swiss_title(),
+      description: m.marketing_roadmap_swiss_description(),
+      icon: <SwordsIcon className="size-4" />,
+      done: true,
+      date: "Jul 2026",
+    },
+    {
+      title: m.marketing_roadmap_lending_title(),
+      description: m.marketing_roadmap_lending_description(),
+      icon: <HandHeartIcon className="size-4" />,
+      done: true,
+      date: "Jul 2026",
+    },
+    {
+      title: m.marketing_roadmap_condition_title(),
+      description: m.marketing_roadmap_condition_description(),
+      icon: <MedalIcon className="size-4" />,
+      done: true,
+      date: "Jul 2026",
+    },
+    {
+      title: m.marketing_roadmap_tournament_tools_title(),
+      description: m.marketing_roadmap_tournament_tools_description(),
+      icon: <SwordsIcon className="size-4" />,
+      done: true,
+      date: "Jun 2026",
+    },
+    {
+      title: m.marketing_roadmap_deck_plans_title(),
+      description: m.marketing_roadmap_deck_plans_description(),
+      icon: <ClipboardListIcon className="size-4" />,
+      done: true,
+      date: "Jun 2026",
+    },
+    {
+      title: m.marketing_roadmap_tracker_title(),
+      description: m.marketing_roadmap_tracker_description(),
+      icon: <Gamepad2Icon className="size-4" />,
+      done: true,
+      date: "Jun 2026",
+    },
+    {
+      title: m.marketing_roadmap_dynamic_lists_title(),
+      description: m.marketing_roadmap_dynamic_lists_description(),
+      icon: <ListChecksIcon className="size-4" />,
+      done: true,
+      date: "Jun 2026",
+    },
+    {
+      title: m.marketing_roadmap_designer_title(),
+      description: m.marketing_roadmap_designer_description(),
+      icon: <PaletteIcon className="size-4" />,
+      done: true,
+      date: "Jun 2026",
+    },
+    {
+      title: m.marketing_roadmap_groups_title(),
+      description: m.marketing_roadmap_groups_description(),
+      icon: <UsersIcon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_trades_title(),
+      description: m.marketing_roadmap_trades_description(),
+      icon: <ArrowRightLeftIcon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_lists_title(),
+      description: m.marketing_roadmap_lists_description(),
+      icon: <HeartIcon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_rules_title(),
+      description: m.marketing_roadmap_rules_description(),
+      icon: <ScrollTextIcon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_sharing_title(),
+      description: m.marketing_roadmap_sharing_description(),
+      icon: <Share2Icon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_formats_title(),
+      description: m.marketing_roadmap_formats_description(),
+      icon: <ShuffleIcon className="size-4" />,
+      done: true,
+      date: "May 2026",
+    },
+    {
+      title: m.marketing_roadmap_completion_title(),
+      description: m.marketing_roadmap_completion_description(),
+      icon: <PieChartIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_bans_title(),
+      description: m.marketing_roadmap_bans_description(),
+      icon: <BanIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_errata_title(),
+      description: m.marketing_roadmap_errata_description(),
+      icon: <FileWarningIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_deck_io_title(),
+      description: m.marketing_roadmap_deck_io_description(),
+      icon: <FolderSyncIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_collection_io_title(),
+      description: m.marketing_roadmap_collection_io_description(),
+      icon: <UploadIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_pack_opener_title(),
+      description: m.marketing_roadmap_pack_opener_description(),
+      icon: <PackageOpenIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_proxy_title(),
+      description: m.marketing_roadmap_proxy_description(),
+      icon: <PrinterIcon className="size-4" />,
+      done: true,
+      date: "Apr 2026",
+    },
+    {
+      title: m.marketing_roadmap_deckbuilding_title(),
+      description: m.marketing_roadmap_deckbuilding_description(),
+      icon: <LayersIcon className="size-4" />,
+      done: true,
+      date: "Mar 2026",
+    },
+    {
+      title: m.marketing_roadmap_collections_title(),
+      description: m.marketing_roadmap_collections_description(),
+      icon: <LibraryIcon className="size-4" />,
+      done: true,
+      date: "Mar 2026",
+    },
+    {
+      title: m.marketing_roadmap_price_history_title(),
+      description: m.marketing_roadmap_price_history_description(),
+      icon: <WalletIcon className="size-4" />,
+      done: true,
+      date: "Mar 2026",
+    },
+    {
+      title: m.marketing_roadmap_marketplaces_title(),
+      description: m.marketing_roadmap_marketplaces_description(),
+      icon: <ScaleIcon className="size-4" />,
+      done: true,
+      date: "Mar 2026",
+    },
+    {
+      title: m.marketing_roadmap_accounts_title(),
+      description: m.marketing_roadmap_accounts_description(),
+      icon: <UsersIcon className="size-4" />,
+      done: true,
+      date: "Mar 2026",
+    },
+    {
+      title: m.marketing_roadmap_launch_title(),
+      description: m.marketing_roadmap_launch_description(),
+      icon: <RocketIcon className="size-4" />,
+      done: true,
+      date: "Feb 2026",
+    },
+  ];
+}
 
 export function RoadmapPage() {
+  const items = roadmapItems();
+
   return (
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Roadmap</PageTopBarTitle>
+          <PageTopBarTitle>{m.marketing_roadmap_title()}</PageTopBarTitle>
           <PageTopBarActions>
-            <PageTopBarButton render={<Link to="/changelog" />}>What&apos;s new</PageTopBarButton>
+            <PageTopBarButton render={<Link to="/changelog" />}>
+              {m.layout_header_whats_new()}
+            </PageTopBarButton>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <p className="text-muted-foreground max-w-prose pb-4">
-          What ships next grows out of player feedback rather than a long-term plan: most of the
-          features below started as requests from people using the app. If something is missing for
-          you, say so on{" "}
+          {m.marketing_roadmap_intro_before()}{" "}
           <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
             Discord
           </TextLink>{" "}
-          or{" "}
+          {m.marketing_roadmap_intro_or()}{" "}
           <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
             GitHub
           </TextLink>
           .
         </p>
         <ol className="relative">
-          {roadmapItems.map((item, i) => {
+          {items.map((item, i) => {
             const isFirst = i === 0;
-            const isLast = i === roadmapItems.length - 1;
-            const firstDoneIndex = roadmapItems.findIndex((r) => r.done);
+            const isLast = i === items.length - 1;
+            const firstDoneIndex = items.findIndex((r) => r.done);
             const isFirstDone = i === firstDoneIndex;
 
             const showHeader = (isFirst && !item.done) || isFirstDone;
-            const headerLabel = isFirstDone ? "Shipped" : "Planned";
+            const headerLabel = isFirstDone
+              ? m.marketing_roadmap_shipped()
+              : m.marketing_roadmap_planned();
 
             return (
               <li key={item.title}>
@@ -353,7 +341,7 @@ export function RoadmapPage() {
                       />
                     ) : (
                       <DateLeaf
-                        month="Soon"
+                        month={m.marketing_roadmap_soon()}
                         size="sm"
                         className="text-muted-foreground border-dashed"
                       />
@@ -363,7 +351,7 @@ export function RoadmapPage() {
                         aria-hidden="true"
                         className={cn(
                           "w-px flex-1",
-                          item.done && roadmapItems[i + 1]?.done
+                          item.done && items[i + 1]?.done
                             ? "bg-border-accent/60"
                             : "bg-muted-foreground/15",
                         )}
@@ -399,7 +387,7 @@ export function RoadmapPage() {
                           item.done ? "text-muted-foreground" : "text-muted-foreground/60 italic",
                         )}
                       >
-                        {item.done ? item.date : "Soon™"}
+                        {item.done ? item.date : m.marketing_roadmap_soon_tm()}
                       </p>
                     </Card>
                   </div>

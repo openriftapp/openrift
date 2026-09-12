@@ -44,6 +44,7 @@ import {
 } from "@/features/stage/lib/stage-preset-apply";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { getSiteUrl } from "@/lib/site-config";
+import { m } from "@/paraglide/messages.js";
 
 /** URL pinned to one preset; a source added with it ignores the live dashboard settings. */
 function presetSourceUrl(token: string, presetId: string): string {
@@ -69,25 +70,21 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
 
   return (
     <SettingsSection
-      title="Presets"
-      description="A saved scene. Apply one, or point a second browser source at its own link."
+      title={m.stage_presets_title()}
+      description={m.stage_presets_description()}
       action={
         <Button variant="outline" onClick={() => setSaveOpen(true)}>
           <BookmarkPlusIcon />
-          Save current
+          {m.stage_presets_save_current()}
         </Button>
       }
     >
       {channel.token ? null : (
-        <p className="text-muted-foreground text-sm">
-          Preset links need the browser source link turned on.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.stage_presets_need_source_link()}</p>
       )}
 
       {items.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Nothing saved yet. Dress the scene the way you want it, then save it.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.stage_presets_empty()}</p>
       ) : (
         <RowList>
           {items.map((preset) => (
@@ -105,9 +102,9 @@ export function OverlayPresetsSection({ channel }: { channel: OverlayChannelResp
       <StagePresetNameDialog
         open={saveOpen}
         onOpenChange={setSaveOpen}
-        title="Save as preset"
-        description="Keeps the scene as it is dressed right now. The card on screen is not part of it."
-        confirmLabel="Save"
+        title={m.stage_presets_save_title()}
+        description={m.stage_presets_save_description()}
+        confirmLabel={m.common_save()}
         pending={createPreset.isPending}
         onConfirm={save}
       />
@@ -138,10 +135,10 @@ function OverlayPresetRow({
     }
     const ok = await copy(presetSourceUrl(token, preset.id));
     if (ok) {
-      toast.success("Source URL copied.");
+      toast.success(m.stage_preset_copy_success());
       return;
     }
-    toast.error("Could not copy the URL.");
+    toast.error(m.stage_preset_copy_error());
   };
 
   const rename = (name: string) => {
@@ -160,23 +157,29 @@ function OverlayPresetRow({
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label={`${preset.name} options`} />}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={m.stage_preset_options_aria({ name: preset.name })}
+            />
+          }
         >
           <EllipsisVerticalIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem disabled={!token} onClick={() => void copyLink()}>
             <LinkIcon />
-            Copy source URL
+            {m.stage_preset_copy_source_url()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRenameOpen(true)}>
             <PencilIcon />
-            Rename
+            {m.stage_preset_rename()}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
             <Trash2Icon />
-            Delete
+            {m.common_delete()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -184,9 +187,9 @@ function OverlayPresetRow({
       <StagePresetNameDialog
         open={renameOpen}
         onOpenChange={setRenameOpen}
-        title="Rename preset"
-        description="Only the name changes. The saved scene stays as it is."
-        confirmLabel="Rename"
+        title={m.stage_preset_rename_title()}
+        description={m.stage_preset_rename_description()}
+        confirmLabel={m.stage_preset_rename()}
         initialName={preset.name}
         pending={updatePreset.isPending}
         onConfirm={rename}
@@ -194,19 +197,18 @@ function OverlayPresetRow({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this preset?</AlertDialogTitle>
+            <AlertDialogTitle>{m.stage_preset_delete_title()}</AlertDialogTitle>
             <AlertDialogDescription>
-              {preset.name} is gone for good, and any browser source pinned to it falls back to the
-              channel&apos;s own dressing.
+              {m.stage_preset_delete_description({ name: preset.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{m.stage_preset_delete_keep()}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deletePreset.mutate(preset.id)}
               disabled={deletePreset.isPending}
             >
-              Delete
+              {m.common_delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

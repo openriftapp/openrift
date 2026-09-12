@@ -17,9 +17,10 @@ import type {
 import {
   DECK_SCOPE_DEFAULTS,
   hasActiveMetaDeckFilters,
-  META_FINISH_OPTIONS,
+  metaFinishOptions,
 } from "@/features/meta/lib/meta-deck-filters";
 import type { MetaEra } from "@/features/meta/lib/meta-scope";
+import { m } from "@/paraglide/messages.js";
 
 const ANY_FINISH = "";
 
@@ -36,8 +37,8 @@ export function MetaDeckFilterControls({
 }) {
   const filters = useMetaDeckFilters();
 
-  const finishItems: Record<string, string> = { [ANY_FINISH]: "Any finish" };
-  for (const option of META_FINISH_OPTIONS) {
+  const finishItems: Record<string, string> = { [ANY_FINISH]: m.meta_filter_any_finish() };
+  for (const option of metaFinishOptions()) {
     finishItems[String(option.value)] = option.label;
   }
 
@@ -60,27 +61,27 @@ export function MetaDeckFilterControls({
         <>
           {options.legends.length > 1 && (
             <MultiSelectCombobox
-              label="Legend"
+              label={m.meta_filter_legend()}
               triggerStyle="button"
               triggerSize="default"
               options={options.legends}
               selected={filters.legends}
               onChange={(next) => filters.setLegends(next)}
               counts={counts.legends}
-              searchPlaceholder="Search legends…"
+              searchPlaceholder={m.meta_filter_search_legends()}
             />
           )}
 
           {options.events.length > 1 && (
             <MultiSelectCombobox
-              label="Event"
+              label={m.meta_filter_event()}
               triggerStyle="button"
               triggerSize="default"
               options={options.events}
               selected={filters.events}
               onChange={(next) => filters.setEvents(next)}
               counts={counts.events}
-              searchPlaceholder="Search events…"
+              searchPlaceholder={m.meta_filter_search_events()}
             />
           )}
 
@@ -92,7 +93,7 @@ export function MetaDeckFilterControls({
             }}
             items={finishItems}
           >
-            <SelectTrigger className="w-34" aria-label="Finish">
+            <SelectTrigger className="w-34" aria-label={m.meta_filter_finish()}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

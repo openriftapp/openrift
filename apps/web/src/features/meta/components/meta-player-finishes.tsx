@@ -26,6 +26,7 @@ import { BEST_FINISH_COUNT, FINISH_PAGE_SIZE } from "@/features/meta/lib/meta-le
 import { sortPlayerFinishes } from "@/features/meta/lib/meta-player-page";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { useUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 function Rank({ finish }: { finish: MetaPlayerFinish }) {
   if (finish.rank <= MEDAL_RANKS) {
@@ -41,7 +42,9 @@ function Rank({ finish }: { finish: MetaPlayerFinish }) {
 function LegendCell({ finish, className }: { finish: MetaPlayerFinish; className?: string }) {
   const { legend } = finish;
   if (legend === null) {
-    return <span className="text-muted-foreground text-xs">No legend on file</span>;
+    return (
+      <span className="text-muted-foreground text-xs">{m.meta_player_finishes_no_legend()}</span>
+    );
   }
   return (
     <MetaIdentity
@@ -69,7 +72,9 @@ function ListLink({
         className="font-medium whitespace-nowrap"
         render={<Link to="/meta/decks/$token" params={{ token: finish.shareToken }} />}
       >
-        {finish.listStatus === "partial" ? "Partial" : "Decklist"}
+        {finish.listStatus === "partial"
+          ? m.meta_list_partial_short()
+          : m.meta_standings_decklist()}
       </TextLink>
     );
   }
@@ -199,13 +204,11 @@ export function MetaPlayerFinishes({
   if (finishes.length === 0) {
     return (
       <section className="flex flex-col gap-3">
-        <Heading>Finishes</Heading>
+        <Heading>{m.meta_finishes_heading()}</Heading>
         <Empty>
           <EmptyHeader>
             <EmptyDescription>
-              {narrowed
-                ? "No finish on this player's record falls in this scope."
-                : "No archived event has this player on its standings yet."}
+              {narrowed ? m.meta_finishes_player_scope_empty() : m.meta_finishes_player_empty()}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -220,7 +223,7 @@ export function MetaPlayerFinishes({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Heading>Finishes</Heading>
+        <Heading>{m.meta_finishes_heading()}</Heading>
         {finishes.length > BEST_FINISH_COUNT && (
           <Button
             variant="link"
@@ -230,7 +233,9 @@ export function MetaPlayerFinishes({
               setShown(FINISH_PAGE_SIZE);
             }}
           >
-            {view === "best" ? `Show all ${finishes.length.toLocaleString("en-US")}` : "Show fewer"}
+            {view === "best"
+              ? m.meta_show_all_n({ count: finishes.length.toLocaleString("en-US") })
+              : m.meta_show_fewer()}
           </Button>
         )}
       </div>
@@ -239,12 +244,12 @@ export function MetaPlayerFinishes({
         <Table variant="divided" className="hidden table-fixed sm:table">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">Rank</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead className="w-24">Tier</TableHead>
-              <TableHead className="w-72">Legend</TableHead>
-              <TableHead className="w-20 text-right">Record</TableHead>
-              <TableHead className="w-24 text-right">Decklist</TableHead>
+              <TableHead className="w-12">{m.meta_standings_col_rank()}</TableHead>
+              <TableHead>{m.meta_finishes_col_event()}</TableHead>
+              <TableHead className="w-24">{m.meta_finishes_col_tier()}</TableHead>
+              <TableHead className="w-72">{m.meta_standings_col_legend()}</TableHead>
+              <TableHead className="w-20 text-right">{m.meta_finishes_col_record()}</TableHead>
+              <TableHead className="w-24 text-right">{m.meta_standings_decklist()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -271,7 +276,9 @@ export function MetaPlayerFinishes({
 
         {view === "all" && remaining > 0 && (
           <MetaShowMore onClick={() => setShown(shown + FINISH_PAGE_SIZE)}>
-            {`${remaining.toLocaleString("en-US")} more ${remaining === 1 ? "finish" : "finishes"}`}
+            {remaining === 1
+              ? m.meta_finishes_more_one({ count: remaining.toLocaleString("en-US") })
+              : m.meta_finishes_more_other({ count: remaining.toLocaleString("en-US") })}
           </MetaShowMore>
         )}
       </div>

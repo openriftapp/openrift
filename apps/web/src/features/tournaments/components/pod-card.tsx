@@ -23,6 +23,7 @@ import {
   pairingLabel,
 } from "@/features/tournaments/lib/tournament-display";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { WarningBadge, WarningList } from "./pairing-warnings";
 import { parsePoints, PodResultForm } from "./pod-result-form";
@@ -47,7 +48,9 @@ function MemberSeedBadge({
   return (
     <Badge variant="secondary" className="shrink-0 tabular-nums">
       {placement !== null && (
-        <span title={`Finished ${ordinalPlace(placement)} in the pod`}>{placement}</span>
+        <span title={m.tournaments_pod_finished_place({ place: ordinalPlace(placement) })}>
+          {placement}
+        </span>
       )}
       {placement !== null && gamePoints !== null ? (
         <span aria-hidden="true" className="text-muted-foreground/60">
@@ -55,7 +58,10 @@ function MemberSeedBadge({
         </span>
       ) : null}
       {gamePoints !== null && (
-        <span className="text-muted-foreground" title={`${gamePoints} game points`}>
+        <span
+          className="text-muted-foreground"
+          title={m.tournaments_pod_game_points_title({ points: gamePoints })}
+        >
           {gamePoints}g
         </span>
       )}
@@ -67,13 +73,17 @@ function MemberSeedBadge({
 function podPenaltySummary(penalty: NonNullable<PodResponse["penalty"]>): string | null {
   const parts: string[] = [];
   if (penalty.rematchPairs > 0) {
-    parts.push(`${penalty.rematchPairs} rematch${penalty.rematchPairs === 1 ? "" : "es"}`);
+    parts.push(
+      penalty.rematchPairs === 1
+        ? m.tournaments_pod_penalty_rematches_one({ count: penalty.rematchPairs })
+        : m.tournaments_pod_penalty_rematches_other({ count: penalty.rematchPairs }),
+    );
   }
   if (penalty.spread > 0) {
-    parts.push(`spread ${penalty.spread}`);
+    parts.push(m.tournaments_pod_penalty_spread({ value: penalty.spread }));
   }
   if (Math.round(penalty.total) > 0) {
-    parts.push(`penalty ${Math.round(penalty.total)}`);
+    parts.push(m.tournaments_pod_penalty_total({ value: Math.round(penalty.total) }));
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }
@@ -217,14 +227,14 @@ export function PodCard({
                   void handleSaveScore();
                 }
               }}
-              aria-label={`Game points for ${name}`}
+              aria-label={m.tournaments_pod_game_points_aria({ name })}
               className="h-7 w-16 tabular-nums"
             />
             <Button
               size="icon-sm"
               onClick={() => void handleSaveScore()}
               disabled={saving || parsePoints(scoreDraft) === null}
-              aria-label={`Save score for ${name}`}
+              aria-label={m.tournaments_pod_save_score_aria({ name })}
             >
               <CheckIcon />
             </Button>
@@ -233,7 +243,7 @@ export function PodCard({
               variant="ghost"
               onClick={() => setScoringPlayerId(null)}
               disabled={saving}
-              aria-label="Cancel score entry"
+              aria-label={m.tournaments_pod_cancel_score_aria()}
             >
               <XIcon />
             </Button>
@@ -245,7 +255,7 @@ export function PodCard({
             {lead.points !== null && (
               <span
                 className="font-semibold"
-                title={`${formatScore(lead.points)} points from this round`}
+                title={m.tournaments_pod_round_points_title({ points: formatScore(lead.points) })}
               >
                 +{formatScore(lead.points)}
               </span>
@@ -253,14 +263,14 @@ export function PodCard({
             {selfEntry ? (
               lead.gamePoints === null ? (
                 <Button variant="secondary" size="xs" onClick={() => startScoring(lead)}>
-                  Add score
+                  {m.tournaments_pod_add_score()}
                 </Button>
               ) : (
                 <Button
                   variant="ghost"
                   size="icon-xs"
                   onClick={() => startScoring(lead)}
-                  aria-label={`Edit score for ${name}`}
+                  aria-label={m.tournaments_pod_edit_score_aria({ name })}
                 >
                   <PencilIcon />
                 </Button>
@@ -284,12 +294,12 @@ export function PodCard({
           />
           <span>{title ?? pairingLabel(pod.podNumber)}</span>
           <span className="ml-auto flex items-center gap-2">
-            {crossGroup ? <Badge variant="info">Cross-group</Badge> : null}
+            {crossGroup ? <Badge variant="info">{m.tournaments_pod_cross_group()}</Badge> : null}
             {showPenalty && !warningsExpanded ? (
               <WarningBadge warnings={warnings} nameById={nameById} regionLabel={regionLabel} />
             ) : null}
             {walkover ? (
-              <Badge variant="muted">Walkover</Badge>
+              <Badge variant="muted">{m.tournaments_pod_walkover()}</Badge>
             ) : (
               <PodStatusBadge
                 reported={reported}
@@ -357,7 +367,11 @@ export function PodCard({
                 className={cn("self-end")}
                 onClick={() => setEditing(true)}
               >
-                {reported ? "Edit result" : selfEntry ? "Enter all scores" : "Enter result"}
+                {reported
+                  ? m.tournaments_pod_edit_result()
+                  : selfEntry
+                    ? m.tournaments_pod_enter_all_scores()
+                    : m.tournaments_pod_enter_result()}
               </Button>
             ) : null}
           </>
@@ -377,11 +391,11 @@ function PodStatusBadge({
   size: number;
 }) {
   if (reported) {
-    return <Badge variant="success">Reported</Badge>;
+    return <Badge variant="success">{m.tournaments_pod_reported()}</Badge>;
   }
   return (
     <Badge variant={enteredCount > 0 ? "warning" : "muted"}>
-      {enteredCount} of {size} in
+      {m.tournaments_pod_entered_of({ entered: enteredCount, size })}
     </Badge>
   );
 }

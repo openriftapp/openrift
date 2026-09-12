@@ -14,6 +14,7 @@ import {
 } from "@/features/cards/components/printing-choice-menu";
 import { usePrintingChoices } from "@/features/cards/hooks/use-printing-choices";
 import { useTierListBuilderStore } from "@/features/stage/stores/tier-list-builder-store";
+import { m } from "@/paraglide/messages.js";
 
 interface TierCardPrintingMenuProps {
   cardId: string;
@@ -44,7 +45,9 @@ export function TierCardPrintingMenu({
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent ref={popupRef} className="max-h-[70vh] w-72 overflow-y-auto">
-        <ContextMenuItem onClick={() => unassign(cardId)}>Unrank this card</ContextMenuItem>
+        <ContextMenuItem onClick={() => unassign(cardId)}>
+          {m.tier_lists_unrank_card()}
+        </ContextMenuItem>
         {printings.length > 0 && <ContextMenuSeparator />}
         <PrintingChoiceMenuSection
           printings={printings}

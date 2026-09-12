@@ -1,5 +1,7 @@
 import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
 
+import { m } from "@/paraglide/messages.js";
+
 export const ANY_LEGEND = "any";
 
 /** The legends the field played, commonest first. Keyed by card id so legends sharing a champion stay apart. */
@@ -22,7 +24,7 @@ export function legendOptions(players: readonly MetaEventPlayer[]): Record<strin
     (a, b) => b[1].count - a[1].count || a[1].name.localeCompare(b[1].name),
   );
   return {
-    [ANY_LEGEND]: "Any legend",
+    [ANY_LEGEND]: m.meta_standings_any_legend(),
     ...Object.fromEntries(
       ordered.map(([cardId, entry]) => [cardId, `${entry.name} (${entry.count})`]),
     ),

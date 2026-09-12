@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { m } from "@/paraglide/messages.js";
 
 import { CutSeedsCard, GroupStandingsCard, GroupTiebreakNote } from "./group-standings-cards";
 import { LegendMetaSharesDialog } from "./legend-meta-shares-dialog";
@@ -31,12 +32,16 @@ export function GroupCutStandings({
       {needsShares && metaShares ? (
         <Callout className="flex flex-wrap items-center justify-between gap-3">
           <span>
-            A tie waits on the meta share of {groupStage.pendingMetaShares.length} Legend
-            {groupStage.pendingMetaShares.length === 1 ? "" : "s"}. The cut cannot be generated
-            until the numbers are in.
+            {groupStage.pendingMetaShares.length === 1
+              ? m.tournaments_cut_meta_shares_waiting_one({
+                  count: groupStage.pendingMetaShares.length,
+                })
+              : m.tournaments_cut_meta_shares_waiting_other({
+                  count: groupStage.pendingMetaShares.length,
+                })}
           </span>
           <Button variant="outline" onClick={() => setSharesOpen(true)}>
-            Enter meta shares
+            {m.tournaments_cut_enter_meta_shares()}
           </Button>
         </Callout>
       ) : null}

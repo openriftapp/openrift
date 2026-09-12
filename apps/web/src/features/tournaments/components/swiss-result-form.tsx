@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { swissPointsPreview, swissResultPresets } from "@/features/tournaments/lib/swiss-results";
 import { groupPodMembersByTeam, teamDisplayName } from "@/features/tournaments/lib/team-display";
+import { m } from "@/paraglide/messages.js";
 
 interface SwissResultFormProps {
   /** The first side of the scorelines is `members[0]`'s side. */
@@ -30,10 +31,12 @@ export function SwissResultForm({
   submitting,
   onCancel,
 }: SwissResultFormProps) {
-  const groups = teamMatch ? groupPodMembersByTeam(pod.members) : pod.members.map((m) => [m]);
+  const groups = teamMatch
+    ? groupPodMembersByTeam(pod.members)
+    : pod.members.map((member) => [member]);
   const [side1, side2] = groups;
-  const side1Name = side1 ? teamDisplayName(side1.map((m) => m.displayName)) : "";
-  const side2Name = side2 ? teamDisplayName(side2.map((m) => m.displayName)) : "";
+  const side1Name = side1 ? teamDisplayName(side1.map((member) => member.displayName)) : "";
+  const side2Name = side2 ? teamDisplayName(side2.map((member) => member.displayName)) : "";
   const presets = swissResultPresets(matchFormat);
   const stored1 = side1?.[0]?.gamePoints ?? null;
   const stored2 = side2?.[0]?.gamePoints ?? null;
@@ -74,9 +77,21 @@ export function SwissResultForm({
     aria: string;
   }
   const outcomeGroups = [
-    { label: side1Name, aria: `${side1Name} wins`, entries: [] as OutcomeEntry[] },
-    { label: bo1 ? "" : "Draw", aria: "Draw", entries: [] as OutcomeEntry[] },
-    { label: side2Name, aria: `${side2Name} wins`, entries: [] as OutcomeEntry[] },
+    {
+      label: side1Name,
+      aria: m.tournaments_submit_side_wins({ name: side1Name }),
+      entries: [] as OutcomeEntry[],
+    },
+    {
+      label: bo1 ? "" : m.tournaments_submit_draw(),
+      aria: m.tournaments_submit_draw(),
+      entries: [] as OutcomeEntry[],
+    },
+    {
+      label: side2Name,
+      aria: m.tournaments_submit_side_wins({ name: side2Name }),
+      entries: [] as OutcomeEntry[],
+    },
   ];
   presets.forEach((preset, index) => {
     const [one, two] = preset.gamePoints;
@@ -88,7 +103,7 @@ export function SwissResultForm({
     const scoreline = `${Math.max(one, two)}–${Math.min(one, two)}`;
     group.entries.push({
       index,
-      label: bo1 ? (draw ? "Draw" : "Win") : scoreline,
+      label: bo1 ? (draw ? m.tournaments_submit_draw() : m.tournaments_submit_win()) : scoreline,
       aria: bo1 ? group.aria : `${group.aria} ${scoreline}`,
     });
   });
@@ -128,19 +143,23 @@ export function SwissResultForm({
       {preview ? (
         <div className="text-muted-foreground grid w-fit grid-cols-[auto_auto] gap-x-4 text-sm tabular-nums">
           <span>{side1Name}</span>
-          <span className="text-right">+{preview[0]} points</span>
+          <span className="text-right">
+            {m.tournaments_submit_points_preview({ points: preview[0] })}
+          </span>
           <span>{side2Name}</span>
-          <span className="text-right">+{preview[1]} points</span>
+          <span className="text-right">
+            {m.tournaments_submit_points_preview({ points: preview[1] })}
+          </span>
         </div>
       ) : null}
       <div className="flex justify-end gap-2">
         {onCancel ? (
           <Button variant="ghost" onClick={onCancel} disabled={submitting}>
-            Cancel
+            {m.common_cancel()}
           </Button>
         ) : null}
         <Button onClick={() => void handleSubmit()} disabled={selected === null || submitting}>
-          {submitting ? "Saving…" : "Save result"}
+          {submitting ? m.common_saving() : m.tournaments_submit_save_result()}
         </Button>
       </div>
     </div>

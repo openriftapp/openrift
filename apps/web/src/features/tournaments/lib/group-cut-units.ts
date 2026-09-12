@@ -4,6 +4,8 @@ import type {
   PodRoundResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 
+import { m } from "@/paraglide/messages.js";
+
 export interface GroupUnit {
   key: string;
   label: string;
@@ -17,7 +19,7 @@ export interface GroupUnit {
 }
 
 function unitLabel(labels: readonly string[]): string {
-  return `Group ${labels.join(" · ")}`;
+  return m.tournaments_lib_group_unit_label({ labels: labels.join(" · ") });
 }
 
 export function groupUnits(groups: readonly GroupStageGroupView[]): GroupUnit[] {
@@ -56,7 +58,12 @@ export function waitingUnitsLabel(units: readonly GroupUnit[]): string | null {
     return null;
   }
   return waiting
-    .map((unit) => `${unit.label} (round ${Math.max(unit.roundsStarted, 1)})`)
+    .map((unit) =>
+      m.tournaments_lib_group_waiting_unit({
+        label: unit.label,
+        number: Math.max(unit.roundsStarted, 1),
+      }),
+    )
     .join(", ");
 }
 
@@ -104,12 +111,21 @@ export function podScoreLine(pod: PodResponse): string {
     return ordered.map((member) => member.displayName).join(" vs ");
   }
   if (first.placement === null) {
-    return `${first.displayName} vs ${second.displayName}`;
+    return m.tournaments_lib_pod_score_vs({
+      first: first.displayName,
+      second: second.displayName,
+    });
   }
   if (isWalkoverPod(pod)) {
     return first.placement === second.placement
-      ? `${first.displayName} and ${second.displayName} both forfeited`
-      : `${first.displayName} def. ${second.displayName}`;
+      ? m.tournaments_lib_pod_score_both_forfeited({
+          first: first.displayName,
+          second: second.displayName,
+        })
+      : m.tournaments_lib_pod_score_defeated({
+          first: first.displayName,
+          second: second.displayName,
+        });
   }
   return `${first.displayName} ${first.gamePoints ?? 0}-${second.gamePoints ?? 0} ${second.displayName}`;
 }
@@ -117,7 +133,7 @@ export function podScoreLine(pod: PodResponse): string {
 /** "Round 1 · Ashe 2-0 Braum · Caitlyn 2-1 Darius" */
 export function roundSummaryLine(roundNumber: number, pods: readonly PodResponse[]): string {
   return [
-    `Round ${roundNumber}`,
+    m.tournaments_round_band_round({ number: roundNumber }),
     ...pods
       .toSorted((left, right) => left.podNumber - right.podNumber)
       .map((pod) => podScoreLine(pod)),

@@ -5,49 +5,46 @@ import type { IntroGuideRow } from "@/components/intro-banner";
 import { IntroBanner, IntroGuideList } from "@/components/intro-banner";
 import { Kbd } from "@/components/ui/kbd";
 import { TextLink } from "@/components/ui/text-link";
+import { m } from "@/paraglide/messages.js";
 
-const GUIDE_ROWS: readonly IntroGuideRow[] = [
-  {
-    icons: [ListPlusIcon],
-    title: "Build the queue",
-    description:
-      "Press + on any card in the browser, drag it into the queue, or fill the queue from a deck or a list.",
-  },
-  {
-    icons: [MonitorIcon],
-    title: "This screen",
-    description:
-      "A full-screen show with nothing of the site around it. Capture this window in your streaming software.",
-  },
-  {
-    icons: [RadioTowerIcon],
-    title: "OBS overlay",
-    description:
-      "Sign in, paste your browser source link into OBS, and push cards to it from here or from your phone.",
-  },
-  {
-    icons: [KeyboardIcon],
-    title: "Keys in the show",
-    description: (
-      <>
-        Arrows step through the queue, <Kbd>P</Kbd> pushes a card to the overlay, <Kbd>?</Kbd> lists
-        every key.
-      </>
-    ),
-    desktopOnly: true,
-  },
-];
+function guideRows(): readonly IntroGuideRow[] {
+  return [
+    {
+      icons: [ListPlusIcon],
+      title: m.stage_intro_queue_title(),
+      description: m.stage_intro_queue_description(),
+    },
+    {
+      icons: [MonitorIcon],
+      title: m.stage_intro_screen_title(),
+      description: m.stage_intro_screen_description(),
+    },
+    {
+      icons: [RadioTowerIcon],
+      title: m.stage_intro_obs_title(),
+      description: m.stage_intro_obs_description(),
+    },
+    {
+      icons: [KeyboardIcon],
+      title: m.stage_intro_keys_title(),
+      description: (
+        <>
+          {m.stage_intro_keys_description_before()} <Kbd>P</Kbd>{" "}
+          {m.stage_intro_keys_description_middle()} <Kbd>?</Kbd>{" "}
+          {m.stage_intro_keys_description_end()}
+        </>
+      ),
+      desktopOnly: true,
+    },
+  ];
+}
 
 export function StageIntroBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <IntroBanner
-      title="Put cards in front of an audience"
-      lead="Queue up cards, then show them one at a time: full screen on this display, or as a transparent overlay inside OBS. Both outputs read the same queue."
-      onDismiss={onDismiss}
-    >
-      <IntroGuideList rows={GUIDE_ROWS} />
+    <IntroBanner title={m.stage_intro_title()} lead={m.stage_intro_lead()} onDismiss={onDismiss}>
+      <IntroGuideList rows={guideRows()} />
       <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
-        Read the full guide →
+        {m.stage_intro_read_guide()}
       </TextLink>
     </IntroBanner>
   );

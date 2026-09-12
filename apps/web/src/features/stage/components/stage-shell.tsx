@@ -11,6 +11,7 @@ import { usePresentationStore } from "@/features/stage/stores/presentation-store
 import { useIdle } from "@/hooks/use-idle";
 import { isTypingTarget } from "@/lib/keyboard-target";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { TIER_TILE_WIDTHS, useDisplayStore } from "@/stores/display-store";
 
 const IDLE_DELAY_MS = 2500;
@@ -45,10 +46,10 @@ export function StageTileSizeSlider() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="stage-tile-size">Board tile size</Label>
+      <Label htmlFor="stage-tile-size">{m.stage_board_tile_size()}</Label>
       <Slider
         id="stage-tile-size"
-        aria-label="Board tile size"
+        aria-label={m.stage_board_tile_size()}
         min={0}
         max={TIER_TILE_WIDTHS.length - 1}
         step={1}
@@ -74,7 +75,7 @@ interface StageShellProps {
 /** Forced into the dark palette regardless of the viewer's theme: the shared `CardDetail` parts style from theme tokens, and light text on a black stage is unreadable. */
 export function StageShell({
   onExit,
-  exitLabel = "Leave the show",
+  exitLabel,
   onEscape,
   settings,
   title,
@@ -84,6 +85,7 @@ export function StageShell({
   children,
 }: StageShellProps) {
   const idle = useIdle(IDLE_DELAY_MS);
+  const exit = exitLabel ?? m.stage_exit_default();
   const ground = usePresentationStore((state) => state.ground);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -121,8 +123,8 @@ export function StageShell({
           variant="ghost"
           size="icon"
           onClick={onExit}
-          aria-label={exitLabel}
-          title={exitLabel}
+          aria-label={exit}
+          title={exit}
           className="text-white/70 hover:bg-white/10 hover:text-white"
         >
           <XIcon className="size-5" />
@@ -134,7 +136,7 @@ export function StageShell({
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Presentation settings"
+                  aria-label={m.stage_settings_aria()}
                   className="text-white/70 hover:bg-white/10 hover:text-white"
                 >
                   <SettingsIcon className="size-5" />

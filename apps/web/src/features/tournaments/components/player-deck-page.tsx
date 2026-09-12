@@ -43,6 +43,7 @@ import {
 } from "@/features/tournaments/hooks/use-deck-check-player";
 import { deckCardsFromCheckEntry } from "@/features/tournaments/lib/deck-check-save";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const PLAYER_CELL_WIDTH = 150;
 
@@ -72,8 +73,8 @@ export function PlayerDeckPage({ tournamentId }: { tournamentId: string }) {
           <EmptyState
             className="py-12"
             icon={FileQuestionIcon}
-            title="Deck no longer available"
-            description="Your deck for this tournament is no longer available. Contact a judge."
+            title={m.tournaments_my_deck_unavailable_title()}
+            description={m.tournaments_my_deck_unavailable_description()}
           />
         ) : (
           <PlayerDeckBody data={data} />
@@ -97,49 +98,53 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
         </span>
         <span className="flex-1" />
         {entry.reviewOutcome === "issue" && entry.state === "editable" ? (
-          <Badge variant="destructive">Changes requested</Badge>
+          <Badge variant="destructive">{m.tournaments_my_deck_changes_requested()}</Badge>
         ) : null}
-        {entry.unlockRequested ? <Badge variant="outline">Unlock requested</Badge> : null}
+        {entry.unlockRequested ? (
+          <Badge variant="outline">{m.tournaments_deck_check_unlock_requested()}</Badge>
+        ) : null}
         <PlayerStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
       </div>
 
       {entry.state === "withdrawn" ? (
-        <Banner>
-          Your entry was withdrawn by the organizer. If that is unexpected, contact a judge.
-        </Banner>
+        <Banner>{m.tournaments_my_deck_withdrawn_banner()}</Banner>
       ) : null}
       {entry.playerMessage ? (
         <Callout className="text-sm">
-          <p className="text-muted-foreground mb-1 font-medium">Message from the judges</p>
+          <p className="text-muted-foreground mb-1 font-medium">
+            {m.tournaments_my_deck_judge_message()}
+          </p>
           <p className="whitespace-pre-wrap">{entry.playerMessage}</p>
         </Callout>
       ) : null}
       {entry.state === "editable" && entry.windowOpen ? (
         <Banner>
-          This deck is not submitted yet. Submit it for review
-          {closesAt ? ` before ${closesAt}` : ""}. An unsubmitted list is sent in as-is when
-          submissions close.
+          {m.tournaments_my_deck_not_submitted_banner({
+            deadline: closesAt ? m.tournaments_my_deck_before_deadline({ time: closesAt }) : "",
+          })}
         </Banner>
       ) : null}
       {entry.state === "submitted" && entry.windowOpen ? (
         <p className="text-muted-foreground text-sm">
           {entry.canUnlock
-            ? `Locked for review. Unlock to make changes${closesAt ? ` until ${closesAt}` : ""}.`
+            ? m.tournaments_my_deck_locked_unlock({
+                deadline: closesAt ? m.tournaments_my_deck_until_deadline({ time: closesAt }) : "",
+              })
             : entry.unlockRequested
-              ? "Waiting for a judge to grant your unlock."
-              : "Submitted and locked. Request an unlock to make changes."}
+              ? m.tournaments_my_deck_waiting_for_unlock()
+              : m.tournaments_my_deck_submitted_locked()}
         </p>
       ) : null}
       {entry.state === "approved" && entry.windowOpen ? (
         <p className="text-muted-foreground text-sm">
           {entry.unlockRequested
-            ? "Waiting for a judge to grant your unlock."
-            : "Approved by a judge. Request an unlock to make changes."}
+            ? m.tournaments_my_deck_waiting_for_unlock()
+            : m.tournaments_my_deck_approved_locked()}
         </p>
       ) : null}
       {!entry.windowOpen && entry.state !== "withdrawn" && entry.state !== "checked" ? (
         <p className="text-muted-foreground text-sm">
-          Submissions are closed. Contact a judge to change your list.
+          {m.tournaments_my_deck_submissions_closed()}
         </p>
       ) : null}
       <p className="text-muted-foreground text-sm">
@@ -148,7 +153,7 @@ function PlayerDeckBody({ data }: { data: PlayerDeckCheckEntryDetailResponse }) 
           entry.allowNameSharing,
           entry.allowRiotIdSharing,
         )}
-        {entry.canEdit ? " You can change this when replacing your deck." : ""}
+        {entry.canEdit ? m.tournaments_my_deck_can_edit_note() : ""}
       </p>
       {data.violations.length > 0 ? (
         <Banner>
@@ -177,38 +182,38 @@ function PlayerStateBadge({
   reviewOutcome: PlayerDeckCheckEntryDetailResponse["entry"]["reviewOutcome"];
 }) {
   if (state === "editable") {
-    return <Badge variant="outline">Not submitted</Badge>;
+    return <Badge variant="outline">{m.tournaments_my_deck_state_not_submitted()}</Badge>;
   }
   if (state === "approved") {
-    return <Badge>Approved</Badge>;
+    return <Badge>{m.tournaments_deck_check_state_approved()}</Badge>;
   }
   if (state === "checked") {
     return reviewOutcome === "issue" ? (
-      <Badge variant="destructive">Checked · issue</Badge>
+      <Badge variant="destructive">{m.tournaments_deck_check_state_checked_issue()}</Badge>
     ) : (
-      <Badge>Checked</Badge>
+      <Badge>{m.tournaments_deck_check_state_checked()}</Badge>
     );
   }
   if (state === "withdrawn") {
-    return <Badge variant="secondary">Withdrawn</Badge>;
+    return <Badge variant="secondary">{m.tournaments_deck_check_state_withdrawn()}</Badge>;
   }
-  return <Badge variant="secondary">Submitted</Badge>;
+  return <Badge variant="secondary">{m.tournaments_deck_check_state_submitted()}</Badge>;
 }
 
 function sharingSummary(allowPublish: boolean, allowName: boolean, allowRiotId: boolean): string {
   if (!allowPublish) {
-    return "The organizer may not publish this deck list publicly.";
+    return m.tournaments_my_deck_sharing_none();
   }
   if (allowName && allowRiotId) {
-    return "The organizer may publish this deck list, with your name and Riot ID.";
+    return m.tournaments_my_deck_sharing_all();
   }
   if (allowName) {
-    return "The organizer may publish this deck list, with your name but not your Riot ID.";
+    return m.tournaments_my_deck_sharing_name_only();
   }
   if (allowRiotId) {
-    return "The organizer may publish this deck list, with your Riot ID but not your name.";
+    return m.tournaments_my_deck_sharing_riot_only();
   }
-  return "The organizer may publish this deck list, without your name or Riot ID.";
+  return m.tournaments_my_deck_sharing_anonymous();
 }
 
 function Banner({ children }: { children: React.ReactNode }) {
@@ -300,7 +305,9 @@ function PlayerCardCell({ card }: { card: DeckCheckEntryCardResponse }) {
       <div className="border-warning/40 bg-warning-soft flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed p-2 text-left text-sm">
         <span className="font-medium break-all">{card.rawName}</span>
         <span className="text-muted-foreground">
-          {card.matchStatus === "ambiguous" ? "Several matches" : "Not in catalog"}
+          {card.matchStatus === "ambiguous"
+            ? m.tournaments_deck_check_several_matches()
+            : m.tournaments_deck_check_not_in_catalog()}
         </span>
       </div>
     );
@@ -343,8 +350,16 @@ function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse 
               onSuccess: () => {
                 toast.success(
                   skippedCount > 0
-                    ? `Saved "${name}" to your decks, skipping ${skippedCount} unmatched ${skippedCount === 1 ? "card" : "cards"}.`
-                    : `Saved "${name}" to your decks.`,
+                    ? skippedCount === 1
+                      ? m.tournaments_my_deck_saved_toast_skipped_one({
+                          name,
+                          count: skippedCount,
+                        })
+                      : m.tournaments_my_deck_saved_toast_skipped_other({
+                          name,
+                          count: skippedCount,
+                        })
+                    : m.tournaments_my_deck_saved_toast({ name }),
                 );
                 void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });
               },
@@ -365,7 +380,7 @@ function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse 
 
   return (
     <PageTopBarButton disabled={isSaving} onClick={save}>
-      Save to my decks
+      {m.tournaments_my_deck_save_to_decks()}
     </PageTopBarButton>
   );
 }
@@ -396,7 +411,7 @@ function PlayerDeckActions({
           allowRiotIdSharing={entry.allowRiotIdSharing}
         />
         <PageTopBarPrimaryButton disabled={submit.isPending} onClick={() => submit.mutate(ref)}>
-          Submit for review
+          {m.tournaments_my_deck_submit_for_review()}
         </PageTopBarPrimaryButton>
       </>
     );
@@ -404,7 +419,7 @@ function PlayerDeckActions({
   if (entry.canUnlock) {
     return (
       <PageTopBarButton disabled={unlock.isPending} onClick={() => unlock.mutate(ref)}>
-        Unlock to edit
+        {m.tournaments_my_deck_unlock_to_edit()}
       </PageTopBarButton>
     );
   }
@@ -414,14 +429,14 @@ function PlayerDeckActions({
         disabled={cancelRequest.isPending}
         onClick={() => cancelRequest.mutate(ref)}
       >
-        Cancel unlock request
+        {m.tournaments_my_deck_cancel_unlock_request()}
       </PageTopBarButton>
     );
   }
   if (entry.canRequestUnlock) {
     return (
       <PageTopBarButton disabled={unlock.isPending} onClick={() => unlock.mutate(ref)}>
-        Request unlock
+        {m.tournaments_my_deck_request_unlock()}
       </PageTopBarButton>
     );
   }
@@ -453,18 +468,18 @@ function ReplaceDeckButton({
 
   return (
     <>
-      <PageTopBarButton onClick={() => setOpen(true)}>Replace deck</PageTopBarButton>
+      <PageTopBarButton onClick={() => setOpen(true)}>
+        {m.tournaments_my_deck_replace_deck()}
+      </PageTopBarButton>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Replace your deck</DialogTitle>
-            <DialogDescription>
-              The new list counts only once you submit it for review.
-            </DialogDescription>
+            <DialogTitle>{m.tournaments_my_deck_replace_title()}</DialogTitle>
+            <DialogDescription>{m.tournaments_my_deck_replace_description()}</DialogDescription>
           </DialogHeader>
           <PlayerDeckSourceForm
-            submitLabel="Replace deck"
-            pendingLabel="Replacing..."
+            submitLabel={m.tournaments_my_deck_replace_deck()}
+            pendingLabel={m.tournaments_my_deck_replacing()}
             isSubmitting={edit.isPending}
             onSubmit={(input) => void submit(input)}
             onPreview={(input) => preview.mutate({ entryId, ...input })}

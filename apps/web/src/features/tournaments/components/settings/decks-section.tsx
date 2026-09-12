@@ -18,13 +18,14 @@ import { Switch } from "@/components/ui/switch";
 import { useUpdateTournament } from "@/features/tournaments/hooks/use-tournament-mutations";
 import {
   combineLocalDateTimeToUtc,
-  DECK_PHASE_LABEL,
-  DECK_SUBMISSION_ITEMS,
+  deckPhaseLabels,
+  deckSubmissionItems,
   localTimeZoneLabel,
   splitUtcToLocalDateTime,
 } from "@/features/tournaments/lib/tournament-display";
 import { useServerSeededState } from "@/hooks/use-server-seeded-state";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
+import { m } from "@/paraglide/messages.js";
 
 export function DecksSection({
   detail,
@@ -40,6 +41,7 @@ export function DecksSection({
   const [closeDate, setCloseDate] = useServerSeededState(closeInit.date);
   const [closeTime, setCloseTime] = useServerSeededState(closeInit.time);
 
+  const submissionItems = deckSubmissionItems();
   const tzLabel = localTimeZoneLabel();
   const deckExpected = detail.deckSubmission !== "none";
 
@@ -60,19 +62,16 @@ export function DecksSection({
   return (
     <SettingsSection
       id="decks"
-      title="Decks"
-      description={
-        <>
-          When lists are collected, judges can verify them on the Deck check tab. Current phase:{" "}
-          {DECK_PHASE_LABEL[detail.deckPhase]}.
-        </>
-      }
+      title={m.tournaments_settings_decks_title()}
+      description={m.tournaments_settings_decks_description({
+        phase: deckPhaseLabels()[detail.deckPhase],
+      })}
       contentClassName="gap-3"
     >
       <div className="flex flex-col gap-1.5">
-        <Label>Deck submission</Label>
+        <Label>{m.tournaments_settings_deck_submission_label()}</Label>
         <Select
-          items={DECK_SUBMISSION_ITEMS}
+          items={submissionItems}
           value={detail.deckSubmission}
           disabled={locked || updateTournament.isPending}
           onValueChange={(value) => {
@@ -83,11 +82,14 @@ export function DecksSection({
             }
           }}
         >
-          <SelectTrigger className="max-w-sm" aria-label="Deck submission">
-            <SelectValue placeholder="Deck submission" />
+          <SelectTrigger
+            className="max-w-sm"
+            aria-label={m.tournaments_settings_deck_submission_label()}
+          >
+            <SelectValue placeholder={m.tournaments_settings_deck_submission_label()} />
           </SelectTrigger>
           <SelectContent>
-            {DECK_SUBMISSION_ITEMS.map((item) => (
+            {submissionItems.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>
@@ -99,7 +101,7 @@ export function DecksSection({
       {deckExpected ? (
         <>
           <div className="flex flex-col gap-1.5">
-            <Label>Submission deadline (optional)</Label>
+            <Label>{m.tournaments_settings_deadline_label()}</Label>
             <div className="flex flex-wrap items-center gap-2">
               <DatePicker
                 value={closeDate}
@@ -113,7 +115,7 @@ export function DecksSection({
                 disabled={locked}
                 onChange={(event) => setCloseTime(event.target.value)}
                 placeholder="HH:mm"
-                aria-label="Deadline time (24h)"
+                aria-label={m.tournaments_settings_deadline_time_aria()}
                 className="w-24 tabular-nums"
               />
               <span className="text-muted-foreground text-sm">{tzLabel}</span>
@@ -128,18 +130,16 @@ export function DecksSection({
                   )
                 }
               >
-                Save
+                {m.common_save()}
               </Button>
             </div>
             {closeIncomplete ? (
-              <FieldError>
-                Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or clear both.
-              </FieldError>
+              <FieldError>{m.tournaments_settings_deadline_incomplete()}</FieldError>
             ) : closeAfterEnd ? (
-              <FieldError>The deadline must be at or before the tournament ends.</FieldError>
+              <FieldError>{m.tournaments_settings_deadline_after_end()}</FieldError>
             ) : (
               <span className="text-muted-foreground text-sm">
-                Leave blank to keep lists open until you close the deck phase.
+                {m.tournaments_settings_deadline_blank_hint()}
               </span>
             )}
           </div>
@@ -159,26 +159,25 @@ export function DecksSection({
                   )
                 }
               />
-              <Label htmlFor="t-allow-edits">Let players edit their decks after submitting</Label>
+              <Label htmlFor="t-allow-edits">{m.tournaments_settings_allow_edits_label()}</Label>
             </div>
             <span className="text-muted-foreground text-sm">
-              When off, a submitted deck is final and only a judge can unlock it. Riot&apos;s
-              official rules require this. When on, players can keep editing until the submission
-              deadline above.
+              {m.tournaments_settings_allow_edits_hint()}
             </span>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Pushing decklists from another tool</Label>
+            <Label>{m.tournaments_settings_push_label()}</Label>
             <span className="text-muted-foreground text-sm">
-              To send entrant lists in from a registration site or other tool, the API guide and
-              this tournament&apos;s ID (<code className="break-all">{detail.id}</code>) live on the{" "}
+              {m.tournaments_settings_push_hint_prefix()}
+              <code className="break-all">{detail.id}</code>
+              {m.tournaments_settings_push_hint_middle()}{" "}
               <Link
                 to="/tournaments/$id/decks"
                 params={{ id: detail.id }}
                 className="text-foreground font-medium underline"
               >
-                Deck check tab
+                {m.tournaments_settings_deck_check_tab_link()}
               </Link>
               .
             </span>

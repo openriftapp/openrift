@@ -17,6 +17,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecks } from "@/features/decks/hooks/use-decks";
 import { parseManualDecklist } from "@/features/tournaments/lib/deck-check-manual-entry";
+import { m } from "@/paraglide/messages.js";
 
 export interface DeckSourceInput {
   deckId?: string;
@@ -78,7 +79,7 @@ export function PlayerDeckSourceForm({
 
   const decks = allDecks.filter((item) => item.deck.archivedAt === null);
   const deckItems = [
-    { value: NO_DECK, label: "Pick a deck..." },
+    { value: NO_DECK, label: m.tournaments_player_deck_pick_a_deck() },
     ...decks.map((item) => ({ value: item.deck.id, label: item.deck.name })),
   ];
 
@@ -91,7 +92,7 @@ export function PlayerDeckSourceForm({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="player-deck-select">From your decks</Label>
+        <Label htmlFor="player-deck-select">{m.tournaments_player_deck_from_your_decks()}</Label>
         <Select
           items={deckItems}
           value={deckId}
@@ -116,13 +117,11 @@ export function PlayerDeckSourceForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="player-deck-code">Or paste a deck code / card list</Label>
+        <Label htmlFor="player-deck-code">{m.tournaments_player_deck_or_paste()}</Label>
         <Textarea
           id="player-deck-code"
           value={deckCode}
-          placeholder={
-            "Deck code, or a list grouped by zone:\n\nChampion:\n1 Twisted Fate, Gambler\n\nMainDeck:\n3 Mystic Poro"
-          }
+          placeholder={`${m.tournaments_player_deck_paste_placeholder_lead()}\n\nChampion:\n1 Twisted Fate, Gambler\n\nMainDeck:\n3 Mystic Poro`}
           rows={7}
           onChange={(event) => {
             setDeckCode(event.target.value);
@@ -132,7 +131,7 @@ export function PlayerDeckSourceForm({
           }}
         />
         <p className="text-muted-foreground text-sm">
-          Paste a deck code from OpenRift or{" "}
+          {m.tournaments_player_deck_paste_hint_prefix()}{" "}
           <TextLink
             variant="muted"
             href="https://piltoverarchive.com"
@@ -141,13 +140,12 @@ export function PlayerDeckSourceForm({
           >
             Piltover Archive
           </TextLink>
-          , or an exported text list. Zone headers like &quot;Champion:&quot; apply until the next
-          header, and lines without one count as main deck.
+          {m.tournaments_player_deck_paste_hint_suffix()}
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Public sharing</Label>
+        <Label>{m.tournaments_deck_check_public_sharing()}</Label>
         <div className="flex items-center gap-2">
           <Checkbox
             id="player-deck-publish"
@@ -155,7 +153,7 @@ export function PlayerDeckSourceForm({
             onCheckedChange={(checked) => setAllowDeckPublishing(checked === true)}
           />
           <Label htmlFor="player-deck-publish" className="font-normal">
-            I agree the event organizer may publish this deck list publicly after the event
+            {m.tournaments_player_deck_publish_consent()}
           </Label>
         </div>
         <div className="ml-6 flex items-center gap-2">
@@ -170,7 +168,7 @@ export function PlayerDeckSourceForm({
             className="font-normal data-[disabled]:opacity-50"
             data-disabled={!allowDeckPublishing || undefined}
           >
-            ...including my name
+            {m.tournaments_player_deck_publish_name()}
           </Label>
         </div>
         <div className="ml-6 flex items-center gap-2">
@@ -185,13 +183,10 @@ export function PlayerDeckSourceForm({
             className="font-normal data-[disabled]:opacity-50"
             data-disabled={!allowDeckPublishing || undefined}
           >
-            ...including my Riot ID
+            {m.tournaments_player_deck_publish_riot_id()}
           </Label>
         </div>
-        <p className="text-muted-foreground text-sm">
-          These choices only control how much the organizer may publish publicly, for example on
-          riftdecks.com or OpenRift. The event judges always see your full list and details.
-        </p>
+        <p className="text-muted-foreground text-sm">{m.tournaments_player_deck_sharing_note()}</p>
       </div>
 
       {preview ? <PreviewSummary preview={preview} /> : null}
@@ -202,7 +197,9 @@ export function PlayerDeckSourceForm({
           disabled={!input || isPreviewing}
           onClick={() => input && onPreview(input)}
         >
-          {isPreviewing ? "Checking..." : "Preview"}
+          {isPreviewing
+            ? m.tournaments_player_deck_checking()
+            : m.tournaments_player_deck_preview()}
         </Button>
         <Button disabled={!input || isSubmitting} onClick={() => input && onSubmit(input)}>
           {isSubmitting ? pendingLabel : submitLabel}
@@ -218,14 +215,18 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
   return (
     <Callout className="flex flex-col gap-2 text-sm">
       <p>
-        {totalCopies} cards across {preview.cards.length} lines.
+        {m.tournaments_player_deck_preview_counts({
+          copies: totalCopies,
+          lines: preview.cards.length,
+        })}
       </p>
       {unmatched.length > 0 ? (
         <p className="flex items-start gap-1.5">
           <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
           <span>
-            Not recognized: {unmatched.map((card) => card.rawName).join(", ")}. These show as
-            placeholders for the judge.
+            {m.tournaments_player_deck_preview_unmatched({
+              names: unmatched.map((card) => card.rawName).join(", "),
+            })}
           </span>
         </p>
       ) : null}
@@ -238,11 +239,9 @@ function PreviewSummary({ preview }: { preview: DeckCheckSubmissionResultRespons
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground">No legality warnings.</p>
+        <p className="text-muted-foreground">{m.tournaments_player_deck_preview_no_warnings()}</p>
       )}
-      <p className="text-muted-foreground">
-        These findings are advisory. You can still submit and a judge decides.
-      </p>
+      <p className="text-muted-foreground">{m.tournaments_player_deck_preview_advisory()}</p>
     </Callout>
   );
 }

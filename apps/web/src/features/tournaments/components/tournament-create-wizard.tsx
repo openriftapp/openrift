@@ -33,18 +33,19 @@ import { useCreateTournament } from "@/features/tournaments/hooks/use-tournament
 import type { TournamentRoundsChoice } from "@/features/tournaments/lib/tournament-display";
 import {
   combineLocalDateTimeToUtc,
-  DECK_SUBMISSION_ITEMS,
+  deckSubmissionItems,
   hasPairing,
   isGroupCutChoice,
   localTimeZoneLabel,
   pairingFromRoundsChoice,
   parseScheduleInput,
   PLAY_MODE_ITEMS,
-  ROUNDS_CHOICE_ITEMS,
+  roundsChoiceItems,
   splitUtcToLocalDateTime,
 } from "@/features/tournaments/lib/tournament-display";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: string }) {
   const navigate = useNavigate();
@@ -100,15 +101,16 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   }
 
   const hostItems = [
-    { value: "user", label: "You (personal)" },
+    { value: "user", label: m.tournaments_new_host_personal() },
     ...orgsData.items.map((org) => ({ value: org.id, label: org.name })),
   ];
   const groupItems = [
-    { value: "none", label: "Not linked to a group" },
+    { value: "none", label: m.tournaments_new_group_none() },
     ...groupsData.items.map((group) => ({ value: group.id, label: group.name })),
   ];
 
   const tzLabel = localTimeZoneLabel();
+  const deckItems = deckSubmissionItems();
   const wantsDeck = deckSubmission !== "none";
   const { pairingStyle, matchFormat, format } = pairingsEnabled
     ? pairingFromRoundsChoice(roundsChoice)
@@ -119,7 +121,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
   const isTeams = playMode === "2v2";
   // 2v2 pairs team Swiss: free-for-all pods don't compose with fixed teams,
   // and the region layer isn't team-aware yet.
-  const roundsItems = ROUNDS_CHOICE_ITEMS.filter(
+  const roundsItems = roundsChoiceItems().filter(
     (item) => !isTeams || (item.value !== "pod" && !isGroupCutChoice(item.value)),
   );
   const playModeItems = isGroupCut
@@ -207,40 +209,40 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
       <PageTopBarSticky width="capped">
         <PageTopBar className="gap-2">
           <TopBarBreadcrumbTrail
-            segments={[{ label: "Tournaments", link: <Link to="/tournaments" /> }]}
+            segments={[{ label: m.nav_tournaments(), link: <Link to="/tournaments" /> }]}
           />
           <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-          <PageTopBarTitle>New tournament</PageTopBarTitle>
+          <PageTopBarTitle>{m.tournaments_list_new()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
-        <SettingsGroup id="general" title="General">
-          <SettingsSection title="Name">
+        <SettingsGroup id="general" title={m.tournaments_settings_toc_general()}>
+          <SettingsSection title={m.common_name()}>
             <Input
               id="t-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={120}
               className="max-w-sm"
-              aria-label="Tournament name"
+              aria-label={m.tournaments_new_name_aria()}
               placeholder="Summoner Skirmish"
             />
           </SettingsSection>
 
           <SettingsSection
-            title="Host"
-            description="An organization host brings in its owners, managers, and judges. A linked group's members can find the tournament and be added as staff without an email invite."
+            title={m.tournaments_lib_viewer_role_host()}
+            description={m.tournaments_new_host_description()}
             contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
           >
             <div className="flex flex-col gap-1.5">
-              <Label>Host</Label>
+              <Label>{m.tournaments_lib_viewer_role_host()}</Label>
               <Select
                 items={hostItems}
                 value={hostValue}
                 onValueChange={(value) => value && setHostValue(value)}
               >
-                <SelectTrigger className="w-full" aria-label="Host">
-                  <SelectValue placeholder="Choose a host" />
+                <SelectTrigger className="w-full" aria-label={m.tournaments_lib_viewer_role_host()}>
+                  <SelectValue placeholder={m.tournaments_new_host_placeholder()} />
                 </SelectTrigger>
                 <SelectContent>
                   {hostItems.map((item) => (
@@ -252,14 +254,14 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Group (optional)</Label>
+              <Label>{m.tournaments_new_group_label()}</Label>
               <Select
                 items={groupItems}
                 value={groupId}
                 onValueChange={(value) => value && setGroupId(value)}
               >
-                <SelectTrigger className="w-full" aria-label="Group">
-                  <SelectValue placeholder="Not linked to a group" />
+                <SelectTrigger className="w-full" aria-label={m.tournaments_settings_toc_group()}>
+                  <SelectValue placeholder={m.tournaments_new_group_none()} />
                 </SelectTrigger>
                 <SelectContent>
                   {groupItems.map((item) => (
@@ -273,17 +275,12 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
           </SettingsSection>
 
           <SettingsSection
-            title="Schedule"
-            description={
-              <>
-                Times are in {tzLabel}. Without an end, the tournament auto-completes 24 hours after
-                it starts.
-              </>
-            }
+            title={m.tournaments_settings_toc_schedule()}
+            description={m.tournaments_new_schedule_description({ timezone: tzLabel })}
             contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
           >
             <div className="flex flex-col gap-1.5">
-              <Label>Starts</Label>
+              <Label>{m.tournaments_new_starts_label()}</Label>
               <div className="flex flex-wrap items-center gap-2">
                 <DatePicker
                   value={startDate}
@@ -295,16 +292,14 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                   value={startTime}
                   onChange={(event) => setStartTime(event.target.value)}
                   placeholder="HH:mm"
-                  aria-label="Start time (24h)"
+                  aria-label={m.tournaments_new_start_time_aria()}
                   className="w-24 tabular-nums"
                 />
               </div>
-              {startInvalid ? (
-                <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
-              ) : null}
+              {startInvalid ? <FieldError>{m.tournaments_new_datetime_error()}</FieldError> : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Ends (optional)</Label>
+              <Label>{m.tournaments_new_ends_label()}</Label>
               <div className="flex flex-wrap items-center gap-2">
                 <DatePicker
                   value={endDate}
@@ -316,29 +311,27 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                   value={endTime}
                   onChange={(event) => setEndTime(event.target.value)}
                   placeholder="HH:mm"
-                  aria-label="End time (24h)"
+                  aria-label={m.tournaments_new_end_time_aria()}
                   className="w-24 tabular-nums"
                 />
               </div>
               {endIncomplete ? (
-                <FieldError>
-                  Enter both a date (YYYY-MM-DD) and a 24-hour time (HH:mm), or leave both blank.
-                </FieldError>
+                <FieldError>{m.tournaments_new_end_incomplete_error()}</FieldError>
               ) : endBeforeStart ? (
-                <FieldError>The end must be at or after the start.</FieldError>
+                <FieldError>{m.tournaments_new_end_before_start_error()}</FieldError>
               ) : null}
             </div>
           </SettingsSection>
         </SettingsGroup>
 
-        <SettingsGroup id="pairings-decks" title="Pairings & decks">
+        <SettingsGroup id="pairings-decks" title={m.tournaments_settings_toc_pairings_decks()}>
           <SettingsSection
-            title="Format"
-            description="1v1 and 2v2 have different ban lists, and deck check uses the matching one."
+            title={m.tournaments_settings_toc_format()}
+            description={m.tournaments_new_format_description()}
             contentClassName="grid gap-x-6 gap-y-3 sm:grid-cols-2"
           >
             <div className="flex flex-col gap-1.5">
-              <Label>Play mode</Label>
+              <Label>{m.tournaments_new_play_mode_label()}</Label>
               <Select
                 items={playModeItems}
                 value={playMode}
@@ -346,8 +339,8 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                   value && handlePlayModeChange(value as TournamentPlayMode)
                 }
               >
-                <SelectTrigger className="w-full" aria-label="Play mode">
-                  <SelectValue placeholder="Play mode" />
+                <SelectTrigger className="w-full" aria-label={m.tournaments_new_play_mode_label()}>
+                  <SelectValue placeholder={m.tournaments_new_play_mode_label()} />
                 </SelectTrigger>
                 <SelectContent>
                   {playModeItems.map((item) => (
@@ -361,8 +354,8 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
           </SettingsSection>
 
           <SettingsSection
-            title="Pairings"
-            description="Points can be changed later, standings recalculate."
+            title={m.tournaments_section_pairings()}
+            description={m.tournaments_new_pairings_description()}
           >
             <div className="flex items-center gap-3">
               <Switch
@@ -370,12 +363,12 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 checked={pairingsEnabled}
                 onCheckedChange={setPairingsEnabled}
               />
-              <Label htmlFor="t-pairings">Enable pairings</Label>
+              <Label htmlFor="t-pairings">{m.tournaments_new_pairings_enable()}</Label>
             </div>
             {runsRounds ? (
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Rounds</Label>
+                  <Label>{m.tournaments_standings_col_rounds()}</Label>
                   <Select
                     items={roundsItems}
                     value={roundsChoice}
@@ -383,8 +376,11 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                       value && handleRoundsChoiceChange(value as TournamentRoundsChoice)
                     }
                   >
-                    <SelectTrigger className="w-full" aria-label="Rounds">
-                      <SelectValue placeholder="Rounds" />
+                    <SelectTrigger
+                      className="w-full"
+                      aria-label={m.tournaments_standings_col_rounds()}
+                    >
+                      <SelectValue placeholder={m.tournaments_standings_col_rounds()} />
                     </SelectTrigger>
                     <SelectContent>
                       {roundsItems.map((item) => (
@@ -396,7 +392,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>Points</Label>
+                  <Label>{m.tournaments_standings_col_points()}</Label>
                   <div className="flex h-8 flex-wrap items-center gap-x-4 gap-y-3">
                     {isSwiss ? (
                       <>
@@ -405,7 +401,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                             htmlFor="t-win-points"
                             className="text-muted-foreground font-normal"
                           >
-                            Win
+                            {m.tournaments_new_points_win()}
                           </Label>
                           <Input
                             id="t-win-points"
@@ -413,7 +409,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                             onChange={(event) => setWinPointsText(event.target.value)}
                             inputMode="numeric"
                             className="w-16 tabular-nums"
-                            aria-label="Points for a match win"
+                            aria-label={m.tournaments_new_points_win_aria()}
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -421,7 +417,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                             htmlFor="t-draw-points"
                             className="text-muted-foreground font-normal"
                           >
-                            Draw
+                            {m.tournaments_new_points_draw()}
                           </Label>
                           <Input
                             id="t-draw-points"
@@ -429,14 +425,14 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                             onChange={(event) => setDrawPointsText(event.target.value)}
                             inputMode="numeric"
                             className="w-16 tabular-nums"
-                            aria-label="Points for a draw"
+                            aria-label={m.tournaments_new_points_draw_aria()}
                           />
                         </div>
                       </>
                     ) : null}
                     <div className="flex items-center gap-2">
                       <Label htmlFor="t-bye-points" className="text-muted-foreground font-normal">
-                        Bye
+                        {m.tournaments_new_points_bye()}
                       </Label>
                       <Input
                         id="t-bye-points"
@@ -444,12 +440,12 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                         onChange={(event) => setByePointsText(event.target.value)}
                         inputMode="numeric"
                         className="w-16 tabular-nums"
-                        aria-label="Points for a bye"
+                        aria-label={m.tournaments_new_points_bye_aria()}
                       />
                     </div>
                   </div>
                   {pointsInvalid ? (
-                    <FieldError>Points must be whole numbers between 0 and 99.</FieldError>
+                    <FieldError>{m.tournaments_new_points_error()}</FieldError>
                   ) : null}
                 </div>
               </div>
@@ -464,24 +460,27 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
           </SettingsSection>
 
           <SettingsSection
-            title="Decks"
-            description="Judges can verify collected decklists on the Deck check tab."
+            title={m.tournaments_section_decks()}
+            description={m.tournaments_new_decks_description()}
           >
             <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label>Deck submission</Label>
+                <Label>{m.tournaments_new_deck_submission_label()}</Label>
                 <Select
-                  items={DECK_SUBMISSION_ITEMS}
+                  items={deckItems}
                   value={deckSubmission}
                   onValueChange={(value) =>
                     value && setDeckSubmission(value as TournamentDeckSubmission)
                   }
                 >
-                  <SelectTrigger className="w-full" aria-label="Deck submission">
-                    <SelectValue placeholder="Deck submission" />
+                  <SelectTrigger
+                    className="w-full"
+                    aria-label={m.tournaments_new_deck_submission_label()}
+                  >
+                    <SelectValue placeholder={m.tournaments_new_deck_submission_label()} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DECK_SUBMISSION_ITEMS.map((item) => (
+                    {deckItems.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label}
                       </SelectItem>
@@ -491,7 +490,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
               </div>
               {wantsDeck ? (
                 <div className="flex flex-col gap-1.5">
-                  <Label>Submission deadline (optional)</Label>
+                  <Label>{m.tournaments_new_deadline_label()}</Label>
                   <div className="flex flex-wrap items-center gap-2">
                     <DatePicker
                       value={closeDate}
@@ -503,13 +502,13 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                       value={closeTime}
                       onChange={(event) => setCloseTime(event.target.value)}
                       placeholder="HH:mm"
-                      aria-label="Deadline time (24h)"
+                      aria-label={m.tournaments_new_deadline_time_aria()}
                       className="w-24 tabular-nums"
                     />
                     <span className="text-muted-foreground text-sm">{tzLabel}</span>
                   </div>
                   {closeTimeInvalid ? (
-                    <FieldError>Enter a date (YYYY-MM-DD) and a 24-hour time (HH:mm).</FieldError>
+                    <FieldError>{m.tournaments_new_datetime_error()}</FieldError>
                   ) : null}
                 </div>
               ) : null}
@@ -524,13 +523,10 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                       setLockMode(checked ? "at_deadline" : "on_submit")
                     }
                   />
-                  <Label htmlFor="t-allow-edits">
-                    Let players edit their decks after submitting
-                  </Label>
+                  <Label htmlFor="t-allow-edits">{m.tournaments_new_allow_edits_label()}</Label>
                 </div>
                 <span className="text-muted-foreground text-sm">
-                  When off, a submitted deck is final and only a judge can unlock it, as Riot&apos;s
-                  official rules require.
+                  {m.tournaments_new_allow_edits_hint()}
                 </span>
               </div>
             ) : null}
@@ -538,10 +534,15 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
         </SettingsGroup>
 
         {runsRounds && !isTeams && !isGroupCut ? (
-          <SettingsGroup id="custom" title="Custom" collapsible defaultCollapsed>
+          <SettingsGroup
+            id="custom"
+            title={m.tournaments_new_custom_group()}
+            collapsible
+            defaultCollapsed
+          >
             <SettingsSection
-              title="Regions"
-              description="Pairings avoid same-region matchups, and standings add a per-region leaderboard."
+              title={m.tournaments_region_overview_heading()}
+              description={m.tournaments_new_regions_description()}
             >
               <div className="flex items-center gap-3">
                 <Switch
@@ -549,16 +550,16 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                   checked={regionsEnabled}
                   onCheckedChange={setRegionsEnabled}
                 />
-                <Label htmlFor="t-regions">Track player regions</Label>
+                <Label htmlFor="t-regions">{m.tournaments_new_regions_toggle()}</Label>
               </div>
             </SettingsSection>
           </SettingsGroup>
         ) : null}
 
-        <SettingsGroup id="registration" title="Registration">
+        <SettingsGroup id="registration" title={m.tournaments_new_registration_group()}>
           <SettingsSection
-            title="Self-registration"
-            description="Players request a spot through a shareable link that you get after creating the tournament."
+            title={m.tournaments_new_self_registration_title()}
+            description={m.tournaments_new_self_registration_description()}
           >
             <div className="flex items-center gap-3">
               <Switch
@@ -566,7 +567,7 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
                 checked={selfRegistration}
                 onCheckedChange={setSelfRegistration}
               />
-              <Label htmlFor="t-self-reg">Open self-registration</Label>
+              <Label htmlFor="t-self-reg">{m.tournaments_new_self_registration_toggle()}</Label>
             </div>
           </SettingsSection>
         </SettingsGroup>
@@ -582,10 +583,10 @@ export function TournamentCreateWizard({ defaultGroupId }: { defaultGroupId?: st
               createTournament.isPending
             }
           >
-            Create tournament
+            {m.tournaments_new_create()}
           </Button>
           <Button variant="ghost" render={<Link to="/tournaments" />}>
-            Cancel
+            {m.common_cancel()}
           </Button>
         </div>
       </div>

@@ -33,6 +33,7 @@ import {
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/$slug_/players_/$key");
 
@@ -69,7 +70,9 @@ function OpponentList({ opponent }: { opponent: MetaEventPlayer | undefined }) {
       className="font-medium whitespace-nowrap"
       render={<Link to="/meta/decks/$token" params={{ token: opponent.shareToken }} />}
     >
-      {opponent.listStatus === "partial" ? "Partial" : "Decklist"}
+      {opponent.listStatus === "partial"
+        ? m.meta_list_partial_short()
+        : m.meta_standings_decklist()}
     </TextLink>
   );
 }
@@ -113,7 +116,7 @@ function OpponentName({
   className?: string;
 }) {
   if (opponent === undefined) {
-    return <span className={className}>Unknown</span>;
+    return <span className={className}>{m.meta_run_unknown()}</span>;
   }
   return (
     <MetaPlayerName
@@ -144,10 +147,12 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
       <div className={cn(grid, "hidden px-2 py-2.5 sm:grid")}>
         <span className="font-heading text-sm font-semibold tabular-nums">{label}</span>
         <span className="text-muted-foreground text-xs tabular-nums">
-          {round.tableNumber === null ? "" : `Table ${round.tableNumber}`}
+          {round.tableNumber === null
+            ? ""
+            : m.meta_run_table({ number: String(round.tableNumber) })}
         </span>
         {isBye ? (
-          <span className="text-muted-foreground text-sm">No opponent this round</span>
+          <span className="text-muted-foreground text-sm">{m.meta_run_no_opponent()}</span>
         ) : (
           <div className="flex min-w-0 items-center gap-2.5">
             <OpponentThumb opponent={opponent} />
@@ -178,7 +183,7 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
       <div className="flex items-center gap-2.5 px-2 py-2 text-sm sm:hidden">
         <span className="font-heading w-10 shrink-0 font-semibold tabular-nums">{shortLabel}</span>
         {isBye ? (
-          <span className="text-muted-foreground min-w-0 flex-1">No opponent this round</span>
+          <span className="text-muted-foreground min-w-0 flex-1">{m.meta_run_no_opponent()}</span>
         ) : (
           <>
             <OpponentThumb opponent={opponent} />
@@ -256,12 +261,12 @@ function RunSection({
 
       <div className="text-sm">
         <div className={cn(grid, "-mx-2 hidden h-10 border-b px-2 font-medium sm:grid")}>
-          <span>Round</span>
+          <span>{m.meta_run_col_round()}</span>
           <span />
-          <span>Opponent</span>
-          <span>Their finish</span>
-          <span>Result</span>
-          <span className="text-right">List</span>
+          <span>{m.meta_run_col_opponent()}</span>
+          <span>{m.meta_run_col_their_finish()}</span>
+          <span>{m.meta_run_col_result()}</span>
+          <span className="text-right">{m.meta_run_col_list()}</span>
         </div>
         <RowList className="flex flex-col">
           {rounds.map((round) => {
@@ -326,7 +331,7 @@ export function MetaEventRunPage() {
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <TopBarBreadcrumbTrail
               segments={[
-                { label: "Meta Archive", link: <Link to="/meta" /> },
+                { label: m.meta_breadcrumb_archive(), link: <Link to="/meta" /> },
                 { label: data.event.name, link: <Link to="/meta/$slug" params={{ slug }} /> },
               ]}
             />
@@ -348,7 +353,7 @@ export function MetaEventRunPage() {
           <div className="relative flex flex-col gap-3 p-5 pr-[45%] sm:pr-[38%]">
             <div className="flex flex-col gap-1">
               <p className="text-border-accent text-2xs font-semibold tracking-wide uppercase">
-                {player.rank === 1 ? "Road to the title" : "Tournament run"}
+                {player.rank === 1 ? m.meta_run_title_win() : m.meta_run_title()}
               </p>
               <h2 className="font-heading text-2xl font-bold">{player.playerName}</h2>
               <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
@@ -373,11 +378,13 @@ export function MetaEventRunPage() {
             <div className="flex flex-wrap gap-x-9 gap-y-3">
               <MetaHeroCounter
                 value={formatRank(player.rank, player.rankIsTier)}
-                label={`of ${fieldSize.toLocaleString("en-US")} players`}
+                label={m.meta_run_of_players({ count: fieldSize.toLocaleString("en-US") })}
                 className="text-border-accent"
               />
-              {record !== null && <MetaHeroCounter value={record} label="final record" />}
-              <MetaHeroCounter value={roundsPlayed} label="rounds played" />
+              {record !== null && (
+                <MetaHeroCounter value={record} label={m.meta_run_final_record()} />
+              )}
+              <MetaHeroCounter value={roundsPlayed} label={m.meta_run_rounds_played()} />
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -386,7 +393,9 @@ export function MetaEventRunPage() {
                   variant="outline"
                   render={<Link to="/meta/decks/$token" params={{ token: player.shareToken }} />}
                 >
-                  {player.listStatus === "partial" ? "Partial list" : "Decklist"}
+                  {player.listStatus === "partial"
+                    ? m.meta_list_status_partial()
+                    : m.meta_standings_decklist()}
                 </Button>
               )}
               {player.playerKey !== null && (
@@ -403,7 +412,7 @@ export function MetaEventRunPage() {
         </Card>
 
         <RunSection
-          title="Swiss"
+          title={m.meta_run_swiss()}
           bestOf={structure.bestOf}
           rounds={run.swiss}
           players={players}
@@ -412,7 +421,11 @@ export function MetaEventRunPage() {
         />
 
         <RunSection
-          title={structure.cutSize === null ? "Top cut" : `Top ${structure.cutSize}`}
+          title={
+            structure.cutSize === null
+              ? m.meta_run_top_cut()
+              : m.meta_bracket_top_n({ size: String(structure.cutSize) })
+          }
           bestOf={structure.bestOf}
           rounds={run.cut}
           players={players}
@@ -422,9 +435,9 @@ export function MetaEventRunPage() {
 
         <p className="text-muted-foreground text-sm">
           <TextLink variant="inherit" render={<Link to="/meta/$slug" params={{ slug }} />}>
-            Full standings
+            {m.meta_run_full_standings()}
           </TextLink>
-          {" · Every match on this page is the result published by the tournament organizer."}
+          {` · ${m.meta_run_organizer_note()}`}
         </p>
       </div>
     </div>

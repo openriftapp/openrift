@@ -10,13 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTournamentReport } from "@/features/tournaments/hooks/use-tournament-run";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
-const STATUS_LABEL: Record<PodTournamentStatus, string> = {
-  setup: "Not started",
-  running: "In progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
+function statusLabels(): Record<PodTournamentStatus, string> {
+  return {
+    setup: m.tournaments_report_status_setup(),
+    running: m.tournaments_lib_state_in_progress(),
+    completed: m.tournaments_lib_state_completed(),
+    cancelled: m.tournaments_lib_state_cancelled(),
+  };
+}
 
 export type ReportTab = "rounds" | "standings";
 
@@ -60,12 +63,12 @@ export function TournamentReportFrame({
         <PageTopBar>
           <PageTopBarTitle>{data.tournamentName}</PageTopBarTitle>
           <Badge variant="secondary" className="shrink-0">
-            {STATUS_LABEL[data.status]}
+            {statusLabels()[data.status]}
           </Badge>
           {live ? (
-            <Badge variant="success" className="shrink-0" title="Updates automatically">
+            <Badge variant="success" className="shrink-0" title={m.tournaments_report_live_title()}>
               <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-current" />
-              Live
+              {m.tournaments_hero_live()}
             </Badge>
           ) : null}
         </PageTopBar>
@@ -76,14 +79,14 @@ export function TournamentReportFrame({
             <ReportTabLink
               to="/tournaments/report/$token"
               token={token}
-              label="Rounds"
+              label={m.tournaments_standings_col_rounds()}
               value="rounds"
               isActive={active === "rounds"}
             />
             <ReportTabLink
               to="/tournaments/report/$token/standings"
               token={token}
-              label="Standings"
+              label={m.tournaments_section_standings()}
               value="standings"
               isActive={active === "standings"}
             />

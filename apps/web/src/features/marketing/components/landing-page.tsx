@@ -10,6 +10,7 @@ import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-sum
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useCountUp } from "@/hooks/use-count-up";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { CardFan } from "./card-fan";
 import { FeatureShowcase } from "./feature-showcase";
@@ -32,9 +33,12 @@ function HeroStats({
   const numberClass = "font-heading text-muted-foreground font-semibold";
   return (
     <p className="text-muted-foreground/50 text-left text-sm tabular-nums">
-      <span className={numberClass}>{cardCount.toLocaleString()}</span> cards &middot;{" "}
-      <span className={numberClass}>{printingCount.toLocaleString()}</span> printings &middot;{" "}
-      <span className={numberClass}>{copyCount.toLocaleString()}</span> copies tracked
+      <span className={numberClass}>{cardCount.toLocaleString()}</span>{" "}
+      {m.marketing_landing_stats_cards()} &middot;{" "}
+      <span className={numberClass}>{printingCount.toLocaleString()}</span>{" "}
+      {m.marketing_landing_stats_printings()} &middot;{" "}
+      <span className={numberClass}>{copyCount.toLocaleString()}</span>{" "}
+      {m.marketing_landing_stats_copies()}
     </p>
   );
 }
@@ -105,11 +109,10 @@ export function LandingPage() {
               <span className="font-heading text-4xl font-bold md:text-5xl">OpenRift</span>
             </div>
             <Heading level={1} className="text-balance md:text-4xl">
-              Track your Riftbound collection. Build decks. Trade with friends.
+              {m.marketing_landing_headline()}
             </Heading>
             <p className="text-muted-foreground text-left text-lg">
-              Scan cards with your phone, follow prices, and match wishlists with your playgroup.
-              Fast, free, and open source.
+              {m.marketing_landing_subhead()}
             </p>
             <HeroCtas />
             {data && (
@@ -131,7 +134,9 @@ export function LandingPage() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-1"
         >
-          <span className="text-muted-foreground/60 text-sm">See it in action</span>
+          <span className="text-muted-foreground/60 text-sm">
+            {m.marketing_landing_scroll_hint()}
+          </span>
           <ChevronDownIcon className="text-muted-foreground/40 size-6 motion-safe:animate-bounce" />
         </span>
       </div>

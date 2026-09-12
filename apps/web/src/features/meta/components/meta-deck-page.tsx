@@ -21,6 +21,7 @@ import {
 } from "@/features/meta/lib/meta-deck-archive";
 import type { MetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
+import { m } from "@/paraglide/messages.js";
 
 function MetaDeckNotice({
   eventSlug,
@@ -42,19 +43,19 @@ function MetaDeckNotice({
   return (
     <Alert variant="info">
       <InfoIcon />
-      <AlertTitle>This list is incomplete</AlertTitle>
+      <AlertTitle>{m.meta_deck_incomplete_title()}</AlertTitle>
       <AlertDescription className="flex flex-col items-start gap-2">
         <span>
           {missing}
           {/* The hero chip counts the deck the archive holds, not the deck as played. */}
-          {isLoggedIn && " Your collection is compared against the known cards only."}
+          {isLoggedIn && ` ${m.meta_deck_incomplete_collection_note()}`}
         </span>
         <Button
           variant="secondary"
           size="sm"
           render={<Link to="/meta/$slug/submit" params={{ slug: eventSlug }} search={search} />}
         >
-          Know the missing cards? Complete it
+          {m.meta_deck_incomplete_complete_it()}
         </Button>
       </AlertDescription>
     </Alert>
@@ -108,11 +109,15 @@ export function MetaDeckPage({ token }: { token: string }) {
               <PageTopBarPrimaryButton
                 onClick={handleCopyToMyDecks}
                 disabled={copyPending}
-                aria-label={copyPending ? "Copying…" : copyLabel}
+                aria-label={copyPending ? m.meta_deck_copying() : copyLabel}
               >
                 <CopyIcon />
-                <span className="hidden sm:inline">{copyPending ? "Copying…" : copyLabel}</span>
-                <span className="sm:hidden">{copyPending ? "Copying…" : "Copy"}</span>
+                <span className="hidden sm:inline">
+                  {copyPending ? m.meta_deck_copying() : copyLabel}
+                </span>
+                <span className="sm:hidden">
+                  {copyPending ? m.meta_deck_copying() : m.common_copy()}
+                </span>
               </PageTopBarPrimaryButton>
               <PublicDeckActionsMenu
                 deckId={data.deck.id}
@@ -151,7 +156,7 @@ export function MetaDeckPage({ token }: { token: string }) {
               />
             }
           >
-            Something wrong? Suggest a correction
+            {m.meta_deck_suggest_correction()}
           </TextLink>
         </div>
       }

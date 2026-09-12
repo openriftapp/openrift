@@ -4,6 +4,7 @@ import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { LandingThumbnailCard } from "@/features/marketing/lib/landing-thumbnails";
 import { formatPriceEur } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { ClipFrame } from "./clip-frame";
 
@@ -61,7 +62,7 @@ function TrayRow({
 }) {
   // PrintingVariantLabel falls back to "Standard" for a null variant; pending
   // rows keep it empty since they name no card.
-  const variant = card.name ? (card.variantLabel ?? "Standard") : "";
+  const variant = card.name ? (card.variantLabel ?? m.cards_label_standard()) : "";
   return (
     <li
       className={cn(
@@ -91,16 +92,16 @@ function TrayRow({
       {ownedBefore === 0 ? (
         <span
           className="text-foreground shrink-0 text-sm font-medium"
-          title="None in your collection"
+          title={m.scan_tray_row_new_title()}
         >
-          New
+          {m.scan_tray_row_new()}
         </span>
       ) : (
         <span
           className="text-muted-foreground shrink-0 text-sm tabular-nums"
-          title="Copies already in your collection"
+          title={m.scan_tray_row_owned_title()}
         >
-          {ownedBefore} owned
+          {m.scan_tray_row_owned({ count: ownedBefore })}
         </span>
       )}
       {card.price !== null && (
@@ -126,7 +127,9 @@ function TrayTotals({
   const newCount = counted.filter((_, index) => OWNED_BEFORE[from + index] === 0).length;
   return (
     <p className={cn("flex flex-wrap items-baseline gap-x-2 text-sm", className)}>
-      <span className="font-medium tabular-nums">{counted.length} cards</span>
+      <span className="font-medium tabular-nums">
+        {m.common_cards_other({ count: counted.length })}
+      </span>
       {total > 0 && (
         <>
           <span className="text-muted-foreground" aria-hidden="true">
@@ -138,8 +141,8 @@ function TrayTotals({
       <span className="text-muted-foreground" aria-hidden="true">
         ·
       </span>
-      <span className="text-foreground font-medium" title="Cards you own no copy of">
-        {newCount} new
+      <span className="text-foreground font-medium" title={m.scan_tray_new_title()}>
+        {m.scan_tray_new_count({ count: newCount })}
       </span>
     </p>
   );

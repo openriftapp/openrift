@@ -18,6 +18,7 @@ import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function Rank({ player }: { player: MetaEventPlayer }) {
   if (player.rank <= MEDAL_RANKS) {
@@ -48,7 +49,9 @@ function MissingLine({ cost }: { cost: MetaDeckCost }) {
     return null;
   }
   if (cost.owned >= cost.needed) {
-    return <span className="text-border-accent text-xs font-medium">Buildable</span>;
+    return (
+      <span className="text-border-accent text-xs font-medium">{m.meta_deck_buildable()}</span>
+    );
   }
   if (cost.toComplete === undefined || cost.toComplete === 0) {
     return null;
@@ -151,7 +154,9 @@ export function DeckCell({
           className,
         )}
       >
-        {player.listStatus === "partial" ? "Partial list" : "Decklist"}
+        {player.listStatus === "partial"
+          ? m.meta_list_status_partial()
+          : m.meta_standings_decklist()}
         <ChevronRightIcon
           className={cn("size-4 shrink-0 transition-transform", expanded && "rotate-90")}
         />

@@ -57,6 +57,7 @@ import { canRequestChanges, primaryActionFor } from "@/features/tournaments/lib/
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getDomainGradientStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function DeckEntryTopBar({
   tournamentId,
@@ -74,19 +75,21 @@ export function DeckEntryTopBar({
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
           <TopBarBreadcrumbTrail
             segments={[
-              { label: "Tournaments", link: <Link to="/tournaments" /> },
+              { label: m.nav_tournaments(), link: <Link to="/tournaments" /> },
               {
                 label: tournament.name,
                 link: <Link to="/tournaments/$id" params={{ id: tournamentId }} />,
               },
               {
-                label: "Decks",
+                label: m.nav_decks(),
                 link: <Link to="/tournaments/$id/decks" params={{ id: tournamentId }} />,
               },
             ]}
           />
           <TopBarBreadcrumbSeparator className="hidden sm:inline" />
-          <PageTopBarTitle>{entry?.playerName ?? "Entry"}</PageTopBarTitle>
+          <PageTopBarTitle>
+            {entry?.playerName ?? m.tournaments_deck_check_entry_fallback_title()}
+          </PageTopBarTitle>
           {entry ? (
             <EntryStateBadge state={entry.state} reviewOutcome={entry.reviewOutcome} />
           ) : null}
@@ -128,24 +131,26 @@ export function EntryTopBarActions({
         </PageTopBarPrimaryButton>
       ) : null}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<PageTopBarIconButton aria-label="Entry actions" />}>
+        <DropdownMenuTrigger
+          render={<PageTopBarIconButton aria-label={m.tournaments_deck_check_entry_actions()} />}
+        >
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onEdit}>
             <PencilIcon className="size-4" />
-            Edit player details
+            {m.tournaments_deck_check_edit_player_title()}
           </DropdownMenuItem>
           {entry.state === "withdrawn" ? null : (
             <DropdownMenuItem disabled={pending} onClick={() => transition("withdrawn")}>
               <BanIcon className="size-4" />
-              Withdraw entry
+              {m.tournaments_deck_check_withdraw_entry()}
             </DropdownMenuItem>
           )}
           {canManage ? (
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               <Trash2Icon className="size-4" />
-              Delete entry
+              {m.tournaments_deck_check_delete_entry()}
             </DropdownMenuItem>
           ) : null}
         </DropdownMenuContent>
@@ -207,13 +212,12 @@ export function EntryHeader({
           <EntryMetaGrid entry={entry} />
           {entry.state === "editable" ? (
             <p className="text-muted-foreground mt-1.5 text-sm">
-              The player is editing this list; it locks again when they submit it.
+              {m.tournaments_deck_check_editing_note()}
             </p>
           ) : null}
           {entry.state === "withdrawn" ? (
             <p className="text-muted-foreground mt-1.5 text-sm">
-              This entry is withdrawn from the event; restore it from the top bar to review it
-              again.
+              {m.tournaments_deck_check_withdrawn_note()}
             </p>
           ) : null}
         </div>
@@ -227,7 +231,7 @@ export function EntryHeader({
               onClick={() => transition("editable", "issue")}
             >
               <UndoIcon className="size-4" />
-              Request changes
+              {m.tournaments_deck_check_request_changes()}
             </Button>
           ) : null}
           {entry.state === "approved" ? (
@@ -239,7 +243,7 @@ export function EntryHeader({
                 onClick={() => transition("submitted")}
               >
                 <RotateCcwIcon className="size-4" />
-                Revoke approval
+                {m.tournaments_deck_check_revoke_approval()}
               </Button>
               <Button
                 size="sm"
@@ -248,7 +252,7 @@ export function EntryHeader({
                 onClick={() => transition("checked", "issue")}
               >
                 <TriangleAlertIcon className="size-4" />
-                Mark issue
+                {m.tournaments_deck_check_mark_issue()}
               </Button>
             </>
           ) : null}
@@ -258,11 +262,12 @@ export function EntryHeader({
         <Alert variant="warning" className="flex flex-wrap items-center gap-2">
           <TriangleAlertIcon className="shrink-0" />
           <span className="min-w-0 flex-1">
-            The player asked to unlock this {entry.state === "approved" ? "approved" : "submitted"}{" "}
-            deck for changes.
+            {entry.state === "approved"
+              ? m.tournaments_deck_check_unlock_request_approved()
+              : m.tournaments_deck_check_unlock_request_submitted()}
           </span>
           <Button size="sm" disabled={pending} onClick={() => transition("editable")}>
-            Allow editing
+            {m.tournaments_deck_check_allow_editing()}
           </Button>
           <Button
             size="sm"
@@ -270,7 +275,7 @@ export function EntryHeader({
             disabled={denyUnlock.isPending}
             onClick={() => denyUnlock.mutate({ tournamentId, entryId })}
           >
-            Decline
+            {m.tournaments_deck_check_decline()}
           </Button>
         </Alert>
       ) : null}
@@ -284,25 +289,37 @@ function EntryMetaGrid({ entry }: { entry: DeckCheckEntryDetailResponse["entry"]
   const contact = [entry.riotId].filter(Boolean).join(" · ");
   const reviewer =
     entry.state === "checked" && entry.checkedByName
-      ? `${entry.reviewOutcome === "issue" ? "Flagged" : "Checked"} by ${entry.checkedByName}`
+      ? entry.reviewOutcome === "issue"
+        ? m.tournaments_deck_check_flagged_by({ name: entry.checkedByName })
+        : m.tournaments_deck_check_checked_by({ name: entry.checkedByName })
       : entry.state === "approved" && entry.approvedByName
-        ? `Approved by ${entry.approvedByName}`
+        ? m.tournaments_deck_check_approved_by({ name: entry.approvedByName })
         : null;
   return (
     <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-      <MetaRow label="Contact">
-        {contact || <span className="text-muted-foreground">No contact details</span>}
+      <MetaRow label={m.tournaments_deck_check_meta_contact()}>
+        {contact || (
+          <span className="text-muted-foreground">
+            {m.tournaments_deck_check_meta_no_contact()}
+          </span>
+        )}
       </MetaRow>
-      {reviewer ? <MetaRow label="Reviewer">{reviewer}</MetaRow> : null}
-      <MetaRow label="Sharing">
+      {reviewer ? (
+        <MetaRow label={m.tournaments_deck_check_meta_reviewer()}>{reviewer}</MetaRow>
+      ) : null}
+      <MetaRow label={m.tournaments_deck_check_meta_sharing()}>
         <SharingValue entry={entry} />
       </MetaRow>
       {entry.claimedUserId ? (
-        <MetaRow label="Account">
+        <MetaRow label={m.tournaments_deck_check_meta_account()}>
           <span className="flex items-center gap-1">
             <Link2Icon className="size-3.5 shrink-0" />
-            Linked to {entry.claimedUserName ?? "an account"}
-            {entry.claimSource === "self_submit" ? " (self-submitted)" : ""}
+            {m.tournaments_deck_check_linked_to({
+              name: entry.claimedUserName ?? m.tournaments_deck_check_linked_unnamed_account(),
+            })}
+            {entry.claimSource === "self_submit"
+              ? m.tournaments_deck_check_self_submitted_suffix()
+              : ""}
           </span>
         </MetaRow>
       ) : null}
@@ -324,9 +341,15 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
 function SharingValue({ entry }: { entry: DeckCheckEntryDetailResponse["entry"] }) {
   const published = entry.allowDeckPublishing;
   const items = [
-    { label: "Deck list", allowed: published },
-    { label: "Name", allowed: published && entry.allowNameSharing },
-    { label: "Riot ID", allowed: published && entry.allowRiotIdSharing },
+    { label: m.tournaments_deck_check_sharing_deck_list(), allowed: published },
+    {
+      label: m.tournaments_deck_check_sharing_name(),
+      allowed: published && entry.allowNameSharing,
+    },
+    {
+      label: m.tournaments_deck_check_sharing_riot_id(),
+      allowed: published && entry.allowRiotIdSharing,
+    },
   ];
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -368,11 +391,11 @@ function AccountLinkAction({
       size="sm"
       variant="outline"
       disabled={unlink.isPending}
-      title="Detach the account. The entry is never auto-matched again."
+      title={m.tournaments_deck_check_unlink_title()}
       onClick={() => unlink.mutate({ tournamentId, entryId })}
     >
       <Unlink2Icon className="size-4" />
-      Unlink
+      {m.tournaments_deck_check_unlink()}
     </Button>
   );
 }
@@ -399,7 +422,7 @@ export function PlayerMessageField({
           setMessage(event.target.value);
           setDirty(true);
         }}
-        placeholder="Message to the player (they see this, unlike the notes)"
+        placeholder={m.tournaments_deck_check_player_message_placeholder()}
         maxLength={2000}
         rows={2}
       />
@@ -416,7 +439,9 @@ export function PlayerMessageField({
             );
           }}
         >
-          {updateEntry.isPending ? "Saving..." : "Save message"}
+          {updateEntry.isPending
+            ? m.tournaments_deck_check_saving()
+            : m.tournaments_deck_check_save_message()}
         </Button>
       ) : null}
     </div>

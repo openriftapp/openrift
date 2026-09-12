@@ -12,23 +12,45 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 import { MiniCardArt, Vignette, VignetteHeading } from "./vignette-parts";
 
 // Before/after counts must keep summing to the 842 the "All Cards" badge shows.
-const COLLECTION_ROWS = [
-  {
-    icon: BookOpenIcon,
-    name: "Main binder",
-    was: 411,
-    count: 413,
-    active: true,
-    receives: "a" as const,
-  },
-  { icon: BookOpenIcon, name: "Storage drawer", count: 220, active: false, receives: null },
-  { icon: BookOpenIcon, name: "Shoe box", count: 148, active: false, receives: null },
-  { icon: BoxIcon, name: "Azir Order", was: 60, count: 61, active: false, receives: "b" as const },
-] as const;
+function collectionRows() {
+  return [
+    {
+      icon: BookOpenIcon,
+      name: m.marketing_collections_main_binder(),
+      was: 411,
+      count: 413,
+      active: true,
+      receives: "a" as const,
+    },
+    {
+      icon: BookOpenIcon,
+      name: m.marketing_collections_storage_drawer(),
+      count: 220,
+      active: false,
+      receives: null,
+    },
+    {
+      icon: BookOpenIcon,
+      name: m.marketing_collections_shoe_box(),
+      count: 148,
+      active: false,
+      receives: null,
+    },
+    {
+      icon: BoxIcon,
+      name: "Azir Order",
+      was: 60,
+      count: 61,
+      active: false,
+      receives: "b" as const,
+    },
+  ] as const;
+}
 
 const DROP_PHASE = {
   a: {
@@ -46,11 +68,13 @@ const DROP_PHASE = {
 const SIDEBAR_ROW = "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm";
 const SIDEBAR_ROW_ACTIVE = "bg-sidebar-accent text-sidebar-accent-foreground font-medium";
 
-const COPY_LOCATIONS = [
-  { name: "Main binder", count: 2 },
-  { name: "Storage drawer", count: 1 },
-  { name: "Azir Order", count: 1 },
-] as const;
+function copyLocations() {
+  return [
+    { name: m.marketing_collections_main_binder(), count: 2 },
+    { name: m.marketing_collections_storage_drawer(), count: 1 },
+    { name: "Azir Order", count: 1 },
+  ];
+}
 
 function DropCount({ was, now, phase }: { was: number; now: number; phase: "a" | "b" }) {
   return (
@@ -181,15 +205,15 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
       <div className="flex flex-col gap-1">
         <div className={SIDEBAR_ROW}>
           <LayersIcon className="size-4 shrink-0" aria-hidden="true" />
-          <span className="flex-1">All Cards</span>
+          <span className="flex-1">{m.collections_all_cards()}</span>
           <Badge variant="ghost" className="text-2xs ml-auto">
             842
           </Badge>
         </div>
-        <VignetteHeading>Collections</VignetteHeading>
+        <VignetteHeading>{m.collections_sidebar_title()}</VignetteHeading>
         <div className={cn(SIDEBAR_ROW, "relative")}>
           <InboxIcon className="size-4 shrink-0" aria-hidden="true" />
-          <span className="flex-1">Inbox</span>
+          <span className="flex-1">{m.collections_dialog_picker_inbox_badge()}</span>
           <span className="ml-auto inline-grid justify-items-end">
             <Badge
               variant="default"
@@ -211,7 +235,7 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
             </>
           )}
         </div>
-        {COLLECTION_ROWS.map((row) => (
+        {collectionRows().map((row) => (
           <div
             key={row.name}
             className={cn(SIDEBAR_ROW, "relative", row.active && SIDEBAR_ROW_ACTIVE)}
@@ -230,9 +254,11 @@ export function CollectionsVignette({ thumbnailUrls }: { thumbnailUrls: string[]
         ))}
       </div>
       <div className="flex flex-col gap-1">
-        <VignetteHeading>Copies of Hidden Blade</VignetteHeading>
+        <VignetteHeading>
+          {m.collections_copies_list_title({ card: "Hidden Blade" })}
+        </VignetteHeading>
         <VariantHeaderRow label="EN · OGN-213 · Standard" count={4} expanded />
-        {COPY_LOCATIONS.map((row) => (
+        {copyLocations().map((row) => (
           <div
             key={row.name}
             className="flex items-center gap-2 rounded-md py-0.5 pr-1.5 pl-4 text-sm"

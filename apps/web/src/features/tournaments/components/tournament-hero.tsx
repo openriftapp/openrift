@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { TextLink } from "@/components/ui/text-link";
 import { HeroAvatarCluster } from "@/features/tournaments/components/hero-avatar-cluster";
 import {
-  DECK_SUBMISSION_LABEL,
-  EFFECTIVE_STATE_LABEL,
+  deckSubmissionLabels,
+  effectiveStateLabels,
   effectiveTournamentState,
 } from "@/features/tournaments/lib/tournament-display";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const HERO_WASH = [
   "radial-gradient(90% 130% at 85% 10%, color-mix(in oklab, var(--border-accent) 26%, transparent), transparent 62%)",
@@ -21,18 +22,20 @@ const HERO_WASH = [
   "linear-gradient(color-mix(in oklab, var(--muted) 50%, var(--background)), var(--background))",
 ].join(", ");
 
-/** in_progress renders as "Live", overriding EFFECTIVE_STATE_LABEL. */
+/** in_progress renders as "Live", overriding the effective-state label. */
 function heroKicker(detail: TournamentDetailResponse): string {
   const kind =
     detail.playMode === "2v2"
-      ? "2v2 team tournament"
+      ? m.tournaments_hero_kind_2v2()
       : detail.pairingStyle === "pod"
-        ? "Pod tournament"
+        ? m.tournaments_hero_kind_pod()
         : detail.pairingStyle === "swiss"
-          ? "Swiss tournament"
-          : "Tournament";
+          ? m.tournaments_hero_kind_swiss()
+          : m.tournaments_hero_kind_default();
   const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
-  return `${kind} · ${state === "in_progress" ? "Live" : EFFECTIVE_STATE_LABEL[state]}`;
+  const stateLabel =
+    state === "in_progress" ? m.tournaments_hero_live() : effectiveStateLabels()[state];
+  return `${kind} · ${stateLabel}`;
 }
 
 function MetaItem({
@@ -91,12 +94,16 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {detail.currentRound > 0 ? (
-                <Badge variant="subtle">Round {detail.currentRound}</Badge>
+                <Badge variant="subtle">
+                  {m.tournaments_round_band_round({ number: detail.currentRound })}
+                </Badge>
               ) : null}
-              <Badge variant="secondary">{EFFECTIVE_STATE_LABEL[state]}</Badge>
-              <Badge variant="outline">{DECK_SUBMISSION_LABEL[detail.deckSubmission]}</Badge>
+              <Badge variant="secondary">{effectiveStateLabels()[state]}</Badge>
+              <Badge variant="outline">{deckSubmissionLabels()[detail.deckSubmission]}</Badge>
               <Badge variant="outline">
-                {detail.selfRegistration ? "Registration open" : "Registration closed"}
+                {detail.selfRegistration
+                  ? m.tournaments_hero_registration_open()
+                  : m.tournaments_hero_registration_closed()}
               </Badge>
             </div>
           </div>

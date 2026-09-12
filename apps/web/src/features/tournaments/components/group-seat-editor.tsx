@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useReplaceGroupSeats } from "@/features/tournaments/hooks/use-tournament-run";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface SeatDragData {
   type: "group-seat";
@@ -143,11 +144,8 @@ export function GroupSeatEditor({
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col gap-4">
-        <Heading as="h3">Edit groups</Heading>
-        <p className="text-muted-foreground text-sm">
-          Drag a player onto another to swap their seats, within a group or between groups. Group
-          sizes stay as drawn.
-        </p>
+        <Heading as="h3">{m.tournaments_group_edit_groups()}</Heading>
+        <p className="text-muted-foreground text-sm">{m.tournaments_seat_editor_hint()}</p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {groups.map((group) => (
             <Card key={group.label} className="gap-2">
@@ -165,7 +163,10 @@ export function GroupSeatEditor({
                     <span className="text-muted-foreground w-4 shrink-0 text-right text-xs tabular-nums">
                       {seat + 1}
                     </span>
-                    <SeatChip playerId={playerId} name={nameById.get(playerId) ?? "Unknown"} />
+                    <SeatChip
+                      playerId={playerId}
+                      name={nameById.get(playerId) ?? m.tournaments_pairing_editor_unknown_player()}
+                    />
                   </div>
                 ))}
               </CardContent>
@@ -179,10 +180,12 @@ export function GroupSeatEditor({
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={replace.isPending}>
-            Cancel
+            {m.common_cancel()}
           </Button>
           <Button onClick={() => void handleSave()} disabled={replace.isPending}>
-            {replace.isPending ? "Saving…" : "Save groups"}
+            {replace.isPending
+              ? m.tournaments_pairing_editor_saving()
+              : m.tournaments_seat_editor_save()}
           </Button>
         </div>
       </div>
@@ -190,7 +193,7 @@ export function GroupSeatEditor({
         {draggingId ? (
           <span className="bg-background flex items-center gap-1.5 rounded-md border px-2 py-1 text-sm shadow-lg">
             <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
-            {nameById.get(draggingId) ?? "Unknown"}
+            {nameById.get(draggingId) ?? m.tournaments_pairing_editor_unknown_player()}
           </span>
         ) : null}
       </DragOverlay>

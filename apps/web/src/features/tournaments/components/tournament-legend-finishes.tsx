@@ -12,6 +12,7 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MEDAL_RANKS } from "@/features/meta/lib/meta-format";
 import type { LegendFinish } from "@/features/tournaments/lib/player-run";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 const TILES_SHOWN = 8;
 
@@ -78,7 +79,9 @@ export function TournamentLegendFinishes({ entries }: { entries: LegendFinish[] 
             className="h-auto p-0 text-sm font-medium"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "Show fewer" : `Show all ${entries.length}`}
+            {expanded
+              ? m.tournaments_legend_show_fewer()
+              : m.tournaments_legend_show_all({ count: entries.length })}
           </Button>
         ) : null}
       </div>

@@ -13,149 +13,136 @@ import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/u
 import { TextLink } from "@/components/ui/text-link";
 import { FeatureCard } from "@/features/marketing/components/article-cards";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { m } from "@/paraglide/messages.js";
 
 export default function WhyOpenRiftArticle() {
   return (
     <div className="space-y-8">
       <section>
-        <Heading className="mb-2">Why this exists</Heading>
+        <Heading className="mb-2">{m.help_why_openrift_exists_heading()}</Heading>
         <div className="text-muted-foreground space-y-3">
-          <p>Honestly? I just wanted to track my collection.</p>
+          <p>{m.help_why_openrift_exists_p1()}</p>
+          <p>{m.help_why_openrift_exists_p2()}</p>
+          <p>{m.help_why_openrift_exists_p3()}</p>
           <p>
-            I used the existing Riftbound trackers for months, and each one was missing something I
-            needed. Eventually I stopped waiting for someone else to build it and built the tool I
-            wanted. It has become the app I use every day for my own cards.
+            {m.help_why_openrift_exists_p4_before()}{" "}
+            <TextLink render={<Link to="/roadmap" />}>
+              {m.help_why_openrift_exists_p4_link()}
+            </TextLink>{" "}
+            {m.help_why_openrift_exists_p4_after()}
           </p>
           <p>
-            I know how that sounds: the world didn&apos;t ask for yet another collection tracker.
-            The honest answer to &quot;why not improve an existing one instead?&quot; is that none
-            of them are open source, so there was nothing to contribute to. OpenRift is, and it
-            imports from and exports to the formats the other tools use, so you can bring your
-            collection over in minutes, and take it back out just as easily.
-          </p>
-          <p>
-            It&apos;s not just me, either. My local game store group uses it every day, for example
-            to run our shared &quot;bulk box&quot;: a group collection of spare cards where taking a
-            card out moves it straight into your own collection. A good part of the{" "}
-            <TextLink render={<Link to="/roadmap" />}>roadmap</TextLink> started as their feature
-            requests.
-          </p>
-          <p>
-            The fair question to ask any new fan project is whether it will still be around next
-            year. I can&apos;t promise the future, but I can point at a track record: the{" "}
-            <TextLink render={<Link to="/changelog" />}>changelog</TextLink> shows what has shipped
-            week by week since launch, my play group depends on the app daily, and my own collection
-            lives here too. As long as I play Riftbound, OpenRift gets maintained.
+            {m.help_why_openrift_exists_p5_before()}{" "}
+            <TextLink render={<Link to="/changelog" />}>
+              {m.help_why_openrift_exists_p5_link()}
+            </TextLink>{" "}
+            {m.help_why_openrift_exists_p5_after()}
           </p>
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">What this site is (and isn&apos;t)</Heading>
+        <Heading className="mb-2">{m.help_why_openrift_what_heading()}</Heading>
         <div className="grid gap-3 sm:grid-cols-2">
           <FeatureCard
             icon={<Code2Icon className="size-4" />}
-            title="Open source"
+            title={m.help_why_openrift_open_source_title()}
             description={
               <>
-                Full source code on{" "}
+                {m.help_why_openrift_open_source_before()}{" "}
                 <TextLink href={SOCIAL_LINKS.githubRepo} target="_blank" rel="noreferrer">
                   GitHub
                 </TextLink>{" "}
-                under AGPL-3.0. Inspect, fork, self-host, or open an issue. I read every single one.
+                {m.help_why_openrift_open_source_after()}
               </>
             }
           />
           <FeatureCard
             icon={<ArrowRightLeftIcon className="size-4" />}
-            title="No lock-in"
-            description="Import and export collections and decks in formats any other tool can read. If OpenRift ever stops working for you, taking your data elsewhere is easy."
+            title={m.help_why_openrift_no_lock_in_title()}
+            description={m.help_why_openrift_no_lock_in_description()}
           />
           <FeatureCard
             icon={<HeartIcon className="size-4" />}
-            title="Private groups"
-            description="Form a private group with friends or your local store crew: shared collections (my play group runs its bulk box of spares this way) and trade matching that shows who has cards from your wishlists. The trade itself happens in person."
+            title={m.help_why_openrift_private_groups_title()}
+            description={m.help_why_openrift_private_groups_description()}
           />
           <FeatureCard
             icon={<ZapIcon className="size-4" />}
-            title="Built for speed"
-            description="Speed is the main design goal: browsing the catalog and editing decks should feel instant, on desktop and on your phone. If you catch a slow screen anywhere, that's a bug I want to hear about."
+            title={m.help_why_openrift_speed_title()}
+            description={m.help_why_openrift_speed_description()}
           />
         </div>
       </section>
 
       <section>
-        <Heading className="mb-2">Where OpenRift is catching up</Heading>
-        <p className="text-muted-foreground mb-3">
-          An honest pitch names the gaps too. Two things first, because no feature list captures
-          them:
-        </p>
+        <Heading className="mb-2">{m.help_why_openrift_gaps_heading()}</Heading>
+        <p className="text-muted-foreground mb-3">{m.help_why_openrift_gaps_intro()}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <FeatureCard
             variant="dashed"
             icon={<SproutIcon className="size-4" />}
-            title="New kid on the block"
-            description="OpenRift is new and small. Most Riftbound players are on Piltover Archive today, and that's earned. The upside of being early here: your feature request isn't one voice among thousands. It gets read, and if it fits, it shapes the roadmap."
+            title={m.help_why_openrift_new_kid_title()}
+            description={m.help_why_openrift_new_kid_description()}
           />
           <FeatureCard
             variant="dashed"
             icon={<HammerIcon className="size-4" />}
-            title="Less time in the wild"
-            description="More than 12,000 automated tests and daily use keep the quality up, but years of real users find edge cases no test suite does. If you hit one, tell me: fixes ship fast."
+            title={m.help_why_openrift_less_time_title()}
+            description={m.help_why_openrift_less_time_description()}
           />
         </div>
-        <p className="text-muted-foreground mt-4 mb-2">
-          And credit where it&apos;s due: the other tools genuinely do some things better.
-        </p>
+        <p className="text-muted-foreground mt-4 mb-2">{m.help_why_openrift_credit_intro()}</p>
         <ul className="text-muted-foreground list-disc space-y-1.5 pl-5">
           <li>
-            <span className="text-foreground font-medium">Piltover Archive</span> has bulk adding of
-            cards, a massive library of user and tournament decklists, and by far the biggest
-            community.
+            <span className="text-foreground font-medium">Piltover Archive</span>{" "}
+            {m.help_why_openrift_gap_piltover_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Riftbound.gg</span> has aggregate
-            tournament statistics plus a steady stream of articles and guides, which OpenRift
-            doesn&apos;t have.
+            <span className="text-foreground font-medium">Riftbound.gg</span>{" "}
+            {m.help_why_openrift_gap_riftbound_gg_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">RiftCore</span> has AI-powered tools and
-            an Android app in the Play Store.
+            <span className="text-foreground font-medium">RiftCore</span>{" "}
+            {m.help_why_openrift_gap_riftcore_text()}
           </li>
         </ul>
-        <p className="text-muted-foreground mt-3">
-          If one of those is the feature you need today, use that tool. OpenRift imports and exports
-          in compatible formats, so you can run it alongside another tracker, or switch back and
-          forth, whenever you like.
-        </p>
+        <p className="text-muted-foreground mt-3">{m.help_why_openrift_gaps_outro()}</p>
       </section>
 
       <section>
-        <Heading className="mb-2">What only OpenRift has</Heading>
+        <Heading className="mb-2">{m.help_why_openrift_unique_heading()}</Heading>
         <p className="text-muted-foreground mb-3">
-          These are OpenRift features with no counterpart on the other sites, as far as I know. For
-          the full tour of everything the app does, unique or not, see the{" "}
-          <TextLink render={<Link to="/features" />}>features page</TextLink>.
+          {m.help_why_openrift_unique_intro_before()}{" "}
+          <TextLink render={<Link to="/features" />}>
+            {m.help_why_openrift_unique_intro_link()}
+          </TextLink>
+          .
         </p>
         <ul className="text-muted-foreground list-disc space-y-1.5 pl-5">
           <li>
-            <span className="text-foreground font-medium">Trade matching:</span> inside a private
-            group, see who has cards from your wishlists (and who wants your spares), with one-tap
-            requests and email alerts. The trade itself happens in person.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_trade_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_trade_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Shared group collections:</span> pool
-            spare cards into a collection the whole group can see and take from.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_group_collections_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_group_collections_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Card lending:</span> lend a card to a
-            friend and it stays in your collection, but stops counting for decks and trades until it
-            comes back. A lending page tracks who has what, including cards you&apos;re borrowing.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_lending_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_lending_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Deck boxes:</span> point a deck at the
-            collection its cards physically live in. The deck page then fills the box from your
-            copies, and flags what the box still holds that the deck no longer needs.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_deck_boxes_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_deck_boxes_text()}
           </li>
           <li>
             <span className="text-foreground font-medium">
@@ -164,69 +151,79 @@ export default function WhyOpenRiftArticle() {
               </TextLink>
               :
             </span>{" "}
-            a Firefox add-on that reads the decklist on whatever site you are looking at and hands
-            it to the import page, name and source link included. No copying, no export step, and it
-            works while you are logged out.
+            {m.help_why_openrift_unique_companion_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Tournament organizer tools:</span> run a
-            casual event yourself, with pod scoring and standings, deck submission via a per-event
-            link, and judge deck-check tools.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_tournament_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_tournament_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Match tracker:</span> keep score for two
-            to four players during a game on your phone, with points, XP, and an undo for the
-            mis-tapped ones. It works offline and saves nothing to your account.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_match_tracker_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_match_tracker_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Discord bot:</span> look up a card, a
-            deck, or a rule in your own server with a slash command or by writing{" "}
-            <span className="font-mono">[[card name]]</span>, and post a group&apos;s tradelists
-            into a channel.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_discord_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_discord_before()}{" "}
+            <span className="font-mono">[[card name]]</span>
+            {m.help_why_openrift_unique_discord_after()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Quick card entry:</span> add cards by name
-            from a fast keyboard palette, without browsing: type, press Enter to add, Shift+Enter to
-            undo.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_quick_entry_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_quick_entry_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Completion curve:</span> a chart showing
-            which missing cards give you the most completion progress if added next.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_completion_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_completion_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Pack opener simulator:</span> open virtual
-            boosters at the real published pull rates, one card at a time or a whole display.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_pack_opener_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_pack_opener_text()}
           </li>
           <li>
-            <span className="text-foreground font-medium">Custom card designer:</span> design your
-            own Riftbound-style card with your own artwork, entirely in your browser.
+            <span className="text-foreground font-medium">
+              {m.help_why_openrift_unique_designer_label()}
+            </span>{" "}
+            {m.help_why_openrift_unique_designer_text()}
           </li>
         </ul>
       </section>
 
       <section>
-        <Heading className="mb-2">Tech stack</Heading>
-        <p className="text-muted-foreground">
-          For the technically curious, or if you&apos;re thinking about contributing:
-        </p>
+        <Heading className="mb-2">{m.help_why_openrift_tech_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_why_openrift_tech_intro()}</p>
         <DefinitionList className="mt-3">
-          <DefinitionTerm>Runtime</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_runtime()}</DefinitionTerm>
           <DefinitionDetail>
             <TechLink href="https://bun.com">Bun</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>Language</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_language()}</DefinitionTerm>
           <DefinitionDetail>
-            <TechLink href="https://www.typescriptlang.org">TypeScript</TechLink> end-to-end, linted
-            with <TechLink href="https://oxc.rs">oxlint + oxfmt</TechLink>
+            <TechLink href="https://www.typescriptlang.org">TypeScript</TechLink>{" "}
+            {m.help_why_openrift_tech_language_detail()}{" "}
+            <TechLink href="https://oxc.rs">oxlint + oxfmt</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>Frontend</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_frontend()}</DefinitionTerm>
           <DefinitionDetail>
-            <TechLink href="https://react.dev">React 19</TechLink> with React Compiler, built with{" "}
+            <TechLink href="https://react.dev">React 19</TechLink>{" "}
+            {m.help_why_openrift_tech_frontend_detail()}{" "}
             <TechLink href="https://vite.dev">Vite</TechLink>
           </DefinitionDetail>
           <DefinitionTerm>TanStack</DefinitionTerm>
           <DefinitionDetail>
-            <TechLink href="https://tanstack.com/start">Start</TechLink> (SSR),{" "}
+            <TechLink href="https://tanstack.com/start">Start</TechLink>{" "}
+            {m.help_why_openrift_tech_ssr_note()}{" "}
             <TechLink href="https://tanstack.com/router">Router</TechLink>,{" "}
             <TechLink href="https://tanstack.com/query">Query</TechLink>,{" "}
             <TechLink href="https://tanstack.com/db">DB</TechLink>,{" "}
@@ -234,34 +231,37 @@ export default function WhyOpenRiftArticle() {
             <TechLink href="https://tanstack.com/virtual">Virtual</TechLink>,{" "}
             <TechLink href="https://tanstack.com/hotkeys">Hotkeys</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>UI</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_ui()}</DefinitionTerm>
           <DefinitionDetail>
             <TechLink href="https://tailwindcss.com">Tailwind CSS</TechLink> +{" "}
             <TechLink href="https://ui.shadcn.com">shadcn/ui</TechLink> +{" "}
-            <TechLink href="https://base-ui.com">BaseUI</TechLink> primitives
+            <TechLink href="https://base-ui.com">BaseUI</TechLink>{" "}
+            {m.help_why_openrift_tech_ui_primitives()}
           </DefinitionDetail>
-          <DefinitionTerm>State &amp; forms</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_state_forms()}</DefinitionTerm>
           <DefinitionDetail>
             <TechLink href="https://zustand.docs.pmnd.rs">Zustand</TechLink>,{" "}
             <TechLink href="https://react-hook-form.com">React Hook Form</TechLink>,{" "}
             <TechLink href="https://zod.dev">Zod</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>Backend</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_backend()}</DefinitionTerm>
           <DefinitionDetail>
             <TechLink href="https://hono.dev">Hono</TechLink> +{" "}
             <TechLink href="https://orpc.unnoq.com">oRPC</TechLink> +{" "}
             <TechLink href="https://www.better-auth.com">better-auth</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>Database</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_database()}</DefinitionTerm>
           <DefinitionDetail>
-            <TechLink href="https://www.postgresql.org">PostgreSQL</TechLink> via{" "}
+            <TechLink href="https://www.postgresql.org">PostgreSQL</TechLink>{" "}
+            {m.help_why_openrift_tech_database_via()}{" "}
             <TechLink href="https://kysely.dev">Kysely</TechLink>
           </DefinitionDetail>
-          <DefinitionTerm>Monorepo</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_monorepo()}</DefinitionTerm>
           <DefinitionDetail>
-            <TechLink href="https://turborepo.com">Turborepo</TechLink> (web, api, shared)
+            <TechLink href="https://turborepo.com">Turborepo</TechLink>{" "}
+            {m.help_why_openrift_tech_monorepo_detail()}
           </DefinitionDetail>
-          <DefinitionTerm>Quality</DefinitionTerm>
+          <DefinitionTerm>{m.help_why_openrift_tech_quality()}</DefinitionTerm>
           <DefinitionDetail>
             <TechLink href="https://vitest.dev">Vitest</TechLink> +{" "}
             <TechLink href="https://playwright.dev">Playwright</TechLink> +{" "}
