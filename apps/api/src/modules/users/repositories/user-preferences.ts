@@ -10,7 +10,7 @@ import type { Database } from "../../../db/tables.js";
 import type { UserPreferencesTable } from "../../../db/tables/settings.js";
 import { resolveDisplayLocale } from "../../../lib/display-locale.js";
 
-export interface EmailRecipient {
+interface EmailRecipient {
   userId: string;
   email: string;
   name: string | null;

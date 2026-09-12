@@ -4,14 +4,14 @@ export type TradeRequestKind = "wants" | "offers";
 
 export type TradeStatusEvent = "reserved" | "declined" | "cancelled";
 
-export type EmailUnsubscribeChannel =
+type EmailUnsubscribeChannel =
   | "groupJoinRequests"
   | "groupApprovals"
   | "tradeRequests"
   | "tradeStatus"
   | "tradeMatches";
 
-export interface StatusCounts {
+interface StatusCounts {
   reserved: number;
   declined: number;
   cancelled: number;
