@@ -68,7 +68,7 @@ export interface AttentionSourceEntry {
 }
 
 /** What the accept path would make of a source value, so a matching row reads as unchanged. */
-export interface AcceptTransforms {
+interface AcceptTransforms {
   costKeywords: readonly string[];
   setTotals: Record<string, number>;
 }
