@@ -1,3 +1,4 @@
+import { finalStandings } from "@openrift/shared/pairing/cut-standings";
 import type { GroupPlan, GroupStageRanking } from "@openrift/shared/pairing/group-cut-types";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import { groupUnits } from "@openrift/shared/pairing/group-stage";
@@ -103,23 +104,48 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
     .toSorted((a, b) => a[1] - b[1])
     .map(([playerId]) => playerId);
 
+  const rankingRows = ordered.map((row) => {
+    const stored = seedByPlayer.get(row.playerId) ?? null;
+    const provisional = provisionalSeed.get(row.playerId) ?? null;
+    return {
+      playerId: row.playerId,
+      displayName: playerById.get(row.playerId)?.displayName ?? "",
+      groupLabel: row.groupLabel,
+      place: row.place,
+      matchWinRate: row.matchWinRate,
+      gameWinRate: row.gameWinRate,
+      decidedBy: row.decidedBy,
+      seed: cutGenerated ? stored : provisional,
+      qualified: cutGenerated ? stored !== null : provisional !== null,
+    };
+  });
+  const rankingByPlayer = new Map(rankingRows.map((row) => [row.playerId, row]));
+  const places = finalStandings(
+    rankingRows,
+    cutRounds(roundRows).map((rows) => ({
+      roundNumber: rows.round.roundNumber,
+      pods: rows.pods.map((pod) => ({ members: pod.members })),
+    })),
+  );
+
   return {
     groups,
-    ranking: ordered.map((row) => {
-      const stored = seedByPlayer.get(row.playerId) ?? null;
-      const provisional = provisionalSeed.get(row.playerId) ?? null;
-      return {
-        playerId: row.playerId,
-        displayName: playerById.get(row.playerId)?.displayName ?? "",
-        groupLabel: row.groupLabel,
-        place: row.place,
-        matchWinRate: row.matchWinRate,
-        gameWinRate: row.gameWinRate,
-        decidedBy: row.decidedBy,
-        seed: cutGenerated ? stored : provisional,
-        qualified: cutGenerated ? stored !== null : provisional !== null,
-      };
-    }),
+    ranking: rankingRows,
+    finalStandings:
+      places === null
+        ? null
+        : places.map((entry) => {
+            const row = rankingByPlayer.get(entry.playerId);
+            return {
+              playerId: entry.playerId,
+              displayName: row?.displayName ?? playerById.get(entry.playerId)?.displayName ?? "",
+              place: entry.place,
+              seed: row?.seed ?? null,
+              groupLabel: row?.groupLabel ?? "",
+              groupPlace: row?.place ?? 0,
+              exitRound: entry.exitRound,
+            };
+          }),
     pendingMetaShares: ranking.pendingMetaLegendIds.map((legendCardId) => ({
       legendCardId,
       legendName: nameOf(legendCardId),

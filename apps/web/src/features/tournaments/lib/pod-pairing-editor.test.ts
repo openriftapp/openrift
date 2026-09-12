@@ -115,6 +115,17 @@ describe("movePlayer", () => {
   });
 });
 
+describe("validatePartition in cut mode", () => {
+  it("wants exactly two per match and nobody sitting out", () => {
+    const state = { pods: [{ playerIds: ["a", "b"] }, { playerIds: ["c"] }], byes: ["d"] };
+    const result = validatePartition(state, ["a", "b", "c", "d"], "cut");
+    expect(result.ok).toBe(false);
+    expect(result.podValid).toEqual([true, false]);
+    const fixed = { pods: [{ playerIds: ["a", "b"] }, { playerIds: ["c", "d"] }], byes: [] };
+    expect(validatePartition(fixed, ["a", "b", "c", "d"], "cut").ok).toBe(true);
+  });
+});
+
 describe("validatePartition", () => {
   const expected = ["a", "b", "c", "d", "e", "f", "g", "h"];
 

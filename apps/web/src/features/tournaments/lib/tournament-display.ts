@@ -112,8 +112,9 @@ export function isMatchPairing(size: number): boolean {
   return size === 2;
 }
 
-export function pairingLabel(size: number, podNumber: number): string {
-  return `${isMatchPairing(size) ? "Match" : "Pod"} ${podNumber}`;
+/** The pod number is the table the pairing sits at. */
+export function pairingLabel(podNumber: number): string {
+  return `Table ${podNumber}`;
 }
 
 export function ordinalPlace(place: number): string {

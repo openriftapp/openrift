@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
+import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
 import { formatWinRate, GROUP_CUT_TIER_LABEL } from "@/features/tournaments/lib/group-cut-display";
 import { cn } from "@/lib/utils";
 
@@ -95,7 +96,13 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
               <TableCell>
                 <PlayerCell row={row} />
               </TableCell>
-              <TableCell className="text-muted-foreground">{row.legendName ?? ""}</TableCell>
+              <TableCell>
+                <TournamentLegend
+                  legendCardId={row.legendCardId}
+                  legendName={row.legendName}
+                  className="text-sm"
+                />
+              </TableCell>
               <TableCell className="text-right font-semibold tabular-nums">{row.points}</TableCell>
               <TableCell className="text-right tabular-nums">
                 {row.wins}-{row.losses}-{row.draws}

@@ -4,9 +4,11 @@ import type {
   GroupStandingRowView,
 } from "@openrift/shared/types/api/pod-tournament";
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { CutSeedsCard, GroupStandingsCard } from "./group-standings-cards";
+
+vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => false }));
 
 function makeRow(
   playerId: string,
@@ -56,6 +58,7 @@ function makeStage(overrides: Partial<GroupStageView> = {}): GroupStageView {
     stageComplete: true,
     cutGenerated: false,
     seedsDiverged: false,
+    finalStandings: null,
     ...overrides,
   };
 }
@@ -105,8 +108,8 @@ describe("GroupStandingsCard", () => {
       />,
     );
     const [row] = bodyRows();
-    expect(within(row!).getByText("Ashe")).toBeInTheDocument();
-    expect(within(row!).getByText("Ashe, Frost Archer")).toBeInTheDocument();
+    expect(within(row!).getAllByText("Ashe")).toHaveLength(2);
+    expect(within(row!).getByText("Frost Archer")).toBeInTheDocument();
     expect(within(row!).getByText("2-1-0")).toBeInTheDocument();
     expect(within(row!).getByText("75%")).toBeInTheDocument();
   });

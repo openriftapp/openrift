@@ -24,6 +24,8 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TextLink } from "@/components/ui/text-link";
 import { UserAvatar } from "@/components/user-avatar";
+import { ChampionPlate } from "@/features/tournaments/components/champion-plate";
+import { finalStandingsSeats } from "@/features/tournaments/components/final-standings-display";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import {
   formatPlayerRecord,
@@ -49,6 +51,16 @@ import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 
 const RAIL_ROW_CLASS = "flex items-center gap-2.5 rounded-md px-2 py-2";
+
+/** Group rounds stay "reporting" until the cut exists, so a fully reported one is linkable too. */
+function snapshotLinkable(round: PodTournamentDetailResponse["rounds"][number], groupCut: boolean) {
+  return (
+    round.status === "finalized" ||
+    (groupCut &&
+      round.pods.length > 0 &&
+      round.pods.every((pod) => pod.resultStatus === "reported"))
+  );
+}
 
 function isFinished(detail: TournamentDetailResponse): boolean {
   const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
@@ -313,10 +325,8 @@ function RoundBand({
                 key={pod.id}
                 className="bg-muted text-muted-foreground truncate rounded-lg px-2.5 py-1.5 text-sm"
               >
-                <span className="text-foreground font-medium">
-                  {pairingLabel(pod.size, pod.podNumber)}
-                </span>{" "}
-                · {scoresIn} of {pod.members.length} scores in
+                <span className="text-foreground font-medium">{pairingLabel(pod.podNumber)}</span> ·{" "}
+                {scoresIn} of {pod.members.length} scores in
               </li>
             );
           })}
@@ -344,14 +354,25 @@ function ThroneModule({
   const ranks = standingRanks(played);
   const ranked = played.map((row, index) => ({ row, rank: ranks[index] ?? index + 1 }));
   const swiss = pairingStyle === "swiss";
-  const seats: PodiumSeat[] = ranked.slice(0, 3).map(({ row, rank }) => ({
-    key: row.playerId,
-    rank,
-    name: row.displayName,
-    score: row.score,
-    hint: formatPlayerRecord(row, swiss),
-  }));
-  const trailing = ranked.slice(3, 5);
+  const finalRows = run.groupStage?.finalStandings ?? null;
+  const seats: PodiumSeat[] =
+    finalRows === null
+      ? ranked.slice(0, 3).map(({ row, rank }) => ({
+          key: row.playerId,
+          rank,
+          name: row.displayName,
+          score: row.score,
+          hint: formatPlayerRecord(row, swiss),
+        }))
+      : finalStandingsSeats(finalRows, run.standings, run.tournament.cutSize);
+  const byPlayer = new Map(rows.map((row) => [row.playerId, row]));
+  const trailing =
+    finalRows === null
+      ? ranked.slice(3, 5)
+      : finalRows.slice(3, 5).flatMap((entry) => {
+          const row = byPlayer.get(entry.playerId);
+          return row === undefined ? [] : [{ row, rank: entry.place }];
+        });
   const finalized = run.rounds.filter((round) => round.status === "finalized").length;
 
   return (
@@ -422,6 +443,7 @@ function RoundsRail({
   const finished = isFinished(detail);
   const hasOpenRound = run.rounds.some((round) => round.status === "reporting");
   const showNext = !finished && !hasOpenRound;
+  const groupCut = run.tournament.format === "group_cut";
 
   return (
     <section className="flex flex-col gap-3">
@@ -441,6 +463,21 @@ function RoundsRail({
                 {round.status === "finalized" ? "Finalized" : "Reporting"}
               </span>
             </RowListLink>
+            {snapshotLinkable(round, groupCut) ? (
+              <TextLink
+                className="shrink-0 text-xs"
+                render={
+                  <Link
+                    to="/tournaments/$id/standings"
+                    params={{ id }}
+                    search={{ round: round.roundNumber }}
+                    aria-label={`Standings after round ${round.roundNumber}`}
+                  />
+                }
+              >
+                Standings
+              </TextLink>
+            ) : null}
           </RowListItem>
         ))}
         {showNext ? (
@@ -518,6 +555,9 @@ function RunStateModules({
   }
   return (
     <>
+      {isFinished(detail) ? (
+        <ChampionPlate run={data} swiss={detail.pairingStyle === "swiss"} />
+      ) : null}
       <RoundBand id={id} detail={detail} run={data} />
       <ThroneModule
         id={id}

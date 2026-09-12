@@ -9,6 +9,7 @@ import {
   podPairingStyleSchema,
   podPlayModeSchema,
   podScoringSchemeSchema,
+  podStandingsSnapshotSchema,
   podTournamentDetailResponseSchema,
   TOURNAMENT_STATUSES,
   tournamentFormatSchema,
@@ -537,6 +538,11 @@ export const tournamentsContract = {
     .errors({ NOT_FOUND: { message: "Tournament not found" } })
     .input(idParamSchema)
     .output(podTournamentDetailResponseSchema),
+  standingsSnapshot: authedRoute
+    .route({ method: "GET", path: `${BASE}/{id}/standings`, tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Tournament not found" } })
+    .input(idParamSchema.extend({ throughRound: z.coerce.number().int().positive().optional() }))
+    .output(podStandingsSnapshotSchema),
   generateRound: authedRoute
     .route({ method: "POST", path: `${BASE}/{id}/rounds`, tags: [TAG] })
     .errors({
@@ -582,6 +588,46 @@ export const tournamentsContract = {
       BAD_REQUEST: { message: "Invalid pod sizes or player assignment" },
     })
     .input(withParams(roundNumberParamSchema, replacePairingSchema))
+    .output(podTournamentDetailResponseSchema),
+  replaceGroupSeats: authedRoute
+    .route({ method: "PUT", path: `${BASE}/{id}/groups`, tags: [TAG] })
+    .errors({
+      NOT_FOUND: { message: "Tournament not found" },
+      BAD_REQUEST: { message: "Groups not drawn, a match has a result, or players changed" },
+    })
+    .input(
+      idParamSchema.extend({
+        /** Array order inside a group is the seat order. */
+        groups: z
+          .array(
+            z.object({
+              label: z.string().min(1),
+              playerIds: z.array(z.string().min(1)).min(3).max(4),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .output(podTournamentDetailResponseSchema),
+  replaceCutPairing: authedRoute
+    .route({
+      method: "PUT",
+      path: `${BASE}/{id}/rounds/{roundNumber}/cut-pairing`,
+      tags: [TAG],
+    })
+    .errors({
+      NOT_FOUND: { message: "Tournament or round not found" },
+      BAD_REQUEST: { message: "Not a cut round, results entered, or players changed" },
+    })
+    .input(
+      withParams(
+        roundNumberParamSchema,
+        z.object({
+          /** Array order is the bracket slot order. */
+          pods: z.array(z.object({ playerIds: z.array(z.string().min(1)).length(2) })).min(1),
+        }),
+      ),
+    )
     .output(podTournamentDetailResponseSchema),
   rerollRound: authedRoute
     .route({ method: "POST", path: `${BASE}/{id}/rounds/{roundNumber}/reroll`, tags: [TAG] })

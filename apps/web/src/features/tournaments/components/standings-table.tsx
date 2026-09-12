@@ -1,4 +1,4 @@
-import type { PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
+import type { PodRoundResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserAvatar } from "@/components/user-avatar";
+import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
+import { TournamentLegend } from "@/features/tournaments/components/tournament-legend";
+import { playerRunRounds } from "@/features/tournaments/lib/player-run";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import { cn } from "@/lib/utils";
 
@@ -68,8 +71,14 @@ export function StandingsTable({
   playMode = "1v1",
   regionsEnabled = false,
   regionLabel = rawRegionSlug,
+  rounds,
+  legendByPlayer,
 }: {
   standings: PodStandingRow[];
+  /** Adds a round-by-round strip per player. */
+  rounds?: PodRoundResponse[];
+  /** Player id -> Legend card id; adds a Legend column when any player has one. */
+  legendByPlayer?: ReadonlyMap<string, string | null>;
   /** Column set: FFA pods (score/wins/pod tallies) or Swiss (points/W-L-D). */
   variant?: "pod" | "swiss";
   /** 2v2 collapses teammate rows into one row per team. */
@@ -86,6 +95,11 @@ export function StandingsTable({
   }
   const swiss = variant === "swiss";
   const ranked = rankedStandings(standings);
+  const showLegend =
+    !teamMode &&
+    legendByPlayer !== undefined &&
+    standings.some((row) => (legendByPlayer.get(row.playerId) ?? null) !== null);
+  const showRun = rounds !== undefined && rounds.length > 0;
   return (
     <>
       <RowList variant="divided" className="sm:hidden">
@@ -124,6 +138,8 @@ export function StandingsTable({
             <TableRow>
               <TableHead className="w-10">#</TableHead>
               <TableHead>{teamMode ? "Team" : "Player"}</TableHead>
+              {showLegend ? <TableHead>Legend</TableHead> : null}
+              {showRun ? <TableHead>Run</TableHead> : null}
               <TableHead className="text-right">{swiss ? "Points" : "Score"}</TableHead>
               {swiss ? (
                 <TableHead className="text-right">W-L-D</TableHead>
@@ -167,6 +183,19 @@ export function StandingsTable({
                     regionLabel={regionLabel}
                   />
                 </TableCell>
+                {showLegend ? (
+                  <TableCell>
+                    <TournamentLegend
+                      legendCardId={legendByPlayer.get(row.playerId) ?? null}
+                      className="text-sm"
+                    />
+                  </TableCell>
+                ) : null}
+                {showRun ? (
+                  <TableCell>
+                    <MetaRunStrip rounds={playerRunRounds(rounds, row.playerId, false)} />
+                  </TableCell>
+                ) : null}
                 <TableCell className="text-right font-semibold tabular-nums">
                   {formatScore(row.score)}
                 </TableCell>

@@ -72,6 +72,7 @@ const GUARDS: readonly Guard[] = [
       "features/meta/components/meta-event-run-page.tsx",
       "features/meta/components/meta-legend-hero.tsx",
       "features/meta/components/meta-player-hero.tsx",
+      "features/tournaments/components/champion-plate.tsx",
       "routes/_app/reset-password.lazy.tsx",
       "routes/_app/verify-email.lazy.tsx",
     ]),

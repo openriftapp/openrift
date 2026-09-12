@@ -10,6 +10,7 @@ import { cutRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import { useRegionLabel } from "@/hooks/use-region-label";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
+import { CutBracketCompact } from "./cut-bracket-compact";
 import { CutBracketView } from "./cut-bracket-view";
 import { GroupStageSections } from "./group-stage-sections";
 import { PairingsView } from "./pairings-view";
@@ -54,7 +55,13 @@ export function ReportRoundsContent({ token, data }: { token: string; data: PodR
             Enter your games won next to your name. Points are worked out automatically.
           </p>
         ) : null}
-        {bracketRounds.length > 0 ? (
+        {bracketRounds.length > 0 && !canSubmit ? (
+          <CutBracketCompact
+            rounds={bracketRounds}
+            cutSize={data.cutSize}
+            groupStage={groupStage}
+          />
+        ) : bracketRounds.length > 0 ? (
           <CutBracketView
             rounds={bracketRounds}
             cutSize={data.cutSize}

@@ -46,6 +46,9 @@ interface RunState {
     stageComplete: boolean;
     cutGenerated: boolean;
     seedsDiverged: boolean;
+    finalStandings:
+      | { playerId: string; place: number; seed: number | null; exitRound: number | null }[]
+      | null;
   } | null;
 }
 
@@ -198,7 +201,7 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
       .execute();
     const card = await host.db
       .insertInto("cards")
-      .values({ slug: LEGEND_SLUG, name: "Jinx, Loose Cannon", type: "legend" })
+      .values({ slug: LEGEND_SLUG, name: "Loose Cannon", type: "legend", tags: ["Jinx"] })
       .returning("id")
       .executeTakeFirstOrThrow();
     legendCardId = card.id;
@@ -318,6 +321,38 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
     const finished = await run(id);
     expect(finished.rounds.find((round) => round.roundNumber === 6)?.pods).toHaveLength(1);
     expect(finished.tournament.status).toBe("completed");
+    const places = finished.groupStage?.finalStandings ?? [];
+    expect(places).toHaveLength(18);
+    expect(places.map((row) => row.place)).toEqual(places.map((_, index) => index + 1));
+    expect(places.slice(0, 8).map((row) => row.exitRound)).toEqual([null, 6, 5, 5, 4, 4, 4, 4]);
+    expect(places.slice(2, 4).map((row) => row.seed)).toEqual(
+      places
+        .slice(2, 4)
+        .map((row) => row.seed)
+        .toSorted((a, b) => (a ?? 0) - (b ?? 0)),
+    );
+    expect(places.slice(8).every((row) => row.seed === null && row.exitRound === null)).toBe(true);
+
+    const afterTwo = await host.app.fetch(
+      req("GET", `/tournaments/${id}/standings?throughRound=2`),
+    );
+    expect(afterTwo.status).toBe(200);
+    const snapshot = (await readJson(afterTwo)) as {
+      throughRound: number;
+      latestRound: number;
+      rounds: { roundNumber: number }[];
+      groupStage: {
+        cutGenerated: boolean;
+        finalStandings: unknown;
+        groups: { roundsStarted: number }[];
+      } | null;
+    };
+    expect(snapshot.throughRound).toBe(2);
+    expect(snapshot.latestRound).toBe(6);
+    expect(snapshot.rounds.map((round) => round.roundNumber)).toEqual([1, 2]);
+    expect(snapshot.groupStage?.cutGenerated).toBe(false);
+    expect(snapshot.groupStage?.finalStandings).toBeNull();
+    expect(snapshot.groupStage?.groups.every((group) => group.roundsStarted === 2)).toBe(true);
 
     const afterFinal = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
     expect(afterFinal.status).toBe(409);
@@ -712,6 +747,65 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
     ]);
   });
 
+  it("lets the organizer reshuffle an open cut round and refuses once a result is in", async () => {
+    const id = await createTournament();
+    await addPlayers(id, 16);
+    const generated = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(generated.status).toBe(200);
+    for (const roundNumber of [1, 2, 3]) {
+      if (roundNumber > 1) {
+        await startEveryGroup(id);
+      }
+      await reportRound(id, roundNumber);
+    }
+    const cut = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(cut.status).toBe(200);
+
+    const beforeState = await run(id);
+    const before = beforeState.rounds.find((round) => round.roundNumber === 4)!;
+    const slots = before.pods
+      .toSorted((a, b) => a.podNumber - b.podNumber)
+      .map((pod) => pod.members.map((member) => member.playerId));
+    const swapped = slots.map((pair, index) =>
+      index === 0 ? [pair[0]!, slots[1]![1]!] : index === 1 ? [pair[0]!, slots[0]![1]!] : pair,
+    );
+    const edited = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/rounds/4/cut-pairing`, {
+        pods: swapped.map((playerIds) => ({ playerIds })),
+      }),
+    );
+    expect(edited.status).toBe(200);
+    const afterState = await run(id);
+    const after = afterState.rounds.find((round) => round.roundNumber === 4)!;
+    expect(
+      after.pods
+        .toSorted((a, b) => a.podNumber - b.podNumber)
+        .map((pod) => pod.members.map((member) => member.playerId)),
+    ).toEqual(swapped);
+    expect(after.pods.map((pod) => pod.podNumber).toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4]);
+
+    const missing = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/rounds/4/cut-pairing`, {
+        pods: swapped.slice(0, 3).map((playerIds) => ({ playerIds })),
+      }),
+    );
+    expect(missing.status).toBe(400);
+    const groupRound = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/rounds/2/cut-pairing`, {
+        pods: swapped.map((playerIds) => ({ playerIds })),
+      }),
+    );
+    expect(groupRound.status).toBe(400);
+
+    await reportRound(id, 4);
+    const locked = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/rounds/4/cut-pairing`, {
+        pods: slots.map((playerIds) => ({ playerIds })),
+      }),
+    );
+    expect(locked.status).toBe(400);
+  });
+
   it("re-reads groups, progress, seeds and bracket unchanged after the cut", async () => {
     const id = await createTournament({ name: "Persistence", cutSize: 8 });
     await addPlayers(id, 18);
@@ -845,6 +939,55 @@ describe.skipIf(!hostCtx)("Group stage with a fixed top cut (integration)", () =
     expect(tiers).not.toContain("meta_share");
     const cut = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
     expect(cut.status).toBe(200);
+  });
+
+  it("lets the organizer swap seats between groups and refuses once a match is played", async () => {
+    const id = await createTournament({ name: "Seat Edit", cutSize: 4 });
+    await addPlayers(id, 8);
+    const generated = await host.app.fetch(req("POST", `/tournaments/${id}/rounds`, {}));
+    expect(generated.status).toBe(200);
+    const beforeGroups = await run(id);
+    const before = beforeGroups.groupStage!;
+    const [a, b] = before.groups.map((group) => ({
+      label: group.label,
+      playerIds: [...group.playerIds],
+    }));
+    const swapped = [
+      { label: a!.label, playerIds: [b!.playerIds[0]!, ...a!.playerIds.slice(1)] },
+      { label: b!.label, playerIds: [a!.playerIds[0]!, ...b!.playerIds.slice(1)] },
+    ];
+
+    const edited = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/groups`, { groups: swapped }),
+    );
+    expect(edited.status).toBe(200);
+    const afterGroups = await run(id);
+    const after = afterGroups.groupStage!;
+    expect(after.groups.map((group) => group.playerIds)).toEqual(swapped.map((g) => g.playerIds));
+    const roundOneState = await run(id);
+    const roundOne = roundOneState.rounds.find((round) => round.roundNumber === 1)!;
+    const firstPod = roundOne.pods.find((pod) =>
+      pod.members.some((member) => member.playerId === b!.playerIds[0]),
+    )!;
+    expect(firstPod.members.map((member) => member.playerId).toSorted()).toEqual(
+      [b!.playerIds[0]!, a!.playerIds[1]!].toSorted(),
+    );
+
+    const unbalanced = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/groups`, {
+        groups: [
+          { label: a!.label, playerIds: a!.playerIds.slice(0, 3) },
+          { label: b!.label, playerIds: [...b!.playerIds, a!.playerIds[3]!] },
+        ].map((group) => ({ ...group, playerIds: group.playerIds.slice(0, 4) })),
+      }),
+    );
+    expect(unbalanced.status).toBe(400);
+
+    await reportRound(id, 1);
+    const locked = await host.app.fetch(
+      req("PUT", `/tournaments/${id}/groups`, { groups: swapped }),
+    );
+    expect(locked.status).toBe(400);
   });
 
   it("clears the seeds and leaves no orphan pods when the cut is re-rolled", async () => {

@@ -10,6 +10,10 @@ export const podTournamentsKeys = {
   all: (userId: string) => ["pod-tournaments", userId] as const,
   detail: (userId: string, id: string) => ["pod-tournaments", userId, id] as const,
   report: (token: string) => ["pod-tournaments", "report", token] as const,
+  snapshot: (userId: string, id: string, throughRound: number) =>
+    ["pod-tournaments", userId, id, "snapshot", throughRound] as const,
+  reportSnapshot: (token: string, throughRound: number) =>
+    ["pod-tournaments", "report", token, "snapshot", throughRound] as const,
 } as const;
 
 export const tournamentsKeys = {

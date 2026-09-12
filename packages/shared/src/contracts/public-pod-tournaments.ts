@@ -8,6 +8,7 @@ import {
   podRoundResponseSchema,
   podScoringSchemeSchema,
   podStandingRowSchema,
+  podStandingsSnapshotSchema,
   podTournamentStatusSchema,
   tournamentFormatSchema,
 } from "@openrift/shared/response-schemas";
@@ -53,6 +54,21 @@ export const publicPodTournamentsContract = {
     .input(z.object({ token: z.string().min(1) }))
     .errors({ NOT_FOUND: { message: "Not found" } })
     .output(podReportResponseSchema),
+  reportStandings: oc
+    .route({
+      method: "GET",
+      path: "/api/v1/pod-tournaments/report/{token}/standings",
+      tags: ["Pod Tournaments"],
+    })
+    .meta({ auth: "public" })
+    .input(
+      z.object({
+        token: z.string().min(1),
+        throughRound: z.coerce.number().int().positive().optional(),
+      }),
+    )
+    .errors({ NOT_FOUND: { message: "Not found" } })
+    .output(podStandingsSnapshotSchema),
   submitResult: oc
     .route({
       method: "PUT",

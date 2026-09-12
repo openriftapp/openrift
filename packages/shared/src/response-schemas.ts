@@ -604,6 +604,17 @@ export const groupQualificationRowSchema = z.object({
   qualified: z.boolean(),
 });
 
+export const finalStandingRowSchema = z.object({
+  playerId: z.string(),
+  displayName: z.string(),
+  place: z.number().int().positive(),
+  seed: z.number().int().positive().nullable(),
+  groupLabel: z.string(),
+  groupPlace: z.number().int().positive(),
+  /** The cut round the player lost in; null for the champion and for players who missed the cut. */
+  exitRound: z.number().int().positive().nullable(),
+});
+
 export const legendMetaShareSchema = z.object({
   legendCardId: z.string(),
   legendName: z.string().nullable(),
@@ -622,8 +633,24 @@ export const groupStageViewSchema = z
     cutGenerated: z.boolean(),
     /** Seeds are locked but the derived ranking no longer agrees with them. */
     seedsDiverged: z.boolean(),
+    /** Null until the final has a winner. */
+    finalStandings: z.array(finalStandingRowSchema).nullable(),
   })
   .openapi("GroupStageView");
+
+export const podStandingsSnapshotSchema = z
+  .object({
+    /** The last round folded in; 0 while nothing is finalized. */
+    throughRound: z.number().int().nonnegative(),
+    /** Highest finalized round number, so a viewer of an older snapshot can jump to the latest. */
+    latestRound: z.number().int().nonnegative(),
+    standings: z.array(podStandingRowSchema),
+    /** The rounds up to `throughRound`. */
+    rounds: z.array(podRoundResponseSchema),
+    /** Null unless the format is `group_cut`; derived from the rounds up to `throughRound`. */
+    groupStage: groupStageViewSchema.nullable(),
+  })
+  .openapi("PodStandingsSnapshot");
 
 export const podPlayerResponseSchema = z
   .object({
@@ -633,6 +660,7 @@ export const podPlayerResponseSchema = z
     droppedAfterRound: z.number().int().nullable(),
     /** The player's fixed 2v2 team, or null (always null in 1v1 play). */
     teamId: z.string().nullable(),
+    legendCardId: z.string().nullable(),
     createdAt: z.string(),
   })
   .openapi("PodPlayerResponse");

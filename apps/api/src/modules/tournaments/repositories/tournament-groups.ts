@@ -1,5 +1,6 @@
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
 import type { PodPenaltyBreakdown } from "@openrift/shared/pairing/types";
+import { legendDisplayName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { Kysely, Selectable } from "kysely";
 import { sql } from "kysely";
@@ -23,6 +24,10 @@ export interface GroupPodInsert {
   playerIds: [string, string];
   /** A walkover is written reported with placements only; null stays pending. */
   placements: [number, number] | null;
+}
+
+function legendName(card: { name: string; tags: readonly string[] }): string {
+  return legendDisplayName({ ...card, types: [WellKnown.cardType.LEGEND] });
 }
 
 export interface LegendMetaShareRow {
@@ -265,6 +270,13 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       });
     },
 
+    async replaceCutRoundPods(roundId: string, pods: GroupPodInsert[]): Promise<void> {
+      await db.transaction().execute(async (trx) => {
+        await trx.deleteFrom("pods").where("roundId", "=", roundId).execute();
+        await writePods(trx, roundId, pods);
+      });
+    },
+
     async createCutRound(
       tournamentId: string,
       roundNumber: number,
@@ -412,7 +424,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       }
       const rows = await db
         .selectFrom("cards")
-        .select(["id", "name"])
+        .select(["id", "name", "tags"])
         .where("id", "in", cardIds)
         .where((eb) =>
           eb.exists(
@@ -424,7 +436,7 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
           ),
         )
         .execute();
-      return new Map(rows.map((row) => [row.id, row.name]));
+      return new Map(rows.map((row) => [row.id, legendName(row)]));
     },
 
     async legendCardIdsFromDeckCheck(tournamentId: string): Promise<Map<string, string>> {
@@ -469,12 +481,17 @@ export function tournamentGroupsRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("tournamentLegendMetaShares as s")
         .leftJoin("cards as c", "c.id", "s.legendCardId")
-        .select(["s.legendCardId as legendCardId", "s.share as share", "c.name as legendName"])
+        .select([
+          "s.legendCardId as legendCardId",
+          "s.share as share",
+          "c.name as name",
+          "c.tags as tags",
+        ])
         .where("s.tournamentId", "=", tournamentId)
         .execute();
       return rows.map((row) => ({
         legendCardId: row.legendCardId,
-        legendName: row.legendName,
+        legendName: row.name === null ? null : legendName({ name: row.name, tags: row.tags ?? [] }),
         share: Number(row.share),
       }));
     },

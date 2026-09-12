@@ -54,11 +54,8 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
   const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
 
   return (
-    <div className="px-safe pt-4">
-      <section
-        className={cn(PAGE_WIDTH.capped, "relative overflow-hidden")}
-        style={{ backgroundImage: HERO_WASH }}
-      >
+    <div className={cn(PAGE_WIDTH.capped, "px-safe pt-4")}>
+      <section className="relative overflow-hidden" style={{ backgroundImage: HERO_WASH }}>
         <div className="flex items-end gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 py-6 pl-5">
             <Eyebrow variant="kicker">{heroKicker(detail)}</Eyebrow>

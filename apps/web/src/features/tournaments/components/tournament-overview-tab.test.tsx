@@ -46,6 +46,11 @@ vi.mock("@/features/tournaments/hooks/use-tournament-deck-check", () => ({
   }),
 }));
 
+// The plate pulls the catalog and init queries in; it has its own test.
+vi.mock("@/features/tournaments/components/champion-plate", () => ({
+  ChampionPlate: () => <div data-testid="champion-plate" />,
+}));
+
 vi.mock("@/lib/auth-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
@@ -349,7 +354,7 @@ describe("TournamentOverviewTab", () => {
   it("shows the leader on the throne with the trailing ranks", () => {
     render(<TournamentOverviewTab id="t-1" detail={makeDetail()} />);
 
-    const throne = screen.getByRole("link", { name: /Standings/u });
+    const throne = screen.getByRole("link", { name: /Full table/u });
     expect(within(throne).getByText("Player p1")).toBeInTheDocument();
     expect(within(throne).getByText("after round 1")).toBeInTheDocument();
     expect(within(throne).getByText("Player p4")).toBeInTheDocument();
@@ -366,7 +371,7 @@ describe("TournamentOverviewTab", () => {
     });
     render(<TournamentOverviewTab id="t-1" detail={makeDetail()} />);
 
-    const throne = screen.getByRole("link", { name: /Standings/u });
+    const throne = screen.getByRole("link", { name: /Full table/u });
     expect(within(throne).getAllByText("1")).toHaveLength(2);
     expect(within(throne).getByText("3")).toBeInTheDocument();
     expect(within(throne).queryByText("2")).not.toBeInTheDocument();
@@ -375,7 +380,7 @@ describe("TournamentOverviewTab", () => {
   it("counts pod wins rather than a match record on a pod event", () => {
     render(<TournamentOverviewTab id="t-1" detail={makeDetail()} />);
 
-    const throne = screen.getByRole("link", { name: /Standings/u });
+    const throne = screen.getByRole("link", { name: /Full table/u });
     expect(within(throne).getAllByText("1 pod win").length).toBeGreaterThan(0);
     expect(within(throne).queryByText("0-0-0")).not.toBeInTheDocument();
   });
@@ -396,7 +401,7 @@ describe("TournamentOverviewTab", () => {
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(screen.getByText("pods reported")).toBeInTheDocument();
     expect(screen.getByText(/2 of 4 scores in/u)).toBeInTheDocument();
-    expect(screen.getByText("Pod 3")).toBeInTheDocument();
+    expect(screen.getByText("Table 3")).toBeInTheDocument();
   });
 
   it("names 1v1 pairings matches rather than pods", () => {
@@ -418,8 +423,7 @@ describe("TournamentOverviewTab", () => {
     render(<TournamentOverviewTab id="t-1" detail={makeDetail({ pairingStyle: "swiss" })} />);
 
     expect(screen.getByText("matches reported")).toBeInTheDocument();
-    expect(screen.getByText("Match 3")).toBeInTheDocument();
-    expect(screen.queryByText("Pod 3")).not.toBeInTheDocument();
+    expect(screen.getByText("Table 3")).toBeInTheDocument();
   });
 
   it("nudges to generate the first round before one exists", () => {

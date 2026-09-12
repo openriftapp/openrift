@@ -16,7 +16,11 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { loadGroupForMember } from "../../groups/lib/group-access.js";
 import { isGroupCut } from "../lib/group-cut.js";
-import { buildPodRunDetail, podRunDetailById } from "../lib/pod-tournament-builders.js";
+import {
+  buildPodRunDetail,
+  buildStandingsSnapshot,
+  podRunDetailById,
+} from "../lib/pod-tournament-builders.js";
 import {
   loadParticipant,
   loadTournament,
@@ -53,6 +57,8 @@ import {
   setLegendMetaShares,
   startGroupRound as startGroupRoundEngine,
   startGroupStageRound as startGroupStageRoundEngine,
+  replaceCutRoundPairing,
+  replaceGroupSeats,
 } from "../services/group-cut.js";
 import {
   finalizeRound as finalizeRoundEngine,
@@ -729,6 +735,14 @@ export const tournamentsRouter = {
       return buildPodRunDetail(repos, tournament);
     },
   ),
+  standingsSnapshot: os.standingsSnapshot.handler(async ({ input, context }) => {
+    const repos = context.repos;
+    const tournament = await loadTournament(repos, input.id);
+    if (!(await repos.tournaments.hasRelationship(input.id, context.userId))) {
+      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Tournament not found");
+    }
+    return buildStandingsSnapshot(repos, tournament, input.throughRound);
+  }),
 
   generateRound: os.generateRound.handler(
     async ({ input, context }): Promise<PodTournamentDetailResponse> => {
@@ -774,6 +788,26 @@ export const tournamentsRouter = {
       const tournament = await loadTournament(repos, input.id);
       await requireManage(repos, tournament, userId);
       await setLegendMetaShares(repos, tournament, input.shares);
+      return podRunDetailById(repos, input.id);
+    },
+  ),
+
+  replaceGroupSeats: os.replaceGroupSeats.handler(
+    async ({ input, context }): Promise<PodTournamentDetailResponse> => {
+      const repos = context.repos;
+      const tournament = await loadTournament(repos, input.id);
+      await requireManage(repos, tournament, context.userId);
+      await replaceGroupSeats(repos, tournament, input.groups);
+      return podRunDetailById(repos, input.id);
+    },
+  ),
+
+  replaceCutPairing: os.replaceCutPairing.handler(
+    async ({ input, context }): Promise<PodTournamentDetailResponse> => {
+      const repos = context.repos;
+      const tournament = await loadTournament(repos, input.id);
+      await requireManage(repos, tournament, context.userId);
+      await replaceCutRoundPairing(repos, tournament, input.roundNumber, input.pods);
       return podRunDetailById(repos, input.id);
     },
   ),

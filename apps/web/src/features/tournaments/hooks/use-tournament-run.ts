@@ -1,6 +1,7 @@
 import { publicPodTournamentsContract } from "@openrift/shared/contracts/public-pod-tournaments";
 import { tournamentsContract } from "@openrift/shared/contracts/tournaments";
 import type {
+  PodStandingsSnapshot,
   PodReportResponse,
   PodTournamentDetailResponse,
 } from "@openrift/shared/types/api/pod-tournament";
@@ -75,6 +76,46 @@ const fetchReport = createServerFn({ method: "GET" })
     return data;
   });
 
+const fetchStandingsSnapshot = createServerFn({ method: "GET" })
+  .validator((input: { id: string; throughRound: number }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<PodStandingsSnapshot> =>
+    apiOrpcClient(tournamentsContract, context.cookie).standingsSnapshot(data),
+  );
+
+const fetchReportStandingsSnapshot = createServerFn({ method: "GET" })
+  .validator((input: { token: string; throughRound: number }) => input)
+  .handler(({ data }): Promise<PodStandingsSnapshot> =>
+    apiOrpcClient(publicPodTournamentsContract).reportStandings(data),
+  );
+
+export function tournamentStandingsSnapshotQueryOptions(
+  userId: string,
+  id: string,
+  throughRound: number,
+) {
+  return queryOptions({
+    queryKey: podTournamentsKeys.snapshot(userId, id, throughRound),
+    queryFn: () => fetchStandingsSnapshot({ data: { id, throughRound } }),
+  });
+}
+
+export function tournamentReportSnapshotQueryOptions(token: string, throughRound: number) {
+  return queryOptions({
+    queryKey: podTournamentsKeys.reportSnapshot(token, throughRound),
+    queryFn: () => fetchReportStandingsSnapshot({ data: { token, throughRound } }),
+  });
+}
+
+export function useStandingsSnapshot(id: string, throughRound: number) {
+  const userId = useRequiredUserId();
+  return useSuspenseQuery(tournamentStandingsSnapshotQueryOptions(userId, id, throughRound));
+}
+
+export function useReportStandingsSnapshot(token: string, throughRound: number) {
+  return useSuspenseQuery(tournamentReportSnapshotQueryOptions(token, throughRound));
+}
+
 export function tournamentRunStateQueryOptions(userId: string, id: string) {
   return queryOptions({
     queryKey: podTournamentsKeys.detail(userId, id),
@@ -135,6 +176,20 @@ const replacePairingFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context, data }): Promise<PodTournamentDetailResponse> =>
     apiOrpcClient(tournamentsContract, context.cookie).replacePairing(data),
+  );
+
+const replaceGroupSeatsFn = createServerFn({ method: "POST" })
+  .validator((input: { id: string; groups: { label: string; playerIds: string[] }[] }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<PodTournamentDetailResponse> =>
+    apiOrpcClient(tournamentsContract, context.cookie).replaceGroupSeats(data),
+  );
+
+const replaceCutPairingFn = createServerFn({ method: "POST" })
+  .validator((input: { id: string; roundNumber: number; pods: { playerIds: string[] }[] }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<PodTournamentDetailResponse> =>
+    apiOrpcClient(tournamentsContract, context.cookie).replaceCutPairing(data),
   );
 
 const rerollRoundFn = createServerFn({ method: "POST" })
@@ -234,6 +289,18 @@ export function useStartGroupStageRound() {
 export function useSetLegendMetaShares() {
   return useRunMutation<{ id: string; shares: LegendMetaShareInput[] }>((data) =>
     setLegendMetaSharesFn({ data }),
+  );
+}
+
+export function useReplaceGroupSeats() {
+  return useRunMutation<{ id: string; groups: { label: string; playerIds: string[] }[] }>((data) =>
+    replaceGroupSeatsFn({ data }),
+  );
+}
+
+export function useReplaceCutPairing() {
+  return useRunMutation<{ id: string; roundNumber: number; pods: { playerIds: string[] }[] }>(
+    (data) => replaceCutPairingFn({ data }),
   );
 }
 

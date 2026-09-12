@@ -252,9 +252,13 @@ function sortedStandingRows(
  * via `foldFinalized`.
  */
 export function podStandingsRepo(db: Kysely<Database>) {
-  function loadFinalizedRows(tournamentId: string): Promise<FinalizedMemberRow[]> {
+  function loadFinalizedRows(
+    tournamentId: string,
+    throughRound?: number,
+  ): Promise<FinalizedMemberRow[]> {
     return db
       .selectFrom("podRounds as r")
+      .$if(throughRound !== undefined, (qb) => qb.where("r.roundNumber", "<=", throughRound ?? 0))
       .innerJoin("pods as p", "p.roundId", "r.id")
       .innerJoin("podMembers as m", "m.podId", "p.id")
       .innerJoin("tournamentParticipants as pl", "pl.id", "m.playerId")
@@ -272,10 +276,14 @@ export function podStandingsRepo(db: Kysely<Database>) {
   }
 
   // One row per finalized bye (a player id, repeated if they byed in many rounds).
-  async function loadFinalizedByePlayerIds(tournamentId: string): Promise<string[]> {
+  async function loadFinalizedByePlayerIds(
+    tournamentId: string,
+    throughRound?: number,
+  ): Promise<string[]> {
     const rows = await db
       .selectFrom("podByes as b")
       .innerJoin("podRounds as r", "r.id", "b.roundId")
+      .$if(throughRound !== undefined, (qb) => qb.where("r.roundNumber", "<=", throughRound ?? 0))
       .select("b.playerId as playerId")
       .where("r.tournamentId", "=", tournamentId)
       .where("r.status", "=", "finalized")
@@ -284,6 +292,16 @@ export function podStandingsRepo(db: Kysely<Database>) {
   }
 
   return {
+    async highestFinalizedRoundNumber(tournamentId: string): Promise<number> {
+      const row = await db
+        .selectFrom("podRounds")
+        .select((eb) => eb.fn.max("roundNumber").as("highest"))
+        .where("tournamentId", "=", tournamentId)
+        .where("status", "=", "finalized")
+        .executeTakeFirst();
+      return row?.highest ?? 0;
+    },
+
     async loadPairingSnapshot(
       tournamentId: string,
       scoring: PodScoring,
@@ -361,7 +379,12 @@ export function podStandingsRepo(db: Kysely<Database>) {
       });
     },
 
-    async computeStandings(tournamentId: string, scoring: PodScoring): Promise<PodStandingRow[]> {
+    /** `throughRound` folds only the finalized rounds up to that number, for a standings snapshot. */
+    async computeStandings(
+      tournamentId: string,
+      scoring: PodScoring,
+      throughRound?: number,
+    ): Promise<PodStandingRow[]> {
       const [players, finalizedRows, finalizedByes] = await Promise.all([
         db
           .selectFrom("tournamentParticipants")
@@ -371,8 +394,8 @@ export function podStandingsRepo(db: Kysely<Database>) {
           .$narrowType<{ status: PodPlayerStatus }>()
           .orderBy("createdAt", "asc")
           .execute(),
-        loadFinalizedRows(tournamentId),
-        loadFinalizedByePlayerIds(tournamentId),
+        loadFinalizedRows(tournamentId, throughRound),
+        loadFinalizedByePlayerIds(tournamentId, throughRound),
       ]);
       const aggregates = foldFinalized(finalizedRows, finalizedByes, scoring);
       return sortedStandingRows(players, aggregates);

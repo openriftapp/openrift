@@ -5,6 +5,8 @@ import type {
   groupStageGroupSchema,
   groupStageViewSchema,
   groupStandingRowSchema,
+  finalStandingRowSchema,
+  podStandingsSnapshotSchema,
   legendMetaShareSchema,
   podByeResponseSchema,
   podMemberResponseSchema,
@@ -79,3 +81,5 @@ export type GroupStageGroupView = z.infer<typeof groupStageGroupSchema>;
 export type GroupQualificationRowView = z.infer<typeof groupQualificationRowSchema>;
 export type GroupStageView = z.infer<typeof groupStageViewSchema>;
 export type LegendMetaShareView = z.infer<typeof legendMetaShareSchema>;
+export type FinalStandingRow = z.infer<typeof finalStandingRowSchema>;
+export type PodStandingsSnapshot = z.infer<typeof podStandingsSnapshotSchema>;

@@ -6,8 +6,10 @@ import type {
   PodScoringScheme,
 } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentMatchFormat } from "@openrift/shared/types/api/tournament";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { groupStageRounds } from "@/features/tournaments/lib/cut-bracket-display";
 import type { GroupUnit } from "@/features/tournaments/lib/group-cut-units";
@@ -19,9 +21,12 @@ import {
   roundSummaryLine,
   unitReportProgress,
 } from "@/features/tournaments/lib/group-cut-units";
+import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
+import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 
 import { PodCard } from "./pod-card";
 import { StartGroupRoundButton } from "./start-group-round-button";
+import { TournamentLegend } from "./tournament-legend";
 
 interface PodResultEntry {
   playerId: string;
@@ -58,7 +63,9 @@ export function GroupStageSections({
 }: GroupStageSectionsProps) {
   const units = groupUnits(groupStage.groups);
   const labelByPlayer = groupLabelByPlayer(groupStage.groups);
+  const legendByPlayer = legendsByPlayer(groupStage);
   const stageRounds = groupStageRounds(rounds);
+  const canEditEarlier = canEnterResult && !groupStage.cutGenerated;
 
   if (units.length === 0) {
     return null;
@@ -72,11 +79,13 @@ export function GroupStageSections({
           unit={unit}
           rounds={stageRounds}
           labelByPlayer={labelByPlayer}
+          legendByPlayer={legendByPlayer}
           scheme={scheme}
           matchFormat={matchFormat}
           winPoints={winPoints}
           drawPoints={drawPoints}
           canEnterResult={canEnterResult}
+          canEditEarlier={canEditEarlier}
           onSubmitResult={onSubmitResult}
           onSubmitPlayerResult={onSubmitPlayerResult}
           onStartUnit={onStartUnit}
@@ -113,11 +122,13 @@ function GroupUnitSection({
   unit,
   rounds,
   labelByPlayer,
+  legendByPlayer,
   scheme,
   matchFormat,
   winPoints,
   drawPoints,
   canEnterResult,
+  canEditEarlier,
   onSubmitResult,
   onSubmitPlayerResult,
   onStartUnit,
@@ -126,11 +137,13 @@ function GroupUnitSection({
   unit: GroupUnit;
   rounds: PodRoundResponse[];
   labelByPlayer: Map<string, string>;
+  legendByPlayer: Map<string, PlayerLegend>;
   scheme: PodScoringScheme;
   matchFormat: TournamentMatchFormat;
   winPoints: number;
   drawPoints: number;
   canEnterResult: boolean;
+  canEditEarlier: boolean;
   onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<void>;
   onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
   onStartUnit?: (unit: GroupUnit) => void;
@@ -172,8 +185,96 @@ function GroupUnitSection({
         ) : null}
       </div>
       {currentPods.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <span className="text-muted-foreground text-sm">Round {unit.roundsStarted}</span>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {currentPods.map((pod) => (
+              <PodCard
+                key={pod.id}
+                pod={pod}
+                teamMode={false}
+                scheme={scheme}
+                matchFormat={matchFormat}
+                winPoints={winPoints}
+                drawPoints={drawPoints}
+                regionLabel={rawSlug}
+                showPenalty={false}
+                warnings={[]}
+                warningsExpanded={false}
+                nameById={podNames(currentPods)}
+                canEnter={canEnterResult}
+                crossGroup={isCrossGroupPod(pod, labelByPlayer)}
+                renderMemberBadge={(playerId) => (
+                  <MemberLegend legend={legendByPlayer.get(playerId)} />
+                )}
+                onSubmit={onSubmitResult}
+                onSubmitPlayerResult={onSubmitPlayerResult}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {earlier.map((entry) => (
+        <EarlierRound
+          key={entry.roundNumber}
+          roundNumber={entry.roundNumber}
+          pods={entry.pods}
+          labelByPlayer={labelByPlayer}
+          legendByPlayer={legendByPlayer}
+          scheme={scheme}
+          matchFormat={matchFormat}
+          winPoints={winPoints}
+          drawPoints={drawPoints}
+          canEnter={canEditEarlier}
+          onSubmitResult={onSubmitResult}
+          onSubmitPlayerResult={onSubmitPlayerResult}
+        />
+      ))}
+    </section>
+  );
+}
+
+function EarlierRound({
+  roundNumber,
+  pods,
+  labelByPlayer,
+  legendByPlayer,
+  scheme,
+  matchFormat,
+  winPoints,
+  drawPoints,
+  canEnter,
+  onSubmitResult,
+  onSubmitPlayerResult,
+}: {
+  roundNumber: number;
+  pods: PodResponse[];
+  labelByPlayer: Map<string, string>;
+  legendByPlayer: Map<string, PlayerLegend>;
+  scheme: PodScoringScheme;
+  matchFormat: TournamentMatchFormat;
+  winPoints: number;
+  drawPoints: number;
+  canEnter: boolean;
+  onSubmitResult: (podId: string, results: PodResultEntry[]) => Promise<void>;
+  onSubmitPlayerResult?: (podId: string, playerId: string, gamePoints: number) => Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <ExpandToggle
+        expanded={expanded}
+        aria-label={`${expanded ? "Collapse" : "Expand"} round ${roundNumber}`}
+        className="text-muted-foreground max-w-full text-sm"
+        onClick={() => {
+          setExpanded((open) => !open);
+        }}
+      >
+        <span className="truncate">{roundSummaryLine(roundNumber, pods)}</span>
+      </ExpandToggle>
+      {expanded ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {currentPods.map((pod) => (
+          {pods.map((pod) => (
             <PodCard
               key={pod.id}
               pod={pod}
@@ -186,25 +287,33 @@ function GroupUnitSection({
               showPenalty={false}
               warnings={[]}
               warningsExpanded={false}
-              nameById={podNames(currentPods)}
-              canEnter={canEnterResult}
+              nameById={podNames(pods)}
+              canEnter={canEnter}
               crossGroup={isCrossGroupPod(pod, labelByPlayer)}
+              renderMemberBadge={(playerId) => (
+                <MemberLegend legend={legendByPlayer.get(playerId)} />
+              )}
               onSubmit={onSubmitResult}
               onSubmitPlayerResult={onSubmitPlayerResult}
             />
           ))}
         </div>
       ) : null}
-      {earlier.length > 0 ? (
-        <ul className="text-muted-foreground flex flex-col gap-1 text-sm">
-          {earlier.map((entry) => (
-            <li key={entry.roundNumber} className="truncate">
-              {roundSummaryLine(entry.roundNumber, entry.pods)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </section>
+    </div>
+  );
+}
+
+function MemberLegend({ legend }: { legend: PlayerLegend | undefined }) {
+  if (legend === undefined) {
+    return null;
+  }
+  return (
+    <TournamentLegend
+      legendCardId={legend.legendCardId}
+      legendName={legend.legendName}
+      championOnly
+      className="text-muted-foreground shrink-0 text-xs"
+    />
   );
 }
 

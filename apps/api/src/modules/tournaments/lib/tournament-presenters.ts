@@ -132,6 +132,7 @@ export function toPodPlayer(row: PodRosterPlayer): PodPlayerResponse {
     status: row.status,
     droppedAfterRound: row.droppedAfterRound,
     teamId: row.teamId,
+    legendCardId: row.legendCardId,
     createdAt: row.createdAt.toISOString(),
   };
 }

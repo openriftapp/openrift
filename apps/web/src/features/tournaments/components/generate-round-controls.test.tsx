@@ -28,6 +28,7 @@ function makePlayer(id: string, displayName: string): PodPlayerResponse {
     status: "active",
     droppedAfterRound: null,
     teamId: null,
+    legendCardId: null,
     createdAt: "2026-07-01T10:00:00Z",
   };
 }

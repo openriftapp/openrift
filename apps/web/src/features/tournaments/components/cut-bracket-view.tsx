@@ -14,8 +14,11 @@ import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-displa
 import { buildBracketColumns } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
 import { groupLabelByPlayer } from "@/features/tournaments/lib/group-cut-units";
+import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
+import { legendsByPlayer } from "@/features/tournaments/lib/player-run";
 
 import { PodCard } from "./pod-card";
+import { TournamentLegend } from "./tournament-legend";
 
 interface PodResultEntry {
   playerId: string;
@@ -50,6 +53,7 @@ export function CutBracketView({
     groupStage.ranking.flatMap((row) => (row.seed === null ? [] : [[row.playerId, row.seed]])),
   );
   const groupByPlayer = groupLabelByPlayer(groupStage.groups);
+  const legendByPlayer = legendsByPlayer(groupStage);
   const roundByNumber = new Map(rounds.map((round) => [round.roundNumber, round]));
 
   return (
@@ -68,7 +72,7 @@ export function CutBracketView({
                   return (
                     <PlaceholderMatch
                       key={match.key}
-                      label={cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)}
+                      label={`${cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)} · Table ${match.podNumber}`}
                       match={match}
                     />
                   );
@@ -88,13 +92,14 @@ export function CutBracketView({
                     warningsExpanded={false}
                     nameById={new Map()}
                     canEnter={canEnterResult(round, pod)}
-                    title={cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)}
+                    title={`${cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)} · Table ${match.podNumber}`}
                     renderMemberLeading={(playerId) => (
                       <SeedPill seed={seedByPlayer.get(playerId)} />
                     )}
                     renderMemberBadge={(playerId) => (
                       <MemberNotes
                         groupLabel={groupByPlayer.get(playerId)}
+                        legend={legendByPlayer.get(playerId)}
                         chooser={isHigherSeed(pod, playerId, seedByPlayer)}
                       />
                     )}
@@ -140,13 +145,23 @@ function SeedPill({ seed }: { seed: number | undefined }) {
 
 function MemberNotes({
   groupLabel,
+  legend,
   chooser,
 }: {
   groupLabel: string | undefined;
+  legend: PlayerLegend | undefined;
   chooser: boolean;
 }) {
   return (
     <>
+      {legend ? (
+        <TournamentLegend
+          legendCardId={legend.legendCardId}
+          legendName={legend.legendName}
+          championOnly
+          className="text-muted-foreground shrink-0 text-xs"
+        />
+      ) : null}
       {groupLabel ? (
         <Badge variant="muted" className="shrink-0">
           {groupLabel}

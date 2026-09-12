@@ -7,6 +7,7 @@ import { requireUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { buildGroupStageBundle } from "../lib/group-cut-builders.js";
 import { scoringOf } from "../lib/pod-scoring.js";
+import { buildStandingsSnapshot } from "../lib/pod-tournament-builders.js";
 import { toRoundResponse } from "../lib/pod-tournament-presenters.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import { assertGroupCutRun, startGroupRound } from "../services/group-cut.js";
@@ -67,6 +68,14 @@ export const publicPodTournamentsRouter = {
     }
     const canSubmit = tournament.reportToken === input.token;
     return buildReport(repos, tournament, canSubmit);
+  }),
+
+  reportStandings: os.reportStandings.handler(async ({ input, context, errors }) => {
+    const tournament = await context.repos.tournaments.findByShareToken(input.token);
+    if (!tournament || tournament.pairingStyle === "none") {
+      throw errors.NOT_FOUND({ message: "Not found" });
+    }
+    return buildStandingsSnapshot(context.repos, tournament, input.throughRound);
   }),
 
   submitResult: os.submitResult.handler(

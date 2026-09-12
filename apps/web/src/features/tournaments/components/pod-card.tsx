@@ -282,9 +282,7 @@ export function PodCard({
             size="sm"
             shape="round"
           />
-          <span>
-            {title ?? (teamMode ? `Match ${pod.podNumber}` : pairingLabel(pod.size, pod.podNumber))}
-          </span>
+          <span>{title ?? pairingLabel(pod.podNumber)}</span>
           <span className="ml-auto flex items-center gap-2">
             {crossGroup ? <Badge variant="info">Cross-group</Badge> : null}
             {showPenalty && !warningsExpanded ? (

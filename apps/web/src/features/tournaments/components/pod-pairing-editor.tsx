@@ -26,7 +26,10 @@ import { Heading } from "@/components/heading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useReplaceTournamentPairing } from "@/features/tournaments/hooks/use-tournament-run";
+import {
+  useReplaceCutPairing,
+  useReplaceTournamentPairing,
+} from "@/features/tournaments/hooks/use-tournament-run";
 import {
   movePlayer,
   participantIds,
@@ -76,6 +79,7 @@ export function PodPairingEditor({
   snapshot,
   mode = "pod",
   regionLabel,
+  podLabel,
   onClose,
 }: {
   id: string;
@@ -83,9 +87,12 @@ export function PodPairingEditor({
   snapshot: PodSnapshotPlayer[];
   mode?: EditorMode;
   regionLabel?: (slug: string) => string;
+  /** Names a pod card by its editor index; cut brackets pass the slot label. */
+  podLabel?: (index: number) => string;
   onClose: () => void;
 }) {
   const teamMode = mode === "team";
+  const cutMode = mode === "cut";
   const players = snapshotToPlayers(snapshot);
   // In team mode the editor's draggable unit is the TEAM; the save expands
   // team ids back to their seated players.
@@ -94,6 +101,8 @@ export function PodPairingEditor({
   const [state, setState] = useState<EditorState>(() => seedState);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const replace = useReplaceTournamentPairing();
+  const replaceCut = useReplaceCutPairing();
+  const saving = replace.isPending || replaceCut.isPending;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -201,8 +210,15 @@ export function PodPairingEditor({
           byes: payload.byes.flatMap(expandUnit),
         }
       : payload;
+    const saved = cutMode
+      ? replaceCut.mutateAsync({
+          id,
+          roundNumber: round.roundNumber,
+          pods: expanded.pods.map((pod) => ({ playerIds: pod.playerIds })),
+        })
+      : replace.mutateAsync({ id, roundNumber: round.roundNumber, ...expanded });
     try {
-      await replace.mutateAsync({ id, roundNumber: round.roundNumber, ...expanded });
+      await saved;
       onClose();
     } catch {
       // Reported by the global mutation error toast (see reportMutationError).
@@ -226,9 +242,11 @@ export function PodPairingEditor({
         <p className="text-muted-foreground text-sm">
           {mode === "team"
             ? "Drag teams between matches, onto New match, or into Byes. Every match must have exactly 2 teams to save. Warnings are advisory."
-            : mode === "swiss"
-              ? "Drag players between matches, onto New match, or into Byes. Every match must have exactly 2 players to save. Warnings are advisory."
-              : "Every pod needs 3 or 4 players. Warnings are advisory."}
+            : mode === "cut"
+              ? "Drag players between the bracket slots. Every match must have exactly 2 players to save; the slot order stays as it is."
+              : mode === "swiss"
+                ? "Drag players between matches, onto New match, or into Byes. Every match must have exactly 2 players to save. Warnings are advisory."
+                : "Every pod needs 3 or 4 players. Warnings are advisory."}
         </p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {state.pods.map((pod, index) => (
@@ -240,6 +258,7 @@ export function PodPairingEditor({
               warnings={podWarnings.get(index) ?? []}
               nameById={nameById}
               mode={mode}
+              label={podLabel?.(index)}
               regionLabel={regionLabel}
             >
               {pod.playerIds.map((playerId) => (
@@ -252,17 +271,21 @@ export function PodPairingEditor({
               ))}
             </PodDropZone>
           ))}
-          <NewPodDropZone mode={mode} />
-          <ByeDropZone byeIds={state.byes} warnings={byeWarnings} nameById={nameById}>
-            {state.byes.map((playerId) => (
-              <PlayerChip
-                key={playerId}
-                playerId={playerId}
-                name={nameById.get(playerId) ?? "Unknown"}
-                score={scoreById.get(playerId) ?? 0}
-              />
-            ))}
-          </ByeDropZone>
+          {cutMode ? null : (
+            <>
+              <NewPodDropZone mode={mode} />
+              <ByeDropZone byeIds={state.byes} warnings={byeWarnings} nameById={nameById}>
+                {state.byes.map((playerId) => (
+                  <PlayerChip
+                    key={playerId}
+                    playerId={playerId}
+                    name={nameById.get(playerId) ?? "Unknown"}
+                    score={scoreById.get(playerId) ?? 0}
+                  />
+                ))}
+              </ByeDropZone>
+            </>
+          )}
         </div>
         {errors.length > 0 ? (
           <Alert variant="destructive">
@@ -276,11 +299,11 @@ export function PodPairingEditor({
           </Alert>
         ) : null}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={replace.isPending}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={() => void handleSave()} disabled={!canSave || replace.isPending}>
-            {replace.isPending ? "Saving…" : "Save pairing"}
+          <Button onClick={() => void handleSave()} disabled={!canSave || saving}>
+            {saving ? "Saving…" : "Save pairing"}
           </Button>
         </div>
       </div>
@@ -362,6 +385,7 @@ function PodDropZone({
   warnings,
   nameById,
   mode,
+  label,
   regionLabel,
   children,
 }: {
@@ -371,6 +395,7 @@ function PodDropZone({
   warnings: PairingWarning[];
   nameById: Map<string, string>;
   mode: EditorMode;
+  label?: string;
   regionLabel?: (slug: string) => string;
   children: React.ReactNode;
 }) {
@@ -387,7 +412,7 @@ function PodDropZone({
         <CardTitle className="flex items-center justify-between gap-2">
           {/* Named by the event's style, not seat count like pairingLabel():
               a match dragged through 1 or 3 players is still a match. */}
-          <span>{mode === "pod" ? `Pod ${index + 1}` : `Match ${index + 1}`}</span>
+          <span>{label ?? (mode === "pod" ? `Pod ${index + 1}` : `Match ${index + 1}`)}</span>
           <span className={cn("font-normal", valid ? "text-muted-foreground" : "text-destructive")}>
             {mode === "team"
               ? `${count} team${count === 1 ? "" : "s"}`

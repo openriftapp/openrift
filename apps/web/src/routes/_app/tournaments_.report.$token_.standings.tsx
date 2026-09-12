@@ -6,6 +6,10 @@ import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/tournaments_/report/$token_/standings")({
+  validateSearch: (search: Record<string, unknown>): { round?: number } => {
+    const round = Number(search.round);
+    return Number.isInteger(round) && round > 0 ? { round } : {};
+  },
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Standings", noIndex: true }),
   loader: async ({ context, params }) => {
     try {

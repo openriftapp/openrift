@@ -173,6 +173,28 @@ describe.skipIf(!ctx)("podTournamentsRepo (integration)", () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 
+  it("folds a standings snapshot over the finalized rounds up to a cutoff", async () => {
+    const { tournament } = await freshTournament(8);
+    await pairNextRound(repos, tournament);
+    const first = await reportOpenRound(tournament.id);
+    await finalizeRound(repos, (await tournamentsRepo.findById(tournament.id))!, first.roundNumber);
+    const afterOne = await podRepo.computeStandings(tournament.id, scoring);
+
+    await pairNextRound(repos, (await tournamentsRepo.findById(tournament.id))!);
+    const second = await reportOpenRound(tournament.id);
+    await finalizeRound(
+      repos,
+      (await tournamentsRepo.findById(tournament.id))!,
+      second.roundNumber,
+    );
+
+    expect(await podRepo.highestFinalizedRoundNumber(tournament.id)).toBe(2);
+    expect(await podRepo.computeStandings(tournament.id, scoring, 1)).toEqual(afterOne);
+    const latest = await podRepo.computeStandings(tournament.id, scoring, 2);
+    expect(latest).toEqual(await podRepo.computeStandings(tournament.id, scoring));
+    expect(latest.every((row) => row.roundsPlayed === 2)).toBe(true);
+  });
+
   it("batches winners across tournaments, matching the per-tournament standings", async () => {
     const { tournament: first } = await freshTournament(8);
     await pairNextRound(repos, first);

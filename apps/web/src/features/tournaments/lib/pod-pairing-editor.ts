@@ -18,7 +18,8 @@ export interface PairingPayload {
   byes: string[];
 }
 
-export type EditorMode = "pod" | "swiss" | "team";
+/** `cut` is a Swiss-shaped bracket round: two per match, no byes, slot order fixed. */
+export type EditorMode = "pod" | "swiss" | "team" | "cut";
 
 export interface PartitionValidation {
   ok: boolean;
@@ -60,7 +61,7 @@ export function validatePartition(
 ): PartitionValidation {
   const errors: string[] = [];
   const sizeOk = (size: number): boolean =>
-    mode === "swiss" || mode === "team" ? size === 2 : size === 3 || size === 4;
+    mode === "pod" ? size === 3 || size === 4 : size === 2;
   const podValid = state.pods.map((pod) => {
     const size = pod.playerIds.length;
     return size === 0 || sizeOk(size);
@@ -71,7 +72,7 @@ export function validatePartition(
       errors.push(
         mode === "team"
           ? `Match ${index + 1} has ${size} team${size === 1 ? "" : "s"}. Matches must have exactly 2.`
-          : mode === "swiss"
+          : mode === "swiss" || mode === "cut"
             ? `Match ${index + 1} has ${size} players. Matches must have exactly 2.`
             : `Pod ${index + 1} has ${size} players. Pods must have 3 or 4.`,
       );

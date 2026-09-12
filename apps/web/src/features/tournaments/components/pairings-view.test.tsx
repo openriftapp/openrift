@@ -479,7 +479,7 @@ describe("PairingsView 2v2 team matches", () => {
     });
 
     expect(screen.getByText("1 match")).toBeInTheDocument();
-    expect(screen.getByText("Match 1")).toBeInTheDocument();
+    expect(screen.getByText("Table 1")).toBeInTheDocument();
     expect(screen.getByText("vs")).toBeInTheDocument();
     expect(screen.getByText("Ashe & Braum")).toBeInTheDocument();
     expect(screen.getByText("Caitlyn & Darius")).toBeInTheDocument();

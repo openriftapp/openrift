@@ -423,10 +423,9 @@ describe("hasPairing", () => {
 });
 
 describe("pairingLabel", () => {
-  it("names a 1v1 a match and anything larger a pod", () => {
-    expect(pairingLabel(2, 3)).toBe("Match 3");
-    expect(pairingLabel(3, 3)).toBe("Pod 3");
-    expect(pairingLabel(4, 1)).toBe("Pod 1");
+  it("names every pairing by its table", () => {
+    expect(pairingLabel(3)).toBe("Table 3");
+    expect(pairingLabel(1)).toBe("Table 1");
   });
 });
 

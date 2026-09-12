@@ -9,11 +9,12 @@ export const Route = createLazyFileRoute("/_app/_authenticated/tournaments_/$id_
 
 function TournamentStandingsRoute() {
   const { id } = Route.useParams();
+  const { round } = Route.useSearch();
   return (
     <TournamentSectionFrame
       id={id}
       section="standings"
-      render={(detail) => <TournamentStandingsTab id={id} detail={detail} />}
+      render={(detail) => <TournamentStandingsTab id={id} detail={detail} round={round} />}
     />
   );
 }

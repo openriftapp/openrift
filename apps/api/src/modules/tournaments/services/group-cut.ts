@@ -4,6 +4,7 @@ import { nextCutRoundPairs, seedBracket } from "@openrift/shared/pairing/cut-bra
 import type {
   BracketSeed,
   BracketSlot,
+  GroupPlan,
   GroupPlanGroup,
 } from "@openrift/shared/pairing/group-cut-types";
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
@@ -91,6 +92,15 @@ async function generateGroups(
     active.map((player) => player.id),
     mathRandom,
   );
+  await writeGroupStage(repos, tournament, players, plan);
+}
+
+async function writeGroupStage(
+  repos: Repos,
+  tournament: Tournament,
+  players: readonly GroupCutPlayer[],
+  plan: GroupPlan,
+): Promise<void> {
   const units = groupUnits(plan);
   const offsets = unitPodOffsets(units);
   const dropped = droppedIdsOf(players);
@@ -106,6 +116,54 @@ async function generateGroups(
     })),
     firstRoundPods,
   });
+}
+
+/** Seat order is the round schedule, so moving seats is the whole edit; group sizes and pairings are fixed. */
+export async function replaceGroupSeats(
+  repos: Repos,
+  tournament: Tournament,
+  groups: readonly { label: string; playerIds: readonly string[] }[],
+): Promise<void> {
+  assertGroupCutRun(tournament);
+  const { players, roundRows } = await loadState(repos, tournament);
+  const context = await loadGroupCutContext(repos, tournament, players, roundRows);
+  if (context.groups.length === 0) {
+    throw badRequest("The groups have not been drawn yet.");
+  }
+  const laterPods = groupStageRounds(roundRows).some(
+    (entry) => entry.round.roundNumber > 1 && entry.pods.length > 0,
+  );
+  const played = roundRows.some((entry) =>
+    entry.pods.some((pod) => pod.pod.resultStatus === "reported"),
+  );
+  if (laterPods || played) {
+    throw badRequest("The groups can only be edited before a group match has a result.");
+  }
+  const current = context.plan;
+  const byLabel = new Map(groups.map((group) => [group.label, group.playerIds]));
+  if (byLabel.size !== groups.length || byLabel.size !== current.groups.length) {
+    throw badRequest("Every group must appear exactly once.");
+  }
+  const incoming = groups.flatMap((group) => group.playerIds);
+  const expected = new Set(current.groups.flatMap((group) => group.playerIds));
+  if (
+    new Set(incoming).size !== incoming.length ||
+    incoming.length !== expected.size ||
+    incoming.some((playerId) => !expected.has(playerId))
+  ) {
+    throw badRequest("The edited groups must hold exactly the players already in the groups.");
+  }
+  const plan: GroupPlan = {
+    groups: current.groups.map((group) => {
+      const playerIds = byLabel.get(group.label);
+      if (playerIds === undefined || playerIds.length !== group.playerIds.length) {
+        throw badRequest(`Group ${group.label} must keep ${group.playerIds.length} players.`);
+      }
+      return { ...group, playerIds: [...playerIds] };
+    }),
+  };
+  await repos.tournamentGroups.deleteGroupStage(tournament.id);
+  await writeGroupStage(repos, tournament, players, plan);
 }
 
 async function assertLegendsOnFile(
@@ -427,6 +485,47 @@ export function assertGroupCutRun(tournament: Tournament): void {
 }
 
 /** Rounds 1 to 3 are finalized together when the cut is generated, never on their own. */
+/** Slot order is kept: pod n of the next round still pairs the winners of pods 2n-1 and 2n. */
+export async function replaceCutRoundPairing(
+  repos: Repos,
+  tournament: Tournament,
+  roundNumber: number,
+  pods: readonly { playerIds: readonly string[] }[],
+): Promise<void> {
+  if (!isGroupCut(tournament) || isGroupStageRound(roundNumber)) {
+    throw badRequest("Only cut rounds can be edited here.");
+  }
+  const { roundRows } = await loadState(repos, tournament);
+  const rows = roundRows.find((entry) => entry.round.roundNumber === roundNumber);
+  assertFound(rows, "Round not found");
+  if (rows.round.status === "finalized") {
+    throw badRequest("A finalized round cannot be edited.");
+  }
+  if (await repos.podTournaments.anyResultEntered(rows.round.id)) {
+    throw badRequest("A round cannot be edited once a match result has been entered.");
+  }
+  if (pods.length !== rows.pods.length || pods.some((pod) => pod.playerIds.length !== 2)) {
+    throw badRequest(`This round has ${rows.pods.length} matches of two players each.`);
+  }
+  const incoming = pods.flatMap((pod) => pod.playerIds);
+  const current = new Set(rows.pods.flatMap((entry) => entry.members.map((m) => m.playerId)));
+  if (
+    new Set(incoming).size !== incoming.length ||
+    incoming.length !== current.size ||
+    incoming.some((playerId) => !current.has(playerId))
+  ) {
+    throw badRequest("The edited bracket must hold exactly the players already in this round.");
+  }
+  await repos.tournamentGroups.replaceCutRoundPods(
+    rows.round.id,
+    pods.map((pod, index) => ({
+      podNumber: index + 1,
+      playerIds: [pod.playerIds[0] ?? "", pod.playerIds[1] ?? ""],
+      placements: null,
+    })),
+  );
+}
+
 export function assertCutRoundEditable(tournament: Tournament, roundNumber: number): void {
   if (isGroupCut(tournament) && isGroupStageRound(roundNumber)) {
     throw badRequest("Group rounds are finalized when the cut is generated.");
