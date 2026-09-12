@@ -12,6 +12,7 @@ import { seoHead } from "@/lib/seo";
 import { deckShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createFileRoute("/_app/decks_/share/$token")({
   head: ({ loaderData, params }) => {
@@ -84,11 +85,11 @@ function SharedDeckNotFound() {
       <EmptyState
         className="py-16"
         icon={Link2OffIcon}
-        title="This share link no longer works"
-        description="The deck's owner may have stopped sharing it, or the link wasn't copied completely."
+        title={m.decks_share_gone_title()}
+        description={m.decks_share_gone_description()}
       >
         <Link to="/decks" className={buttonVariants()}>
-          Go to your decks
+          {m.decks_share_gone_action()}
         </Link>
       </EmptyState>
     </div>

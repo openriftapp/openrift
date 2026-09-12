@@ -43,9 +43,7 @@ export function LegendPickerDialog({
           <DialogTitle>
             {m.tournaments_legend_picker_title({ name: target?.name ?? "" })}
           </DialogTitle>
-          <DialogDescription>
-            The Legend this player brings. It shows in the standings and the participant list.
-          </DialogDescription>
+          <DialogDescription>{m.tournaments_legend_picker_description()}</DialogDescription>
         </DialogHeader>
         {target ? (
           <Suspense

@@ -456,8 +456,7 @@ function AddDeckDialog({
               <Label>{m.tournaments_deck_check_participant_label()}</Label>
               {rosterItems.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  No participants without a deck. Add them on the Participants tab, then attach a
-                  deck here.
+                  {m.tournaments_deck_check_no_participants_without_deck()}
                 </p>
               ) : (
                 <Select

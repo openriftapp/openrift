@@ -1,4 +1,5 @@
 import type { Logger } from "@openrift/shared/logger";
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
@@ -18,8 +19,17 @@ const REQUEST: GroupJoinRequest = {
   requesterUserId: "user-1",
 };
 
-function makeRepos(recipients: { userId: string; email: string; name: string | null }[]) {
-  const listGroupJoinRequestRecipients = vi.fn().mockResolvedValue(recipients);
+function makeRepos(
+  recipients: {
+    userId: string;
+    email: string;
+    name: string | null;
+    displayLocale?: DisplayLocale;
+  }[],
+) {
+  const listGroupJoinRequestRecipients = vi
+    .fn()
+    .mockResolvedValue(recipients.map((row) => ({ displayLocale: "en", ...row })));
   const findById = vi
     .fn()
     .mockResolvedValue({ id: "user-1", name: "Garen", email: "joiner@example.com" });
@@ -147,6 +157,7 @@ function makeApprovalRepos(
     emailVerified: boolean;
     name: string | null;
     emailNotifications: Record<string, unknown>;
+    displayLocale?: DisplayLocale;
   } | null = {
     email: "joiner@example.com",
     emailVerified: true,
@@ -154,7 +165,9 @@ function makeApprovalRepos(
     emailNotifications: {},
   },
 ) {
-  const getEmailNotificationContext = vi.fn().mockResolvedValue(context ?? undefined);
+  const getEmailNotificationContext = vi
+    .fn()
+    .mockResolvedValue(context === null ? undefined : { displayLocale: "en", ...context });
   const repos = { userPreferences: { getEmailNotificationContext } } as unknown as Repos;
   return { repos, getEmailNotificationContext };
 }

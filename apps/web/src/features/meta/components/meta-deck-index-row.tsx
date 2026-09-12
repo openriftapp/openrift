@@ -93,15 +93,13 @@ function Owned({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Market
           </>
         ) : (
           <>
-            <span>
-              {cost.owned}/{cost.needed} owned
-            </span>
+            <span>{m.meta_deck_owned_ratio({ owned: cost.owned, needed: cost.needed })}</span>
             {cost.toComplete !== undefined && cost.toComplete > 0 && (
               <span>
                 <span className="text-foreground font-semibold">
                   {compactFormatterForMarketplace(marketplace)(cost.toComplete)}
                 </span>{" "}
-                to complete
+                {m.meta_deck_to_complete()}
               </span>
             )}
           </>
@@ -214,7 +212,7 @@ export function MetaDeckIndexRow({
                       <span className="text-foreground font-semibold">
                         {compactFormatterForMarketplace(marketplace)(cost.toComplete)}
                       </span>{" "}
-                      to complete
+                      {m.meta_deck_to_complete()}
                     </>
                   )
                 )}

@@ -73,15 +73,13 @@ function OwnedRow({ cost, marketplace }: { cost?: MetaDeckCost; marketplace: Mar
           </>
         ) : (
           <>
-            <span>
-              {cost.owned} of {cost.needed} owned
-            </span>
+            <span>{m.meta_deck_owned_of({ owned: cost.owned, needed: cost.needed })}</span>
             {toComplete !== undefined && toComplete > 0 && (
               <span>
                 <span className="text-foreground font-semibold">
                   {compactFormatterForMarketplace(marketplace)(toComplete)}
                 </span>{" "}
-                to complete
+                {m.meta_deck_to_complete()}
               </span>
             )}
           </>

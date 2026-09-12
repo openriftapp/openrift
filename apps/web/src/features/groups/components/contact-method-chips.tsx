@@ -19,6 +19,7 @@ import { Pressable } from "@/components/ui/pressable";
 import type { BrandIconData } from "@/features/admin/lib/source-brand";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const BRAND_ICONS: Partial<Record<ContactMethodType, BrandIconData>> = {
   discord: siDiscord,
@@ -101,7 +102,7 @@ function ContactChip({ method }: { method: ContactMethod }) {
     <button
       type="button"
       className={cn(chipClass, "hover:text-foreground transition-colors")}
-      title={`Copy ${label}: ${method.value}`}
+      title={m.groups_contact_copy_title({ label, value: method.value })}
       onClick={() => void copy(method.value)}
     >
       <ContactGlyph type={method.type} className="size-3" />
@@ -148,7 +149,7 @@ function ContactChipCompact({ method }: { method: ContactMethod }) {
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               <ExternalLinkIcon />
-              Open
+              {m.groups_contact_open()}
             </a>
           )}
           <Button size="sm" variant="outline" onClick={() => void copy(method.value)}>

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import { EditFormatTagsDialog } from "@/features/decks/components/edit-format-tags-dialog";
 import { useCustomTagList, useDeckFormatList } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 interface Props {
   deckId: string;
@@ -45,7 +46,7 @@ export function FormatConfigCard({ deckId, format, formatConfig, readOnly }: Pro
         <>
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <PencilIcon className="size-4" />
-            Edit
+            {m.common_edit()}
           </Button>
           <EditFormatTagsDialog
             deckId={deckId}

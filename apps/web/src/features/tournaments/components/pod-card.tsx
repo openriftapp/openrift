@@ -195,7 +195,7 @@ export function PodCard({
               <Badge
                 variant="secondary"
                 className="shrink-0 tabular-nums"
-                title={`${lead.gamePoints} game points`}
+                title={m.tournaments_pod_game_points_title({ points: lead.gamePoints })}
               >
                 {lead.gamePoints}
               </Badge>

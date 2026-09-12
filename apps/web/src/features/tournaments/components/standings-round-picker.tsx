@@ -48,7 +48,7 @@ export function StandingsRoundPicker({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Label htmlFor="standings-round">Standings</Label>
+        <Label htmlFor="standings-round">{m.tournaments_standings_picker_label()}</Label>
         <Select
           items={items}
           value={value}
@@ -77,11 +77,10 @@ export function StandingsRoundPicker({
           <span className="flex items-center gap-2">
             <HistoryIcon className="text-muted-foreground size-4 shrink-0" />
             <span>
-              Standings as they stood after round {selected} of {latestRound}. Results corrected
-              since then are included.
+              {m.tournaments_standings_historic_note({ round: selected, total: latestRound })}
             </span>
           </span>
-          <Button onClick={() => onSelect(null)}>Show latest standings</Button>
+          <Button onClick={() => onSelect(null)}>{m.tournaments_standings_show_latest()}</Button>
         </Callout>
       )}
     </div>

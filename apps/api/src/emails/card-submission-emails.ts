@@ -57,6 +57,7 @@ export function buildCardSubmissionAlertEmail(input: CardSubmissionAlertEmailInp
   return {
     subject,
     html: renderEmailLayout({
+      locale: "en",
       heading: "New card submission",
       bodyHtml,
       footerNote: FOOTER_NOTE,

@@ -14,6 +14,7 @@ import {
   useCategoryTagSlugs,
 } from "@/features/decks/components/format-tag-multi-select";
 import { useUpdateDeckMeta } from "@/features/decks/hooks/use-decks";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Switching INTO a tag-locked format from the action menu clears
@@ -33,10 +34,12 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
   if (availableSlugs.length === 0) {
     return (
       <Alert variant="warning">
-        <AlertTitle>No {config.nounPlural} available</AlertTitle>
+        <AlertTitle>
+          {m.decks_format_tag_none_available({ nounPlural: config.nounPlural })}
+        </AlertTitle>
         <AlertDescription>
-          An admin needs to create at least one custom tag in the <code>{config.category}</code>{" "}
-          category before this format can be built.
+          {m.decks_format_tag_none_available_before()} <code>{config.category}</code>{" "}
+          {m.decks_format_tag_none_available_after()}
         </AlertDescription>
       </Alert>
     );
@@ -56,10 +59,11 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
   return (
     <Callout className="space-y-4">
       <div>
-        <Heading level={2}>Pick one or more {config.nounPlural}</Heading>
+        <Heading level={2}>
+          {m.decks_format_tag_pick_heading({ nounPlural: config.nounPlural })}
+        </Heading>
         <p className="text-muted-foreground text-sm">
-          Every card must carry one of the chosen {config.nounPlural}. You can change them later
-          from the deck menu.
+          {m.decks_format_tag_pick_description({ nounPlural: config.nounPlural })}
         </p>
       </div>
       <div className="space-y-2">
@@ -74,8 +78,13 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
       </div>
       <Button disabled={selected.length === 0 || isPending} onClick={handleConfirm}>
         {isPending
-          ? "Saving…"
-          : `Start building${selected.length > 1 ? ` (${selected.length} ${config.nounPlural})` : ""}`}
+          ? m.common_saving()
+          : selected.length > 1
+            ? m.decks_format_tag_start_building_count({
+                count: selected.length,
+                nounPlural: config.nounPlural,
+              })
+            : m.decks_format_tag_start_building()}
       </Button>
     </Callout>
   );

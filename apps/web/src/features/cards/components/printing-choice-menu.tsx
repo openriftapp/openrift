@@ -7,6 +7,7 @@ import { PrintingHoverPreview } from "@/features/cards/components/printing-hover
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePrintingHover } from "@/features/cards/components/use-printing-hover";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Host must spread `popupRef` on its popup and render {@link PrintingChoicePreview}
@@ -79,7 +80,7 @@ export function PrintingChoiceMenuSection({
   return (
     <>
       <div className="text-muted-foreground text-2xs px-1.5 pt-1 pb-1.5 font-medium tracking-wide uppercase">
-        Change printing
+        {m.cards_printing_menu_change_printing()}
         {hint}
       </div>
       <div className="flex flex-col gap-0.5">
@@ -90,7 +91,7 @@ export function PrintingChoiceMenuSection({
               onSelectDefault(event);
             }}
           >
-            Use default printing
+            {m.cards_printing_menu_use_default()}
           </ContextMenuItem>
         )}
         {printings.map((printing) => (

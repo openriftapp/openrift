@@ -12,6 +12,7 @@ import { conditionShortCode } from "@/features/collections/lib/condition-codes";
 import { OnLoanChip } from "@/features/groups/components/on-loan-chip";
 import { TradeStatusChip } from "@/features/groups/components/trade-status-chip";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Stops click propagation so the tile's own click handler doesn't fire.
@@ -34,7 +35,7 @@ function MetadataPillButton({
       variant="ghost"
       className={variant === "primary" ? "text-primary" : undefined}
       title={title}
-      aria-label={`${title}. Edit copy details.`}
+      aria-label={m.collections_copy_edit_aria({ title })}
       onClick={(event) => {
         event.stopPropagation();
         dispatchContextAction(itemId, "copyDetails");
@@ -81,7 +82,10 @@ function CopyMetadataPills({
         <MetadataPillButton
           itemId={copy.id}
           variant="primary"
-          title={`Graded ${enumLabel(labels.graders, copy.grader)} ${copy.grade}`}
+          title={m.collections_copy_graded_title({
+            grader: enumLabel(labels.graders, copy.grader),
+            grade: copy.grade,
+          })}
         >
           {enumLabel(labels.graders, copy.grader)} {copy.grade}
         </MetadataPillButton>

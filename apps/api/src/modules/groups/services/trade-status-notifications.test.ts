@@ -52,6 +52,7 @@ function statusRepos(): Repos {
         emailVerified: true,
         name: "One",
         emailNotifications: { tradeStatus: true, tradeRequestCadence: "instant" },
+        displayLocale: "en",
       }),
     },
     friendGroups: {

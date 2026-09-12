@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { sumTradeValues } from "@/features/groups/lib/trade-derivation";
 import { compactFormatterForMarketplace } from "@/lib/format";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 function cardCount(trades: readonly CardTradeResponse[], role: CardTradeResponse["role"]): number {
@@ -37,36 +38,38 @@ export function TradeBalanceBar({ trades }: { trades: readonly CardTradeResponse
   // Never labeled as anyone's "favor": the app can't see the cash side of a deal.
   const delta = split.get - split.give;
   const deltaText =
-    Math.abs(delta) < EVEN_THRESHOLD ? "≈ even" : `≈ ${fmt(Math.abs(delta))} difference`;
+    Math.abs(delta) < EVEN_THRESHOLD
+      ? m.trades_balance_even()
+      : m.trades_balance_difference({ amount: fmt(Math.abs(delta)) });
 
-  const sideLabel = (cards: number, value: number, hasValue: boolean): ReactNode => {
-    const noun = cards === 1 ? "card" : "cards";
-    return (
-      <>
-        <span className="text-foreground font-medium">
-          {cards} {noun}
-        </span>
-        {hasValue ? (
-          <>
-            {" worth "}
-            <span className="text-foreground font-medium">≈{fmt(value)}</span>
-          </>
-        ) : null}
-      </>
-    );
-  };
+  const sideLabel = (cards: number, value: number, hasValue: boolean): ReactNode => (
+    <>
+      <span className="text-foreground font-medium">
+        {cards === 1
+          ? m.common_cards_one({ count: cards })
+          : m.common_cards_other({ count: cards })}
+      </span>
+      {hasValue ? (
+        <>
+          {" "}
+          {m.trades_balance_worth()}{" "}
+          <span className="text-foreground font-medium">≈{fmt(value)}</span>
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <div
       className="flex flex-col gap-1"
-      title={`Estimated value (${marketplaceLabel(marketplace)})`}
+      title={m.trades_balance_title({ marketplace: marketplaceLabel(marketplace) })}
     >
       <div className="flex items-baseline justify-between gap-3 text-xs">
         <span className="text-muted-foreground">
-          You give {sideLabel(giveCards, split.give, split.hasGive)}
+          {m.trades_balance_you_give()} {sideLabel(giveCards, split.give, split.hasGive)}
         </span>
         <span className="text-muted-foreground text-right">
-          You get {sideLabel(getCards, split.get, split.hasGet)}
+          {m.trades_balance_you_get()} {sideLabel(getCards, split.get, split.hasGet)}
         </span>
       </div>
       {priced ? (
@@ -78,7 +81,7 @@ export function TradeBalanceBar({ trades }: { trades: readonly CardTradeResponse
           </div>
           <div className="text-muted-foreground/70 flex justify-between gap-3 text-xs">
             <span>{deltaText}</span>
-            <span>{marketplaceLabel(marketplace)} est.</span>
+            <span>{m.trades_balance_estimate({ marketplace: marketplaceLabel(marketplace) })}</span>
           </div>
         </>
       ) : null}

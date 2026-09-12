@@ -11,13 +11,14 @@ import { TopBarBreadcrumbSeparator } from "@/components/layout/top-bar-breadcrum
 import { LIST_KIND_ICON } from "@/features/lists/components/create-list-dialog";
 import { ListValueLabel } from "@/features/lists/components/list-value-label";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-const INTENT_LABEL: Record<ListIntent, string> = {
-  wish: "Wishlist",
-  trade: "Tradelist",
-  organize: "Organize",
+const INTENT_LABEL: Record<ListIntent, () => string> = {
+  wish: () => m.lists_intent_label_wish(),
+  trade: () => m.lists_intent_label_trade(),
+  organize: () => m.lists_intent_label_organize(),
 };
 
 const INTENT_ICON: Record<ListIntent, IconComponent> = {
@@ -74,7 +75,7 @@ export function ListHeader({
         <PageTopBarTitle onToggleSidebar={onToggleSidebar}>{list.name}</PageTopBarTitle>
         <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
           <IntentIcon className="size-3 self-center" />
-          <span>{INTENT_LABEL[list.intent]}</span>
+          <span>{INTENT_LABEL[list.intent]()}</span>
         </span>
         <span className="text-muted-foreground hidden shrink-0 items-baseline gap-1 text-xs sm:inline-flex">
           <KindIcon className="size-3 self-center" />

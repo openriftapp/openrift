@@ -151,9 +151,11 @@ export function GroupSeatEditor({
             <Card key={group.label} className="gap-2">
               <CardHeader className="gap-1">
                 <CardTitle className="flex items-center gap-2">
-                  <span>Group {group.label}</span>
+                  <span>{m.tournaments_group_heading({ label: group.label })}</span>
                   {group.pairedGroupLabel === null ? null : (
-                    <Badge variant="info">Paired with {group.pairedGroupLabel}</Badge>
+                    <Badge variant="info">
+                      {m.tournaments_group_paired_with({ label: group.pairedGroupLabel })}
+                    </Badge>
                   )}
                 </CardTitle>
               </CardHeader>

@@ -50,7 +50,7 @@ interface PendingGroup {
   name: string;
   slug: string;
   rows: IncomingMatchFeedRow[];
-  labelByUser: Map<string, string>;
+  labelByUser: Map<string, string | null>;
 }
 
 export async function sendTradeMatchDigest(
@@ -91,9 +91,9 @@ export async function sendTradeMatchDigest(
         cardIds.add(row.cardId);
       }
       const members = await repos.friendGroups.listMembers(group.id);
-      const labelByUser = new Map<string, string>();
+      const labelByUser = new Map<string, string | null>();
       for (const member of members) {
-        labelByUser.set(member.userId, member.userName ?? "A member");
+        labelByUser.set(member.userId, member.userName);
       }
       pending.push({ name: group.name, slug: group.slug, rows, labelByUser });
     }
@@ -109,8 +109,8 @@ export async function sendTradeMatchDigest(
       groupName: group.name,
       tradesUrl: `${appBaseUrl}/groups/${group.slug}/trades`,
       matches: group.rows.map((row) => ({
-        cardName: nameByCard.get(row.cardId) ?? "a card",
-        counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? "A member",
+        cardName: nameByCard.get(row.cardId) ?? null,
+        counterpartyLabel: group.labelByUser.get(row.counterpartyUserId) ?? null,
       })),
     }));
 
@@ -123,6 +123,7 @@ export async function sendTradeMatchDigest(
     );
 
     const { subject, html } = buildTradeMatchDigestEmail({
+      locale: recipient.displayLocale,
       recipientName: recipient.name,
       groups: sections,
       unsubscribeUrl: pageUrl,

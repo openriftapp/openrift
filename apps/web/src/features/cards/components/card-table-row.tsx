@@ -14,6 +14,7 @@ import { rowActivateProps } from "@/features/cards/lib/card-row-interactions";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const CARD_TABLE_ROW_HEIGHT = 56;
 export const CARD_TABLE_HEADER_HEIGHT = 48;
@@ -186,7 +187,7 @@ export function CardTableGroupHeader({
         {anchorId && (
           <a
             href={`#${anchorId}`}
-            aria-label={`Link to ${name}`}
+            aria-label={m.cards_link_to_aria({ name })}
             className="text-muted-foreground/60 hover:text-foreground transition-colors"
           >
             <LinkIcon className="size-3.5" />

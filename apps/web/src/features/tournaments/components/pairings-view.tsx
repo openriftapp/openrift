@@ -275,10 +275,15 @@ export function PairingsView({
 // and every 2v2 team round is matches throughout.
 function formatPodCount(round: PodRoundResponse, teamMode: boolean): string {
   const allMatches = teamMode || isAllMatchRound(round.pods.map((pod) => pod.size));
+  const count = round.pods.length;
   if (allMatches) {
-    return `${round.pods.length} match${round.pods.length === 1 ? "" : "es"}`;
+    return count === 1
+      ? m.tournaments_round_matches_count_one({ count })
+      : m.tournaments_round_matches_count_other({ count });
   }
-  return `${round.pods.length} pod${round.pods.length === 1 ? "" : "s"}`;
+  return count === 1
+    ? m.tournaments_round_pods_count_one({ count })
+    : m.tournaments_round_pods_count_other({ count });
 }
 
 function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
@@ -295,28 +300,40 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
     {
       key: "penalty",
       value: Math.round(round.penaltyTotal ?? 0),
-      label: "penalty",
+      label: m.tournaments_round_stat_penalty(),
       icon: ScaleIcon,
     },
     {
       key: "rematches",
       value: rematches,
-      label: rematches === 1 ? "rematch" : "rematches",
+      label:
+        rematches === 1
+          ? m.tournaments_round_stat_rematch_one()
+          : m.tournaments_round_stat_rematch_other(),
       icon: RepeatIcon,
       iconTone: rematches === 0 ? "success" : "gold",
       tone: rematches === 0 ? "good" : "default",
     },
   ];
   if (!allMatches) {
-    items.push({ key: "threePods", value: inThreePods, label: "in 3-pods", icon: UsersIcon });
+    items.push({
+      key: "threePods",
+      value: inThreePods,
+      label: m.tournaments_round_stat_in_three_pods(),
+      icon: UsersIcon,
+    });
   }
   if (sameRegionPods > 0) {
     items.push({
       key: "sameRegion",
       value: sameRegionPods,
       label: allMatches
-        ? `same-region ${sameRegionPods === 1 ? "match" : "matches"}`
-        : `same-region ${sameRegionPods === 1 ? "pod" : "pods"}`,
+        ? sameRegionPods === 1
+          ? m.tournaments_round_stat_same_region_match_one()
+          : m.tournaments_round_stat_same_region_match_other()
+        : sameRegionPods === 1
+          ? m.tournaments_round_stat_same_region_pod_one()
+          : m.tournaments_round_stat_same_region_pod_other(),
       icon: MapPinIcon,
       iconTone: "gold",
     });
@@ -329,8 +346,12 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
       key: "repeatedRegion",
       value: repeatedRegionPods,
       label: allMatches
-        ? `repeat-region ${repeatedRegionPods === 1 ? "match" : "matches"}`
-        : `repeat-region ${repeatedRegionPods === 1 ? "pod" : "pods"}`,
+        ? repeatedRegionPods === 1
+          ? m.tournaments_round_stat_repeat_region_match_one()
+          : m.tournaments_round_stat_repeat_region_match_other()
+        : repeatedRegionPods === 1
+          ? m.tournaments_round_stat_repeat_region_pod_one()
+          : m.tournaments_round_stat_repeat_region_pod_other(),
       icon: RepeatIcon,
       iconTone: "gold",
     });
@@ -338,7 +359,7 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
   items.push({
     key: "spread",
     value: largestSpread,
-    label: "largest spread",
+    label: m.tournaments_round_stat_largest_spread(),
     icon: ArrowUpDownIcon,
   });
 

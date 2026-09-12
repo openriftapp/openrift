@@ -9,6 +9,7 @@ import { getDomainGradientStyle, getPipBackgroundStyle, getPipGlyphTint } from "
 import { getFilterIconPath, getTypeIconPaths } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { getCachedTintedIcon, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
+import { m } from "@/paraglide/messages.js";
 
 export const TYPE_ICON_COLOR = "#985920";
 
@@ -125,7 +126,12 @@ export function CardPlaceholderImage({
         className,
       )}
       role="img"
-      aria-label={`${name} placeholder — energy ${energy ?? "none"}, might ${might ?? "none"}, power ${power ?? "none"}`}
+      aria-label={m.cards_placeholder_aria({
+        name,
+        energy: energy ?? m.cards_placeholder_stat_none(),
+        might: might ?? m.cards_placeholder_stat_none(),
+        power: power ?? m.cards_placeholder_stat_none(),
+      })}
     >
       {backgroundImageUrl && (
         <img
@@ -169,7 +175,7 @@ export function CardPlaceholderImage({
           (isGear ? (
             <div
               className="relative flex size-[11.7cqw] items-center justify-center"
-              aria-label={`Energy: ${energy}`}
+              aria-label={m.cards_placeholder_energy_aria({ value: energy })}
             >
               <span
                 aria-hidden="true"
@@ -182,7 +188,7 @@ export function CardPlaceholderImage({
           ) : (
             <div
               className="font-numeric flex size-[11.7cqw] items-center justify-center rounded-full bg-white/70 text-[8cqw] font-semibold text-black ring-1 ring-black/70"
-              aria-label={`Energy: ${energy}`}
+              aria-label={m.cards_placeholder_energy_aria({ value: energy })}
             >
               {energy}
             </div>
@@ -226,7 +232,7 @@ export function CardPlaceholderImage({
         <div
           className="font-numeric absolute top-[5.5%] right-[7.5%] flex h-[9cqw] items-stretch overflow-hidden text-[7cqw] font-semibold"
           style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 13% 100%)" }}
-          aria-label={`Might: ${might}`}
+          aria-label={m.cards_placeholder_might_aria({ value: might })}
         >
           <div className="flex items-center justify-center bg-white/70 pr-[0.5cqw] pl-[1.7cqw]">
             <GlyphIcon

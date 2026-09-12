@@ -3,6 +3,7 @@ import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SwapColumns } from "@/features/decks/components/swap-column-editor";
 import type { PlanSwapDraft, SwapDirection } from "@/features/decks/lib/deck-plan";
+import { m } from "@/paraglide/messages.js";
 
 interface SwapCandidate {
   cardId: string;
@@ -42,12 +43,12 @@ export function DeckSideboardTest({
       <div className="mb-1.5 flex items-center gap-2">
         <ExpandToggle expanded={open} onClick={onToggleOpen} chevronClassName="size-3.5">
           <SectionHeading as="span" size="sm">
-            Sideboard test
+            {m.decks_sideboard_test_heading()}
           </SectionHeading>
         </ExpandToggle>
         {swapsActive && (
           <Button type="button" variant="ghost" size="xs" onClick={onReset} className="ml-auto">
-            Reset
+            {m.common_reset()}
           </Button>
         )}
       </div>
@@ -63,10 +64,7 @@ export function DeckSideboardTest({
             onRemove={onRemove}
             maxQuantityFor={maxQuantityFor}
           />
-          <p className="text-muted-foreground text-2xs mt-1.5">
-            Experiment only — swaps change the odds and sample hands here, nothing is saved to the
-            deck.
-          </p>
+          <p className="text-muted-foreground text-2xs mt-1.5">{m.decks_sideboard_test_note()}</p>
         </>
       )}
     </div>

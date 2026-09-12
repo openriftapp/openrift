@@ -57,6 +57,7 @@ export async function notifyAdminsOfGroupJoinRequest(
         "groupJoinRequests",
       );
       const { subject, html } = buildGroupJoinRequestEmail({
+        locale: recipient.displayLocale,
         recipientName: recipient.name,
         requesterName: requester?.name ?? null,
         groupName: request.groupName,
@@ -123,6 +124,7 @@ export async function notifyMemberOfGroupApproval(
       "groupApprovals",
     );
     const { subject, html } = buildGroupApprovedEmail({
+      locale: context.displayLocale,
       recipientName: context.name,
       groupName: approval.groupName,
       groupUrl: groupUrl(deps.appBaseUrl, approval.groupSlug),

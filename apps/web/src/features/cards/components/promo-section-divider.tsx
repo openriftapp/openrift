@@ -2,6 +2,7 @@ import { LinkIcon } from "lucide-react";
 
 import { MarkdownText } from "@/components/markdown-text";
 import { OrnamentRule } from "@/components/ui/ornament";
+import { m } from "@/paraglide/messages.js";
 
 export function SectionDivider({
   title,
@@ -23,7 +24,7 @@ export function SectionDivider({
           {anchorId && (
             <a
               href={`#${anchorId}`}
-              aria-label={`Link to ${title}`}
+              aria-label={m.cards_link_to_aria({ name: title })}
               className="text-muted-foreground/60 hover:text-foreground self-center transition-colors"
             >
               <LinkIcon className="size-3.5" />

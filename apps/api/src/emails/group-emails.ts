@@ -1,8 +1,10 @@
-import { BRAND, emailButton, escapeHtml, renderEmailLayout } from "./layout.js";
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
 
-const FOOTER_NOTE = "You're receiving this because you run a group on OpenRift.";
+import { BRAND, emailButton, escapeHtml, renderEmailLayout } from "./layout.js";
+import { emailMessages } from "./messages.js";
 
 export interface GroupJoinRequestEmailInput {
+  locale: DisplayLocale;
   recipientName: string | null;
   requesterName: string | null;
   groupName: string;
@@ -15,30 +17,36 @@ export function buildGroupJoinRequestEmail(input: GroupJoinRequestEmailInput): {
   subject: string;
   html: string;
 } {
-  const requester = escapeHtml(input.requesterName ?? "Someone");
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
-  const subject = `Join request for ${input.groupName}`;
+  const messages = emailMessages(input.locale);
+  const requester = escapeHtml(input.requesterName ?? messages.someone);
+  const greeting = messages.greeting(
+    input.recipientName === null ? null : escapeHtml(input.recipientName),
+  );
+  const subject = messages.joinRequestSubject(input.groupName);
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 16px;"><strong>${requester}</strong> asked to join <strong>${escapeHtml(input.groupName)}</strong>. They stay outside the group until an admin approves them.</p>
-    <p style="margin:0;">${emailButton("Review the request", input.membersUrl)}</p>
+    <p style="margin:0 0 16px;">${messages.joinRequestLead(`<strong>${requester}</strong>`, `<strong>${escapeHtml(input.groupName)}</strong>`)}</p>
+    <p style="margin:0;">${emailButton(messages.reviewRequestButton, input.membersUrl)}</p>
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "New join request",
+      locale: input.locale,
+      heading: messages.joinRequestHeading,
       bodyHtml,
-      footerNote: FOOTER_NOTE,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Group join requests" },
+      footerNote: messages.footerGroupOwner,
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("groupJoinRequests"),
+      },
     }),
   };
 }
 
-const APPROVAL_FOOTER_NOTE = "You're receiving this because you asked to join a group on OpenRift.";
-
 export interface GroupApprovedEmailInput {
+  locale: DisplayLocale;
   recipientName: string | null;
   groupName: string;
   groupUrl: string;
@@ -50,30 +58,40 @@ export function buildGroupApprovedEmail(input: GroupApprovedEmailInput): {
   subject: string;
   html: string;
 } {
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
+  const messages = emailMessages(input.locale);
+  const greeting = messages.greeting(
+    input.recipientName === null ? null : escapeHtml(input.recipientName),
+  );
   const group = escapeHtml(input.groupName);
-  const subject = `You're in: ${input.groupName}`;
+  const subject = messages.approvedSubject(input.groupName);
+
+  const benefits = messages.approvedBenefits
+    .map((benefit) => `<li style="margin:0 0 6px;">${benefit}</li>`)
+    .join("\n      ");
+  const manageLink = `<a href="${escapeHtml(input.manageUrl)}" style="color:${BRAND};">${messages.managePageLinkLabel}</a>`;
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 16px;">An admin approved your request, so you're now a member of <strong>${group}</strong>.</p>
-    <p style="margin:0 0 8px;">What that gets you:</p>
+    <p style="margin:0 0 16px;">${messages.approvedLead(`<strong>${group}</strong>`)}</p>
+    <p style="margin:0 0 8px;">${messages.approvedBenefitsIntro}</p>
     <ul style="margin:0 0 16px;padding-left:20px;">
-      <li style="margin:0 0 6px;">Browse every collection, wishlist and tradelist the other members share.</li>
-      <li style="margin:0 0 6px;">Trade matches: cards on your wishlist that someone in the group has spare.</li>
-      <li style="margin:0 0 6px;">Follow the group's trades and activity as they happen.</li>
+      ${benefits}
     </ul>
-    <p style="margin:0 0 16px;">Nothing of yours is visible yet. Pick which lists and collections the group can see on the <a href="${escapeHtml(input.manageUrl)}" style="color:${BRAND};">manage page</a>.</p>
-    <p style="margin:0;">${emailButton(`Open ${input.groupName}`, input.groupUrl)}</p>
+    <p style="margin:0 0 16px;">${messages.approvedVisibilityNote(manageLink)}</p>
+    <p style="margin:0;">${emailButton(messages.openGroupButton(input.groupName), input.groupUrl)}</p>
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "You're in",
+      locale: input.locale,
+      heading: messages.approvedHeading,
       bodyHtml,
-      footerNote: APPROVAL_FOOTER_NOTE,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Group welcome emails" },
+      footerNote: messages.footerGroupJoin,
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("groupApprovals"),
+      },
     }),
   };
 }

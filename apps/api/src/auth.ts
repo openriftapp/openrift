@@ -14,8 +14,11 @@ import { isLocalDevOrigin, matchOrigin } from "./cors.js";
 import type { Database } from "./db/tables.js";
 import { sanitizeDisplayName, validateDisplayName } from "./display-name.js";
 import type { createEmailSender } from "./email.js";
+import { emailMessages } from "./emails/messages.js";
+import { displayLocaleFromRequest } from "./lib/display-locale.js";
 import { collectionsRepo } from "./modules/collections/repositories/collections.js";
 import { adminsRepo } from "./modules/users/repositories/admins.js";
+import { userPreferencesRepo } from "./modules/users/repositories/user-preferences.js";
 
 export function createAuth(deps: {
   config: ReturnType<typeof createConfig>;
@@ -35,21 +38,20 @@ export function createAuth(deps: {
     },
     plugins: [
       emailOTP({
-        async sendVerificationOTP({ email, otp, type }) {
-          const subjects: Record<string, string> = {
-            "sign-in": "Your sign-in code",
-            "email-verification": "Verify your email",
-            "forget-password": "Reset your password",
-            "change-email": "Confirm your email change",
-          };
+        async sendVerificationOTP({ email, otp, type }, ctx) {
+          const locale =
+            displayLocaleFromRequest(ctx?.request) ??
+            (await userPreferencesRepo(db).getDisplayLocaleByEmail(email)) ??
+            "en";
+          const messages = emailMessages(locale);
           await sendEmail({
             to: email,
-            subject: subjects[type] ?? "Your verification code",
+            subject: messages.otpSubject(type),
             html: `
-            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-              <h2 style="margin: 0 0 16px;">Your verification code</h2>
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;" lang="${messages.htmlLang}">
+              <h2 style="margin: 0 0 16px;">${messages.otpHeading}</h2>
               <p style="font-size: 32px; font-weight: bold; letter-spacing: 0.3em; margin: 16px 0;">${otp}</p>
-              <p style="color: #71717a; font-size: 14px;">This code expires in 5 minutes. If you didn't request this, you can safely ignore this email.</p>
+              <p style="color: #71717a; font-size: 14px;">${messages.otpExpiryNote}</p>
             </div>
           `,
           });

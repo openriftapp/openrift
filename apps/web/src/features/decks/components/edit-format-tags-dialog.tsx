@@ -15,6 +15,7 @@ import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { getFormatTagConfig } from "@/features/collections/lib/format-tag-config";
 import { TagMultiSelect } from "@/features/decks/components/format-tag-multi-select";
 import { useUpdateDeck } from "@/features/decks/hooks/use-decks";
+import { m } from "@/paraglide/messages.js";
 
 interface Props {
   deckId: string;
@@ -67,11 +68,12 @@ export function EditFormatTagsDialog({ deckId, format, currentSlugs, open, onOpe
       <DialogContent>
         <DialogForm onSubmit={handleSave}>
           <DialogHeader>
-            <DialogTitle>Change {config.nounPlural}</DialogTitle>
+            <DialogTitle>
+              {m.decks_format_tag_change_title({ nounPlural: config.nounPlural })}
+            </DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">
-            Cards that don&apos;t carry one of the chosen {config.nounPlural} stay in the deck but
-            get flagged as invalid until you remove them or pick a wider {config.noun} set.
+            {m.decks_format_tag_change_description({ nounPlural: config.nounPlural })}
           </p>
           <div className="space-y-2">
             <Label htmlFor="edit-format-tag-picker">{capitalize(config.nounPlural)}</Label>
@@ -86,7 +88,7 @@ export function EditFormatTagsDialog({ deckId, format, currentSlugs, open, onOpe
           </div>
           <DialogFooter>
             <Button type="submit" disabled={selected.length === 0 || updateDeck.isPending}>
-              {updateDeck.isPending ? "Saving…" : "Save"}
+              {updateDeck.isPending ? m.common_saving() : m.common_save()}
             </Button>
           </DialogFooter>
         </DialogForm>

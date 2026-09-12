@@ -6,6 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckCardDetailMenuProps {
   onViewDetail: () => void;
@@ -28,7 +29,7 @@ export function DeckCardDetailMenu({ onViewDetail, children }: DeckCardDetailMen
             onViewDetail();
           }}
         >
-          View details
+          {m.decks_card_menu_view_details()}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

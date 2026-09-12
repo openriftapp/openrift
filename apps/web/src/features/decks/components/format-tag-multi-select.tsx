@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/combobox";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface TagMultiSelectProps {
   category: string;
@@ -35,7 +36,7 @@ export function TagMultiSelect({
   const labelFor = (slug: string) => labelMap.get(slug) ?? slug;
   const triggerText =
     selected.length === 0
-      ? `Pick ${nounPlural}…`
+      ? m.decks_format_tag_multi_placeholder({ nounPlural })
       : selected.map((slug) => labelFor(slug)).join(" + ");
 
   return (
@@ -56,8 +57,11 @@ export function TagMultiSelect({
         <span className={selected.length === 0 ? "text-muted-foreground" : ""}>{triggerText}</span>
       </ComboboxTrigger>
       <ComboboxContent className="w-(--anchor-width) min-w-72">
-        <ComboboxInput placeholder={`Search ${nounPlural}…`} showTrigger={false} />
-        <ComboboxEmpty>No matching {nounPlural}.</ComboboxEmpty>
+        <ComboboxInput
+          placeholder={m.decks_format_tag_multi_search({ nounPlural })}
+          showTrigger={false}
+        />
+        <ComboboxEmpty>{m.decks_format_tag_multi_empty({ nounPlural })}</ComboboxEmpty>
         <ComboboxList>
           {(slug: string) => (
             <ComboboxItem key={slug} value={slug}>

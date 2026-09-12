@@ -122,7 +122,7 @@ export async function sendTradeRequestEmail(
     const initiatorContact = formatContactMethodsSummary(dto.counterparty.contactMethods);
 
     const cards = await repos.catalog.cardsByIds([trade.cardId]);
-    const cardName = cards[0]?.name ?? "a card";
+    const cardName = cards[0]?.name ?? null;
 
     // One trade, so it links to the counterparty's person-level sheet.
     if (dto.counterparty.userId === null) {
@@ -138,6 +138,7 @@ export async function sendTradeRequestEmail(
     );
 
     const { subject, html } = buildTradeRequestEmail({
+      locale: context.displayLocale,
       recipientName: context.name,
       initiatorName,
       cardName,
@@ -207,7 +208,7 @@ export async function flushCoalescedTradeRequests(
 
   const now = new Date();
   const contextByUser = new Map<string, EmailNotificationContext | undefined>();
-  const labelsByGroup = new Map<string, Map<string, string>>();
+  const labelsByGroup = new Map<string, Map<string, string | null>>();
   let pairs = 0;
   let emailsSent = 0;
   let requests = 0;
@@ -261,16 +262,16 @@ export async function flushCoalescedTradeRequests(
       continue;
     }
 
-    let senderLabel: string | null = null;
+    let senderLabel: string | null | undefined;
     const cardIds = new Set<string>();
     for (const row of claimedRows) {
       cardIds.add(row.cardId);
-      if (senderLabel === null) {
+      if (senderLabel === undefined) {
         if (!labelsByGroup.has(row.groupId)) {
           const members = await repos.friendGroups.listMembers(row.groupId);
-          const labels = new Map<string, string>();
+          const labels = new Map<string, string | null>();
           for (const member of members) {
-            labels.set(member.userId, member.userName ?? "A member");
+            labels.set(member.userId, member.userName);
           }
           labelsByGroup.set(row.groupId, labels);
         }
@@ -296,7 +297,7 @@ export async function flushCoalescedTradeRequests(
         sections.push(section);
       }
       section.requests.push({
-        cardName: nameByCard.get(row.cardId) ?? "a card",
+        cardName: nameByCard.get(row.cardId) ?? null,
         quantity: row.quantity,
         // receiver-initiated = the sender wants your card; giver-initiated = offer.
         kind: row.initiator === "receiver" ? "wants" : "offers",
@@ -310,8 +311,9 @@ export async function flushCoalescedTradeRequests(
       "tradeRequests",
     );
     const { subject, html } = buildCoalescedTradeRequestsEmail({
+      locale: context.displayLocale,
       recipientName: context.name,
-      senderName: senderLabel,
+      senderName: senderLabel ?? null,
       groups: sections,
       unsubscribeUrl: pageUrl,
     });

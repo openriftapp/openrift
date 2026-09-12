@@ -88,8 +88,8 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
             <TableHead>{m.tournaments_group_col_player()}</TableHead>
             <TableHead>{m.tournaments_group_col_legend()}</TableHead>
             <TableHead className="text-right">{m.tournaments_group_col_points()}</TableHead>
-            <TableHead className="text-right">W-L-D</TableHead>
-            <TableHead className="text-right">GW%</TableHead>
+            <TableHead className="text-right">{m.tournaments_standings_col_record()}</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
             <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
           </TableRow>
         </TableHeader>
@@ -166,8 +166,8 @@ export function CutSeedsCard({
             <TableHead>{m.tournaments_group_col_player()}</TableHead>
             <TableHead>{m.tournaments_group_col_group()}</TableHead>
             <TableHead className="text-right">{m.tournaments_group_col_place()}</TableHead>
-            <TableHead className="text-right">MW%</TableHead>
-            <TableHead className="text-right">GW%</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_mw()}</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_gw()}</TableHead>
             <TableHead>{m.tournaments_group_decided_by_head()}</TableHead>
           </TableRow>
         </TableHeader>

@@ -101,6 +101,7 @@ function flushRepos(): Repos {
         emailVerified: true,
         name: "One",
         emailNotifications: { tradeRequests: true, tradeRequestCadence: "instant" },
+        displayLocale: "en",
       }),
     },
     friendGroups: {

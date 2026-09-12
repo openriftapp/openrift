@@ -1,4 +1,8 @@
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
+
 import { emailButton, escapeHtml, MUTED_TEXT, renderEmailLayout } from "./layout.js";
+import { emailMessages } from "./messages.js";
+import type { EmailMessages, TradeRequestKind, TradeStatusEvent } from "./messages.js";
 
 /*
  * Transactional trade email builders. Pure: they take already-resolved data
@@ -7,31 +11,19 @@ import { emailButton, escapeHtml, MUTED_TEXT, renderEmailLayout } from "./layout
  * `createTrade` service and the digest cron).
  */
 
-function quantityLabel(quantity: number, cardName: string): string {
-  return quantity > 1 ? `${quantity}× ${cardName}` : cardName;
-}
-
-function requestLead(senderHtml: string, card: string, kind: "wants" | "offers"): string {
-  const cardHtml = `<strong>${escapeHtml(card)}</strong>`;
-  return kind === "wants"
-    ? `${senderHtml} wants to trade for your ${cardHtml}.`
-    : `${senderHtml} is offering you ${cardHtml}.`;
-}
-
-function requestSubject(sender: string, cardName: string, kind: "wants" | "offers"): string {
-  return kind === "wants"
-    ? `${sender} wants to trade for ${cardName}`
-    : `${sender} offers you ${cardName}`;
+function greetingFor(messages: EmailMessages, recipientName: string | null): string {
+  return messages.greeting(recipientName === null ? null : escapeHtml(recipientName));
 }
 
 export interface TradeRequestEmailInput {
+  locale: DisplayLocale;
   /** Display name of the recipient (the non-initiator); may be null. */
   recipientName: string | null;
   initiatorName: string | null;
-  cardName: string;
+  cardName: string | null;
   quantity: number;
   /** `wants` = receiver-initiated request, `offers` = giver-initiated offer. */
-  kind: "wants" | "offers";
+  kind: TradeRequestKind;
   /** The initiator's revealed contact channels for this group, or `""` if none. */
   initiatorContact?: string;
   sheetUrl: string;
@@ -44,40 +36,50 @@ export function buildTradeRequestEmail(input: TradeRequestEmailInput): {
   subject: string;
   html: string;
 } {
-  const initiator = input.initiatorName ?? "A group member";
-  const card = quantityLabel(input.quantity, input.cardName);
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
+  const messages = emailMessages(input.locale);
+  const initiator = input.initiatorName ?? messages.aGroupMember;
+  const cardName = input.cardName ?? messages.aCard;
+  const card = messages.quantityLabel(input.quantity, cardName);
+  const greeting = greetingFor(messages, input.recipientName);
 
-  const lead = requestLead(`<strong>${escapeHtml(initiator)}</strong>`, card, input.kind);
-  const subject = requestSubject(initiator, input.cardName, input.kind);
+  const lead = messages.requestLead(
+    `<strong>${escapeHtml(initiator)}</strong>`,
+    `<strong>${escapeHtml(card)}</strong>`,
+    input.kind,
+  );
+  const subject = messages.requestSubject(initiator, cardName, input.kind);
 
   const contactLine = input.initiatorContact
-    ? `<p style="margin:0 0 20px;">Reach ${escapeHtml(initiator)}: ${escapeHtml(input.initiatorContact)}</p>`
+    ? `<p style="margin:0 0 20px;">${escapeHtml(messages.reachContact(initiator, input.initiatorContact))}</p>`
     : "";
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
     <p style="margin:0 0 16px;">${lead}</p>
-    <p style="margin:0 0 20px;">Open the trade to accept or decline it. Heads up: trade requests expire 7 days after they're sent.</p>
+    <p style="margin:0 0 20px;">${messages.requestExpiryNote}</p>
     ${contactLine}
-    <p style="margin:0;">${emailButton("View the trade", input.sheetUrl)}</p>
+    <p style="margin:0;">${emailButton(messages.viewTradeButton, input.sheetUrl)}</p>
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "New trade request",
+      locale: input.locale,
+      heading: messages.tradeRequestHeading,
       bodyHtml,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Trade-request emails" },
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("tradeRequests"),
+      },
     }),
   };
 }
 
 interface CoalescedRequest {
-  cardName: string;
+  cardName: string | null;
   quantity: number;
   /** `wants` = they want your card, `offers` = they're offering you one. */
-  kind: "wants" | "offers";
+  kind: TradeRequestKind;
 }
 
 export interface CoalescedRequestGroup {
@@ -86,13 +88,8 @@ export interface CoalescedRequestGroup {
   requests: CoalescedRequest[];
 }
 
-/** Per-direction presentation for the coalesced request email, in display order. */
-const REQUEST_KINDS = [
-  { kind: "wants", heading: "Wants from you" },
-  { kind: "offers", heading: "Offers you" },
-] as const;
-
 export interface CoalescedTradeRequestsEmailInput {
+  locale: DisplayLocale;
   /** Display name of the recipient (the non-initiator); may be null. */
   recipientName: string | null;
   /** Display name of the one member whose requests are coalesced here. */
@@ -112,9 +109,10 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
   subject: string;
   html: string;
 } {
-  const sender = input.senderName ?? "A group member";
+  const messages = emailMessages(input.locale);
+  const sender = input.senderName ?? messages.aGroupMember;
   const senderHtml = escapeHtml(sender);
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
+  const greeting = greetingFor(messages, input.recipientName);
   const allRequests = input.groups.flatMap((group) => group.requests);
   const total = allRequests.length;
 
@@ -128,47 +126,61 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
   const soleRequest = soleGroup?.requests[0];
 
   if (total === 1 && soleGroup && soleRequest) {
-    const card = quantityLabel(soleRequest.quantity, soleRequest.cardName);
+    const soleCardName = soleRequest.cardName ?? messages.aCard;
+    const card = messages.quantityLabel(soleRequest.quantity, soleCardName);
     const bodyHtml = `
       <p style="margin:0 0 12px;">${greeting}</p>
-      <p style="margin:0 0 16px;">${requestLead(`<strong>${senderHtml}</strong>`, card, soleRequest.kind)}</p>
-      <p style="margin:0 0 20px;">Open the trade to accept or decline it. Heads up: trade requests expire 7 days after they're sent.</p>
-      <p style="margin:0;">${emailButton(`View the trades in ${soleGroup.groupName}`, soleGroup.tradesUrl)}</p>
+      <p style="margin:0 0 16px;">${messages.requestLead(`<strong>${senderHtml}</strong>`, `<strong>${escapeHtml(card)}</strong>`, soleRequest.kind)}</p>
+      <p style="margin:0 0 20px;">${messages.requestExpiryNote}</p>
+      <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
     return {
-      subject: requestSubject(sender, soleRequest.cardName, soleRequest.kind),
+      subject: messages.requestSubject(sender, soleCardName, soleRequest.kind),
       html: renderEmailLayout({
-        heading: "New trade request",
+        locale: input.locale,
+        heading: messages.tradeRequestHeading,
         bodyHtml,
-        unsubscribe: { url: input.unsubscribeUrl, label: "Trade-request emails" },
+        unsubscribe: {
+          url: input.unsubscribeUrl,
+          label: messages.unsubscribeLabel("tradeRequests"),
+        },
       }),
     };
   }
 
   const multiGroup = input.groups.length > 1;
 
+  const requestKinds = [
+    { kind: "wants", heading: messages.wantsFromYouHeading },
+    { kind: "offers", heading: messages.offersYouHeading },
+  ] as const satisfies readonly { kind: TradeRequestKind; heading: string }[];
+
   const groupBlocks = input.groups
     .map((group) => {
-      const sections = REQUEST_KINDS.map(({ kind, heading }) => {
-        const cards = group.requests.filter((request) => request.kind === kind);
-        if (cards.length === 0) {
-          return "";
-        }
-        const rows = cards
-          .map(
-            (request) =>
-              `<li style="margin:0 0 4px;"><strong>${escapeHtml(quantityLabel(request.quantity, request.cardName))}</strong></li>`,
-          )
-          .join("");
-        return `
+      const sections = requestKinds
+        .map(({ kind, heading }) => {
+          const cards = group.requests.filter((request) => request.kind === kind);
+          if (cards.length === 0) {
+            return "";
+          }
+          const rows = cards
+            .map(
+              (request) =>
+                `<li style="margin:0 0 4px;"><strong>${escapeHtml(messages.quantityLabel(request.quantity, request.cardName ?? messages.aCard))}</strong></li>`,
+            )
+            .join("");
+          return `
           <p style="margin:0 0 4px;font-weight:600;">${heading}</p>
           <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
         `;
-      }).join("");
+        })
+        .join("");
       const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">In ${escapeHtml(group.groupName)}</p>`
+        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
         : "";
-      const buttonLabel = multiGroup ? "View the trades" : `View the trades in ${group.groupName}`;
+      const buttonLabel = multiGroup
+        ? messages.viewTradesButton
+        : messages.viewTradesInButton(group.groupName);
       return `
         <div style="margin:0 0 20px;">
           ${locationLine}
@@ -182,39 +194,34 @@ export function buildCoalescedTradeRequestsEmail(input: CoalescedTradeRequestsEm
   // "wants 2 of your cards and offers you 1" — the directions tell the story
   // from the notification tray, before the email is opened.
   const wantsCount = allRequests.filter((request) => request.kind === "wants").length;
-  const offersCount = total - wantsCount;
-  const parts: string[] = [];
-  if (wantsCount > 0) {
-    parts.push(`wants ${wantsCount} of your cards`);
-  }
-  if (offersCount > 0) {
-    // With a wants part ahead, "cards" is already established: "…and offers you 1".
-    parts.push(wantsCount > 0 ? `offers you ${offersCount}` : `offers you ${offersCount} cards`);
-  }
-  const subject = `${sender} ${joinWithAnd(parts)}`;
+  const subject = messages.coalescedRequestSubject(sender, wantsCount, total - wantsCount);
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 20px;"><strong>${senderHtml}</strong> sent you ${total} trade requests. Heads up: trade requests expire 7 days after they're sent.</p>
+    <p style="margin:0 0 20px;">${messages.coalescedRequestLead(`<strong>${senderHtml}</strong>`, total)}</p>
     ${groupBlocks}
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "New trade requests",
+      locale: input.locale,
+      heading: messages.tradeRequestsHeading,
       bodyHtml,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Trade-request emails" },
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("tradeRequests"),
+      },
     }),
   };
 }
 
 /** A single status change folded into the coalesced status-update email. */
 interface TradeStatusUpdate {
-  cardName: string;
+  cardName: string | null;
   quantity: number;
   /** `reserved` = accepted, `declined`, or `cancelled`. */
-  event: "reserved" | "declined" | "cancelled";
+  event: TradeStatusEvent;
 }
 
 export interface TradeStatusUpdateGroup {
@@ -224,6 +231,7 @@ export interface TradeStatusUpdateGroup {
 }
 
 export interface TradeStatusUpdateEmailInput {
+  locale: DisplayLocale;
   /** Display name of the recipient (the party who didn't act); may be null. */
   recipientName: string | null;
   actorName: string | null;
@@ -237,50 +245,10 @@ export interface TradeStatusUpdateEmailInput {
  * good news first, then declines, then cancellations.
  */
 const STATUS_OUTCOMES = [
-  { event: "reserved", verb: "accepted", heading: "Accepted", color: "#15803d" },
-  { event: "declined", verb: "declined", heading: "Declined", color: "#b91c1c" },
-  { event: "cancelled", verb: "cancelled", heading: "Cancelled", color: MUTED_TEXT },
-] as const;
-
-/** Joins parts into an English enumeration ("a", "a and b", "a, b, and c"). */
-function joinWithAnd(parts: string[]): string {
-  if (parts.length <= 1) {
-    return parts[0] ?? "";
-  }
-  if (parts.length === 2) {
-    return `${parts[0]} and ${parts[1]}`;
-  }
-  return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
-}
-
-function statusUpdatePhrase(update: TradeStatusUpdate, actorHtml: string): string {
-  const card = `<strong>${escapeHtml(quantityLabel(update.quantity, update.cardName))}</strong>`;
-  switch (update.event) {
-    case "reserved": {
-      return `${actorHtml} accepted your request for ${card}`;
-    }
-    case "declined": {
-      return `${actorHtml} declined your request for ${card}`;
-    }
-    case "cancelled": {
-      return `${actorHtml} cancelled the trade for ${card}`;
-    }
-  }
-}
-
-function singleUpdateSubject(actor: string, event: TradeStatusUpdate["event"]): string {
-  switch (event) {
-    case "reserved": {
-      return `${actor} accepted your trade request`;
-    }
-    case "declined": {
-      return `${actor} declined your trade request`;
-    }
-    case "cancelled": {
-      return `${actor} cancelled a trade`;
-    }
-  }
-}
+  { event: "reserved", color: "#15803d" },
+  { event: "declined", color: "#b91c1c" },
+  { event: "cancelled", color: MUTED_TEXT },
+] as const satisfies readonly { event: TradeStatusEvent; color: string }[];
 
 /**
  * Builds the coalesced "{actor} updated your trades" email: folds one
@@ -291,9 +259,10 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
   subject: string;
   html: string;
 } {
-  const actor = input.actorName ?? "A group member";
+  const messages = emailMessages(input.locale);
+  const actor = input.actorName ?? messages.aGroupMember;
   const actorHtml = escapeHtml(actor);
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
+  const greeting = greetingFor(messages, input.recipientName);
   const allUpdates = input.groups.flatMap((group) => group.updates);
   const total = allUpdates.length;
 
@@ -301,17 +270,22 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
   const soleUpdate = soleGroup?.updates[0];
 
   if (total === 1 && soleGroup && soleUpdate) {
+    const card = `<strong>${escapeHtml(messages.quantityLabel(soleUpdate.quantity, soleUpdate.cardName ?? messages.aCard))}</strong>`;
     const bodyHtml = `
       <p style="margin:0 0 12px;">${greeting}</p>
-      <p style="margin:0 0 20px;">${statusUpdatePhrase(soleUpdate, `<strong>${actorHtml}</strong>`)}.</p>
-      <p style="margin:0;">${emailButton(`View the trades in ${soleGroup.groupName}`, soleGroup.tradesUrl)}</p>
+      <p style="margin:0 0 20px;">${messages.statusPhrase(`<strong>${actorHtml}</strong>`, card, soleUpdate.event)}.</p>
+      <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
     return {
-      subject: singleUpdateSubject(actor, soleUpdate.event),
+      subject: messages.singleStatusSubject(actor, soleUpdate.event),
       html: renderEmailLayout({
-        heading: "Trade updates",
+        locale: input.locale,
+        heading: messages.statusHeading,
         bodyHtml,
-        unsubscribe: { url: input.unsubscribeUrl, label: "Trade-status emails" },
+        unsubscribe: {
+          url: input.unsubscribeUrl,
+          label: messages.unsubscribeLabel("tradeStatus"),
+        },
       }),
     };
   }
@@ -320,7 +294,7 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
 
   const groupBlocks = input.groups
     .map((group) => {
-      const sections = STATUS_OUTCOMES.map(({ event, heading, color }) => {
+      const sections = STATUS_OUTCOMES.map(({ event, color }) => {
         const cards = group.updates.filter((update) => update.event === event);
         if (cards.length === 0) {
           return "";
@@ -328,18 +302,20 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
         const rows = cards
           .map(
             (update) =>
-              `<li style="margin:0 0 4px;"><strong>${escapeHtml(quantityLabel(update.quantity, update.cardName))}</strong></li>`,
+              `<li style="margin:0 0 4px;"><strong>${escapeHtml(messages.quantityLabel(update.quantity, update.cardName ?? messages.aCard))}</strong></li>`,
           )
           .join("");
         return `
-          <p style="margin:0 0 4px;font-weight:600;color:${color};">${heading}</p>
+          <p style="margin:0 0 4px;font-weight:600;color:${color};">${messages.statusOutcomeHeading(event)}</p>
           <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
         `;
       }).join("");
       const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">In ${escapeHtml(group.groupName)}</p>`
+        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
         : "";
-      const buttonLabel = multiGroup ? "View the trades" : `View the trades in ${group.groupName}`;
+      const buttonLabel = multiGroup
+        ? messages.viewTradesButton
+        : messages.viewTradesInButton(group.groupName);
       return `
         <div style="margin:0 0 20px;">
           ${locationLine}
@@ -352,36 +328,35 @@ export function buildTradeStatusUpdateEmail(input: TradeStatusUpdateEmailInput):
 
   // "accepted 2 and declined 1" — the verdict counts tell the story from the
   // notification tray, before the email is opened.
-  const countPhrase = joinWithAnd(
-    STATUS_OUTCOMES.map(({ event, verb }) => ({
-      verb,
-      count: allUpdates.filter((update) => update.event === event).length,
-    }))
-      .filter(({ count }) => count > 0)
-      .map(({ verb, count }) => `${verb} ${count}`),
-  );
-  const subject = `${actor} ${countPhrase} of your trades`;
+  const subject = messages.statusCountSubject(actor, {
+    reserved: allUpdates.filter((update) => update.event === "reserved").length,
+    declined: allUpdates.filter((update) => update.event === "declined").length,
+    cancelled: allUpdates.filter((update) => update.event === "cancelled").length,
+  });
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 20px;"><strong>${actorHtml}</strong> updated some of your trades:</p>
+    <p style="margin:0 0 20px;">${messages.statusLead(`<strong>${actorHtml}</strong>`)}</p>
     ${groupBlocks}
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "Trade updates",
+      locale: input.locale,
+      heading: messages.statusHeading,
       bodyHtml,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Trade-status emails" },
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("tradeStatus"),
+      },
     }),
   };
 }
 
 interface DigestMatch {
-  cardName: string;
-  /** Who has the card — the counterparty's display name, or a fallback. */
-  counterpartyLabel: string;
+  cardName: string | null;
+  counterpartyLabel: string | null;
 }
 
 export interface DigestGroupSection {
@@ -391,6 +366,7 @@ export interface DigestGroupSection {
 }
 
 export interface TradeMatchDigestEmailInput {
+  locale: DisplayLocale;
   recipientName: string | null;
   groups: DigestGroupSection[];
   /** One-click unsubscribe link for the `tradeMatches` channel. */
@@ -402,11 +378,11 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
   subject: string;
   html: string;
 } {
+  const messages = emailMessages(input.locale);
   const totalMatches = input.groups.reduce((sum, group) => sum + group.matches.length, 0);
-  const greeting = input.recipientName ? `Hi ${escapeHtml(input.recipientName)},` : "Hi,";
+  const greeting = greetingFor(messages, input.recipientName);
 
-  const countLabel = totalMatches === 1 ? "1 new match" : `${totalMatches} new matches`;
-  const subject = `${countLabel} in your trading groups`;
+  const subject = messages.digestSubject(totalMatches);
 
   // Matches group by counterparty ("Garen has …"), not card by card — the
   // person is the call to action, the cards are the detail. The group is the
@@ -419,15 +395,19 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
   if (totalMatches === 1 && soleGroup && soleMatch) {
     const bodyHtml = `
       <p style="margin:0 0 12px;">${greeting}</p>
-      <p style="margin:0 0 20px;"><strong>${escapeHtml(soleMatch.counterpartyLabel)}</strong> now has <strong>${escapeHtml(soleMatch.cardName)}</strong> from your wishlist.</p>
-      <p style="margin:0;">${emailButton(`View the trades in ${soleGroup.groupName}`, soleGroup.tradesUrl)}</p>
+      <p style="margin:0 0 20px;">${messages.digestSingleLead(`<strong>${escapeHtml(soleMatch.counterpartyLabel ?? messages.aMember)}</strong>`, `<strong>${escapeHtml(soleMatch.cardName ?? messages.aCard)}</strong>`)}</p>
+      <p style="margin:0;">${emailButton(messages.viewTradesInButton(soleGroup.groupName), soleGroup.tradesUrl)}</p>
     `;
     return {
       subject,
       html: renderEmailLayout({
-        heading: "New trade matches",
+        locale: input.locale,
+        heading: messages.digestHeading,
         bodyHtml,
-        unsubscribe: { url: input.unsubscribeUrl, label: "Daily match digest" },
+        unsubscribe: {
+          url: input.unsubscribeUrl,
+          label: messages.unsubscribeLabel("tradeMatches"),
+        },
       }),
     };
   }
@@ -436,25 +416,30 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
 
   const groupBlocks = input.groups
     .map((group) => {
-      const byCounterparty = Map.groupBy(group.matches, (match) => match.counterpartyLabel);
+      const byCounterparty = Map.groupBy(
+        group.matches,
+        (match) => match.counterpartyLabel ?? messages.aMember,
+      );
       const sections = [...byCounterparty.entries()]
         .map(([counterpartyLabel, matches]) => {
           const rows = matches
             .map(
               (match) =>
-                `<li style="margin:0 0 4px;"><strong>${escapeHtml(match.cardName)}</strong></li>`,
+                `<li style="margin:0 0 4px;"><strong>${escapeHtml(match.cardName ?? messages.aCard)}</strong></li>`,
             )
             .join("");
           return `
-            <p style="margin:0 0 4px;font-weight:600;">${escapeHtml(counterpartyLabel)} has</p>
+            <p style="margin:0 0 4px;font-weight:600;">${messages.counterpartyHasHeading(escapeHtml(counterpartyLabel))}</p>
             <ul style="margin:0 0 12px;padding-left:18px;">${rows}</ul>
           `;
         })
         .join("");
       const locationLine = multiGroup
-        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">In ${escapeHtml(group.groupName)}</p>`
+        ? `<p style="margin:0 0 6px;color:${MUTED_TEXT};font-size:13px;">${messages.inGroupLine(escapeHtml(group.groupName))}</p>`
         : "";
-      const buttonLabel = multiGroup ? "View the trades" : `View the trades in ${group.groupName}`;
+      const buttonLabel = multiGroup
+        ? messages.viewTradesButton
+        : messages.viewTradesInButton(group.groupName);
       return `
         <div style="margin:0 0 20px;">
           ${locationLine}
@@ -467,16 +452,20 @@ export function buildTradeMatchDigestEmail(input: TradeMatchDigestEmailInput): {
 
   const bodyHtml = `
     <p style="margin:0 0 12px;">${greeting}</p>
-    <p style="margin:0 0 20px;">Members of your groups now have cards on your wishlist:</p>
+    <p style="margin:0 0 20px;">${messages.digestLead}</p>
     ${groupBlocks}
   `;
 
   return {
     subject,
     html: renderEmailLayout({
-      heading: "New trade matches",
+      locale: input.locale,
+      heading: messages.digestHeading,
       bodyHtml,
-      unsubscribe: { url: input.unsubscribeUrl, label: "Daily match digest" },
+      unsubscribe: {
+        url: input.unsubscribeUrl,
+        label: messages.unsubscribeLabel("tradeMatches"),
+      },
     }),
   };
 }

@@ -6,6 +6,7 @@ import { getKeywordStyle } from "@/features/cards/lib/keywords";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function keywordClipPath(pointedRight?: boolean, pointedLeft?: boolean): string {
   if (pointedLeft && pointedRight) {
@@ -62,7 +63,7 @@ function renderTokens(
           return (
             <span
               key={`${i}-${token.name}`}
-              aria-label={`energy ${energyMatch[1]}`}
+              aria-label={m.cards_text_energy_aria({ value: energyMatch[1] ?? "" })}
               className={cn(
                 // -0.179em matches the glyph images' -0.125em offset at this element's own 0.7em font-size.
                 "inline-block size-[1.45em] overflow-hidden rounded-full text-center align-[-0.179em] text-[0.7em] leading-[1.45em] font-bold not-italic",

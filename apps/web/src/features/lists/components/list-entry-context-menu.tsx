@@ -6,6 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { m } from "@/paraglide/messages.js";
 
 interface ListEntryContextMenuProps {
   onRemove?: () => void;
@@ -44,7 +45,7 @@ export function ListEntryContextMenu({
               onViewDetail();
             }}
           >
-            View details
+            {m.lists_entry_view_details()}
           </ContextMenuItem>
         ) : null}
         {onSetPreference ? (
@@ -54,7 +55,7 @@ export function ListEntryContextMenu({
               onSetPreference();
             }}
           >
-            Trade preference…
+            {m.lists_entry_trade_preference()}
           </ContextMenuItem>
         ) : null}
         {onMove ? (
@@ -64,7 +65,7 @@ export function ListEntryContextMenu({
               onMove();
             }}
           >
-            Move to list…
+            {m.lists_entry_move_to_list()}
           </ContextMenuItem>
         ) : null}
         {onMoveToCollection ? (
@@ -74,7 +75,7 @@ export function ListEntryContextMenu({
               onMoveToCollection();
             }}
           >
-            Move to collection…
+            {m.lists_entry_move_to_collection()}
           </ContextMenuItem>
         ) : null}
         {onTakeOff ? (
@@ -85,7 +86,7 @@ export function ListEntryContextMenu({
               onTakeOff();
             }}
           >
-            Take off list…
+            {m.lists_entry_take_off_list()}
           </ContextMenuItem>
         ) : null}
         {onRemove ? (
@@ -96,7 +97,7 @@ export function ListEntryContextMenu({
               onRemove();
             }}
           >
-            Remove from list
+            {m.lists_entry_remove_from_list()}
           </ContextMenuItem>
         ) : null}
         {onExclude ? (
@@ -107,7 +108,7 @@ export function ListEntryContextMenu({
               onExclude();
             }}
           >
-            Don&apos;t include this
+            {m.lists_entry_exclude()}
           </ContextMenuItem>
         ) : null}
       </ContextMenuContent>

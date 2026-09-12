@@ -22,6 +22,7 @@ import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-overrid
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 
 const EMPTY_WISH_ENTRIES: readonly WishEntryFlat[] = [];
 
@@ -122,8 +123,8 @@ export const BrowserCardCell = memo(function BrowserCardCell({
         pillAriaLabel={
           openLocations
             ? ownedCount > 0
-              ? `Variants and collections for ${cardName}`
-              : `Choose variant for ${cardName}`
+              ? m.cards_cell_variants_and_collections({ name: cardName })
+              : m.cards_cell_choose_variant({ name: cardName })
             : undefined
         }
         decrement={

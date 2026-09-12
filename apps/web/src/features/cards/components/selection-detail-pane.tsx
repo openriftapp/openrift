@@ -7,13 +7,14 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSelectionDetail } from "@/features/cards/hooks/use-selection-detail";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
 const cardDetailImport = import("@/features/cards/components/card-detail/card-detail");
 const CardDetail = lazy(async () => {
-  const m = await cardDetailImport;
-  return { default: m.CardDetail };
+  const mod = await cardDetailImport;
+  return { default: mod.CardDetail };
 });
 
 interface SelectionDetailPaneProps {
@@ -89,7 +90,7 @@ export function SelectionDetailPane({
 function PaneEmptyState() {
   return (
     <Empty className="h-40">
-      <EmptyDescription>Select a card to see its details</EmptyDescription>
+      <EmptyDescription>{m.cards_selection_detail_empty()}</EmptyDescription>
     </Empty>
   );
 }

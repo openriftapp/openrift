@@ -4,6 +4,7 @@ import type { GroupApprovedEmailInput, GroupJoinRequestEmailInput } from "./grou
 import { buildGroupApprovedEmail, buildGroupJoinRequestEmail } from "./group-emails.js";
 
 const INPUT: GroupJoinRequestEmailInput = {
+  locale: "en",
   recipientName: "Riven",
   requesterName: "Garen",
   groupName: "Summoner Skirmish",
@@ -55,6 +56,7 @@ describe("buildGroupJoinRequestEmail", () => {
 });
 
 const APPROVED: GroupApprovedEmailInput = {
+  locale: "en",
   recipientName: "Garen",
   groupName: "Summoner Skirmish",
   groupUrl: "https://openrift.app/groups/summoner-skirmish",
@@ -108,5 +110,38 @@ describe("buildGroupApprovedEmail", () => {
 
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+describe("localized group emails", () => {
+  it("translates the join-request subject, greeting and footer into German", () => {
+    const { subject, html } = buildGroupJoinRequestEmail({ ...INPUT, locale: "de" });
+
+    expect(subject).toBe("Beitrittsanfrage für Summoner Skirmish");
+    expect(html).toContain('<html lang="de">');
+    expect(html).toContain("Hallo Riven,");
+    expect(html).toContain("Anfrage ansehen");
+    expect(html).toContain("Gruppen-Beitrittsanfragen");
+    expect(html).toContain("abmelden");
+    expect(html).toContain("weil du eine Gruppe auf OpenRift leitest");
+  });
+
+  it("translates the approval email into French", () => {
+    const { subject, html } = buildGroupApprovedEmail({ ...APPROVED, locale: "fr" });
+
+    expect(subject).toBe("Vous êtes membre : Summoner Skirmish");
+    expect(html).toContain('<html lang="fr">');
+    expect(html).toContain("Bonjour Garen,");
+    expect(html).toContain("Ouvrir Summoner Skirmish");
+    expect(html).toContain("page de gestion");
+    expect(html).toContain("E-mails de bienvenue de groupe");
+  });
+
+  it("keeps the English wording for the base locale", () => {
+    const { subject, html } = buildGroupJoinRequestEmail(INPUT);
+
+    expect(subject).toBe("Join request for Summoner Skirmish");
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain("Hi Riven,");
   });
 });

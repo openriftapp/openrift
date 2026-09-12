@@ -63,14 +63,17 @@ export function MetaLegendHero({
               </span>
             )}
           </div>
-          {title !== null && <p className="text-muted-foreground text-sm">{title} · Legend</p>}
+          {title !== null && (
+            <p className="text-muted-foreground text-sm">
+              {m.meta_legend_hero_subtitle({ title })}
+            </p>
+          )}
         </div>
 
         <FactCounters counts={counts} />
 
         <p className="text-muted-foreground text-xs">
-          Every {champion} result on record: tournament finishes, the players behind them, and the
-          lists they registered.
+          {m.meta_legend_hero_description({ champion })}
         </p>
       </div>
     </Card>

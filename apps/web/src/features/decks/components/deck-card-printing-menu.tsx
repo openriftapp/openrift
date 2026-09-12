@@ -20,6 +20,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-builder-card";
 import { ZONE_LABELS } from "@/features/decks/lib/deck-zone-labels";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { m } from "@/paraglide/messages.js";
 
 interface DeckCardPrintingMenuProps {
   deckId: string;
@@ -92,8 +93,8 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
         {moveTargets.length > 0 && (
           <>
             <div className="text-muted-foreground text-2xs px-1.5 pt-1 pb-1.5 font-medium tracking-wide uppercase">
-              Move to
-              {card.quantity > 1 && <SplitHint>· shift-click to move 1</SplitHint>}
+              {m.decks_card_menu_move_to()}
+              {card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_move_hint()}</SplitHint>}
             </div>
             <div className="flex flex-col gap-0.5">
               {moveRows.map((row) => (
@@ -107,7 +108,9 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
                   {ZONE_LABELS[row.zone]}
                   {splitRowsShown && (
                     <span className="text-muted-foreground/70 ml-1">
-                      {row.splitOne ? "· move 1" : `· move all ${card.quantity}`}
+                      {row.splitOne
+                        ? m.decks_card_menu_move_one()
+                        : m.decks_card_menu_move_all({ count: card.quantity })}
                     </span>
                   )}
                 </ContextMenuItem>
@@ -120,7 +123,7 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
           printings={printings}
           activePrintingId={card.preferredPrintingId}
           hoverProps={hoverProps}
-          hint={card.quantity > 1 && <SplitHint>· shift-click to split 1</SplitHint>}
+          hint={card.quantity > 1 && <SplitHint>{m.decks_card_menu_shift_split_hint()}</SplitHint>}
           onSelect={handleSelect}
           onSelectDefault={handleSelectDefault}
         />

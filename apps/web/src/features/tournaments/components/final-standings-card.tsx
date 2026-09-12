@@ -24,6 +24,7 @@ import {
 } from "@/features/tournaments/components/final-standings-display";
 import type { PlayerLegend } from "@/features/tournaments/lib/player-run";
 import { playerRunRounds } from "@/features/tournaments/lib/player-run";
+import { m } from "@/paraglide/messages.js";
 
 import { TournamentLegend } from "./tournament-legend";
 
@@ -54,23 +55,24 @@ export function FinalStandingsCard({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <SectionHeading>Final standings</SectionHeading>
+        <SectionHeading>{m.tournaments_final_standings_heading()}</SectionHeading>
         <p className="text-muted-foreground text-sm">
-          The cut decides the top {cutSize}; players knocked out in the same round rank by seed, and
-          everyone else keeps their qualification order.
+          {m.tournaments_final_standings_description({ size: cutSize })}
         </p>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">#</TableHead>
-            <TableHead>Player</TableHead>
-            {showLegend ? <TableHead>Legend</TableHead> : null}
-            <TableHead>Run</TableHead>
-            <TableHead>Result</TableHead>
-            <TableHead className="text-right">Seed</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead className="text-right">Group place</TableHead>
+            <TableHead>{m.tournaments_standings_col_player()}</TableHead>
+            {showLegend ? <TableHead>{m.tournaments_standings_col_legend()}</TableHead> : null}
+            <TableHead>{m.tournaments_standings_col_run()}</TableHead>
+            <TableHead>{m.tournaments_final_standings_col_result()}</TableHead>
+            <TableHead className="text-right">{m.tournaments_group_col_seed()}</TableHead>
+            <TableHead>{m.tournaments_group_col_group()}</TableHead>
+            <TableHead className="text-right">
+              {m.tournaments_final_standings_col_group_place()}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

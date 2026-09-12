@@ -1,3 +1,7 @@
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
+
+import { emailMessages } from "./messages.js";
+
 /*
  * Shared HTML shell for transactional emails: a header band, a content card,
  * and a footer with an optional one-click unsubscribe link.
@@ -23,9 +27,8 @@ export function emailButton(label: string, href: string): string {
   return `<a href="${escapeHtml(href)}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:10px 18px;border-radius:8px;">${escapeHtml(label)}</a>`;
 }
 
-const DEFAULT_FOOTER_NOTE = "You're receiving this because of your trading activity on OpenRift.";
-
 interface EmailLayoutParams {
+  locale: DisplayLocale;
   heading: string;
   bodyHtml: string;
   unsubscribe?: { url: string; label: string };
@@ -33,13 +36,15 @@ interface EmailLayoutParams {
 }
 
 export function renderEmailLayout(params: EmailLayoutParams): string {
-  const { heading, bodyHtml, unsubscribe, footerNote = DEFAULT_FOOTER_NOTE } = params;
+  const { locale, heading, bodyHtml, unsubscribe } = params;
+  const messages = emailMessages(locale);
+  const footerNote = params.footerNote ?? messages.footerTrading;
   const unsubscribeHtml = unsubscribe
-    ? `<p style="margin:12px 0 0;color:${MUTED};font-size:12px;">${escapeHtml(unsubscribe.label)} — <a href="${escapeHtml(unsubscribe.url)}" style="color:${MUTED};">unsubscribe</a>.</p>`
+    ? `<p style="margin:12px 0 0;color:${MUTED};font-size:12px;">${escapeHtml(unsubscribe.label)} — <a href="${escapeHtml(unsubscribe.url)}" style="color:${MUTED};">${escapeHtml(messages.unsubscribeWord)}</a>.</p>`
     : "";
 
   return `<!doctype html>
-<html>
+<html lang="${messages.htmlLang}">
   <body style="margin:0;padding:0;background:${BACKGROUND};">
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;">
       <div style="font-size:18px;font-weight:700;color:${BRAND};margin-bottom:16px;">OpenRift</div>

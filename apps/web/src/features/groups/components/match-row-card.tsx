@@ -39,6 +39,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { AvailableCopiesPopover } from "./available-copies-popover";
@@ -84,7 +85,7 @@ function MatchRowTradeAction({
             disabled={busy}
             onClick={() => declineTrade.mutate({ tradeId: liveTrade.id, groupSlug })}
           >
-            Decline
+            {m.trades_decline()}
           </Button>
           <Button
             size="sm"
@@ -98,7 +99,7 @@ function MatchRowTradeAction({
               })
             }
           >
-            Accept
+            {m.trades_accept()}
           </Button>
           <TradeCopyPickerDialog flow={acceptFlow} />
         </div>

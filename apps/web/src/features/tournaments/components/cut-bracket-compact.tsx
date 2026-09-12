@@ -78,7 +78,9 @@ function Seat({
         </Badge>
       ) : null}
       {chooser ? (
-        <span className="text-muted-foreground shrink-0 text-xs">chooses starter</span>
+        <span className="text-muted-foreground shrink-0 text-xs">
+          {m.tournaments_cut_chooses_starter()}
+        </span>
       ) : null}
       {legend ? (
         <TournamentLegend
@@ -176,7 +178,7 @@ export function CutBracketCompact({
 
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>Top {cutSize}</SectionHeading>
+      <SectionHeading>{m.tournaments_cut_top_heading({ size: cutSize })}</SectionHeading>
       {/* flex-col-reverse renders the rounds final-first on phones without duplicate markup. */}
       <div
         className="flex flex-col-reverse gap-4 lg:grid lg:gap-5"

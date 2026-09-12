@@ -8,6 +8,7 @@ import {
 } from "./trade-emails.js";
 
 const REQUEST_BASE = {
+  locale: "en",
   recipientName: "Riven",
   initiatorName: "Garen",
   cardName: "Azir, Emperor of the Sands",
@@ -65,6 +66,7 @@ describe("buildTradeRequestEmail", () => {
 
 describe("buildCoalescedTradeRequestsEmail", () => {
   const BASE = {
+    locale: "en" as const,
     recipientName: "Riven",
     senderName: "Garen",
     unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=abc",
@@ -179,6 +181,7 @@ describe("buildCoalescedTradeRequestsEmail", () => {
 
 describe("buildTradeStatusUpdateEmail", () => {
   const BASE = {
+    locale: "en" as const,
     recipientName: "Riven",
     actorName: "Garen",
     unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=abc",
@@ -314,6 +317,7 @@ describe("buildTradeStatusUpdateEmail", () => {
 describe("buildTradeMatchDigestEmail", () => {
   it("groups matches by counterparty and counts them in the subject", () => {
     const { subject, html } = buildTradeMatchDigestEmail({
+      locale: "en",
       recipientName: "Riven",
       unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=xyz",
       groups: [
@@ -341,6 +345,7 @@ describe("buildTradeMatchDigestEmail", () => {
 
   it("labels each block with a muted location line when several groups are involved", () => {
     const { html } = buildTradeMatchDigestEmail({
+      locale: "en",
       recipientName: "Riven",
       unsubscribeUrl: "u",
       groups: [
@@ -367,6 +372,7 @@ describe("buildTradeMatchDigestEmail", () => {
 
   it("keeps the plain-sentence form for a single match", () => {
     const { subject, html } = buildTradeMatchDigestEmail({
+      locale: "en",
       recipientName: null,
       unsubscribeUrl: "u",
       groups: [
@@ -377,5 +383,230 @@ describe("buildTradeMatchDigestEmail", () => {
     expect(html).toContain("X</strong> now has <strong>C</strong> from your wishlist.");
     expect(html).not.toContain(">X has</p>");
     expect(html).toContain("View the trades in G");
+  });
+});
+
+describe("localized trade emails", () => {
+  it("translates the instant request email into German", () => {
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      locale: "de",
+      kind: "wants",
+    });
+
+    expect(subject).toBe("Garen möchte Azir, Emperor of the Sands tauschen");
+    expect(html).toContain('<html lang="de">');
+    expect(html).toContain("Hallo Riven,");
+    expect(html).toContain("Neue Tauschanfrage");
+    expect(html).toContain("Tausch ansehen");
+    expect(html).toContain("laufen 7 Tage nach dem Versand ab");
+    expect(html).toContain("E-Mails zu Tauschanfragen");
+  });
+
+  it("translates the instant request email into French", () => {
+    const { subject, html } = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      locale: "fr",
+      kind: "offers",
+    });
+
+    expect(subject).toBe("Garen vous propose Azir, Emperor of the Sands");
+    expect(html).toContain('<html lang="fr">');
+    expect(html).toContain("Bonjour Riven,");
+    expect(html).toContain("Voir l&#39;échange");
+    expect(html).toContain("se désabonner");
+  });
+
+  it("translates the coalesced request subject and its direction headings", () => {
+    const { subject, html } = buildCoalescedTradeRequestsEmail({
+      locale: "de",
+      recipientName: "Riven",
+      senderName: "Garen",
+      unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=abc",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "https://openrift.app/groups/playgroup/trades",
+          requests: [
+            { cardName: "Azir", quantity: 1, kind: "wants" },
+            { cardName: "Lux", quantity: 2, kind: "offers" },
+          ],
+        },
+      ],
+    });
+
+    expect(subject).toBe("Garen möchte 1 deiner Karten und bietet dir 1 an");
+    expect(html).toContain(">Möchte von dir</p>");
+    expect(html).toContain(">Bietet dir an</p>");
+    expect(html).toContain("Tausche in Playgroup ansehen");
+  });
+
+  it("translates the status-update verdicts into French", () => {
+    const { subject, html } = buildTradeStatusUpdateEmail({
+      locale: "fr",
+      recipientName: "Riven",
+      actorName: "Garen",
+      unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=abc",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "https://openrift.app/groups/playgroup/trades",
+          updates: [
+            { cardName: "Azir", quantity: 1, event: "reserved" },
+            { cardName: "Lux", quantity: 1, event: "declined" },
+          ],
+        },
+      ],
+    });
+
+    expect(subject).toBe("Garen a accepté 1 et refusé 1 de vos échanges");
+    expect(html).toContain(">Accepté</p>");
+    expect(html).toContain(">Refusé</p>");
+    expect(html).toContain("Mises à jour des échanges");
+  });
+
+  it("translates the digest subject and its count wording", () => {
+    const groups = [
+      {
+        groupName: "Playgroup",
+        tradesUrl: "https://openrift.app/groups/playgroup/trades",
+        matches: [
+          { cardName: "Azir", counterpartyLabel: "Garen" },
+          { cardName: "Lux", counterpartyLabel: "Garen" },
+        ],
+      },
+    ];
+
+    const german = buildTradeMatchDigestEmail({
+      locale: "de",
+      recipientName: "Riven",
+      unsubscribeUrl: "u",
+      groups,
+    });
+    const french = buildTradeMatchDigestEmail({
+      locale: "fr",
+      recipientName: "Riven",
+      unsubscribeUrl: "u",
+      groups,
+    });
+
+    expect(german.subject).toBe("2 neue Treffer in deinen Tauschgruppen");
+    expect(german.html).toContain(">Garen hat</p>");
+    expect(german.html).toContain("Täglicher Treffer-Überblick");
+    expect(french.subject).toBe("2 nouvelles correspondances dans vos groupes d'échange");
+    expect(french.html).toContain(">Garen possède</p>");
+  });
+});
+
+describe("missing card and member names", () => {
+  it("names an unresolved card in the recipient's language", () => {
+    const english = buildTradeRequestEmail({ ...REQUEST_BASE, cardName: null, kind: "wants" });
+    const german = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      locale: "de",
+      cardName: null,
+      kind: "wants",
+    });
+    const french = buildTradeRequestEmail({
+      ...REQUEST_BASE,
+      locale: "fr",
+      cardName: null,
+      kind: "offers",
+    });
+
+    expect(english.subject).toBe("Garen wants to trade for a card");
+    expect(english.html).toContain("<strong>a card</strong>");
+    expect(german.subject).toBe("Garen möchte eine Karte tauschen");
+    expect(german.html).toContain("<strong>eine Karte</strong>");
+    expect(french.subject).toBe("Garen vous propose une carte");
+    expect(french.html).toContain("<strong>une carte</strong>");
+  });
+
+  it("names an unresolved card inside a coalesced list", () => {
+    const { html } = buildCoalescedTradeRequestsEmail({
+      locale: "de",
+      recipientName: "Riven",
+      senderName: "Garen",
+      unsubscribeUrl: "u",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "t",
+          requests: [
+            { cardName: null, quantity: 1, kind: "wants" },
+            { cardName: "Lux", quantity: 2, kind: "offers" },
+          ],
+        },
+      ],
+    });
+
+    expect(html).toContain("<strong>eine Karte</strong>");
+    expect(html).not.toContain("a card");
+  });
+
+  it("names an unresolved card in a status update", () => {
+    const { html } = buildTradeStatusUpdateEmail({
+      locale: "fr",
+      recipientName: "Riven",
+      actorName: "Garen",
+      unsubscribeUrl: "u",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "t",
+          updates: [{ cardName: null, quantity: 1, event: "reserved" }],
+        },
+      ],
+    });
+
+    expect(html).toContain("<strong>une carte</strong>");
+  });
+
+  it("names a counterparty with no display name in the digest", () => {
+    const groups = [
+      {
+        groupName: "Playgroup",
+        tradesUrl: "t",
+        matches: [
+          { cardName: null, counterpartyLabel: null },
+          { cardName: "Lux", counterpartyLabel: null },
+        ],
+      },
+    ];
+
+    const german = buildTradeMatchDigestEmail({
+      locale: "de",
+      recipientName: "Riven",
+      unsubscribeUrl: "u",
+      groups,
+    });
+    const french = buildTradeMatchDigestEmail({
+      locale: "fr",
+      recipientName: "Riven",
+      unsubscribeUrl: "u",
+      groups,
+    });
+
+    expect(german.html).toContain(">Ein Mitglied hat</p>");
+    expect(german.html).toContain("<strong>eine Karte</strong>");
+    expect(french.html).toContain(">Un membre possède</p>");
+    expect(french.html).toContain("<strong>une carte</strong>");
+  });
+
+  it("names both fallbacks in a single-match digest", () => {
+    const { html } = buildTradeMatchDigestEmail({
+      locale: "de",
+      recipientName: "Riven",
+      unsubscribeUrl: "u",
+      groups: [
+        {
+          groupName: "Playgroup",
+          tradesUrl: "t",
+          matches: [{ cardName: null, counterpartyLabel: null }],
+        },
+      ],
+    });
+
+    expect(html).toContain("<strong>Ein Mitglied</strong> hat jetzt <strong>eine Karte</strong>");
   });
 });

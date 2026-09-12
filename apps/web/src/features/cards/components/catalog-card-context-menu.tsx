@@ -14,6 +14,7 @@ import {
   dispatchAddToWishlist,
   dispatchIncrement,
 } from "@/features/cards/stores/card-row-actions-store";
+import { m } from "@/paraglide/messages.js";
 
 interface CatalogCardContextMenuProps {
   printing: Printing;
@@ -47,7 +48,7 @@ export function CatalogCardContextMenu({
             }}
           >
             <PackagePlusIcon />
-            Add to {addTargetName}
+            {m.cards_context_add_to({ target: addTargetName })}
           </ContextMenuItem>
         )}
         {canWish && (
@@ -58,7 +59,7 @@ export function CatalogCardContextMenu({
             }}
           >
             <HeartPlusIcon />
-            Add to wishlist…
+            {m.cards_context_add_to_wishlist()}
           </ContextMenuItem>
         )}
         {(canAdd || canWish) && <ContextMenuSeparator />}
@@ -71,7 +72,7 @@ export function CatalogCardContextMenu({
           }
         >
           <ExternalLinkIcon />
-          Open card page
+          {m.cards_context_open_card_page()}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

@@ -72,7 +72,7 @@ export function TournamentLegendFinishes({ entries }: { entries: LegendFinish[] 
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <SectionHeading>Best finish per Legend</SectionHeading>
+        <SectionHeading>{m.tournaments_legend_finishes_heading()}</SectionHeading>
         {entries.length > TILES_SHOWN ? (
           <Button
             variant="link"

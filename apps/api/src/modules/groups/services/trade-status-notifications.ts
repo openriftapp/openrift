@@ -97,7 +97,7 @@ export async function flushTradeStatusEmails(
 
   const now = new Date();
   const contextByUser = new Map<string, EmailNotificationContext | undefined>();
-  const labelsByGroup = new Map<string, Map<string, string>>();
+  const labelsByGroup = new Map<string, Map<string, string | null>>();
   let pairs = 0;
   let emailsSent = 0;
   let events = 0;
@@ -145,16 +145,16 @@ export async function flushTradeStatusEmails(
       continue;
     }
 
-    let actorLabel: string | null = null;
+    let actorLabel: string | null | undefined;
     const cardIds = new Set<string>();
     for (const row of claimedRows) {
       cardIds.add(row.cardId);
-      if (actorLabel === null) {
+      if (actorLabel === undefined) {
         if (!labelsByGroup.has(row.groupId)) {
           const members = await repos.friendGroups.listMembers(row.groupId);
-          const labels = new Map<string, string>();
+          const labels = new Map<string, string | null>();
           for (const member of members) {
-            labels.set(member.userId, member.userName ?? "A member");
+            labels.set(member.userId, member.userName);
           }
           labelsByGroup.set(row.groupId, labels);
         }
@@ -179,7 +179,7 @@ export async function flushTradeStatusEmails(
         sections.push(section);
       }
       section.updates.push({
-        cardName: nameByCard.get(row.cardId) ?? "a card",
+        cardName: nameByCard.get(row.cardId) ?? null,
         quantity: row.quantity,
         event: row.event,
       });
@@ -192,8 +192,9 @@ export async function flushTradeStatusEmails(
       "tradeStatus",
     );
     const { subject, html } = buildTradeStatusUpdateEmail({
+      locale: context.displayLocale,
       recipientName: context.name,
-      actorName: actorLabel,
+      actorName: actorLabel ?? null,
       groups: sections,
       unsubscribeUrl: pageUrl,
     });

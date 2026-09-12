@@ -12,6 +12,7 @@ import type {
 import { SIDEBAR_REORDER_DRAG_TYPES } from "@/features/collections/components/dnd-types";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // On desktop the grip covers the icon and only appears on row hover; on touch
 // (below `md`) there's no hover, so both the icon and the grip show.
@@ -66,7 +67,7 @@ export function SortableSidebarRow({ id, data, label, children }: SortableSideba
       {...attributes}
       {...listeners}
       onTouchStart={stopTouchStart}
-      aria-label={`Reorder ${label}`}
+      aria-label={m.collections_reorder_aria({ label })}
       type="button"
       className={cn(
         "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md outline-hidden md:right-auto md:left-1.5",

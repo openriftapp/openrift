@@ -73,7 +73,10 @@ export function CutBracketView({
                   return (
                     <PlaceholderMatch
                       key={match.key}
-                      label={`${cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)} · Table ${match.podNumber}`}
+                      label={m.tournaments_cut_match_table_label({
+                        match: cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber),
+                        number: match.podNumber,
+                      })}
                       match={match}
                     />
                   );
@@ -93,7 +96,10 @@ export function CutBracketView({
                     warningsExpanded={false}
                     nameById={new Map()}
                     canEnter={canEnterResult(round, pod)}
-                    title={`${cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber)} · Table ${match.podNumber}`}
+                    title={m.tournaments_cut_match_table_label({
+                      match: cutMatchShortLabel(cutSize, column.roundNumber, match.podNumber),
+                      number: match.podNumber,
+                    })}
                     renderMemberLeading={(playerId) => (
                       <SeedPill seed={seedByPlayer.get(playerId)} />
                     )}
@@ -169,7 +175,9 @@ function MemberNotes({
         </Badge>
       ) : null}
       {chooser ? (
-        <span className="text-muted-foreground shrink-0 text-xs">chooses starter</span>
+        <span className="text-muted-foreground shrink-0 text-xs">
+          {m.tournaments_cut_chooses_starter()}
+        </span>
       ) : null}
     </>
   );

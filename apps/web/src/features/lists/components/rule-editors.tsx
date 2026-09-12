@@ -19,6 +19,7 @@ import { matchLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { m } from "@/paraglide/messages.js";
 
 /**
  * Both intents draw on the owner's personal copies only, mirroring the
@@ -84,7 +85,7 @@ export function CopyRuleEditor({
       footer={
         rules.length >= 2 && previewCount !== null ? (
           <p className="text-muted-foreground -mt-1 text-sm">
-            Combined, that&apos;s {matchLabel(previewCount, kind)} right now.
+            {m.lists_rule_combined_match({ label: matchLabel(previewCount, kind) })}
           </p>
         ) : null
       }
@@ -137,8 +138,9 @@ export function CardRuleEditor({
       footer={
         rules.length >= 2 && previewCount !== null ? (
           <p className="text-muted-foreground -mt-1 text-sm">
-            Combined, {allNet ? "you're still missing" : "that's"} {matchLabel(previewCount, kind)}{" "}
-            right now.
+            {allNet
+              ? m.lists_rule_combined_missing({ label: matchLabel(previewCount, kind) })
+              : m.lists_rule_combined_match({ label: matchLabel(previewCount, kind) })}
           </p>
         ) : null
       }

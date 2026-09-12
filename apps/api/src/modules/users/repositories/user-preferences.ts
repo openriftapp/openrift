@@ -1,4 +1,5 @@
 import type {
+  DisplayLocale,
   EmailNotificationPreference,
   UserPreferencesResponse,
 } from "@openrift/shared/types/api/preferences";
@@ -7,19 +8,22 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { UserPreferencesTable } from "../../../db/tables/settings.js";
+import { resolveDisplayLocale } from "../../../lib/display-locale.js";
 
-/** A verified-email user who has opted into the daily match digest. */
-export interface MatchDigestRecipient {
+export interface EmailRecipient {
   userId: string;
   email: string;
   name: string | null;
 }
 
-/** An admin who has opted into the card-submission alert. */
-export type CardSubmissionRecipient = MatchDigestRecipient;
+export interface MatchDigestRecipient extends EmailRecipient {
+  displayLocale: DisplayLocale;
+}
 
-/** An admin who has opted into the meta-submission alert. */
-export type MetaSubmissionRecipient = MatchDigestRecipient;
+/** Admin alert emails stay English, so they carry no locale. */
+export type CardSubmissionRecipient = EmailRecipient;
+
+export type MetaSubmissionRecipient = EmailRecipient;
 
 /** A group owner/admin who has not opted out of the join-request alert. */
 export type GroupJoinRequestRecipient = MatchDigestRecipient;
@@ -30,6 +34,7 @@ export interface EmailNotificationContext {
   emailVerified: boolean;
   name: string | null;
   emailNotifications: EmailNotificationPreference;
+  displayLocale: DisplayLocale;
 }
 
 /** Incoming PATCH body — values can be null (reset to default) or undefined (don't touch). */
@@ -84,11 +89,19 @@ export function userPreferencesRepo(db: Kysely<Database>) {
       const rows = await db
         .selectFrom("userPreferences as up")
         .innerJoin("users as u", "u.id", "up.userId")
-        .select(["u.id as userId", "u.email as email", "u.name as name"])
+        .select([
+          "u.id as userId",
+          "u.email as email",
+          "u.name as name",
+          sql<string | null>`up.data ->> 'displayLocale'`.as("displayLocale"),
+        ])
         .where("u.emailVerified", "=", true)
         .where(sql<boolean>`(up.data -> 'emailNotifications' ->> 'tradeMatches') = 'true'`)
         .execute();
-      return rows;
+      return rows.map((row) => ({
+        ...row,
+        displayLocale: resolveDisplayLocale(row.displayLocale),
+      }));
     },
 
     /**
@@ -128,7 +141,12 @@ export function userPreferencesRepo(db: Kysely<Database>) {
         .selectFrom("friendGroupMembers as m")
         .innerJoin("users as u", "u.id", "m.userId")
         .leftJoin("userPreferences as up", "up.userId", "u.id")
-        .select(["u.id as userId", "u.email as email", "u.name as name"])
+        .select([
+          "u.id as userId",
+          "u.email as email",
+          "u.name as name",
+          sql<string | null>`up.data ->> 'displayLocale'`.as("displayLocale"),
+        ])
         .where("m.groupId", "=", groupId)
         .where("m.role", "in", ["owner", "admin"])
         .where("u.emailVerified", "=", true)
@@ -136,7 +154,23 @@ export function userPreferencesRepo(db: Kysely<Database>) {
           sql<boolean>`(up.data -> 'emailNotifications' ->> 'groupJoinRequests') IS DISTINCT FROM 'false'`,
         )
         .execute();
-      return rows;
+      return rows.map((row) => ({
+        ...row,
+        displayLocale: resolveDisplayLocale(row.displayLocale),
+      }));
+    },
+
+    async getDisplayLocaleByEmail(email: string): Promise<DisplayLocale | undefined> {
+      const row = await db
+        .selectFrom("users as u")
+        .innerJoin("userPreferences as up", "up.userId", "u.id")
+        .select(sql<string | null>`up.data ->> 'displayLocale'`.as("displayLocale"))
+        .where("u.email", "=", email)
+        .executeTakeFirst();
+      if (row === undefined || row.displayLocale === null) {
+        return undefined;
+      }
+      return resolveDisplayLocale(row.displayLocale);
     },
 
     /** Left-joins preferences so a user with no preferences row still resolves with empty `emailNotifications`. */
@@ -163,6 +197,7 @@ export function userPreferencesRepo(db: Kysely<Database>) {
         emailVerified: row.emailVerified,
         name: row.name,
         emailNotifications: data.emailNotifications ?? {},
+        displayLocale: resolveDisplayLocale(data.displayLocale),
       };
     },
   };

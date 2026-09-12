@@ -5,6 +5,7 @@ import { GlobeIcon, ImagesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useEnumOrders } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const PILL_CLASS =
   "bg-background/85 text-foreground/90 flex items-center gap-[1.5cqi] rounded-[2cqi] px-[3cqi] py-[1.5cqi] text-[5.5cqi] font-medium shadow-md";
@@ -22,7 +23,7 @@ export function FallbackArtBadges({
     badges.push(
       <span key="substitute" className={PILL_CLASS}>
         <ImagesIcon aria-hidden="true" className="size-[6cqi]" />
-        Substitute art
+        {m.cards_fallback_substitute_art()}
       </span>,
     );
   } else if (printing.language !== artPrinting.language) {
@@ -51,7 +52,7 @@ export function FallbackArtBadges({
   if (printing.isSigned) {
     badges.push(
       <span key="signed" className={PILL_CLASS}>
-        Signed
+        {m.cards_flag_signed()}
       </span>,
     );
   }

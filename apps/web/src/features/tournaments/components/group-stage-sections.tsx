@@ -191,7 +191,9 @@ function GroupUnitSection({
       </div>
       {currentPods.length > 0 ? (
         <div className="flex flex-col gap-3">
-          <span className="text-muted-foreground text-sm">Round {unit.roundsStarted}</span>
+          <span className="text-muted-foreground text-sm">
+            {m.tournaments_group_round_label({ number: unit.roundsStarted })}
+          </span>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {currentPods.map((pod) => (
               <PodCard

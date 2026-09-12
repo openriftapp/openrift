@@ -196,7 +196,7 @@ export function DeckImportPreviewStep({
         />
 
         <ImportRowsSection
-          title="Cards"
+          title={m.collections_deck_import_cards_section()}
           count={matchedEntries.length}
           render={
             <Accordion

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
 import { downloadQrPng } from "@/lib/share-image";
+import { m } from "@/paraglide/messages.js";
 
 interface ShareQrPanelProps {
   url: string;
@@ -25,7 +26,7 @@ export function ShareQrPanel({ url, label, filenameBase }: ShareQrPanelProps) {
     } catch {
       // Not a mutation, so it never reaches the global mutation error handler.
       setDownloading(false);
-      toast.error("Couldn't prepare the QR code. Please try again.");
+      toast.error(m.share_qr_error());
     }
   };
 
@@ -34,7 +35,7 @@ export function ShareQrPanel({ url, label, filenameBase }: ShareQrPanelProps) {
       <QrCode value={url} size={200} label={label} />
       <Button variant="outline" onClick={() => void handleDownload()} disabled={downloading}>
         {downloading ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
-        Download PNG
+        {m.share_qr_download_png()}
       </Button>
     </div>
   );

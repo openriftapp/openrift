@@ -227,7 +227,10 @@ function PreviewStep({
         </div>
 
         {problematicEntries.length > 0 && (
-          <ImportRowsSection title="Needs review" count={problematicEntries.length}>
+          <ImportRowsSection
+            title={m.lists_import_needs_review()}
+            count={problematicEntries.length}
+          >
             {problematicEntries.map((item) => renderRow(item))}
           </ImportRowsSection>
         )}

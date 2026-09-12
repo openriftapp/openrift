@@ -15,6 +15,7 @@ import { FinishIcon, hasFinishIcon } from "@/features/cards/components/finish-ic
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { formatPublicCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function CardPagePrintings({
   printings,
@@ -31,7 +32,7 @@ export function CardPagePrintings({
   }
   return (
     <section className="flex flex-col gap-6">
-      <Heading level={2}>Printings</Heading>
+      <Heading level={2}>{m.cards_page_printings_heading()}</Heading>
       <div className="flex flex-col gap-6">
         {[...Map.groupBy(printings, (p) => p.language)].map(([lang, group]) => (
           <div key={lang} className="flex flex-col gap-4">
@@ -94,21 +95,21 @@ function PrintingCard({
         className="text-muted-foreground inline-flex items-center gap-0.5 text-xs"
       >
         <TagIcon className="size-3" />
-        {printing.markers.map((m) => m.label).join(", ")}
+        {printing.markers.map((marker) => marker.label).join(", ")}
       </span>,
     );
   }
   if (printing.isOvernumbered) {
     badges.push(
       <span key="overnumbered" className="text-muted-foreground text-xs">
-        Overnumbered
+        {m.cards_flag_overnumbered()}
       </span>,
     );
   }
   if (printing.isSigned) {
     badges.push(
       <span key="signed" className="text-muted-foreground text-xs">
-        Signed
+        {m.cards_flag_signed()}
       </span>,
     );
   }

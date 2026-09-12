@@ -7,6 +7,7 @@ import { SearchPrefixChip, SearchScopeChip } from "@/features/cards/components/s
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import { trackEvent } from "@/lib/analytics";
+import { m } from "@/paraglide/messages.js";
 
 interface SearchBarProps {
   totalCards: number;
@@ -46,7 +47,7 @@ export function SearchBar({ totalCards, filteredCount }: SearchBarProps) {
   const prefixFields = searchPrefixFields(localSearch);
   const hasPrefixes = prefixFields.length > 0;
 
-  const placeholder = "Search...";
+  const placeholder = m.cards_browser_search_placeholder();
 
   const scopeNarrowed = !allSelected && !hasPrefixes;
   const focusedAndEmpty = searchFocused && localSearch === "";

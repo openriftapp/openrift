@@ -43,6 +43,7 @@ export function buildMetaSubmissionAlertEmail(input: MetaSubmissionAlertEmailInp
   return {
     subject,
     html: renderEmailLayout({
+      locale: "en",
       heading: "New meta submission",
       bodyHtml,
       footerNote: FOOTER_NOTE,

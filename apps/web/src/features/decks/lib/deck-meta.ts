@@ -1,6 +1,8 @@
 import { formatDay } from "@openrift/shared/format-date";
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 
+import { m } from "@/paraglide/messages.js";
+
 export type DeckMetaPartKey = "box" | "missing" | "value" | "updated";
 
 export interface DeckMetaPart {
@@ -14,8 +16,8 @@ export interface DeckMetaPart {
 export function deckBoxPart(boxName?: string | null): DeckMetaPart {
   return {
     key: "box",
-    text: boxName ? `in ${boxName}` : null,
-    title: boxName ? `Stored in ${boxName}` : undefined,
+    text: boxName ? m.decks_meta_in_box({ box: boxName }) : null,
+    title: boxName ? m.decks_meta_stored_in_box({ box: boxName }) : undefined,
   };
 }
 

@@ -72,8 +72,8 @@ function digestRepos(): Repos {
     siteSettings: { getBool: async () => true },
     userPreferences: {
       listMatchDigestRecipients: async () => [
-        { userId: "user-1", email: "one@example.test", name: "One" },
-        { userId: "user-2", email: "two@example.test", name: "Two" },
+        { userId: "user-1", email: "one@example.test", name: "One", displayLocale: "en" },
+        { userId: "user-2", email: "two@example.test", name: "Two", displayLocale: "de" },
       ],
     },
     friendGroups: {
@@ -127,6 +127,21 @@ describe("sendTradeMatchDigest", () => {
       failed: 2,
       matchesDropped: 2,
     });
+  });
+
+  it("sends each recipient their own display language", async () => {
+    const sendEmail = vi.fn(() => Promise.resolve());
+    await sendTradeMatchDigest(
+      digestDeps(sendEmail as unknown as TradeMatchDigestDeps["sendEmail"]),
+    );
+
+    const [english, german] = (
+      sendEmail.mock.calls as unknown as [{ subject: string; html: string }][]
+    ).map(([args]) => args);
+    expect(english!.subject).toContain("in your trading groups");
+    expect(english!.html).toContain('<html lang="en">');
+    expect(german!.subject).toContain("in deinen Tauschgruppen");
+    expect(german!.html).toContain('<html lang="de">');
   });
 
   it("reports no failures when every send succeeds", async () => {

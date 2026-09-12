@@ -37,6 +37,7 @@ import { applySwaps, hasActiveSwaps } from "@/features/decks/lib/deck-swap-test"
 import { useDeckOddsGroupsStore } from "@/features/decks/stores/deck-odds-groups-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable], [role="dialog"]';
 
@@ -361,11 +362,7 @@ export function DeckTestBench({
   // mainRows reflects the real deck, not the experiment: cutting every
   // main-deck card must not swap the whole tab for a placeholder with no way back.
   if (mainRows.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Add cards to the main deck to test opening hands.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{m.decks_test_bench_empty()}</p>;
   }
 
   return (

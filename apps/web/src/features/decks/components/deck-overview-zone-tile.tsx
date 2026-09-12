@@ -249,7 +249,7 @@ export function ZoneTile({
               type="button"
               variant="dashed"
               onClick={onClick}
-              aria-label={`Edit ${label}`}
+              aria-label={m.decks_zone_edit_aria({ label })}
               style={isLandscape ? LANDSCAPE_THUMB_STYLE : PORTRAIT_THUMB_STYLE}
               className={cn(
                 isLandscape ? LANDSCAPE_THUMB_CLASS : PORTRAIT_THUMB_CLASS,
