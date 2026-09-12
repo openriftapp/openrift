@@ -598,6 +598,9 @@ export const groupQualificationRowSchema = z.object({
   place: z.number().int().positive(),
   matchWinRate: z.number(),
   gameWinRate: z.number().nullable(),
+  /** Players in the field on the same Legend; null without a Legend or with the tiers off. */
+  legendCount: z.number().int().nonnegative().nullable(),
+  metaShare: z.number().nullable(),
   decidedBy: groupCutTierSchema.nullable(),
   /** Locked seed once the cut exists, else the provisional seed or null past the cut size. */
   seed: z.number().int().positive().nullable(),

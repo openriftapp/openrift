@@ -83,6 +83,9 @@ export interface QualificationRow {
   place: number;
   matchWinRate: number;
   gameWinRate: number | null;
+  /** Players in the field on the same Legend; null without a Legend or with the tiers off. */
+  legendCount: number | null;
+  metaShare: number | null;
   decidedBy: GroupCutTier | null;
 }
 

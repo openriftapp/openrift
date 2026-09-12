@@ -1,4 +1,5 @@
 import type {
+  GroupQualificationRowView,
   GroupStageGroupView,
   GroupStageView,
   GroupStandingRowView,
@@ -144,77 +145,123 @@ describe("GroupStandingsCard", () => {
   });
 });
 
+function makeRanking(
+  playerId: string,
+  displayName: string,
+  overrides: Partial<GroupQualificationRowView> = {},
+): GroupQualificationRowView {
+  return {
+    playerId,
+    displayName,
+    groupLabel: "A",
+    place: 1,
+    matchWinRate: 1,
+    gameWinRate: null,
+    legendCount: null,
+    metaShare: null,
+    decidedBy: null,
+    seed: null,
+    qualified: false,
+    ...overrides,
+  };
+}
+
 describe("CutSeedsCard", () => {
   const ranking = [
-    {
-      playerId: "p1",
-      displayName: "Ashe",
-      groupLabel: "C",
-      place: 1,
-      matchWinRate: 1,
-      gameWinRate: 0.8,
-      decidedBy: null,
-      seed: 1,
-      qualified: true,
-    },
-    {
-      playerId: "p2",
-      displayName: "Braum",
+    makeRanking("p1", "Ashe", { groupLabel: "C", gameWinRate: 0.8, seed: 1, qualified: true }),
+    makeRanking("p2", "Braum", {
       groupLabel: "B",
-      place: 1,
       matchWinRate: 0.667,
       gameWinRate: 0.6,
-      decidedBy: "mw" as const,
+      decidedBy: "mw",
       seed: 2,
       qualified: true,
-    },
-    {
-      playerId: "p3",
-      displayName: "Caitlyn",
-      groupLabel: "A",
+    }),
+    makeRanking("p3", "Caitlyn", {
       place: 2,
-      matchWinRate: 0.5,
+      matchWinRate: 0.667,
       gameWinRate: 0.5,
-      decidedBy: null,
-      seed: null,
-      qualified: false,
-    },
+      seed: 3,
+      qualified: true,
+    }),
+    makeRanking("p4", "Darius", {
+      groupLabel: "B",
+      place: 2,
+      matchWinRate: 0.667,
+      gameWinRate: 0.4,
+      decidedBy: "gw",
+    }),
+    makeRanking("p5", "Ekko", { groupLabel: "C", place: 3, matchWinRate: 0.333 }),
   ];
 
-  it("lists the qualifiers with their seed, group and rates", () => {
-    render(<CutSeedsCard groupStage={makeStage({ ranking })} cutSize={4} />);
+  function renderCard(overrides: Partial<GroupStageView> = {}, legendTiebreak = false) {
+    return render(
+      <CutSeedsCard
+        groupStage={makeStage({ ranking, ...overrides })}
+        cutSize={4}
+        legendTiebreak={legendTiebreak}
+      />,
+    );
+  }
+
+  it("folds a tier that is fully in the cut into seeded chips", () => {
+    renderCard();
     expect(screen.getByText("Top 4 seeds")).toBeInTheDocument();
-    expect(bodyRows()).toHaveLength(2);
-    const [first] = bodyRows();
-    expect(within(first!).getByText("#1")).toBeInTheDocument();
-    expect(within(first!).getByText("Ashe")).toBeInTheDocument();
-    expect(within(first!).getByText("C")).toBeInTheDocument();
-    expect(within(first!).getByText("100%")).toBeInTheDocument();
+    expect(screen.getByText("Group winners")).toBeInTheDocument();
+    expect(screen.getByText("All in the cut")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.getByText("Ashe")).toBeInTheDocument();
+    expect(screen.queryByText("80%")).not.toBeInTheDocument();
   });
 
-  it("names match win rate as the tier that split two group winners", () => {
-    render(<CutSeedsCard groupStage={makeStage({ ranking })} cutSize={4} />);
-    const [, second] = bodyRows();
-    expect(within(second!).getByText("MW%")).toBeInTheDocument();
+  it("folds a tier that is fully out into muted chips", () => {
+    renderCard();
+    expect(screen.getByText("Group thirds")).toBeInTheDocument();
+    expect(screen.getByText("None in the cut")).toBeInTheDocument();
+    expect(screen.getByText("Ekko")).toBeInTheDocument();
   });
 
-  it("names the players who just missed out", () => {
-    render(<CutSeedsCard groupStage={makeStage({ ranking })} cutSize={4} />);
-    expect(screen.getByText("Did not qualify: Caitlyn.")).toBeInTheDocument();
+  it("tables the tier the cut line crosses with the rates and the deciding criterion", () => {
+    renderCard();
+    expect(screen.getByText("Runners-up")).toBeInTheDocument();
+    const rows = bodyRows();
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]!).getByText("Caitlyn")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("#3")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("50%")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("Darius")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("GW%")).toBeInTheDocument();
+    expect(rows[1]).toHaveAttribute("data-cut-line");
+  });
+
+  it("adds the Legend columns only with the Legend tiebreak on", () => {
+    renderCard({}, true);
+    expect(screen.getByText("Legend count")).toBeInTheDocument();
+    expect(screen.getByText("Meta share")).toBeInTheDocument();
+  });
+
+  it("explains the last seed against the first player out", () => {
+    renderCard();
+    expect(screen.getByText("Why is Caitlyn in the top 4 and Darius not?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Both are Runners-up. They are level on match win rate (67%). Caitlyn has the higher game win rate (50% against 40%).",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("holds the explanation back while the group stage is still running", () => {
+    renderCard({ stageComplete: false });
+    expect(screen.queryByText(/Why is/u)).not.toBeInTheDocument();
   });
 
   it("marks the seeds locked once the cut exists", () => {
-    render(<CutSeedsCard groupStage={makeStage({ ranking, cutGenerated: true })} cutSize={4} />);
+    renderCard({ cutGenerated: true });
     expect(screen.getByText("Locked")).toBeInTheDocument();
   });
 
   it("warns when a corrected group result no longer agrees with the locked seeds", () => {
-    render(
-      <CutSeedsCard
-        groupStage={makeStage({ ranking, cutGenerated: true, seedsDiverged: true })}
-        cutSize={4}
-      />,
-    );
+    renderCard({ cutGenerated: true, seedsDiverged: true });
     expect(
       screen.getByText(
         "A group result was corrected after the cut. Group standings now differ from the locked seeds.",
@@ -223,7 +270,9 @@ describe("CutSeedsCard", () => {
   });
 
   it("renders nothing before anyone has qualified", () => {
-    const { container } = render(<CutSeedsCard groupStage={makeStage()} cutSize={8} />);
+    const { container } = render(
+      <CutSeedsCard groupStage={makeStage()} cutSize={8} legendTiebreak={false} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 });

@@ -156,25 +156,30 @@ function metaShareOf(legend: LegendTiebreakInput, playerId: string): number | nu
   return legendId === null ? null : (legend.metaShareByLegend.get(legendId) ?? null);
 }
 
-function legendSteps(legend: LegendTiebreakInput | null): Step[] {
-  if (legend === null) {
-    return [];
-  }
+function legendCounts(legend: LegendTiebreakInput): Map<string, number> {
   const counts = new Map<string, number>();
   for (const legendId of legend.legendByPlayer.values()) {
     if (legendId !== null) {
       counts.set(legendId, (counts.get(legendId) ?? 0) + 1);
     }
   }
+  return counts;
+}
+
+function legendCountOf(legend: LegendTiebreakInput | null, playerId: string): number | null {
+  if (legend === null) {
+    return null;
+  }
+  const legendId = legendOf(legend, playerId);
+  return legendId === null ? null : (legendCounts(legend).get(legendId) ?? 0);
+}
+
+function legendSteps(legend: LegendTiebreakInput | null): Step[] {
+  if (legend === null) {
+    return [];
+  }
   return [
-    {
-      kind: "key",
-      tier: "legend_count",
-      key: (playerId) => {
-        const legendId = legendOf(legend, playerId);
-        return legendId === null ? null : (counts.get(legendId) ?? 0);
-      },
-    },
+    { kind: "key", tier: "legend_count", key: (playerId) => legendCountOf(legend, playerId) },
     { kind: "meta", legend },
   ];
 }
@@ -353,6 +358,8 @@ export function computeGroupStage(input: GroupStandingsInput): GroupStageRanking
         place: row.place,
         matchWinRate: 0,
         gameWinRate: null,
+        legendCount: legendCountOf(input.legend, row.playerId),
+        metaShare: input.legend === null ? null : metaShareOf(input.legend, row.playerId),
         decidedBy: null,
       });
     }

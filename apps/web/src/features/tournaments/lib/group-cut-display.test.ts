@@ -1,100 +1,92 @@
-import { GROUP_CUT_TIERS } from "@openrift/shared/pairing/group-cut-types";
+import type { GroupQualificationRowView } from "@openrift/shared/types/api/pod-tournament";
 import { describe, expect, it } from "vitest";
 
-import {
-  checkGroupPlayerCount,
-  cutSizeItems,
-  cutMatchShortLabel,
-  cutRoundLabel,
-  cutRoundLabels,
-  formatWinRate,
-  groupCutTierLabels,
-  parseCutSize,
-} from "./group-cut-display";
+import { cutLineExplanation, formatMetaShare } from "./group-cut-display";
 
-describe("checkGroupPlayerCount", () => {
-  it("accepts every even count from six up", () => {
-    for (const count of [6, 8, 10, 12, 16, 18, 32]) {
-      expect(checkGroupPlayerCount(count)).toEqual({ valid: true, message: null });
-    }
+function row(
+  displayName: string,
+  overrides: Partial<GroupQualificationRowView> = {},
+): GroupQualificationRowView {
+  return {
+    playerId: displayName.toLowerCase(),
+    displayName,
+    groupLabel: "A",
+    place: 2,
+    matchWinRate: 0.667,
+    gameWinRate: 0.5,
+    legendCount: 2,
+    metaShare: 0.2,
+    decidedBy: null,
+    seed: null,
+    qualified: false,
+    ...overrides,
+  };
+}
+
+describe("cutLineExplanation", () => {
+  it("returns null while nobody has qualified or everyone has", () => {
+    expect(cutLineExplanation([row("Ashe")], 8)).toBeNull();
+    expect(cutLineExplanation([row("Ashe", { qualified: true, seed: 1 })], 8)).toBeNull();
   });
 
-  it("asks for one more or one fewer player on an odd count", () => {
-    for (const count of [7, 9, 17, 31]) {
-      const result = checkGroupPlayerCount(count);
-      expect(result.valid).toBe(false);
-      expect(result.message).toBe("Add or drop one player to fill the groups of four.");
-    }
+  it("names the group place when the two sit in different tiers", () => {
+    const result = cutLineExplanation(
+      [
+        row("Ashe", { place: 1, qualified: true, seed: 8 }),
+        row("Braum", { place: 2, groupLabel: "B", matchWinRate: 1 }),
+      ],
+      8,
+    );
+    expect(result?.heading).toBe("Why is Ashe in the top 8 and Braum not?");
+    expect(result?.body).toBe(
+      "Ashe finished in place 1 of Group A, Braum in place 2 of Group B. A better group place ranks first, whatever the win rates.",
+    );
   });
 
-  it("names the minimum instead below six", () => {
-    for (const count of [0, 4, 5]) {
-      const result = checkGroupPlayerCount(count);
-      expect(result.valid).toBe(false);
-      expect(result.message).toBe("A group stage needs at least six players.");
-    }
-  });
-});
-
-describe("cut round labels", () => {
-  it("names the columns of each cut size", () => {
-    expect(cutRoundLabels(4)).toEqual(["Semifinals", "Final"]);
-    expect(cutRoundLabels(8)).toEqual(["Quarterfinals", "Semifinals", "Final"]);
-    expect(cutRoundLabels(16)).toEqual(["Round of 16", "Quarterfinals", "Semifinals", "Final"]);
+  it("walks through the tied criteria down to the meta share", () => {
+    const result = cutLineExplanation(
+      [
+        row("Ashe", { qualified: true, seed: 8, metaShare: 0.12 }),
+        row("Braum", { decidedBy: "meta_share", metaShare: 0.25 }),
+      ],
+      8,
+    );
+    expect(result?.body).toBe(
+      "Both are Runners-up. They are level on match win rate (67%) and game win rate (50%), and their Legends are equally common in the field. Ashe takes the spot on the lower meta share (12.0% against 25.0%).",
+    );
   });
 
-  it("counts cut rounds from round four", () => {
-    expect(cutRoundLabel(8, 4)).toBe("Quarterfinals");
-    expect(cutRoundLabel(8, 6)).toBe("Final");
-    expect(cutRoundLabel(4, 4)).toBe("Semifinals");
-    expect(cutRoundLabel(16, 4)).toBe("Round of 16");
+  it("names the rarer Legend with both counts", () => {
+    const result = cutLineExplanation(
+      [
+        row("Ashe", { qualified: true, seed: 8, legendCount: 1 }),
+        row("Braum", { decidedBy: "legend_count", legendCount: 3 }),
+      ],
+      8,
+    );
+    expect(result?.body).toContain(
+      "Ashe plays the rarer Legend in the field (1 against 3 players).",
+    );
   });
 
-  it("falls back to the plain round number past the final", () => {
-    expect(cutRoundLabel(4, 9)).toBe("Round 9");
+  it("says the spot waits when a meta share is missing", () => {
+    const result = cutLineExplanation(
+      [row("Ashe", { qualified: true, seed: 8 }), row("Braum", { decidedBy: "meta_pending" })],
+      8,
+    );
+    expect(result?.body).toContain("The spot waits on the meta shares of their Legends.");
   });
 
-  it("numbers a match inside its round, and leaves the final unnumbered", () => {
-    expect(cutMatchShortLabel(8, 4, 2)).toBe("QF 2");
-    expect(cutMatchShortLabel(8, 5, 1)).toBe("SF 1");
-    expect(cutMatchShortLabel(8, 6, 1)).toBe("Final");
-    expect(cutMatchShortLabel(16, 4, 3)).toBe("R16 3");
-  });
-});
-
-describe("cut size", () => {
-  it("offers only the three supported sizes", () => {
-    expect(cutSizeItems().map((item) => item.label)).toEqual(["Top 4", "Top 8", "Top 16"]);
-  });
-
-  it("parses a select value and rejects anything else", () => {
-    expect(parseCutSize("8")).toBe(8);
-    expect(parseCutSize("6")).toBeNull();
-    expect(parseCutSize("")).toBeNull();
-  });
-});
-
-describe("groupCutTierLabels", () => {
-  it("labels every tier the API can send", () => {
-    for (const tier of GROUP_CUT_TIERS) {
-      expect(groupCutTierLabels()[tier]).toBeTruthy();
-    }
-  });
-
-  it("tells the two win rates apart", () => {
-    expect(groupCutTierLabels().mw).toBe("MW%");
-    expect(groupCutTierLabels().gw).toBe("GW%");
-  });
-
-  it("warns in words on the pending meta tier", () => {
-    expect(groupCutTierLabels().meta_pending).toBe("Needs meta share");
+  it("returns null when the first player out carries no criterion", () => {
+    expect(
+      cutLineExplanation([row("Ashe", { qualified: true, seed: 8 }), row("Braum")], 8),
+    ).toBeNull();
   });
 });
 
-describe("formatWinRate", () => {
-  it("rounds to whole percent and leaves an unplayed rate blank", () => {
-    expect(formatWinRate(0.6667)).toBe("67%");
-    expect(formatWinRate(1)).toBe("100%");
-    expect(formatWinRate(null)).toBe("-");
+describe("formatMetaShare", () => {
+  it("shows one decimal and a dash for a missing share", () => {
+    expect(formatMetaShare(0.1234)).toBe("12.3%");
+    expect(formatMetaShare(null)).toBe("-");
   });
 });

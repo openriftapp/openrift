@@ -85,6 +85,8 @@ const stage: GroupStageView = {
     place: index + 1,
     matchWinRate: 1 - index * 0.25,
     gameWinRate: null,
+    legendCount: null,
+    metaShare: null,
     decidedBy: null,
     seed: index + 1,
     qualified: true,

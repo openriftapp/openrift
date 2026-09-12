@@ -111,6 +111,8 @@ function ranking(order: string[]): GroupStageRanking {
       place: index < 2 ? 1 : 2,
       matchWinRate: 1 - index / 10,
       gameWinRate: null,
+      legendCount: null,
+      metaShare: null,
       decidedBy: null,
     })),
     pendingMetaLegendIds: [],

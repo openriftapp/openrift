@@ -385,6 +385,8 @@ describe("qualificationOrder", () => {
       place,
       matchWinRate: 1,
       gameWinRate: 1,
+      legendCount: null,
+      metaShare: null,
       decidedBy: "mw",
     };
   }

@@ -48,7 +48,7 @@ export function GroupCutStandings({
       {groupStage.groups.map((group) => (
         <GroupStandingsCard key={group.id} group={group} />
       ))}
-      <CutSeedsCard groupStage={groupStage} cutSize={cutSize} />
+      <CutSeedsCard groupStage={groupStage} cutSize={cutSize} legendTiebreak={legendTiebreak} />
       <GroupTiebreakNote legendTiebreak={legendTiebreak} />
       {metaShares ? (
         <LegendMetaSharesDialog

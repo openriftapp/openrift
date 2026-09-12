@@ -114,6 +114,8 @@ export function toGroupStageView(input: GroupStageViewInput): GroupStageView {
       place: row.place,
       matchWinRate: row.matchWinRate,
       gameWinRate: row.gameWinRate,
+      legendCount: row.legendCount,
+      metaShare: row.metaShare,
       decidedBy: row.decidedBy,
       seed: cutGenerated ? stored : provisional,
       qualified: cutGenerated ? stored !== null : provisional !== null,

@@ -530,6 +530,32 @@ describe("computeGroupStage: Legend tiers", () => {
     const result = computeGroupStage(standingsInput(legendGroup, legendMatches));
     expect(tiers(result.groups[0])[1]).toBe("draw");
     expect(result.pendingMetaLegendIds).toEqual([]);
+    expect(result.ranking.map((row) => [row.legendCount, row.metaShare])).toEqual([
+      [null, null],
+      [null, null],
+      [null, null],
+      [null, null],
+    ]);
+  });
+
+  it("carries each player's Legend count and meta share into the ranking", () => {
+    const result = computeGroupStage(
+      standingsInput(legendGroup, legendMatches, {
+        legend: {
+          legendByPlayer: new Map([
+            ["a", "rare"],
+            ["b", "common"],
+            ["c", "common"],
+            ["d", null],
+          ]),
+          metaShareByLegend: new Map([["common", 0.25]]),
+        },
+      }),
+    );
+    const byPlayer = new Map(result.ranking.map((row) => [row.playerId, row]));
+    expect(byPlayer.get("a")).toMatchObject({ legendCount: 1, metaShare: null });
+    expect(byPlayer.get("b")).toMatchObject({ legendCount: 2, metaShare: 0.25 });
+    expect(byPlayer.get("d")).toMatchObject({ legendCount: null, metaShare: null });
   });
 });
 
