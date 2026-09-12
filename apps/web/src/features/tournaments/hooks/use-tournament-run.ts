@@ -89,18 +89,14 @@ const fetchReportStandingsSnapshot = createServerFn({ method: "GET" })
     apiOrpcClient(publicPodTournamentsContract).reportStandings(data),
   );
 
-export function tournamentStandingsSnapshotQueryOptions(
-  userId: string,
-  id: string,
-  throughRound: number,
-) {
+function tournamentStandingsSnapshotQueryOptions(userId: string, id: string, throughRound: number) {
   return queryOptions({
     queryKey: podTournamentsKeys.snapshot(userId, id, throughRound),
     queryFn: () => fetchStandingsSnapshot({ data: { id, throughRound } }),
   });
 }
 
-export function tournamentReportSnapshotQueryOptions(token: string, throughRound: number) {
+function tournamentReportSnapshotQueryOptions(token: string, throughRound: number) {
   return queryOptions({
     queryKey: podTournamentsKeys.reportSnapshot(token, throughRound),
     queryFn: () => fetchReportStandingsSnapshot({ data: { token, throughRound } }),
