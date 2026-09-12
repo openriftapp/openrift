@@ -107,7 +107,7 @@ describe("ImageSuggestForm", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderForm();
 
-    await user.upload(screen.getByLabelText("Take a photo or choose one"), photo());
+    await user.upload(screen.getByLabelText("Choose a photo"), photo());
 
     expect(await screen.findByRole("img")).toHaveAttribute("src", UPLOADED_URL);
     const [url, init] = fetchMock.mock.calls[0]!;
@@ -120,7 +120,7 @@ describe("ImageSuggestForm", () => {
     vi.stubGlobal("fetch", respondWith(200, { url: UPLOADED_URL }));
     renderForm();
 
-    await user.upload(screen.getByLabelText("Take a photo or choose one"), photo());
+    await user.upload(screen.getByLabelText("Choose a photo"), photo());
     await screen.findByRole("img");
     await user.click(screen.getByRole("button", { name: /Submit image suggestion/u }));
 
@@ -133,7 +133,7 @@ describe("ImageSuggestForm", () => {
     vi.stubGlobal("fetch", respondWith(413, {}));
     renderForm();
 
-    await user.upload(screen.getByLabelText("Take a photo or choose one"), photo());
+    await user.upload(screen.getByLabelText("Choose a photo"), photo());
 
     expect(await screen.findByText(/larger than 20 MB/u)).toBeInTheDocument();
   });

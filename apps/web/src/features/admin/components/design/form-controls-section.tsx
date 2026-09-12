@@ -1,4 +1,4 @@
-import { PlusIcon, SearchIcon, UploadIcon } from "lucide-react";
+import { CameraIcon, PlusIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -160,7 +160,7 @@ export function FormControlsSection() {
         </Demo>
         <Demo
           name="Dropzone"
-          hint="Drag-and-drop file target over a hidden file input. The panel is the click target too."
+          hint="Drag-and-drop file target over a hidden file input. The panel is the click target too. With cameraLabel it adds a capture button on touch devices."
           spec="dashed border · primary tint while dragging"
           className="sm:col-span-2"
         >
@@ -171,6 +171,8 @@ export function FormControlsSection() {
             icon={<UploadIcon className="text-muted-foreground size-5" />}
             label="Drop photos here or click to choose"
             hint="JPG, PNG or WebP, up to 50 MB each."
+            cameraLabel="Take a photo"
+            cameraIcon={<CameraIcon className="size-4" />}
             onFiles={(files) => toast.success(`${files.length} file(s) picked`)}
           />
         </Demo>

@@ -1,14 +1,24 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Dropzone } from "./dropzone";
+
+let coarsePointer = false;
+
+vi.mock("@/hooks/use-coarse-pointer", () => ({
+  useCoarsePointer: () => coarsePointer,
+}));
 
 function file(name: string) {
   return new File(["x"], name, { type: "image/png" });
 }
 
 describe("Dropzone", () => {
+  beforeEach(() => {
+    coarsePointer = false;
+  });
+
   it("labels the hidden input with the panel's own label", () => {
     render(<Dropzone label="Drop photos here" onFiles={vi.fn()} />);
 
@@ -82,5 +92,25 @@ describe("Dropzone", () => {
     render(<Dropzone label="Drop photos here" hint="JPG, PNG or WebP" onFiles={vi.fn()} />);
 
     expect(screen.getByText("JPG, PNG or WebP")).toBeInTheDocument();
+  });
+
+  it("hides the camera action on a fine pointer", () => {
+    render(<Dropzone label="Drop photos here" cameraLabel="Take a photo" onFiles={vi.fn()} />);
+
+    expect(screen.queryByLabelText("Take a photo")).not.toBeInTheDocument();
+  });
+
+  it("opens the camera on a coarse pointer", async () => {
+    coarsePointer = true;
+    const user = userEvent.setup();
+    const onFiles = vi.fn();
+    render(<Dropzone label="Drop photos here" cameraLabel="Take a photo" onFiles={onFiles} />);
+
+    const input = screen.getByLabelText("Take a photo");
+    expect(input).toHaveAttribute("capture", "environment");
+
+    await user.upload(input, file("front.png"));
+
+    expect(onFiles).toHaveBeenCalledWith([expect.objectContaining({ name: "front.png" })]);
   });
 });

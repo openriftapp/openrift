@@ -1,5 +1,5 @@
 import type { Card, Printing } from "@openrift/shared/types/catalog";
-import { CheckCircle2Icon, ImageUpIcon, SendIcon } from "lucide-react";
+import { CameraIcon, CheckCircle2Icon, ImageUpIcon, SendIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -122,6 +122,8 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           icon={<ImageUpIcon className="text-muted-foreground size-5" />}
           label={dropzoneLabel}
           hint={m.contribute_image_dropzone_hint()}
+          cameraLabel={m.contribute_image_dropzone_camera()}
+          cameraIcon={<CameraIcon className="size-4" />}
           onFiles={handleFiles}
         />
         {upload.isError && (
