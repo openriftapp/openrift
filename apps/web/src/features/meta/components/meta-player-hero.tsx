@@ -94,11 +94,6 @@ export function MetaPlayerHero({
         </div>
 
         <FactCounters counts={counts} />
-
-        <p className="text-muted-foreground text-xs">
-          Every {name} result on record: tournament finishes, the legends they brought, and the
-          lists they registered.
-        </p>
       </div>
     </Card>
   );

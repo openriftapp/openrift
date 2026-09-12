@@ -62,6 +62,12 @@ describe("/meta/players/$key loader", () => {
     expect(keys).toContainEqual([...metaKeys.player(KEY)]);
   });
 
+  it("covers the whole career when the URL names no era", async () => {
+    const keys = await warmedKeys();
+
+    expect(keys).toContainEqual([...metaKeys.decks({ formats: ["constructed"], player: KEY })]);
+  });
+
   it("warms this player's own lists under the scope the URL names, facets and all", async () => {
     const keys = await warmedKeys({ era: "origins", countriesEx: ["DE"] });
 

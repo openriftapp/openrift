@@ -157,6 +157,11 @@ export const CLEARED_SCOPE: Record<keyof MetaScope, undefined> = {
  */
 export const UNSCOPED: Pick<MetaScope, "era" | "formats"> = { era: ERA_ALL, formats: [] };
 
+/** A scope read on a surface whose default era is not the current set. */
+export function scopeWithDefaultEra(scope: MetaScope, era: string): MetaScope {
+  return scope.era === undefined ? { ...scope, era } : scope;
+}
+
 /** The facets a reader picks values on, as opposed to the era's single window. */
 export type MetaScopeFacet = "formats" | "tiers" | "countries";
 
@@ -261,9 +266,15 @@ export function nextScopeSearch(
   );
 }
 
-/** Whether the scope differs from the page's default. An explicit all-time era counts as customized. */
-export function isScopeCustomized(scope: MetaScope): boolean {
-  return Object.keys(CLEARED_SCOPE).some((key) => scope[key as keyof MetaScope] !== undefined);
+/** Whether the scope differs from the page's default, whose era a surface names when it is not the current set. */
+export function isScopeCustomized(scope: MetaScope, defaultEra?: string): boolean {
+  return Object.keys(CLEARED_SCOPE).some((key) => {
+    const value = scope[key as keyof MetaScope];
+    if (key === "era") {
+      return value !== undefined && value !== defaultEra;
+    }
+    return value !== undefined;
+  });
 }
 
 /**

@@ -6,6 +6,7 @@
 
 - fix(Groups): **Trade suggestion rows fold and preview like the rest of the app** — a suggestion with several variants now expands from anywhere on its row, not just the card name, uses the same card art as other trade rows, and hovering shows the card preview on whichever side of the screen has room instead of always covering the Offer button.
 - feat(Account): **Pick a display language** — a new Display language setting on your profile switches the interface between English, Deutsch and Français; translation is starting with the site footer and will expand page by page.
+- feat(Meta): **Player pages open on their whole career** — a player's page in the Meta Archive now defaults to all time instead of the current set, so their record doesn't look empty until you clear the era.
 
 ## 2026-09-11
 

@@ -23,10 +23,12 @@ import {
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   CLEARED_SCOPE,
+  ERA_ALL,
   isScopeRestricting,
   metaScopeQueryFromScope,
   nextScopeSearch,
   scopeKey,
+  scopeWithDefaultEra,
 } from "@/features/meta/lib/meta-scope";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 
@@ -34,12 +36,12 @@ const routeApi = getRouteApi("/_app/meta_/players_/$key");
 
 export function MetaPlayerPage() {
   const { key } = routeApi.useParams();
-  const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
+  const scope = scopeWithDefaultEra(routeApi.useSearch(), ERA_ALL);
   const { data } = useMetaPlayer(key);
   const eras = useMetaEras();
   const { data: deckData } = useMetaDecks({
-    ...metaScopeQueryFromScope(search, eras),
+    ...metaScopeQueryFromScope(scope, eras),
     player: key,
   });
 
@@ -48,7 +50,7 @@ export function MetaPlayerPage() {
   };
   const clearScope = () => setScope(CLEARED_SCOPE);
 
-  const finishes = filterPlayerFinishes(data.finishes, { scope: search, eras });
+  const finishes = filterPlayerFinishes(data.finishes, { scope, eras });
   const counts = metaPlayerCounts(finishes);
   const facts = metaPlayerFacts(finishes);
   const legends = metaPlayerLegends(finishes);
@@ -56,7 +58,7 @@ export function MetaPlayerPage() {
   const decks = metaPlayerDecks(deckData.decks, data.finishes);
   // Prefixed per section: two siblings sharing one key leave the first one's
   // DOM behind on the swap.
-  const sectionKey = scopeKey(search);
+  const sectionKey = scopeKey(scope);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -75,10 +77,11 @@ export function MetaPlayerPage() {
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-10")}>
         <div className="flex flex-col gap-5">
           <MetaScopeBar
-            scope={search}
+            scope={scope}
             setScope={setScope}
             clearScope={clearScope}
             eras={eras}
+            defaultEra={ERA_ALL}
             countries={metaPlayerCountries(data.finishes)}
           />
           <MetaPlayerHero name={data.name} facts={facts} counts={counts} />
@@ -94,7 +97,7 @@ export function MetaPlayerPage() {
           key={`finishes:${sectionKey}`}
           finishes={finishes}
           playerName={data.name}
-          narrowed={isScopeRestricting(search, eras)}
+          narrowed={isScopeRestricting(scope, eras)}
         />
 
         {hasDecklists && (

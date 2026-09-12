@@ -42,6 +42,8 @@ export interface MetaScopeBarProps extends MetaScopeControls {
   extras?: ReactNode;
   extrasActive?: boolean;
   facetDefaults?: ScopeFacetDefaults;
+  /** The era an absent `era` param stands for, when the surface's default is not the current set. */
+  defaultEra?: string;
   showTier?: boolean;
   className?: string;
 }
@@ -55,6 +57,7 @@ export function MetaScopeBar({
   extras,
   extrasActive = false,
   facetDefaults,
+  defaultEra,
   showTier = true,
   className,
 }: MetaScopeBarProps) {
@@ -81,7 +84,7 @@ export function MetaScopeBar({
     <div data-slot="meta-scope-bar" className={cn("flex flex-wrap items-center gap-2", className)}>
       <ScopeSelect
         label="Era"
-        value={scope.era ?? defaultEraId(eras) ?? ERA_ALL}
+        value={scope.era ?? defaultEra ?? defaultEraId(eras) ?? ERA_ALL}
         fallback={ERA_ALL}
         items={eraItems}
         className="w-44"
@@ -134,7 +137,7 @@ export function MetaScopeBar({
 
       {extras}
 
-      {(isScopeCustomized(scope) || extrasActive) && (
+      {(isScopeCustomized(scope, defaultEra) || extrasActive) && (
         <Button type="button" variant="ghost" size="sm" onClick={clearScope}>
           Reset
         </Button>

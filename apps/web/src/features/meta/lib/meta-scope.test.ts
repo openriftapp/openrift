@@ -14,6 +14,7 @@ import {
   nextScopeSearch,
   resolveScopeRange,
   scopeFacetValues,
+  scopeWithDefaultEra,
 } from "./meta-scope";
 
 function set(slug: string, name: string, releasedAt: string | null, main = true): EraSet {
@@ -207,6 +208,26 @@ describe("isScopeCustomized", () => {
 
   it("ignores params the scope knows nothing about", () => {
     expect(isScopeCustomized({ q: "kennen" } as never)).toBe(false);
+  });
+
+  it("takes the surface's own default era as uncustomized", () => {
+    expect(isScopeCustomized({ era: ERA_ALL }, ERA_ALL)).toBe(false);
+    expect(isScopeCustomized({}, ERA_ALL)).toBe(false);
+    expect(isScopeCustomized({ era: "origins" }, ERA_ALL)).toBe(true);
+    expect(isScopeCustomized({ era: ERA_ALL, tiers: ["premier"] }, ERA_ALL)).toBe(true);
+  });
+});
+
+describe("scopeWithDefaultEra", () => {
+  it("fills in the surface's era when the URL names none", () => {
+    expect(scopeWithDefaultEra({ tiers: ["premier"] }, ERA_ALL)).toEqual({
+      era: ERA_ALL,
+      tiers: ["premier"],
+    });
+  });
+
+  it("leaves an era the URL names alone", () => {
+    expect(scopeWithDefaultEra({ era: "origins" }, ERA_ALL)).toEqual({ era: "origins" });
   });
 });
 

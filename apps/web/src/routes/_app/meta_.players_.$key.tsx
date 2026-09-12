@@ -6,9 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
 import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/hooks/use-meta";
 import {
+  ERA_ALL,
   deriveSetEras,
   metaScopeQueryFromScope,
   metaScopeSearchSchema,
+  scopeWithDefaultEra,
 } from "@/features/meta/lib/meta-scope";
 import { initQueryOptions } from "@/hooks/use-init";
 import type { FeatureFlags } from "@/lib/feature-flags";
@@ -69,7 +71,7 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
       ]);
       await context.queryClient.query({
         ...metaDecksQueryOptions({
-          ...metaScopeQueryFromScope(deps, deriveSetEras(sets.sets)),
+          ...metaScopeQueryFromScope(scopeWithDefaultEra(deps, ERA_ALL), deriveSetEras(sets.sets)),
           player: params.key,
         }),
         staleTime: "static",

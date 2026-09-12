@@ -81,13 +81,4 @@ describe("MetaPlayerHero", () => {
     expect(screen.queryByText(/Last seen/u)).not.toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
-
-  it("names the player in the blurb", () => {
-    render(<MetaPlayerHero name="Renata" facts={FACTS} counts={COUNTS} />);
-    expect(
-      screen.getByText(
-        "Every Renata result on record: tournament finishes, the legends they brought, and the lists they registered.",
-      ),
-    ).toBeInTheDocument();
-  });
 });
