@@ -247,7 +247,7 @@ function RootComponent() {
       </div>
       {/* Outside the isolate div: portalled sheets and dialogs sit at body level. */}
       <Toaster position="bottom-right" />
-      {!import.meta.env.VITE_DISABLE_DEVTOOLS && (
+      {import.meta.env.VITE_DEVTOOLS && (
         // Workaround for TanStack/devtools#444: devtools-vite 0.7.0 strips only
         // <TanStackDevtools>, leaving `&& ( )`; this wraps it into valid `<>{ }</>`.
         /* oxlint-disable react/jsx-no-useless-fragment, react/jsx-curly-brace-presence -- part of the workaround above */

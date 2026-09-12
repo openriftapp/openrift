@@ -22,7 +22,11 @@ export function useIdleAreaPrefetch(userId: string | null) {
         return;
       }
       prefetchAreas(queryClient, id);
-      void Promise.allSettled(AREA_ROUTES.map((to) => router.preloadRoute({ to })));
+      // Skipped under `vite dev`, where preloadRoute pulls each area's whole
+      // module graph one request at a time. MODE, not DEV: vitest sets DEV too.
+      if (import.meta.env.MODE !== "development") {
+        void Promise.allSettled(AREA_ROUTES.map((to) => router.preloadRoute({ to })));
+      }
     };
     if (typeof requestIdleCallback === "function") {
       const handle = requestIdleCallback(() => void start(), { timeout: 3000 });

@@ -134,7 +134,6 @@ export default async function globalSetup(_config: FullConfig) {
       PORT: String(WEB_PORT),
       API_INTERNAL_URL: API_BASE_URL,
       VITE_API_PROXY_TARGET: API_BASE_URL,
-      VITE_DISABLE_DEVTOOLS: "1",
       SITE_URL: WEB_BASE_URL,
     },
   });

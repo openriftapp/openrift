@@ -62,7 +62,7 @@
         "PORT",
         "API_INTERNAL_URL",
         "VITE_API_PROXY_TARGET",
-        "VITE_DISABLE_DEVTOOLS",
+        "VITE_DEVTOOLS",
         "DEV_HTTPS"
       ]
     }

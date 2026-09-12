@@ -164,6 +164,10 @@ export default defineConfig(({ mode, command }) => {
     resolve: {
       tsconfigPaths: true,
     },
+    optimizeDeps: {
+      // Unbundled, better-auth's client entries are ~64 separate dev requests.
+      include: ["better-auth/react", "better-auth/client/plugins"],
+    },
     environments: {
       ssr: {
         resolve: {
@@ -174,9 +178,10 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     plugins: [
-      // Must be first plugin. Skipped under e2e: its SSE console-pipe channel
-      // keeps the network busy, breaking Playwright's networkidle wait.
-      ...(process.env.VITE_DISABLE_DEVTOOLS ? [] : [devtools()]),
+      // Must be first plugin. Off by default in dev: it costs ~0.8s of every
+      // cold SSR request. `bun run dev:devtools` opts in. Always on for build,
+      // which is where it strips <TanStackDevtools> out of the bundle.
+      ...(command === "build" || process.env.VITE_DEVTOOLS ? [devtools()] : []),
       // getUserMedia (the card scanner's camera) needs a secure context.
       // `bun run dev:http` opts out for e2e, curl checks and self-signed-averse flows.
       ...(process.env.DEV_HTTPS
@@ -214,6 +219,8 @@ export default defineConfig(({ mode, command }) => {
         }),
       viteReact(),
       babel({
+        // Generated message code has no components, and _index.js alone is 3 MB.
+        exclude: [/[/\\]node_modules[/\\]/u, /[/\\]src[/\\]paraglide[/\\]/u],
         presets: [withReactCompilerLogger(reactCompilerPreset())],
       }),
       reactCompilerBailoutGuard,

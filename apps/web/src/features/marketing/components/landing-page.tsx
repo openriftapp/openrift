@@ -49,7 +49,9 @@ export function LandingPage() {
   // Idle-time preload of /cards: warms the lazy chunk and catalog query so
   // "Browse cards" renders the live grid instantly.
   useEffect(() => {
-    if (typeof requestIdleCallback === "undefined") {
+    // Not under `vite dev`: preloadRoute pulls the whole card-browser module
+    // graph one request at a time there. MODE, not DEV: vitest sets DEV too.
+    if (typeof requestIdleCallback === "undefined" || import.meta.env.MODE === "development") {
       return;
     }
     const handle = requestIdleCallback(() => {

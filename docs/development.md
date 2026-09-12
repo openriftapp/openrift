@@ -33,7 +33,12 @@ bun dev:web    # Vite dev server only (apps/web)
 bun dev:api    # Hono API server only (apps/api)
 bun dev        # All apps + shared type checking in parallel
 bun dev:http   # Same as `bun dev`, but plain http (no self-signed cert)
+bun dev:devtools  # Same as `bun dev`, plus the TanStack devtools and react-scan
 ```
+
+The TanStack devtools are off by default: the Vite plugin and react-scan cost
+about 3 seconds of every cold dev start. Use `bun dev:devtools` when you want
+them.
 
 `bun dev` serves the web app over HTTPS with a self-signed certificate, because
 the card scanner's camera needs a secure context. It also sends the

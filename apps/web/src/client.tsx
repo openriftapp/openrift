@@ -12,7 +12,7 @@ import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
 import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
 import { initChunkErrorReloader, reloadIfUncaughtBareThrow } from "./lib/stale-bundle-reload";
 
-if (import.meta.env.DEV && !import.meta.env.VITE_DISABLE_DEVTOOLS) {
+if (import.meta.env.DEV && import.meta.env.VITE_DEVTOOLS) {
   const { scan } = await import("react-scan");
   scan({ enabled: true });
 }
