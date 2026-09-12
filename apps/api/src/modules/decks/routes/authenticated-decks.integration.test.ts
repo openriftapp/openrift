@@ -390,13 +390,13 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
       expect(json.name).toBe("Versioned (variant)");
       expect(json.familyId).toBeTypeOf("string");
       expect(json.predecessorDeckId).toBe(liveDeckId);
-      expect(json.isPrimary).toBe(false);
+      expect(json.isPrimary).toBe(true);
       expect(json.isPublic).toBe(false);
       firstVariantId = json.id;
 
       const live = await readJson(await app.fetch(req("GET", `/decks/${liveDeckId}`)));
       expect(live.deck.familyId).toBe(json.familyId);
-      expect(live.deck.isPrimary).toBe(true);
+      expect(live.deck.isPrimary).toBe(false);
       expect(live.deck.predecessorDeckId).toBeNull();
     });
 
@@ -408,8 +408,11 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
       const json = await readJson(res);
       expect(json.name).toBe("Budget build");
       expect(json.predecessorDeckId).toBe(liveDeckId);
-      expect(json.isPrimary).toBe(false);
+      expect(json.isPrimary).toBe(true);
       variantId = json.id;
+
+      const sibling = await readJson(await app.fetch(req("GET", `/decks/${firstVariantId}`)));
+      expect(sibling.deck.isPrimary).toBe(false);
 
       const live = await readJson(await app.fetch(req("GET", `/decks/${liveDeckId}`)));
       expect(json.familyId).toBe(live.deck.familyId);
@@ -426,15 +429,15 @@ describe.skipIf(!ctx)("Decks routes (integration)", () => {
     });
 
     it("promotes a variant to primary and demotes the previous one", async () => {
-      const res = await app.fetch(req("POST", `/decks/${variantId}/promote`));
+      const res = await app.fetch(req("POST", `/decks/${firstVariantId}/promote`));
       expect(res.status).toBe(200);
       const json = await readJson(res);
-      expect(json.id).toBe(variantId);
+      expect(json.id).toBe(firstVariantId);
       expect(json.isPrimary).toBe(true);
 
       const live = await readJson(await app.fetch(req("GET", `/decks/${liveDeckId}`)));
       expect(live.deck.isPrimary).toBe(false);
-      const sibling = await readJson(await app.fetch(req("GET", `/decks/${firstVariantId}`)));
+      const sibling = await readJson(await app.fetch(req("GET", `/decks/${variantId}`)));
       expect(sibling.deck.isPrimary).toBe(false);
     });
 
