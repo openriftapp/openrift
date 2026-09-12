@@ -7,8 +7,8 @@ import { Pressable } from "@/components/ui/pressable";
 import type { TeamId } from "@/features/match-tracker/stores/match-tracker-store";
 import {
   SCORE_REASONS,
-  SCORE_REASON_LABELS,
   isMatchPoint,
+  scoreReasonLabel,
   useMatchTrackerStore,
 } from "@/features/match-tracker/stores/match-tracker-store";
 import type { MedallionSize, XpSize } from "@/features/tournaments/lib/match-layout";
@@ -16,6 +16,7 @@ import { TEAM_CHIP, TEAM_LABELS, TEAM_PANEL_BORDER } from "@/features/tournament
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const CORRECT_TIMEOUT_MS = 4000;
 const MAX_PIP_TARGET = 12;
@@ -120,7 +121,7 @@ export function PlayerPanel({
 
   return (
     <section
-      aria-label={`${player.name} scorepad`}
+      aria-label={m.tracker_panel_scorepad({ player: player.name })}
       className={cn(
         "bg-card relative flex min-h-0 min-w-0 flex-1 touch-manipulation flex-col items-center justify-between overflow-hidden rounded-lg border p-2 transition-all duration-150 select-none",
         // Team color stays on the border so the ring can layer winner / spotlight on top.
@@ -157,11 +158,13 @@ export function PlayerPanel({
       </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5">
-        {isWinner && <CrownIcon aria-label="Winner" className="text-primary size-6" />}
+        {isWinner && (
+          <CrownIcon aria-label={m.tracker_panel_winner()} className="text-primary size-6" />
+        )}
         <div className="flex items-center gap-2">
           {correcting && (
             <Pressable
-              aria-label={`Lower ${player.name}'s score`}
+              aria-label={m.tracker_panel_lower_score({ player: player.name })}
               onClick={() => correct(-1)}
               className="bg-background/60 text-foreground hover:border-primary hover:text-primary grid size-8 place-items-center rounded-full border text-lg leading-none"
             >
@@ -169,7 +172,10 @@ export function PlayerPanel({
             </Pressable>
           )}
           <Pressable
-            aria-label={`Correct ${player.name}'s score, currently ${player.points}`}
+            aria-label={m.tracker_panel_correct_score({
+              player: player.name,
+              points: player.points,
+            })}
             onClick={() => setCorrectionTick((value) => value + 1)}
             className={cn("font-heading leading-none font-bold tabular-nums", scoreClass)}
           >
@@ -177,7 +183,7 @@ export function PlayerPanel({
           </Pressable>
           {correcting && (
             <Pressable
-              aria-label={`Raise ${player.name}'s score`}
+              aria-label={m.tracker_panel_raise_score({ player: player.name })}
               onClick={() => correct(1)}
               className="bg-background/60 text-foreground hover:border-primary hover:text-primary grid size-8 place-items-center rounded-full border text-lg leading-none"
             >
@@ -209,7 +215,7 @@ export function PlayerPanel({
           )}
         >
           <Pressable
-            aria-label={`Gain XP for ${player.name}`}
+            aria-label={m.tracker_panel_gain_xp({ player: player.name })}
             onClick={() => adjustXp(player.id, 1)}
             className={cn(
               "text-muted-foreground hover:text-primary hover:bg-foreground/10 grid w-full place-items-center leading-none",
@@ -223,7 +229,7 @@ export function PlayerPanel({
             <span className="text-muted-foreground text-2xs font-bold tracking-wide">XP</span>
           </span>
           <Pressable
-            aria-label={`Spend XP for ${player.name}`}
+            aria-label={m.tracker_panel_spend_xp({ player: player.name })}
             onClick={() => adjustXp(player.id, -1)}
             className={cn(
               "text-muted-foreground hover:text-primary hover:bg-foreground/10 grid w-full place-items-center leading-none",
@@ -235,7 +241,7 @@ export function PlayerPanel({
         </div>
       ) : (
         <Pressable
-          aria-label={`Track XP for ${player.name}`}
+          aria-label={m.tracker_panel_track_xp({ player: player.name })}
           onClick={() => openXp(player.id)}
           className={cn(
             "border-border/60 text-muted-foreground/60 hover:border-primary hover:text-primary text-2xs absolute top-1/2 left-1 grid -translate-y-1/2 place-items-center rounded-full border bg-black/20 font-bold tracking-wide",
@@ -261,10 +267,10 @@ function ScoreMedallion({
   onScore: () => void;
 }) {
   const Icon = REASON_ICONS[reason];
-  const label = SCORE_REASON_LABELS[reason];
+  const label = scoreReasonLabel(reason);
   return (
     <Pressable
-      aria-label={`${label} point for ${playerName}`}
+      aria-label={m.tracker_panel_score_point({ reason: label, player: playerName })}
       onClick={onScore}
       className="flex flex-col items-center gap-1"
     >
@@ -287,10 +293,14 @@ function ScoreMedallion({
 
 function TargetProgress({ points, target }: { points: number; target: number }) {
   if (target > MAX_PIP_TARGET) {
-    return <span className="text-muted-foreground text-2xs">of {target}</span>;
+    return (
+      <span className="text-muted-foreground text-2xs">
+        {m.tracker_panel_of_target({ target })}
+      </span>
+    );
   }
   return (
-    <span className="flex gap-0.5" aria-label={`${points} of ${target} points`}>
+    <span className="flex gap-0.5" aria-label={m.tracker_panel_points_progress({ points, target })}>
       {Array.from({ length: target }, (_, index) => (
         <i
           key={index}
@@ -332,7 +342,7 @@ function FirstBadge() {
   return (
     <Badge className="text-2xs font-semibold tracking-wide uppercase">
       <FlagIcon aria-hidden className="size-3" />
-      Goes first
+      {m.tracker_goes_first()}
     </Badge>
   );
 }

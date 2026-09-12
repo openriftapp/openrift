@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { cardWord } from "@/features/scan/lib/scan-card-word";
 import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
+import { m } from "@/paraglide/messages.js";
 
 const CLEAR_CONFIRM_ABOVE = 10;
 
@@ -25,9 +26,9 @@ export function useScanClear(onCleared: () => void): ScanClear {
       return;
     }
     appendScanJournal({ type: "clear", cards: count });
-    toast.success(`Cleared ${count} ${cardWord(count)}`, {
+    toast.success(m.scan_clear_success({ count, cards: cardWord(count) }), {
       action: {
-        label: "Undo",
+        label: m.scan_undo(),
         onClick: () => useScanSessionStore.getState().putBack(cleared),
       },
     });

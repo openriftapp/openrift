@@ -28,6 +28,7 @@ import {
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { useFieldLink } from "@/features/contribute/components/contribute-field-focus";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export interface LabelledControlProps {
   id?: string;
@@ -90,7 +91,7 @@ function FieldHint({ label, hint }: { label: string; hint: string }) {
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label={`About ${label}`}
+            aria-label={m.contribute_field_about({ label })}
             className="text-muted-foreground -m-1"
           />
         }
@@ -257,8 +258,11 @@ export function MultiSelectDropdown({
         <span className="truncate">{summary}</span>
       </ComboboxTrigger>
       <ComboboxContent className="w-72">
-        <ComboboxInput placeholder="Search markers…" showTrigger={false} />
-        <ComboboxEmpty>No matches.</ComboboxEmpty>
+        <ComboboxInput
+          placeholder={m.contribute_placeholder_markers_search()}
+          showTrigger={false}
+        />
+        <ComboboxEmpty>{m.contribute_no_matches()}</ComboboxEmpty>
         <ComboboxList>
           {(slug: string) => (
             <ComboboxItem key={slug} value={slug}>

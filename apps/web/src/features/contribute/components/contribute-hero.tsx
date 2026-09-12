@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { OrnamentRule } from "@/components/ui/ornament";
 import { HeroBackground } from "@/features/marketing/components/hero-background";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const EYEBROW_CLASS = "text-primary font-heading text-sm font-semibold tracking-wide uppercase";
 
@@ -37,10 +38,10 @@ export function ContributeHero({
               )}
             >
               <ArrowLeftIcon className="size-3.5" />
-              Contribute
+              {m.contribute_hero_eyebrow()}
             </Link>
           ) : (
-            <span className={EYEBROW_CLASS}>Contribute</span>
+            <span className={EYEBROW_CLASS}>{m.contribute_hero_eyebrow()}</span>
           )}
           <h1 className="font-heading text-4xl font-bold text-balance">{title}</h1>
           <OrnamentRule className="w-40" />
@@ -67,7 +68,7 @@ function HeroCardFan() {
         )}
       >
         <CameraIcon className="size-5" />
-        <span className="text-xs">Your photo here</span>
+        <span className="text-xs">{m.contribute_hero_photo_placeholder()}</span>
       </span>
     </div>
   );

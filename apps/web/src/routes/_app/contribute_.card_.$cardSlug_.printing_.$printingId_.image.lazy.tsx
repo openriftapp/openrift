@@ -15,6 +15,7 @@ import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { ImageSuggestForm } from "@/features/contribute/components/image-suggest-form";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute(
   "/_app/contribute_/card_/$cardSlug_/printing_/$printingId_/image",
@@ -52,12 +53,12 @@ function ImageSuggestPage() {
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5"
       >
         <ArrowLeftIcon className="size-4" />
-        Back
+        {m.contribute_back()}
       </Pressable>
       <header className="flex flex-col gap-1">
-        <Heading level={1}>Suggest an image</Heading>
+        <Heading level={1}>{m.contribute_page_suggest_image_title()}</Heading>
         <p className="text-muted-foreground">
-          For{" "}
+          {m.contribute_page_suggest_image_for()}{" "}
           <span className="text-foreground font-medium">
             {printing.printedName ?? data.card.name}
           </span>{" "}

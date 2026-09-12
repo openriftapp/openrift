@@ -24,6 +24,7 @@ import {
 import { TEAM_LABELS } from "@/features/tournaments/lib/match-teams";
 import { useNumericDraft } from "@/hooks/use-numeric-draft";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const PLAYER_COUNT_OPTIONS = Array.from(
   { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
@@ -57,7 +58,10 @@ function TeamToggle({
         <ToggleGroupItem
           key={option}
           value={String(option)}
-          aria-label={`Put ${playerName} on ${TEAM_LABELS[option]}`}
+          aria-label={m.tracker_setup_put_on_team({
+            player: playerName,
+            team: TEAM_LABELS[option],
+          })}
           className="w-9"
         >
           {option + 1}
@@ -93,7 +97,9 @@ function SeatRow({
     <div className="flex items-center gap-2">
       <Pressable
         aria-label={
-          legend ? `Change ${name}'s legend, currently ${legend.name}` : `Pick a legend for ${name}`
+          legend
+            ? m.tracker_setup_change_legend({ player: name, legend: legend.name })
+            : m.tracker_setup_pick_legend({ player: name })
         }
         onClick={() => setPickerOpen(true)}
         className={cn(
@@ -117,7 +123,7 @@ function SeatRow({
       </Pressable>
       <Input
         value={name}
-        aria-label={`Name for player ${index + 1}`}
+        aria-label={m.tracker_setup_player_name({ number: index + 1 })}
         onChange={(event) => onRename(event.target.value)}
       />
       {teamsActive && <TeamToggle playerName={name} team={team} onChange={onTeamChange} />}
@@ -163,21 +169,19 @@ export function SetupScreen() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Match tracker</PageTopBarTitle>
+          <PageTopBarTitle>{m.tracker_setup_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-6")}>
-        <PageDescription>
-          Keep score and XP for everyone at the table on one device.
-        </PageDescription>
+        <PageDescription>{m.tracker_setup_description()}</PageDescription>
 
         <div className="space-y-2">
-          <Label>Players</Label>
+          <Label>{m.tracker_setup_players()}</Label>
           <ToggleGroup
             className="w-full"
             variant="outline"
             spacing={2}
-            aria-label="Players"
+            aria-label={m.tracker_setup_players()}
             value={[String(players.length)]}
             onValueChange={([next]) => {
               const count = Number(next);
@@ -196,12 +200,12 @@ export function SetupScreen() {
 
         {players.length === MAX_PLAYERS && (
           <div className="space-y-2">
-            <Label>Format</Label>
+            <Label>{m.tracker_setup_format()}</Label>
             <ToggleGroup
               className="w-full"
               variant="outline"
               spacing={2}
-              aria-label="Format"
+              aria-label={m.tracker_setup_format()}
               value={[mode]}
               onValueChange={([next]) => {
                 if (next === "ffa" || next === "teams") {
@@ -211,17 +215,17 @@ export function SetupScreen() {
               }}
             >
               <ToggleGroupItem value="ffa" className="flex-1">
-                Free-for-all
+                {m.tracker_setup_format_ffa()}
               </ToggleGroupItem>
               <ToggleGroupItem value="teams" className="flex-1">
-                Teams (2v2)
+                {m.tracker_setup_format_teams()}
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
         )}
 
         <div className="flex flex-col gap-4">
-          <Label>Seats</Label>
+          <Label>{m.tracker_setup_seats()}</Label>
           <div className="flex flex-col gap-2">
             {players.map((player, index) => (
               <SeatRow
@@ -238,20 +242,15 @@ export function SetupScreen() {
             ))}
           </div>
           <div className="flex flex-col gap-1">
-            <p className="text-muted-foreground text-xs">
-              A legend is optional. It sets the art and colors on that player&apos;s side of the
-              board.
-            </p>
+            <p className="text-muted-foreground text-xs">{m.tracker_setup_legend_optional()}</p>
             {teamsActive && !teamsBalanced && (
-              <p className="text-muted-foreground text-xs">
-                Put two players on each team for a 2v2.
-              </p>
+              <p className="text-muted-foreground text-xs">{m.tracker_setup_balance_teams()}</p>
             )}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="points-target">Points to win</Label>
+          <Label htmlFor="points-target">{m.tracker_setup_points_to_win()}</Label>
           <Input
             id="points-target"
             type="number"
@@ -263,14 +262,12 @@ export function SetupScreen() {
               "[&::-webkit-outer-spin-button]:appearance-none",
             )}
           />
-          <p className="text-muted-foreground text-xs">
-            Riftbound is first to 8 points (1vs1, 3/4 player FFA) and 11 points (2vs2).
-          </p>
+          <p className="text-muted-foreground text-xs">{m.tracker_setup_points_hint()}</p>
         </div>
 
         <Button size="lg" className="w-full" disabled={!canStart} onClick={() => startGame()}>
           <PlayIcon className="size-4" />
-          Start game
+          {m.tracker_setup_start_game()}
         </Button>
       </div>
     </>

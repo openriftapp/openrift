@@ -4,6 +4,7 @@ import type { ScanServing } from "@/features/scan/hooks/use-scan-serving";
 import { useScanServing } from "@/features/scan/hooks/use-scan-serving";
 import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import { loadScanBank } from "@/features/scan/lib/scan-bank";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanBank {
   assets: ScanServing["assets"];
@@ -33,7 +34,7 @@ export function useScanBank(): ScanBank {
         }
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Could not load the scan data");
+          setLoadError(error instanceof Error ? error.message : m.scan_bank_load_failed());
         }
       }
     }
@@ -45,9 +46,7 @@ export function useScanBank(): ScanBank {
 
   // Actionable guidance for an unpublished bank lives on the admin scan page.
   const unavailableMessage =
-    serving.status === "unavailable"
-      ? "The card index has not been published yet. Please try again later."
-      : loadError;
+    serving.status === "unavailable" ? m.scan_bank_unavailable() : loadError;
 
   return { assets, loaded, unavailableMessage };
 }

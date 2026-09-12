@@ -19,6 +19,7 @@ import {
 import type { MedallionSize, Seat, XpSize } from "@/features/tournaments/lib/match-layout";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsLandscape } from "@/hooks/use-is-landscape";
+import { m } from "@/paraglide/messages.js";
 
 // The store reads localStorage, so rendering is gated behind hydration to avoid an SSR mismatch.
 export function MatchTrackerPage() {
@@ -151,15 +152,17 @@ function WinnerBanner() {
       <div className="bg-card w-full max-w-sm space-y-4 rounded-lg border p-6 text-center shadow-lg">
         <TrophyIcon className="text-primary mx-auto size-10" />
         <Heading level={2}>
-          {winner.name} {winner.isTeam ? "win" : "wins"}!
+          {winner.isTeam
+            ? m.tracker_winner_team({ name: winner.name })
+            : m.tracker_winner_solo({ name: winner.name })}
         </Heading>
         <div className="flex flex-col gap-2">
-          <Button onClick={() => startGame()}>Rematch</Button>
+          <Button onClick={() => startGame()}>{m.tracker_rematch()}</Button>
           <Button variant="outline" onClick={() => backToSetup()}>
-            New players
+            {m.tracker_new_players()}
           </Button>
           <Button variant="ghost" onClick={() => dismissWinner()}>
-            Keep adjusting
+            {m.tracker_keep_adjusting()}
           </Button>
         </div>
       </div>

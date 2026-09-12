@@ -9,6 +9,7 @@ import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
 import { prefillForNewPrinting } from "@/features/contribute/lib/contribute-json";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/contribute_/card_/$cardSlug_/printing")({
   component: ContributeAddPrintingPage,
@@ -39,14 +40,14 @@ function ContributeAddPrintingPage() {
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5"
       >
         <ArrowLeftIcon className="size-4" />
-        Back
+        {m.contribute_back()}
       </Pressable>
       <header className="flex flex-col gap-1">
-        <Heading level={1}>Add a printing</Heading>
+        <Heading level={1}>{m.contribute_page_add_printing_title()}</Heading>
         <p className="text-muted-foreground">
-          Describe the version of{" "}
-          <span className="font-medium">{legendDisplayName(data.card)}</span> you have in hand. The
-          card details stay as they are.
+          {m.contribute_page_add_printing_lead_before()}{" "}
+          <span className="font-medium">{legendDisplayName(data.card)}</span>{" "}
+          {m.contribute_page_add_printing_lead_after()}
         </p>
       </header>
       <ContributeForm initial={initial} lockedSlug={cardSlug} scope="printing" />

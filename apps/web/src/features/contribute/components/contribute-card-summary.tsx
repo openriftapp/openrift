@@ -5,6 +5,7 @@ import { PencilLineIcon } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ContributeFormCard } from "@/features/contribute/lib/contribute-json";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 interface ContributeCardSummaryProps {
   card: ContributeFormCard;
@@ -19,8 +20,8 @@ export function ContributeCardSummary({ card, cardSlug }: ContributeCardSummaryP
       ...card.superTypes.map((slug) => enumLabel(labels.superTypes, slug)),
       ...card.types.map((slug) => enumLabel(labels.cardTypes, slug)),
     ].join(" "),
-    card.energy === null ? "" : `${card.energy.toString()} energy`,
-    card.might === null ? "" : `${card.might.toString()} might`,
+    card.energy === null ? "" : m.contribute_summary_energy({ count: card.energy }),
+    card.might === null ? "" : m.contribute_summary_might({ count: card.might }),
   ].filter((entry) => entry !== "");
 
   return (
@@ -35,7 +36,7 @@ export function ContributeCardSummary({ card, cardSlug }: ContributeCardSummaryP
               className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
             >
               <PencilLineIcon className="size-4" />
-              Fix the card itself
+              {m.contribute_summary_fix_card()}
             </Link>
           </CardAction>
         )}

@@ -41,6 +41,7 @@ import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-own
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import { useScanTrayDisclosure } from "@/features/scan/hooks/use-scan-tray-disclosure";
+import { cardWord } from "@/features/scan/lib/scan-card-word";
 import type { UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
 import type { ScanPrintingIndex } from "@/features/scan/lib/scan-resolve";
 import { finishSiblingsOf } from "@/features/scan/lib/scan-resolve";
@@ -53,6 +54,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 interface ScanSessionTrayProps {
@@ -72,10 +74,6 @@ interface ScanSessionTrayProps {
   unidentified?: UnidentifiedCard[];
   onIdentifyMissed?: (id: string) => void;
   onDismissMissed?: (id: string) => void;
-}
-
-function cardWord(count: number): string {
-  return count === 1 ? "card" : "cards";
 }
 
 export function ScanSessionTray({
@@ -123,11 +121,11 @@ export function ScanSessionTray({
     ownedBefore: ownedTotals ? (printingId) => ownedTotals.get(printingId) ?? 0 : null,
   });
 
-  let headPrefix: string | null = "Scanned this session";
+  let headPrefix: string | null = m.scan_tray_head_scanned_session();
   if (compact) {
     headPrefix = null;
   } else if (resumed) {
-    headPrefix = "Scanned earlier";
+    headPrefix = m.scan_tray_head_scanned_earlier();
   }
 
   const footer = (
@@ -146,10 +144,8 @@ export function ScanSessionTray({
     return (
       <div className="flex min-h-0 flex-auto flex-col gap-2">
         <div className="min-h-0 flex-auto overflow-y-auto overscroll-contain pt-1">
-          <p className="font-medium">Nothing scanned yet</p>
-          <p className="text-muted-foreground">
-            Scanned cards appear here. Add them to a collection when you are done.
-          </p>
+          <p className="font-medium">{m.scan_tray_empty_title()}</p>
+          <p className="text-muted-foreground">{m.scan_tray_empty_description()}</p>
           <UnidentifiedList
             cards={unidentified}
             onIdentify={onIdentifyMissed}
@@ -190,7 +186,7 @@ export function ScanSessionTray({
         showNew={compact}
       />
       <Button variant="link-muted" size="sm" className="ml-auto shrink-0" onClick={onClear}>
-        Clear
+        {m.scan_tray_clear()}
       </Button>
     </div>
   );
@@ -206,7 +202,7 @@ export function ScanSessionTray({
         <Callout className="border-warning mb-2 p-3">
           <p className="flex items-center gap-2">
             <TriangleAlertIcon className="text-warning size-4 shrink-0" />
-            Could not add {failedCount} {cardWord(failedCount)}. They stay in the list.
+            {m.scan_tray_failed({ count: failedCount, cards: cardWord(failedCount) })}
           </p>
         </Callout>
       )}
@@ -274,14 +270,15 @@ function TrayFooter({
   compact,
   onAddAll,
 }: TrayFooterProps) {
-  const destinationName = destination?.name ?? "a collection";
-  let label = `Add ${count} ${cardWord(count)} to ${destinationName}`;
+  const destinationName = destination?.name ?? m.scan_a_collection();
+  const cards = cardWord(count);
+  let label = m.scan_tray_add_count({ count, cards, destination: destinationName });
   if (count === 0) {
-    label = `Add to ${destinationName}`;
+    label = m.scan_tray_add_empty({ destination: destinationName });
   } else if (adding) {
-    label = `Adding ${count} ${cardWord(count)}…`;
+    label = m.scan_tray_adding({ count, cards });
   } else if (failedCount > 0) {
-    label = `Retry adding ${count} ${cardWord(count)}`;
+    label = m.scan_tray_retry_add({ count, cards });
   }
   const disabled = adding || count === 0 || destination === null;
 
@@ -304,7 +301,7 @@ function TrayFooter({
                 variant={count === 0 ? "outline" : "default"}
                 size="icon"
                 disabled={disabled}
-                aria-label="Pick another collection"
+                aria-label={m.scan_tray_pick_collection()}
               />
             }
           >
@@ -312,9 +309,7 @@ function TrayFooter({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>
-                Add the {count} {cardWord(count)} to
-              </DropdownMenuLabel>
+              <DropdownMenuLabel>{m.scan_tray_add_to_label({ count, cards })}</DropdownMenuLabel>
               {collections.map((collection) => (
                 <DropdownMenuItem key={collection.id} onClick={() => onAddAll(collection.id)}>
                   {collection.isInbox && <InboxIcon className="size-4" />}
@@ -326,11 +321,7 @@ function TrayFooter({
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
-      {!compact && (
-        <p className="text-muted-foreground text-sm">
-          The list stays on this device until you add it to a collection.
-        </p>
-      )}
+      {!compact && <p className="text-muted-foreground text-sm">{m.scan_tray_local_note()}</p>}
     </div>
   );
 }
@@ -383,7 +374,7 @@ function TrayRow({
         aria-expanded={open}
         // The panel is unmounted when closed, so its id does not exist yet.
         aria-controls={open ? actionsId : undefined}
-        aria-label={`Show actions for ${name}`}
+        aria-label={m.scan_tray_row_show_actions({ name })}
         onClick={() => onToggle(printing.id)}
       />
       <div className="pointer-events-none relative flex w-full items-center gap-2">
@@ -412,7 +403,7 @@ function TrayRow({
               size="xs"
               className="pointer-events-auto max-w-full"
               onClick={() => onChangePrinting(row)}
-              aria-label={`Change the printing of ${name}`}
+              aria-label={m.scan_tray_row_change_printing({ name })}
             >
               <span className="truncate">
                 <PrintingVariantLabel printing={printing} siblings={siblings} />
@@ -425,16 +416,16 @@ function TrayRow({
           <WishlistHeart entries={wishEntries} align="end" />
         </span>
         {owned === 0 && (
-          <span className="text-success shrink-0 text-sm" title="None in your collection">
-            New
+          <span className="text-success shrink-0 text-sm" title={m.scan_tray_row_new_title()}>
+            {m.scan_tray_row_new()}
           </span>
         )}
         {owned !== null && owned > 0 && (
           <span
             className="text-muted-foreground shrink-0 text-sm tabular-nums"
-            title="Copies already in your collection"
+            title={m.scan_tray_row_owned_title()}
           >
-            {owned} owned
+            {m.scan_tray_row_owned({ count: owned })}
           </span>
         )}
         {price !== undefined && (
@@ -451,10 +442,10 @@ function TrayRow({
             <Button
               variant="outline"
               onClick={() => openCardDetail({ printingId: printing.id, sequence })}
-              aria-label={`Show details for ${name}`}
+              aria-label={m.scan_tray_row_details_label({ name })}
             >
               <InfoIcon />
-              Details
+              {m.scan_tray_row_details()}
             </Button>
           ) : (
             <Button
@@ -465,10 +456,10 @@ function TrayRow({
                   params={{ cardSlug: printing.card.slug }}
                 />
               }
-              aria-label={`Open the card page for ${name}`}
+              aria-label={m.scan_tray_row_card_page_label({ name })}
             >
               <InfoIcon />
-              Details
+              {m.scan_tray_row_details()}
             </Button>
           )}
           <div className="ml-auto flex items-center gap-2">
@@ -476,7 +467,7 @@ function TrayRow({
               size="icon"
               variant="outline"
               onClick={() => onRemoveOne(row)}
-              aria-label={`Remove one ${name}`}
+              aria-label={m.scan_tray_row_remove_one({ name })}
             >
               <MinusIcon />
             </Button>
@@ -485,7 +476,7 @@ function TrayRow({
               size="icon"
               variant="outline"
               onClick={() => onAddOne(row)}
-              aria-label={`Add another ${name}`}
+              aria-label={m.scan_tray_row_add_another({ name })}
             >
               <PlusIcon />
             </Button>
@@ -527,8 +518,8 @@ function SummaryHead({
       {showNew && summary.newCards !== null && summary.newCards > 0 && (
         <>
           <span className="text-muted-foreground">·</span>
-          <span className="text-success tabular-nums" title="Cards you own no copy of">
-            {summary.newCards} new
+          <span className="text-success tabular-nums" title={m.scan_tray_new_title()}>
+            {m.scan_tray_new_count({ count: summary.newCards })}
           </span>
         </>
       )}
@@ -550,8 +541,8 @@ function SummaryFacts({
     facts.push({
       key: "new",
       node: (
-        <span className="text-success tabular-nums" title="Cards you own no copy of">
-          {summary.newCards} new
+        <span className="text-success tabular-nums" title={m.scan_tray_new_title()}>
+          {m.scan_tray_new_count({ count: summary.newCards })}
         </span>
       ),
     });
@@ -560,8 +551,8 @@ function SummaryFacts({
     facts.push({
       key: "wished",
       node: (
-        <span className="text-destructive tabular-nums" title="Cards on your wishlists">
-          {summary.wishedCards} wished
+        <span className="text-destructive tabular-nums" title={m.scan_tray_wished_title()}>
+          {m.scan_tray_wished_count({ count: summary.wishedCards })}
         </span>
       ),
     });
@@ -571,7 +562,7 @@ function SummaryFacts({
       key: "unpriced",
       node: (
         <span className="text-muted-foreground text-xs">
-          {summary.unpricedCards} without price data
+          {m.scan_tray_unpriced({ count: summary.unpricedCards })}
         </span>
       ),
     });
@@ -613,16 +604,16 @@ function UnidentifiedList({
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-medium">Not recognised</span>
+            <span className="block font-medium">{m.scan_tray_unidentified_title()}</span>
             <span className="text-muted-foreground block text-sm">
-              This card was scanned but not identified.
+              {m.scan_tray_unidentified_description()}
             </span>
           </span>
           <Button size="sm" onClick={() => onIdentify?.(card.id)}>
-            Identify
+            {m.scan_tray_unidentified_identify()}
           </Button>
           <ChipRemoveButton
-            aria-label="Dismiss unidentified card"
+            aria-label={m.scan_tray_unidentified_dismiss()}
             onClick={() => onDismiss?.(card.id)}
           />
         </li>

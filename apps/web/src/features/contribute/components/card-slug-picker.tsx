@@ -7,10 +7,11 @@ import { CardSearchDropdown } from "@/features/cards/components/card-search-drop
 import { cardSearchLeading } from "@/features/cards/components/printing-option-content";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
+import { m } from "@/paraglide/messages.js";
 
 export function CardSlugPicker({
   onPick,
-  label = "Search for a card",
+  label,
 }: {
   onPick: (cardSlug: string) => void;
   label?: string;
@@ -20,12 +21,14 @@ export function CardSlugPicker({
       type="button"
       variant="outline"
       size="sm"
-      label={label}
+      label={label ?? m.contribute_picker_search_card()}
       icon={<SearchIcon className="size-4" />}
-      closeLabel="Close card search"
+      closeLabel={m.contribute_picker_close()}
     >
       {({ close }) => (
-        <Suspense fallback={<Input className="w-56" placeholder="Loading cards…" disabled />}>
+        <Suspense
+          fallback={<Input className="w-56" placeholder={m.contribute_picker_loading()} disabled />}
+        >
           <CatalogSearch
             onPick={(cardSlug) => {
               close();
@@ -57,7 +60,7 @@ function CatalogSearch({ onPick }: { onPick: (cardSlug: string) => void }) {
       results={results}
       onSearch={setSearch}
       onSelect={handleSelect}
-      placeholder="Search by name or code…"
+      placeholder={m.contribute_picker_placeholder()}
       className="w-56"
       // oxlint-disable-next-line jsx-a11y/no-autofocus -- the trigger button just swapped itself for this input
       autoFocus

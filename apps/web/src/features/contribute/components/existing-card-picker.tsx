@@ -9,6 +9,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCatalogCardSearch } from "@/features/cards/hooks/use-catalog-card-search";
 import type { ContributeFormState } from "@/features/contribute/lib/contribute-json";
 import { prefillFromCard } from "@/features/contribute/lib/contribute-json";
+import { m } from "@/paraglide/messages.js";
 
 export function ExistingCardPicker({
   onPick,
@@ -20,12 +21,14 @@ export function ExistingCardPicker({
       type="button"
       variant="ghost"
       size="sm"
-      label="Select an existing card"
+      label={m.contribute_picker_select_existing()}
       icon={<SearchIcon className="size-4" />}
-      closeLabel="Close card search"
+      closeLabel={m.contribute_picker_close()}
     >
       {({ close }) => (
-        <Suspense fallback={<Input className="w-56" placeholder="Loading cards…" disabled />}>
+        <Suspense
+          fallback={<Input className="w-56" placeholder={m.contribute_picker_loading()} disabled />}
+        >
           <CatalogSearch
             onPick={(prefilled) => {
               close();
@@ -59,7 +62,7 @@ function CatalogSearch({ onPick }: { onPick: (prefilled: ContributeFormState) =>
       results={results}
       onSearch={setSearch}
       onSelect={handleSelect}
-      placeholder="Search by name or code…"
+      placeholder={m.contribute_picker_placeholder()}
       className="w-56"
       // oxlint-disable-next-line jsx-a11y/no-autofocus -- the trigger button just swapped itself for this input
       autoFocus

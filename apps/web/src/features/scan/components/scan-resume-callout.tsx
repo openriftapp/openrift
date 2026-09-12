@@ -3,6 +3,7 @@ import { TriangleAlertIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { cardWord } from "@/features/scan/lib/scan-card-word";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanResumeCalloutProps {
   cards: number;
@@ -26,15 +27,13 @@ export function ScanResumeCallout({
       <div className="flex gap-2">
         <TriangleAlertIcon className="text-warning mt-0.5 size-4 shrink-0" />
         <div className="flex min-w-0 flex-col gap-2">
-          <p>
-            These {cards} {cardWord(cards)} were scanned {when} and never added to a collection.
-          </p>
+          <p>{m.scan_resume_text({ count: cards, cards: cardWord(cards), when })}</p>
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="secondary" disabled={adding} onClick={onAddAll}>
-              Add them to {destinationName}
+              {m.scan_resume_add({ destination: destinationName })}
             </Button>
             <Button size="sm" variant="ghost" onClick={onDiscard}>
-              Discard
+              {m.scan_resume_discard()}
             </Button>
           </div>
         </div>

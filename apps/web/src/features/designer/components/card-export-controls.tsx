@@ -1,6 +1,7 @@
 import { CopyIcon, DownloadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { m } from "@/paraglide/messages.js";
 
 export function CardExportControls({
   onDownload,
@@ -18,11 +19,11 @@ export function CardExportControls({
       <div className="flex gap-2">
         <Button type="button" className="flex-1" disabled={busy} onClick={onDownload}>
           <DownloadIcon className="size-4" />
-          Download PNG
+          {m.designer_export_download()}
         </Button>
         <Button type="button" variant="outline" disabled={busy} onClick={onCopy}>
           <CopyIcon className="size-4" />
-          Copy
+          {m.designer_export_copy()}
         </Button>
       </div>
       {status && (

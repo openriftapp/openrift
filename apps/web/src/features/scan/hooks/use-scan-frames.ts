@@ -32,6 +32,7 @@ import type { RotationTracker } from "@/features/scan/lib/scan-rotation";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
 import { errorText } from "@/lib/error-text";
+import { m } from "@/paraglide/messages.js";
 import type { ScanWorkerOutcome, SessionKind } from "@/workers/scan-worker";
 
 import type { ScanOverlayTargetInput } from "./use-scan-overlay";
@@ -332,7 +333,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
       };
       /* oxlint-disable promise/prefer-await-to-then, promise/prefer-catch -- the rAF loop is callback-shaped; a rejected frame must not kill it */
       inFlight.then(scheduleNext, (frameError: unknown) => {
-        options.onError(errorText(frameError, "Frame processing failed"));
+        options.onError(errorText(frameError, m.scan_frame_failed()));
         scheduleNext();
       });
       /* oxlint-enable promise/prefer-await-to-then, promise/prefer-catch */
@@ -356,7 +357,7 @@ export function useScanFrames(options: ScanFramesOptions): ScanFrames {
     try {
       await inFlight;
     } catch (captureError) {
-      options.onError(errorText(captureError, "Frame processing failed"));
+      options.onError(errorText(captureError, m.scan_frame_failed()));
     }
     options.setCapturing(false);
   }

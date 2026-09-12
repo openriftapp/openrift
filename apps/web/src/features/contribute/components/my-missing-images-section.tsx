@@ -2,6 +2,7 @@ import { Heading } from "@/components/heading";
 import { MissingImagesList } from "@/features/contribute/components/missing-images-list";
 import { MissingImagesTiles } from "@/features/contribute/components/missing-images-tiles";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+import { m } from "@/paraglide/messages.js";
 
 export function MyMissingImagesSection({ layout = "list" }: { layout?: "list" | "tiles" }) {
   const { data } = useMyMissingImages();
@@ -18,12 +19,11 @@ export function MyMissingImagesSection({ layout = "list" }: { layout?: "list" | 
     <section className="flex flex-col gap-3">
       <Heading level={2}>
         {single
-          ? "We don't have a photo for one of your owned cards"
-          : `We don't have photos for ${count} of your owned cards`}
+          ? m.contribute_missing_heading_one()
+          : m.contribute_missing_heading_other({ count })}
       </Heading>
       <p className="text-muted-foreground">
-        Could you snap {single ? "it" : "them"} for us? Every photo helps, and it earns you a
-        Contributor badge on your profile.
+        {single ? m.contribute_missing_lead_one() : m.contribute_missing_lead_other()}
       </p>
       {layout === "tiles" ? (
         <MissingImagesTiles items={items} />

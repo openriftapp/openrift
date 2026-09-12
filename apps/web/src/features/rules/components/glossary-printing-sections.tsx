@@ -3,13 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import {
-  ART_VARIANT_DESCRIPTIONS,
-  FINISH_DESCRIPTIONS,
-  PACK_SLOTS,
-  PRINTING_DETAILS,
+  artVariantDescription,
+  finishDescription,
+  packSlots,
+  printingDetails,
 } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
 
@@ -27,13 +28,8 @@ export function RaritiesSection({
   const withImage = new Set(["common", "uncommon", "rare", "epic", "showcase"]);
   return (
     <section>
-      <GlossarySectionHeading id="rarities" title="Rarities" />
-      <p className="text-muted-foreground mt-2">
-        Every printing has a rarity, shown by the coloured glyph in the middle of the card face.
-        Rarity reflects how often a card appears in booster packs and the visual treatment of its
-        frame, not its strength in play. The Showcase tier is reserved for premium full-art and
-        alternative-art printings.
-      </p>
+      <GlossarySectionHeading id="rarities" title={m.glossary_section_rarities()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_rarities_intro()}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((rarity) => {
           const slug = rarity.slug.toLowerCase();
@@ -61,29 +57,28 @@ export function RaritiesSection({
 }
 
 export function BoosterPacksSection({ query }: { query: string }) {
-  const visible = PACK_SLOTS.filter((slot) => matches(query, slot.label, slot.description));
+  const visible = packSlots().filter((slot) => matches(query, slot.label, slot.description));
   if (visible.length === 0) {
     return null;
   }
   return (
     <section>
-      <GlossarySectionHeading id="booster-packs" title="Booster pack contents" />
+      <GlossarySectionHeading id="booster-packs" title={m.glossary_section_booster_packs()} />
       <p className="text-muted-foreground mt-2">
-        A standard Riftbound booster contains 14 cards across five slot types. The{" "}
-        <TextLink render={<Link to="/pack-opener" />}>Pack opener</TextLink> simulates this same
-        distribution.
+        {m.glossary_booster_intro_before()}{" "}
+        <TextLink render={<Link to="/pack-opener" />}>
+          {m.glossary_booster_pack_opener_link()}
+        </TextLink>{" "}
+        {m.glossary_booster_intro_after()}
       </p>
       <RowList className="mt-4">
         {visible.map((slot) => (
-          <GlossaryTermRow key={slot.label} term={slot.label}>
+          <GlossaryTermRow key={slot.key} term={slot.label}>
             <p className="text-muted-foreground flex-1">{slot.description}</p>
           </GlossaryTermRow>
         ))}
       </RowList>
-      <p className="text-muted-foreground mt-3">
-        Headline rates come from Riot&apos;s Origins announcement. Foil-slot and cascade rates are
-        community estimates.
-      </p>
+      <p className="text-muted-foreground mt-3">{m.glossary_booster_rates_note()}</p>
     </section>
   );
 }
@@ -96,7 +91,7 @@ export function ArtVariantsSection({
   query: string;
 }) {
   const visible = artVariants.filter((variant) => {
-    const description = ART_VARIANT_DESCRIPTIONS[variant.slug.toLowerCase()];
+    const description = artVariantDescription(variant.slug.toLowerCase());
     return matches(query, variant.label, variant.slug, description);
   });
   if (visible.length === 0) {
@@ -104,16 +99,13 @@ export function ArtVariantsSection({
   }
   return (
     <section>
-      <GlossarySectionHeading id="art-variants" title="Art variants" />
-      <p className="text-muted-foreground mt-2">
-        An art variant describes which illustration appears on a printing. Alt-art printings are
-        usually marked by a lowercase letter suffix on the card number, like OGN-120a.
-      </p>
+      <GlossarySectionHeading id="art-variants" title={m.glossary_section_art_variants()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_art_variants_intro()}</p>
       <RowList className="mt-4">
         {visible.map((variant) => (
           <GlossaryTermRow key={variant.slug} term={variant.label}>
             <p className="text-muted-foreground flex-1">
-              {ART_VARIANT_DESCRIPTIONS[variant.slug.toLowerCase()] ?? ""}
+              {artVariantDescription(variant.slug.toLowerCase()) ?? ""}
             </p>
           </GlossaryTermRow>
         ))}
@@ -130,7 +122,7 @@ export function FinishesSection({
   query: string;
 }) {
   const visible = finishes.filter((finish) => {
-    const description = FINISH_DESCRIPTIONS[finish.slug.toLowerCase()];
+    const description = finishDescription(finish.slug.toLowerCase());
     return matches(query, finish.label, finish.slug, description);
   });
   if (visible.length === 0) {
@@ -138,18 +130,13 @@ export function FinishesSection({
   }
   return (
     <section>
-      <GlossarySectionHeading id="finishes" title="Finishes" />
-      <p className="text-muted-foreground mt-2">
-        Finish describes the physical production treatment of a printing. Most cards use a normal
-        cardstock finish, foil printings add a glossy reflective coating across the card face, and a
-        small number have been released as premium metal collectibles. Finish is independent of
-        rarity and art variant, so the same artwork can exist as both a normal and a foil printing.
-      </p>
+      <GlossarySectionHeading id="finishes" title={m.glossary_section_finishes()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_finishes_intro()}</p>
       <RowList className="mt-4">
         {visible.map((finish) => (
           <GlossaryTermRow key={finish.slug} term={finish.label}>
             <p className="text-muted-foreground flex-1">
-              {FINISH_DESCRIPTIONS[finish.slug.toLowerCase()] ?? ""}
+              {finishDescription(finish.slug.toLowerCase()) ?? ""}
             </p>
           </GlossaryTermRow>
         ))}
@@ -173,17 +160,15 @@ export function MarkersSection({
   }
   return (
     <section>
-      <GlossarySectionHeading id="markers" title="Markers" />
-      <p className="text-muted-foreground mt-2">
-        Markers describe how a printing was distributed rather than what&apos;s on the card. They
-        cover promotional channels like prereleases, tournaments, judge programs, and store-level
-        events, and a single printing can carry more than one.
-      </p>
+      <GlossarySectionHeading id="markers" title={m.glossary_section_markers()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_markers_intro()}</p>
       <RowList className="mt-4">
         {visible.map((marker) => (
           <GlossaryTermRow key={marker.slug} term={marker.label}>
             <p className="text-muted-foreground flex-1">
-              {marker.description ?? <span className="italic">No description yet.</span>}
+              {marker.description ?? (
+                <span className="italic">{m.glossary_marker_no_description()}</span>
+              )}
             </p>
           </GlossaryTermRow>
         ))}
@@ -193,18 +178,17 @@ export function MarkersSection({
 }
 
 export function PrintingDetailsSection({ query }: { query: string }) {
-  const visible = PRINTING_DETAILS.filter((item) => matches(query, item.label, item.description));
+  const visible = printingDetails().filter((item) => matches(query, item.label, item.description));
   if (visible.length === 0) {
     return null;
   }
   return (
     <section>
-      <GlossarySectionHeading id="artist-and-signature" title="Artist and signature" />
-      <p className="text-muted-foreground mt-2">
-        Artist credit is tracked per printing so reprints can preserve the original illustrator, and
-        the signature flag marks printings where the artist&apos;s signature is overlaid on the
-        artwork (usually on a foil alt-art or Ultimate variant).
-      </p>
+      <GlossarySectionHeading
+        id="artist-and-signature"
+        title={m.glossary_section_artist_signature()}
+      />
+      <p className="text-muted-foreground mt-2">{m.glossary_printing_details_intro()}</p>
       <RowList className="mt-4">
         {visible.map((item) => (
           <GlossaryTermRow key={item.key} term={item.label}>

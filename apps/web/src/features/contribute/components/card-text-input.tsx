@@ -21,22 +21,23 @@ import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-reg
 import { useFieldLink } from "@/features/contribute/components/contribute-field-focus";
 import { useKeywordStyles } from "@/hooks/use-keyword-styles";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const ENERGY_GLYPHS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
-const RUNE_GLYPHS: { token: string; label: string }[] = [
-  { token: "rune_body", label: "Body" },
-  { token: "rune_calm", label: "Calm" },
-  { token: "rune_chaos", label: "Chaos" },
-  { token: "rune_fury", label: "Fury" },
-  { token: "rune_mind", label: "Mind" },
-  { token: "rune_order", label: "Order" },
-  { token: "rune_rainbow", label: "Rainbow" },
+const RUNE_GLYPHS: { token: string; name: string }[] = [
+  { token: "rune_body", name: "Body" },
+  { token: "rune_calm", name: "Calm" },
+  { token: "rune_chaos", name: "Chaos" },
+  { token: "rune_fury", name: "Fury" },
+  { token: "rune_mind", name: "Mind" },
+  { token: "rune_order", name: "Order" },
+  { token: "rune_rainbow", name: "Rainbow" },
 ];
 
-const UTILITY_GLYPHS: { token: string; label: string }[] = [
-  { token: "might", label: "Might" },
-  { token: "exhaust", label: "Exhaust" },
+const UTILITY_GLYPHS: { token: string; name: string }[] = [
+  { token: "might", name: "Might" },
+  { token: "exhaust", name: "Exhaust" },
 ];
 
 export function insertAtCaret(
@@ -178,37 +179,53 @@ function SyntaxToolbar({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {variant === "rules" && (
-        <ButtonGroup aria-label="Text formatting">
+        <ButtonGroup aria-label={m.contribute_text_toolbar_formatting()}>
           <Button
             type="button"
             variant="outline"
             size="icon-sm"
-            title="Italic (_text_)"
-            aria-label="Italic"
+            title={m.contribute_text_italic_title()}
+            aria-label={m.contribute_text_italic()}
             onClick={() => onWrap("_", "_")}
           >
             <ItalicIcon className="size-4" />
           </Button>
         </ButtonGroup>
       )}
-      <ButtonGroup aria-label="Punctuation">
+      <ButtonGroup aria-label={m.contribute_text_toolbar_punctuation()}>
         <PunctuationButton
-          label="Curly double quotes"
-          title="Curly double quotes (“ ”)"
+          label={m.contribute_text_quotes()}
+          title={m.contribute_text_quotes_title()}
           onClick={() => onWrap("“", "”")}
         >
           “”
         </PunctuationButton>
-        <PunctuationButton label="Apostrophe" title="Apostrophe (’)" onClick={() => onInsert("’")}>
+        <PunctuationButton
+          label={m.contribute_text_apostrophe()}
+          title={m.contribute_text_apostrophe_title()}
+          onClick={() => onInsert("’")}
+        >
           ’
         </PunctuationButton>
-        <PunctuationButton label="Em dash" title="Em dash (—)" onClick={() => onInsert("—")}>
+        <PunctuationButton
+          label={m.contribute_text_em_dash()}
+          title={m.contribute_text_em_dash_title()}
+          onClick={() => onInsert("—")}
+        >
           —
         </PunctuationButton>
-        <PunctuationButton label="Ellipsis" title="Ellipsis (…)" onClick={() => onInsert("…")}>
+        <PunctuationButton
+          label={m.contribute_text_ellipsis()}
+          title={m.contribute_text_ellipsis_title()}
+          onClick={() => onInsert("…")}
+        >
           …
         </PunctuationButton>
-        <PunctuationButton label="Bullet" title="Bullet (•)" onClick={() => onInsert("•")}>
+        <PunctuationButton
+          label={m.contribute_text_bullet()}
+          title={m.contribute_text_bullet_title()}
+          onClick={() => onInsert("•")}
+        >
           •
         </PunctuationButton>
       </ButtonGroup>
@@ -217,21 +234,21 @@ function SyntaxToolbar({
           type="button"
           variant="outline"
           size="sm"
-          title="Reformat typography (curly quotes, ellipsis, minus signs, spacing)"
+          title={m.contribute_text_reformat_title()}
           onClick={onReformat}
         >
           <WandSparklesIcon className="size-3.5" />
-          Fix
+          {m.contribute_text_reformat()}
         </Button>
       )}
       {variant === "flavor" ? null : (
         <>
-          <ButtonGroup aria-label="Energy glyphs">
+          <ButtonGroup aria-label={m.contribute_text_toolbar_energy()}>
             {ENERGY_GLYPHS.map((n) => (
               <GlyphButton
                 key={`energy_${n.toString()}`}
                 token={`:rb_energy_${n.toString()}:`}
-                label={`Insert ${n.toString()} energy`}
+                label={m.contribute_text_insert_energy({ count: n })}
                 onInsert={onInsert}
               >
                 <span
@@ -243,12 +260,12 @@ function SyntaxToolbar({
               </GlyphButton>
             ))}
           </ButtonGroup>
-          <ButtonGroup aria-label="Rune glyphs">
+          <ButtonGroup aria-label={m.contribute_text_toolbar_runes()}>
             {RUNE_GLYPHS.map((rune) => (
               <GlyphButton
                 key={rune.token}
                 token={`:rb_${rune.token}:`}
-                label={`Insert ${rune.label} rune`}
+                label={m.contribute_text_insert_rune({ name: rune.name })}
                 onInsert={onInsert}
               >
                 <img
@@ -259,12 +276,12 @@ function SyntaxToolbar({
               </GlyphButton>
             ))}
           </ButtonGroup>
-          <ButtonGroup aria-label="Utility glyphs">
+          <ButtonGroup aria-label={m.contribute_text_toolbar_utility()}>
             {UTILITY_GLYPHS.map((g) => (
               <GlyphButton
                 key={g.token}
                 token={`:rb_${g.token}:`}
-                label={`Insert ${g.label}`}
+                label={m.contribute_text_insert_glyph({ name: g.name })}
                 onInsert={onInsert}
               >
                 <img
@@ -325,7 +342,7 @@ function GlyphButton({
       type="button"
       variant="outline"
       size="icon-sm"
-      title={`${label} (${token})`}
+      title={m.contribute_text_glyph_title({ label, token })}
       aria-label={label}
       onClick={() => onInsert(token)}
     >
@@ -336,12 +353,29 @@ function GlyphButton({
 
 type KeywordShape = "plain" | "right" | "left" | "both";
 
-const SHAPE_OPTIONS: { id: KeywordShape; label: string; sample: (name: string) => string }[] = [
-  { id: "plain", label: "Plain", sample: (name) => `[${name}]` },
-  { id: "right", label: "Pointed right", sample: (name) => `[${name}][>]` },
-  { id: "left", label: "Pointed left", sample: (name) => `[>>][${name}]` },
-  { id: "both", label: "Both ends", sample: (name) => `[>>][${name}][>]` },
+const SHAPE_OPTIONS: { id: KeywordShape; sample: (name: string) => string }[] = [
+  { id: "plain", sample: (name) => `[${name}]` },
+  { id: "right", sample: (name) => `[${name}][>]` },
+  { id: "left", sample: (name) => `[>>][${name}]` },
+  { id: "both", sample: (name) => `[>>][${name}][>]` },
 ];
+
+function shapeLabel(shape: KeywordShape): string {
+  switch (shape) {
+    case "right": {
+      return m.contribute_text_shape_right();
+    }
+    case "left": {
+      return m.contribute_text_shape_left();
+    }
+    case "both": {
+      return m.contribute_text_shape_both();
+    }
+    default: {
+      return m.contribute_text_shape_plain();
+    }
+  }
+}
 
 function KeywordPicker({ onInsert }: { onInsert: (token: string) => void }) {
   const styles = useKeywordStyles();
@@ -360,10 +394,12 @@ function KeywordPicker({ onInsert }: { onInsert: (token: string) => void }) {
       }}
       itemToStringLabel={(name) => name}
     >
-      <ComboboxTrigger render={<Button variant="outline" size="sm" />}>Keyword</ComboboxTrigger>
+      <ComboboxTrigger render={<Button variant="outline" size="sm" />}>
+        {m.contribute_text_keyword()}
+      </ComboboxTrigger>
       <ComboboxContent className="w-72">
         <div className="flex flex-col gap-1.5 p-1">
-          <span className="text-muted-foreground px-1 text-xs">Shape</span>
+          <span className="text-muted-foreground px-1 text-xs">{m.contribute_text_shape()}</span>
           <ToggleGroup
             variant="outline"
             size="sm"
@@ -374,17 +410,17 @@ function KeywordPicker({ onInsert }: { onInsert: (token: string) => void }) {
                 setShape(next);
               }
             }}
-            aria-label="Keyword shape"
+            aria-label={m.contribute_text_shape_aria()}
           >
             {SHAPE_OPTIONS.map((option) => (
-              <ToggleGroupItem key={option.id} value={option.id} aria-label={option.label}>
+              <ToggleGroupItem key={option.id} value={option.id} aria-label={shapeLabel(option.id)}>
                 <CardText text={option.sample("Tag")} interactive={false} />
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
         </div>
-        <ComboboxInput placeholder="Search keywords…" showTrigger={false} />
-        <ComboboxEmpty>No matches.</ComboboxEmpty>
+        <ComboboxInput placeholder={m.contribute_text_keyword_search()} showTrigger={false} />
+        <ComboboxEmpty>{m.contribute_no_matches()}</ComboboxEmpty>
         <ComboboxList>
           {(name: string) => (
             <ComboboxItem key={name} value={name}>
@@ -402,38 +438,39 @@ function SyntaxHelpPopover() {
     <Popover>
       <PopoverTrigger
         render={<Button type="button" variant="ghost" size="sm" />}
-        aria-label="Syntax help"
+        aria-label={m.contribute_text_syntax_aria()}
       >
         <HelpCircleIcon className="size-3.5" />
-        Syntax
+        {m.contribute_text_syntax()}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80">
-        <p className="font-medium">Rules &amp; effect text syntax</p>
+        <p className="font-medium">{m.contribute_text_syntax_title()}</p>
         <ul className="text-muted-foreground flex flex-col gap-1.5">
           <li>
-            <code className="text-foreground">[Keyword]</code> renders a styled keyword chip. Use
-            the Keyword button to pick from known keywords. Pick a shape to add an arrow on the left
-            (<code className="text-foreground">[&gt;&gt;][Keyword]</code>), right (
-            <code className="text-foreground">[Keyword][&gt;]</code>), or both.
+            <code className="text-foreground">[Keyword]</code>{" "}
+            {m.contribute_text_syntax_keyword_intro()}
+            <code className="text-foreground">[&gt;&gt;][Keyword]</code>
+            {m.contribute_text_syntax_keyword_right()}
+            <code className="text-foreground">[Keyword][&gt;]</code>
+            {m.contribute_text_syntax_keyword_both()}
           </li>
           <li>
             <code className="text-foreground">:rb_energy_2:</code>,{" "}
             <code className="text-foreground">:rb_rune_fury:</code>,{" "}
-            <code className="text-foreground">:rb_might:</code> insert glyphs. Use the toolbar
-            buttons.
+            <code className="text-foreground">:rb_might:</code> {m.contribute_text_syntax_glyphs()}
           </li>
           <li>
-            <code className="text-foreground">(reminder text)</code> renders italic in parens. No
-            need to add underscores; the renderer italicises parens automatically.
+            <code className="text-foreground">(reminder text)</code>{" "}
+            {m.contribute_text_syntax_reminder()}
           </li>
           <li>
-            <code className="text-foreground">_emphasis_</code> wraps text in italics. Use the
-            Italic button to wrap the selected text.
+            <code className="text-foreground">_emphasis_</code>{" "}
+            {m.contribute_text_syntax_emphasis()}
           </li>
-          <li>Press Enter for a line break.</li>
+          <li>{m.contribute_text_syntax_newline()}</li>
         </ul>
         <p className="text-muted-foreground">
-          Example:{" "}
+          {m.contribute_text_syntax_example()}{" "}
           <code className="text-foreground">
             [Equip :rb_energy_1: :rb_rune_mind:] (Attach this to a unit you control.)
           </code>
@@ -448,7 +485,7 @@ function CardTextPreview({ text, variant }: { text: string; variant: CardTextVar
   if (!trimmed) {
     return (
       <p className="text-muted-foreground border-input rounded-md border border-dashed px-2.5 py-1.5">
-        Live preview appears here as you type.
+        {m.contribute_text_preview_empty()}
       </p>
     );
   }

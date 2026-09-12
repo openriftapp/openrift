@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { cardWord } from "@/features/scan/lib/scan-card-word";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanClearDialogProps {
   count: number | null;
@@ -24,14 +24,16 @@ export function ScanClearDialog({ count, onOpenChange, onClear }: ScanClearDialo
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Clear {count ?? 0} scanned {cardWord(count ?? 0)}?
+            {count === 1
+              ? m.scan_clear_title_one({ count })
+              : m.scan_clear_title_plural({ count: count ?? 0 })}
           </AlertDialogTitle>
-          <AlertDialogDescription>They are not in a collection yet.</AlertDialogDescription>
+          <AlertDialogDescription>{m.scan_clear_description()}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{m.scan_clear_cancel()}</AlertDialogCancel>
           <AlertDialogPrimitive.Close render={<Button variant="destructive" />} onClick={onClear}>
-            Clear
+            {m.scan_clear_confirm()}
           </AlertDialogPrimitive.Close>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { Heading } from "@/components/heading";
 import { CardSlugPicker } from "@/features/contribute/components/card-slug-picker";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/contribute_/printing")({
   component: ContributePrintingPickerPage,
@@ -19,13 +20,11 @@ function ContributePrintingPickerPage() {
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5"
       >
         <ArrowLeftIcon className="size-4" />
-        Back
+        {m.contribute_back()}
       </Link>
       <header className="flex flex-col gap-1">
-        <Heading level={1}>Add a printing</Heading>
-        <p className="text-muted-foreground">
-          Find the card first, then describe the version you have in hand.
-        </p>
+        <Heading level={1}>{m.contribute_page_add_printing_title()}</Heading>
+        <p className="text-muted-foreground">{m.contribute_page_printing_picker_lead()}</p>
       </header>
       <CardSlugPicker
         onPick={(cardSlug) =>

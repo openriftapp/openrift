@@ -1,4 +1,5 @@
 import { errorText } from "@/lib/error-text";
+import { m } from "@/paraglide/messages.js";
 
 // The ort proxy worker serializes worker-side failures over postMessage: the thrown value is not always an Error.
 function matchableText(thrown: unknown): string {
@@ -17,7 +18,7 @@ export function encoderCreateRetryable(thrown: unknown): boolean {
 // fresh tab (observed on iOS under tab memory pressure), so map to that.
 export function encoderStartErrorMessage(thrown: unknown, fallback: string): string {
   if (OUT_OF_MEMORY_PATTERN.test(matchableText(thrown))) {
-    return "The browser ran out of memory while starting the scanner. Close unused tabs, then open this page again in a new tab.";
+    return m.scan_encoder_out_of_memory();
   }
   if (thrown instanceof Error && thrown.message) {
     return thrown.message;

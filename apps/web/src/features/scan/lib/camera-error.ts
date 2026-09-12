@@ -1,3 +1,5 @@
+import { m } from "@/paraglide/messages.js";
+
 /**
  * Browsers reject with `DOMException`s whose messages are written for
  * developers, not users; Firefox rejects a machine with no usable camera with
@@ -12,22 +14,22 @@ export function cameraErrorMessage(thrown: unknown, fallback: string): string {
   switch (thrown.name) {
     case "NotFoundError":
     case "DevicesNotFoundError": {
-      return "No camera found. Check that a camera is connected and not disabled in your system's privacy settings.";
+      return m.scan_camera_error_not_found();
     }
     case "NotAllowedError":
     case "PermissionDeniedError": {
-      return "Camera access was blocked. Allow camera access for this site in your browser settings and try again.";
+      return m.scan_camera_error_blocked();
     }
     case "NotReadableError":
     case "TrackStartError": {
-      return "The camera could not be started. It may be in use by another app, close that app and try again.";
+      return m.scan_camera_error_not_readable();
     }
     case "OverconstrainedError":
     case "ConstraintNotSatisfiedError": {
-      return "No camera on this device supports the requested video settings.";
+      return m.scan_camera_error_overconstrained();
     }
     case "SecurityError": {
-      return "Camera access is disabled in this browser.";
+      return m.scan_camera_error_security();
     }
     default: {
       return thrown.message || fallback;

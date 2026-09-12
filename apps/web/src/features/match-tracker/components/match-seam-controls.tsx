@@ -23,6 +23,7 @@ import {
 } from "@/features/match-tracker/stores/match-tracker-store";
 import { useFirstPlayerSpotlight } from "@/hooks/use-first-player-spotlight";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const SEAM_BUTTON_CLASS =
   "bg-popover hover:border-primary grid size-8 place-items-center rounded-full border shadow-sm transition-colors disabled:opacity-50";
@@ -47,7 +48,7 @@ export function MatchSeamControls() {
     <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center">
       <div className="pointer-events-auto flex gap-2">
         <Pressable
-          aria-label="Roll for first player"
+          aria-label={m.tracker_seam_roll_first()}
           disabled={isRolling}
           onClick={() => roll()}
           className={cn(SEAM_BUTTON_CLASS, isRolling && "cursor-default")}
@@ -56,27 +57,27 @@ export function MatchSeamControls() {
         </Pressable>
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<Pressable aria-label="Match menu" className={SEAM_BUTTON_CLASS} />}
+            render={<Pressable aria-label={m.tracker_seam_menu()} className={SEAM_BUTTON_CLASS} />}
           >
             <Settings2Icon className="text-muted-foreground size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center">
             <DropdownMenuItem disabled={undoLabel === null} onClick={() => undoLast()}>
               <Undo2Icon className="size-4" />
-              {undoLabel ?? "Nothing to undo"}
+              {undoLabel ?? m.tracker_seam_nothing_to_undo()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => startGame()}>
               <RotateCcwIcon className="size-4" />
-              New round
+              {m.tracker_seam_new_round()}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => backToSetup()}>
               <Settings2Icon className="size-4" />
-              Back to setup
+              {m.tracker_seam_back_to_setup()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Goes first</DropdownMenuLabel>
+              <DropdownMenuLabel>{m.tracker_goes_first()}</DropdownMenuLabel>
               {players.map((player) => (
                 <DropdownMenuItem key={player.id} onClick={() => setFirstPlayer(player.id)}>
                   <FlagIcon className="size-4" />

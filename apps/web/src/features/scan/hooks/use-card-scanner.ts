@@ -18,6 +18,7 @@ import { createRotationTracker } from "@/features/scan/lib/scan-rotation";
 import type { ScannerSettings } from "@/features/scan/lib/scan-session";
 import { lockRunForMode } from "@/features/scan/lib/scan-session";
 import { errorText } from "@/lib/error-text";
+import { m } from "@/paraglide/messages.js";
 
 import { useScanCatchUp } from "./use-scan-catchup";
 import type { ScanEngineAssets } from "./use-scan-engine";
@@ -218,7 +219,7 @@ export function useCardScanner(
     catchUp.reset();
     pendingFrameRef.current = null;
     if (!engineReady) {
-      setError("The engine is still loading, try again in a moment.");
+      setError(m.scan_engine_still_loading());
       startingRef.current = false;
       return;
     }
@@ -234,7 +235,7 @@ export function useCardScanner(
     const acquired = await acquireScannerStream(capFrameRate);
     const stream = acquired.stream;
     if (stream === null) {
-      setError(cameraErrorMessage(acquired.failure, "Could not open the camera"));
+      setError(cameraErrorMessage(acquired.failure, m.scan_camera_open_failed()));
       startingRef.current = false;
       return;
     }
@@ -257,7 +258,7 @@ export function useCardScanner(
       try {
         await video.play();
       } catch (playError) {
-        playFailure = errorText(playError, "Could not start the camera preview");
+        playFailure = errorText(playError, m.scan_camera_preview_failed());
       }
     }
     if (playFailure !== null) {

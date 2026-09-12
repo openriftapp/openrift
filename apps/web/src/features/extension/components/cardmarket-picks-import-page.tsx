@@ -43,6 +43,7 @@ import {
 import { buildListImportPayload } from "@/features/lists/hooks/use-list-import-flow";
 import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const NEW_LIST = "__new__";
 
@@ -54,15 +55,12 @@ export function CardmarketPicksImportPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Cards picked on Cardmarket</PageTopBarTitle>
+          <PageTopBarTitle>{m.extension_picks_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
-        <PageDescription>
-          The cards you picked on a seller&apos;s Cardmarket offers with the OpenRift extension,
-          ready to become a list you can share with them.
-        </PageDescription>
+        <PageDescription>{m.extension_picks_description()}</PageDescription>
 
         {payload === undefined ? <NothingPicked /> : <PicksReview payload={payload} />}
       </div>
@@ -72,14 +70,13 @@ export function CardmarketPicksImportPage() {
 
 function NothingPicked() {
   return (
-    <SettingsSection title="Nothing has been handed over">
+    <SettingsSection title={m.extension_picks_nothing_title()}>
       <p className="text-muted-foreground text-sm">
-        Open a seller&apos;s offers on Cardmarket, press + on the cards you want, then choose
-        &quot;Send to OpenRift&quot; from the extension popup. See{" "}
+        {m.extension_picks_nothing_body_before()}{" "}
         <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
-          how the extension works
+          {m.extension_picks_nothing_body_link()}
         </TextLink>
-        .
+        {m.extension_picks_nothing_body_after()}
       </p>
     </SettingsSection>
   );
@@ -92,15 +89,15 @@ function PicksReview({ payload }: { payload: CardmarketPicksPayload }) {
   if (resolution.isError) {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <p className="text-sm">Your picks could not be matched to cards.</p>
+        <p className="text-sm">{m.extension_picks_match_error()}</p>
         <Button variant="outline" size="sm" onClick={() => void resolution.refetch()}>
-          Try again
+          {m.extension_picks_try_again()}
         </Button>
       </div>
     );
   }
   if (resolution.data === undefined) {
-    return <p className="text-muted-foreground text-sm">Matching your picks…</p>;
+    return <p className="text-muted-foreground text-sm">{m.extension_picks_matching()}</p>;
   }
   return (
     <PicksEditor
@@ -125,12 +122,12 @@ function TargetPicker({
   onChange: (choice: TargetChoice) => void;
 }) {
   return (
-    <SettingsSection title="Save to">
+    <SettingsSection title={m.extension_picks_save_to()}>
       <RadioGroup
         value={choice.selected}
         onValueChange={(value) => onChange({ ...choice, selected: String(value) })}
       >
-        <TargetOption id="picks-target-new" value={NEW_LIST} label="New list">
+        <TargetOption id="picks-target-new" value={NEW_LIST} label={m.extension_picks_new_list()}>
           <PlusSquareIcon className="text-muted-foreground size-4 shrink-0" />
         </TargetOption>
         {lists.map((list) => (
@@ -148,14 +145,12 @@ function TargetPicker({
         <Input
           value={choice.newName}
           onChange={(event) => onChange({ ...choice, newName: event.target.value })}
-          placeholder="List name"
-          aria-label="List name"
+          placeholder={m.extension_picks_list_name()}
+          aria-label={m.extension_picks_list_name()}
           maxLength={200}
         />
       ) : null}
-      <p className="text-muted-foreground text-sm">
-        Picks go to an organize list, so your wishlists stay as they are.
-      </p>
+      <p className="text-muted-foreground text-sm">{m.extension_picks_organize_note()}</p>
     </SettingsSection>
   );
 }
@@ -258,12 +253,14 @@ function PicksEditor({
     } catch {
       // Deliberate second toast on top of the global mutation error one: this says the
       // save was left half-done (batches before the failing one already committed).
-      toast.error("Saving failed. Some cards may have been added.");
+      toast.error(m.extension_picks_save_failed());
       setIsSaving(false);
       return;
     }
     toast.success(
-      `Added ${summary.totalCards} ${summary.totalCards === 1 ? "card" : "cards"} to the list.`,
+      summary.totalCards === 1
+        ? m.extension_picks_added_one({ count: summary.totalCards })
+        : m.extension_picks_added_other({ count: summary.totalCards }),
     );
     void navigate({ to: "/collections/lists/$listId", params: { listId } });
   };
@@ -287,8 +284,11 @@ function PicksEditor({
     <div className="flex min-w-0 flex-col gap-8">
       <div className="flex min-w-0 flex-col gap-4">
         <p className="text-muted-foreground text-sm">
-          {matchedEntries.length} {matchedEntries.length === 1 ? "card" : "cards"} picked from{" "}
-          <span className="text-foreground font-medium">{seller}</span>.
+          {matchedEntries.length === 1
+            ? m.extension_picks_picked_from_one({ count: matchedEntries.length })
+            : m.extension_picks_picked_from_other({ count: matchedEntries.length })}{" "}
+          <span className="text-foreground font-medium">{seller}</span>
+          {m.extension_picks_picked_from_after()}
         </p>
 
         {problematicEntries.length > 0 && (
@@ -317,12 +317,12 @@ function PicksEditor({
           {isSaving ? (
             <>
               <Loader2Icon className="size-4 animate-spin" />
-              Saving…
+              {m.extension_picks_saving()}
             </>
+          ) : summary.totalCards === 1 ? (
+            m.extension_picks_save_one({ count: summary.totalCards })
           ) : (
-            <>
-              Save {summary.totalCards} {summary.totalCards === 1 ? "card" : "cards"}
-            </>
+            m.extension_picks_save_other({ count: summary.totalCards })
           )}
         </Button>
       </Callout>

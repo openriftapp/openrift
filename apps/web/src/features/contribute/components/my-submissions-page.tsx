@@ -28,10 +28,11 @@ import {
   submissionStatusLabels,
 } from "@/features/contribute/lib/card-submission-copy";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function SubmissionRow({ submission }: { submission: CardSubmissionStatusResponse }) {
   const explanation = submissionExplanation(submission.reason, submission.resolutionNote);
-  const hint = submissionStatusHints[submission.status];
+  const hint = submissionStatusHints()[submission.status];
   const cardLink = submission.cardSlug;
 
   return (
@@ -52,17 +53,19 @@ function SubmissionRow({ submission }: { submission: CardSubmissionStatusRespons
             <span className="font-medium">{submission.cardName}</span>
           )}
           <span className="text-muted-foreground text-sm">
-            {submissionKindLabels[submission.kind]}
+            {submissionKindLabels()[submission.kind]}
           </span>
         </div>
         <Badge variant={submissionStatusBadgeVariant[submission.status]}>
-          {submissionStatusLabels[submission.status]}
+          {submissionStatusLabels()[submission.status]}
         </Badge>
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Sent {formatDay(submission.createdAt)}
-        {submission.resolvedAt ? ` · Reviewed ${formatDay(submission.resolvedAt)}` : ""}
+        {m.contribute_submissions_sent({ date: formatDay(submission.createdAt) })}
+        {submission.resolvedAt
+          ? ` ${m.contribute_submissions_reviewed({ date: formatDay(submission.resolvedAt) })}`
+          : ""}
       </p>
 
       {explanation ? <p>{explanation}</p> : null}
@@ -86,17 +89,17 @@ export function MySubmissionsPage() {
       <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarBack to="/contribute" />
-          <PageTopBarTitle>My submissions</PageTopBarTitle>
+          <PageTopBarTitle>{m.contribute_submissions_title()}</PageTopBarTitle>
           <PageTopBarActions>
             <PageTopBarPrimaryButton render={<Link to="/contribute/card" />}>
-              Submit a card
+              {m.contribute_submissions_cta()}
             </PageTopBarPrimaryButton>
           </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
-        <PageDescription>Every card and correction you&apos;ve sent in.</PageDescription>
+        <PageDescription>{m.contribute_submissions_description()}</PageDescription>
 
         {isPending ? (
           <div className="flex flex-col gap-4">
@@ -108,10 +111,12 @@ export function MySubmissionsPage() {
         {!isPending && submissions.length === 0 ? (
           <EmptyState
             icon={FileTextIcon}
-            title="Nothing sent in yet"
-            description="Spotted a card we're missing, or something that looks wrong? Send it in and it shows up here with its review status. Help us fill in the gaps."
+            title={m.contribute_submissions_empty_title()}
+            description={m.contribute_submissions_empty_description()}
           >
-            <Button render={<Link to="/contribute/card" />}>Submit a card</Button>
+            <Button render={<Link to="/contribute/card" />}>
+              {m.contribute_submissions_cta()}
+            </Button>
           </EmptyState>
         ) : null}
 
@@ -130,7 +135,9 @@ export function MySubmissionsPage() {
             disabled={isFetchingNextPage}
             onClick={() => void fetchNextPage()}
           >
-            {isFetchingNextPage ? "Loading…" : "Show older submissions"}
+            {isFetchingNextPage
+              ? m.contribute_submissions_loading()
+              : m.contribute_submissions_older()}
           </Button>
         ) : null}
       </div>

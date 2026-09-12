@@ -15,6 +15,7 @@ import { ContributeSubmitBar } from "@/features/contribute/components/contribute
 import { useContributeForm } from "@/features/contribute/hooks/use-contribute-form";
 import type { ContributeFormState } from "@/features/contribute/lib/contribute-json";
 import { SOCIAL_LINKS } from "@/lib/social-links";
+import { m } from "@/paraglide/messages.js";
 
 export type ContributeFormScope = "card" | "printing";
 
@@ -121,26 +122,16 @@ export function ContributeForm({
 
 function IntroBlock({ lockedSlug, scope }: { lockedSlug?: string; scope: ContributeFormScope }) {
   if (scope === "printing") {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Only this printing: the card&apos;s own details stay as they are. Fill in what you can see
-        on this version.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{m.contribute_intro_printing()}</p>;
   }
   if (lockedSlug) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        Change only what&apos;s wrong. Edit the fields that are off and leave the rest alone.
-      </p>
-    );
+    return <p className="text-muted-foreground text-sm">{m.contribute_intro_locked()}</p>;
   }
   return (
     <p className="text-muted-foreground text-sm">
-      It&apos;s okay to not fill in everything. Only the name and code are mandatory. For a new
-      version of a known card, select it first and copy a printing. Need help? Visit the{" "}
+      {m.contribute_intro_new()}{" "}
       <a href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-        Discord
+        {m.contribute_intro_new_discord()}
       </a>
       .
     </p>

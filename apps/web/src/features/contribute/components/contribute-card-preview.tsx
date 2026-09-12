@@ -4,6 +4,7 @@ import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-reg
 import { ContributePreviewHotspots } from "@/features/contribute/components/contribute-preview-hotspots";
 import type { ContributeFormState } from "@/features/contribute/lib/contribute-json";
 import { filledPreviewFields } from "@/features/contribute/lib/contribute-preview-fields";
+import { m } from "@/paraglide/messages.js";
 
 interface LivePreviewProps {
   form: ContributeFormState;
@@ -25,7 +26,7 @@ export function LivePreview({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Preview</CardTitle>
+        <CardTitle>{m.contribute_preview_title()}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative w-full max-w-sm">
@@ -53,10 +54,7 @@ export function LivePreview({
             onHover={onFieldHover}
           />
         </div>
-        <p className="text-muted-foreground mt-3 text-sm">
-          Pick a spot on the card to jump to the field that fills it. Pure catalogue details (set,
-          language, finish, art variant, markers) don&apos;t appear on the card itself.
-        </p>
+        <p className="text-muted-foreground mt-3 text-sm">{m.contribute_preview_hint()}</p>
       </CardContent>
     </Card>
   );

@@ -12,6 +12,7 @@ import { ContributeHero } from "@/features/contribute/components/contribute-hero
 import { MyMissingImagesSection } from "@/features/contribute/components/my-missing-images-section";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/contribute_/image")({
   component: ContributeImagePickerPage,
@@ -24,15 +25,15 @@ function ContributeImagePickerPage() {
     <div className="flex flex-col gap-8">
       <ContributeHero
         back
-        title="Add a missing image"
-        lead="Some printings still show a placeholder. A phone photo of the card in hand is enough, we straighten and crop it for you."
+        title={m.contribute_add_missing_image()}
+        lead={m.contribute_page_image_lead()}
       />
 
       <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "flex flex-col gap-8")}>
         <MyMissingImagesSection />
 
         <section className="flex flex-col gap-3">
-          <Heading level={2}>Any other card</Heading>
+          <Heading level={2}>{m.contribute_page_image_any_other()}</Heading>
           <CardSlugPicker onPick={setCardSlug} />
           {cardSlug === null ? null : (
             <Suspense fallback={<Skeleton className="h-40 w-full" />}>
@@ -73,7 +74,9 @@ function PrintingChoices({ cardSlug }: { cardSlug: string }) {
               </span>
             </span>
             {printing.images.length > 0 && (
-              <span className="text-muted-foreground shrink-0 text-sm">Image on file</span>
+              <span className="text-muted-foreground shrink-0 text-sm">
+                {m.contribute_page_image_on_file()}
+              </span>
             )}
           </RowListLink>
         </RowListItem>

@@ -7,6 +7,7 @@ import { CountPill } from "@/components/ui/count-pill";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const VISIBLE_LIMIT = 10;
 
@@ -42,7 +43,9 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
                   {enumLabel(languageLabels, item.language)}
                 </span>
               </span>
-              <CountPill title={`${item.copies} in your collections`}>{item.copies}</CountPill>
+              <CountPill title={m.contribute_missing_copies_title({ count: item.copies })}>
+                {item.copies}
+              </CountPill>
             </RowListLink>
           </RowListItem>
         ))}
@@ -54,7 +57,7 @@ export function MissingImagesList({ items }: MissingImagesListProps) {
           onClick={() => setShowAll(!showAll)}
           className="text-muted-foreground hover:text-foreground self-start text-sm"
         >
-          {showAll ? "Show fewer" : `Show all ${items.length}`}
+          {showAll ? m.contribute_show_fewer() : m.contribute_show_all({ count: items.length })}
         </ExpandToggle>
       )}
     </div>

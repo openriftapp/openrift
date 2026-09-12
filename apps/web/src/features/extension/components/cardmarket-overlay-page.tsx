@@ -24,6 +24,7 @@ import { summarizeListNames } from "@/features/extension/lib/overlay-list-names"
 import { serializeOverlaySnapshot } from "@/features/extension/lib/overlay-snapshot-script";
 import { useLists } from "@/features/lists/hooks/use-lists";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function ownedOrWantedCount(snapshot: CardmarketOverlaySnapshot): number {
   const cards = snapshot.products.filter((row) => row.owned > 0 || row.wanted > 0);
@@ -38,32 +39,38 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
     <SettingsSection
       title={
         <>
-          Ready for{" "}
+          {m.extension_overlay_ready_for()}{" "}
           <span className="font-medium">
             {summarizeListNames(snapshot.lists.map((list) => list.name))}
           </span>
         </>
       }
-      description={`${cards} ${cards === 1 ? "card" : "cards"} you own or want, with your ${marketplaceLabel(snapshot.marketplace)} prices. Prepared ${formatDayTimeLocal(snapshot.generatedAt)}.`}
+      description={m.extension_overlay_ready_description({
+        cards:
+          cards === 1
+            ? m.extension_overlay_ready_cards_one({ count: cards })
+            : m.extension_overlay_ready_cards_other({ count: cards }),
+        marketplace: marketplaceLabel(snapshot.marketplace),
+        time: formatDayTimeLocal(snapshot.generatedAt),
+      })}
     >
       {captured ? (
         <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
           <CheckIcon className="text-success size-4 shrink-0" />
-          Saved to your extension
+          {m.extension_overlay_saved()}
         </p>
       ) : (
         <div className="flex flex-col gap-1">
           <p className="text-muted-foreground flex items-center gap-2 text-sm">
             <Loader2Icon className="size-4 shrink-0 animate-spin" />
-            Waiting for the OpenRift extension…
+            {m.extension_overlay_waiting()}
           </p>
           <p className="text-muted-foreground text-sm">
-            It takes them by itself once allowed. Nothing yet? Click the OpenRift icon while this
-            page is open, or read{" "}
+            {m.extension_overlay_waiting_hint_before()}{" "}
             <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
-              how to set the extension up
+              {m.extension_overlay_waiting_hint_link()}
             </TextLink>
-            .
+            {m.extension_overlay_waiting_hint_after()}
           </p>
         </div>
       )}
@@ -100,21 +107,16 @@ export function CardmarketOverlayPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Wishlist counts on Cardmarket</PageTopBarTitle>
+          <PageTopBarTitle>{m.extension_overlay_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
-        <PageDescription>
-          The OpenRift extension marks every card on a Cardmarket seller&apos;s offers with how many
-          copies you own and how many you still want. Pick the wishlists it counts.
-        </PageDescription>
+        <PageDescription>{m.extension_overlay_description()}</PageDescription>
 
-        <SettingsSection title="Wishlists">
+        <SettingsSection title={m.extension_overlay_wishlists()}>
           {wishlists.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              You have no wishlists yet. Create one from your collection and it shows up here.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.extension_overlay_no_wishlists()}</p>
           ) : (
             <RowList>
               {wishlists.map((list) => (
@@ -139,25 +141,25 @@ export function CardmarketOverlayPage() {
 
         {tooMany ? (
           <p className="text-sm">
-            That is more than {CARDMARKET_OVERLAY_MAX_LISTS} wishlists at once. Untick a few.
+            {m.extension_overlay_too_many({ count: CARDMARKET_OVERLAY_MAX_LISTS })}
           </p>
         ) : null}
 
         {!tooMany && wishlists.length > 0 && pickedIds.length === 0 ? (
-          <p className="text-sm">Tick at least one wishlist.</p>
+          <p className="text-sm">{m.extension_overlay_tick_one()}</p>
         ) : null}
 
         {snapshot.isError ? (
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm">Your counts could not be loaded.</p>
+            <p className="text-sm">{m.extension_overlay_load_error()}</p>
             <Button variant="outline" size="sm" onClick={() => void snapshot.refetch()}>
-              Try again
+              {m.extension_overlay_try_again()}
             </Button>
           </div>
         ) : null}
 
         {snapshot.isPending && pickedIds.length > 0 && !tooMany ? (
-          <p className="text-muted-foreground text-sm">Working out your counts…</p>
+          <p className="text-muted-foreground text-sm">{m.extension_overlay_working()}</p>
         ) : null}
 
         {snapshot.data ? <HandOff snapshot={snapshot.data} /> : null}

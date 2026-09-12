@@ -16,6 +16,7 @@ import { ContributeForm } from "@/features/contribute/components/contribute-form
 import { prefillFromCard } from "@/features/contribute/lib/contribute-json";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute(
   "/_app/contribute_/card_/$cardSlug_/printing_/$printingId",
@@ -54,10 +55,10 @@ function ContributePrintingCorrectionPage() {
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5"
       >
         <ArrowLeftIcon className="size-4" />
-        Back
+        {m.contribute_back()}
       </Pressable>
       <header className="flex flex-col gap-1">
-        <Heading level={1}>Fix this printing</Heading>
+        <Heading level={1}>{m.contribute_page_fix_printing_title()}</Heading>
         <p className="text-muted-foreground">
           <span className="text-foreground font-medium">
             {printing.printedName ?? data.card.name}

@@ -10,6 +10,7 @@ import { ORT_WASM_PATHS } from "@/features/scan/lib/scan-ort-assets";
 import type { ScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
 import { createScanWorkerClient } from "@/features/scan/lib/scan-worker-client";
 import { errorText } from "@/lib/error-text";
+import { m } from "@/paraglide/messages.js";
 
 const WORKER_PARAM = "scanWorker";
 
@@ -110,7 +111,7 @@ export function useScanEngine(assets: ScanEngineAssets | null, onError: (message
         }
         workerRef.current = null;
         started.terminate();
-        onErrorRef.current(errorText(initError, "The scanning engine failed to start"));
+        onErrorRef.current(errorText(initError, m.scan_engine_start_failed()));
       }
     }
     void init();
@@ -138,7 +139,7 @@ export function useScanEngine(assets: ScanEngineAssets | null, onError: (message
           }
         });
       } catch (loadError) {
-        message = errorText(loadError, "Could not load OpenCV");
+        message = errorText(loadError, m.scan_engine_opencv_failed());
       }
       if (cancelled) {
         return;
@@ -180,7 +181,7 @@ export function useScanEngine(assets: ScanEngineAssets | null, onError: (message
           }
         });
       } catch (loadError) {
-        message = errorText(loadError, "Could not load the encoder model");
+        message = errorText(loadError, m.scan_engine_encoder_failed());
       }
       if (cancelled) {
         return;

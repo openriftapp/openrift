@@ -5,6 +5,7 @@ import type { LoadedScanBank } from "@/features/scan/lib/scan-bank";
 import type { IdentifyAttempt, UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { toIdentifyCandidates } from "@/features/scan/lib/scan-identify";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanIdentifyOptions {
   loaded: LoadedScanBank | null;
@@ -96,7 +97,7 @@ export function useScanIdentify({
       return;
     }
     if (card.candidates.length === 0) {
-      toast.info("Nothing recognisable in that frame, scan the card again");
+      toast.info(m.scan_identify_nothing_toast());
       dismissUnidentified(id);
       return;
     }

@@ -5,6 +5,7 @@ import type { ScanSettingsProps } from "@/features/scan/components/scan-settings
 import { ScanSettingsMenu } from "@/features/scan/components/scan-settings-menu";
 import { OVER_VIDEO } from "@/features/scan/lib/scan-styles";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanChromeProps {
   active: boolean;
@@ -22,7 +23,7 @@ export function ScanChrome({ active, settings, onStop }: ScanChromeProps) {
           className={cn("h-11 rounded-full px-4", OVER_VIDEO)}
         >
           <CameraOffIcon />
-          Stop
+          {m.scan_chrome_stop()}
         </Button>
       )}
       <div className="ml-auto">
@@ -33,7 +34,7 @@ export function ScanChrome({ active, settings, onStop }: ScanChromeProps) {
               size="icon"
               variant="ghost"
               className={cn("size-11 rounded-full", OVER_VIDEO)}
-              aria-label="Scan settings"
+              aria-label={m.scan_chrome_settings_label()}
             />
           }
           triggerContent={<SlidersHorizontalIcon className="size-4" />}

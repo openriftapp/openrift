@@ -16,6 +16,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { computeDomainDisabled } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface ContributeCardSectionProps extends Pick<
   ContributeFormApi,
@@ -62,12 +63,12 @@ export function ContributeCardSection({
 
   return (
     <SettingsSection
-      title="Card"
+      title={m.contribute_card_section_title()}
       action={lockedSlug ? undefined : <ExistingCardPicker onPick={prefillFromExisting} />}
       contentClassName="gap-8"
     >
       <FieldRow
-        label="Name"
+        label={m.contribute_field_name()}
         required
         field="card.name"
         error={errorAt("card.name") ?? errorAt("slug")}
@@ -83,12 +84,12 @@ export function ContributeCardSection({
         <CollapsibleTrigger
           render={
             <ExpandToggle expanded={open} className="text-muted-foreground hover:text-foreground">
-              Card details
+              {m.contribute_card_details()}
             </ExpandToggle>
           }
         />
         <CollapsibleContent className="mt-6 flex flex-col gap-4">
-          <FieldRow label="Domains" field="card.domains">
+          <FieldRow label={m.contribute_field_domains()} field="card.domains">
             <ToggleGroup
               multiple
               variant="outline"
@@ -116,7 +117,7 @@ export function ContributeCardSection({
               })}
             </ToggleGroup>
           </FieldRow>
-          <FieldRow label="Types" field="card.types">
+          <FieldRow label={m.contribute_field_types()} field="card.types">
             <ToggleGroup
               multiple
               variant="outline"
@@ -132,7 +133,7 @@ export function ContributeCardSection({
             </ToggleGroup>
           </FieldRow>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FieldRow label="Supertypes">
+            <FieldRow label={m.contribute_field_supertypes()}>
               <ToggleGroup
                 multiple
                 variant="outline"
@@ -150,23 +151,27 @@ export function ContributeCardSection({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <FieldRow label="Might" field="card.might">
+            <FieldRow label={m.contribute_field_might()} field="card.might">
               <NumberInput value={form.card.might} onChange={(v) => setCardField("might", v)} />
             </FieldRow>
-            <FieldRow label="Energy" field="card.energy">
+            <FieldRow label={m.contribute_field_energy()} field="card.energy">
               <NumberInput value={form.card.energy} onChange={(v) => setCardField("energy", v)} />
             </FieldRow>
-            <FieldRow label="Power" field="card.power">
+            <FieldRow label={m.contribute_field_power()} field="card.power">
               <NumberInput value={form.card.power} onChange={(v) => setCardField("power", v)} />
             </FieldRow>
-            <FieldRow label="Might bonus" field="card.mightBonus">
+            <FieldRow label={m.contribute_field_might_bonus()} field="card.mightBonus">
               <NumberInput
                 value={form.card.mightBonus}
                 onChange={(v) => setCardField("mightBonus", v)}
               />
             </FieldRow>
           </div>
-          <FieldRow label="Tags" hint="Press Enter or comma to add." field="card.tags">
+          <FieldRow
+            label={m.contribute_field_tags()}
+            hint={m.contribute_field_tags_hint()}
+            field="card.tags"
+          >
             <ChipInput
               value={form.card.tags}
               onChange={(v) => setCardField("tags", v)}

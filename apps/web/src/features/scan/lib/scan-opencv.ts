@@ -3,6 +3,7 @@ import type { OrbCvLike } from "@openrift/shared/scan/orb";
 
 import { scanAssetError } from "@/features/scan/lib/scan-asset-hint";
 import { fetchWithProgress } from "@/lib/fetch-progress";
+import { m } from "@/paraglide/messages.js";
 
 type OpenCvModule = OpenCvLike & OrbCvLike;
 
@@ -65,7 +66,7 @@ export async function loadOpenCv(
         script.addEventListener("load", () => resolve(), { once: true });
         script.addEventListener(
           "error",
-          () => reject(new Error("The OpenCV script failed to evaluate")),
+          () => reject(new Error(m.scan_engine_opencv_eval_failed())),
           { once: true },
         );
         document.head.append(script);

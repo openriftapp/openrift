@@ -8,6 +8,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { CardDesignerPage } from "@/features/designer/components/card-designer-page";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/card-designer")({
   component: CardDesignerRoute,
@@ -18,15 +19,11 @@ function CardDesignerRoute() {
     <>
       <PageTopBarSticky width="full">
         <PageTopBar>
-          <PageTopBarTitle>Card Designer</PageTopBarTitle>
+          <PageTopBarTitle>{m.designer_page_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.full, PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
-        <PageDescription>
-          Make your own Riftbound-style card. Fill in the name, type, domains, stats, and rules
-          text, drop in your own art, and the preview renders as you type. Download it as a PNG or
-          copy it to the clipboard. Everything stays in your browser.
-        </PageDescription>
+        <PageDescription>{m.designer_page_description()}</PageDescription>
         <CardDesignerPage />
       </div>
     </>

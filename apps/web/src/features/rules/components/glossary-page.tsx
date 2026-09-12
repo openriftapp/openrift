@@ -15,7 +15,7 @@ import {
   RaritiesSection,
 } from "@/features/rules/components/glossary-printing-sections";
 import { NumberingSection, SetsSection } from "@/features/rules/components/glossary-sets-sections";
-import { GroupHeading, TOC_ITEMS } from "@/features/rules/components/glossary-shared";
+import { glossaryTocItems, GroupHeading } from "@/features/rules/components/glossary-shared";
 import {
   CardTypesSection,
   DomainsSection,
@@ -27,6 +27,7 @@ import type { KeywordRow, SetEntry } from "@/features/rules/lib/glossary-content
 import { useMarkerList } from "@/hooks/use-enums";
 import { initQueryOptions } from "@/hooks/use-init";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function GlossaryPage() {
   const { data: init } = useSuspenseQuery(initQueryOptions);
@@ -70,34 +71,31 @@ export function GlossaryPage() {
 
   return (
     <div className={cn(PAGE_WIDTH.full, PAGE_PADDING)}>
-      <Heading level={1}>Glossary</Heading>
-      <p className="text-muted-foreground mt-1">
-        The terms, symbols, and printing details on Riftbound cards and across OpenRift. Entries
-        link to the comprehensive rules.
-      </p>
+      <Heading level={1}>{m.glossary_title()}</Heading>
+      <p className="text-muted-foreground mt-1">{m.glossary_intro()}</p>
 
       <div className="relative mt-4 mb-4 max-w-md">
         <SearchIcon className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search the glossary..."
+          placeholder={m.glossary_search_placeholder()}
           className="pl-9"
         />
       </div>
 
       <div className="flex gap-6">
-        <PageToc items={TOC_ITEMS} />
+        <PageToc items={glossaryTocItems()} />
         <div className="min-w-0 flex-1 space-y-12">
           <section className="space-y-10">
-            <GroupHeading id="game-vocabulary" title="Game vocabulary" />
+            <GroupHeading id="game-vocabulary" title={m.glossary_group_vocabulary()} />
             <DomainsSection domains={domains} query={query} />
             <CardTypesSection types={cardTypes} query={query} />
             <KeywordsSection keywords={keywordRows} query={query} />
             <SymbolsSection query={query} />
           </section>
           <section className="space-y-10">
-            <GroupHeading id="printing-variants" title="Printing variants" />
+            <GroupHeading id="printing-variants" title={m.glossary_group_printing_variants()} />
             <RaritiesSection rarities={rarities} query={query} />
             <BoosterPacksSection query={query} />
             <ArtVariantsSection artVariants={artVariants} query={query} />
@@ -106,7 +104,7 @@ export function GlossaryPage() {
             <PrintingDetailsSection query={query} />
           </section>
           <section className="space-y-10">
-            <GroupHeading id="sets-and-numbering" title="Sets and numbering" />
+            <GroupHeading id="sets-and-numbering" title={m.glossary_group_sets_numbering()} />
             <SetsSection sets={sets} query={query} />
             <NumberingSection query={query} />
           </section>

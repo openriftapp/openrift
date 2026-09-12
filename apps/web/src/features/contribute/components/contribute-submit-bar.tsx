@@ -12,6 +12,7 @@ import {
   errorLabel,
   errorPrintingIndex,
 } from "@/features/contribute/lib/contribute-preview-fields";
+import { m } from "@/paraglide/messages.js";
 
 interface ContributeSubmitBarProps extends Pick<
   ContributeFormApi,
@@ -39,7 +40,7 @@ export function ContributeSubmitBar({
     <>
       {submitted && errors.length > 0 && (
         <Alert variant="destructive">
-          <AlertTitle>Fix the following before submitting:</AlertTitle>
+          <AlertTitle>{m.contribute_submit_errors_title()}</AlertTitle>
           <AlertDescription>
             <ul className="list-inside list-disc">
               {errors.map((e) => {
@@ -75,13 +76,13 @@ export function ContributeSubmitBar({
       {submit.isSuccess && (
         <Alert>
           <CheckCircle2Icon className="size-4" />
-          <AlertTitle>Thanks! Your submission is in the review queue.</AlertTitle>
+          <AlertTitle>{m.contribute_submit_success_title()}</AlertTitle>
           <AlertDescription className="flex flex-col items-start gap-2">
-            <span>I check every submission before it goes live.</span>
+            <span>{m.contribute_submit_success_body()}</span>
             {!lockedSlug && (
               <Button type="button" variant="outline" size="sm" onClick={startAnother}>
                 <PlusIcon className="size-4" />
-                Start another card
+                {m.contribute_submit_start_another()}
               </Button>
             )}
           </AlertDescription>
@@ -89,18 +90,18 @@ export function ContributeSubmitBar({
       )}
 
       <div className="flex flex-col gap-4">
-        <FieldRow label="Note">
+        <FieldRow label={m.contribute_field_note()}>
           <Textarea
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Spotted in the OGN set list, art variant unconfirmed."
+            placeholder={m.contribute_submit_note_placeholder()}
           />
         </FieldRow>
 
         {submit.isError && (
           <Alert variant="destructive">
-            <AlertTitle>Couldn&apos;t submit</AlertTitle>
+            <AlertTitle>{m.contribute_submit_error_title()}</AlertTitle>
             <AlertDescription>{submitErrorMessage(submit.error)}</AlertDescription>
           </Alert>
         )}
@@ -112,12 +113,11 @@ export function ContributeSubmitBar({
             disabled={submit.isPending || submit.isSuccess}
           >
             <SendIcon className="size-4" />
-            {submit.isPending ? "Submitting…" : (submitLabel ?? "Submit your contribution")}
+            {submit.isPending
+              ? m.contribute_submit_pending()
+              : (submitLabel ?? m.contribute_submit_default())}
           </Button>
-          <p className="text-muted-foreground text-sm">
-            Your submission goes straight into the review queue. I check every one before it goes
-            live.
-          </p>
+          <p className="text-muted-foreground text-sm">{m.contribute_submit_footnote()}</p>
         </div>
       </div>
     </>
@@ -126,5 +126,5 @@ export function ContributeSubmitBar({
 
 function submitErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message.trim() : "";
-  return message || "Something went wrong. Please try again in a moment.";
+  return message || m.contribute_error_generic();
 }

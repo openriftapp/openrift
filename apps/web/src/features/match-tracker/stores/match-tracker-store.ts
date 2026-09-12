@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
 import { randomUuid } from "@/lib/random-uuid";
+import { m } from "@/paraglide/messages.js";
 
 type GameStatus = "setup" | "playing" | "finished";
 type GameMode = "ffa" | "teams";
@@ -20,12 +21,15 @@ export const SCORE_REASONS = [
   "ability",
 ] as const satisfies readonly ScoreReason[];
 
-export const SCORE_REASON_LABELS: Record<ScoreReason, string> = {
-  conquer: "Conquer",
-  hold: "Hold",
-  ability: "Ability",
-  manual: "Manual",
-};
+export function scoreReasonLabel(reason: ScoreReason): string {
+  const labels: Record<ScoreReason, string> = {
+    conquer: m.tracker_reason_conquer(),
+    hold: m.tracker_reason_hold(),
+    ability: m.tracker_reason_ability(),
+    manual: m.tracker_reason_manual(),
+  };
+  return labels[reason];
+}
 
 export interface TrackedPlayer {
   id: string;
@@ -63,7 +67,7 @@ function defaultTeam(index: number): TeamId {
 function makePlayer(index: number): TrackedPlayer {
   return {
     id: randomUuid(),
-    name: `Player ${index + 1}`,
+    name: m.tracker_default_player_name({ number: index + 1 }),
     points: 0,
     xp: 0,
     team: defaultTeam(index),
@@ -117,14 +121,15 @@ export function describeAction(
   if (!action) {
     return null;
   }
-  const who = players.find((player) => player.id === action.playerId)?.name ?? "player";
+  const who =
+    players.find((player) => player.id === action.playerId)?.name ?? m.tracker_undo_some_player();
   if (action.kind === "xp") {
-    return `Undo ${who}'s XP change`;
+    return m.tracker_undo_xp({ player: who });
   }
   if (action.reason === "manual") {
-    return `Undo ${who}'s score correction`;
+    return m.tracker_undo_correction({ player: who });
   }
-  return `Undo ${who}'s ${SCORE_REASON_LABELS[action.reason]}`;
+  return m.tracker_undo_reason({ player: who, reason: scoreReasonLabel(action.reason) });
 }
 
 export function isMatchPoint(player: TrackedPlayer, pointsTarget: number): boolean {

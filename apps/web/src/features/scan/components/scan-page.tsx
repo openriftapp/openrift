@@ -47,6 +47,7 @@ import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useLanguageLabels } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { m } from "@/paraglide/messages.js";
 
 function recordScanned(printing: Printing): void {
   useScanSessionStore.getState().add(printing);
@@ -138,7 +139,7 @@ export function ScanPage() {
     }
     const resolution = resolveLock(lock, index, cardLanguage ?? undefined);
     if (resolution.kind === "unknown") {
-      toast.error(`${lock.label} is not in the catalog yet`);
+      toast.error(m.scan_page_not_in_catalog({ name: lock.label }));
       return;
     }
     if (!muted) {
@@ -179,7 +180,7 @@ export function ScanPage() {
       return;
     }
     setPickerQueue((queue) => queue.filter((queued) => queued !== entry));
-    toast.success(`Recognised ${legendDisplayName(resolution.printing.card)}`);
+    toast.success(m.scan_page_recognised({ name: legendDisplayName(resolution.printing.card) }));
     recordScanned(resolution.printing);
   }
 
@@ -367,7 +368,7 @@ export function ScanPage() {
           <ScanResumeCallout
             cards={resumeNotice.cards}
             when={resumeNotice.when}
-            destinationName={destination?.name ?? "a collection"}
+            destinationName={destination?.name ?? m.scan_a_collection()}
             adding={adding}
             onAddAll={handleAddAllToDestination}
             onDiscard={handleClear}
@@ -453,10 +454,10 @@ export function ScanPage() {
         request={swapRequest}
         onPick={handleSwapPick}
         onDismiss={handleSwapDismiss}
-        title="Switch to another printing"
+        title={m.scan_page_swap_title()}
         description={
           swapRow
-            ? `Move one scanned ${legendDisplayName(swapRow.printing.card)} to another printing, finish or language of the same card.`
+            ? m.scan_page_swap_description({ name: legendDisplayName(swapRow.printing.card) })
             : ""
         }
       />

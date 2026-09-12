@@ -2,6 +2,7 @@ import { CheckIcon, LoaderIcon } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
 import type { ResourceProgress } from "@/features/scan/lib/scan-load-progress";
+import { m } from "@/paraglide/messages.js";
 
 function formatMb(bytes: number): string {
   return `${(bytes / 1_048_576).toFixed(1)} MB`;
@@ -21,7 +22,7 @@ export function ScanLoadRow({ label, done, progress }: ScanLoadRowProps) {
   if (!done && progress) {
     if (progress.total > 0 && progress.loaded >= progress.total) {
       // Fully downloaded but not ready yet: wasm compilation or session setup.
-      detail = "starting…";
+      detail = m.scan_load_row_starting();
       percent = 100;
     } else if (progress.total > 0) {
       detail = `${formatMb(progress.loaded)} / ${formatMb(progress.total)}`;

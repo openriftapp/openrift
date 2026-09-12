@@ -8,6 +8,7 @@ import {
 } from "@/features/scan/lib/scan-encoder-error";
 import type { OrtWasmPaths } from "@/features/scan/lib/scan-ort-assets";
 import { fetchWithProgress } from "@/lib/fetch-progress";
+import { m } from "@/paraglide/messages.js";
 
 let cached: Promise<CardEmbedder> | null = null;
 // Single slot, latest caller wins: a strict-mode/navigation remount while the
@@ -86,7 +87,7 @@ export async function loadScanEmbedder(
         // ort marks the backend aborted for the rest of the page's life; a
         // retry would fast-fail with the same error.
         console.error("[scan] encoder start failed (backend aborted)", createError);
-        throw new Error(encoderStartErrorMessage(createError, "Could not start the encoder"));
+        throw new Error(encoderStartErrorMessage(createError, m.scan_encoder_start_failed()));
       }
       // Re-fetch needed: the failed attempt's transfer detached the buffer.
       console.warn("[scan] encoder create failed, retrying once", createError);
@@ -98,7 +99,7 @@ export async function loadScanEmbedder(
         session = await createEncoderSession();
       } catch (retryError) {
         console.error("[scan] encoder start failed after retry", retryError);
-        throw new Error(encoderStartErrorMessage(retryError, "Could not start the encoder"));
+        throw new Error(encoderStartErrorMessage(retryError, m.scan_encoder_start_failed()));
       }
     }
     const inputMeta = session.inputMetadata[0];

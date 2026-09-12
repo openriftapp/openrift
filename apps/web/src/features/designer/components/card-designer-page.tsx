@@ -19,6 +19,7 @@ import { useDomainColors } from "@/hooks/use-domain-colors";
 import { getPipGlyphTint } from "@/lib/domain";
 import { getFilterIconPath, getTypeIconPath } from "@/lib/icons";
 import { prewarmTintedIcons, TINT_BLACK, TINT_WHITE } from "@/lib/white-icon";
+import { m } from "@/paraglide/messages.js";
 
 // Pre-tints the glyph icons before the export clone is captured, since
 // html2canvas can't apply the CSS color filters. Mirrors CardPlaceholderImage.
@@ -90,13 +91,15 @@ export function CardDesignerPage() {
     setRenderClone(false);
     setBusy(false);
     if (outcome === "copied") {
-      setStatus("Copied to clipboard.");
+      setStatus(m.designer_export_status_copied());
     } else if (outcome === "downloaded") {
       setStatus(
-        action === "copy" ? "Clipboard unavailable, downloaded instead." : "Image downloaded.",
+        action === "copy"
+          ? m.designer_export_status_clipboard_unavailable()
+          : m.designer_export_status_downloaded(),
       );
     } else {
-      setStatus("Couldn't export the card. Try again.");
+      setStatus(m.designer_export_status_failed());
     }
   }
 

@@ -1,5 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanNoticesProps {
   unavailableMessage: string | null;
@@ -13,7 +14,7 @@ export function ScanNotices({ unavailableMessage, scanError, cameraAvailable }: 
       {unavailableMessage && (
         <Card className="border-destructive mt-4">
           <CardContent className="pt-6">
-            <p className="font-medium">Scanning is not available right now.</p>
+            <p className="font-medium">{m.scan_notices_unavailable_title()}</p>
             <p className="text-muted-foreground mt-2">{unavailableMessage}</p>
           </CardContent>
         </Card>
@@ -26,9 +27,7 @@ export function ScanNotices({ unavailableMessage, scanError, cameraAvailable }: 
       )}
 
       {cameraAvailable === false && (
-        <p className="text-muted-foreground mt-4">
-          The camera needs a secure connection, so scanning only works over https.
-        </p>
+        <p className="text-muted-foreground mt-4">{m.scan_notices_https()}</p>
       )}
     </>
   );

@@ -16,6 +16,7 @@ import {
   useLanguageList,
   useMarkerList,
 } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 interface ContributePrintingsSectionProps extends Pick<
   ContributeFormApi,
@@ -55,7 +56,9 @@ export function ContributePrintingsSection({
   }));
   const { data: setListData } = useSuspenseQuery(publicSetListQueryOptions);
 
-  const markerLabels = Object.fromEntries(markerOptions.map((m) => [m.slug, m.label]));
+  const markerLabels = Object.fromEntries(
+    markerOptions.map((marker) => [marker.slug, marker.label]),
+  );
   const printingVariants = form.printings.map((p) => toVariantLabelPrinting(p, markerLabels));
 
   const single = scope === "printing";
@@ -95,11 +98,11 @@ export function ContributePrintingsSection({
 
   return (
     <SettingsSection
-      title="Printings"
+      title={m.contribute_printings_title()}
       action={
         <Button type="button" variant="outline" size="sm" onClick={addPrinting}>
           <PlusIcon className="size-4" />
-          Add printing
+          {m.contribute_printings_add()}
         </Button>
       }
     >

@@ -9,20 +9,21 @@ import { useSendScanReport } from "@/features/scan/hooks/use-scan-report";
 import type { ScanJournalEntry } from "@/features/scan/lib/scan-journal";
 import { readScanJournal } from "@/features/scan/lib/scan-journal";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 function entryWord(count: number): string {
-  return count === 1 ? "entry" : "entries";
+  return count === 1 ? m.scan_report_entry_one() : m.scan_report_entry_plural();
 }
 
 function batchWord(count: number): string {
-  return count === 1 ? "batch" : "batches";
+  return count === 1 ? m.scan_report_batch_one() : m.scan_report_batch_plural();
 }
 
 function summarize(journal: readonly ScanJournalEntry[]): string {
   const first = journal[0];
   const last = journal.at(-1);
   if (first === undefined || last === undefined) {
-    return "Nothing recorded on this device yet.";
+    return m.scan_report_nothing();
   }
   const batches = new Set<string>();
   for (const entry of journal) {
@@ -30,8 +31,14 @@ function summarize(journal: readonly ScanJournalEntry[]): string {
       batches.add(entry.batchId);
     }
   }
-  const span = `${formatDayTimeLocal(new Date(first.t))} to ${formatDayTimeLocal(new Date(last.t))}`;
-  return `${journal.length} ${entryWord(journal.length)} from ${span}, covering ${batches.size} add ${batchWord(batches.size)}.`;
+  return m.scan_report_summary({
+    count: journal.length,
+    entries: entryWord(journal.length),
+    from: formatDayTimeLocal(new Date(first.t)),
+    to: formatDayTimeLocal(new Date(last.t)),
+    batchCount: batches.size,
+    batches: batchWord(batches.size),
+  });
 }
 
 export function ScanReportPage() {
@@ -62,27 +69,24 @@ export function ScanReportPage() {
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          <PageTopBarTitle>Scan report</PageTopBarTitle>
+          <PageTopBarTitle>{m.scan_report_title()}</PageTopBarTitle>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
-        <p>
-          This sends the scan log stored on this device: what was scanned and added, and when. No
-          card images and nothing from your account.
-        </p>
+        <p>{m.scan_report_intro()}</p>
 
         {reference === null ? (
           <div className={cn("flex flex-col gap-4", FORM_COLUMN)}>
             <p className="text-muted-foreground">{summarize(journal)}</p>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="scan-report-note">What happened?</Label>
+              <Label htmlFor="scan-report-note">{m.scan_report_note_label()}</Label>
               <Textarea
                 id="scan-report-note"
                 value={note}
                 rows={5}
                 maxLength={2000}
-                placeholder="Optional. Anything you noticed that the log will not show."
+                placeholder={m.scan_report_note_placeholder()}
                 onChange={(event) => setNote(event.target.value)}
               />
             </div>
@@ -91,14 +95,14 @@ export function ScanReportPage() {
                 disabled={nothingToSend || sendReport.isPending}
                 onClick={() => void handleSend()}
               >
-                {sendReport.isPending ? "Sending…" : "Send report"}
+                {sendReport.isPending ? m.scan_report_sending() : m.scan_report_send()}
               </Button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             <p className="font-heading text-4xl font-bold">{reference}</p>
-            <p>Mention this reference on Discord and we can look it up.</p>
+            <p>{m.scan_report_reference_hint()}</p>
           </div>
         )}
       </div>

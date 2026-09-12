@@ -12,6 +12,7 @@ import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
 import { randomUuid } from "@/lib/random-uuid";
+import { m } from "@/paraglide/messages.js";
 
 interface WishFollowUp {
   printing: Printing;
@@ -92,14 +93,18 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
       .filter((row) => row.count > 0);
     const added = jobs.length - failed;
     const collectionName =
-      collections.find((collection) => collection.id === collectionId)?.name ?? "your collection";
+      collections.find((collection) => collection.id === collectionId)?.name ??
+      m.scan_add_default_collection();
     if (added > 0) {
-      toast.success(`Added ${added} ${cardWord(added)} to ${collectionName}`, {
-        action: {
-          label: "Undo",
-          onClick: () => void handleUndoAdd(batchId, copyIds, confirmedRows),
+      toast.success(
+        m.scan_add_success({ count: added, cards: cardWord(added), collection: collectionName }),
+        {
+          action: {
+            label: m.scan_undo(),
+            onClick: () => void handleUndoAdd(batchId, copyIds, confirmedRows),
+          },
         },
-      });
+      );
     }
     const followUps = confirmedRows
       .map((row) => ({

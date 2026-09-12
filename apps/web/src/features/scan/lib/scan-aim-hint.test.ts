@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { AimHint, AimHintInput } from "@/features/scan/lib/scan-aim-hint";
 import {
-  AIM_HINT_MESSAGES,
+  AIM_HINT_KINDS,
+  aimHintMessage,
   areaFractionOfGuide,
   createAimHintSmoother,
   deriveAimHint,
@@ -123,7 +124,7 @@ describe("deriveAimHint", () => {
   it("asks the user to let the card settle while the guide is still changing", () => {
     expect(deriveAimHint(frame({ settling: true }))).toEqual({
       kind: "settling",
-      message: AIM_HINT_MESSAGES.settling,
+      message: aimHintMessage("settling"),
     });
   });
 
@@ -140,7 +141,7 @@ describe("deriveAimHint", () => {
   it("asks for a card when nothing was detected", () => {
     expect(deriveAimHint(frame({ hasCandidate: false }))).toEqual({
       kind: "no-card",
-      message: AIM_HINT_MESSAGES["no-card"],
+      message: aimHintMessage("no-card"),
     });
   });
 
@@ -167,7 +168,7 @@ describe("deriveAimHint", () => {
   it("calls a soft frame blurry", () => {
     expect(deriveAimHint(frame({ focus: 39, bestInliers: 2 }))).toEqual({
       kind: "blurry",
-      message: AIM_HINT_MESSAGES.blurry,
+      message: aimHintMessage("blurry"),
     });
   });
 
@@ -182,7 +183,7 @@ describe("deriveAimHint", () => {
   it("reports a refused frame as still checking", () => {
     expect(deriveAimHint(frame({ refused: true, bestInliers: 12 }))).toEqual({
       kind: "checking",
-      message: AIM_HINT_MESSAGES.checking,
+      message: aimHintMessage("checking"),
     });
   });
 
@@ -201,7 +202,7 @@ describe("deriveAimHint", () => {
   it("blames glare on a few inliers with an implausible match", () => {
     expect(deriveAimHint(frame({ bestInliers: 3, topDistance: 0.6 }))).toEqual({
       kind: "glare",
-      message: AIM_HINT_MESSAGES.glare,
+      message: aimHintMessage("glare"),
     });
   });
 
@@ -218,7 +219,7 @@ describe("deriveAimHint", () => {
   it("holds steady at the bottom of the almost band", () => {
     expect(deriveAimHint(frame({ bestInliers: 6, topDistance: 0.6 }))).toEqual({
       kind: "almost",
-      message: AIM_HINT_MESSAGES.almost,
+      message: aimHintMessage("almost"),
     });
   });
 
@@ -235,16 +236,16 @@ describe("deriveAimHint", () => {
   });
 
   it("keeps every message short enough for a phone overlay", () => {
-    for (const message of Object.values(AIM_HINT_MESSAGES)) {
+    for (const message of AIM_HINT_KINDS.map((kind) => aimHintMessage(kind))) {
       expect(message.length).toBeLessThanOrEqual(30);
       expect(message.endsWith(".")).toBe(false);
     }
   });
 });
 
-const ALMOST: AimHint = { kind: "almost", message: AIM_HINT_MESSAGES.almost };
-const BLURRY: AimHint = { kind: "blurry", message: AIM_HINT_MESSAGES.blurry };
-const TOO_FAR: AimHint = { kind: "too-far", message: AIM_HINT_MESSAGES["too-far"] };
+const ALMOST: AimHint = { kind: "almost", message: aimHintMessage("almost") };
+const BLURRY: AimHint = { kind: "blurry", message: aimHintMessage("blurry") };
+const TOO_FAR: AimHint = { kind: "too-far", message: aimHintMessage("too-far") };
 
 describe("createAimHintSmoother", () => {
   it("shows nothing while the input stays empty", () => {

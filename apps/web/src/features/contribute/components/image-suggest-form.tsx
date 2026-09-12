@@ -20,6 +20,7 @@ import {
   validateContribution,
 } from "@/features/contribute/lib/contribute-json";
 import { otherMissingImages } from "@/features/contribute/lib/missing-images";
+import { m } from "@/paraglide/messages.js";
 
 interface ImageSuggestFormProps {
   card: Card;
@@ -40,7 +41,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
   const chosenUrl = uploadedUrl ?? imageUrl.trim();
   const urlError = submitted
     ? chosenUrl === ""
-      ? "Add a photo or paste a link to an image."
+      ? m.contribute_image_required()
       : errors.find((e) => e.path === "printings[0].imageUrl")?.message
     : undefined;
 
@@ -91,8 +92,8 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
       <div className="flex flex-col gap-6">
         <Alert>
           <CheckCircle2Icon className="size-4" />
-          <AlertTitle>Thanks! Your image suggestion is in the review queue.</AlertTitle>
-          <AlertDescription>I check every submission before it goes live.</AlertDescription>
+          <AlertTitle>{m.contribute_image_success_title()}</AlertTitle>
+          <AlertDescription>{m.contribute_submit_success_body()}</AlertDescription>
         </Alert>
         <MoreMissingImages currentPrintingId={printing.id} />
       </div>
@@ -100,10 +101,10 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
   }
 
   const dropzoneLabel = upload.isPending
-    ? "Uploading your photo…"
+    ? m.contribute_image_dropzone_uploading()
     : uploadedUrl === null
-      ? "Take a photo or choose one"
-      : "Choose a different photo";
+      ? m.contribute_image_dropzone_take()
+      : m.contribute_image_dropzone_change();
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -120,7 +121,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           disabled={upload.isPending}
           icon={<ImageUpIcon className="text-muted-foreground size-5" />}
           label={dropzoneLabel}
-          hint="JPG or PNG, up to 20 MB. Lay the card flat and fill the frame."
+          hint={m.contribute_image_dropzone_hint()}
           onFiles={handleFiles}
         />
         {upload.isError && (
@@ -131,7 +132,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="image-url">Or paste a link to an image</Label>
+        <Label htmlFor="image-url">{m.contribute_image_url_label()}</Label>
         <Input
           id="image-url"
           type="url"
@@ -142,15 +143,13 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
         {urlError ? (
           <FieldError>{urlError}</FieldError>
         ) : (
-          <p className="text-muted-foreground text-sm">
-            Any image format works (.png, .jpg, .webp, .avif, ...).
-          </p>
+          <p className="text-muted-foreground text-sm">{m.contribute_image_url_hint()}</p>
         )}
       </div>
 
       {submit.isError && (
         <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t submit</AlertTitle>
+          <AlertTitle>{m.contribute_submit_error_title()}</AlertTitle>
           <AlertDescription>{errorMessage(submit.error)}</AlertDescription>
         </Alert>
       )}
@@ -162,7 +161,7 @@ export function ImageSuggestForm({ card, printing, setSlug, setName }: ImageSugg
           disabled={submit.isPending || upload.isPending}
         >
           <SendIcon className="size-4" />
-          {submit.isPending ? "Submitting…" : "Submit image suggestion"}
+          {submit.isPending ? m.contribute_submit_pending() : m.contribute_image_submit()}
         </Button>
       </div>
     </form>
@@ -176,11 +175,11 @@ function MoreMissingImages({ currentPrintingId }: { currentPrintingId: string })
   }
   const remaining = otherMissingImages(data.items, currentPrintingId);
   if (remaining.length === 0) {
-    return <p className="text-muted-foreground">All your cards have images now. Thanks!</p>;
+    return <p className="text-muted-foreground">{m.contribute_image_all_done()}</p>;
   }
   return (
     <section className="flex flex-col gap-3">
-      <Heading level={2}>Pick the next card</Heading>
+      <Heading level={2}>{m.contribute_image_next_title()}</Heading>
       <MissingImagesList items={remaining} />
     </section>
   );
@@ -188,5 +187,5 @@ function MoreMissingImages({ currentPrintingId }: { currentPrintingId: string })
 
 function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message.trim() : "";
-  return message || "Something went wrong. Please try again in a moment.";
+  return message || m.contribute_error_generic();
 }

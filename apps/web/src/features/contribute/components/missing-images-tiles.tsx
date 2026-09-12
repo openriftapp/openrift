@@ -8,6 +8,7 @@ import { CardContent } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { m } from "@/paraglide/messages.js";
 
 const VISIBLE_LIMIT = 10;
 
@@ -39,7 +40,7 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
             <CardContent className="flex flex-col gap-1.5">
               <div className="aspect-card bg-muted text-muted-foreground flex w-full flex-col items-center justify-center gap-1.5 rounded-md">
                 <CameraIcon className="size-5" />
-                <span className="text-2xs">No image yet</span>
+                <span className="text-2xs">{m.contribute_missing_no_image()}</span>
               </div>
               <span className="truncate font-medium">{item.cardName}</span>
               <span className="text-muted-foreground truncate text-xs">
@@ -57,7 +58,7 @@ export function MissingImagesTiles({ items }: MissingImagesTilesProps) {
           onClick={() => setShowAll(!showAll)}
           className="text-muted-foreground hover:text-foreground self-start text-sm"
         >
-          {showAll ? "Show fewer" : `Show all ${items.length}`}
+          {showAll ? m.contribute_show_fewer() : m.contribute_show_all({ count: items.length })}
         </ExpandToggle>
       )}
     </div>

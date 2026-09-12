@@ -20,6 +20,7 @@ import {
 } from "@/features/match-tracker/lib/match-legends";
 import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 // The catalog only loads while this dialog is open; the board itself renders from
 // the denormalized snapshot on the seat, so the tracker stays usable offline.
@@ -40,10 +41,8 @@ export function LegendPickerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] gap-3 overflow-hidden sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Choose a legend for {playerName}</DialogTitle>
-          <DialogDescription>
-            Sets the art and colors on this player&apos;s side of the board.
-          </DialogDescription>
+          <DialogTitle>{m.tracker_legend_dialog_title({ player: playerName })}</DialogTitle>
+          <DialogDescription>{m.tracker_legend_dialog_description()}</DialogDescription>
         </DialogHeader>
         {open && (
           <Suspense fallback={<LegendGridSkeleton />}>
@@ -94,19 +93,19 @@ function LegendGrid({
       <div className="flex items-center gap-2">
         <Input
           value={query}
-          placeholder="Search legends"
-          aria-label="Search legends"
+          placeholder={m.tracker_legend_search()}
+          aria-label={m.tracker_legend_search()}
           onChange={(event) => setQuery(event.target.value)}
         />
         {selectedCardId !== null && (
           <Button variant="outline" size="sm" onClick={onClear}>
-            Clear
+            {m.tracker_legend_clear()}
           </Button>
         )}
       </div>
       {shown.length === 0 ? (
         <p className="text-muted-foreground py-6 text-center text-sm">
-          No legends match &ldquo;{query}&rdquo;.
+          {m.tracker_legend_no_match({ query })}
         </p>
       ) : (
         <div className="grid min-h-0 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">

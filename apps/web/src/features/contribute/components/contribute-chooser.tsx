@@ -18,31 +18,31 @@ import { MyMissingImagesSection } from "@/features/contribute/components/my-miss
 import { YourSubmissionsCard } from "@/features/contribute/components/your-submissions-card";
 import { cornerClip } from "@/features/marketing/components/clip-frame";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const CTA_CLIP = cornerClip(12);
 
-const STEPS = [
-  { title: "You send it in", description: "Fill in what you know. Partial is fine." },
-  {
-    title: "We review it",
-    description: "Usually within a few days. Partial data is fine, we fill in the rest.",
-  },
-  { title: "It goes live", description: "The card, printing or image shows up for everyone." },
-] as const;
+function steps(): { title: string; description: string }[] {
+  return [
+    { title: m.contribute_step_send_title(), description: m.contribute_step_send_desc() },
+    { title: m.contribute_step_review_title(), description: m.contribute_step_review_desc() },
+    { title: m.contribute_step_live_title(), description: m.contribute_step_live_desc() },
+  ];
+}
 
 export function ContributeChooser() {
   return (
     <div className="flex flex-col gap-8">
       <ContributeHero
-        title="Help us fill in the gaps"
-        lead="The card data on OpenRift is kept up by one person. A missing printing, a typo, a photo of a card you have in hand: everything you send is reviewed and then shows up for everyone."
+        title={m.contribute_chooser_hero_title()}
+        lead={m.contribute_chooser_hero_lead()}
         action={
           <Link
             to="/contribute/image"
             className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring font-heading mt-2 inline-flex h-11 items-center px-7 font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
             style={{ clipPath: CTA_CLIP }}
           >
-            Add a missing image
+            {m.contribute_add_missing_image()}
           </Link>
         }
       />
@@ -51,44 +51,44 @@ export function ContributeChooser() {
         <MyMissingImagesSection layout="tiles" />
 
         <section className="flex flex-col gap-4">
-          <Heading level={2}>Four ways to help</Heading>
+          <Heading level={2}>{m.contribute_chooser_ways_title()}</Heading>
           <div className="grid gap-4 sm:grid-cols-2">
             <ChoiceTile
               to="/contribute/card"
               icon={PlusIcon}
-              title="Add a card we don't have"
-              description="A card that is missing from OpenRift entirely."
-              needs="the name and the code"
+              title={m.contribute_choice_card_title()}
+              description={m.contribute_choice_card_desc()}
+              needs={m.contribute_choice_card_needs()}
             />
             <ChoiceTile
               to="/contribute/printing"
               icon={LayersIcon}
-              title="Add a printing of a card we have"
-              description="Another version of a card we already list: a foil, a promo, another language."
-              needs="the card and its finish"
+              title={m.contribute_choice_printing_title()}
+              description={m.contribute_choice_printing_desc()}
+              needs={m.contribute_choice_printing_needs()}
             />
             <ChoiceTile
               to="/contribute/image"
               icon={ImagePlusIcon}
-              title="Add a missing image"
-              description="Some printings still show a placeholder. We straighten and crop it for you."
-              needs="a phone photo"
+              title={m.contribute_add_missing_image()}
+              description={m.contribute_choice_image_desc()}
+              needs={m.contribute_choice_image_needs()}
             />
             <ChoiceTile
               to="/contribute/fix"
               icon={PencilLineIcon}
-              title="Fix something on a card"
-              description="Wrong text, a missing keyword, a code that doesn't match."
-              needs="the card and the correction"
+              title={m.contribute_choice_fix_title()}
+              description={m.contribute_choice_fix_desc()}
+              needs={m.contribute_choice_fix_needs()}
             />
           </div>
         </section>
 
         <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-4">
-            <Heading level={2}>What happens next</Heading>
+            <Heading level={2}>{m.contribute_chooser_next_title()}</Heading>
             <ol className="flex flex-col gap-3">
-              {STEPS.map((step, index) => (
+              {steps().map((step, index) => (
                 <li key={step.title} className="flex items-start gap-3">
                   <span className="bg-primary text-primary-foreground font-heading flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
                     {index + 1}
@@ -137,7 +137,7 @@ function ChoiceTile({
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
           <span className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-xs">
-            <Badge variant="secondary">Needs</Badge>
+            <Badge variant="secondary">{m.contribute_chooser_needs()}</Badge>
             {needs}
           </span>
         </div>

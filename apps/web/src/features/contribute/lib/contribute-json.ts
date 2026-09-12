@@ -6,6 +6,8 @@ import { trimToNull } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { core } from "zod";
 
+import { m } from "@/paraglide/messages.js";
+
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/u;
 
 const JSON_TO_FORM_KEY: Record<string, string> = {
@@ -149,7 +151,7 @@ export function validateContribution(state: ContributeFormState): ValidationResu
   if (state.card.name.trim() !== "" && (!state.slug || !SLUG_PATTERN.test(state.slug))) {
     errors.push({
       path: "slug",
-      message: "The name has to contain letters or digits.",
+      message: m.contribute_validation_slug(),
     });
   }
 
@@ -173,10 +175,10 @@ export function validateContribution(state: ContributeFormState): ValidationResu
 function humanizeIssue(issue: core.$ZodIssue): string {
   const lastKey = String(issue.path.at(-1) ?? "");
   if (lastKey === "name" && issue.path[0] === "card" && issue.code === "too_small") {
-    return "Card name is required.";
+    return m.contribute_validation_card_name_required();
   }
   if (lastKey === "public_code" && issue.code === "invalid_type") {
-    return "Code is required.";
+    return m.contribute_validation_code_required();
   }
   return issue.message;
 }
@@ -395,7 +397,7 @@ export function prefillFromCard(
       artVariant: p.artVariant || null,
       isSigned: p.isSigned,
       isOvernumbered: p.isOvernumbered,
-      markerSlugs: p.markers.map((m) => m.slug),
+      markerSlugs: p.markers.map((marker) => marker.slug),
       distributionChannelSlugs: p.distributionChannels.map((channel) => channel.channel.slug),
       finish: p.finish || null,
       size: p.size ?? WellKnown.cardSize.STANDARD,

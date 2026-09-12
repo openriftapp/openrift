@@ -10,6 +10,7 @@ import type { PickerRequest } from "@/features/scan/lib/scan-resolve";
 import { useScanPrefsStore } from "@/features/scan/stores/scan-prefs-store";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanPrintingPickerProps {
   request: PickerRequest | null;
@@ -23,9 +24,10 @@ export function ScanPrintingPicker({
   request,
   onPick,
   onDismiss,
-  title = "Which printing is this?",
+  title,
   description,
 }: ScanPrintingPickerProps) {
+  const resolvedTitle = title ?? m.scan_picker_title();
   const isMobile = useIsMobile();
   const cardLanguage = useScanPrefsStore((state) => state.cardLanguage);
   const open = request !== null;
@@ -64,7 +66,9 @@ export function ScanPrintingPicker({
               name={legendDisplayName(candidate.card)}
               right={
                 isCurrent ? (
-                  <span className="text-muted-foreground shrink-0 text-xs">Current</span>
+                  <span className="text-muted-foreground shrink-0 text-xs">
+                    {m.scan_picker_current()}
+                  </span>
                 ) : null
               }
             />
@@ -91,16 +95,14 @@ export function ScanPrintingPicker({
 
   const resolvedDescription =
     description ??
-    (request
-      ? `${request.label.split(" (")[0]} matched, but the exact printing needs your eyes (foils always do). Dismiss to skip this card.`
-      : "");
+    (request ? m.scan_picker_description({ name: request.label.split(" (")[0] ?? "" }) : "");
 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleOpenChange} showSwipeHandle>
         <DrawerContent>
           <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerTitle>{resolvedTitle}</DrawerTitle>
             <DrawerDescription>{resolvedDescription}</DrawerDescription>
             <div className="flex min-h-0 flex-col">{body}</div>
           </div>
@@ -112,7 +114,7 @@ export function ScanPrintingPicker({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogTitle>{title}</DialogTitle>
+        <DialogTitle>{resolvedTitle}</DialogTitle>
         <DialogDescription>{resolvedDescription}</DialogDescription>
         <div className="flex max-h-96 flex-col">{body}</div>
       </DialogContent>

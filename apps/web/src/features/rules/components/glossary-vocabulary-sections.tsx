@@ -6,11 +6,12 @@ import type { KeywordRow } from "@/features/rules/lib/glossary-content";
 import {
   CARD_TYPE_RULES,
   DOMAIN_RULES,
-  SUPERTYPES,
-  SYMBOLS,
+  glossarySymbols,
+  supertypeEntries,
 } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
 import { getFilterIconPath } from "@/lib/icons";
+import { m } from "@/paraglide/messages.js";
 
 import {
   GlossarySectionHeading,
@@ -32,14 +33,8 @@ export function DomainsSection({
   }
   return (
     <section>
-      <GlossarySectionHeading id="domains" title="Domains" />
-      <p className="text-muted-foreground mt-2">
-        Riftbound has six domains, each with its own colour and symbol: Fury, Calm, Mind, Body,
-        Chaos, and Order. A card&apos;s domain is shown by glyphs in the lower-right corner of the
-        card, and runes of that domain produce the Power needed to pay its costs. Your Champion
-        Legend&apos;s domains determine your deck&apos;s Domain Identity, which limits which other
-        cards you can include.
-      </p>
+      <GlossarySectionHeading id="domains" title={m.glossary_section_domains()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_domains_intro()}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((domain) => {
           const slug = domain.slug.toLowerCase();
@@ -67,8 +62,8 @@ export function DomainsSection({
                 {hasIcon && (
                   <img
                     src={`/images/glyphs/rune-${slug}.svg`}
-                    alt={`${domain.label} rune`}
-                    title={`${domain.label} rune cost glyph`}
+                    alt={m.glossary_domain_rune_alt({ domain: domain.label })}
+                    title={m.glossary_domain_rune_glyph_title({ domain: domain.label })}
                     width={20}
                     height={20}
                     className="mt-1 size-5"
@@ -91,7 +86,7 @@ export function CardTypesSection({
   query: string;
 }) {
   const visible = types.filter((cardType) => matches(query, cardType.label, cardType.slug));
-  const visibleSupertypes = SUPERTYPES.filter((supertype) =>
+  const visibleSupertypes = supertypeEntries().filter((supertype) =>
     matches(query, supertype.label, supertype.slug, supertype.description),
   );
   if (visible.length === 0 && visibleSupertypes.length === 0) {
@@ -100,16 +95,10 @@ export function CardTypesSection({
   const knownIcons = new Set(["battlefield", "gear", "legend", "rune", "spell", "unit"]);
   return (
     <section>
-      <GlossarySectionHeading id="card-types" title="Card types" />
+      <GlossarySectionHeading id="card-types" title={m.glossary_section_card_types()} />
       {visible.length > 0 && (
         <>
-          <p className="text-muted-foreground mt-2">
-            A card&apos;s type tells you how and where it interacts with the game. Units fight on
-            battlefields, Gear attaches to a Unit you control, Spells resolve their effects and
-            leave play, Runes sit in your Rune Pool to produce Energy and Power, Battlefields are
-            the locations Units fight over, and Legends sit beside your deck and represent your
-            Champion.
-          </p>
+          <p className="text-muted-foreground mt-2">{m.glossary_card_types_intro()}</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((cardType) => {
               const slug = cardType.slug.toLowerCase();
@@ -140,12 +129,9 @@ export function CardTypesSection({
       {visibleSupertypes.length > 0 && (
         <>
           <Heading level={3} as="h4" className="mt-6">
-            Supertypes
+            {m.glossary_supertypes_heading()}
           </Heading>
-          <p className="text-muted-foreground mt-1">
-            Supertypes apply on top of a card&apos;s type and are listed before it on the card face.
-            They mostly affect deckbuilding.
-          </p>
+          <p className="text-muted-foreground mt-1">{m.glossary_supertypes_intro()}</p>
           <RowList className="mt-3">
             {visibleSupertypes.map((supertype) => {
               const supertypeIcon = getFilterIconPath("superTypes", supertype.slug);
@@ -214,12 +200,8 @@ export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; q
   }
   return (
     <section>
-      <GlossarySectionHeading id="keywords" title="Keywords" />
-      <p className="text-muted-foreground mt-2">
-        Keywords are short words or phrases that stand in for a longer rule. They appear in card
-        text in square brackets, like [Equip] or [Deathknell]. Tap a rule reference to jump to the
-        full definition.
-      </p>
+      <GlossarySectionHeading id="keywords" title={m.glossary_section_keywords()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_keywords_intro()}</p>
       <ul className="mt-4 grid gap-3 lg:grid-cols-2">
         {visible.map((kw) => (
           <GlossaryTermTile id={keywordAnchorSlug(kw.name)} key={kw.name} className="gap-2">
@@ -230,7 +212,7 @@ export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; q
             {kw.info?.summary ? (
               <p className="text-muted-foreground">{kw.info.summary}</p>
             ) : (
-              <p className="text-muted-foreground italic">No summary available yet.</p>
+              <p className="text-muted-foreground italic">{m.glossary_keyword_no_summary()}</p>
             )}
           </GlossaryTermTile>
         ))}
@@ -240,17 +222,16 @@ export function KeywordsSection({ keywords, query }: { keywords: KeywordRow[]; q
 }
 
 export function SymbolsSection({ query }: { query: string }) {
-  const visible = SYMBOLS.filter((symbol) => matches(query, symbol.label, symbol.summary));
+  const visible = glossarySymbols().filter((symbol) =>
+    matches(query, symbol.label, symbol.summary),
+  );
   if (visible.length === 0) {
     return null;
   }
   return (
     <section>
-      <GlossarySectionHeading id="symbols" title="In-text symbols" />
-      <p className="text-muted-foreground mt-2">
-        Riftbound uses a small set of inline symbols on cards to express costs and core game
-        concepts compactly.
-      </p>
+      <GlossarySectionHeading id="symbols" title={m.glossary_section_symbols()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_symbols_intro()}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {visible.map((sym) => (
           <GlossaryTermTile key={sym.key} className="flex-row items-start gap-3">

@@ -9,8 +9,9 @@ import { RowListItem } from "@/components/ui/row-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Section } from "@/features/rules/lib/glossary-content";
-import { GROUPS } from "@/features/rules/lib/glossary-content";
+import { glossaryGroups } from "@/features/rules/lib/glossary-content";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 export function RuleRef({ ruleNumber, className }: { ruleNumber: string; className?: string }) {
   return (
@@ -18,7 +19,7 @@ export function RuleRef({ ruleNumber, className }: { ruleNumber: string; classNa
       className={cn("text-xs", className)}
       render={<Link to="/rules/$kind" params={{ kind: "core" }} hash={`rule-${ruleNumber}`} />}
     >
-      Rule {ruleNumber} →
+      {m.glossary_rule_ref({ number: ruleNumber })}
     </TextLink>
   );
 }
@@ -68,11 +69,13 @@ export function GlossaryTermRow({ term, children }: { term: ReactNode; children:
   );
 }
 
-export const TOC_ITEMS: PageTocItem[] = GROUPS.flatMap((group) => [
-  { id: group.id, label: group.title },
-  ...group.sections.map((section) => ({
-    id: section.id,
-    label: section.title,
-    level: 1 as const,
-  })),
-]);
+export function glossaryTocItems(): PageTocItem[] {
+  return glossaryGroups().flatMap((group) => [
+    { id: group.id, label: group.title },
+    ...group.sections.map((section) => ({
+      id: section.id,
+      label: section.title,
+      level: 1 as const,
+    })),
+  ]);
+}

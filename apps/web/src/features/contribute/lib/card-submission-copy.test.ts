@@ -34,36 +34,36 @@ const KINDS: CardSubmissionKind[] = ["new_card", "correction", "image"];
 describe("copy coverage", () => {
   it("has a label, variant and hint entry for every status", () => {
     for (const status of STATUSES) {
-      expect(submissionStatusLabels[status]).toBeTruthy();
+      expect(submissionStatusLabels()[status]).toBeTruthy();
       expect(submissionStatusBadgeVariant[status]).toBeTruthy();
-      expect(submissionStatusHints).toHaveProperty(status);
+      expect(submissionStatusHints()).toHaveProperty(status);
     }
   });
 
   it("has a sentence and a short label for every reason", () => {
     for (const reason of REASONS) {
-      expect(submissionReasonSentences[reason]).toBeTruthy();
-      expect(submissionReasonLabels[reason]).toBeTruthy();
+      expect(submissionReasonSentences()[reason]).toBeTruthy();
+      expect(submissionReasonLabels()[reason]).toBeTruthy();
     }
   });
 
   it("has a label for every kind", () => {
     for (const kind of KINDS) {
-      expect(submissionKindLabels[kind]).toBeTruthy();
+      expect(submissionKindLabels()[kind]).toBeTruthy();
     }
   });
 
   it("shows the same wording for not_applied and rejected, to hide the internal abuse signal", () => {
-    expect(submissionStatusLabels.not_applied).toBe(submissionStatusLabels.rejected);
+    expect(submissionStatusLabels().not_applied).toBe(submissionStatusLabels().rejected);
     expect(submissionStatusBadgeVariant.not_applied).toBe(submissionStatusBadgeVariant.rejected);
   });
 
   it("uses no internal pipeline vocabulary", () => {
     const allCopy = [
-      ...Object.values(submissionStatusLabels),
-      ...Object.values(submissionReasonSentences),
-      ...Object.values(submissionKindLabels),
-      ...Object.values(submissionStatusHints).filter((hint) => hint !== null),
+      ...Object.values(submissionStatusLabels()),
+      ...Object.values(submissionReasonSentences()),
+      ...Object.values(submissionKindLabels()),
+      ...Object.values(submissionStatusHints()).filter((hint) => hint !== null),
     ].join(" ");
     for (const jargon of ["candidate", "provider", "ignored", "staging", "usersubmission"]) {
       expect(allCopy.toLowerCase()).not.toContain(jargon);
@@ -79,7 +79,7 @@ describe("submissionExplanation", () => {
   });
 
   it("falls back to the canned sentence for the reason", () => {
-    expect(submissionExplanation("duplicate", null)).toBe(submissionReasonSentences.duplicate);
+    expect(submissionExplanation("duplicate", null)).toBe(submissionReasonSentences().duplicate);
   });
 
   it("returns nothing when neither is set", () => {

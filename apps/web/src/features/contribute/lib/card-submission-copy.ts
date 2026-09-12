@@ -4,19 +4,23 @@ import type {
   CardSubmissionStatus,
 } from "@openrift/shared/contracts/card-submissions";
 
+import { m } from "@/paraglide/messages.js";
+
 /**
  * The words a contributor sees for their own submissions, and the same words
  * the admin picks from when replying. Kept in one module so the reason an admin
  * chooses and the sentence the contributor reads can never drift apart.
  */
 
-export const submissionStatusLabels: Record<CardSubmissionStatus, string> = {
-  pending: "Waiting for review",
-  accepted: "Applied",
-  already_correct: "Already correct",
-  not_applied: "Not used",
-  rejected: "Not used",
-};
+export function submissionStatusLabels(): Record<CardSubmissionStatus, string> {
+  return {
+    pending: m.contribute_status_pending(),
+    accepted: m.contribute_status_accepted(),
+    already_correct: m.contribute_status_already_correct(),
+    not_applied: m.contribute_status_not_used(),
+    rejected: m.contribute_status_not_used(),
+  };
+}
 
 /**
  * `not_applied` and `rejected` deliberately look the same: the split is an
@@ -33,37 +37,45 @@ export const submissionStatusBadgeVariant: Record<
   rejected: "outline",
 };
 
-export const submissionStatusHints: Record<CardSubmissionStatus, string | null> = {
-  pending: "Someone will look at this by hand. That can take a while.",
-  accepted: "Your details are in the catalogue. Thank you.",
-  already_correct: "The catalogue already matched everything you sent.",
-  not_applied: null,
-  rejected: null,
-};
+export function submissionStatusHints(): Record<CardSubmissionStatus, string | null> {
+  return {
+    pending: m.contribute_status_hint_pending(),
+    accepted: m.contribute_status_hint_accepted(),
+    already_correct: m.contribute_status_hint_already_correct(),
+    not_applied: null,
+    rejected: null,
+  };
+}
 
-export const submissionKindLabels: Record<CardSubmissionKind, string> = {
-  new_card: "New card",
-  correction: "Correction",
-  image: "Image",
-};
+export function submissionKindLabels(): Record<CardSubmissionKind, string> {
+  return {
+    new_card: m.contribute_kind_new_card(),
+    correction: m.contribute_kind_correction(),
+    image: m.contribute_kind_image(),
+  };
+}
 
-export const submissionReasonSentences: Record<CardSubmissionReason, string> = {
-  duplicate: "Someone had already sent this one in.",
-  already_correct: "The catalogue already had these details.",
-  unverified: "We could not confirm this against a source, so we left the card as it was.",
-  not_a_card: "This did not look like a real Riftbound card.",
-  bad_image: "The image was not usable, usually because of its size, angle, or quality.",
-  other: "We could not apply this one; the note below says why.",
-};
+export function submissionReasonSentences(): Record<CardSubmissionReason, string> {
+  return {
+    duplicate: m.contribute_reason_duplicate(),
+    already_correct: m.contribute_reason_already_correct(),
+    unverified: m.contribute_reason_unverified(),
+    not_a_card: m.contribute_reason_not_a_card(),
+    bad_image: m.contribute_reason_bad_image(),
+    other: m.contribute_reason_other(),
+  };
+}
 
-export const submissionReasonLabels: Record<CardSubmissionReason, string> = {
-  duplicate: "Already submitted",
-  already_correct: "Already correct",
-  unverified: "Could not verify",
-  not_a_card: "Not a real card",
-  bad_image: "Unusable image",
-  other: "Other",
-};
+export function submissionReasonLabels(): Record<CardSubmissionReason, string> {
+  return {
+    duplicate: m.contribute_reason_label_duplicate(),
+    already_correct: m.contribute_status_already_correct(),
+    unverified: m.contribute_reason_label_unverified(),
+    not_a_card: m.contribute_reason_label_not_a_card(),
+    bad_image: m.contribute_reason_label_bad_image(),
+    other: m.contribute_reason_label_other(),
+  };
+}
 
 export function submissionExplanation(
   reason: CardSubmissionReason | null,
@@ -72,5 +84,5 @@ export function submissionExplanation(
   if (note) {
     return note;
   }
-  return reason ? submissionReasonSentences[reason] : null;
+  return reason ? submissionReasonSentences()[reason] : null;
 }

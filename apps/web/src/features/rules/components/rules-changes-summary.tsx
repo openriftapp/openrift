@@ -1,6 +1,7 @@
 import type { RuleChangesResponse } from "@openrift/shared/types/api/rules";
 
 import type { RuleMoves } from "@/features/rules/lib/rules-changes";
+import { m } from "@/paraglide/messages.js";
 
 export function ChangesSummary({
   previousVersion,
@@ -35,25 +36,27 @@ export function ChangesSummary({
   }
   return (
     <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-      <span className="text-muted-foreground">Changes from v{previousVersion}:</span>
+      <span className="text-muted-foreground">
+        {m.rules_changes_summary_from({ version: previousVersion })}
+      </span>
       <span className="text-success">
-        <span className="font-semibold">{newCount}</span> new
+        <span className="font-semibold">{newCount}</span> {m.rules_changes_summary_new()}
       </span>
       <span className="text-muted-foreground">·</span>
       <span className="text-warning">
-        <span className="font-semibold">{changedCount}</span> changed
+        <span className="font-semibold">{changedCount}</span> {m.rules_changes_summary_changed()}
       </span>
       <span className="text-muted-foreground">·</span>
       <span className="text-info">
-        <span className="font-semibold">{movesCount}</span> moved
+        <span className="font-semibold">{movesCount}</span> {m.rules_changes_summary_moved()}
       </span>
       <span className="text-muted-foreground">·</span>
       <span className="text-violet">
-        <span className="font-semibold">{replacedCount}</span> replaced
+        <span className="font-semibold">{replacedCount}</span> {m.rules_changes_summary_replaced()}
       </span>
       <span className="text-muted-foreground">·</span>
       <span className="text-destructive">
-        <span className="font-semibold">{removedCount}</span> removed
+        <span className="font-semibold">{removedCount}</span> {m.rules_changes_summary_removed()}
       </span>
     </div>
   );

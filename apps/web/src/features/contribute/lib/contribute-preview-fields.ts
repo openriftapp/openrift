@@ -3,38 +3,41 @@ import type {
   ContributeFormPrinting,
   ContributeFormState,
 } from "@/features/contribute/lib/contribute-json";
+import { m } from "@/paraglide/messages.js";
 
 const PRINTING_ERROR_PATH = /^printings\[(?<index>\d+)\]\.(?<key>.+)$/u;
 
-const ERROR_LABELS: Record<string, string> = {
-  "card.name": "Card name",
-  "card.types": "Types",
-  "card.superTypes": "Supertypes",
-  "card.domains": "Domains",
-  "card.might": "Might",
-  "card.energy": "Energy",
-  "card.power": "Power",
-  "card.mightBonus": "Might bonus",
-  "card.tags": "Tags",
-  slug: "Card name",
-  publicCode: "Code",
-  setId: "Set",
-  setName: "Set",
-  rarity: "Rarity",
-  artVariant: "Art variant",
-  finish: "Finish",
-  size: "Size",
-  artist: "Artist",
-  printedName: "Printed name",
-  printedRulesText: "Rules text",
-  printedEffectText: "Effect text",
-  printedYear: "Year",
-  flavorText: "Flavor text",
-  imageUrl: "Image URL",
-  language: "Language",
-  markerSlugs: "Markers",
-  distributionChannelSlugs: "Distribution channels",
-};
+function errorLabels(): Record<string, string> {
+  return {
+    "card.name": m.contribute_field_card_name(),
+    "card.types": m.contribute_field_types(),
+    "card.superTypes": m.contribute_field_supertypes(),
+    "card.domains": m.contribute_field_domains(),
+    "card.might": m.contribute_field_might(),
+    "card.energy": m.contribute_field_energy(),
+    "card.power": m.contribute_field_power(),
+    "card.mightBonus": m.contribute_field_might_bonus(),
+    "card.tags": m.contribute_field_tags(),
+    slug: m.contribute_field_card_name(),
+    publicCode: m.contribute_field_code(),
+    setId: m.contribute_field_set(),
+    setName: m.contribute_field_set(),
+    rarity: m.contribute_field_rarity(),
+    artVariant: m.contribute_field_art_variant(),
+    finish: m.contribute_field_finish(),
+    size: m.contribute_field_size(),
+    artist: m.contribute_field_artist(),
+    printedName: m.contribute_field_printed_name(),
+    printedRulesText: m.contribute_field_rules_text(),
+    printedEffectText: m.contribute_field_effect_text(),
+    printedYear: m.contribute_field_year(),
+    flavorText: m.contribute_field_flavor_text(),
+    imageUrl: m.contribute_field_image_url(),
+    language: m.contribute_field_language(),
+    markerSlugs: m.contribute_field_markers(),
+    distributionChannelSlugs: m.contribute_field_channels(),
+  };
+}
 
 const FIELD_BY_ERROR_KEY: Record<string, PlaceholderField> = {
   "card.name": "card.name",
@@ -56,13 +59,16 @@ const FIELD_BY_ERROR_KEY: Record<string, PlaceholderField> = {
 
 /** Reads a validation path like `printings[2].publicCode` as something a contributor can act on. */
 export function errorLabel(path: string): string {
+  const labels = errorLabels();
   const match = PRINTING_ERROR_PATH.exec(path);
   if (!match?.groups) {
-    return ERROR_LABELS[path] ?? path;
+    return labels[path] ?? path;
   }
   const { index, key } = match.groups;
-  const number = (Number(index) + 1).toString();
-  return `Printing ${number}: ${ERROR_LABELS[key ?? ""] ?? key ?? ""}`;
+  return m.contribute_error_printing_field({
+    number: Number(index) + 1,
+    label: labels[key ?? ""] ?? key ?? "",
+  });
 }
 
 /** The preview region a validation path points at, when the card shows that field at all. */

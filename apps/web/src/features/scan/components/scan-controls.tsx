@@ -6,6 +6,7 @@ import { ScanLoading, ScanStartHint, ScanTips } from "@/features/scan/components
 import type { AimHint } from "@/features/scan/lib/scan-aim-hint";
 import type { EngineProgress } from "@/features/scan/lib/scan-load-progress";
 import { OVER_VIDEO } from "@/features/scan/lib/scan-styles";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanControlsProps {
   hint: AimHint | null;
@@ -53,16 +54,18 @@ export function ScanControls({
       )}
       {suggestionLabel !== null && (
         <div className="flex max-w-[90%] items-center gap-1.5 rounded-full bg-black/70 py-1 pr-1 pl-3 text-sm text-white">
-          <span className="truncate">Is it {suggestionLabel.split(" (")[0]}?</span>
+          <span className="truncate">
+            {m.scan_controls_suggestion_question({ name: suggestionLabel.split(" (")[0] ?? "" })}
+          </span>
           <Button size="sm" onClick={onSuggestionAdd}>
-            Add
+            {m.scan_controls_suggestion_add()}
           </Button>
           <Button
             size="icon-sm"
             variant="ghost"
             className="text-white hover:bg-white/20 hover:text-white"
             onClick={onSuggestionDismiss}
-            aria-label="Dismiss suggestion"
+            aria-label={m.scan_controls_suggestion_dismiss()}
           >
             <XIcon className="size-4" />
           </Button>
@@ -81,7 +84,7 @@ export function ScanControls({
       {!active && shutter && (
         <ScanShutter
           icon={<CameraIcon />}
-          label="Start camera"
+          label={m.scan_controls_start_camera()}
           disabled={!ready || cameraAvailable !== true}
           onClick={onStart}
         />
@@ -89,13 +92,13 @@ export function ScanControls({
       {!active && immersive && !shutter && (
         <Button size="lg" disabled={!ready || cameraAvailable !== true} onClick={onStart}>
           <CameraIcon />
-          Start camera
+          {m.scan_controls_start_camera()}
         </Button>
       )}
       {active && shutter && (
         <ScanShutter
           icon={<ScanSearchIcon />}
-          label={captureMode ? "Scan card" : "Identify now"}
+          label={captureMode ? m.scan_controls_scan_card() : m.scan_controls_identify_now()}
           onClick={captureMode ? onCapture : onIdentifyNow}
         />
       )}
@@ -104,17 +107,17 @@ export function ScanControls({
           {captureMode ? (
             <Button size="lg" onClick={onCapture}>
               <CameraIcon />
-              Scan card
+              {m.scan_controls_scan_card()}
             </Button>
           ) : (
             <Button size="lg" onClick={onIdentifyNow}>
               <ScanSearchIcon />
-              Identify now
+              {m.scan_controls_identify_now()}
             </Button>
           )}
           <Button variant="ghost" onClick={onStop} className={OVER_VIDEO}>
             <CameraOffIcon />
-            Stop
+            {m.scan_controls_stop()}
           </Button>
         </div>
       )}

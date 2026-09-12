@@ -3,6 +3,8 @@
  * change when the guide is not producing locks.
  */
 
+import { m } from "@/paraglide/messages.js";
+
 interface AimPoint {
   x: number;
   y: number;
@@ -23,16 +25,45 @@ export interface AimHint {
   message: string;
 }
 
-export const AIM_HINT_MESSAGES: Record<AimHintKind, string> = {
-  settling: "Hold it there",
-  "no-card": "Place a card in the frame",
-  "too-far": "Move closer",
-  "too-close": "Move back a bit",
-  blurry: "Hold still, it's blurry",
-  checking: "Hold steady, checking",
-  glare: "Tilt the card to cut glare",
-  almost: "Almost, hold steady",
-};
+export const AIM_HINT_KINDS: readonly AimHintKind[] = [
+  "settling",
+  "no-card",
+  "too-far",
+  "too-close",
+  "blurry",
+  "checking",
+  "glare",
+  "almost",
+];
+
+export function aimHintMessage(kind: AimHintKind): string {
+  switch (kind) {
+    case "settling": {
+      return m.scan_aim_settling();
+    }
+    case "no-card": {
+      return m.scan_aim_no_card();
+    }
+    case "too-far": {
+      return m.scan_aim_too_far();
+    }
+    case "too-close": {
+      return m.scan_aim_too_close();
+    }
+    case "blurry": {
+      return m.scan_aim_blurry();
+    }
+    case "checking": {
+      return m.scan_aim_checking();
+    }
+    case "glare": {
+      return m.scan_aim_glare();
+    }
+    case "almost": {
+      return m.scan_aim_almost();
+    }
+  }
+}
 
 /** Below `GUIDE_MIN_IOU` (0.3, packages/shared/src/scan/session.ts) the pipeline falls back to the guide quad; 0.45 coaches before that cliff. */
 const MIN_AREA_FRACTION = 0.45;
@@ -125,7 +156,7 @@ export function deriveAimHint(input: AimHintInput): AimHint | null {
 }
 
 function hint(kind: AimHintKind): AimHint {
-  return { kind, message: AIM_HINT_MESSAGES[kind] };
+  return { kind, message: aimHintMessage(kind) };
 }
 
 export interface AimHintSmootherOptions {

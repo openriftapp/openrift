@@ -104,8 +104,8 @@ export function SubmissionResolutionDialog({
             <SubmissionMessageFields
               idPrefix="submission"
               reasonOrder={REASON_ORDER}
-              reasonLabels={submissionReasonLabels}
-              reasonSentences={submissionReasonSentences}
+              reasonLabels={submissionReasonLabels()}
+              reasonSentences={submissionReasonSentences()}
               reason={effectiveReason}
               note={effectiveNote}
               onReasonChange={(next) => {

@@ -5,6 +5,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import { z } from "zod";
 
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
+import { m } from "@/paraglide/messages.js";
 
 const HASH_PARAM = "picks";
 
@@ -51,17 +52,19 @@ export function picksToResolveRows(payload: CardmarketPicksPayload) {
   }));
 }
 
-const REASON_TEXT: Record<
-  NonNullable<CardmarketPicksResolution["rows"][number]["reason"]>,
-  string
-> = {
-  "unknown-condition": "Cardmarket article has no readable condition",
-  "language-not-printed": "Riftbound is not printed in this language",
-  "unknown-product": "OpenRift does not know this Cardmarket product",
-  "unmapped-product": "This Cardmarket product is not linked to a printing yet",
-  "no-printing-in-language": "No printing of this card exists in this language",
-  "ambiguous-printing": "Several printings sit behind this product",
-};
+type PickReason = NonNullable<CardmarketPicksResolution["rows"][number]["reason"]>;
+
+function reasonText(reason: PickReason): string {
+  const texts: Record<PickReason, string> = {
+    "unknown-condition": m.extension_picks_reason_unknown_condition(),
+    "language-not-printed": m.extension_picks_reason_language_not_printed(),
+    "unknown-product": m.extension_picks_reason_unknown_product(),
+    "unmapped-product": m.extension_picks_reason_unmapped_product(),
+    "no-printing-in-language": m.extension_picks_reason_no_printing_in_language(),
+    "ambiguous-printing": m.extension_picks_reason_ambiguous_printing(),
+  };
+  return texts[reason];
+}
 
 function rawFields(
   pick: CardmarketPickInput,
@@ -69,15 +72,16 @@ function rawFields(
   row: CardmarketPicksResolution["rows"][number] | undefined,
 ): Record<string, string> {
   const fields: Record<string, string> = {
-    Seller: seller,
-    Product: pick.productName,
-    Language: pick.languageLabel ?? "unknown",
+    [m.extension_picks_field_seller()]: seller,
+    [m.extension_picks_field_product()]: pick.productName,
+    [m.extension_picks_field_language()]:
+      pick.languageLabel ?? m.extension_picks_language_unknown(),
   };
   if (pick.finish === "foil") {
-    fields.Finish = "Foil";
+    fields[m.extension_picks_field_finish()] = m.extension_picks_finish_foil();
   }
   if (row?.reason) {
-    fields.Problem = REASON_TEXT[row.reason];
+    fields[m.extension_picks_field_problem()] = reasonText(row.reason);
   }
   return fields;
 }

@@ -9,12 +9,13 @@ import {
 } from "@/components/layout/page-top-bar";
 import type { ScanSettingsProps } from "@/features/scan/components/scan-settings-menu";
 import { ScanSettingsMenu } from "@/features/scan/components/scan-settings-menu";
+import { m } from "@/paraglide/messages.js";
 
 export function ScanTopBar({ settings }: { settings: ScanSettingsProps }) {
   return (
     <PageTopBarSticky width="capped">
       <PageTopBar>
-        <PageTopBarTitle>Scan cards</PageTopBarTitle>
+        <PageTopBarTitle>{m.scan_top_bar_title()}</PageTopBarTitle>
         <PageTopBarActions>
           <ScanSettingsMenu
             {...settings}
@@ -22,7 +23,7 @@ export function ScanTopBar({ settings }: { settings: ScanSettingsProps }) {
             triggerContent={
               <>
                 <SlidersHorizontalIcon className="size-4" />
-                Settings
+                {m.scan_top_bar_settings()}
               </>
             }
           />

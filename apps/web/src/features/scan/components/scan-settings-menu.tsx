@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { m } from "@/paraglide/messages.js";
 
 interface LanguageItem {
   value: string;
@@ -52,7 +53,10 @@ export function ScanSettingsMenu({
     <Popover>
       <PopoverTrigger render={trigger}>{triggerContent}</PopoverTrigger>
       <PopoverContent align="end" className="w-88 max-w-[calc(100vw-1.5rem)] gap-4 p-4">
-        <SettingsRow label="Card language" description="Used to pick the printing">
+        <SettingsRow
+          label={m.scan_settings_language_label()}
+          description={m.scan_settings_language_description()}
+        >
           <Select
             items={languageItems}
             value={language}
@@ -62,7 +66,7 @@ export function ScanSettingsMenu({
               }
             }}
           >
-            <SelectTrigger aria-label="Card language" className="w-36">
+            <SelectTrigger aria-label={m.scan_settings_language_label()} className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -76,30 +80,33 @@ export function ScanSettingsMenu({
         </SettingsRow>
 
         <SettingsRow
-          label="Count every copy"
-          description="Keeps counting while cards are dealt past the camera. Off: each card once."
+          label={m.scan_settings_count_every_copy_label()}
+          description={m.scan_settings_count_every_copy_description()}
         >
           <Switch
-            aria-label="Count every copy"
+            aria-label={m.scan_settings_count_every_copy_label()}
             checked={autoScan}
             onCheckedChange={onAutoScanChange}
           />
         </SettingsRow>
 
-        <SettingsRow label="Sounds" description="A tick when a card is recognised">
+        <SettingsRow
+          label={m.scan_settings_sounds_label()}
+          description={m.scan_settings_sounds_description()}
+        >
           <Switch
-            aria-label="Sounds"
+            aria-label={m.scan_settings_sounds_label()}
             checked={!muted}
             onCheckedChange={(checked: boolean) => onMutedChange(!checked)}
           />
         </SettingsRow>
 
         <SettingsRow
-          label="Tap to scan"
-          description="For slow devices: recognise only when you tap"
+          label={m.scan_settings_tap_label()}
+          description={m.scan_settings_tap_description()}
         >
           <Switch
-            aria-label="Tap to scan"
+            aria-label={m.scan_settings_tap_label()}
             checked={deviceTooSlow || tapToScan}
             disabled={deviceTooSlow}
             onCheckedChange={onTapToScanChange}

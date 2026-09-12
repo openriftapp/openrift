@@ -6,6 +6,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { IdentifyCandidate } from "@/features/scan/lib/scan-identify";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { m } from "@/paraglide/messages.js";
 
 interface ScanIdentifySheetProps {
   open: boolean;
@@ -80,21 +81,19 @@ export function ScanIdentifySheet({
         {pending && (
           <p className="text-muted-foreground flex items-center gap-2">
             <Loader2Icon className="size-4 animate-spin" />
-            Recognising…
+            {m.scan_identify_recognising()}
           </p>
         )}
         {!pending && candidates.length === 0 && (
-          <p className="text-muted-foreground">
-            Nothing in that frame looked like a card. Fill the guide with it and try again.
-          </p>
+          <p className="text-muted-foreground">{m.scan_identify_empty()}</p>
         )}
         {!pending && candidates.length > 0 && list}
       </div>
     </div>
   );
 
-  const title = "Which card is this?";
-  const description = pending ? "Working out what the camera just saw." : null;
+  const title = m.scan_identify_title();
+  const description = pending ? m.scan_identify_pending_description() : null;
 
   if (isMobile) {
     return (

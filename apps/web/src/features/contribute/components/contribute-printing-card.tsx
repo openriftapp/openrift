@@ -27,6 +27,7 @@ import { isBlankPrinting } from "@/features/contribute/lib/contribute-printing-l
 import { resolveSetFromPublicCode } from "@/features/contribute/lib/contribute-set-code";
 import type { EnumLabels } from "@/lib/enum-labels";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 interface PrintingCardProps {
   index: number;
@@ -122,7 +123,11 @@ export function PrintingCard({
               <PrintingVariantLabel
                 printing={variant}
                 siblings={siblings}
-                fallback={isBlankPrinting(printing) ? "New printing" : "Standard"}
+                fallback={
+                  isBlankPrinting(printing)
+                    ? m.contribute_printing_new()
+                    : m.contribute_printing_standard()
+                }
                 className="min-w-0"
               />
             )}
@@ -134,7 +139,7 @@ export function PrintingCard({
             {hasError && (
               <>
                 <TriangleAlertIcon className="text-destructive size-4 shrink-0" aria-hidden />
-                <span className="sr-only">has a problem</span>
+                <span className="sr-only">{m.contribute_printing_has_problem()}</span>
               </>
             )}
           </ExpandToggle>
@@ -143,13 +148,13 @@ export function PrintingCard({
           {onCopy && (
             <Button type="button" variant="ghost" size="sm" onClick={onCopy}>
               <CopyIcon className="size-4" />
-              Copy
+              {m.contribute_printing_copy()}
             </Button>
           )}
           {onRemove && (
             <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
               <Trash2Icon className="size-4" />
-              Remove
+              {m.contribute_printing_remove()}
             </Button>
           )}
         </CardAction>
@@ -159,7 +164,7 @@ export function PrintingCard({
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldRow
-                label="Code"
+                label={m.contribute_field_code()}
                 required
                 field="printing.publicCode"
                 error={errorAt(`printings[${index.toString()}].publicCode`)}
@@ -171,8 +176,8 @@ export function PrintingCard({
                 />
               </FieldRow>
               <FieldRow
-                label="Image URL"
-                hint="Direct link to the best image you can find. A clear scan works too."
+                label={m.contribute_field_image_url()}
+                hint={m.contribute_hint_image_url()}
                 error={errorAt(`printings[${index.toString()}].imageUrl`)}
               >
                 <ImageUrlInput
@@ -184,20 +189,21 @@ export function PrintingCard({
 
             {codeEntered &&
               (resolvedSet ? (
-                <p className="text-muted-foreground text-sm">Set: {resolvedSet.name}</p>
+                <p className="text-muted-foreground text-sm">
+                  {m.contribute_printing_set_resolved({ name: resolvedSet.name })}
+                </p>
               ) : (
                 <div className="flex flex-col gap-2">
                   <p className="text-muted-foreground text-sm">
-                    That code starts with a set we don&apos;t have yet. Pick the right one if it is
-                    a typo, otherwise leave it and we&apos;ll add the set.
+                    {m.contribute_printing_set_unknown()}
                   </p>
-                  <FieldRow label="Set">
+                  <FieldRow label={m.contribute_field_set()}>
                     <SingleSelect
                       value={printing.setId}
                       onChange={handleSetChange}
                       options={sets.map((s) => s.slug)}
                       labels={Object.fromEntries(sets.map((s) => [s.slug, s.name]))}
-                      placeholder="Pick a set"
+                      placeholder={m.contribute_placeholder_set()}
                     />
                   </FieldRow>
                 </div>
@@ -211,16 +217,13 @@ export function PrintingCard({
                   expanded={detailsOpen}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Printing details
+                  {m.contribute_printing_details()}
                 </ExpandToggle>
               }
             />
             <CollapsibleContent className="mt-6 flex flex-col gap-8">
               <div className="flex flex-col gap-4">
-                <FieldRow
-                  label="Name"
-                  hint="Defaults to the card name. Edit only if the printed name differs (e.g. for non-English versions)."
-                >
+                <FieldRow label={m.contribute_field_name()} hint={m.contribute_hint_printed_name()}>
                   <Input
                     value={printing.printedName}
                     onChange={(e) => onChange("printedName", e.target.value)}
@@ -228,7 +231,7 @@ export function PrintingCard({
                 </FieldRow>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <FieldRow
-                    label="Language"
+                    label={m.contribute_field_language()}
                     error={errorAt(`printings[${index.toString()}].language`)}
                   >
                     <SingleSelect
@@ -238,39 +241,39 @@ export function PrintingCard({
                       labels={Object.fromEntries(
                         languages.map((language) => [language.code, language.name]),
                       )}
-                      placeholder="Pick a language"
+                      placeholder={m.contribute_placeholder_language()}
                     />
                   </FieldRow>
-                  <FieldRow label="Rarity" field="printing.rarity">
+                  <FieldRow label={m.contribute_field_rarity()} field="printing.rarity">
                     <SingleSelect
                       value={printing.rarity}
                       onChange={(v) => onChange("rarity", v)}
                       options={orders.rarities}
                       labels={labels.rarities}
-                      placeholder="Pick a rarity"
+                      placeholder={m.contribute_placeholder_rarity()}
                     />
                   </FieldRow>
-                  <FieldRow label="Finish">
+                  <FieldRow label={m.contribute_field_finish()}>
                     <SingleSelect
                       value={printing.finish}
                       onChange={(v) => onChange("finish", v)}
                       options={orders.finishes}
                       labels={labels.finishes}
-                      placeholder="Pick a finish"
+                      placeholder={m.contribute_placeholder_finish()}
                     />
                   </FieldRow>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <FieldRow label="Art variant">
+                  <FieldRow label={m.contribute_field_art_variant()}>
                     <SingleSelect
                       value={printing.artVariant}
                       onChange={(v) => onChange("artVariant", v)}
                       options={orders.artVariants}
                       labels={labels.artVariants}
-                      placeholder="Pick a variant"
+                      placeholder={m.contribute_placeholder_art_variant()}
                     />
                   </FieldRow>
-                  <FieldRow label="Artist" field="printing.artist">
+                  <FieldRow label={m.contribute_field_artist()} field="printing.artist">
                     <Input
                       value={printing.artist ?? ""}
                       onChange={(e) => onChange("artist", e.target.value || null)}
@@ -278,14 +281,14 @@ export function PrintingCard({
                   </FieldRow>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <FieldRow label="Signed">
+                  <FieldRow label={m.contribute_field_signed()}>
                     <Switch
                       checked={printing.isSigned}
                       onCheckedChange={(checked) => onChange("isSigned", checked)}
                       className="mt-1"
                     />
                   </FieldRow>
-                  <FieldRow label="Overnumbered">
+                  <FieldRow label={m.contribute_field_overnumbered()}>
                     <Switch
                       checked={printing.isOvernumbered}
                       onCheckedChange={(checked) => onChange("isOvernumbered", checked)}
@@ -296,19 +299,19 @@ export function PrintingCard({
               </div>
               <div className="flex flex-col gap-4">
                 <CardTextInput
-                  label="Rules text"
+                  label={m.contribute_field_rules_text()}
                   field="printing.printedRulesText"
                   value={printing.printedRulesText ?? ""}
                   onChange={(v) => onChange("printedRulesText", v || null)}
                 />
                 <CardTextInput
-                  label="Effect text"
+                  label={m.contribute_field_effect_text()}
                   field="printing.printedEffectText"
                   value={printing.printedEffectText ?? ""}
                   onChange={(v) => onChange("printedEffectText", v || null)}
                 />
                 <CardTextInput
-                  label="Flavor text"
+                  label={m.contribute_field_flavor_text()}
                   field="printing.flavorText"
                   variant="flavor"
                   value={printing.flavorText ?? ""}
@@ -323,23 +326,23 @@ export function PrintingCard({
                       expanded={rareOpen}
                       className="text-muted-foreground hover:text-foreground"
                     >
-                      Rarely needed
+                      {m.contribute_printing_rarely_needed()}
                     </ExpandToggle>
                   }
                 />
                 <CollapsibleContent className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <FieldRow label="Size">
+                  <FieldRow label={m.contribute_field_size()}>
                     <SingleSelect
                       value={printing.size}
                       onChange={(v) => onChange("size", v ?? WellKnown.cardSize.STANDARD)}
                       options={orders.cardSizes}
                       labels={labels.cardSizes}
-                      placeholder="Standard"
+                      placeholder={m.contribute_placeholder_size()}
                     />
                   </FieldRow>
                   <FieldRow
-                    label="Year"
-                    hint="Year stamped on the physical card (bottom right)."
+                    label={m.contribute_field_year()}
+                    hint={m.contribute_hint_year()}
                     error={errorAt(`printings[${index.toString()}].printedYear`)}
                   >
                     <NumberInput
@@ -348,25 +351,25 @@ export function PrintingCard({
                     />
                   </FieldRow>
                   <FieldRow
-                    label="Markers (e.g. Promo)"
-                    hint="Visual add-ons stamped on the card: a promo stamp, a Skirmish circle, a launch-exclusive mark, and the like."
+                    label={m.contribute_field_markers_labelled()}
+                    hint={m.contribute_hint_markers()}
                   >
                     <MultiSelectDropdown
                       value={printing.markerSlugs}
                       onChange={(v) => onChange("markerSlugs", v)}
                       options={markers}
-                      placeholder="None"
+                      placeholder={m.contribute_none()}
                     />
                   </FieldRow>
                   <FieldRow
-                    label="Distribution channels"
-                    hint="Where this printing was handed out, e.g. a specific event or product."
+                    label={m.contribute_field_channels()}
+                    hint={m.contribute_hint_channels()}
                   >
                     <MultiSelectDropdown
                       value={printing.distributionChannelSlugs}
                       onChange={(v) => onChange("distributionChannelSlugs", v)}
                       options={channels}
-                      placeholder="None"
+                      placeholder={m.contribute_none()}
                     />
                   </FieldRow>
                 </CollapsibleContent>

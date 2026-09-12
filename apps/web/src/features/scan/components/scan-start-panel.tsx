@@ -7,19 +7,19 @@ import type { EngineProgress } from "@/features/scan/lib/scan-load-progress";
 import { scanLoadProgress } from "@/features/scan/lib/scan-load-progress";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 
 const BRACKET_SIZE = "18%";
 
-const TIPS = [
-  { icon: SunIcon, label: "Good light" },
-  { icon: ScanSquareIcon, label: "Fill the frame" },
-  { icon: LayersIcon, label: "One card at a time" },
-];
-
 export function ScanTips({ className }: { className?: string }) {
+  const tips = [
+    { icon: SunIcon, label: m.scan_tips_light() },
+    { icon: ScanSquareIcon, label: m.scan_tips_fill() },
+    { icon: LayersIcon, label: m.scan_tips_one_card() },
+  ];
   return (
     <ul className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 text-xs", className)}>
-      {TIPS.map((tip) => (
+      {tips.map((tip) => (
         <li key={tip.label} className="flex items-center gap-1.5">
           <tip.icon className="size-3.5" />
           {tip.label}
@@ -32,9 +32,8 @@ export function ScanTips({ className }: { className?: string }) {
 export function ScanStartHint({ className }: { className?: string }) {
   return (
     <p className={cn("max-w-80 text-white/70", className)}>
-      Hold a card in the frame. Recognised cards appear in the list{" "}
-      <span className="md:hidden">below</span>
-      <span className="hidden md:inline">on the right</span>.
+      <span className="md:hidden">{m.scan_start_hint_below()}</span>
+      <span className="hidden md:inline">{m.scan_start_hint_right()}</span>
     </p>
   );
 }
@@ -48,10 +47,10 @@ export function ScanLoading({ bankLoaded, engineProgress }: ScanLoadingProps) {
   const { percent, phase } = scanLoadProgress(bankLoaded, engineProgress);
   return (
     <div className="flex w-64 max-w-full flex-col items-center gap-3 text-center">
-      <p>Getting the scanner ready</p>
-      <Progress value={percent} aria-label="Scanner loading progress" className="w-full" />
+      <p>{m.scan_loading_title()}</p>
+      <Progress value={percent} aria-label={m.scan_loading_progress_label()} className="w-full" />
       <p className="text-sm text-white/60">
-        {phase === "downloading" ? "Downloading the recognition model…" : "Starting up…"}
+        {phase === "downloading" ? m.scan_loading_downloading() : m.scan_loading_starting()}
       </p>
     </div>
   );
@@ -93,7 +92,7 @@ export function ScanStartPanel({
               <ScanStartHint />
               <Button onClick={onStart} disabled={cameraAvailable !== true}>
                 <CameraIcon />
-                Start camera
+                {m.scan_controls_start_camera()}
               </Button>
             </>
           ) : (
@@ -106,12 +105,10 @@ export function ScanStartPanel({
           not carry the scanning session to the phone. */}
       {showPhoneHint && (
         <div className="absolute bottom-3 left-3 flex max-w-64 items-center gap-3 rounded-lg bg-white/5 p-2 text-left">
-          <QrCode value={`${getSiteUrl()}/scan`} size={64} label="QR code for the scanning page" />
+          <QrCode value={`${getSiteUrl()}/scan`} size={64} label={m.scan_phone_qr_label()} />
           <span className="min-w-0">
-            <span className="block font-medium">Better on a phone</span>
-            <span className="block text-xs text-white/60">
-              Scan the code to open this page there.
-            </span>
+            <span className="block font-medium">{m.scan_phone_title()}</span>
+            <span className="block text-xs text-white/60">{m.scan_phone_description()}</span>
           </span>
         </div>
       )}

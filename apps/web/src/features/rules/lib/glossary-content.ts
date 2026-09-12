@@ -1,6 +1,7 @@
 import type { SetReleases } from "@openrift/shared/set-release";
 
 import type { KeywordEntry } from "@/features/rules/lib/glossary";
+import { m } from "@/paraglide/messages.js";
 
 export interface Section {
   id: string;
@@ -13,38 +14,40 @@ interface Group {
   sections: Section[];
 }
 
-export const GROUPS: Group[] = [
-  {
-    id: "game-vocabulary",
-    title: "Game vocabulary",
-    sections: [
-      { id: "domains", title: "Domains" },
-      { id: "card-types", title: "Card types" },
-      { id: "keywords", title: "Keywords" },
-      { id: "symbols", title: "In-text symbols" },
-    ],
-  },
-  {
-    id: "printing-variants",
-    title: "Printing variants",
-    sections: [
-      { id: "rarities", title: "Rarities" },
-      { id: "booster-packs", title: "Booster pack contents" },
-      { id: "art-variants", title: "Art variants" },
-      { id: "finishes", title: "Finishes" },
-      { id: "markers", title: "Markers" },
-      { id: "artist-and-signature", title: "Artist and signature" },
-    ],
-  },
-  {
-    id: "sets-and-numbering",
-    title: "Sets and numbering",
-    sections: [
-      { id: "sets", title: "Sets" },
-      { id: "numbering", title: "Card numbering" },
-    ],
-  },
-];
+export function glossaryGroups(): Group[] {
+  return [
+    {
+      id: "game-vocabulary",
+      title: m.glossary_group_vocabulary(),
+      sections: [
+        { id: "domains", title: m.glossary_section_domains() },
+        { id: "card-types", title: m.glossary_section_card_types() },
+        { id: "keywords", title: m.glossary_section_keywords() },
+        { id: "symbols", title: m.glossary_section_symbols() },
+      ],
+    },
+    {
+      id: "printing-variants",
+      title: m.glossary_group_printing_variants(),
+      sections: [
+        { id: "rarities", title: m.glossary_section_rarities() },
+        { id: "booster-packs", title: m.glossary_section_booster_packs() },
+        { id: "art-variants", title: m.glossary_section_art_variants() },
+        { id: "finishes", title: m.glossary_section_finishes() },
+        { id: "markers", title: m.glossary_section_markers() },
+        { id: "artist-and-signature", title: m.glossary_section_artist_signature() },
+      ],
+    },
+    {
+      id: "sets-and-numbering",
+      title: m.glossary_group_sets_numbering(),
+      sections: [
+        { id: "sets", title: m.glossary_section_sets() },
+        { id: "numbering", title: m.glossary_section_numbering() },
+      ],
+    },
+  ];
+}
 
 export const DOMAIN_RULES: Record<string, string> = {
   fury: "134.2.a",
@@ -71,74 +74,84 @@ interface SupertypeEntry {
   ruleNumber: string;
 }
 
-export const SUPERTYPES: SupertypeEntry[] = [
-  {
-    slug: "champion",
-    label: "Champion",
-    description: "Applies exclusively to Units. Determines who can be your Chosen Champion.",
-    ruleNumber: "133.7.a",
-  },
-  {
-    slug: "signature",
-    label: "Signature",
-    description: "Can apply to any card type. Limited to 3 per deck, tied to your Champion's tag.",
-    ruleNumber: "133.7.b",
-  },
-  {
-    slug: "token",
-    label: "Token",
-    description: "Temporary game objects created by effects, not part of a deck.",
-    ruleNumber: "133.7.c",
-  },
-];
+export function supertypeEntries(): SupertypeEntry[] {
+  return [
+    {
+      slug: "champion",
+      label: m.glossary_supertype_champion_label(),
+      description: m.glossary_supertype_champion_description(),
+      ruleNumber: "133.7.a",
+    },
+    {
+      slug: "signature",
+      label: m.glossary_supertype_signature_label(),
+      description: m.glossary_supertype_signature_description(),
+      ruleNumber: "133.7.b",
+    },
+    {
+      slug: "token",
+      label: m.glossary_supertype_token_label(),
+      description: m.glossary_supertype_token_description(),
+      ruleNumber: "133.7.c",
+    },
+  ];
+}
 
-export const ART_VARIANT_DESCRIPTIONS: Record<string, string> = {
-  normal: "Standard art for the printing.",
-  altart:
-    "An additional artwork using the same card name and rarity. Distinguished by a lowercase letter suffix on the card number (e.g. 120a).",
-  overnumbered:
-    "Reprinted art with a card number that exceeds the printed set total, typically a special variant slotted into a later set.",
-  ultimate:
-    "A premium full-art treatment. The card itself usually keeps its original rarity (e.g. Showcase), since Ultimate describes the artwork, not the rarity.",
-};
+export function artVariantDescription(slug: string): string | undefined {
+  const descriptions: Record<string, () => string> = {
+    normal: m.glossary_art_variant_normal,
+    altart: m.glossary_art_variant_altart,
+    overnumbered: m.glossary_art_variant_overnumbered,
+    ultimate: m.glossary_art_variant_ultimate,
+  };
+  return descriptions[slug]?.();
+}
 
-export const FINISH_DESCRIPTIONS: Record<string, string> = {
-  normal: "Standard cardstock with no special treatment.",
-  foil: "Glossy foil finish across the card face.",
-  metal: "Premium metal-stamped collectible printing.",
-  "metal-deluxe": "Higher-tier metal printing with extra finishing.",
-};
+export function finishDescription(slug: string): string | undefined {
+  const descriptions: Record<string, () => string> = {
+    normal: m.glossary_finish_normal,
+    foil: m.glossary_finish_foil,
+    metal: m.glossary_finish_metal,
+    "metal-deluxe": m.glossary_finish_metal_deluxe,
+  };
+  return descriptions[slug]?.();
+}
 
 interface PackSlotEntry {
+  key: string;
   label: string;
   description: string;
 }
 
-export const PACK_SLOTS: PackSlotEntry[] = [
-  {
-    label: "7× Common",
-    description: "Standard Common-rarity cards.",
-  },
-  {
-    label: "3× Uncommon",
-    description: "Standard Uncommon-rarity cards.",
-  },
-  {
-    label: "2× Rare-or-better",
-    description:
-      "Each flex slot rolls Epic about 13.4% of the time and Rare otherwise, which works out to roughly 1 in 4 packs containing at least one Epic.",
-  },
-  {
-    label: "1× Foil",
-    description:
-      "Usually a Common (~70%) or Uncommon (~25%) foil, occasionally upgrading to a Rare (~4%) or Epic (~1%) foil. The whole slot can be replaced by a Showcase alt-art (~1 per 12 packs), an overnumbered Showcase (1 per 72 packs), a signed Showcase (1 per 720 packs), or an Ultimate (~0.1% of packs, where the pool has one).",
-  },
-  {
-    label: "1× Rune or Token",
-    description:
-      "Usually a basic Rune. Occasionally a foil Rune, sometimes a Token-supertype card (e.g. Sprite, Recruit), and very rarely an alt-art Rune.",
-  },
-];
+export function packSlots(): PackSlotEntry[] {
+  return [
+    {
+      key: "common",
+      label: m.glossary_pack_slot_common_label(),
+      description: m.glossary_pack_slot_common_description(),
+    },
+    {
+      key: "uncommon",
+      label: m.glossary_pack_slot_uncommon_label(),
+      description: m.glossary_pack_slot_uncommon_description(),
+    },
+    {
+      key: "rare-or-better",
+      label: m.glossary_pack_slot_rare_label(),
+      description: m.glossary_pack_slot_rare_description(),
+    },
+    {
+      key: "foil",
+      label: m.glossary_pack_slot_foil_label(),
+      description: m.glossary_pack_slot_foil_description(),
+    },
+    {
+      key: "rune-or-token",
+      label: m.glossary_pack_slot_rune_label(),
+      description: m.glossary_pack_slot_rune_description(),
+    },
+  ];
+}
 
 interface PrintingDetailEntry {
   key: string;
@@ -146,20 +159,20 @@ interface PrintingDetailEntry {
   description: string;
 }
 
-export const PRINTING_DETAILS: PrintingDetailEntry[] = [
-  {
-    key: "artist",
-    label: "Artist",
-    description:
-      "Illustrator credit printed on the card. Tracked per printing so reprints can credit the original artist.",
-  },
-  {
-    key: "signature",
-    label: "Signature",
-    description:
-      "A printing flag indicating the card carries the artist's signature, usually overlaid on a foil alt-art or Ultimate variant.",
-  },
-];
+export function printingDetails(): PrintingDetailEntry[] {
+  return [
+    {
+      key: "artist",
+      label: m.glossary_printing_detail_artist_label(),
+      description: m.glossary_printing_detail_artist_description(),
+    },
+    {
+      key: "signature",
+      label: m.glossary_printing_detail_signature_label(),
+      description: m.glossary_printing_detail_signature_description(),
+    },
+  ];
+}
 
 interface SymbolEntry {
   key: string;
@@ -168,83 +181,63 @@ interface SymbolEntry {
   icon?: string;
 }
 
-export const SYMBOLS: SymbolEntry[] = [
-  {
-    key: "might",
-    label: "Might",
-    summary: "A unit's combat power. Higher Might deals more damage and is harder to remove.",
-    icon: "/images/glyphs/might.svg",
-  },
-  {
-    key: "might-bonus",
-    label: "Might bonus",
-    summary:
-      "A boxed Might value on Gear, indicating how much Might the gear adds to its equipped unit.",
-  },
-  {
-    key: "exhaust",
-    label: "Exhaust",
-    summary:
-      "Turning a card, rune, or legend sideways to use it. Once exhausted, it can't be exhausted again until something readies it.",
-    icon: "/images/glyphs/exhaust.svg",
-  },
-  {
-    key: "recycle",
-    label: "Recycle",
-    summary:
-      "Place a card or rune from the board onto the bottom of its deck. Often used to pay Power costs.",
-  },
-  {
-    key: "power-activation",
-    label: "Power activation",
-    summary:
-      "Exhaust a rune of a specific domain to add its Power to your Rune Pool, then spend it to pay costs.",
-  },
-  {
-    key: "energy",
-    label: "Energy cost",
-    summary:
-      "Pay Energy by exhausting any rune, regardless of domain. Shown as a numeric cost on the card.",
-  },
-  {
-    key: "rune-rainbow",
-    label: "Power (any domain)",
-    summary:
-      "Marked [A]. A Power cost that can be paid with a rune of any domain. This is the wild Power symbol.",
-    icon: "/images/glyphs/rune-rainbow.svg",
-  },
-];
+export function glossarySymbols(): SymbolEntry[] {
+  return [
+    {
+      key: "might",
+      label: m.glossary_symbol_might_label(),
+      summary: m.glossary_symbol_might_summary(),
+      icon: "/images/glyphs/might.svg",
+    },
+    {
+      key: "might-bonus",
+      label: m.glossary_symbol_might_bonus_label(),
+      summary: m.glossary_symbol_might_bonus_summary(),
+    },
+    {
+      key: "exhaust",
+      label: m.glossary_symbol_exhaust_label(),
+      summary: m.glossary_symbol_exhaust_summary(),
+      icon: "/images/glyphs/exhaust.svg",
+    },
+    {
+      key: "recycle",
+      label: m.glossary_symbol_recycle_label(),
+      summary: m.glossary_symbol_recycle_summary(),
+    },
+    {
+      key: "power-activation",
+      label: m.glossary_symbol_power_activation_label(),
+      summary: m.glossary_symbol_power_activation_summary(),
+    },
+    {
+      key: "energy",
+      label: m.glossary_symbol_energy_label(),
+      summary: m.glossary_symbol_energy_summary(),
+    },
+    {
+      key: "rune-rainbow",
+      label: m.glossary_symbol_rune_rainbow_label(),
+      summary: m.glossary_symbol_rune_rainbow_summary(),
+      icon: "/images/glyphs/rune-rainbow.svg",
+    },
+  ];
+}
 
 interface NumberingPattern {
   pattern: string;
   summary: string;
 }
 
-export const NUMBERING_PATTERNS: NumberingPattern[] = [
-  {
-    pattern: "OGN-001",
-    summary: "Set code followed by the printed card number.",
-  },
-  {
-    pattern: "OGN-120a",
-    summary:
-      "A lowercase letter suffix marks an alt-art variant of the same base card. Distinct from the Showcase rarity, which is shown by the rarity glyph in the middle of the card.",
-  },
-  {
-    pattern: "OGN-224",
-    summary:
-      "A number above the set's printed total is an Overnumbered variant, usually a special reprint slotted into a later set.",
-  },
-  {
-    pattern: "SFD-T01",
-    summary:
-      "T prefix indicates a token printed for the set. T and R prefixes were introduced with Spiritforged. Origins used standard numbering for tokens and runes.",
-  },
-  {
-    pattern: "SFD-R01",
-    summary: "R prefix indicates a rune printed for the set (introduced in Spiritforged).",
-  },
-];
+export function numberingPatterns(): NumberingPattern[] {
+  return [
+    { pattern: "OGN-001", summary: m.glossary_numbering_base() },
+    { pattern: "OGN-120a", summary: m.glossary_numbering_altart() },
+    { pattern: "OGN-224", summary: m.glossary_numbering_overnumbered() },
+    { pattern: "SFD-T01", summary: m.glossary_numbering_token() },
+    { pattern: "SFD-R01", summary: m.glossary_numbering_rune() },
+  ];
+}
 
 export interface SetEntry {
   slug: string;

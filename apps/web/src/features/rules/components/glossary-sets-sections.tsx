@@ -4,8 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { RowList } from "@/components/ui/row-list";
 import { TextLink } from "@/components/ui/text-link";
 import type { SetEntry } from "@/features/rules/lib/glossary-content";
-import { NUMBERING_PATTERNS } from "@/features/rules/lib/glossary-content";
+import { numberingPatterns } from "@/features/rules/lib/glossary-content";
 import { matches } from "@/features/rules/lib/glossary-search";
+import { m } from "@/paraglide/messages.js";
 
 import { GlossarySectionHeading, GlossaryTermRow, GlossaryTermTile } from "./glossary-shared";
 
@@ -18,12 +19,11 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
   }
   return (
     <section>
-      <GlossarySectionHeading id="sets" title="Sets" />
+      <GlossarySectionHeading id="sets" title={m.glossary_section_sets()} />
       <p className="text-muted-foreground mt-2">
-        Sets are how Riftbound releases new cards. Each set has a three-letter code that prefixes
-        every card number in it, and is classified as either a main set (the regular release
-        cadence) or a supplemental set (smaller drops outside the main schedule). Browse the full
-        catalogue of any set on the <TextLink render={<Link to="/sets" />}>Sets page</TextLink>.
+        {m.glossary_sets_intro_before()}{" "}
+        <TextLink render={<Link to="/sets" />}>{m.glossary_sets_page_link()}</TextLink>
+        {m.glossary_sets_intro_after()}
       </p>
       <ul className="mt-4 grid gap-2 lg:grid-cols-2">
         {visible.map((set) => (
@@ -37,15 +37,21 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
               >
                 {set.name}
               </TextLink>
-              <span className="text-muted-foreground capitalize">{set.setType}</span>
+              <span className="text-muted-foreground">
+                {set.setType === "supplemental"
+                  ? m.glossary_set_type_supplemental()
+                  : m.glossary_set_type_main()}
+              </span>
               {!isReleasedAnywhere(set.releases) && (
                 <span className="bg-warning-soft text-warning rounded-md px-1.5 py-0.5 text-xs">
-                  Unreleased
+                  {m.glossary_set_unreleased()}
                 </span>
               )}
             </div>
             <p className="text-muted-foreground">
-              {set.cardCount} {set.cardCount === 1 ? "card" : "cards"}
+              {set.cardCount === 1
+                ? m.glossary_set_card_count_one({ count: set.cardCount })
+                : m.glossary_set_card_count_other({ count: set.cardCount })}
               {Object.keys(set.releases)
                 .toSorted()
                 .map((language) => ` · ${language} ${formatReleasePeriod(set.releases[language])}`)
@@ -59,17 +65,14 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
 }
 
 export function NumberingSection({ query }: { query: string }) {
-  const visible = NUMBERING_PATTERNS.filter((item) => matches(query, item.pattern, item.summary));
+  const visible = numberingPatterns().filter((item) => matches(query, item.pattern, item.summary));
   if (visible.length === 0) {
     return null;
   }
   return (
     <section>
-      <GlossarySectionHeading id="numbering" title="Card numbering" />
-      <p className="text-muted-foreground mt-2">
-        Every printing has a short code combining the three-letter set code with a card number, like
-        OGN-007.
-      </p>
+      <GlossarySectionHeading id="numbering" title={m.glossary_section_numbering()} />
+      <p className="text-muted-foreground mt-2">{m.glossary_numbering_intro()}</p>
       <RowList className="mt-4">
         {visible.map((item) => (
           <GlossaryTermRow

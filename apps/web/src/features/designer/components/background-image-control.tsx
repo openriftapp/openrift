@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { useImageUpload } from "@/features/admin/hooks/use-image-upload";
 import { CARD_MAX_ZOOM, CARD_MIN_ZOOM } from "@/features/designer/lib/card-designer";
 import { useCardDesignerStore } from "@/features/designer/stores/card-designer-store";
+import { m } from "@/paraglide/messages.js";
 
 export function BackgroundImageControl() {
   const dataUrl = useCardDesignerStore((state) => state.background.dataUrl);
@@ -31,7 +32,7 @@ export function BackgroundImageControl() {
         ref={inputRef}
         type="file"
         accept="image/*"
-        aria-label="Background image file"
+        aria-label={m.designer_background_file_aria()}
         className="sr-only"
         onChange={handleChange}
       />
@@ -42,15 +43,15 @@ export function BackgroundImageControl() {
         onClick={() => inputRef.current?.click()}
       >
         <ImageUpIcon className="size-4" />
-        {dataUrl ? "Replace background image" : "Upload background image"}
+        {dataUrl ? m.designer_background_replace() : m.designer_background_upload()}
       </Button>
       {error && <FieldError>{error}</FieldError>}
       {dataUrl && (
         <>
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Zoom</span>
+            <span className="text-sm font-medium">{m.designer_background_zoom()}</span>
             <Slider
-              aria-label="Background zoom"
+              aria-label={m.designer_background_zoom_aria()}
               min={CARD_MIN_ZOOM}
               max={CARD_MAX_ZOOM}
               step={0.01}
@@ -61,10 +62,10 @@ export function BackgroundImageControl() {
             />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-muted-foreground text-sm">Drag the card to reposition.</p>
+            <p className="text-muted-foreground text-sm">{m.designer_background_drag_hint()}</p>
             <Button type="button" variant="ghost" size="sm" onClick={clearImage}>
               <Trash2Icon className="size-4" />
-              Remove
+              {m.designer_background_remove()}
             </Button>
           </div>
         </>
