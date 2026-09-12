@@ -4,7 +4,7 @@ import type { PodScoring } from "../repositories/pod-tournaments-shared.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import { scoringOf } from "./pod-scoring.js";
 
-export interface BestFinish {
+interface BestFinish {
   rank: number;
   players: number;
 }

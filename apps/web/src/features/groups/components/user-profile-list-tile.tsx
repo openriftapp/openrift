@@ -6,7 +6,7 @@ import { CheckIcon, ChevronRightIcon, GlobeIcon, UsersIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge";
 import { CardLink } from "@/components/ui/card-link";
 import { UserProfilePreviewFan } from "@/features/groups/components/user-profile-preview-fan";
-import { listEntryCountLabel } from "@/features/lists/components/public-list-row";
+import { listEntryCountLabel } from "@/features/lists/lib/list-entry-count";
 
 function matchLabel(list: PublicUserBundleListResponse): string | null {
   if (list.matchCount === null || list.matchCount === 0) {

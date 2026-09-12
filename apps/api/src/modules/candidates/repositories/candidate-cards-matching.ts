@@ -3,7 +3,7 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 
-export interface ComparableCardValues {
+interface ComparableCardValues {
   name: string;
   types: string[];
   superTypes: string[];
@@ -21,7 +21,7 @@ export interface UncheckedCandidateCardWithLive {
   live: ComparableCardValues | null;
 }
 
-export interface ComparablePrintingValues {
+interface ComparablePrintingValues {
   shortCode: string;
   setId: string | null;
   rarity: string | null;
