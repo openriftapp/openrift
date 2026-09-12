@@ -61,9 +61,11 @@ export function scheduleReloadFlagClear(): void {
   }, RELOAD_FLAG_CLEAR_DELAY_MS);
 }
 
-function reloadOnce(reason: string): void {
+// Returns whether the reload was triggered; false means the guard blocked it
+// and the notifier was prompted instead.
+function reloadOnce(reason: string): boolean {
   if (globalThis.window === undefined) {
-    return;
+    return false;
   }
   try {
     if (sessionStorage.getItem(RELOAD_FLAG) === "1") {
@@ -71,17 +73,24 @@ function reloadOnce(reason: string): void {
         `[stale-bundle] ${reason} — auto-reload already attempted this session, prompting instead`,
       );
       staleNotifier(reason);
-      return;
+      return false;
     }
     sessionStorage.setItem(RELOAD_FLAG, "1");
   } catch {
     // sessionStorage unavailable (private mode, sandboxed iframe): use the
     // toast to avoid an unguarded reload loop.
     staleNotifier(reason);
-    return;
+    return false;
   }
   console.warn(`[stale-bundle] ${reason} — reloading to pick up new bundle`);
   globalThis.location.reload();
+  return true;
+}
+
+// An error thrown on a tab whose bundle predates the deployed server is a
+// deploy artifact, so the error boundary reloads through this instead.
+export function reloadIfNewVersionPending(): boolean {
+  return newVersionAvailable && reloadOnce("new version pending — reloading after a render error");
 }
 
 // Subscribes to `onResolved` (not an earlier navigation event) so the URL bar

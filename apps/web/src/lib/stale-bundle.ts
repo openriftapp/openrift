@@ -1,4 +1,9 @@
-import { API_FORMAT_HEADER, API_FORMAT_VERSION } from "@openrift/shared/contracts/api-format";
+import {
+  API_FORMAT_HEADER,
+  API_FORMAT_VERSION,
+  BUILD_ID_HEADER,
+  isBuildIdSafe,
+} from "@openrift/shared/contracts/api-format";
 import { toast } from "sonner";
 
 import { appendScanJournal, hasScanJournal } from "@/features/scan/lib/scan-journal";
@@ -64,13 +69,12 @@ export function initStaleBundleWatcher(): void {
   let confirmedCurrent = false;
   globalThis.fetch = async (input, init) => {
     const response = await originalFetch(input, init);
-    // Only trust X-Build-Id on responses no cache may replay; a cached
+    // Only trust the build id on responses no cache may replay; a cached
     // response's id reflects an old deploy and would false-trigger a reload.
-    const cacheControl = response.headers.get("Cache-Control");
-    const liveResponse = cacheControl === null || /\bno-store\b/iu.test(cacheControl);
-    const buildId = liveResponse ? response.headers.get("X-Build-Id") : null;
+    const liveResponse = isBuildIdSafe(response.headers.get("Cache-Control"));
+    const buildId = liveResponse ? response.headers.get(BUILD_ID_HEADER) : null;
     if (buildId && buildId !== COMMIT_HASH) {
-      announceNewVersion(`X-Build-Id mismatch (server=${buildId}, client=${COMMIT_HASH})`);
+      announceNewVersion(`${BUILD_ID_HEADER} mismatch (server=${buildId}, client=${COMMIT_HASH})`);
     } else if (buildId && !confirmedCurrent) {
       // Re-arm the reload guard once per load; deferred so a cache-served
       // mismatch moments later can still veto it (see scheduleReloadFlagClear).

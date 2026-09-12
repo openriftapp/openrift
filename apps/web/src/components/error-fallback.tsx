@@ -9,6 +9,7 @@ import {
   errorSubtexts,
   pick,
 } from "@/components/error-message";
+import { reloadIfNewVersionPending } from "@/lib/stale-bundle-reload";
 
 export function RouterErrorFallback({ error }: ErrorComponentProps) {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -17,6 +18,11 @@ export function RouterErrorFallback({ error }: ErrorComponentProps) {
     // hydration phase, and a second capture here would win Sentry's dedupe.
     Sentry.captureException(normalizedError);
     return <ErrorFallback error={normalizedError} />;
+  }
+  // A deploy while the tab is open breaks calls the old bundle makes; reload
+  // through it instead of showing the error page when a new version is pending.
+  if (reloadIfNewVersionPending()) {
+    return null;
   }
   return createPortal(<ErrorFallback error={normalizedError} />, document.body);
 }

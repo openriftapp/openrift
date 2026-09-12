@@ -4,6 +4,7 @@ import {
 } from "@sentry/tanstackstart-react";
 import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
 
+import { buildIdMiddleware } from "./middleware/build-id";
 import { otelRequestMiddleware } from "./middleware/otel-request";
 
 const csrfMiddleware = createCsrfMiddleware({
@@ -16,6 +17,11 @@ const csrfMiddleware = createCsrfMiddleware({
 // Order matters: Sentry first so its span wraps OTel's, CSRF last so
 // rejections are still observable in both.
 export const startInstance = createStart(() => ({
-  requestMiddleware: [sentryGlobalRequestMiddleware, otelRequestMiddleware, csrfMiddleware],
+  requestMiddleware: [
+    sentryGlobalRequestMiddleware,
+    otelRequestMiddleware,
+    buildIdMiddleware,
+    csrfMiddleware,
+  ],
   functionMiddleware: [sentryGlobalFunctionMiddleware],
 }));
