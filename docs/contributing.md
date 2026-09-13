@@ -218,10 +218,14 @@ The root `overrides` block is separate: each entry collapses two copies of a pac
 
 `apps/web/src/CHANGELOG.md` is shown to users in the "What's new" panel. Add an entry after `feat:` or `fix:` work. Skip it for chores, refactors, perf, CI, docs, admin-only features, and internal fixes users won't notice.
 
-Each date splits into `### Highlights` and `### Other`. The panel shows Highlights expanded and collapses Other behind a "N more changes" toggle, and the Discord webhook posts the same split.
+Each date splits into `### Highlights` and `### Other`. The panel shows Highlights expanded and collapses Other behind a "N more changes" toggle, and the Discord webhook posts the same split. A date may also open with a `### Milestone` block holding one entry: a feature big enough to headline the "Milestones" view of the page. Its entry carries a kebab-case lucide icon name before the bold title; the name must exist in `apps/web/src/features/marketing/lib/milestone-icons.tsx` (add it there when it is new), and an unknown name falls back to a sparkles icon. The newest milestone also shows as a site-wide banner for returning visitors, so write its sentence as a stand-alone announcement.
 
 ```plaintext
 ## YYYY-MM-DD
+
+### Milestone
+
+- feat(Collection): scan-line **Card Scanner** — Point your camera at a card and it goes on a list you add to a collection in one step.
 
 ### Highlights
 

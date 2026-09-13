@@ -9,7 +9,6 @@ const CONTENT_PATHS = [
   "/privacy-policy",
   "/support",
   "/rules",
-  "/roadmap",
   "/changelog",
 ] as const;
 
@@ -130,19 +129,10 @@ test.describe("/rules", () => {
 });
 
 test.describe("/roadmap", () => {
-  test("renders the page heading", async ({ page }) => {
+  test("redirects to the milestones view of the changelog", async ({ page }) => {
     await page.goto("/roadmap");
-    await expect(page.getByRole("heading", { name: "Roadmap", level: 1 })).toBeVisible();
-  });
-
-  test("sets document title and description meta", async ({ page }) => {
-    await page.goto("/roadmap");
-    await expect(page).toHaveTitle("Roadmap - OpenRift");
-    const description = page.locator('meta[name="description"]');
-    await expect(description).toHaveAttribute(
-      "content",
-      "Every feature OpenRift has shipped so far, and how to shape what comes next.",
-    );
+    await expect(page).toHaveURL(/\/changelog\?show=milestones$/u);
+    await expect(page.getByRole("heading", { name: /what's new/iu, level: 1 })).toBeVisible();
   });
 });
 
@@ -174,7 +164,7 @@ test.describe("/changelog", () => {
     const description = page.locator('meta[name="description"]');
     await expect(description).toHaveAttribute(
       "content",
-      "Recent updates and new features in OpenRift.",
+      "Every milestone and update OpenRift has shipped, and how to shape what comes next.",
     );
   });
 });

@@ -6,6 +6,7 @@ import { AppBackground } from "@/components/layout/app-background";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { usePreferencesSync } from "@/features/account/hooks/use-preferences-sync";
+import { MilestoneBanner } from "@/features/marketing/components/milestone-banner";
 import { useIdleAreaPrefetch } from "@/hooks/use-idle-area-prefetch";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
@@ -47,6 +48,7 @@ function AppLayout() {
     <>
       <AppBackground />
       <Header />
+      <MilestoneBanner />
       <CommandPalette />
       <main className={cn("flex min-h-0 flex-1 flex-col", CONTAINER_WIDTH)}>
         <div className="flex min-h-0 flex-1 flex-col">

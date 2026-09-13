@@ -7,6 +7,7 @@
 - feat(Account): **简体中文, 繁體中文 and 한국어** — the display language menu now offers Simplified Chinese, Traditional Chinese and Korean for the whole interface and the emails OpenRift sends you.
 - feat(Languages): **Your language from the first visit** — OpenRift now opens in your browser's language, when OpenRift speaks it, until you pick one in your settings, and prices, counts, country names, month and weekday names times like "3h ago" and finishing places in the Meta Archive ("2.", "2e") follow the language you use.
 - feat(Collections): **One export menu** — the export dialog opens on a plain text list, and the format picker now holds every option in two groups: text lists (plain, with details, the Cardmarket wants list that used to sit below the dialog, and a new CardTrader wishlist with a link to create one) and the CSV formats. "Text list (with details)" adds each printing's code, language and whatever sets it apart from the standard print, such as foil or an alternate art.
+- feat(App): **Roadmap and changelog in one place** — the roadmap's milestones now sit on the changelog timeline on the day they shipped, a Milestones switch shows just those, and a banner points you at the newest one after it lands.
 - feat(Tournaments): **Why the cut looks the way it does** — the top seeds section now groups the field by group place: tiers that are fully in or out of the cut fold into a row of chips, the tier the cut line crosses opens as a table with match and game win rates, the Legend count and meta share when the Legend tiebreak is on, and the criterion that split each row, and a note under it explains the last seed against the best-ranked player who missed out.
 
 ### Other
@@ -14,6 +15,10 @@
 - fix(App): **Counts and sentences that follow your language** — German and French sentences built around a link or a name now read as one sentence, French counts of zero take the singular as French does, and large counts use your language's thousands separator.
 
 ## 2026-09-12
+
+### Milestone
+
+- feat(Account): languages **Interface in Your Language** — The whole app in English, German, and French, from navigation to the emails OpenRift sends.
 
 ### Highlights
 
@@ -253,6 +258,10 @@
 
 ## 2026-08-31
 
+### Milestone
+
+- feat(Meta): trophy **Tournament Results Archive** — Archived Riftbound events with winners, full standings, top-cut brackets, and decklists you can fork into your own.
+
 ### Highlights
 
 - feat(Meta): **Tournament results archive** — a new Meta section collects Riftbound events with their winners, full standings and the top-cut bracket where one was played, scoped by era, format, tier or country.
@@ -436,6 +445,10 @@
 
 ## 2026-08-15
 
+### Milestone
+
+- feat(App): monitor-play **Streamer Tools** — The Stage for showing cards full-screen or as an OBS overlay, tier list boards, and card lookups for your chat bot.
+
 ### Highlights
 
 - feat(Cards): **Tier lists** — rank a set from S down to D on a board you build by dragging cards, then share the link or take the image into a thumbnail.
@@ -473,6 +486,10 @@
 - fix(Decks): **Variant families pick the right main deck** — deleting or unlinking the main deck of a variant family could hand the role to any sibling; it now goes to the one you edited most recently.
 
 ## 2026-08-14
+
+### Milestone
+
+- feat(Decks): git-branch **Deck Variants** — Fork a deck to try a change without losing the build that works, on a small graph of what each variant adds and cuts.
 
 ### Highlights
 
@@ -729,6 +746,10 @@
 
 ## 2026-08-03
 
+### Milestone
+
+- feat(Collection): scan-line **Card Scanner** — Point your camera at a card, recognised on your own device, and it goes on a list you add to a collection in one step.
+
 ### Highlights
 
 - feat(Collection): **Scan cards with your camera** — hold a card in front of your phone and it is added to the collection you picked, recognised on the device itself so no pictures are uploaded.
@@ -794,6 +815,10 @@
 - fix(Groups): **Group settings show current values** — the name, slug, and description fields on the manage page kept their page-load values while the group data refreshed behind them.
 
 ## 2026-08-01
+
+### Milestone
+
+- feat(App): bot **Discord Card Bot** — Card, deck, and rule lookups in your own server, including [[card name]] mentions with prices and links.
 
 ### Highlights
 
@@ -962,6 +987,10 @@
 
 ## 2026-07-16
 
+### Milestone
+
+- feat(Tournaments): swords **Swiss & 2v2 Events** — Swiss pairings with optional regions, and fixed-team 2v2 tournaments alongside the free-for-all pods.
+
 ### Highlights
 
 - feat(Tournaments): **Redesigned tournament pages** — the tournament page now opens with an event header and leads with the live round and a standings podium, and the players, pairings, standings, and staff pages match the same look.
@@ -1101,6 +1130,10 @@
 
 ## 2026-07-08
 
+### Milestone
+
+- feat(Collection): hand-heart **Card Lending** — Lend cards to friends: they stay owned but stop counting for decks and trades until they're back.
+
 ### Highlights
 
 - feat(Trades): **Trades grouped by person** — the Trades page now stacks your trades and possible trades under each member with a running value estimate, plus bulk Accept all, Decline all, Cancel all, and Request all buttons.
@@ -1117,6 +1150,10 @@
 - fix(Groups): **Rule-based list counts on the group trades page** — dynamic wishlists and tradelists showed 0 items there even when they held cards; they now show their real size.
 
 ## 2026-07-07
+
+### Milestone
+
+- feat(Collection): medal **Condition Tracking** — Record each copy's condition or professional grade, plus an altered flag, notes, and photo links.
 
 ### Highlights
 
@@ -1267,6 +1304,10 @@
 
 ## 2026-06-29
 
+### Milestone
+
+- feat(Collection): list-checks **Dynamic Lists** — Wishlists and tradelists that fill themselves from rules, like a playset of every card, and stay current on their own.
+
 ### Highlights
 
 - feat(Collection): **Dynamic lists** — wish and trade lists can now fill themselves from saved rules (a playset of every card, every surplus common you own beyond two playsets, and so on), staying up to date automatically instead of being added by hand. A wish list can stack several rules and combines their matches.
@@ -1383,6 +1424,10 @@
 - fix(Groups): **Group list on mobile** — each group on the groups list now stacks on small screens, so a long group name wraps in full instead of being cut off, with the member count and badges dropping to a line below
 
 ## 2026-06-17
+
+### Milestone
+
+- feat(Decks): clipboard-list **Deck Plans** — Document how to pilot a deck: gameplan, opening hand, battlefield, and per-matchup sideboarding.
 
 ### Highlights
 
@@ -1507,6 +1552,10 @@
 
 ## 2026-06-09
 
+### Milestone
+
+- feat(Tournaments): swords **Tournament Tools** — Run free-for-all pod events with standings, plus player deck submission and judge deck-check tools.
+
 ### Highlights
 
 - feat(Tournaments): **Pod tournaments** — run a free-for-all pod tournament: add players, each round splits into fair 3- and 4-player pods, tap finishing order to update standings, and share a follow-along link.
@@ -1526,6 +1575,10 @@
 - fix(Groups): **Group avatar overlap** — overlapping member avatars no longer let the one behind show through when the front image has transparent areas.
 
 ## 2026-06-08
+
+### Milestone
+
+- feat(Designer): palette **Card Designer** — Design your own Riftbound-style card with your own art, then download or copy it to share.
 
 ### Highlights
 
@@ -1576,6 +1629,10 @@
 
 ## 2026-06-06
 
+### Milestone
+
+- feat(App): gamepad-2 **Match Tracker** — Keep score and XP for 2 to 4 players on one device, works offline.
+
 ### Highlights
 
 - feat(App): **Match tracker** — keep score and XP for 2 to 4 players on one device, with a points target, a winner announced at the target, and a built-in way to pick who goes first, working offline.
@@ -1600,6 +1657,10 @@
 - fix(Groups): **Shared group cards visible to all** — cards added to a group's shared collection are now visible to every member, not just whoever added them.
 
 ## 2026-05-29
+
+### Milestone
+
+- feat(Trades): arrow-right-left **Trades** — Trade matching across your groups, with one-tap requests, price preferences, and email alerts.
 
 ### Highlights
 
@@ -1711,6 +1772,10 @@
 
 ## 2026-05-19
 
+### Milestone
+
+- feat(Groups): users **Groups** — Small private groups to share wishlists and tradelists, with live matches of who has the cards you want.
+
 ### Highlights
 
 - feat(Groups): **Friend groups go live** — create or join a small group from the avatar menu, share your buy or sell lists, and see live matches of who has the cards you want and who wants yours.
@@ -1723,6 +1788,10 @@
 - fix(App): **Wrapping import rows** — deck and collection import rows now wrap on mobile, so the search box and zone picker no longer push past the screen edge.
 
 ## 2026-05-18
+
+### Milestone
+
+- feat(Collection): heart **Wishlists & Tradelists** — Track cards you want to acquire or have for trade, shareable publicly or with groups.
 
 ### Highlights
 
@@ -1751,6 +1820,10 @@
 
 ## 2026-05-17
 
+### Milestone
+
+- feat(Collection): share-2 **Public Sharing** — Share collections, decks, and lists with public links. No sign-in needed to view.
+
 ### Highlights
 
 - feat(Collection): **Share collections publicly** — collections can now be shared with a public link so anyone can browse, filter, sort, and see the total value without signing in.
@@ -1777,6 +1850,10 @@
 - fix(Collection): **Drag during auto-scroll** — dragging a card onto a sidebar collection no longer breaks when the page auto-scrolls, keeping the preview under your cursor and dropping on the right collection.
 
 ## 2026-05-15
+
+### Milestone
+
+- feat(Decks): shuffle **More Deck Formats** — Freeform and Custom-Region formats alongside Constructed.
 
 ### Highlights
 
@@ -1932,6 +2009,10 @@
 - fix(Cards): **No stray rarity glyph in preview** — the Contribute form's live preview no longer shows a rarity glyph before you've picked one.
 
 ## 2026-05-04
+
+### Milestone
+
+- feat(Rules): scroll-text **Rules Reference** — Searchable comprehensive rules reference alongside official text.
 
 ### Highlights
 
@@ -2113,6 +2194,10 @@
 
 ## 2026-04-20
 
+### Milestone
+
+- feat(Packs): package-open **Pack Opener** — Open virtual boosters at the real published pull rates to see what you might pull.
+
 ### Highlights
 
 - feat(Decks): **Share decks by link** — generate a link friends can view without an account and copy into their own decks in a click, with the same large hover preview and, for signed-in viewers, ownership and value tiles.
@@ -2284,6 +2369,10 @@
 
 ## 2026-04-12
 
+### Milestone
+
+- feat(Collection): pie-chart **Set Completion Tracking** — See how close you are to completing each set across your collections.
+
 ### Highlights
 
 - feat(Collection): **Statistics page** — a new page shows completion, estimated value, domain and rarity breakdowns, and energy/power curves, with completion rows linking to your missing cards.
@@ -2382,6 +2471,10 @@
 
 ## 2026-04-06
 
+### Milestone
+
+- feat(Cards): file-warning **Card Errata** — Official errata displayed alongside original card text.
+
 ### Highlights
 
 - feat(Decks): **Official tournament registration PDF** — the registration PDF matches the official Piltover Archive format and lets you fill in your name, Riot ID, and event details first.
@@ -2416,6 +2509,10 @@
 
 ## 2026-04-02
 
+### Milestone
+
+- feat(Decks): folder-sync **Deck Import/Export** — Import and export decks as deck codes, text lists, or Tabletop Simulator format.
+
 ### Highlights
 
 - feat(Decks): **Three deck import/export formats** — import and export via Deck Code, Text, and TTS, plus printable tournament registration and proxy PDFs from the deck overview.
@@ -2434,6 +2531,10 @@
 
 ## 2026-04-01
 
+### Milestone
+
+- feat(Decks): printer **Proxy Printing** — Print proxy cards for playtesting.
+
 ### Highlights
 
 - feat(Decks): **Proxy PDF export** — print any deck as proxies with card images or text placeholders, plus optional cut lines and a watermark.
@@ -2447,6 +2548,10 @@
 - fix(Decks): **Group-by works in the builder** — the builder respects your group-by setting instead of always grouping by set.
 
 ## 2026-03-31
+
+### Milestone
+
+- feat(Decks): layers **Deck Building** — Build, validate, and share decks with stats, deck codes, and collection availability.
 
 ### Highlights
 
@@ -2462,6 +2567,10 @@
 - fix(App): **Clean help article text** — apostrophes and dashes no longer show as garbled characters.
 
 ## 2026-03-30
+
+### Milestone
+
+- feat(Cards): ban **Bans** — Banned cards are flagged in the browser and blocked from deck building.
 
 ### Highlights
 
@@ -2495,6 +2604,10 @@
 
 ## 2026-03-29
 
+### Milestone
+
+- feat(Collection): upload **Collection Import/Export** — Import and export collections as CSV files.
+
 ### Highlights
 
 - feat(Collection): **Import collections from other apps** — bring in your collection from Piltover Archive or RiftCore via CSV, previewing matches and resolving ambiguous printings.
@@ -2510,6 +2623,10 @@
 - fix(Collection): **Quick add keeps its search** — the quick add input no longer clears after the first add to an empty collection.
 
 ## 2026-03-28
+
+### Milestone
+
+- feat(Collection): library **Collections** — Multiple collections with activity timeline, market values, and sharing.
 
 ### Highlights
 
@@ -2643,6 +2760,10 @@
 
 ## 2026-03-04
 
+### Milestone
+
+- feat(Cards): wallet **Price History** — Charts showing how card prices change over time.
+
 ### Highlights
 
 - feat(Cards): **Price history charts** — see how a card's price has changed over time, with a trend sparkline in the detail sidebar.
@@ -2652,6 +2773,10 @@
 - fix(Cards): **Distinct price-range colors** — each end of the price range gets its own color in stacked view.
 
 ## 2026-03-03
+
+### Milestone
+
+- feat(Cards): scale **Triple Marketplace** — TCGplayer, Cardmarket, and Cardtrader prices, refreshed daily.
 
 ### Highlights
 
@@ -2670,6 +2795,10 @@
 - fix(Cards): **No bare filter headings** — empty filter sections stay hidden when no cards are loaded.
 
 ## 2026-03-02
+
+### Milestone
+
+- feat(Account): users **User Accounts** — Sign up with email or social login (Google, Discord), email verification, and profiles.
 
 ### Highlights
 
@@ -2775,6 +2904,10 @@
 - fix(Cards): **No accidental filter deselect** — tapping a filter quickly no longer accidentally turns it off.
 
 ## 2026-02-20
+
+### Milestone
+
+- feat(App): rocket **Launch** — Card browser with filters, search, and smooth virtual scrolling.
 
 ### Highlights
 

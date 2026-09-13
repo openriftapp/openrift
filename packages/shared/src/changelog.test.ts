@@ -145,4 +145,56 @@ describe("parseChangelog", () => {
   it("returns empty array for text with no ## headings", () => {
     expect(parseChangelog("just some text\nno headings")).toEqual([]);
   });
+
+  it("parses a milestone with its icon token", () => {
+    const md = [
+      "## 2026-09-12",
+      "### Milestone",
+      "- feat(Account): languages **Speak your language** — the whole interface in three languages.",
+      "### Highlights",
+      "- feat(Decks): **Stats band** — turn-1 odds sit in their own row.",
+    ].join("\n");
+
+    const result = parseChangelog(md);
+    expect(result[0]!.milestone).toMatchObject({
+      section: "milestone",
+      area: "Account",
+      icon: "languages",
+      title: "Speak your language",
+      message: "the whole interface in three languages.",
+    });
+    expect(result[0]!.highlights).toHaveLength(1);
+    expect(result[0]!.other).toHaveLength(0);
+  });
+
+  it("keeps a date that holds only a milestone", () => {
+    const md = [
+      "## 2026-02-01",
+      "### Milestone",
+      "- feat(App): rocket **Launch** — the card browser goes live.",
+    ].join("\n");
+    const result = parseChangelog(md);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.milestone?.title).toBe("Launch");
+  });
+
+  it("keeps only the first milestone of a date and drops one without a title", () => {
+    const md = [
+      "## 2026-02-01",
+      "### Milestone",
+      "- feat(App): no title here",
+      "- feat(App): rocket **Launch** — the card browser goes live.",
+      "- feat(App): bot **Second** — ignored.",
+    ].join("\n");
+    const result = parseChangelog(md);
+    expect(result[0]!.milestone?.title).toBe("Launch");
+    expect(result[0]!.other).toHaveLength(0);
+  });
+
+  it("does not read a plain entry's first word as an icon", () => {
+    const md = ["## 2026-02-01", "- feat(App): **Title** — body."].join("\n");
+    const entry = parseChangelog(md)[0]!.other[0]!;
+    expect(entry.title).toBe("Title");
+    expect(entry).not.toHaveProperty("icon");
+  });
 });

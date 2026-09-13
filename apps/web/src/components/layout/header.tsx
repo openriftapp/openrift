@@ -24,6 +24,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { siDiscord, siGithub } from "simple-icons";
 import { toast } from "sonner";
+import latestMilestone from "virtual:latest-milestone";
 
 import type { NavFlags } from "@/components/layout/nav-items";
 import {
@@ -77,7 +78,9 @@ import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-s
 import { useTradeActionCounts } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupPendingRequestsCount } from "@/features/groups/hooks/use-friend-groups";
 import { useLoanActionCounts } from "@/features/groups/hooks/use-loans";
+import { milestoneBannerDecision } from "@/features/marketing/lib/milestone-banner";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { useGravatarHash } from "@/lib/gravatar";
@@ -89,6 +92,7 @@ import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
+import { useMilestoneBannerStore } from "@/stores/milestone-banner-store";
 import { useThemeStore } from "@/stores/theme-store";
 
 function LogoLink({ className }: { className?: string }) {
@@ -702,6 +706,10 @@ function ExternalPopoverRow({
 }
 
 function HelpPopover() {
+  const hydrated = useHydrated();
+  const dismissedDate = useMilestoneBannerStore((state) => state.dismissedDate);
+  const hasNewMilestone =
+    hydrated && milestoneBannerDecision(latestMilestone, dismissedDate) === "show";
   return (
     <Popover>
       <PopoverTrigger render={<Button variant="ghost" size="sm" />} className="gap-1.5">
@@ -720,7 +728,17 @@ function HelpPopover() {
         />
         <InternalPopoverRow
           to="/changelog"
-          icon={<SparklesIcon className="size-4 shrink-0" />}
+          icon={
+            <span className="relative shrink-0">
+              <SparklesIcon className="size-4" />
+              {hasNewMilestone && (
+                <span
+                  aria-hidden="true"
+                  className="bg-primary absolute -top-0.5 -right-0.5 size-2 rounded-full"
+                />
+              )}
+            </span>
+          }
           label={m.layout_header_whats_new()}
           description={m.layout_header_whats_new_description()}
         />

@@ -23,7 +23,14 @@ const MAX_DESCRIPTION_CHARS = 4000;
 
 function toChangelogSections(markdown: string): ChangelogSection[] {
   return parseChangelog(markdown)
-    .map((group) => ({ date: group.date, entries: [...group.highlights, ...group.other] }))
+    .map((group) => ({
+      date: group.date,
+      entries: [
+        ...(group.milestone === undefined ? [] : [group.milestone]),
+        ...group.highlights,
+        ...group.other,
+      ],
+    }))
     .toSorted((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -45,12 +52,14 @@ function formatSectionLines(entries: ChangelogEntry[]): string[] {
 }
 
 function formatEntryLines(entries: ChangelogEntry[]): string[] {
+  const milestones = entries.filter((entry) => entry.section === "milestone");
   const highlights = entries.filter((entry) => entry.section === "highlight");
-  const other = entries.filter((entry) => entry.section !== "highlight");
+  const other = entries.filter((entry) => entry.section === "other");
+  const milestoneLines = milestones.map((entry) => `🚀 ${formatEntryMessage(entry)}`);
   if (highlights.length === 0) {
-    return formatSectionLines(other);
+    return [...milestoneLines, ...formatSectionLines(other)];
   }
-  const lines = ["__Highlights__", ...formatSectionLines(highlights)];
+  const lines = [...milestoneLines, "__Highlights__", ...formatSectionLines(highlights)];
   if (other.length > 0) {
     lines.push("", "__Other__", ...formatSectionLines(other));
   }

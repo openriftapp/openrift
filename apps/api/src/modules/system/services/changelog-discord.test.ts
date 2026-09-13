@@ -84,6 +84,24 @@ describe("buildDiscordPayloads", () => {
     );
   });
 
+  it("leads with a milestone line above the sections", () => {
+    const payloads = buildDiscordPayloads("2026-06-16", [
+      {
+        date: "2026-06-16",
+        type: "feat",
+        section: "milestone",
+        icon: "rocket",
+        title: "Launch",
+        message: "we are live",
+      },
+      { date: "2026-06-16", type: "feat", section: "highlight", title: "Big", message: "thing" },
+    ]);
+
+    expect(payloads[0]!.embeds[0]!.description).toBe(
+      "🚀 **Launch**: we are live\n__Highlights__\n🆕 **Big**: thing",
+    );
+  });
+
   it("splits entries into multiple payloads when description would exceed Discord's 4096 limit", () => {
     const longEntry = {
       date: "2026-04-18",

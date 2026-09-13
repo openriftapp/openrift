@@ -29,7 +29,6 @@ const STATIC_PAGES: StaticPage[] = [
   { path: "/meta/legends", priority: "0.5", changefreq: "weekly", featureFlag: "meta" },
   { path: "/rules", priority: "0.5", changefreq: "monthly" },
   { path: "/help", priority: "0.4", changefreq: "monthly" },
-  { path: "/roadmap", priority: "0.3", changefreq: "monthly" },
   { path: "/changelog", priority: "0.3", changefreq: "weekly" },
   { path: "/developers", priority: "0.3", changefreq: "monthly", featureFlag: "developers" },
   { path: "/legal-notice", priority: "0.1", changefreq: "yearly" },

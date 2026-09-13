@@ -19,6 +19,8 @@ import Sonda from "sonda/vite";
 import type { Plugin, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 
+import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
+
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 const mediaDir = path.resolve(import.meta.dirname, "../../media");
 const repoRoot = path.resolve(import.meta.dirname, "../..");
@@ -178,6 +180,7 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     plugins: [
+      latestMilestonePlugin(),
       // Must be first plugin. Off by default in dev: it costs ~0.8s of every
       // cold SSR request. `bun run dev:devtools` opts in. Always on for build,
       // which is where it strips <TanStackDevtools> out of the bundle.

@@ -16,6 +16,13 @@ interface ImportMeta {
 // oxlint-disable-next-line no-var, vars-on-top -- `declare var` is the documented way to type a `globalThis` property
 declare var __OPENRIFT_CONFIG__: { sentryDsn?: string; appEnv?: string } | undefined;
 
+declare module "virtual:latest-milestone" {
+  import type { LatestMilestone } from "@/features/marketing/lib/milestone-banner";
+
+  const latestMilestone: LatestMilestone | null;
+  export default latestMilestone;
+}
+
 declare module "*.md?raw" {
   const content: string;
   export default content;

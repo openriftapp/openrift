@@ -30,7 +30,9 @@ export default function WhyOpenRiftArticle() {
               message={m.help_why_openrift_exists_p4}
               markup={{
                 link: ({ children }) => (
-                  <TextLink render={<Link to="/roadmap" />}>{children}</TextLink>
+                  <TextLink render={<Link to="/changelog" search={{ show: "milestones" }} />}>
+                    {children}
+                  </TextLink>
                 ),
               }}
             />

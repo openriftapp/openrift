@@ -7,5 +7,6 @@ export const Route = createLazyFileRoute("/_app/changelog")({
 });
 
 function ChangelogRoute() {
-  return <ChangelogPage />;
+  const { show } = Route.useSearch();
+  return <ChangelogPage view={show ?? "everything"} />;
 }

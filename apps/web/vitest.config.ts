@@ -4,10 +4,12 @@ import path from "node:path";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { defineConfig } from "vitest/config";
 
+import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
+
 export default defineConfig({
   // src/paraglide is generated and gitignored, so tests compile it themselves
   // instead of depending on a prior build.
-  plugins: [paraglideVitePlugin({ project: "./project.inlang" })],
+  plugins: [paraglideVitePlugin({ project: "./project.inlang" }), latestMilestonePlugin()],
   define: {
     __COMMIT_HASH__: JSON.stringify("test"),
   },
