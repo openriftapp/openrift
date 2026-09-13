@@ -52,7 +52,7 @@ const patchPreferencesFn = createServerFn({ method: "POST" })
  * a locale is a document reload, so the account must already agree before the
  * page comes back and re-reads it.
  */
-export async function persistDisplayLocale(locale: DisplayLocale): Promise<void> {
+async function persistDisplayLocale(locale: DisplayLocale): Promise<void> {
   await patchPreferencesFn({
     data: { prefs: { displayLocale: locale } as UserPreferencesResponse },
   });
