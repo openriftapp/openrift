@@ -41,6 +41,10 @@ export function cardmarketLangParam(language: string | null | undefined): string
 
 export const CARDMARKET_WANTS_URL = "https://www.cardmarket.com/en/Riftbound/Wants";
 
+export const CARDTRADER_WISHLIST_URL = cardtraderAffiliateUrl(
+  "https://www.cardtrader.com/wishlists/new",
+);
+
 interface MarketplaceLinks {
   label: string;
   searchUrl: (query: string) => string;

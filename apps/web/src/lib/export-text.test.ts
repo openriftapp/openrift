@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCardListAsDeckText, formatCardmarketWants } from "./export-text";
+import {
+  formatCardListAsDeckText,
+  formatCardListWithDetails,
+  formatCardmarketWants,
+  formatCardtraderWishlist,
+} from "./export-text";
+
+describe("formatCardListWithDetails", () => {
+  it("appends the details after the name, one printing per line", () => {
+    const output = formatCardListWithDetails([
+      { name: "Teemo, Scout", quantity: 1, details: ["OGN-001", "EN"] },
+      { name: "Jinx’s Rebel", quantity: 3, details: ["OGN-002", "DE", "Foil"] },
+    ]);
+    expect(output).toBe("1 Teemo, Scout · OGN-001 · EN\n3 Jinx's Rebel · OGN-002 · DE · Foil");
+  });
+
+  it("returns an empty string when there are no lines", () => {
+    expect(formatCardListWithDetails([])).toBe("");
+  });
+});
 
 describe("formatCardListAsDeckText", () => {
   it("formats lines as `<qty> <name>`, preserving input order", () => {
@@ -64,5 +83,28 @@ describe("formatCardmarketWants", () => {
 
   it("returns an empty string when there are no wants", () => {
     expect(formatCardmarketWants([])).toBe("");
+  });
+});
+
+describe("formatCardtraderWishlist", () => {
+  it("formats `<qty> <name>` lines sorted by name, with straight apostrophes", () => {
+    const output = formatCardtraderWishlist([
+      { name: "Kai’Sa, Survivor", quantity: 1 },
+      { name: "Cleave", quantity: 2 },
+    ]);
+    expect(output).toBe("2 Cleave\n1 Kai'Sa, Survivor");
+  });
+
+  it("keeps a separate line per input line instead of merging repeated names", () => {
+    const output = formatCardtraderWishlist([
+      { name: "Jinx, Rebel", quantity: 1 },
+      { name: "Body Rune", quantity: 3 },
+      { name: "Jinx, Rebel", quantity: 2 },
+    ]);
+    expect(output).toBe("3 Body Rune\n1 Jinx, Rebel\n2 Jinx, Rebel");
+  });
+
+  it("returns an empty string when there are no lines", () => {
+    expect(formatCardtraderWishlist([])).toBe("");
   });
 });

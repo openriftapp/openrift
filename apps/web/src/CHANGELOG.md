@@ -6,6 +6,7 @@
 
 - feat(Account): **简体中文, 繁體中文 and 한국어** — the display language menu now offers Simplified Chinese, Traditional Chinese and Korean for the whole interface and the emails OpenRift sends you.
 - feat(Languages): **Your language from the first visit** — OpenRift now opens in your browser's language, when OpenRift speaks it, until you pick one in your settings, and prices, counts, country names, month and weekday names times like "3h ago" and finishing places in the Meta Archive ("2.", "2e") follow the language you use.
+- feat(Collections): **One export menu** — the export dialog opens on a plain text list, and the format picker now holds every option in two groups: text lists (plain, with details, the Cardmarket wants list that used to sit below the dialog, and a new CardTrader wishlist with a link to create one) and the CSV formats. "Text list (with details)" adds each printing's code, language and whatever sets it apart from the standard print, such as foil or an alternate art.
 - feat(Tournaments): **Why the cut looks the way it does** — the top seeds section now groups the field by group place: tiers that are fully in or out of the cut fold into a row of chips, the tier the cut line crosses opens as a table with match and game win rates, the Legend count and meta share when the Legend tiebreak is on, and the criterion that split each row, and a note under it explains the last seed against the best-ranked player who missed out.
 
 ### Other

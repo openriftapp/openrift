@@ -154,35 +154,45 @@ describe("ListExportDialog", () => {
     expect(exportText()).toBe("1 Vi\n1 Jinx");
   });
 
-  it("scopes the Cardmarket wants block to the filtered subset too", () => {
+  it("scopes the Cardmarket wants to the filtered subset too", async () => {
+    const user = userEvent.setup();
     filtered = { hasActiveFilters: true, filteredEntries: [jinxEntry] };
     setup([viEntry, jinxEntry]);
 
-    const wants = screen.getAllByRole("textbox")[1] as HTMLTextAreaElement;
-    expect(wants.value).toBe("1x Jinx");
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Cardmarket wants" }));
+
+    expect(exportText()).toBe("1x Jinx");
   });
 
-  it("offers only the text format for a card list", () => {
+  it("offers only the text formats for a card list", async () => {
+    const user = userEvent.setup();
     setup([viEntry, jinxEntry]);
 
-    expect(screen.queryByText("OpenRift CSV")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("combobox"));
+    expect(await screen.findByRole("option", { name: "Cardmarket wants" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "CardTrader wishlist" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "OpenRift CSV" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Text list (with details)" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /export \d/iu })).not.toBeInTheDocument();
   });
 
-  it("counts the CSV download against the filtered subset", () => {
+  it("counts the CSV download against the filtered subset", async () => {
+    const user = userEvent.setup();
     const entries = [printingEntry("e-1", viPrinting), printingEntry("e-2", jinxPrinting)];
     filtered = { hasActiveFilters: true, filteredEntries: [entries[1]!] };
     setup(entries, "printing");
 
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "OpenRift CSV" }));
+
     expect(screen.getByRole("button", { name: "Export 1 card" })).toBeInTheDocument();
   });
 
-  it("offers a text list for a printing list too", async () => {
-    const user = userEvent.setup();
+  it("defaults to a text list for a printing list too", () => {
     setup([printingEntry("e-1", viPrinting), printingEntry("e-2", jinxPrinting)], "printing");
-
-    await user.click(screen.getByText("OpenRift CSV"));
-    await user.click(await screen.findByRole("option", { name: "Text list" }));
 
     expect(exportText()).toBe("1 Vi\n1 Jinx");
   });
@@ -198,6 +208,8 @@ describe("ListExportDialog", () => {
       "copy",
     );
 
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "OpenRift CSV" }));
     await user.click(screen.getByRole("button", { name: "Export 2 cards" }));
 
     expect(toastSuccess).toHaveBeenCalledWith("List exported.");
