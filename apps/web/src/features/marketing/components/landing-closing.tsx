@@ -12,7 +12,11 @@ import { m } from "@/paraglide/messages.js";
 import { HeroCtas } from "./hero-ctas";
 
 function switchPoints(): string[] {
-  return [m.marketing_closing_switch_point_free(), m.marketing_closing_switch_point_printings()];
+  return [
+    m.marketing_closing_switch_point_free(),
+    m.marketing_closing_switch_point_printings(),
+    m.marketing_closing_switch_point_languages(),
+  ];
 }
 
 export function LandingClosing() {

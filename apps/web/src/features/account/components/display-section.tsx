@@ -13,12 +13,12 @@ import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { persistDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
+import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-import { getLocale, setLocale } from "@/paraglide/runtime.js";
+import { getLocale } from "@/paraglide/runtime.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
 
@@ -163,16 +163,10 @@ function DisplayLocalePicker() {
       return;
     }
     setPending(true);
-    // Applying the locale reloads the document, so the account write has to
-    // land first. On failure nothing changes and the old locale stays selected.
-    try {
-      await persistDisplayLocale(next);
-    } catch {
+    if (!(await applyDisplayLocale(next, { persist: true }))) {
       setPending(false);
       toast.error(m.profile_display_locale_error());
-      return;
     }
-    await setLocale(next);
   };
 
   return (

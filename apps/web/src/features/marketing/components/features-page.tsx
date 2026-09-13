@@ -103,6 +103,9 @@ function ClosingBlock({ signedOut }: { signedOut: boolean }) {
         </Heading>
         <SectionRule />
         <p className="text-muted-foreground max-w-prose">{m.marketing_features_closing_body()}</p>
+        <p className="text-muted-foreground max-w-prose">
+          {m.marketing_features_closing_languages()}
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/cards"

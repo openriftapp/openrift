@@ -58,6 +58,25 @@ export async function persistDisplayLocale(locale: DisplayLocale): Promise<void>
   });
 }
 
+/** Resolves false when the account write failed and nothing changed. */
+export async function applyDisplayLocale(
+  locale: DisplayLocale,
+  { persist }: { persist: boolean },
+): Promise<boolean> {
+  if (locale === getLocale()) {
+    return true;
+  }
+  if (persist) {
+    try {
+      await persistDisplayLocale(locale);
+    } catch {
+      return false;
+    }
+  }
+  await setLocale(locale);
+  return true;
+}
+
 function getPrefsSnapshot(): UserPreferencesResponse & {
   theme?: string | null;
   palette?: string | null;

@@ -33,7 +33,7 @@
 - fix(Groups): **Setup nudges match the rest of the app** — the "Members can't reach you" and "This group can't see any of your lists" prompts now sit in the same notice style as other tips, instead of a plain list row.
 - fix(App): **Open tabs survive a release** — a page left open while a new version ships now reloads itself instead of showing the error page.
 - feat(Cards): **Snap the card straight from your phone** — the photo upload box on a card's contribute page now has a Take a photo button on phones and tablets that opens the rear camera instead of the file picker.
-- feat(Account): **Pick a display language** — a new Display language setting on your profile switches the whole interface between English, Deutsch and Français: navigation, cards, collections and lists, decks, the pack opener, rules and glossary, groups, trades and loans, tournaments, the Meta Archive, the stage and tier lists, the scanner, the designer, the match tracker, the help center and marketing pages. The emails OpenRift sends you, from sign-in codes to trade requests and group approvals, arrive in that language too.
+- feat(Account): **Pick a display language** — the Language entry in the header menu (and the Display language setting on your profile) switches the whole interface between English, Deutsch and Français: navigation, cards, collections and lists, decks, the pack opener, rules and glossary, groups, trades and loans, tournaments, the Meta Archive, the stage and tier lists, the scanner, the designer, the match tracker, the help center and marketing pages. The emails OpenRift sends you, from sign-in codes to trade requests and group approvals, arrive in that language too.
 
 ## 2026-09-11
 

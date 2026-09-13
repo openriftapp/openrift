@@ -10,6 +10,7 @@ import {
   GitBranchIcon,
   HandHeartIcon,
   HeartIcon,
+  LanguagesIcon,
   LayersIcon,
   LibraryIcon,
   ListChecksIcon,
@@ -57,6 +58,13 @@ interface RoadmapItem {
 
 function roadmapItems(): RoadmapItem[] {
   return [
+    {
+      title: m.marketing_roadmap_languages_title(),
+      description: m.marketing_roadmap_languages_description(),
+      icon: <LanguagesIcon className="size-4" />,
+      done: true,
+      date: "Sep 2026",
+    },
     {
       title: m.marketing_roadmap_archive_title(),
       description: m.marketing_roadmap_archive_description(),

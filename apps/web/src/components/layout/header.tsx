@@ -1,3 +1,5 @@
+import type { DisplayLocale } from "@openrift/shared/types/api/preferences";
+import { DISPLAY_LOCALES } from "@openrift/shared/types/api/preferences";
 import { useQueryClient } from "@tanstack/react-query";
 import type { LinkProps } from "@tanstack/react-router";
 import { Link, useLocation, useMatch, useRouter } from "@tanstack/react-router";
@@ -6,6 +8,7 @@ import {
   ExternalLinkIcon,
   EllipsisVerticalIcon,
   HeartIcon,
+  LanguagesIcon,
   LockIcon,
   LogOutIcon,
   MenuIcon,
@@ -36,7 +39,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
@@ -60,6 +68,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/user-avatar";
+import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { signOut } from "@/features/account/lib/auth-client";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
@@ -70,12 +79,14 @@ import { useFriendGroupPendingRequestsCount } from "@/features/groups/hooks/use-
 import { useLoanActionCounts } from "@/features/groups/hooks/use-loans";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
+import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { useGravatarHash } from "@/lib/gravatar";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, CONTAINER_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+import { getLocale } from "@/paraglide/runtime.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 import { useDisplayStore } from "@/stores/display-store";
 import { useThemeStore } from "@/stores/theme-store";
@@ -301,6 +312,34 @@ function UserMenuTrigger({
   return <EllipsisVerticalIcon className="size-5" />;
 }
 
+function LanguageSubmenu({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const active = getLocale();
+
+  const change = async (next: DisplayLocale) => {
+    if (!(await applyDisplayLocale(next, { persist: isLoggedIn }))) {
+      toast.error(m.profile_display_locale_error());
+    }
+  };
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <LanguagesIcon className="size-4" />
+        {m.locale_switcher_label()}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        <DropdownMenuRadioGroup value={active} onValueChange={(next) => void change(next)}>
+          {DISPLAY_LOCALES.map((locale) => (
+            <DropdownMenuRadioItem key={locale} value={locale} lang={locale}>
+              {DISPLAY_LOCALE_LABELS[locale]}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
 function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
@@ -349,6 +388,8 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
           {darkMode ? m.layout_header_light_mode() : m.layout_header_dark_mode()}
         </DropdownMenuItem>
       )}
+      <LanguageSubmenu isLoggedIn={isLoggedIn} />
+      {isLoggedIn && <DropdownMenuSeparator />}
       {isLoggedIn && (
         <DropdownMenuItem onClick={() => void handleSignOut()}>
           <LogOutIcon className="size-4" />
