@@ -53,23 +53,22 @@ async function sourceRoots(): Promise<string[]> {
 }
 
 async function findBarrels(): Promise<string[]> {
-  const found: string[] = [];
-  for (const root of await sourceRoots()) {
-    const files = await listSourceFiles(root);
-    for (const file of files) {
-      const contents = await readFile(file, "utf-8");
-      if (isReexportOnly(contents)) {
-        found.push(relative(REPO_ROOT, file).replaceAll("\\", "/"));
-      }
-    }
-  }
-  return found.toSorted();
+  const roots = await sourceRoots();
+  const fileLists = await Promise.all(roots.map((root) => listSourceFiles(root)));
+  const files = fileLists.flat();
+  const barrels = await Promise.all(
+    files.map(async (file) => (isReexportOnly(await readFile(file, "utf-8")) ? file : null)),
+  );
+  return barrels
+    .filter((file) => file !== null)
+    .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"))
+    .toSorted();
 }
 
 describe("barrel files", () => {
   it("exist nowhere outside the aggregate contract router", async () => {
     expect(await findBarrels()).toStrictEqual([MOUNTED_AS_ONE_AGGREGATE_ROUTER]);
-  });
+  }, 30_000);
 
   it("recognises the multi-line and single-line re-export forms", () => {
     expect(
