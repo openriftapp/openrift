@@ -6,6 +6,9 @@ export const DISPLAY_LOCALE_LABELS: Record<DisplayLocale, string> = {
   en: "English",
   de: "Deutsch",
   fr: "Français",
+  "zh-Hans": "简体中文",
+  "zh-Hant": "繁體中文",
+  ko: "한국어",
 };
 
 export function isDisplayLocale(value: unknown): value is DisplayLocale {

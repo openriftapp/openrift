@@ -529,7 +529,421 @@ const fr: EmailMessages = {
     "Ce code expire dans 5 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.",
 };
 
-const EMAIL_MESSAGES: Record<DisplayLocale, EmailMessages> = { en, de, fr };
+const zhHans: EmailMessages = {
+  htmlLang: "zh-Hans",
+  greeting: (nameHtml) => (nameHtml ? `你好，${nameHtml}：` : "你好："),
+  footerTrading: "你收到这封邮件，是因为你在 OpenRift 上的交换活动。",
+  footerGroupOwner: "你收到这封邮件，是因为你在 OpenRift 上管理着一个小组。",
+  footerGroupJoin: "你收到这封邮件，是因为你申请加入 OpenRift 上的一个小组。",
+  unsubscribeWord: "退订",
+  unsubscribeLabel: (channel) =>
+    ({
+      groupJoinRequests: "小组加入申请",
+      groupApprovals: "小组欢迎邮件",
+      tradeRequests: "交换请求邮件",
+      tradeStatus: "交换状态邮件",
+      tradeMatches: "每日匹配摘要",
+    })[channel],
+
+  joinRequestSubject: (groupName) => `${groupName} 的加入申请`,
+  joinRequestHeading: "新的加入申请",
+  someone: "有人",
+  joinRequestLead: (requesterHtml, groupHtml) =>
+    `${requesterHtml} 申请加入 ${groupHtml}。在管理员批准之前，该用户不会进入小组。`,
+  reviewRequestButton: "查看申请",
+
+  approvedSubject: (groupName) => `欢迎加入：${groupName}`,
+  approvedHeading: "欢迎加入",
+  approvedLead: (groupHtml) => `管理员已批准你的申请，你现在是 ${groupHtml} 的成员了。`,
+  approvedBenefitsIntro: "你现在可以：",
+  approvedBenefits: [
+    "浏览其他成员分享的所有收藏、心愿单和交换清单。",
+    "交换匹配：你心愿单上的卡牌，小组里正好有人多出来。",
+    "实时关注小组的交换和动态。",
+  ],
+  managePageLinkLabel: "管理页面",
+  approvedVisibilityNote: (linkHtml) =>
+    `你的内容目前还不可见。请在${linkHtml}上选择小组可以看到哪些清单和收藏。`,
+  openGroupButton: (groupName) => `打开 ${groupName}`,
+
+  aGroupMember: "某位小组成员",
+  aMember: "某位成员",
+  aCard: "一张卡牌",
+  quantityLabel: (quantity, cardName) =>
+    quantity > 1 ? `${num("zh-Hans", quantity)}× ${cardName}` : cardName,
+  tradeRequestHeading: "新的交换请求",
+  tradeRequestsHeading: "新的交换请求",
+  requestLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} 想交换你的 ${cardHtml}。`
+      : `${senderHtml} 想把 ${cardHtml} 让给你。`,
+  requestSubject: (sender, cardName, kind) =>
+    kind === "wants" ? `${sender} 想交换 ${cardName}` : `${sender} 向你提供 ${cardName}`,
+  requestExpiryNote: "打开这次交换即可接受或拒绝。请注意：交换请求在发出 7 天后过期。",
+  reachContact: (name, contact) => `联系 ${name}：${contact}`,
+  viewTradeButton: "查看交换",
+  viewTradesButton: "查看交换",
+  viewTradesInButton: (groupName) => `查看 ${groupName} 中的交换`,
+  inGroupLine: (groupName) => `在 ${groupName}`,
+  wantsFromYouHeading: "想要你的",
+  offersYouHeading: "向你提供",
+  coalescedRequestSubject: (sender, wantsCount, offersCount) => {
+    const parts: string[] = [];
+    if (wantsCount > 0) {
+      parts.push(`想要你的 ${num("zh-Hans", wantsCount)} 张卡牌`);
+    }
+    if (offersCount > 0) {
+      parts.push(
+        wantsCount > 0
+          ? `向你提供 ${num("zh-Hans", offersCount)} 张`
+          : `向你提供 ${num("zh-Hans", offersCount)} 张卡牌`,
+      );
+    }
+    return `${sender} ${parts.join("，")}`;
+  },
+  coalescedRequestLead: (senderHtml, total) =>
+    `${senderHtml} 给你发来了 ${num("zh-Hans", total)} 条交换请求。请注意：交换请求在发出 7 天后过期。`,
+
+  statusHeading: "交换动态",
+  statusOutcomeHeading: (event) =>
+    ({ reserved: "已接受", declined: "已拒绝", cancelled: "已取消" })[event],
+  statusPhrase: (actorHtml, cardHtml, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actorHtml} 接受了你对 ${cardHtml} 的请求`;
+      }
+      case "declined": {
+        return `${actorHtml} 拒绝了你对 ${cardHtml} 的请求`;
+      }
+      case "cancelled": {
+        return `${actorHtml} 取消了 ${cardHtml} 的交换`;
+      }
+    }
+  },
+  singleStatusSubject: (actor, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actor} 接受了你的交换请求`;
+      }
+      case "declined": {
+        return `${actor} 拒绝了你的交换请求`;
+      }
+      case "cancelled": {
+        return `${actor} 取消了一次交换`;
+      }
+    }
+  },
+  statusCountSubject: (actor, counts) => {
+    const parts = [
+      { verb: "接受", count: counts.reserved },
+      { verb: "拒绝", count: counts.declined },
+      { verb: "取消", count: counts.cancelled },
+    ]
+      .filter(({ count }) => count > 0)
+      .map(({ verb, count }) => `${verb}了 ${num("zh-Hans", count)} 次`);
+    return `${actor} 在你的交换中${parts.join("、")}`;
+  },
+  statusLead: (actorHtml) => `${actorHtml} 更新了你的部分交换：`,
+
+  digestHeading: "新的交换匹配",
+  digestSubject: (total) =>
+    total === 1
+      ? "你的交换小组里有 1 个新匹配"
+      : `你的交换小组里有 ${num("zh-Hans", total)} 个新匹配`,
+  digestSingleLead: (counterpartyHtml, cardHtml) =>
+    `${counterpartyHtml} 现在有你心愿单上的 ${cardHtml}。`,
+  digestLead: "你所在小组的成员现在有你心愿单上的卡牌：",
+  counterpartyHasHeading: (labelHtml) => `${labelHtml} 拥有`,
+
+  otpSubject: (type) =>
+    ({
+      "sign-in": "你的登录验证码",
+      "email-verification": "验证你的邮箱地址",
+      "forget-password": "重置你的密码",
+      "change-email": "确认更改邮箱地址",
+    })[type] ?? "你的验证码",
+  otpHeading: "你的验证码",
+  otpExpiryNote: "此验证码将在 5 分钟后过期。如果这不是你本人的操作，可以忽略这封邮件。",
+};
+
+const zhHant: EmailMessages = {
+  htmlLang: "zh-Hant",
+  greeting: (nameHtml) => (nameHtml ? `${nameHtml} 您好：` : "您好："),
+  footerTrading: "您會收到這封郵件，是因為您在 OpenRift 上的交換活動。",
+  footerGroupOwner: "您會收到這封郵件，是因為您在 OpenRift 上管理著一個小組。",
+  footerGroupJoin: "您會收到這封郵件，是因為您申請加入 OpenRift 上的某個小組。",
+  unsubscribeWord: "取消訂閱",
+  unsubscribeLabel: (channel) =>
+    ({
+      groupJoinRequests: "小組加入申請",
+      groupApprovals: "小組歡迎郵件",
+      tradeRequests: "交換請求郵件",
+      tradeStatus: "交換狀態郵件",
+      tradeMatches: "每日配對摘要",
+    })[channel],
+
+  joinRequestSubject: (groupName) => `${groupName} 的加入申請`,
+  joinRequestHeading: "新的加入申請",
+  someone: "有人",
+  joinRequestLead: (requesterHtml, groupHtml) =>
+    `${requesterHtml} 申請加入 ${groupHtml}。在管理員核准之前，該使用者不會進入小組。`,
+  reviewRequestButton: "查看申請",
+
+  approvedSubject: (groupName) => `歡迎加入：${groupName}`,
+  approvedHeading: "歡迎加入",
+  approvedLead: (groupHtml) => `管理員已核准您的申請，您現在是 ${groupHtml} 的成員了。`,
+  approvedBenefitsIntro: "您現在可以：",
+  approvedBenefits: [
+    "瀏覽其他成員分享的所有收藏、願望清單與交換清單。",
+    "交換配對：您願望清單上的卡牌，小組裡正好有人多出來。",
+    "即時關注小組的交換與動態。",
+  ],
+  managePageLinkLabel: "管理頁面",
+  approvedVisibilityNote: (linkHtml) =>
+    `您的內容目前還不會顯示。請在${linkHtml}上選擇小組可以看到哪些清單與收藏。`,
+  openGroupButton: (groupName) => `開啟 ${groupName}`,
+
+  aGroupMember: "某位小組成員",
+  aMember: "某位成員",
+  aCard: "一張卡牌",
+  quantityLabel: (quantity, cardName) =>
+    quantity > 1 ? `${num("zh-Hant", quantity)}× ${cardName}` : cardName,
+  tradeRequestHeading: "新的交換請求",
+  tradeRequestsHeading: "新的交換請求",
+  requestLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml} 想交換您的 ${cardHtml}。`
+      : `${senderHtml} 想把 ${cardHtml} 讓給您。`,
+  requestSubject: (sender, cardName, kind) =>
+    kind === "wants" ? `${sender} 想交換 ${cardName}` : `${sender} 向您提供 ${cardName}`,
+  requestExpiryNote: "開啟這次交換即可接受或拒絕。請注意：交換請求在送出 7 天後過期。",
+  reachContact: (name, contact) => `聯絡 ${name}：${contact}`,
+  viewTradeButton: "查看交換",
+  viewTradesButton: "查看交換",
+  viewTradesInButton: (groupName) => `查看 ${groupName} 中的交換`,
+  inGroupLine: (groupName) => `在 ${groupName}`,
+  wantsFromYouHeading: "想要您的",
+  offersYouHeading: "向您提供",
+  coalescedRequestSubject: (sender, wantsCount, offersCount) => {
+    const parts: string[] = [];
+    if (wantsCount > 0) {
+      parts.push(`想要您的 ${num("zh-Hant", wantsCount)} 張卡牌`);
+    }
+    if (offersCount > 0) {
+      parts.push(
+        wantsCount > 0
+          ? `向您提供 ${num("zh-Hant", offersCount)} 張`
+          : `向您提供 ${num("zh-Hant", offersCount)} 張卡牌`,
+      );
+    }
+    return `${sender} ${parts.join("，")}`;
+  },
+  coalescedRequestLead: (senderHtml, total) =>
+    `${senderHtml} 向您送出了 ${num("zh-Hant", total)} 則交換請求。請注意：交換請求在送出 7 天後過期。`,
+
+  statusHeading: "交換動態",
+  statusOutcomeHeading: (event) =>
+    ({ reserved: "已接受", declined: "已拒絕", cancelled: "已取消" })[event],
+  statusPhrase: (actorHtml, cardHtml, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actorHtml} 接受了您對 ${cardHtml} 的請求`;
+      }
+      case "declined": {
+        return `${actorHtml} 拒絕了您對 ${cardHtml} 的請求`;
+      }
+      case "cancelled": {
+        return `${actorHtml} 取消了 ${cardHtml} 的交換`;
+      }
+    }
+  },
+  singleStatusSubject: (actor, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actor} 接受了您的交換請求`;
+      }
+      case "declined": {
+        return `${actor} 拒絕了您的交換請求`;
+      }
+      case "cancelled": {
+        return `${actor} 取消了一次交換`;
+      }
+    }
+  },
+  statusCountSubject: (actor, counts) => {
+    const parts = [
+      { verb: "接受", count: counts.reserved },
+      { verb: "拒絕", count: counts.declined },
+      { verb: "取消", count: counts.cancelled },
+    ]
+      .filter(({ count }) => count > 0)
+      .map(({ verb, count }) => `${verb}了 ${num("zh-Hant", count)} 次`);
+    return `${actor} 在您的交換中${parts.join("、")}`;
+  },
+  statusLead: (actorHtml) => `${actorHtml} 更新了您的部分交換：`,
+
+  digestHeading: "新的交換配對",
+  digestSubject: (total) =>
+    total === 1
+      ? "您的交換小組裡有 1 個新配對"
+      : `您的交換小組裡有 ${num("zh-Hant", total)} 個新配對`,
+  digestSingleLead: (counterpartyHtml, cardHtml) =>
+    `${counterpartyHtml} 現在有您願望清單上的 ${cardHtml}。`,
+  digestLead: "您所在小組的成員現在有您願望清單上的卡牌：",
+  counterpartyHasHeading: (labelHtml) => `${labelHtml} 擁有`,
+
+  otpSubject: (type) =>
+    ({
+      "sign-in": "您的登入驗證碼",
+      "email-verification": "驗證您的電子郵件地址",
+      "forget-password": "重設您的密碼",
+      "change-email": "確認變更電子郵件地址",
+    })[type] ?? "您的驗證碼",
+  otpHeading: "您的驗證碼",
+  otpExpiryNote: "此驗證碼將在 5 分鐘後過期。如果這不是您本人的操作，可以忽略這封郵件。",
+};
+
+const ko: EmailMessages = {
+  htmlLang: "ko",
+  greeting: (nameHtml) => (nameHtml ? `${nameHtml}님, 안녕하세요.` : "안녕하세요."),
+  footerTrading: "OpenRift에서의 교환 활동으로 인해 이 메일을 받으셨습니다.",
+  footerGroupOwner: "OpenRift에서 그룹을 운영하고 계셔서 이 메일을 받으셨습니다.",
+  footerGroupJoin: "OpenRift에서 그룹 가입을 신청하셔서 이 메일을 받으셨습니다.",
+  unsubscribeWord: "수신 거부",
+  unsubscribeLabel: (channel) =>
+    ({
+      groupJoinRequests: "그룹 가입 신청",
+      groupApprovals: "그룹 환영 메일",
+      tradeRequests: "교환 요청 메일",
+      tradeStatus: "교환 상태 메일",
+      tradeMatches: "일일 매칭 요약",
+    })[channel],
+
+  joinRequestSubject: (groupName) => `${groupName} 가입 신청`,
+  joinRequestHeading: "새 가입 신청",
+  someone: "어떤 사용자",
+  joinRequestLead: (requesterHtml, groupHtml) =>
+    `${requesterHtml}님이 ${groupHtml}에 가입을 신청했습니다. 관리자가 승인할 때까지는 그룹에 참여하지 않습니다.`,
+  reviewRequestButton: "신청 검토하기",
+
+  approvedSubject: (groupName) => `가입 완료: ${groupName}`,
+  approvedHeading: "가입이 완료되었습니다",
+  approvedLead: (groupHtml) => `관리자가 신청을 승인하여 이제 ${groupHtml}의 멤버입니다.`,
+  approvedBenefitsIntro: "이제 이런 것을 할 수 있습니다:",
+  approvedBenefits: [
+    "다른 멤버들이 공유한 모든 컬렉션, 위시리스트, 교환 목록을 둘러볼 수 있습니다.",
+    "교환 매칭: 위시리스트에 있는 카드를 그룹의 누군가가 여분으로 가지고 있습니다.",
+    "그룹의 교환과 활동을 실시간으로 확인할 수 있습니다.",
+  ],
+  managePageLinkLabel: "관리 페이지",
+  approvedVisibilityNote: (linkHtml) =>
+    `아직 회원님의 목록은 공개되지 않았습니다. ${linkHtml}에서 그룹에 보여 줄 목록과 컬렉션을 선택하세요.`,
+  openGroupButton: (groupName) => `${groupName} 열기`,
+
+  aGroupMember: "그룹 멤버",
+  aMember: "멤버",
+  aCard: "카드",
+  quantityLabel: (quantity, cardName) =>
+    quantity > 1 ? `${cardName} ${num("ko", quantity)}장` : cardName,
+  tradeRequestHeading: "새 교환 요청",
+  tradeRequestsHeading: "새 교환 요청",
+  requestLead: (senderHtml, cardHtml, kind) =>
+    kind === "wants"
+      ? `${senderHtml}님이 회원님의 ${cardHtml} 카드와 교환하고 싶어 합니다.`
+      : `${senderHtml}님이 ${cardHtml} 카드를 제안했습니다.`,
+  requestSubject: (sender, cardName, kind) =>
+    kind === "wants"
+      ? `${sender}님이 ${cardName} 카드와 교환을 원합니다`
+      : `${sender}님이 ${cardName} 카드를 제안합니다`,
+  requestExpiryNote:
+    "교환을 열어 수락하거나 거절하세요. 참고로 교환 요청은 보낸 지 7일이 지나면 만료됩니다.",
+  reachContact: (name, contact) => `${name}님 연락처: ${contact}`,
+  viewTradeButton: "교환 보기",
+  viewTradesButton: "교환 목록 보기",
+  viewTradesInButton: (groupName) => `${groupName}의 교환 보기`,
+  inGroupLine: (groupName) => `${groupName}에서`,
+  wantsFromYouHeading: "원하는 카드",
+  offersYouHeading: "제안하는 카드",
+  coalescedRequestSubject: (sender, wantsCount, offersCount) => {
+    if (wantsCount > 0 && offersCount > 0) {
+      return `${sender}님이 회원님의 카드 ${num("ko", wantsCount)}장을 원하고 카드 ${num("ko", offersCount)}장을 제안합니다`;
+    }
+    if (wantsCount > 0) {
+      return `${sender}님이 회원님의 카드 ${num("ko", wantsCount)}장을 원합니다`;
+    }
+    return `${sender}님이 카드 ${num("ko", offersCount)}장을 제안합니다`;
+  },
+  coalescedRequestLead: (senderHtml, total) =>
+    `${senderHtml}님이 교환 요청 ${num("ko", total)}건을 보냈습니다. 참고로 교환 요청은 보낸 지 7일이 지나면 만료됩니다.`,
+
+  statusHeading: "교환 업데이트",
+  statusOutcomeHeading: (event) =>
+    ({ reserved: "수락됨", declined: "거절됨", cancelled: "취소됨" })[event],
+  statusPhrase: (actorHtml, cardHtml, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actorHtml}님이 ${cardHtml} 카드 요청을 수락했습니다`;
+      }
+      case "declined": {
+        return `${actorHtml}님이 ${cardHtml} 카드 요청을 거절했습니다`;
+      }
+      case "cancelled": {
+        return `${actorHtml}님이 ${cardHtml} 카드 교환을 취소했습니다`;
+      }
+    }
+  },
+  singleStatusSubject: (actor, event) => {
+    switch (event) {
+      case "reserved": {
+        return `${actor}님이 교환 요청을 수락했습니다`;
+      }
+      case "declined": {
+        return `${actor}님이 교환 요청을 거절했습니다`;
+      }
+      case "cancelled": {
+        return `${actor}님이 교환을 취소했습니다`;
+      }
+    }
+  },
+  statusCountSubject: (actor, counts) => {
+    const parts = [
+      { verb: "수락", count: counts.reserved },
+      { verb: "거절", count: counts.declined },
+      { verb: "취소", count: counts.cancelled },
+    ]
+      .filter(({ count }) => count > 0)
+      .map(({ verb, count }) => `${num("ko", count)}건 ${verb}`);
+    return `${actor}님이 회원님의 교환을 ${parts.join(", ")}했습니다`;
+  },
+  statusLead: (actorHtml) => `${actorHtml}님이 회원님의 교환 일부를 업데이트했습니다:`,
+
+  digestHeading: "새로운 교환 매칭",
+  digestSubject: (total) =>
+    total === 1 ? "교환 그룹에 새로운 매칭 1건" : `교환 그룹에 새로운 매칭 ${num("ko", total)}건`,
+  digestSingleLead: (counterpartyHtml, cardHtml) =>
+    `${counterpartyHtml}님이 회원님의 위시리스트에 있는 ${cardHtml} 카드를 보유하게 되었습니다.`,
+  digestLead: "그룹 멤버들이 회원님의 위시리스트에 있는 카드를 보유하고 있습니다:",
+  counterpartyHasHeading: (labelHtml) => `${labelHtml}님의 보유 카드`,
+
+  otpSubject: (type) =>
+    ({
+      "sign-in": "로그인 코드",
+      "email-verification": "이메일 주소를 인증하세요",
+      "forget-password": "비밀번호를 재설정하세요",
+      "change-email": "이메일 변경을 확인하세요",
+    })[type] ?? "인증 코드",
+  otpHeading: "인증 코드",
+  otpExpiryNote: "이 코드는 5분 후에 만료됩니다. 요청하지 않으셨다면 이 메일은 무시하셔도 됩니다.",
+};
+
+const EMAIL_MESSAGES: Record<DisplayLocale, EmailMessages> = {
+  en,
+  de,
+  fr,
+  "zh-Hans": zhHans,
+  "zh-Hant": zhHant,
+  ko,
+};
 
 export function emailMessages(locale: DisplayLocale): EmailMessages {
   return EMAIL_MESSAGES[locale];

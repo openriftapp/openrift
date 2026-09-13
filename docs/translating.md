@@ -20,6 +20,8 @@ OpenRift talks to one person who is organising their own cards. Sentences are sh
 
 German uses informal address throughout: `du`, `dein`, lowercase mid-sentence. French uses formal address: `vous`, `votre`. Both conventions are already established across the existing strings, so follow the one for your language.
 
+Simplified Chinese follows the official Simplified Chinese cards for every game term and uses full-width punctuation. Traditional Chinese uses Taiwan conventions (設定, 資料, 帳號, 登入, 搜尋) and the same game terms in Traditional characters, since there is no official Traditional Chinese print. Korean uses the polite 해요체/합쇼체 register with noun labels and the official Korean card terms.
+
 Keep the register of the source. An error message stays factual and never blames the reader. A short label stays short: interface space is fixed, and a label three times longer than the English wraps or truncates. If your language genuinely cannot be that terse, leave a comment so the layout can be adjusted.
 
 Capitalisation follows your language, not the source. Where English capitalises a product noun (Wishlist, Tradelist), German capitalises nouns as German does, and French does not.

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import {
   bestFinishHint,
@@ -9,6 +11,10 @@ import {
 } from "./user-profile-copy";
 
 describe("ordinal", () => {
+  afterEach(() => {
+    overwriteGetLocale(() => "en");
+  });
+
   it("handles the teens and the 1/2/3 endings", () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111].map((n) => ordinal(n))).toEqual([
       "1st",
@@ -24,6 +30,19 @@ describe("ordinal", () => {
       "101st",
       "111th",
     ]);
+  });
+
+  it("uses the rank forms of the other display languages", () => {
+    overwriteGetLocale(() => "de");
+    expect(ordinal(3)).toBe("3.");
+    overwriteGetLocale(() => "fr");
+    expect([1, 2].map((n) => ordinal(n))).toEqual(["1er", "2e"]);
+    overwriteGetLocale(() => "zh-Hans");
+    expect(ordinal(3)).toBe("第3名");
+    overwriteGetLocale(() => "zh-Hant");
+    expect(ordinal(12)).toBe("第12名");
+    overwriteGetLocale(() => "ko");
+    expect(ordinal(3)).toBe("3위");
   });
 });
 

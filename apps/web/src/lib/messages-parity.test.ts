@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const locales = ["en", "de", "fr"] as const;
+const locales = ["en", "de", "fr", "zh-Hans", "zh-Hant", "ko"] as const;
 type Locale = (typeof locales)[number];
 
 interface Variant {
@@ -64,7 +64,7 @@ const selectors = (message: Message | undefined) =>
     : message.map((variant) => variant.selectors.join(",")).join(";");
 
 describe("message files", () => {
-  for (const locale of ["de", "fr"] as const) {
+  for (const locale of ["de", "fr", "zh-Hans", "zh-Hant", "ko"] as const) {
     it(`${locale} has the same keys as en`, () => {
       expect(keysOf(locale).toSorted()).toEqual(keysOf("en").toSorted());
     });

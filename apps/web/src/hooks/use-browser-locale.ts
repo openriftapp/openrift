@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
-import { hasLocaleCookie } from "@/lib/locale-entry";
-import { extractLocaleFromNavigator, getLocale, setLocale } from "@/paraglide/runtime.js";
+import { hasLocaleCookie, localeFromLanguageTags } from "@/lib/locale-entry";
+import { getLocale, setLocale } from "@/paraglide/runtime.js";
 
 /**
  * A cached page reaches a first-time visitor without the server seeing their
@@ -12,7 +12,7 @@ export function useBrowserLocale(): void {
     if (hasLocaleCookie(document.cookie)) {
       return;
     }
-    const preferred = extractLocaleFromNavigator();
+    const preferred = localeFromLanguageTags(navigator.languages ?? []);
     if (preferred === undefined || preferred === getLocale()) {
       return;
     }

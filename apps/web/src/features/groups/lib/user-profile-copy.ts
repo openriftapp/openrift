@@ -27,6 +27,12 @@ export function ordinal(n: number): string {
   if (locale === "fr") {
     return n === 1 ? "1er" : `${n}e`;
   }
+  if (locale === "zh-Hans" || locale === "zh-Hant") {
+    return `第${n}名`;
+  }
+  if (locale === "ko") {
+    return `${n}위`;
+  }
   const mod100 = n % 100;
   const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (ORDINAL_SUFFIXES[n % 10] ?? "th");
   return `${n}${suffix}`;

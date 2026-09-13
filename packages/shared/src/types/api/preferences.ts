@@ -13,7 +13,7 @@ import type { Currency } from "./trade-preferences.js";
 export type Theme = "light" | "dark" | "auto";
 
 /** Must stay in step with `locales` in apps/web/project.inlang/settings.json. */
-export const DISPLAY_LOCALES = ["en", "de", "fr"] as const;
+export const DISPLAY_LOCALES = ["en", "de", "fr", "zh-Hans", "zh-Hant", "ko"] as const;
 
 export type DisplayLocale = (typeof DISPLAY_LOCALES)[number];
 

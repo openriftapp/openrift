@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  acceptedLanguageTags,
   browserLocaleForPageRequest,
+  localeFromLanguageTags,
   hasLocaleCookie,
   localeEntryRedirect,
   withLocaleCookieRequest,
@@ -70,6 +72,18 @@ describe("browserLocaleForPageRequest", () => {
     ).toBe("fr");
   });
 
+  it("resolves Chinese and Korean browser tags to the display locales", () => {
+    expect(browserLocaleForPageRequest(pageRequest({ "accept-language": "zh-CN,zh;q=0.9" }))).toBe(
+      "zh-Hans",
+    );
+    expect(
+      browserLocaleForPageRequest(pageRequest({ "accept-language": "zh-TW,zh;q=0.9,en;q=0.8" })),
+    ).toBe("zh-Hant");
+    expect(browserLocaleForPageRequest(pageRequest({ "accept-language": "ko-KR,ko;q=0.9" }))).toBe(
+      "ko",
+    );
+  });
+
   it("leaves a saved choice alone", () => {
     expect(
       browserLocaleForPageRequest(
@@ -129,5 +143,30 @@ describe("hasLocaleCookie", () => {
     expect(hasLocaleCookie("NOT_PARAGLIDE_LOCALE=de")).toBe(false);
     expect(hasLocaleCookie("")).toBe(false);
     expect(hasLocaleCookie(null)).toBe(false);
+  });
+});
+
+describe("localeFromLanguageTags", () => {
+  it("prefers an exact locale, then the base language, in the browser's order", () => {
+    expect(localeFromLanguageTags(["es", "fr-CA", "de"])).toBe("fr");
+    expect(localeFromLanguageTags(["es", "it"])).toBeUndefined();
+    expect(localeFromLanguageTags([])).toBeUndefined();
+  });
+
+  it("maps every Chinese tag to Simplified or Traditional", () => {
+    expect(localeFromLanguageTags(["zh"])).toBe("zh-Hans");
+    expect(localeFromLanguageTags(["zh-SG"])).toBe("zh-Hans");
+    expect(localeFromLanguageTags(["zh-Hans-CN"])).toBe("zh-Hans");
+    expect(localeFromLanguageTags(["zh-HK"])).toBe("zh-Hant");
+    expect(localeFromLanguageTags(["zh-MO"])).toBe("zh-Hant");
+    expect(localeFromLanguageTags(["zh-Hant-TW"])).toBe("zh-Hant");
+    expect(localeFromLanguageTags(["zh-hant"])).toBe("zh-Hant");
+  });
+});
+
+describe("acceptedLanguageTags", () => {
+  it("orders tags by quality and drops empty entries", () => {
+    expect(acceptedLanguageTags("en;q=0.5, de-AT, fr;q=0.8,")).toEqual(["de-AT", "fr", "en"]);
+    expect(acceptedLanguageTags(null)).toEqual([]);
   });
 });
