@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { EMBED_IMAGE_SIZE } from "@openrift/shared/scan/embed";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

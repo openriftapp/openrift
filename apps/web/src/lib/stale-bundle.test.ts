@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { API_FORMAT_VERSION } from "@openrift/shared/contracts/api-format";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";

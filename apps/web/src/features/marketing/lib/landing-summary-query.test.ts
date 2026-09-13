@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { LandingSummaryResponse } from "@openrift/shared/types/api/catalog";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

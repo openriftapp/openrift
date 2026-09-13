@@ -2,7 +2,7 @@
 
 ## Overview
 
-All workspaces use **Vitest** as the test runner. `apps/web` runs with `jsdom`; `apps/api` and `packages/shared` run in node. Always invoke tests via `bun run test` (which goes through Turbo) — never `bun test`, which runs Bun's built-in runner and bypasses each package's vitest config.
+All workspaces use **Vitest** as the test runner. `apps/web` runs DOM-bound tests in `jsdom` and the rest in node (see the config list below); `apps/api` and `packages/shared` run in node. Always invoke tests via `bun run test` (which goes through Turbo) — never `bun test`, which runs Bun's built-in runner and bypasses each package's vitest config.
 
 ## Running Tests
 
@@ -76,7 +76,7 @@ Each workspace has its own `vitest.config.ts`:
 
 - `packages/shared/vitest.config.ts` — node environment, no aliases.
 - `apps/api/vitest.config.ts` — node environment, loads `DATABASE_URL` from the root `.env` so integration tests can find it.
-- `apps/web/vitest.config.ts` — `jsdom` environment, `@/` → `src/` alias, React SWC plugin via Vite.
+- `apps/web/vitest.config.ts` — two projects: component, hook and store tests (`*.test.tsx`, `use-*.test.ts`, anything under `hooks/` or `stores/`) run in `jsdom`, every other `.test.ts` runs in node. A lib test that needs the DOM opts in with `// @vitest-environment jsdom` as its first line. Creating jsdom is most of a small test's cost, so keep pure logic in node. `@/` → `src/` alias.
 
 Use `vi.mock()` when the module under test imports something with side effects or heavy dependencies (React components, DOM APIs, browser globals). If a utility only imports plain constants or types from such a module, mock just that export to avoid pulling in the entire dependency tree.
 

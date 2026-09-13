@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
 import { getHeaderHeight, SSR_HEADER_HEIGHT } from "./header-height";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

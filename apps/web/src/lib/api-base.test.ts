@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // PREVIEW_HOSTS is derived from ./env at module load time, so a specific host

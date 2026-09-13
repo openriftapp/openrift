@@ -17,7 +17,10 @@ pre-commit:
       # working tree does not have yet, such as a squash merge.
       run: |
         [ -x apps/web/node_modules/.bin/paraglide-js ] || bun install --frozen-lockfile
-        bun run --cwd apps/web paraglide:compile && bunx oxlint --type-aware --deny-warnings '{staged_files}'
+        if [ ! -f apps/web/src/paraglide/runtime.js ] || git diff --cached --name-only | grep -qE '^apps/web/(messages/|project\.inlang/)'; then
+          bun run --cwd apps/web paraglide:compile
+        fi
+        bunx oxlint --type-aware --deny-warnings '{staged_files}'
     eslint-check:
       glob: "*.{js,ts,jsx,tsx}"
       root: "apps/web/"
