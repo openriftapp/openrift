@@ -1,7 +1,7 @@
 import { browser } from "wxt/browser";
 import { defineBackground } from "wxt/utils/define-background";
 
-import { CARDMARKET_MATCH_PATTERN, isCardmarketOffersUrl } from "@/lib/cardmarket-url";
+import { CARDMARKET_MATCH_PATTERN, cardmarketPageKind } from "@/lib/cardmarket-url";
 import { annotateTab, captureSnapshot, storedBasket } from "@/lib/inject";
 import { isOverlaySyncUrl, openriftMatchPattern } from "@/lib/openrift-url";
 import type { PicksBasket } from "@/lib/picks";
@@ -16,7 +16,7 @@ async function hasPermission(origin: string): Promise<boolean> {
 /** Everything here needs a granted host permission; the popup covers the rest by hand. */
 async function handlePageLoad(tabId: number, url: string): Promise<void> {
   try {
-    if (isCardmarketOffersUrl(url) && (await hasPermission(CARDMARKET_MATCH_PATTERN))) {
+    if (cardmarketPageKind(url) !== undefined && (await hasPermission(CARDMARKET_MATCH_PATTERN))) {
       await annotateTab(tabId);
       return;
     }

@@ -23,10 +23,11 @@ export interface CardmarketOverlayCountRow {
   finish: "normal" | "foil";
   owned: number;
   wanted: number;
-  priceCents: number | null;
+  cardtraderCents: number | null;
 }
 
 const CARDMARKET: Marketplace = "cardmarket";
+const CARDTRADER: Marketplace = "cardtrader";
 
 export function cardmarketOverlayRepo(db: Kysely<Database>) {
   return {
@@ -49,7 +50,6 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
     async productCounts(
       wants: CardmarketOverlayWant[],
       userId: string,
-      marketplace: Marketplace,
     ): Promise<CardmarketOverlayCountRow[]> {
       const wantIds = wants.map((_, index) => index);
       const cardIds = wants.map((want) => want.cardId);
@@ -108,7 +108,7 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
           JOIN marketplace_product_variants v ON v.marketplace_product_id = p.id
           JOIN printings pr ON pr.id = v.printing_id
           JOIN mv_latest_printing_prices mvp
-            ON mvp.printing_id = pr.id AND mvp.marketplace = ${marketplace}
+            ON mvp.printing_id = pr.id AND mvp.marketplace = ${CARDTRADER}
           WHERE p.marketplace = ${CARDMARKET} AND p.finish IN ('normal', 'foil')
           GROUP BY p.external_id, p.finish
         ),
@@ -124,7 +124,7 @@ export function cardmarketOverlayRepo(db: Kysely<Database>) {
           k.finish AS finish,
           COALESCE(o.owned, 0) AS owned,
           COALESCE(w.wanted, 0) AS wanted,
-          z.price_cents AS "priceCents"
+          z.price_cents AS "cardtraderCents"
         FROM keys k
         LEFT JOIN owned o ON o.external_id = k.external_id AND o.finish = k.finish
         LEFT JOIN wanted w ON w.external_id = k.external_id AND w.finish = k.finish

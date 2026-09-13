@@ -12,8 +12,32 @@ const CELL_STYLE = [
   "white-space:nowrap",
 ].join(";");
 
-/** The row's OpenRift cell, created as its last column on first use. */
+// A table cell keeps its own display, or the row's stripe and height break;
+// the flex layout goes on a wrapper inside it.
+const TABLE_CELL_STYLE = "padding-left:12px;white-space:nowrap";
+const TABLE_INNER_STYLE = "display:flex;align-items:center;gap:8px";
+
+function tableCell(row: HTMLTableRowElement, doc: Document): HTMLElement {
+  const existing = row.querySelector<HTMLElement>(`[${CELL_ATTRIBUTE}] > div`);
+  if (existing !== null) {
+    return existing;
+  }
+  const cell = doc.createElement("td");
+  cell.setAttribute(CELL_ATTRIBUTE, "");
+  cell.className = "text-start";
+  cell.setAttribute("style", TABLE_CELL_STYLE);
+  const inner = doc.createElement("div");
+  inner.setAttribute("style", TABLE_INNER_STYLE);
+  cell.append(inner);
+  row.append(cell);
+  return inner;
+}
+
+/** The row's OpenRift cell, created as its last column on first use; a table row gets a real cell. */
 export function overlayCell(row: HTMLElement, doc: Document): HTMLElement {
+  if (row instanceof HTMLTableRowElement) {
+    return tableCell(row, doc);
+  }
   const existing = row.querySelector<HTMLElement>(`[${CELL_ATTRIBUTE}]`);
   if (existing !== null) {
     return existing;
@@ -27,6 +51,7 @@ export function overlayCell(row: HTMLElement, doc: Document): HTMLElement {
 }
 
 const HEADER_SELECTOR = ".table-header";
+const WIZARD_HEADER_ROW_SELECTOR = ".detailed-result-card table thead tr";
 const HEADER_LABEL = "OpenRift";
 const HEADER_ATTRIBUTE = "data-openrift-header";
 const HELP_TOGGLE_ATTRIBUTE = "data-openrift-help-toggle";
@@ -38,8 +63,8 @@ const HELP_LINES = [
     "Copies of this card in your collections, and how many your wishlists still ask for.",
   ],
   [
-    "Price under the seller's",
-    "Your own reference price. The seller's asking price turns green at or under it, amber up to a fifth over, red beyond.",
+    "CT price",
+    "The cheapest CardTrader Zero listing. The seller's asking price turns green at or under it, amber up to a fifth over, red beyond.",
   ],
   [
     "− / +",
@@ -140,7 +165,7 @@ function buildHeader(cell: HTMLElement, doc: Document): void {
 export function overlayHeader(root: ParentNode, doc: Document): boolean {
   const header = root.querySelector<HTMLElement>(HEADER_SELECTOR);
   if (header === null) {
-    return false;
+    return overlayWizardHeaders(root, doc);
   }
   const row = header.querySelector<HTMLElement>(":scope > .row") ?? header;
   const cell = overlayCell(row, doc);
@@ -148,4 +173,26 @@ export function overlayHeader(root: ParentNode, doc: Document): boolean {
     buildHeader(cell, doc);
   }
   return true;
+}
+
+/** Every seller table in a wizard result gets the column; only the first carries the help. */
+function overlayWizardHeaders(root: ParentNode, doc: Document): boolean {
+  const rows = [...root.querySelectorAll<HTMLElement>(WIZARD_HEADER_ROW_SELECTOR)];
+  for (const [index, row] of rows.entries()) {
+    const existing = row.querySelector<HTMLElement>(`[${CELL_ATTRIBUTE}]`);
+    if (existing !== null) {
+      continue;
+    }
+    const cell = doc.createElement("th");
+    cell.setAttribute(CELL_ATTRIBUTE, "");
+    cell.className = "text-start";
+    cell.setAttribute("style", TABLE_CELL_STYLE);
+    row.append(cell);
+    if (index === 0) {
+      buildHeader(cell, doc);
+    } else {
+      cell.textContent = HEADER_LABEL;
+    }
+  }
+  return rows.length > 0;
 }

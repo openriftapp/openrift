@@ -22,9 +22,9 @@ describe("cardmarketOverlayRepo", () => {
 
   it("productCounts returns the aggregated rows", async () => {
     const rows = [
-      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, priceCents: 1250 },
-      { idProduct: 914_101, finish: "foil", owned: 0, wanted: 1, priceCents: null },
-      { idProduct: 914_102, finish: "normal", owned: 0, wanted: 0, priceCents: 400 },
+      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, cardtraderCents: 1250 },
+      { idProduct: 914_101, finish: "foil", owned: 0, wanted: 1, cardtraderCents: null },
+      { idProduct: 914_102, finish: "normal", owned: 0, wanted: 0, cardtraderCents: 400 },
     ];
     const db = createMockDb(rows);
     const repo = cardmarketOverlayRepo(db);
@@ -32,12 +32,12 @@ describe("cardmarketOverlayRepo", () => {
       { cardId: "card-1", printingId: null, quantity: 2 },
       { cardId: null, printingId: "pr-1", quantity: 3 },
     ];
-    expect(await repo.productCounts(wants, "u1", "cardmarket")).toEqual(rows);
+    expect(await repo.productCounts(wants, "u1")).toEqual(rows);
   });
 
   it("productCounts runs with no wants at all", async () => {
     const db = createMockDb([]);
     const repo = cardmarketOverlayRepo(db);
-    expect(await repo.productCounts([], "u1", "cardmarket")).toEqual([]);
+    expect(await repo.productCounts([], "u1")).toEqual([]);
   });
 });

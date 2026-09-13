@@ -3,8 +3,8 @@ import type { CardmarketFinish } from "./cardmarket-rows";
 export interface OverlayCounts {
   owned: number;
   wanted: number;
-  /** Headline price of the viewer's own marketplace, in that marketplace's cents. */
-  priceCents: number | null;
+  /** Cheapest CardTrader Zero listing in euro cents, null when CardTrader has none. */
+  cardtraderCents: number | null;
 }
 
 export interface OverlayList {
@@ -15,7 +15,6 @@ export interface OverlayList {
 
 export interface OverlaySnapshot {
   lists: OverlayList[];
-  marketplace: OverlayMarketplace;
   generatedAt: string;
   capturedAt: string;
   /** Keyed by `<product id>:<finish>`, because one product id exists in both finishes. */
@@ -24,15 +23,7 @@ export interface OverlaySnapshot {
 
 export const SNAPSHOT_STORAGE_KEY = "cardmarketOverlaySnapshot";
 
-const OVERLAY_MARKETPLACES = ["cardmarket", "tcgplayer", "cardtrader"] as const;
-
-export type OverlayMarketplace = (typeof OVERLAY_MARKETPLACES)[number];
-
-const EMPTY_COUNTS: OverlayCounts = { owned: 0, wanted: 0, priceCents: null };
-
-function isMarketplace(value: unknown): value is OverlayMarketplace {
-  return OVERLAY_MARKETPLACES.includes(value as OverlayMarketplace);
-}
+const EMPTY_COUNTS: OverlayCounts = { owned: 0, wanted: 0, cardtraderCents: null };
 
 const PAYLOAD_SELECTOR = 'script[type="application/json"][data-openrift-overlay-snapshot]';
 
@@ -41,7 +32,7 @@ interface SnapshotProductRow {
   finish: CardmarketFinish;
   owned: number;
   wanted: number;
-  priceCents: number | null;
+  cardtraderCents: number | null;
 }
 
 function productKey(idProduct: number, finish: CardmarketFinish): string {
@@ -70,7 +61,7 @@ function isProductRow(value: unknown): value is SnapshotProductRow {
     (row.finish === "normal" || row.finish === "foil") &&
     typeof row.owned === "number" &&
     typeof row.wanted === "number" &&
-    (row.priceCents === null || typeof row.priceCents === "number")
+    (row.cardtraderCents === null || typeof row.cardtraderCents === "number")
   );
 }
 
@@ -103,7 +94,7 @@ export function readSnapshotFromPage(
     return undefined;
   }
   const lists = payload.lists.filter(isList);
-  if (lists.length === 0 || !isMarketplace(payload.marketplace)) {
+  if (lists.length === 0) {
     return undefined;
   }
 
@@ -113,14 +104,13 @@ export function readSnapshotFromPage(
       products[productKey(row.idProduct, row.finish)] = {
         owned: row.owned,
         wanted: row.wanted,
-        priceCents: row.priceCents,
+        cardtraderCents: row.cardtraderCents,
       };
     }
   }
 
   return {
     lists,
-    marketplace: payload.marketplace,
     generatedAt: payload.generatedAt,
     capturedAt,
     products,

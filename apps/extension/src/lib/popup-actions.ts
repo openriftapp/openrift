@@ -1,4 +1,4 @@
-import { isCardmarketOffersUrl } from "./cardmarket-url";
+import { cardmarketPageKind } from "./cardmarket-url";
 import type { PageDeckExtract } from "./deck-extract";
 import { countTextCards } from "./deck-extract";
 import { isOverlaySyncUrl } from "./openrift-url";
@@ -35,7 +35,7 @@ export function popupPlan(url: string): PopupPlan {
       captureOnOpen: true,
     };
   }
-  if (isCardmarketOffersUrl(url)) {
+  if (cardmarketPageKind(url) !== undefined) {
     return {
       primary: "annotate",
       label: "Mark this page",

@@ -23,18 +23,13 @@ export const cardmarketOverlayRouter = {
     );
     const wants = entriesPerList.flatMap((entries) => overlayWantsFromEntries(entries));
 
-    const products = await context.repos.cardmarketOverlay.productCounts(
-      wants,
-      context.userId,
-      input.marketplace,
-    );
+    const products = await context.repos.cardmarketOverlay.productCounts(wants, context.userId);
     return {
       lists: lists.map((list, index) => ({
         id: list.id,
         name: list.name,
         entryCount: entriesPerList[index]?.length ?? 0,
       })),
-      marketplace: input.marketplace,
       generatedAt: new Date().toISOString(),
       products,
     };

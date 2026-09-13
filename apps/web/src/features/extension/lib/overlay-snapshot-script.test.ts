@@ -12,11 +12,10 @@ function snapshot(overrides: Partial<CardmarketOverlaySnapshot> = {}): Cardmarke
         entryCount: 12,
       },
     ],
-    marketplace: "cardmarket",
     generatedAt: "2026-09-09T12:30:00.000Z",
     products: [
-      { idProduct: 903_066, finish: "normal", owned: 2, wanted: 4, priceCents: 249 },
-      { idProduct: 903_066, finish: "foil", owned: 0, wanted: 1, priceCents: null },
+      { idProduct: 903_066, finish: "normal", owned: 2, wanted: 4, cardtraderCents: 249 },
+      { idProduct: 903_066, finish: "foil", owned: 0, wanted: 1, cardtraderCents: null },
     ],
     ...overrides,
   };

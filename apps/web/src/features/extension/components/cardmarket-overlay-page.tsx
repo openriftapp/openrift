@@ -2,7 +2,6 @@ import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { CardmarketOverlaySnapshot } from "@openrift/shared/contracts/cardmarket-overlay";
 import { CARDMARKET_OVERLAY_MAX_LISTS } from "@openrift/shared/contracts/cardmarket-overlay";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
-import { marketplaceLabel } from "@openrift/shared/marketplace";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
@@ -48,7 +47,6 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
       }
       description={m.extension_overlay_ready_description({
         cards: m.extension_overlay_ready_cards({ count: cards }),
-        marketplace: marketplaceLabel(snapshot.marketplace),
         time: formatDayTimeLocal(snapshot.generatedAt),
       })}
     >

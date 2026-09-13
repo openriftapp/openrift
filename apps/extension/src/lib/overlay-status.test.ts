@@ -22,12 +22,11 @@ function list(index: number, name: string, entryCount?: number) {
 function snapshot(overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot {
   return {
     lists: [list(1, "Summoner Skirmish wants", 24)],
-    marketplace: "cardmarket",
     generatedAt: "2026-09-09T11:00:00.000Z",
     capturedAt: "2026-09-09T11:00:00.000Z",
     products: {
-      "1": { owned: 2, wanted: 1, priceCents: null },
-      "2": { owned: 0, wanted: 3, priceCents: null },
+      "1": { owned: 2, wanted: 1, cardtraderCents: null },
+      "2": { owned: 0, wanted: 3, cardtraderCents: null },
     },
     ...overrides,
   };

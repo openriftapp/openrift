@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { cardmarketSellerFromUrl, isCardmarketOffersUrl } from "./cardmarket-url";
+import {
+  cardmarketPageKind,
+  cardmarketSellerFromUrl,
+  isCardmarketOffersUrl,
+  isCardmarketWizardResultUrl,
+} from "./cardmarket-url";
 
 describe("cardmarketSellerFromUrl", () => {
   it("reads the seller out of an offers page", () => {
@@ -53,5 +58,35 @@ describe("isCardmarketOffersUrl", () => {
 
   it("reads a non-URL as no match", () => {
     expect(isCardmarketOffersUrl("about:blank")).toBe(false);
+  });
+});
+
+describe("cardmarketPageKind", () => {
+  const WIZARD =
+    "https://www.cardmarket.com/en/Riftbound/Wants/ShoppingWizard/Results/2026-9-993256028-6aa66d4a194f6";
+
+  it("tells a wizard result from an offers page", () => {
+    expect(cardmarketPageKind(WIZARD)).toBe("wizard");
+    expect(isCardmarketWizardResultUrl(WIZARD)).toBe(true);
+    expect(
+      cardmarketPageKind("https://www.cardmarket.com/de/Riftbound/Users/someone/Offers/Singles"),
+    ).toBe("offers");
+  });
+
+  it("keeps out the wizard's own setup and history pages", () => {
+    expect(
+      cardmarketPageKind("https://www.cardmarket.com/en/Riftbound/Wants/ShoppingWizard"),
+    ).toBeUndefined();
+    expect(
+      cardmarketPageKind("https://www.cardmarket.com/en/Riftbound/Wants/ShoppingWizard/Results"),
+    ).toBeUndefined();
+  });
+
+  it("keeps out another game's wizard", () => {
+    expect(
+      cardmarketPageKind(
+        "https://www.cardmarket.com/en/Magic/Wants/ShoppingWizard/Results/2026-9-1-abc",
+      ),
+    ).toBeUndefined();
   });
 });

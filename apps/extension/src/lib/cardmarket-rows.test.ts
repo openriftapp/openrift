@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractArticleRows } from "./cardmarket-rows";
+import { extractArticleRows, extractCardmarketRows, extractWizardRows } from "./cardmarket-rows";
 
 // Trimmed from a saved seller offers page: the SVG rarity icon, the sprite URLs
 // and the cart form are dropped, every attribute that matters is verbatim.
@@ -34,6 +34,18 @@ const PLAIN_ROW = `
     </div></div></div>
   </div></div>
 </div>`;
+
+// Trimmed from a saved shopping wizard result: sprite styles, tooltips and the
+// mobile copy of each row are dropped, the cells and their order are verbatim.
+const WIZARD_CARD = `
+<div class="card detailed-result-card"><div class="card-body">
+  <dl class="row"><dt>Total</dt><dd>2,75 €</dd></dl><hr>
+  <table class="table table-sm"><thead><tr><th class="text-start"></th><th class="text-start"></th><th class="text-start">Qty</th><th class="text-start">Card name</th><th class="text-start"></th><th class="text-start"></th><th class="text-start"></th><th class="text-start">Extra</th><th>Price</th></tr></thead><tbody>
+    <tr><td class="text-start"><input type="checkbox" name="checkboxArticle[2075594192]" checked="checked" data-id-article="2075594192"></td><td class="text-start"><span data-bs-title="&lt;img src=&quot;https://product-images.s3.cardmarket.com/1655/SFD/866920/866920.jpg&quot; alt=&quot;Undertitan&quot;&gt;" class="thumbnail-icon icon is-24x24 is-riftbound"></span></td><td class="text-start">2</td><td class="text-start text-truncate card-name">Undertitan</td><td class="text-start"><span class="expansion-symbol is-text"><span>SFD</span></span></td><td class="text-start"><span class="icon" aria-label="English" data-bs-original-title="English"></span></td><td class="text-start"><a class="article-condition condition-nm"><span class="badge ">NM</span></a></td><td class="text-start"><span class="extras "><span class="icon is-24x24"><span class="icon" aria-label="Foil" data-bs-original-title="Foil"></span></span></span></td><td class="text-end">0,35 €</td></tr>
+    <tr><td class="text-start"><input type="checkbox" name="checkboxArticle[2154498896]" checked="checked" data-id-article="2154498896"></td><td class="text-start"><span data-bs-title="&lt;img src=&quot;https://product-images.s3.cardmarket.com/1655/SFD/866779/866779.jpg&quot; alt=&quot;Heart of Dark Ice&quot;&gt;" class="thumbnail-icon icon is-24x24 is-riftbound"></span></td><td class="text-start">1</td><td class="text-start text-truncate card-name">Heart of Dark Ice</td><td class="text-start"><span class="expansion-symbol is-text"><span>SFD</span></span></td><td class="text-start"><span class="icon" aria-label="Deutsch" data-bs-original-title="Deutsch"></span></td><td class="text-start"><a class="article-condition condition-nm"><span class="badge ">NM</span></a></td><td class="text-start"><span class="extras "></span></td><td class="text-end">1,20 €</td></tr>
+  </tbody></table>
+  <div class="d-md-none"><div name="articleRowMobile[2075594192]" class="row"><input type="checkbox" name="checkboxArticle[2075594192]" data-id-article="2075594192"><span>Undertitan</span></div></div>
+</div></div>`;
 
 function documentFrom(bodyHtml: string): Document {
   return new DOMParser().parseFromString(`<html><body>${bodyHtml}</body></html>`, "text/html");
@@ -102,5 +114,62 @@ describe("extractArticleRows", () => {
 
   it("finds nothing on a page without article rows", () => {
     expect(extractArticleRows(documentFrom("<p>Keine Angebote</p>"))).toEqual([]);
+  });
+
+  it("reads the asking price off the offer", () => {
+    const doc = documentFrom(`
+      <div id="stockRow1">
+        <img src="https://product-images.s3.cardmarket.com/1655/OGN/847321/847321.jpg" alt="" />
+        <div class="price-container"><span class="color-primary">1.234,56 €</span></div>
+      </div>`);
+
+    const row = extractArticleRows(doc)[0];
+
+    expect(row?.priceCents).toBe(123_456);
+    expect(row?.priceElements).toHaveLength(1);
+    expect(row?.quantity).toBe(1);
+  });
+});
+
+describe("extractWizardRows", () => {
+  it("reads every desktop row of a seller table and skips the mobile copies", () => {
+    const rows = extractWizardRows(documentFrom(WIZARD_CARD));
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.idProduct)).toEqual([866_920, 866_779]);
+    expect(rows.map((row) => row.productName)).toEqual(["Undertitan", "Heart of Dark Ice"]);
+    expect(rows.every((row) => row.element instanceof HTMLTableRowElement)).toBe(true);
+  });
+
+  it("reads quantity, price, finish and language per row", () => {
+    const [foil, plain] = extractWizardRows(documentFrom(WIZARD_CARD));
+
+    expect(foil?.quantity).toBe(2);
+    expect(foil?.priceCents).toBe(35);
+    expect(foil?.finish).toBe("foil");
+    expect(foil?.idLanguage).toBe(1);
+    expect(plain?.quantity).toBe(1);
+    expect(plain?.priceCents).toBe(120);
+    expect(plain?.finish).toBe("normal");
+    expect(plain?.idLanguage).toBe(3);
+    expect(plain?.languageLabel).toBe("Deutsch");
+  });
+
+  it("paints the price cell, not the whole row", () => {
+    const row = extractWizardRows(documentFrom(WIZARD_CARD))[0];
+
+    expect(row?.priceElements.map((element) => element.textContent)).toEqual(["0,35 €"]);
+  });
+
+  it("has no product link to offer", () => {
+    expect(extractWizardRows(documentFrom(WIZARD_CARD))[0]?.productLink).toBeUndefined();
+  });
+});
+
+describe("extractCardmarketRows", () => {
+  it("prefers offer rows and falls back to wizard rows", () => {
+    expect(extractCardmarketRows(documentFrom(PLAIN_ROW + WIZARD_CARD))).toHaveLength(1);
+    expect(extractCardmarketRows(documentFrom(WIZARD_CARD))).toHaveLength(2);
+    expect(extractCardmarketRows(documentFrom("<p>Nothing</p>"))).toEqual([]);
   });
 });

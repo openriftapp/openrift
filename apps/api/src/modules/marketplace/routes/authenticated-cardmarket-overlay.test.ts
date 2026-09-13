@@ -11,7 +11,7 @@ interface CountRow {
   finish: "normal" | "foil";
   owned: number;
   wanted: number;
-  priceCents: number | null;
+  cardtraderCents: number | null;
 }
 
 interface ListRow {
@@ -44,11 +44,11 @@ app.use("*", async (c, next) => {
 });
 registerRouterForTest(app, cardmarketOverlayRouter);
 
-function snapshot(listIds: string[], marketplace = "cardmarket") {
+function snapshot(listIds: string[]) {
   return app.request("/api/v1/cardmarket/overlay/snapshot", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ listIds, marketplace }),
+    body: JSON.stringify({ listIds }),
   });
 }
 
@@ -57,14 +57,14 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     vi.resetAllMocks();
   });
 
-  it("returns the resolved lists, the marketplace and the product counts", async () => {
+  it("returns the resolved lists and the product counts", async () => {
     mockOverlayRepo.wishListsForUser.mockResolvedValue([
       { id: OTHER_LIST_ID, name: "Skirmish Wants", kind: "card" },
       { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
     ]);
     mockOverlayRepo.productCounts.mockResolvedValue([
-      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, priceCents: 1250 },
-      { idProduct: 914_102, finish: "foil", owned: 0, wanted: 1, priceCents: null },
+      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, cardtraderCents: 1250 },
+      { idProduct: 914_102, finish: "foil", owned: 0, wanted: 1, cardtraderCents: null },
     ]);
 
     const res = await snapshot([LIST_ID, OTHER_LIST_ID]);
@@ -75,10 +75,9 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
       { id: OTHER_LIST_ID, name: "Skirmish Wants", entryCount: 0 },
       { id: LIST_ID, name: "Summoner Wants", entryCount: 0 },
     ]);
-    expect(json.marketplace).toBe("cardmarket");
     expect(json.products).toEqual([
-      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, priceCents: 1250 },
-      { idProduct: 914_102, finish: "foil", owned: 0, wanted: 1, priceCents: null },
+      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, cardtraderCents: 1250 },
+      { idProduct: 914_102, finish: "foil", owned: 0, wanted: 1, cardtraderCents: null },
     ]);
     expect(Number.isNaN(Date.parse(json.generatedAt as string))).toBe(false);
   });
@@ -88,7 +87,7 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
       { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
     ]);
     mockOverlayRepo.productCounts.mockResolvedValue([
-      { idProduct: 914_101, finish: "normal", owned: 0, wanted: 0, priceCents: 400 },
+      { idProduct: 914_101, finish: "normal", owned: 0, wanted: 0, cardtraderCents: 400 },
     ]);
 
     const res = await snapshot([LIST_ID]);
@@ -96,7 +95,7 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.products).toEqual([
-      { idProduct: 914_101, finish: "normal", owned: 0, wanted: 0, priceCents: 400 },
+      { idProduct: 914_101, finish: "normal", owned: 0, wanted: 0, cardtraderCents: 400 },
     ]);
   });
 
@@ -105,8 +104,8 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
       { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
     ]);
     mockOverlayRepo.productCounts.mockResolvedValue([
-      { idProduct: 914_101, finish: "foil", owned: 1, wanted: 4, priceCents: 900 },
-      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, priceCents: 250 },
+      { idProduct: 914_101, finish: "foil", owned: 1, wanted: 4, cardtraderCents: 900 },
+      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, cardtraderCents: 250 },
     ]);
 
     const res = await snapshot([LIST_ID]);
@@ -114,25 +113,23 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.products).toEqual([
-      { idProduct: 914_101, finish: "foil", owned: 1, wanted: 4, priceCents: 900 },
-      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, priceCents: 250 },
+      { idProduct: 914_101, finish: "foil", owned: 1, wanted: 4, cardtraderCents: 900 },
+      { idProduct: 914_101, finish: "normal", owned: 3, wanted: 2, cardtraderCents: 250 },
     ]);
   });
 
-  it("counts a repeated list id once and forwards the requested marketplace", async () => {
+  it("counts a repeated list id once", async () => {
     mockOverlayRepo.wishListsForUser.mockResolvedValue([
       { id: LIST_ID, name: "Summoner Wants", kind: "printing" },
     ]);
     mockOverlayRepo.productCounts.mockResolvedValue([]);
 
-    const res = await snapshot([LIST_ID, LIST_ID], "tcgplayer");
+    const res = await snapshot([LIST_ID, LIST_ID]);
 
     expect(res.status).toBe(200);
-    const json = await readJson(res);
-    expect(json.marketplace).toBe("tcgplayer");
     expect(mockOverlayRepo.wishListsForUser).toHaveBeenCalledWith([LIST_ID], USER_ID);
     expect(mockListsRepo.entriesWithDetails).toHaveBeenCalledTimes(1);
-    expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID, "tcgplayer");
+    expect(mockOverlayRepo.productCounts).toHaveBeenCalledWith([], USER_ID);
   });
 
   it("counts each list's expanded entries", async () => {
@@ -196,7 +193,6 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
         { cardId: null, printingId: PRINTING_ID, quantity: 3 },
       ],
       USER_ID,
-      "cardmarket",
     );
   });
 
@@ -214,13 +210,11 @@ describe("POST /api/v1/cardmarket/overlay/snapshot", () => {
     expect(mockOverlayRepo.productCounts).not.toHaveBeenCalled();
   });
 
-  it("rejects an empty list, a non-uuid id and an unknown marketplace", async () => {
+  it("rejects an empty list and a non-uuid id", async () => {
     const emptyList = await snapshot([]);
     const badId = await snapshot(["not-a-uuid"]);
-    const badMarketplace = await snapshot([LIST_ID], "ebay");
     expect(emptyList.status).toBe(400);
     expect(badId.status).toBe(400);
-    expect(badMarketplace.status).toBe(400);
     expect(mockOverlayRepo.wishListsForUser).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,6 @@
 import { overlayCell } from "./cardmarket-cell";
 import type { CardmarketArticleRow, CardmarketFinish } from "./cardmarket-rows";
-import { extractArticleRows } from "./cardmarket-rows";
+import { extractCardmarketRows } from "./cardmarket-rows";
 import type { PickIdentity, PicksBasket } from "./picks";
 import { pickedQuantity } from "./picks";
 
@@ -101,8 +101,8 @@ export function renderPickControls(
   doc: Document,
 ): number {
   let rendered = 0;
-  for (const row of extractArticleRows(root)) {
-    if (row.idProduct === undefined || row.productLink === undefined) {
+  for (const row of extractCardmarketRows(root)) {
+    if (row.idProduct === undefined) {
       continue;
     }
     const identity = identityOf(row, row.idProduct);

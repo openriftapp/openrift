@@ -1,20 +1,16 @@
 import { overlayCell } from "./cardmarket-cell";
 import type { PriceVerdict } from "./cardmarket-price";
-import { parsePriceCents, priceVerdict } from "./cardmarket-price";
+import { priceVerdict } from "./cardmarket-price";
 import type { CardmarketArticleRow } from "./cardmarket-rows";
-import { extractArticleRows } from "./cardmarket-rows";
-import type { OverlayCounts, OverlayMarketplace, OverlaySnapshot } from "./overlay-snapshot";
+import { extractCardmarketRows } from "./cardmarket-rows";
+import type { OverlayCounts, OverlaySnapshot } from "./overlay-snapshot";
 import { countsForProduct } from "./overlay-snapshot";
 
 const PILL_ATTRIBUTE = "data-openrift-overlay";
 const PRICE_ATTRIBUTE = "data-openrift-overlay-price";
 const PRICE_CONTAINER_SELECTOR = ".price-container";
 const OFFER_COLUMN_SELECTOR = ".col-offer";
-const SELLER_PRICE_SELECTOR = ".color-primary";
 const COLOURED_ATTRIBUTE = "data-openrift-overlay-verdict";
-
-// Cardmarket sells in euro, so a dollar reference cannot be compared to the ask.
-const COMPARABLE: ReadonlySet<OverlayMarketplace> = new Set(["cardmarket", "cardtrader"]);
 
 const VERDICT_COLOUR: Record<"light" | "dark", Record<PriceVerdict, string>> = {
   light: { below: "#15803d", near: "#a16207", above: "#b91c1c" },
@@ -46,20 +42,12 @@ const PRICE_STYLE = [
   "white-space:nowrap",
 ].join(";");
 
+const CELL_PRICE_STYLE = ["order:2", "font-size:11px", "opacity:0.75", "white-space:nowrap"].join(
+  ";",
+);
+
 const NEUTRAL = "background:#e5e7eb;color:#374151";
 const WANTED = "background:#166534;color:#f0fdf4";
-
-const MARKETPLACE_LABEL: Record<OverlayMarketplace, string> = {
-  cardmarket: "CM",
-  tcgplayer: "TCG",
-  cardtrader: "CT",
-};
-
-const MARKETPLACE_CURRENCY: Record<OverlayMarketplace, string> = {
-  cardmarket: "EUR",
-  tcgplayer: "USD",
-  cardtrader: "EUR",
-};
 
 export function pillText(counts: OverlayCounts): string {
   return `own ${counts.owned} · want ${counts.wanted}`;
@@ -70,18 +58,8 @@ function verdictColour(doc: Document, verdict: PriceVerdict): string {
   return VERDICT_COLOUR[dark ? "dark" : "light"][verdict];
 }
 
-function sellerPriceCents(row: CardmarketArticleRow): number | undefined {
-  for (const element of row.element.querySelectorAll(SELLER_PRICE_SELECTOR)) {
-    const cents = parsePriceCents(element.textContent ?? "");
-    if (cents !== undefined) {
-      return cents;
-    }
-  }
-  return undefined;
-}
-
 function paintSellerPrice(row: CardmarketArticleRow, colour?: string): void {
-  for (const element of row.element.querySelectorAll<HTMLElement>(SELLER_PRICE_SELECTOR)) {
+  for (const element of row.priceElements) {
     if (colour === undefined) {
       if (element.hasAttribute(COLOURED_ATTRIBUTE)) {
         element.style.removeProperty("color");
@@ -95,16 +73,12 @@ function paintSellerPrice(row: CardmarketArticleRow, colour?: string): void {
   }
 }
 
-export function referencePriceText(
-  marketplace: OverlayMarketplace,
-  priceCents: number,
-  locale?: string,
-): string {
-  const amount = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: MARKETPLACE_CURRENCY[marketplace],
-  }).format(priceCents / 100);
-  return `${MARKETPLACE_LABEL[marketplace]} ${amount}`;
+export function formatEuro(cents: number, locale?: string): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(cents / 100);
+}
+
+export function referencePriceText(cardtraderCents: number, locale?: string): string {
+  return `CT ${formatEuro(cardtraderCents, locale)}`;
 }
 
 function upsert(
@@ -118,12 +92,15 @@ function upsert(
   const element = existing ?? doc.createElement("span");
   element.setAttribute(attribute, "");
   element.setAttribute("style", style);
-  element.textContent = text;
+  // Assigning equal text still replaces the node, which the page observer would see as a change.
+  if (element.textContent !== text) {
+    element.textContent = text;
+  }
   return element;
 }
 
 function annotateCounts(row: CardmarketArticleRow, counts: OverlayCounts, doc: Document): boolean {
-  if (row.productLink === undefined || (counts.owned === 0 && counts.wanted === 0)) {
+  if (counts.owned === 0 && counts.wanted === 0) {
     row.element.querySelector(`[${PILL_ATTRIBUTE}]`)?.remove();
     return false;
   }
@@ -135,24 +112,28 @@ function annotateCounts(row: CardmarketArticleRow, counts: OverlayCounts, doc: D
   return true;
 }
 
-function annotatePrice(
-  row: CardmarketArticleRow,
-  counts: OverlayCounts,
-  marketplace: OverlayMarketplace,
-  doc: Document,
-): void {
-  if (counts.priceCents === null) {
+function annotatePrice(row: CardmarketArticleRow, counts: OverlayCounts, doc: Document): void {
+  if (counts.cardtraderCents === null) {
     row.element.querySelector(`[${PRICE_ATTRIBUTE}]`)?.remove();
     paintSellerPrice(row);
     return;
   }
-  const seller = COMPARABLE.has(marketplace) ? sellerPriceCents(row) : undefined;
-  const verdict = seller === undefined ? undefined : priceVerdict(seller, counts.priceCents);
+  const verdict =
+    row.priceCents === undefined ? undefined : priceVerdict(row.priceCents, counts.cardtraderCents);
   paintSellerPrice(row, verdict === undefined ? undefined : verdictColour(doc, verdict));
 
-  const text = referencePriceText(marketplace, counts.priceCents);
-  const price = upsert(row, PRICE_ATTRIBUTE, PRICE_STYLE, text, doc);
+  const text = referencePriceText(counts.cardtraderCents);
+  const inCell = row.element instanceof HTMLTableRowElement;
+  const price = upsert(row, PRICE_ATTRIBUTE, inCell ? CELL_PRICE_STYLE : PRICE_STYLE, text, doc);
   if (price.isConnected) {
+    return;
+  }
+  if (inCell) {
+    // The extra column narrows the table in a half-width card; "0,15 €" must not break.
+    for (const element of row.priceElements) {
+      element.style.setProperty("white-space", "nowrap");
+    }
+    overlayCell(row.element, doc).append(price);
     return;
   }
   const container = row.element.querySelector<HTMLElement>(PRICE_CONTAINER_SELECTOR);
@@ -169,7 +150,7 @@ function annotatePrice(
 export function annotate(root: ParentNode, snapshot: OverlaySnapshot, doc: Document): number {
   let annotated = 0;
 
-  for (const row of extractArticleRows(root)) {
+  for (const row of extractCardmarketRows(root)) {
     if (row.idProduct === undefined) {
       continue;
     }
@@ -177,7 +158,7 @@ export function annotate(root: ParentNode, snapshot: OverlaySnapshot, doc: Docum
     if (annotateCounts(row, counts, doc)) {
       annotated += 1;
     }
-    annotatePrice(row, counts, snapshot.marketplace, doc);
+    annotatePrice(row, counts, doc);
   }
 
   return annotated;

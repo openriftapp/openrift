@@ -6,13 +6,12 @@ import type { OverlaySnapshot } from "./overlay-snapshot";
 
 const SNAPSHOT: OverlaySnapshot = {
   lists: [{ id: "0199a0f2-0000-7000-8000-000000000001", name: "Summoner Skirmish wants" }],
-  marketplace: "cardtrader",
   generatedAt: "2026-09-09T11:00:00.000Z",
   capturedAt: "2026-09-09T11:00:00.000Z",
   products: {
-    "847321:normal": { owned: 2, wanted: 1, priceCents: 240 },
-    "847321:foil": { owned: 3, wanted: 0, priceCents: null },
-    "884017:normal": { owned: 0, wanted: 0, priceCents: 95 },
+    "847321:normal": { owned: 2, wanted: 1, cardtraderCents: 240 },
+    "847321:foil": { owned: 3, wanted: 0, cardtraderCents: null },
+    "884017:normal": { owned: 0, wanted: 0, cardtraderCents: 95 },
   },
 };
 
@@ -47,15 +46,14 @@ function prices(doc: Document): string[] {
 
 describe("pillText", () => {
   it("reads both counts", () => {
-    expect(pillText({ owned: 2, wanted: 1, priceCents: null })).toBe("own 2 · want 1");
+    expect(pillText({ owned: 2, wanted: 1, cardtraderCents: null })).toBe("own 2 · want 1");
   });
 });
 
 describe("referencePriceText", () => {
-  it("labels the marketplace and formats its own currency", () => {
-    expect(referencePriceText("cardtrader", 240, "en-US")).toBe("CT €2.40");
-    expect(referencePriceText("tcgplayer", 1999, "en-US")).toBe("TCG $19.99");
-    expect(referencePriceText("cardmarket", 5, "en-US")).toBe("CM €0.05");
+  it("labels CardTrader and formats euro", () => {
+    expect(referencePriceText(240, "en-US")).toBe("CT €2.40");
+    expect(referencePriceText(5, "en-US")).toBe("CT €0.05");
   });
 });
 
@@ -121,7 +119,7 @@ describe("annotate", () => {
 
     const changed: OverlaySnapshot = {
       ...SNAPSHOT,
-      products: { "847321:normal": { owned: 4, wanted: 0, priceCents: 300 } },
+      products: { "847321:normal": { owned: 4, wanted: 0, cardtraderCents: 300 } },
     };
     expect(annotate(doc, changed, doc)).toBe(1);
     expect(pills(doc)).toEqual(["own 4 · want 0"]);
@@ -151,7 +149,7 @@ describe("annotate", () => {
     const doc = pageWith({ id: 847_321 });
     const near: OverlaySnapshot = {
       ...SNAPSHOT,
-      products: { "847321:normal": { owned: 1, wanted: 0, priceCents: 90 } },
+      products: { "847321:normal": { owned: 1, wanted: 0, cardtraderCents: 90 } },
     };
 
     annotate(doc, near, doc);
@@ -163,20 +161,12 @@ describe("annotate", () => {
     const doc = pageWith({ id: 847_321 });
     const dear: OverlaySnapshot = {
       ...SNAPSHOT,
-      products: { "847321:normal": { owned: 1, wanted: 0, priceCents: 50 } },
+      products: { "847321:normal": { owned: 1, wanted: 0, cardtraderCents: 50 } },
     };
 
     annotate(doc, dear, doc);
 
     expect(doc.querySelector<HTMLElement>(".color-primary")?.style.color).toBe("rgb(185, 28, 28)");
-  });
-
-  it("never compares a dollar reference against a euro ask", () => {
-    const doc = pageWith({ id: 847_321 });
-
-    annotate(doc, { ...SNAPSHOT, marketplace: "tcgplayer" }, doc);
-
-    expect(doc.querySelector<HTMLElement>(".color-primary")?.style.color).toBe("");
   });
 
   it("takes its colour back when a later snapshot agrees with the ask", () => {

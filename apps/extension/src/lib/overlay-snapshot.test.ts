@@ -13,11 +13,10 @@ function pageWith(payload: string): Document {
 
 const VALID = JSON.stringify({
   lists: [{ id: "0199a0f2-0000-7000-8000-000000000001", name: "Summoner Skirmish wants" }],
-  marketplace: "cardmarket",
   generatedAt: "2026-09-09T11:59:00.000Z",
   products: [
-    { idProduct: 847_321, finish: "normal", owned: 2, wanted: 1, priceCents: 240 },
-    { idProduct: 847_321, finish: "foil", owned: 0, wanted: 3, priceCents: null },
+    { idProduct: 847_321, finish: "normal", owned: 2, wanted: 1, cardtraderCents: 240 },
+    { idProduct: 847_321, finish: "foil", owned: 0, wanted: 3, cardtraderCents: null },
   ],
 });
 
@@ -30,8 +29,8 @@ describe("readSnapshotFromPage", () => {
     ]);
     expect(snapshot?.capturedAt).toBe(CAPTURED_AT);
     expect(snapshot?.products).toEqual({
-      "847321:normal": { owned: 2, wanted: 1, priceCents: 240 },
-      "847321:foil": { owned: 0, wanted: 3, priceCents: null },
+      "847321:normal": { owned: 2, wanted: 1, cardtraderCents: 240 },
+      "847321:foil": { owned: 0, wanted: 3, cardtraderCents: null },
     });
   });
 
@@ -44,14 +43,13 @@ describe("readSnapshotFromPage", () => {
     expect(readSnapshotFromPage(pageWith("{oops"), CAPTURED_AT)).toBeUndefined();
   });
 
-  it("returns nothing when the marketplace is not one we know", () => {
+  it("drops a row still carrying the old reference price field", () => {
     const payload = JSON.stringify({
       lists: [{ id: "x", name: "y" }],
-      marketplace: "ebay",
       generatedAt: "2026-09-09T11:59:00.000Z",
-      products: [],
+      products: [{ idProduct: 847_321, finish: "normal", owned: 2, wanted: 1, priceCents: 240 }],
     });
-    expect(readSnapshotFromPage(pageWith(payload), CAPTURED_AT)).toBeUndefined();
+    expect(readSnapshotFromPage(pageWith(payload), CAPTURED_AT)?.products).toEqual({});
   });
 
   it("returns nothing when a required field is missing", () => {
@@ -71,18 +69,17 @@ describe("readSnapshotFromPage", () => {
   it("drops product rows that are not a full id, finish and pair of counts", () => {
     const payload = JSON.stringify({
       lists: [{ id: "0199a0f2-0000-7000-8000-000000000001", name: "Wants" }],
-      marketplace: "cardmarket",
       generatedAt: "2026-09-09T11:59:00.000Z",
       products: [
-        { idProduct: 847_321, finish: "foil", owned: 2, wanted: 1, priceCents: null },
-        { idProduct: 847_321, finish: "shiny", owned: 1, wanted: 1, priceCents: null },
-        { idProduct: "847321", finish: "foil", owned: 1, wanted: 1, priceCents: null },
+        { idProduct: 847_321, finish: "foil", owned: 2, wanted: 1, cardtraderCents: null },
+        { idProduct: 847_321, finish: "shiny", owned: 1, wanted: 1, cardtraderCents: null },
+        { idProduct: "847321", finish: "foil", owned: 1, wanted: 1, cardtraderCents: null },
         null,
       ],
     });
 
     expect(readSnapshotFromPage(pageWith(payload), CAPTURED_AT)?.products).toEqual({
-      "847321:foil": { owned: 2, wanted: 1, priceCents: null },
+      "847321:foil": { owned: 2, wanted: 1, cardtraderCents: null },
     });
   });
 });
@@ -94,12 +91,12 @@ describe("countsForProduct", () => {
     expect(countsForProduct(snapshot, 847_321, "normal")).toEqual({
       owned: 2,
       wanted: 1,
-      priceCents: 240,
+      cardtraderCents: 240,
     });
     expect(countsForProduct(snapshot, 847_321, "foil")).toEqual({
       owned: 0,
       wanted: 3,
-      priceCents: null,
+      cardtraderCents: null,
     });
   });
 
@@ -107,7 +104,7 @@ describe("countsForProduct", () => {
     expect(countsForProduct(snapshot, 42, "normal")).toEqual({
       owned: 0,
       wanted: 0,
-      priceCents: null,
+      cardtraderCents: null,
     });
   });
 
@@ -115,7 +112,7 @@ describe("countsForProduct", () => {
     expect(countsForProduct(snapshot, undefined, "normal")).toEqual({
       owned: 0,
       wanted: 0,
-      priceCents: null,
+      cardtraderCents: null,
     });
   });
 });

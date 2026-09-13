@@ -18,6 +18,14 @@ describe("popupPlan", () => {
     expect(plan.detectDeck).toBe(false);
   });
 
+  it("marks a shopping wizard result the same way", () => {
+    const plan = popupPlan(
+      "https://www.cardmarket.com/en/Riftbound/Wants/ShoppingWizard/Results/2026-9-1-abc",
+    );
+    expect(plan.primary).toBe("annotate");
+    expect(plan.showSync).toBe(true);
+  });
+
   it("synchronizes and looks for a deck anywhere else", () => {
     const plan = popupPlan("https://riftdecks.com/deck/42");
     expect(plan.primary).toBe("refresh");

@@ -156,6 +156,28 @@ export default function BrowserExtensionArticle() {
       </section>
 
       <section>
+        <Heading className="mb-2">{m.help_browser_extension_wizard_heading()}</Heading>
+        <p className="text-muted-foreground">{m.help_browser_extension_wizard_intro()}</p>
+        <div className="mt-3 space-y-2">
+          <StepRow
+            step={1}
+            title={m.help_browser_extension_wizard_step_1_title()}
+            description={m.help_browser_extension_wizard_step_1_desc()}
+          />
+          <StepRow
+            step={2}
+            title={m.help_browser_extension_wizard_step_2_title()}
+            description={m.help_browser_extension_wizard_step_2_desc()}
+          />
+          <StepRow
+            step={3}
+            title={m.help_browser_extension_wizard_step_3_title()}
+            description={m.help_browser_extension_wizard_step_3_desc()}
+          />
+        </div>
+      </section>
+
+      <section>
         <Heading className="mb-2">{m.help_browser_extension_access_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_browser_extension_access_p1()}</p>
         <p className="text-muted-foreground mt-3">{m.help_browser_extension_access_p2()}</p>
