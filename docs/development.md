@@ -45,7 +45,10 @@ the card scanner's camera needs a secure context. It also sends the
 cross-origin isolation headers (COOP/COEP) that unlock SharedArrayBuffer for
 the scanner's multi-threaded WASM encoder. COEP blocks cross-origin
 subresources that don't send CORP/CORS headers, so use `bun dev:http` for flows
-that trip over that or over the self-signed cert (curl checks, e2e).
+that trip over that or over the self-signed cert (curl checks, e2e). The HTTPS
+server negotiates HTTP/1.1 only: Firefox randomly fails module loads over
+Node's HTTP/2 dev server (vitejs/vite#21569), which leaves the page stuck in
+its server-rendered state.
 
 ## Database
 

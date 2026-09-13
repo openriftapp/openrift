@@ -120,6 +120,18 @@ describe("withLocaleCookieRequest", () => {
       "PARAGLIDE_LOCALE=fr",
     );
   });
+
+  it("accepts a request from another Request implementation", () => {
+    const foreign = Object.create(Request.prototype, {
+      url: { value: "https://example.com/cards" },
+      method: { value: "GET" },
+      headers: { value: new Headers({ accept: "text/html" }) },
+    }) as Request;
+    const next = withLocaleCookieRequest(foreign, "de");
+    expect(next.url).toBe("https://example.com/cards");
+    expect(next.headers.get("cookie")).toBe("PARAGLIDE_LOCALE=de");
+    expect(next.headers.get("accept")).toBe("text/html");
+  });
 });
 
 describe("withLocaleCookieResponse", () => {

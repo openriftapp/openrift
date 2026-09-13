@@ -23,6 +23,8 @@ import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 const mediaDir = path.resolve(import.meta.dirname, "../../media");
+// ALPN wire format: one length-prefixed protocol name.
+const HTTP1_ONLY_ALPN = Buffer.from([8, ...Buffer.from("http/1.1")]);
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
 const MEDIA_MIME_TYPES: Record<string, string> = {
@@ -200,6 +202,14 @@ export default defineConfig(({ mode, command }) => {
                   res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
                   next();
                 });
+              },
+            },
+            // Firefox drops random module streams from Node's HTTP/2 dev server
+            // (vitejs/vite#21569); stay on HTTP/1.1 over TLS until that is fixed.
+            {
+              name: "dev-https-http1",
+              configureServer(server: ViteDevServer) {
+                Object.assign(server.httpServer ?? {}, { ALPNProtocols: HTTP1_ONLY_ALPN });
               },
             },
           ]

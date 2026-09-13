@@ -80,11 +80,15 @@ function localeFromLanguageTag(tag: string): Locale | undefined {
   return isLocale(language) ? language : undefined;
 }
 
+/**
+ * Built from the URL, not by cloning: the server hands over a srvx NodeRequest,
+ * which the global Request constructor rejects as a foreign instance.
+ */
 export function withLocaleCookieRequest(request: Request, locale: Locale): Request {
   const headers = new Headers(request.headers);
   const cookie = headers.get("cookie");
   headers.set("cookie", `${cookie ? `${cookie}; ` : ""}${cookieName}=${locale}`);
-  return new Request(request, { headers });
+  return new Request(request.url, { method: request.method, headers });
 }
 
 export function withLocaleCookieResponse(response: Response, locale: Locale): Response {
