@@ -312,11 +312,7 @@ function ProductDetailGrid({ data }: { data: EnrichedProductDetail }) {
       totalCards={totalUniqueCards}
       filteredCount={filteredCount}
       mobileDoneLabel={
-        hasActiveFilters
-          ? filteredCount === 1
-            ? m.products_show_printings_one({ count: filteredCount })
-            : m.products_show_printings_other({ count: filteredCount })
-          : undefined
+        hasActiveFilters ? m.products_show_printings({ count: filteredCount }) : undefined
       }
       hideViewToggle
     />

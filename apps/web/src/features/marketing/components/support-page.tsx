@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { CopyIcon, HeartIcon } from "lucide-react";
 import { Suspense } from "react";
@@ -196,29 +197,35 @@ export function SupportPage() {
       <section className="mb-10">
         <Heading className="mb-1">{m.marketing_support_shop_title()}</Heading>
         <p className="text-muted-foreground">
-          {m.marketing_support_shop_before()}{" "}
-          <TextLink
-            render={
-              <MarketplaceLink
-                marketplace="tcgplayer"
-                href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
-              />
-            }
-          >
-            TCGplayer
-          </TextLink>{" "}
-          {m.marketing_support_shop_or()}{" "}
-          <TextLink
-            render={
-              <MarketplaceLink
-                marketplace="cardtrader"
-                href="https://www.cardtrader.com/?share_code=openrift"
-              />
-            }
-          >
-            Cardtrader
-          </TextLink>{" "}
-          {m.marketing_support_shop_after()}
+          <ParaglideMessage
+            message={m.marketing_support_shop}
+            markup={{
+              link: ({ children }) => (
+                <TextLink
+                  render={
+                    <MarketplaceLink
+                      marketplace="tcgplayer"
+                      href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
+                    />
+                  }
+                >
+                  {children}
+                </TextLink>
+              ),
+              link2: ({ children }) => (
+                <TextLink
+                  render={
+                    <MarketplaceLink
+                      marketplace="cardtrader"
+                      href="https://www.cardtrader.com/?share_code=openrift"
+                    />
+                  }
+                >
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </section>
 

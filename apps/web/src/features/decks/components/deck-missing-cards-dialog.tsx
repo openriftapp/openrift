@@ -113,23 +113,17 @@ function lockedTooltipText(card: CardOwnership): string {
 
   if (reasons.length <= 1) {
     const reason = reasons[0] ?? m.decks_overview_locked_reason_generic();
-    return card.locked === 1
-      ? m.decks_overview_locked_one({ reason })
-      : m.decks_overview_locked_other({ count: card.locked, reason });
+    return m.decks_overview_locked({ count: card.locked, reason });
   }
   const last = reasons.at(-1) ?? "";
   const rest = reasons.slice(0, -1).join(", ");
-  return card.locked === 1
-    ? m.decks_overview_locked_multi_one({ rest, last })
-    : m.decks_overview_locked_multi_other({ count: card.locked, rest, last });
+  return m.decks_overview_locked_multi({ count: card.locked, rest, last });
 }
 
 // Incoming copies aren't locked and aren't the viewer's yet: they explain
 // part of the shortfall without reducing it.
 function incomingTooltipText(card: CardOwnership): string {
-  return card.incoming === 1
-    ? m.decks_overview_incoming_one()
-    : m.decks_overview_incoming_other({ count: card.incoming });
+  return m.decks_overview_incoming({ count: card.incoming });
 }
 
 // A suspending read inside this dialog, mounted while closed, would else be

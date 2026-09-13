@@ -66,10 +66,7 @@ function PlayerCell({ row }: { row: Pick<GroupStandingRowView, "displayName" | "
 
 function groupDescription(group: GroupStageGroupView): string {
   const count = group.playerIds.length;
-  const players =
-    count === 1
-      ? m.tournaments_group_players_count_one({ count })
-      : m.tournaments_group_players_count_other({ count });
+  const players = m.tournaments_group_players_count({ count });
   return group.pairedGroupLabel === null
     ? players
     : m.tournaments_group_cross_group_suffix({ players });

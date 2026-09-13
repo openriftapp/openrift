@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
@@ -230,11 +231,16 @@ export function OverlayOutputPanel() {
           }
         />
         <p className="text-muted-foreground text-sm">
-          {m.stage_overlay_board_hint_before()}{" "}
-          <TextLink variant="muted" render={<Link to="/tier-lists" />}>
-            {m.stage_overlay_board_hint_link()}
-          </TextLink>
-          {m.stage_overlay_board_hint_after()}
+          <ParaglideMessage
+            message={m.stage_overlay_board_hint}
+            markup={{
+              link: ({ children }) => (
+                <TextLink variant="muted" render={<Link to="/tier-lists" />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </div>
       <OverlaySettingsPanel

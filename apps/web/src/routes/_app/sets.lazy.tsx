@@ -58,13 +58,9 @@ function HeroSetCard({ set }: { set: SetListEntry }) {
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span className="flex items-center gap-1.5">
             <LayersIcon className="size-3.5" />
-            {set.cardCount === 1
-              ? m.common_cards_one({ count: set.cardCount })
-              : m.common_cards_other({ count: set.cardCount })}
+            {m.common_cards({ count: set.cardCount })}
             {", "}
-            {set.printingCount === 1
-              ? m.common_printings_one({ count: set.printingCount })
-              : m.common_printings_other({ count: set.printingCount })}
+            {m.common_printings({ count: set.printingCount })}
           </span>
           {releaseLabels(set).map((label, index) => (
             <span key={label} className="flex items-center gap-1.5">

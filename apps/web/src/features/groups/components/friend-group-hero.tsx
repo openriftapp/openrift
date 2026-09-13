@@ -53,20 +53,14 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
     {
       key: "members",
       to: "/groups/$slug/members",
-      label:
-        data.members.length === 1
-          ? m.groups_member_count_one({ count: data.members.length })
-          : m.groups_member_count_other({ count: data.members.length }),
+      label: m.groups_member_count({ count: data.members.length }),
     },
     ...(groupCollectionCount > 0
       ? [
           {
             key: "collections",
             to: "/groups/$slug/shared" as const,
-            label:
-              groupCollectionCount === 1
-                ? m.groups_hero_group_collections_one({ count: groupCollectionCount })
-                : m.groups_hero_group_collections_other({ count: groupCollectionCount }),
+            label: m.groups_hero_group_collections({ count: groupCollectionCount }),
           },
         ]
       : []),
@@ -75,10 +69,7 @@ export function FriendGroupHero({ slug, data }: { slug: string; data: FriendGrou
           {
             key: "traded",
             to: "/groups/$slug/trades" as const,
-            label:
-              data.cardsTradedCount === 1
-                ? m.groups_hero_cards_traded_one({ count: data.cardsTradedCount })
-                : m.groups_hero_cards_traded_other({ count: data.cardsTradedCount }),
+            label: m.groups_hero_cards_traded({ count: data.cardsTradedCount }),
           },
         ]
       : []),

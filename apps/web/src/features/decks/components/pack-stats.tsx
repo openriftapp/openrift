@@ -221,9 +221,7 @@ function StatsHeadline({
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
       <span className="text-foreground text-lg font-semibold tabular-nums">
-        {packCount === 1
-          ? m.packs_pack_count_one({ count: packCount })
-          : m.packs_pack_count_other({ count: packCount })}
+        {m.packs_pack_count({ count: packCount })}
       </span>
       {fullFmt ? (
         <>

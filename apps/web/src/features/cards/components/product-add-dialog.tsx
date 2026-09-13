@@ -112,8 +112,6 @@ function ProductAddBody({
     // Every conditional is resolved up front: React Compiler cannot lower a
     // ternary, `??`, `||` or `?.` that sits inside a try/catch.
     const newCollectionName = newName.trim() || m.products_add_default_collection_name();
-    const successMessage =
-      totalCards === 1 ? m.products_add_success_one : m.products_add_success_other;
     let targetId = selectedId;
     let targetName =
       collections.find((collection) => collection.id === selectedId)?.name ??
@@ -128,7 +126,7 @@ function ProductAddBody({
         expandProductContents(data.contents, targetId, productCount),
       );
       await addBatchesInOrder(batches, addCopies.mutateAsync);
-      toast.success(successMessage({ count: totalCards, name: targetName }));
+      toast.success(m.products_add_success({ count: totalCards, name: targetName }));
       onClose();
     } catch {
       // Second toast alongside the global mutation error one: batches before
@@ -168,11 +166,7 @@ function ProductAddBody({
       </div>
 
       <p className="text-muted-foreground text-sm" aria-live="polite">
-        {countValid
-          ? totalCards === 1
-            ? m.products_add_hint_one({ count: totalCards })
-            : m.products_add_hint_other({ count: totalCards })
-          : m.products_add_prompt()}
+        {countValid ? m.products_add_hint({ count: totalCards }) : m.products_add_prompt()}
       </p>
 
       <DialogFooter>

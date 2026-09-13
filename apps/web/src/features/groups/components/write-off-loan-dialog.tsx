@@ -32,7 +32,6 @@ export function WriteOffLoanDialog({
   onConfirm,
 }: WriteOffLoanDialogProps) {
   const [removeCopies, setRemoveCopies] = useState(true);
-  const single = outstanding === 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,9 +40,7 @@ export function WriteOffLoanDialog({
           <DialogHeader>
             <DialogTitle>{m.loans_write_off_title()}</DialogTitle>
             <DialogDescription>
-              {single
-                ? m.loans_write_off_description_one({ count: outstanding, card: cardName })
-                : m.loans_write_off_description_other({ count: outstanding, card: cardName })}
+              {m.loans_write_off_description({ count: outstanding, card: cardName })}
             </DialogDescription>
           </DialogHeader>
 
@@ -60,9 +57,7 @@ export function WriteOffLoanDialog({
               <span className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium">{m.loans_write_off_remove_label()}</span>
                 <span className="text-muted-foreground text-xs">
-                  {single
-                    ? m.loans_write_off_remove_hint_one()
-                    : m.loans_write_off_remove_hint_other()}
+                  {m.loans_write_off_remove_hint({ count: outstanding })}
                 </span>
               </span>
             </label>
@@ -74,7 +69,7 @@ export function WriteOffLoanDialog({
               <span className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium">{m.loans_write_off_keep_label()}</span>
                 <span className="text-muted-foreground text-xs">
-                  {single ? m.loans_write_off_keep_hint_one() : m.loans_write_off_keep_hint_other()}
+                  {m.loans_write_off_keep_hint({ count: outstanding })}
                 </span>
               </span>
             </label>

@@ -159,14 +159,13 @@ export function ruleWording(intent: ListIntent, kind: ListKind): RuleWording {
 
 /** Pluralized rule-count label, e.g. "42 cards" / "1 printing" / "3 copies". */
 export function matchLabel(count: number, kind: ListKind): string {
-  const isOne = count === 1;
   if (kind === "card") {
-    return isOne ? m.common_cards_one({ count }) : m.common_cards_other({ count });
+    return m.common_cards({ count });
   }
   if (kind === "printing") {
-    return isOne ? m.common_printings_one({ count }) : m.common_printings_other({ count });
+    return m.common_printings({ count });
   }
-  return isOne ? m.common_copies_one({ count }) : m.common_copies_other({ count });
+  return m.common_copies({ count });
 }
 
 export function netOwnedHint(price: FilterRange): string {

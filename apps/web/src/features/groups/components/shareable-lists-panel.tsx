@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { FriendGroupShareableListResponse } from "@openrift/shared/types/api/friend-group";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import { Link } from "@tanstack/react-router";
@@ -30,12 +31,9 @@ const INTENT_ICON: Record<ListIntent, ComponentType<SVGProps<SVGSVGElement>>> = 
 };
 
 const KIND_COUNT: Record<ListKind, (count: number) => string> = {
-  card: (count) =>
-    count === 1 ? m.share_kind_card_one({ count }) : m.share_kind_card_other({ count }),
-  printing: (count) =>
-    count === 1 ? m.share_kind_printing_one({ count }) : m.share_kind_printing_other({ count }),
-  copy: (count) =>
-    count === 1 ? m.share_kind_copy_one({ count }) : m.share_kind_copy_other({ count }),
+  card: (count) => m.share_kind_card({ count }),
+  printing: (count) => m.share_kind_printing({ count }),
+  copy: (count) => m.share_kind_copy({ count }),
 };
 
 export function ShareableListsPanel({ slug }: { slug: string }) {
@@ -50,11 +48,14 @@ export function ShareableListsPanel({ slug }: { slug: string }) {
         className="scroll-mt-28"
         title={m.share_lists_title()}
         description={
-          <>
-            {m.share_lists_empty_before()}{" "}
-            <TextLink render={<Link to="/collections" />}>{m.share_lists_empty_link()}</TextLink>{" "}
-            {m.share_lists_empty_after()}
-          </>
+          <ParaglideMessage
+            message={m.share_lists_empty}
+            markup={{
+              link: ({ children }) => (
+                <TextLink render={<Link to="/collections" />}>{children}</TextLink>
+              ),
+            }}
+          />
         }
       />
     );

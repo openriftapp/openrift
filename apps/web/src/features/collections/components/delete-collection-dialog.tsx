@@ -28,9 +28,7 @@ export function DeleteCollectionDialog({
           {m.collections_dialog_delete_confirm({ name: collectionName })}{" "}
           {copyCount === 0
             ? m.collections_dialog_delete_empty()
-            : copyCount === 1
-              ? m.collections_dialog_delete_moved_one({ count: copyCount })
-              : m.collections_dialog_delete_moved_other({ count: copyCount })}
+            : m.collections_dialog_delete_moved({ count: copyCount })}
         </>
       }
       confirmLabel={m.common_delete()}

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
 import { Suspense, useState } from "react";
@@ -86,13 +87,16 @@ function ShareCollectionsBody({
       <>
         <p className="text-muted-foreground">
           {data.items.length === 0 ? (
-            <>
-              {m.share_collections_dialog_none_before()}{" "}
-              <TextLink variant="muted" render={<Link to="/collections" />}>
-                {m.share_dialog_create_one()}
-              </TextLink>{" "}
-              {m.share_dialog_none_after()}
-            </>
+            <ParaglideMessage
+              message={m.share_collections_dialog_none}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink variant="muted" render={<Link to="/collections" />}>
+                    {children}
+                  </TextLink>
+                ),
+              }}
+            />
           ) : (
             m.share_collections_dialog_all_shared()
           )}
@@ -154,9 +158,7 @@ function ShareCollectionsBody({
           {cancelLabel}
         </Button>
         <Button type="submit" disabled={share.isPending || selectedIds.size === 0}>
-          {selectedIds.size === 1
-            ? m.share_collections_dialog_submit_one({ count: selectedIds.size })
-            : m.share_collections_dialog_submit_other({ count: selectedIds.size })}
+          {m.share_collections_dialog_submit({ count: selectedIds.size })}
         </Button>
       </DialogFooter>
     </DialogForm>

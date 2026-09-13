@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { CoinsIcon, FlagIcon, SwordIcon, TimerIcon, TrophyIcon, ZapIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
@@ -18,9 +19,12 @@ export default function HowToPlayArticle() {
         <TrophyIcon className="text-warning" />
         <AlertTitle>{m.help_how_to_play_goal_title()}</AlertTitle>
         <AlertDescription>
-          {m.help_how_to_play_goal_before()}{" "}
-          <strong className="text-foreground">{m.help_how_to_play_goal_points()}</strong>{" "}
-          {m.help_how_to_play_goal_after()}
+          <ParaglideMessage
+            message={m.help_how_to_play_goal}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </AlertDescription>
       </Alert>
 
@@ -62,18 +66,24 @@ export default function HowToPlayArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          {m.help_how_to_play_deck_builder_before()}{" "}
-          <TextLink href="/help/deck-building">{m.help_how_to_play_deck_builder_link()}</TextLink>{" "}
-          {m.help_how_to_play_deck_builder_after()}
+          <ParaglideMessage
+            message={m.help_how_to_play_deck_builder}
+            markup={{
+              link: ({ children }) => <TextLink href="/help/deck-building">{children}</TextLink>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_how_to_play_board_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_how_to_play_board_before()}{" "}
-          <strong className="text-foreground">{m.help_how_to_play_board_base()}</strong>{" "}
-          {m.help_how_to_play_board_after()}
+          <ParaglideMessage
+            message={m.help_how_to_play_board}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
 
         <Callout className="mt-3">
@@ -224,9 +234,12 @@ export default function HowToPlayArticle() {
             </TextLink>
           </li>
           <li>
-            {m.help_how_to_play_next_brew_before()}{" "}
-            <TextLink href="/help/deck-building">{m.help_how_to_play_next_brew_link()}</TextLink>{" "}
-            {m.help_how_to_play_next_brew_after()}
+            <ParaglideMessage
+              message={m.help_how_to_play_next_brew}
+              markup={{
+                link: ({ children }) => <TextLink href="/help/deck-building">{children}</TextLink>,
+              }}
+            />
           </li>
         </ul>
       </section>

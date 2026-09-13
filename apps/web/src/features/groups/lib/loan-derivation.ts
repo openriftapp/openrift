@@ -27,9 +27,7 @@ export function loanCounterpartyLabel(loan: LoanResponse): string {
 /** An empty `lenders` means the loans feed hasn't loaded yet, not that there are none. */
 export function borrowedReasonText(count: number, lenders: readonly string[]): string {
   if (lenders.length === 0) {
-    return count === 1
-      ? m.loans_borrowed_reason_friend_one({ count })
-      : m.loans_borrowed_reason_friend_other({ count });
+    return m.loans_borrowed_reason_friend({ count });
   }
   const names =
     lenders.length === 1
@@ -38,9 +36,7 @@ export function borrowedReasonText(count: number, lenders: readonly string[]): s
           names: lenders.slice(0, -1).join(", "),
           last: lenders.at(-1) ?? "",
         });
-  return count === 1
-    ? m.loans_borrowed_reason_one({ count, names })
-    : m.loans_borrowed_reason_other({ count, names });
+  return m.loans_borrowed_reason({ count, names });
 }
 
 export type LoanSection = "attention" | "lent" | "borrowed" | "history";

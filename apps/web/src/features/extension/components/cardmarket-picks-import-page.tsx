@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ListResponse } from "@openrift/shared/types/api/list";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Loader2Icon, PlusSquareIcon } from "lucide-react";
@@ -72,11 +73,16 @@ function NothingPicked() {
   return (
     <SettingsSection title={m.extension_picks_nothing_title()}>
       <p className="text-muted-foreground text-sm">
-        {m.extension_picks_nothing_body_before()}{" "}
-        <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
-          {m.extension_picks_nothing_body_link()}
-        </TextLink>
-        {m.extension_picks_nothing_body_after()}
+        <ParaglideMessage
+          message={m.extension_picks_nothing_body}
+          markup={{
+            link: ({ children }) => (
+              <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
+                {children}
+              </TextLink>
+            ),
+          }}
+        />
       </p>
     </SettingsSection>
   );
@@ -257,11 +263,7 @@ function PicksEditor({
       setIsSaving(false);
       return;
     }
-    toast.success(
-      summary.totalCards === 1
-        ? m.extension_picks_added_one({ count: summary.totalCards })
-        : m.extension_picks_added_other({ count: summary.totalCards }),
-    );
+    toast.success(m.extension_picks_added({ count: summary.totalCards }));
     void navigate({ to: "/collections/lists/$listId", params: { listId } });
   };
 
@@ -284,11 +286,15 @@ function PicksEditor({
     <div className="flex min-w-0 flex-col gap-8">
       <div className="flex min-w-0 flex-col gap-4">
         <p className="text-muted-foreground text-sm">
-          {matchedEntries.length === 1
-            ? m.extension_picks_picked_from_one({ count: matchedEntries.length })
-            : m.extension_picks_picked_from_other({ count: matchedEntries.length })}{" "}
-          <span className="text-foreground font-medium">{seller}</span>
-          {m.extension_picks_picked_from_after()}
+          <ParaglideMessage
+            message={m.extension_picks_picked_from}
+            inputs={{ count: matchedEntries.length, seller }}
+            markup={{
+              strong: ({ children }) => (
+                <span className="text-foreground font-medium">{children}</span>
+              ),
+            }}
+          />
         </p>
 
         {problematicEntries.length > 0 && (
@@ -319,10 +325,8 @@ function PicksEditor({
               <Loader2Icon className="size-4 animate-spin" />
               {m.extension_picks_saving()}
             </>
-          ) : summary.totalCards === 1 ? (
-            m.extension_picks_save_one({ count: summary.totalCards })
           ) : (
-            m.extension_picks_save_other({ count: summary.totalCards })
+            m.extension_picks_save({ count: summary.totalCards })
           )}
         </Button>
       </Callout>

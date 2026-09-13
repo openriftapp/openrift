@@ -423,12 +423,8 @@ function PodDropZone({
           </span>
           <span className={cn("font-normal", valid ? "text-muted-foreground" : "text-destructive")}>
             {mode === "team"
-              ? count === 1
-                ? m.tournaments_pairing_editor_teams_count_one({ count })
-                : m.tournaments_pairing_editor_teams_count_other({ count })
-              : count === 1
-                ? m.tournaments_group_players_count_one({ count })
-                : m.tournaments_group_players_count_other({ count })}
+              ? m.tournaments_pairing_editor_teams_count({ count })
+              : m.tournaments_group_players_count({ count })}
           </span>
         </CardTitle>
         <WarningList warnings={warnings} nameById={nameById} regionLabel={regionLabel} />

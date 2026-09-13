@@ -120,9 +120,7 @@ function PanelIdentityHeader({
             )}
           >
             {isFreeform
-              ? totalQuantity === 1
-                ? m.common_cards_one({ count: totalQuantity })
-                : m.common_cards_other({ count: totalQuantity })
+              ? m.common_cards({ count: totalQuantity })
               : m.decks_editor_progress_cards({ progress, total })}
           </p>
         </div>

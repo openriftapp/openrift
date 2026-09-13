@@ -77,11 +77,7 @@ export function ClaimLocalDecksPrompt() {
     clearImported(importedIds);
     setImporting(false);
     if (importedIds.length > 0) {
-      toast.success(
-        importedIds.length === 1
-          ? m.decks_dialog_claim_imported_one({ count: importedIds.length })
-          : m.decks_dialog_claim_imported_other({ count: importedIds.length }),
-      );
+      toast.success(m.decks_dialog_claim_imported({ count: importedIds.length }));
     }
   };
 
@@ -109,9 +105,7 @@ export function ClaimLocalDecksPrompt() {
                     <span className="min-w-0 flex-1 truncate font-medium">{deck.name}</span>
                     <Badge variant="secondary">{formatLabels[deck.format] ?? deck.format}</Badge>
                     <span className="text-muted-foreground tabular-nums">
-                      {totalCards === 1
-                        ? m.common_cards_one({ count: totalCards })
-                        : m.common_cards_other({ count: totalCards })}
+                      {m.common_cards({ count: totalCards })}
                     </span>
                   </label>
                 </li>

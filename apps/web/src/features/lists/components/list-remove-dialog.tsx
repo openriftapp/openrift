@@ -21,16 +21,8 @@ export function ListRemoveDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={m.lists_remove_title()}
-      description={
-        count === 1
-          ? m.lists_remove_description_one({ count })
-          : m.lists_remove_description_other({ count })
-      }
-      confirmLabel={
-        count === 1
-          ? m.lists_remove_confirm_one({ count })
-          : m.lists_remove_confirm_other({ count })
-      }
+      description={m.lists_remove_description({ count })}
+      confirmLabel={m.lists_remove_confirm({ count })}
       pendingLabel={m.lists_remove_pending()}
       onConfirm={onConfirm}
       isPending={isPending}

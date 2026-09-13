@@ -207,13 +207,7 @@ function SourcesRow({ printing }: { printing: Printing }) {
     return null;
   }
   return (
-    <FactRow
-      label={
-        citations.length === 1
-          ? m.card_detail_notes_source_one()
-          : m.card_detail_notes_source_other()
-      }
-    >
+    <FactRow label={m.card_detail_notes_source({ count: citations.length })}>
       <Callout variant="inset">
         <PrintingCitationList citations={citations} />
       </Callout>

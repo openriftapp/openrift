@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightLeftIcon,
@@ -309,15 +310,21 @@ export function RoadmapPage() {
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <p className="text-muted-foreground max-w-prose pb-4">
-          {m.marketing_roadmap_intro_before()}{" "}
-          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-            Discord
-          </TextLink>{" "}
-          {m.marketing_roadmap_intro_or()}{" "}
-          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
-            GitHub
-          </TextLink>
-          .
+          <ParaglideMessage
+            message={m.marketing_roadmap_intro}
+            markup={{
+              link: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+              link2: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
         <ol className="relative">
           {items.map((item, i) => {

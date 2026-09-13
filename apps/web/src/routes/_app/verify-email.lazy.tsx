@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -69,8 +70,11 @@ function VerifyEmailPage() {
               <img src="/logo-color.svg" alt="OpenRift" className="size-12" />
               <Heading level={1}>{m.auth_verify_title()}</Heading>
               <p className="text-muted-foreground text-balance">
-                {m.auth_verify_intro_before()} <strong>{email}</strong>
-                {m.auth_verify_intro_after()}
+                <ParaglideMessage
+                  message={m.auth_verify_intro}
+                  inputs={{ email }}
+                  markup={{ strong: ({ children }) => <strong>{children}</strong> }}
+                />
               </p>
             </div>
             <Field className="items-center">

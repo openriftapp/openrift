@@ -47,14 +47,11 @@ export function formatLanguageAggregate(
   printingCount: number,
   cardCount: number,
 ): string {
-  const printings =
-    printingCount === 1
-      ? m.promos_aggregate_printings_one({ count: printingCount, language: languageLabel })
-      : m.promos_aggregate_printings_other({ count: printingCount, language: languageLabel });
-  const cards =
-    cardCount === 1
-      ? m.common_cards_one({ count: cardCount })
-      : m.common_cards_other({ count: cardCount });
+  const printings = m.promos_aggregate_printings({
+    count: printingCount,
+    language: languageLabel,
+  });
+  const cards = m.common_cards({ count: cardCount });
   return m.promos_aggregate({ printings, cards });
 }
 

@@ -54,19 +54,11 @@ import { m } from "@/paraglide/messages.js";
 const PREVIEW_TILE_WIDTH = 40;
 
 function tierListSummary(tierList: TierListSummaryResponse): string {
-  const params = {
+  return m.tier_lists_row_summary({
     cards: tierList.cardCount,
     tiers: tierList.tierCount,
     date: formatDay(tierList.updatedAt),
-  };
-  if (tierList.cardCount === 1) {
-    return tierList.tierCount === 1
-      ? m.tier_lists_row_summary_one_one(params)
-      : m.tier_lists_row_summary_one_other(params);
-  }
-  return tierList.tierCount === 1
-    ? m.tier_lists_row_summary_other_one(params)
-    : m.tier_lists_row_summary_other_other(params);
+  });
 }
 
 export function TierListIndexPage() {

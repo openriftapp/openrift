@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightLeftIcon,
@@ -25,18 +26,24 @@ export default function WhyOpenRiftArticle() {
           <p>{m.help_why_openrift_exists_p2()}</p>
           <p>{m.help_why_openrift_exists_p3()}</p>
           <p>
-            {m.help_why_openrift_exists_p4_before()}{" "}
-            <TextLink render={<Link to="/roadmap" />}>
-              {m.help_why_openrift_exists_p4_link()}
-            </TextLink>{" "}
-            {m.help_why_openrift_exists_p4_after()}
+            <ParaglideMessage
+              message={m.help_why_openrift_exists_p4}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink render={<Link to="/roadmap" />}>{children}</TextLink>
+                ),
+              }}
+            />
           </p>
           <p>
-            {m.help_why_openrift_exists_p5_before()}{" "}
-            <TextLink render={<Link to="/changelog" />}>
-              {m.help_why_openrift_exists_p5_link()}
-            </TextLink>{" "}
-            {m.help_why_openrift_exists_p5_after()}
+            <ParaglideMessage
+              message={m.help_why_openrift_exists_p5}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink render={<Link to="/changelog" />}>{children}</TextLink>
+                ),
+              }}
+            />
           </p>
         </div>
       </section>
@@ -48,13 +55,16 @@ export default function WhyOpenRiftArticle() {
             icon={<Code2Icon className="size-4" />}
             title={m.help_why_openrift_open_source_title()}
             description={
-              <>
-                {m.help_why_openrift_open_source_before()}{" "}
-                <TextLink href={SOCIAL_LINKS.githubRepo} target="_blank" rel="noreferrer">
-                  GitHub
-                </TextLink>{" "}
-                {m.help_why_openrift_open_source_after()}
-              </>
+              <ParaglideMessage
+                message={m.help_why_openrift_open_source}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink href={SOCIAL_LINKS.githubRepo} target="_blank" rel="noreferrer">
+                      {children}
+                    </TextLink>
+                  ),
+                }}
+              />
             }
           />
           <FeatureCard
@@ -113,11 +123,14 @@ export default function WhyOpenRiftArticle() {
       <section>
         <Heading className="mb-2">{m.help_why_openrift_unique_heading()}</Heading>
         <p className="text-muted-foreground mb-3">
-          {m.help_why_openrift_unique_intro_before()}{" "}
-          <TextLink render={<Link to="/features" />}>
-            {m.help_why_openrift_unique_intro_link()}
-          </TextLink>
-          .
+          <ParaglideMessage
+            message={m.help_why_openrift_unique_intro}
+            markup={{
+              link: ({ children }) => (
+                <TextLink render={<Link to="/features" />}>{children}</TextLink>
+              ),
+            }}
+          />
         </p>
         <ul className="text-muted-foreground list-disc space-y-1.5 pl-5">
           <li>
@@ -169,9 +182,10 @@ export default function WhyOpenRiftArticle() {
             <span className="text-foreground font-medium">
               {m.help_why_openrift_unique_discord_label()}
             </span>{" "}
-            {m.help_why_openrift_unique_discord_before()}{" "}
-            <span className="font-mono">[[card name]]</span>
-            {m.help_why_openrift_unique_discord_after()}
+            <ParaglideMessage
+              message={m.help_why_openrift_unique_discord}
+              markup={{ code: ({ children }) => <span className="font-mono">{children}</span> }}
+            />
           </li>
           <li>
             <span className="text-foreground font-medium">

@@ -83,9 +83,7 @@ export function LegendMetaSharesDialog({
         <DialogForm onSubmit={() => void save()}>
           <DialogHeader>
             <DialogTitle>
-              {pending.length === 1
-                ? m.tournaments_legend_meta_shares_title_one({ count: pending.length })
-                : m.tournaments_legend_meta_shares_title_other({ count: pending.length })}
+              {m.tournaments_legend_meta_shares_title({ count: pending.length })}
             </DialogTitle>
             <DialogDescription>{m.tournaments_legend_meta_shares_description()}</DialogDescription>
           </DialogHeader>

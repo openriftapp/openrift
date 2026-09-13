@@ -6,6 +6,10 @@
 
 - feat(Tournaments): **Why the cut looks the way it does** — the top seeds section now groups the field by group place: tiers that are fully in or out of the cut fold into a row of chips, the tier the cut line crosses opens as a table with match and game win rates, the Legend count and meta share when the Legend tiebreak is on, and the criterion that split each row, and a note under it explains the last seed against the best-ranked player who missed out.
 
+### Other
+
+- fix(App): **Counts and sentences that follow your language** — German and French sentences built around a link or a name now read as one sentence, French counts of zero take the singular as French does, and large counts use your language's thousands separator.
+
 ## 2026-09-12
 
 ### Highlights

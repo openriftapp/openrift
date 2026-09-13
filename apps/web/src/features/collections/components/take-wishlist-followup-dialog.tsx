@@ -51,10 +51,7 @@ export function TakeWishlistFollowUpDialog({
             quantity: entry.quantity - decrement,
           });
     });
-    const message =
-      chosen.length === 1
-        ? m.collections_dialog_take_wishlist_updated_one()
-        : m.collections_dialog_take_wishlist_updated_other({ count: chosen.length });
+    const message = m.collections_dialog_take_wishlist_updated({ count: chosen.length });
     try {
       await Promise.all(updates);
       toast.success(message);

@@ -73,11 +73,7 @@ function MemberSeedBadge({
 function podPenaltySummary(penalty: NonNullable<PodResponse["penalty"]>): string | null {
   const parts: string[] = [];
   if (penalty.rematchPairs > 0) {
-    parts.push(
-      penalty.rematchPairs === 1
-        ? m.tournaments_pod_penalty_rematches_one({ count: penalty.rematchPairs })
-        : m.tournaments_pod_penalty_rematches_other({ count: penalty.rematchPairs }),
-    );
+    parts.push(m.tournaments_pod_penalty_rematches({ count: penalty.rematchPairs }));
   }
   if (penalty.spread > 0) {
     parts.push(m.tournaments_pod_penalty_spread({ value: penalty.spread }));

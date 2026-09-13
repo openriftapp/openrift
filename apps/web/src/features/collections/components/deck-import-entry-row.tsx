@@ -1,4 +1,5 @@
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -93,8 +94,11 @@ export function DeckImportEntryRow({
     <>
       {entry.suggestedName && (
         <span className="text-muted-foreground text-xs">
-          {m.collections_import_did_you_mean_before()} <em>{entry.suggestedName}</em>
-          {m.collections_import_did_you_mean_after()}
+          <ParaglideMessage
+            message={m.collections_import_did_you_mean}
+            inputs={{ name: entry.suggestedName }}
+            markup={{ em: ({ children }) => <em>{children}</em> }}
+          />
         </span>
       )}
       {showSearch ? (

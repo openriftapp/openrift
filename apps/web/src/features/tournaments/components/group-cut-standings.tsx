@@ -32,13 +32,9 @@ export function GroupCutStandings({
       {needsShares && metaShares ? (
         <Callout className="flex flex-wrap items-center justify-between gap-3">
           <span>
-            {groupStage.pendingMetaShares.length === 1
-              ? m.tournaments_cut_meta_shares_waiting_one({
-                  count: groupStage.pendingMetaShares.length,
-                })
-              : m.tournaments_cut_meta_shares_waiting_other({
-                  count: groupStage.pendingMetaShares.length,
-                })}
+            {m.tournaments_cut_meta_shares_waiting({
+              count: groupStage.pendingMetaShares.length,
+            })}
           </span>
           <Button variant="outline" onClick={() => setSharesOpen(true)}>
             {m.tournaments_cut_enter_meta_shares()}

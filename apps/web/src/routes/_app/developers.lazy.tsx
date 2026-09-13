@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { createLazyFileRoute } from "@tanstack/react-router";
 
 import { ProsePage } from "@/components/prose-page";
@@ -37,9 +38,13 @@ function DevelopersPage() {
 
       <h2>{m.developers_docs_heading()}</h2>
       <p>
-        {m.developers_docs_p_before()} <a href="/api/doc">{m.developers_docs_spec_link()}</a>
-        {m.developers_docs_p_middle()} <a href="/api/ui">Swagger UI</a>{" "}
-        {m.developers_docs_p_after()}
+        <ParaglideMessage
+          message={m.developers_docs_p}
+          markup={{
+            link: ({ children }) => <a href="/api/doc">{children}</a>,
+            link2: ({ children }) => <a href="/api/ui">{children}</a>,
+          }}
+        />
       </p>
 
       <h2>{m.developers_read_heading()}</h2>
@@ -84,9 +89,10 @@ function DevelopersPage() {
 
       <h2>{m.developers_attribution_heading()}</h2>
       <p>
-        {m.developers_attribution_p_before()}
-        <code>/cards/{"{card-slug}"}</code>
-        {m.developers_attribution_p_after()}
+        <ParaglideMessage
+          message={m.developers_attribution_p}
+          markup={{ code: () => <code>/cards/{"{card-slug}"}</code> }}
+        />
       </p>
     </ProsePage>
   );

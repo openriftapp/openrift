@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { FileUpIcon, Loader2Icon, UploadIcon } from "lucide-react";
 import { useEffect } from "react";
@@ -54,9 +55,10 @@ export function ListImportDialog({ listId, listKind, open, onOpenChange }: ListI
         <DialogHeader>
           <DialogTitle>{m.lists_import_title()}</DialogTitle>
           <DialogDescription>
-            {m.lists_import_paste_before()}
-            <Code>&lt;quantity&gt; &lt;card name&gt;</Code>
-            {m.lists_import_paste_after()}{" "}
+            <ParaglideMessage
+              message={m.lists_import_paste}
+              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+            />{" "}
             {listKind === "printing" ? m.lists_import_hint_printing() : m.lists_import_hint_card()}
           </DialogDescription>
         </DialogHeader>
@@ -213,13 +215,9 @@ function PreviewStep({
       <ImportPreviewStack className="min-w-0">
         <div className="flex items-center justify-between gap-3">
           <p className="text-muted-foreground">
-            {rowCount === 1
-              ? m.lists_import_lines_one({ count: rowCount })
-              : m.lists_import_lines_other({ count: rowCount })}
+            {m.lists_import_lines({ count: rowCount })}
             {", "}
-            {matchedEntries.length === 1
-              ? m.lists_import_cards_one({ count: matchedEntries.length })
-              : m.lists_import_cards_other({ count: matchedEntries.length })}
+            {m.lists_import_cards({ count: matchedEntries.length })}
           </p>
           <Button variant="outline" size="sm" onClick={onBack}>
             {m.lists_import_back()}
@@ -255,10 +253,8 @@ function PreviewStep({
                 <Loader2Icon className="size-4 animate-spin" />
                 {m.lists_import_importing()}
               </>
-            ) : totalCards === 1 ? (
-              m.lists_import_add_one({ count: totalCards })
             ) : (
-              m.lists_import_add_other({ count: totalCards })
+              m.lists_import_add({ count: totalCards })
             )}
           </Button>
         </Callout>

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useNavigate } from "@tanstack/react-router";
 import { FileUpIcon, UploadIcon } from "lucide-react";
 import type { ChangeEvent } from "react";
@@ -60,9 +61,12 @@ export function CollectionImportDialog({
           <DialogHeader>
             <DialogTitle>{m.collections_import_dialog_title()}</DialogTitle>
             <DialogDescription>
-              {m.collections_import_paste_hint_before()}{" "}
-              <code className="text-foreground">{m.collections_import_paste_hint_code()}</code>{" "}
-              {m.collections_import_paste_hint_after()}
+              <ParaglideMessage
+                message={m.collections_import_paste_hint}
+                markup={{
+                  code: ({ children }) => <code className="text-foreground">{children}</code>,
+                }}
+              />
             </DialogDescription>
           </DialogHeader>
 

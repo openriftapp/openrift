@@ -276,9 +276,7 @@ export function MetaPlayerFinishes({
 
         {view === "all" && remaining > 0 && (
           <MetaShowMore onClick={() => setShown(shown + FINISH_PAGE_SIZE)}>
-            {remaining === 1
-              ? m.meta_finishes_more_one({ count: remaining.toLocaleString("en-US") })
-              : m.meta_finishes_more_other({ count: remaining.toLocaleString("en-US") })}
+            {m.meta_finishes_more({ count: remaining })}
           </MetaShowMore>
         )}
       </div>

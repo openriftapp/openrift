@@ -305,15 +305,11 @@ export function TradeSettleSection({ trades }: { trades: CardTradeResponse[] }) 
               onChangeTarget={() => setTargetOpen(true)}
             />
             <Button className="w-full" disabled={busy || cards === 0} onClick={commit}>
-              {cards === 1
-                ? m.trades_settle_button_one({ count: cards })
-                : m.trades_settle_button_other({ count: cards })}
+              {m.trades_settle_button({ count: cards })}
             </Button>
             {rowsAtZero === 0 ? null : (
               <p className="text-muted-foreground text-xs">
-                {rowsAtZero === 1
-                  ? m.trades_rows_at_zero_one({ count: rowsAtZero })
-                  : m.trades_rows_at_zero_other({ count: rowsAtZero })}
+                {m.trades_rows_at_zero({ count: rowsAtZero })}
               </p>
             )}
           </div>

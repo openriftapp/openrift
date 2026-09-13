@@ -27,9 +27,7 @@ export function PendingRequestsBand({
       accent
       label={m.trades_requests_label()}
       value={requests.length}
-      sub={
-        requests.length === 1 ? m.trades_requests_waiting_one() : m.trades_requests_waiting_other()
-      }
+      sub={m.trades_requests_waiting({ count: requests.length })}
     >
       <div className="flex flex-col gap-2">
         {requests.map((req) => (

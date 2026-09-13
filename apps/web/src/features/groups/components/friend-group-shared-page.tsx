@@ -122,10 +122,7 @@ function GroupCollectionTile({
   collection: CollectionResponse;
   covers: { key: string; imageId: string }[];
 }) {
-  const copies =
-    collection.copyCount === 1
-      ? m.common_copies_one({ count: collection.copyCount })
-      : m.common_copies_other({ count: collection.copyCount });
+  const copies = m.common_copies({ count: collection.copyCount });
   return (
     <CardLink
       render={

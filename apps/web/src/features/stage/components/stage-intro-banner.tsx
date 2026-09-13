@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { KeyboardIcon, ListPlusIcon, MonitorIcon, RadioTowerIcon } from "lucide-react";
 
@@ -28,11 +29,13 @@ function guideRows(): readonly IntroGuideRow[] {
       icons: [KeyboardIcon],
       title: m.stage_intro_keys_title(),
       description: (
-        <>
-          {m.stage_intro_keys_description_before()} <Kbd>P</Kbd>{" "}
-          {m.stage_intro_keys_description_middle()} <Kbd>?</Kbd>{" "}
-          {m.stage_intro_keys_description_end()}
-        </>
+        <ParaglideMessage
+          message={m.stage_intro_keys_description}
+          markup={{
+            kbd: ({ children }) => <Kbd>{children}</Kbd>,
+            kbd2: ({ children }) => <Kbd>{children}</Kbd>,
+          }}
+        />
       ),
       desktopOnly: true,
     },

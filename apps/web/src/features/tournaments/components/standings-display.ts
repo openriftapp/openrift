@@ -79,7 +79,5 @@ export function formatPlayerRecord(row: PodStandingRow, swiss: boolean): string 
   if (swiss) {
     return `${row.wins}-${row.losses}-${row.draws}`;
   }
-  return row.podWins === 1
-    ? m.tournaments_standings_pod_wins_one({ count: row.podWins })
-    : m.tournaments_standings_pod_wins_other({ count: row.podWins });
+  return m.tournaments_standings_pod_wins({ count: row.podWins });
 }

@@ -65,11 +65,7 @@ export function CompletedRoundsBand({ finalizedCount }: { finalizedCount: number
       icon={TrophyIcon}
       label={m.tournaments_round_band_over()}
       value={finalizedCount}
-      sub={
-        finalizedCount === 1
-          ? m.tournaments_round_band_over_sub_one()
-          : m.tournaments_round_band_over_sub_other()
-      }
+      sub={m.tournaments_round_band_over_sub({ count: finalizedCount })}
       action={<Badge variant="secondary">{m.tournaments_round_band_read_only()}</Badge>}
     />
   );

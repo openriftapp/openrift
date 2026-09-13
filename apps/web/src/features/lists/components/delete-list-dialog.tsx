@@ -18,18 +18,12 @@ function deleteTail(kind: ListKind, entryCount: number): string {
     return m.lists_delete_tail_empty();
   }
   if (kind === "copy") {
-    return entryCount === 1
-      ? m.lists_delete_tail_copy_one({ count: entryCount })
-      : m.lists_delete_tail_copy_other({ count: entryCount });
+    return m.lists_delete_tail_copy({ count: entryCount });
   }
   if (kind === "printing") {
-    return entryCount === 1
-      ? m.lists_delete_tail_printing_one({ count: entryCount })
-      : m.lists_delete_tail_printing_other({ count: entryCount });
+    return m.lists_delete_tail_printing({ count: entryCount });
   }
-  return entryCount === 1
-    ? m.lists_delete_tail_card_one({ count: entryCount })
-    : m.lists_delete_tail_card_other({ count: entryCount });
+  return m.lists_delete_tail_card({ count: entryCount });
 }
 
 export function DeleteListDialog({

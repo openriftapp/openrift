@@ -20,9 +20,7 @@ export function OnLoanChip({
     ? m.loans_on_loan()
     : showTotal
       ? m.loans_on_loan_printing({ count, total: totalCount })
-      : count === 1
-        ? m.loans_on_loan_count_one({ count })
-        : m.loans_on_loan_count_other({ count });
+      : m.loans_on_loan_count({ count });
   return (
     <CountPill variant="ghost" title={title} aria-label={title}>
       <HandHeartIcon className="size-3" aria-hidden />

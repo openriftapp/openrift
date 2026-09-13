@@ -76,9 +76,7 @@ export function PrintingNotesSection({ printing }: { printing: Printing }) {
       {citations.length > 0 && (
         <section className="space-y-2 text-sm">
           <SectionHeading as="h3">
-            {citations.length === 1
-              ? m.card_detail_notes_source_one()
-              : m.card_detail_notes_source_other()}
+            {m.card_detail_notes_source({ count: citations.length })}
           </SectionHeading>
           <PrintingCitationList citations={citations} />
         </section>

@@ -25,9 +25,7 @@ export function PackHeading({ index, count }: { index: number; count: number }) 
   return (
     <div className="flex items-baseline justify-between gap-3">
       <Heading level={3}>{m.packs_pack_number({ number: index })}</Heading>
-      <span className="text-muted-foreground text-xs">
-        {count === 1 ? m.packs_card_count_one({ count }) : m.packs_card_count_other({ count })}
-      </span>
+      <span className="text-muted-foreground text-xs">{m.packs_card_count({ count })}</span>
     </div>
   );
 }

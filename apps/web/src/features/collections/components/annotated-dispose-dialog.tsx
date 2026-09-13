@@ -40,11 +40,7 @@ function recordedDetails(copy: CopyResponse, labels: EnumLabels): string[] {
     parts.push(m.collections_dialog_annotated_detail_notes());
   }
   if (copy.links.length > 0) {
-    parts.push(
-      copy.links.length === 1
-        ? m.collections_dialog_annotated_detail_links_one({ count: copy.links.length })
-        : m.collections_dialog_annotated_detail_links_other({ count: copy.links.length }),
-    );
+    parts.push(m.collections_dialog_annotated_detail_links({ count: copy.links.length }));
   }
   return parts;
 }

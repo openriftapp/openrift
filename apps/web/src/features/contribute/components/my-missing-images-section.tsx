@@ -13,18 +13,10 @@ export function MyMissingImagesSection({ layout = "list" }: { layout?: "list" | 
     return null;
   }
 
-  const single = count === 1;
-
   return (
     <section className="flex flex-col gap-3">
-      <Heading level={2}>
-        {single
-          ? m.contribute_missing_heading_one()
-          : m.contribute_missing_heading_other({ count })}
-      </Heading>
-      <p className="text-muted-foreground">
-        {single ? m.contribute_missing_lead_one() : m.contribute_missing_lead_other()}
-      </p>
+      <Heading level={2}>{m.contribute_missing_heading({ count })}</Heading>
+      <p className="text-muted-foreground">{m.contribute_missing_lead({ count })}</p>
       {layout === "tiles" ? (
         <MissingImagesTiles items={items} />
       ) : (

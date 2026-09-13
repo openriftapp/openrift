@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type {
   ListEntryDetailResponse,
   ListIntent,
@@ -111,16 +112,21 @@ export function ListShareDialog({
       linkNote={
         intent === "organize" ? null : (
           <p className="text-muted-foreground">
-            {m.lists_share_bundle_note_before()}{" "}
-            <Button
-              variant="link"
-              className="h-auto p-0"
-              onClick={() => onOpenChange(false)}
-              render={<Link to="/profile" hash="sharing" />}
-            >
-              {m.lists_share_bundle_note_link()}
-            </Button>
-            {m.lists_share_bundle_note_after()}
+            <ParaglideMessage
+              message={m.lists_share_bundle_note}
+              markup={{
+                link: ({ children }) => (
+                  <Button
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={() => onOpenChange(false)}
+                    render={<Link to="/profile" hash="sharing" />}
+                  >
+                    {children}
+                  </Button>
+                ),
+              }}
+            />
           </p>
         )
       }

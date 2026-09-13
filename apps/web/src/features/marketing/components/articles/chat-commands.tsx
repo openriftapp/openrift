@@ -1,3 +1,6 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import type { ReactNode } from "react";
+
 import { Heading } from "@/components/heading";
 import { CopyField } from "@/components/ui/copy-field";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,8 +41,10 @@ export default function ChatCommandsArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        {m.help_chat_commands_intro_before()} <InlineCode>!card Jinx</InlineCode>{" "}
-        {m.help_chat_commands_intro_after()}
+        <ParaglideMessage
+          message={m.help_chat_commands_intro}
+          markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
+        />
       </p>
 
       <section>
@@ -53,6 +58,6 @@ export default function ChatCommandsArticle() {
   );
 }
 
-function InlineCode({ children }: { children: string }) {
+function InlineCode({ children }: { children: ReactNode }) {
   return <code className="bg-muted rounded-md px-1 py-0.5 font-mono text-sm">{children}</code>;
 }

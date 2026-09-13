@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { FileUpIcon, UploadIcon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -21,9 +22,10 @@ export function CollectionImportInputStep({
   return (
     <div className={cn(PAGE_WIDTH.capped, "space-y-6")}>
       <PageDescription>
-        {m.collections_import_paste_hint_before()}{" "}
-        <Code>{m.collections_import_paste_hint_code()}</Code>{" "}
-        {m.collections_import_paste_hint_after()}
+        <ParaglideMessage
+          message={m.collections_import_paste_hint}
+          markup={{ code: ({ children }) => <Code>{children}</Code> }}
+        />
       </PageDescription>
 
       <div className="space-y-3">

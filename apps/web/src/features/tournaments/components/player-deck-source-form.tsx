@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckCheckSubmissionResultResponse } from "@openrift/shared/types/api/deck-check";
 import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -131,16 +132,21 @@ export function PlayerDeckSourceForm({
           }}
         />
         <p className="text-muted-foreground text-sm">
-          {m.tournaments_player_deck_paste_hint_prefix()}{" "}
-          <TextLink
-            variant="muted"
-            href="https://piltoverarchive.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Piltover Archive
-          </TextLink>
-          {m.tournaments_player_deck_paste_hint_suffix()}
+          <ParaglideMessage
+            message={m.tournaments_player_deck_paste_hint}
+            markup={{
+              link: ({ children }) => (
+                <TextLink
+                  variant="muted"
+                  href="https://piltoverarchive.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </div>
 

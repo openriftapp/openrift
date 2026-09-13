@@ -78,9 +78,7 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
           </span>
           {stats.unpricedCount > 0 && (
             <span className="block">
-              {stats.unpricedCount === 1
-                ? m.collections_stats_hero_unpriced_one({ count: stats.unpricedCount })
-                : m.collections_stats_hero_unpriced_other({ count: stats.unpricedCount })}
+              {m.collections_stats_hero_unpriced({ count: stats.unpricedCount })}
             </span>
           )}
         </span>

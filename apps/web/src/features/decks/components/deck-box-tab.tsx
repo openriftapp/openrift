@@ -137,12 +137,8 @@ export function DeckBoxTab({
     const count = copyIds.length;
     toast.success(
       target
-        ? count === 1
-          ? m.decks_overview_box_moved_into_one({ count, collection: target.name })
-          : m.decks_overview_box_moved_into_other({ count, collection: target.name })
-        : count === 1
-          ? m.decks_overview_box_moved_out_one({ count })
-          : m.decks_overview_box_moved_out_other({ count }),
+        ? m.decks_overview_box_moved_into({ count, collection: target.name })
+        : m.decks_overview_box_moved_out({ count }),
       {
         action: {
           label: m.decks_overview_box_undo(),
@@ -293,9 +289,7 @@ export function DeckBoxTab({
           disabled={!onViewMissing}
         >
           <PackageSearchIcon className="size-3.5" />
-          {plan.missingCount === 1
-            ? m.decks_overview_box_missing_one({ count: plan.missingCount })
-            : m.decks_overview_box_missing_other({ count: plan.missingCount })}
+          {m.decks_overview_box_missing({ count: plan.missingCount })}
         </Button>
       )}
     </div>

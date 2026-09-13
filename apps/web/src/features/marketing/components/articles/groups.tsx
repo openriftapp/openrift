@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   BookOpenIcon,
   CrownIcon,
@@ -133,9 +134,12 @@ export default function GroupsArticle() {
       <section>
         <Heading className="mb-2">{m.help_groups_share_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_groups_share_intro_before()}{" "}
-          <strong className="text-foreground">{m.help_groups_share_intro_strong()}</strong>
-          {m.help_groups_share_intro_after()}
+          <ParaglideMessage
+            message={m.help_groups_share_intro}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <FeatureCard
@@ -170,14 +174,20 @@ export default function GroupsArticle() {
           </li>
         </ul>
         <p className="text-muted-foreground mt-2">
-          {m.help_groups_matches_p2_before()}{" "}
-          <TextLink href="/help/cards-printings-copies">{m.help_groups_matches_p2_link()}</TextLink>
-          {m.help_groups_matches_p2_after()}
+          <ParaglideMessage
+            message={m.help_groups_matches_p2}
+            markup={{
+              link: ({ children }) => (
+                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
+              ),
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_groups_matches_p3_before()}{" "}
-          <TextLink href="/trades">{m.help_groups_matches_p3_link()}</TextLink>
-          {m.help_groups_matches_p3_after()}
+          <ParaglideMessage
+            message={m.help_groups_matches_p3}
+            markup={{ link: ({ children }) => <TextLink href="/trades">{children}</TextLink> }}
+          />
         </p>
       </section>
 
@@ -185,23 +195,32 @@ export default function GroupsArticle() {
         <Heading className="mb-2">{m.help_groups_group_collections_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_groups_group_collections_p1()}</p>
         <p className="text-muted-foreground mt-2">
-          {m.help_groups_group_collections_p2_before()}{" "}
-          <TextLink href="/help/collections">{m.help_groups_group_collections_p2_link()}</TextLink>
-          {m.help_groups_group_collections_p2_after()}
+          <ParaglideMessage
+            message={m.help_groups_group_collections_p2}
+            markup={{
+              link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_groups_personal_collections_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_groups_personal_p1_before()}{" "}
-          <strong className="text-foreground">{m.help_groups_personal_p1_strong()}</strong>
-          {m.help_groups_personal_p1_after()}
+          <ParaglideMessage
+            message={m.help_groups_personal_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_groups_personal_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_groups_personal_p2_strong()}</strong>
-          {m.help_groups_personal_p2_after()}
+          <ParaglideMessage
+            message={m.help_groups_personal_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
@@ -209,9 +228,12 @@ export default function GroupsArticle() {
         <Heading className="mb-2">{m.help_groups_members_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_groups_members_p1()}</p>
         <p className="text-muted-foreground mt-2">
-          {m.help_groups_members_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_groups_members_p2_strong()}</strong>
-          {m.help_groups_members_p2_after()}
+          <ParaglideMessage
+            message={m.help_groups_members_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 

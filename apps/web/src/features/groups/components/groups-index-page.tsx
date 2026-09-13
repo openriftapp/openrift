@@ -283,9 +283,7 @@ export function GroupsIndexPage() {
                       {request.groupName}
                     </span>
                     <span className="text-muted-foreground text-xs">
-                      {request.memberCount === 1
-                        ? m.groups_member_count_one({ count: request.memberCount })
-                        : m.groups_member_count_other({ count: request.memberCount })}
+                      {m.groups_member_count({ count: request.memberCount })}
                     </span>
                   </Link>
                   <Button
@@ -351,29 +349,19 @@ export function GroupsIndexPage() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {respondCount > 0 ? (
                         <Badge className="whitespace-nowrap">
-                          {respondCount === 1
-                            ? m.groups_index_trade_requests_one({ count: respondCount })
-                            : m.groups_index_trade_requests_other({ count: respondCount })}
+                          {m.groups_index_trade_requests({ count: respondCount })}
                         </Badge>
                       ) : null}
                       {settleCount > 0 ? (
                         <Badge variant="subtle" className="whitespace-nowrap">
-                          {settleCount === 1
-                            ? m.groups_index_swaps_to_confirm_one({ count: settleCount })
-                            : m.groups_index_swaps_to_confirm_other({ count: settleCount })}
+                          {m.groups_index_swaps_to_confirm({ count: settleCount })}
                         </Badge>
                       ) : null}
                     </div>
                   ) : null}
                   {row.pendingRequestCount > 0 ? (
                     <span className="text-primary text-sm font-medium">
-                      {row.pendingRequestCount === 1
-                        ? m.groups_index_requests_to_review_one({
-                            count: row.pendingRequestCount,
-                          })
-                        : m.groups_index_requests_to_review_other({
-                            count: row.pendingRequestCount,
-                          })}
+                      {m.groups_index_requests_to_review({ count: row.pendingRequestCount })}
                     </span>
                   ) : null}
                   <SuggestionStrip

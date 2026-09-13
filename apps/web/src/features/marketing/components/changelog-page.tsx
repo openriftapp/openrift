@@ -108,9 +108,7 @@ export function ChangelogPage() {
                   {group.highlights.length > 0 && (
                     <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-sm">
                       <ChevronRightIcon className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" />
-                      {group.other.length === 1
-                        ? m.marketing_changelog_more_one({ count: group.other.length })
-                        : m.marketing_changelog_more_other({ count: group.other.length })}
+                      {m.marketing_changelog_more({ count: group.other.length })}
                     </CollapsibleTrigger>
                   )}
                   <CollapsibleContent>

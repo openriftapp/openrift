@@ -39,9 +39,7 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
               ) : null}
               <span className="flex items-center gap-1.5">
                 <UsersIcon className="size-4 shrink-0" />
-                {tournament.participantCount === 1
-                  ? m.tournaments_card_participants_one({ count: tournament.participantCount })
-                  : m.tournaments_card_participants_other({ count: tournament.participantCount })}
+                {m.tournaments_card_participants({ count: tournament.participantCount })}
               </span>
             </div>
           </div>
@@ -56,13 +54,7 @@ export function TournamentCard({ tournament }: { tournament: TournamentSummaryRe
           ) : null}
           {tournament.pendingRequestCount > 0 ? (
             <Badge variant="warning">
-              {tournament.pendingRequestCount === 1
-                ? m.tournaments_card_pending_requests_one({
-                    count: tournament.pendingRequestCount,
-                  })
-                : m.tournaments_card_pending_requests_other({
-                    count: tournament.pendingRequestCount,
-                  })}
+              {m.tournaments_card_pending_requests({ count: tournament.pendingRequestCount })}
             </Badge>
           ) : null}
         </div>

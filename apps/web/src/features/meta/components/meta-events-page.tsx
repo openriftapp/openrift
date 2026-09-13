@@ -103,10 +103,7 @@ export function MetaEventsPage() {
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_events_title()}</PageTopBarTitle>
           <span className="text-muted-foreground shrink-0 tabular-nums">
-            {metaShownLabel(events.length, counts.totalEvents, {
-              singular: m.meta_events_noun_one(),
-              plural: m.meta_events_noun_other(),
-            })}
+            {metaShownLabel(events.length, counts.totalEvents, "events")}
           </span>
         </PageTopBar>
       </PageTopBarSticky>

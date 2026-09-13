@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   CopyIcon,
   HandshakeIcon,
@@ -20,13 +21,14 @@ export default function ListsArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        {m.help_lists_intro_before()}{" "}
-        <strong className="text-foreground">{m.help_lists_intro_wishlist()}</strong>{" "}
-        {m.help_lists_intro_mid()}{" "}
-        <strong className="text-foreground">{m.help_lists_intro_tradelist()}</strong>{" "}
-        {m.help_lists_intro_mid2()}{" "}
-        <TextLink href="/help/groups">{m.help_lists_intro_group_link()}</TextLink>{" "}
-        {m.help_lists_intro_after()}
+        <ParaglideMessage
+          message={m.help_lists_intro}
+          markup={{
+            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            link: ({ children }) => <TextLink href="/help/groups">{children}</TextLink>,
+          }}
+        />
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -45,11 +47,15 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_kinds_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_kinds_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_kinds_p_kind()}</strong>
-          {m.help_lists_kinds_p_mid()}{" "}
-          <TextLink href="/help/cards-printings-copies">{m.help_lists_kinds_p_link()}</TextLink>{" "}
-          {m.help_lists_kinds_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_kinds_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => (
+                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
+              ),
+            }}
+          />
         </p>
         <DefinitionList className="text-muted-foreground mt-3">
           <DefinitionTerm icon={<SquareIcon className="size-3.5" />}>
@@ -70,10 +76,14 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_create_wishlist_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_create_wishlist_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_collections_label()}</strong>{" "}
-          {m.help_lists_create_wishlist_p_mid()}{" "}
-          <strong className="text-foreground">{m.help_lists_new_wishlist_label()}</strong>.
+          <ParaglideMessage
+            message={m.help_lists_create_wishlist_p}
+            inputs={{ action: m.help_lists_new_wishlist_label() }}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
@@ -97,10 +107,13 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_fill_wishlist_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_fill_wishlist_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_browse_catalog_label()}</strong>{" "}
-          {m.help_lists_fill_wishlist_p_mid()} <strong className="text-foreground">+</strong>{" "}
-          {m.help_lists_fill_wishlist_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_fill_wishlist_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_lists_fill_wishlist_other_paths()}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -113,11 +126,14 @@ export default function ListsArticle() {
             icon={<UploadIcon className="size-4" />}
             title={m.help_lists_fill_bulk_title()}
             description={
-              <>
-                {m.help_lists_fill_bulk_desc_before()}{" "}
-                <TextLink href="/help/import-export">{m.help_lists_import_export_link()}</TextLink>{" "}
-                {m.help_lists_fill_bulk_desc_after()}
-              </>
+              <ParaglideMessage
+                message={m.help_lists_fill_bulk_desc}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink href="/help/import-export">{children}</TextLink>
+                  ),
+                }}
+              />
             }
           />
           <FeatureCard
@@ -136,10 +152,14 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_create_tradelist_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_create_wishlist_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_collections_label()}</strong>{" "}
-          {m.help_lists_create_wishlist_p_mid()}{" "}
-          <strong className="text-foreground">{m.help_lists_new_tradelist_label()}</strong>.
+          <ParaglideMessage
+            message={m.help_lists_create_wishlist_p}
+            inputs={{ action: m.help_lists_new_tradelist_label() }}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
@@ -163,9 +183,12 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_fill_tradelist_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_fill_tradelist_p_before()}{" "}
-          <TextLink href="/help/collections">{m.help_lists_collection_link()}</TextLink>{" "}
-          {m.help_lists_fill_tradelist_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_fill_tradelist_p}
+            markup={{
+              link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+            }}
+          />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
@@ -185,29 +208,36 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_prices_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_prices_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_prices_them()}</strong>{" "}
-          {m.help_lists_prices_mid()}{" "}
-          <strong className="text-foreground">{m.help_lists_prices_you()}</strong>{" "}
-          {m.help_lists_prices_after()}
+          <ParaglideMessage
+            message={m.help_lists_prices_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
 
         <Heading level={3} className="mt-4 mb-2">
           {m.help_lists_defaults_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_defaults_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_edit_label()}</strong>{" "}
-          {m.help_lists_defaults_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_defaults_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <DefinitionList className="text-muted-foreground mt-3">
           <DefinitionTerm>{m.help_lists_defaults_price_term()}</DefinitionTerm>
           <DefinitionDetail>
-            {m.help_lists_defaults_price_before()}{" "}
-            <strong className="text-foreground">{m.help_lists_defaults_price_marketplace()}</strong>{" "}
-            {m.help_lists_defaults_price_mid()}{" "}
-            <strong className="text-foreground">{m.help_lists_defaults_price_fixed()}</strong>{" "}
-            {m.help_lists_defaults_price_after()}
+            <ParaglideMessage
+              message={m.help_lists_defaults_price}
+              markup={{
+                strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+                strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              }}
+            />
           </DefinitionDetail>
           <DefinitionTerm>{m.help_lists_defaults_currency_term()}</DefinitionTerm>
           <DefinitionDetail>{m.help_lists_defaults_currency_detail()}</DefinitionDetail>
@@ -229,21 +259,27 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_quantities_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_quantities_before()} <strong className="text-foreground">−</strong> /{" "}
-          <strong className="text-foreground">+</strong> {m.help_lists_quantities_after()}
+          <ParaglideMessage
+            message={m.help_lists_quantities}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_lists_filing_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_filing_p1_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_filing_move_label()}</strong>{" "}
-          {m.help_lists_filing_p1_mid1()}{" "}
-          <strong className="text-foreground">{m.help_lists_filing_manage_label()}</strong>{" "}
-          {m.help_lists_filing_p1_mid2()}{" "}
-          <strong className="text-foreground">{m.help_lists_filing_select_all_label()}</strong>
-          {m.help_lists_filing_p1_after()}
+          <ParaglideMessage
+            message={m.help_lists_filing_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong3: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_lists_filing_p2()}</p>
       </section>
@@ -251,29 +287,37 @@ export default function ListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_lists_importing_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_importing_p_before()}{" "}
-          <TextLink href="/help/import-export">{m.help_lists_import_export_link()}</TextLink>{" "}
-          {m.help_lists_importing_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_importing_p}
+            markup={{
+              link: ({ children }) => <TextLink href="/help/import-export">{children}</TextLink>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_lists_sharing_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_sharing_p_before()}{" "}
-          <TextLink href="/help/groups">{m.help_lists_intro_group_link()}</TextLink>
-          {m.help_lists_sharing_p_mid()}{" "}
-          <strong className="text-foreground">{m.help_lists_sharing_settings_label()}</strong>
-          {m.help_lists_sharing_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_sharing_p}
+            markup={{
+              link: ({ children }) => <TextLink href="/help/groups">{children}</TextLink>,
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_lists_organize_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_lists_organize_p_before()}{" "}
-          <strong className="text-foreground">{m.help_lists_organize_label()}</strong>{" "}
-          {m.help_lists_organize_p_after()}
+          <ParaglideMessage
+            message={m.help_lists_organize_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
     </div>

@@ -90,15 +90,10 @@ export function DeckImportPage() {
                 {m.collections_import_deck_replace_confirm_title()}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {flow.totalCards === 1
-                  ? m.collections_import_deck_replace_confirm_body_one({
-                      name: flow.replaceDeckName ?? m.collections_import_deck_replace_this_deck(),
-                      count: flow.totalCards,
-                    })
-                  : m.collections_import_deck_replace_confirm_body_other({
-                      name: flow.replaceDeckName ?? m.collections_import_deck_replace_this_deck(),
-                      count: flow.totalCards,
-                    })}
+                {m.collections_import_deck_replace_confirm_body({
+                  name: flow.replaceDeckName ?? m.collections_import_deck_replace_this_deck(),
+                  count: flow.totalCards,
+                })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

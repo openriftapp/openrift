@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 
 import { RowList } from "@/components/ui/row-list";
@@ -65,11 +66,14 @@ export function BoosterPacksSection({ query }: { query: string }) {
     <section>
       <GlossarySectionHeading id="booster-packs" title={m.glossary_section_booster_packs()} />
       <p className="text-muted-foreground mt-2">
-        {m.glossary_booster_intro_before()}{" "}
-        <TextLink render={<Link to="/pack-opener" />}>
-          {m.glossary_booster_pack_opener_link()}
-        </TextLink>{" "}
-        {m.glossary_booster_intro_after()}
+        <ParaglideMessage
+          message={m.glossary_booster_intro}
+          markup={{
+            link: ({ children }) => (
+              <TextLink render={<Link to="/pack-opener" />}>{children}</TextLink>
+            ),
+          }}
+        />
       </p>
       <RowList className="mt-4">
         {visible.map((slot) => (

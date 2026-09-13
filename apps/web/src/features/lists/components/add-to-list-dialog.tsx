@@ -129,9 +129,7 @@ export function AddToListDialog({
         {exceedsLimit && (
           <Alert variant="destructive">
             <AlertDescription>
-              {count - MAX_BULK_ADD === 1
-                ? m.lists_add_limit_one({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })
-                : m.lists_add_limit_other({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })}
+              {m.lists_add_limit({ max: MAX_BULK_ADD, count: count - MAX_BULK_ADD })}
             </AlertDescription>
           </Alert>
         )}

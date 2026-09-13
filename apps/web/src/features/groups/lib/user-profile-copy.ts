@@ -38,26 +38,10 @@ export function contributionsHint(
 ): string | null {
   const { cardFixes, newCards, photos, metaEvents } = contributions;
   const parts = [
-    cardFixes > 0
-      ? cardFixes === 1
-        ? m.user_profile_card_fixes_one({ count: cardFixes })
-        : m.user_profile_card_fixes_other({ count: cardFixes })
-      : null,
-    newCards > 0
-      ? newCards === 1
-        ? m.user_profile_new_cards_one({ count: newCards })
-        : m.user_profile_new_cards_other({ count: newCards })
-      : null,
-    photos > 0
-      ? photos === 1
-        ? m.user_profile_photos_one({ count: photos })
-        : m.user_profile_photos_other({ count: photos })
-      : null,
-    metaEvents > 0
-      ? metaEvents === 1
-        ? m.user_profile_meta_events_one({ count: metaEvents })
-        : m.user_profile_meta_events_other({ count: metaEvents })
-      : null,
+    cardFixes > 0 ? m.user_profile_card_fixes({ count: cardFixes }) : null,
+    newCards > 0 ? m.user_profile_new_cards({ count: newCards }) : null,
+    photos > 0 ? m.user_profile_photos({ count: photos }) : null,
+    metaEvents > 0 ? m.user_profile_meta_events({ count: metaEvents }) : null,
   ].filter((part) => part !== null);
   return parts.length === 0 ? null : parts.join(" · ");
 }

@@ -81,7 +81,5 @@ export function tradeStatusTitle({
   if (totalCount !== undefined && totalCount !== count) {
     return m.trades_status_count_printing({ status, count, total: totalCount });
   }
-  return count === 1
-    ? m.trades_status_count_copies_one({ status, count })
-    : m.trades_status_count_copies_other({ status, count });
+  return m.trades_status_count_copies({ status, count });
 }

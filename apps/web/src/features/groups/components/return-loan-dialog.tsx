@@ -50,9 +50,7 @@ export function ReturnLoanDialog({
             />
           </div>
           <p className="text-muted-foreground text-sm">
-            {outstanding === 1
-              ? m.loans_still_out_one({ count: outstanding })
-              : m.loans_still_out_other({ count: outstanding })}
+            {m.loans_still_out({ count: outstanding })}
           </p>
 
           <DialogFooter>

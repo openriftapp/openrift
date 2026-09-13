@@ -350,15 +350,10 @@ function SaveToDecksButton({ data }: { data: PlayerDeckCheckEntryDetailResponse 
               onSuccess: () => {
                 toast.success(
                   skippedCount > 0
-                    ? skippedCount === 1
-                      ? m.tournaments_my_deck_saved_toast_skipped_one({
-                          name,
-                          count: skippedCount,
-                        })
-                      : m.tournaments_my_deck_saved_toast_skipped_other({
-                          name,
-                          count: skippedCount,
-                        })
+                    ? m.tournaments_my_deck_saved_toast_skipped({
+                        name,
+                        count: skippedCount,
+                      })
                     : m.tournaments_my_deck_saved_toast({ name }),
                 );
                 void navigate({ to: "/decks/$deckId", params: { deckId: deck.id } });

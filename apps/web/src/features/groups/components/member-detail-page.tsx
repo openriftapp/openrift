@@ -56,28 +56,16 @@ function tradeSummaryLine(
 ): string {
   const parts: string[] = [];
   if (openCount > 0) {
-    parts.push(
-      openCount === 1
-        ? m.groups_member_open_trades_one({ count: openCount })
-        : m.groups_member_open_trades_other({ count: openCount }),
-    );
+    parts.push(m.groups_member_open_trades({ count: openCount }));
   }
   if (needsYouCount > 0) {
     parts.push(m.groups_member_needs_you({ count: needsYouCount }));
   }
   if (matchCount > 0) {
-    parts.push(
-      matchCount === 1
-        ? m.groups_member_possible_trades_one({ count: matchCount })
-        : m.groups_member_possible_trades_other({ count: matchCount }),
-    );
+    parts.push(m.groups_member_possible_trades({ count: matchCount }));
   }
   if (tradedCount > 0) {
-    parts.push(
-      tradedCount === 1
-        ? m.groups_member_trades_done_one({ count: tradedCount })
-        : m.groups_member_trades_done_other({ count: tradedCount }),
-    );
+    parts.push(m.groups_member_trades_done({ count: tradedCount }));
   }
   return parts.length > 0 ? parts.join(" · ") : m.groups_member_nothing_traded();
 }

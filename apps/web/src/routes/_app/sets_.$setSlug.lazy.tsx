@@ -58,13 +58,9 @@ function SetDetailPage() {
             <PageTopBarBack to="/sets" aria-label={m.sets_back_aria()} />
             <PageTopBarTitle>{data.set.name}</PageTopBarTitle>
             <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-              {uniquePrintings.length === 1
-                ? m.common_cards_one({ count: uniquePrintings.length })
-                : m.common_cards_other({ count: uniquePrintings.length })}
+              {m.common_cards({ count: uniquePrintings.length })}
               {", "}
-              {data.printings.length === 1
-                ? m.common_printings_one({ count: data.printings.length })
-                : m.common_printings_other({ count: data.printings.length })}
+              {m.common_printings({ count: data.printings.length })}
             </span>
           </div>
           <PageTopBarActions>

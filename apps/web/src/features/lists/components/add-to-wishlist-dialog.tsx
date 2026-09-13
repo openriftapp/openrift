@@ -57,11 +57,7 @@ export function AddToWishlistDialog({
       {
         onSuccess: (result) => {
           const total = result.added + result.updated;
-          toast.success(
-            total === 1
-              ? m.lists_add_added_cards_one({ count: total, list: listName })
-              : m.lists_add_added_cards_other({ count: total, list: listName }),
-          );
+          toast.success(m.lists_add_added_cards({ count: total, list: listName }));
           onAdded?.(listId);
           onOpenChange(false);
         },

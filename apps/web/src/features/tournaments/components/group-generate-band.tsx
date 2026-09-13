@@ -115,9 +115,7 @@ function MissingLegendDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {players.length === 1
-              ? m.tournaments_group_missing_legend_title_one({ count: players.length })
-              : m.tournaments_group_missing_legend_title_other({ count: players.length })}
+            {m.tournaments_group_missing_legend_title({ count: players.length })}
           </DialogTitle>
           <DialogDescription>{m.tournaments_group_missing_legend_description()}</DialogDescription>
         </DialogHeader>

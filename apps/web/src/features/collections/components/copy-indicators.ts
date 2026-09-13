@@ -45,10 +45,7 @@ export function copyMarkers(copy: CopyResponse): CopyMarker[] {
     markers.push({
       key: "links",
       icon: LinkIcon,
-      label:
-        copy.links.length === 1
-          ? m.collections_copies_links_one({ count: copy.links.length })
-          : m.collections_copies_links_other({ count: copy.links.length }),
+      label: m.collections_copies_links({ count: copy.links.length }),
       count: copy.links.length,
       content: copy.links.map((link) => link.label ?? link.url).join("\n"),
     });

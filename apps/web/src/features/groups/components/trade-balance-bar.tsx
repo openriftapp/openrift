@@ -44,11 +44,7 @@ export function TradeBalanceBar({ trades }: { trades: readonly CardTradeResponse
 
   const sideLabel = (cards: number, value: number, hasValue: boolean): ReactNode => (
     <>
-      <span className="text-foreground font-medium">
-        {cards === 1
-          ? m.common_cards_one({ count: cards })
-          : m.common_cards_other({ count: cards })}
-      </span>
+      <span className="text-foreground font-medium">{m.common_cards({ count: cards })}</span>
       {hasValue ? (
         <>
           {" "}

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   BookOpenTextIcon,
   CoinsIcon,
@@ -22,9 +23,10 @@ export default function DiscordBotArticle() {
       <section>
         <Heading className="mb-2">{m.help_discord_bot_add_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_discord_bot_add_intro_before()}{" "}
-          <span className="font-medium">{m.help_discord_bot_add_intro_permission()}</span>{" "}
-          {m.help_discord_bot_add_intro_after()}
+          <ParaglideMessage
+            message={m.help_discord_bot_add_intro}
+            markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
+          />
         </p>
         <div className="mt-3 space-y-2">
           <StepRow
@@ -70,9 +72,10 @@ export default function DiscordBotArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          {m.help_discord_bot_card_numbers_before()} <InlineCode>/card OGN-202</InlineCode>{" "}
-          {m.help_discord_bot_card_numbers_mid()} <InlineCode>ogn202</InlineCode>
-          {m.help_discord_bot_card_numbers_after()}
+          <ParaglideMessage
+            message={m.help_discord_bot_card_numbers}
+            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
+          />
         </p>
       </section>
 
@@ -108,18 +111,20 @@ export default function DiscordBotArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          {m.help_discord_bot_rule_inline_before()} <InlineCode>[[CR 103.1]]</InlineCode>{" "}
-          {m.help_discord_bot_rule_inline_mid()} <InlineCode>[[103.1]]</InlineCode>{" "}
-          {m.help_discord_bot_rule_inline_after()}
+          <ParaglideMessage
+            message={m.help_discord_bot_rule_inline}
+            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_discord_bot_mention_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_discord_bot_mention_before()} <InlineCode>[[Doran&apos;s Shield]]</InlineCode>
-          {m.help_discord_bot_mention_mid()} <InlineCode>[[OGN-202]]</InlineCode>{" "}
-          {m.help_discord_bot_mention_after()}
+          <ParaglideMessage
+            message={m.help_discord_bot_mention}
+            markup={{ code: ({ children }) => <InlineCode>{children}</InlineCode> }}
+          />
         </p>
       </section>
 

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { TournamentHostInfo } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 
@@ -53,24 +54,15 @@ export function DeckCheckIngestGuide({
   tournamentId: string;
   host: TournamentHostInfo;
 }) {
-  const keysLink =
-    host.type === "organization" && host.orgId ? (
-      <TextLink
-        variant="muted"
-        className="font-medium"
-        render={<Link to="/organizations/$id" params={{ id: host.orgId }} />}
-      >
-        {m.tournaments_deck_check_ingest_host_page_link({ name: host.displayName })}
-      </TextLink>
-    ) : (
-      <TextLink
-        variant="muted"
-        className="font-medium"
-        render={<Link to="/profile" hash="integrations" />}
-      >
-        {m.tournaments_deck_check_ingest_profile_link()}
-      </TextLink>
-    );
+  const orgId = host.type === "organization" ? host.orgId : null;
+  const keysLinkRender = orgId ? (
+    <Link to="/organizations/$id" params={{ id: orgId }} />
+  ) : (
+    <Link to="/profile" hash="integrations" />
+  );
+  const keysLinkLabel = orgId
+    ? m.tournaments_deck_check_ingest_host_page_link({ name: host.displayName })
+    : m.tournaments_deck_check_ingest_profile_link();
 
   return (
     <Callout>
@@ -82,7 +74,17 @@ export function DeckCheckIngestGuide({
           <div className="flex flex-col gap-1">
             <p>
               {m.tournaments_deck_check_ingest_intro()}{" "}
-              {m.tournaments_deck_check_ingest_manage_keys_prefix()} {keysLink}.
+              <ParaglideMessage
+                message={m.tournaments_deck_check_ingest_manage_keys}
+                inputs={{ target: keysLinkLabel }}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink variant="muted" className="font-medium" render={keysLinkRender}>
+                      {children}
+                    </TextLink>
+                  ),
+                }}
+              />
             </p>
             <p className="text-muted-foreground">
               {m.tournaments_deck_check_ingest_host_key_lead()}{" "}
@@ -104,10 +106,14 @@ export function DeckCheckIngestGuide({
                 <code>Authorization: Bearer &lt;your key&gt;</code>
               </li>
               <li>
-                {m.tournaments_deck_check_ingest_body_prefix()} <code>tournamentId</code> (
-                <code className="break-all">{tournamentId}</code>
-                {m.tournaments_deck_check_ingest_body_middle()} <code>entries</code>
-                {m.tournaments_deck_check_ingest_body_suffix()}
+                <ParaglideMessage
+                  message={m.tournaments_deck_check_ingest_body}
+                  inputs={{ tournamentId }}
+                  markup={{
+                    code: ({ children }) => <code>{children}</code>,
+                    codeid: ({ children }) => <code className="break-all">{children}</code>,
+                  }}
+                />
               </li>
             </ul>
           </div>
@@ -141,23 +147,29 @@ export function DeckCheckIngestGuide({
               <li>
                 <code>riotId</code>, <code>submittedAt</code>{" "}
                 <span className="text-muted-foreground">
-                  {m.tournaments_deck_check_ingest_field_optional_prefix()} <code>claimUrl</code>
-                  {m.tournaments_deck_check_ingest_field_optional_suffix()}
+                  <ParaglideMessage
+                    message={m.tournaments_deck_check_ingest_field_optional}
+                    markup={{ code: ({ children }) => <code>{children}</code> }}
+                  />
                 </span>
               </li>
               <li>
                 <code>allowDeckPublishing</code>, <code>allowNameSharing</code>,{" "}
                 <code>allowRiotIdSharing</code>{" "}
                 <span className="text-muted-foreground">
-                  {m.tournaments_deck_check_ingest_field_consent_prefix()} <code>false</code>{" "}
-                  {m.tournaments_deck_check_ingest_field_consent_suffix()}
+                  <ParaglideMessage
+                    message={m.tournaments_deck_check_ingest_field_consent}
+                    markup={{ code: ({ children }) => <code>{children}</code> }}
+                  />
                 </span>
               </li>
               <li>
                 <code>withdrawn</code>{" "}
                 <span className="text-muted-foreground">
-                  {m.tournaments_deck_check_ingest_field_withdrawn_prefix()} <code>true</code>{" "}
-                  {m.tournaments_deck_check_ingest_field_withdrawn_suffix()}
+                  <ParaglideMessage
+                    message={m.tournaments_deck_check_ingest_field_withdrawn}
+                    markup={{ code: ({ children }) => <code>{children}</code> }}
+                  />
                 </span>
               </li>
               <li>
@@ -174,16 +186,20 @@ export function DeckCheckIngestGuide({
             <p className="text-muted-foreground">
               <code>legend</code>, <code>champion</code>, <code>main</code>, <code>runes</code>,{" "}
               <code>battlefield</code>, <code>sideboard</code>, <code>overflow</code>
-              {m.tournaments_deck_check_ingest_sections_variants_prefix()}
-              <code>deck</code>, <code>maindeck</code>, <code>side</code>
-              {m.tournaments_deck_check_ingest_sections_variants_suffix()}
+              <ParaglideMessage
+                message={m.tournaments_deck_check_ingest_sections_variants}
+                markup={{ code: ({ children }) => <code>{children}</code> }}
+              />
             </p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <p className="font-semibold">{m.tournaments_deck_check_ingest_response_heading()}</p>
             <p className="text-muted-foreground">
-              {m.tournaments_deck_check_ingest_response_prefix()} <code>200</code>{" "}
+              <ParaglideMessage
+                message={m.tournaments_deck_check_ingest_response}
+                markup={{ code: ({ children }) => <code>{children}</code> }}
+              />{" "}
               {m.tournaments_deck_check_ingest_response_counts()}
               <code>entriesCreated</code>, <code>entriesUpdated</code>,{" "}
               <code>entriesUnchanged</code>, <code>entriesWithdrawn</code>,{" "}
@@ -195,8 +211,10 @@ export function DeckCheckIngestGuide({
               {buildExampleResponse(tournamentId)}
             </pre>
             <p className="text-muted-foreground">
-              {m.tournaments_deck_check_ingest_claim_prefix()} <code>claimUrl</code>{" "}
-              {m.tournaments_deck_check_ingest_claim_suffix()}
+              <ParaglideMessage
+                message={m.tournaments_deck_check_ingest_claim}
+                markup={{ code: ({ children }) => <code>{children}</code> }}
+              />
             </p>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type {
   TournamentDetailResponse,
   TournamentStaffMemberResponse,
@@ -102,23 +103,30 @@ function roleSections(): Record<
 
 export function TournamentStaffTab({ detail }: { detail: TournamentDetailResponse }) {
   const host = isTournamentHost(detail.myRoles);
+  const orgId = detail.host.type === "organization" ? detail.host.orgId : null;
 
   return (
     <div className="flex flex-col gap-6">
       <StaffRoleSection detail={detail} staffRole="organizer" host={host} />
       <StaffRoleSection detail={detail} staffRole="judge" host={host} />
 
-      {detail.host.type === "organization" && detail.host.orgId ? (
+      {orgId ? (
         <p className="text-muted-foreground text-sm">
-          {m.tournaments_staff_org_note_prefix()}
-          <Link
-            to="/organizations/$id"
-            params={{ id: detail.host.orgId }}
-            className="font-medium underline"
-          >
-            {detail.host.displayName}
-          </Link>
-          {m.tournaments_staff_org_note_suffix()}
+          <ParaglideMessage
+            message={m.tournaments_staff_org_note}
+            inputs={{ name: detail.host.displayName }}
+            markup={{
+              link: ({ children }) => (
+                <Link
+                  to="/organizations/$id"
+                  params={{ id: orgId }}
+                  className="font-medium underline"
+                >
+                  {children}
+                </Link>
+              ),
+            }}
+          />
         </p>
       ) : null}
 

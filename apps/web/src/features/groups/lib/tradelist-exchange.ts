@@ -66,13 +66,13 @@ export function listTargetOptions(
 export function listKindNoun(kind: ListKind, count: number): string {
   switch (kind) {
     case "card": {
-      return count === 1 ? m.lists_kind_lower_card_one() : m.lists_kind_lower_card_other();
+      return m.lists_kind_lower_card({ count });
     }
     case "printing": {
-      return count === 1 ? m.lists_kind_lower_printing_one() : m.lists_kind_lower_printing_other();
+      return m.lists_kind_lower_printing({ count });
     }
     case "copy": {
-      return count === 1 ? m.lists_kind_lower_copy_one() : m.lists_kind_lower_copy_other();
+      return m.lists_kind_lower_copy({ count });
     }
   }
 }

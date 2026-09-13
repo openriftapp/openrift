@@ -38,21 +38,19 @@ export function metaEventStatusLabels(): Record<MetaEventStatus, string> {
   };
 }
 
-/** Grouping is pinned to `en-US`: SSR would otherwise send a different locale's separator than the browser renders. */
+const SHOWN_LABELS = {
+  events: { all: m.meta_shown_events_all, partial: m.meta_shown_events_partial },
+  legends: { all: m.meta_shown_legends_all, partial: m.meta_shown_legends_partial },
+  decks: { all: m.meta_shown_decks_all, partial: m.meta_shown_decks_partial },
+};
+
 export function metaShownLabel(
   shown: number,
   total: number,
-  noun: { singular: string; plural: string },
+  kind: keyof typeof SHOWN_LABELS,
 ): string {
-  const label = total === 1 ? noun.singular : noun.plural;
-  if (shown === total) {
-    return m.meta_shown_all({ total: total.toLocaleString("en-US"), label });
-  }
-  return m.meta_shown_partial({
-    shown: shown.toLocaleString("en-US"),
-    total: total.toLocaleString("en-US"),
-    label,
-  });
+  const labels = SHOWN_LABELS[kind];
+  return shown === total ? labels.all({ total }) : labels.partial({ shown, total });
 }
 
 /** Not `Intl.ListFormat`: this must render the same string for every reader regardless of locale. */
@@ -173,20 +171,12 @@ export function metaEventCounts(event: MetaCountedEvent, today = todayUtc()): st
   const size = metaEventFieldSize(event);
   const parts: string[] = [];
   if (size !== null) {
-    const count = size.toLocaleString("en-US");
-    parts.push(
-      size === 1 ? m.meta_count_players_one({ count }) : m.meta_count_players_other({ count }),
-    );
+    parts.push(m.meta_count_players({ count: size }));
   }
   if (event.playerRowCount === 0) {
     parts.push(emptyStatusFor(event, today));
   } else {
-    const count = String(event.deckCount);
-    parts.push(
-      event.deckCount === 1
-        ? m.meta_count_decks_one({ count })
-        : m.meta_count_decks_other({ count }),
-    );
+    parts.push(m.meta_count_decks({ count: event.deckCount }));
   }
   return parts;
 }

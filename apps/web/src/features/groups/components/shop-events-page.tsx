@@ -118,10 +118,7 @@ export function ShopEventsContent({
           </ToggleGroup>
         ) : null}
         <span className="text-muted-foreground ml-auto text-xs">
-          {windowLabel} ·{" "}
-          {events.length === 1
-            ? m.groups_shops_event_count_one({ count: events.length })
-            : m.groups_shops_event_count_other({ count: events.length })}
+          {windowLabel} · {m.groups_shops_event_count({ count: events.length })}
         </span>
       </div>
 

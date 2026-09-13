@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { CopyListMembershipsResponse } from "@openrift/shared/types/api/collection";
 import { LoaderIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -41,7 +42,6 @@ export function TakeOffTradelistDialog({
   membershipsLoading = false,
   reservedCount = 0,
 }: TakeOffTradelistDialogProps) {
-  const isOne = count === 1;
   const { showListWarning, needsTypeConfirm, copiesOnAnyList } = disposeConfirmState(
     count,
     memberships,
@@ -69,14 +69,8 @@ export function TakeOffTradelistDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <DialogForm onSubmit={() => (sold ? onSold() : onKeep())}>
-          <AlertDialogTitle>
-            {isOne
-              ? m.lists_entry_takeoff_title_one({ count })
-              : m.lists_entry_takeoff_title_other({ count })}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {isOne ? m.lists_entry_takeoff_what_one() : m.lists_entry_takeoff_what_other()}
-          </AlertDialogDescription>
+          <AlertDialogTitle>{m.lists_entry_takeoff_title({ count })}</AlertDialogTitle>
+          <AlertDialogDescription>{m.lists_entry_takeoff_what({ count })}</AlertDialogDescription>
 
           <RadioGroup value={outcome} onValueChange={(value) => setOutcome(value as Outcome)}>
             <label
@@ -85,13 +79,9 @@ export function TakeOffTradelistDialog({
             >
               <RadioGroupItem id="take-off-keep" value="keep" className="mt-0.5" />
               <span className="space-y-0.5">
-                <span className="block font-medium">
-                  {isOne ? m.lists_entry_takeoff_keep_one() : m.lists_entry_takeoff_keep_other()}
-                </span>
+                <span className="block font-medium">{m.lists_entry_takeoff_keep({ count })}</span>
                 <span className="text-muted-foreground block text-sm">
-                  {isOne
-                    ? m.lists_entry_takeoff_keep_hint_one()
-                    : m.lists_entry_takeoff_keep_hint_other()}
+                  {m.lists_entry_takeoff_keep_hint({ count })}
                 </span>
               </span>
             </label>
@@ -110,22 +100,16 @@ export function TakeOffTradelistDialog({
                 className="mt-0.5"
               />
               <span className="space-y-0.5">
-                <span className="block font-medium">
-                  {isOne ? m.lists_entry_takeoff_sold_one() : m.lists_entry_takeoff_sold_other()}
-                </span>
+                <span className="block font-medium">{m.lists_entry_takeoff_sold({ count })}</span>
                 <span className="text-muted-foreground block text-sm">
-                  {isOne
-                    ? m.lists_entry_takeoff_sold_hint_one()
-                    : m.lists_entry_takeoff_sold_hint_other()}
+                  {m.lists_entry_takeoff_sold_hint({ count })}
                 </span>
                 {soldBlocked && (
                   <span className="text-muted-foreground flex items-start gap-1.5 text-sm">
                     <TriangleAlertIcon className="text-destructive mt-0.5 size-4 shrink-0" />
                     <span>
                       {reservedCount === count
-                        ? isOne
-                          ? m.lists_entry_takeoff_reserved_all_one()
-                          : m.lists_entry_takeoff_reserved_all_other()
+                        ? m.lists_entry_takeoff_reserved_all({ count })
                         : m.lists_entry_takeoff_reserved_some({ count: reservedCount })}
                     </span>
                   </span>
@@ -139,13 +123,9 @@ export function TakeOffTradelistDialog({
               <TriangleAlertIcon className="mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
                 <p className="font-medium">
-                  {copiesOnAnyList === 1
-                    ? m.lists_entry_takeoff_alsolists_one({ count: copiesOnAnyList })
-                    : m.lists_entry_takeoff_alsolists_other({ count: copiesOnAnyList })}
+                  {m.lists_entry_takeoff_alsolists({ count: copiesOnAnyList })}
                 </p>
-                <p>
-                  {isOne ? m.lists_entry_takeoff_drops_one() : m.lists_entry_takeoff_drops_other()}
-                </p>
+                <p>{m.lists_entry_takeoff_drops({ count })}</p>
                 <ul className="list-disc space-y-0.5 pl-4">
                   {memberships?.lists.map((list) => (
                     <li key={list.id}>
@@ -160,9 +140,11 @@ export function TakeOffTradelistDialog({
           {sold && needsTypeConfirm && (
             <div className="space-y-1.5">
               <label htmlFor="take-off-confirm" className="text-sm font-medium">
-                {m.lists_entry_takeoff_type_confirm_before()}{" "}
-                <span className="font-mono">{count}</span>{" "}
-                {m.lists_entry_takeoff_type_confirm_after()}
+                <ParaglideMessage
+                  message={m.lists_entry_takeoff_type_confirm}
+                  inputs={{ count }}
+                  markup={{ code: ({ children }) => <span className="font-mono">{children}</span> }}
+                />
               </label>
               <Input
                 id="take-off-confirm"
@@ -197,11 +179,7 @@ export function TakeOffTradelistDialog({
                   m.lists_entry_takeoff_takingoff()
                 )
               ) : sold ? (
-                isOne ? (
-                  m.lists_entry_takeoff_remove_one({ count })
-                ) : (
-                  m.lists_entry_takeoff_remove_other({ count })
-                )
+                m.lists_entry_takeoff_remove({ count })
               ) : (
                 m.lists_entry_take_off()
               )}

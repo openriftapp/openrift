@@ -632,9 +632,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
 
           {bothPicked && (
             <p className="text-muted-foreground text-sm tabular-nums">
-              {sharedCount === 1
-                ? m.decks_compare_shared_one({ count: sharedCount })
-                : m.decks_compare_shared_other({ count: sharedCount })}
+              {m.decks_compare_shared({ count: sharedCount })}
             </p>
           )}
 
@@ -643,11 +641,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
 
           {unmatched.length > 0 && (
             <div className="text-muted-foreground flex flex-col gap-1">
-              <p className="text-sm">
-                {unmatched.length === 1
-                  ? m.decks_compare_unmatched_one({ count: unmatched.length })
-                  : m.decks_compare_unmatched_other({ count: unmatched.length })}
-              </p>
+              <p className="text-sm">{m.decks_compare_unmatched({ count: unmatched.length })}</p>
               <ul className="text-2xs flex flex-col gap-0.5">
                 {unmatched.map((line, index) => (
                   // Duplicate raw lines are possible, so the index is part of the key.

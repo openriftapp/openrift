@@ -296,9 +296,7 @@ function OfferBody({
               <RadioGroupItem id={inputId} value={option.listId} />
               <span className="min-w-0 flex-1 truncate font-medium">{option.listName}</span>
               <span className="text-muted-foreground shrink-0 text-xs">
-                {option.entryCount === 1
-                  ? m.common_copies_one({ count: option.entryCount })
-                  : m.common_copies_other({ count: option.entryCount })}
+                {m.common_copies({ count: option.entryCount })}
               </span>
               <Badge variant={option.isShared ? "secondary" : "outline"} className="shrink-0">
                 {option.isShared ? m.trades_shared() : m.trades_will_be_shared()}

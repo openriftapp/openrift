@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
 import { AlertTriangleIcon, CheckCircle2Icon, SearchIcon, XCircleIcon } from "lucide-react";
@@ -92,8 +93,11 @@ export function ImportEntryRow({
           <>
             {entry.suggestedName && (
               <span className="text-muted-foreground text-xs">
-                {m.collections_import_did_you_mean_before()} <em>{entry.suggestedName}</em>
-                {m.collections_import_did_you_mean_after()}
+                <ParaglideMessage
+                  message={m.collections_import_did_you_mean}
+                  inputs={{ name: entry.suggestedName }}
+                  markup={{ em: ({ children }) => <em>{children}</em> }}
+                />
               </span>
             )}
             {showSearch ? (

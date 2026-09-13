@@ -94,9 +94,7 @@ export function GroupsJoinPage({ code = "" }: GroupsJoinPageProps) {
           <CardHeader>
             <CardTitle>{preview.data.name}</CardTitle>
             <CardDescription>
-              {preview.data.memberCount === 1
-                ? m.groups_member_count_one({ count: preview.data.memberCount })
-                : m.groups_member_count_other({ count: preview.data.memberCount })}
+              {m.groups_member_count({ count: preview.data.memberCount })}
             </CardDescription>
           </CardHeader>
           {preview.data.description ? (

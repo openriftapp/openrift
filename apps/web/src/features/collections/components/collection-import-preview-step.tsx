@@ -117,12 +117,8 @@ export function CollectionImportPreviewStep({
     collectionId !== "" &&
     (collectionId !== "__new__" || newCollectionName.trim().length > 0);
   const importLabel = isListTarget
-    ? totalCards === 1
-      ? m.collections_import_button_add_cards_one({ count: totalCards })
-      : m.collections_import_button_add_cards_other({ count: totalCards })
-    : totalCards === 1
-      ? m.collections_import_button_import_copies_one({ count: totalCards })
-      : m.collections_import_button_import_copies_other({ count: totalCards });
+    ? m.collections_import_button_add_cards({ count: totalCards })
+    : m.collections_import_button_import_copies({ count: totalCards });
 
   const { problematicEntries, exactEntries } = partitionMatchedEntries(matchedEntries);
 
@@ -147,13 +143,9 @@ export function CollectionImportPreviewStep({
         <SectionHeaderGroup>
           <SectionHeaderTitle>{m.collections_import_preview_title()}</SectionHeaderTitle>
           <SectionHeaderDescription>
-            {rowCount === 1
-              ? m.collections_import_rows_parsed_one({ count: rowCount })
-              : m.collections_import_rows_parsed_other({ count: rowCount })}
+            {m.collections_import_rows_parsed({ count: rowCount })}
             {", "}
-            {matchedEntries.length === 1
-              ? m.collections_import_unique_printings_one({ count: matchedEntries.length })
-              : m.collections_import_unique_printings_other({ count: matchedEntries.length })}
+            {m.collections_import_unique_printings({ count: matchedEntries.length })}
           </SectionHeaderDescription>
         </SectionHeaderGroup>
         <SectionHeaderActions>
@@ -279,15 +271,10 @@ export function CollectionImportPreviewStep({
       <AlertDialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogTitle>
-            {targetCopyCount === 1
-              ? m.collections_import_replace_title_one({
-                  name: targetCollection?.name ?? "",
-                  count: targetCopyCount,
-                })
-              : m.collections_import_replace_title_other({
-                  name: targetCollection?.name ?? "",
-                  count: targetCopyCount,
-                })}
+            {m.collections_import_replace_title({
+              name: targetCollection?.name ?? "",
+              count: targetCopyCount,
+            })}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {m.collections_import_replace_description()}

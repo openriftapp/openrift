@@ -19,14 +19,10 @@ function itemHeadline(item: MetaActivityItem): string {
       return m.meta_activity_event_added();
     }
     case "decks-added": {
-      return item.count === 1
-        ? m.meta_activity_decks_added_one()
-        : m.meta_activity_decks_added_other({ count: String(item.count) });
+      return m.meta_activity_decks_added({ count: item.count ?? 0 });
     }
     case "results-added": {
-      return item.count === 1
-        ? m.meta_activity_results_added_one()
-        : m.meta_activity_results_added_other({ count: String(item.count) });
+      return m.meta_activity_results_added({ count: item.count ?? 0 });
     }
   }
 }

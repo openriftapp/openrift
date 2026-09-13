@@ -60,9 +60,7 @@ export function TakeConfirmDialog({
             <Button type="submit" disabled={isPending}>
               {isPending
                 ? m.collections_dialog_take_pending()
-                : quantity === 1
-                  ? m.collections_dialog_take_one()
-                  : m.collections_dialog_take_other({ count: quantity })}
+                : m.collections_dialog_take({ count: quantity })}
             </Button>
           </div>
         </DialogForm>

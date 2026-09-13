@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
@@ -65,8 +66,11 @@ function SetPasswordCard({ currentEmail }: { currentEmail: string }) {
     >
       <FieldGroup>
         <FieldDescription>
-          {m.profile_password_set_hint_before()} <strong>{currentEmail}</strong>
-          {m.profile_password_set_hint_after()}
+          <ParaglideMessage
+            message={m.profile_password_set_hint}
+            inputs={{ email: currentEmail }}
+            markup={{ strong: ({ children }) => <strong>{children}</strong> }}
+          />
         </FieldDescription>
         <Field>
           <Button render={<Link to="/reset-password" search={{ email: currentEmail }} />}>

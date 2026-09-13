@@ -38,7 +38,7 @@ import { m } from "@/paraglide/messages.js";
 function EventSources({ sources }: { sources: MetaEventDetail["sources"] }) {
   return (
     <p className="text-muted-foreground text-xs">
-      {sources.length === 1 ? m.meta_event_source_one() : m.meta_event_source_other()}:{" "}
+      {m.meta_event_source({ count: sources.length })}:{" "}
       {sources.map((source, index) => (
         <Fragment key={source.id}>
           {index > 0 && <span aria-hidden="true"> · </span>}

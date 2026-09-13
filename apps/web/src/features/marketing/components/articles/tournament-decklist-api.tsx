@@ -1,3 +1,5 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
+
 import { Heading } from "@/components/heading";
 import { Code } from "@/components/ui/code";
 import {
@@ -68,9 +70,12 @@ export default function TournamentDecklistApiArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        {m.help_tournament_api_intro_before()}{" "}
-        <strong className="text-foreground">{m.help_tournament_api_intro_tab()}</strong>{" "}
-        {m.help_tournament_api_intro_after()}
+        <ParaglideMessage
+          message={m.help_tournament_api_intro}
+          markup={{
+            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+          }}
+        />
       </p>
 
       <section>
@@ -103,25 +108,33 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_keys_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_keys_before()}{" "}
-          <strong className="text-foreground">{m.help_tournament_api_keys_section()}</strong>{" "}
-          {m.help_tournament_api_keys_mid()}{" "}
-          <TextLink href="/profile">{m.help_tournament_api_keys_profile_link()}</TextLink>
-          {m.help_tournament_api_keys_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_keys}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => <TextLink href="/profile">{children}</TextLink>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_tournament_api_keys_format_before()} <Code>orpk_…</Code>{" "}
-          {m.help_tournament_api_keys_format_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_keys_format}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_tournament_api_push_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_push_intro_before()} <Code>POST</Code>{" "}
-          {m.help_tournament_api_push_intro_mid()} <Code>/api/v1/ingest/deck-check</Code>{" "}
-          {m.help_tournament_api_push_intro_after()} <Code>Authorization</Code>{" "}
-          {m.help_tournament_api_push_intro_end()}
+          <ParaglideMessage
+            message={m.help_tournament_api_push_intro}
+            markup={{
+              code: ({ children }) => <Code>{children}</Code>,
+              code2: ({ children }) => <Code>{children}</Code>,
+              code3: ({ children }) => <Code>{children}</Code>,
+            }}
+          />
         </p>
         <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
           {EXAMPLE_REQUEST}
@@ -133,25 +146,35 @@ export default function TournamentDecklistApiArticle() {
           </li>
           <li>
             <Code>externalId</Code>
-            {m.help_tournament_api_field_external_id_before()} <Code>openrift:</Code>
-            {m.help_tournament_api_field_external_id_after()}
+            <ParaglideMessage
+              message={m.help_tournament_api_field_external_id}
+              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+            />
           </li>
           <li>
             <Code>playerName</Code>
-            {m.help_tournament_api_field_player_name_before()} <Code>riotId</Code>
-            {m.help_tournament_api_field_player_name_mid()} <Code>submittedAt</Code>
-            {m.help_tournament_api_field_player_name_after()}
+            <ParaglideMessage
+              message={m.help_tournament_api_field_player_name}
+              markup={{
+                code: ({ children }) => <Code>{children}</Code>,
+                code2: ({ children }) => <Code>{children}</Code>,
+              }}
+            />
           </li>
           <li>
             <Code>allowDeckPublishing</Code>, <Code>allowNameSharing</Code>,{" "}
             <Code>allowRiotIdSharing</Code>
-            {m.help_tournament_api_field_consent_before()} <Code>false</Code>
-            {m.help_tournament_api_field_consent_after()}
+            <ParaglideMessage
+              message={m.help_tournament_api_field_consent}
+              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+            />
           </li>
           <li>
             <Code>withdrawn</Code>
-            {m.help_tournament_api_field_withdrawn_before()} <Code>true</Code>
-            {m.help_tournament_api_field_withdrawn_after()}
+            <ParaglideMessage
+              message={m.help_tournament_api_field_withdrawn}
+              markup={{ code: ({ children }) => <Code>{children}</Code> }}
+            />
           </li>
           <li>
             <Code>cards</Code>
@@ -159,19 +182,31 @@ export default function TournamentDecklistApiArticle() {
           </li>
         </ul>
         <p className="text-muted-foreground mt-3">
-          {m.help_tournament_api_sections_before()} <Code>legend</Code>, <Code>champion</Code>,{" "}
-          <Code>main</Code>, <Code>runes</Code>, <Code>battlefield</Code>, <Code>sideboard</Code>,{" "}
-          {m.help_tournament_api_sections_mid()} <Code>overflow</Code>
-          {m.help_tournament_api_sections_variants()} <Code>deck</Code>, <Code>maindeck</Code>,{" "}
-          <Code>side</Code>, {m.help_tournament_api_sections_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_sections}
+            markup={{
+              code: ({ children }) => <Code>{children}</Code>,
+              code2: ({ children }) => <Code>{children}</Code>,
+              code3: ({ children }) => <Code>{children}</Code>,
+              code4: ({ children }) => <Code>{children}</Code>,
+              code5: ({ children }) => <Code>{children}</Code>,
+              code6: ({ children }) => <Code>{children}</Code>,
+              code7: ({ children }) => <Code>{children}</Code>,
+              code8: ({ children }) => <Code>{children}</Code>,
+              code9: ({ children }) => <Code>{children}</Code>,
+              code10: ({ children }) => <Code>{children}</Code>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_tournament_api_changes_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_changes_before()} <Code>withdrawn</Code>{" "}
-          {m.help_tournament_api_changes_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_changes}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_tournament_api_changes_replace()}</p>
       </section>
@@ -179,15 +214,20 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_response_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_response_before()} <Code>externalId</Code>
-          {m.help_tournament_api_response_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_response}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
         <pre className="bg-muted mt-3 overflow-x-auto rounded-md p-3 text-sm">
           {EXAMPLE_RESPONSE}
         </pre>
         <p className="text-muted-foreground mt-3">
-          <Code>entryId</Code> {m.help_tournament_api_response_entry_before()} <Code>claimUrl</Code>{" "}
-          {m.help_tournament_api_response_entry_after()}
+          <Code>entryId</Code>{" "}
+          <ParaglideMessage
+            message={m.help_tournament_api_response_entry}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_tournament_api_response_stable_link()}</p>
       </section>
@@ -195,8 +235,10 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_limits_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_limits_before()} <Code>RateLimit</Code>{" "}
-          {m.help_tournament_api_limits_after()}
+          <ParaglideMessage
+            message={m.help_tournament_api_limits}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
         <div className="mt-3">
           <Table>
@@ -224,18 +266,23 @@ export default function TournamentDecklistApiArticle() {
       <section>
         <Heading className="mb-2">{m.help_tournament_api_reference_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tournament_api_reference_before()}{" "}
-          <TextLink href="/api/doc">{m.help_tournament_api_reference_openapi()}</TextLink>
-          {m.help_tournament_api_reference_mid()} <TextLink href="/api/ui">Swagger UI</TextLink>
-          {m.help_tournament_api_reference_after()}{" "}
-          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-            Discord
-          </TextLink>{" "}
-          {m.help_tournament_api_reference_or()}{" "}
-          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
-            GitHub
-          </TextLink>{" "}
-          {m.help_tournament_api_reference_end()}
+          <ParaglideMessage
+            message={m.help_tournament_api_reference}
+            markup={{
+              link: ({ children }) => <TextLink href="/api/doc">{children}</TextLink>,
+              link2: ({ children }) => <TextLink href="/api/ui">{children}</TextLink>,
+              link3: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+              link4: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </section>
     </div>

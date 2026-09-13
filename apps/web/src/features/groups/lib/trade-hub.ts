@@ -173,11 +173,11 @@ function cardRank(card: TradeHubCard<TradeHubMember>): number {
 }
 
 function expiresSoonLine(count: number): string {
-  return count === 1 ? m.trades_expire_soon_one({ count }) : m.trades_expire_soon_other({ count });
+  return m.trades_expire_soon({ count });
 }
 
 export function possibleTradesLine(count: number): string {
-  return count === 1 ? m.trades_possible_one({ count }) : m.trades_possible_other({ count });
+  return m.trades_possible({ count });
 }
 
 export function suggestionsLine(card: TradeHubCard<TradeHubMember>): string | null {
@@ -302,11 +302,11 @@ function counterpartyNames(trades: readonly CardTradeResponse[]): string[] {
 }
 
 function cardCount(count: number): string {
-  return count === 1 ? m.common_cards_one({ count }) : m.common_cards_other({ count });
+  return m.common_cards({ count });
 }
 
 function memberCount(count: number): string {
-  return count === 1 ? m.trades_members_one({ count }) : m.trades_members_other({ count });
+  return m.trades_members({ count });
 }
 
 function obligationDetail(
@@ -315,8 +315,7 @@ function obligationDetail(
   who: string,
 ): string {
   if (key === "answer") {
-    const requests =
-      count === 1 ? m.trades_requests_one({ count }) : m.trades_requests_other({ count });
+    const requests = m.trades_requests({ count });
     return m.trades_detail_requests_from({ requests, who });
   }
   if (key === "hand-over") {
@@ -412,9 +411,7 @@ export function buildTradeShelf({
     waitingPeople,
     headline:
       waitingPeople > 0
-        ? waitingPeople === 1
-          ? m.trades_waiting_on_you_one({ count: waitingPeople })
-          : m.trades_waiting_on_you_other({ count: waitingPeople })
+        ? m.trades_waiting_on_you({ count: waitingPeople })
         : rows.length > 0
           ? m.trades_nothing_waiting()
           : m.trades_no_matches_in_group(),

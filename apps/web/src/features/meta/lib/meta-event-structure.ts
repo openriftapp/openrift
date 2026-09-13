@@ -51,10 +51,7 @@ function sentenceFor(
   cutSize: number | null,
   bestOf: number | null,
 ): string | null {
-  const rounds =
-    swissRounds === 1
-      ? m.meta_structure_swiss_rounds_one()
-      : m.meta_structure_swiss_rounds_other({ count: String(swissRounds) });
+  const rounds = m.meta_structure_swiss_rounds({ count: swissRounds ?? 0 });
   const games = bestOf === null ? "" : m.meta_structure_best_of({ count: String(bestOf) });
   if (swissRounds !== null && cutSize !== null) {
     return m.meta_structure_swiss_then_cut({ rounds, games, cut: String(cutSize) });

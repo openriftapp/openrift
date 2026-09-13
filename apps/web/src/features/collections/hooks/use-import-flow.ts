@@ -144,16 +144,10 @@ export function useImportFlow() {
       }
     };
 
-    const addedToListMessage =
-      summary.totalCards === 1
-        ? m.collections_import_toast_added_to_list_one({
-            count: summary.totalCards,
-            name: list.name,
-          })
-        : m.collections_import_toast_added_to_list_other({
-            count: summary.totalCards,
-            name: list.name,
-          });
+    const addedToListMessage = m.collections_import_toast_added_to_list({
+      count: summary.totalCards,
+      name: list.name,
+    });
 
     try {
       await sendAllBatches();
@@ -242,10 +236,7 @@ export function useImportFlow() {
       }
     };
 
-    const importedMessage =
-      summary.totalCards === 1
-        ? m.collections_import_toast_imported_one({ count: summary.totalCards })
-        : m.collections_import_toast_imported_other({ count: summary.totalCards });
+    const importedMessage = m.collections_import_toast_imported({ count: summary.totalCards });
 
     try {
       await sendAllBatches();

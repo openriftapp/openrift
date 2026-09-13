@@ -7,9 +7,7 @@ import { m } from "@/paraglide/messages.js";
 
 export function tradeVolumeLabel(recent: number, lifetime: number): string {
   if (recent > 0) {
-    return recent === 1
-      ? m.groups_trade_volume_recent_one({ count: recent, days: TRADE_VOLUME_WINDOW_DAYS })
-      : m.groups_trade_volume_recent_other({ count: recent, days: TRADE_VOLUME_WINDOW_DAYS });
+    return m.groups_trade_volume_recent({ count: recent, days: TRADE_VOLUME_WINDOW_DAYS });
   }
   return lifetime > 0
     ? m.groups_trade_volume_quiet({ days: TRADE_VOLUME_WINDOW_DAYS })

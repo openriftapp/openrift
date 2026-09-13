@@ -28,11 +28,7 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
             <TooltipTrigger render={<div />}>
               <Row
                 label={m.decks_overview_own_borrowed()}
-                value={
-                  data.totalBorrowed === 1
-                    ? m.common_cards_one({ count: data.totalBorrowed })
-                    : m.common_cards_other({ count: data.totalBorrowed })
-                }
+                value={m.common_cards({ count: data.totalBorrowed })}
               />
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-64 text-xs">
@@ -43,11 +39,7 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
         {data.missingCount > 0 && (
           <Row
             label={m.decks_overview_own_missing()}
-            value={
-              data.missingCount === 1
-                ? m.common_cards_one({ count: data.missingCount })
-                : m.common_cards_other({ count: data.missingCount })
-            }
+            value={m.common_cards({ count: data.missingCount })}
           />
         )}
         {data.totalLocked > 0 && (
@@ -55,11 +47,7 @@ export function DeckOwnershipBody({ data, marketplace, onViewMissing }: DeckOwne
             <TooltipTrigger render={<div />}>
               <Row
                 label={m.decks_overview_own_locked()}
-                value={
-                  data.totalLocked === 1
-                    ? m.common_cards_one({ count: data.totalLocked })
-                    : m.common_cards_other({ count: data.totalLocked })
-                }
+                value={m.common_cards({ count: data.totalLocked })}
               />
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-64 text-xs">

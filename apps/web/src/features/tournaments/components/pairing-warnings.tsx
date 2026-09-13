@@ -54,26 +54,16 @@ function describeWarning(
       return m.tournaments_warning_wide_spread({ spread: warning.spread });
     }
     case "repeatedThreePod": {
-      return warning.priorThreePods === 1
-        ? m.tournaments_warning_three_pods_one({
-            name: name(warning.playerId),
-            count: warning.priorThreePods,
-          })
-        : m.tournaments_warning_three_pods_other({
-            name: name(warning.playerId),
-            count: warning.priorThreePods,
-          });
+      return m.tournaments_warning_three_pods({
+        name: name(warning.playerId),
+        count: warning.priorThreePods,
+      });
     }
     case "repeatBye": {
-      return warning.priorByes === 1
-        ? m.tournaments_warning_byes_one({
-            name: name(warning.playerId),
-            count: warning.priorByes,
-          })
-        : m.tournaments_warning_byes_other({
-            name: name(warning.playerId),
-            count: warning.priorByes,
-          });
+      return m.tournaments_warning_byes({
+        name: name(warning.playerId),
+        count: warning.priorByes,
+      });
     }
     case "sameRegion": {
       return m.tournaments_warning_same_region({

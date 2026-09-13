@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckResponse } from "@openrift/shared/types/api/deck";
 import { capitalize } from "@openrift/shared/utils";
 import { useState } from "react";
@@ -38,8 +39,11 @@ export function FormatTagPickBanner({ deck }: { deck: DeckResponse }) {
           {m.decks_format_tag_none_available({ nounPlural: config.nounPlural })}
         </AlertTitle>
         <AlertDescription>
-          {m.decks_format_tag_none_available_before()} <code>{config.category}</code>{" "}
-          {m.decks_format_tag_none_available_after()}
+          <ParaglideMessage
+            message={m.decks_format_tag_none_available_body}
+            inputs={{ category: config.category }}
+            markup={{ code: ({ children }) => <code>{children}</code> }}
+          />
         </AlertDescription>
       </Alert>
     );

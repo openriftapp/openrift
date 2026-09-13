@@ -166,19 +166,12 @@ function CopyOptionSummary({ copy }: { copy: CardTradeCopyOption }) {
 function selectionHint(selected: number, quantity: number): string {
   const missing = quantity - selected;
   if (missing > 0) {
-    return missing === 1
-      ? m.trades_pick_more_one({ count: missing })
-      : m.trades_pick_more_other({ count: missing });
+    return m.trades_pick_more({ count: missing });
   }
   if (missing < 0) {
-    const extra = -missing;
-    return extra === 1
-      ? m.trades_unpick_one({ count: extra })
-      : m.trades_unpick_other({ count: extra });
+    return m.trades_unpick({ count: -missing });
   }
-  return quantity === 1
-    ? m.trades_picked_one({ count: quantity })
-    : m.trades_picked_other({ count: quantity });
+  return m.trades_picked({ count: quantity });
 }
 
 // Opens on the copies already pinned to the trade when there are any,
@@ -297,18 +290,11 @@ export function TradeCopyPickerDialog({ flow }: { flow: TradeAcceptFlow }) {
             title={
               quantity === 1 ? m.trades_which_copy() : m.trades_which_n_copies({ count: quantity })
             }
-            description={
-              quantity === 1
-                ? m.trades_accept_copy_description_one({
-                    available: choice.options.copies.length,
-                    card: choice.target.cardName,
-                  })
-                : m.trades_accept_copy_description_other({
-                    available: choice.options.copies.length,
-                    card: choice.target.cardName,
-                    count: quantity,
-                  })
-            }
+            description={m.trades_accept_copy_description({
+              available: choice.options.copies.length,
+              card: choice.target.cardName,
+              count: quantity,
+            })}
             confirmLabel={m.trades_accept()}
             options={choice.options}
             quantity={quantity}
@@ -363,16 +349,8 @@ export function TradeSettleCopyPickerDialog({
                 ? m.trades_which_copy_handed_over()
                 : m.trades_which_n_copies({ count: quantity })
             }
-            description={
-              quantity === 1
-                ? m.trades_settle_pick_description_one({ card: cardName })
-                : m.trades_settle_pick_description_other({ card: cardName, count: quantity })
-            }
-            confirmLabel={
-              quantity === 1
-                ? m.trades_remove_copy_one({ count: quantity })
-                : m.trades_remove_copy_other({ count: quantity })
-            }
+            description={m.trades_settle_pick_description({ card: cardName, count: quantity })}
+            confirmLabel={m.trades_remove_copy({ count: quantity })}
             options={choice.options}
             quantity={quantity}
             pending={flow.settling}

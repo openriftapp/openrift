@@ -91,9 +91,7 @@ export function DeckImportSummary({
       <Callout className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="shrink-0 text-sm font-medium tabular-nums">
-            {totalCards === 1
-              ? m.common_cards_one({ count: totalCards })
-              : m.common_cards_other({ count: totalCards })}
+            {m.common_cards({ count: totalCards })}
           </span>
           <div className="min-w-0 flex-1">
             <DeckDomainBar distribution={stats.domainDistribution} />

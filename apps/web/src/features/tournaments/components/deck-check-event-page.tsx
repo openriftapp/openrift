@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckCheckEntrySummaryResponse } from "@openrift/shared/types/api/deck-check";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -492,15 +493,14 @@ function AddDeckDialog({
                 }
               />
               <p className="text-muted-foreground text-sm">
-                {m.tournaments_deck_check_manual_format_prefix()} <code>2 Card Name</code>
-                {m.tournaments_deck_check_manual_format_suffix()}
+                <ParaglideMessage
+                  message={m.tournaments_deck_check_manual_format}
+                  markup={{ code: ({ children }) => <code>{children}</code> }}
+                />
               </p>
               {parsed.cards.length > 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  {parsed.totalCopies === 1
-                    ? m.common_copies_one({ count: parsed.totalCopies })
-                    : m.common_copies_other({ count: parsed.totalCopies })}{" "}
-                  ·{" "}
+                  {m.common_copies({ count: parsed.totalCopies })} ·{" "}
                   {perZone
                     .map(
                       ({ section, copies }) =>

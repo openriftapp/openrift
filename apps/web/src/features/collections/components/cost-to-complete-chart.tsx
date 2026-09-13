@@ -565,9 +565,7 @@ export function CostToCompleteChart({
                 </pattern>
               </defs>
             </svg>
-            {data.unpricedMissing === 1
-              ? m.collections_stats_cost_legend_unpriced_one({ count: data.unpricedMissing })
-              : m.collections_stats_cost_legend_unpriced_other({ count: data.unpricedMissing })}
+            {m.collections_stats_cost_legend_unpriced({ count: data.unpricedMissing })}
           </span>
         )}
       </div>

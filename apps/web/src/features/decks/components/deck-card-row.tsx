@@ -309,12 +309,10 @@ export function DeckCardRow({
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {card.quantity === 1
-              ? m.decks_editor_you_have_one({ owned: card.quantity - shortfall })
-              : m.decks_editor_you_have_other({
-                  owned: card.quantity - shortfall,
-                  total: card.quantity,
-                })}
+            {m.decks_editor_you_have({
+              owned: card.quantity - shortfall,
+              total: card.quantity,
+            })}
           </TooltipContent>
         </Tooltip>
       )}

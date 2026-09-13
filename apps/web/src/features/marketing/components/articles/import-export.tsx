@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -28,29 +29,24 @@ export default function ImportExportArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        {m.help_import_export_intro_before()}{" "}
-        <strong className="text-foreground">{m.help_import_export_intro_import_label()}</strong>{" "}
-        {m.help_import_export_intro_mid1()}{" "}
-        <strong className="text-foreground">{m.help_import_export_intro_export_label()}</strong>{" "}
-        {m.help_import_export_intro_mid2()}{" "}
-        <strong className="text-foreground">{m.help_import_export_intro_import_nav()}</strong>{" "}
-        {m.help_import_export_intro_mid3()}{" "}
-        <TextLink href="/collections">{m.help_import_export_intro_collection_link()}</TextLink>{" "}
-        {m.help_import_export_intro_after()}
+        <ParaglideMessage
+          message={m.help_import_export_intro}
+          markup={{
+            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            link: ({ children }) => <TextLink href="/collections">{children}</TextLink>,
+          }}
+        />
       </p>
 
       <section>
         <Heading className="mb-2">{m.help_import_export_importing_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_import_export_importing_p_before()}{" "}
-          <strong className="text-foreground">
-            {m.help_import_export_importing_paste_label()}
-          </strong>{" "}
-          {m.help_import_export_importing_p_mid()}{" "}
-          <strong className="text-foreground">
-            {m.help_import_export_importing_review_label()}
-          </strong>{" "}
-          {m.help_import_export_importing_p_after()}
+          <ParaglideMessage
+            message={m.help_import_export_importing_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
@@ -59,8 +55,10 @@ export default function ImportExportArticle() {
           {m.help_import_export_step1_heading()}
         </Heading>
         <p className="text-muted-foreground">
-          {m.help_import_export_step1_p_before()} <Code>.csv</Code>{" "}
-          {m.help_import_export_step1_p_after()}
+          <ParaglideMessage
+            message={m.help_import_export_step1_p}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -129,15 +127,21 @@ export default function ImportExportArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          {m.help_import_export_other_tools_before()}{" "}
-          <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-            Discord
-          </TextLink>{" "}
-          {m.help_import_export_other_tools_mid()}{" "}
-          <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
-            GitHub
-          </TextLink>{" "}
-          {m.help_import_export_other_tools_after()}
+          <ParaglideMessage
+            message={m.help_import_export_other_tools}
+            markup={{
+              link: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+              link2: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </section>
 
@@ -185,37 +189,33 @@ export default function ImportExportArticle() {
         </Callout>
 
         <p className="text-muted-foreground mt-3">
-          {m.help_import_export_review_p1_before()}{" "}
-          <strong className="text-foreground">{m.help_import_export_review_skip_label()}</strong>{" "}
-          {m.help_import_export_review_p1_mid_v2()}{" "}
-          <strong className="text-foreground">{m.help_import_export_review_unskip_label()}</strong>{" "}
-          {m.help_import_export_review_p1_after_v2()}
+          <ParaglideMessage
+            message={m.help_import_export_review_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
 
         <p className="text-muted-foreground mt-2">
-          {m.help_import_export_review_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_import_export_import_button()}</strong>
-          {m.help_import_export_review_p2_after()}
+          <ParaglideMessage
+            message={m.help_import_export_review_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <Heading className="mb-2">{m.help_import_export_exporting_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_import_export_export_p_before()}{" "}
-          <strong className="text-foreground">{m.help_import_export_intro_export_label()}</strong>{" "}
-          {m.help_import_export_export_p_mid1()}{" "}
-          <strong className="text-foreground">{m.help_import_export_all_cards_label()}</strong>
-          {m.help_import_export_export_p_mid2()}{" "}
-          <strong className="text-foreground">{m.help_import_export_export_button()}</strong>
-          {m.help_import_export_export_p_mid3()}{" "}
-          <strong className="text-foreground">{m.help_import_export_openrift_csv_label()}</strong>{" "}
-          {m.help_import_export_export_p_mid4()}{" "}
-          <strong className="text-foreground">Piltover Archive</strong>,{" "}
-          <strong className="text-foreground">RiftMana</strong>
-          {m.help_import_export_export_p_mid6()}{" "}
-          <strong className="text-foreground">RiftCore</strong>{" "}
-          {m.help_import_export_export_p_after()}
+          <ParaglideMessage
+            message={m.help_import_export_export_p}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
 
         <div className="mt-3">
@@ -282,13 +282,13 @@ export default function ImportExportArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          {m.help_import_export_file_p_before()}{" "}
-          <Code>
-            openrift-<em>{m.help_import_export_file_collection()}</em>-
-            <em>{m.help_import_export_file_date()}</em>.csv
-          </Code>{" "}
-          {m.help_import_export_file_p_mid()} <Code>piltover-…</Code>, <Code>riftmana-…</Code>,{" "}
-          <Code>riftcore-…</Code> {m.help_import_export_file_p_after()}
+          <ParaglideMessage
+            message={m.help_import_export_file_p}
+            markup={{
+              code: ({ children }) => <Code>{children}</Code>,
+              em: ({ children }) => <em>{children}</em>,
+            }}
+          />
         </p>
       </section>
 
@@ -300,10 +300,13 @@ export default function ImportExportArticle() {
             <strong className="text-foreground">
               {m.help_import_export_matching_code_label()}
             </strong>{" "}
-            {m.help_import_export_matching_code_before()} <Code>OGN-007</Code>
-            {m.help_import_export_matching_code_mid()}{" "}
-            <TextLink href="/cards">{m.help_import_export_matching_catalog_link()}</TextLink>
-            {m.help_import_export_matching_code_after()}
+            <ParaglideMessage
+              message={m.help_import_export_matching_code}
+              markup={{
+                code: ({ children }) => <Code>{children}</Code>,
+                link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
+              }}
+            />
           </li>
           <li>
             <strong className="text-foreground">

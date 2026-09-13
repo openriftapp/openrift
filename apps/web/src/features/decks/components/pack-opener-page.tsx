@@ -344,11 +344,7 @@ function OpenAction({
         onClick={() => onOpened(openPacks(pool, mathRandom, count))}
       >
         <SparklesIcon className="size-4" />
-        {openable
-          ? count === 1
-            ? m.packs_open_one({ count })
-            : m.packs_open_other({ count })
-          : m.packs_no_pool()}
+        {openable ? m.packs_open({ count }) : m.packs_no_pool()}
       </Button>
     </div>
   );

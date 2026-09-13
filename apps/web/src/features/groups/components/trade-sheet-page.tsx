@@ -101,9 +101,7 @@ function HistoryFold({ trades }: { trades: CardTradeResponse[] }) {
       <SectionHeading as="h3">
         <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
           <IconChip icon={CheckIcon} size="sm" />
-          {trades.length === 1
-            ? m.trades_completed_one({ count: trades.length })
-            : m.trades_completed_other({ count: trades.length })}
+          {m.trades_completed({ count: trades.length })}
           <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
         </CollapsibleTrigger>
       </SectionHeading>

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { CopyListMembershipsResponse } from "@openrift/shared/types/api/collection";
 import { LoaderIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -49,14 +50,10 @@ export function DisposeDialog({
     quantity,
     memberships,
   );
-  const listNote =
-    quantity === 1
-      ? copiesOnAnyList === 1
-        ? m.collections_dialog_dispose_lists_note_one_one()
-        : m.collections_dialog_dispose_lists_note_one_other()
-      : copiesOnAnyList === 1
-        ? m.collections_dialog_dispose_lists_note_other_one()
-        : m.collections_dialog_dispose_lists_note_other_other();
+  const listNote = m.collections_dialog_dispose_lists_note({
+    count: quantity,
+    listed: copiesOnAnyList,
+  });
 
   const [confirmText, setConfirmText] = useState("");
   // Start blank on every reopen so an earlier typed value can't carry over, and
@@ -76,9 +73,7 @@ export function DisposeDialog({
         <DialogForm onSubmit={onConfirm}>
           <AlertDialogTitle>{m.collections_dialog_dispose_title()}</AlertDialogTitle>
           <AlertDialogDescription>
-            {quantity === 1
-              ? m.collections_dialog_dispose_description_one({ count: quantity })
-              : m.collections_dialog_dispose_description_other({ count: quantity })}
+            {m.collections_dialog_dispose_description({ count: quantity })}
           </AlertDialogDescription>
 
           {canChooseQuantity && (
@@ -96,9 +91,7 @@ export function DisposeDialog({
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <div className="space-y-1.5">
                 <p className="font-medium">
-                  {copiesOnAnyList === 1
-                    ? m.collections_dialog_dispose_lists_heading_one({ count: copiesOnAnyList })
-                    : m.collections_dialog_dispose_lists_heading_other({ count: copiesOnAnyList })}
+                  {m.collections_dialog_dispose_lists_heading({ count: copiesOnAnyList })}
                 </p>
                 <p>{listNote}</p>
                 <ul className="list-disc space-y-0.5 pl-4">
@@ -117,15 +110,9 @@ export function DisposeDialog({
               <TriangleAlertIcon className="text-destructive mt-0.5 size-5 shrink-0" />
               <p>
                 <span className="font-medium">
-                  {annotatedCount === 1
-                    ? m.collections_dialog_dispose_annotated_heading_one({ count: annotatedCount })
-                    : m.collections_dialog_dispose_annotated_heading_other({
-                        count: annotatedCount,
-                      })}
+                  {m.collections_dialog_dispose_annotated_heading({ count: annotatedCount })}
                 </span>{" "}
-                {annotatedCount === 1
-                  ? m.collections_dialog_dispose_annotated_note_one()
-                  : m.collections_dialog_dispose_annotated_note_other()}
+                {m.collections_dialog_dispose_annotated_note({ count: annotatedCount })}
               </p>
             </Callout>
           )}
@@ -133,9 +120,11 @@ export function DisposeDialog({
           {needsTypeConfirm && (
             <div className="space-y-1.5">
               <label htmlFor="dispose-confirm" className="text-sm font-medium">
-                {m.collections_dialog_dispose_type_before()}{" "}
-                <span className="font-mono">{quantity}</span>{" "}
-                {m.collections_dialog_dispose_type_after()}
+                <ParaglideMessage
+                  message={m.collections_dialog_dispose_type}
+                  inputs={{ quantity }}
+                  markup={{ code: ({ children }) => <span className="font-mono">{children}</span> }}
+                />
               </label>
               <Input
                 id="dispose-confirm"
@@ -161,10 +150,8 @@ export function DisposeDialog({
                 </>
               ) : isPending ? (
                 m.collections_dialog_removing()
-              ) : quantity === 1 ? (
-                m.collections_dialog_dispose_confirm_one({ count: quantity })
               ) : (
-                m.collections_dialog_dispose_confirm_other({ count: quantity })
+                m.collections_dialog_dispose_confirm({ count: quantity })
               )}
             </Button>
           </div>

@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { formatReleasePeriod, isReleasedAnywhere } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
 
@@ -21,9 +22,12 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
     <section>
       <GlossarySectionHeading id="sets" title={m.glossary_section_sets()} />
       <p className="text-muted-foreground mt-2">
-        {m.glossary_sets_intro_before()}{" "}
-        <TextLink render={<Link to="/sets" />}>{m.glossary_sets_page_link()}</TextLink>
-        {m.glossary_sets_intro_after()}
+        <ParaglideMessage
+          message={m.glossary_sets_intro}
+          markup={{
+            link: ({ children }) => <TextLink render={<Link to="/sets" />}>{children}</TextLink>,
+          }}
+        />
       </p>
       <ul className="mt-4 grid gap-2 lg:grid-cols-2">
         {visible.map((set) => (
@@ -49,9 +53,7 @@ export function SetsSection({ sets, query }: { sets: SetEntry[]; query: string }
               )}
             </div>
             <p className="text-muted-foreground">
-              {set.cardCount === 1
-                ? m.glossary_set_card_count_one({ count: set.cardCount })
-                : m.glossary_set_card_count_other({ count: set.cardCount })}
+              {m.glossary_set_card_count({ count: set.cardCount })}
               {Object.keys(set.releases)
                 .toSorted()
                 .map((language) => ` · ${language} ${formatReleasePeriod(set.releases[language])}`)

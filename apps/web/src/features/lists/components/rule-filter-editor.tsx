@@ -390,11 +390,7 @@ export function RuleFilterEditor({
         <p className="text-muted-foreground -mt-1 text-sm">
           {m.lists_rule_price_note()}
           {pricelessMatchCount > 0 &&
-            ` ${
-              pricelessMatchCount === 1
-                ? m.lists_rule_price_skipped_one({ count: pricelessMatchCount })
-                : m.lists_rule_price_skipped_other({ count: pricelessMatchCount })
-            }`}
+            ` ${m.lists_rule_price_skipped({ count: pricelessMatchCount })}`}
         </p>
       </div>
     ),

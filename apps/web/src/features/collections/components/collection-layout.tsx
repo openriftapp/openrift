@@ -168,11 +168,7 @@ export function CollectionLayout() {
         { copyIds, toCollectionId: dropData.collectionId },
         {
           onSuccess: () => {
-            toast.success(
-              count === 1
-                ? m.collections_toast_moved_one()
-                : m.collections_toast_moved_other({ count }),
-            );
+            toast.success(m.collections_toast_moved({ count }));
             if (dragData.fromSelection) {
               useGridSelectionStore.getState().clearSelection();
             }
@@ -209,18 +205,12 @@ export function CollectionLayout() {
 
   function movedToListMessage(kind: string, count: number, list: string): string {
     if (kind === "copy") {
-      return count === 1
-        ? m.collections_toast_moved_to_list_copies_one({ count, list })
-        : m.collections_toast_moved_to_list_copies_other({ count, list });
+      return m.collections_toast_moved_to_list_copies({ count, list });
     }
     if (kind === "printing") {
-      return count === 1
-        ? m.collections_toast_moved_to_list_printings_one({ count, list })
-        : m.collections_toast_moved_to_list_printings_other({ count, list });
+      return m.collections_toast_moved_to_list_printings({ count, list });
     }
-    return count === 1
-      ? m.collections_toast_moved_to_list_cards_one({ count, list })
-      : m.collections_toast_moved_to_list_cards_other({ count, list });
+    return m.collections_toast_moved_to_list_cards({ count, list });
   }
 
   function handleListEntryDrop(dragData: ListEntryDragData, dropData: SidebarListDropData) {

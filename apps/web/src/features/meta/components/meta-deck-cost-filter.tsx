@@ -319,12 +319,8 @@ function ToCompleteSection({
         </span>
         <span className="text-muted-foreground ml-auto text-xs tabular-nums">
           {noun === "deck"
-            ? matches === 1
-              ? m.meta_cost_matches_decks_one()
-              : m.meta_cost_matches_decks_other({ count: String(matches) })
-            : matches === 1
-              ? m.meta_cost_matches_lists_one()
-              : m.meta_cost_matches_lists_other({ count: String(matches) })}
+            ? m.meta_cost_matches_decks({ count: matches })
+            : m.meta_cost_matches_lists({ count: matches })}
         </span>
       </div>
       <div className="flex items-center gap-2">

@@ -144,9 +144,7 @@ function FolderRow({
       </button>
       <span className="min-w-0 flex-1 truncate">{folder.name}</span>
       <span className="text-muted-foreground shrink-0 text-sm">
-        {folder.deckCount === 1
-          ? m.decks_dialog_folders_deck_count_one({ count: folder.deckCount })
-          : m.decks_dialog_folders_deck_count_other({ count: folder.deckCount })}
+        {m.decks_dialog_folders_deck_count({ count: folder.deckCount })}
       </span>
       <Button
         type="button"

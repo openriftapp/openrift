@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { ImageIcon, InfoIcon, RulerIcon, ScissorsIcon, ShieldCheckIcon } from "lucide-react";
 
 import { Eyebrow, Heading } from "@/components/heading";
@@ -73,9 +74,12 @@ export default function ProxyPrintingArticle() {
       <section>
         <Heading className="mb-2">{m.help_proxy_printing_generate_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_proxy_printing_generate_before()}{" "}
-          <strong className="text-foreground">{m.help_proxy_printing_generate_button()}</strong>{" "}
-          {m.help_proxy_printing_generate_after()}
+          <ParaglideMessage
+            message={m.help_proxy_printing_generate}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_proxy_printing_generate_copies()}</p>
       </section>

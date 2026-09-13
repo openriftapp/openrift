@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   CopyIcon,
   GripVerticalIcon,
@@ -23,22 +24,27 @@ export default function DeckBuildingArticle() {
         <AlertTitle>{m.help_deck_building_alert_title()}</AlertTitle>
         <AlertDescription>
           <p>
-            {m.help_deck_building_alert_p1_before()}{" "}
-            <TextLink href="/help/cards-printings-copies">
-              {m.help_deck_building_alert_p1_link()}
-            </TextLink>
-            {m.help_deck_building_alert_p1_after()}
+            <ParaglideMessage
+              message={m.help_deck_building_alert_p1}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink href="/help/cards-printings-copies">{children}</TextLink>
+                ),
+              }}
+            />
           </p>
           <p>
-            {m.help_deck_building_alert_p2_before()}{" "}
-            <TextLink href="/help/collections">
-              {m.help_deck_building_alert_p2_link_collections()}
-            </TextLink>
-            {m.help_deck_building_alert_p2_mid()}{" "}
-            <TextLink href="/help/collections#deck-building-availability">
-              {m.help_deck_building_alert_p2_link_available()}
-            </TextLink>
-            {m.help_deck_building_alert_p2_after()}
+            <ParaglideMessage
+              message={m.help_deck_building_alert_p2}
+              markup={{
+                link: ({ children }) => <TextLink href="/help/collections">{children}</TextLink>,
+                link2: ({ children }) => (
+                  <TextLink href="/help/collections#deck-building-availability">
+                    {children}
+                  </TextLink>
+                ),
+              }}
+            />
           </p>
         </AlertDescription>
       </Alert>
@@ -161,9 +167,12 @@ export default function DeckBuildingArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          {m.help_deck_building_add_overflow_before()}{" "}
-          <strong className="text-foreground">Overflow</strong>
-          {m.help_deck_building_add_overflow_after()}
+          <ParaglideMessage
+            message={m.help_deck_building_add_overflow}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
@@ -229,11 +238,16 @@ export default function DeckBuildingArticle() {
       <section>
         <Heading className="mb-2">{m.help_deck_building_manage_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_deck_building_manage_intro_before()}{" "}
-          <TextLink href="/decks">
-            <strong className="text-foreground">Decks</strong>
-          </TextLink>
-          {m.help_deck_building_manage_intro_after()}
+          <ParaglideMessage
+            message={m.help_deck_building_manage_intro}
+            markup={{
+              link: ({ children }) => (
+                <TextLink href="/decks">
+                  <strong className="text-foreground">{children}</strong>
+                </TextLink>
+              ),
+            }}
+          />
         </p>
         <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">
           <li>{m.help_deck_building_manage_open()}</li>

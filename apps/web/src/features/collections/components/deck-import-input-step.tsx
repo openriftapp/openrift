@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { FileUpIcon, Loader2Icon, UploadIcon } from "lucide-react";
 import type { RefObject } from "react";
 
@@ -33,33 +34,39 @@ function importDescriptions(): Record<DeckImportMode, React.ReactNode> {
   return {
     auto: <>{m.collections_import_deck_desc_auto()}</>,
     piltover: (
-      <>
-        {m.collections_import_deck_desc_piltover_before()}{" "}
-        <TextLink
-          variant="muted"
-          href="https://piltoverarchive.com"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Piltover Archive
-        </TextLink>
-        . {m.collections_import_deck_desc_piltover_after()}
-      </>
+      <ParaglideMessage
+        message={m.collections_import_deck_desc_piltover}
+        markup={{
+          link: ({ children }) => (
+            <TextLink
+              variant="muted"
+              href="https://piltoverarchive.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {children}
+            </TextLink>
+          ),
+        }}
+      />
     ),
     text: <>{m.collections_import_deck_desc_text()}</>,
     tts: (
-      <>
-        {m.collections_import_deck_desc_tts_before()}{" "}
-        <a
-          href="https://steamcommunity.com/sharedfiles/filedetails/?id=3606647746"
-          target="_blank"
-          rel="noreferrer"
-          className="text-foreground underline"
-        >
-          {m.collections_import_deck_desc_tts_link()}
-        </a>
-        .
-      </>
+      <ParaglideMessage
+        message={m.collections_import_deck_desc_tts}
+        markup={{
+          link: ({ children }) => (
+            <a
+              href="https://steamcommunity.com/sharedfiles/filedetails/?id=3606647746"
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground underline"
+            >
+              {children}
+            </a>
+          ),
+        }}
+      />
     ),
   };
 }
@@ -104,16 +111,22 @@ export function DeckImportInputStep({
           {isReplaceMode ? (
             <>
               {m.collections_import_deck_paste_hint()}{" "}
-              {m.collections_import_deck_replace_hint_before()}
-              {replaceDeckName ? (
-                <>
-                  {" "}
-                  <strong className="text-foreground">&ldquo;{replaceDeckName}&rdquo;</strong>
-                </>
-              ) : (
-                ` ${m.collections_import_deck_replace_this_deck()}`
-              )}{" "}
-              {m.collections_import_deck_replace_hint_after()}
+              <ParaglideMessage
+                message={m.collections_import_deck_replace_hint}
+                inputs={{
+                  deck: replaceDeckName
+                    ? `“${replaceDeckName}”`
+                    : m.collections_import_deck_replace_this_deck(),
+                }}
+                markup={{
+                  strong: ({ children }) =>
+                    replaceDeckName ? (
+                      <strong className="text-foreground">{children}</strong>
+                    ) : (
+                      children
+                    ),
+                }}
+              />
             </>
           ) : (
             <>{m.collections_import_deck_paste_hint()}</>

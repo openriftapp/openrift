@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { MAX_DECK_LINKS } from "@openrift/shared/contracts/decks";
 import { ALLOWED_LINK_SITE_NAMES, isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import type { DeckLink } from "@openrift/shared/types/api/deck";
@@ -208,9 +209,10 @@ export function DeckDetailsDialog({
           <DialogHeader>
             <DialogTitle>{m.decks_dialog_details_title()}</DialogTitle>
             <DialogDescription>
-              {m.decks_dialog_details_description_before()}
-              <Code className="mx-1">[[</Code>
-              {m.decks_dialog_details_description_after()}
+              <ParaglideMessage
+                message={m.decks_dialog_details_description}
+                markup={{ code: ({ children }) => <Code className="mx-1">{children}</Code> }}
+              />
             </DialogDescription>
           </DialogHeader>
 

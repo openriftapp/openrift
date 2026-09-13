@@ -28,7 +28,7 @@ export function ownedSummary(ownedCount: number, cardTotal: number): string {
   if (cardTotal > ownedCount) {
     return m.card_detail_own_partial({ count: ownedCount, total: cardTotal });
   }
-  return ownedCount === 1 ? m.card_detail_own_one() : m.card_detail_own_many({ count: ownedCount });
+  return m.card_detail_own({ count: ownedCount });
 }
 
 // Every count here comes from a live query with no server snapshot; the card

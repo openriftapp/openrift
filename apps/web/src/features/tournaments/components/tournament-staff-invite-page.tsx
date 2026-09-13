@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { TournamentStaffRole } from "@openrift/shared/types/api/tournament";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
@@ -90,9 +91,15 @@ export function TournamentStaffInvitePage({ token }: { token: string }) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-muted-foreground">
-              {m.tournaments_staff_invite_hosted_prefix({ host: data.hostDisplayName })}
-              <span className="text-foreground font-medium">{roleLabel}</span>
-              {m.tournaments_staff_invite_hosted_suffix()}
+              <ParaglideMessage
+                message={m.tournaments_staff_invite_hosted}
+                inputs={{ host: data.hostDisplayName, role: roleLabel }}
+                markup={{
+                  strong: ({ children }) => (
+                    <span className="text-foreground font-medium">{children}</span>
+                  ),
+                }}
+              />
             </p>
             <StaffInviteAction
               alreadyStaff={data.alreadyStaff}

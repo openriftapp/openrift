@@ -61,7 +61,7 @@ export function TeamsSection({
   const unteamed = participants.filter(
     (participant) => participant.status === "active" && participant.teamId === null,
   );
-  const [soleUnteamed, ...otherUnteamed] = unteamed;
+  const [soleUnteamed] = unteamed;
   const pickable = (excludeId: string) => unteamed.filter((player) => player.id !== excludeId);
 
   async function handleCreate() {
@@ -123,12 +123,11 @@ export function TeamsSection({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {soleUnteamed !== undefined && otherUnteamed.length === 0
-              ? m.tournaments_teams_unteamed_one({ name: soleUnteamed.displayName })
-              : m.tournaments_teams_unteamed_other({
-                  count: unteamed.length,
-                  names: unteamed.map((player) => player.displayName).join(", "),
-                })}{" "}
+            {m.tournaments_teams_unteamed({
+              count: unteamed.length,
+              name: soleUnteamed?.displayName ?? "",
+              names: unteamed.map((player) => player.displayName).join(", "),
+            })}{" "}
             {m.tournaments_teams_unteamed_hint()}
           </AlertTitle>
         </Alert>

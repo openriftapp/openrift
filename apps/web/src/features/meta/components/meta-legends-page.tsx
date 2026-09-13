@@ -264,10 +264,7 @@ export function MetaLegendsPage() {
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_legends_title()}</PageTopBarTitle>
           <span className="text-muted-foreground shrink-0 tabular-nums">
-            {metaShownLabel(entries.length, all.length, {
-              singular: m.meta_legends_noun_one(),
-              plural: m.meta_legends_noun_other(),
-            })}
+            {metaShownLabel(entries.length, all.length, "legends")}
           </span>
         </PageTopBar>
       </PageTopBarSticky>

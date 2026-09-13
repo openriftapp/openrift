@@ -1,5 +1,6 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { CheckCircle2Icon, ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -77,11 +78,7 @@ export function ImportStatusBadges({
             render={<Pressable />}
             // Badge's built-in hover rules only target anchor renders.
             className="hover:bg-destructive/20"
-            aria-label={
-              needsAttentionCount === 1
-                ? m.collections_import_jump_aria_one({ count: needsAttentionCount })
-                : m.collections_import_jump_aria_other({ count: needsAttentionCount })
-            }
+            aria-label={m.collections_import_jump_aria({ count: needsAttentionCount })}
             onClick={onJumpToNeedsAttention}
           >
             {m.collections_import_badge_need_attention({ count: needsAttentionCount })}
@@ -126,13 +123,9 @@ export function ImportParseErrorDetails({
 
 function parseErrorSummary(count: number, unit: "row" | "line"): string {
   if (unit === "line") {
-    return count === 1
-      ? m.collections_import_parse_errors_lines_one({ count })
-      : m.collections_import_parse_errors_lines_other({ count });
+    return m.collections_import_parse_errors_lines({ count });
   }
-  return count === 1
-    ? m.collections_import_parse_errors_rows_one({ count })
-    : m.collections_import_parse_errors_rows_other({ count });
+  return m.collections_import_parse_errors_rows({ count });
 }
 
 export function ImportExactMatchesDisclosure({
@@ -165,11 +158,13 @@ export function ImportToVerifyNote({ count }: { count: number }) {
 
   return (
     <p className="text-muted-foreground text-sm">
-      {count === 1
-        ? m.collections_import_to_verify_note_before_one({ count })
-        : m.collections_import_to_verify_note_before_other({ count })}{" "}
-      <span className="text-foreground font-medium">{m.collections_import_to_verify_label()}</span>
-      {m.collections_import_to_verify_note_after()}
+      <ParaglideMessage
+        message={m.collections_import_to_verify_note}
+        inputs={{ count }}
+        markup={{
+          strong: ({ children }) => <span className="text-foreground font-medium">{children}</span>,
+        }}
+      />
     </p>
   );
 }
@@ -181,11 +176,21 @@ export function ImportTroubleNote({ needsAttentionCount }: { needsAttentionCount
 
   return (
     <p className="text-muted-foreground text-sm">
-      {m.collections_import_trouble_before()}{" "}
-      <TextLink variant="muted" href={SOCIAL_LINKS.githubIssues} target="_blank" rel="noreferrer">
-        {m.collections_import_trouble_link()}
-      </TextLink>{" "}
-      {m.collections_import_trouble_after()}
+      <ParaglideMessage
+        message={m.collections_import_trouble}
+        markup={{
+          link: ({ children }) => (
+            <TextLink
+              variant="muted"
+              href={SOCIAL_LINKS.githubIssues}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {children}
+            </TextLink>
+          ),
+        }}
+      />
     </p>
   );
 }

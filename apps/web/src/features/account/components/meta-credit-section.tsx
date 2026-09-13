@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { MetaCreditVisibility } from "@openrift/shared/types/enums";
 import { META_CREDIT_VISIBILITIES } from "@openrift/shared/types/enums";
 import { Link } from "@tanstack/react-router";
@@ -44,19 +45,30 @@ function CreditPreview({
       )}
       {usesDisplayNameFallback && creditedAs !== null && (
         <p className="text-muted-foreground text-sm">
-          {m.profile_meta_credit_fallback_before()}{" "}
-          <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
-            {m.profile_meta_credit_fallback_link()}
-          </TextLink>{" "}
-          {m.profile_meta_credit_fallback_after()}
+          <ParaglideMessage
+            message={m.profile_meta_credit_fallback}
+            markup={{
+              link: ({ children }) => (
+                <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       )}
       {creditedAs === null && visibility !== "hidden" && (
         <p className="text-muted-foreground text-sm">
-          <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
-            {m.profile_meta_credit_no_name_link()}
-          </TextLink>{" "}
-          {m.profile_meta_credit_no_name_after()}
+          <ParaglideMessage
+            message={m.profile_meta_credit_no_name}
+            markup={{
+              link: ({ children }) => (
+                <TextLink variant="muted" render={<Link to="/profile" hash="account" />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       )}
     </Callout>

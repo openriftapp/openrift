@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { formatHasSideboard } from "@openrift/shared/deck-rules";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
@@ -400,11 +401,14 @@ function DeckEditorContent({
               <div className="text-muted-foreground flex items-center gap-2 pt-1 pb-2 pl-8 md:hidden">
                 <CornerLeftUpIcon className="size-4 shrink-0" />
                 <span>
-                  {m.decks_editor_tap_zones_before()}{" "}
-                  <span className="text-foreground font-medium">
-                    {m.decks_editor_tap_zones_button()}
-                  </span>{" "}
-                  {m.decks_editor_tap_zones_after()}
+                  <ParaglideMessage
+                    message={m.decks_editor_tap_zones}
+                    markup={{
+                      strong: ({ children }) => (
+                        <span className="text-foreground font-medium">{children}</span>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             )}

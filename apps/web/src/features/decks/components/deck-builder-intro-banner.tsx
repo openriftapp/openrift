@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckFormat } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
@@ -73,13 +74,18 @@ export function DeckBuilderIntroBanner({
           <p className="font-medium">{m.decks_intro_good_to_know()}</p>
           <ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-5">
             <li>
-              {m.decks_intro_printings_before()}{" "}
-              <TextLink
-                render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}
-              >
-                {m.decks_intro_printings_link()}
-              </TextLink>
-              {m.decks_intro_printings_after()}
+              <ParaglideMessage
+                message={m.decks_intro_printings}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink
+                      render={<Link to="/help/$slug" params={{ slug: "cards-printings-copies" }} />}
+                    >
+                      {children}
+                    </TextLink>
+                  ),
+                }}
+              />
             </li>
             {introTips().map((tip) => (
               <li key={tip}>{tip}</li>

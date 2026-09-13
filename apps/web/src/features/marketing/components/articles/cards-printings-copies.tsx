@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -44,14 +45,12 @@ export default function CardsPrintingsCopiesArticle() {
   return (
     <div className="space-y-8">
       <p className="text-muted-foreground">
-        {m.help_cards_printings_copies_intro_before()}
-        <strong className="text-foreground">{m.help_cards_printings_copies_term_cards()}</strong>
-        {m.help_cards_printings_copies_intro_sep()}
-        <strong className="text-foreground">
-          {m.help_cards_printings_copies_term_printings()}
-        </strong>
-        {m.help_cards_printings_copies_intro_and()}
-        <strong className="text-foreground">{m.help_cards_printings_copies_term_copies()}</strong>.
+        <ParaglideMessage
+          message={m.help_cards_printings_copies_intro}
+          markup={{
+            strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+          }}
+        />
       </p>
 
       <Callout>
@@ -131,17 +130,22 @@ export default function CardsPrintingsCopiesArticle() {
       <section>
         <Heading className="mb-2">{m.help_cards_printings_copies_view_cards()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_cards_printings_copies_cards_p1_before()}
-          <strong className="text-foreground">{m.help_cards_printings_copies_term_card()}</strong>
-          {m.help_cards_printings_copies_cards_p1_after()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_cards_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_cards_printings_copies_cards_p2_before()}
-          <TextLink href="/cards">{m.help_cards_printings_copies_browser_link()}</TextLink>
-          {m.help_cards_printings_copies_cards_p2_mid()}
-          <strong className="text-foreground">{m.help_cards_printings_copies_view_cards()}</strong>
-          {m.help_cards_printings_copies_cards_p2_after()}
-          <em>{m.help_cards_printings_copies_view_printings()}</em>.
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_cards_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
+              em: ({ children }) => <em>{children}</em>,
+            }}
+          />
         </p>
         <ExampleTable
           rows={[
@@ -191,26 +195,28 @@ export default function CardsPrintingsCopiesArticle() {
       <section>
         <Heading className="mb-2">{m.help_cards_printings_copies_view_printings()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_cards_printings_copies_printings_p1_before()}
-          <strong className="text-foreground">
-            {m.help_cards_printings_copies_term_printing()}
-          </strong>
-          {m.help_cards_printings_copies_printings_p1_after()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_printings_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_cards_printings_copies_printings_p2_before()}
-          <Code>SFD-R01b</Code>
-          {m.help_cards_printings_copies_printings_p2_after()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_printings_p2}
+            markup={{ code: ({ children }) => <Code>{children}</Code> }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">{m.help_cards_printings_copies_printings_p3()}</p>
         <p className="text-muted-foreground mt-2">
-          {m.help_cards_printings_copies_printings_p4_before()}
-          <TextLink href="/cards">{m.help_cards_printings_copies_browser_link()}</TextLink>
-          {m.help_cards_printings_copies_printings_p4_mid()}
-          <strong className="text-foreground">
-            {m.help_cards_printings_copies_view_printings()}
-          </strong>
-          {m.help_cards_printings_copies_printings_p4_after()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_printings_p4}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => <TextLink href="/cards">{children}</TextLink>,
+            }}
+          />
         </p>
         <ExampleTable
           rows={[
@@ -242,18 +248,21 @@ export default function CardsPrintingsCopiesArticle() {
       <section>
         <Heading className="mb-2">{m.help_cards_printings_copies_view_copies()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_cards_printings_copies_copies_p1_before()}
-          <strong className="text-foreground">{m.help_cards_printings_copies_term_copy()}</strong>
-          {m.help_cards_printings_copies_copies_p1_after()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_copies_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_cards_printings_copies_copies_p2_before()}
-          <TextLink href="/collections">{m.help_cards_printings_copies_collection_link()}</TextLink>
-          {m.help_cards_printings_copies_copies_p2_mid()}
-          <strong className="text-foreground">{m.help_cards_printings_copies_view_copies()}</strong>
-          {m.help_cards_printings_copies_copies_p2_after()}
-          <strong className="text-foreground">&times;3</strong>
-          {m.help_cards_printings_copies_copies_p2_end()}
+          <ParaglideMessage
+            message={m.help_cards_printings_copies_copies_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => <TextLink href="/collections">{children}</TextLink>,
+            }}
+          />
         </p>
         <ExampleTable
           rows={[

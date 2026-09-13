@@ -56,13 +56,9 @@ function formatLabel(format: ExportFormat): string {
 
 function exportButtonLabel(unit: ExportUnit, count: number): string {
   if (unit === "card") {
-    return count === 1
-      ? m.collections_export_cards_one({ count })
-      : m.collections_export_cards_other({ count });
+    return m.collections_export_cards({ count });
   }
-  return count === 1
-    ? m.collections_export_copies_one({ count })
-    : m.collections_export_copies_other({ count });
+  return m.collections_export_copies({ count });
 }
 
 function payloadLines(payload: ExportPayload): CardLine[] {

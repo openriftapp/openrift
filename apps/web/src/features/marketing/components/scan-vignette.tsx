@@ -127,9 +127,7 @@ function TrayTotals({
   const newCount = counted.filter((_, index) => OWNED_BEFORE[from + index] === 0).length;
   return (
     <p className={cn("flex flex-wrap items-baseline gap-x-2 text-sm", className)}>
-      <span className="font-medium tabular-nums">
-        {m.common_cards_other({ count: counted.length })}
-      </span>
+      <span className="font-medium tabular-nums">{m.common_cards({ count: counted.length })}</span>
       {total > 0 && (
         <>
           <span className="text-muted-foreground" aria-hidden="true">

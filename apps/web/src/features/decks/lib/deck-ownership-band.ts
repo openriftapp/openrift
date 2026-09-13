@@ -224,18 +224,9 @@ export function buildOwnershipBands(
 export function ownershipBandTitle(quantity: number, segments: OwnershipBandSegments): string {
   const { exact, other, borrowed, locked } = segments;
   const needed = Math.max(0, quantity);
-  const lockedSuffix =
-    locked === 0
-      ? ""
-      : locked === 1
-        ? m.decks_overview_band_suffix_locked_one()
-        : m.decks_overview_band_suffix_locked_other({ count: locked });
+  const lockedSuffix = locked === 0 ? "" : m.decks_overview_band_suffix_locked({ count: locked });
   const borrowedSuffix =
-    borrowed === 0
-      ? ""
-      : borrowed === 1
-        ? m.decks_overview_band_suffix_borrowed_one()
-        : m.decks_overview_band_suffix_borrowed_other({ count: borrowed });
+    borrowed === 0 ? "" : m.decks_overview_band_suffix_borrowed({ count: borrowed });
   // The `> 0` guard matters: an entry needing nothing has borrowed === needed
   // === 0 and must not read "you're borrowing all 0".
   if (borrowed > 0 && borrowed === needed) {
@@ -283,7 +274,5 @@ export function ownershipBandTitle(quantity: number, segments: OwnershipBandSegm
       ? m.decks_overview_band_locked_one()
       : m.decks_overview_band_locked_all({ count: needed });
   }
-  return locked === 1
-    ? m.decks_overview_band_locked_some_one({ locked, needed, suffix: borrowedSuffix })
-    : m.decks_overview_band_locked_some_other({ locked, needed, suffix: borrowedSuffix });
+  return m.decks_overview_band_locked_some({ locked, needed, suffix: borrowedSuffix });
 }

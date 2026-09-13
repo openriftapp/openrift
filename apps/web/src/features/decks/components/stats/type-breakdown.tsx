@@ -89,10 +89,7 @@ export function TypeBreakdown({
       ...entry,
       ...hits,
       __hitTotal: hitTotal,
-      label:
-        entry.total === 1
-          ? m.decks_stats_type_axis_one({ count: entry.total, label: typeLabel })
-          : m.decks_stats_type_axis_other({ count: entry.total, label: typeLabel }),
+      label: m.decks_stats_type_axis({ count: entry.total, label: typeLabel }),
     };
   });
 

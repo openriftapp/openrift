@@ -23,21 +23,16 @@ export function CollectionMissingImagesCallout() {
     return null;
   }
 
-  const single = count === 1;
   const preview = items.slice(0, PREVIEW_LIMIT);
   const rest = count - preview.length;
-  const title = single
-    ? m.collections_stats_missing_images_title_one()
-    : m.collections_stats_missing_images_title_other({ count });
+  const title = m.collections_stats_missing_images_title({ count });
 
   return (
     <Callout className="mb-3 flex items-start justify-between gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="text-muted-foreground text-sm">
           <span className="text-foreground font-medium">{title}</span>{" "}
-          {single
-            ? m.collections_stats_missing_images_hint_one()
-            : m.collections_stats_missing_images_hint_other()}
+          {m.collections_stats_missing_images_hint({ count })}
         </p>
         <p className="text-muted-foreground text-sm">
           {preview.map((item, index) => (
@@ -60,9 +55,7 @@ export function CollectionMissingImagesCallout() {
       </div>
       <div className="-my-1 flex shrink-0 items-center gap-1">
         <Button size="sm" render={<Link to="/contribute" />}>
-          {single
-            ? m.collections_stats_missing_images_add_one()
-            : m.collections_stats_missing_images_add_other()}
+          {m.collections_stats_missing_images_add({ count })}
         </Button>
         <Button
           type="button"

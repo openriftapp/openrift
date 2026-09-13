@@ -22,11 +22,7 @@ export function MissingRegionsBand({
       accent
       label={m.tournaments_missing_regions_label()}
       value={players.length}
-      sub={
-        players.length === 1
-          ? m.tournaments_missing_regions_sub_one()
-          : m.tournaments_missing_regions_sub_other()
-      }
+      sub={m.tournaments_missing_regions_sub({ count: players.length })}
     >
       <div className="flex flex-col gap-2">
         {players.map((player) => (

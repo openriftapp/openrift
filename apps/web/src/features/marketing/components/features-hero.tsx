@@ -1,3 +1,5 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
+
 import { Heading } from "@/components/heading";
 import { TextLink } from "@/components/ui/text-link";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -135,15 +137,20 @@ export function FeaturesHero({
               ))}
             </ul>
             <p className="text-muted-foreground max-w-prose">
-              {m.marketing_hero_switch_before()}{" "}
-              <TextLink
-                className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
-                href="#import"
-                onClick={smoothAnchorClick}
-              >
-                {m.marketing_hero_switch_link()}
-              </TextLink>
-              .
+              <ParaglideMessage
+                message={m.marketing_hero_switch}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink
+                      className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
+                      href="#import"
+                      onClick={smoothAnchorClick}
+                    >
+                      {children}
+                    </TextLink>
+                  ),
+                }}
+              />
             </p>
           </div>
           <CardFlourish urls={thumbnailUrls} />

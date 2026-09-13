@@ -77,7 +77,7 @@ export function ImportVignette() {
           </span>
         </div>
         <span className={cn(buttonVariants(), "w-fit")}>
-          {m.collections_import_button_import_copies_other({ count: 412 })}
+          {m.collections_import_button_import_copies({ count: 412 })}
         </span>
       </div>
     </Vignette>

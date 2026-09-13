@@ -182,9 +182,7 @@ function GroupUnitSection({
             />
           ) : (
             <span className="text-muted-foreground text-sm">
-              {missing === 1
-                ? m.tournaments_group_results_missing_one({ count: missing })
-                : m.tournaments_group_results_missing_other({ count: missing })}
+              {m.tournaments_group_results_missing({ count: missing })}
             </span>
           )
         ) : null}

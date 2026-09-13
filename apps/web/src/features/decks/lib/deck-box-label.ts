@@ -30,11 +30,9 @@ export function sharedBoxWarning(
   if (!first) {
     return undefined;
   }
-  if (otherDecks.length === 1) {
-    return m.decks_overview_box_shared_one({ collection: collectionName, deck: first.name });
-  }
-  return m.decks_overview_box_shared_many({
+  return m.decks_overview_box_shared({
     collection: collectionName,
+    deck: first.name,
     count: otherDecks.length,
   });
 }

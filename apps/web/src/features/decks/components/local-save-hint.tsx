@@ -1,12 +1,14 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { CloudOffIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function SignInLink({ className }: { className?: string }) {
+function SignInLink({ children, className }: { children?: ReactNode; className?: string }) {
   return (
     <Link
       to="/login"
@@ -14,7 +16,7 @@ function SignInLink({ className }: { className?: string }) {
       search={{ redirect: "/decks", email: undefined }}
       className={cn("hover:text-foreground font-medium underline", className)}
     >
-      {m.common_sign_in()}
+      {children}
     </Link>
   );
 }
@@ -39,7 +41,10 @@ export function LocalDeckSaveNote({ className }: { className?: string }) {
     <p className={cn("text-muted-foreground flex items-start gap-1.5 text-sm", className)}>
       <CloudOffIcon className="mt-0.5 size-3.5 shrink-0" />
       <span>
-        {m.decks_local_note_before()} <SignInLink /> {m.decks_local_note_after()}
+        <ParaglideMessage
+          message={m.decks_local_note}
+          markup={{ link: ({ children }) => <SignInLink>{children}</SignInLink> }}
+        />
       </span>
     </p>
   );
@@ -50,7 +55,10 @@ export function LocalDeckSaveBanner({ className }: { className?: string }) {
     <p className={cn("text-muted-foreground flex items-start gap-1.5 text-sm", className)}>
       <CloudOffIcon className="mt-0.5 size-3.5 shrink-0" />
       <span>
-        {m.decks_local_banner_before()} <SignInLink /> {m.decks_local_banner_after()}
+        <ParaglideMessage
+          message={m.decks_local_banner}
+          markup={{ link: ({ children }) => <SignInLink>{children}</SignInLink> }}
+        />
       </span>
     </p>
   );

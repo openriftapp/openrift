@@ -23,11 +23,7 @@ export function ScanClearDialog({ count, onOpenChange, onClear }: ScanClearDialo
     <AlertDialog open={count !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {count === 1
-              ? m.scan_clear_title_one({ count })
-              : m.scan_clear_title_plural({ count: count ?? 0 })}
-          </AlertDialogTitle>
+          <AlertDialogTitle>{m.scan_clear_title({ count: count ?? 0 })}</AlertDialogTitle>
           <AlertDialogDescription>{m.scan_clear_description()}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

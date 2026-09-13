@@ -111,10 +111,7 @@ export function useListImportFlow(
       }
     };
 
-    const successMessage =
-      summary.totalCards === 1
-        ? m.lists_import_success_one({ count: summary.totalCards })
-        : m.lists_import_success_other({ count: summary.totalCards });
+    const successMessage = m.lists_import_success({ count: summary.totalCards });
 
     try {
       await sendAllBatches();

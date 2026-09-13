@@ -156,7 +156,7 @@ export function DeckListToolbar({
     hasActiveFilters && filteredCount !== totalCount
       ? `${filteredCount} / ${totalCount}`
       : String(totalCount);
-  const unitLabel = totalCount === 1 ? m.decks_list_unit_one() : m.decks_list_unit_other();
+  const unitLabel = m.decks_list_unit({ count: totalCount });
   // Keeps the row alive even when the deck set has made every control
   // pointless, so there is always a way back to the full list.
   const showFilters =

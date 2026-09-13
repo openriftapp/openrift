@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { FriendGroupMemberResponse } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, Share2Icon, SparklesIcon } from "lucide-react";
@@ -33,16 +34,14 @@ function footerLine(card: TradeHubCard<FriendGroupMemberResponse>): string | nul
   const parts: string[] = [];
   if (card.tradedCount > 0) {
     const count = card.tradedCount;
-    parts.push(count === 1 ? m.trades_done_one({ count }) : m.trades_done_other({ count }));
+    parts.push(m.trades_done({ count }));
   }
   if (card.elsewhereCount > 0) {
     parts.push(m.trades_in_other_groups({ count: card.elsewhereCount }));
   }
   if (card.listCount > 0) {
     const count = card.listCount;
-    parts.push(
-      count === 1 ? m.trades_shares_lists_one({ count }) : m.trades_shares_lists_other({ count }),
-    );
+    parts.push(m.trades_shares_lists({ count }));
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }
@@ -117,11 +116,17 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
       <Callout className="flex items-center gap-3">
         <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
         <p className="text-muted-foreground min-w-0 flex-1">
-          {m.trades_share_band_empty_before()}{" "}
-          <TextLink variant="muted" render={<Link to="/collections" />}>
-            {m.trades_share_band_create()}
-          </TextLink>{" "}
-          {m.trades_share_band_empty_after({ group: groupName })}
+          <ParaglideMessage
+            message={m.trades_share_band_empty}
+            inputs={{ group: groupName }}
+            markup={{
+              link: ({ children }) => (
+                <TextLink variant="muted" render={<Link to="/collections" />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </Callout>
     );
@@ -132,9 +137,7 @@ export function ShareYourListsBand({ slug, groupName }: { slug: string; groupNam
       <IconChip icon={Share2Icon} tone="info" size="sm" shape="round" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="font-medium">
-          {tradable.length === 1
-            ? m.trades_share_band_shared_one({ shared: shared.length, total: tradable.length })
-            : m.trades_share_band_shared_other({ shared: shared.length, total: tradable.length })}
+          {m.trades_share_band_shared({ shared: shared.length, total: tradable.length })}
         </p>
         <p className="text-muted-foreground text-xs">{m.trades_share_band_hint()}</p>
       </div>

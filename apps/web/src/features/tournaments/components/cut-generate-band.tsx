@@ -97,13 +97,7 @@ export function CutGenerateBand({
       >
         {needsShares ? (
           <p className="text-muted-foreground text-sm">
-            {groupStage.pendingMetaShares.length === 1
-              ? m.tournaments_cut_meta_shares_needed_one({
-                  count: groupStage.pendingMetaShares.length,
-                })
-              : m.tournaments_cut_meta_shares_needed_other({
-                  count: groupStage.pendingMetaShares.length,
-                })}
+            {m.tournaments_cut_meta_shares_needed({ count: groupStage.pendingMetaShares.length })}
           </p>
         ) : null}
       </ActionBand>

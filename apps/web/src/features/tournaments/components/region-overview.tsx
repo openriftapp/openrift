@@ -48,9 +48,7 @@ export function RegionOverview({
                 <span className="text-foreground font-semibold tabular-nums">
                   {formatScore(row.avgScore)}
                 </span>{" "}
-                {row.playerCount === 1
-                  ? m.tournaments_region_overview_avg_players_one({ count: row.playerCount })
-                  : m.tournaments_region_overview_avg_players_other({ count: row.playerCount })}
+                {m.tournaments_region_overview_avg_players({ count: row.playerCount })}
               </span>
             </div>
             <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
@@ -64,9 +62,7 @@ export function RegionOverview({
       </ul>
       {unassignedCount > 0 ? (
         <p className="text-muted-foreground text-sm">
-          {unassignedCount === 1
-            ? m.tournaments_region_overview_unassigned_one({ count: unassignedCount })
-            : m.tournaments_region_overview_unassigned_other({ count: unassignedCount })}
+          {m.tournaments_region_overview_unassigned({ count: unassignedCount })}
         </p>
       ) : null}
     </section>

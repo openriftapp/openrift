@@ -49,9 +49,7 @@ export function CollectionRadioPicker({
                 </Badge>
               ) : null}
               <span className="text-muted-foreground shrink-0 text-xs">
-                {collection.copyCount === 1
-                  ? m.common_cards_one({ count: collection.copyCount })
-                  : m.common_cards_other({ count: collection.copyCount })}
+                {m.common_cards({ count: collection.copyCount })}
               </span>
             </label>
           );

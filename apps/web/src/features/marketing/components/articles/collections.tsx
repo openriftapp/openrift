@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import {
   ArrowRightLeftIcon,
   BookOpenIcon,
@@ -89,13 +90,15 @@ export default function CollectionsArticle() {
         <Heading className="mb-2">{m.help_collections_physical_heading()}</Heading>
         <p className="text-muted-foreground">{m.help_collections_physical_p1()}</p>
         <p className="text-muted-foreground mt-2">
-          {m.help_collections_physical_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_physical_p2_copies()}</strong>{" "}
-          {m.help_collections_physical_p2_mid()}{" "}
-          <TextLink href="/help/cards-printings-copies">
-            {m.help_collections_physical_p2_link()}
-          </TextLink>{" "}
-          {m.help_collections_physical_p2_after()}
+          <ParaglideMessage
+            message={m.help_collections_physical_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              link: ({ children }) => (
+                <TextLink href="/help/cards-printings-copies">{children}</TextLink>
+              ),
+            }}
+          />
         </p>
       </section>
 
@@ -107,9 +110,10 @@ export default function CollectionsArticle() {
           <ShieldCheckIcon className="text-primary" />
           <AlertDescription>
             <p>
-              {m.help_collections_availability_p1_before()}{" "}
-              <em>{m.help_collections_availability_p1_edit()}</em>{" "}
-              {m.help_collections_availability_p1_after()}
+              <ParaglideMessage
+                message={m.help_collections_availability_p1}
+                markup={{ em: ({ children }) => <em>{children}</em> }}
+              />
             </p>
             <p>{m.help_collections_availability_p2()}</p>
           </AlertDescription>
@@ -119,16 +123,21 @@ export default function CollectionsArticle() {
       <section>
         <Heading className="mb-2">{m.help_collections_start_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_collections_start_p1_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_mock_collections()}</strong>{" "}
-          {m.help_collections_start_p1_mid()}{" "}
-          <strong className="text-foreground">{m.help_collections_mock_inbox()}</strong>
-          {m.help_collections_start_p1_after()}
+          <ParaglideMessage
+            message={m.help_collections_start_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_collections_start_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_mock_new_collection()}</strong>{" "}
-          {m.help_collections_start_p2_after()}
+          <ParaglideMessage
+            message={m.help_collections_start_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
@@ -157,9 +166,12 @@ export default function CollectionsArticle() {
         </div>
 
         <p className="text-muted-foreground mt-3">
-          {m.help_collections_adding_done_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_adding_done_label()}</strong>{" "}
-          {m.help_collections_adding_done_after()}
+          <ParaglideMessage
+            message={m.help_collections_adding_done}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
 
@@ -206,20 +218,23 @@ export default function CollectionsArticle() {
       <section>
         <Heading className="mb-2">{m.help_collections_sidebar_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_collections_sidebar_p1_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_mock_all_cards()}</strong>{" "}
-          {m.help_collections_sidebar_p1_mid1()}{" "}
-          <strong className="text-foreground">{m.help_collections_sidebar_p1_import()}</strong>{" "}
-          {m.help_collections_sidebar_p1_mid2()}{" "}
-          <strong className="text-foreground">{m.help_collections_sidebar_p1_activity()}</strong>{" "}
-          {m.help_collections_sidebar_p1_after()}
+          <ParaglideMessage
+            message={m.help_collections_sidebar_p1}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong3: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
         <p className="text-muted-foreground mt-2">
-          {m.help_collections_sidebar_p2_before()}{" "}
-          <strong className="text-foreground">{m.help_collections_sidebar_p2_hide()}</strong>
-          {m.help_collections_sidebar_p2_mid()}{" "}
-          <strong className="text-foreground">{m.help_collections_sidebar_p2_show_more()}</strong>{" "}
-          {m.help_collections_sidebar_p2_after()}
+          <ParaglideMessage
+            message={m.help_collections_sidebar_p2}
+            markup={{
+              strong: ({ children }) => <strong className="text-foreground">{children}</strong>,
+              strong2: ({ children }) => <strong className="text-foreground">{children}</strong>,
+            }}
+          />
         </p>
       </section>
     </div>

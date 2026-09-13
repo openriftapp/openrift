@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { CardmarketOverlaySnapshot } from "@openrift/shared/contracts/cardmarket-overlay";
 import { CARDMARKET_OVERLAY_MAX_LISTS } from "@openrift/shared/contracts/cardmarket-overlay";
 import { formatDayTimeLocal } from "@openrift/shared/format-date";
@@ -46,10 +47,7 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
         </>
       }
       description={m.extension_overlay_ready_description({
-        cards:
-          cards === 1
-            ? m.extension_overlay_ready_cards_one({ count: cards })
-            : m.extension_overlay_ready_cards_other({ count: cards }),
+        cards: m.extension_overlay_ready_cards({ count: cards }),
         marketplace: marketplaceLabel(snapshot.marketplace),
         time: formatDayTimeLocal(snapshot.generatedAt),
       })}
@@ -66,11 +64,18 @@ function HandOff({ snapshot }: { snapshot: CardmarketOverlaySnapshot }) {
             {m.extension_overlay_waiting()}
           </p>
           <p className="text-muted-foreground text-sm">
-            {m.extension_overlay_waiting_hint_before()}{" "}
-            <TextLink render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}>
-              {m.extension_overlay_waiting_hint_link()}
-            </TextLink>
-            {m.extension_overlay_waiting_hint_after()}
+            <ParaglideMessage
+              message={m.extension_overlay_waiting_hint}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink
+                    render={<Link to="/help/$slug" params={{ slug: "browser-extension" }} />}
+                  >
+                    {children}
+                  </TextLink>
+                ),
+              }}
+            />
           </p>
         </div>
       )}

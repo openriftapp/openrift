@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ListIntent } from "@openrift/shared/types/api/list";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -166,14 +167,20 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
   if (userId === null) {
     return (
       <p className="text-muted-foreground text-sm">
-        <Link
-          to="/login"
-          search={{ redirect: "/stage", email: undefined }}
-          className="underline underline-offset-2"
-        >
-          {m.common_sign_in()}
-        </Link>{" "}
-        {m.stage_queue_source_signin_suffix()}
+        <ParaglideMessage
+          message={m.stage_queue_source_signin}
+          markup={{
+            link: ({ children }) => (
+              <Link
+                to="/login"
+                search={{ redirect: "/stage", email: undefined }}
+                className="underline underline-offset-2"
+              >
+                {children}
+              </Link>
+            ),
+          }}
+        />
       </p>
     );
   }

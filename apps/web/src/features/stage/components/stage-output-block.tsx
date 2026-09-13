@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { PlayIcon } from "lucide-react";
 
@@ -37,14 +38,20 @@ export function StageOutputBlock({
         <TabsContent value="obs" className="flex flex-col gap-4">
           {userId === null ? (
             <p className="text-muted-foreground text-sm">
-              <Link
-                to="/login"
-                search={{ redirect: "/stage", email: undefined }}
-                className="underline underline-offset-2"
-              >
-                {m.common_sign_in()}
-              </Link>{" "}
-              {m.stage_output_obs_signin_suffix()}
+              <ParaglideMessage
+                message={m.stage_output_obs_signin}
+                markup={{
+                  link: ({ children }) => (
+                    <Link
+                      to="/login"
+                      search={{ redirect: "/stage", email: undefined }}
+                      className="underline underline-offset-2"
+                    >
+                      {children}
+                    </Link>
+                  ),
+                }}
+              />
             </p>
           ) : (
             <OverlayOutputPanel />

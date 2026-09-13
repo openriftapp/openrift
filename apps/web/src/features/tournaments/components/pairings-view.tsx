@@ -206,9 +206,7 @@ export function PairingsView({
         const countLabel = [
           formatPodCount(round, teamMode),
           round.byes.length > 0
-            ? round.byes.length === 1
-              ? m.tournaments_pairings_byes_count_one({ count: round.byes.length })
-              : m.tournaments_pairings_byes_count_other({ count: round.byes.length })
+            ? m.tournaments_pairings_byes_count({ count: round.byes.length })
             : null,
         ]
           .filter((part) => part !== null)
@@ -277,13 +275,9 @@ function formatPodCount(round: PodRoundResponse, teamMode: boolean): string {
   const allMatches = teamMode || isAllMatchRound(round.pods.map((pod) => pod.size));
   const count = round.pods.length;
   if (allMatches) {
-    return count === 1
-      ? m.tournaments_round_matches_count_one({ count })
-      : m.tournaments_round_matches_count_other({ count });
+    return m.tournaments_round_matches_count({ count });
   }
-  return count === 1
-    ? m.tournaments_round_pods_count_one({ count })
-    : m.tournaments_round_pods_count_other({ count });
+  return m.tournaments_round_pods_count({ count });
 }
 
 function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
@@ -306,10 +300,7 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
     {
       key: "rematches",
       value: rematches,
-      label:
-        rematches === 1
-          ? m.tournaments_round_stat_rematch_one()
-          : m.tournaments_round_stat_rematch_other(),
+      label: m.tournaments_round_stat_rematch({ count: rematches }),
       icon: RepeatIcon,
       iconTone: rematches === 0 ? "success" : "gold",
       tone: rematches === 0 ? "good" : "default",
@@ -328,12 +319,8 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
       key: "sameRegion",
       value: sameRegionPods,
       label: allMatches
-        ? sameRegionPods === 1
-          ? m.tournaments_round_stat_same_region_match_one()
-          : m.tournaments_round_stat_same_region_match_other()
-        : sameRegionPods === 1
-          ? m.tournaments_round_stat_same_region_pod_one()
-          : m.tournaments_round_stat_same_region_pod_other(),
+        ? m.tournaments_round_stat_same_region_match({ count: sameRegionPods })
+        : m.tournaments_round_stat_same_region_pod({ count: sameRegionPods }),
       icon: MapPinIcon,
       iconTone: "gold",
     });
@@ -346,12 +333,8 @@ function RoundPenaltyStats({ round }: { round: PodRoundResponse }) {
       key: "repeatedRegion",
       value: repeatedRegionPods,
       label: allMatches
-        ? repeatedRegionPods === 1
-          ? m.tournaments_round_stat_repeat_region_match_one()
-          : m.tournaments_round_stat_repeat_region_match_other()
-        : repeatedRegionPods === 1
-          ? m.tournaments_round_stat_repeat_region_pod_one()
-          : m.tournaments_round_stat_repeat_region_pod_other(),
+        ? m.tournaments_round_stat_repeat_region_match({ count: repeatedRegionPods })
+        : m.tournaments_round_stat_repeat_region_pod({ count: repeatedRegionPods }),
       icon: RepeatIcon,
       iconTone: "gold",
     });

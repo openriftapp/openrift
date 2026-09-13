@@ -261,9 +261,9 @@ export function badgeAriaLabel(badge: keyof NavBadgeCounts, count: number): stri
     return m.nav_badge_loans({ count });
   }
   if (badge === "trades") {
-    return count === 1 ? m.nav_badge_trades_one({ count }) : m.nav_badge_trades_other({ count });
+    return m.nav_badge_trades({ count });
   }
-  return count === 1 ? m.nav_badge_requests_one({ count }) : m.nav_badge_requests_other({ count });
+  return m.nav_badge_requests({ count });
 }
 
 export function SignInRequiredDialog({

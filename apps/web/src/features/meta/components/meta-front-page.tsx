@@ -187,11 +187,7 @@ function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number
             <span className="text-muted-foreground"> · </span>
             {next.name}
           </span>
-          <span className="text-muted-foreground text-xs">
-            {count === 1
-              ? m.meta_front_upcoming_one()
-              : m.meta_front_upcoming_other({ count: String(count) })}
-          </span>
+          <span className="text-muted-foreground text-xs">{m.meta_front_upcoming({ count })}</span>
         </span>
         <ChevronDownIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
       </Link>

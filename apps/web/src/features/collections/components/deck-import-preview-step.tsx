@@ -148,15 +148,9 @@ export function DeckImportPreviewStep({
           {isReplaceMode ? m.collections_import_deck_replacing() : m.collections_import_importing()}
         </>
       ) : isReplaceMode ? (
-        totalCards === 1 ? (
-          m.collections_import_deck_replace_button_one({ count: totalCards })
-        ) : (
-          m.collections_import_deck_replace_button_other({ count: totalCards })
-        )
-      ) : totalCards === 1 ? (
-        m.collections_import_deck_import_button_one({ count: totalCards })
+        m.collections_import_deck_replace_button({ count: totalCards })
       ) : (
-        m.collections_import_deck_import_button_other({ count: totalCards })
+        m.collections_import_deck_import_button({ count: totalCards })
       )}
     </Button>
   );
@@ -181,9 +175,7 @@ export function DeckImportPreviewStep({
       </PageTopBarSticky>
       <ImportPreviewStack className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <PageDescription>
-          {matchedEntries.length === 1
-            ? m.collections_import_deck_cards_parsed_one({ count: matchedEntries.length })
-            : m.collections_import_deck_cards_parsed_other({ count: matchedEntries.length })}
+          {m.collections_import_deck_cards_parsed({ count: matchedEntries.length })}
           {sourceNote ? ` (${sourceNote})` : null}
         </PageDescription>
 
@@ -226,9 +218,7 @@ export function DeckImportPreviewStep({
         {parseWarnings.length > 0 && (
           <Alert variant="warning">
             <AlertTitle>
-              {parseWarnings.length === 1
-                ? m.collections_import_deck_warnings_one({ count: parseWarnings.length })
-                : m.collections_import_deck_warnings_other({ count: parseWarnings.length })}
+              {m.collections_import_deck_warnings({ count: parseWarnings.length })}
             </AlertTitle>
             <AlertDescription>
               {parseWarnings.map((warning) => (

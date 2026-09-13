@@ -28,7 +28,26 @@ Capitalisation follows your language, not the source. Where English capitalises 
 
 Strings contain placeholders in curly braces: `{count}`, `{name}`, `{deck}`. Every placeholder in the source must appear in your translation, spelled exactly the same. Do not translate the name inside the braces, do not add spaces inside them, and do not invent new ones. Reordering them within the sentence is fine and often necessary.
 
-There are no plural forms in the message files. Where a count needs different wording, the interface uses separate strings. If a source string cannot be translated correctly without a plural rule your language requires, leave a comment instead of forcing it.
+Some strings wrap part of the sentence in a tag pair, `{#strong}…{/strong}` or `{#link}…{/link}`. The tag marks text the interface renders as a link, emphasis, a keyboard key, or code. Translate the words between the tags, keep the tags themselves unchanged, and move the whole tagged span to wherever your sentence needs it.
+
+## Plural forms
+
+A string that changes with a number is stored as a list of variants, selected by the plural rule of your language:
+
+```json
+"nav_badge_trades": [
+  {
+    "declarations": ["input count", "local countPlural = count: plural"],
+    "selectors": ["countPlural"],
+    "match": {
+      "countPlural=one": "{count} person is waiting on you to trade",
+      "countPlural=*": "{count} people are waiting on you to trade"
+    }
+  }
+]
+```
+
+Translate only the texts inside `match`. The `declarations` and `selectors` lines stay as they are. The categories follow [CLDR plural rules](https://cldr.unicode.org/index/cldr-spec/plural-rules): English, German, and French use `one` for a single item and `*` for everything else. If your language needs more categories (`few`, `many`, `two`, `zero`), add them as further `match` entries before the `*` line; `*` must stay last because it catches every number no other entry matches.
 
 ## Terminology
 

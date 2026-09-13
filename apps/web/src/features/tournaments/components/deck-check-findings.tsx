@@ -61,9 +61,7 @@ export function ChangeBanner({ summary }: { summary: DeckCheckChangeSummary }) {
 }
 
 function reResolveMessage(updatedLines: number): string {
-  return updatedLines === 1
-    ? m.tournaments_deck_check_resolved_lines_one({ count: updatedLines })
-    : m.tournaments_deck_check_resolved_lines_other({ count: updatedLines });
+  return m.tournaments_deck_check_resolved_lines({ count: updatedLines });
 }
 
 export function FindingsBanner({
@@ -104,18 +102,10 @@ export function FindingsBanner({
       <span className="font-medium">{m.tournaments_deck_check_findings_title()}</span>
       <ul className="list-disc pl-5">
         {unmatched.length > 0 ? (
-          <li>
-            {unmatched.length === 1
-              ? m.tournaments_deck_check_unmatched_finding_one({ count: unmatched.length })
-              : m.tournaments_deck_check_unmatched_finding_other({ count: unmatched.length })}
-          </li>
+          <li>{m.tournaments_deck_check_unmatched_finding({ count: unmatched.length })}</li>
         ) : null}
         {suggestions.length > 0 ? (
-          <li>
-            {suggestions.length === 1
-              ? m.tournaments_deck_check_mis_zoned_finding_one({ count: suggestions.length })
-              : m.tournaments_deck_check_mis_zoned_finding_other({ count: suggestions.length })}
-          </li>
+          <li>{m.tournaments_deck_check_mis_zoned_finding({ count: suggestions.length })}</li>
         ) : null}
         {detail.violations.map((violation) => (
           <li key={`${violation.zone}:${violation.code}:${violation.cardId ?? ""}`}>

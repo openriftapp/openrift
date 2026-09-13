@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createLazyFileRoute, useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
@@ -45,9 +46,11 @@ function ContributeAddPrintingPage() {
       <header className="flex flex-col gap-1">
         <Heading level={1}>{m.contribute_page_add_printing_title()}</Heading>
         <p className="text-muted-foreground">
-          {m.contribute_page_add_printing_lead_before()}{" "}
-          <span className="font-medium">{legendDisplayName(data.card)}</span>{" "}
-          {m.contribute_page_add_printing_lead_after()}
+          <ParaglideMessage
+            message={m.contribute_page_add_printing_lead}
+            inputs={{ name: legendDisplayName(data.card) }}
+            markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
+          />
         </p>
       </header>
       <ContributeForm initial={initial} lockedSlug={cardSlug} scope="printing" />

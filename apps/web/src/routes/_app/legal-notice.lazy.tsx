@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link, createLazyFileRoute } from "@tanstack/react-router";
 
 import { ProsePage } from "@/components/prose-page";
@@ -51,9 +52,10 @@ function LegalNoticePage() {
 
       <h2>{m.legal_notice_privacy_heading()}</h2>
       <p>
-        {m.legal_notice_privacy_see_before()}{" "}
-        <Link to="/privacy-policy">{m.legal_notice_privacy_link_text()}</Link>
-        {m.legal_notice_privacy_see_after()}
+        <ParaglideMessage
+          message={m.legal_notice_privacy_see}
+          markup={{ link: ({ children }) => <Link to="/privacy-policy">{children}</Link> }}
+        />
       </p>
     </ProsePage>
   );

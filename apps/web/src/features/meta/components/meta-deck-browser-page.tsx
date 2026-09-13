@@ -53,10 +53,6 @@ import { useDisplayStore } from "@/stores/display-store";
 /** How many lists the page opens with, and how many each "more" adds. */
 const PAGE_SIZE = 40;
 
-function deckNoun() {
-  return { singular: m.meta_decks_noun_one(), plural: m.meta_decks_noun_other() };
-}
-
 function highest(
   costs: ReadonlyMap<string, MetaDeckCost> | undefined,
   pick: (cost: MetaDeckCost) => number | undefined,
@@ -451,7 +447,7 @@ export function MetaDeckBrowserPage() {
           <PageTopBarTitle>{m.meta_browser_title()}</PageTopBarTitle>
           {count !== undefined && (
             <span className="text-muted-foreground shrink-0 tabular-nums">
-              {metaShownLabel(count.shown, count.total, deckNoun())}
+              {metaShownLabel(count.shown, count.total, "decks")}
             </span>
           )}
         </PageTopBar>

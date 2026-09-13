@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { createLazyFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -111,10 +112,11 @@ function ResetPasswordPage() {
                 {step === "email" ? (
                   <>{m.auth_reset_intro()}</>
                 ) : (
-                  <>
-                    {m.auth_reset_code_intro_before()} <strong>{email.trim()}</strong>{" "}
-                    {m.auth_reset_code_intro_after()}
-                  </>
+                  <ParaglideMessage
+                    message={m.auth_reset_code_intro}
+                    inputs={{ email: email.trim() }}
+                    markup={{ strong: ({ children }) => <strong>{children}</strong> }}
+                  />
                 )}
               </p>
             </div>

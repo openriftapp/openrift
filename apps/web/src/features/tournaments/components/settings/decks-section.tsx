@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
 
@@ -169,17 +170,22 @@ export function DecksSection({
           <div className="flex flex-col gap-1.5">
             <Label>{m.tournaments_settings_push_label()}</Label>
             <span className="text-muted-foreground text-sm">
-              {m.tournaments_settings_push_hint_prefix()}
-              <code className="break-all">{detail.id}</code>
-              {m.tournaments_settings_push_hint_middle()}{" "}
-              <Link
-                to="/tournaments/$id/decks"
-                params={{ id: detail.id }}
-                className="text-foreground font-medium underline"
-              >
-                {m.tournaments_settings_deck_check_tab_link()}
-              </Link>
-              .
+              <ParaglideMessage
+                message={m.tournaments_settings_push_hint}
+                inputs={{ id: detail.id }}
+                markup={{
+                  code: ({ children }) => <code className="break-all">{children}</code>,
+                  link: ({ children }) => (
+                    <Link
+                      to="/tournaments/$id/decks"
+                      params={{ id: detail.id }}
+                      className="text-foreground font-medium underline"
+                    >
+                      {children}
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           </div>
         </>

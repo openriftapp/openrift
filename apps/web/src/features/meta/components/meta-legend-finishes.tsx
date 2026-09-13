@@ -229,9 +229,7 @@ export function MetaLegendFinishes({
 
         {view === "all" && remaining > 0 && (
           <MetaShowMore disabled={loadingMore} onClick={onShowMore}>
-            {remaining === 1
-              ? m.meta_finishes_more_one({ count: remaining.toLocaleString("en-US") })
-              : m.meta_finishes_more_other({ count: remaining.toLocaleString("en-US") })}
+            {m.meta_finishes_more({ count: remaining })}
           </MetaShowMore>
         )}
       </div>

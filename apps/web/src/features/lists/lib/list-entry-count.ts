@@ -5,13 +5,13 @@ import { m } from "@/paraglide/messages.js";
 function kindNoun(kind: ListKind, count: number): string {
   switch (kind) {
     case "card": {
-      return count === 1 ? m.lists_kind_card_one() : m.lists_kind_card_other();
+      return m.lists_kind_card({ count });
     }
     case "printing": {
-      return count === 1 ? m.lists_kind_printing_one() : m.lists_kind_printing_other();
+      return m.lists_kind_printing({ count });
     }
     case "copy": {
-      return count === 1 ? m.lists_kind_copy_one() : m.lists_kind_copy_other();
+      return m.lists_kind_copy({ count });
     }
   }
 }

@@ -11,14 +11,6 @@ import { readScanJournal } from "@/features/scan/lib/scan-journal";
 import { cn, FORM_COLUMN, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function entryWord(count: number): string {
-  return count === 1 ? m.scan_report_entry_one() : m.scan_report_entry_plural();
-}
-
-function batchWord(count: number): string {
-  return count === 1 ? m.scan_report_batch_one() : m.scan_report_batch_plural();
-}
-
 function summarize(journal: readonly ScanJournalEntry[]): string {
   const first = journal[0];
   const last = journal.at(-1);
@@ -33,11 +25,11 @@ function summarize(journal: readonly ScanJournalEntry[]): string {
   }
   return m.scan_report_summary({
     count: journal.length,
-    entries: entryWord(journal.length),
+    entries: m.scan_report_entry({ count: journal.length }),
     from: formatDayTimeLocal(new Date(first.t)),
     to: formatDayTimeLocal(new Date(last.t)),
     batchCount: batches.size,
-    batches: batchWord(batches.size),
+    batches: m.scan_report_batch({ count: batches.size }),
   });
 }
 

@@ -32,14 +32,10 @@ function resetSummaryMessage(summary: {
   removedCopies: number;
   removedCollections: number;
 }): string {
-  const copies =
-    summary.removedCopies === 1
-      ? m.profile_danger_reset_summary_cards_one({ count: summary.removedCopies })
-      : m.profile_danger_reset_summary_cards_other({ count: summary.removedCopies });
-  const collections =
-    summary.removedCollections === 1
-      ? m.profile_danger_reset_summary_collections_one({ count: summary.removedCollections })
-      : m.profile_danger_reset_summary_collections_other({ count: summary.removedCollections });
+  const copies = m.profile_danger_reset_summary_cards({ count: summary.removedCopies });
+  const collections = m.profile_danger_reset_summary_collections({
+    count: summary.removedCollections,
+  });
   return m.profile_danger_reset_summary({ cards: copies, collections });
 }
 

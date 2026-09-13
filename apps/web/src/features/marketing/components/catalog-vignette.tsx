@@ -69,7 +69,7 @@ export function CatalogVignette({
     cardCount === undefined
       ? undefined
       : filtered === undefined
-        ? m.common_cards_other({ count: cardCount })
+        ? m.common_cards({ count: cardCount })
         : m.marketing_catalog_count_filtered({ filtered, total: cardCount });
   const search =
     filter === null

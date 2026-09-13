@@ -42,12 +42,7 @@ export function UserProfileStats({ stats }: { stats: PublicUserProfileStats }) {
       tone: "info",
       label: m.user_profile_stat_collection(),
       value: stats.collection.copies,
-      hint:
-        stats.collection.uniqueCards === 1
-          ? m.user_profile_unique_cards_one({ count: stats.collection.uniqueCards })
-          : m.user_profile_unique_cards_other({
-              count: stats.collection.uniqueCards.toLocaleString("en-US"),
-            }),
+      hint: m.user_profile_unique_cards({ count: stats.collection.uniqueCards }),
     });
   }
   if (stats.contributions.total > 0) {

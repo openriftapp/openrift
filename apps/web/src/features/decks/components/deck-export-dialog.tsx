@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { DeckExportResponse } from "@openrift/shared/types/api/deck";
 import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
@@ -41,27 +42,31 @@ function formatDescriptions(): Record<ExportFormat, React.ReactNode> {
       </>
     ),
     text: (
-      <>
-        {m.decks_dialog_export_desc_text_before()}{" "}
-        <TextLink
-          variant="muted"
-          href="https://piltoverarchive.com"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Piltover Archive
-        </TextLink>
-        {m.decks_dialog_export_desc_text_between()}
-        <a
-          href="https://tcg-arena.fr/decks"
-          target="_blank"
-          rel="noreferrer"
-          className="text-foreground underline"
-        >
-          TCG Arena
-        </a>
-        .
-      </>
+      <ParaglideMessage
+        message={m.decks_dialog_export_desc_text}
+        markup={{
+          link: ({ children }) => (
+            <TextLink
+              variant="muted"
+              href="https://piltoverarchive.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {children}
+            </TextLink>
+          ),
+          link2: ({ children }) => (
+            <a
+              href="https://tcg-arena.fr/decks"
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground underline"
+            >
+              {children}
+            </a>
+          ),
+        }}
+      />
     ),
     tts: (
       <>

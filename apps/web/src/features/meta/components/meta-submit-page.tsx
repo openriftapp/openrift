@@ -89,8 +89,7 @@ function partialListSentence(parsed: MetaSubmissionParsedList): string {
   if (parsed.zones.runes === 0) {
     missing.push(m.meta_submit_missing_runes());
   }
-  const tail =
-    missing.length === 1 ? m.meta_submit_partial_tail_one() : m.meta_submit_partial_tail_other();
+  const tail = m.meta_submit_partial_tail({ count: missing.length });
   return m.meta_submit_partial_sentence({ missing: joinMissing(missing), tail });
 }
 
@@ -108,11 +107,7 @@ function finishLabel(rank: number | undefined, rankIsTier: boolean | undefined):
 function eventFacts(event: MetaEventSummary, formatLabel: string): string {
   const facts = [formatDay(event.eventDate), formatLabel];
   if (event.playerCount !== null) {
-    facts.push(
-      event.playerCount === 1
-        ? m.meta_submit_players_one({ count: String(event.playerCount) })
-        : m.meta_submit_players_other({ count: String(event.playerCount) }),
-    );
+    facts.push(m.meta_submit_players({ count: event.playerCount }));
   }
   return facts.join(" · ");
 }
@@ -158,13 +153,8 @@ function ListReadback({
         </Badge>
         <span className="text-muted-foreground text-sm">
           {m.meta_submit_main_count({ count: String(parsed.zones.main) })} ·{" "}
-          {parsed.zones.battlefield === 1
-            ? m.meta_submit_battlefields_one({ count: String(parsed.zones.battlefield) })
-            : m.meta_submit_battlefields_other({ count: String(parsed.zones.battlefield) })}{" "}
-          ·{" "}
-          {parsed.zones.runes === 1
-            ? m.meta_submit_runes_one({ count: String(parsed.zones.runes) })
-            : m.meta_submit_runes_other({ count: String(parsed.zones.runes) })}
+          {m.meta_submit_battlefields({ count: parsed.zones.battlefield })} ·{" "}
+          {m.meta_submit_runes({ count: parsed.zones.runes })}
         </span>
       </div>
 
@@ -192,11 +182,7 @@ function ListReadback({
       {parsed.unmatched.length > 0 && (
         <Alert variant="warning">
           <TriangleAlertIcon />
-          <AlertTitle>
-            {parsed.unmatched.length === 1
-              ? m.meta_submit_unmatched_one()
-              : m.meta_submit_unmatched_other({ count: String(parsed.unmatched.length) })}
-          </AlertTitle>
+          <AlertTitle>{m.meta_submit_unmatched({ count: parsed.unmatched.length })}</AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
               {parsed.unmatched.map((name) => (
@@ -247,11 +233,7 @@ function SubmissionSent({
       ) : (
         <Alert variant="warning">
           <TriangleAlertIcon />
-          <AlertTitle>
-            {unresolved.length === 1
-              ? m.meta_submit_unresolved_one()
-              : m.meta_submit_unresolved_other({ count: String(unresolved.length) })}
-          </AlertTitle>
+          <AlertTitle>{m.meta_submit_unresolved({ count: unresolved.length })}</AlertTitle>
           <AlertDescription>
             <ul className="list-outside list-disc pl-4">
               {unresolved.map((name) => (

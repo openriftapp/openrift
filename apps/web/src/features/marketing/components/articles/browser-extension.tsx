@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import { InfoIcon, LinkIcon, ListIcon, ScanTextIcon, TableIcon } from "lucide-react";
 
@@ -102,13 +103,14 @@ export default function BrowserExtensionArticle() {
             step={1}
             title={m.help_browser_extension_counts_step_1_title()}
             description={
-              <>
-                {m.help_browser_extension_counts_step_1_before()}{" "}
-                <TextLink render={<Link to="/extension/cardmarket" />}>
-                  {m.help_browser_extension_counts_step_1_link()}
-                </TextLink>
-                {m.help_browser_extension_counts_step_1_after()}
-              </>
+              <ParaglideMessage
+                message={m.help_browser_extension_counts_step_1}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink render={<Link to="/extension/cardmarket" />}>{children}</TextLink>
+                  ),
+                }}
+              />
             }
           />
           <StepRow
@@ -120,11 +122,10 @@ export default function BrowserExtensionArticle() {
             step={3}
             title={m.help_browser_extension_counts_step_3_title()}
             description={
-              <>
-                {m.help_browser_extension_counts_step_3_before()}{" "}
-                <span className="font-mono">own 2 · want 4</span>
-                {m.help_browser_extension_counts_step_3_after()}
-              </>
+              <ParaglideMessage
+                message={m.help_browser_extension_counts_step_3}
+                markup={{ code: ({ children }) => <span className="font-mono">{children}</span> }}
+              />
             }
           />
         </div>

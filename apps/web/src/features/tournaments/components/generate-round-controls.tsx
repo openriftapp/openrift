@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { PodPlayerResponse, PodStandingRow } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 import { Link } from "@tanstack/react-router";
@@ -221,9 +222,7 @@ export function GenerateRoundControls({
                             <span className="truncate">{unit.label}</span>
                             {priorByes > 0 ? (
                               <Badge variant="warning">
-                                {priorByes === 1
-                                  ? m.tournaments_pairings_byes_count_one({ count: priorByes })
-                                  : m.tournaments_pairings_byes_count_other({ count: priorByes })}
+                                {m.tournaments_pairings_byes_count({ count: priorByes })}
                               </Badge>
                             ) : null}
                           </CommandItem>
@@ -298,13 +297,10 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {repeatByeUnits.length === 1
-              ? m.tournaments_pairings_repeat_bye_one({
-                  names: repeatByeUnits.map((unit) => unit.label).join(", "),
-                })
-              : m.tournaments_pairings_repeat_bye_other({
-                  names: repeatByeUnits.map((unit) => unit.label).join(", "),
-                })}
+            {m.tournaments_pairings_repeat_bye({
+              count: repeatByeUnits.length,
+              names: repeatByeUnits.map((unit) => unit.label).join(", "),
+            })}
           </AlertTitle>
         </Alert>
       ) : null}
@@ -312,19 +308,25 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {(seatedWithoutRegion.length === 1
-              ? m.tournaments_pairings_no_region_one
-              : m.tournaments_pairings_no_region_other)({
-              names: seatedWithoutRegion
-                .map(
-                  (playerId) => nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
-                )
-                .join(", "),
-            })}{" "}
-            <Link to="/tournaments/$id/participants" params={{ id }}>
-              {m.tournaments_pairings_participants_page_link()}
-            </Link>{" "}
-            {m.tournaments_pairings_before_pairing_suffix()}
+            <ParaglideMessage
+              message={m.tournaments_pairings_no_region}
+              inputs={{
+                count: seatedWithoutRegion.length,
+                names: seatedWithoutRegion
+                  .map(
+                    (playerId) =>
+                      nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
+                  )
+                  .join(", "),
+              }}
+              markup={{
+                link: ({ children }) => (
+                  <Link to="/tournaments/$id/participants" params={{ id }}>
+                    {children}
+                  </Link>
+                ),
+              }}
+            />
           </AlertTitle>
         </Alert>
       ) : null}
@@ -332,19 +334,25 @@ export function GenerateRoundControls({
         <Alert variant="warning">
           <TriangleAlertIcon />
           <AlertTitle>
-            {(seatedWithoutTeam.length === 1
-              ? m.tournaments_pairings_no_team_one
-              : m.tournaments_pairings_no_team_other)({
-              names: seatedWithoutTeam
-                .map(
-                  (playerId) => nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
-                )
-                .join(", "),
-            })}{" "}
-            <Link to="/tournaments/$id/participants" params={{ id }}>
-              {m.tournaments_pairings_participants_page_link()}
-            </Link>{" "}
-            {m.tournaments_pairings_before_pairing_suffix()}
+            <ParaglideMessage
+              message={m.tournaments_pairings_no_team}
+              inputs={{
+                count: seatedWithoutTeam.length,
+                names: seatedWithoutTeam
+                  .map(
+                    (playerId) =>
+                      nameById.get(playerId) ?? m.tournaments_pairings_fallback_player(),
+                  )
+                  .join(", "),
+              }}
+              markup={{
+                link: ({ children }) => (
+                  <Link to="/tournaments/$id/participants" params={{ id }}>
+                    {children}
+                  </Link>
+                ),
+              }}
+            />
           </AlertTitle>
         </Alert>
       ) : null}

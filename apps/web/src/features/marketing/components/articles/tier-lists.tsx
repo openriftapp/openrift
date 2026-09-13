@@ -1,3 +1,4 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { Link } from "@tanstack/react-router";
 import {
   GripVerticalIcon,
@@ -43,9 +44,10 @@ export default function TierListsArticle() {
       <section>
         <Heading className="mb-2">{m.help_tier_lists_share_heading()}</Heading>
         <p className="text-muted-foreground">
-          {m.help_tier_lists_share_intro_before()}{" "}
-          <span className="font-medium">{m.help_tier_lists_share_intro_badge()}</span>{" "}
-          {m.help_tier_lists_share_intro_after()}
+          <ParaglideMessage
+            message={m.help_tier_lists_share_intro}
+            markup={{ strong: ({ children }) => <span className="font-medium">{children}</span> }}
+          />
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <FeatureCard
@@ -77,11 +79,16 @@ export default function TierListsArticle() {
           />
         </div>
         <p className="text-muted-foreground mt-3">
-          {m.help_tier_lists_stage_link_before()}{" "}
-          <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
-            {m.help_tier_lists_stage_link_label()}
-          </TextLink>
-          .
+          <ParaglideMessage
+            message={m.help_tier_lists_stage_link}
+            markup={{
+              link: ({ children }) => (
+                <TextLink render={<Link to="/help/$slug" params={{ slug: "stage" }} />}>
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
         </p>
       </section>
     </div>

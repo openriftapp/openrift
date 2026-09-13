@@ -287,8 +287,8 @@ export function DecksVignette() {
           <span className="shrink-0 text-xs tabular-nums">
             <Swap
               className="justify-items-end"
-              was={m.common_cards_other({ count: STATS_DECK_SIZE - 1 })}
-              now={m.common_cards_other({ count: STATS_DECK_SIZE })}
+              was={m.common_cards({ count: STATS_DECK_SIZE - 1 })}
+              now={m.common_cards({ count: STATS_DECK_SIZE })}
             />
           </span>
         </div>

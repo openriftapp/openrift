@@ -89,9 +89,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       ) : null}
       {person.doneCount > 0 ? (
         <p className="text-muted-foreground text-xs">
-          {person.doneCount === 1
-            ? m.trades_done_one({ count: person.doneCount })
-            : m.trades_done_other({ count: person.doneCount })}
+          {m.trades_done({ count: person.doneCount })}
         </p>
       ) : null}
     </CardLink>
@@ -193,9 +191,7 @@ export function TradesIndexPage() {
             <SectionHeading as="h3">
               <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
                 <IconChip icon={CheckIcon} size="sm" />
-                {index.past.length === 1
-                  ? m.trades_traded_before_one({ count: index.past.length })
-                  : m.trades_traded_before_other({ count: index.past.length })}
+                {m.trades_traded_before({ count: index.past.length })}
                 <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
               </CollapsibleTrigger>
             </SectionHeading>

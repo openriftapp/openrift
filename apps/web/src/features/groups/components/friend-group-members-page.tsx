@@ -223,9 +223,7 @@ export function MembersTradedAction({ slug }: { slug: string }) {
   return (
     <PageTopBarButton render={<Link to="/groups/$slug/trades" params={{ slug }} />}>
       <ZapIcon className="size-4" />
-      {data.cardsTradedCount === 1
-        ? m.groups_members_cards_traded_one({ count: data.cardsTradedCount })
-        : m.groups_members_cards_traded_other({ count: data.cardsTradedCount })}
+      {m.groups_members_cards_traded({ count: data.cardsTradedCount })}
     </PageTopBarButton>
   );
 }
