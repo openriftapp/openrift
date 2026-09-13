@@ -92,7 +92,7 @@
     },
     "apps/extension": {
       "name": "extension",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "dependencies": {
         "@fontsource/chakra-petch": "5.3.0",
         "@openrift/shared": "workspace:*",
