@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import type { MetaCountedEvent } from "./meta-format";
 import {
+  formatRank,
   formatRankRuns,
   joinNames,
   metaEventCounts,
@@ -293,5 +296,44 @@ describe("metaPlayerClaimChips", () => {
 
   it("drops a field it has no label for rather than printing a slug", () => {
     expect(metaPlayerClaimChips(["somethingNew"])).toEqual([]);
+  });
+});
+
+describe("formatRank", () => {
+  const baseGetLocale = getLocale;
+
+  afterEach(() => {
+    overwriteGetLocale(baseGetLocale);
+  });
+
+  it("picks the English ordinal suffix, teens included", () => {
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 102, 113].map((rank) => formatRank(rank, false))).toEqual([
+      "1st",
+      "2nd",
+      "3rd",
+      "4th",
+      "11th",
+      "12th",
+      "13th",
+      "21st",
+      "102nd",
+      "113th",
+    ]);
+  });
+
+  it("keeps the podium as places and shows deeper cut buckets as tiers", () => {
+    expect(formatRank(2, true)).toBe("2nd");
+    expect(formatRank(4, true)).toBe("T4");
+  });
+
+  it("follows German and French ordinal conventions", () => {
+    overwriteGetLocale(() => "de");
+    expect(formatRank(1, false)).toBe("1.");
+    expect(formatRank(22, false)).toBe("22.");
+    expect(formatRank(8, true)).toBe("T8");
+    overwriteGetLocale(() => "fr");
+    expect(formatRank(1, false)).toBe("1er");
+    expect(formatRank(2, false)).toBe("2e");
+    expect(formatRank(8, true)).toBe("Top 8");
   });
 });

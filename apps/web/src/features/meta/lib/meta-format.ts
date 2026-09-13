@@ -9,8 +9,13 @@ import { META_PLAYER_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 
 import { m } from "@/paraglide/messages.js";
 
-// The deck share image also uses these; they live in `shared` for both to import.
-export { formatRank, formatRecord } from "@openrift/shared/meta-standings";
+// The deck share image also uses this; it lives in `shared` for both to import.
+export { formatRecord } from "@openrift/shared/meta-standings";
+
+/** Tier sources publish only cut buckets: 1 and 2 still read as places, 3+ as "T4". */
+export function formatRank(rank: number, rankIsTier: boolean): string {
+  return rankIsTier && rank > 2 ? m.meta_rank_tier({ rank }) : m.meta_rank_ordinal({ rank });
+}
 
 export function metaListStatusLabels(): Record<MetaListStatus, string> {
   return {

@@ -1,4 +1,4 @@
-import { formatRank, formatRecord } from "@openrift/shared/meta-standings";
+import { formatRank as formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
 import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
@@ -22,7 +22,7 @@ import { MetaResultChip } from "@/features/meta/components/meta-result-chip";
 import { useMetaEvent } from "@/features/meta/hooks/use-meta";
 import { isSingleElimination } from "@/features/meta/lib/meta-bracket";
 import { describeEventStructure } from "@/features/meta/lib/meta-event-structure";
-import { splitLegendName } from "@/features/meta/lib/meta-format";
+import { formatRank, splitLegendName } from "@/features/meta/lib/meta-format";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import {
   metaCutRoundLabel,
@@ -53,7 +53,7 @@ function opponentFinishLine(opponent: MetaEventPlayer | undefined): string | nul
   if (opponent === undefined) {
     return null;
   }
-  const parts = [`finished ${formatRank(opponent.rank, opponent.rankIsTier)}`];
+  const parts = [`finished ${formatRankEnglish(opponent.rank, opponent.rankIsTier)}`];
   const record = formatRecord(opponent.wins, opponent.losses, opponent.draws);
   if (record !== null) {
     parts.push(record);

@@ -160,7 +160,7 @@ describe("buildCardPriceLine", () => {
     const offers: CardMarketplaceOffer[] = [
       { seller: "Cardmarket", currency: "EUR", priceLow: 2.95, priceHigh: 4, offerCount: 3 },
     ];
-    expect(buildCardPriceLine(offers)).toBe("Prices from 2,95 € (Cardmarket).");
+    expect(buildCardPriceLine(offers)).toBe("Prices from €2.95 (Cardmarket).");
   });
 
   it("returns null with no offers", () => {

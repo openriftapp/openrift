@@ -292,7 +292,7 @@ describe("MetaDeckBrowserPage", () => {
     captured.costs = new Map([["winner", { owned: 34, needed: 40, value: 120, toComplete: 30 }]]);
     render(<MetaDeckBrowserPage />);
     expect(seen("34/40 owned")).toBe(true);
-    expect(screen.getAllByText("120 €").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("€120").length).toBeGreaterThan(0);
   });
 
   it("narrows to the lists the reader can complete within their budget", () => {

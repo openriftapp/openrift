@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   dateLeafParts,
   dateLeafPartsUtc,
+  ENGLISH_DATE_WORDS,
   formatCompactUtcStamp,
   formatDay,
   formatDayLocal,
@@ -16,6 +17,7 @@ import {
   formatWeekdayDayLocal,
   formatWeekdayLocal,
 } from "./format-date.js";
+import type { DateWords } from "./format-date.js";
 
 const NOW = new Date("2026-06-08T12:00:00.000Z");
 
@@ -296,5 +298,21 @@ describe("formatRelativeDay", () => {
 
   it("returns an empty string for unparseable input", () => {
     expect(formatRelativeDay("nope", NOW)).toBe("");
+  });
+});
+
+describe("injected date words", () => {
+  const shouting: DateWords = {
+    ...ENGLISH_DATE_WORDS,
+    hours: (count) => `${count} HOURS`,
+    ago: (time) => `${time} BACK`,
+    monthName: (index) => `MONTH${index}`,
+    lastWeek: () => "LAST WEEK",
+  };
+
+  it("builds every relative form from the supplied words", () => {
+    expect(formatRelativeTime(ago(3 * HOUR), { now: NOW, words: shouting })).toBe("3 HOURS BACK");
+    expect(formatRelativeDay("2026-06-01", NOW, shouting)).toBe("LAST WEEK");
+    expect(formatMonthYear("2026-03-01", shouting)).toBe("MONTH2 2026");
   });
 });

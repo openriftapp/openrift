@@ -13,6 +13,7 @@ import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -126,7 +127,7 @@ export function MetaDeckIndexRow({
   fieldSize: number | null;
   marketplace: Marketplace;
 }) {
-  const leaf = dateLeafPartsUtc(deck.event.eventDate);
+  const leaf = dateLeafPartsUtc(deck.event.eventDate, DATE_WORDS);
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
   const value = cost?.value;
   const priced = value === undefined ? null : compactFormatterForMarketplace(marketplace)(value);

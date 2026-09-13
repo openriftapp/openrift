@@ -23,6 +23,7 @@ import { buildMissingSearch } from "@/features/collections/lib/stats-missing-sea
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
+import { formatCount } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -43,7 +44,7 @@ function CompletionTotalRow({ entries }: { entries: CompletionEntry[] }) {
         </ProgressTrack>
       </ProgressPrimitive.Root>
       <span className="text-muted-foreground w-20 shrink-0 text-right text-xs tabular-nums">
-        {totalOwned.toLocaleString()} / {totalAll.toLocaleString()}
+        {formatCount(totalOwned)} / {formatCount(totalAll)}
       </span>
       <span className="w-12 shrink-0 text-right text-xs font-semibold tabular-nums">
         {percent.toFixed(1)}%

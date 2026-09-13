@@ -6,6 +6,7 @@
  * Calendar days ({@link formatDay}, {@link formatMonth}) are always UTC.
  * Instants render in UTC ({@link formatDayTime}) or in the viewer's own
  * timezone ({@link formatDayTimeLocal}, `ssr: "data-only"` routes only).
+ * Words come from a {@link DateWords} argument; the web app passes translated ones.
  */
 
 const MONTH_ABBREVIATIONS = [
@@ -48,13 +49,58 @@ const WEEKDAY_NAMES = [
   "Saturday",
 ] as const;
 
-function monthAbbreviation(monthIndex: number): string {
-  const abbreviation = MONTH_ABBREVIATIONS[monthIndex];
-  if (abbreviation === undefined) {
-    throw new Error(`monthAbbreviation: month index out of range: ${monthIndex}`);
-  }
-  return abbreviation;
+/** Month index 0-11, weekday index 0-6 from Sunday. */
+export interface DateWords {
+  monthName: (monthIndex: number) => string;
+  monthAbbreviation: (monthIndex: number) => string;
+  weekdayName: (weekdayIndex: number) => string;
+  monthYear: (month: string, year: number) => string;
+  weekdayDay: (weekday: string, day: number, month: string) => string;
+  justNow: () => string;
+  underAMinuteAhead: () => string;
+  seconds: (count: number) => string;
+  minutes: (count: number) => string;
+  hours: (count: number) => string;
+  hoursMinutes: (hours: number, minutes: number) => string;
+  days: (count: number) => string;
+  weeks: (count: number) => string;
+  months: (count: number) => string;
+  years: (count: number) => string;
+  ago: (time: string) => string;
+  ahead: (time: string) => string;
+  today: () => string;
+  yesterday: () => string;
+  daysAgo: (count: number) => string;
+  lastWeek: () => string;
+  weeksAgo: (count: number) => string;
+  lastMonth: () => string;
 }
+
+export const ENGLISH_DATE_WORDS: DateWords = {
+  monthName: (index) => MONTH_NAMES[index] ?? "",
+  monthAbbreviation: (index) => MONTH_ABBREVIATIONS[index] ?? "",
+  weekdayName: (index) => WEEKDAY_NAMES[index] ?? "",
+  monthYear: (month, year) => `${month} ${year}`,
+  weekdayDay: (weekday, day, month) => `${weekday}, ${day} ${month}`,
+  justNow: () => "just now",
+  underAMinuteAhead: () => "in <1m",
+  seconds: (count) => `${count}s`,
+  minutes: (count) => `${count}m`,
+  hours: (count) => `${count}h`,
+  hoursMinutes: (hours, minutes) => `${hours}h ${minutes}m`,
+  days: (count) => `${count}d`,
+  weeks: (count) => `${count}w`,
+  months: (count) => `${count}mo`,
+  years: (count) => `${count}y`,
+  ago: (time) => `${time} ago`,
+  ahead: (time) => `in ${time}`,
+  today: () => "Today",
+  yesterday: () => "Yesterday",
+  daysAgo: (count) => `${count} days ago`,
+  lastWeek: () => "Last week",
+  weeksAgo: (count) => `${count} weeks ago`,
+  lastMonth: () => "Last month",
+};
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -85,13 +131,15 @@ export function formatMonth(input: Date | string): string {
 }
 
 /** `March 2026`, the UTC month spelled out. */
-export function formatMonthYear(input: Date | string): string {
+export function formatMonthYear(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
   const date = toDate(input);
   if (date === null) {
     return "";
   }
-  const month = MONTH_NAMES[date.getUTCMonth()];
-  return month === undefined ? "" : `${month} ${date.getUTCFullYear()}`;
+  return words.monthYear(words.monthName(date.getUTCMonth()), date.getUTCFullYear());
 }
 
 /** UTC instant for admin/ops surfaces. */
@@ -127,23 +175,28 @@ export function formatDayTimeLocal(input: Date | string): string {
 }
 
 /** `Thursday` on the viewer's clock. Same SSR constraint as the other `…Local` functions. */
-export function formatWeekdayLocal(input: Date | string): string {
+export function formatWeekdayLocal(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
   const date = toDate(input);
-  return date === null ? "" : (WEEKDAY_NAMES[date.getDay()] ?? "");
+  return date === null ? "" : words.weekdayName(date.getDay());
 }
 
 /** `Thursday, 11 September` on the viewer's clock. Same SSR constraint as the other `…Local` functions. */
-export function formatWeekdayDayLocal(input: Date | string): string {
+export function formatWeekdayDayLocal(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
   const date = toDate(input);
   if (date === null) {
     return "";
   }
-  const weekday = WEEKDAY_NAMES[date.getDay()];
-  const month = MONTH_NAMES[date.getMonth()];
-  if (weekday === undefined || month === undefined) {
-    return "";
-  }
-  return `${weekday}, ${date.getDate()} ${month}`;
+  return words.weekdayDay(
+    words.weekdayName(date.getDay()),
+    date.getDate(),
+    words.monthName(date.getMonth()),
+  );
 }
 
 export function formatCompactUtcStamp(input: Date | string): string {
@@ -165,13 +218,16 @@ export interface DateLeafParts {
   year: string;
 }
 
-export function dateLeafParts(input: Date | string): DateLeafParts {
+export function dateLeafParts(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): DateLeafParts {
   const date = toDate(input);
   if (date === null) {
     return { month: "", day: "", year: "" };
   }
   return {
-    month: monthAbbreviation(date.getMonth()),
+    month: words.monthAbbreviation(date.getMonth()),
     day: String(date.getDate()),
     year: String(date.getFullYear()),
   };
@@ -181,13 +237,16 @@ export function dateLeafParts(input: Date | string): DateLeafParts {
  * UTC, unlike {@link dateLeafParts}: an event's day is fixed globally, so a
  * reader at a negative offset must not see the day before.
  */
-export function dateLeafPartsUtc(input: Date | string): DateLeafParts {
+export function dateLeafPartsUtc(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): DateLeafParts {
   const date = toDate(input);
   if (date === null) {
     return { month: "", day: "", year: "" };
   }
   return {
-    month: monthAbbreviation(date.getUTCMonth()),
+    month: words.monthAbbreviation(date.getUTCMonth()),
     day: String(date.getUTCDate()),
     year: String(date.getUTCFullYear()),
   };
@@ -197,32 +256,33 @@ export interface RelativeTimeOptions {
   now?: Date;
   seconds?: boolean;
   compound?: boolean;
+  words?: DateWords;
 }
 
-function magnitude(diffMs: number, options: RelativeTimeOptions): string {
+function magnitude(diffMs: number, seconds: boolean, compound: boolean, words: DateWords): string {
   const minutes = Math.floor(diffMs / MINUTE_MS);
   if (minutes < 1) {
-    return options.seconds ? `${Math.floor(diffMs / 1000)}s` : "";
+    return seconds ? words.seconds(Math.floor(diffMs / 1000)) : "";
   }
   if (minutes < 60) {
-    return `${minutes}m`;
+    return words.minutes(minutes);
   }
   const hours = Math.floor(diffMs / HOUR_MS);
   if (hours < 24) {
     const remainder = minutes % 60;
-    return options.compound && remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
+    return compound && remainder > 0 ? words.hoursMinutes(hours, remainder) : words.hours(hours);
   }
   const days = Math.floor(diffMs / DAY_MS);
   if (days < 7) {
-    return `${days}d`;
+    return words.days(days);
   }
   if (days < 30) {
-    return `${Math.floor(days / 7)}w`;
+    return words.weeks(Math.floor(days / 7));
   }
   if (days < 365) {
-    return `${Math.floor(days / 30)}mo`;
+    return words.months(Math.floor(days / 30));
   }
-  return `${Math.floor(days / 365)}y`;
+  return words.years(Math.floor(days / 365));
 }
 
 export function formatRelativeTime(
@@ -236,15 +296,25 @@ export function formatRelativeTime(
   const now = options.now ?? new Date();
   const diffMs = now.getTime() - date.getTime();
   const past = diffMs >= 0;
-  const label = magnitude(Math.abs(diffMs), options);
+  const words = options.words ?? ENGLISH_DATE_WORDS;
+  const label = magnitude(
+    Math.abs(diffMs),
+    options.seconds === true,
+    options.compound === true,
+    words,
+  );
   if (label === "") {
-    return past ? "just now" : "in <1m";
+    return past ? words.justNow() : words.underAMinuteAhead();
   }
-  return past ? `${label} ago` : `in ${label}`;
+  return past ? words.ago(label) : words.ahead(label);
 }
 
 /** Both sides compared in UTC, matching {@link formatDay}, so the bucket doesn't shift with the reader's timezone. */
-export function formatRelativeDay(day: string, now: Date = new Date()): string {
+export function formatRelativeDay(
+  day: string,
+  now: Date = new Date(),
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
   const date = toDate(day);
   if (date === null) {
     return "";
@@ -253,22 +323,22 @@ export function formatRelativeDay(day: string, now: Date = new Date()): string {
   const diffDays = Math.round((todayUtcMs - date.getTime()) / DAY_MS);
 
   if (diffDays === 0) {
-    return "Today";
+    return words.today();
   }
   if (diffDays === 1) {
-    return "Yesterday";
+    return words.yesterday();
   }
   if (diffDays < 7) {
-    return `${diffDays} days ago`;
+    return words.daysAgo(diffDays);
   }
   if (diffDays < 14) {
-    return "Last week";
+    return words.lastWeek();
   }
   if (diffDays < 30) {
-    return `${Math.floor(diffDays / 7)} weeks ago`;
+    return words.weeksAgo(Math.floor(diffDays / 7));
   }
   if (diffDays < 60) {
-    return "Last month";
+    return words.lastMonth();
   }
   return formatDay(day);
 }

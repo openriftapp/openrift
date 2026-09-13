@@ -19,7 +19,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCollectionValueHistory } from "@/features/collections/hooks/use-collection-value-history";
-import { describePriceChange, formatterForMarketplace } from "@/lib/format";
+import { describePriceChange, formatCount, formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -101,7 +101,7 @@ function CollectionValueTooltipContent({
           <span className="size-2" />
           <span className="text-muted-foreground">{m.collections_stats_value_cards()}</span>
           <span className="ml-auto font-mono font-medium tabular-nums">
-            {point.copyCount.toLocaleString()}
+            {formatCount(point.copyCount)}
           </span>
         </div>
       </div>

@@ -32,6 +32,7 @@ import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { metaCutLineRecord } from "@/features/meta/lib/meta-player-run";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 /** Every citation is printed, never collapsed behind a "+2 more". */
@@ -155,7 +156,7 @@ export function MetaEventHeader({
 }) {
   const { labels: formatLabels } = useDeckFormatList();
   const hydrated = useHydrated();
-  const leaf = dateLeafPartsUtc(event.eventDate);
+  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const structure = describeEventStructure(phases);
   const live = event.status === "in_progress";
   const champion = players.find((player) => player.rank === 1) ?? null;

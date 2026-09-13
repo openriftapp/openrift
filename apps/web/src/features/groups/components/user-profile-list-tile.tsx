@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardLink } from "@/components/ui/card-link";
 import { UserProfilePreviewFan } from "@/features/groups/components/user-profile-preview-fan";
 import { listEntryCountLabel } from "@/features/lists/lib/list-entry-count";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function matchLabel(list: PublicUserBundleListResponse): string | null {
@@ -46,7 +47,9 @@ export function UserProfileListTile({
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className="whitespace-nowrap">
             {listEntryCountLabel(list.kind, list.entryCount)} ·{" "}
-            {m.user_profile_updated({ time: formatRelativeTime(list.updatedAt) })}
+            {m.user_profile_updated({
+              time: formatRelativeTime(list.updatedAt, { words: DATE_WORDS }),
+            })}
           </span>
           {match ? (
             <span className="text-success inline-flex items-center gap-1 whitespace-nowrap">

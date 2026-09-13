@@ -10,6 +10,7 @@ import {
   useAcceptFriendGroupInvite,
   useDeclineFriendGroupInvite,
 } from "@/features/groups/hooks/use-friend-group-mutations";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 export function PendingRequestsBand({
@@ -43,7 +44,10 @@ export function PendingRequestsBand({
               <span className="font-medium">{req.userName ?? m.trades_request_unknown_user()}</span>
               <span className="text-muted-foreground">
                 {" "}
-                · {m.trades_requested_ago({ time: formatRelativeTime(req.createdAt) })}
+                ·{" "}
+                {m.trades_requested_ago({
+                  time: formatRelativeTime(req.createdAt, { words: DATE_WORDS }),
+                })}
               </span>
             </span>
             <Button

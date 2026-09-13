@@ -1,11 +1,19 @@
 import { FLAG_CODES } from "@/lib/flag-codes";
-
-// Region names are pinned to `en` regardless of visitor locale, the one `Intl` use the
-// `.oxlintrc.json` ban (date/time formatting causes hydration mismatches) doesn't cover.
+import { getLocale } from "@/paraglide/runtime.js";
 
 const ALPHA_2 = /^[a-z]{2}$/u;
 
-const REGION_NAMES = new Intl.DisplayNames(["en"], { type: "region", fallback: "none" });
+const regionNames = new Map<string, Intl.DisplayNames>();
+
+function regionNamesForLocale(): Intl.DisplayNames {
+  const locale = getLocale();
+  let names = regionNames.get(locale);
+  if (names === undefined) {
+    names = new Intl.DisplayNames([locale], { type: "region", fallback: "none" });
+    regionNames.set(locale, names);
+  }
+  return names;
+}
 
 export function normalizeCountryCode(code: string | null | undefined): string | null {
   if (code === null || code === undefined) {
@@ -24,7 +32,7 @@ export function countryName(code: string | null | undefined): string | null {
   if (lower === "zz") {
     return null;
   }
-  return REGION_NAMES.of(lower.toUpperCase()) ?? null;
+  return regionNamesForLocale().of(lower.toUpperCase()) ?? null;
 }
 
 export function flagIconPath(code: string | null | undefined): string | null {

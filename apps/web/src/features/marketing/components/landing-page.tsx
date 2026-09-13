@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useCountUp } from "@/hooks/use-count-up";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -33,11 +34,11 @@ function HeroStats({
   const numberClass = "font-heading text-muted-foreground font-semibold";
   return (
     <p className="text-muted-foreground/50 text-left text-sm tabular-nums">
-      <span className={numberClass}>{cardCount.toLocaleString()}</span>{" "}
+      <span className={numberClass}>{formatCount(cardCount)}</span>{" "}
       {m.marketing_landing_stats_cards()} &middot;{" "}
-      <span className={numberClass}>{printingCount.toLocaleString()}</span>{" "}
+      <span className={numberClass}>{formatCount(printingCount)}</span>{" "}
       {m.marketing_landing_stats_printings()} &middot;{" "}
-      <span className={numberClass}>{copyCount.toLocaleString()}</span>{" "}
+      <span className={numberClass}>{formatCount(copyCount)}</span>{" "}
       {m.marketing_landing_stats_copies()}
     </p>
   );

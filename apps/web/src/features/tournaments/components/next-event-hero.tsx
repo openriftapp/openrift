@@ -19,6 +19,7 @@ import {
   tournamentContextLabel,
 } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function HeroBandContent({ tournament }: { tournament: TournamentSummaryResponse }) {
@@ -62,7 +63,7 @@ export function NextEventHero({ tournament, showContext = false }: NextEventHero
   const state = effectiveTournamentState(tournament.startsAt, tournament.endsAt, tournament.status);
   const live = state === "in_progress";
   const startsIn = formatStartsIn(tournament.startsAt);
-  const leaf = dateLeafParts(tournament.startsAt);
+  const leaf = dateLeafParts(tournament.startsAt, DATE_WORDS);
   const role = primaryViewerRole(tournament.myRoles);
   return (
     <CardLink

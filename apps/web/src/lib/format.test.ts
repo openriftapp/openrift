@@ -1,13 +1,16 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { EnumLabels } from "@/lib/enum-labels";
+import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import {
   describePriceChange,
   formatCardId,
+  formatCount,
   formatImportPrintingLabel,
   formatImportPrintingLabelParts,
+  formatMoney,
   formatPrice,
   formatPriceCompact,
   formatPriceEur,
@@ -250,15 +253,15 @@ describe("formatPriceEur", () => {
   });
 
   it("formats zero", () => {
-    expect(formatPriceEur(0)).toBe("0,00 \u20AC");
+    expect(formatPriceEur(0)).toBe("\u20AC0.00");
   });
 
   it("formats a decimal value", () => {
-    expect(formatPriceEur(9.99)).toBe("9,99 \u20AC");
+    expect(formatPriceEur(9.99)).toBe("\u20AC9.99");
   });
 
   it("uses comma as decimal separator", () => {
-    expect(formatPriceEur(1.23)).toBe("1,23 \u20AC");
+    expect(formatPriceEur(1.23)).toBe("\u20AC1.23");
   });
 });
 
@@ -281,5 +284,34 @@ describe("describePriceChange", () => {
 
   it("returns a null percent when both sides are zero", () => {
     expect(describePriceChange(0, 0)).toEqual({ sign: "+", magnitude: 0, percent: null });
+  });
+});
+
+describe("locale-aware number formatting", () => {
+  const baseGetLocale = getLocale;
+
+  afterEach(() => {
+    overwriteGetLocale(baseGetLocale);
+  });
+
+  it("groups counts for the active locale", () => {
+    expect(formatCount(12_345)).toBe("12,345");
+    overwriteGetLocale(() => "de");
+    expect(formatCount(12_345)).toBe("12.345");
+  });
+
+  it("places the currency symbol and decimal separator for the active locale", () => {
+    expect(formatMoney(1234.5, "USD")).toBe("$1,234.50");
+    overwriteGetLocale(() => "de");
+    expect(formatMoney(1234.5, "EUR")).toBe("1.234,50\u00A0\u20AC");
+    expect(formatPrice(3.5)).toBe("3,50\u00A0$");
+    overwriteGetLocale(() => "fr");
+    expect(formatPriceEur(1.23)).toBe("1,23\u00A0\u20AC");
+  });
+
+  it("keeps the thousands suffix inside the localized currency pattern", () => {
+    overwriteGetLocale(() => "de");
+    expect(formatPriceCompact(2500)).toBe("2,5k\u00A0$");
+    expect(formatPriceCompact(42.7)).toBe("43\u00A0$");
   });
 });

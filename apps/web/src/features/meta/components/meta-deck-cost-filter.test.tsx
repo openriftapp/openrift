@@ -114,7 +114,7 @@ describe("MetaDeckCostFilter", () => {
 
     it("names a cost bound", () => {
       renderFilter({ value: { maxCost: 25 } });
-      expect(screen.getByRole("button", { name: "Cost: ≤ 25 € to complete" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" })).toBeInTheDocument();
     });
 
     it("names a zero cost bound as buildable now", () => {
@@ -124,18 +124,18 @@ describe("MetaDeckCostFilter", () => {
 
     it("names a two-sided value range", () => {
       renderFilter({ value: { valueRange: { min: 20, max: 60 } } });
-      expect(screen.getByRole("button", { name: "Cost: Value 20 € – 60 €" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cost: Value €20 – €60" })).toBeInTheDocument();
     });
 
     it("names a one-sided value range", () => {
       renderFilter({ value: { valueRange: { min: 20, max: null } } });
-      expect(screen.getByRole("button", { name: "Cost: Value ≥ 20 €" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cost: Value ≥ €20" })).toBeInTheDocument();
     });
 
     it("joins both bounds", () => {
       renderFilter({ value: { maxCost: 25, valueRange: { min: null, max: 60 } } });
       expect(
-        screen.getByRole("button", { name: "Cost: ≤ 25 € to complete · Value ≤ 60 €" }),
+        screen.getByRole("button", { name: "Cost: ≤ €25 to complete · Value ≤ €60" }),
       ).toBeInTheDocument();
     });
 
@@ -160,7 +160,7 @@ describe("MetaDeckCostFilter", () => {
 
     it("marks itself active once a bound is set", () => {
       renderFilter({ trigger: "control", value: { maxCost: 25 } });
-      expect(screen.getByRole("button", { name: "Cost: ≤ 25 € to complete" })).toHaveClass(
+      expect(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" })).toHaveClass(
         "border-primary",
         "text-primary",
       );
@@ -185,7 +185,7 @@ describe("MetaDeckCostFilter", () => {
     it("shows how many decks the cost bound would leave", async () => {
       const user = userEvent.setup();
       renderFilter({ countUnderCost: () => 1, value: { maxCost: 25 } });
-      await user.click(screen.getByRole("button", { name: "Cost: ≤ 25 € to complete" }));
+      await user.click(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" }));
 
       expect(screen.getByText("1 deck matches")).toBeInTheDocument();
     });
@@ -209,7 +209,7 @@ describe("MetaDeckCostFilter", () => {
     it("drops the cost bound when the slider reaches its maximum", async () => {
       const user = userEvent.setup();
       const changes = renderFilter({ value: { maxCost: 25 } });
-      await user.click(screen.getByRole("button", { name: "Cost: ≤ 25 € to complete" }));
+      await user.click(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" }));
       await user.click(screen.getByRole("button", { name: "Maximum cost to complete to max" }));
 
       expect(changes.maxCost).toHaveBeenCalledWith(null);
@@ -250,7 +250,7 @@ describe("MetaDeckCostFilter", () => {
       const changes = renderFilter({
         value: { maxCost: 25, valueRange: { min: 20, max: 60 }, includeSideboard: true },
       });
-      await user.click(screen.getByRole("button", { name: /^Cost: ≤ 25/u }));
+      await user.click(screen.getByRole("button", { name: /^Cost: ≤ €25/u }));
       await user.click(screen.getByRole("button", { name: "Clear" }));
 
       expect(changes.clear).toHaveBeenCalledOnce();
@@ -264,11 +264,11 @@ describe("MetaDeckCostFilter", () => {
       const user = userEvent.setup();
       const changes = renderFilter();
       await user.click(screen.getByRole("button", { name: "Cost: Any" }));
-      await user.click(presets("Cost to complete presets").getByRole("button", { name: "≤ 25 €" }));
+      await user.click(presets("Cost to complete presets").getByRole("button", { name: "≤ €25" }));
 
       expect(changes.maxCost).toHaveBeenCalledWith(25);
       expect(
-        presets("Cost to complete presets").getByRole("button", { name: "≤ 25 €" }),
+        presets("Cost to complete presets").getByRole("button", { name: "≤ €25" }),
       ).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByText("Maximum cost to complete at 25")).toBeInTheDocument();
     });
@@ -290,15 +290,15 @@ describe("MetaDeckCostFilter", () => {
       await user.click(screen.getByRole("button", { name: "Cost: Any" }));
 
       const group = presets("Cost to complete presets");
-      expect(group.getByRole("button", { name: "≤ 10 €" })).toBeInTheDocument();
-      expect(group.queryByRole("button", { name: "≤ 25 €" })).not.toBeInTheDocument();
-      expect(group.queryByRole("button", { name: "≤ 50 €" })).not.toBeInTheDocument();
+      expect(group.getByRole("button", { name: "≤ €10" })).toBeInTheDocument();
+      expect(group.queryByRole("button", { name: "≤ €25" })).not.toBeInTheDocument();
+      expect(group.queryByRole("button", { name: "≤ €50" })).not.toBeInTheDocument();
     });
 
     it("clears the cost bound from the Any pill", async () => {
       const user = userEvent.setup();
       const changes = renderFilter({ value: { maxCost: 25 } });
-      await user.click(screen.getByRole("button", { name: "Cost: ≤ 25 € to complete" }));
+      await user.click(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" }));
       await user.click(presets("Cost to complete presets").getByRole("button", { name: "Any" }));
 
       expect(changes.maxCost).toHaveBeenCalledWith(null);
@@ -311,18 +311,19 @@ describe("MetaDeckCostFilter", () => {
       const user = userEvent.setup();
       const changes = renderFilter();
       await user.click(screen.getByRole("button", { name: "Cost: Any" }));
-      await user.click(presets("Deck value presets").getByRole("button", { name: "≤ 100 €" }));
+      await user.click(presets("Deck value presets").getByRole("button", { name: "≤ €100" }));
 
       expect(changes.valueRange).toHaveBeenCalledWith({ min: null, max: 100 });
-      expect(
-        presets("Deck value presets").getByRole("button", { name: "≤ 100 €" }),
-      ).toHaveAttribute("aria-pressed", "true");
+      expect(presets("Deck value presets").getByRole("button", { name: "≤ €100" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
     });
 
     it("clears the deck value range from the Any pill", async () => {
       const user = userEvent.setup();
       const changes = renderFilter({ value: { valueRange: { min: null, max: 60 } } });
-      await user.click(screen.getByRole("button", { name: "Cost: Value ≤ 60 €" }));
+      await user.click(screen.getByRole("button", { name: "Cost: Value ≤ €60" }));
       await user.click(presets("Deck value presets").getByRole("button", { name: "Any" }));
 
       expect(changes.valueRange).toHaveBeenCalledWith({ min: null, max: null });
@@ -331,9 +332,9 @@ describe("MetaDeckCostFilter", () => {
     it("chooses no deck value pill for a range the pills cannot express", async () => {
       const user = userEvent.setup();
       renderFilter({ value: { valueRange: { min: 20, max: 100 } } });
-      await user.click(screen.getByRole("button", { name: /^Cost: Value 20/u }));
+      await user.click(screen.getByRole("button", { name: /^Cost: Value €20/u }));
 
-      for (const name of ["Any", "≤ 25 €", "≤ 50 €", "≤ 100 €"]) {
+      for (const name of ["Any", "≤ €25", "≤ €50", "≤ €100"]) {
         expect(presets("Deck value presets").getByRole("button", { name })).toHaveAttribute(
           "aria-pressed",
           "false",

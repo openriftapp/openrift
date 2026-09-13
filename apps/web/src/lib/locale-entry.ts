@@ -1,4 +1,11 @@
-import { cookieMaxAge, cookieName, isLocale } from "@/paraglide/runtime.js";
+import type { Locale } from "@/paraglide/runtime.js";
+import {
+  baseLocale,
+  cookieMaxAge,
+  cookieName,
+  extractLocaleFromHeader,
+  isLocale,
+} from "@/paraglide/runtime.js";
 
 /**
  * `/de/cards` is an entry point, not a second copy of the site: it redirects to
@@ -14,19 +21,51 @@ export function localeEntryRedirect(request: Request): Response | null {
   }
 
   const headers = new Headers({ Location: `/${rest.join("/")}${url.search}` });
-  if (!hasLocaleCookie(request)) {
-    headers.append(
-      "Set-Cookie",
-      `${cookieName}=${prefix}; Path=/; Max-Age=${cookieMaxAge}; SameSite=Lax`,
-    );
+  if (!hasLocaleCookie(request.headers.get("cookie"))) {
+    headers.append("Set-Cookie", localeCookie(prefix));
   }
   return new Response(null, { status: 307, headers });
 }
 
-function hasLocaleCookie(request: Request): boolean {
-  const cookie = request.headers.get("cookie");
+/**
+ * The browser's language for a page request that carries no locale cookie yet.
+ * The base locale needs no cookie, so that page stays publicly cacheable.
+ */
+export function browserLocaleForPageRequest(request: Request): Locale | null {
+  if (request.method !== "GET" || hasLocaleCookie(request.headers.get("cookie"))) {
+    return null;
+  }
+  if (!(request.headers.get("accept") ?? "").includes("text/html")) {
+    return null;
+  }
+  const locale = extractLocaleFromHeader(request);
+  return locale === undefined || locale === baseLocale ? null : locale;
+}
+
+export function withLocaleCookieRequest(request: Request, locale: Locale): Request {
+  const headers = new Headers(request.headers);
+  const cookie = headers.get("cookie");
+  headers.set("cookie", `${cookie ? `${cookie}; ` : ""}${cookieName}=${locale}`);
+  return new Request(request, { headers });
+}
+
+export function withLocaleCookieResponse(response: Response, locale: Locale): Response {
+  const headers = new Headers(response.headers);
+  headers.append("Set-Cookie", localeCookie(locale));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+export function hasLocaleCookie(cookie: string | null | undefined): boolean {
   if (!cookie) {
     return false;
   }
   return new RegExp(`(?:^|;\\s*)${cookieName}=`, "u").test(cookie);
+}
+
+function localeCookie(locale: Locale): string {
+  return `${cookieName}=${locale}; Path=/; Max-Age=${cookieMaxAge}; SameSite=Lax`;
 }

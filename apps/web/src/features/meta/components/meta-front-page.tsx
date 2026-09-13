@@ -53,6 +53,7 @@ import {
   UNSCOPED,
 } from "@/features/meta/lib/meta-scope";
 import { useUserId } from "@/lib/auth-session";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -169,7 +170,7 @@ function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number
 }
 
 function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number }) {
-  const leaf = dateLeafPartsUtc(next.eventDate);
+  const leaf = dateLeafPartsUtc(next.eventDate, DATE_WORDS);
 
   return (
     <div className="lg:hidden">

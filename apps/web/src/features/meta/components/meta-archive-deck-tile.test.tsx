@@ -122,13 +122,13 @@ describe("MetaArchiveDeckTile", () => {
 
   it("pins what the list is worth over the art", () => {
     render(tile({ cost: { needed: 40, owned: undefined, value: 120, toComplete: undefined } }));
-    expect(screen.getByText("120 €")).toBeInTheDocument();
+    expect(screen.getByText("€120")).toBeInTheDocument();
   });
 
   it("counts the reader's own cards and what the rest would cost", () => {
     render(tile({ cost: { needed: 40, owned: 34, value: 120, toComplete: 30 } }));
     expect(screen.getByText("34 of 40 owned")).toBeInTheDocument();
-    expect(screen.getByText("30 €").parentElement).toHaveTextContent("30 € to complete");
+    expect(screen.getByText("€30").parentElement).toHaveTextContent("€30 to complete");
   });
 
   it("says a fully owned list is buildable", () => {

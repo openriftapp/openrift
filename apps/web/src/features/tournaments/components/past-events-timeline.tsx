@@ -14,6 +14,7 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { ParticipantFacepile } from "@/features/tournaments/components/participant-facepile";
 import { tournamentContextLabel } from "@/features/tournaments/lib/tournament-display";
 import { useDeckFormatList } from "@/hooks/use-enums";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function WinnerChip({ winner }: { winner: TournamentWinner }) {
@@ -96,7 +97,7 @@ export function PastEventsTimeline({
   return (
     <ul className="flex flex-col gap-2.5">
       {tournaments.map((tournament) => {
-        const leaf = dateLeafParts(tournament.startsAt);
+        const leaf = dateLeafParts(tournament.startsAt, DATE_WORDS);
         return (
           <li
             key={tournament.id}

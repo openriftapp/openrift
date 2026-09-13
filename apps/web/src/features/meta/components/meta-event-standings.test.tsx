@@ -335,7 +335,7 @@ describe("MetaEventStandings", () => {
     ]);
 
     expect(screen.getByRole("columnheader", { name: "Value" })).toBeInTheDocument();
-    expect(within(phoneRow("Ana")).getByText("123 €")).toBeInTheDocument();
+    expect(within(phoneRow("Ana")).getByText("€123")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).queryByText(/€/u)).toBeNull();
   });
 
@@ -360,7 +360,7 @@ describe("MetaEventStandings", () => {
     ]);
 
     expect(archive.withCollection).toContain(true);
-    expect(within(phoneRow("Ana")).getByText("13 € missing")).toBeInTheDocument();
+    expect(within(phoneRow("Ana")).getByText("€13 missing")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).getByText("Buildable")).toBeInTheDocument();
   });
 

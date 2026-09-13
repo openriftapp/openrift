@@ -1,3 +1,4 @@
+import { formatRank } from "@openrift/shared/meta-standings";
 import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type { Card } from "@openrift/shared/types/catalog";
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
@@ -54,7 +55,6 @@ import { dedupeMatchedEntries } from "@/features/decks/lib/deck-import-cards";
 import type { DeckMatchedEntry } from "@/features/decks/lib/deck-import-matcher";
 import { matchDeckEntries } from "@/features/decks/lib/deck-import-matcher";
 import { parseDeckImportAuto } from "@/features/decks/lib/deck-import-parsers";
-import { formatRank } from "@/features/meta/lib/meta-format";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { errorText } from "@/lib/error-text";
 

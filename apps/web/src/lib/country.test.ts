@@ -5,6 +5,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
+
 import { countryLabel, countryName, flagIconPath } from "./country";
 import { FLAG_CODES } from "./flag-codes";
 
@@ -33,6 +35,16 @@ describe("countryName", () => {
     expect(countryName("DEU")).toBeNull();
     expect(countryName("12")).toBeNull();
     expect(countryName("gb-eng")).toBeNull();
+  });
+
+  it("names the country in the active locale", () => {
+    const baseGetLocale = getLocale;
+    overwriteGetLocale(() => "de");
+    try {
+      expect(countryName("DE")).toBe("Deutschland");
+    } finally {
+      overwriteGetLocale(baseGetLocale);
+    }
   });
 
   it("returns null for a missing code", () => {

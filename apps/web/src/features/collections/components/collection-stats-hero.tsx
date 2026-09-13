@@ -7,6 +7,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
 import type { CollectionStats } from "@/features/collections/hooks/use-collection-stats";
 import { useMyMissingImages } from "@/features/contribute/hooks/use-missing-images";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 function HeroStat({
@@ -41,17 +42,17 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
       <HeroStat
         icon={SquareIcon}
         label={m.collections_stats_hero_unique_cards()}
-        value={stats.uniqueCards.toLocaleString()}
+        value={formatCount(stats.uniqueCards)}
       />
       <HeroStat
         icon={CopyIcon}
         label={m.collections_stats_hero_unique_printings()}
-        value={stats.uniquePrintings.toLocaleString()}
+        value={formatCount(stats.uniquePrintings)}
       />
       <HeroStat
         icon={SquareStackIcon}
         label={m.collections_stats_hero_total_copies()}
-        value={stats.totalCopies.toLocaleString()}
+        value={formatCount(stats.totalCopies)}
       />
       <HeroStat
         icon={CoinsIcon}
@@ -93,7 +94,7 @@ export function StatsHeroStats({ stats }: { stats: CollectionStats }) {
               className="text-foreground no-underline"
               render={<Link to="/contribute" />}
             >
-              {missingImageCount.toLocaleString()}
+              {formatCount(missingImageCount)}
             </TextLink>
           }
         >

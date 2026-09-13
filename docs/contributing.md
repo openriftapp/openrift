@@ -166,9 +166,13 @@ Regular unit tests (`*.test.ts`) must never depend on external services — mock
 
 ## Dates and times
 
-Every date the app shows is ISO 8601 and comes from `packages/shared/src/format-date.ts`. Nothing else formats a date: `no-restricted-properties` in `.oxlintrc.json` fails the build on `toLocaleDateString` / `toLocaleTimeString` anywhere under `apps/web/src` or `packages/shared/src`. (Number formatting is untouched, so `count.toLocaleString()` is still fine.)
+Every date the app shows comes from `packages/shared/src/format-date.ts`. Nothing else formats a date: `no-restricted-properties` in `.oxlintrc.json` fails the build on `toLocaleDateString` / `toLocaleTimeString` anywhere under `apps/web/src` or `packages/shared/src`.
 
 The module builds every form from plain `Date` getters and never touches `Intl`, so there is no locale to pin and no way for a date to render differently on the server than in the browser. That whole class of React #418 hydration mismatch is gone by construction.
+
+Words (month and weekday names, "ago", unit labels) come from a `DateWords` argument that defaults to English. On a player surface in `apps/web`, pass `DATE_WORDS` from `@/lib/date-words`, which reads the translated `date_*` messages: `formatRelativeTime(at, { words: DATE_WORDS })`, `dateLeafPartsUtc(day, DATE_WORDS)`. Admin surfaces and the API keep the English default. Only pass `DATE_WORDS` where the surrounding text is translated too, or the output mixes languages.
+
+Numbers on player surfaces go through `formatCount`, `formatMoney` and the `formatPrice…` helpers in `@/lib/format`, which format for the active locale. A bare `toLocaleString()` formats for the browser's locale and can differ from the server render.
 
 | Function                | Output                                                | Use for                                                                      |
 | ----------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |

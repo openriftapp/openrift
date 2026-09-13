@@ -20,6 +20,7 @@ import {
   distinctPrintingIds,
 } from "@/features/groups/lib/friend-group-activity";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 import { HOVER_ROW_CLASS } from "./hover-row";
@@ -54,7 +55,7 @@ export function FriendGroupActivityFeed({ slug }: { slug: string }) {
       ) : (
         <ul className="flex flex-col gap-6">
           {days.map((day) => {
-            const leaf = dateLeafParts(day.at);
+            const leaf = dateLeafParts(day.at, DATE_WORDS);
             return (
               <li
                 key={day.key}
@@ -64,7 +65,7 @@ export function FriendGroupActivityFeed({ slug }: { slug: string }) {
                   <DateLeaf
                     month={leaf.month}
                     day={leaf.day}
-                    caption={formatRelativeTime(day.at)}
+                    caption={formatRelativeTime(day.at, { words: DATE_WORDS })}
                     size="sm"
                     className="mt-1"
                   />

@@ -8495,5 +8495,66 @@
         "totalPlural=*": "{shownFormatted} von {totalFormatted} Decks im Archiv"
       }
     }
-  ]
+  ],
+  "date_month_1": "Januar",
+  "date_month_2": "Februar",
+  "date_month_3": "März",
+  "date_month_4": "April",
+  "date_month_5": "Mai",
+  "date_month_6": "Juni",
+  "date_month_7": "Juli",
+  "date_month_8": "August",
+  "date_month_9": "September",
+  "date_month_10": "Oktober",
+  "date_month_11": "November",
+  "date_month_12": "Dezember",
+  "date_month_short_1": "JAN",
+  "date_month_short_2": "FEB",
+  "date_month_short_3": "MÄR",
+  "date_month_short_4": "APR",
+  "date_month_short_5": "MAI",
+  "date_month_short_6": "JUN",
+  "date_month_short_7": "JUL",
+  "date_month_short_8": "AUG",
+  "date_month_short_9": "SEP",
+  "date_month_short_10": "OKT",
+  "date_month_short_11": "NOV",
+  "date_month_short_12": "DEZ",
+  "date_weekday_0": "Sonntag",
+  "date_weekday_1": "Montag",
+  "date_weekday_2": "Dienstag",
+  "date_weekday_3": "Mittwoch",
+  "date_weekday_4": "Donnerstag",
+  "date_weekday_5": "Freitag",
+  "date_weekday_6": "Samstag",
+  "date_month_year": "{month} {year}",
+  "date_weekday_day": "{weekday}, {day}. {month}",
+  "date_just_now": "gerade eben",
+  "date_under_a_minute_ahead": "in <1 Min.",
+  "date_unit_seconds": "{count} Sek.",
+  "date_unit_minutes": "{count} Min.",
+  "date_unit_hours": "{count} Std.",
+  "date_unit_hours_minutes": "{hours} Std. {minutes} Min.",
+  "date_unit_days": "{count} T.",
+  "date_unit_weeks": "{count} Wo.",
+  "date_unit_months": "{count} Mon.",
+  "date_unit_years": "{count} J.",
+  "date_ago": "vor {time}",
+  "date_ahead": "in {time}",
+  "date_today": "Heute",
+  "date_yesterday": "Gestern",
+  "date_days_ago": "vor {count} Tagen",
+  "date_last_week": "Letzte Woche",
+  "date_weeks_ago": "vor {count} Wochen",
+  "date_last_month": "Letzten Monat",
+  "meta_rank_ordinal": [
+    {
+      "declarations": ["input rank", "local rankOrdinal = rank: plural type=ordinal"],
+      "selectors": ["rankOrdinal"],
+      "match": {
+        "rankOrdinal=*": "{rank}."
+      }
+    }
+  ],
+  "meta_rank_tier": "T{rank}"
 }

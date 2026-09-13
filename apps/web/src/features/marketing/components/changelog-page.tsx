@@ -15,6 +15,7 @@ import {
   useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -90,7 +91,7 @@ export function ChangelogPage() {
                   dateTime={group.date}
                   className="text-foreground text-sm font-semibold tabular-nums"
                 >
-                  {formatRelativeDay(group.date)}
+                  {formatRelativeDay(group.date, undefined, DATE_WORDS)}
                 </time>
               </div>
               {group.highlights.length > 0 && (

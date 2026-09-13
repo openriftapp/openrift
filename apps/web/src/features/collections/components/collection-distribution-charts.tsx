@@ -9,6 +9,7 @@ import type { DomainCount, RarityCount } from "@/features/collections/lib/stat-t
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { getDomainColor } from "@/lib/domain";
+import { formatCount } from "@/lib/format";
 
 interface DonutEntry {
   name: string;
@@ -36,7 +37,7 @@ function DonutCenterLabel({ viewBox, active }: DonutCenterLabelProps) {
       {active ? (
         <>
           <tspan x={cx} y={(cy ?? 0) - 6} className="fill-foreground text-sm font-bold">
-            {active.value.toLocaleString()}
+            {formatCount(active.value)}
           </tspan>
           <tspan x={cx} y={(cy ?? 0) + 10} className="fill-muted-foreground text-2xs">
             {active.name}

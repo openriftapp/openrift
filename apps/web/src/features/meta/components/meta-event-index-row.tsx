@@ -14,6 +14,7 @@ import {
   splitLegendName,
 } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
 
 /** Shared with the sort header above so the two grids can never drift apart. */
@@ -22,7 +23,7 @@ export const EVENT_INDEX_GRID =
 
 /** Both layouts share one Link, so an event stays one click target and tab stop at every width. */
 export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
-  const leaf = dateLeafPartsUtc(event.eventDate);
+  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const venue = [event.organizer, event.location].filter(Boolean).join(" · ");
   const counts = metaEventCounts(event);
   const winners = metaEventWinners(event);

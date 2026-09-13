@@ -10,11 +10,12 @@ import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { formatRecord, metaEventCounts } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
 
 /** Full width by design: a caller placing content beside the standings below must not squeeze this. */
 export function MetaEventHeading({ event }: { event: MetaEventSummary }) {
-  const leaf = dateLeafPartsUtc(event.eventDate);
+  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const venue = [event.organizer, event.location].filter(Boolean).join(" · ");
   const counts = metaEventCounts(event);
 

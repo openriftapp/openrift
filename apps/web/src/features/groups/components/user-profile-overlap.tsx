@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconChip } from "@/components/ui/icon-chip";
 import { PublicShareCta } from "@/features/account/components/signed-out-cta";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 function OverlapCount({ value, children }: { value: number; children: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="font-heading min-w-8 text-3xl font-semibold tabular-nums">
-        {value.toLocaleString("en-US")}
+        {formatCount(value)}
       </span>
       <span className="text-muted-foreground max-w-48 text-sm">{children}</span>
     </div>

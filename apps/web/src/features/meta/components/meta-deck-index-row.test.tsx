@@ -102,9 +102,9 @@ describe("MetaDeckIndexRow", () => {
         cost={{ needed: 40, owned: 36, value: 142, toComplete: 18 }}
       />,
     );
-    expect(seen("142 €")).toBe(true);
+    expect(seen("€142")).toBe(true);
     expect(seen("36/40 owned")).toBe(true);
-    expect(seen("18 €")).toBe(true);
+    expect(seen("€18")).toBe(true);
   });
 
   it("calls a completed list buildable", () => {

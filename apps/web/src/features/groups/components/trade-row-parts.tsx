@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { tradeStatusLabel } from "@/features/groups/lib/trade-derivation";
+import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -217,7 +218,7 @@ export function TradeExpiry({
   if (status !== "pending" || expiresAt === null) {
     return null;
   }
-  const label = formatRelativeTime(expiresAt);
+  const label = formatRelativeTime(expiresAt, { words: DATE_WORDS });
   if (label === "") {
     return null;
   }

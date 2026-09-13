@@ -5,6 +5,7 @@ import { CalendarPlusIcon, ChevronRightIcon, ListOrderedIcon, ListPlusIcon } fro
 import type { ComponentType } from "react";
 
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 const KIND_ICON: Record<MetaActivityItem["kind"], ComponentType<{ className?: string }>> = {
@@ -42,7 +43,9 @@ function ActivityRow({ item }: { item: MetaActivityItem }) {
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-semibold">{itemHeadline(item)}</span>
         <span className="truncate">{item.event.name}</span>
-        <span className="text-muted-foreground text-xs">{formatRelativeTime(item.occurredAt)}</span>
+        <span className="text-muted-foreground text-xs">
+          {formatRelativeTime(item.occurredAt, { words: DATE_WORDS })}
+        </span>
       </span>
       <ChevronRightIcon aria-hidden className="text-muted-foreground size-4 shrink-0" />
     </RowListLink>

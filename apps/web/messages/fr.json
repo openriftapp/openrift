@@ -8495,5 +8495,67 @@
         "totalPlural=*": "{shownFormatted} sur {totalFormatted} decks archivés"
       }
     }
-  ]
+  ],
+  "date_month_1": "janvier",
+  "date_month_2": "février",
+  "date_month_3": "mars",
+  "date_month_4": "avril",
+  "date_month_5": "mai",
+  "date_month_6": "juin",
+  "date_month_7": "juillet",
+  "date_month_8": "août",
+  "date_month_9": "septembre",
+  "date_month_10": "octobre",
+  "date_month_11": "novembre",
+  "date_month_12": "décembre",
+  "date_month_short_1": "JAN",
+  "date_month_short_2": "FÉV",
+  "date_month_short_3": "MAR",
+  "date_month_short_4": "AVR",
+  "date_month_short_5": "MAI",
+  "date_month_short_6": "JUN",
+  "date_month_short_7": "JUL",
+  "date_month_short_8": "AOÛ",
+  "date_month_short_9": "SEP",
+  "date_month_short_10": "OCT",
+  "date_month_short_11": "NOV",
+  "date_month_short_12": "DÉC",
+  "date_weekday_0": "dimanche",
+  "date_weekday_1": "lundi",
+  "date_weekday_2": "mardi",
+  "date_weekday_3": "mercredi",
+  "date_weekday_4": "jeudi",
+  "date_weekday_5": "vendredi",
+  "date_weekday_6": "samedi",
+  "date_month_year": "{month} {year}",
+  "date_weekday_day": "{weekday} {day} {month}",
+  "date_just_now": "à l'instant",
+  "date_under_a_minute_ahead": "dans <1 min",
+  "date_unit_seconds": "{count} s",
+  "date_unit_minutes": "{count} min",
+  "date_unit_hours": "{count} h",
+  "date_unit_hours_minutes": "{hours} h {minutes} min",
+  "date_unit_days": "{count} j",
+  "date_unit_weeks": "{count} sem.",
+  "date_unit_months": "{count} mois",
+  "date_unit_years": "{count} a",
+  "date_ago": "il y a {time}",
+  "date_ahead": "dans {time}",
+  "date_today": "Aujourd'hui",
+  "date_yesterday": "Hier",
+  "date_days_ago": "il y a {count} jours",
+  "date_last_week": "La semaine dernière",
+  "date_weeks_ago": "il y a {count} semaines",
+  "date_last_month": "Le mois dernier",
+  "meta_rank_ordinal": [
+    {
+      "declarations": ["input rank", "local rankOrdinal = rank: plural type=ordinal"],
+      "selectors": ["rankOrdinal"],
+      "match": {
+        "rankOrdinal=one": "{rank}er",
+        "rankOrdinal=*": "{rank}e"
+      }
+    }
+  ],
+  "meta_rank_tier": "Top {rank}"
 }

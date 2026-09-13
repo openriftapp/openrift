@@ -1,3 +1,4 @@
+import { formatRank } from "@openrift/shared/meta-standings";
 import type { AdminMetaPlayer } from "@openrift/shared/types/api/meta";
 import type { MetaPlayerOverlayField } from "@openrift/shared/types/enums";
 import { ExternalLinkIcon, LockIcon } from "lucide-react";
@@ -26,7 +27,6 @@ import {
 import { useReleasePlayerOverlayField } from "@/features/admin/hooks/use-admin-meta-overlays";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import {
-  formatRank,
   formatRankRuns,
   formatRecord,
   metaPlayerClaimChips,

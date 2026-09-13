@@ -25,6 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 // warnings; body is `if (DEV)` so it's stripped from production bundles.
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect tracer
 import "@/lib/debug/memo-cache-trace";
+import { useBrowserLocale } from "@/hooks/use-browser-locale";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
@@ -236,6 +237,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { resolvedViewPrefs } = Route.useRouteContext();
+  useBrowserLocale();
   return (
     <>
       {/* `isolate` scopes descendant z-indexes to this div so AppBackground's

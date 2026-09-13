@@ -19,6 +19,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ContactMethodChips } from "@/features/groups/components/contact-method-chips";
 import { groupsInCommonLabel, lastActiveLabel } from "@/features/groups/lib/user-profile-copy";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 function MetaItem({
@@ -78,7 +79,9 @@ export function UserProfileHeader({
           {owner.bio ? <p className="text-muted-foreground">{owner.bio}</p> : null}
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <MetaItem icon={CalendarIcon}>
-              {m.user_profile_member_since({ date: formatMonthYear(owner.memberSince) })}
+              {m.user_profile_member_since({
+                date: formatMonthYear(owner.memberSince, DATE_WORDS),
+              })}
             </MetaItem>
             {owner.lastActive ? (
               <MetaItem icon={ClockIcon}>{lastActiveLabel(owner.lastActive)}</MetaItem>

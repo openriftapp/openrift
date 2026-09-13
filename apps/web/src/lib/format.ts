@@ -5,6 +5,7 @@ import { EUR_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { EnumLabels } from "@/lib/enum-labels";
+import { getLocale } from "@/paraglide/runtime.js";
 
 export function formatCardId(printing: Printing): string {
   return printing.shortCode;
@@ -45,11 +46,60 @@ export function formatPublicCode(printing: Printing): string {
   return printing.publicCode;
 }
 
-export function formatPrice(value?: number | null): string {
-  if (value === null || value === undefined) {
-    return "--";
+const numberFormats = new Map<string, Intl.NumberFormat>();
+
+function numberFormat(key: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const locale = getLocale();
+  const cacheKey = `${locale}:${key}`;
+  let format = numberFormats.get(cacheKey);
+  if (format === undefined) {
+    format = new Intl.NumberFormat(locale, options);
+    numberFormats.set(cacheKey, format);
   }
-  return `$${value.toFixed(2)}`;
+  return format;
+}
+
+export function formatCount(value: number): string {
+  return numberFormat("count", {}).format(value);
+}
+
+type Currency = "USD" | "EUR";
+
+function currencyFormat(currency: Currency, fractionDigits: number): Intl.NumberFormat {
+  return numberFormat(`${currency}:${fractionDigits}`, {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
+export function formatMoney(value: number, currency: Currency): string {
+  return currencyFormat(currency, 2).format(value);
+}
+
+function formatMoneyCompact(value: number, currency: Currency): string {
+  if (value < 10) {
+    return formatMoney(value, currency);
+  }
+  const rounded = Math.round(value);
+  if (rounded < 1000) {
+    return currencyFormat(currency, 0).format(rounded);
+  }
+  const thousands = rounded / 1000;
+  const fractionDigits = Math.round(thousands * 10) < 100 ? 1 : 0;
+  const parts = currencyFormat(currency, fractionDigits).formatToParts(thousands);
+  const lastNumeral = parts.findLastIndex(
+    (part) => part.type === "integer" || part.type === "fraction",
+  );
+  return parts
+    .map((part, index) => (index === lastNumeral ? `${part.value}k` : part.value))
+    .join("");
+}
+
+export function formatPrice(value?: number | null): string {
+  return value === null || value === undefined ? "--" : formatMoney(value, "USD");
 }
 
 export function priceColorClass(value?: number | null): string {
@@ -66,46 +116,15 @@ export function priceColorClass(value?: number | null): string {
 }
 
 export function formatPriceEur(value?: number | null): string {
-  if (value === null || value === undefined) {
-    return "--";
-  }
-  return `${value.toFixed(2).replace(".", ",")} \u20AC`;
+  return value === null || value === undefined ? "--" : formatMoney(value, "EUR");
 }
 
 export function formatPriceCompact(value?: number | null): string {
-  if (value === null || value === undefined) {
-    return "--";
-  }
-  if (value < 10) {
-    return `$${value.toFixed(2)}`;
-  }
-  const rounded = Math.round(value);
-  if (rounded < 1000) {
-    return `$${rounded}`;
-  }
-  const k = rounded / 1000;
-  if (Math.round(k * 10) < 100) {
-    return `$${k.toFixed(1)}k`;
-  }
-  return `$${Math.round(k)}k`;
+  return value === null || value === undefined ? "--" : formatMoneyCompact(value, "USD");
 }
 
 function formatPriceCompactEur(value?: number | null): string {
-  if (value === null || value === undefined) {
-    return "--";
-  }
-  if (value < 10) {
-    return `${value.toFixed(2).replace(".", ",")} \u20AC`;
-  }
-  const rounded = Math.round(value);
-  if (rounded < 1000) {
-    return `${rounded} \u20AC`;
-  }
-  const k = rounded / 1000;
-  if (Math.round(k * 10) < 100) {
-    return `${k.toFixed(1).replace(".", ",")}k \u20AC`;
-  }
-  return `${Math.round(k)}k \u20AC`;
+  return value === null || value === undefined ? "--" : formatMoneyCompact(value, "EUR");
 }
 
 export function formatterForMarketplace(marketplace: Marketplace): (v?: number | null) => string {

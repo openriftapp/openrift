@@ -23,6 +23,7 @@ import {
   filterShopEventsByRange,
   groupShopEventsByDay,
 } from "@/features/groups/lib/shop-events";
+import { DATE_WORDS } from "@/lib/date-words";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_SHOPS = "all";
@@ -127,7 +128,7 @@ export function ShopEventsContent({
       ) : (
         <ul className="flex flex-col gap-5">
           {days.map((day) => {
-            const leaf = dateLeafParts(`${day.day}T00:00:00`);
+            const leaf = dateLeafParts(`${day.day}T00:00:00`, DATE_WORDS);
             return (
               <li
                 key={day.day}

@@ -31,6 +31,7 @@ import {
   partitionTournaments,
 } from "@/features/tournaments/lib/tournament-display";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -248,7 +249,7 @@ function ShopNextUp({ slug, data }: { slug: string; data: FriendGroupDetailRespo
       {upcoming.length > 0 ? (
         <RowList>
           {upcoming.slice(0, 3).map((event) => {
-            const leaf = dateLeafParts(event.startAt);
+            const leaf = dateLeafParts(event.startAt, DATE_WORDS);
             return (
               <RowListItem key={event.externalId}>
                 {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- text label is inside the RowListLink children */}

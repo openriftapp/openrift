@@ -5,9 +5,10 @@ import { Link } from "@tanstack/react-router";
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
+import { DATE_WORDS } from "@/lib/date-words";
 
 export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
-  const leaf = dateLeafPartsUtc(event.eventDate);
+  const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
 
   return (
     <Link
