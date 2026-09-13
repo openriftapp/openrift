@@ -5,7 +5,7 @@ export interface LatestMilestone {
   message: string;
 }
 
-export const MILESTONE_BANNER_MAX_AGE_DAYS = 30;
+const MILESTONE_BANNER_MAX_AGE_DAYS = 30;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -33,7 +33,7 @@ export interface SellerDecision {
 
 export type Winner = "cardmarket" | "cardtrader" | "split";
 
-export interface WizardTotalsCents {
+interface WizardTotalsCents {
   /** Undefined while a seller's shipping is unknown. */
   cardmarket: number | undefined;
   /** Undefined while a card has no CardTrader price. */

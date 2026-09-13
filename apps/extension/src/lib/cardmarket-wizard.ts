@@ -27,8 +27,8 @@ const PANEL_ATTRIBUTE = "data-openrift-wizard";
 const SELLER_ATTRIBUTE = "data-openrift-wizard-seller";
 const PART_ATTRIBUTE = "data-openrift-wizard-part";
 const COPY_ATTRIBUTE = "data-openrift-wizard-copy";
-export const PICK_ALL_ATTRIBUTE = "data-openrift-wizard-pick";
-export const ZERO_SHIPPING_ATTRIBUTE = "data-openrift-wizard-zero-shipping";
+const PICK_ALL_ATTRIBUTE = "data-openrift-wizard-pick";
+const ZERO_SHIPPING_ATTRIBUTE = "data-openrift-wizard-zero-shipping";
 export const ZERO_SHIPPING_STORAGE_KEY = "wizardCountZeroShipping";
 
 const COPIED_RESET_MS = 1500;
