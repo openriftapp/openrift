@@ -8,10 +8,10 @@ const os = implement(adminDashboardContract).$context<ApiContext>().use(requireA
 
 export const adminDashboardRouter = {
   get: os.get.handler(async ({ context }) => {
-    const { status, users } = context.repos;
+    const { status } = context.repos;
 
-    const [app, signups] = await Promise.all([status.getAppStats(), users.getSignupSeries()]);
+    const [app, growth] = await Promise.all([status.getAppStats(), status.getGrowthSeries()]);
 
-    return { app, signups };
+    return { app, growth };
   }),
 };

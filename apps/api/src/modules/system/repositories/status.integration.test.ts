@@ -129,3 +129,68 @@ describe.skipIf(!ctx)("statusRepo (integration)", () => {
     expect(stats.totalPrices).toBe(stats.sources.reduce((sum, s) => sum + s.prices, 0));
   });
 });
+
+const SEEDED_USERS = [
+  { id: crypto.randomUUID(), createdAt: new Date("2015-06-01T12:00:00Z") },
+  { id: crypto.randomUUID(), createdAt: new Date("2015-06-01T23:59:00Z") },
+  { id: crypto.randomUUID(), createdAt: new Date("2015-06-04T00:30:00Z") },
+];
+
+describe.skipIf(!ctx)("statusRepo.getGrowthSeries (integration)", () => {
+  const { db } = ctx!;
+  const repo = statusRepo(db);
+
+  afterAll(async () => {
+    await db
+      .deleteFrom("users")
+      .where(
+        "id",
+        "in",
+        SEEDED_USERS.map((u) => u.id),
+      )
+      .execute();
+  });
+
+  it("buckets rows by UTC day and fills the gaps between them", async () => {
+    await db
+      .insertInto("users")
+      .values(
+        SEEDED_USERS.map((user) => ({
+          id: user.id,
+          email: `growth-series-${user.id}@test.com`,
+          name: "Test User",
+          image: null,
+          createdAt: user.createdAt,
+        })),
+      )
+      .execute();
+
+    const { users } = await repo.getGrowthSeries();
+    const start = users.findIndex((day) => day.date === "2015-06-01");
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(users.slice(start, start + 4)).toEqual([
+      { date: "2015-06-01", count: 2 },
+      { date: "2015-06-02", count: 0 },
+      { date: "2015-06-03", count: 0 },
+      { date: "2015-06-04", count: 1 },
+    ]);
+    expect(users.at(-1)?.date).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  it("returns every metric as a series", async () => {
+    const growth = await repo.getGrowthSeries();
+    expect(Object.keys(growth).toSorted()).toEqual([
+      "collections",
+      "friendGroups",
+      "metaDecks",
+      "tradelists",
+      "userDecks",
+      "users",
+      "wishlists",
+    ]);
+    for (const series of Object.values(growth)) {
+      expect(Array.isArray(series)).toBe(true);
+    }
+  });
+});

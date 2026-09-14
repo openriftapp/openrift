@@ -16,7 +16,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
-import { UserGrowthChart } from "@/features/admin/components/user-growth-chart";
+import { GrowthPanel } from "@/features/admin/components/growth-chart";
 import { useAdminDashboard } from "@/features/admin/hooks/use-admin-dashboard";
 import {
   useAddAdminGrant,
@@ -240,7 +240,7 @@ export function UsersPage() {
           <CardTitle>User growth</CardTitle>
         </CardHeader>
         <CardContent>
-          <UserGrowthChart signups={dashboard.signups} />
+          <GrowthPanel days={dashboard.growth.users} label="Users" noun={["user", "users"]} />
         </CardContent>
       </Card>
 

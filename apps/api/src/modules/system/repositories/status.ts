@@ -1,3 +1,4 @@
+import type { AdminGrowthDay, AdminGrowthMetric } from "@openrift/shared/contracts/admin/dashboard";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
@@ -87,6 +88,42 @@ export function statusRepo(db: Kysely<Database>) {
           totalMigrations: 0,
         };
       }
+    },
+
+    /** One row per UTC day from the first row to today, quiet days included as zero. */
+    async getGrowthSeries(): Promise<Record<AdminGrowthMetric, AdminGrowthDay[]>> {
+      const createdSeries = async (table: string, where = sql`TRUE`) => {
+        const result = await sql<AdminGrowthDay>`
+          WITH rows AS (
+            SELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AS day
+            FROM ${sql.ref(table)}
+            WHERE ${where}
+          ),
+          days AS (
+            SELECT generate_series(min(day), date_trunc('day', now() AT TIME ZONE 'UTC'), interval '1 day') AS day
+            FROM rows
+          )
+          SELECT to_char(days.day, 'YYYY-MM-DD') AS date, count(rows.day)::int AS count
+          FROM days
+          LEFT JOIN rows ON rows.day = days.day
+          GROUP BY days.day
+          ORDER BY days.day
+        `.execute(db);
+        return result.rows;
+      };
+
+      const [users, collections, userDecks, metaDecks, wishlists, tradelists, friendGroups] =
+        await Promise.all([
+          createdSeries("users"),
+          createdSeries("collections"),
+          createdSeries("decks", sql`user_id <> ${META_ARCHIVE_USER_ID}`),
+          createdSeries("decks", sql`user_id = ${META_ARCHIVE_USER_ID}`),
+          createdSeries("lists", sql`intent = 'wish'`),
+          createdSeries("lists", sql`intent = 'trade'`),
+          createdSeries("friend_groups"),
+        ]);
+
+      return { users, collections, userDecks, metaDecks, wishlists, tradelists, friendGroups };
     },
 
     async getAppStats(): Promise<AppStats> {
