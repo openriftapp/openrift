@@ -23,6 +23,7 @@ export interface CandidateCardsTable {
   submittedByUserId: string | null;
   submissionNote: string | null;
   checkedAt: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  uploadedAt: ColumnType<Date, Date | undefined, Date>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
@@ -56,6 +57,7 @@ export interface CandidatePrintingsTable {
   printedYear: number | null;
 
   checkedAt: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  uploadedAt: ColumnType<Date, Date | undefined, Date>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

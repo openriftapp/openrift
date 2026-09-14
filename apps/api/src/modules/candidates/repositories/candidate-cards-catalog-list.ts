@@ -39,10 +39,10 @@ export function candidateCatalogListRepo(db: Kysely<Database>) {
         upload_stats as (
           select provider, max(touched_at) as last_uploaded_at
           from (
-            select cc.provider, greatest(cc.updated_at, cc.created_at) as touched_at
+            select cc.provider, cc.uploaded_at as touched_at
             from candidate_cards cc
             union all
-            select cc.provider, greatest(cp.updated_at, cp.created_at)
+            select cc.provider, cp.uploaded_at
             from candidate_printings cp
             join candidate_cards cc on cc.id = cp.candidate_card_id
           ) writes

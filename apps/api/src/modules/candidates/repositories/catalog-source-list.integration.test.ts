@@ -60,6 +60,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
 
   const CHECKED = new Date("2026-02-03T00:00:00Z");
   const FIRST_UPLOAD = new Date("2026-01-02T00:00:00Z");
+  const LAST_UPLOAD = new Date("2026-05-03T00:00:00Z");
   const LAST_WRITE = new Date("2026-05-06T00:00:00Z");
 
   let userId = "";
@@ -90,6 +91,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
     checkedAt?: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
+    uploadedAt?: Date;
   }) {
     return {
       name: CARD_NAME,
@@ -116,6 +118,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
     language?: string | null;
     createdAt?: Date;
     updatedAt?: Date;
+    uploadedAt?: Date;
   }) {
     return { shortCode: "CL51A-001", printingId: null, ...values };
   }
@@ -207,6 +210,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
           checkedAt: CHECKED,
           createdAt: FIRST_UPLOAD,
           updatedAt: LAST_WRITE,
+          uploadedAt: LAST_UPLOAD,
         }),
         candidateCard({ id: CC_HIDDEN, provider: HIDDEN, externalId: "cl51-cc-hidden" }),
         candidateCard({ id: CC_IGNORED, provider: IGNORED, externalId: "cl51-cc-ignored" }),
@@ -256,6 +260,7 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
           externalId: "cl51-cp-untrusted",
           createdAt: FIRST_UPLOAD,
           updatedAt: FIRST_UPLOAD,
+          uploadedAt: FIRST_UPLOAD,
         }),
         candidatePrinting({
           id: CP_HIDDEN,
@@ -345,11 +350,11 @@ describe.skipIf(!ctx)("catalog source list queries (integration)", () => {
       expect(byProvider.get(UNTRUSTED)?.uncheckedRows).toBe(1);
     });
 
-    it("reports the last write, not the first upload, as the last uploaded time", async () => {
+    it("reports the last upload and ignores later reviewer writes", async () => {
       const rows = await repo.listCatalogSourceRows();
       const row = rows.find((entry) => entry.provider === UNTRUSTED);
 
-      expect(row?.lastUploadedAt?.toISOString()).toBe(LAST_WRITE.toISOString());
+      expect(row?.lastUploadedAt?.toISOString()).toBe(LAST_UPLOAD.toISOString());
     });
   });
 });

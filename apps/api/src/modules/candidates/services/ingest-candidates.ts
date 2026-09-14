@@ -260,6 +260,7 @@ export async function ingestCandidates(
           const cardUpdate: Updateable<CandidateCardsTable> = {
             ...buildCandidateCardFields(card),
             checkedAt: null,
+            uploadedAt: new Date(),
           };
           await repo.updateCandidateCard(existingCandidateCard.id, cardUpdate);
           updates++;
@@ -331,6 +332,7 @@ export async function ingestCandidates(
             const cpUpdate: Updateable<CandidatePrintingsTable> = {
               ...printingFields,
               checkedAt: null,
+              uploadedAt: new Date(),
             };
             if (!existingCP.printingId && resolvedPrintingId) {
               cpUpdate.printingId = resolvedPrintingId;

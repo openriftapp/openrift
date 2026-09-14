@@ -266,6 +266,7 @@ describe("ingestCandidates", () => {
 
     const updateCall = (repos.ingest as any).updateCandidateCard.mock.calls[0][1];
     expect(updateCall.checkedAt).toBeNull();
+    expect(updateCall.uploadedAt).toBeInstanceOf(Date);
   });
 
   it("records validation error and skips card with invalid name", async () => {
@@ -599,6 +600,9 @@ describe("ingestCandidates", () => {
     expect(result.updatedPrintings).toHaveLength(1);
     expect(result.updatedPrintings[0]!.shortCode).toBe("OGN-001");
     expect((repos.ingest as any).updateCandidatePrinting).toHaveBeenCalledTimes(1);
+    expect(
+      (repos.ingest as any).updateCandidatePrinting.mock.calls[0][1].uploadedAt,
+    ).toBeInstanceOf(Date);
   });
 
   it("reports printingsUnchanged for existing printing with no changes", async () => {
