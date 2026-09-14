@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/tanstackstart-react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 
@@ -9,6 +8,7 @@ import {
   errorSubtexts,
   pick,
 } from "@/components/error-message";
+import { captureHandledError } from "@/lib/report-error";
 import { reloadIfNewVersionPending } from "@/lib/stale-bundle-reload";
 
 export function RouterErrorFallback({ error }: ErrorComponentProps) {
@@ -16,7 +16,7 @@ export function RouterErrorFallback({ error }: ErrorComponentProps) {
   if (typeof document === "undefined") {
     // SSR has no onCaughtError; in the browser client.tsx reports this with the
     // hydration phase, and a second capture here would win Sentry's dedupe.
-    Sentry.captureException(normalizedError);
+    captureHandledError(normalizedError, { boundary: "router" });
     return <ErrorFallback error={normalizedError} />;
   }
   // A deploy while the tab is open breaks calls the old bundle makes; reload

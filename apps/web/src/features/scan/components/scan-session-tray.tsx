@@ -35,8 +35,8 @@ import { useOpenCardDetail } from "@/features/cards/components/card-detail-opene
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
 import { WishlistHeart } from "@/features/cards/components/wishlist-heart";
-import { pricesQueryOptions } from "@/features/cards/hooks/use-prices";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";

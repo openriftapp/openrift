@@ -1,31 +1,28 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
-export const landingSummaryResponseSchema = z
-  .object({
-    cardCount: z.number().openapi({ example: 312 }),
-    printingCount: z.number().openapi({ example: 468 }),
-    copyCount: z.number().openapi({ example: 142 }),
-    thumbnailIds: z.array(z.string()).openapi({
-      example: ["019d02f1-d14f-769f-9295-9852db692dbe"],
-    }),
-    thumbnails: z
-      .array(
-        z.object({
-          imageId: z.string(),
-          rarity: z.string(),
-          domains: z.array(z.string()),
-          name: z.string(),
-          shortCode: z.string(),
-          variantLabel: z.string().nullable(),
-          priceCents: z.number().nullable(),
-        }),
-      )
-      .openapi({
-        example: [
+export const landingSummaryResponseSchema = z.object({
+  cardCount: z.number().meta({ examples: [312] }),
+  printingCount: z.number().meta({ examples: [468] }),
+  copyCount: z.number().meta({ examples: [142] }),
+  thumbnailIds: z.array(z.string()).meta({
+    examples: [["019d02f1-d14f-769f-9295-9852db692dbe"]],
+  }),
+  thumbnails: z
+    .array(
+      z.object({
+        imageId: z.string(),
+        rarity: z.string(),
+        domains: z.array(z.string()),
+        name: z.string(),
+        shortCode: z.string(),
+        variantLabel: z.string().nullable(),
+        priceCents: z.number().nullable(),
+      }),
+    )
+    .meta({
+      examples: [
+        [
           {
             imageId: "019d02f1-d14f-769f-9295-9852db692dbe",
             rarity: "epic",
@@ -36,28 +33,30 @@ export const landingSummaryResponseSchema = z
             priceCents: 420,
           },
         ],
-      }),
-    legendThumbnailIds: z.array(z.string()).openapi({
-      example: ["019d02f1-d14f-769f-9295-9852db692dbe"],
+      ],
     }),
-    promoSections: z
-      .array(
-        z.object({
-          path: z.array(z.string()),
-          printingCount: z.number(),
-          printings: z.array(
-            z.object({
-              imageId: z.string(),
-              name: z.string(),
-              shortCode: z.string(),
-              rarity: z.string(),
-              markers: z.array(z.string()),
-            }),
-          ),
-        }),
-      )
-      .openapi({
-        example: [
+  legendThumbnailIds: z.array(z.string()).meta({
+    examples: [["019d02f1-d14f-769f-9295-9852db692dbe"]],
+  }),
+  promoSections: z
+    .array(
+      z.object({
+        path: z.array(z.string()),
+        printingCount: z.number(),
+        printings: z.array(
+          z.object({
+            imageId: z.string(),
+            name: z.string(),
+            shortCode: z.string(),
+            rarity: z.string(),
+            markers: z.array(z.string()),
+          }),
+        ),
+      }),
+    )
+    .meta({
+      examples: [
+        [
           {
             path: ["Nexus Night", "Spiritforged"],
             printingCount: 40,
@@ -72,9 +71,9 @@ export const landingSummaryResponseSchema = z
             ],
           },
         ],
-      }),
-  })
-  .openapi("LandingSummaryResponse");
+      ],
+    }),
+});
 
 export const landingSummaryContract = {
   get: oc

@@ -2,37 +2,15 @@ import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/i
 import { adminStagingCardOverridesContract } from "@openrift/shared/contracts/admin/staging-card-overrides";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useSuspenseQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type {
-  UnifiedMappingsCardResponse,
-  UnifiedMappingsResponse,
-} from "@/lib/server-fns/api-types";
+import { unifiedMappingsQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchUnifiedMappings = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<UnifiedMappingsResponse> =>
-    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).list(),
-  );
-
-export function unifiedMappingsQueryOptions() {
-  return queryOptions({
-    queryKey: adminKeys.unifiedMappings.list,
-    queryFn: () => fetchUnifiedMappings(),
-  });
-}
 
 export function useUnifiedMappings() {
   return useSuspenseQuery(unifiedMappingsQueryOptions());
@@ -44,20 +22,6 @@ export function useUnifiedMappings() {
  */
 export function useUnifiedMappingsWhen(enabled: boolean) {
   return useQuery({ ...unifiedMappingsQueryOptions(), enabled });
-}
-
-const fetchUnifiedMappingsForCard = createServerFn({ method: "GET" })
-  .validator((input: { cardId: string }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<UnifiedMappingsCardResponse> =>
-    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).card({ cardId: data.cardId }),
-  );
-
-export function unifiedMappingsForCardQueryOptions(cardId: string) {
-  return queryOptions({
-    queryKey: adminKeys.unifiedMappings.byCard(cardId),
-    queryFn: () => fetchUnifiedMappingsForCard({ data: { cardId } }),
-  });
 }
 
 function useUnifiedMutation<TInput, TResult>(

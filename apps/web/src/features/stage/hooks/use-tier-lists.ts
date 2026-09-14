@@ -1,16 +1,15 @@
-import { publicTierListsContract } from "@openrift/shared/contracts/public-tier-lists";
 import { tierListsContract } from "@openrift/shared/contracts/tier-lists";
-import type {
-  PublicTierListDetailResponse,
-  TierListListResponse,
-  TierListResponse,
-  TierListShareResponse,
-} from "@openrift/shared/types/api/tier-list";
+import type { TierListResponse, TierListShareResponse } from "@openrift/shared/types/api/tier-list";
 import { isDefinedError, safe } from "@orpc/client";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tierListsKeys } from "@/features/stage/lib/stage-query-keys";
+import {
+  publicTierListQueryOptions,
+  tierListQueryOptions,
+  tierListsQueryOptions,
+} from "@/features/stage/lib/tier-lists-queries";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
@@ -19,66 +18,6 @@ import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidatio
 
 type CreateTierListBody = ContractInput<typeof tierListsContract, "create">;
 type UpdateTierListBody = ContractInput<typeof tierListsContract, "update">;
-
-const fetchTierLists = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<TierListListResponse> =>
-    apiOrpcClient(tierListsContract, context.cookie).list(),
-  );
-
-const fetchTierList = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<TierListResponse> => {
-    // 404 here is expected (deleted list, or another user's): map to NOT_FOUND, not an error.
-    const { error, data } = await safe(
-      apiOrpcClient(tierListsContract, context.cookie).get({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
-      }
-      throw error;
-    }
-    return data;
-  });
-
-const fetchPublicTierList = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ data: token }): Promise<PublicTierListDetailResponse> => {
-    // No cookie forwarded: share links must resolve for a logged-out viewer.
-    const { error, data } = await safe(apiOrpcClient(publicTierListsContract).share({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
-      }
-      throw error;
-    }
-    return data;
-  });
-
-export function tierListsQueryOptions(userId: string) {
-  return queryOptions({
-    queryKey: tierListsKeys.all(userId),
-    queryFn: () => fetchTierLists(),
-    select: (data: TierListListResponse) => data.items,
-  });
-}
-
-export function tierListQueryOptions(userId: string, id: string) {
-  return queryOptions({
-    queryKey: tierListsKeys.detail(userId, id),
-    queryFn: (): Promise<TierListResponse> => fetchTierList({ data: id }),
-  });
-}
-
-export function publicTierListQueryOptions(token: string) {
-  return queryOptions({
-    queryKey: tierListsKeys.publicByToken(token),
-    queryFn: (): Promise<PublicTierListDetailResponse> => fetchPublicTierList({ data: token }),
-  });
-}
 
 export function useTierLists() {
   return useSuspenseQuery(tierListsQueryOptions(useRequiredUserId()));

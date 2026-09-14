@@ -3,18 +3,18 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminAccessQueryOptions } from "@/features/admin/hooks/use-admin";
 import {
   adminCardDetailQueryOptions,
   allCardsQueryOptions,
-} from "@/features/admin/hooks/use-admin-card-queries";
-import { providerSettingsQueryOptions } from "@/features/admin/hooks/use-provider-settings";
-import { unifiedMappingsForCardQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
+} from "@/features/admin/lib/admin-card-queries";
+import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { isCardSection } from "@/features/admin/lib/card-sections";
-import { adminDistinctArtistsQueryOptions } from "@/features/cards/hooks/use-distinct-artists";
-import { adminLanguagesQueryOptions } from "@/hooks/use-languages";
-import { adminMarkersQueryOptions } from "@/hooks/use-markers";
+import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
+import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { adminDistinctArtistsQueryOptions } from "@/features/cards/lib/distinct-artists-queries";
+import { adminLanguagesQueryOptions } from "@/lib/languages-queries";
+import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 const FOCUSABLE_MARKETPLACES = new Set(["tcgplayer", "cardmarket", "cardtrader"]);

@@ -5,7 +5,7 @@ import { AdminPending } from "@/features/admin/components/admin-route-components
 import {
   adminCustomTagCategoriesQueryOptions,
   adminCustomTagsQueryOptions,
-} from "@/features/collections/hooks/use-custom-tags";
+} from "@/features/collections/lib/custom-tags-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/custom-tags")({

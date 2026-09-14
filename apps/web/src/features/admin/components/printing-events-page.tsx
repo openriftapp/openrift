@@ -25,13 +25,13 @@ import { RefreshCountdownButton } from "@/features/admin/components/refresh-coun
 import type { PrintingEventView } from "@/features/admin/hooks/use-flush-printing-events";
 import {
   isFlushPrintingEventsResult,
-  PRINTING_EVENTS_REFRESH_INTERVAL_MS,
   useAdminPrintingEvents,
   useFlushPrintingEvents,
   useLatestFlushRun,
   useRetryPrintingEvents,
 } from "@/features/admin/hooks/use-flush-printing-events";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
+import { PRINTING_EVENTS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/flush-printing-events-queries";
 import type { JobRunView } from "@/lib/server-fns/api-types";
 
 function StatusBadge({ status }: { status: PrintingEventView["status"] }) {

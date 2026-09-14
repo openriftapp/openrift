@@ -12,7 +12,7 @@ import { useCards, useFullCatalog } from "@/features/cards/hooks/use-cards";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { enrichCatalogSubset } from "@/features/cards/lib/catalog-query";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 const SET_ID = "00000000-0000-0000-0000-00000000set1";

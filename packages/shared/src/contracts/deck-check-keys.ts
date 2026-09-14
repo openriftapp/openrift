@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -10,8 +9,6 @@ import {
   mintDeckCheckKeySchema,
   updateDeckCheckKeySchema,
 } from "./deck-check.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Deck Check";
 

@@ -1,12 +1,9 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { metaEntryStatusSchema, metaOverlayStatusSchema } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { META_PLAYER_OVERLAY_FIELDS } from "../../types/enums.js";
 import { attachedListStatusSchema, metaDeckCardSchema } from "./meta-players.js";
-
-extendZodWithOpenApi(z);
 
 /**
  * Field-by-field correction: present is claimed, absent says nothing, null on
@@ -70,36 +67,34 @@ export const metaOverlayRowMatchSchema = z.object({
   candidateCount: z.number().int().nonnegative(),
 });
 
-export const metaOverlayQueueRowSchema = z
-  .object({
-    id: z.string(),
-    kind: z.enum(["event", "player"]),
-    status: metaOverlayStatusSchema,
-    provider: z.string().nullable(),
-    sourceEventExternalId: z.string().nullable(),
-    sourcePlayerExternalId: z.string().nullable(),
-    eventOverlayId: z.string().nullable(),
-    metaEventId: z.string().nullable(),
-    metaEventPlayerId: z.string().nullable(),
-    metaEventName: z.string().nullable(),
-    metaEventSlug: z.string().nullable(),
-    eventDate: isoDate.nullable(),
-    eventFormat: z.string().nullable(),
-    proposedName: z.string().nullable(),
-    playerName: z.string().nullable(),
-    rank: z.number().int().nullable(),
-    rankIsTier: z.boolean().nullable(),
-    match: metaOverlayRowMatchSchema.nullable(),
-    submittedBy: z.string().nullable(),
-    submissionNote: z.string().nullable(),
-    changes: z.array(metaOverlayFieldChangeSchema),
-    cards: z.array(metaOverlayCardSchema),
-    unresolvedNames: z.array(z.string()),
-    createdAt: isoDateTime,
-  })
-  .openapi("MetaOverlayQueueRow");
+export const metaOverlayQueueRowSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["event", "player"]),
+  status: metaOverlayStatusSchema,
+  provider: z.string().nullable(),
+  sourceEventExternalId: z.string().nullable(),
+  sourcePlayerExternalId: z.string().nullable(),
+  eventOverlayId: z.string().nullable(),
+  metaEventId: z.string().nullable(),
+  metaEventPlayerId: z.string().nullable(),
+  metaEventName: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
+  eventDate: isoDate.nullable(),
+  eventFormat: z.string().nullable(),
+  proposedName: z.string().nullable(),
+  playerName: z.string().nullable(),
+  rank: z.number().int().nullable(),
+  rankIsTier: z.boolean().nullable(),
+  match: metaOverlayRowMatchSchema.nullable(),
+  submittedBy: z.string().nullable(),
+  submissionNote: z.string().nullable(),
+  changes: z.array(metaOverlayFieldChangeSchema),
+  cards: z.array(metaOverlayCardSchema),
+  unresolvedNames: z.array(z.string()),
+  createdAt: isoDateTime,
+});
 
-export const metaOverlayDetailSchema = metaOverlayQueueRowSchema.openapi("MetaOverlayDetail");
+export const metaOverlayDetailSchema = metaOverlayQueueRowSchema;
 
 /** Absent keeps every claim. `cards` and `listStatus` are one claim: naming either keeps both. */
 export const acceptClaimFields = z
@@ -108,19 +103,15 @@ export const acceptClaimFields = z
   .optional()
   .default(null);
 
-export const metaOverlayBulkAcceptResultSchema = z
-  .object({
-    accepted: z.number().int().nonnegative(),
-    metaEventIds: z.array(z.string()),
-  })
-  .openapi("MetaOverlayBulkAcceptResult");
+export const metaOverlayBulkAcceptResultSchema = z.object({
+  accepted: z.number().int().nonnegative(),
+  metaEventIds: z.array(z.string()),
+});
 
-export const metaOverlayReviewResultSchema = z
-  .object({
-    metaEventId: z.string().nullable(),
-    created: z.boolean(),
-  })
-  .openapi("MetaOverlayReviewResult");
+export const metaOverlayReviewResultSchema = z.object({
+  metaEventId: z.string().nullable(),
+  created: z.boolean(),
+});
 
 /**
  * `claimedByOverlay` fields are decided by an accepted overlay, not
@@ -134,19 +125,17 @@ const metaEventDriftFieldSchema = z.object({
   wonBy: z.string().nullable(),
 });
 
-export const metaEventDriftSchema = z
-  .object({
-    metaEventId: z.string(),
-    sources: z.array(
-      z.object({
-        id: z.string(),
-        provider: z.string().nullable(),
-        externalId: z.string().nullable(),
-        label: z.string(),
-        priority: z.number().int(),
-        hasMirror: z.boolean(),
-      }),
-    ),
-    fields: z.array(metaEventDriftFieldSchema),
-  })
-  .openapi("MetaEventDrift");
+export const metaEventDriftSchema = z.object({
+  metaEventId: z.string(),
+  sources: z.array(
+    z.object({
+      id: z.string(),
+      provider: z.string().nullable(),
+      externalId: z.string().nullable(),
+      label: z.string(),
+      priority: z.number().int(),
+      hasMirror: z.boolean(),
+    }),
+  ),
+  fields: z.array(metaEventDriftFieldSchema),
+});

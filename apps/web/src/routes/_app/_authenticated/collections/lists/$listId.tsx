@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
-import { listDetailQueryOptions } from "@/features/lists/hooks/use-lists";
+import { listDetailQueryOptions } from "@/features/lists/lib/lists-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

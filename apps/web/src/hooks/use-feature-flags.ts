@@ -1,12 +1,12 @@
-import type {
-  AdminFeatureFlagOverridesResponse,
-  AdminFeatureFlagsResponse,
-} from "@openrift/shared/contracts/admin/feature-flags";
 import { adminFeatureFlagsContract } from "@openrift/shared/contracts/admin/feature-flags";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import {
+  adminFeatureFlagOverridesQueryOptions,
+  adminFeatureFlagsQueryOptions,
+} from "@/lib/admin-feature-flags-queries";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { featureFlagsKeys } from "@/lib/query-keys";
@@ -18,17 +18,6 @@ export function useFeatureEnabled(key: string): boolean {
   const { data } = useSuspenseQuery(featureFlagsQueryOptions);
   return (data as FeatureFlags)[key] === true;
 }
-
-const fetchAdminFeatureFlags = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminFeatureFlagsResponse> =>
-    apiOrpcClient(adminFeatureFlagsContract, context.cookie).list(),
-  );
-
-export const adminFeatureFlagsQueryOptions = queryOptions({
-  queryKey: adminKeys.featureFlags,
-  queryFn: () => fetchAdminFeatureFlags(),
-});
 
 export function useFeatureFlags() {
   return useSuspenseQuery(adminFeatureFlagsQueryOptions);
@@ -79,17 +68,6 @@ export function useDeleteFeatureFlag() {
     invalidates: [adminKeys.featureFlags, featureFlagsKeys.all],
   });
 }
-
-const fetchAdminFeatureFlagOverrides = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminFeatureFlagOverridesResponse> =>
-    apiOrpcClient(adminFeatureFlagsContract, context.cookie).listOverrides(),
-  );
-
-export const adminFeatureFlagOverridesQueryOptions = queryOptions({
-  queryKey: adminKeys.featureFlagOverrides,
-  queryFn: () => fetchAdminFeatureFlagOverrides(),
-});
 
 export function useFeatureFlagOverrides() {
   return useSuspenseQuery(adminFeatureFlagOverridesQueryOptions);

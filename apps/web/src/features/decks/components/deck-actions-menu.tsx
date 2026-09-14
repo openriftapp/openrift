@@ -48,7 +48,6 @@ import {
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useDeckFolders, useSetDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import {
-  deckDetailQueryOptions,
   useDeleteDeck,
   usePromoteDeckPrimary,
   useSetDeckArchived,
@@ -57,6 +56,7 @@ import {
 } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
+import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";

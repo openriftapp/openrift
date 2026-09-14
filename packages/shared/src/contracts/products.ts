@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
@@ -7,8 +6,6 @@ import {
 import { isoDateTime } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 export const productSlugRegex = /^[a-z0-9][a-z0-9-]{2,79}$/u;
 
@@ -53,19 +50,15 @@ export const productContentSchema = z.object({
   quantity: z.number(),
 });
 
-export const productsListResponseSchema = z
-  .object({ products: z.array(productSummarySchema) })
-  .openapi("ProductsListResponse");
+export const productsListResponseSchema = z.object({ products: z.array(productSummarySchema) });
 
-export const productDetailResponseSchema = z
-  .object({
-    product: productSummarySchema,
-    contents: z.array(productContentSchema),
-    cards: z.record(z.string(), catalogCardResponseSchema),
-    printings: z.array(catalogPrintingResponseSchema),
-    sets: z.array(catalogSetResponseSchema),
-  })
-  .openapi("ProductDetailResponse");
+export const productDetailResponseSchema = z.object({
+  product: productSummarySchema,
+  contents: z.array(productContentSchema),
+  cards: z.record(z.string(), catalogCardResponseSchema),
+  printings: z.array(catalogPrintingResponseSchema),
+  sets: z.array(catalogSetResponseSchema),
+});
 
 export const productsContract = {
   list: oc

@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 import { tierRowSchema } from "./tier-lists.js";
-
-extendZodWithOpenApi(z);
 
 export const overlayCornerSchema = z.enum(["top-left", "top-right", "bottom-left", "bottom-right"]);
 
@@ -47,21 +44,17 @@ export const overlayPayloadSchema = z.object({
   scale: z.number().int().min(20).max(100),
 });
 
-export const overlayStateResponseSchema = z
-  .object({
-    version: z.number().int().nonnegative(),
-    payload: overlayPayloadSchema,
-  })
-  .openapi("OverlayStateResponse");
+export const overlayStateResponseSchema = z.object({
+  version: z.number().int().nonnegative(),
+  payload: overlayPayloadSchema,
+});
 
-export const overlayChannelResponseSchema = z
-  .object({
-    token: z.string().nullable(),
-    version: z.number().int().nonnegative(),
-    payload: overlayPayloadSchema,
-    updatedAt: z.string(),
-  })
-  .openapi("OverlayChannelResponse");
+export const overlayChannelResponseSchema = z.object({
+  token: z.string().nullable(),
+  version: z.number().int().nonnegative(),
+  payload: overlayPayloadSchema,
+  updatedAt: z.string(),
+});
 
 /** Absent means "leave it alone", so one switch can be sent without restating the rest. */
 const overlayDressingShape = {

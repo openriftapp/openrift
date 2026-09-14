@@ -10,8 +10,8 @@ import { Heading } from "@/components/heading";
 import { CardLink } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { PAGE_PADDING } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
@@ -8,26 +7,20 @@ import {
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
 export const setListEntrySchema = catalogSetResponseSchema.extend({
-  cardCount: z.number().openapi({ example: 312 }),
-  printingCount: z.number().openapi({ example: 468 }),
+  cardCount: z.number().meta({ examples: [312] }),
+  printingCount: z.number().meta({ examples: [468] }),
   coverImageId: imageIdSchema.nullable(),
 });
 
-export const setListResponseSchema = z
-  .object({ sets: z.array(setListEntrySchema) })
-  .openapi("SetListResponse");
+export const setListResponseSchema = z.object({ sets: z.array(setListEntrySchema) });
 
-export const setDetailResponseSchema = z
-  .object({
-    set: catalogSetResponseSchema,
-    cards: z.record(z.string(), catalogCardResponseSchema),
-    printings: z.array(catalogPrintingResponseSchema),
-    // Prices are not inlined here, read them from the /prices resource.
-  })
-  .openapi("SetDetailResponse");
+export const setDetailResponseSchema = z.object({
+  set: catalogSetResponseSchema,
+  cards: z.record(z.string(), catalogCardResponseSchema),
+  printings: z.array(catalogPrintingResponseSchema),
+  // Prices are not inlined here, read them from the /prices resource.
+});
 
 const setSlugParamSchema = z.object({ setSlug: z.string().min(1) });
 

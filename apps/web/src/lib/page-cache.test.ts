@@ -159,32 +159,14 @@ describe("applyPageCacheControl", () => {
     expect(allHeaders[0]?.[1]).toBe(PUBLIC);
   });
 
-  it("emits Link preload headers on 200 HTML responses for CF Early Hints", () => {
+  it("keeps the Link header Start appended for Early Hints", () => {
+    const link = "</assets/font.woff2>; rel=preload; as=font; crossorigin=anonymous";
+    const result = applyPageCacheControl(getRequest("/cards"), htmlResponse({ Link: link }));
+    expect(result.headers.get("Link")).toBe(link);
+  });
+
+  it("adds no Link header of its own", () => {
     const result = applyPageCacheControl(getRequest("/cards"), htmlResponse());
-    const link = result.headers.get("Link") ?? "";
-    expect(link).toMatch(/rel=preload; as=style/u);
-    expect(link).toMatch(/rel=preload; as=font; type="font\/woff2"; crossorigin/u);
-  });
-
-  it("emits Link preload headers on private HTML routes too", () => {
-    const result = applyPageCacheControl(
-      getRequest("/cards", { cookie: "better-auth.session_token=abc" }),
-      htmlResponse(),
-    );
-    expect(result.headers.get("Link")).toMatch(/rel=preload/u);
-  });
-
-  it("does not emit Link preload headers on non-200 HTML responses", () => {
-    const result = applyPageCacheControl(getRequest("/cards"), htmlResponse({}, 500));
-    expect(result.headers.get("Link")).toBeNull();
-  });
-
-  it("does not emit Link preload headers on non-HTML responses", () => {
-    const response = new Response("{}", {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-    const result = applyPageCacheControl(getRequest("/cards"), response);
     expect(result.headers.get("Link")).toBeNull();
   });
 });

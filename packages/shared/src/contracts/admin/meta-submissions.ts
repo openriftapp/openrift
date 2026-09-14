@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   metaSubmissionKindSchema,
   metaSubmissionReasonSchema,
@@ -10,8 +9,6 @@ import { z } from "zod";
 import { authedRoute } from "../_base.js";
 import { metaEventFieldEditsSchema } from "../meta-submissions.js";
 
-extendZodWithOpenApi(z);
-
 const TAG = "Admin - Meta submissions";
 const BASE = "/api/admin/v1/meta/submissions";
 
@@ -19,21 +16,19 @@ const BASE = "/api/admin/v1/meta/submissions";
  * Submitter identity is deliberately absent here: the candidate row beside it
  * carries `submittedByUserId`/`submittedByName`.
  */
-export const adminMetaSubmissionSchema = z
-  .object({
-    id: z.string(),
-    eventName: z.string(),
-    playerName: z.string().nullable(),
-    kind: metaSubmissionKindSchema,
-    note: z.string().nullable(),
-    status: metaSubmissionStatusSchema,
-    reason: metaSubmissionReasonSchema.nullable(),
-    resolutionNote: z.string().nullable(),
-    acceptedDeckId: z.string().nullable(),
-    createdAt: isoDateTime,
-    resolvedAt: isoDateTime.nullable(),
-  })
-  .openapi("AdminMetaSubmission");
+export const adminMetaSubmissionSchema = z.object({
+  id: z.string(),
+  eventName: z.string(),
+  playerName: z.string().nullable(),
+  kind: metaSubmissionKindSchema,
+  note: z.string().nullable(),
+  status: metaSubmissionStatusSchema,
+  reason: metaSubmissionReasonSchema.nullable(),
+  resolutionNote: z.string().nullable(),
+  acceptedDeckId: z.string().nullable(),
+  createdAt: isoDateTime,
+  resolvedAt: isoDateTime.nullable(),
+});
 
 /** Duplicated here so the queue can show each proposed value beside the one it replaces. */
 const correctedMetaEventSchema = z.object({
@@ -52,13 +47,11 @@ const correctedMetaEventSchema = z.object({
  * A correction has no candidate row and no accept step; an admin edits the
  * event directly and stamps the outcome.
  */
-export const adminMetaEventCorrectionSchema = z
-  .object({
-    submission: adminMetaSubmissionSchema,
-    event: correctedMetaEventSchema.nullable(),
-    fieldEdits: metaEventFieldEditsSchema,
-  })
-  .openapi("AdminMetaEventCorrection");
+export const adminMetaEventCorrectionSchema = z.object({
+  submission: adminMetaSubmissionSchema,
+  event: correctedMetaEventSchema.nullable(),
+  fieldEdits: metaEventFieldEditsSchema,
+});
 
 /**
  * `accepted` is written only by the accept transaction itself.

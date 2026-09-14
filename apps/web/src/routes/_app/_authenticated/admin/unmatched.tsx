@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { unifiedMappingsQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
+import { unifiedMappingsQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/unmatched")({

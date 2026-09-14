@@ -1,0 +1,71 @@
+import type {
+  JobRunActivity,
+  JobRunsListResponse,
+  JobStatus,
+  JobTrigger,
+} from "@openrift/shared/contracts/admin/job-runs";
+import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { withCookies } from "@/lib/server-fns/middleware";
+import type { ContractInput } from "@/lib/server-fns/orpc-client";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+export const JOB_RUNS_PAGE_SIZE = 50;
+
+export type JobRunsQueryParams = Omit<
+  ContractInput<typeof adminJobRunsContract, "list">,
+  "limit" | "page"
+> & {
+  page: number;
+};
+
+export function jobRunsParamsFromSearch(search: {
+  page?: number;
+  runKind?: string;
+  runPrefix?: string;
+  runTrigger?: JobTrigger;
+  runStatus?: JobStatus;
+  runActivity?: JobRunActivity;
+}): JobRunsQueryParams {
+  return {
+    page: search.page ?? 1,
+    kind: search.runKind,
+    kindPrefix: search.runPrefix,
+    trigger: search.runTrigger,
+    status: search.runStatus,
+    activity: search.runActivity,
+  };
+}
+
+const fetchJobRuns = createServerFn({ method: "GET" })
+  .validator((input: JobRunsQueryParams) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<JobRunsListResponse> =>
+    apiOrpcClient(adminJobRunsContract, context.cookie).list({
+      page: data.page,
+      limit: JOB_RUNS_PAGE_SIZE,
+      kind: data.kind,
+      kindPrefix: data.kindPrefix,
+      trigger: data.trigger,
+      status: data.status,
+      activity: data.activity,
+    }),
+  );
+
+const JOB_RUNS_REFRESH_INTERVAL_MS = 15_000;
+
+export function jobRunsRefreshIntervalMs(page: number): number | false {
+  return page === 1 ? JOB_RUNS_REFRESH_INTERVAL_MS : false;
+}
+
+export function adminJobRunsQueryOptions(params: JobRunsQueryParams) {
+  return queryOptions({
+    queryKey: adminKeys.jobRunsList(params),
+    queryFn: () => fetchJobRuns({ data: params }),
+    refetchInterval: jobRunsRefreshIntervalMs(params.page),
+    placeholderData: keepPreviousData,
+  });
+}

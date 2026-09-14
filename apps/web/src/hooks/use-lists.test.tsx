@@ -14,7 +14,8 @@ import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler:

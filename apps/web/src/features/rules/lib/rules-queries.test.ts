@@ -1,7 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,
@@ -24,7 +25,7 @@ vi.mock("@/lib/server-cache", async () => {
   return { serverCache: new QC({ defaultOptions: { queries: { retry: false } } }) };
 });
 
-const { rulesAtVersionQueryOptions, ruleVersionsQueryOptions } = await import("./use-rules");
+const { rulesAtVersionQueryOptions, ruleVersionsQueryOptions } = await import("./rules-queries");
 
 describe("rulesAtVersionQueryOptions", () => {
   it("scopes the query key by kind and version", () => {

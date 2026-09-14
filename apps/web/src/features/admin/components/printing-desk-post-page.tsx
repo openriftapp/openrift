@@ -52,9 +52,9 @@ import { Pressable } from "@/components/ui/pressable";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
-import { deskPrintingQueryOptions } from "@/features/admin/hooks/use-printing-desk";
 import { printingDeskCardUrl } from "@/features/admin/lib/printing-desk-csv";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import { deskPrintingRelease, deskPrintingStatus } from "@/features/admin/lib/printing-desk-status";
 import { effectivePostDate, POST_DATE_NONE } from "@/features/admin/lib/printing-post-date-default";
 import {

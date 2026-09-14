@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminUsersQueryOptions } from "@/features/admin/hooks/use-admin-users";
+import { adminUsersQueryOptions } from "@/features/admin/lib/admin-users-queries";
 import {
   adminFeatureFlagOverridesQueryOptions,
   adminFeatureFlagsQueryOptions,
-} from "@/hooks/use-feature-flags";
+} from "@/lib/admin-feature-flags-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/feature-flags")({

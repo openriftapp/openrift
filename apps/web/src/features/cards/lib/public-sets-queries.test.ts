@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,
@@ -16,7 +17,7 @@ vi.mock("@/lib/server-cache", async () => {
 });
 
 const { serverCache } = await import("@/lib/server-cache");
-const { publicSetDetailQueryOptions } = await import("./use-public-sets");
+const { publicSetDetailQueryOptions } = await import("./public-sets-queries");
 
 describe("publicSetDetailQueryOptions", () => {
   beforeEach(() => {

@@ -9,7 +9,8 @@ import { stubCopy } from "@/test/factories";
 
 import type { OwnedBreakdownVariant } from "./use-owned-count";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       // oxlint-disable-next-line react/function-component-definition -- mocked server-fn handler, not a component

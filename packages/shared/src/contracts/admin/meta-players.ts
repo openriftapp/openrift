@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   deckFormatSchema,
   deckZoneSchema,
@@ -6,31 +5,27 @@ import {
 } from "@openrift/shared/response-schemas";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
 /** Deck fields are null together for a row the archive has no list for — most of a real event's field. */
-export const adminMetaPlayerSchema = z
-  .object({
-    id: z.string(),
-    rank: z.number().int(),
-    rankIsTier: z.boolean(),
-    playerName: z.string(),
-    wins: z.number().int().nullable(),
-    losses: z.number().int().nullable(),
-    draws: z.number().int().nullable(),
-    legendCardId: z.string().nullable(),
-    legendName: z.string().nullable(),
-    championCardId: z.string().nullable(),
-    championName: z.string().nullable(),
-    listStatus: metaListStatusSchema,
-    deckId: z.string().nullable(),
-    shareToken: z.string().nullable(),
-    deckName: z.string().nullable(),
-    deckFormat: deckFormatSchema.nullable(),
-    cardCount: z.number().int().nonnegative(),
-    claimedFields: z.array(z.string()),
-  })
-  .openapi("AdminMetaPlayer");
+export const adminMetaPlayerSchema = z.object({
+  id: z.string(),
+  rank: z.number().int(),
+  rankIsTier: z.boolean(),
+  playerName: z.string(),
+  wins: z.number().int().nullable(),
+  losses: z.number().int().nullable(),
+  draws: z.number().int().nullable(),
+  legendCardId: z.string().nullable(),
+  legendName: z.string().nullable(),
+  championCardId: z.string().nullable(),
+  championName: z.string().nullable(),
+  listStatus: metaListStatusSchema,
+  deckId: z.string().nullable(),
+  shareToken: z.string().nullable(),
+  deckName: z.string().nullable(),
+  deckFormat: deckFormatSchema.nullable(),
+  cardCount: z.number().int().nonnegative(),
+  claimedFields: z.array(z.string()),
+});
 
 /**
  * Structured, already-resolved card rows, not a deck code — the admin client

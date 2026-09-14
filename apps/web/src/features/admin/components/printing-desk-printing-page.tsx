@@ -66,7 +66,7 @@ import { sourceBrand } from "@/features/admin/lib/source-brand";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
 import { ImageHoverPreview } from "@/features/cards/components/printing-hover-preview";
-import { freshCardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
+import { freshCardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { cardsKeys, catalogKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { useDistributionChannels } from "@/hooks/use-distribution-channels";

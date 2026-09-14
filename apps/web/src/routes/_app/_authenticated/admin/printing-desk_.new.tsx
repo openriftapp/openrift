@@ -2,12 +2,12 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { deskCardPrintingsQueryOptions } from "@/features/admin/hooks/use-printing-desk";
-import { adminDistinctArtistsQueryOptions } from "@/features/cards/hooks/use-distinct-artists";
-import { setsQueryOptions } from "@/features/cards/hooks/use-sets";
-import { adminDistributionChannelsQueryOptions } from "@/hooks/use-distribution-channels";
-import { initQueryOptions } from "@/hooks/use-init";
-import { adminMarkersQueryOptions } from "@/hooks/use-markers";
+import { deskCardPrintingsQueryOptions } from "@/features/admin/lib/printing-desk-queries";
+import { adminDistinctArtistsQueryOptions } from "@/features/cards/lib/distinct-artists-queries";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
+import { adminDistributionChannelsQueryOptions } from "@/lib/distribution-channels-queries";
+import { initQueryOptions } from "@/lib/init-queries";
+import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 interface NewPrintingSearch {

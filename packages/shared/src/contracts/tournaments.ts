@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { organizationRoleSchema } from "@openrift/shared/contracts/organizations";
 import {
   cutSizeSchema,
@@ -23,8 +22,6 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const tournamentStatusSchema = z.enum(TOURNAMENT_STATUSES);
 // Re-exported from response-schemas.ts: the pod engine reads the same columns.
@@ -58,76 +55,66 @@ export const tournamentModuleFlagsSchema = z.object({
   deckSubmission: z.boolean(),
 });
 
-export const tournamentStaffMemberResponseSchema = z
-  .object({
-    userId: z.string(),
-    name: z.string().nullable(),
-    role: tournamentStaffRoleSchema,
-    // "grant" is an explicit tournament_staff row; "organization" is an
-    // implicit staff member of the host org.
-    source: z.enum(["grant", "organization"]),
-    orgRole: organizationRoleSchema.nullable(),
-    addedAt: z.string(),
-  })
-  .openapi("TournamentStaffMemberResponse");
+export const tournamentStaffMemberResponseSchema = z.object({
+  userId: z.string(),
+  name: z.string().nullable(),
+  role: tournamentStaffRoleSchema,
+  // "grant" is an explicit tournament_staff row; "organization" is an
+  // implicit staff member of the host org.
+  source: z.enum(["grant", "organization"]),
+  orgRole: organizationRoleSchema.nullable(),
+  addedAt: z.string(),
+});
 
 export const TOURNAMENT_PARTICIPANT_PREVIEW_COUNT = 5;
 
 export const TOURNAMENT_COVER_LEGEND_COUNT = 3;
 
-export const tournamentParticipantPreviewSchema = z
-  .object({
-    name: z.string(),
-    image: z.string().nullable(),
-    gravatarHash: z.string().nullable(),
-  })
-  .openapi("TournamentParticipantPreview");
+export const tournamentParticipantPreviewSchema = z.object({
+  name: z.string(),
+  image: z.string().nullable(),
+  gravatarHash: z.string().nullable(),
+});
 
 /** The legend art is only present when the winner consented to deck publishing. */
-export const tournamentWinnerSchema = z
-  .object({
-    name: z.string(),
-    legendImageId: z.string().nullable(),
-  })
-  .openapi("TournamentWinner");
+export const tournamentWinnerSchema = z.object({
+  name: z.string(),
+  legendImageId: z.string().nullable(),
+});
 
-export const tournamentCoverLegendSchema = z
-  .object({
-    printingId: z.string(),
-    imageId: z.string(),
-  })
-  .openapi("TournamentCoverLegend");
+export const tournamentCoverLegendSchema = z.object({
+  printingId: z.string(),
+  imageId: z.string(),
+});
 
-export const tournamentSummaryResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    status: tournamentStatusSchema,
-    host: tournamentHostInfoSchema,
-    groupId: z.string().nullable(),
-    groupSlug: z.string().nullable(),
-    groupName: z.string().nullable(),
-    pairingStyle: tournamentPairingStyleSchema,
-    playMode: tournamentPlayModeSchema,
-    deckSubmission: tournamentDeckSubmissionSchema,
-    deckFormat: z.string().nullable(),
-    startsAt: z.string(),
-    endsAt: z.string().nullable(),
-    modules: tournamentModuleFlagsSchema,
-    participantCount: z.number().int().nonnegative(),
-    pendingRequestCount: z.number().int().nonnegative(),
-    myRoles: z.array(tournamentViewerRoleSchema),
-    participantPreview: z.array(tournamentParticipantPreviewSchema),
-    winner: tournamentWinnerSchema.nullable(),
-    coverLegends: z.array(tournamentCoverLegendSchema),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("TournamentSummaryResponse");
+export const tournamentSummaryResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: tournamentStatusSchema,
+  host: tournamentHostInfoSchema,
+  groupId: z.string().nullable(),
+  groupSlug: z.string().nullable(),
+  groupName: z.string().nullable(),
+  pairingStyle: tournamentPairingStyleSchema,
+  playMode: tournamentPlayModeSchema,
+  deckSubmission: tournamentDeckSubmissionSchema,
+  deckFormat: z.string().nullable(),
+  startsAt: z.string(),
+  endsAt: z.string().nullable(),
+  modules: tournamentModuleFlagsSchema,
+  participantCount: z.number().int().nonnegative(),
+  pendingRequestCount: z.number().int().nonnegative(),
+  myRoles: z.array(tournamentViewerRoleSchema),
+  participantPreview: z.array(tournamentParticipantPreviewSchema),
+  winner: tournamentWinnerSchema.nullable(),
+  coverLegends: z.array(tournamentCoverLegendSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const tournamentListResponseSchema = z
-  .object({ items: z.array(tournamentSummaryResponseSchema) })
-  .openapi("TournamentListResponse");
+export const tournamentListResponseSchema = z.object({
+  items: z.array(tournamentSummaryResponseSchema),
+});
 
 /** Null when the viewer holds no entry: not a participant, or no decks taken. */
 export const tournamentMyDeckEntrySchema = z.object({
@@ -138,78 +125,72 @@ export const tournamentMyDeckEntrySchema = z.object({
   hasPlayerMessage: z.boolean(),
 });
 
-export const tournamentDetailResponseSchema = tournamentSummaryResponseSchema
-  .extend({
-    myDeckEntry: tournamentMyDeckEntrySchema.nullable(),
-    currentRound: z.number().int().nonnegative(),
-    scoringScheme: scoringSchemeSchema,
-    byePoints: z.number().int().nonnegative(),
-    matchFormat: tournamentMatchFormatSchema,
-    winPoints: z.number().int().nonnegative(),
-    drawPoints: z.number().int().nonnegative(),
-    regionsEnabled: z.boolean(),
-    deckPhase: tournamentDeckPhaseSchema,
-    submissionsCloseAt: z.string().nullable(),
-    listLockMode: tournamentListLockModeSchema,
-    allowedSets: z.array(z.string()).nullable(),
-    selfRegistration: z.boolean(),
-    reportToken: z.string().nullable(),
-    followToken: z.string().nullable(),
-    submissionToken: z.string().nullable(),
-    organizerInviteToken: z.string().nullable(),
-    judgeInviteToken: z.string().nullable(),
-    staff: z.array(tournamentStaffMemberResponseSchema),
-    hasRounds: z.boolean(),
-    ...groupCutSettingsShape,
-  })
-  .openapi("TournamentDetailResponse");
+export const tournamentDetailResponseSchema = tournamentSummaryResponseSchema.extend({
+  myDeckEntry: tournamentMyDeckEntrySchema.nullable(),
+  currentRound: z.number().int().nonnegative(),
+  scoringScheme: scoringSchemeSchema,
+  byePoints: z.number().int().nonnegative(),
+  matchFormat: tournamentMatchFormatSchema,
+  winPoints: z.number().int().nonnegative(),
+  drawPoints: z.number().int().nonnegative(),
+  regionsEnabled: z.boolean(),
+  deckPhase: tournamentDeckPhaseSchema,
+  submissionsCloseAt: z.string().nullable(),
+  listLockMode: tournamentListLockModeSchema,
+  allowedSets: z.array(z.string()).nullable(),
+  selfRegistration: z.boolean(),
+  reportToken: z.string().nullable(),
+  followToken: z.string().nullable(),
+  submissionToken: z.string().nullable(),
+  organizerInviteToken: z.string().nullable(),
+  judgeInviteToken: z.string().nullable(),
+  staff: z.array(tournamentStaffMemberResponseSchema),
+  hasRounds: z.boolean(),
+  ...groupCutSettingsShape,
+});
 
-export const tournamentStaffCandidateResponseSchema = z
-  .object({
-    userId: z.string(),
-    name: z.string().nullable(),
-    source: z.enum(["group", "participant"]),
-  })
-  .openapi("TournamentStaffCandidateResponse");
+export const tournamentStaffCandidateResponseSchema = z.object({
+  userId: z.string(),
+  name: z.string().nullable(),
+  source: z.enum(["group", "participant"]),
+});
 
-export const tournamentStaffCandidateListResponseSchema = z
-  .object({ items: z.array(tournamentStaffCandidateResponseSchema) })
-  .openapi("TournamentStaffCandidateListResponse");
+export const tournamentStaffCandidateListResponseSchema = z.object({
+  items: z.array(tournamentStaffCandidateResponseSchema),
+});
 
-export const tournamentParticipantResponseSchema = z
-  .object({
-    id: z.string(),
-    userId: z.string().nullable(),
-    userName: z.string().nullable(),
-    displayName: z.string(),
-    riotId: z.string().nullable(),
-    status: tournamentParticipantStatusSchema,
-    seed: z.number().int().nullable(),
-    // Teams have no stored name; the pair of member display names is the
-    // team identity.
-    teamId: z.string().nullable(),
-    region: z.string().nullable(),
-    legendCardId: z.string().nullable(),
-    legendName: z.string().nullable(),
-    groupLabel: z.string().nullable(),
-    // Soft: steers which table the player's pod lands on, never who they
-    // are paired with.
-    fixedTable: z.number().int().nullable(),
-    droppedAfterRound: z.number().int().nullable(),
-    claimToken: z.string().nullable(),
-    claimBlocked: z.boolean(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("TournamentParticipantResponse");
+export const tournamentParticipantResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullable(),
+  userName: z.string().nullable(),
+  displayName: z.string(),
+  riotId: z.string().nullable(),
+  status: tournamentParticipantStatusSchema,
+  seed: z.number().int().nullable(),
+  // Teams have no stored name; the pair of member display names is the
+  // team identity.
+  teamId: z.string().nullable(),
+  region: z.string().nullable(),
+  legendCardId: z.string().nullable(),
+  legendName: z.string().nullable(),
+  groupLabel: z.string().nullable(),
+  // Soft: steers which table the player's pod lands on, never who they
+  // are paired with.
+  fixedTable: z.number().int().nullable(),
+  droppedAfterRound: z.number().int().nullable(),
+  claimToken: z.string().nullable(),
+  claimBlocked: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const tournamentParticipantListResponseSchema = z
-  .object({ items: z.array(tournamentParticipantResponseSchema) })
-  .openapi("TournamentParticipantListResponse");
+export const tournamentParticipantListResponseSchema = z.object({
+  items: z.array(tournamentParticipantResponseSchema),
+});
 
-const tournamentStaffListResponseSchema = z
-  .object({ items: z.array(tournamentStaffMemberResponseSchema) })
-  .openapi("TournamentStaffListResponse");
+const tournamentStaffListResponseSchema = z.object({
+  items: z.array(tournamentStaffMemberResponseSchema),
+});
 
 const hostInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("user") }),

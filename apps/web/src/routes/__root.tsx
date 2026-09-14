@@ -20,12 +20,12 @@ import { lazy, Suspense } from "react";
 
 import { Analytics } from "@/components/analytics";
 import { RouteNotFoundFallback } from "@/components/error-message";
-import { Toaster } from "@/components/ui/sonner";
 // Installs a dev-only stack-dumper for React Compiler useMemoCache size-mismatch
 // warnings; body is `if (DEV)` so it's stripped from production bundles.
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect tracer
 import "@/lib/debug/memo-cache-trace";
 import { useBrowserLocale } from "@/hooks/use-browser-locale";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { ResolvedViewPrefsProvider } from "@/hooks/use-view-prefs";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { featureFlagsQueryOptions } from "@/lib/feature-flags";
@@ -52,6 +52,12 @@ import indexCss from "@/index.css?url";
 const PacerDevtoolsPanel = lazy(async () => {
   const module = await import("@tanstack/react-pacer-devtools");
   return { default: module.PacerDevtoolsPanel };
+});
+
+// Mounted after hydration so sonner stays out of the entry chunk.
+const Toaster = lazy(async () => {
+  const module = await import("@/components/ui/sonner");
+  return { default: module.Toaster };
 });
 
 // Only invoked during SSR; client navigations resolve the same cookie
@@ -238,6 +244,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { resolvedViewPrefs } = Route.useRouteContext();
   useBrowserLocale();
+  const hydrated = useHydrated();
   return (
     <>
       {/* `isolate` scopes descendant z-indexes to this div so AppBackground's
@@ -248,7 +255,11 @@ function RootComponent() {
         </ResolvedViewPrefsProvider>
       </div>
       {/* Outside the isolate div: portalled sheets and dialogs sit at body level. */}
-      <Toaster position="bottom-right" />
+      {hydrated && (
+        <Suspense fallback={null}>
+          <Toaster position="bottom-right" />
+        </Suspense>
+      )}
       {import.meta.env.VITE_DEVTOOLS && (
         // Workaround for TanStack/devtools#444: devtools-vite 0.7.0 strips only
         // <TanStackDevtools>, leaving `&& ( )`; this wraps it into valid `<>{ }</>`.

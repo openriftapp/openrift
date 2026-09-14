@@ -1,16 +1,11 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
-export const featureFlagsResponseSchema = z
-  .object({
-    flags: z.record(z.string(), z.boolean()).openapi({
-      example: { collection: true, decks: true },
-    }),
-  })
-  .openapi("FeatureFlagsResponse");
+export const featureFlagsResponseSchema = z.object({
+  flags: z.record(z.string(), z.boolean()).meta({
+    examples: [{ collection: true, decks: true }],
+  }),
+});
 
 export const featureFlagsContract = {
   get: oc

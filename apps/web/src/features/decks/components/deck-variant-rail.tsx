@@ -13,11 +13,12 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/compone
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { deckDetailQueryOptions, useDecks } from "@/features/decks/hooks/use-decks";
+import { useDecks } from "@/features/decks/hooks/use-decks";
 import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
 import { deckDiffCardsFrom, diffDecks } from "@/features/decks/lib/deck-diff";
 import type { RailEdge, RailLayout, RailNode } from "@/features/decks/lib/deck-variant-rail";
 import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
+import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";

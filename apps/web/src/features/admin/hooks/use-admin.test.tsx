@@ -8,7 +8,8 @@ const mocks = vi.hoisted(() => ({
   me: vi.fn(),
 }));
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       middleware: () => chain,

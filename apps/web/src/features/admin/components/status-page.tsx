@@ -19,10 +19,8 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import { useThrowInApi, useThrowInSsr } from "@/features/admin/hooks/use-sentry-test";
-import {
-  ADMIN_STATUS_REFRESH_INTERVAL_MS,
-  useAdminStatus,
-} from "@/features/admin/hooks/use-status";
+import { useAdminStatus } from "@/features/admin/hooks/use-status";
+import { ADMIN_STATUS_REFRESH_INTERVAL_MS } from "@/features/admin/lib/status-queries";
 
 const SECONDS_PER_DAY = 86_400;
 const SECONDS_PER_HOUR = 3600;

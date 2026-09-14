@@ -1,5 +1,12 @@
+// oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
+import "@tanstack/react-start/client-only";
 import { parseAppEnv } from "@openrift/shared/app-env";
-import * as Sentry from "@sentry/tanstackstart-react";
+import {
+  captureException,
+  init,
+  setUser,
+  tanstackRouterBrowserTracingIntegration,
+} from "@sentry/tanstackstart-react";
 import type { ErrorInfo } from "react";
 
 import { getAppDiagnostics } from "./app-diagnostics";
@@ -7,7 +14,7 @@ import { COMMIT_HASH, PROD } from "./env";
 import { drainHydrationErrors } from "./hydration-error-buffer";
 import { CHUNK_LOAD_ERROR_PATTERN } from "./stale-bundle-reload";
 
-type TanstackRouter = Parameters<typeof Sentry.tanstackRouterBrowserTracingIntegration>[0];
+type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
 
 // Extension and Firefox-iOS page-script injections run in the page's own
 // context, so their failures reach window.onerror indistinguishable from ours.
@@ -15,7 +22,7 @@ export const INJECTED_SCRIPT_PATTERN = /__firefox__|window\.ethereum/u;
 
 // `@sentry/tanstackstart-react` doesn't re-export ErrorEvent/EventHint, and
 // `@sentry/core` isn't a direct dep — derive both from the init signature.
-type SentryBeforeSend = NonNullable<Parameters<typeof Sentry.init>[0]>["beforeSend"];
+type SentryBeforeSend = NonNullable<Parameters<typeof init>[0]>["beforeSend"];
 type SentryErrorEvent = Parameters<NonNullable<SentryBeforeSend>>[0];
 type SentryEventHint = Parameters<NonNullable<SentryBeforeSend>>[1];
 
@@ -58,8 +65,6 @@ export function enrichEvent(event: SentryErrorEvent, hint: SentryEventHint): Sen
   }
 }
 
-// Nitro bundles this into the SSR asset graph despite the isServer gate; the
-// namespace import keeps a missing browser-only export a warning, not a build error.
 export function initClientSentry(router: TanstackRouter): void {
   // Skip in local dev: HMR/Fast Refresh noise would drown out real issues.
   if (!PROD) {
@@ -70,13 +75,13 @@ export function initClientSentry(router: TanstackRouter): void {
     return;
   }
 
-  Sentry.init({
+  init({
     dsn,
     release: COMMIT_HASH,
     // PROD is true for both preview and production builds, so environment is
     // sourced separately to tell them apart in Sentry.
     environment: parseAppEnv(globalThis.__OPENRIFT_CONFIG__?.appEnv),
-    integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+    integrations: [tanstackRouterBrowserTracingIntegration(router)],
     tracesSampleRate: 0.1,
     attachStacktrace: true,
     beforeSend: enrichEvent,
@@ -120,8 +125,17 @@ export function captureHydrationError(
   phase: "recoverable" | "uncaught" | "caught" = "recoverable",
   duringHydration = true,
 ): void {
-  Sentry.captureException(error, {
+  captureException(error, {
     tags: { hydration: duringHydration, hydration_phase: phase },
     extra: { componentStack: errorInfo.componentStack },
   });
+}
+
+export function captureClientError(error: unknown, tags: Record<string, string>): void {
+  captureException(error, { tags });
+}
+
+/** The internal user id only; Sentry's PII capture stays off. */
+export function setClientUser(userId: string | null): void {
+  setUser(userId === null ? null : { id: userId });
 }

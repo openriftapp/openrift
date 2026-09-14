@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
 import { overlayStateResponseSchema } from "./overlay.js";
-
-extendZodWithOpenApi(z);
 
 /**
  * Authorized by the channel token in the path only; OBS has no session.

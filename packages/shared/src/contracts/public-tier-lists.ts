@@ -1,29 +1,22 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
 import { tierRowResponseSchema } from "./tier-lists.js";
 
-extendZodWithOpenApi(z);
-
 /** No owner-only fields (share token, is_public): reaching this proves the token was known. */
-export const publicTierListResponseSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    description: z.string().nullable(),
-    tiers: z.array(tierRowResponseSchema),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("PublicTierListResponse");
+export const publicTierListResponseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  tiers: z.array(tierRowResponseSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const publicTierListDetailResponseSchema = z
-  .object({
-    tierList: publicTierListResponseSchema,
-    owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
-  })
-  .openapi("PublicTierListDetailResponse");
+export const publicTierListDetailResponseSchema = z.object({
+  tierList: publicTierListResponseSchema,
+  owner: z.object({ displayName: z.string(), gravatarHash: z.string().nullable() }),
+});
 
 /** Cards are bare ids: the client already holds the full catalogue to resolve them. */
 export const publicTierListsContract = {

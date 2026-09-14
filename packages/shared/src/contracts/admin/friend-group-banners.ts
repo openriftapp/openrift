@@ -1,29 +1,24 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 
-extendZodWithOpenApi(z);
-
 const TAG = "Admin - Group Banners";
 
 const GB = "/api/admin/v1/friend-group-banners";
 
-export const adminGroupBannerSchema = z
-  .object({
-    groupId: z.string(),
-    groupSlug: z.string(),
-    groupName: z.string(),
-    bannerUrl: z.string(),
-    bannerPosition: z.number().int(),
-    uploadedAt: isoDateTime.nullable(),
-    uploaderUserId: z.string().nullable(),
-    uploaderName: z.string().nullable(),
-    uploaderEmail: z.string().nullable(),
-    memberCount: z.number().int().nonnegative(),
-  })
-  .openapi("AdminGroupBannerResponse");
+export const adminGroupBannerSchema = z.object({
+  groupId: z.string(),
+  groupSlug: z.string(),
+  groupName: z.string(),
+  bannerUrl: z.string(),
+  bannerPosition: z.number().int(),
+  uploadedAt: isoDateTime.nullable(),
+  uploaderUserId: z.string().nullable(),
+  uploaderName: z.string().nullable(),
+  uploaderEmail: z.string().nullable(),
+  memberCount: z.number().int().nonnegative(),
+});
 
 /** Admin-gated by the mount, not enforced here. */
 export const adminFriendGroupBannersContract = {

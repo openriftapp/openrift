@@ -1,12 +1,12 @@
 import { friendGroupsContract } from "@openrift/shared/contracts/friend-groups";
 import type {
-  FriendGroupShopEventsResponse,
   FriendGroupShopSearchResponse,
   FriendGroupShopsResponse,
 } from "@openrift/shared/types/api/friend-group";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { friendGroupShopEventsQueryOptions } from "@/features/groups/lib/friend-group-shops-queries";
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -29,13 +29,6 @@ const searchShopsFn = createServerFn({ method: "GET" })
     apiOrpcClient(friendGroupsContract, context.cookie).searchShops(data),
   );
 
-const fetchShopEvents = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: slug }): Promise<FriendGroupShopEventsResponse> =>
-    apiOrpcClient(friendGroupsContract, context.cookie).shopEvents({ slug }),
-  );
-
 const linkShopFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; storeId: number }) => input)
   .middleware([withCookies])
@@ -54,13 +47,6 @@ function friendGroupShopsQueryOptions(userId: string, slug: string) {
   return {
     queryKey: friendGroupsKeys.shops(userId, slug),
     queryFn: () => fetchShops({ data: slug }),
-  };
-}
-
-export function friendGroupShopEventsQueryOptions(userId: string, slug: string) {
-  return {
-    queryKey: friendGroupsKeys.shopEvents(userId, slug),
-    queryFn: () => fetchShopEvents({ data: slug }),
   };
 }
 

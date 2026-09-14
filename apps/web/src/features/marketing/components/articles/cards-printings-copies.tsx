@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { TextLink } from "@/components/ui/text-link";
 import { CardText } from "@/features/cards/components/card-text";
-import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
+import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

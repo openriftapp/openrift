@@ -68,7 +68,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useSuspenseQuery: () => ({ data: { printings: state.cardPrintings } }),
 }));
 
-vi.mock("@/features/cards/hooks/use-card-detail", () => ({
+vi.mock("@/features/cards/lib/card-detail-queries", () => ({
   freshCardDetailQueryOptions: () => ({ queryKey: ["card-detail"] }),
 }));
 

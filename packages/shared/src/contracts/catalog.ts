@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
@@ -7,26 +6,26 @@ import {
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
 // Wire-only shapes for /catalog: identity lives in the map key, not the value.
 export const catalogCardResponseValueSchema = catalogCardResponseSchema.omit({ id: true });
 
 export const catalogPrintingResponseValueSchema = catalogPrintingResponseSchema.omit({ id: true });
 
-export const catalogResponseSchema = z
-  .object({
-    sets: z.array(catalogSetResponseSchema),
-    cards: z.record(z.string(), catalogCardResponseValueSchema),
-    printings: z.record(z.string(), catalogPrintingResponseValueSchema),
-    totalCopies: z.number().openapi({ example: 142 }),
-    customTagAssignments: z.record(z.string(), z.array(z.string())).openapi({ example: {} }),
-  })
-  .openapi("CatalogResponse");
+export const catalogResponseSchema = z.object({
+  sets: z.array(catalogSetResponseSchema),
+  cards: z.record(z.string(), catalogCardResponseValueSchema),
+  printings: z.record(z.string(), catalogPrintingResponseValueSchema),
+  totalCopies: z.number().meta({ examples: [142] }),
+  customTagAssignments: z.record(z.string(), z.array(z.string())).meta({ examples: [{}] }),
+});
 
 const LANGUAGE_CSV_MAX_CHARS = 200;
 
-const languageCsv = z.string().min(1).max(LANGUAGE_CSV_MAX_CHARS).openapi({ example: "EN" });
+const languageCsv = z
+  .string()
+  .min(1)
+  .max(LANGUAGE_CSV_MAX_CHARS)
+  .meta({ examples: ["EN"] });
 
 const MUTUALLY_EXCLUSIVE_MESSAGE = "langs and exceptLangs are mutually exclusive";
 

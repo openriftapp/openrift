@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { preferencesQueryOptions } from "@/features/account/hooks/use-preferences-sync";
-import { adminAccessQueryOptions } from "@/features/admin/hooks/use-admin";
+import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
+import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

@@ -3,10 +3,10 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { metaEventQueryOptions } from "@/features/meta/hooks/use-meta";
-import { initQueryOptions } from "@/hooks/use-init";
+import { metaEventQueryOptions } from "@/features/meta/lib/meta-queries";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";

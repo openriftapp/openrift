@@ -20,7 +20,7 @@ import { PriceHistorySection } from "@/features/cards/components/card-page-price
 import { CardPagePrintings } from "@/features/cards/components/card-page-printings";
 import { RelatedCardsSection } from "@/features/cards/components/card-page-related-cards";
 import { ShareLinkButton } from "@/features/cards/components/card-page-share-button";
-import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
+import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { resolveCardMetaPrinting } from "@/features/cards/lib/card-meta";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";

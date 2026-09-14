@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   deckCheckEntryCardResponseSchema,
   deckCheckEntryStateSchema,
@@ -11,8 +10,6 @@ import {
   addDeckCheckCardSchema,
 } from "@openrift/shared/schemas";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 // The service validates the transition matrix; `withdrawn` pulls the entry
 // from the event, mirroring the provider's withdrawal flag.
@@ -68,25 +65,23 @@ const deckCheckEntrySourceSchema = z.enum(["api", "manual", "self"]);
 
 export const deckCheckClaimSourceSchema = z.enum(["judge_manual", "self_submit", "claim_link"]);
 
-export const deckCheckEventSummaryResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    eventDate: z.string().nullable(),
-    format: z.string().nullable(),
-    allowedSets: z.array(z.string()).nullable(),
-    status: deckCheckEventStatusSchema,
-    entryCount: z.number().int().nonnegative(),
-    approvedCount: z.number().int().nonnegative(),
-    checkedCount: z.number().int().nonnegative(),
-    listLockMode: z.enum(["on_submit", "at_deadline"]),
-    allowSelfSubmission: z.boolean(),
-    submissionToken: z.string().nullable(),
-    submissionsCloseAt: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("DeckCheckEventSummaryResponse");
+export const deckCheckEventSummaryResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  eventDate: z.string().nullable(),
+  format: z.string().nullable(),
+  allowedSets: z.array(z.string()).nullable(),
+  status: deckCheckEventStatusSchema,
+  entryCount: z.number().int().nonnegative(),
+  approvedCount: z.number().int().nonnegative(),
+  checkedCount: z.number().int().nonnegative(),
+  listLockMode: z.enum(["on_submit", "at_deadline"]),
+  allowSelfSubmission: z.boolean(),
+  submissionToken: z.string().nullable(),
+  submissionsCloseAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
 export const deckCheckEntrySummaryResponseSchema = z.object({
   id: z.string(),
@@ -110,12 +105,10 @@ export const deckCheckEntrySummaryResponseSchema = z.object({
   unmatchedLineCount: z.number().int().nonnegative(),
 });
 
-export const deckCheckEventDetailResponseSchema = z
-  .object({
-    event: deckCheckEventSummaryResponseSchema,
-    entries: z.array(deckCheckEntrySummaryResponseSchema),
-  })
-  .openapi("DeckCheckEventDetailResponse");
+export const deckCheckEventDetailResponseSchema = z.object({
+  event: deckCheckEventSummaryResponseSchema,
+  entries: z.array(deckCheckEntrySummaryResponseSchema),
+});
 
 export const deckCheckChangeLineSchema = z.object({
   name: z.string(),
@@ -166,47 +159,42 @@ export const deckCheckEntryResponseSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const deckCheckEntryDetailResponseSchema = z
-  .object({
-    event: deckCheckEventSummaryResponseSchema,
-    entry: deckCheckEntryResponseSchema,
-    cards: z.array(deckCheckEntryCardResponseSchema),
-    violations: z.array(deckViolationSchema),
-    typeCounts: z.array(z.object({ cardType: z.string(), count: z.number().int().nonnegative() })),
-    domainDistribution: z.array(
-      z.object({ domain: z.string(), count: z.number().int().nonnegative() }),
-    ),
-    zoneSuggestions: z.array(
-      z.object({
-        cardId: z.string(),
-        cardName: z.string(),
-        currentZone: deckZoneSchema,
-        suggestedZone: deckZoneSchema,
-      }),
-    ),
-  })
-  .openapi("DeckCheckEntryDetailResponse");
+export const deckCheckEntryDetailResponseSchema = z.object({
+  event: deckCheckEventSummaryResponseSchema,
+  entry: deckCheckEntryResponseSchema,
+  cards: z.array(deckCheckEntryCardResponseSchema),
+  violations: z.array(deckViolationSchema),
+  typeCounts: z.array(z.object({ cardType: z.string(), count: z.number().int().nonnegative() })),
+  domainDistribution: z.array(
+    z.object({ domain: z.string(), count: z.number().int().nonnegative() }),
+  ),
+  zoneSuggestions: z.array(
+    z.object({
+      cardId: z.string(),
+      cardName: z.string(),
+      currentZone: deckZoneSchema,
+      suggestedZone: deckZoneSchema,
+    }),
+  ),
+});
 
-export const deckCheckKeyResponseSchema = z
-  .object({
-    id: z.string(),
-    tokenPrefix: z.string(),
-    label: z.string().nullable(),
-    createdByName: z.string().nullable(),
-    createdAt: z.string(),
-    lastUsedAt: z.string().nullable(),
-    revokedAt: z.string().nullable(),
-  })
-  .openapi("DeckCheckKeyResponse");
+export const deckCheckKeyResponseSchema = z.object({
+  id: z.string(),
+  tokenPrefix: z.string(),
+  label: z.string().nullable(),
+  createdByName: z.string().nullable(),
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+  revokedAt: z.string().nullable(),
+});
 
-export const deckCheckKeysResponseSchema = z
-  .object({ items: z.array(deckCheckKeyResponseSchema) })
-  .openapi("DeckCheckKeysResponse");
+export const deckCheckKeysResponseSchema = z.object({ items: z.array(deckCheckKeyResponseSchema) });
 
-export const deckCheckKeyMintedResponseSchema = z
-  .object({ key: deckCheckKeyResponseSchema, token: z.string() })
-  .openapi("DeckCheckKeyMintedResponse");
+export const deckCheckKeyMintedResponseSchema = z.object({
+  key: deckCheckKeyResponseSchema,
+  token: z.string(),
+});
 
-export const deckCheckReResolveResponseSchema = z
-  .object({ updatedLines: z.number().int().nonnegative() })
-  .openapi("DeckCheckReResolveResponse");
+export const deckCheckReResolveResponseSchema = z.object({
+  updatedLines: z.number().int().nonnegative(),
+});

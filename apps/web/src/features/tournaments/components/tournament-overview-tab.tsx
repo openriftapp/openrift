@@ -34,7 +34,6 @@ import {
 } from "@/features/tournaments/components/standings-display";
 import { useTournamentDeckCheckEntries } from "@/features/tournaments/hooks/use-tournament-deck-check";
 import { useParticipantAction } from "@/features/tournaments/hooks/use-tournament-mutations";
-import { tournamentRunStateQueryOptions } from "@/features/tournaments/hooks/use-tournament-run";
 import { useTournamentParticipants } from "@/features/tournaments/hooks/use-tournaments";
 import { collapseTeamStandings } from "@/features/tournaments/lib/team-display";
 import {
@@ -47,6 +46,7 @@ import {
   pairingPluralNoun,
   staffRoleLabels,
 } from "@/features/tournaments/lib/tournament-display";
+import { tournamentRunStateQueryOptions } from "@/features/tournaments/lib/tournament-run-queries";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { CARD_TRADE_LIVE_PHASES } from "@openrift/shared/card-trade-lifecycle";
 import { contactMethodSchema, copyMetadataResponseShape } from "@openrift/shared/response-schemas";
 import { friendGroupSlugSchema, idParamSchema, withParams } from "@openrift/shared/schemas";
@@ -6,8 +5,6 @@ import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 import { friendGroupMatchRowSchema } from "./friend-groups.js";
-
-extendZodWithOpenApi(z);
 
 export const CARD_TRADE_STATUSES = [
   "pending",
@@ -54,131 +51,114 @@ export const acceptCardTradeSchema = z.object({
   copyIds: z.array(z.uuid()).min(1).max(100).optional(),
 });
 
-const cardTradeStatusResponseSchema = z
-  .enum(["pending", "reserved", "completed", "declined", "cancelled", "expired"])
-  .openapi("CardTradeStatus");
+const cardTradeStatusResponseSchema = z.enum([
+  "pending",
+  "reserved",
+  "completed",
+  "declined",
+  "cancelled",
+  "expired",
+]);
 
-export const cardTradeCounterpartySchema = z
-  .object({
-    userId: z.string().nullable(),
-    name: z.string().nullable(),
-    image: z.string().nullable(),
-    gravatarHash: z.string(),
-    contactMethods: z.array(contactMethodSchema),
-  })
-  .openapi("CardTradeCounterparty");
+export const cardTradeCounterpartySchema = z.object({
+  userId: z.string().nullable(),
+  name: z.string().nullable(),
+  image: z.string().nullable(),
+  gravatarHash: z.string(),
+  contactMethods: z.array(contactMethodSchema),
+});
 
-export const cardTradeResponseSchema = z
-  .object({
-    id: z.string(),
-    groupId: z.string().nullable(),
-    groupSlug: z.string().nullable(),
-    groupName: z.string(),
-    role: cardTradeSideSchema,
-    initiator: cardTradeSideSchema,
-    counterparty: cardTradeCounterpartySchema,
-    printingId: z.string(),
-    cardId: z.string(),
-    quantity: z.number().int().positive(),
-    status: cardTradeStatusResponseSchema,
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    acceptedAt: z.string().nullable(),
-    completedAt: z.string().nullable(),
-    closedAt: z.string().nullable(),
-    expiresAt: z.string().nullable(),
-    viewerSyncAppliedAt: z.string().nullable(),
-    counterpartySyncAppliedAt: z.string().nullable(),
-    actionNeeded: z.enum(["accept-or-decline", "cancel", "settle"]).nullable(),
-  })
-  .openapi("CardTradeResponse");
+export const cardTradeResponseSchema = z.object({
+  id: z.string(),
+  groupId: z.string().nullable(),
+  groupSlug: z.string().nullable(),
+  groupName: z.string(),
+  role: cardTradeSideSchema,
+  initiator: cardTradeSideSchema,
+  counterparty: cardTradeCounterpartySchema,
+  printingId: z.string(),
+  cardId: z.string(),
+  quantity: z.number().int().positive(),
+  status: cardTradeStatusResponseSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  acceptedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  closedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  viewerSyncAppliedAt: z.string().nullable(),
+  counterpartySyncAppliedAt: z.string().nullable(),
+  actionNeeded: z.enum(["accept-or-decline", "cancel", "settle"]).nullable(),
+});
 
-export const cardTradeListResponseSchema = z
-  .object({ items: z.array(cardTradeResponseSchema) })
-  .openapi("CardTradeListResponse");
+export const cardTradeListResponseSchema = z.object({ items: z.array(cardTradeResponseSchema) });
 
-export const cardTradeCopyOptionSchema = z
-  .object({
-    id: z.string(),
-    collectionId: z.string(),
-    collectionName: z.string(),
-    pinned: z.boolean(),
-    ...copyMetadataResponseShape,
-    notesPrivate: z.string().nullable(),
-    hasRecordedDetails: z.boolean(),
-  })
-  .openapi("CardTradeCopyOption");
+export const cardTradeCopyOptionSchema = z.object({
+  id: z.string(),
+  collectionId: z.string(),
+  collectionName: z.string(),
+  pinned: z.boolean(),
+  ...copyMetadataResponseShape,
+  notesPrivate: z.string().nullable(),
+  hasRecordedDetails: z.boolean(),
+});
 
-export const cardTradeCopyOptionsResponseSchema = z
-  .object({
-    tradeId: z.string(),
-    quantity: z.number().int().positive(),
-    choiceMatters: z.boolean(),
-    copies: z.array(cardTradeCopyOptionSchema),
-  })
-  .openapi("CardTradeCopyOptionsResponse");
+export const cardTradeCopyOptionsResponseSchema = z.object({
+  tradeId: z.string(),
+  quantity: z.number().int().positive(),
+  choiceMatters: z.boolean(),
+  copies: z.array(cardTradeCopyOptionSchema),
+});
 
-export const cardTradeLivePhaseSchema = z
-  .enum(CARD_TRADE_LIVE_PHASES)
-  .openapi("CardTradeLivePhase");
+export const cardTradeLivePhaseSchema = z.enum(CARD_TRADE_LIVE_PHASES);
 
 // Deliberately identity-free: no counterparty, no group, no user id.
-export const cardTradeLiveAnnotationSchema = z
-  .object({
-    printingId: z.string(),
-    role: cardTradeSideSchema,
-    phase: cardTradeLivePhaseSchema,
-    tradeCount: z.number().int().positive(),
-    quantity: z.number().int().positive(),
-  })
-  .openapi("CardTradeLiveAnnotation");
+export const cardTradeLiveAnnotationSchema = z.object({
+  printingId: z.string(),
+  role: cardTradeSideSchema,
+  phase: cardTradeLivePhaseSchema,
+  tradeCount: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+});
 
 /** Terminal trades are absent, and so is a `reserved` trade the viewer has already settled. */
-export const cardTradeLiveByPrintingResponseSchema = z
-  .object({ annotations: z.array(cardTradeLiveAnnotationSchema) })
-  .openapi("CardTradeLiveByPrintingResponse");
+export const cardTradeLiveByPrintingResponseSchema = z.object({
+  annotations: z.array(cardTradeLiveAnnotationSchema),
+});
 
 /** `people` is distinct counterparties waiting on the viewer, pooled across groups. */
-export const cardTradeActionCountsResponseSchema = z
-  .object({
-    total: z.number().int().nonnegative(),
-    people: z.number().int().nonnegative(),
-    byGroup: z.array(
-      z.object({
-        groupId: z.string(),
-        groupSlug: z.string(),
-        count: z.number().int().nonnegative(),
-        respondCount: z.number().int().nonnegative(),
-        settleCount: z.number().int().nonnegative(),
-      }),
-    ),
-  })
-  .openapi("CardTradeActionCountsResponse");
+export const cardTradeActionCountsResponseSchema = z.object({
+  total: z.number().int().nonnegative(),
+  people: z.number().int().nonnegative(),
+  byGroup: z.array(
+    z.object({
+      groupId: z.string(),
+      groupSlug: z.string(),
+      count: z.number().int().nonnegative(),
+      respondCount: z.number().int().nonnegative(),
+      settleCount: z.number().int().nonnegative(),
+    }),
+  ),
+});
 
-export const cardTradeSheetGroupSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-  })
-  .openapi("CardTradeSheetGroup");
+export const cardTradeSheetGroupSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+});
 
-export const cardTradeSheetMatchRowSchema = friendGroupMatchRowSchema
-  .extend({
-    groupId: z.string(),
-    groupSlug: z.string(),
-  })
-  .openapi("CardTradeSheetMatchRow");
+export const cardTradeSheetMatchRowSchema = friendGroupMatchRowSchema.extend({
+  groupId: z.string(),
+  groupSlug: z.string(),
+});
 
 /** Rows that show up in several shared groups appear once, attributed to the first group in `groups`. */
-export const cardTradeSheetResponseSchema = z
-  .object({
-    counterparty: cardTradeCounterpartySchema,
-    groups: z.array(cardTradeSheetGroupSchema),
-    othersHaveYourWants: z.array(cardTradeSheetMatchRowSchema),
-    othersWantYourHaves: z.array(cardTradeSheetMatchRowSchema),
-  })
-  .openapi("CardTradeSheetResponse");
+export const cardTradeSheetResponseSchema = z.object({
+  counterparty: cardTradeCounterpartySchema,
+  groups: z.array(cardTradeSheetGroupSchema),
+  othersHaveYourWants: z.array(cardTradeSheetMatchRowSchema),
+  othersWantYourHaves: z.array(cardTradeSheetMatchRowSchema),
+});
 
 // User ids are text, not uuids.
 export const cardTradeSheetParamsSchema = z.object({ userId: z.string().min(1) });

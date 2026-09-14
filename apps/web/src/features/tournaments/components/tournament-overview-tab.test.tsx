@@ -28,7 +28,7 @@ vi.mock("@/features/tournaments/hooks/use-tournament-mutations", () => ({
   useParticipantAction: () => ({ mutateAsync: participantActionMutate, isPending: false }),
 }));
 
-vi.mock("@/features/tournaments/hooks/use-tournament-run", () => ({
+vi.mock("@/features/tournaments/lib/tournament-run-queries", () => ({
   tournamentRunStateQueryOptions: (userId: string, id: string) => ({
     queryKey: ["run-state", userId, id],
   }),

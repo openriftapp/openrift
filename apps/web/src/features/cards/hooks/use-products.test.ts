@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // No TanStack Start server in vitest/jsdom; run the handler directly with a
 // synthetic context so `context.cookie` reads work without withCookies.
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler:
@@ -46,8 +47,8 @@ vi.mock("@/lib/server-fns/orpc-client", () => ({
 }));
 
 const { serverCache } = await import("@/lib/server-cache");
-const { productsListQueryOptions, useCreateProduct, useUpdateProduct } =
-  await import("./use-products");
+const { productsListQueryOptions } = await import("@/features/cards/lib/products-queries");
+const { useCreateProduct, useUpdateProduct } = await import("./use-products");
 
 const PRODUCT = {
   id: "p1",

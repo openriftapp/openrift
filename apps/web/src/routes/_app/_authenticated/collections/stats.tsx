@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

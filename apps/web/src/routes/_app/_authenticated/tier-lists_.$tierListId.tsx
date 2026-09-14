@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { RouteErrorFallback } from "@/components/error-message";
 import { buttonVariants } from "@/components/ui/button";
 import { cleanedSearchForRedirect, filterSearchSchema } from "@/features/cards/lib/search-schemas";
-import { tierListQueryOptions } from "@/features/stage/hooks/use-tier-lists";
+import { tierListQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_WIDTH, PAGE_PADDING } from "@/lib/utils";

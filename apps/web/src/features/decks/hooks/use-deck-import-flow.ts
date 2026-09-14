@@ -8,12 +8,7 @@ import { toast } from "sonner";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
-import {
-  deckDetailQueryOptions,
-  publicDeckQueryOptions,
-  useCreateDeck,
-  useSaveDeckCards,
-} from "@/features/decks/hooks/use-decks";
+import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import {
   dedupeMatchedEntries,
   defaultImportDeckName,
@@ -36,6 +31,7 @@ import {
 } from "@/features/decks/lib/deck-import-parsers";
 import { sortDeckImportEntries } from "@/features/decks/lib/deck-import-preview";
 import { resolveReplaceTarget } from "@/features/decks/lib/deck-import-replace";
+import { deckDetailQueryOptions, publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminCardTypesQueryOptions } from "@/features/cards/hooks/use-card-types";
+import { adminCardTypesQueryOptions } from "@/features/cards/lib/card-types-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/card-types")({

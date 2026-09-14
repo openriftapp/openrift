@@ -13,7 +13,7 @@ import {
 } from "@/components/layout/top-bar-breadcrumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
-import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-archive";
+import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
 import { m } from "@/paraglide/messages.js";
 
 export function MetaDeckArchiveBar({

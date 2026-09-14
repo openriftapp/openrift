@@ -3,7 +3,7 @@ import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useQuery } from "@tanstack/react-query";
 
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
 
 export type GetStandardArtFallback = (printing: Printing) => StandardArtFallback | null;
 

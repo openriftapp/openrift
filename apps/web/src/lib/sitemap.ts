@@ -1,3 +1,5 @@
+// oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
+import "@tanstack/react-start/server-only";
 import type { SitemapDataResponse } from "@openrift/shared/types/api/catalog";
 
 import type { MetaEra } from "@/features/meta/lib/meta-scope";

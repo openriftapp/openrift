@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const MAX_TIER_ROWS = 12;
 export const MAX_CARDS_PER_TIER = 400;
@@ -64,67 +61,58 @@ export const updateTierListSchema = z.object({
   tiers: tiersSchema.optional(),
 });
 
-export const tierCardResponseSchema = z
-  .object({ cardId: z.string(), printingId: z.string().nullable() })
-  .openapi("TierCardResponse");
+export const tierCardResponseSchema = z.object({
+  cardId: z.string(),
+  printingId: z.string().nullable(),
+});
 
-export const tierRowResponseSchema = z
-  .object({
-    label: z.string(),
-    cards: z.array(tierCardResponseSchema),
-    unranked: z.boolean().optional(),
-  })
-  .openapi("TierRowResponse");
+export const tierRowResponseSchema = z.object({
+  label: z.string(),
+  cards: z.array(tierCardResponseSchema),
+  unranked: z.boolean().optional(),
+});
 
-export const tierListResponseSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    description: z.string().nullable(),
-    tiers: z.array(tierRowResponseSchema),
-    isPublic: z.boolean(),
-    shareToken: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("TierListResponse");
+export const tierListResponseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  tiers: z.array(tierRowResponseSchema),
+  isPublic: z.boolean(),
+  shareToken: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
 /** `rowIndex` is the row's board position, not its position in the preview:
  * empty tiers are skipped, and colour is derived from board position. */
-export const tierPreviewRowResponseSchema = z
-  .object({
-    rowIndex: z.number().int().nonnegative(),
-    label: z.string(),
-    cards: z.array(tierCardResponseSchema),
-    unranked: z.boolean().optional(),
-  })
-  .openapi("TierPreviewRowResponse");
+export const tierPreviewRowResponseSchema = z.object({
+  rowIndex: z.number().int().nonnegative(),
+  label: z.string(),
+  cards: z.array(tierCardResponseSchema),
+  unranked: z.boolean().optional(),
+});
 
-export const tierListSummaryResponseSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    description: z.string().nullable(),
-    tierCount: z.number().int().nonnegative(),
-    cardCount: z.number().int().nonnegative(),
-    previewRows: z.array(tierPreviewRowResponseSchema),
-    isPublic: z.boolean(),
-    shareToken: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("TierListSummaryResponse");
+export const tierListSummaryResponseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  tierCount: z.number().int().nonnegative(),
+  cardCount: z.number().int().nonnegative(),
+  previewRows: z.array(tierPreviewRowResponseSchema),
+  isPublic: z.boolean(),
+  shareToken: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const tierListListResponseSchema = z
-  .object({ items: z.array(tierListSummaryResponseSchema) })
-  .openapi("TierListListResponse");
+export const tierListListResponseSchema = z.object({
+  items: z.array(tierListSummaryResponseSchema),
+});
 
-export const tierListShareResponseSchema = z
-  .object({
-    shareToken: z.string().nullable(),
-    isPublic: z.boolean(),
-  })
-  .openapi("TierListShareResponse");
+export const tierListShareResponseSchema = z.object({
+  shareToken: z.string().nullable(),
+  isPublic: z.boolean(),
+});
 
 const TAG = "Tier lists";
 const NOT_FOUND = { NOT_FOUND: { message: "Tier list not found" } };

@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { loadTournamentDetail } from "@/features/tournaments/hooks/tournament-route-guards";
-import { tournamentParticipantsQueryOptions } from "@/features/tournaments/hooks/use-tournaments";
 import { isTournamentStaff } from "@/features/tournaments/lib/tournament-display";
+import { loadTournamentDetail } from "@/features/tournaments/lib/tournament-route-guards";
+import { tournamentParticipantsQueryOptions } from "@/features/tournaments/lib/tournaments-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

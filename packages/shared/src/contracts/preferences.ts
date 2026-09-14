@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { currencySchema, marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { DISPLAY_LOCALES, TRADE_REQUEST_EMAIL_CADENCES } from "../types/api/preferences.js";
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const themeEnum = z.enum(["light", "dark", "auto"]);
 
@@ -15,18 +12,16 @@ const displayLocaleEnum = z.enum(DISPLAY_LOCALES);
 
 const defaultCardViewEnum = z.enum(["cards", "printings"]);
 
-export const emailNotificationPreferenceSchema = z
-  .object({
-    tradeMatches: z.boolean().optional(),
-    tradeRequests: z.boolean().optional(),
-    tradeStatus: z.boolean().optional(),
-    tradeRequestCadence: z.enum(TRADE_REQUEST_EMAIL_CADENCES).optional(),
-    cardSubmissions: z.boolean().optional(),
-    metaSubmissions: z.boolean().optional(),
-    groupJoinRequests: z.boolean().optional(),
-    groupApprovals: z.boolean().optional(),
-  })
-  .openapi("EmailNotificationPreference");
+export const emailNotificationPreferenceSchema = z.object({
+  tradeMatches: z.boolean().optional(),
+  tradeRequests: z.boolean().optional(),
+  tradeStatus: z.boolean().optional(),
+  tradeRequestCadence: z.enum(TRADE_REQUEST_EMAIL_CADENCES).optional(),
+  cardSubmissions: z.boolean().optional(),
+  metaSubmissions: z.boolean().optional(),
+  groupJoinRequests: z.boolean().optional(),
+  groupApprovals: z.boolean().optional(),
+});
 
 const presenceStateEnum = z.enum(["any", "none"]);
 
@@ -103,31 +98,27 @@ export const updatePreferencesSchema = z.object({
   emailNotifications: emailNotificationPreferenceSchema.nullable().optional(),
 });
 
-export const completionScopePreferenceSchema = z
-  .object(completionScopeFields)
-  .openapi("CompletionScopePreference");
+export const completionScopePreferenceSchema = z.object(completionScopeFields);
 
-export const userPreferencesResponseSchema = z
-  .object({
-    showImages: z.boolean().optional(),
-    fancyFan: z.boolean().optional(),
-    foilEffect: z.boolean().optional(),
-    cardTilt: z.boolean().optional(),
-    theme: z.enum(["light", "dark", "auto"]).optional(),
-    palette: z.enum(["default", "minimal"]).optional(),
-    displayLocale: displayLocaleEnum.optional(),
-    marketplaceOrder: z
-      .array(z.enum(["tcgplayer", "cardmarket", "cardtrader"]))
-      .min(1)
-      .optional(),
-    languages: z.array(z.string()).optional(),
-    completionScope: completionScopePreferenceSchema.optional(),
-    defaultCardView: z.enum(["cards", "printings"]).optional(),
-    defaultCurrency: z.enum(["EUR", "USD"]).optional(),
-    topLevelFilters: z.array(z.string()).optional(),
-    emailNotifications: emailNotificationPreferenceSchema.optional(),
-  })
-  .openapi("UserPreferencesResponse");
+export const userPreferencesResponseSchema = z.object({
+  showImages: z.boolean().optional(),
+  fancyFan: z.boolean().optional(),
+  foilEffect: z.boolean().optional(),
+  cardTilt: z.boolean().optional(),
+  theme: z.enum(["light", "dark", "auto"]).optional(),
+  palette: z.enum(["default", "minimal"]).optional(),
+  displayLocale: displayLocaleEnum.optional(),
+  marketplaceOrder: z
+    .array(z.enum(["tcgplayer", "cardmarket", "cardtrader"]))
+    .min(1)
+    .optional(),
+  languages: z.array(z.string()).optional(),
+  completionScope: completionScopePreferenceSchema.optional(),
+  defaultCardView: z.enum(["cards", "printings"]).optional(),
+  defaultCurrency: z.enum(["EUR", "USD"]).optional(),
+  topLevelFilters: z.array(z.string()).optional(),
+  emailNotifications: emailNotificationPreferenceSchema.optional(),
+});
 
 export const preferencesContract = {
   get: authedRoute

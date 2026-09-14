@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { publicDeckQueryOptions } from "@/features/decks/hooks/use-decks";
 import { diffCardsFromEntries } from "@/features/decks/lib/deck-compare-sources";
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
@@ -24,6 +23,7 @@ import {
   parseDeckImportData,
   sniffDeckImportFormat,
 } from "@/features/decks/lib/deck-import-parsers";
+import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { m } from "@/paraglide/messages.js";
 
 /** A list pasted into the comparison, held only for the session; not persisted. */

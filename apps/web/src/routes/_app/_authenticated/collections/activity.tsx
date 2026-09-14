@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { collectionEventsQueryOptions } from "@/features/collections/hooks/use-collection-events";
+import { collectionEventsQueryOptions } from "@/features/collections/lib/collection-events-queries";
 import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

@@ -5,9 +5,9 @@ import { AdminPending } from "@/features/admin/components/admin-route-components
 import {
   adminMetaEventPlayersQueryOptions,
   adminMetaEventQueryOptions,
-} from "@/features/admin/hooks/use-admin-meta";
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
-import { initQueryOptions } from "@/hooks/use-init";
+} from "@/features/admin/lib/admin-meta-queries";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
+import { initQueryOptions } from "@/lib/init-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/meta_/$eventId")({

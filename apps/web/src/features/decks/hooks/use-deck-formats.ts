@@ -1,18 +1,12 @@
-import type { AdminDeckFormatsResponse } from "@openrift/shared/contracts/admin/deck-formats";
 import { adminDeckFormatsContract } from "@openrift/shared/contracts/admin/deck-formats";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminDeckFormatsQueryOptions } from "@/features/decks/lib/deck-formats-queries";
 import { createAdminEnumHooks } from "@/lib/create-admin-enum-hooks";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchDeckFormats = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminDeckFormatsResponse> =>
-    apiOrpcClient(adminDeckFormatsContract, context.cookie).list(),
-  );
 
 const createDeckFormatFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; label: string }) => input)
@@ -43,8 +37,7 @@ const deleteDeckFormatFn = createServerFn({ method: "POST" })
   });
 
 const deckFormatHooks = createAdminEnumHooks({
-  queryKey: adminKeys.deckFormats,
-  list: () => fetchDeckFormats(),
+  listQueryOptions: adminDeckFormatsQueryOptions,
   invalidates: [adminKeys.deckFormats, initKeys.all],
   create: (vars: { slug: string; label: string }) => createDeckFormatFn({ data: vars }),
   update: (vars: { slug: string; label?: string }) => updateDeckFormatFn({ data: vars }),
@@ -52,7 +45,6 @@ const deckFormatHooks = createAdminEnumHooks({
   remove: (slug: string) => deleteDeckFormatFn({ data: { slug } }),
 });
 
-export const adminDeckFormatsQueryOptions = deckFormatHooks.queryOptions;
 export const useDeckFormats = deckFormatHooks.useList;
 export const useCreateDeckFormat = deckFormatHooks.useCreate;
 export const useUpdateDeckFormat = deckFormatHooks.useUpdate;

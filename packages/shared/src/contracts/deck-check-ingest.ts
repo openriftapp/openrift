@@ -1,9 +1,6 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { DECK_CHECK_MAX_CARD_LINES_PER_ENTRY } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 export const DECK_CHECK_MAX_ENTRIES_PER_PUSH = 500;
 
@@ -32,27 +29,23 @@ export const deckCheckIngestSchema = z.object({
   entries: z.array(deckCheckIngestEntrySchema).max(DECK_CHECK_MAX_ENTRIES_PER_PUSH).default([]),
 });
 
-export const deckCheckIngestEntryResultSchema = z
-  .object({
-    externalId: z.string(),
-    entryId: z.string(),
-    claimUrl: z.string().nullable(),
-  })
-  .openapi("DeckCheckIngestEntryResult");
+export const deckCheckIngestEntryResultSchema = z.object({
+  externalId: z.string(),
+  entryId: z.string(),
+  claimUrl: z.string().nullable(),
+});
 
-export const deckCheckIngestResultResponseSchema = z
-  .object({
-    tournamentId: z.string(),
-    entriesCreated: z.number().int().nonnegative(),
-    entriesUpdated: z.number().int().nonnegative(),
-    entriesUnchanged: z.number().int().nonnegative(),
-    entriesWithdrawn: z.number().int().nonnegative(),
-    checksInvalidated: z.number().int().nonnegative(),
-    // Deprecated: always 0, kept so existing provider integrations keep parsing.
-    entriesIgnored: z.number().int().nonnegative(),
-    entries: z.array(deckCheckIngestEntryResultSchema),
-  })
-  .openapi("DeckCheckIngestResultResponse");
+export const deckCheckIngestResultResponseSchema = z.object({
+  tournamentId: z.string(),
+  entriesCreated: z.number().int().nonnegative(),
+  entriesUpdated: z.number().int().nonnegative(),
+  entriesUnchanged: z.number().int().nonnegative(),
+  entriesWithdrawn: z.number().int().nonnegative(),
+  checksInvalidated: z.number().int().nonnegative(),
+  // Deprecated: always 0, kept so existing provider integrations keep parsing.
+  entriesIgnored: z.number().int().nonnegative(),
+  entries: z.array(deckCheckIngestEntryResultSchema),
+});
 
 // Rate limit and 1 MB body limit are applied as Hono middleware on the path
 // (`app.ts`), not visible in this contract.

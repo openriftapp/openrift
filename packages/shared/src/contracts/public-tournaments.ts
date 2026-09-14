@@ -1,44 +1,33 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { tournamentStaffRoleSchema } from "@openrift/shared/contracts/tournaments";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
+export const publicTournamentLandingResponseSchema = z.object({
+  name: z.string(),
+  hostDisplayName: z.string(),
+  selfRegistrationOpen: z.boolean(),
+  deckExpected: z.boolean(),
+  viewerIsParticipant: z.boolean(),
+});
 
-export const publicTournamentLandingResponseSchema = z
-  .object({
-    name: z.string(),
-    hostDisplayName: z.string(),
-    selfRegistrationOpen: z.boolean(),
-    deckExpected: z.boolean(),
-    viewerIsParticipant: z.boolean(),
-  })
-  .openapi("PublicTournamentLandingResponse");
+export const publicTournamentJoinResponseSchema = z.object({
+  participantId: z.string(),
+  status: z.enum(["requested", "invited", "active", "dropped", "no_show"]),
+  alreadyJoined: z.boolean(),
+});
 
-export const publicTournamentJoinResponseSchema = z
-  .object({
-    participantId: z.string(),
-    status: z.enum(["requested", "invited", "active", "dropped", "no_show"]),
-    alreadyJoined: z.boolean(),
-  })
-  .openapi("PublicTournamentJoinResponse");
+export const tournamentStaffInviteLandingResponseSchema = z.object({
+  name: z.string(),
+  hostDisplayName: z.string(),
+  role: tournamentStaffRoleSchema,
+  alreadyStaff: z.boolean(),
+});
 
-export const tournamentStaffInviteLandingResponseSchema = z
-  .object({
-    name: z.string(),
-    hostDisplayName: z.string(),
-    role: tournamentStaffRoleSchema,
-    alreadyStaff: z.boolean(),
-  })
-  .openapi("TournamentStaffInviteLandingResponse");
-
-export const tournamentStaffInviteClaimResponseSchema = z
-  .object({
-    tournamentId: z.string(),
-    role: tournamentStaffRoleSchema,
-    alreadyStaff: z.boolean(),
-  })
-  .openapi("TournamentStaffInviteClaimResponse");
+export const tournamentStaffInviteClaimResponseSchema = z.object({
+  tournamentId: z.string(),
+  role: tournamentStaffRoleSchema,
+  alreadyStaff: z.boolean(),
+});
 
 const TAG = "Tournaments";
 

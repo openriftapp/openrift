@@ -27,7 +27,6 @@ import { SelectionDetailOverlays } from "@/features/cards/components/selection-d
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
-import { publicPromoListQueryOptions } from "@/features/cards/hooks/use-public-promos";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import { groupByOptionsFor } from "@/features/cards/lib/group-by-field";
 import { buildPromoTreeFromMatches } from "@/features/cards/lib/promo-filters";
@@ -44,6 +43,7 @@ import {
   flattenChannelSections,
 } from "@/features/cards/lib/promo-sections";
 import { computeLanguageAggregates } from "@/features/cards/lib/promos-tree";
+import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
 import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { applyOwnedBucketFilter } from "@/features/collections/lib/owned-bucket";

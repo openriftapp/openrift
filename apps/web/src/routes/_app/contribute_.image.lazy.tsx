@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import { Heading } from "@/components/heading";
 import { RowList, RowListItem, RowListLink } from "@/components/ui/row-list";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
+import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { CardSlugPicker } from "@/features/contribute/components/card-slug-picker";
 import { ContributeHero } from "@/features/contribute/components/contribute-hero";
 import { MyMissingImagesSection } from "@/features/contribute/components/my-missing-images-section";

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminDashboardQueryOptions } from "@/features/admin/hooks/use-admin-dashboard";
+import { adminDashboardQueryOptions } from "@/features/admin/lib/admin-dashboard-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/")({

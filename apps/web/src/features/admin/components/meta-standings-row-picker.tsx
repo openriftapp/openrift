@@ -9,7 +9,7 @@ import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { rankLabel } from "@/features/admin/components/meta-review-shared";
-import { adminMetaEventPlayersQueryOptions } from "@/features/admin/hooks/use-admin-meta";
+import { adminMetaEventPlayersQueryOptions } from "@/features/admin/lib/admin-meta-queries";
 
 function StandingsRows({
   metaEventId,

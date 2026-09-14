@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { prefetchAreas } from "@/hooks/area-prefetch";
 import { createQueryClient } from "@/lib/query-client";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: () => () => Promise.resolve({ items: [] }),

@@ -1,0 +1,29 @@
+import { collectionEventsContract } from "@openrift/shared/contracts/collection-events";
+import type { CollectionEventListResponse } from "@openrift/shared/types/api/collection-event";
+import { infiniteQueryOptions } from "@tanstack/react-query";
+import { createServerFn } from "@tanstack/react-start";
+
+import { collectionEventsKeys } from "@/features/collections/lib/collections-query-keys";
+import { withCookies } from "@/lib/server-fns/middleware";
+import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
+
+const fetchCollectionEventsFn = createServerFn({ method: "GET" })
+  .validator((input: { cursor?: string }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }): Promise<CollectionEventListResponse> =>
+    apiOrpcClient(collectionEventsContract, context.cookie).list(
+      data.cursor ? { cursor: data.cursor } : {},
+    ),
+  );
+
+export function collectionEventsQueryOptions(userId: string) {
+  return infiniteQueryOptions({
+    queryKey: collectionEventsKeys.all(userId),
+    queryFn: ({ pageParam }): Promise<CollectionEventListResponse> =>
+      fetchCollectionEventsFn({
+        data: { cursor: pageParam },
+      }) as Promise<CollectionEventListResponse>,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: CollectionEventListResponse) => lastPage.nextCursor ?? undefined,
+  });
+}

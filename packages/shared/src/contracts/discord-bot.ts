@@ -1,8 +1,5 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 export const discordBotRedeemLinkSchema = z.object({
   code: z.string().min(1).max(64),
@@ -10,36 +7,28 @@ export const discordBotRedeemLinkSchema = z.object({
   guildName: z.string().max(200).nullish(),
 });
 
-export const discordBotRedeemLinkResponseSchema = z
-  .object({
-    groupSlug: z.string(),
-    groupName: z.string(),
-  })
-  .openapi("DiscordBotRedeemLinkResponse");
+export const discordBotRedeemLinkResponseSchema = z.object({
+  groupSlug: z.string(),
+  groupName: z.string(),
+});
 
-export const discordBotTradelistHolderPrintingSchema = z
-  .object({
-    printingId: z.uuid(),
-    quantity: z.number().int().positive(),
-    listNames: z.array(z.string()),
-  })
-  .openapi("DiscordBotTradelistHolderPrinting");
+export const discordBotTradelistHolderPrintingSchema = z.object({
+  printingId: z.uuid(),
+  quantity: z.number().int().positive(),
+  listNames: z.array(z.string()),
+});
 
-export const discordBotTradelistHolderSchema = z
-  .object({
-    userName: z.string().nullable(),
-    quantity: z.number().int().positive(),
-    printings: z.array(discordBotTradelistHolderPrintingSchema),
-  })
-  .openapi("DiscordBotTradelistHolder");
+export const discordBotTradelistHolderSchema = z.object({
+  userName: z.string().nullable(),
+  quantity: z.number().int().positive(),
+  printings: z.array(discordBotTradelistHolderPrintingSchema),
+});
 
-export const discordBotTradelistHoldersResponseSchema = z
-  .object({
-    linked: z.boolean(),
-    groupName: z.string().nullable(),
-    holders: z.array(discordBotTradelistHolderSchema),
-  })
-  .openapi("DiscordBotTradelistHoldersResponse");
+export const discordBotTradelistHoldersResponseSchema = z.object({
+  linked: z.boolean(),
+  groupName: z.string().nullable(),
+  holders: z.array(discordBotTradelistHolderSchema),
+});
 
 export const discordBotSetTradeChannelSchema = z.object({
   guildId: z.string().min(1).max(32),
@@ -47,18 +36,14 @@ export const discordBotSetTradeChannelSchema = z.object({
   enabled: z.boolean(),
 });
 
-export const discordBotTradeChannelsResponseSchema = z
-  .object({
-    linked: z.boolean(),
-    channelIds: z.array(z.string()),
-  })
-  .openapi("DiscordBotTradeChannelsResponse");
+export const discordBotTradeChannelsResponseSchema = z.object({
+  linked: z.boolean(),
+  channelIds: z.array(z.string()),
+});
 
-export const discordBotAllTradeChannelsResponseSchema = z
-  .object({
-    guilds: z.array(z.object({ guildId: z.string(), channelIds: z.array(z.string()) })),
-  })
-  .openapi("DiscordBotAllTradeChannelsResponse");
+export const discordBotAllTradeChannelsResponseSchema = z.object({
+  guilds: z.array(z.object({ guildId: z.string(), channelIds: z.array(z.string()) })),
+});
 
 const TAG = "Discord Bot";
 

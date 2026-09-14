@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
+import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
 import {
   loadTournamentDetail,
   redirectToTournamentOverview,
-} from "@/features/tournaments/hooks/tournament-route-guards";
-import { canManageTournament } from "@/features/tournaments/lib/tournament-display";
+} from "@/features/tournaments/lib/tournament-route-guards";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

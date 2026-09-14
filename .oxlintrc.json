@@ -328,10 +328,57 @@
     },
     {
       // A route file is the route definition; the page body lives in components/
-      // (docs/contributing.md, Web module layout).
+      // (docs/contributing.md, Web module layout). The route tree imports every
+      // non-lazy route file, so a hooks/ import here lands in the entry chunk.
       "files": ["apps/web/src/routes/**/*.tsx"],
       "rules": {
-        "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }]
+        "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@openrift/shared/contracts",
+                "message": "Import the contract you need from '@openrift/shared/contracts/<module>'. The barrel pulls all 86 contract modules into one chunk that apps/web preloads on every route."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["../**"],
+                "message": "Use '@/' imports instead of relative parent imports"
+              },
+              {
+                "group": ["@/**/hooks/**"],
+                "message": "A route file ships in the entry chunk on every page. Loader query options come from lib/; the page body and its hooks live in components/ or the .lazy.tsx file."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The lazy half of a route is the split-off page body and may use hooks.
+      // The root route is never code-split, so moving its component would not
+      // change the entry chunk.
+      "files": ["apps/web/src/routes/**/*.lazy.tsx", "apps/web/src/routes/__root.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@openrift/shared/contracts",
+                "message": "Import the contract you need from '@openrift/shared/contracts/<module>'. The barrel pulls all 86 contract modules into one chunk that apps/web preloads on every route."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["../**"],
+                "message": "Use '@/' imports instead of relative parent imports"
+              }
+            ]
+          }
+        ]
       }
     },
     {

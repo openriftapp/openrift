@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { listsQueryOptions } from "@/features/lists/hooks/use-lists";
+import { listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

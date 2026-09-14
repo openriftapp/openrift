@@ -1,19 +1,16 @@
 import { loansContract } from "@openrift/shared/contracts/loans";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { loansKeys } from "@/features/groups/lib/groups-query-keys";
 import { loanCounterpartyLabel } from "@/features/groups/lib/loan-derivation";
+import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchLoans = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }) => apiOrpcClient(loansContract, context.cookie).list());
 
 const fetchLoanActionCounts = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -104,13 +101,6 @@ export function aggregateBorrowedLendersByCard(
     }
   }
   return lenders;
-}
-
-export function loansQueryOptions(userId: string) {
-  return queryOptions({
-    queryKey: loansKeys.all(userId),
-    queryFn: () => fetchLoans(),
-  });
 }
 
 export function useLoans() {

@@ -4,7 +4,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { productDetailQueryOptions } from "@/features/cards/hooks/use-products";
+import { productDetailQueryOptions } from "@/features/cards/lib/products-queries";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { breadcrumbJsonLd, collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

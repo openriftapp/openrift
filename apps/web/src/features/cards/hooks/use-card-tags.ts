@@ -1,49 +1,20 @@
 import { adminCardTagsContract } from "@openrift/shared/contracts/admin/card-tags";
-import type { ClassifiedCardTag, TagCategoryResponse } from "@openrift/shared/types/api/admin";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import {
+  adminCardTagsQueryOptions,
+  adminTagCategoriesQueryOptions,
+} from "@/features/cards/lib/card-tags-queries";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
-interface AdminCardTagsResponse {
-  tags: ClassifiedCardTag[];
-}
-
-interface AdminTagCategoriesResponse {
-  categories: TagCategoryResponse[];
-}
-
-const fetchCardTags = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminCardTagsResponse> =>
-    apiOrpcClient(adminCardTagsContract, context.cookie).listTags(),
-  );
-
-export const adminCardTagsQueryOptions = queryOptions({
-  queryKey: adminKeys.cardTags,
-  queryFn: () => fetchCardTags(),
-  staleTime: 30 * 60 * 1000,
-});
-
 export function useCardTags() {
   return useSuspenseQuery(adminCardTagsQueryOptions);
 }
-
-const fetchTagCategories = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminTagCategoriesResponse> =>
-    apiOrpcClient(adminCardTagsContract, context.cookie).listCategories(),
-  );
-
-export const adminTagCategoriesQueryOptions = queryOptions({
-  queryKey: adminKeys.tagCategories,
-  queryFn: () => fetchTagCategories(),
-  staleTime: 30 * 60 * 1000,
-});
 
 export function useTagCategoryList() {
   return useSuspenseQuery(adminTagCategoriesQueryOptions);

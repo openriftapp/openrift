@@ -1,18 +1,12 @@
-import type { AdminFinishesResponse } from "@openrift/shared/contracts/admin/finishes";
 import { adminFinishesContract } from "@openrift/shared/contracts/admin/finishes";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { createAdminEnumHooks } from "@/lib/create-admin-enum-hooks";
+import { adminFinishesQueryOptions } from "@/lib/finishes-queries";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchFinishes = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminFinishesResponse> =>
-    apiOrpcClient(adminFinishesContract, context.cookie).list(),
-  );
 
 const createFinishFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; label: string }) => input)
@@ -43,8 +37,7 @@ const deleteFinishFn = createServerFn({ method: "POST" })
   });
 
 const finishHooks = createAdminEnumHooks({
-  queryKey: adminKeys.finishes,
-  list: () => fetchFinishes(),
+  listQueryOptions: adminFinishesQueryOptions,
   invalidates: [adminKeys.finishes, initKeys.all],
   create: (vars: { slug: string; label: string }) => createFinishFn({ data: vars }),
   update: (vars: { slug: string; label?: string }) => updateFinishFn({ data: vars }),
@@ -52,7 +45,6 @@ const finishHooks = createAdminEnumHooks({
   remove: (slug: string) => deleteFinishFn({ data: { slug } }),
 });
 
-export const adminFinishesQueryOptions = finishHooks.queryOptions;
 export const useFinishes = finishHooks.useList;
 export const useCreateFinish = finishHooks.useCreate;
 export const useUpdateFinish = finishHooks.useUpdate;

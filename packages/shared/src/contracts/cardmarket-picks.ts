@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { CARDMARKET_UNRESOLVED_REASONS } from "../cardmarket-stock.js";
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const CARDMARKET_PICKS_MAX_ROWS = 300;
 
@@ -20,21 +17,22 @@ export const cardmarketPicksResolveInputSchema = z.object({
 });
 
 /** One row per input row, in input order. */
-export const cardmarketPicksResolveResponseSchema = z
-  .object({
-    rows: z.array(
-      z.object({
-        idProduct: z.number().int(),
-        isFoil: z.boolean(),
-        idLanguage: z.number().int(),
-        printingId: z.uuid().nullable(),
-        reason: z.enum(CARDMARKET_UNRESOLVED_REASONS).nullable(),
-        productName: z.string().nullable(),
-        languageName: z.string().nullable().openapi({ example: "German" }),
-      }),
-    ),
-  })
-  .openapi("CardmarketPicksResolution");
+export const cardmarketPicksResolveResponseSchema = z.object({
+  rows: z.array(
+    z.object({
+      idProduct: z.number().int(),
+      isFoil: z.boolean(),
+      idLanguage: z.number().int(),
+      printingId: z.uuid().nullable(),
+      reason: z.enum(CARDMARKET_UNRESOLVED_REASONS).nullable(),
+      productName: z.string().nullable(),
+      languageName: z
+        .string()
+        .nullable()
+        .meta({ examples: ["German"] }),
+    }),
+  ),
+});
 
 export type CardmarketPickRow = z.infer<typeof cardmarketPickRowSchema>;
 export type CardmarketPicksResolution = z.infer<typeof cardmarketPicksResolveResponseSchema>;

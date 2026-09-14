@@ -1,7 +1,8 @@
 import type { CollectionListResponse } from "@openrift/shared/types/api/collection";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (args: { context: { cookie: string } }) => unknown) => () =>

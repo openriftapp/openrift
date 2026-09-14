@@ -92,8 +92,11 @@ export function useContributeForm({ initial, lockedSlug }: UseContributeFormOpti
     return state.submitted ? state.errors.find((error) => error.path === path)?.message : undefined;
   }
 
+  const isDirty = !submit.isSuccess && (state.form !== state.baseline || state.note !== "");
+
   return {
     form: state.form,
+    isDirty,
     errors: state.errors,
     submitted: state.submitted,
     activePrinting: state.activePrinting,

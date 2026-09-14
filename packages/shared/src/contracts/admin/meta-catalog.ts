@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { metaEventTierSchema } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -13,8 +12,6 @@ import {
 } from "../../types/enums.js";
 import type { PlayloltcgStatus } from "../../types/enums.js";
 import { authedRoute } from "../_base.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Admin - Meta catalogue";
 const BASE = "/api/admin/v1/meta/catalogue";
@@ -53,37 +50,35 @@ export type MetaSource = z.infer<typeof metaSourceSchema>;
 
 const triageSchema = z.enum(META_CATALOG_TRIAGE);
 
-export const metaCatalogRowSchema = z
-  .object({
-    externalId: z.string(),
-    name: z.string(),
-    startAt: isoDateTime,
-    endAtEstimate: isoDateTime.nullable(),
-    displayStatus: z.string(),
-    decklistStatus: z.string().nullable(),
-    playerCount: z.number().int().nullable(),
-    eventType: z.string().nullable(),
-    eventFormat: z.string().nullable(),
-    mappedFormat: z.string().nullable(),
-    officialLabel: z.string().nullable(),
-    storeName: z.string().nullable(),
-    location: z.string().nullable(),
-    timezone: z.string().nullable(),
-    firstSeenAt: isoDateTime,
-    lastSeenAt: isoDateTime,
-    missingSince: isoDateTime.nullable(),
-    nextCheckAt: isoDateTime.nullable(),
-    checkStage: z.number().int(),
-    triage: triageSchema,
-    metaEventId: z.string().nullable(),
-    metaEventSlug: z.string().nullable(),
-    fetchedAt: isoDateTime.nullable(),
-    stagedPlayerCount: z.number().int().nonnegative(),
-    stagedLegendCount: z.number().int().nonnegative(),
-    stagedDeckCount: z.number().int().nonnegative(),
-    sourceUrl: z.string(),
-  })
-  .openapi("MetaCatalogRow");
+export const metaCatalogRowSchema = z.object({
+  externalId: z.string(),
+  name: z.string(),
+  startAt: isoDateTime,
+  endAtEstimate: isoDateTime.nullable(),
+  displayStatus: z.string(),
+  decklistStatus: z.string().nullable(),
+  playerCount: z.number().int().nullable(),
+  eventType: z.string().nullable(),
+  eventFormat: z.string().nullable(),
+  mappedFormat: z.string().nullable(),
+  officialLabel: z.string().nullable(),
+  storeName: z.string().nullable(),
+  location: z.string().nullable(),
+  timezone: z.string().nullable(),
+  firstSeenAt: isoDateTime,
+  lastSeenAt: isoDateTime,
+  missingSince: isoDateTime.nullable(),
+  nextCheckAt: isoDateTime.nullable(),
+  checkStage: z.number().int(),
+  triage: triageSchema,
+  metaEventId: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
+  fetchedAt: isoDateTime.nullable(),
+  stagedPlayerCount: z.number().int().nonnegative(),
+  stagedLegendCount: z.number().int().nonnegative(),
+  stagedDeckCount: z.number().int().nonnegative(),
+  sourceUrl: z.string(),
+});
 
 const metaCatalogCountsSchema = z.object({
   new: z.number().int().nonnegative(),
@@ -107,40 +102,36 @@ const metaCatalogListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-const metaCatalogListResponseSchema = z
-  .object({
-    rows: z.array(metaCatalogRowSchema),
-    total: z.number().int(),
-    page: z.number().int(),
-    limit: z.number().int(),
-    counts: metaCatalogCountsSchema,
-  })
-  .openapi("MetaCatalogListResponse");
+const metaCatalogListResponseSchema = z.object({
+  rows: z.array(metaCatalogRowSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  counts: metaCatalogCountsSchema,
+});
 
 const catalogKeySchema = z.object({ externalId: z.string().min(1) });
 
-export const playloltcgCatalogRowSchema = z
-  .object({
-    activityShopId: z.number().int(),
-    name: z.string(),
-    shopName: z.string().nullable(),
-    city: z.string().nullable(),
-    status: z.number().int().nullable(),
-    battleMode: z.string().nullable(),
-    playerCount: z.number().int().nullable(),
-    startAt: isoDate.nullable(),
-    triage: triageSchema,
-    metaEventId: z.string().nullable(),
-    metaEventSlug: z.string().nullable(),
-    fetchedAt: isoDateTime.nullable(),
-    missingSince: isoDateTime.nullable(),
-    nextCheckAt: isoDateTime.nullable(),
-    stagedPlayerCount: z.number().int().nonnegative(),
-    stagedLegendCount: z.number().int().nonnegative(),
-    stagedDeckCount: z.number().int().nonnegative(),
-    sourceUrl: z.string(),
-  })
-  .openapi("PlayloltcgCatalogRow");
+export const playloltcgCatalogRowSchema = z.object({
+  activityShopId: z.number().int(),
+  name: z.string(),
+  shopName: z.string().nullable(),
+  city: z.string().nullable(),
+  status: z.number().int().nullable(),
+  battleMode: z.string().nullable(),
+  playerCount: z.number().int().nullable(),
+  startAt: isoDate.nullable(),
+  triage: triageSchema,
+  metaEventId: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
+  fetchedAt: isoDateTime.nullable(),
+  missingSince: isoDateTime.nullable(),
+  nextCheckAt: isoDateTime.nullable(),
+  stagedPlayerCount: z.number().int().nonnegative(),
+  stagedLegendCount: z.number().int().nonnegative(),
+  stagedDeckCount: z.number().int().nonnegative(),
+  sourceUrl: z.string(),
+});
 
 const playloltcgCatalogListQuerySchema = z.object({
   search: z.string().optional(),
@@ -161,41 +152,37 @@ const playloltcgCatalogListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-const playloltcgCatalogListResponseSchema = z
-  .object({
-    rows: z.array(playloltcgCatalogRowSchema),
-    total: z.number().int(),
-    page: z.number().int(),
-    limit: z.number().int(),
-    counts: metaCatalogCountsSchema,
-  })
-  .openapi("PlayloltcgCatalogListResponse");
+const playloltcgCatalogListResponseSchema = z.object({
+  rows: z.array(playloltcgCatalogRowSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  counts: metaCatalogCountsSchema,
+});
 
 const playloltcgKeySchema = z.object({ activityShopId: z.number().int() });
 
-export const topdeckCatalogRowSchema = z
-  .object({
-    tid: z.string(),
-    name: z.string(),
-    format: z.string(),
-    city: z.string().nullable(),
-    country: z.string().nullable(),
-    playerCount: z.number().int().nullable(),
-    topCut: z.number().int().nullable(),
-    isTeamEvent: z.boolean(),
-    startAt: isoDateTime,
-    triage: triageSchema,
-    metaEventId: z.string().nullable(),
-    metaEventSlug: z.string().nullable(),
-    fetchedAt: isoDateTime.nullable(),
-    missingSince: isoDateTime.nullable(),
-    stagedPlayerCount: z.number().int().nonnegative(),
-    stagedLegendCount: z.number().int().nonnegative(),
-    stagedDeckCount: z.number().int().nonnegative(),
-    rivalProvider: z.string().nullable(),
-    sourceUrl: z.string(),
-  })
-  .openapi("TopdeckCatalogRow");
+export const topdeckCatalogRowSchema = z.object({
+  tid: z.string(),
+  name: z.string(),
+  format: z.string(),
+  city: z.string().nullable(),
+  country: z.string().nullable(),
+  playerCount: z.number().int().nullable(),
+  topCut: z.number().int().nullable(),
+  isTeamEvent: z.boolean(),
+  startAt: isoDateTime,
+  triage: triageSchema,
+  metaEventId: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
+  fetchedAt: isoDateTime.nullable(),
+  missingSince: isoDateTime.nullable(),
+  stagedPlayerCount: z.number().int().nonnegative(),
+  stagedLegendCount: z.number().int().nonnegative(),
+  stagedDeckCount: z.number().int().nonnegative(),
+  rivalProvider: z.string().nullable(),
+  sourceUrl: z.string(),
+});
 
 const topdeckCatalogListQuerySchema = z.object({
   search: z.string().optional(),
@@ -211,15 +198,13 @@ const topdeckCatalogListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-const topdeckCatalogListResponseSchema = z
-  .object({
-    rows: z.array(topdeckCatalogRowSchema),
-    total: z.number().int(),
-    page: z.number().int(),
-    limit: z.number().int(),
-    counts: metaCatalogCountsSchema,
-  })
-  .openapi("TopdeckCatalogListResponse");
+const topdeckCatalogListResponseSchema = z.object({
+  rows: z.array(topdeckCatalogRowSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  counts: metaCatalogCountsSchema,
+});
 
 const topdeckKeySchema = z.object({ tid: z.string().min(1) });
 
@@ -227,23 +212,19 @@ const acceptCatalogEventSchema = catalogKeySchema.extend({
   format: z.string().min(1).optional(),
 });
 
-export const acceptedCatalogEventSchema = z
-  .object({
-    metaEventId: z.string(),
-    slug: z.string(),
-    created: z.boolean(),
-  })
-  .openapi("AcceptedCatalogEvent");
+export const acceptedCatalogEventSchema = z.object({
+  metaEventId: z.string(),
+  slug: z.string(),
+  created: z.boolean(),
+});
 
-export const metaSyncSettingsSchema = z
-  .object({
-    autoAcceptMinPlayers: z.number().int().positive().nullable(),
-    autoAcceptNotable: z.boolean(),
-    autoAcceptOfficial: z.boolean(),
-    competitivePlayerFloor: z.number().int().positive(),
-    updatedAt: isoDateTime,
-  })
-  .openapi("MetaSyncSettings");
+export const metaSyncSettingsSchema = z.object({
+  autoAcceptMinPlayers: z.number().int().positive().nullable(),
+  autoAcceptNotable: z.boolean(),
+  autoAcceptOfficial: z.boolean(),
+  competitivePlayerFloor: z.number().int().positive(),
+  updatedAt: isoDateTime,
+});
 
 const metaSyncSettingsPatchSchema = z.object({
   autoAcceptMinPlayers: z.number().int().positive().nullable().optional(),
@@ -252,20 +233,18 @@ const metaSyncSettingsPatchSchema = z.object({
   competitivePlayerFloor: z.number().int().positive().optional(),
 });
 
-export const metaSourceTemplateSchema = z
-  .object({
-    templateId: z.string(),
-    sourceName: z.string().nullable(),
-    watched: z.boolean(),
-    tier: metaEventTierSchema.nullable(),
-    suggestedTier: metaEventTierSchema.nullable(),
-    eventCount: z.number().int().nonnegative(),
-    avgPlayers: z.number().nullable(),
-    ranEventCount: z.number().int().nonnegative(),
-    sampleEventName: z.string().nullable(),
-    lastStartAt: isoDateTime.nullable(),
-  })
-  .openapi("MetaSourceTemplate");
+export const metaSourceTemplateSchema = z.object({
+  templateId: z.string(),
+  sourceName: z.string().nullable(),
+  watched: z.boolean(),
+  tier: metaEventTierSchema.nullable(),
+  suggestedTier: metaEventTierSchema.nullable(),
+  eventCount: z.number().int().nonnegative(),
+  avgPlayers: z.number().nullable(),
+  ranEventCount: z.number().int().nonnegative(),
+  sampleEventName: z.string().nullable(),
+  lastStartAt: isoDateTime.nullable(),
+});
 
 const metaSourceTemplatePatchSchema = z.object({
   templateId: z.string().min(1),
@@ -273,13 +252,11 @@ const metaSourceTemplatePatchSchema = z.object({
   tier: metaEventTierSchema.nullable().optional(),
 });
 
-export const metaSourceFormatSchema = z
-  .object({
-    sourceFormat: z.string(),
-    eventCount: z.number().int().nonnegative(),
-    mappedFormat: z.string().nullable(),
-  })
-  .openapi("MetaSourceFormat");
+export const metaSourceFormatSchema = z.object({
+  sourceFormat: z.string(),
+  eventCount: z.number().int().nonnegative(),
+  mappedFormat: z.string().nullable(),
+});
 
 const metaSourceFormatPatchSchema = z.object({
   sourceFormat: z.string().min(1),
@@ -299,44 +276,38 @@ const metaSyncRunSchema = z.object({
 });
 
 /** The archive's own passes, which belong to no one source. */
-export const metaArchiveJobsSchema = z
-  .object({ runs: z.array(metaSyncRunSchema) })
-  .openapi("MetaArchiveJobs");
+export const metaArchiveJobsSchema = z.object({ runs: z.array(metaSyncRunSchema) });
 
-export const metaSyncStatusSchema = z
-  .object({
-    catalog: z.object({
-      total: z.number().int(),
-      completed: z.number().int(),
-      decklistPublished: z.number().int(),
-      missing: z.number().int(),
-      queued: z.number().int(),
-      dueRecheck: z.number().int(),
-      acceptedAwaitingResults: z.number().int(),
-      acceptedMissing: z.number().int(),
-      lastSeenAt: isoDateTime.nullable(),
-    }),
-    archive: z.object({
-      events: z.number().int(),
-      eventsWithStandings: z.number().int(),
-      eventsWithDecklists: z.number().int(),
-      decks: z.number().int(),
-    }),
-    counts: metaCatalogCountsSchema,
-    runs: z.array(metaSyncRunSchema),
-    schedules: z.record(z.string(), z.boolean()),
-  })
-  .openapi("MetaSyncStatus");
+export const metaSyncStatusSchema = z.object({
+  catalog: z.object({
+    total: z.number().int(),
+    completed: z.number().int(),
+    decklistPublished: z.number().int(),
+    missing: z.number().int(),
+    queued: z.number().int(),
+    dueRecheck: z.number().int(),
+    acceptedAwaitingResults: z.number().int(),
+    acceptedMissing: z.number().int(),
+    lastSeenAt: isoDateTime.nullable(),
+  }),
+  archive: z.object({
+    events: z.number().int(),
+    eventsWithStandings: z.number().int(),
+    eventsWithDecklists: z.number().int(),
+    decks: z.number().int(),
+  }),
+  counts: metaCatalogCountsSchema,
+  runs: z.array(metaSyncRunSchema),
+  schedules: z.record(z.string(), z.boolean()),
+});
 
 /** Long crawls answer with a run handle (`running`); a single-event fetch answers inline. */
-export const metaSyncTriggerResultSchema = z
-  .object({
-    status: z.enum(["running", "succeeded", "failed", "already_running"]),
-    runId: z.string().nullable(),
-    message: z.string().nullable(),
-    result: z.record(z.string(), z.any()).nullable(),
-  })
-  .openapi("MetaSyncTriggerResult");
+export const metaSyncTriggerResultSchema = z.object({
+  status: z.enum(["running", "succeeded", "failed", "already_running"]),
+  runId: z.string().nullable(),
+  message: z.string().nullable(),
+  result: z.record(z.string(), z.any()).nullable(),
+});
 
 /** One sweep run's window. Every field optional; defaults to the mirror's own id span. */
 const idSweepWindowSchema = z
@@ -351,12 +322,10 @@ const idSweepWindowSchema = z
 export const META_CANCELLABLE_JOBS = ["backfill", "recheck", "id_sweep"] as const;
 export const metaCancellableJobSchema = z.enum(META_CANCELLABLE_JOBS);
 
-export const metaSyncCancelResultSchema = z
-  .object({
-    runId: z.string(),
-    cancelRequested: z.literal(true),
-  })
-  .openapi("MetaSyncCancelResult");
+export const metaSyncCancelResultSchema = z.object({
+  runId: z.string(),
+  cancelRequested: z.literal(true),
+});
 
 /**
  * The catalogue mirrors the source's own listing; nothing here edits an event.

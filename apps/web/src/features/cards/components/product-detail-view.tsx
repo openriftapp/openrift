@@ -30,10 +30,10 @@ import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-ca
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import type { EnrichedProductDetail } from "@/features/cards/hooks/use-products";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
 import { formatProductCounts } from "@/features/cards/lib/product-counts";
+import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   cardTypeSchema,
   deckFormatSchema,
@@ -14,8 +13,6 @@ import { z } from "zod";
 import { authedRoute } from "./_base.js";
 
 export const MAX_DECK_LINKS = 5;
-
-extendZodWithOpenApi(z);
 
 const deckFieldRules = {
   name: z.string().min(1).max(200),
@@ -133,118 +130,96 @@ export const deckExportQuerySchema = z.object({
   format: z.enum(["piltover", "text", "tts"]).default("piltover"),
 });
 
-export const deckResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    format: deckFormatSchema,
-    formatConfig: formatConfigResponseSchema,
-    isPublic: z.boolean(),
-    shareToken: z.string().nullable(),
-    isPinned: z.boolean(),
-    archivedAt: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    oddsConfig: deckOddsConfigSchema.nullable(),
-    coverCardId: z.string().nullable(),
-    coverPrintingId: z.string().nullable(),
-    coverPosition: z.number().int().nullable(),
-    links: z.array(deckLinkSchema),
-    collectionId: z.string().nullable(),
-    familyId: z.string().nullable(),
-    predecessorDeckId: z.string().nullable(),
-    isPrimary: z.boolean(),
-    isDraft: z.boolean(),
-  })
-  .openapi("DeckResponse");
+export const deckResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  format: deckFormatSchema,
+  formatConfig: formatConfigResponseSchema,
+  isPublic: z.boolean(),
+  shareToken: z.string().nullable(),
+  isPinned: z.boolean(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  oddsConfig: deckOddsConfigSchema.nullable(),
+  coverCardId: z.string().nullable(),
+  coverPrintingId: z.string().nullable(),
+  coverPosition: z.number().int().nullable(),
+  links: z.array(deckLinkSchema),
+  collectionId: z.string().nullable(),
+  familyId: z.string().nullable(),
+  predecessorDeckId: z.string().nullable(),
+  isPrimary: z.boolean(),
+  isDraft: z.boolean(),
+});
 
-export const deckShareResponseSchema = z
-  .object({
-    shareToken: z.string().nullable(),
-    isPublic: z.boolean(),
-  })
-  .openapi("DeckShareResponse");
+export const deckShareResponseSchema = z.object({
+  shareToken: z.string().nullable(),
+  isPublic: z.boolean(),
+});
 
-export const deckCloneResponseSchema = z
-  .object({
-    deckId: z.string(),
-  })
-  .openapi("DeckCloneResponse");
+export const deckCloneResponseSchema = z.object({
+  deckId: z.string(),
+});
 
-export const deckSummaryResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    descriptionSnippet: z.string().nullable(),
-    format: deckFormatSchema,
-    formatConfig: formatConfigResponseSchema,
-    isPinned: z.boolean(),
-    archivedAt: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    coverCardId: z.string().nullable(),
-    coverPrintingId: z.string().nullable(),
-    coverPosition: z.number().int().nullable(),
-    collectionId: z.string().nullable(),
-    familyId: z.string().nullable(),
-    predecessorDeckId: z.string().nullable(),
-    isPrimary: z.boolean(),
-    isDraft: z.boolean(),
-  })
-  .openapi("DeckSummaryResponse");
+export const deckSummaryResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  descriptionSnippet: z.string().nullable(),
+  format: deckFormatSchema,
+  formatConfig: formatConfigResponseSchema,
+  isPinned: z.boolean(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  coverCardId: z.string().nullable(),
+  coverPrintingId: z.string().nullable(),
+  coverPosition: z.number().int().nullable(),
+  collectionId: z.string().nullable(),
+  familyId: z.string().nullable(),
+  predecessorDeckId: z.string().nullable(),
+  isPrimary: z.boolean(),
+  isDraft: z.boolean(),
+});
 
-export const deckListItemResponseSchema = z
-  .object({
-    deck: deckSummaryResponseSchema,
-    legendCardId: z.string().nullable(),
-    championCardId: z.string().nullable(),
-    totalCards: z.number(),
-    typeCounts: z.array(z.object({ cardType: cardTypeSchema, count: z.number() })),
-    domainDistribution: z.array(z.object({ domain: domainSchema, count: z.number() })),
-    isValid: z.boolean(),
-    requiredProgress: z.number().int(),
-    requiredTotal: z.number().int(),
-    totalValueCents: z.number().int().nullable(),
-    missingCount: z.number().int().nullable(),
-    folderIds: z.array(z.string()),
-  })
-  .openapi("DeckListItemResponse");
+export const deckListItemResponseSchema = z.object({
+  deck: deckSummaryResponseSchema,
+  legendCardId: z.string().nullable(),
+  championCardId: z.string().nullable(),
+  totalCards: z.number(),
+  typeCounts: z.array(z.object({ cardType: cardTypeSchema, count: z.number() })),
+  domainDistribution: z.array(z.object({ domain: domainSchema, count: z.number() })),
+  isValid: z.boolean(),
+  requiredProgress: z.number().int(),
+  requiredTotal: z.number().int(),
+  totalValueCents: z.number().int().nullable(),
+  missingCount: z.number().int().nullable(),
+  folderIds: z.array(z.string()),
+});
 
-export const deckListResponseSchema = z
-  .object({ items: z.array(deckListItemResponseSchema) })
-  .openapi("DeckListResponse");
+export const deckListResponseSchema = z.object({ items: z.array(deckListItemResponseSchema) });
 
-export const deckCardResponseSchema = z
-  .object({
-    cardId: z.string(),
-    zone: deckZoneSchema,
-    quantity: z.number(),
-    preferredPrintingId: z.string().nullable(),
-  })
-  .openapi("DeckCardResponse");
+export const deckCardResponseSchema = z.object({
+  cardId: z.string(),
+  zone: deckZoneSchema,
+  quantity: z.number(),
+  preferredPrintingId: z.string().nullable(),
+});
 
-export const deckDetailResponseSchema = z
-  .object({
-    deck: deckResponseSchema,
-    cards: z.array(deckCardResponseSchema),
-  })
-  .openapi("DeckDetailResponse");
+export const deckDetailResponseSchema = z.object({
+  deck: deckResponseSchema,
+  cards: z.array(deckCardResponseSchema),
+});
 
-export const deckPlanDetailResponseSchema = z
-  .object({ plan: deckPlanResponseSchema })
-  .openapi("DeckPlanDetailResponse");
+export const deckPlanDetailResponseSchema = z.object({ plan: deckPlanResponseSchema });
 
-export const deckCardsResponseSchema = z
-  .object({ cards: z.array(deckCardResponseSchema) })
-  .openapi("DeckCardsResponse");
+export const deckCardsResponseSchema = z.object({ cards: z.array(deckCardResponseSchema) });
 
-export const deckExportResponseSchema = z
-  .object({
-    code: z.string(),
-    warnings: z.array(z.string()),
-  })
-  .openapi("DeckExportResponse");
+export const deckExportResponseSchema = z.object({
+  code: z.string(),
+  warnings: z.array(z.string()),
+});
 
 const TAG = "Decks";
 

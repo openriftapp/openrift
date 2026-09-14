@@ -1,18 +1,11 @@
-import type { AdminStatusResponse } from "@openrift/shared/contracts/admin/status";
 import { adminStatusContract } from "@openrift/shared/contracts/admin/status";
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminStatusQueryOptions } from "@/features/admin/lib/status-queries";
 import { serverCache } from "@/lib/server-cache";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchStatus = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminStatusResponse> =>
-    apiOrpcClient(adminStatusContract, context.cookie).get(),
-  );
 
 const clearSsrCache = createServerFn({ method: "POST" })
   .middleware([withCookies])
@@ -21,14 +14,6 @@ const clearSsrCache = createServerFn({ method: "POST" })
     await apiOrpcClient(adminStatusContract, context.cookie).get();
     serverCache.clear();
   });
-
-export const ADMIN_STATUS_REFRESH_INTERVAL_MS = 30_000;
-
-export const adminStatusQueryOptions = queryOptions({
-  queryKey: adminKeys.status,
-  queryFn: () => fetchStatus(),
-  refetchInterval: ADMIN_STATUS_REFRESH_INTERVAL_MS,
-});
 
 export function useAdminStatus() {
   return useQuery(adminStatusQueryOptions);

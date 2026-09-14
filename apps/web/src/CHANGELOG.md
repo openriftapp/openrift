@@ -13,6 +13,7 @@
 
 ### Other
 
+- feat(App): **Unsaved changes warning** — leaving a contribute form, a tier list draft or unsaved deck-check notes now asks first, and so does closing the tab.
 - fix(App): **Counts and sentences that follow your language** — German and French sentences built around a link or a name now read as one sentence, French counts of zero take the singular as French does, and large counts use your language's thousands separator.
 
 ## 2026-09-12

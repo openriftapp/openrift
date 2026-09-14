@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
-import { pricesQueryOptions } from "@/features/cards/hooks/use-prices";
-import { loadCatalogTail } from "@/features/cards/lib/catalog-query";
+import { catalogQueryOptions, loadCatalogTail } from "@/features/cards/lib/catalog-query";
+import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { CardRuleEditor, CopyRuleEditor } from "@/features/lists/components/rule-editors";
 import { useUpdateList } from "@/features/lists/hooks/use-lists";
 import { ruleWording } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 import { m } from "@/paraglide/messages.js";
 
 interface RuleEditorDialogProps {

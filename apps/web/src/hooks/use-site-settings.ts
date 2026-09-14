@@ -1,9 +1,9 @@
-import type { AdminSiteSettingsResponse } from "@openrift/shared/contracts/admin/site-settings";
 import { adminSiteSettingsContract } from "@openrift/shared/contracts/admin/site-settings";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminSiteSettingsQueryOptions } from "@/lib/admin-site-settings-queries";
 import { siteSettingsKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -17,17 +17,6 @@ export function useSiteSettingValue(key: string): string | undefined {
 }
 
 type SettingScope = "web" | "api";
-
-const fetchAdminSiteSettings = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminSiteSettingsResponse> =>
-    apiOrpcClient(adminSiteSettingsContract, context.cookie).list(),
-  );
-
-export const adminSiteSettingsQueryOptions = queryOptions({
-  queryKey: adminKeys.siteSettings,
-  queryFn: () => fetchAdminSiteSettings(),
-});
 
 export function useSiteSettings() {
   return useSuspenseQuery(adminSiteSettingsQueryOptions);

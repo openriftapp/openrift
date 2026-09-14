@@ -1,10 +1,14 @@
 import { adminPrintingEventsContract } from "@openrift/shared/contracts/admin/printing-events";
 import type { JobRunStartedResponse } from "@openrift/shared/types/api/admin";
-import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { getLatestJobRunFn } from "@/features/admin/hooks/refresh-actions";
-import type { JobRunView, PrintingEventsListResponse } from "@/lib/server-fns/api-types";
+import {
+  adminPrintingEventsQueryOptions,
+  PRINTING_EVENTS_KEY,
+} from "@/features/admin/lib/flush-printing-events-queries";
+import type { JobRunView } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -22,7 +26,6 @@ export interface FlushPrintingEventsResult {
 
 const FLUSH_PRINTING_EVENTS_KIND = "discord.flush_printing_events";
 
-const PRINTING_EVENTS_KEY = ["admin", "printing-events"] as const;
 const FLUSH_RUN_KEY = ["admin", "job-runs", FLUSH_PRINTING_EVENTS_KIND] as const;
 
 const flushPrintingEventsFn = createServerFn({ method: "POST" })
@@ -64,20 +67,6 @@ export function isFlushPrintingEventsResult(value: unknown): value is FlushPrint
 }
 
 export type { PrintingEventView } from "@/lib/server-fns/api-types";
-
-const fetchPrintingEvents = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<PrintingEventsListResponse> =>
-    apiOrpcClient(adminPrintingEventsContract, context.cookie).list(),
-  );
-
-export const PRINTING_EVENTS_REFRESH_INTERVAL_MS = 30_000;
-
-export const adminPrintingEventsQueryOptions = queryOptions({
-  queryKey: PRINTING_EVENTS_KEY,
-  queryFn: () => fetchPrintingEvents(),
-  refetchInterval: PRINTING_EVENTS_REFRESH_INTERVAL_MS,
-});
 
 export function useAdminPrintingEvents() {
   return useQuery(adminPrintingEventsQueryOptions);

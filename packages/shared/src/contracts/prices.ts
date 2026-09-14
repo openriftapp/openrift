@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
 import { TIME_RANGE_DAYS } from "../types/pricing.js";
 import type { TimeRange } from "../types/pricing.js";
-
-extendZodWithOpenApi(z);
 
 // Integer cents in each marketplace's own currency (tcgplayer=USD, cardmarket/cardtrader=EUR, see MARKETPLACE_CURRENCY).
 const marketplacePriceMapSchema = z.object({
@@ -13,17 +10,17 @@ const marketplacePriceMapSchema = z.object({
     .number()
     .int()
     .optional()
-    .openapi({ example: 452, description: "Integer cents (USD)" }),
+    .meta({ examples: [452], description: "Integer cents (USD)" }),
   cardmarket: z
     .number()
     .int()
     .optional()
-    .openapi({ example: 380, description: "Integer cents (EUR)" }),
+    .meta({ examples: [380], description: "Integer cents (EUR)" }),
   cardtrader: z
     .number()
     .int()
     .optional()
-    .openapi({ example: 390, description: "Integer cents (EUR)" }),
+    .meta({ examples: [390], description: "Integer cents (EUR)" }),
 });
 
 const marketplaceCurrenciesSchema = z
@@ -32,100 +29,131 @@ const marketplaceCurrenciesSchema = z
     cardmarket: z.enum(["EUR", "USD"]),
     cardtrader: z.enum(["EUR", "USD"]),
   })
-  .openapi({ example: { tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR" } });
+  .meta({ examples: [{ tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR" }] });
 
 const staleAgeMapSchema = z.object({
-  tcgplayer: z.number().int().optional().openapi({ example: 29, description: "Days since seen" }),
-  cardmarket: z.number().int().optional().openapi({ example: 29, description: "Days since seen" }),
-  cardtrader: z.number().int().optional().openapi({ example: 29, description: "Days since seen" }),
+  tcgplayer: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [29], description: "Days since seen" }),
+  cardmarket: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [29], description: "Days since seen" }),
+  cardtrader: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [29], description: "Days since seen" }),
 });
 
-export const pricesResponseSchema = z
-  .object({
-    prices: z.record(z.string(), marketplacePriceMapSchema).openapi({
-      example: {
+export const pricesResponseSchema = z.object({
+  prices: z.record(z.string(), marketplacePriceMapSchema).meta({
+    examples: [
+      {
         "019cfc3b-03d3-7dac-86c9-27900cd43727": {
           tcgplayer: 452,
           cardmarket: 380,
           cardtrader: 390,
         },
       },
-    }),
-    currencies: marketplaceCurrenciesSchema,
-    stale: z.record(z.string(), staleAgeMapSchema).openapi({
-      example: { "019cfc3b-03d3-7dac-86c9-27900cd43727": { cardtrader: 29 } },
-    }),
-  })
-  .openapi("PricesResponse");
+    ],
+  }),
+  currencies: marketplaceCurrenciesSchema,
+  stale: z.record(z.string(), staleAgeMapSchema).meta({
+    examples: [{ "019cfc3b-03d3-7dac-86c9-27900cd43727": { cardtrader: 29 } }],
+  }),
+});
 
 export const tcgplayerSnapshotSchema = z.object({
-  date: z.string().openapi({ example: "2026-04-01", description: "Date-only (YYYY-MM-DD), USD" }),
-  market: z.number().int().openapi({ example: 452, description: "Integer cents (USD)" }),
-  low: z.number().int().nullable().openapi({ example: 325, description: "Integer cents (USD)" }),
+  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), USD" }),
+  market: z
+    .number()
+    .int()
+    .meta({ examples: [452], description: "Integer cents (USD)" }),
+  low: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ examples: [325], description: "Integer cents (USD)" }),
 });
 
 export const cardmarketSnapshotSchema = z.object({
-  date: z.string().openapi({ example: "2026-04-01", description: "Date-only (YYYY-MM-DD), EUR" }),
-  market: z.number().int().openapi({ example: 380, description: "Integer cents (EUR)" }),
-  low: z.number().int().nullable().openapi({ example: 250, description: "Integer cents (EUR)" }),
+  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
+  market: z
+    .number()
+    .int()
+    .meta({ examples: [380], description: "Integer cents (EUR)" }),
+  low: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ examples: [250], description: "Integer cents (EUR)" }),
 });
 
 export const cardtraderSnapshotSchema = z.object({
-  date: z.string().openapi({ example: "2026-04-01", description: "Date-only (YYYY-MM-DD), EUR" }),
+  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
   zeroLow: z
     .number()
     .int()
     .nullable()
-    .openapi({ example: 420, description: "Integer cents (EUR)" }),
-  low: z.number().int().nullable().openapi({ example: 390, description: "Integer cents (EUR)" }),
+    .meta({ examples: [420], description: "Integer cents (EUR)" }),
+  low: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ examples: [390], description: "Integer cents (EUR)" }),
 });
 
 export const marketplaceInfoSchema = z.object({
-  available: z.boolean().openapi({ example: true }),
-  productId: z.number().nullable().openapi({ example: 582_391 }),
+  available: z.boolean().meta({ examples: [true] }),
+  productId: z
+    .number()
+    .nullable()
+    .meta({ examples: [582_391] }),
 });
 
 const currencyFieldSchema = z.enum(["EUR", "USD"]);
 
-export const priceHistoryResponseSchema = z
-  .object({
-    tcgplayer: marketplaceInfoSchema.extend({
-      currency: currencyFieldSchema,
-      snapshots: z.array(tcgplayerSnapshotSchema),
-    }),
-    cardmarket: marketplaceInfoSchema.extend({
-      currency: currencyFieldSchema,
-      snapshots: z.array(cardmarketSnapshotSchema),
-    }),
-    cardtrader: marketplaceInfoSchema.extend({
-      currency: currencyFieldSchema,
-      snapshots: z.array(cardtraderSnapshotSchema),
-    }),
-  })
-  .openapi("PriceHistoryResponse");
+export const priceHistoryResponseSchema = z.object({
+  tcgplayer: marketplaceInfoSchema.extend({
+    currency: currencyFieldSchema,
+    snapshots: z.array(tcgplayerSnapshotSchema),
+  }),
+  cardmarket: marketplaceInfoSchema.extend({
+    currency: currencyFieldSchema,
+    snapshots: z.array(cardmarketSnapshotSchema),
+  }),
+  cardtrader: marketplaceInfoSchema.extend({
+    currency: currencyFieldSchema,
+    snapshots: z.array(cardtraderSnapshotSchema),
+  }),
+});
 
-export const marketplaceInfoResponseSchema = z
-  .object({
-    infos: z
-      .record(
-        z.string(),
-        z.object({
-          tcgplayer: marketplaceInfoSchema,
-          cardmarket: marketplaceInfoSchema,
-          cardtrader: marketplaceInfoSchema,
-        }),
-      )
-      .openapi({
-        example: {
+export const marketplaceInfoResponseSchema = z.object({
+  infos: z
+    .record(
+      z.string(),
+      z.object({
+        tcgplayer: marketplaceInfoSchema,
+        cardmarket: marketplaceInfoSchema,
+        cardtrader: marketplaceInfoSchema,
+      }),
+    )
+    .meta({
+      examples: [
+        {
           "019cfc3b-03d3-7dac-86c9-27900cd43727": {
             tcgplayer: { available: true, productId: 582_391 },
             cardmarket: { available: true, productId: 748_215 },
             cardtrader: { available: false, productId: null },
           },
         },
-      }),
-  })
-  .openapi("MarketplaceInfoResponse");
+      ],
+    }),
+});
 
 const TAG = "Prices";
 

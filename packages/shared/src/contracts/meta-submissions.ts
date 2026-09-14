@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   metaCreditVisibilitySchema,
   metaListStatusSchema,
@@ -10,8 +9,6 @@ import { isoDate, keysetCursorSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Meta submissions";
 const BASE = "/api/v1/meta";
@@ -61,23 +58,21 @@ export const metaSubmissionInputSchema = z
   });
 
 /** All fields are set-only: there is no way to clear a value once submitted. */
-export const metaEventFieldEditsSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120).optional(),
-    eventDate: isoDate.optional(),
-    format: z.string().trim().min(1).max(60).optional(),
-    playerCount: z.number().int().positive().max(1_000_000).optional(),
-    organizer: z.string().trim().min(1).max(120).optional(),
-    location: z.string().trim().min(1).max(200).optional(),
-    /** ISO 3166-1 alpha-2. */
-    country: z
-      .string()
-      .trim()
-      .length(2)
-      .regex(/^[A-Za-z]{2}$/u)
-      .optional(),
-  })
-  .openapi("MetaEventFieldEdits");
+export const metaEventFieldEditsSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  eventDate: isoDate.optional(),
+  format: z.string().trim().min(1).max(60).optional(),
+  playerCount: z.number().int().positive().max(1_000_000).optional(),
+  organizer: z.string().trim().min(1).max(120).optional(),
+  location: z.string().trim().min(1).max(200).optional(),
+  /** ISO 3166-1 alpha-2. */
+  country: z
+    .string()
+    .trim()
+    .length(2)
+    .regex(/^[A-Za-z]{2}$/u)
+    .optional(),
+});
 
 /** Stages nothing: there's no candidate row and no accept path, an admin applies these edits by hand. */
 export const metaEventCorrectionInputSchema = z.object({
@@ -86,36 +81,30 @@ export const metaEventCorrectionInputSchema = z.object({
   note: z.string().trim().min(1).max(2000),
 });
 
-export const metaSubmissionResultSchema = z
-  .object({
-    id: z.string(),
-    unresolvedNames: z.array(z.string()),
-  })
-  .openapi("MetaSubmissionResult");
+export const metaSubmissionResultSchema = z.object({
+  id: z.string(),
+  unresolvedNames: z.array(z.string()),
+});
 
 // Candidate id and provider key are intentionally left off the wire.
-export const metaSubmissionSchema = z
-  .object({
-    id: z.string(),
-    eventName: z.string(),
-    playerName: z.string().nullable(),
-    kind: metaSubmissionKindSchema,
-    note: z.string().nullable(),
-    status: metaSubmissionStatusSchema,
-    resolutionReason: metaSubmissionReasonSchema.nullable(),
-    resolutionNote: z.string().nullable(),
-    acceptedDeckToken: z.string().nullable(),
-    createdAt: z.string(),
-    resolvedAt: z.string().nullable(),
-  })
-  .openapi("MetaSubmission");
+export const metaSubmissionSchema = z.object({
+  id: z.string(),
+  eventName: z.string(),
+  playerName: z.string().nullable(),
+  kind: metaSubmissionKindSchema,
+  note: z.string().nullable(),
+  status: metaSubmissionStatusSchema,
+  resolutionReason: metaSubmissionReasonSchema.nullable(),
+  resolutionNote: z.string().nullable(),
+  acceptedDeckToken: z.string().nullable(),
+  createdAt: z.string(),
+  resolvedAt: z.string().nullable(),
+});
 
-export const metaSubmissionListResponseSchema = z
-  .object({
-    items: z.array(metaSubmissionSchema),
-    nextCursor: z.string().nullable(),
-  })
-  .openapi("MetaSubmissionListResponse");
+export const metaSubmissionListResponseSchema = z.object({
+  items: z.array(metaSubmissionSchema),
+  nextCursor: z.string().nullable(),
+});
 
 export const metaSubmissionsQuerySchema = z.object({
   cursor: keysetCursorSchema.optional(),
@@ -126,9 +115,9 @@ export const metaSubmissionsQuerySchema = z.object({
  * Credit rows are always written. This filters the public read: toggling it
  * retroactively credits or hides every past contribution.
  */
-export const metaCreditVisibilityResponseSchema = z
-  .object({ visibility: metaCreditVisibilitySchema })
-  .openapi("MetaCreditVisibilityResponse");
+export const metaCreditVisibilityResponseSchema = z.object({
+  visibility: metaCreditVisibilitySchema,
+});
 
 export const updateMetaCreditVisibilitySchema = z.object({
   visibility: metaCreditVisibilitySchema,

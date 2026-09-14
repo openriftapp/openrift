@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { copyListResponseSchema } from "@openrift/shared/response-schemas";
 import { copiesQuerySchema, idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 /**
  * Field rules inlined from api/db/schemas — mirrors DB CHECK constraints for
@@ -52,71 +49,59 @@ export const reorderCollectionsSchema = z.object({
   orderedIds: z.array(z.uuid()).min(1).max(500),
 });
 
-export const collectionResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    availableForDeckbuilding: z.boolean(),
-    sidebarHidden: z.boolean(),
-    isInbox: z.boolean(),
-    sortOrder: z.number(),
-    isPublic: z.boolean(),
-    shareToken: z.string().nullable(),
-    copyCount: z.number(),
-    totalValueCents: z.number().int().nullable(),
-    unpricedCopyCount: z.number().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    groupId: z.string().nullable(),
-    groupSlug: z.string().nullable(),
-    groupName: z.string().nullable(),
-    viewerCanAdmin: z.boolean(),
-    homeDecks: z.array(z.object({ id: z.string(), name: z.string() })),
-  })
-  .openapi("CollectionResponse");
+export const collectionResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  availableForDeckbuilding: z.boolean(),
+  sidebarHidden: z.boolean(),
+  isInbox: z.boolean(),
+  sortOrder: z.number(),
+  isPublic: z.boolean(),
+  shareToken: z.string().nullable(),
+  copyCount: z.number(),
+  totalValueCents: z.number().int().nullable(),
+  unpricedCopyCount: z.number().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  groupId: z.string().nullable(),
+  groupSlug: z.string().nullable(),
+  groupName: z.string().nullable(),
+  viewerCanAdmin: z.boolean(),
+  homeDecks: z.array(z.object({ id: z.string(), name: z.string() })),
+});
 
-export const collectionListResponseSchema = z
-  .object({ items: z.array(collectionResponseSchema) })
-  .openapi("CollectionListResponse");
+export const collectionListResponseSchema = z.object({ items: z.array(collectionResponseSchema) });
 
-export const collectionShareResponseSchema = z
-  .object({
-    shareToken: z.string().nullable(),
-    isPublic: z.boolean(),
-  })
-  .openapi("CollectionShareResponse");
+export const collectionShareResponseSchema = z.object({
+  shareToken: z.string().nullable(),
+  isPublic: z.boolean(),
+});
 
-export const collectionGroupSharesResponseSchema = z
-  .object({
-    items: z.array(
-      z.object({
-        groupId: z.string(),
-        groupSlug: z.string(),
-        groupName: z.string(),
-      }),
-    ),
-  })
-  .openapi("CollectionGroupSharesResponse");
+export const collectionGroupSharesResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      groupId: z.string(),
+      groupSlug: z.string(),
+      groupName: z.string(),
+    }),
+  ),
+});
 
 /**
  * Copies reserved by a live trade or out on a loan are pinned and stay put;
  * they come back in `keptCopyIds` so the client can report and track them.
  */
-export const clearCollectionResponseSchema = z
-  .object({
-    removedCount: z.number().int(),
-    keptCopyIds: z.array(z.string()),
-  })
-  .openapi("ClearCollectionResponse");
+export const clearCollectionResponseSchema = z.object({
+  removedCount: z.number().int(),
+  keptCopyIds: z.array(z.string()),
+});
 
-export const resetCollectionsResponseSchema = z
-  .object({
-    removedCopies: z.number().int(),
-    removedCollections: z.number().int(),
-    removedLists: z.number().int(),
-  })
-  .openapi("ResetCollectionsResponse");
+export const resetCollectionsResponseSchema = z.object({
+  removedCopies: z.number().int(),
+  removedCollections: z.number().int(),
+  removedLists: z.number().int(),
+});
 
 const TAG = "Collections";
 

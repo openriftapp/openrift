@@ -1,9 +1,6 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const CARDMARKET_OVERLAY_MAX_LISTS = 50;
 
@@ -28,13 +25,11 @@ export const cardmarketOverlayListSchema = z.object({
   entryCount: z.number().int().min(0),
 });
 
-export const cardmarketOverlaySnapshotResponseSchema = z
-  .object({
-    lists: z.array(cardmarketOverlayListSchema),
-    generatedAt: z.iso.datetime({ offset: true }),
-    products: z.array(cardmarketOverlayProductSchema),
-  })
-  .openapi("CardmarketOverlaySnapshot");
+export const cardmarketOverlaySnapshotResponseSchema = z.object({
+  lists: z.array(cardmarketOverlayListSchema),
+  generatedAt: z.iso.datetime({ offset: true }),
+  products: z.array(cardmarketOverlayProductSchema),
+});
 
 export type CardmarketOverlayProduct = z.infer<typeof cardmarketOverlayProductSchema>;
 export type CardmarketOverlayList = z.infer<typeof cardmarketOverlayListSchema>;

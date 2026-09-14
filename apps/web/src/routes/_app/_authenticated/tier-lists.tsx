@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { tierListsQueryOptions } from "@/features/stage/hooks/use-tier-lists";
+import { tierListsQueryOptions } from "@/features/stage/lib/tier-lists-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

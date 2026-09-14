@@ -8,8 +8,8 @@ import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-archive";
 import { medalRank } from "@/features/meta/lib/meta-deck-archive";
+import type { ArchivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
 import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 

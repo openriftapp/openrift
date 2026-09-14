@@ -83,7 +83,8 @@ function mutationStub() {
   return { mutate: vi.fn(), isPending: false, variables: undefined };
 }
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const builder = {
       validator: () => builder,

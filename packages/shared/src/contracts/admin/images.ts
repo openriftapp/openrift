@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 import { jobStartedResponseSchema } from "./shared.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Admin - Images";
 
@@ -64,34 +61,31 @@ export const brokenImageSchema = z.object({
   setSlug: z.string(),
 });
 
-export const clearRehostedResponseSchema = z
-  .object({ cleared: z.number() })
-  .openapi("ClearRehostedResponse");
+export const clearRehostedResponseSchema = z.object({ cleared: z.number() });
 
-export const brokenImagesResponseSchema = z
-  .object({ total: z.number(), broken: z.array(brokenImageSchema) })
-  .openapi("BrokenImagesResponse");
+export const brokenImagesResponseSchema = z.object({
+  total: z.number(),
+  broken: z.array(brokenImageSchema),
+});
 
-export const lowResImageEntrySchema = brokenImageSchema
-  .extend({ width: z.number(), height: z.number() })
-  .openapi("LowResImageEntry");
+export const lowResImageEntrySchema = brokenImageSchema.extend({
+  width: z.number(),
+  height: z.number(),
+});
 
-export const lowResImagesResponseSchema = z
-  .object({ total: z.number(), lowRes: z.array(lowResImageEntrySchema) })
-  .openapi("LowResImagesResponse");
+export const lowResImagesResponseSchema = z.object({
+  total: z.number(),
+  lowRes: z.array(lowResImageEntrySchema),
+});
 
-export const unrehostImagesInputSchema = z
-  .object({ imageIds: z.array(z.uuid()).min(1).max(1000) })
-  .openapi("UnrehostImagesRequest");
+export const unrehostImagesInputSchema = z.object({ imageIds: z.array(z.uuid()).min(1).max(1000) });
 
-export const missingImageCardSchema = z
-  .object({
-    cardId: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    byLanguage: z.array(z.object({ language: z.string(), count: z.number() })),
-  })
-  .openapi("MissingImageCard");
+export const missingImageCardSchema = z.object({
+  cardId: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  byLanguage: z.array(z.object({ language: z.string(), count: z.number() })),
+});
 
 const migrateResultSchema = z.object({
   scanned: z.number(),

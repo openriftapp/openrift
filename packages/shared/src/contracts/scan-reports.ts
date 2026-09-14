@@ -1,9 +1,6 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const MAX_SCAN_REPORT_JOURNAL_ENTRIES = 500;
 
@@ -30,9 +27,7 @@ export const createScanReportSchema = z.object({
 
 export type CreateScanReportInput = z.infer<typeof createScanReportSchema>;
 
-export const scanReportResponseSchema = z
-  .object({ reference: z.string() })
-  .openapi("ScanReportResponse");
+export const scanReportResponseSchema = z.object({ reference: z.string() });
 
 export const scanReportsContract = {
   create: authedRoute

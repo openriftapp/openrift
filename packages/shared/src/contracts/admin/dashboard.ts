@@ -1,18 +1,13 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { isoDate } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 import { adminAppStatsSchema } from "./status.js";
 
-extendZodWithOpenApi(z);
-
-export const adminDashboardResponseSchema = z
-  .object({
-    app: adminAppStatsSchema,
-    signups: z.array(z.object({ date: isoDate, count: z.number() })),
-  })
-  .openapi("AdminDashboardResponse");
+export const adminDashboardResponseSchema = z.object({
+  app: adminAppStatsSchema,
+  signups: z.array(z.object({ date: isoDate, count: z.number() })),
+});
 
 const TAG = "Admin";
 

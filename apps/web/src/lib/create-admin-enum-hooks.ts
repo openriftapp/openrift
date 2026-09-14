@@ -1,4 +1,5 @@
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import type { DefaultError, UseSuspenseQueryOptions } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
@@ -7,6 +8,7 @@ type InvalidateKeys = readonly QueryKey[];
 
 interface AdminEnumHooksConfig<
   TList,
+  TQueryKey extends QueryKey,
   TCreateVars,
   TCreateResult,
   TUpdateVars,
@@ -16,10 +18,8 @@ interface AdminEnumHooksConfig<
   TDeleteVars,
   TDeleteResult,
 > {
-  queryKey: QueryKey;
-  list: () => Promise<TList>;
+  listQueryOptions: UseSuspenseQueryOptions<TList, DefaultError, TList, TQueryKey>;
   invalidates: InvalidateKeys;
-  staleTime?: number;
   create: (vars: TCreateVars) => Promise<TCreateResult>;
   update: (vars: TUpdateVars) => Promise<TUpdateResult>;
   reorder: (vars: TReorderVars) => Promise<TReorderResult>;
@@ -28,13 +28,14 @@ interface AdminEnumHooksConfig<
 }
 
 /**
- * `createServerFn` calls stay at module level in the calling hook file and are
+ * `createServerFn` calls stay at module level in the calling file and are
  * passed in here as plain functions: the TanStack Start compiler assigns one
  * RPC id per syntactic call site, so a nested declaration would make every
  * enum share a single server function.
  */
 export function createAdminEnumHooks<
   TList,
+  TQueryKey extends QueryKey,
   TCreateVars,
   TCreateResult,
   TUpdateVars,
@@ -46,6 +47,7 @@ export function createAdminEnumHooks<
 >(
   config: AdminEnumHooksConfig<
     TList,
+    TQueryKey,
     TCreateVars,
     TCreateResult,
     TUpdateVars,
@@ -56,16 +58,10 @@ export function createAdminEnumHooks<
     TDeleteResult
   >,
 ) {
-  const listQueryOptions = queryOptions({
-    queryKey: config.queryKey,
-    queryFn: () => config.list(),
-    staleTime: config.staleTime,
-  });
-
   const reorderInvalidates = config.reorderInvalidates ?? config.invalidates;
 
   function useList() {
-    return useSuspenseQuery(listQueryOptions);
+    return useSuspenseQuery(config.listQueryOptions);
   }
 
   function useCreate() {
@@ -96,5 +92,5 @@ export function createAdminEnumHooks<
     });
   }
 
-  return { queryOptions: listQueryOptions, useList, useCreate, useUpdate, useReorder, useDelete };
+  return { useList, useCreate, useUpdate, useReorder, useDelete };
 }

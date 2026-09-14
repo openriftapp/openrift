@@ -42,11 +42,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
-import {
-  decksQueryOptions,
-  useCreateDeck,
-  useSaveDeckCards,
-} from "@/features/decks/hooks/use-decks";
+import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import type { CollapsedDeckEntry } from "@/features/decks/lib/deck-family";
 import { collapseFamilies } from "@/features/decks/lib/deck-family";
 import type { DeckListItemWithNames } from "@/features/decks/lib/deck-list-utils";
@@ -61,6 +57,7 @@ import {
   partitionByArchived,
   sortDecks,
 } from "@/features/decks/lib/deck-list-utils";
+import { decksQueryOptions } from "@/features/decks/lib/decks-queries";
 import { localDeckToListItem } from "@/features/decks/lib/local-deck-list-item";
 import {
   buildSampleDeckCards,

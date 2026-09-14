@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { addDeckCheckCardSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -14,8 +13,6 @@ import {
   updateDeckCheckCardSchema,
   updateDeckCheckEntrySchema,
 } from "./deck-check.js";
-
-extendZodWithOpenApi(z);
 
 const tournamentParamSchema = z.object({ tournamentId: z.uuid() });
 const entryParamSchema = z.object({ tournamentId: z.uuid(), entryId: z.uuid() });

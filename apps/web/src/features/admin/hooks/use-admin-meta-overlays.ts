@@ -4,7 +4,6 @@ import type {
   MetaEventDrift,
   MetaEventMatchSuggestion,
   MetaOverlayBulkAcceptResult,
-  MetaOverlayQueueRow,
   MetaOverlayReviewResult,
   MetaPlayerMatchSuggestion,
   MetaUploadBody,
@@ -12,9 +11,10 @@ import type {
   MetaUploadRevertResult,
   MetaUploadSummary,
 } from "@openrift/shared/types/api/meta";
-import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { adminMetaOverlaysQueryOptions } from "@/features/admin/lib/admin-meta-overlays-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -26,18 +26,6 @@ import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidatio
 const ALL_META_KEYS = [adminKeys.meta.overlays, adminKeys.meta.events, metaKeys.all] as const;
 
 const ALL_META_KEYS_WITH_IGNORED = [...ALL_META_KEYS, adminKeys.meta.ignoredSources] as const;
-
-const fetchMetaOverlays = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<{ overlays: MetaOverlayQueueRow[] }> =>
-    apiOrpcClient(adminMetaCandidatesContract, context.cookie).list(),
-  );
-
-export const adminMetaOverlaysQueryOptions = queryOptions({
-  queryKey: adminKeys.meta.overlays,
-  queryFn: () => fetchMetaOverlays(),
-  staleTime: 5 * 60 * 1000,
-});
 
 /** Every pending overlay, oldest first, with the fields it claims and the live values those would replace. */
 export function useAdminMetaOverlays() {

@@ -1,12 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ExpandIcon, PlusIcon, ShrinkIcon } from "lucide-react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { ColumnControls } from "@/features/cards/components/column-controls";
 import { SortGroupControls } from "@/features/cards/components/sort-group-controls";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
@@ -91,7 +93,10 @@ export function TournamentDeckCheckEntry({
   async function handleDelete() {
     try {
       await deleteEntry.mutateAsync({ tournamentId, entryId });
-      setDeleteOpen(false);
+      flushSync(() => {
+        setDeleteOpen(false);
+        setNotesDirty(false);
+      });
       void navigate({ to: "/tournaments/$id/decks", params: { id: tournamentId } });
     } catch {
       /* Reported by the global mutation error toast. */
@@ -149,6 +154,7 @@ export function TournamentDeckCheckEntry({
 
   return (
     <>
+      <UnsavedChangesGuard dirty={notesDirty} />
       <DeckEntryTopBar
         tournamentId={tournamentId}
         entry={detail.entry}

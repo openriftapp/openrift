@@ -3,7 +3,7 @@ import type { ParsedLocation } from "@tanstack/react-router";
 import { isRedirect } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
-import { ensureFriendGroupDetailCanonical } from "./use-friend-groups";
+import { ensureFriendGroupDetailCanonical } from "./friend-groups-queries";
 
 function fakeQueryClient(canonicalSlug: string): QueryClient {
   return {

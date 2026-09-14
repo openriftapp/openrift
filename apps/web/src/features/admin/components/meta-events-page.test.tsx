@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type * as adminMeta from "@/features/admin/hooks/use-admin-meta";
+import type * as adminMetaQueries from "@/features/admin/lib/admin-meta-queries";
 
 const captured = vi.hoisted(() => ({
   events: [] as unknown[],
@@ -64,9 +65,13 @@ vi.mock("@/features/admin/components/admin-page-top-bar", () => ({
   AdminPageTopBar: ({ actions }: { actions?: ReactNode }) => <div>{actions}</div>,
 }));
 
+vi.mock("@/features/admin/lib/admin-meta-queries", async (importOriginal) => ({
+  ...(await importOriginal<typeof adminMetaQueries>()),
+  ADMIN_META_EVENT_PAGE_SIZE: 50,
+}));
+
 vi.mock("@/features/admin/hooks/use-admin-meta", async (importOriginal) => ({
   ...(await importOriginal<typeof adminMeta>()),
-  ADMIN_META_EVENT_PAGE_SIZE: 50,
   useAdminMetaEvents: (params: unknown) => {
     captured.params = params;
     return { data: { events: captured.events, total: captured.total, page: 1, limit: 50 } };

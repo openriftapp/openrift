@@ -23,7 +23,6 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { siDiscord, siGithub } from "simple-icons";
-import { toast } from "sonner";
 import latestMilestone from "virtual:latest-milestone";
 
 import type { NavFlags } from "@/components/layout/nav-items";
@@ -70,7 +69,6 @@ import {
 } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/user-avatar";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
-import { signOut } from "@/features/account/lib/auth-client";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
@@ -87,6 +85,7 @@ import { useGravatarHash } from "@/lib/gravatar";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
+import { toastError } from "@/lib/toast";
 import { cn, CONTAINER_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
@@ -316,12 +315,18 @@ function UserMenuTrigger({
   return <EllipsisVerticalIcon className="size-5" />;
 }
 
+// Loaded on click so the auth client stays out of the shell's entry chunk.
+async function signOutViaAuthClient(): Promise<void> {
+  const { signOut } = await import("@/features/account/lib/auth-client");
+  await signOut();
+}
+
 function LanguageSubmenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   const active = getLocale();
 
   const change = async (next: DisplayLocale) => {
     if (!(await applyDisplayLocale(next, { persist: isLoggedIn }))) {
-      toast.error(m.profile_display_locale_error());
+      toastError(m.profile_display_locale_error());
     }
   };
 
@@ -356,7 +361,7 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOutViaAuthClient();
       useDisplayStore.getState().reset();
       useThemeStore.getState().reset();
       usePaletteStore.getState().reset();
@@ -367,7 +372,7 @@ function UserMenuItems({ isLoggedIn }: { isLoggedIn: boolean }) {
       await router.navigate({ to: "/cards", search: {} });
       void queryClient.invalidateQueries({ queryKey: sessionQueryOptions().queryKey });
     } catch {
-      toast.error(m.layout_header_sign_out_failed());
+      toastError(m.layout_header_sign_out_failed());
     }
   };
 

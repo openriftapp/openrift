@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
@@ -8,27 +7,27 @@ import {
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
 const distributionChannelWithCountSchema = distributionChannelSchema.extend({
-  cardCount: z.number().openapi({ example: 12 }),
-  printingCount: z.number().openapi({ example: 24 }),
+  cardCount: z.number().meta({ examples: [12] }),
+  printingCount: z.number().meta({ examples: [24] }),
 });
 
 export const promosQuerySchema = z.object({
-  language: z.string().min(1).max(8).openapi({ example: "EN" }),
+  language: z
+    .string()
+    .min(1)
+    .max(8)
+    .meta({ examples: ["EN"] }),
 });
 
-export const promosListResponseSchema = z
-  .object({
-    channels: z.array(distributionChannelWithCountSchema),
-    cards: z.record(z.string(), catalogCardResponseSchema),
-    printings: z.array(catalogPrintingResponseSchema),
-    sets: z.array(catalogSetResponseSchema),
-    languages: z.array(z.string()).openapi({ example: ["EN", "SC"] }),
-    // Prices are not inlined; read them from the /prices resource.
-  })
-  .openapi("PromosListResponse");
+export const promosListResponseSchema = z.object({
+  channels: z.array(distributionChannelWithCountSchema),
+  cards: z.record(z.string(), catalogCardResponseSchema),
+  printings: z.array(catalogPrintingResponseSchema),
+  sets: z.array(catalogSetResponseSchema),
+  languages: z.array(z.string()).meta({ examples: [["EN", "SC"]] }),
+  // Prices are not inlined; read them from the /prices resource.
+});
 
 /** Scoped by language: the unscoped response is large enough to blank SSR. */
 export const promosContract = {

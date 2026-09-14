@@ -15,9 +15,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CardMiniRow } from "@/features/cards/components/card-mini-row";
 import type { SortGroupOption } from "@/features/cards/components/sort-group-controls";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { pricesQueryOptions } from "@/features/cards/hooks/use-prices";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { cardHoverProps, rowActivateProps } from "@/features/cards/lib/card-row-interactions";
+import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { DeckCardGroupHeader } from "@/features/decks/components/deck-card-group-header";
 import { EnergyGlyph, PowerPips } from "@/features/decks/components/deck-card-row";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";

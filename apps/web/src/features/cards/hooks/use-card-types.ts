@@ -1,18 +1,12 @@
-import type { AdminCardTypesResponse } from "@openrift/shared/contracts/admin/card-types";
 import { adminCardTypesContract } from "@openrift/shared/contracts/admin/card-types";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminCardTypesQueryOptions } from "@/features/cards/lib/card-types-queries";
 import { createAdminEnumHooks } from "@/lib/create-admin-enum-hooks";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchCardTypes = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminCardTypesResponse> =>
-    apiOrpcClient(adminCardTypesContract, context.cookie).list(),
-  );
 
 const createCardTypeFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; label: string }) => input)
@@ -43,8 +37,7 @@ const deleteCardTypeFn = createServerFn({ method: "POST" })
   });
 
 const cardTypeHooks = createAdminEnumHooks({
-  queryKey: adminKeys.cardTypes,
-  list: () => fetchCardTypes(),
+  listQueryOptions: adminCardTypesQueryOptions,
   invalidates: [adminKeys.cardTypes, initKeys.all],
   create: (vars: { slug: string; label: string }) => createCardTypeFn({ data: vars }),
   update: (vars: { slug: string; label?: string }) => updateCardTypeFn({ data: vars }),
@@ -52,7 +45,6 @@ const cardTypeHooks = createAdminEnumHooks({
   remove: (slug: string) => deleteCardTypeFn({ data: { slug } }),
 });
 
-export const adminCardTypesQueryOptions = cardTypeHooks.queryOptions;
 export const useCardTypes = cardTypeHooks.useList;
 export const useCreateCardType = cardTypeHooks.useCreate;
 export const useUpdateCardType = cardTypeHooks.useUpdate;

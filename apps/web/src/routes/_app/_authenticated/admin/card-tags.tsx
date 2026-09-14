@@ -5,7 +5,7 @@ import { AdminPending } from "@/features/admin/components/admin-route-components
 import {
   adminCardTagsQueryOptions,
   adminTagCategoriesQueryOptions,
-} from "@/features/cards/hooks/use-card-tags";
+} from "@/features/cards/lib/card-tags-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/card-tags")({

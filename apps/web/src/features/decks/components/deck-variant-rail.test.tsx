@@ -30,39 +30,42 @@ vi.mock("@/features/cards/hooks/use-cards", async () => {
   return { useCards: () => ({ cardsById }) };
 });
 
-vi.mock("@/features/decks/hooks/use-decks", async () => {
+vi.mock("@/features/decks/lib/decks-queries", async () => {
   const { decksKeys: keys } = await import("@/features/decks/lib/decks-query-keys");
   return {
-    useDecks: () => ({
-      data: [
-        {
-          deck: {
-            id: "deck-a",
-            name: "Yasuo Aggro",
-            familyId: "family-1",
-            predecessorDeckId: null,
-            isDraft: false,
-            updatedAt: "2026-08-01T00:00:00.000Z",
-          },
-        },
-        {
-          deck: {
-            id: "deck-b",
-            name: "Yasuo Aggro (v2)",
-            familyId: "family-1",
-            predecessorDeckId: "deck-a",
-            isDraft: false,
-            updatedAt: "2026-08-02T00:00:00.000Z",
-          },
-        },
-      ],
-    }),
     deckDetailQueryOptions: (userId: string, deckId: string) => ({
       queryKey: keys.detail(userId, deckId),
       queryFn: () => Promise.resolve(details[deckId]),
     }),
   };
 });
+
+vi.mock("@/features/decks/hooks/use-decks", () => ({
+  useDecks: () => ({
+    data: [
+      {
+        deck: {
+          id: "deck-a",
+          name: "Yasuo Aggro",
+          familyId: "family-1",
+          predecessorDeckId: null,
+          isDraft: false,
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        },
+      },
+      {
+        deck: {
+          id: "deck-b",
+          name: "Yasuo Aggro (v2)",
+          familyId: "family-1",
+          predecessorDeckId: "deck-a",
+          isDraft: false,
+          updatedAt: "2026-08-02T00:00:00.000Z",
+        },
+      },
+    ],
+  }),
+}));
 
 // Both dialogs render closed here and drag in the whole deck-editing surface.
 vi.mock("./deck-variant-create-dialog", () => ({ DeckVariantCreateDialog: () => null }));

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   contactMethodSchema,
   copyResponseSchema,
@@ -19,8 +18,6 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 // Slugs that collide with app-level routes or squat targets, mirrored in the
 // route layer for a clean 400 before the DB rejects.
@@ -111,136 +108,108 @@ export const friendGroupLinkShopSchema = z.object({
   storeId: z.number().int().positive(),
 });
 
-export const friendGroupShopResponseSchema = z
-  .object({
-    storeId: z.number().int(),
-    name: z.string(),
-    location: z.string().nullable(),
-    upcomingCount: z.number().int(),
-    nextEventAt: z.string().nullable(),
-  })
-  .openapi("FriendGroupShopResponse");
+export const friendGroupShopResponseSchema = z.object({
+  storeId: z.number().int(),
+  name: z.string(),
+  location: z.string().nullable(),
+  upcomingCount: z.number().int(),
+  nextEventAt: z.string().nullable(),
+});
 
-export const friendGroupShopsResponseSchema = z
-  .object({
-    items: z.array(friendGroupShopResponseSchema),
-    limit: z.number().int(),
-  })
-  .openapi("FriendGroupShopsResponse");
+export const friendGroupShopsResponseSchema = z.object({
+  items: z.array(friendGroupShopResponseSchema),
+  limit: z.number().int(),
+});
 
-export const friendGroupShopSearchResultSchema = z
-  .object({
-    storeId: z.number().int(),
-    name: z.string(),
-    location: z.string().nullable(),
-    upcomingCount: z.number().int(),
-    linked: z.boolean(),
-  })
-  .openapi("FriendGroupShopSearchResult");
+export const friendGroupShopSearchResultSchema = z.object({
+  storeId: z.number().int(),
+  name: z.string(),
+  location: z.string().nullable(),
+  upcomingCount: z.number().int(),
+  linked: z.boolean(),
+});
 
-export const friendGroupShopSearchResponseSchema = z
-  .object({
-    items: z.array(friendGroupShopSearchResultSchema),
-  })
-  .openapi("FriendGroupShopSearchResponse");
+export const friendGroupShopSearchResponseSchema = z.object({
+  items: z.array(friendGroupShopSearchResultSchema),
+});
 
-export const friendGroupShopEventResponseSchema = z
-  .object({
-    externalId: z.string(),
-    name: z.string(),
-    startAt: z.string(),
-    storeId: z.number().int(),
-    storeName: z.string(),
-    eventFormat: z.string().nullable(),
-    url: z.string(),
-  })
-  .openapi("FriendGroupShopEventResponse");
+export const friendGroupShopEventResponseSchema = z.object({
+  externalId: z.string(),
+  name: z.string(),
+  startAt: z.string(),
+  storeId: z.number().int(),
+  storeName: z.string(),
+  eventFormat: z.string().nullable(),
+  url: z.string(),
+});
 
-export const friendGroupShopEventsResponseSchema = z
-  .object({
-    items: z.array(friendGroupShopEventResponseSchema),
-    shops: z.array(z.object({ storeId: z.number().int(), name: z.string() })),
-    horizonDays: z.number().int(),
-    pastDays: z.number().int(),
-  })
-  .openapi("FriendGroupShopEventsResponse");
+export const friendGroupShopEventsResponseSchema = z.object({
+  items: z.array(friendGroupShopEventResponseSchema),
+  shops: z.array(z.object({ storeId: z.number().int(), name: z.string() })),
+  horizonDays: z.number().int(),
+  pastDays: z.number().int(),
+});
 
-export const friendGroupDiscordLinkResponseSchema = z
-  .object({
-    id: z.string(),
-    guildId: z.string(),
-    guildName: z.string().nullable(),
-    linkedAt: z.string(),
-  })
-  .openapi("FriendGroupDiscordLinkResponse");
+export const friendGroupDiscordLinkResponseSchema = z.object({
+  id: z.string(),
+  guildId: z.string(),
+  guildName: z.string().nullable(),
+  linkedAt: z.string(),
+});
 
-export const friendGroupDiscordLinksResponseSchema = z
-  .object({
-    items: z.array(friendGroupDiscordLinkResponseSchema),
-  })
-  .openapi("FriendGroupDiscordLinksResponse");
+export const friendGroupDiscordLinksResponseSchema = z.object({
+  items: z.array(friendGroupDiscordLinkResponseSchema),
+});
 
-export const friendGroupDiscordLinkCodeResponseSchema = z
-  .object({
-    code: z.string(),
-    expiresAt: z.string(),
-  })
-  .openapi("FriendGroupDiscordLinkCodeResponse");
+export const friendGroupDiscordLinkCodeResponseSchema = z.object({
+  code: z.string(),
+  expiresAt: z.string(),
+});
 
-export const effectiveTradePreferenceSchema = z
-  .object({
-    pricePref: tradePricePrefResponseSchema.nullable(),
-    priceAbsoluteCents: z.number().int().positive().nullable(),
-    tradeType: tradeTypeResponseSchema.nullable(),
-    currency: currencyResponseSchema.nullable(),
-  })
-  .openapi("EffectiveTradePreference");
+export const effectiveTradePreferenceSchema = z.object({
+  pricePref: tradePricePrefResponseSchema.nullable(),
+  priceAbsoluteCents: z.number().int().positive().nullable(),
+  tradeType: tradeTypeResponseSchema.nullable(),
+  currency: currencyResponseSchema.nullable(),
+});
 
-export const friendGroupRoleSchema = z
-  .enum(["owner", "admin", "member"])
-  .openapi("FriendGroupRole");
+export const friendGroupRoleSchema = z.enum(["owner", "admin", "member"]);
 
 // Owns the `friend_group_invites.direction` vocabulary.
 export const friendGroupInviteDirectionSchema = z.enum(["invite", "request"]);
 
-export const friendGroupResponseSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    bannerUrl: z.string().nullable(),
-    bannerPosition: z.number().int(),
-    code: z.string().nullable(),
-    codeRotatedAt: z.string(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("FriendGroupResponse");
+export const friendGroupResponseSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  bannerUrl: z.string().nullable(),
+  bannerPosition: z.number().int(),
+  code: z.string().nullable(),
+  codeRotatedAt: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
 export const TRADE_VOLUME_WINDOW_DAYS = 30;
 
 // No email: this is a teaser, not the full member record.
-export const friendGroupMemberPreviewSchema = z
-  .object({
-    userId: z.string(),
-    userName: z.string().nullable(),
-    userImage: z.string().nullable(),
-    gravatarHash: z.string(),
-  })
-  .openapi("FriendGroupMemberPreview");
+export const friendGroupMemberPreviewSchema = z.object({
+  userId: z.string(),
+  userName: z.string().nullable(),
+  userImage: z.string().nullable(),
+  gravatarHash: z.string(),
+});
 
-export const friendGroupSummaryResponseSchema = friendGroupResponseSchema
-  .extend({
-    viewerRole: friendGroupRoleSchema,
-    memberCount: z.number().int().nonnegative(),
-    pendingRequestCount: z.number().int().nonnegative(),
-    memberPreviews: z.array(friendGroupMemberPreviewSchema),
-    sharedListCount: z.number().int().nonnegative(),
-    recentTradedCardCount: z.number().int().nonnegative(),
-    tradedCardCount: z.number().int().nonnegative(),
-  })
-  .openapi("FriendGroupSummaryResponse");
+export const friendGroupSummaryResponseSchema = friendGroupResponseSchema.extend({
+  viewerRole: friendGroupRoleSchema,
+  memberCount: z.number().int().nonnegative(),
+  pendingRequestCount: z.number().int().nonnegative(),
+  memberPreviews: z.array(friendGroupMemberPreviewSchema),
+  sharedListCount: z.number().int().nonnegative(),
+  recentTradedCardCount: z.number().int().nonnegative(),
+  tradedCardCount: z.number().int().nonnegative(),
+});
 
 // A pending join request the viewer sent. Only member count is exposed; the
 // roster stays hidden until the request is accepted.
@@ -253,284 +222,248 @@ const friendGroupOutgoingRequestSchema = z.object({
   memberCount: z.number().int().nonnegative(),
 });
 
-export const friendGroupListResponseSchema = z
-  .object({
-    items: z.array(friendGroupSummaryResponseSchema),
-    outgoingRequests: z.array(friendGroupOutgoingRequestSchema),
-  })
-  .openapi("FriendGroupListResponse");
+export const friendGroupListResponseSchema = z.object({
+  items: z.array(friendGroupSummaryResponseSchema),
+  outgoingRequests: z.array(friendGroupOutgoingRequestSchema),
+});
 
-export const friendGroupMemberResponseSchema = z
-  .object({
-    userId: z.string(),
-    userName: z.string().nullable(),
-    userImage: z.string().nullable(),
-    gravatarHash: z.string(),
-    role: friendGroupRoleSchema,
-    contactMethods: z.array(contactMethodSchema),
-    joinedAt: z.string(),
-  })
-  .openapi("FriendGroupMemberResponse");
+export const friendGroupMemberResponseSchema = z.object({
+  userId: z.string(),
+  userName: z.string().nullable(),
+  userImage: z.string().nullable(),
+  gravatarHash: z.string(),
+  role: friendGroupRoleSchema,
+  contactMethods: z.array(contactMethodSchema),
+  joinedAt: z.string(),
+});
 
-export const friendGroupShareResponseSchema = z
-  .object({
-    groupId: z.string(),
-    listId: z.string(),
-    listName: z.string(),
-    listIntent: z.enum(["wish", "trade", "organize"]),
-    listKind: z.enum(["card", "printing", "copy"]),
-    entryCount: z.number().int().nonnegative(),
-    userId: z.string(),
-    userName: z.string().nullable(),
-    sharedAt: z.string(),
-  })
-  .openapi("FriendGroupShareResponse");
+export const friendGroupShareResponseSchema = z.object({
+  groupId: z.string(),
+  listId: z.string(),
+  listName: z.string(),
+  listIntent: z.enum(["wish", "trade", "organize"]),
+  listKind: z.enum(["card", "printing", "copy"]),
+  entryCount: z.number().int().nonnegative(),
+  userId: z.string(),
+  userName: z.string().nullable(),
+  sharedAt: z.string(),
+});
 
-export const friendGroupCollectionCoverSchema = z
-  .object({
+export const friendGroupCollectionCoverSchema = z.object({
+  printingId: z.string(),
+  imageId: z.string(),
+});
+
+export const friendGroupCollectionShareResponseSchema = z.object({
+  groupId: z.string(),
+  collectionId: z.string(),
+  collectionName: z.string(),
+  userId: z.string(),
+  userName: z.string().nullable(),
+  sharedAt: z.string(),
+  copyCount: z.number().int().nonnegative(),
+  coverPrintings: z.array(friendGroupCollectionCoverSchema).default([]),
+});
+
+export const friendGroupRequestResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  userName: z.string().nullable(),
+  userImage: z.string().nullable(),
+  gravatarHash: z.string(),
+  createdAt: z.string(),
+});
+
+const friendGroupViewerStatusSchema = z.enum(["member", "pending"]);
+
+export const friendGroupDetailResponseSchema = z.object({
+  group: friendGroupResponseSchema,
+  viewerStatus: friendGroupViewerStatusSchema,
+  viewerRole: friendGroupRoleSchema.nullable(),
+  members: z.array(friendGroupMemberResponseSchema),
+  shares: z.array(friendGroupShareResponseSchema),
+  collectionShares: z.array(friendGroupCollectionShareResponseSchema),
+  pendingRequests: z.array(friendGroupRequestResponseSchema),
+  cardsTradedCount: z.number().int().nonnegative().default(0),
+  cardsTradedByMember: z.record(z.string(), z.number().int().nonnegative()).default({}),
+});
+
+export const friendGroupJoinPreviewResponseSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  memberCount: z.number().int().nonnegative(),
+  viewerStatus: z.enum(["available", "pending", "member"]),
+});
+
+export const friendGroupShareableListResponseSchema = z.object({
+  listId: z.string(),
+  listName: z.string(),
+  listIntent: z.enum(["wish", "trade", "organize"]),
+  listKind: z.enum(["card", "printing", "copy"]),
+  entryCount: z.number().int().nonnegative(),
+  sharedAt: z.string().nullable(),
+  tradeDefaults: tradePreferenceSchema,
+  currency: currencyResponseSchema.nullable(),
+  hasRule: z.boolean(),
+});
+
+export const friendGroupShareableListsResponseSchema = z.object({
+  items: z.array(friendGroupShareableListResponseSchema),
+});
+
+export const friendGroupShareableCollectionResponseSchema = z.object({
+  collectionId: z.string(),
+  collectionName: z.string(),
+  sharedAt: z.string().nullable(),
+});
+
+export const friendGroupShareableCollectionsResponseSchema = z.object({
+  items: z.array(friendGroupShareableCollectionResponseSchema),
+});
+
+export const friendGroupMatchRowSchema = z.object({
+  counterpartyUserId: z.string(),
+  counterpartyName: z.string().nullable(),
+  counterpartyImage: z.string().nullable(),
+  counterpartyGravatarHash: z.string(),
+  counterpartyListId: z.string(),
+  counterpartyListName: z.string(),
+  viewerListName: z.string(),
+  sellEntryId: z.string().nullable(),
+  sellListId: z.string(),
+  copyId: z.string(),
+  condition: z.string().nullable(),
+  grader: z.string().nullable(),
+  grade: z.number().nullable(),
+  notesPublic: z.string().nullable(),
+  printingId: z.string(),
+  cardId: z.string(),
+  cardName: z.string(),
+  setId: z.string(),
+  rarity: raritySchema,
+  finish: finishSchema,
+  imageId: imageIdSchema.nullable(),
+  buyEntryId: z.string().nullable(),
+  buyListId: z.string(),
+  buyEntryKind: z.enum(["card", "printing"]),
+  buyQuantity: z.number().int().nonnegative(),
+  sellPref: effectiveTradePreferenceSchema,
+  buyPref: effectiveTradePreferenceSchema,
+});
+
+export const friendGroupMatchesResponseSchema = z.object({
+  othersHaveYourWants: z.array(friendGroupMatchRowSchema),
+  othersWantYourHaves: z.array(friendGroupMatchRowSchema),
+});
+
+// fulfillableQuantity is bounded by both the net wanted quantity and the box's
+// available stock (reserved/loaned/altered copies excluded).
+export const friendGroupBoxWantRowSchema = z.object({
+  collectionId: z.string(),
+  printingId: z.string(),
+  cardId: z.string(),
+  fulfillableQuantity: z.number().int().positive(),
+});
+
+export const friendGroupBoxWantsResponseSchema = z.object({
+  items: z.array(friendGroupBoxWantRowSchema),
+});
+
+export const friendGroupMemberDetailResponseSchema = z.object({
+  member: friendGroupMemberResponseSchema,
+  shares: z.array(friendGroupShareResponseSchema),
+  collectionShares: z.array(friendGroupCollectionShareResponseSchema),
+});
+
+export const friendGroupActivityEventSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("trade-completed"),
+    at: z.string(),
+    tradeId: z.string(),
     printingId: z.string(),
-    imageId: z.string(),
-  })
-  .openapi("FriendGroupCollectionCover");
-
-export const friendGroupCollectionShareResponseSchema = z
-  .object({
-    groupId: z.string(),
-    collectionId: z.string(),
-    collectionName: z.string(),
-    userId: z.string(),
-    userName: z.string().nullable(),
-    sharedAt: z.string(),
-    copyCount: z.number().int().nonnegative(),
-    coverPrintings: z.array(friendGroupCollectionCoverSchema).default([]),
-  })
-  .openapi("FriendGroupCollectionShareResponse");
-
-export const friendGroupRequestResponseSchema = z
-  .object({
-    id: z.string(),
+    cardId: z.string(),
+    quantity: z.number().int().positive(),
+    giverUserId: z.string().nullable(),
+    giverName: z.string().nullable(),
+    receiverUserId: z.string().nullable(),
+    receiverName: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal("member-joined"),
+    at: z.string(),
     userId: z.string(),
     userName: z.string().nullable(),
     userImage: z.string().nullable(),
     gravatarHash: z.string(),
-    createdAt: z.string(),
-  })
-  .openapi("FriendGroupRequestResponse");
-
-const friendGroupViewerStatusSchema = z
-  .enum(["member", "pending"])
-  .openapi("FriendGroupViewerStatus");
-
-export const friendGroupDetailResponseSchema = z
-  .object({
-    group: friendGroupResponseSchema,
-    viewerStatus: friendGroupViewerStatusSchema,
-    viewerRole: friendGroupRoleSchema.nullable(),
-    members: z.array(friendGroupMemberResponseSchema),
-    shares: z.array(friendGroupShareResponseSchema),
-    collectionShares: z.array(friendGroupCollectionShareResponseSchema),
-    pendingRequests: z.array(friendGroupRequestResponseSchema),
-    cardsTradedCount: z.number().int().nonnegative().default(0),
-    cardsTradedByMember: z.record(z.string(), z.number().int().nonnegative()).default({}),
-  })
-  .openapi("FriendGroupDetailResponse");
-
-export const friendGroupJoinPreviewResponseSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    memberCount: z.number().int().nonnegative(),
-    viewerStatus: z.enum(["available", "pending", "member"]),
-  })
-  .openapi("FriendGroupJoinPreviewResponse");
-
-export const friendGroupShareableListResponseSchema = z
-  .object({
+  }),
+  z.object({
+    kind: z.literal("list-shared"),
+    at: z.string(),
+    userId: z.string(),
+    userName: z.string().nullable(),
     listId: z.string(),
     listName: z.string(),
     listIntent: z.enum(["wish", "trade", "organize"]),
     listKind: z.enum(["card", "printing", "copy"]),
-    entryCount: z.number().int().nonnegative(),
-    sharedAt: z.string().nullable(),
-    tradeDefaults: tradePreferenceSchema,
-    currency: currencyResponseSchema.nullable(),
-    hasRule: z.boolean(),
-  })
-  .openapi("FriendGroupShareableListResponse");
-
-export const friendGroupShareableListsResponseSchema = z
-  .object({ items: z.array(friendGroupShareableListResponseSchema) })
-  .openapi("FriendGroupShareableListsResponse");
-
-export const friendGroupShareableCollectionResponseSchema = z
-  .object({
+  }),
+  z.object({
+    kind: z.literal("collection-shared"),
+    at: z.string(),
+    userId: z.string(),
+    userName: z.string().nullable(),
     collectionId: z.string(),
     collectionName: z.string(),
-    sharedAt: z.string().nullable(),
-  })
-  .openapi("FriendGroupShareableCollectionResponse");
-
-export const friendGroupShareableCollectionsResponseSchema = z
-  .object({ items: z.array(friendGroupShareableCollectionResponseSchema) })
-  .openapi("FriendGroupShareableCollectionsResponse");
-
-export const friendGroupMatchRowSchema = z
-  .object({
+  }),
+  z.object({
+    kind: z.literal("match"),
+    at: z.string(),
     counterpartyUserId: z.string(),
     counterpartyName: z.string().nullable(),
     counterpartyImage: z.string().nullable(),
     counterpartyGravatarHash: z.string(),
-    counterpartyListId: z.string(),
-    counterpartyListName: z.string(),
-    viewerListName: z.string(),
-    sellEntryId: z.string().nullable(),
-    sellListId: z.string(),
-    copyId: z.string(),
-    condition: z.string().nullable(),
-    grader: z.string().nullable(),
-    grade: z.number().nullable(),
-    notesPublic: z.string().nullable(),
     printingId: z.string(),
     cardId: z.string(),
-    cardName: z.string(),
-    setId: z.string(),
-    rarity: raritySchema,
-    finish: finishSchema,
-    imageId: imageIdSchema.nullable(),
-    buyEntryId: z.string().nullable(),
-    buyListId: z.string(),
-    buyEntryKind: z.enum(["card", "printing"]),
-    buyQuantity: z.number().int().nonnegative(),
-    sellPref: effectiveTradePreferenceSchema,
-    buyPref: effectiveTradePreferenceSchema,
-  })
-  .openapi("FriendGroupMatchRow");
+  }),
+]);
 
-export const friendGroupMatchesResponseSchema = z
-  .object({
-    othersHaveYourWants: z.array(friendGroupMatchRowSchema),
-    othersWantYourHaves: z.array(friendGroupMatchRowSchema),
-  })
-  .openapi("FriendGroupMatchesResponse");
+export const friendGroupActivityResponseSchema = z.object({
+  events: z.array(friendGroupActivityEventSchema),
+});
 
-// fulfillableQuantity is bounded by both the net wanted quantity and the box's
-// available stock (reserved/loaned/altered copies excluded).
-export const friendGroupBoxWantRowSchema = z
-  .object({
-    collectionId: z.string(),
-    printingId: z.string(),
-    cardId: z.string(),
-    fulfillableQuantity: z.number().int().positive(),
-  })
-  .openapi("FriendGroupBoxWantRow");
+export const friendGroupPendingRequestsCountResponseSchema = z.object({
+  count: z.number().int().nonnegative(),
+});
 
-export const friendGroupBoxWantsResponseSchema = z
-  .object({ items: z.array(friendGroupBoxWantRowSchema) })
-  .openapi("FriendGroupBoxWantsResponse");
+export const friendGroupSharedListDetailResponseSchema = z.object({
+  list: z.object({
+    id: z.string(),
+    name: z.string(),
+    intent: z.enum(["wish", "trade", "organize"]),
+    kind: z.enum(["card", "printing", "copy"]),
+    ownerUserId: z.string(),
+    ownerName: z.string().nullable(),
+    tradeDefaults: tradePreferenceSchema,
+    currency: currencyResponseSchema.nullable(),
+  }),
+  entries: z.array(listEntryDetailResponseSchema),
+});
 
-export const friendGroupMemberDetailResponseSchema = z
-  .object({
-    member: friendGroupMemberResponseSchema,
-    shares: z.array(friendGroupShareResponseSchema),
-    collectionShares: z.array(friendGroupCollectionShareResponseSchema),
-  })
-  .openapi("FriendGroupMemberDetailResponse");
-
-export const friendGroupActivityEventSchema = z
-  .discriminatedUnion("kind", [
-    z.object({
-      kind: z.literal("trade-completed"),
-      at: z.string(),
-      tradeId: z.string(),
-      printingId: z.string(),
-      cardId: z.string(),
-      quantity: z.number().int().positive(),
-      giverUserId: z.string().nullable(),
-      giverName: z.string().nullable(),
-      receiverUserId: z.string().nullable(),
-      receiverName: z.string().nullable(),
-    }),
-    z.object({
-      kind: z.literal("member-joined"),
-      at: z.string(),
-      userId: z.string(),
-      userName: z.string().nullable(),
-      userImage: z.string().nullable(),
-      gravatarHash: z.string(),
-    }),
-    z.object({
-      kind: z.literal("list-shared"),
-      at: z.string(),
-      userId: z.string(),
-      userName: z.string().nullable(),
-      listId: z.string(),
-      listName: z.string(),
-      listIntent: z.enum(["wish", "trade", "organize"]),
-      listKind: z.enum(["card", "printing", "copy"]),
-    }),
-    z.object({
-      kind: z.literal("collection-shared"),
-      at: z.string(),
-      userId: z.string(),
-      userName: z.string().nullable(),
-      collectionId: z.string(),
-      collectionName: z.string(),
-    }),
-    z.object({
-      kind: z.literal("match"),
-      at: z.string(),
-      counterpartyUserId: z.string(),
-      counterpartyName: z.string().nullable(),
-      counterpartyImage: z.string().nullable(),
-      counterpartyGravatarHash: z.string(),
-      printingId: z.string(),
-      cardId: z.string(),
-    }),
-  ])
-  .openapi("FriendGroupActivityEvent");
-
-export const friendGroupActivityResponseSchema = z
-  .object({ events: z.array(friendGroupActivityEventSchema) })
-  .openapi("FriendGroupActivityResponse");
-
-export const friendGroupPendingRequestsCountResponseSchema = z
-  .object({ count: z.number().int().nonnegative() })
-  .openapi("FriendGroupPendingRequestsCountResponse");
-
-export const friendGroupSharedListDetailResponseSchema = z
-  .object({
-    list: z.object({
-      id: z.string(),
-      name: z.string(),
-      intent: z.enum(["wish", "trade", "organize"]),
-      kind: z.enum(["card", "printing", "copy"]),
-      ownerUserId: z.string(),
-      ownerName: z.string().nullable(),
-      tradeDefaults: tradePreferenceSchema,
-      currency: currencyResponseSchema.nullable(),
-    }),
-    entries: z.array(listEntryDetailResponseSchema),
-  })
-  .openapi("FriendGroupSharedListDetailResponse");
-
-export const friendGroupSharedCollectionDetailResponseSchema = z
-  .object({
-    collection: z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().nullable(),
-      copyCount: z.number().int().nonnegative(),
-      totalValueCents: z.number().int().nullable(),
-      unpricedCopyCount: z.number().int().nullable(),
-      ownerUserId: z.string(),
-      ownerName: z.string().nullable(),
-    }),
-    copies: z.array(copyResponseSchema),
-    viewerRole: friendGroupRoleSchema,
-  })
-  .openapi("FriendGroupSharedCollectionDetailResponse");
+export const friendGroupSharedCollectionDetailResponseSchema = z.object({
+  collection: z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    copyCount: z.number().int().nonnegative(),
+    totalValueCents: z.number().int().nullable(),
+    unpricedCopyCount: z.number().int().nullable(),
+    ownerUserId: z.string(),
+    ownerName: z.string().nullable(),
+  }),
+  copies: z.array(copyResponseSchema),
+  viewerRole: friendGroupRoleSchema,
+});
 
 const TAG = "Friend Groups";
 

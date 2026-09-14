@@ -14,11 +14,8 @@ import { MetaContributors } from "@/features/meta/components/meta-contributors";
 import { MetaDeckArchiveBar } from "@/features/meta/components/meta-deck-archive-bar";
 import { MetaDeckFinish, MetaDeckHeading } from "@/features/meta/components/meta-deck-hero";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
-import {
-  archivedDeckIdentity,
-  describeIncompleteList,
-  unknownZoneCounts,
-} from "@/features/meta/lib/meta-deck-archive";
+import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
+import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
 import type { MetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { m } from "@/paraglide/messages.js";

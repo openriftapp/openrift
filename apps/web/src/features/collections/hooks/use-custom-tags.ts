@@ -1,56 +1,24 @@
 import { adminCustomTagsContract } from "@openrift/shared/contracts/admin/custom-tags";
-import type {
-  CustomTagCategoryResponse,
-  CustomTagResponse,
-} from "@openrift/shared/types/api/admin";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import {
+  adminCustomTagCategoriesQueryOptions,
+  adminCustomTagsQueryOptions,
+} from "@/features/collections/lib/custom-tags-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-interface AdminCustomTagsResponse {
-  tags: CustomTagResponse[];
-}
-
-interface AdminCustomTagCategoriesResponse {
-  categories: CustomTagCategoryResponse[];
-}
 
 interface CardCustomTagsResponse {
   customTagIds: string[];
 }
 
-const fetchCustomTags = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminCustomTagsResponse> =>
-    apiOrpcClient(adminCustomTagsContract, context.cookie).listTags(),
-  );
-
-export const adminCustomTagsQueryOptions = queryOptions({
-  queryKey: adminKeys.customTags,
-  queryFn: () => fetchCustomTags(),
-  staleTime: 30 * 60 * 1000,
-});
-
 export function useCustomTags() {
   return useSuspenseQuery(adminCustomTagsQueryOptions);
 }
-
-const fetchCustomTagCategories = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminCustomTagCategoriesResponse> =>
-    apiOrpcClient(adminCustomTagsContract, context.cookie).listCategories(),
-  );
-
-export const adminCustomTagCategoriesQueryOptions = queryOptions({
-  queryKey: adminKeys.customTagCategories,
-  queryFn: () => fetchCustomTagCategories(),
-  staleTime: 30 * 60 * 1000,
-});
 
 export function useCustomTagCategories() {
   return useSuspenseQuery(adminCustomTagCategoriesQueryOptions);

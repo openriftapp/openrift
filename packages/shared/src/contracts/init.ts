@@ -1,73 +1,77 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { distributionChannelSchema } from "@openrift/shared/response-schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
 export const keywordEntrySchema = z.object({
-  color: z.string().openapi({ example: "#24705f" }),
-  darkText: z.boolean().openapi({ example: false }),
-  costKeyword: z.boolean().openapi({ example: false }),
+  color: z.string().meta({ examples: ["#24705f"] }),
+  darkText: z.boolean().meta({ examples: [false] }),
+  costKeyword: z.boolean().meta({ examples: [false] }),
   translations: z
     .record(z.string(), z.string())
     .optional()
-    .openapi({ example: { de: "Beschleunigen" } }),
+    .meta({ examples: [{ de: "Beschleunigen" }] }),
 });
 
 export const enumRowSchema = z.object({
-  slug: z.string().openapi({ example: "Unit" }),
-  label: z.string().openapi({ example: "Unit" }),
-  sortOrder: z.number().openapi({ example: 1 }),
+  slug: z.string().meta({ examples: ["Unit"] }),
+  label: z.string().meta({ examples: ["Unit"] }),
+  sortOrder: z.number().meta({ examples: [1] }),
 });
 
 export const coloredEnumRowSchema = enumRowSchema.extend({
-  color: z.string().nullable().openapi({ example: "#b8336a" }),
+  color: z
+    .string()
+    .nullable()
+    .meta({ examples: ["#b8336a"] }),
 });
 
 const describedEnumRowSchema = enumRowSchema.extend({
-  description: z.string().nullable().openapi({ example: "Promo stamp around the rarity symbol" }),
+  description: z
+    .string()
+    .nullable()
+    .meta({ examples: ["Promo stamp around the rarity symbol"] }),
 });
 
 const customTagSchema = z.object({
-  id: z.string().openapi({ example: "019d4999-4219-72f6-b7bb-64004e1b1bff" }),
-  slug: z.string().openapi({ example: "bandle-city" }),
-  label: z.string().openapi({ example: "Bandle City" }),
-  category: z.string().openapi({ example: "region" }),
-  categoryLabel: z.string().openapi({ example: "Region" }),
-  description: z.string().nullable().openapi({ example: null }),
-  sortOrder: z.number().openapi({ example: 0 }),
+  id: z.string().meta({ examples: ["019d4999-4219-72f6-b7bb-64004e1b1bff"] }),
+  slug: z.string().meta({ examples: ["bandle-city"] }),
+  label: z.string().meta({ examples: ["Bandle City"] }),
+  category: z.string().meta({ examples: ["region"] }),
+  categoryLabel: z.string().meta({ examples: ["Region"] }),
+  description: z
+    .string()
+    .nullable()
+    .meta({ examples: [null] }),
+  sortOrder: z.number().meta({ examples: [0] }),
 });
 
-export const initResponseSchema = z
-  .object({
-    enums: z.object({
-      cardTypes: z.array(enumRowSchema),
-      rarities: z.array(coloredEnumRowSchema),
-      domains: z.array(coloredEnumRowSchema),
-      superTypes: z.array(enumRowSchema),
-      finishes: z.array(enumRowSchema),
-      artVariants: z.array(enumRowSchema),
-      cardSizes: z.array(enumRowSchema),
-      deckFormats: z.array(enumRowSchema),
-      deckZones: z.array(enumRowSchema),
-      conditions: z.array(enumRowSchema),
-      graders: z.array(enumRowSchema),
-      languages: z.array(coloredEnumRowSchema),
-      markers: z.array(describedEnumRowSchema),
-    }),
-    keywords: z.record(z.string(), keywordEntrySchema),
-    distributionChannels: z.array(distributionChannelSchema).openapi({ example: [] }),
-    customTags: z.array(customTagSchema).openapi({ example: [] }),
-    championIdentifierTags: z.array(z.string()).openapi({ example: ["Garen", "Karma", "Yasuo"] }),
-    tagCategories: z.array(enumRowSchema).openapi({
-      example: [{ slug: "region", label: "Region", sortOrder: 0 }],
-    }),
-    tagCategoryMap: z.record(z.string(), z.string()).openapi({
-      example: { Ionia: "region", Poro: "species" },
-    }),
-  })
-  .openapi("InitResponse");
+export const initResponseSchema = z.object({
+  enums: z.object({
+    cardTypes: z.array(enumRowSchema),
+    rarities: z.array(coloredEnumRowSchema),
+    domains: z.array(coloredEnumRowSchema),
+    superTypes: z.array(enumRowSchema),
+    finishes: z.array(enumRowSchema),
+    artVariants: z.array(enumRowSchema),
+    cardSizes: z.array(enumRowSchema),
+    deckFormats: z.array(enumRowSchema),
+    deckZones: z.array(enumRowSchema),
+    conditions: z.array(enumRowSchema),
+    graders: z.array(enumRowSchema),
+    languages: z.array(coloredEnumRowSchema),
+    markers: z.array(describedEnumRowSchema),
+  }),
+  keywords: z.record(z.string(), keywordEntrySchema),
+  distributionChannels: z.array(distributionChannelSchema).meta({ examples: [[]] }),
+  customTags: z.array(customTagSchema).meta({ examples: [[]] }),
+  championIdentifierTags: z.array(z.string()).meta({ examples: [["Garen", "Karma", "Yasuo"]] }),
+  tagCategories: z.array(enumRowSchema).meta({
+    examples: [[{ slug: "region", label: "Region", sortOrder: 0 }]],
+  }),
+  tagCategoryMap: z.record(z.string(), z.string()).meta({
+    examples: [{ Ionia: "region", Poro: "species" }],
+  }),
+});
 
 export const initContract = {
   get: oc

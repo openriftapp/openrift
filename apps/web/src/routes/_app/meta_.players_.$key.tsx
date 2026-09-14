@@ -3,8 +3,8 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
-import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/hooks/use-meta";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
+import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/lib/meta-queries";
 import {
   ERA_ALL,
   deriveSetEras,
@@ -12,9 +12,9 @@ import {
   metaScopeSearchSchema,
   scopeWithDefaultEra,
 } from "@/features/meta/lib/meta-scope";
-import { initQueryOptions } from "@/hooks/use-init";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";

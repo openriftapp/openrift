@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { QrCode } from "@/components/ui/qr-code";
-import { downloadQrPng } from "@/lib/share-image";
+import { downloadQrPng } from "@/lib/qr-download";
 import { m } from "@/paraglide/messages.js";
 
 interface ShareQrPanelProps {

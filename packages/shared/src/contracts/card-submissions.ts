@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { keysetCursorSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { contributionCardSchema, contributionPrintingSchema } from "../contribute-schema.js";
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/u;
 
@@ -29,9 +26,7 @@ export const cardSubmissionSchema = z
   })
   .strict();
 
-export const cardSubmissionResponseSchema = z
-  .object({ ok: z.literal(true) })
-  .openapi("CardSubmissionResponse");
+export const cardSubmissionResponseSchema = z.object({ ok: z.literal(true) });
 
 export const cardSubmissionKindSchema = z.enum(["new_card", "correction", "image"]);
 
@@ -58,59 +53,47 @@ export const cardSubmissionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
-export const cardSubmissionStatusResponseSchema = z
-  .object({
-    id: z.string(),
-    kind: cardSubmissionKindSchema,
-    cardName: z.string(),
-    /** Set once there is a card to link to, which for a new card means accepted. */
-    cardSlug: z.string().nullable(),
-    status: cardSubmissionStatusSchema,
-    /** The contributor's own "where I spotted this" note. */
-    note: z.string().nullable(),
-    reason: cardSubmissionReasonSchema.nullable(),
-    /** Free-text message from the admin, shown alongside the canned reason. */
-    resolutionNote: z.string().nullable(),
-    createdAt: z.string(),
-    resolvedAt: z.string().nullable(),
-  })
-  .openapi("CardSubmissionStatusResponse");
+export const cardSubmissionStatusResponseSchema = z.object({
+  id: z.string(),
+  kind: cardSubmissionKindSchema,
+  cardName: z.string(),
+  /** Set once there is a card to link to, which for a new card means accepted. */
+  cardSlug: z.string().nullable(),
+  status: cardSubmissionStatusSchema,
+  /** The contributor's own "where I spotted this" note. */
+  note: z.string().nullable(),
+  reason: cardSubmissionReasonSchema.nullable(),
+  /** Free-text message from the admin, shown alongside the canned reason. */
+  resolutionNote: z.string().nullable(),
+  createdAt: z.string(),
+  resolvedAt: z.string().nullable(),
+});
 
-export const cardSubmissionListResponseSchema = z
-  .object({
-    items: z.array(cardSubmissionStatusResponseSchema),
-    nextCursor: z.string().nullable(),
-  })
-  .openapi("CardSubmissionListResponse");
+export const cardSubmissionListResponseSchema = z.object({
+  items: z.array(cardSubmissionStatusResponseSchema),
+  nextCursor: z.string().nullable(),
+});
 
-export const cardSubmissionImageUploadResponseSchema = z
-  .object({ url: z.string() })
-  .openapi("CardSubmissionImageUploadResponse");
+export const cardSubmissionImageUploadResponseSchema = z.object({ url: z.string() });
 
-export const missingImagePrintingSchema = z
-  .object({
-    printingId: z.string(),
-    cardSlug: z.string(),
-    cardName: z.string(),
-    setSlug: z.string(),
-    setName: z.string(),
-    publicCode: z.string(),
-    finish: z.string(),
-    language: z.string(),
-    copies: z.number().int(),
-  })
-  .openapi("MissingImagePrinting");
+export const missingImagePrintingSchema = z.object({
+  printingId: z.string(),
+  cardSlug: z.string(),
+  cardName: z.string(),
+  setSlug: z.string(),
+  setName: z.string(),
+  publicCode: z.string(),
+  finish: z.string(),
+  language: z.string(),
+  copies: z.number().int(),
+});
 
-export const missingImagesResponseSchema = z
-  .object({ items: z.array(missingImagePrintingSchema) })
-  .openapi("MissingImagesResponse");
+export const missingImagesResponseSchema = z.object({ items: z.array(missingImagePrintingSchema) });
 
-export const cardSubmissionSummaryResponseSchema = z
-  .object({
-    pending: z.number().int().min(0),
-    accepted: z.number().int().min(0),
-  })
-  .openapi("CardSubmissionSummaryResponse");
+export const cardSubmissionSummaryResponseSchema = z.object({
+  pending: z.number().int().min(0),
+  accepted: z.number().int().min(0),
+});
 
 /** Always scoped to the session user, never a user id from the client; `uploadImage` reads its `File` from the multipart body. */
 export const cardSubmissionsContract = {

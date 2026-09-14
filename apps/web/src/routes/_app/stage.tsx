@@ -4,11 +4,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
+import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
-import { initQueryOptions } from "@/hooks/use-init";
 import { sessionQueryOptions } from "@/lib/auth-session";
+import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

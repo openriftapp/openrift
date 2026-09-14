@@ -12,6 +12,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { BuilderWorkbench } from "@/components/layout/builder-workbench";
 import {
@@ -41,6 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { useOnboardingStore } from "@/features/account/stores/onboarding-store";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
@@ -124,6 +126,7 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
   const handleDelete = () => {
     deleteTierList.mutate(tierList.id, {
       onSuccess: () => {
+        flushSync(() => useTierListBuilderStore.getState().reset());
         void navigate({ to: "/tier-lists" });
       },
     });
@@ -131,6 +134,7 @@ export function TierListBuilderPage({ tierList }: TierListBuilderPageProps) {
 
   return (
     <>
+      <UnsavedChangesGuard dirty={dirty} />
       <TierListDndContext cardsById={cardsById} printingsByCardId={printingsByCardId}>
         <BuilderWorkbench
           asideClassName="lg:w-[46%] lg:max-w-3xl"

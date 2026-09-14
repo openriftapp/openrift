@@ -1,24 +1,12 @@
-import type { ProviderSettingsResponse } from "@openrift/shared/contracts/admin/provider-settings";
 import { adminProviderSettingsContract } from "@openrift/shared/contracts/admin/provider-settings";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchProviderSettings = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<ProviderSettingsResponse> =>
-    apiOrpcClient(adminProviderSettingsContract, context.cookie).list(),
-  );
-
-export const providerSettingsQueryOptions = queryOptions({
-  queryKey: adminKeys.providerSettings,
-  queryFn: () => fetchProviderSettings(),
-  staleTime: 30 * 60 * 1000,
-});
 
 export function useProviderSettings() {
   return useSuspenseQuery(providerSettingsQueryOptions);

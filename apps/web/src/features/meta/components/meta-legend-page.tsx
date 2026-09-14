@@ -12,15 +12,12 @@ import { MetaArchivedDecks } from "@/features/meta/components/meta-archived-deck
 import { MetaLegendFinishes } from "@/features/meta/components/meta-legend-finishes";
 import { MetaLegendHero } from "@/features/meta/components/meta-legend-hero";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
-import {
-  metaDecksQueryOptions,
-  metaLegendQueryOptions,
-  useMetaLegend,
-} from "@/features/meta/hooks/use-meta";
+import { useMetaLegend } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { splitLegendName } from "@/features/meta/lib/meta-format";
 import { metaScopedCountries } from "@/features/meta/lib/meta-legend-page";
+import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/lib/meta-queries";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   CLEARED_SCOPE,

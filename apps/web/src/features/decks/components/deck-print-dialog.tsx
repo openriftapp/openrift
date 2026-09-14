@@ -41,9 +41,9 @@ import type {
   RegistrationFields,
   RegistrationPageSize,
 } from "@/features/tournaments/lib/registration-pdf";
-import { effectiveLanguageOrder } from "@/hooks/use-effective-language-order";
-import { initQueryOptions } from "@/hooks/use-init";
 import { useSession } from "@/lib/auth-session";
+import { initQueryOptions } from "@/lib/init-queries";
+import { effectiveLanguageOrder } from "@/lib/language-order";
 import type { ProxyCard, ProxyPageSize, ProxyRenderMode, RenderedCard } from "@/lib/proxy-pdf";
 import type { DeckImageOptions } from "@/lib/share-image";
 import {

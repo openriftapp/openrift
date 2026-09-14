@@ -1,23 +1,18 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
-export const scanManifestSchema = z
-  .object({
-    available: z.boolean(),
-    formatVersion: z.number().nullable(),
-    bankHash: z.string().nullable(),
-    entryCount: z.number().nullable(),
-    builtAt: isoDateTime.nullable(),
-    bankUrl: z.string().nullable(),
-    labelsUrl: z.string().nullable(),
-    encoderUrl: z.string(),
-    opencvUrl: z.string(),
-  })
-  .openapi("ScanManifestResponse");
+export const scanManifestSchema = z.object({
+  available: z.boolean(),
+  formatVersion: z.number().nullable(),
+  bankHash: z.string().nullable(),
+  entryCount: z.number().nullable(),
+  builtAt: isoDateTime.nullable(),
+  bankUrl: z.string().nullable(),
+  labelsUrl: z.string().nullable(),
+  encoderUrl: z.string(),
+  opencvUrl: z.string(),
+});
 
 /** Everything this points at is cached immutably, so it is the only thing a client must re-fetch. */
 export const scanContract = {

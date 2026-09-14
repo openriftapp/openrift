@@ -1,32 +1,25 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { marketplaceEnum } from "../../schemas.js";
 import { authedRoute } from "../_base.js";
 import { jobStartedResponseSchema } from "./shared.js";
 
-extendZodWithOpenApi(z);
-
 const TAG = "Admin - Operations";
 
 const BASE = "/api/admin/v1";
 
-export const clearPricesResponseSchema = z
-  .object({
-    marketplace: z.string(),
-    deleted: z.object({
-      prices: z.number(),
-      variants: z.number(),
-      products: z.number(),
-    }),
-  })
-  .openapi("ClearPricesResponse");
+export const clearPricesResponseSchema = z.object({
+  marketplace: z.string(),
+  deleted: z.object({
+    prices: z.number(),
+    variants: z.number(),
+    products: z.number(),
+  }),
+});
 
-export const siblingVariantDriftResponseSchema = z
-  .object({
-    missing: z.number(),
-  })
-  .openapi("SiblingVariantDriftResponse");
+export const siblingVariantDriftResponseSchema = z.object({
+  missing: z.number(),
+});
 
 // Long-running operations return 202 + a run handle polled via job-runs,
 // since a synchronous response would hold the socket past Bun's idle timeout.

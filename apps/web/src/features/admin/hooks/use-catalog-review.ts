@@ -5,28 +5,16 @@ import type {
   CreateCardFromCandidateInput,
   CreateCardFromCandidateResponse,
   RejectSubmissionInput,
-  ReviewQueueResponse,
 } from "@openrift/shared/contracts/admin/catalog-review";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { reviewQueueQueryOptions } from "@/features/admin/lib/catalog-review-queries";
 import { cardSubmissionsKeys } from "@/features/contribute/lib/contribute-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchReviewQueue = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<ReviewQueueResponse> =>
-    apiOrpcClient(adminCatalogReviewContract, context.cookie).reviewQueue(),
-  );
-
-export const reviewQueueQueryOptions = queryOptions({
-  queryKey: adminKeys.reviewQueue,
-  queryFn: () => fetchReviewQueue(),
-  staleTime: 60 * 1000,
-});
 
 export function useReviewQueue() {
   return useQuery(reviewQueueQueryOptions);

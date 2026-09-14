@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const orgSlugSchema = z
   .string()
@@ -16,43 +13,35 @@ const orgNameSchema = z.string().min(1).max(120);
 const orgDescriptionSchema = z.string().max(4000).nullable();
 export const organizationRoleSchema = z.enum(["owner", "manager", "judge"]);
 
-export const organizationResponseSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    description: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("OrganizationResponse");
+export const organizationResponseSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const organizationMemberResponseSchema = z
-  .object({
-    userId: z.string(),
-    name: z.string().nullable(),
-    role: organizationRoleSchema,
-    joinedAt: z.string(),
-  })
-  .openapi("OrganizationMemberResponse");
+export const organizationMemberResponseSchema = z.object({
+  userId: z.string(),
+  name: z.string().nullable(),
+  role: organizationRoleSchema,
+  joinedAt: z.string(),
+});
 
-export const organizationSummaryResponseSchema = organizationResponseSchema
-  .extend({
-    ownerName: z.string().nullable(),
-    memberCount: z.number().int().nonnegative(),
-  })
-  .openapi("OrganizationSummaryResponse");
+export const organizationSummaryResponseSchema = organizationResponseSchema.extend({
+  ownerName: z.string().nullable(),
+  memberCount: z.number().int().nonnegative(),
+});
 
-export const organizationListResponseSchema = z
-  .object({ items: z.array(organizationSummaryResponseSchema) })
-  .openapi("OrganizationListResponse");
+export const organizationListResponseSchema = z.object({
+  items: z.array(organizationSummaryResponseSchema),
+});
 
-export const organizationDetailResponseSchema = organizationResponseSchema
-  .extend({
-    members: z.array(organizationMemberResponseSchema),
-    viewerRole: organizationRoleSchema.nullable(),
-  })
-  .openapi("OrganizationDetailResponse");
+export const organizationDetailResponseSchema = organizationResponseSchema.extend({
+  members: z.array(organizationMemberResponseSchema),
+  viewerRole: organizationRoleSchema.nullable(),
+});
 
 const ADMIN_BASE = "/api/admin/v1/organizations";
 const ADMIN_TAG = "Admin - Organizations";

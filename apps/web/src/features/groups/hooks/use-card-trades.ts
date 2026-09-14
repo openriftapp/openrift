@@ -4,33 +4,22 @@ import type {
   CardTradeLiveAnnotation,
   CardTradeResponse,
   CardTradeRole,
-  CardTradeSheetResponse,
-  CardTradeStatus,
 } from "@openrift/shared/types/api/card-trade";
 import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
+import {
+  fetchUserTrades,
+  tradeSheetQueryOptions,
+  userTradesQueryOptions,
+} from "@/features/groups/lib/card-trades-queries";
 import { friendGroupsKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchUserTrades = createServerFn({ method: "GET" })
-  .validator((input: { groupId?: string; status?: CardTradeStatus } | undefined) => input ?? {})
-  .middleware([withCookies])
-  .handler(({ context, data }) => {
-    const query: { groupId?: string; status?: CardTradeStatus } = {};
-    if (data.groupId !== undefined) {
-      query.groupId = data.groupId;
-    }
-    if (data.status !== undefined) {
-      query.status = data.status;
-    }
-    return apiOrpcClient(cardTradesContract, context.cookie).list(query);
-  });
 
 const fetchTradeActionCounts = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -39,13 +28,6 @@ const fetchTradeActionCounts = createServerFn({ method: "GET" })
 const fetchLiveTradesByPrinting = createServerFn({ method: "GET" })
   .middleware([withCookies])
   .handler(({ context }) => apiOrpcClient(cardTradesContract, context.cookie).liveByPrinting());
-
-const fetchTradeSheet = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: memberId }): Promise<CardTradeSheetResponse> =>
-    apiOrpcClient(cardTradesContract, context.cookie).withUser({ userId: memberId }),
-  );
 
 const fetchTradeCopyOptions = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -147,13 +129,6 @@ export function useTradeActionCounts() {
   });
 }
 
-export function userTradesQueryOptions(userId: string) {
-  return queryOptions({
-    queryKey: tradesKeys.all(userId),
-    queryFn: () => fetchUserTrades({ data: {} }),
-  });
-}
-
 export function useUserTrades() {
   const userId = useUserId();
   return useQuery({
@@ -216,13 +191,6 @@ export function useIncomingTradeCounts(enabled: boolean): {
     return { data: undefined };
   }
   return { data: aggregateIncomingTradeCounts(data.annotations) };
-}
-
-export function tradeSheetQueryOptions(userId: string, memberId: string) {
-  return queryOptions({
-    queryKey: tradesKeys.sheet(userId, memberId),
-    queryFn: () => fetchTradeSheet({ data: memberId }),
-  });
 }
 
 /**

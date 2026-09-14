@@ -6,7 +6,7 @@ import { sessionQueryOptions } from "./auth-session";
 import { createQueryClient } from "./query-client";
 import { captureHandledError } from "./report-error";
 import { _resetReloadStateForTesting } from "./stale-bundle-reload";
-import { PERSISTENT_ERROR_TOAST } from "./toast";
+import { loadSonner, PERSISTENT_ERROR_TOAST } from "./toast";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("./report-error", () => ({ captureHandledError: vi.fn() }));
@@ -44,12 +44,13 @@ describe("createQueryClient mutation onError", () => {
     return onError as (err: unknown, ...rest: unknown[]) => void;
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await loadSonner();
     vi.mocked(toast.error).mockClear();
     vi.mocked(captureHandledError).mockClear();
   });
 
-  it("toasts the server message and logs the diagnostic for an ApiError-shaped object", () => {
+  it("toasts the server message and logs the diagnostic for an ApiError-shaped object", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const serialized = {
       name: "ApiError",
@@ -60,7 +61,9 @@ describe("createQueryClient mutation onError", () => {
 
     getOnError()(serialized, undefined, undefined);
 
-    expect(toast.error).toHaveBeenCalledWith("Collection not found", PERSISTENT_ERROR_TOAST);
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Collection not found", PERSISTENT_ERROR_TOAST),
+    );
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Collection not found"),
       serialized,
@@ -68,13 +71,15 @@ describe("createQueryClient mutation onError", () => {
     errorSpy.mockRestore();
   });
 
-  it("toasts a non-ApiError error's message and logs the error itself", () => {
+  it("toasts a non-ApiError error's message and logs the error itself", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const err = new Error("network down");
 
     getOnError()(err, undefined, undefined);
 
-    expect(toast.error).toHaveBeenCalledWith("network down", PERSISTENT_ERROR_TOAST);
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("network down", PERSISTENT_ERROR_TOAST),
+    );
     expect(errorSpy).toHaveBeenCalledWith(err);
     errorSpy.mockRestore();
   });

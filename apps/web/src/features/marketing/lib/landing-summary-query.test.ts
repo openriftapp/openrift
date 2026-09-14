@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Importing the module evaluates createServerFn(...).handler(...) at the top
 // level, so this stub is needed just to import it.
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,

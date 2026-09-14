@@ -4,8 +4,8 @@ import type { DeckZone, EnumOrders } from "@openrift/shared/types/enums";
 import { labelMap } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { initQueryOptions } from "@/hooks/use-init";
 import type { EnumLabels } from "@/lib/enum-labels";
+import { initQueryOptions } from "@/lib/init-queries";
 
 // Generic over T: a colored/described row keeps its extra fields through the sort.
 function sorted<T extends EnumRow>(rows: readonly T[]): T[] {

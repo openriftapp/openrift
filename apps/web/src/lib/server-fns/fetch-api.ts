@@ -1,3 +1,5 @@
+// oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
+import "@tanstack/react-start/server-only";
 import { context, propagation } from "@opentelemetry/api";
 
 import { apiErrorFromResponse } from "./api-error";

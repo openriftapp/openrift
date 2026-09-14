@@ -6,7 +6,7 @@ import { ArrowLeftIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { Pressable } from "@/components/ui/pressable";
-import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
+import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { ContributeForm } from "@/features/contribute/components/contribute-form";
 import { prefillFromCard } from "@/features/contribute/lib/contribute-json";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";

@@ -1,10 +1,10 @@
 import { adminIgnoredProductsContract } from "@openrift/shared/contracts/admin/ignored-products";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { queryOptions, useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { IgnoredProductsResponse } from "@/lib/server-fns/api-types";
+import { ignoredProductsQueryOptions } from "@/features/admin/lib/ignored-products-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -23,17 +23,6 @@ interface UnignoreVariantInput {
 }
 
 type UnignoreInput = UnignoreProductInput | UnignoreVariantInput;
-
-const fetchIgnoredProducts = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<IgnoredProductsResponse> =>
-    apiOrpcClient(adminIgnoredProductsContract, context.cookie).list(),
-  );
-
-export const ignoredProductsQueryOptions = queryOptions({
-  queryKey: adminKeys.ignoredProducts,
-  queryFn: () => fetchIgnoredProducts(),
-});
 
 export function useIgnoredProducts() {
   return useSuspenseQuery(ignoredProductsQueryOptions);

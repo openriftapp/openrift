@@ -15,11 +15,11 @@
 
 Whatever the directory, the layers are the same and imports only point down: `lib` < `stores` < `hooks` < `components` < `routes`. Type imports count. oxlint enforces the order per directory through the `no-restricted-imports` overrides in `.oxlintrc.json` (the globs match a feature's `lib/` the same as the top-level one), so a `lib/` module cannot import a type from a hook and a component cannot import a route's `Route` object.
 
-- **`lib/`**: pure logic and the types it needs. Nothing from React, nothing from a store, no server functions. Query keys live in the owning feature's `lib/<feature>-query-keys.ts`, one exported const per group (`decksKeys`, `adminKeys`), with `src/lib/query-keys.ts` keeping only the groups no feature owns.
+- **`lib/`**: pure logic and the types it needs, plus the `queryOptions` factories a route loader reads and the server functions they call (`lib/<name>-queries.ts`). Nothing from React, nothing from a store. Query keys live in the owning feature's `lib/<feature>-query-keys.ts`, one exported const per group (`decksKeys`, `adminKeys`), with `src/lib/query-keys.ts` keeping only the groups no feature owns.
 - **`stores/`**: Zustand stores. A pure predicate or constant a store exports for others (`isLocalDeckId`) lives in `lib/` and the store imports it.
-- **`hooks/`**: React hooks, server functions and query options. A React context a hook consumes lives here; the provider component stays in `components/`.
+- **`hooks/`**: React hooks and mutations; they import their query options from `lib/`. A React context a hook consumes lives here; the provider component stays in `components/`.
 - **`components/`**: UI. The route object comes from `getRouteApi("/path")`, search-param types from `lib/`.
-- **`routes/`**: route definitions only: `createFileRoute` with its `validateSearch`, loaders, `head` and a one-line `component`. The page body is a component under `features/<feature>/components/`, and lint fails a route file over 300 lines. Every other source file has a 1,000-line ceiling; tests and migrations are exempt.
+- **`routes/`**: route definitions only: `createFileRoute` with its `validateSearch`, loaders, `head` and a one-line `component`. The page body is a component under `features/<feature>/components/`, and lint fails a route file over 300 lines. Every other source file has a 1,000-line ceiling; tests and migrations are exempt. A non-lazy route file never imports from a `hooks/` directory: the route tree imports every one of them, so whatever they import ships in the entry chunk on every page. Only `.lazy.tsx` files and `__root.tsx` may use hooks.
 
 When the rule fires, move the definition down to the layer that needs it and update every importer. Never leave a re-export behind as a shim, and never move a module up just to silence the rule unless it belongs there (a `lib/` module that writes to a store is a store action, not lib).
 

@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, isoDateTime, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 import { slugRegex } from "./shared.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Admin - Custom Tags";
 
@@ -38,19 +35,15 @@ export const customTagCategorySchema = z.object({
   updatedAt: isoDateTime,
 });
 
-export const adminCustomTagListResponseSchema = z
-  .object({ tags: z.array(customTagSchema) })
-  .openapi("AdminCustomTagListResponse");
+export const adminCustomTagListResponseSchema = z.object({ tags: z.array(customTagSchema) });
 
-export const adminCustomTagCategoryListResponseSchema = z
-  .object({ categories: z.array(customTagCategorySchema) })
-  .openapi("AdminCustomTagCategoryListResponse");
+export const adminCustomTagCategoryListResponseSchema = z.object({
+  categories: z.array(customTagCategorySchema),
+});
 
-export const adminCustomTagAssignmentsResponseSchema = z
-  .object({
-    assignments: z.record(z.string(), z.array(z.string())),
-  })
-  .openapi("AdminCustomTagAssignmentsResponse");
+export const adminCustomTagAssignmentsResponseSchema = z.object({
+  assignments: z.record(z.string(), z.array(z.string())),
+});
 
 const createCustomTagCategoryInput = z.object({
   slug: z.string().min(1).regex(slugRegex, "Slug must be kebab-case (e.g. region)"),

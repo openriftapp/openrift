@@ -2,8 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
-import { decksQueryOptions } from "@/features/decks/hooks/use-decks";
 import { deckListSearchSchema } from "@/features/decks/lib/deck-list-search";
+import { decksQueryOptions } from "@/features/decks/lib/decks-queries";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

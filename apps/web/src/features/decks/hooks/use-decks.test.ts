@@ -3,7 +3,8 @@ import { renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler:
@@ -34,7 +35,8 @@ vi.mock("@/lib/auth-session", () => ({
   useUserId: () => currentUserId,
 }));
 
-const { deckDetailQueryOptions, deleteDeckFn, useDeleteDeck } = await import("./use-decks");
+const { deckDetailQueryOptions } = await import("@/features/decks/lib/decks-queries");
+const { deleteDeckFn, useDeleteDeck } = await import("./use-decks");
 
 describe("deckDetailQueryOptions", () => {
   afterEach(() => {

@@ -4,7 +4,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
-import { publicListQueryOptions } from "@/features/lists/hooks/use-lists";
+import { publicListQueryOptions } from "@/features/lists/lib/lists-queries";
 import { seoHead } from "@/lib/seo";
 import { listShareImageUrl, shareImageVersion } from "@/lib/share-image";
 import { getSiteUrl } from "@/lib/site-config";

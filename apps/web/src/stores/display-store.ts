@@ -9,6 +9,7 @@ import {
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { setPreferredCatalogLanguages } from "@/features/cards/lib/catalog-languages";
 import type { DisplayMode, DisplayOverrides, MetaDeckView } from "@/lib/sanitize-preferences";
 import {
   NULL_OVERRIDES,
@@ -243,3 +244,5 @@ if (typeof document !== "undefined") {
   applyFrostedBars(useDisplayStore.getState().frostedBars);
   useDisplayStore.subscribe((state) => applyFrostedBars(state.frostedBars));
 }
+
+setPreferredCatalogLanguages(() => useDisplayStore.getState().languages);

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import type { MetaEra } from "@/features/meta/lib/meta-scope";
 import { deriveSetEras } from "@/features/meta/lib/meta-scope";
 

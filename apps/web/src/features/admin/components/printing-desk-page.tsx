@@ -40,7 +40,6 @@ import {
   DeskThumb,
 } from "@/features/admin/components/printing-desk-shared";
 import { useIsAdmin } from "@/features/admin/hooks/use-admin";
-import type { DeskListMode } from "@/features/admin/hooks/use-printing-desk";
 import { useDeskPrintings } from "@/features/admin/hooks/use-printing-desk";
 import {
   buildPrintingDeskCsv,
@@ -52,6 +51,7 @@ import {
   imageCountText,
   sortDeskPrintings,
 } from "@/features/admin/lib/printing-desk-filter";
+import type { DeskListMode } from "@/features/admin/lib/printing-desk-queries";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { downloadCSV } from "@/features/collections/lib/csv-export";

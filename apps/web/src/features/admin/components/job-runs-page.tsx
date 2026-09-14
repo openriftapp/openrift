@@ -24,14 +24,14 @@ import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar"
 import { AdminPager } from "@/features/admin/components/admin-pager";
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
-import {
-  jobRunsParamsFromSearch,
-  jobRunsRefreshIntervalMs,
-  useAdminJobRuns,
-} from "@/features/admin/hooks/use-job-runs";
+import { useAdminJobRuns } from "@/features/admin/hooks/use-job-runs";
 import type { JobRunsSearch } from "@/features/admin/lib/admin-job-runs-search";
 import { ADMIN_TABLE_CLASS } from "@/features/admin/lib/admin-table-styles";
 import { summarizeRunResult } from "@/features/admin/lib/job-run-display";
+import {
+  jobRunsParamsFromSearch,
+  jobRunsRefreshIntervalMs,
+} from "@/features/admin/lib/job-runs-queries";
 import { useCancelRegenerateImages } from "@/hooks/use-rehost";
 import { formatDuration } from "@/lib/format-duration";
 import type { JobRunView } from "@/lib/server-fns/api-types";

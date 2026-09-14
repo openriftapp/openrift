@@ -1,7 +1,7 @@
 import { DEFAULT_DOMAIN_COLORS } from "@openrift/shared/domain-colors";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 
 export function useDomainColors(): Record<string, string> {
   const { data } = useSuspenseQuery(initQueryOptions);

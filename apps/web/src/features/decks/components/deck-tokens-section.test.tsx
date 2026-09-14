@@ -8,7 +8,7 @@ import { CatalogSubsetProvider } from "@/features/cards/components/catalog-subse
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { DeckTokensSection } from "@/features/decks/components/deck-tokens-section";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 import { stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 

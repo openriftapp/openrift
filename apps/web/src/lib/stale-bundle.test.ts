@@ -19,6 +19,7 @@ import {
   reloadIfUncaughtBareThrow,
   STALE_SERVER_FN_ERROR_PATTERN,
 } from "./stale-bundle-reload";
+import { loadSonner } from "./toast";
 
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 
@@ -39,7 +40,8 @@ function lastToastAction(): { label: string; onClick: () => void } {
   return options.action;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await loadSonner();
   _resetReloadFlagForTesting();
   reloadSpy.mockReset();
   vi.mocked(toast).mockClear();
@@ -65,7 +67,7 @@ describe("initStaleBundleWatcher", () => {
     await globalThis.fetch("/api/v1/cards");
 
     expect(reloadSpy).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
   });
 
   test("the toast's Reload action triggers the reload", async () => {
@@ -75,6 +77,7 @@ describe("initStaleBundleWatcher", () => {
     initStaleBundleWatcher();
 
     await globalThis.fetch("/api/v1/cards");
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     lastToastAction().onClick();
 
     expect(reloadSpy).toHaveBeenCalledTimes(1);

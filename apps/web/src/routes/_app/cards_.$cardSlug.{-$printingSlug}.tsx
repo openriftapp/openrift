@@ -9,16 +9,16 @@ import { z } from "zod";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cardDetailQueryOptions } from "@/features/cards/hooks/use-card-detail";
-import { fetchPricesForSeo, pricesQueryOptions } from "@/features/cards/hooks/use-prices";
+import { cardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import type { CardMarketplaceOffer } from "@/features/cards/lib/card-meta";
 import {
   buildCardMetaDescription,
   getCardFrontImageFullUrl,
   resolveCardMetaPrinting,
 } from "@/features/cards/lib/card-meta";
-import { effectiveLanguageOrder } from "@/hooks/use-effective-language-order";
-import { initQueryOptions } from "@/hooks/use-init";
+import { fetchPricesForSeo, pricesQueryOptions } from "@/features/cards/lib/prices-queries";
+import { initQueryOptions } from "@/lib/init-queries";
+import { effectiveLanguageOrder } from "@/lib/language-order";
 import { breadcrumbJsonLd, productJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";

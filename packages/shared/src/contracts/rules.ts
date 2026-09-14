@@ -1,8 +1,5 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 /** Which rulebook a rule belongs to. Mirrors the `rules.kind` CHECK. */
 export const RULE_KINDS = ["core", "tournament"] as const;
@@ -16,24 +13,27 @@ export const ruleTypeSchema = z.enum(RULE_TYPES);
 export const ruleChangeTypeSchema = z.enum(RULE_CHANGE_TYPES);
 
 export const ruleResponseSchema = z.object({
-  id: z.string().openapi({ example: "019cfc3b-0369-7000-8000-000000000100" }),
+  id: z.string().meta({ examples: ["019cfc3b-0369-7000-8000-000000000100"] }),
   kind: ruleKindSchema,
-  version: z.string().openapi({ example: "1.2.0" }),
-  ruleNumber: z.string().openapi({ example: "3.4.1" }),
-  sortOrder: z.number().openapi({ example: 120 }),
-  depth: z.number().openapi({ example: 2 }),
+  version: z.string().meta({ examples: ["1.2.0"] }),
+  ruleNumber: z.string().meta({ examples: ["3.4.1"] }),
+  sortOrder: z.number().meta({ examples: [120] }),
+  depth: z.number().meta({ examples: [2] }),
   ruleType: ruleTypeSchema,
-  content: z.string().openapi({
-    example: "A player loses the game if they would draw a card from an empty deck.",
+  content: z.string().meta({
+    examples: ["A player loses the game if they would draw a card from an empty deck."],
   }),
   changeType: ruleChangeTypeSchema,
 });
 
 export const ruleVersionResponseSchema = z.object({
   kind: ruleKindSchema,
-  version: z.string().openapi({ example: "1.2.0" }),
-  comments: z.string().nullable().openapi({ example: "First public release." }),
-  importedAt: z.string().openapi({ example: "2026-02-16T08:30:00Z" }),
+  version: z.string().meta({ examples: ["1.2.0"] }),
+  comments: z
+    .string()
+    .nullable()
+    .meta({ examples: ["First public release."] }),
+  importedAt: z.string().meta({ examples: ["2026-02-16T08:30:00Z"] }),
 });
 
 export const ruleChangesResponseSchema = z.object({
@@ -42,18 +42,16 @@ export const ruleChangesResponseSchema = z.object({
   removed: z.array(ruleResponseSchema),
 });
 
-export const rulesListResponseSchema = z
-  .object({
-    kind: ruleKindSchema,
-    rules: z.array(ruleResponseSchema),
-    version: z.string(),
-    changes: ruleChangesResponseSchema.optional(),
-  })
-  .openapi("RulesListResponse");
+export const rulesListResponseSchema = z.object({
+  kind: ruleKindSchema,
+  rules: z.array(ruleResponseSchema),
+  version: z.string(),
+  changes: ruleChangesResponseSchema.optional(),
+});
 
-export const ruleVersionsListResponseSchema = z
-  .object({ versions: z.array(ruleVersionResponseSchema) })
-  .openapi("RuleVersionsListResponse");
+export const ruleVersionsListResponseSchema = z.object({
+  versions: z.array(ruleVersionResponseSchema),
+});
 
 export const rulesContract = {
   list: oc

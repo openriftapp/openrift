@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MetaDateRange } from "@/features/meta/lib/meta-scope";
 
-import { optionalQuery } from "./use-meta";
+import { optionalQuery } from "./meta-queries";
 
 describe("optionalQuery", () => {
   it("resolves a payload-less call to an empty query", () => {

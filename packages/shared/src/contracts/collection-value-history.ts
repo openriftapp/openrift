@@ -1,9 +1,6 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const CSV_MAX_CHARS = 2000;
 
@@ -67,22 +64,26 @@ export const collectionValueHistoryQuerySchema = z.object({
   errata: z.enum(["true", "false"]).optional(),
 });
 
-export const collectionValueHistoryResponseSchema = z
-  .object({
-    series: z.array(
-      z.object({
-        date: z.string().openapi({ example: "2026-03-15" }),
-        valueCents: z.number().int().openapi({ example: 125_000, description: "Integer cents" }),
-        baselineValueCents: z.number().int().openapi({
-          example: 118_000,
+export const collectionValueHistoryResponseSchema = z.object({
+  series: z.array(
+    z.object({
+      date: z.string().meta({ examples: ["2026-03-15"] }),
+      valueCents: z
+        .number()
+        .int()
+        .meta({ examples: [125_000], description: "Integer cents" }),
+      baselineValueCents: z
+        .number()
+        .int()
+        .meta({
+          examples: [118_000],
           description:
             "Integer cents. The same day's holdings valued at the prices in effect on the first day of the requested range, so the gap to valueCents is price movement alone.",
         }),
-        copyCount: z.number().openapi({ example: 42 }),
-      }),
-    ),
-  })
-  .openapi("CollectionValueHistoryResponse");
+      copyCount: z.number().meta({ examples: [42] }),
+    }),
+  ),
+});
 
 export const collectionValueHistoryContract = {
   get: authedRoute

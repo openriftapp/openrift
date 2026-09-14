@@ -3,9 +3,9 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/components/error-message";
 import { META_DECKS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import { metaDeckSearchSchema } from "@/features/meta/lib/meta-deck-search";
-import { initQueryOptions } from "@/hooks/use-init";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
+import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

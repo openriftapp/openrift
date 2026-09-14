@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { deskCardPrintingsQueryOptions } from "@/features/admin/hooks/use-printing-desk";
-import { initQueryOptions } from "@/hooks/use-init";
-import { adminMarkersQueryOptions } from "@/hooks/use-markers";
+import { deskCardPrintingsQueryOptions } from "@/features/admin/lib/printing-desk-queries";
+import { initQueryOptions } from "@/lib/init-queries";
+import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/printing-desk_/cards/$cardSlug")({

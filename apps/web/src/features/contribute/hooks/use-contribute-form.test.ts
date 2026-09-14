@@ -45,6 +45,46 @@ describe("useContributeForm", () => {
     expect(reset).not.toHaveBeenCalled();
   });
 
+  it("starts clean and turns dirty on the first edit", () => {
+    const { result } = renderHook(() => useContributeForm({ initial: emptyFormState() }));
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setCardField("name", "Ahri");
+    });
+
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("treats a note alone as unsaved work", () => {
+    const { result } = renderHook(() => useContributeForm({ initial: emptyFormState() }));
+
+    act(() => {
+      result.current.setNote("Spotted in OGN.");
+    });
+
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("is clean again after a prefill and after a successful submission", () => {
+    const { result, rerender } = renderHook(() => useContributeForm({ initial: emptyFormState() }));
+
+    act(() => {
+      result.current.setCardField("name", "Ahri");
+    });
+    act(() => {
+      result.current.prefillFromExisting(emptyFormState());
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setCardField("name", "Ahri");
+    });
+    submit.isSuccess = true;
+    rerender();
+    expect(result.current.isDirty).toBe(false);
+  });
+
   it("resets the mutation and the draft when starting another card", () => {
     const { result } = renderHook(() => useContributeForm({ initial: emptyFormState() }));
 

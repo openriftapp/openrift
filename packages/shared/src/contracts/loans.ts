@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const LOAN_STATUSES = ["active", "returned", "written_off"] as const;
 
@@ -32,57 +29,47 @@ export const writeOffLoanSchema = z.object({
   removeCopies: z.boolean(),
 });
 
-export const loanCounterpartySchema = z
-  .object({
-    userId: z.string(),
-    name: z.string().nullable(),
-    image: z.string().nullable(),
-    gravatarHash: z.string(),
-  })
-  .openapi("LoanCounterparty");
+export const loanCounterpartySchema = z.object({
+  userId: z.string(),
+  name: z.string().nullable(),
+  image: z.string().nullable(),
+  gravatarHash: z.string(),
+});
 
-export const loanResponseSchema = z
-  .object({
-    id: z.string(),
-    /** The viewer's side: `lender` owns the copies, `borrower` holds them. */
-    role: z.enum(["lender", "borrower"]),
-    /**
-     * For lender rows, the member borrower; for borrower rows, always the
-     * lender. Null with `counterpartyName` set means a departed member borrower.
-     */
-    counterparty: loanCounterpartySchema.nullable(),
-    /** Free-text borrower name (lender-role rows only). */
-    counterpartyName: z.string().nullable(),
-    printingId: z.string(),
-    cardId: z.string(),
-    quantity: z.number().int().positive(),
-    returnedQuantity: z.number().int().nonnegative(),
-    status: loanStatusSchema,
-    acknowledgedAt: z.string().nullable(),
-    rejectedAt: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    closedAt: z.string().nullable(),
-    /** `acknowledge` when the viewer is an unconfirmed member borrower. */
-    actionNeeded: z.enum(["acknowledge"]).nullable(),
-  })
-  .openapi("LoanResponse");
+export const loanResponseSchema = z.object({
+  id: z.string(),
+  /** The viewer's side: `lender` owns the copies, `borrower` holds them. */
+  role: z.enum(["lender", "borrower"]),
+  /**
+   * For lender rows, the member borrower; for borrower rows, always the
+   * lender. Null with `counterpartyName` set means a departed member borrower.
+   */
+  counterparty: loanCounterpartySchema.nullable(),
+  /** Free-text borrower name (lender-role rows only). */
+  counterpartyName: z.string().nullable(),
+  printingId: z.string(),
+  cardId: z.string(),
+  quantity: z.number().int().positive(),
+  returnedQuantity: z.number().int().nonnegative(),
+  status: loanStatusSchema,
+  acknowledgedAt: z.string().nullable(),
+  rejectedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  closedAt: z.string().nullable(),
+  /** `acknowledge` when the viewer is an unconfirmed member borrower. */
+  actionNeeded: z.enum(["acknowledge"]).nullable(),
+});
 
-export const loanListResponseSchema = z
-  .object({ items: z.array(loanResponseSchema) })
-  .openapi("LoanListResponse");
+export const loanListResponseSchema = z.object({ items: z.array(loanResponseSchema) });
 
-export const loanActionCountsResponseSchema = z
-  .object({ total: z.number().int().nonnegative() })
-  .openapi("LoanActionCountsResponse");
+export const loanActionCountsResponseSchema = z.object({ total: z.number().int().nonnegative() });
 
 /** Borrower-picker data: co-members across the viewer's groups + past free-text names. */
-export const loanBorrowerOptionsResponseSchema = z
-  .object({
-    members: z.array(loanCounterpartySchema),
-    recentNames: z.array(z.string()),
-  })
-  .openapi("LoanBorrowerOptionsResponse");
+export const loanBorrowerOptionsResponseSchema = z.object({
+  members: z.array(loanCounterpartySchema),
+  recentNames: z.array(z.string()),
+});
 
 const TAG = "Loans";
 
@@ -144,7 +131,7 @@ export const loansContract = {
     .errors({
       NOT_FOUND: { message: "Loan not found" },
     })
-    .output(z.object({ deleted: z.boolean() }).openapi("LoanDeleteResponse")),
+    .output(z.object({ deleted: z.boolean() })),
 };
 
 export type LoansContract = typeof loansContract;

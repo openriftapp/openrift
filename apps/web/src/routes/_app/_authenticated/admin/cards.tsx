@@ -3,15 +3,15 @@ import { z } from "zod";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminAccessQueryOptions } from "@/features/admin/hooks/use-admin";
 import {
   adminCardListQueryOptions,
   allCardsQueryOptions,
-} from "@/features/admin/hooks/use-admin-card-queries";
-import { providerSettingsQueryOptions } from "@/features/admin/hooks/use-provider-settings";
-import { unifiedMappingsQueryOptions } from "@/features/admin/hooks/use-unified-mappings";
+} from "@/features/admin/lib/admin-card-queries";
+import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
 import { CARD_ISSUES } from "@/features/admin/lib/card-attention";
-import { setsQueryOptions } from "@/features/cards/hooks/use-sets";
+import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
+import { unifiedMappingsQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/cards")({

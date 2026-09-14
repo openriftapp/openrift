@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminDeckFormatsQueryOptions } from "@/features/decks/hooks/use-deck-formats";
+import { adminDeckFormatsQueryOptions } from "@/features/decks/lib/deck-formats-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/deck-formats")({

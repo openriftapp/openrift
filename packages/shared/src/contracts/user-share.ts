@@ -1,13 +1,11 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 
-extendZodWithOpenApi(z);
-
-export const userShareStateResponseSchema = z
-  .object({ shareToken: z.string().nullable(), isPublic: z.boolean() })
-  .openapi("UserShareStateResponse");
+export const userShareStateResponseSchema = z.object({
+  shareToken: z.string().nullable(),
+  isPublic: z.boolean(),
+});
 
 export const userShareContract = {
   get: authedRoute

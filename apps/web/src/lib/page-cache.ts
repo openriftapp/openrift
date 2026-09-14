@@ -1,18 +1,9 @@
-import hankenGroteskLatinWoff2 from "@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2?url";
-
+// oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
+import "@tanstack/react-start/server-only";
 import { baseLocale, cookieName } from "@/paraglide/runtime.js";
-
-import indexCss from "@/index.css?url";
 
 const PUBLIC_PAGE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
 const PRIVATE_PAGE_CACHE_CONTROL = "private, no-cache";
-
-// Bare `crossorigin` (no `=anonymous`) is the canonical RFC 8288 form for
-// fonts; a quoted attribute value trips stricter parsers.
-const PRELOAD_LINKS = [
-  `<${indexCss}>; rel=preload; as=style`,
-  `<${hankenGroteskLatinWoff2}>; rel=preload; as=font; type="font/woff2"; crossorigin`,
-];
 
 // Keep in sync with deploy.sh.example's purge_cloudflare_cache() prefix list.
 const EXACT_PATHS = new Set([
@@ -85,11 +76,6 @@ export function applyPageCacheControl(request: Request, response: Response): Res
 
   const headers = new Headers(response.headers);
   headers.set("Cache-Control", cacheControl);
-  if (response.status === 200) {
-    for (const link of PRELOAD_LINKS) {
-      headers.append("Link", link);
-    }
-  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

@@ -2,11 +2,11 @@ import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
+import { ruleKindTitle, VALID_RULE_KINDS } from "@/features/rules/lib/rules-kinds";
 import {
   rulesAtVersionQueryOptions,
   ruleVersionsQueryOptions,
-} from "@/features/rules/hooks/use-rules";
-import { ruleKindTitle, VALID_RULE_KINDS } from "@/features/rules/lib/rules-kinds";
+} from "@/features/rules/lib/rules-queries";
 import { rulesSearchSchema } from "@/features/rules/lib/rules-search-schema";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";

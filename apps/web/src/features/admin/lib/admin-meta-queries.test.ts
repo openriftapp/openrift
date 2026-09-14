@@ -4,7 +4,7 @@ import {
   adminMetaEventsQueryOptions,
   META_EVENT_SORT_FALLBACK,
   metaEventsParamsFromSearch,
-} from "./use-admin-meta";
+} from "./admin-meta-queries";
 
 describe("metaEventsParamsFromSearch", () => {
   it("resolves an empty search to the default first page", () => {

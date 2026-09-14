@@ -39,7 +39,6 @@ import type { DeckIdentity } from "@/features/decks/components/deck-mini-identit
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
-import { decksQueryOptions, deckDetailQueryOptions } from "@/features/decks/hooks/use-decks";
 import type { OwnDeckCard } from "@/features/decks/lib/deck-compare-sources";
 import {
   collectCompareDeckOptions,
@@ -48,6 +47,7 @@ import {
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import type { SideBySideRow } from "@/features/decks/lib/deck-side-by-side";
 import { alignDeckLists } from "@/features/decks/lib/deck-side-by-side";
+import { deckDetailQueryOptions, decksQueryOptions } from "@/features/decks/lib/decks-queries";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";

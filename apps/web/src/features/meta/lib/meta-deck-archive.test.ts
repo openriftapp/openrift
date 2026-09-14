@@ -1,12 +1,7 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import { describe, expect, it } from "vitest";
 
-import {
-  archivedDeckIdentity,
-  describeIncompleteList,
-  medalRank,
-  unknownZoneCounts,
-} from "./meta-deck-archive";
+import { describeIncompleteList, medalRank, unknownZoneCounts } from "./meta-deck-archive";
 
 function card(overrides: Partial<PublicDeckCardResponse> = {}): PublicDeckCardResponse {
   return {
@@ -43,38 +38,6 @@ const legend = card({
   cardTypes: ["legend"],
   tags: ["Volibear"],
   domains: ["fury", "body"],
-});
-
-describe("archivedDeckIdentity", () => {
-  it("names the legend champion-first with its slug and domains", () => {
-    expect(archivedDeckIdentity([legend, card()])).toEqual({
-      cardId: "legend-1",
-      name: "Volibear, Relentless Storm",
-      slug: "relentless-storm",
-      domains: ["fury", "body"],
-    });
-  });
-
-  it("falls back to the chosen champion when the legend was never published", () => {
-    const champion = card({
-      cardId: "champ-1",
-      zone: "champion",
-      cardName: "Volibear, Thunder's Roar",
-      cardSlug: "volibear-thunders-roar",
-      cardType: "unit",
-      cardTypes: ["unit"],
-      tags: ["Volibear"],
-    });
-    expect(archivedDeckIdentity([champion, card()])?.name).toBe("Volibear, Thunder's Roar");
-  });
-
-  it("returns null when neither identity zone holds a card", () => {
-    expect(archivedDeckIdentity([card()])).toBeNull();
-  });
-
-  it("returns null for an empty list", () => {
-    expect(archivedDeckIdentity([])).toBeNull();
-  });
 });
 
 describe("unknownZoneCounts", () => {

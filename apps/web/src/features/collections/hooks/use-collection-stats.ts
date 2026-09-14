@@ -17,7 +17,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useStackedCopies } from "@/features/collections/hooks/use-stacked-copies";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";

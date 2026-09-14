@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Heading } from "@/components/heading";
 import { PageToc } from "@/components/layout/page-toc";
 import { Input } from "@/components/ui/input";
-import { publicSetListQueryOptions } from "@/features/cards/hooks/use-public-sets";
+import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import {
   ArtVariantsSection,
   BoosterPacksSection,
@@ -25,7 +25,7 @@ import {
 import { KEYWORD_INFO } from "@/features/rules/lib/glossary";
 import type { KeywordRow, SetEntry } from "@/features/rules/lib/glossary-content";
 import { useMarkerList } from "@/hooks/use-enums";
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 

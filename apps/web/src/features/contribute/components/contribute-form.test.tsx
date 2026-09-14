@@ -12,6 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
+  useBlocker: () => ({ status: "idle" }),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock

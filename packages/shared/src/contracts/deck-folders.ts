@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const createDeckFolderSchema = z.object({
   name: z.string().min(1).max(100),
@@ -24,20 +21,16 @@ export const setDeckFoldersSchema = z.object({
   folderIds: z.array(z.uuid()).max(100),
 });
 
-export const deckFolderResponseSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    sortOrder: z.number().int(),
-    deckCount: z.number().int().nonnegative(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .openapi("DeckFolderResponse");
+export const deckFolderResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sortOrder: z.number().int(),
+  deckCount: z.number().int().nonnegative(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export const deckFolderListResponseSchema = z
-  .object({ items: z.array(deckFolderResponseSchema) })
-  .openapi("DeckFolderListResponse");
+export const deckFolderListResponseSchema = z.object({ items: z.array(deckFolderResponseSchema) });
 
 const TAG = "Deck folders";
 

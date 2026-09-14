@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { userTradesQueryOptions } from "@/features/groups/hooks/use-card-trades";
+import { userTradesQueryOptions } from "@/features/groups/lib/card-trades-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 

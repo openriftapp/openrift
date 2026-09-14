@@ -285,6 +285,10 @@ export default defineConfig(({ mode, command }) => {
                 name: "better-auth",
               },
               {
+                test: /node_modules\/(?:@base-ui\/react\/(?:navigation-menu|menu|popover|avatar|separator|button|dialog|drawer|merge-props|use-render|utils|internals|floating-ui-react)|@base-ui\/utils|@floating-ui)\//u,
+                name: "base-ui-shell",
+              },
+              {
                 test: /node_modules\/(?:@base-ui|@floating-ui)/u,
                 name: "base-ui",
               },

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   copyLinkSchema,
   copyListResponseSchema,
@@ -8,8 +7,6 @@ import { copiesQuerySchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 // Field pairing mirrors the `copies` table check constraints.
 const copyMetadataInputShape = {
@@ -92,22 +89,18 @@ export const copyListMembershipsSchema = z.object({
   excludeListId: z.uuid().optional(),
 });
 
-export const copyAddResponseSchema = z
-  .object({ items: z.array(copyResponseSchema) })
-  .openapi("CopyAddResponse");
+export const copyAddResponseSchema = z.object({ items: z.array(copyResponseSchema) });
 
-export const copyListMembershipsResponseSchema = z
-  .object({
-    lists: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        copyCount: z.number().int().nonnegative(),
-      }),
-    ),
-    copiesOnAnyList: z.number().int().nonnegative(),
-  })
-  .openapi("CopyListMembershipsResponse");
+export const copyListMembershipsResponseSchema = z.object({
+  lists: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      copyCount: z.number().int().nonnegative(),
+    }),
+  ),
+  copiesOnAnyList: z.number().int().nonnegative(),
+});
 
 export const copiesContract = {
   list: authedRoute

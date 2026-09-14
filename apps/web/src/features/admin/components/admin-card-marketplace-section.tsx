@@ -14,7 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IgnoredProductsNote } from "@/features/admin/components/ignored-products-note";
 import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
 import {
-  unifiedMappingsForCardQueryOptions,
   useUnifiedAssignToCard,
   useUnifiedIgnoreProducts,
   useUnifiedIgnoreVariants,
@@ -22,6 +21,7 @@ import {
   useUnifiedUnassignFromCard,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 
 import type { MarketplaceHandlers } from "./marketplace-product-entries";
 import { collectStrongMappings, collectWeakMappings } from "./marketplace-product-entries";

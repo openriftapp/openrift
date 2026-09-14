@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 import { productSlugSchema, productSummarySchema } from "../products.js";
-
-extendZodWithOpenApi(z);
 
 const TAG = "Admin - Products";
 

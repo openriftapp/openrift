@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminCardDetailQueryOptions } from "@/features/admin/hooks/use-admin-card-queries";
-import { setsQueryOptions } from "@/features/cards/hooks/use-sets";
-import { initQueryOptions } from "@/hooks/use-init";
-import { adminLanguagesQueryOptions } from "@/hooks/use-languages";
-import { adminMarkersQueryOptions } from "@/hooks/use-markers";
+import { adminCardDetailQueryOptions } from "@/features/admin/lib/admin-card-queries";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
+import { initQueryOptions } from "@/lib/init-queries";
+import { adminLanguagesQueryOptions } from "@/lib/languages-queries";
+import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 interface CreatePrintingSearch {

@@ -2,7 +2,7 @@ import type { ListDetailResponse } from "@openrift/shared/types/api/list";
 import { useQueries, useQuery } from "@tanstack/react-query";
 
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
-import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/hooks/use-lists";
+import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { useUserId } from "@/lib/auth-session";
 
 /** The viewer's wish-list membership, queried for highlighting + post-take cleanup. */

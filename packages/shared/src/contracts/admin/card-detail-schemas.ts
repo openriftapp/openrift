@@ -1,10 +1,7 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { imageQuadSchema } from "@openrift/shared/contracts/admin/card-images";
 import { cardFaceSchema } from "@openrift/shared/response-schemas";
 import { marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
-
-extendZodWithOpenApi(z);
 
 /**
  * The public catalog wire carries only the two overriding modes, because
@@ -12,194 +9,172 @@ extendZodWithOpenApi(z);
  */
 export const fallbackArtModeSchema = z.enum(["auto", "pinned", "none"]);
 
-export const cardErrataSchema = z
-  .object({
-    correctedRulesText: z.string().nullable(),
-    correctedEffectText: z.string().nullable(),
-    source: z.string(),
-    sourceUrl: z.string().nullable(),
-    effectiveDate: z.string().nullable(),
-  })
-  .openapi("CardErrata");
+export const cardErrataSchema = z.object({
+  correctedRulesText: z.string().nullable(),
+  correctedEffectText: z.string().nullable(),
+  source: z.string(),
+  sourceUrl: z.string().nullable(),
+  effectiveDate: z.string().nullable(),
+});
 
-export const adminCardResponseSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    types: z.array(z.string()),
-    superTypes: z.array(z.string()),
-    domains: z.array(z.string()),
-    might: z.number().nullable(),
-    energy: z.number().nullable(),
-    power: z.number().nullable(),
-    mightBonus: z.number().nullable(),
-    keywords: z.array(z.string()),
-    errata: cardErrataSchema.nullable(),
-    tags: z.array(z.string()),
-    maxCopiesOverride: z.number().nullable(),
-    comment: z.string().nullable(),
-  })
-  .openapi("AdminCardResponse");
+export const adminCardResponseSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  types: z.array(z.string()),
+  superTypes: z.array(z.string()),
+  domains: z.array(z.string()),
+  might: z.number().nullable(),
+  energy: z.number().nullable(),
+  power: z.number().nullable(),
+  mightBonus: z.number().nullable(),
+  keywords: z.array(z.string()),
+  errata: cardErrataSchema.nullable(),
+  tags: z.array(z.string()),
+  maxCopiesOverride: z.number().nullable(),
+  comment: z.string().nullable(),
+});
 
-export const candidateCardResponseSchema = z
-  .object({
-    id: z.string(),
-    provider: z.string(),
-    externalId: z.string(),
-    shortCode: z.string().nullable(),
-    energy: z.number().nullable(),
-    power: z.number().nullable(),
-    might: z.number().nullable(),
-    superTypes: z.array(z.string()),
-    types: z.array(z.string()),
-    name: z.string(),
-    domains: z.array(z.string()),
-    rulesText: z.string().nullable(),
-    effectText: z.string().nullable(),
-    mightBonus: z.number().nullable(),
-    tags: z.array(z.string()),
-    extraData: z.unknown().nullable(),
-    checkedAt: z.string().nullable(),
-    submittedByUserId: z.string().nullable(),
-    submittedByName: z.string().nullable(),
-    submissionNote: z.string().nullable(),
-  })
-  .openapi("CandidateCardResponse");
+export const candidateCardResponseSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  externalId: z.string(),
+  shortCode: z.string().nullable(),
+  energy: z.number().nullable(),
+  power: z.number().nullable(),
+  might: z.number().nullable(),
+  superTypes: z.array(z.string()),
+  types: z.array(z.string()),
+  name: z.string(),
+  domains: z.array(z.string()),
+  rulesText: z.string().nullable(),
+  effectText: z.string().nullable(),
+  mightBonus: z.number().nullable(),
+  tags: z.array(z.string()),
+  extraData: z.unknown().nullable(),
+  checkedAt: z.string().nullable(),
+  submittedByUserId: z.string().nullable(),
+  submittedByName: z.string().nullable(),
+  submissionNote: z.string().nullable(),
+});
 
-export const candidatePrintingResponseSchema = z
-  .object({
-    id: z.string(),
-    candidateCardId: z.string(),
-    printingId: z.string().nullable(),
-    shortCode: z.string(),
-    setId: z.string().nullable(),
-    setName: z.string().nullable(),
-    rarity: z.string().nullable(),
-    artVariant: z.string().nullable(),
-    isSigned: z.boolean().nullable(),
-    isOvernumbered: z.boolean().nullable(),
-    markerSlugs: z.array(z.string()),
-    distributionChannelSlugs: z.array(z.string()),
-    finish: z.string().nullable(),
-    size: z.string().nullable(),
-    artist: z.string().nullable(),
-    publicCode: z.string().nullable(),
-    printedRulesText: z.string().nullable(),
-    printedEffectText: z.string().nullable(),
-    imageUrl: z.string().nullable(),
-    flavorText: z.string().nullable(),
-    externalId: z.string(),
-    extraData: z.unknown().nullable(),
-    language: z.string().nullable(),
-    printedName: z.string().nullable(),
-    printedYear: z.number().nullable(),
-    checkedAt: z.string().nullable(),
-  })
-  .openapi("CandidatePrintingResponse");
+export const candidatePrintingResponseSchema = z.object({
+  id: z.string(),
+  candidateCardId: z.string(),
+  printingId: z.string().nullable(),
+  shortCode: z.string(),
+  setId: z.string().nullable(),
+  setName: z.string().nullable(),
+  rarity: z.string().nullable(),
+  artVariant: z.string().nullable(),
+  isSigned: z.boolean().nullable(),
+  isOvernumbered: z.boolean().nullable(),
+  markerSlugs: z.array(z.string()),
+  distributionChannelSlugs: z.array(z.string()),
+  finish: z.string().nullable(),
+  size: z.string().nullable(),
+  artist: z.string().nullable(),
+  publicCode: z.string().nullable(),
+  printedRulesText: z.string().nullable(),
+  printedEffectText: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  flavorText: z.string().nullable(),
+  externalId: z.string(),
+  extraData: z.unknown().nullable(),
+  language: z.string().nullable(),
+  printedName: z.string().nullable(),
+  printedYear: z.number().nullable(),
+  checkedAt: z.string().nullable(),
+});
 
-export const candidatePrintingGroupResponseSchema = z
-  .object({
-    mostCommonShortCode: z.string(),
-    shortCodes: z.array(z.string()),
-    expectedPrintingId: z.string(),
-    language: z.string().nullable(),
-    suggestedPrintingId: z.string().nullable(),
-  })
-  .openapi("CandidatePrintingGroupResponse");
+export const candidatePrintingGroupResponseSchema = z.object({
+  mostCommonShortCode: z.string(),
+  shortCodes: z.array(z.string()),
+  expectedPrintingId: z.string(),
+  language: z.string().nullable(),
+  suggestedPrintingId: z.string().nullable(),
+});
 
-export const adminPrintingImageResponseSchema = z
-  .object({
-    id: z.string(),
-    printingId: z.string(),
-    imageFileId: z.string(),
-    face: cardFaceSchema,
-    originalUrl: z.string().nullable(),
-    rehostedUrl: z.string().nullable(),
-    rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
-    needsTrim: z.boolean(),
-    quad: imageQuadSchema.nullable().optional(),
-    isActive: z.boolean(),
-  })
-  .openapi("AdminPrintingImageResponse");
+export const adminPrintingImageResponseSchema = z.object({
+  id: z.string(),
+  printingId: z.string(),
+  imageFileId: z.string(),
+  face: cardFaceSchema,
+  originalUrl: z.string().nullable(),
+  rehostedUrl: z.string().nullable(),
+  rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
+  needsTrim: z.boolean(),
+  quad: imageQuadSchema.nullable().optional(),
+  isActive: z.boolean(),
+});
 
-export const adminPrintingDistributionChannelResponseSchema = z
-  .object({
-    channelId: z.string(),
-    channelSlug: z.string(),
-    distributionNote: z.string().nullable(),
-  })
-  .openapi("AdminPrintingDistributionChannelResponse");
+export const adminPrintingDistributionChannelResponseSchema = z.object({
+  channelId: z.string(),
+  channelSlug: z.string(),
+  distributionNote: z.string().nullable(),
+});
 
-export const adminPrintingResponseSchema = z
-  .object({
-    id: z.string(),
-    cardId: z.string(),
-    setId: z.string(),
-    setName: z.string().nullable(),
-    setSlug: z.string(),
-    shortCode: z.string(),
-    rarity: z.string(),
-    artVariant: z.string(),
-    isSigned: z.boolean(),
-    isOvernumbered: z.boolean(),
-    markerSlugs: z.array(z.string()),
-    distributionChannelSlugs: z.array(z.string()),
-    markerIds: z.array(z.string()).optional(),
-    distributionChannels: z.array(adminPrintingDistributionChannelResponseSchema).optional(),
-    finish: z.string(),
-    size: z.string(),
-    artist: z.string(),
-    publicCode: z.string(),
-    printedRulesText: z.string().nullable(),
-    printedEffectText: z.string().nullable(),
-    flavorText: z.string().nullable(),
-    printedName: z.string().nullable(),
-    printedYear: z.number().nullable(),
-    language: z.string(),
-    comment: z.string().nullable(),
-    expectedPrintingId: z.string(),
-    canonicalRank: z.number(),
-    fallbackArtMode: fallbackArtModeSchema,
-    fallbackImageFileId: z.string().nullable(),
-  })
-  .openapi("AdminPrintingResponse");
+export const adminPrintingResponseSchema = z.object({
+  id: z.string(),
+  cardId: z.string(),
+  setId: z.string(),
+  setName: z.string().nullable(),
+  setSlug: z.string(),
+  shortCode: z.string(),
+  rarity: z.string(),
+  artVariant: z.string(),
+  isSigned: z.boolean(),
+  isOvernumbered: z.boolean(),
+  markerSlugs: z.array(z.string()),
+  distributionChannelSlugs: z.array(z.string()),
+  markerIds: z.array(z.string()).optional(),
+  distributionChannels: z.array(adminPrintingDistributionChannelResponseSchema).optional(),
+  finish: z.string(),
+  size: z.string(),
+  artist: z.string(),
+  publicCode: z.string(),
+  printedRulesText: z.string().nullable(),
+  printedEffectText: z.string().nullable(),
+  flavorText: z.string().nullable(),
+  printedName: z.string().nullable(),
+  printedYear: z.number().nullable(),
+  language: z.string(),
+  comment: z.string().nullable(),
+  expectedPrintingId: z.string(),
+  canonicalRank: z.number(),
+  fallbackArtMode: fallbackArtModeSchema,
+  fallbackImageFileId: z.string().nullable(),
+});
 
-export const adminPrintingMarketplaceMappingResponseSchema = z
-  .object({
-    targetPrintingId: z.string(),
-    marketplace: marketplaceEnum,
-    externalId: z.number(),
-    productName: z.string(),
-    finish: z.string(),
-    variantLanguage: z.string().nullable(),
-    ownerPrintingId: z.string(),
-    ownerLanguage: z.string(),
-  })
-  .openapi("AdminPrintingMarketplaceMappingResponse");
+export const adminPrintingMarketplaceMappingResponseSchema = z.object({
+  targetPrintingId: z.string(),
+  marketplace: marketplaceEnum,
+  externalId: z.number(),
+  productName: z.string(),
+  finish: z.string(),
+  variantLanguage: z.string().nullable(),
+  ownerPrintingId: z.string(),
+  ownerLanguage: z.string(),
+});
 
-export const adminCardDetailResponseSchema = z
-  .object({
-    card: adminCardResponseSchema.nullable(),
-    displayName: z.string(),
-    sources: z.array(candidateCardResponseSchema),
-    printings: z.array(adminPrintingResponseSchema),
-    candidatePrintings: z.array(candidatePrintingResponseSchema),
-    candidatePrintingGroups: z.array(candidatePrintingGroupResponseSchema),
-    expectedCardId: z.string(),
-    printingImages: z.array(adminPrintingImageResponseSchema),
-    setTotals: z.record(z.string(), z.number()),
-    marketplaceMappings: z.array(adminPrintingMarketplaceMappingResponseSchema),
-  })
-  .openapi("AdminCardDetailResponse");
+export const adminCardDetailResponseSchema = z.object({
+  card: adminCardResponseSchema.nullable(),
+  displayName: z.string(),
+  sources: z.array(candidateCardResponseSchema),
+  printings: z.array(adminPrintingResponseSchema),
+  candidatePrintings: z.array(candidatePrintingResponseSchema),
+  candidatePrintingGroups: z.array(candidatePrintingGroupResponseSchema),
+  expectedCardId: z.string(),
+  printingImages: z.array(adminPrintingImageResponseSchema),
+  setTotals: z.record(z.string(), z.number()),
+  marketplaceMappings: z.array(adminPrintingMarketplaceMappingResponseSchema),
+});
 
-export const unmatchedCardDetailResponseSchema = z
-  .object({
-    displayName: z.string(),
-    sources: z.array(candidateCardResponseSchema),
-    candidatePrintings: z.array(candidatePrintingResponseSchema),
-    candidatePrintingGroups: z.array(candidatePrintingGroupResponseSchema),
-    defaultCardId: z.string(),
-    setTotals: z.record(z.string(), z.number()),
-  })
-  .openapi("UnmatchedCardDetailResponse");
+export const unmatchedCardDetailResponseSchema = z.object({
+  displayName: z.string(),
+  sources: z.array(candidateCardResponseSchema),
+  candidatePrintings: z.array(candidatePrintingResponseSchema),
+  candidatePrintingGroups: z.array(candidatePrintingGroupResponseSchema),
+  defaultCardId: z.string(),
+  setTotals: z.record(z.string(), z.number()),
+});

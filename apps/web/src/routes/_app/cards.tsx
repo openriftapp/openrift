@@ -3,8 +3,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
-import { pricesQueryOptions } from "@/features/cards/hooks/use-prices";
 import type {
   AvailableFiltersWire,
   CardCounts,
@@ -20,11 +18,13 @@ import { fetchFirstRowCards } from "@/features/cards/lib/cards-first-row";
 import { cardsSearchSchema } from "@/features/cards/lib/cards-search-schema";
 import {
   catalogFetchUrl,
+  catalogQueryOptions,
   normalizeCatalogLangs,
   readCatalogVersionFromServerCache,
 } from "@/features/cards/lib/catalog-query";
+import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
-import { initQueryOptions } from "@/hooks/use-init";
+import { initQueryOptions } from "@/lib/init-queries";
 import { collectionPageJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";

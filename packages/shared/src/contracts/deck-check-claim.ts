@@ -1,22 +1,17 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { deckCheckClaimTokenParamSchema } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
-export const deckCheckClaimLandingResponseSchema = z
-  .object({
-    tournamentId: z.string(),
-    tournamentName: z.string(),
-    startsAt: z.string(),
-    hostName: z.string(),
-    hostType: z.enum(["user", "organization"]),
-    groupName: z.string().nullable(),
-    deckSubmission: z.enum(["none", "optional", "required"]),
-    participantName: z.string(),
-  })
-  .openapi("DeckCheckClaimLandingResponse");
+export const deckCheckClaimLandingResponseSchema = z.object({
+  tournamentId: z.string(),
+  tournamentName: z.string(),
+  startsAt: z.string(),
+  hostName: z.string(),
+  hostType: z.enum(["user", "organization"]),
+  groupName: z.string().nullable(),
+  deckSubmission: z.enum(["none", "optional", "required"]),
+  participantName: z.string(),
+});
 
 // Reveals the tournament and the spot's name, never the deck. The matching
 // claim POST stays in the authenticated player app.

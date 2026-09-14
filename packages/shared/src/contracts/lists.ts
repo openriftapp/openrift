@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   currencyResponseSchema,
   listEntryBaseShape,
@@ -25,8 +24,6 @@ import {
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 const listIntentSchema = z.enum(LIST_INTENTS);
 
@@ -154,67 +151,52 @@ const listResponseShape = {
   sidebarHidden: z.boolean(),
 };
 
-export const listResponseSchema = z.object(listResponseShape).openapi("ListResponse");
+export const listResponseSchema = z.object(listResponseShape);
 
-export const listDetailListResponseSchema = z
-  .object({
-    ...listResponseShape,
-    rules: listRulesSchema,
-    ruleCombine: listRuleCombineSchema.nullable(),
-  })
-  .openapi("ListDetailListResponse");
+export const listDetailListResponseSchema = z.object({
+  ...listResponseShape,
+  rules: listRulesSchema,
+  ruleCombine: listRuleCombineSchema.nullable(),
+});
 
-export const listListResponseSchema = z
-  .object({ items: z.array(listResponseSchema) })
-  .openapi("ListListResponse");
+export const listListResponseSchema = z.object({ items: z.array(listResponseSchema) });
 
-export const listEntryResponseSchema = z
-  .discriminatedUnion("kind", [
-    z.object({ ...listEntryBaseShape, kind: z.literal("card"), cardId: z.string() }),
-    z.object({ ...listEntryBaseShape, kind: z.literal("printing"), printingId: z.string() }),
-    z.object({ ...listEntryBaseShape, kind: z.literal("copy"), copyId: z.string() }),
-  ])
-  .openapi("ListEntryResponse");
+export const listEntryResponseSchema = z.discriminatedUnion("kind", [
+  z.object({ ...listEntryBaseShape, kind: z.literal("card"), cardId: z.string() }),
+  z.object({ ...listEntryBaseShape, kind: z.literal("printing"), printingId: z.string() }),
+  z.object({ ...listEntryBaseShape, kind: z.literal("copy"), copyId: z.string() }),
+]);
 
-export const listDetailResponseSchema = z
-  .object({
-    list: listDetailListResponseSchema,
-    entries: z.array(listEntryDetailResponseSchema),
-  })
-  .openapi("ListDetailResponse");
+export const listDetailResponseSchema = z.object({
+  list: listDetailListResponseSchema,
+  entries: z.array(listEntryDetailResponseSchema),
+});
 
 export const listShareResponseSchema = z
   // shareToken is nullable: GET /share reports an owned-but-unshared list as
   // null; share always returns a non-null token.
-  .object({ shareToken: z.string().nullable(), isPublic: z.boolean() })
-  .openapi("ListShareResponse");
+  .object({ shareToken: z.string().nullable(), isPublic: z.boolean() });
 
-export const listBulkAddResponseSchema = z
-  .object({
-    added: z.number().int().nonnegative(),
-    updated: z.number().int().nonnegative(),
-    skipped: z.number().int().nonnegative(),
-  })
-  .openapi("ListBulkAddResponse");
+export const listBulkAddResponseSchema = z.object({
+  added: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+  skipped: z.number().int().nonnegative(),
+});
 
-export const listMoveResponseSchema = z
-  .object({
-    moved: z.number().int().nonnegative(),
-    merged: z.number().int().nonnegative(),
-  })
-  .openapi("ListMoveResponse");
+export const listMoveResponseSchema = z.object({
+  moved: z.number().int().nonnegative(),
+  merged: z.number().int().nonnegative(),
+});
 
-export const listGroupSharesResponseSchema = z
-  .object({
-    items: z.array(
-      z.object({
-        groupId: z.string(),
-        groupSlug: z.string(),
-        groupName: z.string(),
-      }),
-    ),
-  })
-  .openapi("ListGroupSharesResponse");
+export const listGroupSharesResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      groupId: z.string(),
+      groupSlug: z.string(),
+      groupName: z.string(),
+    }),
+  ),
+});
 
 const TAG = "Lists";
 

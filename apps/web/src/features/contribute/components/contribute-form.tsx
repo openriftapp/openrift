@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import type { PlaceholderField } from "@/features/cards/lib/card-placeholder-regions";
 import { LivePreview } from "@/features/contribute/components/contribute-card-preview";
 import { ContributeCardSection } from "@/features/contribute/components/contribute-card-section";
@@ -60,6 +61,7 @@ export function ContributeForm({
 
   return (
     <FieldFocusProvider value={focus}>
+      <UnsavedChangesGuard dirty={contribute.isDirty} />
       <form onSubmit={contribute.handleSubmit} className="flex flex-col gap-8">
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-8">
           <div className="flex min-w-0 flex-1 flex-col gap-8">

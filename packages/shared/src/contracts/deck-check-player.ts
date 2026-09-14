@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   deckCheckEntryCardResponseSchema,
   deckCheckEntryStateSchema,
@@ -14,8 +13,6 @@ import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
 
-extendZodWithOpenApi(z);
-
 export const deckCheckSubmissionTokenParamSchema = z.object({
   token: z.string().min(1).max(64),
 });
@@ -30,77 +27,69 @@ export const playerDeckCheckTournamentParamSchema = z.object({
   tournamentId: z.uuid(),
 });
 
-export const playerDeckCheckEntryDetailResponseSchema = z
-  .object({
-    entry: z.object({
+export const playerDeckCheckEntryDetailResponseSchema = z.object({
+  entry: z.object({
+    id: z.string(),
+    eventName: z.string(),
+    eventDate: z.string().nullable(),
+    groupName: z.string().nullable(),
+    format: z.string().nullable(),
+    allowedSets: z.array(z.string()).nullable(),
+    state: deckCheckEntryStateSchema,
+    reviewOutcome: deckCheckReviewOutcomeSchema.nullable(),
+    unlockRequested: z.boolean(),
+    playerMessage: z.string().nullable(),
+    allowDeckPublishing: z.boolean(),
+    allowNameSharing: z.boolean(),
+    allowRiotIdSharing: z.boolean(),
+    submittedAt: z.string().nullable(),
+    submissionsCloseAt: z.string().nullable(),
+    updatedAt: z.string(),
+    windowOpen: z.boolean(),
+    canEdit: z.boolean(),
+    canUnlock: z.boolean(),
+    canRequestUnlock: z.boolean(),
+  }),
+  cards: z.array(deckCheckEntryCardResponseSchema),
+  violations: z.array(deckViolationSchema),
+  typeCounts: z.array(z.object({ cardType: z.string(), count: z.number().int().nonnegative() })),
+  domainDistribution: z.array(
+    z.object({ domain: z.string(), count: z.number().int().nonnegative() }),
+  ),
+});
+
+export const deckCheckSubmissionPageResponseSchema = z.object({
+  eventName: z.string(),
+  eventDate: z.string().nullable(),
+  groupName: z.string(),
+  format: z.string().nullable(),
+  allowedSets: z.array(z.string()).nullable(),
+  submissionsCloseAt: z.string().nullable(),
+  submissionsOpen: z.boolean(),
+  linkedEntry: z
+    .object({
       id: z.string(),
-      eventName: z.string(),
-      eventDate: z.string().nullable(),
-      groupName: z.string().nullable(),
-      format: z.string().nullable(),
-      allowedSets: z.array(z.string()).nullable(),
       state: deckCheckEntryStateSchema,
-      reviewOutcome: deckCheckReviewOutcomeSchema.nullable(),
-      unlockRequested: z.boolean(),
-      playerMessage: z.string().nullable(),
+      canReplace: z.boolean(),
       allowDeckPublishing: z.boolean(),
       allowNameSharing: z.boolean(),
       allowRiotIdSharing: z.boolean(),
-      submittedAt: z.string().nullable(),
-      submissionsCloseAt: z.string().nullable(),
-      updatedAt: z.string(),
-      windowOpen: z.boolean(),
-      canEdit: z.boolean(),
-      canUnlock: z.boolean(),
-      canRequestUnlock: z.boolean(),
-    }),
-    cards: z.array(deckCheckEntryCardResponseSchema),
-    violations: z.array(deckViolationSchema),
-    typeCounts: z.array(z.object({ cardType: z.string(), count: z.number().int().nonnegative() })),
-    domainDistribution: z.array(
-      z.object({ domain: z.string(), count: z.number().int().nonnegative() }),
-    ),
-  })
-  .openapi("PlayerDeckCheckEntryDetailResponse");
+    })
+    .nullable(),
+});
 
-export const deckCheckSubmissionPageResponseSchema = z
-  .object({
-    eventName: z.string(),
-    eventDate: z.string().nullable(),
-    groupName: z.string(),
-    format: z.string().nullable(),
-    allowedSets: z.array(z.string()).nullable(),
-    submissionsCloseAt: z.string().nullable(),
-    submissionsOpen: z.boolean(),
-    linkedEntry: z
-      .object({
-        id: z.string(),
-        state: deckCheckEntryStateSchema,
-        canReplace: z.boolean(),
-        allowDeckPublishing: z.boolean(),
-        allowNameSharing: z.boolean(),
-        allowRiotIdSharing: z.boolean(),
-      })
-      .nullable(),
-  })
-  .openapi("DeckCheckSubmissionPageResponse");
+export const deckCheckSubmissionResultResponseSchema = z.object({
+  entryId: z.string().nullable(),
+  tournamentId: z.string(),
+  cards: z.array(deckCheckEntryCardResponseSchema),
+  violations: z.array(deckViolationSchema),
+});
 
-export const deckCheckSubmissionResultResponseSchema = z
-  .object({
-    entryId: z.string().nullable(),
-    tournamentId: z.string(),
-    cards: z.array(deckCheckEntryCardResponseSchema),
-    violations: z.array(deckViolationSchema),
-  })
-  .openapi("DeckCheckSubmissionResultResponse");
-
-export const deckCheckClaimResultResponseSchema = z
-  .object({
-    status: z.enum(["claimed", "already", "conflict", "blocked", "duplicate"]),
-    tournamentId: z.string().nullable(),
-    entryId: z.string().nullable(),
-  })
-  .openapi("DeckCheckClaimResultResponse");
+export const deckCheckClaimResultResponseSchema = z.object({
+  status: z.enum(["claimed", "already", "conflict", "blocked", "duplicate"]),
+  tournamentId: z.string().nullable(),
+  entryId: z.string().nullable(),
+});
 
 const TAG = "Deck Check";
 

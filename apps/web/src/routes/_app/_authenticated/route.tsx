@@ -1,8 +1,8 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
-import { useSessionExpiredRedirect } from "@/features/account/hooks/use-session-expired-redirect";
-import { AuthUserIdContext, sessionQueryOptions } from "@/lib/auth-session";
+import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
+import { sessionQueryOptions } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_app/_authenticated")({
   errorComponent: RouteErrorFallback,
@@ -21,16 +21,3 @@ export const Route = createFileRoute("/_app/_authenticated")({
   },
   component: AuthenticatedLayout,
 });
-
-function AuthenticatedLayout() {
-  const { userId } = Route.useRouteContext();
-  const sessionExpired = useSessionExpiredRedirect();
-  if (sessionExpired) {
-    return null;
-  }
-  return (
-    <AuthUserIdContext value={userId}>
-      <Outlet />
-    </AuthUserIdContext>
-  );
-}

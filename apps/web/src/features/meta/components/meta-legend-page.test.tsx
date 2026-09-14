@@ -64,6 +64,9 @@ vi.mock("@tanstack/react-router", () => {
 // query on the key and the assertions read it back off.
 vi.mock("@/features/meta/hooks/use-meta", () => ({
   useMetaLegend: () => ({ data: captured.legend }),
+}));
+
+vi.mock("@/features/meta/lib/meta-queries", () => ({
   metaLegendQueryOptions: (slug: string, query: Record<string, unknown>) => ({
     queryKey: ["legend", slug, query],
   }),

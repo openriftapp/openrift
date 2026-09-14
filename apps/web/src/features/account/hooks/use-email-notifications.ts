@@ -7,7 +7,6 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { preferencesQueryOptions } from "@/features/account/hooks/use-preferences-sync";
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import type { EmailNotificationGates } from "@/features/account/lib/email-notification-prefs";
 import {
@@ -15,6 +14,7 @@ import {
   buildTradeRequestCadencePatch,
   resolveEmailNotificationGates,
 } from "@/features/account/lib/email-notification-prefs";
+import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";

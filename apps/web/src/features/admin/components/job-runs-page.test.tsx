@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type * as UseJobRuns from "@/features/admin/hooks/use-job-runs";
-import type { JobRunsQueryParams } from "@/features/admin/hooks/use-job-runs";
+import type { JobRunsQueryParams } from "@/features/admin/lib/job-runs-queries";
 
 const captured = vi.hoisted(() => ({
   params: null as unknown,

@@ -1,9 +1,10 @@
 import { keepPreviousData } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
-import type { JobRunsQueryParams } from "./use-job-runs";
+import type { JobRunsQueryParams } from "./job-runs-queries";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,
@@ -15,7 +16,7 @@ vi.mock("@tanstack/react-start", () => ({
   createMiddleware: () => ({ server: (fn: (...args: unknown[]) => unknown) => fn }),
 }));
 
-const { adminJobRunsQueryOptions, JOB_RUNS_PAGE_SIZE } = await import("./use-job-runs");
+const { adminJobRunsQueryOptions, JOB_RUNS_PAGE_SIZE } = await import("./job-runs-queries");
 
 describe("adminJobRunsQueryOptions", () => {
   it("encodes the page and filters into the query key", () => {

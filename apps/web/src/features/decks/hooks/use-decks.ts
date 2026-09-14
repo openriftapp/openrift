@@ -11,15 +11,19 @@ import type {
   DeckListResponse,
   DeckResponse,
   DeckShareResponse,
-  PublicDeckDetailResponse,
 } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
 import { isDefinedError, safe } from "@orpc/client";
-import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
+import {
+  deckDetailQueryOptions,
+  decksQueryOptions,
+  publicDeckQueryOptions,
+} from "@/features/decks/lib/decks-queries";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
@@ -28,48 +32,6 @@ import { reportMutationError } from "@/lib/query-client";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchDecks = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<DeckListResponse> =>
-    apiOrpcClient(decksContract, context.cookie).list({ includeArchived: "true" }),
-  );
-
-async function fetchDeckDetailImpl(
-  cookie: string | undefined,
-  deckId: string,
-): Promise<DeckDetailResponse> {
-  const { error, data } = await safe(apiOrpcClient(decksContract, cookie).get({ id: deckId }));
-  if (error) {
-    // The route matches this exact message to render its not-found page.
-    if (isDefinedError(error) && error.code === "NOT_FOUND") {
-      throw new Error("NOT_FOUND");
-    }
-    throw error;
-  }
-  return data;
-}
-
-const fetchDeckDetail = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: deckId }) => fetchDeckDetailImpl(context.cookie, deckId));
-
-export function decksQueryOptions(userId: string) {
-  return queryOptions({
-    queryKey: decksKeys.all(userId),
-    queryFn: () => fetchDecks(),
-    select: (data: DeckListResponse) => data.items,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function deckDetailQueryOptions(userId: string, deckId: string) {
-  return queryOptions({
-    queryKey: decksKeys.detail(userId, deckId),
-    queryFn: (): Promise<DeckDetailResponse> => fetchDeckDetail({ data: deckId }),
-  });
-}
 
 export function useDecks() {
   const userId = useRequiredUserId();
@@ -635,26 +597,6 @@ export function useUnshareDeck() {
         old ? { ...old, deck: { ...old.deck, isPublic: false, shareToken: null } } : old,
       );
     },
-  });
-}
-
-const fetchPublicDeckFn = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .handler(async ({ data: token }): Promise<PublicDeckDetailResponse> => {
-    const { error, data } = await safe(apiOrpcClient(publicDecksContract).share({ token }));
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
-      }
-      throw error;
-    }
-    return data;
-  });
-
-export function publicDeckQueryOptions(token: string) {
-  return queryOptions({
-    queryKey: decksKeys.publicByToken(token),
-    queryFn: () => fetchPublicDeckFn({ data: token }),
   });
 }
 

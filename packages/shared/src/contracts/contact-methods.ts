@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { contactMethodSchema } from "@openrift/shared/response-schemas";
 import { idParamSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
-
-extendZodWithOpenApi(z);
 
 export const contactMethodTypeSchema = z.enum([
   "discord",
@@ -27,11 +24,9 @@ export const reorderContactMethodsSchema = z.object({
   ids: z.array(z.uuid()).max(500),
 });
 
-export const userContactMethodsResponseSchema = z
-  .object({
-    items: z.array(contactMethodSchema),
-  })
-  .openapi("UserContactMethodsResponse");
+export const userContactMethodsResponseSchema = z.object({
+  items: z.array(contactMethodSchema),
+});
 
 export const contactMethodsContract = {
   list: authedRoute

@@ -15,14 +15,13 @@ import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/compon
 import { MetaEventDialog } from "@/features/admin/components/meta-event-dialog";
 import { EventFilters } from "@/features/admin/components/meta-events-filters";
 import { MetaPublicLinkButton } from "@/features/admin/components/meta-public-link";
+import { useAdminMetaEvents, useDeleteMetaEvent } from "@/features/admin/hooks/use-admin-meta";
+import { urlTableSort, useUrlTableFilters } from "@/features/admin/hooks/use-url-table-filters";
 import {
   ADMIN_META_EVENT_PAGE_SIZE,
   META_EVENT_SORT_FALLBACK,
   metaEventsParamsFromSearch,
-  useAdminMetaEvents,
-  useDeleteMetaEvent,
-} from "@/features/admin/hooks/use-admin-meta";
-import { urlTableSort, useUrlTableFilters } from "@/features/admin/hooks/use-url-table-filters";
+} from "@/features/admin/lib/admin-meta-queries";
 import { sourceProviderDisplay } from "@/features/meta/lib/meta-source-review";
 import { useDeckFormatList } from "@/hooks/use-enums";
 

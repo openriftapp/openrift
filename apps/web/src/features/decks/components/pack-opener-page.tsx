@@ -35,7 +35,7 @@ import { usePrices } from "@/features/cards/hooks/use-prices";
 import {
   publicSetDetailQueryOptions,
   publicSetListQueryOptions,
-} from "@/features/cards/hooks/use-public-sets";
+} from "@/features/cards/lib/public-sets-queries";
 import { PackBulkGrid, PackHeading } from "@/features/decks/components/pack-bulk-grid";
 import { isBoosterEligible, toPackPrinting } from "@/features/decks/components/pack-opener-utils";
 import { PackReveal } from "@/features/decks/components/pack-reveal";

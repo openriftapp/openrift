@@ -1,11 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { metaListStatusSchema } from "@openrift/shared/response-schemas";
 import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { META_OVERLAY_STATUSES } from "../../types/enums.js";
-
-extendZodWithOpenApi(z);
 
 /**
  * Bounds and vocabulary are checked per item in the ingest service; one bad
@@ -96,40 +93,34 @@ const uploadUnresolvedSchema = z.object({
   names: z.array(z.string()),
 });
 
-export const metaUploadResponseSchema = z
-  .object({
-    provider: z.string(),
-    newEvents: z.number().int(),
-    updatedEvents: z.number().int(),
-    unchangedEvents: z.number().int(),
-    newPlayers: z.number().int(),
-    updatedPlayers: z.number().int(),
-    unchangedPlayers: z.number().int(),
-    ignoredSkipped: z.number().int(),
-    errors: z.array(z.string()),
-    newEventDetails: z.array(uploadEventDetailSchema),
-    updatedEventDetails: z.array(uploadEventDetailSchema),
-    unresolvedCards: z.array(uploadUnresolvedSchema),
-  })
-  .openapi("MetaUploadResponse");
+export const metaUploadResponseSchema = z.object({
+  provider: z.string(),
+  newEvents: z.number().int(),
+  updatedEvents: z.number().int(),
+  unchangedEvents: z.number().int(),
+  newPlayers: z.number().int(),
+  updatedPlayers: z.number().int(),
+  unchangedPlayers: z.number().int(),
+  ignoredSkipped: z.number().int(),
+  errors: z.array(z.string()),
+  newEventDetails: z.array(uploadEventDetailSchema),
+  updatedEventDetails: z.array(uploadEventDetailSchema),
+  unresolvedCards: z.array(uploadUnresolvedSchema),
+});
 
-export const metaUploadSummarySchema = z
-  .object({
-    eventOverlayId: z.string(),
-    provider: z.string(),
-    externalId: z.string(),
-    status: z.enum(META_OVERLAY_STATUSES),
-    acceptedAt: isoDateTime.nullable(),
-    acceptedPlayers: z.number().int(),
-    pendingPlayers: z.number().int(),
-    mintedPlayers: z.number().int(),
-  })
-  .openapi("MetaUploadSummary");
+export const metaUploadSummarySchema = z.object({
+  eventOverlayId: z.string(),
+  provider: z.string(),
+  externalId: z.string(),
+  status: z.enum(META_OVERLAY_STATUSES),
+  acceptedAt: isoDateTime.nullable(),
+  acceptedPlayers: z.number().int(),
+  pendingPlayers: z.number().int(),
+  mintedPlayers: z.number().int(),
+});
 
-export const metaUploadRevertResultSchema = z
-  .object({
-    metaEventIds: z.array(z.string()),
-    players: z.number().int(),
-    eventRejected: z.boolean(),
-  })
-  .openapi("MetaUploadRevertResult");
+export const metaUploadRevertResultSchema = z.object({
+  metaEventIds: z.array(z.string()),
+  players: z.number().int(),
+  eventRejected: z.boolean(),
+});

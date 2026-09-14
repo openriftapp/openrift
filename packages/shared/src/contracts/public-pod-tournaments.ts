@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import {
   cutSizeSchema,
   groupStageViewSchema,
@@ -16,32 +15,28 @@ import { podResultSchema } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-extendZodWithOpenApi(z);
-
-export const podReportResponseSchema = z
-  .object({
-    tournamentName: z.string(),
-    status: podTournamentStatusSchema,
-    currentRound: z.number().int().nonnegative(),
-    pairingStyle: podPairingStyleSchema,
-    playMode: podPlayModeSchema,
-    scoringScheme: podScoringSchemeSchema,
-    byePoints: z.number().int().nonnegative(),
-    matchFormat: podMatchFormatSchema,
-    winPoints: z.number().int().nonnegative(),
-    drawPoints: z.number().int().nonnegative(),
-    regionsEnabled: z.boolean(),
-    format: tournamentFormatSchema,
-    cutSize: cutSizeSchema,
-    legendTiebreak: z.boolean(),
-    groupsSelfPaced: z.boolean(),
-    standings: z.array(podStandingRowSchema),
-    rounds: z.array(podRoundResponseSchema),
-    /** Null unless `format` is `group_cut`. */
-    groupStage: groupStageViewSchema.nullable(),
-    canSubmit: z.boolean(),
-  })
-  .openapi("PodReportResponse");
+export const podReportResponseSchema = z.object({
+  tournamentName: z.string(),
+  status: podTournamentStatusSchema,
+  currentRound: z.number().int().nonnegative(),
+  pairingStyle: podPairingStyleSchema,
+  playMode: podPlayModeSchema,
+  scoringScheme: podScoringSchemeSchema,
+  byePoints: z.number().int().nonnegative(),
+  matchFormat: podMatchFormatSchema,
+  winPoints: z.number().int().nonnegative(),
+  drawPoints: z.number().int().nonnegative(),
+  regionsEnabled: z.boolean(),
+  format: tournamentFormatSchema,
+  cutSize: cutSizeSchema,
+  legendTiebreak: z.boolean(),
+  groupsSelfPaced: z.boolean(),
+  standings: z.array(podStandingRowSchema),
+  rounds: z.array(podRoundResponseSchema),
+  /** Null unless `format` is `group_cut`. */
+  groupStage: groupStageViewSchema.nullable(),
+  canSubmit: z.boolean(),
+});
 
 export const publicPodTournamentsContract = {
   report: oc

@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { deckFormatSchema, metaEventTierSchema } from "@openrift/shared/response-schemas";
 import { isoDate } from "@openrift/shared/schemas";
 import { z } from "zod";
@@ -8,8 +7,6 @@ import {
   META_EVENT_SORTS,
   META_EVENT_SOURCE_FILTERS,
 } from "../../types/enums.js";
-
-extendZodWithOpenApi(z);
 
 /**
  * A slug here would be shadowed by `/meta`'s own static routes and never
@@ -50,31 +47,29 @@ export const eventBodySchema = z.object({
   location: z.string().min(1).max(500).nullable().optional(),
 });
 
-export const adminMetaEventSchema = z
-  .object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    eventDate: isoDate,
-    format: deckFormatSchema,
-    playerCount: z.number().int().nullable(),
-    organizer: z.string().nullable(),
-    notes: z.string().nullable(),
-    tier: metaEventTierSchema,
-    country: z.string().nullable(),
-    location: z.string().nullable(),
-    playerRowCount: z.number().int().nonnegative(),
-    deckCount: z.number().int().nonnegative(),
-    sources: z.array(
-      z.object({
-        id: z.string(),
-        provider: z.string().nullable(),
-        externalId: z.string().nullable(),
-        priority: z.number().int(),
-      }),
-    ),
-  })
-  .openapi("AdminMetaEvent");
+export const adminMetaEventSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  eventDate: isoDate,
+  format: deckFormatSchema,
+  playerCount: z.number().int().nullable(),
+  organizer: z.string().nullable(),
+  notes: z.string().nullable(),
+  tier: metaEventTierSchema,
+  country: z.string().nullable(),
+  location: z.string().nullable(),
+  playerRowCount: z.number().int().nonnegative(),
+  deckCount: z.number().int().nonnegative(),
+  sources: z.array(
+    z.object({
+      id: z.string(),
+      provider: z.string().nullable(),
+      externalId: z.string().nullable(),
+      priority: z.number().int(),
+    }),
+  ),
+});
 
 export const adminMetaEventListQuerySchema = z.object({
   search: z.string().optional(),
@@ -90,25 +85,21 @@ export const adminMetaEventListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
 
-export const adminMetaEventListResponseSchema = z
-  .object({
-    events: z.array(adminMetaEventSchema),
-    total: z.number().int().nonnegative(),
-    page: z.number().int(),
-    limit: z.number().int(),
-  })
-  .openapi("AdminMetaEventList");
+export const adminMetaEventListResponseSchema = z.object({
+  events: z.array(adminMetaEventSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int(),
+  limit: z.number().int(),
+});
 
 /**
  * Mirrors the public event page's citation schema field for field: citations
  * are the credit line, not admin-only data.
  */
-export const adminMetaEventSourceSchema = z
-  .object({
-    id: z.string(),
-    provider: z.string().nullable(),
-    externalId: z.string().nullable(),
-    label: z.string(),
-    sourceUrl: z.string().nullable(),
-  })
-  .openapi("AdminMetaEventSource");
+export const adminMetaEventSourceSchema = z.object({
+  id: z.string(),
+  provider: z.string().nullable(),
+  externalId: z.string().nullable(),
+  label: z.string(),
+  sourceUrl: z.string().nullable(),
+});

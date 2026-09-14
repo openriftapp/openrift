@@ -4,7 +4,6 @@ import {
   BUILD_ID_HEADER,
   isBuildIdSafe,
 } from "@openrift/shared/contracts/api-format";
-import { toast } from "sonner";
 
 import { appendScanJournal, hasScanJournal } from "@/features/scan/lib/scan-journal";
 import { m } from "@/paraglide/messages.js";
@@ -17,9 +16,10 @@ import {
   scheduleReloadFlagClear,
   setStaleNotifier,
 } from "./stale-bundle-reload";
+import { toastMessage } from "./toast";
 
 // Reload mechanics live in stale-bundle-reload.ts, kept separate so router.ts
-// and sentry-client.ts avoid pulling sonner into the SSR bundle.
+// and sentry-client.ts stay clear of the toast layer.
 
 const NEW_VERSION_TOAST_ID = "openrift:new-version";
 
@@ -32,7 +32,7 @@ function announceNewVersion(reason: string): void {
   if (hasScanJournal()) {
     appendScanJournal({ type: "reload-prompt" });
   }
-  toast(m.common_new_version_available(), {
+  toastMessage(m.common_new_version_available(), {
     id: NEW_VERSION_TOAST_ID,
     duration: Number.POSITIVE_INFINITY,
     action: {
@@ -42,8 +42,7 @@ function announceNewVersion(reason: string): void {
   });
 }
 
-// Set here, not in stale-bundle-reload.ts, to keep sonner out of that
-// module's SSR bundle.
+// Set here, not in stale-bundle-reload.ts, to keep the toast layer out of that module.
 setStaleNotifier(announceNewVersion);
 
 // API_FORMAT_HEADER describes the body, so it stays valid on a cached

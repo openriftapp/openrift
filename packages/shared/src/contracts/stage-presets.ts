@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { idParamSchema, withParams } from "@openrift/shared/schemas";
 import { z } from "zod";
 
@@ -8,8 +7,6 @@ import {
   overlayPlateFieldsSchema,
   overlayPlatePositionSchema,
 } from "./overlay.js";
-
-extendZodWithOpenApi(z);
 
 export const MAX_STAGE_PRESETS = 20;
 
@@ -43,19 +40,15 @@ export const updateStagePresetSchema = z.object({
   config: stagePresetConfigSchema.optional(),
 });
 
-export const stagePresetConfigResponseSchema = stagePresetConfigSchema.openapi("StagePresetConfig");
+export const stagePresetConfigResponseSchema = stagePresetConfigSchema;
 
-export const stagePresetSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    config: stagePresetConfigResponseSchema,
-  })
-  .openapi("StagePreset");
+export const stagePresetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  config: stagePresetConfigResponseSchema,
+});
 
-export const stagePresetListResponseSchema = z
-  .object({ items: z.array(stagePresetSchema) })
-  .openapi("StagePresetListResponse");
+export const stagePresetListResponseSchema = z.object({ items: z.array(stagePresetSchema) });
 
 export type StageGround = z.infer<typeof stageGroundSchema>;
 export type StagePresetConfig = z.infer<typeof stagePresetConfigSchema>;

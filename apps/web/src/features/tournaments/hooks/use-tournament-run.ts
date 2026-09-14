@@ -6,13 +6,15 @@ import type {
   PodTournamentDetailResponse,
 } from "@openrift/shared/types/api/pod-tournament";
 import type { TournamentDetailResponse } from "@openrift/shared/types/api/tournament";
-import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { useTournamentDetailMutation } from "@/features/tournaments/hooks/use-tournament-mutations";
-import { openRoundRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
 import { podRoundMutationInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
+import {
+  tournamentReportQueryOptions,
+  tournamentRunStateQueryOptions,
+} from "@/features/tournaments/lib/tournament-run-queries";
 import { podTournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -41,40 +43,6 @@ interface LegendMetaShareInput {
   /** Percent, one decimal. */
   share: number;
 }
-
-const fetchRunState = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: id }): Promise<PodTournamentDetailResponse> => {
-    // 404 (unknown / no relationship) maps to the sentinel the route boundary
-    // expects; 403 (not a manager, for a mutation) propagates as a normal error.
-    const { error, data } = await safe(
-      apiOrpcClient(tournamentsContract, context.cookie).runState({ id }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
-      }
-      throw error;
-    }
-    return data;
-  });
-
-const fetchReport = createServerFn({ method: "GET" })
-  .validator((input: string) => input)
-  .handler(async ({ data: token }): Promise<PodReportResponse> => {
-    // 404 (disabled/rotated token) maps to the sentinel the route boundary expects.
-    const { error, data } = await safe(
-      apiOrpcClient(publicPodTournamentsContract).report({ token }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
-      }
-      throw error;
-    }
-    return data;
-  });
 
 const fetchStandingsSnapshot = createServerFn({ method: "GET" })
   .validator((input: { id: string; throughRound: number }) => input)
@@ -110,22 +78,6 @@ export function useStandingsSnapshot(id: string, throughRound: number) {
 
 export function useReportStandingsSnapshot(token: string, throughRound: number) {
   return useSuspenseQuery(tournamentReportSnapshotQueryOptions(token, throughRound));
-}
-
-export function tournamentRunStateQueryOptions(userId: string, id: string) {
-  return queryOptions({
-    queryKey: podTournamentsKeys.detail(userId, id),
-    queryFn: () => fetchRunState({ data: id }),
-    refetchInterval: (query) => openRoundRefetchInterval(query.state.data),
-  });
-}
-
-export function tournamentReportQueryOptions(token: string) {
-  return queryOptions({
-    queryKey: podTournamentsKeys.report(token),
-    queryFn: () => fetchReport({ data: token }),
-    refetchInterval: (query) => openRoundRefetchInterval(query.state.data),
-  });
 }
 
 export function useTournamentRunState(id: string) {

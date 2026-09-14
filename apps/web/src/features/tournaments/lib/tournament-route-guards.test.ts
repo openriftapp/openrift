@@ -8,13 +8,13 @@ import {
   redirectToTournamentOverview,
 } from "./tournament-route-guards";
 
-vi.mock("@/features/tournaments/hooks/use-tournaments", () => ({
+vi.mock("@/features/tournaments/lib/tournaments-queries", () => ({
   tournamentDetailQueryOptions: (userId: string, id: string) => ({
     queryKey: ["tournament-detail", userId, id],
   }),
 }));
 
-vi.mock("@/features/tournaments/hooks/use-tournament-run", () => ({
+vi.mock("@/features/tournaments/lib/tournament-run-queries", () => ({
   tournamentRunStateQueryOptions: (userId: string, id: string) => ({
     queryKey: ["tournament-run-state", userId, id],
   }),

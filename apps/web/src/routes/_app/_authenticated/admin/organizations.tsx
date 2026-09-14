@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { adminUsersQueryOptions } from "@/features/admin/hooks/use-admin-users";
-import { adminOrganizationsQueryOptions } from "@/features/tournaments/hooks/use-organizations";
+import { adminUsersQueryOptions } from "@/features/admin/lib/admin-users-queries";
+import { adminOrganizationsQueryOptions } from "@/features/tournaments/lib/organizations-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/organizations")({

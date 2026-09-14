@@ -163,7 +163,13 @@ export default createServerEntry({
     // middleware to delocalize; it only detects the locale and wraps the
     // request in AsyncLocalStorage. /health, /robots.txt and the sitemaps
     // above stay outside it on purpose.
-    const response = await paraglideMiddleware(localeRequest, () => handler.fetch(localeRequest));
+    // Cloudflare turns the Link header into 103 Early Hints; Bun cannot write 103 itself.
+    // Cloudflare only acts on preload/preconnect, and the modulepreload list runs to ~10 KB.
+    const response = await paraglideMiddleware(localeRequest, () =>
+      handler.fetch(localeRequest, {
+        responseLinkHeader: { filter: ({ hint }) => hint.rel !== "modulepreload" },
+      }),
+    );
     const tHandler = LOG_SSR_TIMINGS ? performance.now() : 0;
     const finalResponse = applyPageCacheControl(
       request,

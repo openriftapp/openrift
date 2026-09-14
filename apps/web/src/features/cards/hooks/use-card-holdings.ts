@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { CardHoldingLine } from "@/features/cards/lib/card-holdings";
 import { cardHoldingLines } from "@/features/cards/lib/card-holdings";
 import { useLiveTradesByPrinting } from "@/features/groups/hooks/use-card-trades";
-import { loansQueryOptions } from "@/features/groups/hooks/use-loans";
+import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
 import { useUserId } from "@/lib/auth-session";
 
 /**

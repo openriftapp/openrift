@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,
@@ -12,7 +13,7 @@ vi.mock("@tanstack/react-start", () => ({
   createMiddleware: () => ({ server: (fn: (...args: unknown[]) => unknown) => fn }),
 }));
 
-const { adminCardDetailQueryOptions, hasPendingRehost } = await import("./use-admin-card-queries");
+const { adminCardDetailQueryOptions, hasPendingRehost } = await import("./admin-card-queries");
 
 function image(overrides: { originalUrl?: string | null; rehostedUrl?: string | null } = {}) {
   return { originalUrl: "https://example.com/a.png", rehostedUrl: null, ...overrides };

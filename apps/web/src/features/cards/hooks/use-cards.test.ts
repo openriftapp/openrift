@@ -7,7 +7,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 // No TanStack Start server runs in the vitest/jsdom environment.
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
       handler: (fn: (...args: unknown[]) => unknown) => fn,
@@ -26,7 +27,7 @@ vi.mock("@/lib/server-cache", async () => {
 
 // Must import after the mock so the mock is applied.
 const { serverCache } = await import("@/lib/server-cache");
-const { catalogQueryOptions } = await import("./use-cards");
+const { catalogQueryOptions } = await import("@/features/cards/lib/catalog-query");
 
 const CARD_A_ID = "00000000-0000-0000-0000-000000000001";
 const CARD_B_ID = "00000000-0000-0000-0000-000000000002";

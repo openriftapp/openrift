@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { AdminPending } from "@/features/admin/components/admin-route-components";
-import { marketplaceGroupsQueryOptions } from "@/features/admin/hooks/use-marketplace-groups";
-import { setsQueryOptions } from "@/features/cards/hooks/use-sets";
+import { marketplaceGroupsQueryOptions } from "@/features/admin/lib/marketplace-groups-queries";
+import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/marketplace-groups")({

@@ -1,18 +1,12 @@
-import type { AdminMarkersResponse } from "@openrift/shared/contracts/admin/markers";
 import { adminMarkersContract } from "@openrift/shared/contracts/admin/markers";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { promosKeys } from "@/features/cards/lib/cards-query-keys";
 import { createAdminEnumHooks } from "@/lib/create-admin-enum-hooks";
+import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchMarkers = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminMarkersResponse> =>
-    apiOrpcClient(adminMarkersContract, context.cookie).list(),
-  );
 
 const createMarkerFn = createServerFn({ method: "POST" })
   .validator((input: { slug: string; label: string; description?: string | null }) => input)
@@ -45,10 +39,8 @@ const deleteMarkerFn = createServerFn({ method: "POST" })
   });
 
 const markerHooks = createAdminEnumHooks({
-  queryKey: adminKeys.markers,
-  list: () => fetchMarkers(),
+  listQueryOptions: adminMarkersQueryOptions,
   invalidates: [adminKeys.markers],
-  staleTime: 30 * 60 * 1000,
   create: (vars: { slug: string; label: string; description?: string | null }) =>
     createMarkerFn({ data: vars }),
   update: (vars: { id: string; slug?: string; label?: string; description?: string | null }) =>
@@ -58,7 +50,6 @@ const markerHooks = createAdminEnumHooks({
   remove: (id: string) => deleteMarkerFn({ data: { id } }),
 });
 
-export const adminMarkersQueryOptions = markerHooks.queryOptions;
 export const useMarkers = markerHooks.useList;
 export const useCreateMarker = markerHooks.useCreate;
 export const useUpdateMarker = markerHooks.useUpdate;

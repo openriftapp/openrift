@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 // The hooks in use-loans.ts pull in server-fn machinery; the pure helper is
 // what's under test, so stub the server-side modules the import graph touches.
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => ({
     validator: () => ({ middleware: () => ({ handler: () => () => {} }) }),
     middleware: () => ({ handler: () => () => {} }),

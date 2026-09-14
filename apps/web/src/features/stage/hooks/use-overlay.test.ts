@@ -4,7 +4,8 @@ import { overlayKeys } from "@/features/stage/lib/stage-query-keys";
 
 // Stubs the server-side modules the import graph touches, so the query
 // options under test can load without pulling in server-fn machinery.
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => ({
     validator: () => ({ middleware: () => ({ handler: () => () => {} }) }),
     middleware: () => ({ handler: () => () => {} }),

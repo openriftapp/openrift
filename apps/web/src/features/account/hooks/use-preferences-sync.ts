@@ -5,11 +5,12 @@ import type {
 } from "@openrift/shared/types/api/preferences";
 import type { ContractRouterClient } from "@orpc/contract";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef } from "react";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
+import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
@@ -25,18 +26,6 @@ import { useThemeStore } from "@/stores/theme-store";
 type PreferencesUpdateInput = Parameters<
   ContractRouterClient<typeof preferencesContract>["update"]
 >[0];
-
-const fetchPreferencesFn = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<UserPreferencesResponse> =>
-    apiOrpcClient(preferencesContract, context.cookie).get(),
-  );
-
-export const preferencesQueryOptions = (userId: string | null) =>
-  queryOptions({
-    queryKey: preferencesKeys.all(userId ?? ""),
-    queryFn: () => fetchPreferencesFn(),
-  });
 
 const patchPreferencesFn = createServerFn({ method: "POST" })
   .validator((input: { prefs: UserPreferencesResponse }) => input)

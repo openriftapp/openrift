@@ -1,24 +1,13 @@
-import type { AdminDeckZonesResponse } from "@openrift/shared/contracts/admin/deck-zones";
 import { adminDeckZonesContract } from "@openrift/shared/contracts/admin/deck-zones";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminDeckZonesQueryOptions } from "@/features/decks/lib/deck-zones-queries";
 import { initKeys } from "@/lib/query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchDeckZones = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<AdminDeckZonesResponse> =>
-    apiOrpcClient(adminDeckZonesContract, context.cookie).list(),
-  );
-
-export const adminDeckZonesQueryOptions = queryOptions({
-  queryKey: adminKeys.deckZones,
-  queryFn: () => fetchDeckZones(),
-});
 
 export function useDeckZones() {
   return useSuspenseQuery(adminDeckZonesQueryOptions);

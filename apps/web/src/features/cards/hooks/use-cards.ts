@@ -2,14 +2,15 @@ import { sortByLanguageAndCanonicalRank } from "@openrift/shared/utils";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { use } from "react";
 
-import { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
 import { CatalogSubsetContext } from "@/features/cards/hooks/catalog-subset-context";
 import type { UseCardsResult } from "@/features/cards/lib/catalog-query";
-import { loadCatalogTail, noCatalogQueryOptions } from "@/features/cards/lib/catalog-query";
+import {
+  catalogQueryOptions,
+  loadCatalogTail,
+  noCatalogQueryOptions,
+} from "@/features/cards/lib/catalog-query";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useDisplayStore } from "@/stores/display-store";
-
-export { catalogQueryOptions } from "@/features/cards/hooks/catalog-query";
 
 export function useCards(): UseCardsResult {
   return useCatalog(use(CatalogSubsetContext));
