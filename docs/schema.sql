@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict E3QJIcveAEfxC0eXx8fZW8w2LsziHEeQeJHcwOkEX4o2XVDtHEd55TgrYOySCct
+\restrict ddS9a32ETQdYRq4kfifs2bBGSvSUbSCwpEaNpzJ5P3LkGmeSLvBtxiUZf214VKl
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -817,6 +817,7 @@ CREATE TABLE public.candidate_cards (
     submitted_by_user_id text,
     submission_note text,
     types text[] DEFAULT '{}'::text[] NOT NULL,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT candidate_cards_submission_note_check CHECK ((submission_note <> ''::text)),
     CONSTRAINT chk_candidate_cards_energy_non_negative CHECK ((energy >= 0)),
     CONSTRAINT chk_candidate_cards_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
@@ -866,6 +867,7 @@ CREATE TABLE public.candidate_printings (
     distribution_channel_slugs text[] DEFAULT '{}'::text[] NOT NULL,
     printed_year smallint,
     is_overnumbered boolean,
+    uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT candidate_printings_size_check CHECK ((size <> ''::text)),
     CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
@@ -9544,5 +9546,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict E3QJIcveAEfxC0eXx8fZW8w2LsziHEeQeJHcwOkEX4o2XVDtHEd55TgrYOySCct
+\unrestrict ddS9a32ETQdYRq4kfifs2bBGSvSUbSCwpEaNpzJ5P3LkGmeSLvBtxiUZf214VKl
 
