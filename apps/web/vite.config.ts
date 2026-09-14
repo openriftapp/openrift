@@ -149,6 +149,37 @@ const sentryPlugins = sentryTanstackStart({
   },
 });
 
+const BASE_UI_SUBPATHS = [
+  "accordion",
+  "alert-dialog",
+  "avatar",
+  "button",
+  "checkbox",
+  "collapsible",
+  "context-menu",
+  "dialog",
+  "drawer",
+  "input",
+  "menu",
+  "merge-props",
+  "navigation-menu",
+  "popover",
+  "preview-card",
+  "progress",
+  "radio",
+  "radio-group",
+  "scroll-area",
+  "select",
+  "separator",
+  "slider",
+  "switch",
+  "tabs",
+  "toggle",
+  "toggle-group",
+  "tooltip",
+  "use-render",
+];
+
 export default defineConfig(({ mode, command }) => {
   // Loaded into process.env (not baked into the bundle) so SSR code can read
   // server-only vars like API_INTERNAL_URL at runtime.
@@ -169,8 +200,16 @@ export default defineConfig(({ mode, command }) => {
       tsconfigPaths: true,
     },
     optimizeDeps: {
-      // Unbundled, better-auth's client entries are ~64 separate dev requests.
-      include: ["better-auth/react", "better-auth/client/plugins"],
+      // Deps reached only through dynamic imports are otherwise discovered
+      // mid-session, and each discovery re-optimizes and breaks in-flight imports.
+      include: [
+        "better-auth/react",
+        "better-auth/client/plugins",
+        "sonner",
+        "@sentry/tanstackstart-react",
+        "qrcode",
+        ...BASE_UI_SUBPATHS.map((subpath) => `@base-ui/react/${subpath}`),
+      ],
     },
     environments: {
       ssr: {
