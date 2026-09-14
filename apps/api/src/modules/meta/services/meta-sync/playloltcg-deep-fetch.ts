@@ -227,11 +227,13 @@ function projectPlayloltcgDeckLines(
     const name = resolved?.name ?? card.cardName ?? card.cardNo;
     const zone = card.isMainHero
       ? WellKnown.deckZone.CHAMPION
-      : resolved
-        ? inferZone([resolved.type], [], "mainDeck")
-        : card.isLegend
-          ? WellKnown.deckZone.LEGEND
-          : WellKnown.deckZone.MAIN;
+      : card.isSideboard
+        ? WellKnown.deckZone.SIDEBOARD
+        : resolved
+          ? inferZone([resolved.type], [], "mainDeck")
+          : card.isLegend
+            ? WellKnown.deckZone.LEGEND
+            : WellKnown.deckZone.MAIN;
     lines.push({ lineNumber: lines.length, zone, quantity: card.cardCount, cardName: name });
   }
   return lines;

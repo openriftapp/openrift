@@ -12,6 +12,7 @@
 - fix(App): **Open tabs update themselves after a release** — a tab still running an older version now reloads on its own the first time it talks to the updated server, instead of waiting for you to press Reload on the "new version available" notice; the notice remains as a fallback if the automatic reload was already used.
 - fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.
 - fix(Groups): **Group overview fits phone screens** — the recent activity feed and the sections under it no longer stretch the group page wider than the screen on phones.
+- fix(Meta): **Sideboards on imported Chinese decklists** — decklists imported from playloltcg.com showed the sideboard mixed into the main deck; it now appears as its own section, and existing lists are corrected as they are re-fetched.
 - fix(Meta Archive): **Tournament title on phones** — a tournament's name now stays visible in the top bar on phones instead of disappearing, and a player with a charted run leads back to that tournament instead of the archive.
 
 ## 2026-09-13

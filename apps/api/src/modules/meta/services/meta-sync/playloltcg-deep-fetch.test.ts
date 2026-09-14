@@ -327,6 +327,25 @@ describe("playloltcgDeepFetch", () => {
     expect(result.decks).toBe(0);
   });
 
+  it("places a create-type-5 card in the sideboard, never the main deck", async () => {
+    const { deps, storedDecklists } = fakeDeps({
+      standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],
+      decks: {
+        11: [
+          { cardNo: "OGN-010", cardName: "主牌", cardCount: 3, deckCardCreateType: 2 },
+          { cardNo: "OGN-011", cardName: "备牌", cardCount: 2, deckCardCreateType: 5 },
+        ],
+      },
+    });
+
+    await playloltcgDeepFetch(deps, catalogRow(), DETAIL, BUDGET);
+
+    expect(storedDecklists[0]?.cards).toEqual([
+      expect.objectContaining({ zone: "main", cardName: "主牌", quantity: 3 }),
+      expect.objectContaining({ zone: "sideboard", cardName: "备牌", quantity: 2 }),
+    ]);
+  });
+
   it("records a deck the source serves empty rather than owing it forever", async () => {
     const { deps, storedDecklists } = fakeDeps({
       standings: [standingsRow({ name: "张三", finalRanking: 1, cardGroupId: 11 })],

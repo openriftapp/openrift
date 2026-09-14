@@ -200,7 +200,18 @@ describe("projectDeckCard", () => {
       cardCount: 1,
       isLegend: true,
       isMainHero: false,
+      isSideboard: false,
     });
+  });
+
+  it("marks a sideboard row by its create type", () => {
+    const card = projectDeckCard({
+      cardNo: "OGN-002",
+      cardCategoryList: ["spell"],
+      deckCardCreateType: 5,
+    });
+    expect(card?.isSideboard).toBe(true);
+    expect(projectDeckCard({ cardNo: "OGN-002", deckCardCreateType: 2 })?.isSideboard).toBe(false);
   });
 
   it("defaults the count to one and marks the champion unit", () => {

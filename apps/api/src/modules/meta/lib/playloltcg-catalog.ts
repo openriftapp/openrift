@@ -213,7 +213,10 @@ export interface PlayloltcgDeckCard {
   cardCount: number;
   isLegend: boolean;
   isMainHero: boolean;
+  isSideboard: boolean;
 }
+
+const SIDEBOARD_CREATE_TYPE = 5;
 
 function categories(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
@@ -237,6 +240,7 @@ export function projectDeckCard(raw: unknown): PlayloltcgDeckCard | null {
     cardCount: count(row.cardCount) ?? 1,
     isLegend: categories(row.cardCategoryList).includes("legendary"),
     isMainHero: row.isMainHero === true,
+    isSideboard: row.deckCardCreateType === SIDEBOARD_CREATE_TYPE,
   };
 }
 
