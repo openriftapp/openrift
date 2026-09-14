@@ -19,7 +19,7 @@ import Sonda from "sonda/vite";
 import type { Plugin, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 
-import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
+import { latestMilestonePlugin } from "./vite-plugins/latest-milestone.ts";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 const mediaDir = path.resolve(import.meta.dirname, "../../media");
