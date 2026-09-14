@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "Niveau",
   "meta_scope_format": "Format",
   "meta_scope_country": "Pays",
+  "meta_scope_filters_description": "Filtrer les archives par ère, niveau, format et pays.",
   "meta_scope_search_label": "Rechercher {label}…",
   "meta_finishes_heading": "Classements",
   "meta_finishes_legend_scope_empty": "Aucun classement de cette légende n'entre dans ce périmètre.",

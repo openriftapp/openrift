@@ -4,6 +4,8 @@ import type { EraSet } from "./meta-scope";
 import {
   CLEARED_SCOPE,
   cycleScopeFacet,
+  eraCounts,
+  removeScopeFacetValue,
   deriveSetEras,
   ERA_ALL,
   ERA_CUSTOM,
@@ -363,5 +365,48 @@ describe("metaScopeQueryFromScope", () => {
     );
 
     expect(query).toEqual({ from: "2026-03-01", to: "2026-03-31" });
+  });
+});
+
+describe("removeScopeFacetValue", () => {
+  it("drops an included value and leaves the rest", () => {
+    expect(removeScopeFacetValue({ tiers: ["premier", "local"] }, "tiers", "premier")).toEqual({
+      tiers: ["local"],
+      tiersEx: [],
+    });
+  });
+
+  it("drops an excluded value", () => {
+    expect(removeScopeFacetValue({ countriesEx: ["de"] }, "countries", "de")).toEqual({
+      countries: [],
+      countriesEx: [],
+    });
+  });
+
+  it("writes the default format pick out explicitly when it is removed", () => {
+    expect(removeScopeFacetValue({}, "formats", "constructed")).toEqual({
+      formats: [],
+      formatsEx: [],
+    });
+  });
+});
+
+describe("eraCounts", () => {
+  const eras = [
+    { id: "vendetta", label: "Vendetta", from: "2026-08-01", to: null },
+    { id: "origins", label: "Origins", from: "2026-01-01", to: "2026-07-31" },
+  ];
+  const days = { "2026-03-10": 2, "2026-07-31": 1, "2026-08-01": 3, "2026-09-02": 4 };
+
+  it("sums each era's days, the open era to the end", () => {
+    const counts = eraCounts(days, eras, {});
+    expect(counts.get("origins")).toBe(3);
+    expect(counts.get("vendetta")).toBe(7);
+    expect(counts.get(ERA_ALL)).toBe(10);
+  });
+
+  it("sums the custom range from the scope's own bounds", () => {
+    expect(eraCounts(days, eras, { from: "2026-08-01", to: "2026-08-31" }).get(ERA_CUSTOM)).toBe(3);
+    expect(eraCounts(days, eras, { to: "2026-03-31" }).get(ERA_CUSTOM)).toBe(2);
   });
 });

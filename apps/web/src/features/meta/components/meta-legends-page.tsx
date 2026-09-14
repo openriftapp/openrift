@@ -281,16 +281,14 @@ export function MetaLegendsPage() {
           />
         ) : (
           <>
-            <div className="flex flex-col gap-2">
-              <LegendSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />
-              <MetaScopeBar
-                scope={search}
-                setScope={setScope}
-                clearScope={clearScope}
-                eras={eras}
-                countries={countries}
-              />
-            </div>
+            <MetaScopeBar
+              search={<LegendSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />}
+              scope={search}
+              setScope={setScope}
+              clearScope={clearScope}
+              eras={eras}
+              countries={countries}
+            />
 
             <div className="mt-4 text-sm">
               <SortHeader sort={sort} direction={direction} onSort={setSort} />

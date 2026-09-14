@@ -6,6 +6,8 @@ import type {
   MetaDeckCardIndexResponse,
   MetaDeckDetailResponse,
   MetaDeckListResponse,
+  MetaEventDayCountsQuery,
+  MetaEventDayCountsResponse,
   MetaEventDetailResponse,
   MetaEventListResponse,
   MetaLegendDetailResponse,
@@ -57,6 +59,25 @@ export function metaEventsQueryOptions(range?: MetaDateRange) {
   return queryOptions({
     queryKey: metaKeys.events(narrowed),
     queryFn: () => fetchMetaEvents({ data: narrowed }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+const fetchMetaEventDayCounts = createServerFn({ method: "GET" })
+  .validator(optionalQuery<MetaEventDayCountsQuery>)
+  .middleware([withCookies])
+  .handler(({ context, data: query }): Promise<MetaEventDayCountsResponse> =>
+    serverCache.query({
+      queryKey: ["server-cache", "meta", "event-day-counts", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).eventDayCounts(query),
+    }),
+  );
+
+export function metaEventDayCountsQueryOptions(query?: MetaEventDayCountsQuery) {
+  const narrowed = narrow(query);
+  return queryOptions({
+    queryKey: metaKeys.eventDayCounts(narrowed),
+    queryFn: () => fetchMetaEventDayCounts({ data: narrowed }),
     staleTime: 5 * 60 * 1000,
   });
 }

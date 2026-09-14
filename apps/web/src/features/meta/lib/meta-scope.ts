@@ -242,6 +242,21 @@ export function cycleScopeFacet(
   return facetPatch(facet, next.included, next.excluded);
 }
 
+/** The patch that drops one value from a facet, whichever bucket holds it. */
+export function removeScopeFacetValue(
+  scope: MetaScope,
+  facet: MetaScopeFacet,
+  value: string,
+  defaults: ScopeFacetDefaults = {},
+): Partial<MetaScope> {
+  const { included, excluded } = scopeFacetValues(scope, facet, defaults);
+  return facetPatch(
+    facet,
+    included.filter((entry) => entry !== value),
+    excluded.filter((entry) => entry !== value),
+  );
+}
+
 /**
  * A scope patch merged into a route's existing search params, with empty
  * values ("", [], false) dropped and unknown params left untouched.
@@ -341,4 +356,28 @@ function dayBefore(date: string): string {
   const at = new Date(`${date}T00:00:00Z`);
   at.setUTCDate(at.getUTCDate() - 1);
   return at.toISOString().slice(0, 10);
+}
+
+/**
+ * The era chip's counts from per-day totals: one entry per era, plus the
+ * all-time sum and the custom range's own window.
+ */
+export function eraCounts(
+  days: Readonly<Record<string, number>>,
+  eras: readonly MetaEra[],
+  scope: Pick<MetaScope, "from" | "to">,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  const within = (from?: string, to?: string) =>
+    Object.entries(days).reduce(
+      (sum, [day, count]) =>
+        (from === undefined || day >= from) && (to === undefined || day <= to) ? sum + count : sum,
+      0,
+    );
+  counts.set(ERA_ALL, within());
+  for (const era of eras) {
+    counts.set(era.id, within(era.from, era.to ?? undefined));
+  }
+  counts.set(ERA_CUSTOM, within(scope.from, scope.to));
+  return counts;
 }

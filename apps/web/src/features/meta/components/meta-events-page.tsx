@@ -24,7 +24,11 @@ import {
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar, ScopeSelect } from "@/features/meta/components/meta-scope-bar";
 import { MetaShowMore } from "@/features/meta/components/meta-show-more";
-import { useMetaCounts, useMetaEvents } from "@/features/meta/hooks/use-meta";
+import {
+  useMetaCounts,
+  useMetaEventDayCounts,
+  useMetaEvents,
+} from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import {
   filterMetaEvents,
@@ -48,6 +52,8 @@ import { metaShownLabel } from "@/features/meta/lib/meta-format";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   CLEARED_SCOPE,
+  eraCounts,
+  metaScopeQueryFromScope,
   nextScopeSearch,
   resolveScopeRange,
   scopeKey,
@@ -102,6 +108,14 @@ export function MetaEventsPage() {
   };
   const events = sortMetaEvents(filterMetaEvents(fetched, indexFilter), sort, direction);
   const facetCounts = metaEventFacetCounts(fetched, indexFilter);
+  const { from: _from, to: _to, ...facetQuery } = metaScopeQueryFromScope(search, eras);
+  const { data: dayCounts } = useMetaEventDayCounts({
+    ...facetQuery,
+    q: search.q,
+    holds: search.holds,
+    playersMin: search.playersMin,
+    playersMax: search.playersMax,
+  });
   const holdingsCounts = metaEventHoldingsCounts(fetched, indexFilter);
   const countries = metaEventCountries(fetched);
   // Sort keys are deliberately absent: reordering keeps the same rows expanded.
@@ -126,41 +140,65 @@ export function MetaEventsPage() {
           />
         ) : (
           <>
-            <div className="flex flex-col gap-2">
-              <EventSearchBox
-                urlValue={search.q ?? ""}
-                onCommit={commitQuery}
-                shown={metaShownLabel(events.length, counts.totalEvents, "events")}
-              />
-              <MetaScopeBar
-                scope={search}
-                setScope={setScope}
-                clearScope={clearScope}
-                eras={eras}
-                countries={countries}
-                facetCounts={facetCounts}
-                present={scopeFacetPresence(fetched)}
-                extras={
-                  <>
-                    <HoldingsChip
-                      value={search.holds}
-                      counts={holdingsCounts}
-                      onChange={(holds) => setSearchParams({ holds })}
-                    />
-                    <PlayersChip
-                      min={search.playersMin}
-                      max={search.playersMax}
-                      onChange={(patch) => setSearchParams(patch)}
-                    />
-                  </>
-                }
-                extrasActive={
-                  search.holds !== undefined ||
-                  search.playersMin !== undefined ||
-                  search.playersMax !== undefined
-                }
-              />
-            </div>
+            <MetaScopeBar
+              search={
+                <EventSearchBox
+                  urlValue={search.q ?? ""}
+                  onCommit={commitQuery}
+                  shown={metaShownLabel(events.length, counts.totalEvents, "events")}
+                />
+              }
+              scope={search}
+              setScope={setScope}
+              clearScope={clearScope}
+              eras={eras}
+              countries={countries}
+              facetCounts={facetCounts}
+              present={scopeFacetPresence(fetched)}
+              eraCounts={
+                dayCounts === undefined ? undefined : eraCounts(dayCounts.days, eras, search)
+              }
+              extras={
+                <>
+                  <HoldingsChip
+                    value={search.holds}
+                    counts={holdingsCounts}
+                    onChange={(holds) => setSearchParams({ holds })}
+                  />
+                  <PlayersChip
+                    min={search.playersMin}
+                    max={search.playersMax}
+                    onChange={(patch) => setSearchParams(patch)}
+                  />
+                </>
+              }
+              extrasActive={
+                search.holds !== undefined ||
+                search.playersMin !== undefined ||
+                search.playersMax !== undefined
+              }
+              activeChips={[
+                ...(search.holds === undefined
+                  ? []
+                  : [
+                      {
+                        key: "holds",
+                        label: holdingsItems()[search.holds] ?? search.holds,
+                        onRemove: () => setSearchParams({ holds: undefined }),
+                      },
+                    ]),
+                ...(search.playersMin === undefined && search.playersMax === undefined
+                  ? []
+                  : [
+                      {
+                        key: "players",
+                        label: playersSummary(search.playersMin, search.playersMax),
+                        onRemove: () =>
+                          setSearchParams({ playersMin: undefined, playersMax: undefined }),
+                      },
+                    ]),
+              ]}
+            />
 
             <div className="mt-4 text-sm">
               <SortHeader sort={sort} direction={direction} onSort={setSort} />

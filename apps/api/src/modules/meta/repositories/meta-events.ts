@@ -21,7 +21,8 @@ import type {
   MetaEventsTable,
 } from "../../../db/tables/meta.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import type { MetaDeckDateRange } from "./meta-shared.js";
+import type { MetaDeckDateRange, MetaScopeFilters } from "./meta-shared.js";
+import { scopeConditions } from "./meta-shared.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -99,6 +100,14 @@ export interface MetaEventFilters {
   incompleteStandings?: boolean;
   /** Keeps only events where no standings row carries a decklist. */
   noDecks?: boolean;
+}
+
+/** Must be applied against the `me` event alias, as {@link scopeConditions} expects. */
+export interface MetaEventDayCountsFilters extends Omit<MetaScopeFilters, "from" | "to"> {
+  q?: string;
+  holds?: "decks" | "standings" | "upcoming";
+  playersMin?: number;
+  playersMax?: number;
 }
 
 /** How one page of the live event list is ordered. Defaults to newest first. */
@@ -256,6 +265,55 @@ export function metaEventsRepo(db: Kysely<Database>) {
         countQuery.executeTakeFirstOrThrow(),
       ]);
       return { rows, total: Number(countRow.total) };
+    },
+
+    /** Events per event day under the filters, days with none omitted. */
+    async eventDayCounts(filters: MetaEventDayCountsFilters): Promise<Record<string, number>> {
+      let query = db
+        .selectFrom("metaEvents as me")
+        .leftJoinLateral(
+          (eb) =>
+            eb
+              .selectFrom("metaEventPlayers as p")
+              .whereRef("p.metaEventId", "=", "me.id")
+              .select([
+                eb.cast<number>(eb.fn.countAll(), "integer").as("playerRowCount"),
+                sql<number>`count(*) filter (where p.deck_id is not null)::int`.as("deckCount"),
+              ])
+              .as("c"),
+          (join) => join.onTrue(),
+        )
+        .select((eb) => ["me.eventDate", eb.cast<number>(eb.fn.countAll(), "integer").as("count")])
+        .groupBy("me.eventDate");
+      for (const condition of scopeConditions(filters)) {
+        query = query.where(condition);
+      }
+      const needle = filters.q?.trim() ?? "";
+      if (needle !== "") {
+        const pattern = `%${needle}%`;
+        query = query.where((eb) =>
+          eb.or([
+            eb("me.name", "ilike", pattern),
+            eb("me.organizer", "ilike", pattern),
+            eb("me.location", "ilike", pattern),
+          ]),
+        );
+      }
+      if (filters.holds === "decks") {
+        query = query.where(sql<boolean>`c.deck_count > 0`);
+      } else if (filters.holds === "standings") {
+        query = query.where(sql<boolean>`c.player_row_count > 0`);
+      } else if (filters.holds === "upcoming") {
+        query = query.where(sql<boolean>`me.event_date > (now() at time zone 'UTC')::date`);
+      }
+      if (filters.playersMin !== undefined) {
+        query = query.where("me.playerCount", ">=", filters.playersMin);
+      }
+      if (filters.playersMax !== undefined) {
+        query = query.where("me.playerCount", "<=", filters.playersMax);
+      }
+      const rows = await query.execute();
+      return Object.fromEntries(rows.map((row) => [row.eventDate, row.count]));
     },
 
     eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {

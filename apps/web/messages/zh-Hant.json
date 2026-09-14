@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "分級",
   "meta_scope_format": "賽制",
   "meta_scope_country": "國家",
+  "meta_scope_filters_description": "依時代、級別、賽制與國家篩選檔案。",
   "meta_scope_search_label": "搜尋{label}…",
   "meta_finishes_heading": "名次",
   "meta_finishes_legend_scope_empty": "這張傳奇的紀錄中沒有任何名次落在此範圍內。",

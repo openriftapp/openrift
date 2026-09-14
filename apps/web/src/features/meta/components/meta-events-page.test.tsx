@@ -34,6 +34,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
     captured.ranges.push(range);
     return { data: { events: captured.events } };
   },
+  useMetaEventDayCounts: () => ({ data: { days: {} } }),
   useMetaCounts: () => ({
     data: {
       totalPlayers: 0,
@@ -50,7 +51,12 @@ vi.mock("@/features/meta/components/meta-scope-bar", async () => {
   );
   return {
     ...actual,
-    MetaScopeBar: ({ extras }: { extras?: React.ReactNode }) => <div>{extras}</div>,
+    MetaScopeBar: ({ search, extras }: { search?: React.ReactNode; extras?: React.ReactNode }) => (
+      <div>
+        {search}
+        {extras}
+      </div>
+    ),
   };
 });
 

@@ -741,6 +741,45 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(ids.has(after)).toBe(false);
     });
 
+    it("counts events per day under the tournaments page's narrowing", async () => {
+      const listed = await seedEvent(repo, "mta-days-listed", {
+        eventDate: "2028-01-05",
+        tier: "premier",
+        country: "DE",
+        playerCount: 32,
+      });
+      await seedListedPlayer(repo, listed, { playerName: "MTA Day Winner", rank: 1 });
+      await seedEvent(repo, "mta-days-bare", {
+        eventDate: "2028-01-05",
+        tier: "local",
+        country: "FR",
+        playerCount: 8,
+      });
+      await seedEvent(repo, "mta-days-later", {
+        eventDate: "2028-01-09",
+        tier: "premier",
+        country: "DE",
+        playerCount: 64,
+      });
+
+      const mine = (days: Record<string, number>) =>
+        Object.fromEntries(Object.entries(days).filter(([day]) => day.startsWith("2028-01")));
+
+      expect(mine(await repo.eventDayCounts({}))).toEqual({ "2028-01-05": 2, "2028-01-09": 1 });
+      expect(mine(await repo.eventDayCounts({ tiers: ["premier"] }))).toEqual({
+        "2028-01-05": 1,
+        "2028-01-09": 1,
+      });
+      expect(mine(await repo.eventDayCounts({ countriesEx: ["de"] }))).toEqual({
+        "2028-01-05": 1,
+      });
+      expect(mine(await repo.eventDayCounts({ holds: "decks" }))).toEqual({ "2028-01-05": 1 });
+      expect(mine(await repo.eventDayCounts({ playersMin: 16, playersMax: 40 }))).toEqual({
+        "2028-01-05": 1,
+      });
+      expect(mine(await repo.eventDayCounts({ q: "days-later" }))).toEqual({ "2028-01-09": 1 });
+    });
+
     it("folds a legend's standings per event for the index, newest event first", async () => {
       const older = await seedEvent(repo, "mta-records-older", { eventDate: "2026-02-01" });
       const newer = await seedEvent(repo, "mta-records-newer", { eventDate: "2026-11-01" });

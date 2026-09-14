@@ -57,7 +57,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
 }));
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({ useMetaEras: () => [] }));
 vi.mock("@/features/meta/components/meta-scope-bar", () => ({
-  MetaScopeBar: () => <div />,
+  MetaScopeBar: ({ search }: { search?: React.ReactNode }) => <div>{search}</div>,
 }));
 
 vi.mock("@/hooks/use-enums", () => ({

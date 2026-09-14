@@ -36,7 +36,12 @@ import { MetaEventRow } from "@/features/meta/components/meta-event-row";
 import { MetaFrontEventBlock } from "@/features/meta/components/meta-front-event-block";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaUpcomingRow } from "@/features/meta/components/meta-upcoming-row";
-import { useMetaActivity, useMetaCounts, useMetaEvents } from "@/features/meta/hooks/use-meta";
+import {
+  useMetaActivity,
+  useMetaCounts,
+  useMetaEventDayCounts,
+  useMetaEvents,
+} from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
@@ -48,6 +53,8 @@ import {
 } from "@/features/meta/lib/meta-front-page";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
+  eraCounts,
+  metaScopeQueryFromScope,
   CLEARED_SCOPE,
   isScopeCustomized,
   nextScopeSearch,
@@ -229,6 +236,12 @@ export function MetaFrontPage() {
   const events = filterMetaEvents(fetchedEvents, frontFilter);
   const facetCounts = metaFrontFacetCounts(fetchedEvents, frontFilter);
   const decklistCount = metaFrontDecklistCount(fetchedEvents, frontFilter);
+  const { from: _from, to: _to, ...facetQuery } = metaScopeQueryFromScope(search, eras);
+  const { data: dayCounts } = useMetaEventDayCounts({
+    ...facetQuery,
+    q: search.q,
+    holds: search.decks === true ? "decks" : undefined,
+  });
   const sections = metaFrontSections(events);
   const hasResults =
     sections.premier.length > 0 || sections.competitive.length > 0 || sections.local.length > 0;
@@ -254,34 +267,46 @@ export function MetaFrontPage() {
         ) : (
           <>
             <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <MetaArchiveSearch value={search.q ?? ""} onCommit={setQuery} />
-                <MetaScopeBar
-                  scope={search}
-                  setScope={setScope}
-                  clearScope={clearScope}
-                  eras={eras}
-                  countries={metaEventCountries(fetchedEvents)}
-                  facetCounts={facetCounts}
-                  present={scopeFacetPresence(fetchedEvents)}
-                  showTier={false}
-                  extras={
-                    <Button
-                      type="button"
-                      variant="control"
-                      size="sm"
-                      aria-pressed={search.decks === true}
-                      onClick={() => setDecksOnly(search.decks !== true)}
-                    >
-                      {m.meta_events_holdings_decks()}
-                      <span className="text-muted-foreground text-2xs tabular-nums">
-                        {decklistCount}
-                      </span>
-                    </Button>
-                  }
-                  extrasActive={search.decks === true}
-                />
-              </div>
+              <MetaScopeBar
+                search={<MetaArchiveSearch value={search.q ?? ""} onCommit={setQuery} />}
+                scope={search}
+                setScope={setScope}
+                clearScope={clearScope}
+                eras={eras}
+                countries={metaEventCountries(fetchedEvents)}
+                facetCounts={facetCounts}
+                present={scopeFacetPresence(fetchedEvents)}
+                eraCounts={
+                  dayCounts === undefined ? undefined : eraCounts(dayCounts.days, eras, search)
+                }
+                showTier={false}
+                extras={
+                  <Button
+                    type="button"
+                    variant="control"
+                    size="sm"
+                    aria-pressed={search.decks === true}
+                    onClick={() => setDecksOnly(search.decks !== true)}
+                  >
+                    {m.meta_events_holdings_decks()}
+                    <span className="text-muted-foreground text-2xs tabular-nums">
+                      {decklistCount}
+                    </span>
+                  </Button>
+                }
+                extrasActive={search.decks === true}
+                activeChips={
+                  search.decks === true
+                    ? [
+                        {
+                          key: "decks",
+                          label: m.meta_events_holdings_decks(),
+                          onRemove: () => setDecksOnly(false),
+                        },
+                      ]
+                    : []
+                }
+              />
               <MetaArchiveCounts
                 eventCount={events.length}
                 playerResultCount={playerResults}

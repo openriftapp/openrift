@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({
@@ -11,6 +11,9 @@ vi.mock("@/hooks/use-enums", () => ({
     labels: { constructed: "Constructed", draft: "Draft" },
   }),
 }));
+
+const smUp = vi.hoisted(() => ({ value: true }));
+vi.mock("@/hooks/use-sm-up", () => ({ useSmUp: () => smUp.value }));
 
 const { MetaScopeBar } = await import("./meta-scope-bar");
 const { ERA_ALL, ERA_CUSTOM } = await import("@/features/meta/lib/meta-scope");
@@ -51,6 +54,52 @@ function facet(text: string) {
   }
   return trigger;
 }
+
+describe("MetaScopeBar on a phone", () => {
+  beforeEach(() => {
+    smUp.value = false;
+  });
+  afterEach(() => {
+    smUp.value = true;
+  });
+
+  it("folds the chips behind a filters button that counts the picks", async () => {
+    const { user } = renderBar({ scope: { tiers: ["premier"], era: ERA_ALL } });
+    expect(screen.queryByLabelText("Era")).not.toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: "Filters" });
+    expect(trigger).toHaveTextContent("2");
+    await user.click(trigger);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Era")).toBeInTheDocument();
+    expect(within(dialog).getByText("Premier")).toBeInTheDocument();
+  });
+
+  it("lists the picks as removable chips under the search", async () => {
+    const { setScope, user } = renderBar({ scope: { tiers: ["premier"], countriesEx: ["de"] } });
+    expect(screen.getByText("Premier")).toBeInTheDocument();
+    expect(screen.getByText("−Germany")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove Tier Premier" }));
+    expect(setScope).toHaveBeenCalledWith({ tiers: [], tiersEx: [] });
+  });
+
+  it("shows a surface's own chip and clears everything from the strip", async () => {
+    const onRemove = vi.fn();
+    const { clearScope, user } = renderBar({
+      extrasActive: true,
+      activeChips: [{ key: "holds", label: "With decklists", onRemove }],
+    });
+    expect(screen.getByRole("button", { name: "Filters" })).toHaveTextContent("1");
+    await user.click(screen.getByRole("button", { name: "Clear With decklists filter" }));
+    expect(onRemove).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }));
+    expect(clearScope).toHaveBeenCalled();
+  });
+
+  it("shows no strip while nothing is narrowed", () => {
+    renderBar();
+    expect(screen.queryByRole("button", { name: "Clear all filters" })).not.toBeInTheDocument();
+  });
+});
 
 describe("MetaScopeBar", () => {
   it("opens on the current set rather than all time", () => {

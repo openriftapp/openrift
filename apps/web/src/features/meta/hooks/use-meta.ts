@@ -1,10 +1,11 @@
-import type { MetaCountsQuery } from "@openrift/shared/types/api/meta";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import type { MetaCountsQuery, MetaEventDayCountsQuery } from "@openrift/shared/types/api/meta";
+import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { MetaLegendPageQuery } from "@/features/meta/lib/meta-queries";
 import {
   metaActivityQueryOptions,
   metaCountsQueryOptions,
+  metaEventDayCountsQueryOptions,
   metaDeckCardsQueryOptions,
   metaDeckQueryOptions,
   metaDecksQueryOptions,
@@ -18,6 +19,11 @@ import type { MetaDateRange, MetaDeckQuery } from "@/features/meta/lib/meta-scop
 
 export function useMetaEvents(range?: MetaDateRange) {
   return useSuspenseQuery(metaEventsQueryOptions(range));
+}
+
+/** Not suspenseful: the era chip's counts fill in after the page, and a facet change keeps the last ones until the next arrive. */
+export function useMetaEventDayCounts(query?: MetaEventDayCountsQuery) {
+  return useQuery({ ...metaEventDayCountsQueryOptions(query), placeholderData: keepPreviousData });
 }
 
 export function useMetaCounts(query?: MetaCountsQuery) {

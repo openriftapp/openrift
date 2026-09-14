@@ -62,6 +62,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
     captured.ranges.push(range);
     return { data: { events: captured.events } };
   },
+  useMetaEventDayCounts: () => ({ data: { days: {} } }),
   useMetaCounts: () => ({ data: captured.counts }),
   useMetaActivity: () => ({ data: { items: captured.activity } }),
 }));
@@ -104,7 +105,9 @@ vi.mock("@/components/layout/page-top-bar", () => ({
 
 // The scope bar pulls chrome these tests do not exercise; what matters here is
 // which facts the page puts on the screen.
-vi.mock("@/features/meta/components/meta-scope-bar", () => ({ MetaScopeBar: () => null }));
+vi.mock("@/features/meta/components/meta-scope-bar", () => ({
+  MetaScopeBar: ({ search }: { search?: React.ReactNode }) => <div>{search}</div>,
+}));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaFrontPage } from "./meta-front-page";

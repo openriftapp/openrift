@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "Stufe",
   "meta_scope_format": "Format",
   "meta_scope_country": "Land",
+  "meta_scope_filters_description": "Archiv nach Ära, Stufe, Format und Land eingrenzen.",
   "meta_scope_search_label": "{label} suchen…",
   "meta_finishes_heading": "Platzierungen",
   "meta_finishes_legend_scope_empty": "Keine Platzierung dieser Legende fällt in diesen Bereich.",

@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "Tier",
   "meta_scope_format": "Format",
   "meta_scope_country": "Country",
+  "meta_scope_filters_description": "Narrow the archive by era, tier, format and country.",
   "meta_scope_search_label": "Search {label}…",
   "meta_finishes_heading": "Finishes",
   "meta_finishes_legend_scope_empty": "No finish on this legend's record falls in this scope.",

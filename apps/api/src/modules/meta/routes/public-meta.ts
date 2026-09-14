@@ -4,6 +4,7 @@ import type {
   MetaDeckDetailResponse,
   MetaDeckListResponse,
   MetaActivityResponse,
+  MetaEventDayCountsResponse,
   MetaEventDetailResponse,
   MetaEventListResponse,
   MetaCountsResponse,
@@ -91,6 +92,12 @@ export const metaRouter = {
       ),
     };
   }),
+
+  eventDayCounts: os.eventDayCounts.handler(
+    async ({ input, context }): Promise<MetaEventDayCountsResponse> => ({
+      days: await context.repos.meta.eventDayCounts(input),
+    }),
+  ),
 
   activity: os.activity.handler(async ({ context }): Promise<MetaActivityResponse> => {
     const items = await context.repos.meta.recentActivity(ACTIVITY_LIMIT);

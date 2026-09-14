@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "级别",
   "meta_scope_format": "赛制",
   "meta_scope_country": "国家/地区",
+  "meta_scope_filters_description": "按时代、级别、赛制和国家/地区筛选档案。",
   "meta_scope_search_label": "搜索{label}…",
   "meta_finishes_heading": "名次记录",
   "meta_finishes_legend_scope_empty": "该传奇的记录中没有名次落在此范围内。",

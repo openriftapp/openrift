@@ -339,6 +339,22 @@ export const metaScopeQuerySchema = metaDateRangeQuerySchema.extend({
   countriesEx: scopeFacetList,
 });
 
+export const META_EVENT_HOLDINGS = ["decks", "standings", "upcoming"] as const;
+
+/** No `from`/`to`: the era is summed client-side from the per-day counts this feeds. */
+export const metaEventDayCountsQuerySchema = metaScopeQuerySchema
+  .omit({ from: true, to: true })
+  .extend({
+    q: z.string().max(200).optional(),
+    holds: z.enum(META_EVENT_HOLDINGS).optional(),
+    playersMin: z.coerce.number().int().nonnegative().optional(),
+    playersMax: z.coerce.number().int().nonnegative().optional(),
+  });
+
+export const metaEventDayCountsResponseSchema = z.object({
+  days: z.record(isoDate, z.number().int().nonnegative()),
+});
+
 /**
  * Sort order is fixed server-side (event date desc, then rank, then player),
  * not exposed as a query param.
@@ -367,6 +383,12 @@ export const metaContract = {
     .meta({ auth: "public", cache: "medium", etag: true })
     .input(metaDateRangeQuerySchema)
     .output(metaEventListResponseSchema),
+
+  eventDayCounts: oc
+    .route({ method: "GET", path: `${BASE}/events/day-counts`, tags: [TAG] })
+    .meta({ auth: "public", cache: "short" })
+    .input(metaEventDayCountsQuerySchema)
+    .output(metaEventDayCountsResponseSchema),
 
   activity: oc
     .route({ method: "GET", path: `${BASE}/activity`, tags: [TAG] })

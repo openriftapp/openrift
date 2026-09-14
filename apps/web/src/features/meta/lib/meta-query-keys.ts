@@ -1,4 +1,8 @@
-import type { MetaCountsQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
+import type {
+  MetaCountsQuery,
+  MetaEventDayCountsQuery,
+  MetaScopeQuery,
+} from "@openrift/shared/types/api/meta";
 
 import type { MetaDateRange, MetaDeckQuery } from "@/features/meta/lib/meta-scope";
 
@@ -32,6 +36,19 @@ const DECK_QUERY_FIELDS = [...SCOPE_FIELDS, "legend", "player", "limit"] as cons
 
 const COUNTS_QUERY_FIELDS = ["format", "dateFrom", "dateTo"] as const;
 
+const DAY_COUNTS_FIELDS = [
+  "formats",
+  "formatsEx",
+  "tiers",
+  "tiersEx",
+  "countries",
+  "countriesEx",
+  "q",
+  "holds",
+  "playersMin",
+  "playersMax",
+] as const;
+
 const LEGEND_QUERY_FIELDS = [...SCOPE_FIELDS, "page"] as const;
 
 // Admin mutations invalidate the `all` prefix: every public read
@@ -42,6 +59,8 @@ export const metaKeys = {
   activity: ["meta", "activity"] as const,
   counts: (query?: MetaCountsQuery) =>
     metaFilterKey(["meta", "counts"], query, COUNTS_QUERY_FIELDS),
+  eventDayCounts: (query?: MetaEventDayCountsQuery) =>
+    metaFilterKey(["meta", "events", "day-counts"], query, DAY_COUNTS_FIELDS),
   event: (slug: string) => ["meta", "events", slug] as const,
   decks: (query?: MetaDeckQuery) => metaFilterKey(["meta", "decks"], query, DECK_QUERY_FIELDS),
   deckCards: (range?: MetaDateRange) => metaFilterKey(["meta", "deck-cards"], range, RANGE_FIELDS),

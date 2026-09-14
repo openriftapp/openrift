@@ -53,6 +53,8 @@ import type {
   metaActivityItemSchema,
   metaActivityResponseSchema,
   metaCountsQuerySchema,
+  metaEventDayCountsQuerySchema,
+  metaEventDayCountsResponseSchema,
   metaCountsResponseSchema,
   metaScopeQuerySchema,
   metaLegendDetailResponseSchema,
@@ -114,6 +116,10 @@ export type MetaPlayerDetailResponse = z.infer<typeof metaPlayerDetailResponseSc
 export type MetaScopeQuery = z.infer<typeof metaScopeQuerySchema>;
 
 export type MetaCountsQuery = z.infer<typeof metaCountsQuerySchema>;
+
+export type MetaEventDayCountsQuery = z.infer<typeof metaEventDayCountsQuerySchema>;
+
+export type MetaEventDayCountsResponse = z.infer<typeof metaEventDayCountsResponseSchema>;
 
 export type AdminMetaEvent = z.infer<typeof adminMetaEventSchema>;
 

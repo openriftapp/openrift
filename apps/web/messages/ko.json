@@ -6977,6 +6977,7 @@
   "meta_scope_tier": "티어",
   "meta_scope_format": "포맷",
   "meta_scope_country": "국가",
+  "meta_scope_filters_description": "시대, 등급, 포맷, 국가로 아카이브를 좁힙니다.",
   "meta_scope_search_label": "{label} 검색…",
   "meta_finishes_heading": "성적",
   "meta_finishes_legend_scope_empty": "이 전설의 기록 중 이 범위에 해당하는 성적이 없습니다.",
