@@ -58,7 +58,20 @@ afterEach(() => {
 });
 
 describe("initStaleBundleWatcher", () => {
-  test("prompts with a toast (not an instant reload) when X-Build-Id differs", async () => {
+  test("reloads once when X-Build-Id differs", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
+    initStaleBundleWatcher();
+
+    await globalThis.fetch("/api/v1/cards");
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  test("a mismatch after the automatic reload was spent prompts instead of reloading again", async () => {
+    sessionStorage.setItem("openrift:reload-attempted", "1");
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
@@ -67,19 +80,8 @@ describe("initStaleBundleWatcher", () => {
     await globalThis.fetch("/api/v1/cards");
 
     expect(reloadSpy).not.toHaveBeenCalled();
-    await vi.waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
-  });
-
-  test("the toast's Reload action triggers the reload", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
-    initStaleBundleWatcher();
-
-    await globalThis.fetch("/api/v1/cards");
-    await vi.waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    expect(toast).toHaveBeenCalledTimes(1);
     lastToastAction().onClick();
-
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -155,7 +157,7 @@ describe("initStaleBundleWatcher", () => {
     }
   });
 
-  test("prompts only once even on repeated mismatches", async () => {
+  test("reloads only once even on repeated mismatches", async () => {
     globalThis.fetch = vi
       .fn()
       .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
@@ -165,7 +167,8 @@ describe("initStaleBundleWatcher", () => {
     await globalThis.fetch("/api/v1/cards");
     await globalThis.fetch("/api/v1/cards");
 
-    expect(toast).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toast).not.toHaveBeenCalled();
   });
 });
 
@@ -224,14 +227,14 @@ describe("initStaleBundleWatcher API format check", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("prompts via the new-version toast when the body format is newer than the bundle", async () => {
+  test("reloads once when the body format is newer than the bundle", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(formatResponse(API_FORMAT_VERSION + 1));
     initStaleBundleWatcher();
 
     await globalThis.fetch("/api/v1/catalog");
 
-    expect(toast).toHaveBeenCalledTimes(1);
-    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toast).not.toHaveBeenCalled();
   });
 
   test("ignores a malformed format header", async () => {
@@ -255,7 +258,7 @@ describe("reload loop guard", () => {
     );
   }
 
-  test("the toast's Reload action reloads even after the automatic reload was spent", async () => {
+  test("a build id mismatch after a spent chunk-error reload prompts, and the toast still reloads", async () => {
     initChunkErrorReloader();
     globalThis.fetch = vi
       .fn()
@@ -266,6 +269,8 @@ describe("reload loop guard", () => {
     expect(reloadSpy).toHaveBeenCalledTimes(1);
 
     await globalThis.fetch("/api/v1/cards");
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledTimes(1);
     lastToastAction().onClick();
 
     expect(reloadSpy).toHaveBeenCalledTimes(2);
@@ -372,7 +377,8 @@ describe("initVersionStaleNavigationReload", () => {
     };
   }
 
-  test("reloads on navigation once a new version has been detected", async () => {
+  test("reloads on navigation when the mismatch was detected while the guard was spent", async () => {
+    sessionStorage.setItem("openrift:reload-attempted", "1");
     const router = fakeRouter();
     initVersionStaleNavigationReload(router as never);
     globalThis.fetch = vi
@@ -382,6 +388,23 @@ describe("initVersionStaleNavigationReload", () => {
 
     await globalThis.fetch("/api/v1/cards");
     expect(reloadSpy).not.toHaveBeenCalled();
+
+    router.navigate();
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledTimes(1);
+  });
+
+  test("a mismatch reload is not repeated by the following navigation", async () => {
+    const router = fakeRouter();
+    initVersionStaleNavigationReload(router as never);
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("ok", { headers: { "X-Build-Id": "deadbeef" } }));
+    initStaleBundleWatcher();
+
+    await globalThis.fetch("/api/v1/cards");
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
 
     router.navigate();
 

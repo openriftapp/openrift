@@ -87,6 +87,16 @@ function reloadOnce(reason: string): boolean {
   return true;
 }
 
+// Automatic reload on a confirmed newer server build. The reloadOnce guard
+// bounds it to one attempt per session until a matching build id re-arms it,
+// so a shell still served stale after the reload degrades to the toast.
+export function reloadForNewVersion(reason: string): boolean {
+  if (!markNewVersionAvailable()) {
+    return false;
+  }
+  return reloadOnce(reason);
+}
+
 // An error thrown on a tab whose bundle predates the deployed server is a
 // deploy artifact, so the error boundary reloads through this instead.
 export function reloadIfNewVersionPending(): boolean {

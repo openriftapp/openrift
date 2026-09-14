@@ -13,6 +13,7 @@ import {
   _resetReloadStateForTesting,
   forceReload,
   markNewVersionAvailable,
+  reloadForNewVersion,
   scheduleReloadFlagClear,
   setStaleNotifier,
 } from "./stale-bundle-reload";
@@ -23,15 +24,15 @@ import { toastMessage } from "./toast";
 
 const NEW_VERSION_TOAST_ID = "openrift:new-version";
 
-// Reusing the toast id means repeated mismatches don't re-prompt.
-function announceNewVersion(reason: string): void {
-  if (!markNewVersionAvailable()) {
+let prompted = false;
+
+function promptNewVersion(reason: string): void {
+  markNewVersionAvailable();
+  if (prompted) {
     return;
   }
+  prompted = true;
   console.warn(`[stale-bundle] ${reason} — prompting to reload for the new version`);
-  if (hasScanJournal()) {
-    appendScanJournal({ type: "reload-prompt" });
-  }
   toastMessage(m.common_new_version_available(), {
     id: NEW_VERSION_TOAST_ID,
     duration: Number.POSITIVE_INFINITY,
@@ -43,7 +44,14 @@ function announceNewVersion(reason: string): void {
 }
 
 // Set here, not in stale-bundle-reload.ts, to keep the toast layer out of that module.
-setStaleNotifier(announceNewVersion);
+setStaleNotifier(promptNewVersion);
+
+function announceNewVersion(reason: string): void {
+  if (hasScanJournal()) {
+    appendScanJournal({ type: "reload-prompt" });
+  }
+  reloadForNewVersion(reason);
+}
 
 // API_FORMAT_HEADER describes the body, so it stays valid on a cached
 // response replayed later.
@@ -134,5 +142,6 @@ export function initVisibilityVersionCheck(): void {
 // test files, so this exists as a manual reset hook.
 export function _resetReloadFlagForTesting(): void {
   _resetReloadStateForTesting();
+  prompted = false;
   lastVisibilityCheckMs = 0;
 }
