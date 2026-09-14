@@ -83,6 +83,57 @@ describe("applyPageCacheControl", () => {
     expect(result.headers.get("Cache-Control")).toBe(PRIVATE);
   });
 
+  it("caches the help center, the meta archive and the static marketing pages", () => {
+    for (const path of [
+      "/help",
+      "/help/getting-started",
+      "/meta",
+      "/meta/events",
+      "/meta/legends/ahri",
+      "/changelog",
+      "/roadmap",
+      "/features",
+      "/support",
+      "/legal-notice",
+    ]) {
+      expect(
+        applyPageCacheControl(getRequest(path), htmlResponse()).headers.get("Cache-Control"),
+        path,
+      ).toBe(PUBLIC);
+    }
+  });
+
+  it("caches every public share surface for anonymous viewers", () => {
+    for (const path of [
+      "/decks/share/tok",
+      "/collections/share/tok",
+      "/lists/share/tok",
+      "/tier-lists/share/tok",
+      "/users/share/tok",
+      "/users/share/tok/lists/l1",
+    ]) {
+      expect(
+        applyPageCacheControl(getRequest(path), htmlResponse()).headers.get("Cache-Control"),
+        path,
+      ).toBe(PUBLIC);
+    }
+  });
+
+  it("keeps the deck builder, contribute and tournament token pages private", () => {
+    for (const path of [
+      "/decks",
+      "/decks/abc",
+      "/contribute",
+      "/tournaments/submit/tok",
+      "/stage",
+    ]) {
+      expect(
+        applyPageCacheControl(getRequest(path), htmlResponse()).headers.get("Cache-Control"),
+        path,
+      ).toBe(PRIVATE);
+    }
+  });
+
   it("still caches the /rules index itself", () => {
     const index = applyPageCacheControl(getRequest("/rules"), htmlResponse());
     expect(index.headers.get("Cache-Control")).toBe(PUBLIC);

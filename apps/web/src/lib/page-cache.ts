@@ -14,8 +14,29 @@ const EXACT_PATHS = new Set([
   "/privacy-policy",
   "/promos",
   "/products",
+  "/help",
+  "/meta",
+  "/changelog",
+  "/roadmap",
+  "/features",
+  "/support",
+  "/legal-notice",
+  "/glossary",
 ]);
-const PREFIX_PATHS = ["/cards/", "/sets/", "/rules/", "/decks/share/", "/promos/", "/products/"];
+const PREFIX_PATHS = [
+  "/cards/",
+  "/sets/",
+  "/rules/",
+  "/promos/",
+  "/products/",
+  "/help/",
+  "/meta/",
+  "/decks/share/",
+  "/collections/share/",
+  "/lists/share/",
+  "/tier-lists/share/",
+  "/users/share/",
+];
 
 function isCacheablePublicPath(pathname: string): boolean {
   if (EXACT_PATHS.has(pathname)) {
