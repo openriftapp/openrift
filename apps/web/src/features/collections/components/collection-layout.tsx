@@ -41,9 +41,13 @@ import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
 import type { PendingEntryMove } from "@/features/lists/components/move-entry-dialog";
 import { MoveEntryDialog } from "@/features/lists/components/move-entry-dialog";
-import { useBulkAddCopiesToList, useMoveListEntries } from "@/features/lists/hooks/use-lists";
+import {
+  useBulkAddCopiesToList,
+  useBulkAddListEntries,
+  useMoveListEntries,
+} from "@/features/lists/hooks/use-lists";
 import type { MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
-import { moveNeedsDialog } from "@/features/lists/lib/list-move";
+import { moveNeedsDialog, ruleEntryCopyInputs } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
@@ -82,6 +86,7 @@ export function CollectionLayout() {
   const dragActiveRef = useRef(false);
   const moveCopies = useMoveCopies();
   const bulkAddCopiesToList = useBulkAddCopiesToList();
+  const bulkAddListEntries = useBulkAddListEntries();
   const moveListEntries = useMoveListEntries();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: DRAG_ACTIVATION }));
@@ -147,11 +152,12 @@ export function CollectionLayout() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
-    const mode: MoveMode = copyModifier ? "copy" : "move";
+    const dragData = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
+    const mode: MoveMode =
+      copyModifier || (dragData?.type === "list-entry" && dragData.ruleEntry) ? "copy" : "move";
     dragActiveRef.current = false;
     setActiveDrag(null);
 
-    const dragData = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
     const dropData = asDragData<CollectionDropData>(
       event.over?.data.current,
       COLLECTION_DROP_TYPES,
@@ -248,6 +254,27 @@ export function CollectionLayout() {
     mode: MoveMode,
     resolution: MoveResolution | null,
   ) {
+    if (dragData.ruleEntry) {
+      const subject = { ...dragData, ruleEntry: dragData.ruleEntry };
+      bulkAddListEntries.mutate(
+        {
+          listId: dropData.listId,
+          entries: ruleEntryCopyInputs(subject, dropData.listKind, resolution),
+        },
+        {
+          onSuccess: (result) => {
+            setPendingMove(null);
+            toast.success(
+              m.lists_toast_copied_to_list({
+                count: result.added + result.updated,
+                list: dropData.listName,
+              }),
+            );
+          },
+        },
+      );
+      return;
+    }
     moveListEntries.mutate(
       {
         fromListId: dragData.sourceListId,
@@ -320,7 +347,10 @@ export function CollectionLayout() {
                     <DragPreview drag={activeDrag} modifier={moveModifier} />
                   )}
                   {activeDrag?.type === "list-entry" && (
-                    <ListEntryDragPreview drag={activeDrag} copy={copyModifier} />
+                    <ListEntryDragPreview
+                      drag={activeDrag}
+                      copy={copyModifier || activeDrag.ruleEntry !== undefined}
+                    />
                   )}
                 </DragOverlay>
               </DndContext>
@@ -341,7 +371,7 @@ export function CollectionLayout() {
                   resolution,
                 )
               }
-              isPending={moveListEntries.isPending}
+              isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
             />
           </div>
         </PageTopBarHeightContext>

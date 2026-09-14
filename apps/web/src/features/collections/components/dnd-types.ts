@@ -1,6 +1,8 @@
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 
+import type { RuleEntryRef } from "@/features/lists/lib/list-move";
+
 export interface CardDragData {
   type: "collection-card";
   copyIds: string[];
@@ -18,7 +20,9 @@ export interface CardDragData {
  */
 export interface ListEntryDragData {
   type: "list-entry";
+  /** Empty for a rule-derived entry, which carries `ruleEntry` instead and only ever copies. */
   entryIds: string[];
+  ruleEntry?: RuleEntryRef;
   copyIds: string[];
   sourceListId: string;
   sourceKind: ListKind;

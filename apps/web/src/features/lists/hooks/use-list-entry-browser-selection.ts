@@ -33,6 +33,7 @@ import {
 } from "@/features/lists/hooks/use-lists";
 import { resolveCopyMoveTarget, selectableEntryIds } from "@/features/lists/lib/list-entries";
 import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
+import { ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
@@ -97,6 +98,8 @@ export function useListEntryBrowserSelection({
   } = useCardSelection();
   const mode: "browse" | "select" = selectMode ? "select" : "browse";
   const [actionEntryIds, setActionEntryIds] = useState<string[]>([]);
+  // The grid item of a rule-derived entry being copied; it has no entry id to put in actionEntryIds.
+  const [ruleCopyItemId, setRuleCopyItemId] = useState<string | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveMode, setMoveMode] = useState<MoveMode>("move");
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -259,6 +262,7 @@ export function useListEntryBrowserSelection({
 
   const openListAction = (action: ListBulkAction, entryIds: string[]) => {
     setActionEntryIds(entryIds);
+    setRuleCopyItemId(null);
     if (action === "move" || action === "copy") {
       setMoveMode(action);
       setMoveOpen(true);
@@ -269,7 +273,62 @@ export function useListEntryBrowserSelection({
     }
   };
 
+  // A wider-kind target needs a printing or copies picked, which only makes sense per card.
+  const moveSubject: MoveEntrySubject | null = (() => {
+    if (ruleCopyItemId !== null) {
+      const item = items.find((candidate) => candidate.id === ruleCopyItemId);
+      const entry = entryByItemId.get(ruleCopyItemId);
+      if (!item || !entry) {
+        return null;
+      }
+      return {
+        entryIds: [],
+        ruleEntry: ruleEntryRef(entry),
+        sourceKind: kind,
+        sourceIntent: intent,
+        totalQuantity: entry.quantity,
+        printing: item.printing,
+        cardName: entry.cardName,
+      };
+    }
+    if (actionEntryIds.length !== 1) {
+      return null;
+    }
+    const entryId = actionEntryIds[0];
+    const item = items.find((candidate) => entryByItemId.get(candidate.id)?.id === entryId);
+    const entry = item ? entryByItemId.get(item.id) : undefined;
+    if (!item || !entry || entry.id === null) {
+      return null;
+    }
+    return {
+      entryIds: [entry.id],
+      sourceKind: kind,
+      sourceIntent: intent,
+      totalQuantity: entry.quantity,
+      printing: item.printing,
+      cardName: entry.cardName,
+    };
+  })();
+
   const handleBulkMove = (toList: ListResponse, resolution: MoveResolution | null) => {
+    if (moveSubject?.ruleEntry) {
+      const subject = { ...moveSubject, ruleEntry: moveSubject.ruleEntry };
+      bulkAddEntries.mutate(
+        { listId: toList.id, entries: ruleEntryCopyInputs(subject, toList.kind, resolution) },
+        {
+          onSuccess: (result) => {
+            toast.success(
+              m.lists_toast_copied_to_list({
+                count: result.added + result.updated,
+                list: toList.name,
+              }),
+            );
+            setMoveOpen(false);
+          },
+        },
+      );
+      return;
+    }
     moveEntries.mutate(
       {
         fromListId: listId,
@@ -293,27 +352,6 @@ export function useListEntryBrowserSelection({
       },
     );
   };
-
-  // A wider-kind target needs a printing or copies picked, which only makes sense per card.
-  const moveSubject: MoveEntrySubject | null = (() => {
-    if (actionEntryIds.length !== 1) {
-      return null;
-    }
-    const entryId = actionEntryIds[0];
-    const item = items.find((candidate) => entryByItemId.get(candidate.id)?.id === entryId);
-    const entry = item ? entryByItemId.get(item.id) : undefined;
-    if (!item || !entry || entry.id === null) {
-      return null;
-    }
-    return {
-      entryIds: [entry.id],
-      sourceKind: kind,
-      sourceIntent: intent,
-      totalQuantity: entry.quantity,
-      printing: item.printing,
-      cardName: entry.cardName,
-    };
-  })();
 
   const handleBulkRemove = () => {
     const count = actionEntryIds.length;
@@ -410,6 +448,12 @@ export function useListEntryBrowserSelection({
       }
       openListAction(action, copyIds);
     },
+    onCopyRuleEntry: (itemId) => {
+      setActionEntryIds([]);
+      setRuleCopyItemId(itemId);
+      setMoveMode("copy");
+      setMoveOpen(true);
+    },
     onEntryQuantityChange: (entryId, quantity) => {
       // Defensive: the cell already disables the button when there's no entry.
       if (!entryId) {
@@ -441,6 +485,7 @@ export function useListEntryBrowserSelection({
     moveSubject,
     handleBulkMove,
     moveEntries,
+    movePending: moveEntries.isPending || bulkAddEntries.isPending,
     removeOpen,
     setRemoveOpen,
     handleBulkRemove,

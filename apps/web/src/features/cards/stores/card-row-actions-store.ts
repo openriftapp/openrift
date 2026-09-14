@@ -65,6 +65,8 @@ interface ListRowHandlers {
   isQuantityPendingFor?: (entryId: string) => boolean;
   /** The browser resolves the target (multi-selection, or just this entry) before opening the dialog. */
   onListBulkAction?: (entryId: string, action: ListBulkAction) => void;
+  /** Rule-produced entries have no entry id; the browser resolves the item into a copy subject. */
+  onCopyRuleEntry?: (itemId: string) => void;
   /** Keyed by copy id, not entry id, so rule-produced entries (no `list_entries` row) can be moved too. */
   onMoveCopyToCollection?: (copyId: string) => void;
   /** Rule-produced entries have no `list_entries` row; this excludes them from the rule, not removes them. */
@@ -173,6 +175,10 @@ export function dispatchSetPreference(entryId: string): void {
 
 export function dispatchListBulkAction(entryId: string, action: ListBulkAction): void {
   useCardRowActionsStore.getState().handlers.onListBulkAction?.(entryId, action);
+}
+
+export function dispatchCopyRuleEntry(itemId: string): void {
+  useCardRowActionsStore.getState().handlers.onCopyRuleEntry?.(itemId);
 }
 
 export function dispatchMoveCopyToCollection(copyId: string): void {

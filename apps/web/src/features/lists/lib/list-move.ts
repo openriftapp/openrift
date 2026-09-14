@@ -1,5 +1,9 @@
 import type { MoveListEntriesResolution } from "@openrift/shared/contracts/lists";
-import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
+import type {
+  ListEntryDetailResponse,
+  ListIntent,
+  ListKind,
+} from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 
 const KIND_RANK: Record<ListKind, number> = { card: 0, printing: 1, copy: 2 };
@@ -8,9 +12,53 @@ export type MoveMode = "move" | "copy";
 export type MovePick = "none" | "printing" | "copies";
 export type MoveResolution = Omit<MoveListEntriesResolution, "entryId">;
 
+/** A rule-derived entry has no `list_entries` row; a copy adds a fresh entry from these ids. */
+export interface RuleEntryRef {
+  kind: ListKind;
+  printingId?: string;
+  copyId?: string;
+}
+
+export function ruleEntryRef(entry: ListEntryDetailResponse): RuleEntryRef {
+  if (entry.kind === "card") {
+    return { kind: "card" };
+  }
+  if (entry.kind === "printing") {
+    return { kind: "printing", printingId: entry.printingId };
+  }
+  return { kind: "copy", printingId: entry.printingId, copyId: entry.copyId };
+}
+
+export interface ListEntryInput {
+  cardId?: string;
+  printingId?: string;
+  copyId?: string;
+  quantity?: number;
+}
+
+/** The bulk-add rows that copy a rule-derived entry onto a list of `targetKind`. */
+export function ruleEntryCopyInputs(
+  subject: Pick<MoveEntrySubject, "printing" | "totalQuantity"> & { ruleEntry: RuleEntryRef },
+  targetKind: ListKind,
+  resolution: MoveResolution | null,
+): ListEntryInput[] {
+  const { ruleEntry, printing, totalQuantity } = subject;
+  if (targetKind === "copy") {
+    const copyIds = ruleEntry.copyId ? [ruleEntry.copyId] : (resolution?.copyIds ?? []);
+    return copyIds.map((copyId) => ({ copyId }));
+  }
+  if (targetKind === "printing") {
+    const printingId = ruleEntry.printingId ?? resolution?.printingId;
+    return printingId ? [{ printingId, quantity: totalQuantity }] : [];
+  }
+  return [{ cardId: printing.cardId, quantity: totalQuantity }];
+}
+
 /** The entry being moved; a `ListEntryDragData` satisfies it directly. */
 export interface MoveEntrySubject {
+  /** Empty for a rule-derived entry, which carries `ruleEntry` instead and can only be copied. */
   entryIds: string[];
+  ruleEntry?: RuleEntryRef;
   sourceKind: ListKind;
   sourceIntent: ListIntent;
   totalQuantity: number;

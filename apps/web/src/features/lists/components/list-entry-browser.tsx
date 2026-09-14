@@ -153,6 +153,7 @@ export function ListEntryBrowser({
     moveSubject,
     handleBulkMove,
     moveEntries,
+    movePending,
     removeOpen,
     setRemoveOpen,
     handleBulkRemove,
@@ -395,7 +396,7 @@ export function ListEntryBrowser({
             source={{ kind, intent }}
             subject={moveSubject}
             onConfirm={handleBulkMove}
-            isPending={moveEntries.isPending}
+            isPending={movePending}
           />
           {/* Mounted only while open: it reads collections via a suspense query,
               and mounted-but-closed would suspend into the page's boundary. */}

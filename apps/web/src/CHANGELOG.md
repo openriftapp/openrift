@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(Collection): **Copy rule-added cards to other lists** — cards a list includes through its rules can now be dragged or right-clicked to copy them onto another list.
 - fix(App): **Open tabs update themselves after a release** — a tab still running an older version now reloads on its own the first time it talks to the updated server, instead of waiting for you to press Reload on the "new version available" notice; the notice remains as a fallback if the automatic reload was already used.
 - fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.
 - fix(Groups): **Group overview fits phone screens** — the recent activity feed and the sections under it no longer stretch the group page wider than the screen on phones.
