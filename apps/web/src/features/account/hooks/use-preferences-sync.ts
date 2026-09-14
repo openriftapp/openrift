@@ -11,6 +11,7 @@ import { useEffect, useRef } from "react";
 
 import { preferencesKeys } from "@/features/account/lib/account-query-keys";
 import { preferencesQueryOptions } from "@/features/account/lib/preferences-queries";
+import { useLocaleBannerStore } from "@/features/account/stores/locale-banner-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
@@ -62,6 +63,7 @@ export async function applyDisplayLocale(
       return false;
     }
   }
+  useLocaleBannerStore.getState().dismiss();
   await setLocale(locale);
   return true;
 }

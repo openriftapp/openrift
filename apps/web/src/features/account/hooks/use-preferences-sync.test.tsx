@@ -32,8 +32,13 @@ const { signedInUser } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth-session", () => ({ useUserId: () => signedInUser.id }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
+vi.mock("@/paraglide/runtime.js", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  setLocale: vi.fn(),
+}));
 
-const { usePreferencesSync } = await import("./use-preferences-sync");
+const { applyDisplayLocale, usePreferencesSync } = await import("./use-preferences-sync");
+const { useLocaleBannerStore } = await import("@/features/account/stores/locale-banner-store");
 const { useDisplayStore } = await import("@/stores/display-store");
 const { useThemeStore } = await import("@/stores/theme-store");
 const { preferencesKeys } = await import("@/features/account/lib/account-query-keys");
@@ -41,6 +46,7 @@ const { createStoreResetter } = await import("@/test/store-helpers");
 
 const resetDisplay = createStoreResetter(useDisplayStore);
 const resetTheme = createStoreResetter(useThemeStore);
+const resetLocaleBanner = createStoreResetter(useLocaleBannerStore);
 
 interface FetchCall {
   method: string;
@@ -104,11 +110,29 @@ async function flushMicrotasks() {
 beforeEach(() => {
   resetDisplay();
   resetTheme();
+  resetLocaleBanner();
   signedInUser.id = "test-user-id";
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("applyDisplayLocale", () => {
+  it("dismisses the locale banner when a language is chosen", async () => {
+    stubFetch({});
+    await expect(applyDisplayLocale("de", { persist: true })).resolves.toBe(true);
+    expect(useLocaleBannerStore.getState().dismissed).toBe(true);
+  });
+
+  it("keeps the locale banner when the account write fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 500 })),
+    );
+    await expect(applyDisplayLocale("de", { persist: true })).resolves.toBe(false);
+    expect(useLocaleBannerStore.getState().dismissed).toBe(false);
+  });
 });
 
 describe("usePreferencesSync", () => {

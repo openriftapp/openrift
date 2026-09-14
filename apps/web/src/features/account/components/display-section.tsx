@@ -1,4 +1,5 @@
 import { Radio } from "@base-ui/react/radio";
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type {
   DefaultCardView,
   DisplayLocale,
@@ -7,15 +8,19 @@ import type {
 } from "@openrift/shared/types/api/preferences";
 import { DISPLAY_LOCALES, PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { TextLink } from "@/components/ui/text-link";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
+import { SOCIAL_LINKS } from "@/lib/social-links";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
@@ -53,7 +58,22 @@ export function DisplaySection() {
         )}
       </SettingsRow>
 
-      <SettingsRow label={m.locale_switcher_label()}>
+      <SettingsRow
+        label={m.locale_switcher_label()}
+        description={
+          <ParaglideMessage
+            message={m.profile_display_locale_beta_note}
+            markup={{
+              link: ({ children }) => (
+                <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+                  {children}
+                </TextLink>
+              ),
+            }}
+          />
+        }
+        className="max-sm:flex-col max-sm:gap-2"
+      >
         <DisplayLocalePicker />
       </SettingsRow>
 
@@ -150,9 +170,20 @@ export function DisplaySection() {
   );
 }
 
-const DISPLAY_LOCALE_OPTIONS: { value: DisplayLocale; label: string }[] = DISPLAY_LOCALES.map(
-  (locale) => ({ value: locale, label: DISPLAY_LOCALE_LABELS[locale] }),
-);
+function displayLocaleOptions(): { value: DisplayLocale; label: ReactNode }[] {
+  return DISPLAY_LOCALES.map((locale) => ({
+    value: locale,
+    label:
+      locale === "en" ? (
+        DISPLAY_LOCALE_LABELS[locale]
+      ) : (
+        <span className="inline-flex items-center gap-1.5">
+          {DISPLAY_LOCALE_LABELS[locale]}
+          <Badge variant="subtle">{m.profile_display_locale_beta()}</Badge>
+        </span>
+      ),
+  }));
+}
 
 function DisplayLocalePicker() {
   const [pending, setPending] = useState(false);
@@ -173,7 +204,7 @@ function DisplayLocalePicker() {
     <SegmentedRadio
       value={active}
       onValueChange={(next) => void change(next)}
-      options={DISPLAY_LOCALE_OPTIONS}
+      options={displayLocaleOptions()}
     />
   );
 }
@@ -263,13 +294,13 @@ function SegmentedRadio<TValue extends string>({
 }: {
   value: TValue;
   onValueChange: (value: TValue) => void;
-  options: { value: TValue; label: string }[];
+  options: { value: TValue; label: ReactNode }[];
 }) {
   return (
     <RadioGroup
       value={value}
       onValueChange={(next) => onValueChange(next as TValue)}
-      className="bg-muted inline-flex w-fit flex-row items-center gap-0.5 rounded-md p-0.5"
+      className="bg-muted inline-flex w-fit flex-row flex-wrap items-center gap-0.5 rounded-md p-0.5"
     >
       {options.map((option) => (
         <Radio.Root
