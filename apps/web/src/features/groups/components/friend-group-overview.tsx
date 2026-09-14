@@ -51,7 +51,7 @@ export function OverviewContent({ slug, data }: { slug: string; data: FriendGrou
       <GroupSetupNudges slug={slug} data={data} />
       <TradesHubBand slug={slug} data={data} />
       <ActionTiles slug={slug} data={data} />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <FriendGroupActivityFeed slug={slug} />
         <OverviewRail slug={slug} data={data} />
       </div>
@@ -217,7 +217,7 @@ function MembersCard({ slug, data }: { slug: string; data: FriendGroupDetailResp
 
 function OverviewRail({ slug, data }: { slug: string; data: FriendGroupDetailResponse }) {
   return (
-    <aside className="flex flex-col gap-8">
+    <aside className="flex min-w-0 flex-col gap-8">
       <NewestShared slug={slug} data={data} />
       <ShopNextUp slug={slug} data={data} />
       <TournamentNudge slug={slug} data={data} />

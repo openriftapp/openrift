@@ -37,7 +37,7 @@ export function FriendGroupActivityFeed({ slug }: { slug: string }) {
   const days = expanded ? allDays : buildActivityDays(data.events, FEED_ROWS);
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex min-w-0 flex-col gap-4">
       <div className="flex items-baseline justify-between gap-3">
         <SectionHeading>{m.groups_activity_title()}</SectionHeading>
         {totalRows > FEED_ROWS && (
