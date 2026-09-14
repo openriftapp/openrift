@@ -55,6 +55,7 @@ export const EMPTY_META_SUBMISSION_DRAFT: MetaSubmissionDraft = {
 /** Everything is optional: a source with no published records has no counts. */
 export interface MetaSubmissionPrefill {
   kind?: MetaDeckSubmissionKind;
+  metaEventPlayerId?: string;
   playerName?: string;
   rank?: number;
   rankIsTier?: boolean;
@@ -282,7 +283,7 @@ export function validateMetaSubmissionDraft(
 export function buildMetaSubmissionInput(
   draft: MetaSubmissionDraft,
   list: Pick<MetaSubmissionParsedList, "cards" | "listStatus">,
-  target: { metaEventId: string } | null,
+  target: { metaEventId: string; metaEventPlayerId?: string } | null,
 ): MetaSubmissionInput {
   const players = draft.eventPlayerCount.trim();
   const organizer = draft.eventOrganizer.trim();
@@ -300,6 +301,7 @@ export function buildMetaSubmissionInput(
 
   return {
     metaEventId: target?.metaEventId ?? null,
+    metaEventPlayerId: target?.metaEventPlayerId ?? null,
     proposedEvent,
     // A proposal is a tournament the archive has never seen, so there is
     // nothing there to complete or correct whatever link got the sender here.

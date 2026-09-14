@@ -338,7 +338,13 @@ export function MetaSubmitPage({
       return;
     }
 
-    const target = proposing ? null : { metaEventId: selectedEventId };
+    const target = proposing
+      ? null
+      : {
+          metaEventId: selectedEventId,
+          metaEventPlayerId:
+            fromRow && selectedEventId === eventFromSlug?.id ? row.metaEventPlayerId : undefined,
+        };
     const input = buildMetaSubmissionInput(draft, parsed, target);
     setFormError("");
     try {

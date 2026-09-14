@@ -23,8 +23,13 @@ import { MetaEventContributeBand } from "@/features/meta/components/meta-event-c
 import { MetaEventCorrectionDialog } from "@/features/meta/components/meta-event-correction-dialog";
 import { MetaEventHeader } from "@/features/meta/components/meta-event-header";
 import { MetaEventLegendFinishes } from "@/features/meta/components/meta-event-legend-finishes";
+import { MetaEventPendingList } from "@/features/meta/components/meta-event-pending-list";
 import { MetaEventStandings } from "@/features/meta/components/meta-event-standings";
-import { useMetaEvent } from "@/features/meta/hooks/use-meta";
+import { useMetaEvent, useMetaPendingSubmissions } from "@/features/meta/hooks/use-meta";
+import {
+  groupPendingSubmissions,
+  NO_PENDING_SUBMISSIONS,
+} from "@/features/meta/lib/meta-pending-submissions";
 import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -62,6 +67,11 @@ function EventActionsMenu({ event }: { event: MetaEventDetail }) {
 export function MetaEventPage({ slug }: { slug: string }) {
   const { data } = useMetaEvent(slug);
   const { event, players, matches, phases } = data;
+  const { data: pendingData } = useMetaPendingSubmissions(slug);
+  const pending =
+    pendingData === undefined
+      ? NO_PENDING_SUBMISSIONS
+      : groupPendingSubmissions(pendingData.items, players);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -108,7 +118,10 @@ export function MetaEventPage({ slug }: { slug: string }) {
           slug={slug}
           eventDate={event.eventDate}
           status={event.status}
+          pending={pending.byPlayer}
         />
+
+        <MetaEventPendingList items={pending.unmatched} />
 
         <div className="mt-8">
           <MetaEventContributeBand event={event} players={players} slug={slug} />

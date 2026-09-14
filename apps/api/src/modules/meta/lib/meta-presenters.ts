@@ -17,6 +17,7 @@ import type {
   MetaEventFinish,
   MetaLegendFinish,
   MetaLegendSummary,
+  MetaPendingSubmission,
   MetaPlayerFinish,
 } from "@openrift/shared/types/api/meta";
 import type { CardType, MetaEventTier } from "@openrift/shared/types/enums";
@@ -44,6 +45,7 @@ import type { AdminMetaPlayerRow, MetaEventPlayerRow } from "../repositories/met
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import type {
   MetaEventCorrectionRow,
+  MetaPendingSubmissionRow,
   MetaSubmissionRow,
 } from "../repositories/meta-submissions.js";
 
@@ -571,6 +573,22 @@ export function toAdminMetaPlayer(row: AdminMetaPlayerRow): Omit<AdminMetaPlayer
  * The submission as its contributor's own list shows it; the candidate id
  * and provider key are staging details left off the wire.
  */
+/** The submitter's id stays on the server; the viewer only learns whether a row is theirs. */
+export function toMetaPendingSubmission(
+  row: MetaPendingSubmissionRow,
+  viewerId: string | null,
+): MetaPendingSubmission {
+  return {
+    id: row.id,
+    kind: row.kind,
+    metaEventPlayerId: row.metaEventPlayerId,
+    playerName: row.playerName,
+    rank: row.rank,
+    rankIsTier: row.rankIsTier,
+    mine: viewerId !== null && row.userId === viewerId,
+  };
+}
+
 export function toMetaSubmission(
   row: MetaSubmissionRow,
   acceptedDeckToken: string | null,

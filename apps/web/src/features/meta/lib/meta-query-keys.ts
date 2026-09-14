@@ -74,4 +74,7 @@ export const metaKeys = {
 export const metaSubmissionsKeys = {
   all: (userId: string) => ["meta-submissions", userId] as const,
   creditVisibility: (userId: string) => ["meta-submissions", userId, "credit"] as const,
+  pendingForEvents: ["meta-pending-submissions"] as const,
+  pendingForEvent: (slug: string, userId: string | null) =>
+    ["meta-pending-submissions", slug, userId] as const,
 } as const;

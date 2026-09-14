@@ -42,6 +42,18 @@ describe("metaSubmitSearchForPlayer", () => {
     });
   });
 
+  it("carries the standings row id, so the submission marks that row", () => {
+    const playerId = "0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b";
+    const search = metaSubmitSearchForPlayer({ ...row, playerId });
+
+    expect(search.playerId).toBe(playerId);
+    expect(parseMetaSubmitSearch({ ...search }).playerId).toBe(playerId);
+  });
+
+  it("drops a row id that is not a uuid", () => {
+    expect(parseMetaSubmitSearch({ playerId: "row-1" }).playerId).toBeUndefined();
+  });
+
   it("marks a cut bucket so the form does not print it as an exact placing", () => {
     expect(metaSubmitSearchForPlayer({ ...row, rank: 8, rankIsTier: true }).cut).toBe(true);
   });

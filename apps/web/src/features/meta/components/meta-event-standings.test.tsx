@@ -97,6 +97,7 @@ function renderStandings(
   eventDate = "2020-01-01",
   rounds: { matches?: MetaEventMatch[]; phases?: MetaEventPhase[] } = {},
   status: MetaEventStatus = "complete",
+  pending: ReadonlyMap<string, { mine: boolean }> = new Map(),
 ) {
   render(
     <MetaEventStandings
@@ -106,6 +107,7 @@ function renderStandings(
       slug="summoner-skirmish"
       status={status}
       eventDate={eventDate}
+      pending={pending}
     />,
   );
 }
@@ -464,11 +466,51 @@ describe("MetaEventStandings", () => {
     expect(search.get("player")).toBe("Ana");
     expect(search.get("rank")).toBe("8");
     expect(search.get("cut")).toBe("true");
+    expect(search.get("playerId")).toBe("p-1");
   });
 
   it("offers a signed-out reader nothing to click on a list-less row", () => {
     renderStandings([metaPlayer({ playerName: "Ana" })]);
     expect(screen.queryByRole("link", { name: "+ Add" })).toBeNull();
+  });
+
+  it("tells a signed-out reader a list for the row is already in review", () => {
+    renderStandings(
+      [metaPlayer({ playerName: "Ana" })],
+      undefined,
+      {},
+      undefined,
+      new Map([["p-1", { mine: false }]]),
+    );
+    expect(within(phoneRow("Ana")).getByText("In review")).toBeInTheDocument();
+  });
+
+  it("points a signed-in reader's own pending list at their submissions instead of the form", () => {
+    session.userId = "user-1";
+    renderStandings(
+      [metaPlayer({ playerName: "Ana" })],
+      undefined,
+      {},
+      undefined,
+      new Map([["p-1", { mine: true }]]),
+    );
+
+    const link = within(phoneRow("Ana")).getByRole("link", { name: "Yours, in review" });
+    expect(link.getAttribute("href")).toBe("/meta/submissions");
+    expect(within(phoneRow("Ana")).queryByRole("link", { name: "+ Add" })).toBeNull();
+  });
+
+  it("marks an archived list that has an update waiting", () => {
+    renderStandings(
+      [metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })],
+      undefined,
+      {},
+      undefined,
+      new Map([["p-1", { mine: false }]]),
+    );
+    expect(
+      within(phoneRow("Ana")).getByRole("img", { name: "An update to this list is in review" }),
+    ).toBeInTheDocument();
   });
 
   it("opens a row's decklist in place", async () => {

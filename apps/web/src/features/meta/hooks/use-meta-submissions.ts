@@ -69,6 +69,7 @@ export function useSubmitMetaDeck() {
     onSuccess: (outcome) => {
       if (outcome.ok) {
         void queryClient.invalidateQueries({ queryKey: metaSubmissionsKeys.all(userId) });
+        void queryClient.invalidateQueries({ queryKey: metaSubmissionsKeys.pendingForEvents });
       }
     },
   });
@@ -109,6 +110,7 @@ export function useSubmitMetaEventCorrection() {
     onSuccess: (outcome) => {
       if (outcome.ok) {
         void queryClient.invalidateQueries({ queryKey: metaSubmissionsKeys.all(userId) });
+        void queryClient.invalidateQueries({ queryKey: metaSubmissionsKeys.pendingForEvents });
       }
     },
   });

@@ -61,6 +61,7 @@ export interface MetaSubmissionArgs {
   metaEventId: string | null;
   /** The event this proposes. Null exactly when {@link metaEventId} is set. */
   proposedEvent: MetaSubmissionProposedEvent | null;
+  metaEventPlayerId: string | null;
   /**
    * What the contributor is asking for. Advisory only: an accept writes the same
    * archive row whichever it is, and the reviewer reads it to know whether they
@@ -115,6 +116,9 @@ export function validateMetaSubmission(args: MetaSubmissionArgs): string[] {
   const problems: string[] = [];
   if ((args.metaEventId === null) === (args.proposedEvent === null)) {
     problems.push("A submission targets exactly one event: an existing one or a proposed one");
+  }
+  if (args.metaEventPlayerId !== null && args.metaEventId === null) {
+    problems.push("A standings row can only be named on an existing event");
   }
   if (args.playerName.trim() === "" || args.playerName.length > 80) {
     problems.push("playerName must be 1-80 characters");
@@ -288,6 +292,12 @@ export function submitMetaDeck(
     if (args.metaEventId !== null && target === undefined) {
       throw new AppError(404, ERROR_CODES.NOT_FOUND, "Event not found");
     }
+    if (
+      args.metaEventPlayerId !== null &&
+      (await repos.meta.eventIdForPlayer(args.metaEventPlayerId)) !== args.metaEventId
+    ) {
+      return { status: "invalid", errors: ["That standings row is not part of this event"] };
+    }
 
     // Names resolve through the shared matcher, so an alias added for the card
     // pipeline applies here too and a submission links exactly where a provider
@@ -377,6 +387,7 @@ export function submitMetaDeck(
       externalId,
       playerOverlayId,
       metaEventId: args.metaEventId,
+      metaEventPlayerId: args.metaEventPlayerId,
       eventName,
       playerName: args.playerName,
       kind: args.kind,

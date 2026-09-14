@@ -33,13 +33,22 @@ const NO_TIER_COUNTS = { premier: 0, competitive: 0, local: 0 };
 
 const mockCanonicalPrintings = { resolvePrintingMetaForRows: vi.fn() };
 
+const mockMetaSubmissions = { pendingForEvent: vi.fn() };
+
+let viewer: { id: string } | null = null;
+
 const EVENT_ID = "b0000000-0001-4000-a000-000000000001";
 const LEGEND_ID = "f0000000-0001-4000-a000-000000000001";
 const CHAMPION_ID = "f0000000-0001-4000-a000-000000000002";
 
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
-  c.set("repos", { meta: mockMeta, canonicalPrintings: mockCanonicalPrintings } as never);
+  c.set("repos", {
+    meta: mockMeta,
+    canonicalPrintings: mockCanonicalPrintings,
+    metaSubmissions: mockMetaSubmissions,
+  } as never);
+  c.set("user", viewer as never);
   await next();
 });
 registerRouterForTest(app, metaRouter);
@@ -421,6 +430,65 @@ describe("GET /meta/events/{slug}", () => {
     expect(mockMeta.standingsForEvent).not.toHaveBeenCalled();
     expect(mockMeta.sourcesForEvent).not.toHaveBeenCalled();
     expect(mockMeta.contributorsForEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /meta/events/{slug}/pending-submissions", () => {
+  function pendingRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "s0000000-0001-4000-a000-000000000001",
+      userId: "user-1",
+      kind: "new_list",
+      metaEventPlayerId: "p0000000-0001-4000-a000-000000000001",
+      playerName: "Renata",
+      rank: 3,
+      rankIsTier: false,
+      ...overrides,
+    };
+  }
+
+  it("tells a signed-in viewer which submissions are theirs, without any user id", async () => {
+    viewer = { id: "user-1" };
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMetaSubmissions.pendingForEvent.mockResolvedValue([
+      pendingRow(),
+      pendingRow({ id: "s2", userId: "user-2", metaEventPlayerId: null }),
+    ]);
+
+    const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026/pending-submissions");
+    viewer = null;
+
+    expect(res.status).toBe(200);
+    const json = await readJson<{ items: Record<string, unknown>[] }>(res);
+    expect(mockMetaSubmissions.pendingForEvent).toHaveBeenCalledWith(EVENT_ID);
+    expect(json.items.map((item) => item.mine)).toEqual([true, false]);
+    expect(json.items[1]).toEqual({
+      id: "s2",
+      kind: "new_list",
+      metaEventPlayerId: null,
+      playerName: "Renata",
+      rank: 3,
+      rankIsTier: false,
+      mine: false,
+    });
+  });
+
+  it("marks nothing as the viewer's for an anonymous visitor", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMetaSubmissions.pendingForEvent.mockResolvedValue([pendingRow()]);
+
+    const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026/pending-submissions");
+
+    const json = await readJson<{ items: { mine: boolean }[] }>(res);
+    expect(json.items).toEqual([expect.objectContaining({ mine: false })]);
+  });
+
+  it("404s an unknown slug", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(undefined);
+
+    const res = await app.request("/api/v1/meta/events/no-such-event/pending-submissions");
+
+    expect(res.status).toBe(404);
   });
 });
 

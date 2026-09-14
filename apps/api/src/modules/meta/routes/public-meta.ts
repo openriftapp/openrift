@@ -10,6 +10,7 @@ import type {
   MetaCountsResponse,
   MetaLegendDetailResponse,
   MetaLegendListResponse,
+  MetaPendingSubmissionsResponse,
   MetaPlayerDetailResponse,
 } from "@openrift/shared/types/api/meta";
 import { implement } from "@orpc/server";
@@ -33,6 +34,7 @@ import {
   toMetaLegendFinish,
   toMetaLegendRef,
   toMetaLegendSummary,
+  toMetaPendingSubmission,
   toMetaPlayerFinish,
 } from "../lib/meta-presenters.js";
 
@@ -131,6 +133,20 @@ export const metaRouter = {
       phases: phases.map((row) => toMetaEventPhase(row)),
     };
   }),
+
+  pendingSubmissions: os.pendingSubmissions.handler(
+    async ({ input, context, errors }): Promise<MetaPendingSubmissionsResponse> => {
+      const event = await context.repos.meta.eventBySlug(input.slug);
+      if (!event) {
+        throw errors.NOT_FOUND({ message: "Event not found" });
+      }
+      const [rows, viewer] = await Promise.all([
+        context.repos.metaSubmissions.pendingForEvent(event.id),
+        context.loadUser(),
+      ]);
+      return { items: rows.map((row) => toMetaPendingSubmission(row, viewer?.id ?? null)) };
+    },
+  ),
 
   decks: os.decks.handler(async ({ input, context }): Promise<MetaDeckListResponse> => {
     const { meta, canonicalPrintings } = context.repos;

@@ -21,6 +21,7 @@ function args(overrides: Partial<MetaSubmissionArgs> = {}): MetaSubmissionArgs {
     userId: "user-1",
     metaEventId: EVENT_ID,
     proposedEvent: null,
+    metaEventPlayerId: null,
     kind: "new_list",
     playerName: "Nova",
     rank: 1,
@@ -52,6 +53,7 @@ function harness(
     pending?: number;
     eventName?: string;
     resolvedCardIds?: Record<string, string>;
+    playerEventId?: string;
   } = {},
 ): Harness {
   const insertEvent = vi.fn().mockResolvedValue("event-overlay-1");
@@ -75,6 +77,7 @@ function harness(
         .mockResolvedValue(
           options.eventName === undefined ? undefined : { id: EVENT_ID, name: options.eventName },
         ),
+      eventIdForPlayer: vi.fn().mockResolvedValue(options.playerEventId),
     },
     metaOverlays: { insertEventOverlay: insertEvent, insertPlayerOverlay: insertPlayer },
     metaSubmissions: {
@@ -116,6 +119,12 @@ describe("validateMetaSubmission", () => {
       }),
     );
     expect(problems).toHaveLength(1);
+  });
+
+  it("rejects a standings row on a proposed event", () => {
+    expect(
+      validateMetaSubmission(args({ metaEventId: null, metaEventPlayerId: "row-1" })),
+    ).toContain("A standings row can only be named on an existing event");
   });
 
   it("rejects a rank below first place", () => {
@@ -223,6 +232,27 @@ describe("submitMetaDeck", () => {
         eventName: "Summoner Skirmish Berlin",
       }),
     );
+  });
+
+  it("records the standings row the submission was sent from", async () => {
+    const h = harness({ eventName: "Summoner Skirmish Berlin", playerEventId: EVENT_ID });
+    const result = await submitMetaDeck(h.transact, args({ metaEventPlayerId: "row-1" }));
+
+    expect(result.status).toBe("ok");
+    expect(h.insertSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ metaEventPlayerId: "row-1" }),
+    );
+  });
+
+  it("refuses a standings row from another event", async () => {
+    const h = harness({ eventName: "Summoner Skirmish Berlin", playerEventId: "other-event" });
+    const result = await submitMetaDeck(h.transact, args({ metaEventPlayerId: "row-1" }));
+
+    expect(result).toEqual({
+      status: "invalid",
+      errors: ["That standings row is not part of this event"],
+    });
+    expect(h.insertSubmission).not.toHaveBeenCalled();
   });
 
   it("stages the standing the submitter reported", async () => {

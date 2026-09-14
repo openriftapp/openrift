@@ -3,6 +3,7 @@ import {
   metaEventStatusSchema,
   metaEventTierSchema,
   metaListStatusSchema,
+  metaSubmissionKindSchema,
 } from "@openrift/shared/response-schemas";
 import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { oc } from "@orpc/contract";
@@ -173,6 +174,20 @@ export const metaEventDetailResponseSchema = z.object({
   players: z.array(metaEventPlayerSchema),
   matches: z.array(metaEventMatchSchema),
   phases: z.array(metaEventPhaseSchema),
+});
+
+export const metaPendingSubmissionSchema = z.object({
+  id: z.string(),
+  kind: metaSubmissionKindSchema,
+  metaEventPlayerId: z.string().nullable(),
+  playerName: z.string().nullable(),
+  rank: z.number().int().nullable(),
+  rankIsTier: z.boolean().nullable(),
+  mine: z.boolean(),
+});
+
+export const metaPendingSubmissionsResponseSchema = z.object({
+  items: z.array(metaPendingSubmissionSchema),
 });
 
 export const metaDeckListResponseSchema = z.object({
@@ -401,6 +416,13 @@ export const metaContract = {
     .input(z.object({ slug: z.string().min(1) }))
     .errors({ NOT_FOUND: { message: "Event not found" } })
     .output(metaEventDetailResponseSchema),
+
+  pendingSubmissions: oc
+    .route({ method: "GET", path: `${BASE}/events/{slug}/pending-submissions`, tags: [TAG] })
+    .meta({ auth: "public", cache: "short", cacheVary: "viewer" })
+    .input(z.object({ slug: z.string().min(1) }))
+    .errors({ NOT_FOUND: { message: "Event not found" } })
+    .output(metaPendingSubmissionsResponseSchema),
 
   decks: oc
     .route({ method: "GET", path: `${BASE}/decks`, tags: [TAG] })

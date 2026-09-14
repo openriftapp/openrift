@@ -28,6 +28,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
       phases: captured.phases,
     },
   }),
+  useMetaPendingSubmissions: () => ({ data: undefined }),
 }));
 
 vi.mock("@/hooks/use-enums", () => ({

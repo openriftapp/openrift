@@ -13,9 +13,15 @@ import {
   metaEventsQueryOptions,
   metaLegendQueryOptions,
   metaLegendsQueryOptions,
+  metaPendingSubmissionsQueryOptions,
   metaPlayerQueryOptions,
 } from "@/features/meta/lib/meta-queries";
 import type { MetaDateRange, MetaDeckQuery } from "@/features/meta/lib/meta-scope";
+import { useUserId } from "@/lib/auth-session";
+
+export function useMetaPendingSubmissions(slug: string) {
+  return useQuery(metaPendingSubmissionsQueryOptions(slug, useUserId()));
+}
 
 export function useMetaEvents(range?: MetaDateRange) {
   return useSuspenseQuery(metaEventsQueryOptions(range));

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ibavAPkgwKiLyTHOM5cailptwtCJqgt5pl6xeDQcVpLKxlSi7UdfZJ1CybW5dWE
+\restrict 5VxkXHTQ32S9waxHdzsSqyrOnTY8S1ECNKkpohREeREFFzRDljj5zjxFYT33BfL
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2550,6 +2550,7 @@ CREATE TABLE public.meta_submissions (
     kind text DEFAULT 'new_list'::text NOT NULL,
     field_edits jsonb,
     player_overlay_id uuid,
+    meta_event_player_id uuid,
     CONSTRAINT chk_meta_submissions_event_name CHECK (((length(event_name) >= 1) AND (length(event_name) <= 120))),
     CONSTRAINT chk_meta_submissions_external_id CHECK ((external_id <> ''::text)),
     CONSTRAINT chk_meta_submissions_field_edits CHECK (((field_edits IS NULL) OR (jsonb_typeof(field_edits) = 'object'::text))),
@@ -6247,6 +6248,13 @@ CREATE INDEX idx_meta_events_format ON public.meta_events USING btree (format);
 
 
 --
+-- Name: idx_meta_submissions_event_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_submissions_event_pending ON public.meta_submissions USING btree (meta_event_id) WHERE (status = 'pending'::text);
+
+
+--
 -- Name: idx_meta_submissions_user_created; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -8962,6 +8970,14 @@ ALTER TABLE ONLY public.meta_submissions
 
 
 --
+-- Name: meta_submissions meta_submissions_meta_event_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_submissions
+    ADD CONSTRAINT meta_submissions_meta_event_player_id_fkey FOREIGN KEY (meta_event_player_id) REFERENCES public.meta_event_players(id) ON DELETE SET NULL;
+
+
+--
 -- Name: meta_submissions meta_submissions_player_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9549,5 +9565,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ibavAPkgwKiLyTHOM5cailptwtCJqgt5pl6xeDQcVpLKxlSi7UdfZJ1CybW5dWE
+\unrestrict 5VxkXHTQ32S9waxHdzsSqyrOnTY8S1ECNKkpohREeREFFzRDljj5zjxFYT33BfL
 

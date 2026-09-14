@@ -336,6 +336,22 @@ describe("validateMetaSubmissionDraft", () => {
 describe("buildMetaSubmissionInput", () => {
   const cards = [{ name: "Blade of the Exile", zone: WellKnown.deckZone.MAIN, quantity: 3 }];
 
+  it("names the standings row the form was opened from", () => {
+    const input = buildMetaSubmissionInput(
+      readyDraft,
+      { cards, listStatus: "full" },
+      { metaEventId: "event-1", metaEventPlayerId: "row-1" },
+    );
+
+    expect(input.metaEventPlayerId).toBe("row-1");
+  });
+
+  it("names no standings row on a proposed event", () => {
+    const input = buildMetaSubmissionInput(readyDraft, { cards, listStatus: "full" }, null);
+
+    expect(input.metaEventPlayerId).toBeNull();
+  });
+
   it("targets an existing event and proposes nothing", () => {
     const input = buildMetaSubmissionInput(
       readyDraft,

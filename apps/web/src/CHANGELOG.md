@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-15
+
+### Other
+
+- feat(Meta Archive): **See decklists waiting for review** — a tournament's standings now say "In review" on an entry someone has already sent a decklist for, so nobody sends it twice, and a clock beside a decklist means an update to it is waiting. Your own submissions read "Yours, in review" and link to your submissions. Anything sent in that isn't tied to a standings row is listed under the standings.
+
 ## 2026-09-14
 
 ### Highlights

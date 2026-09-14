@@ -41,6 +41,7 @@ const metaDeckSubmissionKindSchema = metaSubmissionKindSchema.exclude(["event_co
 export const metaSubmissionInputSchema = z
   .object({
     metaEventId: z.uuid().nullable().optional().default(null),
+    metaEventPlayerId: z.uuid().nullable().optional().default(null),
     kind: metaDeckSubmissionKindSchema.optional().default("new_list"),
     proposedEvent: metaSubmissionProposedEventSchema.nullable().optional().default(null),
     playerName: z.string().trim().min(1).max(80),

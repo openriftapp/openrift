@@ -38,6 +38,7 @@ import {
   subtitleFor,
 } from "@/features/meta/lib/meta-event-standings";
 import { describeEventProgress } from "@/features/meta/lib/meta-event-structure";
+import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import { metaPlayerRounds } from "@/features/meta/lib/meta-player-run";
 import {
   costMatchesBounds,
@@ -68,11 +69,13 @@ export function MetaEventStandings({
   slug,
   eventDate,
   status,
+  pending,
 }: {
   players: readonly MetaEventPlayer[];
   matches: readonly MetaEventMatch[];
   phases: readonly MetaEventPhase[];
   slug: string;
+  pending: ReadonlyMap<string, MetaPendingRowMark>;
   /** UTC date. */
   eventDate: string;
   status: MetaEventStatus;
@@ -104,7 +107,7 @@ export function MetaEventStandings({
   }
 
   const rounds = metaPlayerRounds(matches, phases);
-  const columns = standingsColumns(players, canSubmit, rounds.size > 0);
+  const columns = standingsColumns(players, canSubmit || pending.size > 0, rounds.size > 0);
   const withLists = players.filter((player) => player.shareToken !== null).length;
   const needle = query.trim().toLowerCase();
   const legends = legendOptions(players);
@@ -130,6 +133,7 @@ export function MetaEventStandings({
     columns,
     costs,
     rounds,
+    pending,
     expandedId,
     onToggle: toggle,
   };

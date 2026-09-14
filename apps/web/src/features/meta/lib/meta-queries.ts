@@ -12,6 +12,7 @@ import type {
   MetaEventListResponse,
   MetaLegendDetailResponse,
   MetaLegendListResponse,
+  MetaPendingSubmissionsResponse,
   MetaPlayerDetailResponse,
   MetaScopeQuery,
 } from "@openrift/shared/types/api/meta";
@@ -19,7 +20,7 @@ import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
-import { metaKeys } from "@/features/meta/lib/meta-query-keys";
+import { metaKeys, metaSubmissionsKeys } from "@/features/meta/lib/meta-query-keys";
 import type { MetaDateRange, MetaDeckQuery } from "@/features/meta/lib/meta-scope";
 import { serverCache } from "@/lib/server-cache";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -142,6 +143,22 @@ export function metaEventQueryOptions(slug: string) {
 }
 
 const LIVE_EVENT_REFETCH_MS = 5 * 60 * 1000;
+
+const fetchMetaPendingSubmissions = createServerFn({ method: "GET" })
+  .validator((input: string) => input)
+  .middleware([withCookies])
+  .handler(({ context, data: slug }): Promise<MetaPendingSubmissionsResponse> =>
+    apiOrpcClient(metaContract, context.cookie).pendingSubmissions({ slug }),
+  );
+
+/** `userId` only keys the cache: the endpoint reads the session to mark the viewer's own. */
+export function metaPendingSubmissionsQueryOptions(slug: string, userId: string | null) {
+  return queryOptions({
+    queryKey: metaSubmissionsKeys.pendingForEvent(slug, userId),
+    queryFn: () =>
+      fetchMetaPendingSubmissions({ data: slug }) as Promise<MetaPendingSubmissionsResponse>,
+  });
+}
 
 const fetchMetaDecks = createServerFn({ method: "GET" })
   .validator(optionalQuery<MetaDeckQuery>)

@@ -199,6 +199,7 @@ export interface MetaSubmissionsTable {
   externalId: string;
   playerOverlayId: string | null;
   metaEventId: string | null;
+  metaEventPlayerId: string | null;
   eventName: string;
   playerName: string | null;
   kind: Generated<MetaSubmissionKind>;

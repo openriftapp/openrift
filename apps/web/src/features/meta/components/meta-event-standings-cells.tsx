@@ -1,6 +1,6 @@
 import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, ClockIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { Medal } from "@/components/ui/podium";
@@ -15,6 +15,7 @@ import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
@@ -138,12 +139,14 @@ export function DeckCell({
   slug,
   canSubmit,
   expanded,
+  pending,
   className,
 }: {
   player: MetaEventPlayer;
   slug: string;
   canSubmit: boolean;
   expanded: boolean;
+  pending?: MetaPendingRowMark;
   className?: string;
 }) {
   if (player.shareToken !== null) {
@@ -154,12 +157,40 @@ export function DeckCell({
           className,
         )}
       >
+        {pending !== undefined && (
+          <ClockIcon
+            role="img"
+            aria-label={
+              pending.mine
+                ? m.meta_pending_your_update_in_review()
+                : m.meta_pending_update_in_review()
+            }
+            className="size-3.5 shrink-0"
+          />
+        )}
         {player.listStatus === "partial"
           ? m.meta_list_status_partial()
           : m.meta_standings_decklist()}
         <ChevronRightIcon
           className={cn("size-4 shrink-0 transition-transform", expanded && "rotate-90")}
         />
+      </span>
+    );
+  }
+  if (pending?.mine) {
+    return (
+      <TextLink
+        className={cn("whitespace-nowrap", className)}
+        render={<Link to="/meta/submissions" />}
+      >
+        {m.meta_pending_yours_in_review()}
+      </TextLink>
+    );
+  }
+  if (pending !== undefined) {
+    return (
+      <span className={cn("text-muted-foreground whitespace-nowrap", className)}>
+        {m.meta_pending_in_review()}
       </span>
     );
   }
@@ -173,7 +204,7 @@ export function DeckCell({
         <Link
           to="/meta/$slug/submit"
           params={{ slug }}
-          search={metaSubmitSearchForPlayer(player)}
+          search={metaSubmitSearchForPlayer({ ...player, playerId: player.id })}
         />
       }
     >

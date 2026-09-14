@@ -948,6 +948,7 @@ function submissionRow(overrides: Partial<MetaSubmissionRow> = {}): MetaSubmissi
     externalId: "20260815-1200--user-1--abcdef12",
     playerOverlayId: null,
     metaEventId: "3f7a1c2e-0000-7000-8000-000000000001",
+    metaEventPlayerId: null,
     eventName: "Summoner Skirmish Berlin",
     playerName: "Nova",
     kind: "new_list",

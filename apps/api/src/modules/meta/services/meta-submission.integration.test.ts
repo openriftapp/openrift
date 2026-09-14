@@ -82,6 +82,7 @@ describe.skipIf(!ctx)("submitMetaDeck (integration)", () => {
       userId: submitterId,
       metaEventId,
       proposedEvent: null,
+      metaEventPlayerId: null,
       kind: "new_list",
       playerName: "MSI Inazumi",
       rank: 9,

@@ -27,6 +27,7 @@ export const metaSubmissionsRouter = {
       userId: context.userId,
       metaEventId: input.metaEventId,
       proposedEvent: input.proposedEvent,
+      metaEventPlayerId: input.metaEventPlayerId,
       kind: input.kind,
       playerName: input.playerName,
       rank: input.rank,

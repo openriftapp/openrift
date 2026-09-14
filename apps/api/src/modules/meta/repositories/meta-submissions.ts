@@ -21,6 +21,7 @@ export interface MetaSubmissionInsert {
   playerOverlayId: string | null;
   /** The live event the submission targets, or null when it proposes one. */
   metaEventId: string | null;
+  metaEventPlayerId?: string | null;
   /** What the submitter called the event, so the row still reads without a target. */
   eventName: string;
   /** Null on an event correction, which names no player. */
@@ -29,6 +30,16 @@ export interface MetaSubmissionInsert {
   /** The proposed new values, on an event correction and nowhere else. */
   fieldEdits?: MetaEventFieldEdits | null;
   note: string | null;
+}
+
+export interface MetaPendingSubmissionRow {
+  id: string;
+  userId: string;
+  kind: MetaSubmissionKind;
+  metaEventPlayerId: string | null;
+  playerName: string | null;
+  rank: number | null;
+  rankIsTier: boolean | null;
 }
 
 /** The event fields a correction can propose a value for, as they stand today. */
@@ -80,6 +91,30 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       options: { cursor?: string | null; limit: number },
     ): Promise<MetaSubmissionRow[]> {
       return listOwnedByUser<MetaSubmissionRow>(db, "metaSubmissions", userId, options);
+    },
+
+    pendingForEvent(metaEventId: string): Promise<MetaPendingSubmissionRow[]> {
+      return db
+        .selectFrom("metaSubmissions")
+        .leftJoin(
+          "metaEventPlayerOverlays",
+          "metaEventPlayerOverlays.id",
+          "metaSubmissions.playerOverlayId",
+        )
+        .select([
+          "metaSubmissions.id",
+          "metaSubmissions.userId",
+          "metaSubmissions.kind",
+          "metaSubmissions.metaEventPlayerId",
+          "metaSubmissions.playerName",
+          "metaEventPlayerOverlays.rank",
+          "metaEventPlayerOverlays.rankIsTier",
+        ])
+        .where("metaSubmissions.metaEventId", "=", metaEventId)
+        .where("metaSubmissions.status", "=", "pending")
+        .orderBy("metaSubmissions.createdAt", "asc")
+        .orderBy("metaSubmissions.id", "asc")
+        .execute();
     },
 
     /**
@@ -139,6 +174,7 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
           externalId: row.externalId,
           playerOverlayId: row.playerOverlayId,
           metaEventId: row.metaEventId,
+          metaEventPlayerId: row.metaEventPlayerId,
           eventName: row.eventName,
           playerName: row.playerName,
           kind: row.kind,

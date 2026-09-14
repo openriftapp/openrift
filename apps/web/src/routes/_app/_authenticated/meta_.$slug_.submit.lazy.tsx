@@ -23,6 +23,7 @@ function MetaEventSubmitRoute() {
       slug={slug}
       prefill={{
         kind: search.ask,
+        metaEventPlayerId: search.playerId,
         playerName: search.player,
         rank: search.rank,
         rankIsTier: search.cut,

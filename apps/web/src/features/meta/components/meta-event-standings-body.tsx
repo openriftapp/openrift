@@ -5,6 +5,7 @@ import { DesktopRow, PhoneRow } from "@/features/meta/components/meta-event-stan
 import { useRowWindow } from "@/features/meta/hooks/use-standings-row-window";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { StandingsColumns } from "@/features/meta/lib/meta-event-standings";
+import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { m } from "@/paraglide/messages.js";
 
@@ -15,6 +16,7 @@ export interface StandingsBodyProps {
   columns: StandingsColumns;
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
   rounds: ReadonlyMap<string, readonly MetaPlayerRound[]>;
+  pending: ReadonlyMap<string, MetaPendingRowMark>;
   expandedId: string | null;
   onToggle: (id: string) => void;
 }
@@ -26,6 +28,7 @@ export function DesktopStandings({
   columns,
   costs,
   rounds,
+  pending,
   expandedId,
   onToggle,
 }: StandingsBodyProps) {
@@ -75,6 +78,7 @@ export function DesktopStandings({
               columns={columns}
               costs={costs}
               rounds={rounds.get(player.id)}
+              pending={pending.get(player.id)}
               expanded={expandedId === player.id}
               onToggle={() => onToggle(player.id)}
             />
@@ -92,6 +96,7 @@ export function PhoneStandings({
   columns,
   costs,
   rounds,
+  pending,
   expandedId,
   onToggle,
 }: StandingsBodyProps) {
@@ -113,6 +118,7 @@ export function PhoneStandings({
           columns={columns}
           costs={costs}
           rounds={rounds.get(player.id)}
+          pending={pending.get(player.id)}
           expanded={expandedId === player.id}
           onToggle={() => onToggle(player.id)}
         />

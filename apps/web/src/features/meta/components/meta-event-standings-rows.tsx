@@ -14,6 +14,7 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { RowSlot, StandingsColumns } from "@/features/meta/lib/meta-event-standings";
+import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export interface RowProps extends RowSlot {
   columns: StandingsColumns;
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
   rounds: readonly MetaPlayerRound[] | undefined;
+  pending: MetaPendingRowMark | undefined;
   expanded: boolean;
   onToggle: () => void;
 }
@@ -63,6 +65,7 @@ export function DesktopRow({
   columns,
   costs,
   rounds,
+  pending,
   expanded,
   onToggle,
   ...slot
@@ -106,7 +109,13 @@ export function DesktopRow({
       )}
       {columns.deck && (
         <TableCell className="w-36 shrink-0 text-right">
-          <DeckCell player={player} slug={slug} canSubmit={canSubmit} expanded={expanded} />
+          <DeckCell
+            player={player}
+            slug={slug}
+            canSubmit={canSubmit}
+            expanded={expanded}
+            pending={pending}
+          />
         </TableCell>
       )}
       {expanded && token !== null && (
@@ -125,6 +134,7 @@ export function PhoneRow({
   columns,
   costs,
   rounds,
+  pending,
   expanded,
   onToggle,
   ...slot
@@ -172,7 +182,13 @@ export function PhoneRow({
         <div className="flex shrink-0 flex-col items-end gap-0.5 leading-tight">
           {columns.value && <DeckValue player={player} costs={costs} />}
           {columns.deck && (
-            <DeckCell player={player} slug={slug} canSubmit={canSubmit} expanded={expanded} />
+            <DeckCell
+              player={player}
+              slug={slug}
+              canSubmit={canSubmit}
+              expanded={expanded}
+              pending={pending}
+            />
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import type { MetaDeckSubmissionKind } from "@/features/meta/lib/meta-submission
  */
 export interface MetaSubmitSearch {
   player?: string;
+  playerId?: string;
   rank?: number;
   cut?: boolean;
   wins?: number;
@@ -25,6 +26,8 @@ const MAX_DECK_TOKEN = 64;
 
 const MAX_CARD_ID = 64;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
 const ASKS = new Set<string>(["completion", "correction"]);
 
 function count(value: number | null): number | undefined {
@@ -42,6 +45,7 @@ function text(value: unknown, max: number): string | undefined {
 /** Only fields with values travel: `undefined` drops the param from the URL. */
 export function metaSubmitSearchForPlayer(
   player: {
+    playerId?: string;
     playerName: string;
     rank: number;
     rankIsTier: boolean;
@@ -55,6 +59,7 @@ export function metaSubmitSearchForPlayer(
 ): MetaSubmitSearch {
   return {
     player: player.playerName,
+    playerId: player.playerId,
     rank: player.rank,
     cut: player.rankIsTier ? true : undefined,
     wins: count(player.wins),
@@ -77,6 +82,10 @@ export function parseMetaSubmitSearch(search: Record<string, unknown>): MetaSubm
   const ask = typeof search.ask === "string" && ASKS.has(search.ask) ? search.ask : undefined;
   return {
     player: text(search.player, MAX_PLAYER_NAME),
+    playerId:
+      typeof search.playerId === "string" && UUID_PATTERN.test(search.playerId)
+        ? search.playerId
+        : undefined,
     rank: wholeCount(search.rank),
     cut: search.cut === true ? true : undefined,
     wins: wholeCount(search.wins),

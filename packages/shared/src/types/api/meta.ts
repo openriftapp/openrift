@@ -43,6 +43,8 @@ import type {
   metaDeckSummarySchema,
   metaEventDetailResponseSchema,
   metaEventDetailSchema,
+  metaPendingSubmissionSchema,
+  metaPendingSubmissionsResponseSchema,
   metaEventListResponseSchema,
   metaEventPlayerSchema,
   metaEventMatchSchema,
@@ -90,6 +92,10 @@ export type MetaActivityItem = z.infer<typeof metaActivityItemSchema>;
 export type MetaActivityResponse = z.infer<typeof metaActivityResponseSchema>;
 
 export type MetaEventDetailResponse = z.infer<typeof metaEventDetailResponseSchema>;
+
+export type MetaPendingSubmission = z.infer<typeof metaPendingSubmissionSchema>;
+
+export type MetaPendingSubmissionsResponse = z.infer<typeof metaPendingSubmissionsResponseSchema>;
 
 export type MetaDeckListResponse = z.infer<typeof metaDeckListResponseSchema>;
 
