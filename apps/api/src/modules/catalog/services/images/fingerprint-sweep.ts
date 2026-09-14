@@ -17,8 +17,8 @@ export interface FingerprintSweepResult {
   candidatesFailed: number;
 }
 
-export const FINGERPRINT_LIVE_BATCH = 500;
-export const FINGERPRINT_CANDIDATE_BATCH = 300;
+const FINGERPRINT_LIVE_BATCH = 500;
+const FINGERPRINT_CANDIDATE_BATCH = 300;
 
 interface SweepRepos {
   printingImages: ReturnType<typeof printingImagesRepo>;

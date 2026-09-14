@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 /** A surface's own pick, shown in the phone strip beside the scope's. */
-export interface MetaScopeActiveChip {
+interface MetaScopeActiveChip {
   key: string;
   label: string;
   onRemove: () => void;

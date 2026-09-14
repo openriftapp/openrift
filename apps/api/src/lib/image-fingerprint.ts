@@ -16,9 +16,9 @@ const HEADER_BYTES = 2;
 const VERSION = 1;
 
 /** Calibrated on the catalog: rehosted copies stay at or below 5 bits, unrelated cards start at 10. */
-export const WHOLE_SAME_MAX_BITS = 8;
+const WHOLE_SAME_MAX_BITS = 8;
 /** Calibrated on the catalog: rehosted copies stay below 0.75, stamped variants start at 1.48. */
-export const MARK_DIFFERS_MIN = 1.3;
+const MARK_DIFFERS_MIN = 1.3;
 
 export type ImageMatch = "same" | "art" | "mark";
 
