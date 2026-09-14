@@ -110,7 +110,7 @@ The `printings` reference is intentionally _not_ `ON DELETE CASCADE`. A printing
 
 `/cards/$cardSlug` shows, for the selected printing, every product that contains it. This reverses the original "the /products page is the only discovery surface" deferral: a reader looking at a card wants to know what they can buy to get it, and `idx_product_printings_printing` was already in place to answer it cheaply.
 
-The data rides on `CardDetailResponse` as a flat `products` array (one row per printing plus product), not as a field on `catalogPrintingResponseSchema`. That schema also backs the synced catalog, /promos, and /sets; product membership is not catalog data, and putting it there would both bloat the sync payload and couple a product re-snapshot to catalog invalidation.
+The data rides on `CardDetailResponse` as a flat `products` array (one row per printing plus product), not as a field on `catalogPrintingResponseSchema`. That schema also backs the catalog, /promos, and /sets; product membership is not catalog data, and putting it there would both bloat the catalog payload and couple a product re-snapshot to catalog invalidation.
 
 The page renders products and product-kind `distribution_channels` merged into one "Found in" row rather than two lists. The two are genuinely different records: a product is a full manifest with quantities and its own page, while a product-kind channel is only a tag on the printing (this ADR rejected hanging content rows off channels for that reason). But the split is a catalog concern, not a reader's, so the UI merges them and lets the link target carry the difference. Unifying the two models is a separate question this does not settle.
 

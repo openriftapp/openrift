@@ -16,8 +16,7 @@ end to end?
 
 ## Decision Drivers
 
-- The client syncs whole copy rows through a single TanStack DB collection; the design
-  should keep one synced row per copy, with no extra joins or second synced entity.
+- The design should keep one row per copy, with no extra joins or second entity.
 - Imports currently discard condition data: the Piltover Archive column lands in a
   display-only bag, RiftMana's `NM:2;HP:3` encoding is dropped, and quantities are
   summed across conditions.
@@ -34,8 +33,8 @@ end to end?
 ## Decision Outcome
 
 Chosen option: **nullable columns on `copies` (option 1)**, because typed columns take
-FK and check constraints, can be indexed for the future rule filters, and ride the
-existing one-row-per-copy sync unchanged.
+FK and check constraints, can be indexed for the future rule filters, and keep the
+existing one-row-per-copy reads unchanged.
 
 Option 2 avoids widening the copies feed but adds a join to every copy read and a second
 write path for data with no independent lifecycle. Option 3 cannot reference the lookup
@@ -50,7 +49,7 @@ every field instead of only on links.
   summed quantities).
 - Good, because the ordered `conditions` table is ready to slot into keep-priority
   ranking and rule filters when the trades follow-up lands.
-- Bad, because every synced copy row widens for all users, mostly with NULLs. Accepted:
+- Bad, because every copy row widens for all users, mostly with NULLs. Accepted:
   the payload cost is small and capped by validation limits.
 - Bad, because "private" carries two scopes: owner-only on personal collections
   (including ones shared into a group), but member-visible on group-owned collections,
@@ -138,8 +137,7 @@ text`, `notes_private text`, `is_altered boolean NOT NULL DEFAULT false`,
 2. Shared contract: response-schema fields, add-input metadata, `copies.update`.
 3. API: widen copy SELECTs, links jsonb parse, update service and route, public share
    projection.
-4. Web data layer: `CopyResponse` flows into the synced collection unchanged; new
-   optimistic `useUpdateCopies` mutation.
+4. Web data layer: `CopyResponse` gains the new fields; new optimistic `useUpdateCopies` mutation.
 5. UI: copy-details dialog, context-menu entries, tile badges.
 6. Import/export changes.
 
