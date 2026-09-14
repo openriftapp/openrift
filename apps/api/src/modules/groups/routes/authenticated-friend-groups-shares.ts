@@ -17,7 +17,7 @@ import { expandRuleListCounts } from "../../lists/lib/list-counts.js";
 import { toListEntryDetail } from "../../lists/lib/list-presenters.js";
 import { getFavoriteMarketplace } from "../../users/lib/preferences.js";
 import { loadGroupForMember } from "../lib/group-access.js";
-import { autoCancelUnfillablePendingTrades } from "../services/card-trades.js";
+import { autoCancelUnfillablePendingTrades } from "../services/trade-supply.js";
 
 const os = implement(friendGroupsContract).$context<ApiContext>().use(requireAuthedUser);
 

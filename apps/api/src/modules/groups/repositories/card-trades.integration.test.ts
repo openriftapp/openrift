@@ -8,7 +8,6 @@ import { createDbContext, seedTestUser } from "../../../test/integration-context
 import { disposeCopies, moveCopies } from "../../collections/services/copies.js";
 import {
   acceptTrade,
-  autoCancelUnfillablePendingTrades,
   cancelTrade,
   createTrade,
   declineTrade,
@@ -17,6 +16,7 @@ import {
   skipTradeSync,
   applyTradeSync,
 } from "../services/card-trades.js";
+import { autoCancelUnfillablePendingTrades } from "../services/trade-supply.js";
 import { friendGroupsRepo } from "./friend-groups.js";
 
 const GIVER_ID = crypto.randomUUID();

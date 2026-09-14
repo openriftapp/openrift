@@ -6,8 +6,8 @@ import type { CopyLink, CopyMetadataPatch } from "@openrift/shared/types/api/col
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
-import { autoCancelUnfillablePendingTrades } from "../../groups/services/card-trades.js";
 import { ensureInbox } from "../../groups/services/inbox.js";
+import { autoCancelUnfillablePendingTrades } from "../../groups/services/trade-supply.js";
 import { logEvents } from "../../system/services/event-logger.js";
 
 const log = createLogger("copies");
