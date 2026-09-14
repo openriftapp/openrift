@@ -5,6 +5,7 @@
 ### Other
 
 - fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.
+- fix(Meta Archive): **Tournament title on phones** — a tournament's name now stays visible in the top bar on phones instead of disappearing, and a player with a charted run leads back to that tournament instead of the archive.
 
 ## 2026-09-13
 

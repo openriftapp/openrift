@@ -1,9 +1,9 @@
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventMatch, MetaEventPlayer } from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { metaPlayer } from "@/test/meta-event-fixtures";
+import { metaMatch, metaPlayer } from "@/test/meta-event-fixtures";
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
@@ -28,8 +28,8 @@ function tiles(): HTMLElement[] {
   return screen.getAllByRole("listitem");
 }
 
-function renderFinishes(players: MetaEventPlayer[]) {
-  render(<MetaEventLegendFinishes players={players} />);
+function renderFinishes(players: MetaEventPlayer[], matches: MetaEventMatch[] = []) {
+  render(<MetaEventLegendFinishes players={players} matches={matches} slug="summoner-skirmish" />);
 }
 
 function field(
@@ -53,6 +53,8 @@ describe("MetaEventLegendFinishes", () => {
     const { container } = render(
       <MetaEventLegendFinishes
         players={[metaPlayer({ id: "p-1", legend: null }), metaPlayer({ id: "p-2", legend: null })]}
+        matches={[]}
+        slug="summoner-skirmish"
       />,
     );
     expect(container).toBeEmptyDOMElement();
@@ -109,6 +111,18 @@ describe("MetaEventLegendFinishes", () => {
       "/meta/legends/yasuo-yasuo-the-unforgiven",
     );
     expect(tile.getByRole("link", { name: "Ana" })).toHaveAttribute("href", "/meta/players/u1001");
+  });
+
+  it("leads a pilot with a charted run to their run through the event", () => {
+    renderFinishes(
+      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })],
+      [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
+    );
+
+    expect(within(tiles()[0]!).getByRole("link", { name: "Ana" })).toHaveAttribute(
+      "href",
+      "/meta/summoner-skirmish/players/u1001",
+    );
   });
 
   it("counts nothing about how many pilots brought a legend", () => {

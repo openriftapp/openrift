@@ -11,6 +11,8 @@ export interface MetaPlayerNameProps {
    * stretched-link tile, where an unpositioned anchor sits under the overlay.
    */
   inStretchedTile?: boolean;
+  /** Links the name to the player's run through this event instead of their archive page. */
+  eventSlug?: string;
   className?: string;
 }
 
@@ -22,6 +24,7 @@ export function MetaPlayerName({
   name,
   playerKey,
   inStretchedTile = false,
+  eventSlug,
   className,
 }: MetaPlayerNameProps) {
   if (playerKey === null || playerKey === undefined || playerKey === "") {
@@ -32,7 +35,13 @@ export function MetaPlayerName({
     <TextLink
       variant="inherit"
       className={cn(inStretchedTile && "relative", className)}
-      render={<Link to="/meta/players/$key" params={{ key: playerKey }} />}
+      render={
+        eventSlug === undefined ? (
+          <Link to="/meta/players/$key" params={{ key: playerKey }} />
+        ) : (
+          <Link to="/meta/$slug/players/$key" params={{ slug: eventSlug, key: playerKey }} />
+        )
+      }
     >
       {name}
     </TextLink>

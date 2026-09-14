@@ -88,7 +88,11 @@ export function DesktopRow({
         </TableCell>
       )}
       <TableCell className="min-w-0 flex-1 truncate font-medium">
-        <MetaPlayerName name={player.playerName} playerKey={player.playerKey} />
+        <MetaPlayerName
+          name={player.playerName}
+          playerKey={player.playerKey}
+          eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
+        />
       </TableCell>
       {columns.run && (
         <TableCell className="w-52 shrink-0">
@@ -150,7 +154,11 @@ export function PhoneRow({
         )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate font-medium">
-            <MetaPlayerName name={player.playerName} playerKey={player.playerKey} />
+            <MetaPlayerName
+              name={player.playerName}
+              playerKey={player.playerKey}
+              eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
+            />
           </p>
           <MetaIdentity
             name={player.legend?.name}

@@ -39,6 +39,15 @@ describe("MetaPlayerName", () => {
     );
   });
 
+  it("links a name to the player's run when given an event", () => {
+    render(<MetaPlayerName name="M. Álvarez" playerKey="u347713" eventSlug="summoner-skirmish" />);
+
+    expect(screen.getByRole("link", { name: "M. Álvarez" })).toHaveAttribute(
+      "href",
+      "/meta/summoner-skirmish/players/u347713",
+    );
+  });
+
   it("prints a name filed under no identity as plain text", () => {
     render(<MetaPlayerName name="M. Álvarez" playerKey={null} />);
 

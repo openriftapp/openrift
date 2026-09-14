@@ -7,8 +7,7 @@ import type {
   MetaEventPhase,
   MetaEventPlayer,
 } from "@openrift/shared/types/api/meta";
-import { Link } from "@tanstack/react-router";
-import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 import { Fragment } from "react";
 
 import { ArtBandBackdrop } from "@/components/art-band-backdrop";
@@ -96,7 +95,11 @@ function ChampionPlate({
           {m.meta_event_header_champion()}
         </span>
         <p className="font-heading font-semibold">
-          <MetaPlayerName name={player.playerName} playerKey={player.playerKey} />
+          <MetaPlayerName
+            name={player.playerName}
+            playerKey={player.playerKey}
+            eventSlug={hasRun ? slug : undefined}
+          />
         </p>
         <MetaIdentity
           name={player.legend?.name}
@@ -113,15 +116,6 @@ function ChampionPlate({
           <p className="font-heading text-border-accent text-2xl leading-none font-bold tabular-nums">
             {record}
           </p>
-        )}
-        {hasRun && player.playerKey !== null && (
-          <TextLink
-            className="inline-flex items-center gap-0.5 text-xs font-medium"
-            render={<Link to="/meta/$slug/players/$key" params={{ slug, key: player.playerKey }} />}
-          >
-            {m.meta_event_header_road_to_title()}
-            <ChevronRightIcon className="size-3.5" />
-          </TextLink>
         )}
       </div>
       {artId !== null && (

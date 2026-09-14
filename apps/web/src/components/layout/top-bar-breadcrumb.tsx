@@ -2,7 +2,12 @@ import { ArrowLeftIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { cloneElement, Fragment } from "react";
 
-import { PageTopBar, PageTopBarActions, PageTopBarSticky } from "@/components/layout/page-top-bar";
+import {
+  PageTopBar,
+  PageTopBarActions,
+  PageTopBarSticky,
+  PageTopBarTitle,
+} from "@/components/layout/page-top-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -17,9 +22,12 @@ export function TopBarBreadcrumbSeparator({ className }: { className?: string })
   return <span className={cn("text-muted-foreground/60", className)}>/</span>;
 }
 
-/** On `sm`+ a clickable breadcrumb, on phones a single back arrow to the nearest linked parent. */
+/** On `sm`+ a breadcrumb, on phones a back arrow to the nearest linked parent; an unlinked last segment is the title at every width. */
 export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] }) {
-  const parent = segments.findLast((segment) => segment.link);
+  const last = segments.at(-1);
+  const title = last && !last.link ? last : null;
+  const trail = title ? segments.slice(0, -1) : segments;
+  const parent = trail.findLast((segment) => segment.link);
   return (
     <>
       {parent?.link
@@ -33,7 +41,7 @@ export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] })
           })
         : null}
       <span className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
-        {segments.map((segment, index) => (
+        {trail.map((segment, index) => (
           <Fragment key={`${segment.label}:${index}`}>
             {index > 0 ? <TopBarBreadcrumbSeparator /> : null}
             {segment.link ? (
@@ -47,6 +55,12 @@ export function TopBarBreadcrumbTrail({ segments }: { segments: TopBarCrumb[] })
           </Fragment>
         ))}
       </span>
+      {title ? (
+        <>
+          {trail.length > 0 ? <TopBarBreadcrumbSeparator className="hidden sm:inline" /> : null}
+          <PageTopBarTitle>{title.label}</PageTopBarTitle>
+        </>
+      ) : null}
     </>
   );
 }

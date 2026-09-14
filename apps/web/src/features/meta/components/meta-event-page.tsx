@@ -99,7 +99,7 @@ export function MetaEventPage({ slug }: { slug: string }) {
 
         <MetaEventBracket matches={matches} phases={phases} players={players} />
 
-        <MetaEventLegendFinishes players={players} />
+        <MetaEventLegendFinishes players={players} matches={matches} slug={slug} />
 
         <MetaEventStandings
           players={players}

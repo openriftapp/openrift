@@ -213,21 +213,18 @@ describe("MetaEventHeader champion plate", () => {
       matches: [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
     });
 
-    const link = screen.getByRole("link", { name: /Road to the title/u });
-    expect(link).toHaveAttribute("href", "/meta/summoner-skirmish/players/u1001");
+    expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute(
+      "href",
+      "/meta/summoner-skirmish/players/u1001",
+    );
   });
 
-  it("offers no run for a champion whose event filed no round-by-round results", () => {
-    renderHeader({ players: [winner] });
-    expect(screen.queryByRole("link", { name: /Road to the title/u })).toBeNull();
-  });
-
-  it("offers no run for a champion the source filed under no identity", () => {
+  it("prints a champion the source filed under no identity as plain text", () => {
     renderHeader({
-      players: [metaPlayer({ id: "p-1", rank: 1, playerKey: null })],
+      players: [metaPlayer({ id: "p-1", rank: 1, playerName: "Ana", playerKey: null })],
       matches: [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
     });
-    expect(screen.queryByRole("link", { name: /Road to the title/u })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Ana" })).toBeNull();
   });
 
   it("prints a champion the source filed under no identity as plain text", () => {

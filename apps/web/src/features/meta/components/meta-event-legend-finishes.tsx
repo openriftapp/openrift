@@ -1,5 +1,5 @@
 import { imageUrl } from "@openrift/shared/image-url";
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventMatch, MetaEventPlayer } from "@openrift/shared/types/api/meta";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -16,7 +16,13 @@ import { m } from "@/paraglide/messages.js";
 
 const TILES_SHOWN = 8;
 
-function LegendFinishTile({ entry }: { entry: MetaLegendBestFinish }) {
+function LegendFinishTile({
+  entry,
+  eventSlug,
+}: {
+  entry: MetaLegendBestFinish;
+  eventSlug: string | undefined;
+}) {
   const { legend, player } = entry;
   const record = formatRecord(player.wins, player.losses, player.draws);
 
@@ -57,6 +63,7 @@ function LegendFinishTile({ entry }: { entry: MetaLegendBestFinish }) {
           <MetaPlayerName
             name={player.playerName}
             playerKey={player.playerKey}
+            eventSlug={eventSlug}
             className="min-w-0 truncate font-medium"
           />
           {record !== null && <span className="text-muted-foreground shrink-0">{record}</span>}
@@ -66,9 +73,18 @@ function LegendFinishTile({ entry }: { entry: MetaLegendBestFinish }) {
   );
 }
 
-export function MetaEventLegendFinishes({ players }: { players: readonly MetaEventPlayer[] }) {
+export function MetaEventLegendFinishes({
+  players,
+  matches,
+  slug,
+}: {
+  players: readonly MetaEventPlayer[];
+  matches: readonly MetaEventMatch[];
+  slug: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const entries = metaBestFinishPerLegend(players);
+  const playersWithRun = new Set(matches.flatMap((match) => [match.player1Id, match.player2Id]));
 
   if (entries.length === 0) {
     return null;
@@ -95,7 +111,10 @@ export function MetaEventLegendFinishes({ players }: { players: readonly MetaEve
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {shown.map((entry) => (
           <li key={entry.legend.cardId}>
-            <LegendFinishTile entry={entry} />
+            <LegendFinishTile
+              entry={entry}
+              eventSlug={playersWithRun.has(entry.player.id) ? slug : undefined}
+            />
           </li>
         ))}
       </ul>

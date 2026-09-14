@@ -530,6 +530,20 @@ describe("MetaEventStandings", () => {
     }
   });
 
+  it("sends a player with a charted run to their run through the event", () => {
+    renderStandings(
+      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })],
+      "2020-01-01",
+      ANA_RUN,
+    );
+
+    const links = screen.getAllByRole("link", { name: "Ana" });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute("href", "/meta/summoner-skirmish/players/u1001");
+    }
+  });
+
   it("prints a player the source filed under no identity as plain text", () => {
     renderStandings([metaPlayer({ playerName: "Ana", playerKey: null })]);
 
