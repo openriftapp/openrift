@@ -1,4 +1,8 @@
-import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
+import type {
+  ListEntryDetailResponse,
+  ListKind,
+  ListResponse,
+} from "@openrift/shared/types/api/list";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { ListRule } from "@openrift/shared/types/list-rule";
 import type { GroupByField } from "@openrift/shared/types/search";
@@ -28,12 +32,14 @@ import {
   useUpdateListEntry,
 } from "@/features/lists/hooks/use-lists";
 import { resolveCopyMoveTarget, selectableEntryIds } from "@/features/lists/lib/list-entries";
+import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import { excludeEntryFromRules } from "@/features/rules/lib/rule-exclude";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useUserId } from "@/lib/auth-session";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
+import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 export interface UseListEntryBrowserSelectionParams {
@@ -92,6 +98,7 @@ export function useListEntryBrowserSelection({
   const mode: "browse" | "select" = selectMode ? "select" : "browse";
   const [actionEntryIds, setActionEntryIds] = useState<string[]>([]);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<MoveMode>("move");
   const [removeOpen, setRemoveOpen] = useState(false);
   const { data: allLists } = useLists();
   const moveEntries = useMoveListEntries();
@@ -252,7 +259,8 @@ export function useListEntryBrowserSelection({
 
   const openListAction = (action: ListBulkAction, entryIds: string[]) => {
     setActionEntryIds(entryIds);
-    if (action === "move") {
+    if (action === "move" || action === "copy") {
+      setMoveMode(action);
       setMoveOpen(true);
     } else if (action === "takeOff") {
       setTakeOffOpen(true);
@@ -261,18 +269,51 @@ export function useListEntryBrowserSelection({
     }
   };
 
-  const handleBulkMove = (toListId: string) => {
+  const handleBulkMove = (toList: ListResponse, resolution: MoveResolution | null) => {
     moveEntries.mutate(
-      { fromListId: listId, toListId, entryIds: actionEntryIds },
+      {
+        fromListId: listId,
+        toListId: toList.id,
+        entryIds: actionEntryIds,
+        mode: moveMode,
+        resolutions: resolution
+          ? actionEntryIds.map((entryId) => ({ entryId, ...resolution }))
+          : undefined,
+      },
       {
         onSuccess: (result) => {
-          toast.success(`Moved ${result.moved} card${result.moved === 1 ? "" : "s"} to list`);
+          toast.success(
+            moveMode === "copy"
+              ? m.lists_toast_copied_to_list({ count: result.moved, list: toList.name })
+              : m.lists_toast_moved_to_list({ count: result.moved, list: toList.name }),
+          );
           clearSelection();
           setMoveOpen(false);
         },
       },
     );
   };
+
+  // A wider-kind target needs a printing or copies picked, which only makes sense per card.
+  const moveSubject: MoveEntrySubject | null = (() => {
+    if (actionEntryIds.length !== 1) {
+      return null;
+    }
+    const entryId = actionEntryIds[0];
+    const item = items.find((candidate) => entryByItemId.get(candidate.id)?.id === entryId);
+    const entry = item ? entryByItemId.get(item.id) : undefined;
+    if (!item || !entry || entry.id === null) {
+      return null;
+    }
+    return {
+      entryIds: [entry.id],
+      sourceKind: kind,
+      sourceIntent: intent,
+      totalQuantity: entry.quantity,
+      printing: item.printing,
+      cardName: entry.cardName,
+    };
+  })();
 
   const handleBulkRemove = () => {
     const count = actionEntryIds.length;
@@ -383,9 +424,7 @@ export function useListEntryBrowserSelection({
     isQuantityPendingFor: (entryId) => isQuantityPendingFor(entryId),
   });
 
-  const moveTargetLists = allLists.filter(
-    (list) => list.id !== listId && list.kind === kind && list.intent === intent,
-  );
+  const moveTargetLists = allLists.filter((list) => list.id !== listId);
 
   return {
     mode,
@@ -398,6 +437,8 @@ export function useListEntryBrowserSelection({
     hasSelectableEntries: selectableIds.length > 0,
     moveOpen,
     setMoveOpen,
+    moveMode,
+    moveSubject,
     handleBulkMove,
     moveEntries,
     removeOpen,

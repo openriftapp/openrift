@@ -27,6 +27,7 @@ const collectionDrag: CardDragData = {
 const listDrag: ListEntryDragData = {
   type: "list-entry",
   entryIds: ["entry-1"],
+  copyIds: [],
   sourceListId: "list-a",
   sourceKind: "card",
   sourceIntent: "wish",
@@ -69,19 +70,13 @@ describe("isCompatibleDrop", () => {
     expect(isCompatibleDrop(groupDrag, organizeTarget)).toBe(true);
   });
 
-  it("accepts list-entry drops when kind + intent match and the lists differ", () => {
+  it("accepts list-entry drops on any other list, across kind and intent", () => {
     expect(isCompatibleDrop(listDrag, target)).toBe(true);
+    expect(isCompatibleDrop(listDrag, { ...target, listKind: "copy" })).toBe(true);
+    expect(isCompatibleDrop(listDrag, { ...target, listIntent: "trade" })).toBe(true);
   });
 
   it("rejects list-entry drops onto the same list", () => {
     expect(isCompatibleDrop({ ...listDrag, sourceListId: target.listId }, target)).toBe(false);
-  });
-
-  it("rejects list-entry drops onto a different kind", () => {
-    expect(isCompatibleDrop({ ...listDrag, sourceKind: "printing" }, target)).toBe(false);
-  });
-
-  it("rejects list-entry drops onto a different intent", () => {
-    expect(isCompatibleDrop({ ...listDrag, sourceIntent: "trade" }, target)).toBe(false);
   });
 });

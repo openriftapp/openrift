@@ -253,14 +253,22 @@ export const listsRouter = {
     },
   ),
 
-  // The destination list must match the source on kind and intent.
   moveEntries: os.moveEntries.handler(async ({ input, context }): Promise<ListMoveResponse> => {
     const { moveListEntries } = context.services;
     const repos = context.repos;
     const transact = context.transact;
     const userId = context.userId;
 
-    return await moveListEntries(repos, transact, userId, input.id, input.toListId, input.entryIds);
+    return await moveListEntries(
+      repos,
+      transact,
+      userId,
+      input.id,
+      input.toListId,
+      input.entryIds,
+      input.resolutions ?? [],
+      input.mode ?? "move",
+    );
   }),
 
   updateEntry: os.updateEntry.handler(async ({ input, context }): Promise<ListEntryResponse> => {

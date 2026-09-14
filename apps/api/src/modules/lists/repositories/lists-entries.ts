@@ -48,6 +48,19 @@ export type ListEntryUpdate = Omit<
   | "updatedAt"
 >;
 
+export type MoveEntry = Pick<
+  Selectable<ListEntriesTable>,
+  | "id"
+  | "kind"
+  | "cardId"
+  | "printingId"
+  | "copyId"
+  | "quantity"
+  | "pricePref"
+  | "priceAbsoluteCents"
+  | "tradeType"
+> & { resolvedPrintingId: string | null; resolvedCardId: string | null };
+
 export function listEntriesRepo(db: Kysely<Database>) {
   return {
     createEntry(values: NewEntryValues): Promise<Selectable<ListEntriesTable>> {
@@ -130,26 +143,7 @@ export function listEntriesRepo(db: Kysely<Database>) {
         return { added: 0, updated: 0, skipped: 0 };
       }
 
-      // With `personalOnly` (trade/wish lists), only copies in the user's own
-      // collections qualify — a card you merely have group access to isn't
-      // yours to trade away or to wish for. Without it (organize lists), shared
-      // group collections the user belongs to count too. Non-qualifying copies
-      // are dropped here and recovered as `skipped` via the count difference.
-      const owned = await db
-        .selectFrom("copies as cp")
-        .innerJoin("printings as p", "p.id", "cp.printingId")
-        .innerJoin("collections as col", "col.id", "cp.collectionId")
-        .leftJoin("friendGroupMembers as gm", (join) =>
-          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
-        )
-        .select(["cp.id as copyId", "cp.printingId", "p.cardId"])
-        .where("cp.id", "in", [...copyIds])
-        .where((eb) =>
-          personalOnly
-            ? eb("col.userId", "=", userId)
-            : eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]),
-        )
-        .execute();
+      const owned = await this.ownedCopyTargets(userId, copyIds, personalOnly);
 
       const nonOwnedCount = copyIds.length - owned.length;
 
@@ -214,6 +208,48 @@ export function listEntriesRepo(db: Kysely<Database>) {
         updated: result.updated,
         skipped: nonOwnedCount + droppedDupes,
       };
+    },
+
+    /**
+     * With `personalOnly` (trade/wish lists), only copies in the user's own
+     * collections qualify — a card you merely have group access to isn't
+     * yours to trade away or to wish for. Without it (organize lists), shared
+     * group collections the user belongs to count too.
+     */
+    ownedCopyTargets(
+      userId: string,
+      copyIds: readonly string[],
+      personalOnly: boolean,
+    ): Promise<{ copyId: string; printingId: string; cardId: string }[]> {
+      if (copyIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("copies as cp")
+        .innerJoin("printings as p", "p.id", "cp.printingId")
+        .innerJoin("collections as col", "col.id", "cp.collectionId")
+        .leftJoin("friendGroupMembers as gm", (join) =>
+          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
+        )
+        .select(["cp.id as copyId", "cp.printingId", "p.cardId"])
+        .where("cp.id", "in", [...copyIds])
+        .where((eb) =>
+          personalOnly
+            ? eb("col.userId", "=", userId)
+            : eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]),
+        )
+        .execute();
+    },
+
+    printingCardIds(printingIds: readonly string[]): Promise<{ id: string; cardId: string }[]> {
+      if (printingIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("printings")
+        .select(["id", "cardId"])
+        .where("id", "in", [...printingIds])
+        .execute();
     },
 
     updateEntry(
@@ -312,44 +348,38 @@ export function listEntriesRepo(db: Kysely<Database>) {
     /**
      * Scoped to a single list + the owning user so a stray entry id from
      * another list (or another user's list) is filtered out, not 403'd.
+     * `resolvedPrintingId`/`resolvedCardId` walk a copy or printing entry up
+     * to the wider shapes so a move can narrow the kind.
      */
     entriesForMove(
       listId: string,
       userId: string,
       entryIds: readonly string[],
-    ): Promise<
-      Pick<
-        Selectable<ListEntriesTable>,
-        | "id"
-        | "kind"
-        | "cardId"
-        | "printingId"
-        | "copyId"
-        | "quantity"
-        | "pricePref"
-        | "priceAbsoluteCents"
-        | "tradeType"
-      >[]
-    > {
+    ): Promise<MoveEntry[]> {
       if (entryIds.length === 0) {
         return Promise.resolve([]);
       }
       return db
-        .selectFrom("listEntries")
-        .select([
-          "id",
-          "kind",
-          "cardId",
-          "printingId",
-          "copyId",
-          "quantity",
-          "pricePref",
-          "priceAbsoluteCents",
-          "tradeType",
+        .selectFrom("listEntries as le")
+        .leftJoin("copies as cp", "cp.id", "le.copyId")
+        .leftJoin("printings as ep", "ep.id", "le.printingId")
+        .leftJoin("printings as cpp", "cpp.id", "cp.printingId")
+        .select((eb) => [
+          "le.id",
+          "le.kind",
+          "le.cardId",
+          "le.printingId",
+          "le.copyId",
+          "le.quantity",
+          "le.pricePref",
+          "le.priceAbsoluteCents",
+          "le.tradeType",
+          eb.fn.coalesce("le.printingId", "cp.printingId").as("resolvedPrintingId"),
+          eb.fn.coalesce("le.cardId", "ep.cardId", "cpp.cardId").as("resolvedCardId"),
         ])
-        .where("listId", "=", listId)
-        .where("userId", "=", userId)
-        .where("id", "in", [...entryIds])
+        .where("le.listId", "=", listId)
+        .where("le.userId", "=", userId)
+        .where("le.id", "in", [...entryIds])
         .execute();
     },
 

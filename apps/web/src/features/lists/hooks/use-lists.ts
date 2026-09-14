@@ -1,3 +1,4 @@
+import type { MoveListEntriesResolution } from "@openrift/shared/contracts/lists";
 import { listsContract } from "@openrift/shared/contracts/lists";
 import type {
   ListBulkAddResponse,
@@ -284,23 +285,30 @@ export function useBulkAddCopiesToList() {
   });
 }
 
+interface MoveListEntriesInput {
+  fromListId: string;
+  toListId: string;
+  entryIds: string[];
+  resolutions?: MoveListEntriesResolution[];
+  mode?: "move" | "copy";
+}
+
 const moveListEntriesFn = createServerFn({ method: "POST" })
-  .validator((input: { fromListId: string; toListId: string; entryIds: string[] }) => input)
+  .validator((input: MoveListEntriesInput) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<ListMoveResponse> =>
     apiOrpcClient(listsContract, context.cookie).moveEntries({
       id: data.fromListId,
       toListId: data.toListId,
       entryIds: data.entryIds,
+      resolutions: data.resolutions,
+      mode: data.mode,
     }),
   );
 
 export function useMoveListEntries() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<
-    ListMoveResponse,
-    { fromListId: string; toListId: string; entryIds: string[] }
-  >({
+  return useMutationWithInvalidation<ListMoveResponse, MoveListEntriesInput>({
     mutationFn: (vars) => moveListEntriesFn({ data: vars }),
     invalidates: (variables) => [
       listsKeys.all(userId),

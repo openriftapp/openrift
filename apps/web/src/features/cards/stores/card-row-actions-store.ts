@@ -13,7 +13,7 @@ export interface CardRowClickModifiers {
 export type CollectionContextAction = "move" | "addToList" | "lend" | "dispose" | "copyDetails";
 
 /** "takeOff" opens a kept-vs-sold/traded chooser. */
-export type ListBulkAction = "move" | "remove" | "takeOff";
+export type ListBulkAction = "move" | "copy" | "remove" | "takeOff";
 
 /** Exactly one surface is mounted at a time; a cleanup checks this to tell its own registration from a successor's. */
 export type CardRowSurface = "catalog" | "collection" | "deck" | "list";

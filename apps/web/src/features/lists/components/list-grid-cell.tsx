@@ -154,6 +154,7 @@ export const ListGridCell = memo(function ListGridCell({
       ? {
           type: "list-entry",
           entryIds: [editableEntryId],
+          copyIds: entry.kind === "copy" ? [entry.copyId] : [],
           sourceListId: listId,
           sourceKind: kind,
           sourceIntent: intent,
@@ -179,6 +180,7 @@ export const ListGridCell = memo(function ListGridCell({
           kind === "copy" ? () => dispatchListBulkAction(editableEntryId, "takeOff") : undefined
         }
         onMove={() => dispatchListBulkAction(editableEntryId, "move")}
+        onCopy={() => dispatchListBulkAction(editableEntryId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
         onSetPreference={
           supportsTradePrefs ? () => dispatchSetPreference(editableEntryId) : undefined

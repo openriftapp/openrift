@@ -13,17 +13,19 @@ let currentLists: MockList[] = [];
 
 const bulkAddMutate = vi.fn(
   (
-    payload: { listId: string; entries: { copyId: string }[] },
-    opts?: { onSuccess?: (result: { added: number; skipped: number }) => unknown },
+    payload: { listId: string; copyIds: string[] },
+    opts?: {
+      onSuccess?: (result: { added: number; updated: number; skipped: number }) => unknown;
+    },
   ) => {
-    void opts?.onSuccess?.({ added: payload.entries.length, skipped: 0 });
+    void opts?.onSuccess?.({ added: payload.copyIds.length, updated: 0, skipped: 0 });
   },
 );
 const createMutate = vi.fn();
 
 vi.mock("@/features/lists/hooks/use-lists", () => ({
   useLists: () => ({ data: currentLists }),
-  useBulkAddListEntries: () => ({ mutate: bulkAddMutate, isPending: false }),
+  useBulkAddCopiesToList: () => ({ mutate: bulkAddMutate, isPending: false }),
   useCreateList: () => ({ mutate: createMutate, isPending: false }),
 }));
 
@@ -74,12 +76,7 @@ describe("AddToListDialog quantity stepper", () => {
     clickFirstList();
 
     expect(bulkAddMutate).toHaveBeenCalledTimes(1);
-    expect(bulkAddMutate.mock.calls[0]![0].entries).toEqual([
-      { copyId: "c1" },
-      { copyId: "c2" },
-      { copyId: "c3" },
-      { copyId: "c4" },
-    ]);
+    expect(bulkAddMutate.mock.calls[0]![0].copyIds).toEqual(["c1", "c2", "c3", "c4"]);
   });
 
   it("adds only the chosen number of copies after stepping down", () => {
@@ -95,7 +92,7 @@ describe("AddToListDialog quantity stepper", () => {
 
     clickFirstList();
 
-    expect(bulkAddMutate.mock.calls[0]![0].entries).toEqual([{ copyId: "c1" }, { copyId: "c2" }]);
+    expect(bulkAddMutate.mock.calls[0]![0].copyIds).toEqual(["c1", "c2"]);
   });
 
   it("does not step below one copy", () => {
@@ -131,11 +128,7 @@ describe("AddToListDialog quantity stepper", () => {
 
     clickFirstList();
 
-    expect(bulkAddMutate.mock.calls[0]![0].entries).toEqual([
-      { copyId: "c1" },
-      { copyId: "c2" },
-      { copyId: "c3" },
-    ]);
+    expect(bulkAddMutate.mock.calls[0]![0].copyIds).toEqual(["c1", "c2", "c3"]);
   });
 
   it("shows no stepper when a single copy is targeted", () => {
@@ -145,6 +138,6 @@ describe("AddToListDialog quantity stepper", () => {
 
     clickFirstList();
 
-    expect(bulkAddMutate.mock.calls[0]![0].entries).toEqual([{ copyId: "c1" }]);
+    expect(bulkAddMutate.mock.calls[0]![0].copyIds).toEqual(["c1"]);
   });
 });

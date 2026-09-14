@@ -1,4 +1,4 @@
-import { FolderIcon, HandshakeIcon, PlusIcon } from "lucide-react";
+import { FolderIcon, HandshakeIcon, HeartIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,7 +9,9 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
-import { useBulkAddListEntries, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { listKindLabel } from "@/features/lists/components/move-to-list-dialog";
+import { useBulkAddCopiesToList, useCreateList, useLists } from "@/features/lists/hooks/use-lists";
+import { describeListAdd } from "@/features/lists/lib/list-toast";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -24,7 +26,7 @@ interface AddToListDialogProps {
   onAdded?: () => void;
 }
 
-/** Adds selected copies as copy-kind entries; the user can create a list inline. */
+/** Adds selected copies to any list (the server derives the entry shape); a list can be created inline. */
 export function AddToListDialog({
   open,
   onOpenChange,
@@ -34,14 +36,12 @@ export function AddToListDialog({
   onAdded,
 }: AddToListDialogProps) {
   const { data: allLists } = useLists();
-  const bulkAdd = useBulkAddListEntries();
+  const bulkAdd = useBulkAddCopiesToList();
   const createList = useCreateList();
 
-  // Group-owned copies aren't the user's to trade away, so a tradelist
-  // target is dropped for them (mirrors the server's personalOnly rule).
-  const eligibleLists = allLists.filter(
-    (list) => list.kind === "copy" && (!groupOwnedOnly || list.intent === "organize"),
-  );
+  // Group-owned copies aren't the user's to trade away or wish for, so only
+  // organize lists remain for them (mirrors the server's personalOnly rule).
+  const eligibleLists = allLists.filter((list) => !groupOwnedOnly || list.intent === "organize");
 
   const [createIntent, setCreateIntent] = useState<"trade" | "organize" | null>(null);
   const [newName, setNewName] = useState("");
@@ -63,24 +63,12 @@ export function AddToListDialog({
 
   const addToList = (listId: string, listName: string) => {
     bulkAdd.mutate(
-      { listId, entries: copyIds.slice(0, effectiveQuantity).map((copyId) => ({ copyId })) },
+      { listId, copyIds: copyIds.slice(0, effectiveQuantity) },
       {
         onSuccess: (result) => {
-          // Copy-kind adds never bump quantity (duplicates DO NOTHING), so a
-          // zero `added` doesn't tell apart "already there" from "skipped".
-          if (result.added > 0) {
-            toast.success(
-              result.skipped > 0
-                ? m.lists_add_added_skipped({
-                    count: result.added,
-                    list: listName,
-                    skipped: result.skipped,
-                  })
-                : m.lists_add_added({ count: result.added, list: listName }),
-            );
-          } else {
-            toast.info(m.lists_add_nothing({ list: listName }));
-          }
+          toast[result.added + result.updated === 0 ? "info" : "success"](
+            describeListAdd(result, listName),
+          );
           onAdded?.();
           onOpenChange(false);
         },
@@ -137,11 +125,18 @@ export function AddToListDialog({
           {eligibleLists.length > 0 ? (
             <PickerList highlightedId={highlightedId} onHighlightChange={setHighlightedId}>
               {eligibleLists.map((list) => {
-                const Icon = list.intent === "trade" ? HandshakeIcon : FolderIcon;
+                const Icon =
+                  list.intent === "trade"
+                    ? HandshakeIcon
+                    : list.intent === "wish"
+                      ? HeartIcon
+                      : FolderIcon;
                 const intentLabel =
                   list.intent === "trade"
                     ? m.lists_add_intent_trade()
-                    : m.lists_add_intent_organize();
+                    : list.intent === "wish"
+                      ? m.lists_add_intent_wish()
+                      : m.lists_add_intent_organize();
                 return (
                   <PickerRow
                     key={list.id}
@@ -151,14 +146,16 @@ export function AddToListDialog({
                   >
                     <Icon className="size-4 shrink-0" />
                     <span className="flex-1 truncate">{list.name}</span>
-                    <span className="text-muted-foreground text-2xs shrink-0">{intentLabel}</span>
+                    <span className="text-muted-foreground text-2xs shrink-0">
+                      {intentLabel} · {listKindLabel(list.kind)}
+                    </span>
                   </PickerRow>
                 );
               })}
             </PickerList>
           ) : createIntent === null ? (
             <Empty>
-              <EmptyDescription>{m.lists_add_no_copy_lists()}</EmptyDescription>
+              <EmptyDescription>{m.lists_add_no_lists()}</EmptyDescription>
             </Empty>
           ) : null}
         </div>

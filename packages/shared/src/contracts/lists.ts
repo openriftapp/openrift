@@ -126,10 +126,28 @@ export const bulkAddCopiesToListSchema = z.object({
  * Destination list must match the source's kind and intent: a different kind
  * would reshape every entry, a different intent would silently repurpose them.
  */
+/** `resolutions` carries the user's picks when the destination kind is wider
+ * than the source: card → printing needs a printing, anything → copy needs copies. */
 export const moveListEntriesSchema = z.object({
   toListId: z.uuid(),
   entryIds: z.array(z.uuid()).min(1).max(500),
+  /** `copy` leaves the source entries in place. */
+  mode: z.enum(["move", "copy"]).optional(),
+  resolutions: z
+    .array(
+      z.object({
+        entryId: z.uuid(),
+        printingId: z.uuid().optional(),
+        copyIds: z.array(z.uuid()).min(1).max(100).optional(),
+      }),
+    )
+    .max(500)
+    .optional(),
 });
+
+export type MoveListEntriesResolution = NonNullable<
+  z.infer<typeof moveListEntriesSchema>["resolutions"]
+>[number];
 
 export const bulkDeleteListEntriesSchema = z.object({
   entryIds: z.array(z.uuid()).min(1).max(500),
@@ -253,7 +271,7 @@ export const listsContract = {
     .input(withParams(idParamSchema, moveListEntriesSchema))
     .errors({
       NOT_FOUND: { message: "List not found" },
-      BAD_REQUEST: { message: "Source and destination lists are incompatible" },
+      BAD_REQUEST: { message: "Entries can't be moved to that list" },
     })
     .output(listMoveResponseSchema),
   updateEntry: authedRoute

@@ -14,6 +14,7 @@ interface ListEntryContextMenuProps {
   onViewDetail?: () => void;
   onSetPreference?: () => void;
   onMove?: () => void;
+  onCopy?: () => void;
   onMoveToCollection?: () => void;
   onExclude?: () => void;
   children?: ReactNode;
@@ -25,6 +26,7 @@ export function ListEntryContextMenu({
   onViewDetail,
   onSetPreference,
   onMove,
+  onCopy,
   onMoveToCollection,
   onExclude,
   children,
@@ -66,6 +68,16 @@ export function ListEntryContextMenu({
             }}
           >
             {m.lists_entry_move_to_list()}
+          </ContextMenuItem>
+        ) : null}
+        {onCopy ? (
+          <ContextMenuItem
+            onClick={(event) => {
+              event.stopPropagation();
+              onCopy();
+            }}
+          >
+            {m.lists_entry_copy_to_list()}
           </ContextMenuItem>
         ) : null}
         {onMoveToCollection ? (

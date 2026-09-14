@@ -1,7 +1,11 @@
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
+import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
+
+import type { AnyDragData } from "./dnd-types";
+import { COLLECTION_DRAG_TYPES } from "./dnd-types";
 
 interface DroppableCollectionProps {
   collectionId: string;
@@ -20,7 +24,8 @@ export function DroppableCollection({
     disabled,
   });
 
-  const showHighlight = isOver && Boolean(active) && !disabled;
+  const dragData = asDragData<AnyDragData>(active?.data.current, COLLECTION_DRAG_TYPES);
+  const showHighlight = !disabled && isOver && isCompatibleCollectionDrop(dragData, collectionId);
 
   return (
     <div
@@ -30,4 +35,18 @@ export function DroppableCollection({
       {children}
     </div>
   );
+}
+
+/** Mirrors the collection branch of the layout's `handleDragEnd`. */
+export function isCompatibleCollectionDrop(
+  drag: AnyDragData | undefined,
+  collectionId: string,
+): boolean {
+  if (!drag) {
+    return false;
+  }
+  if (drag.type === "collection-card") {
+    return drag.sourceCollectionId !== collectionId;
+  }
+  return drag.type === "list-entry" && drag.copyIds.length > 0;
 }

@@ -66,11 +66,14 @@ vi.mock("@/features/cards/components/card-cell", () => ({
   CardCell: ({
     leftOverlay,
     strip,
+    wrap,
   }: {
     leftOverlay?: ReactNode;
     strip?: ReactElement<StripProbeProps>;
+    wrap?: ReactNode;
   }) => (
     <div>
+      {wrap}
       {leftOverlay}
       {strip ? (
         <div
@@ -83,6 +86,14 @@ vi.mock("@/features/cards/components/card-cell", () => ({
       ) : null}
     </div>
   ),
+}));
+
+const draggableCardProps: { sourceAllGroupCopies: boolean; fromSelection: boolean }[] = [];
+vi.mock("@/features/collections/components/draggable-card", () => ({
+  DraggableCard: (props: { sourceAllGroupCopies: boolean; fromSelection: boolean }) => {
+    draggableCardProps.push(props);
+    return null;
+  },
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -307,5 +318,31 @@ describe("CollectionGridCell live-trade chip", () => {
     renderStripCell({ stacked: false, mode: "browse", itemId: "cx1" });
 
     expect(screen.getByTestId("cell-strip").dataset.tradePhase).toBe("reserved");
+  });
+});
+
+describe("CollectionGridCell drag payload", () => {
+  beforeEach(() => {
+    resetSelection();
+    draggableCardProps.length = 0;
+  });
+  afterEach(resetSelection);
+
+  it("flags a selection drag from a group collection as group-owned", () => {
+    useGridSelectionStore.setState({ selected: new Set(["cx1", "cx2"]) });
+    renderStripCell({ stacked: true, mode: "select", sourceCollectionIsGroup: true });
+    expect(draggableCardProps.at(-1)).toMatchObject({
+      fromSelection: true,
+      sourceAllGroupCopies: true,
+    });
+  });
+
+  it("leaves a personal-collection selection drag unflagged", () => {
+    useGridSelectionStore.setState({ selected: new Set(["cx1", "cx2"]) });
+    renderStripCell({ stacked: true, mode: "select", sourceCollectionIsGroup: false });
+    expect(draggableCardProps.at(-1)).toMatchObject({
+      fromSelection: true,
+      sourceAllGroupCopies: false,
+    });
   });
 });

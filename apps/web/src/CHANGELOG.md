@@ -2,6 +2,10 @@
 
 ## 2026-09-14
 
+### Highlights
+
+- feat(Collection): **Move cards between any list** — drag a card between any collection, wishlist, tradelist or organize list, or use the right-click menu; moving to a list that tracks something more specific now asks which printing or copies to use, and holding Ctrl while dragging copies instead of moving.
+
 ### Other
 
 - fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.

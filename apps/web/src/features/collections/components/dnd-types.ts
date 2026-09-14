@@ -13,12 +13,13 @@ export interface CardDragData {
 }
 
 /**
- * Routed to {@link useMoveListEntries} when dropped on a sidebar list with
- * matching `sourceKind`/`sourceIntent`.
+ * `copyIds` is empty unless the source list is copy-kind; a non-empty one lets
+ * the entry move to a collection.
  */
 export interface ListEntryDragData {
   type: "list-entry";
   entryIds: string[];
+  copyIds: string[];
   sourceListId: string;
   sourceKind: ListKind;
   sourceIntent: ListIntent;

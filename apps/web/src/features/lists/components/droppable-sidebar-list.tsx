@@ -59,7 +59,8 @@ export function DroppableSidebarList({
   );
 }
 
-/** Mirrors the server's `moveListEntries` check so the highlight matches its accept/reject. */
+/** Mirrors the layout's drop routing: entries can go to any other list, the move
+ * dialog collects what a wider kind or a new intent needs. */
 export function isCompatibleDrop(
   drag: AnyDragData | undefined,
   target: { listId: string; listKind: ListKind; listIntent: ListIntent },
@@ -77,9 +78,5 @@ export function isCompatibleDrop(
   if (drag.type !== "list-entry") {
     return false;
   }
-  return (
-    drag.sourceKind === target.listKind &&
-    drag.sourceIntent === target.listIntent &&
-    drag.sourceListId !== target.listId
-  );
+  return drag.sourceListId !== target.listId;
 }

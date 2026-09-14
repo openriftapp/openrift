@@ -267,7 +267,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
   const ownCopyIds = stacked ? effectiveCopyIds : [itemId];
   const isStackDrag = !isItemSelected && stacked && ownCopyIds.length > 1;
   const previewPrintings = dragPreview.length > 0 ? dragPreview : [displayPrinting];
-  const sourceAllGroupCopies = !isItemSelected && ownCopyIds.length > 0 && sourceCollectionIsGroup;
+  const sourceAllGroupCopies = ownCopyIds.length > 0 && sourceCollectionIsGroup;
   const wrap =
     ownCopyIds.length > 0 ? (
       <DraggableCard

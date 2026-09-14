@@ -39,7 +39,11 @@ import { COLLECTION_DRAG_TYPES } from "@/features/collections/components/dnd-typ
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
+import type { PendingEntryMove } from "@/features/lists/components/move-entry-dialog";
+import { MoveEntryDialog } from "@/features/lists/components/move-entry-dialog";
 import { useBulkAddCopiesToList, useMoveListEntries } from "@/features/lists/hooks/use-lists";
+import type { MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
+import { moveNeedsDialog } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
@@ -68,6 +72,11 @@ export function CollectionLayout() {
   // null → one copy, "all" → Shift held, number → digit key 2-9 held. Only
   // meaningful for `collection-card` drags; list-entry drags carry the whole entry.
   const [moveModifier, setMoveModifier] = useState<"all" | number | null>(null);
+  const [pendingMove, setPendingMove] = useState<
+    (PendingEntryMove & { drag: ListEntryDragData }) | null
+  >(null);
+  // Ctrl while dropping a list entry copies it instead of moving it.
+  const [copyModifier, setCopyModifier] = useState(false);
   // Read by the key listener below, which is mounted once and can't see
   // `activeDrag` without re-subscribing on every drag.
   const dragActiveRef = useRef(false);
@@ -88,6 +97,10 @@ export function CollectionLayout() {
         setMoveModifier("all");
         return;
       }
+      if (event.key === "Control") {
+        setCopyModifier(true);
+        return;
+      }
       const digit = parseMoveDigit(event.key);
       if (digit !== null && dragActiveRef.current) {
         setMoveModifier(digit);
@@ -96,6 +109,10 @@ export function CollectionLayout() {
     const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key === "Shift") {
         setMoveModifier((current) => (current === "all" ? null : current));
+        return;
+      }
+      if (event.key === "Control") {
+        setCopyModifier(false);
         return;
       }
       const digit = parseMoveDigit(event.key);
@@ -130,6 +147,7 @@ export function CollectionLayout() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
+    const mode: MoveMode = copyModifier ? "copy" : "move";
     dragActiveRef.current = false;
     setActiveDrag(null);
 
@@ -148,8 +166,19 @@ export function CollectionLayout() {
       return;
     }
 
-    if (dragData.type === "list-entry" && dropData.type === "list") {
-      handleListEntryDrop(dragData, dropData);
+    if (dragData.type !== "list-entry") {
+      return;
+    }
+    if (dropData.type === "list") {
+      handleListEntryDrop(dragData, dropData, mode);
+      return;
+    }
+    if (dragData.copyIds.length > 0) {
+      const count = dragData.copyIds.length;
+      moveCopies.mutate(
+        { copyIds: dragData.copyIds, toCollectionId: dropData.collectionId },
+        { onSuccess: () => toast.success(m.collections_toast_moved({ count })) },
+      );
     }
   };
 
@@ -213,30 +242,56 @@ export function CollectionLayout() {
     return m.collections_toast_moved_to_list_cards({ count, list });
   }
 
-  function handleListEntryDrop(dragData: ListEntryDragData, dropData: SidebarListDropData) {
-    // Defense-in-depth against a same-list drop; the sidebar and server also check this.
-    if (
-      dropData.listId === dragData.sourceListId ||
-      dropData.listKind !== dragData.sourceKind ||
-      dropData.listIntent !== dragData.sourceIntent
-    ) {
-      return;
-    }
+  function runListEntryMove(
+    dragData: ListEntryDragData,
+    dropData: SidebarListDropData,
+    mode: MoveMode,
+    resolution: MoveResolution | null,
+  ) {
     moveListEntries.mutate(
       {
         fromListId: dragData.sourceListId,
         toListId: dropData.listId,
         entryIds: dragData.entryIds,
+        mode,
+        resolutions: resolution
+          ? dragData.entryIds.map((entryId) => ({ entryId, ...resolution }))
+          : undefined,
       },
       {
         onSuccess: (result) => {
+          setPendingMove(null);
           if (result.moved === 0) {
             return;
           }
-          toast.success(movedToListMessage(dragData.sourceKind, result.moved, dropData.listName));
+          toast.success(
+            mode === "copy"
+              ? m.lists_toast_copied_to_list({ count: result.moved, list: dropData.listName })
+              : movedToListMessage(dropData.listKind, result.moved, dropData.listName),
+          );
         },
       },
     );
+  }
+
+  function handleListEntryDrop(
+    dragData: ListEntryDragData,
+    dropData: SidebarListDropData,
+    mode: MoveMode,
+  ) {
+    if (dropData.listId === dragData.sourceListId) {
+      return;
+    }
+    if (
+      moveNeedsDialog(
+        { kind: dragData.sourceKind, intent: dragData.sourceIntent },
+        { kind: dropData.listKind, intent: dropData.listIntent },
+      )
+    ) {
+      setPendingMove({ mode, subject: dragData, target: dropData, drag: dragData });
+      return;
+    }
+    runListEntryMove(dragData, dropData, mode, null);
   }
 
   return (
@@ -264,10 +319,30 @@ export function CollectionLayout() {
                   {activeDrag?.type === "collection-card" && (
                     <DragPreview drag={activeDrag} modifier={moveModifier} />
                   )}
-                  {activeDrag?.type === "list-entry" && <ListEntryDragPreview drag={activeDrag} />}
+                  {activeDrag?.type === "list-entry" && (
+                    <ListEntryDragPreview drag={activeDrag} copy={copyModifier} />
+                  )}
                 </DragOverlay>
               </DndContext>
             </SidebarProvider>
+            <MoveEntryDialog
+              pending={pendingMove}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setPendingMove(null);
+                }
+              }}
+              onConfirm={(resolution) =>
+                pendingMove &&
+                runListEntryMove(
+                  pendingMove.drag,
+                  { type: "list", ...pendingMove.target },
+                  pendingMove.mode,
+                  resolution,
+                )
+              }
+              isPending={moveListEntries.isPending}
+            />
           </div>
         </PageTopBarHeightContext>
       </FilterSearchProvider>
@@ -296,11 +371,12 @@ function CollectionContent({
   );
 }
 
-function ListEntryDragPreview({ drag }: { drag: ListEntryDragData }) {
+function ListEntryDragPreview({ drag, copy }: { drag: ListEntryDragData; copy: boolean }) {
+  const name = legendDisplayName(drag.printing.card);
   return (
     <CardDragGhost
       printings={[drag.printing]}
-      label={legendDisplayName(drag.printing.card)}
+      label={copy ? m.collections_drag_copy_label({ name }) : name}
       count={drag.totalQuantity}
     />
   );

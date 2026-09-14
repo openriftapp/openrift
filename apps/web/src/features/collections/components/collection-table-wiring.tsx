@@ -87,9 +87,7 @@ export function CollectionRowWrapper({
   const copyIds = isFromSelection ? [...selected] : stacked ? effectiveCopyIds : [itemId];
   const isStackDrag = !isFromSelection && stacked && effectiveCopyIds.length > 1;
   const previewPrintings = dragPreviewPrintings.length > 0 ? dragPreviewPrintings : [printing];
-  // True only for a whole (non-selection) drag of group-owned copies.
-  // Select-mode drags resolve their own copy set live at drop time.
-  const sourceAllGroupCopies = !isFromSelection && copyIds.length > 0 && sourceCollectionIsGroup;
+  const sourceAllGroupCopies = copyIds.length > 0 && sourceCollectionIsGroup;
   return (
     <DraggableCard
       id={itemId}

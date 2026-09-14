@@ -5,7 +5,7 @@ import type {
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { ListRule } from "@openrift/shared/types/list-rule";
-import { LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
+import { CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -149,6 +149,8 @@ export function ListEntryBrowser({
     hasSelectableEntries,
     moveOpen,
     setMoveOpen,
+    moveMode,
+    moveSubject,
     handleBulkMove,
     moveEntries,
     removeOpen,
@@ -360,6 +362,12 @@ export function ListEntryBrowser({
                   onClick: () => openListAction("move", [...selected]),
                   disabled: moveEntries.isPending,
                 },
+                {
+                  label: m.lists_entry_copy_action(),
+                  icon: <CopyIcon />,
+                  onClick: () => openListAction("copy", [...selected]),
+                  disabled: moveEntries.isPending,
+                },
                 kind === "copy"
                   ? {
                       label: m.lists_entry_take_off(),
@@ -382,8 +390,11 @@ export function ListEntryBrowser({
           <MoveToListDialog
             open={moveOpen}
             onOpenChange={setMoveOpen}
+            mode={moveMode}
             lists={moveTargetLists}
-            onMove={handleBulkMove}
+            source={{ kind, intent }}
+            subject={moveSubject}
+            onConfirm={handleBulkMove}
             isPending={moveEntries.isPending}
           />
           {/* Mounted only while open: it reads collections via a suspense query,
