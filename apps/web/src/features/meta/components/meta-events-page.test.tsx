@@ -44,9 +44,15 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
   }),
 }));
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({ useMetaEras: () => [] }));
-vi.mock("@/features/meta/components/meta-scope-bar", () => ({
-  MetaScopeBar: ({ extras }: { extras?: React.ReactNode }) => <div>{extras}</div>,
-}));
+vi.mock("@/features/meta/components/meta-scope-bar", async () => {
+  const actual = await vi.importActual<Record<string, unknown>>(
+    "@/features/meta/components/meta-scope-bar",
+  );
+  return {
+    ...actual,
+    MetaScopeBar: ({ extras }: { extras?: React.ReactNode }) => <div>{extras}</div>,
+  };
+});
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaEventsPage } from "./meta-events-page";
@@ -199,13 +205,13 @@ describe("MetaEventsPage", () => {
 
   it("writes the chosen column and direction to the URL", async () => {
     renderPage([event()]);
-    await userEvent.click(screen.getByRole("button", { name: /players/iu }));
+    await userEvent.click(screen.getByRole("button", { name: /sort by players/iu }));
     expect(captured.navigated.at(-1)).toMatchObject({ by: "players", dir: "desc" });
   });
 
   it("flips the direction when the same column is clicked again", async () => {
     renderPage([event()], { by: "players", dir: "desc" });
-    await userEvent.click(screen.getByRole("button", { name: /players/iu }));
+    await userEvent.click(screen.getByRole("button", { name: /players, sorted/iu }));
     expect(captured.navigated.at(-1)).toMatchObject({ by: "players", dir: "asc" });
   });
 
@@ -254,7 +260,7 @@ describe("MetaEventsPage", () => {
   it("invites the first event when the archive is empty", () => {
     renderPage([]);
     expect(screen.getByText("No events archived yet")).toBeDefined();
-    expect(screen.queryByRole("button", { name: /players/iu })).toBeNull();
+    expect(screen.queryByRole("button", { name: /sort by players/iu })).toBeNull();
   });
 
   it("lists only the events holding what the reader asked for", () => {
@@ -269,15 +275,33 @@ describe("MetaEventsPage", () => {
     expect(screen.getByText("1 of 2 archived events")).toBeDefined();
   });
 
-  it("writes the picked holdings to the URL and clears it back", async () => {
+  it("writes the picked holdings to the URL", async () => {
     renderPage([event()]);
     await userEvent.click(screen.getByLabelText("Archive holdings"));
-    await userEvent.click(await screen.findByRole("option", { name: "With decklists" }));
+    await userEvent.click(await screen.findByRole("option", { name: /^With decklists/u }));
     expect(captured.navigated.at(-1)).toMatchObject({ holds: "decks" });
+  });
 
-    captured.search = { holds: "decks" };
+  it("clears the picked holdings back out of the URL", async () => {
+    renderPage([event()], { holds: "decks" });
     await userEvent.click(screen.getByLabelText("Archive holdings"));
-    await userEvent.click(await screen.findByRole("option", { name: "Any events" }));
+    await userEvent.click(await screen.findByRole("option", { name: /^Any events/u }));
+    expect(captured.navigated.at(-1)).toEqual({});
+  });
+
+  it("writes a player bound to the URL", async () => {
+    renderPage([event()]);
+    await userEvent.click(screen.getByRole("button", { name: "Players" }));
+    await userEvent.type(await screen.findByLabelText("Minimum players"), "8");
+    expect(captured.navigated.at(-1)).toMatchObject({ playersMin: 8 });
+  });
+
+  it("drops a cleared player bound from the URL", async () => {
+    renderPage([event()], { playersMax: 64 });
+    await userEvent.click(screen.getByRole("button", { name: "Players ≤ 64" }));
+    const field = await screen.findByLabelText("Maximum players");
+    expect(field).toHaveValue(64);
+    await userEvent.clear(field);
     expect(captured.navigated.at(-1)).toEqual({});
   });
 });

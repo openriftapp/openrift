@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(Meta Archive): **Filters as chips, like the card browser** — the archive front page, tournaments, legends and decks pages now show every filter as its own chip under the search field: era, tier, format, country, plus the page's own controls. The tournaments page gains a player-count range with quick presets and its "Archive holdings" picker sits in the same row, the front page gets a "With decklists" toggle, and the result count moved into the search field.
 - feat(Collection): **Copy rule-added cards to other lists** — cards a list includes through its rules can now be dragged or right-clicked to copy them onto another list.
 - fix(App): **Open tabs update themselves after a release** — a tab still running an older version now reloads on its own the first time it talks to the updated server, instead of waiting for you to press Reload on the "new version available" notice; the notice remains as a fallback if the automatic reload was already used.
 - fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.

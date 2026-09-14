@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   filterMetaEvents,
   metaEventCountries,
+  metaEventFacetCounts,
+  metaEventHoldingsCounts,
   nextEventSort,
   sortMetaEvents,
 } from "./meta-events-index";
@@ -94,6 +96,27 @@ describe("filterMetaEvents", () => {
     ).toEqual(["b"]);
   });
 
+  it("narrows by player count and drops events with no known head count", () => {
+    const sized = [
+      event({ id: "small", playerCount: 8 }),
+      event({ id: "mid", playerCount: 32 }),
+      event({ id: "big", playerCount: 128 }),
+      event({ id: "unknown", playerCount: null }),
+    ];
+    expect(filterMetaEvents(sized, { ...all, playersMin: 16 }).map((e) => e.id)).toEqual([
+      "mid",
+      "big",
+    ]);
+    expect(filterMetaEvents(sized, { ...all, playersMax: 32 }).map((e) => e.id)).toEqual([
+      "small",
+      "mid",
+    ]);
+    expect(
+      filterMetaEvents(sized, { ...all, playersMin: 16, playersMax: 32 }).map((e) => e.id),
+    ).toEqual(["mid"]);
+    expect(filterMetaEvents(sized, all).map((e) => e.id)).toContain("unknown");
+  });
+
   it("narrows to the events the archive already holds something for", () => {
     const holdings = [
       event({ id: "listed", playerRowCount: 18, deckCount: 4 }),
@@ -155,6 +178,36 @@ describe("filterMetaEvents", () => {
 
   it("keeps nothing from an empty archive", () => {
     expect(filterMetaEvents([], { ...all, query: "anything" })).toEqual([]);
+  });
+});
+
+describe("metaEventFacetCounts", () => {
+  const events = [
+    event({ id: "a", country: "ES", tier: "premier", deckCount: 3 }),
+    event({ id: "b", country: "DE", tier: "competitive", deckCount: 0 }),
+    event({ id: "c", country: "de", tier: "premier", deckCount: 1 }),
+  ];
+
+  it("counts each value with the other facets applied and its own lifted", () => {
+    const counts = metaEventFacetCounts(events, { scope: { tiers: ["premier"] }, eras: ERAS });
+    expect(counts.tiers.get("premier")).toBe(2);
+    expect(counts.tiers.get("competitive")).toBe(1);
+    expect(counts.countries.get("de")).toBe(1);
+    expect(counts.countries.get("es")).toBe(1);
+  });
+
+  it("applies the page's own narrowing before counting", () => {
+    const counts = metaEventFacetCounts(events, { scope: {}, eras: ERAS, holds: "decks" });
+    expect(counts.tiers.get("competitive")).toBeUndefined();
+    expect(counts.countries.get("de")).toBe(1);
+  });
+
+  it("counts holdings choices with the current choice lifted", () => {
+    const counts = metaEventHoldingsCounts(events, { scope: {}, eras: ERAS, holds: "decks" });
+    expect(counts.get("")).toBe(3);
+    expect(counts.get("decks")).toBe(2);
+    expect(counts.get("standings")).toBe(3);
+    expect(counts.get("upcoming")).toBeUndefined();
   });
 });
 

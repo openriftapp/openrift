@@ -3,12 +3,14 @@ import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/a
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 
 import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
-import { scopeMatches } from "@/features/meta/lib/meta-scope-match";
+import type { ScopeFacetCounts } from "@/features/meta/lib/meta-scope-match";
+import { scopeFacetCounts, scopeMatches } from "@/features/meta/lib/meta-scope-match";
 
 export interface MetaFrontFilter {
   scope: MetaScope;
   eras: readonly MetaEra[];
   search?: string;
+  decksOnly?: boolean;
 }
 
 function matchesSearch(event: MetaEventSummary, needle: string): boolean {
@@ -21,13 +23,34 @@ export function filterMetaEvents(
   events: readonly MetaEventSummary[],
   filter: MetaFrontFilter,
 ): MetaEventSummary[] {
-  const needle = filter.search?.trim().toLowerCase() ?? "";
+  const keep = outsideScope(filter);
+  return events.filter((event) => keep(event) && scopeMatches(event, filter.scope, filter.eras));
+}
 
+export function metaFrontFacetCounts(
+  events: readonly MetaEventSummary[],
+  filter: MetaFrontFilter,
+): ScopeFacetCounts {
+  return scopeFacetCounts(events, filter.scope, filter.eras, {}, outsideScope(filter));
+}
+
+/** The page's own narrowing, everything but the scope bar's facets. */
+function outsideScope(filter: MetaFrontFilter): (event: MetaEventSummary) => boolean {
+  const needle = filter.search?.trim().toLowerCase() ?? "";
+  return (event) =>
+    (needle === "" || matchesSearch(event, needle)) &&
+    (filter.decksOnly !== true || event.deckCount > 0);
+}
+
+/** How many events the decklist toggle would leave, with everything else applied. */
+export function metaFrontDecklistCount(
+  events: readonly MetaEventSummary[],
+  filter: MetaFrontFilter,
+): number {
+  const keep = outsideScope({ ...filter, decksOnly: false });
   return events.filter(
-    (event) =>
-      (needle === "" || matchesSearch(event, needle)) &&
-      scopeMatches(event, filter.scope, filter.eras),
-  );
+    (event) => event.deckCount > 0 && keep(event) && scopeMatches(event, filter.scope, filter.eras),
+  ).length;
 }
 
 export function metaEventCountries(events: readonly MetaEventSummary[]): string[] {

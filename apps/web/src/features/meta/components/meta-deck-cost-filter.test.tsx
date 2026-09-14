@@ -151,18 +151,19 @@ describe("MetaDeckCostFilter", () => {
   });
 
   describe("the control trigger", () => {
-    it("renders an outline control naming the empty filter", () => {
+    it("renders a chip control naming the empty filter", () => {
       renderFilter({ trigger: "control" });
       const control = screen.getByRole("button", { name: "Cost: Any" });
-      expect(control).toHaveClass("h-8", "border-border");
+      expect(control).toHaveClass("h-7");
+      expect(control).not.toHaveAttribute("data-active");
       expect(control).toHaveTextContent("CostAny");
     });
 
     it("marks itself active once a bound is set", () => {
       renderFilter({ trigger: "control", value: { maxCost: 25 } });
-      expect(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" })).toHaveClass(
-        "border-primary",
-        "text-primary",
+      expect(screen.getByRole("button", { name: "Cost: ≤ €25 to complete" })).toHaveAttribute(
+        "data-active",
+        "true",
       );
     });
   });

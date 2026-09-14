@@ -42,6 +42,8 @@ import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
   filterMetaEvents,
   metaEventCountries,
+  metaFrontDecklistCount,
+  metaFrontFacetCounts,
   metaFrontSections,
 } from "@/features/meta/lib/meta-front-page";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
@@ -52,6 +54,7 @@ import {
   resolveScopeRange,
   UNSCOPED,
 } from "@/features/meta/lib/meta-scope";
+import { scopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { useUserId } from "@/lib/auth-session";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -210,20 +213,29 @@ export function MetaFrontPage() {
     void navigate({ search: (prev) => nextScopeSearch(prev, patch) });
   };
   const clearScope = () => {
-    void navigate({ search: (prev) => nextScopeSearch({ ...prev, q: undefined }, CLEARED_SCOPE) });
+    void navigate({
+      search: (prev) => nextScopeSearch({ ...prev, q: undefined, decks: undefined }, CLEARED_SCOPE),
+    });
+  };
+  const setDecksOnly = (next: boolean) => {
+    void navigate({ search: (prev) => nextScopeSearch({ ...prev, decks: next }, {}) });
   };
   const setQuery = (next: string) => {
     void navigate({ search: (prev) => nextScopeSearch({ ...prev, q: next }, {}) });
   };
 
   const fetchedEvents = eventsData.events;
-  const events = filterMetaEvents(fetchedEvents, { scope: search, eras, search: search.q });
+  const frontFilter = { scope: search, eras, search: search.q, decksOnly: search.decks };
+  const events = filterMetaEvents(fetchedEvents, frontFilter);
+  const facetCounts = metaFrontFacetCounts(fetchedEvents, frontFilter);
+  const decklistCount = metaFrontDecklistCount(fetchedEvents, frontFilter);
   const sections = metaFrontSections(events);
   const hasResults =
     sections.premier.length > 0 || sections.competitive.length > 0 || sections.local.length > 0;
   const playerResults = events.reduce((total, event) => total + event.playerRowCount, 0);
   const deckResults = events.reduce((total, event) => total + event.deckCount, 0);
-  const showActivity = !isScopeCustomized(search) && (search.q ?? "").trim() === "";
+  const showActivity =
+    !isScopeCustomized(search) && search.decks !== true && (search.q ?? "").trim() === "";
   const hasRail = sections.upcoming.length > 0 || (showActivity && activityData.items.length > 0);
   const nextUpcoming = sections.upcoming.at(0);
 
@@ -242,7 +254,7 @@ export function MetaFrontPage() {
         ) : (
           <>
             <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2">
                 <MetaArchiveSearch value={search.q ?? ""} onCommit={setQuery} />
                 <MetaScopeBar
                   scope={search}
@@ -250,7 +262,24 @@ export function MetaFrontPage() {
                   clearScope={clearScope}
                   eras={eras}
                   countries={metaEventCountries(fetchedEvents)}
+                  facetCounts={facetCounts}
+                  present={scopeFacetPresence(fetchedEvents)}
                   showTier={false}
+                  extras={
+                    <Button
+                      type="button"
+                      variant="control"
+                      size="sm"
+                      aria-pressed={search.decks === true}
+                      onClick={() => setDecksOnly(search.decks !== true)}
+                    >
+                      {m.meta_events_holdings_decks()}
+                      <span className="text-muted-foreground text-2xs tabular-nums">
+                        {decklistCount}
+                      </span>
+                    </Button>
+                  }
+                  extrasActive={search.decks === true}
                 />
               </div>
               <MetaArchiveCounts

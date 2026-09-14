@@ -281,7 +281,7 @@ export function MetaLegendsPage() {
           />
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2">
               <LegendSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />
               <MetaScopeBar
                 scope={search}

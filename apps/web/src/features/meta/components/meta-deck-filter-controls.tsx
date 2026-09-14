@@ -63,7 +63,7 @@ export function MetaDeckFilterControls({
             <MultiSelectCombobox
               label={m.meta_filter_legend()}
               triggerStyle="button"
-              triggerSize="default"
+              triggerSize="sm"
               options={options.legends}
               selected={filters.legends}
               onChange={(next) => filters.setLegends(next)}
@@ -76,7 +76,7 @@ export function MetaDeckFilterControls({
             <MultiSelectCombobox
               label={m.meta_filter_event()}
               triggerStyle="button"
-              triggerSize="default"
+              triggerSize="sm"
               options={options.events}
               selected={filters.events}
               onChange={(next) => filters.setEvents(next)}
@@ -93,7 +93,7 @@ export function MetaDeckFilterControls({
             }}
             items={finishItems}
           >
-            <SelectTrigger className="w-34" aria-label={m.meta_filter_finish()}>
+            <SelectTrigger size="sm" className="font-medium" aria-label={m.meta_filter_finish()}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

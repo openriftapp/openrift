@@ -5,10 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({
     formats: [
-      { slug: "standard", label: "Standard" },
+      { slug: "constructed", label: "Constructed" },
       { slug: "draft", label: "Draft" },
     ],
-    labels: { standard: "Standard", draft: "Draft" },
+    labels: { constructed: "Constructed", draft: "Draft" },
   }),
 }));
 
@@ -42,17 +42,10 @@ function option(name: string) {
   return screen.findByRole("option", { name });
 }
 
-async function openFilters(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "More filters" }));
-  await screen.findByRole("menu");
-}
-
 function facet(text: string) {
-  // Inline in the bar the trigger is a combobox; inside the filters menu it is
-  // a menu row, which the combobox renders as a plain button.
-  const trigger = [...screen.getAllByRole("combobox"), ...screen.getAllByRole("button")].find(
-    (element) => element.textContent?.trim().startsWith(text),
-  );
+  const trigger = screen
+    .getAllByRole("combobox")
+    .find((element) => element.textContent?.trim().startsWith(text));
   if (trigger === undefined) {
     throw new Error(`no facet trigger reading "${text}"`);
   }
@@ -103,7 +96,6 @@ describe("MetaScopeBar", () => {
 
   it("keeps a picked country the offered set no longer holds, so it can be cleared", async () => {
     const { setScope, user } = renderBar({ scope: { countries: ["br"] } });
-    await openFilters(user);
     await user.click(facet("br"));
     await user.click(await option("br"));
     expect(setScope).toHaveBeenCalledWith({ countries: [], countriesEx: ["br"] });
@@ -129,15 +121,13 @@ describe("MetaScopeBar", () => {
 
   it("names countries rather than printing their codes", async () => {
     const { user } = renderBar();
-    await openFilters(user);
     await user.click(facet("Country"));
     expect(await option("Germany")).toBeInTheDocument();
     expect(await option("Japan")).toBeInTheDocument();
   });
 
-  it("hides the country control when there is nothing to choose between", async () => {
-    const { user } = renderBar({ countries: ["de"] });
-    await openFilters(user);
+  it("hides the country control when there is nothing to choose between", () => {
+    renderBar({ countries: ["de"] });
     expect(screen.queryByText("Country")).not.toBeInTheDocument();
   });
 
@@ -177,39 +167,52 @@ describe("MetaScopeBar", () => {
     expect(setScope).toHaveBeenCalledWith({ tiers: [], tiersEx: [] });
   });
 
-  it("counts the picks behind the filters button, the default format included", () => {
+  it("puts format and country on the bar as chips, the default format shown as a pick", () => {
     renderBar();
-    expect(screen.getByRole("button", { name: "More filters" })).toHaveTextContent("(1)");
+    expect(facet("Constructed")).toBeInTheDocument();
+    expect(facet("Country")).toBeInTheDocument();
   });
 
-  it("keeps format and country off the bar itself", () => {
-    renderBar();
-    expect(screen.queryByText("Format")).not.toBeInTheDocument();
-    expect(screen.queryByText("Country")).not.toBeInTheDocument();
+  it("drops values no fetched event carries and hides a chip left with one option", () => {
+    renderBar({
+      present: {
+        formats: new Set(["constructed"]),
+        tiers: new Set(["premier", "local"]),
+        countries: new Set(["de", "jp"]),
+      },
+    });
+    expect(screen.queryByText("Constructed")).not.toBeInTheDocument();
+    expect(facet("Tier")).toBeInTheDocument();
+    expect(facet("Country")).toBeInTheDocument();
+  });
+
+  it("keeps a chip whose only offered value is the reader's own pick", () => {
+    renderBar({ scope: { formats: ["draft"] }, present: { formats: new Set(["constructed"]) } });
+    expect(facet("Draft")).toBeInTheDocument();
   });
 
   it("hides the reset while nothing is narrowed", () => {
     renderBar();
-    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear all filters" })).not.toBeInTheDocument();
   });
 
   it("shows the reset once a facet is set, including an exclusion", () => {
     const { unmount } = renderBar({ scope: { tiers: ["premier"] } });
-    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear all filters" })).toBeInTheDocument();
     unmount();
 
     renderBar({ scope: { countriesEx: ["de"] } });
-    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear all filters" })).toBeInTheDocument();
   });
 
   it("shows the reset for a surface's own control", () => {
     renderBar({ extras: <span>Holdings</span>, extrasActive: true });
-    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear all filters" })).toBeInTheDocument();
   });
 
   it("clears the whole scope from the reset", async () => {
     const { clearScope, user } = renderBar({ scope: { era: ERA_ALL, countries: ["de"] } });
-    await user.click(screen.getByRole("button", { name: "Reset" }));
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }));
     expect(clearScope).toHaveBeenCalled();
   });
 });

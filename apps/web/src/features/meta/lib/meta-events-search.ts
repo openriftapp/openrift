@@ -28,6 +28,8 @@ export const DEFAULT_EVENT_DIRECTION: MetaEventIndexSortDirection = "desc";
 export const metaEventsSearchSchema = metaScopeSearchSchema.extend({
   q: z.string().optional().catch(undefined),
   holds: z.enum(META_EVENT_HOLDINGS).optional().catch(undefined),
+  playersMin: z.number().int().nonnegative().optional().catch(undefined),
+  playersMax: z.number().int().nonnegative().optional().catch(undefined),
   by: z.enum(META_EVENT_INDEX_SORTS).optional().catch(undefined),
   dir: z.enum(["asc", "desc"]).optional().catch(undefined),
 });

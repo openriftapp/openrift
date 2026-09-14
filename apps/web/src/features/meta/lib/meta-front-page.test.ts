@@ -5,6 +5,8 @@ import {
   filterMetaEvents,
   metaEventCountries,
   metaEventWinners,
+  metaFrontDecklistCount,
+  metaFrontFacetCounts,
   metaFrontSections,
 } from "@/features/meta/lib/meta-front-page";
 import type { MetaEra } from "@/features/meta/lib/meta-scope";
@@ -56,10 +58,39 @@ const WINNER = {
 const CO_WINNER = { ...WINNER, playerName: "Ekko" };
 const RUNNER_UP = { ...WINNER, playerName: "Rell", rank: 2 };
 
+describe("metaFrontFacetCounts", () => {
+  it("counts a facet's values with the other narrowing applied", () => {
+    const events = [
+      event({ id: "a", country: "DE", tier: "premier", deckCount: 2 }),
+      event({ id: "b", country: "FR", tier: "local", deckCount: 0 }),
+    ];
+    const counts = metaFrontFacetCounts(events, { scope: {}, eras: ERAS, decksOnly: true });
+    expect(counts.countries.get("de")).toBe(1);
+    expect(counts.countries.get("fr")).toBeUndefined();
+    expect(counts.tiers.get("premier")).toBe(1);
+  });
+
+  it("counts what the decklist toggle would leave, whether or not it is on", () => {
+    const events = [event({ id: "a", deckCount: 2 }), event({ id: "b", deckCount: 0 })];
+    expect(metaFrontDecklistCount(events, { scope: {}, eras: ERAS })).toBe(1);
+    expect(metaFrontDecklistCount(events, { scope: {}, eras: ERAS, decksOnly: true })).toBe(1);
+  });
+});
+
 describe("filterMetaEvents", () => {
   it("keeps everything when nothing narrows the scope", () => {
     const events = [event(), event({ id: "evt-2", slug: "nexus-night" })];
     expect(filterMetaEvents(events, { scope: {}, eras: ERAS })).toHaveLength(2);
+  });
+
+  it("keeps only events with decklists when asked", () => {
+    const events = [
+      event({ id: "listed", deckCount: 3 }),
+      event({ id: "standings-only", deckCount: 0 }),
+    ];
+    const kept = filterMetaEvents(events, { scope: {}, eras: ERAS, decksOnly: true });
+    expect(kept.map((row) => row.id)).toEqual(["listed"]);
+    expect(filterMetaEvents(events, { scope: {}, eras: ERAS, decksOnly: false })).toHaveLength(2);
   });
 
   it("treats the all-time era as no narrowing at all", () => {

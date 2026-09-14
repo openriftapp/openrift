@@ -11,7 +11,6 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { MetaPriceFormat as PriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
-import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export interface MetaCostFilterValue {
@@ -142,8 +141,10 @@ export function MetaDeckCostFilter({
           render={
             <Button
               type="button"
-              variant="outline"
-              className={cn(isActive && "border-primary text-primary")}
+              variant="control"
+              size="sm"
+              data-active={isActive || undefined}
+              className="font-medium"
             />
           }
         >

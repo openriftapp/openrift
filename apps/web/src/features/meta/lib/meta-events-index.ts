@@ -12,7 +12,8 @@ import {
   DEFAULT_EVENT_SORT,
 } from "@/features/meta/lib/meta-events-search";
 import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
-import { scopeMatches } from "@/features/meta/lib/meta-scope-match";
+import type { ScopeFacetCounts } from "@/features/meta/lib/meta-scope-match";
+import { scopeFacetCounts, scopeMatches } from "@/features/meta/lib/meta-scope-match";
 import { normalizeCountryCode } from "@/lib/country";
 
 const TIER_RANK: Record<MetaEventTier, number> = {
@@ -32,25 +33,62 @@ export function metaEventCountries(events: readonly MetaEventSummary[]): string[
   return [...codes].sort((left, right) => left.localeCompare(right));
 }
 
+export interface MetaEventIndexFilter {
+  query?: string;
+  scope: MetaScope;
+  eras: readonly MetaEra[];
+  holds?: MetaEventHoldings;
+  playersMin?: number;
+  playersMax?: number;
+  today?: string;
+}
+
 export function filterMetaEvents(
   events: readonly MetaEventSummary[],
-  filter: {
-    query?: string;
-    scope: MetaScope;
-    eras: readonly MetaEra[];
-    holds?: MetaEventHoldings;
-    today?: string;
-  },
+  filter: MetaEventIndexFilter,
 ): MetaEventSummary[] {
+  const keep = outsideScope(filter);
+  return events.filter((event) => keep(event) && scopeMatches(event, filter.scope, filter.eras));
+}
+
+export function metaEventFacetCounts(
+  events: readonly MetaEventSummary[],
+  filter: MetaEventIndexFilter,
+): ScopeFacetCounts {
+  return scopeFacetCounts(events, filter.scope, filter.eras, {}, outsideScope(filter));
+}
+
+/** How many events each holdings choice would show, with everything else applied. */
+export function metaEventHoldingsCounts(
+  events: readonly MetaEventSummary[],
+  filter: MetaEventIndexFilter,
+): Map<MetaEventHoldings | "", number> {
+  const today = filter.today ?? todayUtc();
+  const keep = outsideScope({ ...filter, holds: undefined });
+  const counts = new Map<MetaEventHoldings | "", number>();
+  const bump = (key: MetaEventHoldings | "") => counts.set(key, (counts.get(key) ?? 0) + 1);
+  for (const event of events) {
+    if (!keep(event) || !scopeMatches(event, filter.scope, filter.eras)) {
+      continue;
+    }
+    bump("");
+    for (const holds of ["decks", "standings", "upcoming"] as const) {
+      if (holdsEnough(event, holds, today)) {
+        bump(holds);
+      }
+    }
+  }
+  return counts;
+}
+
+/** The page's own narrowing, everything but the scope bar's facets. */
+function outsideScope(filter: MetaEventIndexFilter): (event: MetaEventSummary) => boolean {
   const needle = (filter.query ?? "").trim().toLowerCase();
   const today = filter.today ?? todayUtc();
-
-  return events.filter(
-    (event) =>
-      (needle === "" || matchesText(event, needle)) &&
-      holdsEnough(event, filter.holds, today) &&
-      scopeMatches(event, filter.scope, filter.eras),
-  );
+  return (event) =>
+    (needle === "" || matchesText(event, needle)) &&
+    holdsEnough(event, filter.holds, today) &&
+    playersWithin(event, filter.playersMin, filter.playersMax);
 }
 
 function holdsEnough(
@@ -68,6 +106,20 @@ function holdsEnough(
     return event.eventDate > today;
   }
   return true;
+}
+
+/** A bound needs a known head count; an event without one is dropped once either bound is set. */
+function playersWithin(event: MetaEventSummary, min?: number, max?: number): boolean {
+  if (min === undefined && max === undefined) {
+    return true;
+  }
+  if (event.playerCount === null) {
+    return false;
+  }
+  return (
+    (min === undefined || event.playerCount >= min) &&
+    (max === undefined || event.playerCount <= max)
+  );
 }
 
 function matchesText(event: MetaEventSummary, needle: string): boolean {

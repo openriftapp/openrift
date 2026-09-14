@@ -5,21 +5,16 @@ import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
-  PageDescription,
   PageTopBar,
   PageTopBarBack,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
 import { RowList } from "@/components/ui/row-list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
 import {
@@ -27,13 +22,15 @@ import {
   MetaEventIndexRow,
 } from "@/features/meta/components/meta-event-index-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
-import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
+import { MetaScopeBar, ScopeSelect } from "@/features/meta/components/meta-scope-bar";
 import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaCounts, useMetaEvents } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import {
   filterMetaEvents,
   metaEventCountries,
+  metaEventFacetCounts,
+  metaEventHoldingsCounts,
   nextEventSort,
   sortMetaEvents,
 } from "@/features/meta/lib/meta-events-index";
@@ -55,6 +52,7 @@ import {
   resolveScopeRange,
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
+import { scopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -79,7 +77,14 @@ export function MetaEventsPage() {
   };
 
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
-  const clearScope = () => setSearchParams({ ...CLEARED_SCOPE, q: undefined, holds: undefined });
+  const clearScope = () =>
+    setSearchParams({
+      ...CLEARED_SCOPE,
+      q: undefined,
+      holds: undefined,
+      playersMin: undefined,
+      playersMax: undefined,
+    });
   const setSort = (column: MetaEventIndexSort) => {
     const next = nextEventSort({ sort, direction }, column);
     setSearchParams({ by: next.sort, dir: next.direction });
@@ -87,14 +92,20 @@ export function MetaEventsPage() {
   const commitQuery = (value: string) => setSearchParams({ q: value === "" ? undefined : value });
 
   const fetched = data.events;
-  const events = sortMetaEvents(
-    filterMetaEvents(fetched, { query: search.q, scope: search, eras, holds: search.holds }),
-    sort,
-    direction,
-  );
+  const indexFilter = {
+    query: search.q,
+    scope: search,
+    eras,
+    holds: search.holds,
+    playersMin: search.playersMin,
+    playersMax: search.playersMax,
+  };
+  const events = sortMetaEvents(filterMetaEvents(fetched, indexFilter), sort, direction);
+  const facetCounts = metaEventFacetCounts(fetched, indexFilter);
+  const holdingsCounts = metaEventHoldingsCounts(fetched, indexFilter);
   const countries = metaEventCountries(fetched);
   // Sort keys are deliberately absent: reordering keeps the same rows expanded.
-  const listKey = `${search.q ?? ""}|${search.holds ?? ""}|${scopeKey(search)}`;
+  const listKey = `${search.q ?? ""}|${search.holds ?? ""}|${search.playersMin ?? ""}|${search.playersMax ?? ""}|${scopeKey(search)}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -102,15 +113,10 @@ export function MetaEventsPage() {
         <PageTopBar>
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_events_title()}</PageTopBarTitle>
-          <span className="text-muted-foreground shrink-0 tabular-nums">
-            {metaShownLabel(events.length, counts.totalEvents, "events")}
-          </span>
         </PageTopBar>
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{m.meta_events_page_description()}</PageDescription>
-
         {counts.totalEvents === 0 ? (
           <EmptyState
             className="py-12"
@@ -120,21 +126,39 @@ export function MetaEventsPage() {
           />
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              <EventSearchBox urlValue={search.q ?? ""} onCommit={commitQuery} />
+            <div className="flex flex-col gap-2">
+              <EventSearchBox
+                urlValue={search.q ?? ""}
+                onCommit={commitQuery}
+                shown={metaShownLabel(events.length, counts.totalEvents, "events")}
+              />
               <MetaScopeBar
                 scope={search}
                 setScope={setScope}
                 clearScope={clearScope}
                 eras={eras}
                 countries={countries}
+                facetCounts={facetCounts}
+                present={scopeFacetPresence(fetched)}
                 extras={
-                  <HoldingsSelect
-                    value={search.holds}
-                    onChange={(holds) => setSearchParams({ holds })}
-                  />
+                  <>
+                    <HoldingsChip
+                      value={search.holds}
+                      counts={holdingsCounts}
+                      onChange={(holds) => setSearchParams({ holds })}
+                    />
+                    <PlayersChip
+                      min={search.playersMin}
+                      max={search.playersMax}
+                      onChange={(patch) => setSearchParams(patch)}
+                    />
+                  </>
                 }
-                extrasActive={search.holds !== undefined}
+                extrasActive={
+                  search.holds !== undefined ||
+                  search.playersMin !== undefined ||
+                  search.playersMax !== undefined
+                }
               />
             </div>
 
@@ -166,50 +190,128 @@ function holdingsItems(): Record<string, string> {
   };
 }
 
-function HoldingsSelect({
+function HoldingsChip({
   value,
+  counts,
   onChange,
 }: {
   value: MetaEventHoldings | undefined;
+  counts: Map<MetaEventHoldings | "", number>;
   onChange: (value: MetaEventHoldings | undefined) => void;
 }) {
   return (
-    <Select
+    <ScopeSelect
+      label={m.meta_events_holdings_aria()}
       value={value ?? ANY_HOLDINGS}
-      onValueChange={(next) => {
-        const chosen = (next as string | null) ?? ANY_HOLDINGS;
-        onChange(META_EVENT_HOLDINGS.find((entry) => entry === chosen));
-      }}
+      fallback={ANY_HOLDINGS}
       items={holdingsItems()}
-    >
-      <SelectTrigger className="w-40" aria-label={m.meta_events_holdings_aria()}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Object.entries(holdingsItems()).map(([itemValue, label]) => (
-          <SelectItem key={itemValue} value={itemValue}>
-            {label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      counts={counts}
+      onValueChange={(next) => onChange(META_EVENT_HOLDINGS.find((entry) => entry === next))}
+    />
   );
+}
+
+const PLAYER_PRESETS = [8, 16, 32, 64] as const;
+
+function PlayersChip({
+  min,
+  max,
+  onChange,
+}: {
+  min: number | undefined;
+  max: number | undefined;
+  onChange: (patch: { playersMin?: number; playersMax?: number }) => void;
+}) {
+  const active = min !== undefined || max !== undefined;
+  const bound = (key: "playersMin" | "playersMax", value: number | undefined) => (
+    <Input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      step={1}
+      className="h-8 w-20"
+      placeholder={key === "playersMin" ? m.meta_events_players_min() : m.meta_events_players_max()}
+      aria-label={
+        key === "playersMin" ? m.meta_events_players_min_aria() : m.meta_events_players_max_aria()
+      }
+      value={value ?? ""}
+      onChange={(event) => {
+        const parsed =
+          event.target.value === "" ? Number.NaN : Math.trunc(Number(event.target.value));
+        onChange({ [key]: Number.isNaN(parsed) ? undefined : Math.max(0, parsed) });
+      }}
+    />
+  );
+  return (
+    <FilterDropdownChip
+      label={m.meta_events_players_label()}
+      activeCount={active ? 1 : 0}
+      summary={active ? playersSummary(min, max) : undefined}
+      contentClassName="w-72"
+    >
+      <div className="flex items-center justify-between px-1.5">
+        <span>{m.meta_events_players_label()}</span>
+        {active && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => onChange({ playersMin: undefined, playersMax: undefined })}
+          >
+            {m.common_clear()}
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center gap-2 px-1.5">
+        {bound("playersMin", min)}
+        <span className="text-muted-foreground">–</span>
+        {bound("playersMax", max)}
+      </div>
+      <div className="flex flex-wrap gap-1 px-1.5">
+        {PLAYER_PRESETS.map((preset) => (
+          <Button
+            key={preset}
+            type="button"
+            variant="control"
+            size="xs"
+            aria-pressed={min === preset && max === undefined}
+            onClick={() => onChange({ playersMin: preset, playersMax: undefined })}
+          >
+            {preset}+
+          </Button>
+        ))}
+      </div>
+    </FilterDropdownChip>
+  );
+}
+
+function playersSummary(min: number | undefined, max: number | undefined): string {
+  const label = m.meta_events_players_label();
+  if (min !== undefined && max !== undefined) {
+    return `${label} ${min} – ${max}`;
+  }
+  if (min !== undefined) {
+    return `${label} ${min}+`;
+  }
+  return `${label} ≤ ${max}`;
 }
 
 function EventSearchBox({
   urlValue,
   onCommit,
+  shown,
 }: {
   urlValue: string;
   onCommit: (value: string) => void;
+  shown: string;
 }) {
   const [value, setValue] = useSearchUrlSync({ urlValue, onCommit });
   return (
     <SearchInput
-      className="min-w-56 flex-1"
       value={value}
       onValueChange={setValue}
       placeholder={m.meta_events_search_placeholder()}
+      trailing={shown}
     />
   );
 }

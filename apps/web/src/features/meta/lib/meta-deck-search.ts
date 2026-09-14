@@ -33,4 +33,5 @@ export type MetaDeckSearch = z.infer<typeof metaDeckSearchSchema>;
 
 export const metaOverviewSearchSchema = metaScopeSearchSchema.extend({
   q: z.string().optional().catch(undefined),
+  decks: z.boolean().optional().catch(undefined),
 });

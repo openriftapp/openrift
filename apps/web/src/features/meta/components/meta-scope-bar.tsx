@@ -1,13 +1,8 @@
-import { SlidersHorizontalIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -32,8 +27,9 @@ import {
   isScopeCustomized,
   scopeFacetValues,
 } from "@/features/meta/lib/meta-scope";
+import type { ScopeFacetCounts, ScopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { countryLabel } from "@/lib/country";
+import { countryLabel, normalizeCountryCode } from "@/lib/country";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -43,6 +39,8 @@ export interface MetaScopeBarProps extends MetaScopeControls {
   extras?: ReactNode;
   extrasActive?: boolean;
   facetDefaults?: ScopeFacetDefaults;
+  facetCounts?: Partial<ScopeFacetCounts>;
+  present?: Partial<ScopeFacetPresence>;
   /** The era an absent `era` param stands for, when the surface's default is not the current set. */
   defaultEra?: string;
   showTier?: boolean;
@@ -58,6 +56,8 @@ export function MetaScopeBar({
   extras,
   extrasActive = false,
   facetDefaults,
+  facetCounts,
+  present,
   defaultEra,
   showTier = true,
   className,
@@ -70,25 +70,64 @@ export function MetaScopeBar({
   }
   eraItems[ERA_CUSTOM] = m.meta_scope_era_custom();
 
-  const formatOptions = formats.map((format) => ({ value: format.slug, label: format.label }));
+  const offered = (
+    facet: MetaScopeFacet,
+    options: readonly { value: string; label: string }[],
+    key: (value: string) => string,
+  ) => {
+    const carried = present?.[facet];
+    if (carried === undefined) {
+      return { options, show: options.length > 1 };
+    }
+    const { included, excluded } = scopeFacetValues(scope, facet, facetDefaults);
+    const picked = new Set([...included, ...excluded].map((value) => key(value)));
+    const kept = options.filter(
+      (option) => carried.has(key(option.value)) || picked.has(key(option.value)),
+    );
+    const stray = [...picked].some((value) => !carried.has(value));
+    return { options: kept, show: kept.length > 1 || stray };
+  };
 
-  const tierOptions = Object.entries(metaEventTierLabels()).map(([value, label]) => ({
-    value,
-    label,
-  }));
+  const formatFacet = offered(
+    "formats",
+    formats.map((format) => ({ value: format.slug, label: format.label })),
+    (value) => value,
+  );
 
-  const countryOptions = countries
-    .map((code) => ({ value: code, label: countryLabel(code) }))
-    .filter((option): option is { value: string; label: string } => option.label !== null);
+  const tierFacet = offered(
+    "tiers",
+    Object.entries(metaEventTierLabels()).map(([value, label]) => ({ value, label })),
+    (value) => value,
+  );
+
+  const countryFacet = offered(
+    "countries",
+    countries
+      .map((code) => ({ value: code, label: countryLabel(code) }))
+      .filter((option): option is { value: string; label: string } => option.label !== null),
+    (value) => normalizeCountryCode(value) ?? value,
+  );
+
+  const countryCounts =
+    facetCounts?.countries === undefined
+      ? undefined
+      : new Map(
+          countries.map((code) => [
+            code,
+            facetCounts.countries?.get(normalizeCountryCode(code) ?? "") ?? 0,
+          ]),
+        );
 
   return (
-    <div data-slot="meta-scope-bar" className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div
+      data-slot="meta-scope-bar"
+      className={cn("flex flex-wrap items-center gap-1.5", className)}
+    >
       <ScopeSelect
         label={m.meta_scope_era()}
         value={scope.era ?? defaultEra ?? defaultEraId(eras) ?? ERA_ALL}
         fallback={ERA_ALL}
         items={eraItems}
-        className="w-44"
         onValueChange={(next) =>
           // Leaving the custom range clears from/to; it does not re-apply hidden dates.
           setScope(
@@ -106,41 +145,66 @@ export function MetaScopeBar({
             onChange={(iso) => setScope({ from: iso })}
             onClear={() => setScope({ from: undefined })}
             placeholder={m.meta_scope_from()}
-            className="w-40"
+            className="w-36"
           />
           <DatePicker
             value={scope.to ?? ""}
             onChange={(iso) => setScope({ to: iso })}
             onClear={() => setScope({ to: undefined })}
             placeholder={m.meta_scope_to()}
-            className="w-40"
+            className="w-36"
           />
         </>
       )}
 
-      {showTier && (
+      {showTier && tierFacet.show && (
         <ScopeFacet
           label={m.meta_scope_tier()}
           facet="tiers"
-          options={tierOptions}
+          options={tierFacet.options}
           scope={scope}
           setScope={setScope}
           defaults={facetDefaults}
+          counts={facetCounts?.tiers}
         />
       )}
 
-      <ScopeFilterMenu
-        scope={scope}
-        setScope={setScope}
-        formats={formats.length > 1 ? formatOptions : []}
-        countries={countries.length > 1 ? countryOptions : []}
-      />
+      {formatFacet.show && (
+        <ScopeFacet
+          label={m.meta_scope_format()}
+          facet="formats"
+          options={formatFacet.options}
+          scope={scope}
+          setScope={setScope}
+          defaults={facetDefaults}
+          counts={facetCounts?.formats}
+        />
+      )}
+
+      {countryFacet.show && (
+        <ScopeFacet
+          label={m.meta_scope_country()}
+          facet="countries"
+          options={countryFacet.options}
+          scope={scope}
+          setScope={setScope}
+          defaults={facetDefaults}
+          counts={countryCounts}
+        />
+      )}
 
       {extras}
 
       {(isScopeCustomized(scope, defaultEra) || extrasActive) && (
-        <Button type="button" variant="ghost" size="sm" onClick={clearScope}>
-          {m.common_reset()}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground ml-auto"
+          onClick={clearScope}
+          aria-label={m.cards_clear_all_filters()}
+        >
+          <XIcon className="size-4" />
         </Button>
       )}
     </div>
@@ -153,96 +217,39 @@ function ScopeFacet({
   options,
   scope,
   setScope,
-  triggerStyle = "button",
   defaults,
+  counts,
 }: {
   label: string;
   facet: MetaScopeFacet;
   options: readonly { value: string; label: string }[];
   scope: MetaScope;
   setScope: (patch: Partial<MetaScope>) => void;
-  triggerStyle?: "button" | "menu";
   defaults?: ScopeFacetDefaults;
+  counts?: Map<string, number>;
 }) {
   const { included, excluded } = scopeFacetValues(scope, facet, defaults);
   return (
     <MultiSelectCombobox
       label={label}
-      triggerStyle={triggerStyle}
-      triggerSize="default"
+      triggerStyle="button"
+      triggerSize="sm"
       options={options}
       selected={[...included]}
       excluded={[...excluded]}
+      counts={counts}
       onCycle={(value) => setScope(cycleScopeFacet(scope, facet, value, defaults))}
       searchPlaceholder={m.meta_scope_search_label({ label: label.toLowerCase() })}
     />
   );
 }
 
-function facetCount(scope: MetaScope, facet: MetaScopeFacet): number {
-  const { included, excluded } = scopeFacetValues(scope, facet);
-  return included.length + excluded.length;
-}
-
-function ScopeFilterMenu({
-  scope,
-  setScope,
-  formats,
-  countries,
-}: {
-  scope: MetaScope;
-  setScope: (patch: Partial<MetaScope>) => void;
-  formats: readonly { value: string; label: string }[];
-  countries: readonly { value: string; label: string }[];
-}) {
-  if (formats.length === 0 && countries.length === 0) {
-    return null;
-  }
-  const active =
-    (formats.length === 0 ? 0 : facetCount(scope, "formats")) +
-    (countries.length === 0 ? 0 : facetCount(scope, "countries"));
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="outline" />}
-        aria-label={m.meta_scope_more_filters()}
-      >
-        <SlidersHorizontalIcon className="size-4" />
-        {m.common_filters()}
-        {active > 0 && <span className="text-muted-foreground tabular-nums">({active})</span>}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {formats.length > 0 && (
-          <ScopeFacet
-            label={m.meta_scope_format()}
-            facet="formats"
-            options={formats}
-            scope={scope}
-            setScope={setScope}
-            triggerStyle="menu"
-          />
-        )}
-        {countries.length > 0 && (
-          <ScopeFacet
-            label={m.meta_scope_country()}
-            facet="countries"
-            options={countries}
-            scope={scope}
-            setScope={setScope}
-            triggerStyle="menu"
-          />
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function ScopeSelect({
+export function ScopeSelect({
   label,
   value,
   fallback,
   items,
+  counts,
   className,
   onValueChange,
 }: {
@@ -250,6 +257,7 @@ function ScopeSelect({
   value: string;
   fallback: string;
   items: Record<string, string>;
+  counts?: Map<string, number>;
   className?: string;
   onValueChange: (value: string) => void;
 }) {
@@ -257,13 +265,23 @@ function ScopeSelect({
   return (
     // BaseUI passes null on clear; map it to fallback.
     <Select value={shown} onValueChange={(next) => onValueChange(next ?? fallback)} items={items}>
-      <SelectTrigger className={className} aria-label={label}>
+      <SelectTrigger size="sm" className={cn("font-medium", className)} aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {Object.entries(items).map(([itemValue, itemLabel]) => (
           <SelectItem key={itemValue} value={itemValue}>
             {itemLabel}
+            {counts !== undefined && (
+              <span
+                className={cn(
+                  "text-muted-foreground text-2xs ml-1.5 tabular-nums",
+                  (counts.get(itemValue) ?? 0) === 0 && "opacity-50",
+                )}
+              >
+                {counts.get(itemValue) ?? 0}
+              </span>
+            )}
           </SelectItem>
         ))}
       </SelectContent>
