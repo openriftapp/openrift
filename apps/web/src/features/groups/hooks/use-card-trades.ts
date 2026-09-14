@@ -15,6 +15,7 @@ import {
   userTradesQueryOptions,
 } from "@/features/groups/lib/card-trades-queries";
 import { friendGroupsKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
+import { runTradeSettlement } from "@/features/groups/lib/trade-settlement-request";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
@@ -81,6 +82,7 @@ const acceptTradeFn = createServerFn({ method: "POST" })
 const applyTradeSyncFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
+      requestId: string;
       tradeId: string;
       targetCollectionId?: string;
       copyIds?: string[];
@@ -90,6 +92,7 @@ const applyTradeSyncFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context, data }) =>
     apiOrpcClient(cardTradesContract, context.cookie).sync({
+      requestId: data.requestId,
       id: data.tradeId,
       targetCollectionId: data.targetCollectionId,
       copyIds: data.copyIds,
@@ -98,10 +101,11 @@ const applyTradeSyncFn = createServerFn({ method: "POST" })
   );
 
 const skipTradeSyncFn = createServerFn({ method: "POST" })
-  .validator((input: { tradeId: string; quantity?: number }) => input)
+  .validator((input: { tradeId: string; quantity?: number; requestId: string }) => input)
   .middleware([withCookies])
   .handler(({ context, data }) =>
     apiOrpcClient(cardTradesContract, context.cookie).skipSync({
+      requestId: data.requestId,
       id: data.tradeId,
       quantity: data.quantity,
     }),
@@ -299,14 +303,17 @@ export function useApplyTradeSync() {
     }
   >({
     mutationFn: (data) =>
-      applyTradeSyncFn({
-        data: {
-          tradeId: data.tradeId,
-          targetCollectionId: data.targetCollectionId,
-          copyIds: data.copyIds,
-          quantity: data.quantity,
-        },
-      }),
+      runTradeSettlement(userId, "apply", data, (requestId) =>
+        applyTradeSyncFn({
+          data: {
+            requestId,
+            tradeId: data.tradeId,
+            targetCollectionId: data.targetCollectionId,
+            copyIds: data.copyIds,
+            quantity: data.quantity,
+          },
+        }),
+      ),
     invalidates: (variables) => tradeInvalidationKeys(userId, variables.groupSlug),
   });
 }
@@ -319,7 +326,9 @@ export function useSkipTradeSync() {
     { tradeId: string; quantity?: number; groupSlug?: string }
   >({
     mutationFn: (data) =>
-      skipTradeSyncFn({ data: { tradeId: data.tradeId, quantity: data.quantity } }),
+      runTradeSettlement(userId, "skip", data, (requestId) =>
+        skipTradeSyncFn({ data: { tradeId: data.tradeId, quantity: data.quantity, requestId } }),
+      ),
     invalidates: (variables) => tradeInvalidationKeys(userId, variables.groupSlug),
   });
 }

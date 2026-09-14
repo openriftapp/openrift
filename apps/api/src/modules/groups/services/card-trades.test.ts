@@ -9,6 +9,7 @@ import {
   createTrade,
   listTradeCopyOptions,
   setTradeQuantity,
+  skipTradeSync,
 } from "./card-trades.js";
 
 function mockTransact(trxRepos: Repos): Transact {
@@ -61,26 +62,36 @@ const DTO_ROW: CardTradeDtoRow = {
   counterpartyContacts: [],
 };
 
-describe("applyTradeSync concurrent receiver settlements", () => {
-  it.each([undefined, 3])(
-    "uses the remaining quantity or rejects a stale explicit quantity (%s)",
+describe("applyTradeSync overlapping receiver settlements and retries", () => {
+  it.each([undefined, 3, "retry", "skip-retry", "full-retry"] as const)(
+    "does not credit extra copies for an overlapping settlement or retry (%s)",
     async (quantity) => {
       const original = {
         ...DTO_ROW,
         giverUserId: "giver-1",
         receiverUserId: "receiver-1",
         quantity: 3,
-        status: "reserved" as const,
+        status: "reserved" as LiveCardTrade["status"],
         giverSyncAppliedAt: new Date("2026-03-18T00:00:00.000Z"),
         receiverWishEntryId: null,
       };
       const rows = new Map([[original.id, original]]);
+      const requests = new Map<string, { fingerprint: string; settledTradeId: string }>();
       const read = Promise.withResolvers<void>();
       const resume = Promise.withResolvers<void>();
-      let pauseFirstRead = true;
+      let pauseFirstRead = typeof quantity !== "string";
       let credited = 0;
       const repos = {
         cardTrades: {
+          findSettlementRequest: async (_tradeId: string, _userId: string, requestId: string) =>
+            requests.get(requestId),
+          recordSettlementRequest: async (request: {
+            requestId: string;
+            fingerprint: string;
+            settledTradeId: string;
+          }) => {
+            requests.set(request.requestId, request);
+          },
           getById: async (id: string, options?: { forUpdate?: boolean }) => {
             const snapshot = { ...rows.get(id)! };
             if (pauseFirstRead) {
@@ -102,7 +113,7 @@ describe("applyTradeSync concurrent receiver settlements", () => {
           createSettledSplit: async (values: { from: typeof original; quantity: number }) => {
             const split = {
               ...values.from,
-              id: "split-1",
+              id: `split-${rows.size}`,
               quantity: values.quantity,
               receiverSyncAppliedAt: new Date(),
             };
@@ -118,7 +129,14 @@ describe("applyTradeSync concurrent receiver settlements", () => {
             row.receiverSyncAppliedAt = new Date();
             return 1;
           },
-          markCompletedWhenBothSettled: async () => 1,
+          markCompletedWhenBothSettled: async (id: string) => {
+            const row = rows.get(id)!;
+            if (row.giverSyncAppliedAt !== null && row.receiverSyncAppliedAt !== null) {
+              row.status = "completed";
+              return 1;
+            }
+            return 0;
+          },
           getDtoRowByIdForUser: async (id: string) => rows.get(id),
         },
         collections: {
@@ -135,6 +153,38 @@ describe("applyTradeSync concurrent receiver settlements", () => {
         collectionEvents: { insert: async () => undefined },
       } as unknown as Repos;
       const transact = mockTransact(repos);
+      if (typeof quantity === "string") {
+        const settle = quantity === "skip-retry" ? skipTradeSync : applyTradeSync;
+        const request = {
+          quantity: quantity === "full-retry" ? 3 : 1,
+          requestId: crypto.randomUUID(),
+        };
+        const first = await settle(transact, original.id, original.receiverUserId, request);
+        const replay = await settle(transact, original.id, original.receiverUserId, request);
+        expect(replay.id).toBe(first.id);
+        const expectedCopies = quantity === "skip-retry" ? 0 : request.quantity;
+        expect(credited).toBe(expectedCopies);
+        await expect(
+          settle(transact, original.id, original.receiverUserId, {
+            ...request,
+            quantity: 2,
+          }),
+        ).rejects.toMatchObject({ status: 409 });
+        expect(credited).toBe(expectedCopies);
+        const otherAction = quantity === "skip-retry" ? applyTradeSync : skipTradeSync;
+        await expect(
+          otherAction(transact, original.id, original.receiverUserId, request),
+        ).rejects.toMatchObject({ status: 409 });
+        if (quantity !== "retry") {
+          return;
+        }
+        await applyTradeSync(transact, original.id, original.receiverUserId, {
+          quantity: 1,
+          requestId: crypto.randomUUID(),
+        });
+        expect(credited).toBe(2);
+        return;
+      }
       const full = applyTradeSync(transact, original.id, original.receiverUserId, { quantity });
       await read.promise;
       try {

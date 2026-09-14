@@ -38,12 +38,14 @@ export const setCardTradeQuantitySchema = z.object({
 });
 
 export const cardTradeSyncSchema = z.object({
+  requestId: z.uuid(),
   targetCollectionId: z.uuid().optional(),
   copyIds: z.array(z.uuid()).min(1).max(100).optional(),
   quantity: z.number().int().min(1).optional(),
 });
 
 export const cardTradeSkipSyncSchema = z.object({
+  requestId: z.uuid(),
   quantity: z.number().int().min(1).optional(),
 });
 

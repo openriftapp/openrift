@@ -4,7 +4,7 @@
 
 ### Other
 
-- fix(Trades): **Accurate trade settlement counts** — overlapping full and partial settlements no longer add extra copies to your collection.
+- fix(Trades): **Accurate trade settlement counts** — overlapping settlements and retries after a lost response no longer add extra copies to your collection.
 
 ## 2026-09-13
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict q15YEQzBp8HSFQVxRxuDgvhCOHxScxHwD6Bjm57R2mh50IkkkprLcp0s0BthLZw
+\restrict E3QJIcveAEfxC0eXx8fZW8w2LsziHEeQeJHcwOkEX4o2XVDtHEd55TgrYOySCct
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1050,6 +1050,19 @@ CREATE TABLE public.card_tokens (
 CREATE TABLE public.card_trade_copies (
     trade_id uuid NOT NULL,
     copy_id uuid NOT NULL
+);
+
+
+--
+-- Name: card_trade_settlement_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.card_trade_settlement_requests (
+    trade_id uuid NOT NULL,
+    user_id text NOT NULL,
+    request_id uuid NOT NULL,
+    fingerprint text NOT NULL,
+    settled_trade_id uuid NOT NULL
 );
 
 
@@ -4084,6 +4097,14 @@ ALTER TABLE ONLY public.card_trade_copies
 
 
 --
+-- Name: card_trade_settlement_requests card_trade_settlement_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_pkey PRIMARY KEY (trade_id, user_id, request_id);
+
+
+--
 -- Name: card_trades card_trades_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5693,6 +5714,20 @@ CREATE INDEX idx_card_submissions_user_status ON public.card_submissions USING b
 --
 
 CREATE INDEX idx_card_tokens_token_card_id ON public.card_tokens USING btree (token_card_id);
+
+
+--
+-- Name: idx_card_trade_settlement_requests_settled_trade; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_card_trade_settlement_requests_settled_trade ON public.card_trade_settlement_requests USING btree (settled_trade_id);
+
+
+--
+-- Name: idx_card_trade_settlement_requests_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_card_trade_settlement_requests_user ON public.card_trade_settlement_requests USING btree (user_id);
 
 
 --
@@ -7794,6 +7829,30 @@ ALTER TABLE ONLY public.card_trade_copies
 
 
 --
+-- Name: card_trade_settlement_requests card_trade_settlement_requests_settled_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_settled_trade_id_fkey FOREIGN KEY (settled_trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_trade_settlement_requests card_trade_settlement_requests_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_trade_settlement_requests card_trade_settlement_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_settlement_requests
+    ADD CONSTRAINT card_trade_settlement_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: card_trades card_trades_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9485,5 +9544,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict q15YEQzBp8HSFQVxRxuDgvhCOHxScxHwD6Bjm57R2mh50IkkkprLcp0s0BthLZw
+\unrestrict E3QJIcveAEfxC0eXx8fZW8w2LsziHEeQeJHcwOkEX4o2XVDtHEd55TgrYOySCct
 

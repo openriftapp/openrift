@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { cardTradeSettlementRequestsRepo } from "./card-trade-settlement-requests.js";
 import { cardTradeCopiesRepo } from "./card-trades-copies.js";
 import { cardTradeEmailsRepo } from "./card-trades-emails.js";
 import { cardTradeReadsRepo } from "./card-trades-reads.js";
@@ -16,6 +17,7 @@ import { cardTradeWritesRepo } from "./card-trades-writes.js";
  */
 export function cardTradesRepo(db: Kysely<Database>) {
   return {
+    ...cardTradeSettlementRequestsRepo(db),
     ...cardTradeWritesRepo(db),
     ...cardTradeReadsRepo(db),
     ...cardTradeEmailsRepo(db),

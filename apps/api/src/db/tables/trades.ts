@@ -35,3 +35,11 @@ export interface CardTradeCopiesTable {
   tradeId: string;
   copyId: string;
 }
+
+export interface CardTradeSettlementRequestsTable {
+  tradeId: string;
+  userId: string;
+  requestId: string;
+  fingerprint: string;
+  settledTradeId: string;
+}

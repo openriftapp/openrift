@@ -1527,6 +1527,52 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
   // the remainder in flight. Two of the three cards changed hands and the
   // third is coming next time.
   describe("partial settle", () => {
+    it.each(["apply", "skip"] as const)(
+      "replays concurrent %s requests without settling the remainder",
+      async (action) => {
+        const { group } = await setupMatch(3);
+        const trade = await request(group, 3);
+        await acceptTrade(transact, trade.id, GIVER_ID);
+        const before = await countReceiverCopiesOfP1();
+        const settle = action === "apply" ? applyTradeSync : skipTradeSync;
+        const options = { quantity: 1, requestId: crypto.randomUUID() };
+
+        const [first, replay] = await Promise.all([
+          settle(transact, trade.id, RECEIVER_ID, options),
+          settle(transact, trade.id, RECEIVER_ID, options),
+        ]);
+
+        expect(replay.id).toBe(first.id);
+        expect(await countReceiverCopiesOfP1()).toBe(before + (action === "apply" ? 1 : 0));
+        expect(await repos.cardTrades.getById(trade.id)).toMatchObject({ quantity: 2 });
+        await expect(
+          settle(transact, trade.id, RECEIVER_ID, { ...options, quantity: 2 }),
+        ).rejects.toMatchObject({ status: 409 });
+      },
+    );
+
+    it("rolls back the request record and split when settlement fails", async () => {
+      const { group } = await setupMatch(3);
+      const trade = await request(group, 3);
+      await acceptTrade(transact, trade.id, GIVER_ID);
+      const before = await countReceiverCopiesOfP1();
+      const options = { quantity: 1, requestId: crypto.randomUUID() };
+
+      await expect(
+        applyTradeSync(transact, trade.id, RECEIVER_ID, {
+          ...options,
+          targetCollectionId: crypto.randomUUID(),
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(
+        await repos.cardTrades.findSettlementRequest(trade.id, RECEIVER_ID, options.requestId),
+      ).toBeUndefined();
+      expect(await repos.cardTrades.getById(trade.id)).toMatchObject({ quantity: 3 });
+
+      await applyTradeSync(transact, trade.id, RECEIVER_ID, options);
+      expect(await countReceiverCopiesOfP1()).toBe(before + 1);
+    });
+
     async function tradesBetweenParties() {
       return db
         .selectFrom("cardTrades")

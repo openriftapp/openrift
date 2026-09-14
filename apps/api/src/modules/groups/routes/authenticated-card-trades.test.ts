@@ -584,16 +584,28 @@ describe("POST /api/v1/trades/:id/quantity", () => {
 });
 
 describe("POST /api/v1/trades/:id/sync", () => {
+  it.each(["sync", "sync/skip"])("requires a request id for %s", async (action) => {
+    const res = await app.request(`/api/v1/trades/${TRADE_ID}/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: 1 }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockApplyTradeSync).not.toHaveBeenCalled();
+    expect(mockSkipTradeSync).not.toHaveBeenCalled();
+  });
+
   it("returns 200 and forwards the target collection id", async () => {
     mockApplyTradeSync.mockResolvedValue(tradeResponse);
     const targetCollectionId = "a0000000-0001-4000-a000-000000000099";
     const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetCollectionId }),
+      body: JSON.stringify({ requestId: TRADE_ID, targetCollectionId }),
     });
     expect(res.status).toBe(200);
     expect(mockApplyTradeSync).toHaveBeenCalledWith(expect.anything(), TRADE_ID, USER_ID, {
+      requestId: TRADE_ID,
       targetCollectionId,
       copyIds: undefined,
       quantity: undefined,
@@ -606,10 +618,11 @@ describe("POST /api/v1/trades/:id/sync", () => {
     const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copyIds }),
+      body: JSON.stringify({ requestId: TRADE_ID, copyIds }),
     });
     expect(res.status).toBe(200);
     expect(mockApplyTradeSync).toHaveBeenCalledWith(expect.anything(), TRADE_ID, USER_ID, {
+      requestId: TRADE_ID,
       targetCollectionId: undefined,
       copyIds,
       quantity: undefined,
@@ -620,7 +633,7 @@ describe("POST /api/v1/trades/:id/sync", () => {
     const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ copyIds: ["not-a-uuid"] }),
+      body: JSON.stringify({ requestId: TRADE_ID, copyIds: ["not-a-uuid"] }),
     });
     expect(res.status).toBe(400);
   });
@@ -629,9 +642,14 @@ describe("POST /api/v1/trades/:id/sync", () => {
 describe("POST /api/v1/trades/:id/sync/skip", () => {
   it("returns 200 with the updated trade", async () => {
     mockSkipTradeSync.mockResolvedValue(tradeResponse);
-    const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync/skip`, { method: "POST" });
+    const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync/skip`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: TRADE_ID }),
+    });
     expect(res.status).toBe(200);
     expect(mockSkipTradeSync).toHaveBeenCalledWith(expect.anything(), TRADE_ID, USER_ID, {
+      requestId: TRADE_ID,
       quantity: undefined,
     });
   });
@@ -641,10 +659,11 @@ describe("POST /api/v1/trades/:id/sync/skip", () => {
     const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync/skip`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantity: 2 }),
+      body: JSON.stringify({ requestId: TRADE_ID, quantity: 2 }),
     });
     expect(res.status).toBe(200);
     expect(mockSkipTradeSync).toHaveBeenCalledWith(expect.anything(), TRADE_ID, USER_ID, {
+      requestId: TRADE_ID,
       quantity: 2,
     });
   });
@@ -653,7 +672,7 @@ describe("POST /api/v1/trades/:id/sync/skip", () => {
     const res = await app.request(`/api/v1/trades/${TRADE_ID}/sync/skip`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantity: 0 }),
+      body: JSON.stringify({ requestId: TRADE_ID, quantity: 0 }),
     });
     expect(res.status).toBe(400);
   });

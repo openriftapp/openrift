@@ -1,5 +1,7 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { formatDay } from "@openrift/shared/format-date";
+import { tradeSettlementFingerprint } from "@openrift/shared/trade-settlement";
+import type { TradeSettlementOptions } from "@openrift/shared/trade-settlement";
 import type {
   CardTradeCopyOptionsResponse,
   CardTradeResponse,
@@ -672,21 +674,72 @@ async function claimSettleTarget(
   return splitTradeForSettle(trxRepos, trade, role, byUserId, settling, disposingCopyIds);
 }
 
-/**
- * The second settle promotes the trade to `completed`. On a partial settle
- * the returned DTO is the split half, not the remainder.
- */
+async function replaySettlement(
+  repos: Repos,
+  tradeId: string,
+  userId: string,
+  fingerprint: string,
+  requestId?: string,
+): Promise<CardTradeResponse | undefined> {
+  if (requestId === undefined) {
+    return undefined;
+  }
+  const previous = await repos.cardTrades.findSettlementRequest(tradeId, userId, requestId);
+  if (previous === undefined) {
+    return undefined;
+  }
+  if (previous.fingerprint !== fingerprint) {
+    throw new AppError(
+      409,
+      ERROR_CODES.CONFLICT,
+      "This settlement request was already used with different details",
+    );
+  }
+  return reloadDto(repos, previous.settledTradeId, userId);
+}
+
+async function recordSettlement(
+  repos: Repos,
+  tradeId: string,
+  userId: string,
+  settledTradeId: string,
+  fingerprint: string,
+  requestId?: string,
+): Promise<void> {
+  if (requestId !== undefined) {
+    await repos.cardTrades.recordSettlementRequest({
+      tradeId,
+      userId,
+      settledTradeId,
+      fingerprint,
+      requestId,
+    });
+  }
+}
+
+/** A partial settle returns the split half, not the remainder. */
 export function applyTradeSync(
   transact: Transact,
   tradeId: string,
   byUserId: string,
-  options: { targetCollectionId?: string; copyIds?: string[]; quantity?: number } = {},
+  options: TradeSettlementOptions & { requestId?: string } = {},
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
     // Hold the trade row through settlement so splits cannot change its quantity or pins mid-flight.
     const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
       forUpdate: true,
     });
+    const fingerprint = tradeSettlementFingerprint("apply", options);
+    const replay = await replaySettlement(
+      trxRepos,
+      tradeId,
+      byUserId,
+      fingerprint,
+      options.requestId,
+    );
+    if (replay !== undefined) {
+      return replay;
+    }
     assertSettleable(trade);
     if (options.copyIds !== undefined && role !== "giver") {
       throw new AppError(
@@ -744,6 +797,7 @@ export function applyTradeSync(
     }
 
     await trxRepos.cardTrades.markCompletedWhenBothSettled(settledId, byUserId);
+    await recordSettlement(trxRepos, tradeId, byUserId, settledId, fingerprint, options.requestId);
     return reloadDto(trxRepos, settledId, byUserId);
   });
 }
@@ -752,12 +806,23 @@ export function skipTradeSync(
   transact: Transact,
   tradeId: string,
   byUserId: string,
-  options: { quantity?: number } = {},
+  options: { quantity?: number; requestId?: string } = {},
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
     const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
       forUpdate: true,
     });
+    const fingerprint = tradeSettlementFingerprint("skip", options);
+    const replay = await replaySettlement(
+      trxRepos,
+      tradeId,
+      byUserId,
+      fingerprint,
+      options.requestId,
+    );
+    if (replay !== undefined) {
+      return replay;
+    }
     assertSettleable(trade);
 
     const target = await claimSettleTarget(trxRepos, trade, role, byUserId, options.quantity);
@@ -768,6 +833,7 @@ export function skipTradeSync(
     }
 
     await trxRepos.cardTrades.markCompletedWhenBothSettled(target.id, byUserId);
+    await recordSettlement(trxRepos, tradeId, byUserId, target.id, fingerprint, options.requestId);
     return reloadDto(trxRepos, target.id, byUserId);
   });
 }

@@ -170,7 +170,11 @@ import type {
   TournamentTeamsTable,
   TournamentsTable,
 } from "./tables/tournaments.js";
-import type { CardTradeCopiesTable, CardTradesTable } from "./tables/trades.js";
+import type {
+  CardTradeCopiesTable,
+  CardTradesTable,
+  CardTradeSettlementRequestsTable,
+} from "./tables/trades.js";
 import type {
   MvCardAggregatesView,
   MvDailyPrintingPricesView,
@@ -293,6 +297,7 @@ export interface Database {
 
   cardTrades: CardTradesTable;
   cardTradeCopies: CardTradeCopiesTable;
+  cardTradeSettlementRequests: CardTradeSettlementRequestsTable;
 
   loans: LoansTable;
   loanCopies: LoanCopiesTable;
