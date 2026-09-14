@@ -1,10 +1,15 @@
 import type { JobScheduleView } from "@openrift/shared/contracts/admin/job-schedules";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }));
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, ...rest }: { children: ReactNode }) => <a {...rest}>{children}</a>,
+  createLink: (Component: ComponentType) => Component,
+}));
 
 // The top bar reaches for the admin sidebar context, which this page does not
 // otherwise need.

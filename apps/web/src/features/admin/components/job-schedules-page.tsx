@@ -1,6 +1,7 @@
 import type { JobScheduleView } from "@openrift/shared/contracts/admin/job-schedules";
 import { formatDayTime, formatRelativeTime } from "@openrift/shared/format-date";
-import { CalendarPlusIcon, CircleXIcon, LoaderIcon, PlayIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CalendarPlusIcon, CircleXIcon, HistoryIcon, LoaderIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -153,9 +154,17 @@ function JobScheduleCard({ job }: { job: JobScheduleView }) {
             </CardTitle>
             <CardDescription>{job.description}</CardDescription>
           </div>
-          {!editing && (
-            <div className="flex shrink-0 flex-wrap gap-2">{isOn ? onActions : offActions}</div>
-          )}
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {!editing && (isOn ? onActions : offActions)}
+            <Button
+              variant="ghost"
+              nativeButton={false}
+              render={<Link to="/admin/job-runs" search={{ runKind: job.kind }} />}
+            >
+              <HistoryIcon />
+              Runs
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
