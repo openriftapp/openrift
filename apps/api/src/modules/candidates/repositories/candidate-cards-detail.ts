@@ -148,6 +148,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         | "printedRulesText"
         | "printedEffectText"
         | "imageUrl"
+        | "imageFingerprint"
         | "flavorText"
         | "language"
         | "printedName"
@@ -187,6 +188,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ps.printedRulesText",
           "ps.printedEffectText",
           "ps.imageUrl",
+          "ps.imageFingerprint",
           "ps.flavorText",
           "ps.language",
           "ps.printedName",
@@ -238,6 +240,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
         needsTrim: boolean;
         quad: ImageQuad | null;
         isActive: boolean;
+        fingerprint: string | null;
       }[]
     > {
       if (printingIds.length === 0) {
@@ -256,6 +259,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "ci.rotation",
           "ci.needsTrim",
           "ci.quad",
+          "ci.fingerprint",
           "printingImages.isActive",
         ])
         .where("printingImages.printingId", "in", printingIds)

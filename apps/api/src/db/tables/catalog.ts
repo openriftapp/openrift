@@ -108,6 +108,7 @@ export interface ImageFilesTable {
   needsTrim: Generated<boolean>;
   quad: ImageQuad | null;
   credit: string | null;
+  fingerprint: string | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

@@ -279,3 +279,53 @@ describe("buildAttentionSources", () => {
     expect(blocks[0]?.changedFields).toBe(0);
   });
 });
+
+describe("buildAttentionSources image comparison", () => {
+  function detailWith(imageMatch: "same" | "art" | "mark" | null) {
+    const source = makeCandidateCard({
+      provider: "gallery",
+      checkedAt: null,
+      submittedByName: null,
+    });
+    const printing = makeAdminPrinting();
+    return makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [printing],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          publicCode: printing.publicCode,
+          shortCode: printing.shortCode,
+          setId: printing.setId,
+          rarity: printing.rarity,
+          artVariant: printing.artVariant,
+          finish: printing.finish,
+          size: printing.size,
+          language: printing.language,
+          printedYear: printing.printedYear,
+          imageUrl: "https://mirror.example/lux.png",
+          imageMatch,
+        }),
+      ],
+    });
+  }
+  const settings = [makeProviderSetting({ provider: "gallery", isFavorite: true })];
+
+  it("reads a rehosted copy of the live image as nothing differs", () => {
+    const blocks = buildAttentionSources(detailWith("same"), settings, []);
+    expect(blocks[0]?.changedFields).toBe(0);
+  });
+
+  it("labels a differing image by what differs", () => {
+    const labels = (match: "art" | "mark" | null) =>
+      buildAttentionSources(detailWith(match), settings, [])[0]?.entries[0]?.groups[0]?.changes.map(
+        (change) => [change.kind, change.label],
+      );
+    expect(labels("art")).toEqual([["image", "Image (different image)"]]);
+    expect(labels("mark")).toEqual([["image", "Image (bottom mark differs)"]]);
+    expect(labels(null)).toEqual([["image", "Image (not compared yet)"]]);
+  });
+});

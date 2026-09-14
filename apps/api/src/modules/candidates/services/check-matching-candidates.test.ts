@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  encodeFingerprint,
+  MARK_STORED_HEIGHT,
+  MARK_STORED_WIDTH,
+} from "../../../lib/image-fingerprint.js";
 import { checkMatchingCandidates } from "./check-matching-candidates.js";
 
 const NOW = new Date("2026-09-11T00:00:00Z");
@@ -36,7 +41,22 @@ const livePrinting = {
   printedName: null,
   printedYear: 2025,
   imageUrls: ["https://source.example/annie.png", "https://cdn.example/annie.webp"],
+  imageFingerprints: [] as (string | null)[],
 };
+
+function fingerprint(seed: number): string {
+  const mark = new Uint8Array(MARK_STORED_WIDTH * MARK_STORED_HEIGHT);
+  let state = seed;
+  for (let i = 0; i < mark.length; i++) {
+    state = (state * 1_103_515_245 + 12_345) & 0x7f_ff_ff_ff;
+    mark[i] = 100 + (state % 100);
+  }
+  return encodeFingerprint({
+    landscape: false,
+    hash: Uint8Array.from([seed, 0, 0, 0, 0, 0, 0, 0]),
+    mark,
+  });
+}
 
 function makeRepos(cards: unknown[], printings: unknown[]) {
   const listUncheckedCandidateCardsWithLive = vi.fn().mockResolvedValue(cards);
@@ -109,6 +129,44 @@ describe("checkMatchingCandidates", () => {
     const result = await checkMatchingCandidates(repos, NOW);
     expect(checkCandidatePrintingsByIds).toHaveBeenCalledWith(["same", "no-image"], NOW);
     expect(result).toEqual({ cardsChecked: 0, printingsChecked: 2 });
+  });
+
+  it("checks a printing whose image lives at a new URL when its fingerprint matches a live image", async () => {
+    const { repos, checkCandidatePrintingsByIds } = makeRepos(
+      [],
+      [
+        {
+          id: "rehosted-copy",
+          candidate: {
+            ...livePrinting,
+            imageUrl: "https://mirror.example/annie-2026.png",
+            imageFingerprint: fingerprint(1),
+          },
+          live: { ...livePrinting, imageFingerprints: [null, fingerprint(1)] },
+        },
+        {
+          id: "other-image",
+          candidate: {
+            ...livePrinting,
+            imageUrl: "https://mirror.example/annie-alt.png",
+            imageFingerprint: fingerprint(255),
+          },
+          live: { ...livePrinting, imageFingerprints: [fingerprint(1)] },
+        },
+        {
+          id: "not-fingerprinted",
+          candidate: {
+            ...livePrinting,
+            imageUrl: "https://mirror.example/annie-3.png",
+            imageFingerprint: null,
+          },
+          live: { ...livePrinting, imageFingerprints: [fingerprint(1)] },
+        },
+      ],
+    );
+    const result = await checkMatchingCandidates(repos, NOW);
+    expect(checkCandidatePrintingsByIds).toHaveBeenCalledWith(["rehosted-copy"], NOW);
+    expect(result.printingsChecked).toBe(1);
   });
 
   it("checks printings whose source values match once the accept transforms are applied", async () => {

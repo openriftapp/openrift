@@ -7,6 +7,7 @@ import {
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { normalizeProvidedPrintingRecord } from "@openrift/shared/printing-value-normalize";
 
+import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
 import type { keywordsRepo } from "../../catalog/repositories/keywords.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 
@@ -21,7 +22,8 @@ export interface CheckMatchingResult {
 /**
  * Checks every unchecked source row whose provided values all equal the live
  * catalog. A field the source has no value for never counts as a difference,
- * and source values compare after the transforms the accept path applies.
+ * source values compare after the transforms the accept path applies, and an
+ * image counts as equal when its fingerprint matches a live front image.
  */
 export async function checkMatchingCandidates(
   repos: { candidateCards: CandidateCardsRepo; keywords: KeywordsRepo },
@@ -43,9 +45,13 @@ export async function checkMatchingCandidates(
 
   const matchingPrintingIds = printings
     .filter((row) => {
-      const { imageUrl, ...candidate } = row.candidate;
-      const { imageUrls, ...live } = row.live;
-      if (hasFieldValue(imageUrl) && !imageUrls.includes(imageUrl as string)) {
+      const { imageUrl, imageFingerprint, ...candidate } = row.candidate;
+      const { imageUrls, imageFingerprints, ...live } = row.live;
+      if (
+        hasFieldValue(imageUrl) &&
+        !imageUrls.includes(imageUrl as string) &&
+        classifyAgainstLive(imageFingerprint, imageFingerprints) !== "same"
+      ) {
         return false;
       }
       const normalized = normalizeProvidedPrintingRecord(candidate, {

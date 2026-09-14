@@ -58,6 +58,10 @@ export const candidateCardResponseSchema = z.object({
   submissionNote: z.string().nullable(),
 });
 
+export const IMAGE_MATCHES = ["same", "art", "mark"] as const;
+export const imageMatchSchema = z.enum(IMAGE_MATCHES);
+export type ImageMatch = z.infer<typeof imageMatchSchema>;
+
 export const candidatePrintingResponseSchema = z.object({
   id: z.string(),
   candidateCardId: z.string(),
@@ -78,6 +82,7 @@ export const candidatePrintingResponseSchema = z.object({
   printedRulesText: z.string().nullable(),
   printedEffectText: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  imageMatch: imageMatchSchema.nullable(),
   flavorText: z.string().nullable(),
   externalId: z.string(),
   extraData: z.unknown().nullable(),

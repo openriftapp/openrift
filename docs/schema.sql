@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ddS9a32ETQdYRq4kfifs2bBGSvSUbSCwpEaNpzJ5P3LkGmeSLvBtxiUZf214VKl
+\restrict ibavAPkgwKiLyTHOM5cailptwtCJqgt5pl6xeDQcVpLKxlSi7UdfZJ1CybW5dWE
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -868,6 +868,8 @@ CREATE TABLE public.candidate_printings (
     printed_year smallint,
     is_overnumbered boolean,
     uploaded_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_fingerprint text,
+    image_fingerprint_url text,
     CONSTRAINT candidate_printings_size_check CHECK ((size <> ''::text)),
     CONSTRAINT chk_candidate_printings_extra_data_shape CHECK (((extra_data IS NULL) OR (jsonb_typeof(extra_data) = 'object'::text))),
     CONSTRAINT chk_candidate_printings_no_empty_art_variant CHECK ((art_variant <> ''::text)),
@@ -1856,6 +1858,7 @@ CREATE TABLE public.image_files (
     needs_trim boolean DEFAULT false NOT NULL,
     credit text,
     quad jsonb,
+    fingerprint text,
     CONSTRAINT chk_image_files_credit CHECK ((credit <> ''::text)),
     CONSTRAINT chk_image_files_has_url CHECK (((original_url IS NOT NULL) OR (rehosted_url IS NOT NULL))),
     CONSTRAINT chk_image_files_original_url CHECK ((original_url <> ''::text)),
@@ -9546,5 +9549,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ddS9a32ETQdYRq4kfifs2bBGSvSUbSCwpEaNpzJ5P3LkGmeSLvBtxiUZf214VKl
+\unrestrict ibavAPkgwKiLyTHOM5cailptwtCJqgt5pl6xeDQcVpLKxlSi7UdfZJ1CybW5dWE
 

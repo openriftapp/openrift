@@ -4,6 +4,7 @@ import {
   hasFieldValue,
   sameFieldValue,
 } from "@openrift/shared/catalog-field-compare";
+import type { ImageMatch } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
 import type {
@@ -92,6 +93,13 @@ function activeImageUrl(
   return active.rehostedUrl ?? active.originalUrl;
 }
 
+const IMAGE_CHANGE_LABELS: Record<NonNullable<ImageMatch> | "unknown", string> = {
+  same: "Image",
+  art: "Image (different image)",
+  mark: "Image (bottom mark differs)",
+  unknown: "Image (not compared yet)",
+};
+
 function changeKind(field: string): AttentionChangeKind {
   if (field === "imageUrl") {
     return "image";
@@ -164,7 +172,7 @@ function buildCardGroup(
 function buildLinkedPrintingGroup(
   candidate: CandidatePrintingResponse,
   printing: AdminPrintingResponse,
-  images: readonly AdminPrintingImageResponse[] | null,
+  images: readonly AdminPrintingImageResponse[],
   accept: AcceptTransforms,
 ): AttentionGroup | null {
   const groupKey = `printing:${candidate.id}`;
@@ -182,18 +190,20 @@ function buildLinkedPrintingGroup(
       }),
   );
 
-  if (images !== null) {
-    const currentImage = activeImageUrl(printing.id, images);
-    if (hasFieldValue(candidate.imageUrl) && candidate.imageUrl !== currentImage) {
-      changes.push({
-        key: `${groupKey}:imageUrl`,
-        field: "imageUrl",
-        label: "Image",
-        current: currentImage,
-        proposed: candidate.imageUrl,
-        kind: "image",
-      });
-    }
+  const currentImage = activeImageUrl(printing.id, images);
+  if (
+    hasFieldValue(candidate.imageUrl) &&
+    candidate.imageUrl !== currentImage &&
+    candidate.imageMatch !== "same"
+  ) {
+    changes.push({
+      key: `${groupKey}:imageUrl`,
+      field: "imageUrl",
+      label: IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
+      current: currentImage,
+      proposed: candidate.imageUrl,
+      kind: "image",
+    });
   }
 
   if (changes.length === 0) {
@@ -324,7 +334,7 @@ function buildSourceEntry(
     if (!printing) {
       continue;
     }
-    const group = buildLinkedPrintingGroup(candidate, printing, null, accept);
+    const group = buildLinkedPrintingGroup(candidate, printing, detail.printingImages, accept);
     if (group) {
       groups.push(group);
     }

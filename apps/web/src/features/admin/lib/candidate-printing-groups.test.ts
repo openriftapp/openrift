@@ -27,6 +27,7 @@ function candidate(id: string, shortCode = "OGN-001"): CandidatePrintingResponse
     printedRulesText: null,
     printedEffectText: null,
     imageUrl: null,
+    imageMatch: null,
     flavorText: null,
     externalId: `ext-${id}`,
     extraData: null,

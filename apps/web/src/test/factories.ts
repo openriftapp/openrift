@@ -365,6 +365,7 @@ export function makeCandidatePrinting(
     printedRulesText: null,
     printedEffectText: null,
     imageUrl: null,
+    imageMatch: null,
     flavorText: null,
     externalId: "ogn-001",
     extraData: null,

@@ -90,15 +90,27 @@ export function printingImagesRepo(db: Kysely<Database>) {
     },
 
     async setRotation(imageFileId: string, rotation: 0 | 90 | 180 | 270): Promise<void> {
-      await db.updateTable("imageFiles").set({ rotation }).where("id", "=", imageFileId).execute();
+      await db
+        .updateTable("imageFiles")
+        .set({ rotation, fingerprint: null })
+        .where("id", "=", imageFileId)
+        .execute();
     },
 
     async setNeedsTrim(imageFileId: string, needsTrim: boolean): Promise<void> {
-      await db.updateTable("imageFiles").set({ needsTrim }).where("id", "=", imageFileId).execute();
+      await db
+        .updateTable("imageFiles")
+        .set({ needsTrim, fingerprint: null })
+        .where("id", "=", imageFileId)
+        .execute();
     },
 
     async setQuad(imageFileId: string, quad: ImageQuad | null): Promise<void> {
-      await db.updateTable("imageFiles").set({ quad }).where("id", "=", imageFileId).execute();
+      await db
+        .updateTable("imageFiles")
+        .set({ quad, fingerprint: null })
+        .where("id", "=", imageFileId)
+        .execute();
     },
 
     async deleteById(imageId: string): Promise<void> {
@@ -117,7 +129,27 @@ export function printingImagesRepo(db: Kysely<Database>) {
     async updateRehostedUrl(imageFileId: string, rehostedUrl: string | null): Promise<void> {
       await db
         .updateTable("imageFiles")
-        .set({ rehostedUrl })
+        .set({ rehostedUrl, fingerprint: null })
+        .where("id", "=", imageFileId)
+        .execute();
+    },
+
+    listRehostedWithoutFingerprint(limit: number): Promise<{ id: string; rehostedUrl: string }[]> {
+      return db
+        .selectFrom("imageFiles")
+        .select(["id", "rehostedUrl"])
+        .where("rehostedUrl", "is not", null)
+        .where("fingerprint", "is", null)
+        .orderBy("id")
+        .limit(limit)
+        .$narrowType<{ rehostedUrl: string }>()
+        .execute();
+    },
+
+    async setFingerprint(imageFileId: string, fingerprint: string): Promise<void> {
+      await db
+        .updateTable("imageFiles")
+        .set({ fingerprint })
         .where("id", "=", imageFileId)
         .execute();
     },

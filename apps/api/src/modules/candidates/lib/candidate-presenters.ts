@@ -1,3 +1,4 @@
+import type { ImageMatch } from "@openrift/shared/contracts/admin/card-detail-schemas";
 import type {
   CandidateCardResponse,
   CandidatePrintingResponse,
@@ -59,6 +60,7 @@ export type CandidatePrintingRow = Pick<
   | "printedRulesText"
   | "printedEffectText"
   | "imageUrl"
+  | "imageFingerprint"
   | "flavorText"
   | "language"
   | "printedName"
@@ -75,9 +77,13 @@ export function formatCandidateCard(row: CandidateCardRow): CandidateCardRespons
   };
 }
 
-export function formatCandidatePrinting(row: CandidatePrintingRow): CandidatePrintingResponse {
+export function formatCandidatePrinting(
+  { imageFingerprint: _fingerprint, ...row }: CandidatePrintingRow,
+  imageMatch: ImageMatch | null,
+): CandidatePrintingResponse {
   return {
     ...row,
+    imageMatch,
     checkedAt: row.checkedAt?.toISOString() ?? null,
   };
 }

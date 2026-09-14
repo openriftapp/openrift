@@ -11,6 +11,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 
 // oxlint-disable-next-line no-restricted-imports -- API has no @/ alias
 import { AppError } from "../../../errors.js";
+import { classifyAgainstLive } from "../../../lib/image-fingerprint.js";
 import type { marketplaceMappingRepo } from "../../marketplace/repositories/marketplace-mapping.js";
 import { formatCandidateCard, formatCandidatePrinting } from "../lib/candidate-presenters.js";
 import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
@@ -503,6 +504,10 @@ async function buildDetailResponse(
   const printingIds = printings.map((p) => p.id);
   const printingImages =
     printingIds.length > 0 ? await repo.printingImagesForDetail(printingIds) : [];
+  const liveFingerprintsByPrinting = Map.groupBy(
+    printingImages.filter((image) => image.face === "front" && image.isActive),
+    (image) => image.printingId,
+  );
 
   // Marketplace data is admin-only, so provider-scoped callers (card-review
   // grant holders) get an empty list.
@@ -652,11 +657,23 @@ async function buildDetailResponse(
     displayName,
     sources: candidates.map((s) => formatCandidateCard(s)),
     printings: formattedPrintings.sort((a, b) => a.canonicalRank - b.canonicalRank),
-    candidatePrintings: candidatePrintings.map((cp) => formatCandidatePrinting(cp)),
+    candidatePrintings: candidatePrintings.map((cp) =>
+      formatCandidatePrinting(
+        cp,
+        cp.printingId === null
+          ? null
+          : classifyAgainstLive(
+              cp.imageFingerprint,
+              (liveFingerprintsByPrinting.get(cp.printingId) ?? []).map(
+                (image) => image.fingerprint,
+              ),
+            ),
+      ),
+    ),
     candidatePrintingGroups: filteredGroups,
     expectedCardId: deriveExpectedCardId(displayName, card?.slug),
     // `rotation` is stored as smallint; the response schema runtime-validates the narrowed literal, so a stray value 500s.
-    printingImages: printingImages.map((image) => ({
+    printingImages: printingImages.map(({ fingerprint: _fingerprint, ...image }) => ({
       ...image,
       rotation: image.rotation as 0 | 90 | 180 | 270,
     })),

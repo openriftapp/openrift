@@ -45,8 +45,11 @@ interface ComparablePrintingValues {
 export interface UncheckedCandidatePrintingWithLive {
   id: string;
   printedTotal: number | null;
-  candidate: ComparablePrintingValues & { imageUrl: string | null };
-  live: ComparablePrintingValues & { imageUrls: string[] };
+  candidate: ComparablePrintingValues & {
+    imageUrl: string | null;
+    imageFingerprint: string | null;
+  };
+  live: ComparablePrintingValues & { imageUrls: string[]; imageFingerprints: (string | null)[] };
 }
 
 export function candidateMatchingRepo(db: Kysely<Database>) {
@@ -100,7 +103,8 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
             'publicCode', cp.public_code, 'printedRulesText', cp.printed_rules_text,
             'printedEffectText', cp.printed_effect_text, 'flavorText', cp.flavor_text,
             'language', cp.language, 'printedName', cp.printed_name,
-            'printedYear', cp.printed_year, 'imageUrl', cp.image_url
+            'printedYear', cp.printed_year, 'imageUrl', cp.image_url,
+            'imageFingerprint', cp.image_fingerprint
           ) as candidate,
           jsonb_build_object(
             'shortCode', p.short_code, 'setId', s.slug, 'rarity', p.rarity,
@@ -122,6 +126,12 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
               from printing_images pi
               join image_files imgf on imgf.id = pi.image_file_id
               cross join lateral unnest(array[imgf.original_url, imgf.rehosted_url]) as u
+              where pi.printing_id = p.id and pi.face = 'front' and pi.is_active
+            ), '{}'::text[]),
+            'imageFingerprints', coalesce((
+              select array_agg(imgf.fingerprint)
+              from printing_images pi
+              join image_files imgf on imgf.id = pi.image_file_id
               where pi.printing_id = p.id and pi.face = 'front' and pi.is_active
             ), '{}'::text[])
           ) as live

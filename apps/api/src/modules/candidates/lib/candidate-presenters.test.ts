@@ -46,6 +46,7 @@ const PRINTING_ROW: CandidatePrintingRow = {
   printedRulesText: "Deals 1 damage on play.",
   printedEffectText: null,
   imageUrl: "https://images.example.test/ogn-042-alt.png",
+  imageFingerprint: "AQA=",
   flavorText: "The wind knows.",
   language: "en",
   printedName: "Yasuo, Windchaser",
@@ -69,14 +70,18 @@ describe("formatCandidateCard", () => {
 });
 
 describe("formatCandidatePrinting", () => {
-  it("renders checkedAt as ISO 8601 and passes every other column through", () => {
-    expect(formatCandidatePrinting(PRINTING_ROW)).toEqual({
-      ...PRINTING_ROW,
+  it("renders checkedAt as ISO 8601, swaps the fingerprint for the match verdict and passes every other column through", () => {
+    const { imageFingerprint: _fingerprint, ...visible } = PRINTING_ROW;
+    expect(formatCandidatePrinting(PRINTING_ROW, "mark")).toEqual({
+      ...visible,
+      imageMatch: "mark",
       checkedAt: "2026-08-15T23:59:07.250Z",
     });
   });
 
   it("keeps an unchecked printing's checkedAt null", () => {
-    expect(formatCandidatePrinting({ ...PRINTING_ROW, checkedAt: null }).checkedAt).toBeNull();
+    expect(
+      formatCandidatePrinting({ ...PRINTING_ROW, checkedAt: null }, null).checkedAt,
+    ).toBeNull();
   });
 });

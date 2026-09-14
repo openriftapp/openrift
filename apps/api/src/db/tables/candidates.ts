@@ -48,6 +48,8 @@ export interface CandidatePrintingsTable {
   printedRulesText: string | null;
   printedEffectText: string | null;
   imageUrl: string | null;
+  imageFingerprint: string | null;
+  imageFingerprintUrl: string | null;
   flavorText: string | null;
   externalId: string;
   extraData: unknown | null;

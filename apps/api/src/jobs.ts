@@ -12,6 +12,10 @@ import {
   isPrintingFlushNoop,
 } from "./modules/catalog/services/flush-printing-events.js";
 import {
+  isFingerprintSweepNoop,
+  sweepImageFingerprints,
+} from "./modules/catalog/services/images/fingerprint-sweep.js";
+import {
   extractDigestWatermark,
   isTradeMatchDigestNoop,
   sendTradeMatchDigest,
@@ -75,6 +79,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
   const peLog = log.child({ service: "printing-events" });
   const jrLog = log.child({ service: "job-runs-cleanup" });
   const suLog = log.child({ service: "submission-upload-sweep" });
+  const ifLog = log.child({ service: "image-fingerprint-sweep" });
   const cteLog = log.child({ service: "card-trades-expire" });
   const tdLog = log.child({ service: "trade-match-digest" });
   const trfLog = log.child({ service: "trade-request-flush" });
@@ -205,6 +210,17 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       execute: () => sweepSubmissionUploads(defaultIo, repos, { now: new Date() }),
       summarize: (result) => result,
       classifyNoop: (result) => result.deleted === 0,
+    }),
+    defineJob({
+      kind: "images.fingerprint",
+      title: "Image fingerprint sweep",
+      description:
+        "Fingerprints live and source images so check matching can tell a rehosted copy from a different image.",
+      suggestedSchedule: "*/5 * * * *",
+      log: ifLog,
+      execute: () => sweepImageFingerprints(defaultIo, repos, ifLog),
+      summarize: (result) => result,
+      classifyNoop: isFingerprintSweepNoop,
     }),
     defineJob({
       kind: "card_trades.expire_pending",
