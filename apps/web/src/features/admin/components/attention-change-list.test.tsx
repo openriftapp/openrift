@@ -7,6 +7,9 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/components/language-chip", () => ({
   LanguageChip: ({ code }: { code: string }) => <span>{code}</span>,
 }));
+vi.mock("@/features/cards/components/card-text", () => ({
+  CardText: ({ text }: { text: string }) => <span>formatted: {text}</span>,
+}));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import type { AttentionGroup } from "@/features/admin/lib/attention-items";
@@ -116,6 +119,25 @@ describe("AttentionChangeList", () => {
     expect(screen.getByText(/OGN-001::normal/u)).toBeInTheDocument();
   });
 
+  it("opens the linked printing from its printing id", async () => {
+    const onOpenPrinting = vi.fn();
+    renderList({ groups: [linkedPrintingGroup], readOnly: true, onOpenPrinting });
+
+    await userEvent.click(screen.getByRole("button", { name: /OGN-001::normal/u }));
+    expect(onOpenPrinting).toHaveBeenCalledWith("prt-1");
+  });
+
+  it("keeps a new printing's id as plain text", () => {
+    renderList({
+      groups: [newPrintingGroup],
+      ticked: new Set(["new-printing:cp1"]),
+      onOpenPrinting: vi.fn(),
+    });
+
+    expect(screen.getByText(/OGN-042::foil/u)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /OGN-042::foil/u })).not.toBeInTheDocument();
+  });
+
   it("drops the ticks and the editors in read-only mode", () => {
     renderList({ readOnly: true });
     expect(screen.getByText("Name")).toBeInTheDocument();
@@ -211,6 +233,40 @@ describe("AttentionChangeList", () => {
   it("hides the link control when no handler is given", () => {
     renderList({ groups: [newPrintingGroup], ticked: new Set(["new-printing:cp1"]) });
     expect(screen.queryByRole("button", { name: "Link to existing…" })).not.toBeInTheDocument();
+  });
+
+  it("previews rules text formatted and flavor text as plain italics", () => {
+    renderList({
+      groups: [
+        {
+          ...linkedPrintingGroup,
+          changes: [
+            {
+              key: "printing:cp2:printedRulesText",
+              field: "printedRulesText",
+              label: "Printed Rules",
+              current: "[Accelerate]",
+              proposed: "[Accelerate] :rb_energy_2:",
+              kind: "text",
+            },
+            {
+              key: "printing:cp2:flavorText",
+              field: "flavorText",
+              label: "Flavor Text",
+              current: null,
+              proposed: "The light (never) fades.",
+              kind: "text",
+            },
+          ],
+        },
+      ],
+      readOnly: true,
+    });
+
+    expect(screen.getByText("formatted: [Accelerate]")).toBeInTheDocument();
+    expect(screen.getByText("formatted: [Accelerate] :rb_energy_2:")).toBeInTheDocument();
+    expect(screen.getByText("The light (never) fades.")).toHaveClass("italic");
+    expect(screen.queryByText("formatted: The light (never) fades.")).not.toBeInTheDocument();
   });
 
   it("marks an edited row", () => {

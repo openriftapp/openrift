@@ -120,6 +120,7 @@ interface SubmissionBlockProps {
   queueItem: ReviewQueueItem | undefined;
   onSettled?: () => void;
   onOpenNewPrinting?: (candidatePrintingId: string) => void;
+  onOpenPrinting?: (printingId: string) => void;
   blockedNewPrintings?: ReadonlyMap<string, string>;
 }
 
@@ -130,6 +131,7 @@ export function SubmissionBlock({
   queueItem,
   onSettled,
   onOpenNewPrinting,
+  onOpenPrinting,
   blockedNewPrintings,
 }: SubmissionBlockProps) {
   const acceptSubmission = useAcceptSubmission(scope);
@@ -258,6 +260,7 @@ export function SubmissionBlock({
             onLinkGroup={printingTargets.length > 0 ? linkGroup : undefined}
             onMoveGroup={printingTargets.length > 1 ? moveGroup : undefined}
             onOpenNewPrinting={onOpenNewPrinting}
+            onOpenPrinting={onOpenPrinting}
             blockedNewPrintings={blockedNewPrintings}
           />
 

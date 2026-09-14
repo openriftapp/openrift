@@ -173,23 +173,25 @@ export function ExistingCardDetailPage({
   const navigate = useNavigate();
 
   function goToSection(next: CardSection) {
-    void navigate({
+    return navigate({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug: identifier },
       search: { ...navSearch, section: next === DEFAULT_CARD_SECTION ? undefined : next },
     });
   }
 
-  function revealPrinting(printingId: string) {
-    goToSection("printings");
+  function revealPrinting(printingId: string): void {
     expandPrintingFold(cardId, printingId);
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-printing-id="${printingId}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    void (async () => {
+      await goToSection("printings");
+      requestAnimationFrame(() => {
+        document
+          .querySelector(`[data-printing-id="${printingId}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    })();
   }
-  function revealNewPrinting(candidatePrintingId: string) {
+  function revealNewPrinting(candidatePrintingId: string): void {
     if (!existingData) {
       return;
     }
@@ -200,13 +202,15 @@ export function ExistingCardDetailPage({
     if (!group) {
       return;
     }
-    goToSection("printings");
     expandPrintingFold(cardId, group.groupKey);
-    requestAnimationFrame(() => {
-      document
-        .querySelector(`[data-printing-group="${group.groupKey}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    void (async () => {
+      await goToSection("printings");
+      requestAnimationFrame(() => {
+        document
+          .querySelector(`[data-printing-group="${group.groupKey}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    })();
   }
   const [agreedFieldsFolded, setAgreedFieldsFolded] = useState(true);
   const { filteredPrintings, filters } = usePrintingFilters(
@@ -420,7 +424,7 @@ export function ExistingCardDetailPage({
               invalidates={invalidateScope}
               isAdmin={isAdmin}
               onOpenPrinting={revealPrinting}
-              onOpenAttention={() => goToSection("attention")}
+              onOpenAttention={() => void goToSection("attention")}
             />
           )}
 
@@ -434,11 +438,12 @@ export function ExistingCardDetailPage({
                 detail={existingData}
                 cardSlug={cardId}
                 compareAction={
-                  <Button variant="ghost" onClick={() => goToSection("fields")}>
+                  <Button variant="ghost" onClick={() => void goToSection("fields")}>
                     Card fields
                   </Button>
                 }
                 onOpenNewPrinting={revealNewPrinting}
+                onOpenPrinting={revealPrinting}
                 printingFields={printingSourceFields}
                 providerLabels={sourceLabels}
               />
@@ -647,7 +652,7 @@ export function ExistingCardDetailPage({
                   void navigate({ to: "/admin/sources" });
                   return;
                 }
-                goToSection(target.kind === "submissions" ? "attention" : target.kind);
+                void goToSection(target.kind === "submissions" ? "attention" : target.kind);
               }}
             />
           )}

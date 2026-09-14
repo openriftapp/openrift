@@ -7,13 +7,12 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Textarea } from "@/components/ui/textarea";
-import { DiffText } from "@/features/admin/components/candidate-cell-display";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingTargetMenu } from "@/features/admin/components/printing-target-menu";
 import type { PrintingTarget } from "@/features/admin/components/printing-target-menu";
 import type { AttentionChange, AttentionGroup } from "@/features/admin/lib/attention-items";
 import { formatFieldValue } from "@/features/admin/lib/catalog-field-labels";
-import { textDiff } from "@/lib/text-diff";
+import { CardText } from "@/features/cards/components/card-text";
 import { cn } from "@/lib/utils";
 
 const EMPTY_TICKED: ReadonlySet<string> = new Set();
@@ -78,6 +77,16 @@ function Thumb({ url, label }: { url: string | null; label: string }) {
   );
 }
 
+function FormattedText({ field, value }: { field: string; value: unknown }) {
+  if (typeof value !== "string" || value === "") {
+    return formatFieldValue(value);
+  }
+  if (field === "flavorText") {
+    return <span className="whitespace-pre-line italic">{value}</span>;
+  }
+  return <CardText text={value} interactive={false} />;
+}
+
 interface ChangeRowProps {
   change: AttentionChange;
   isTicked: boolean;
@@ -136,10 +145,13 @@ function ChangeRow({
               />
             </span>
           ) : change.kind === "text" ? (
-            <span className="whitespace-pre-wrap">
-              <DiffText
-                segments={textDiff(formatFieldValue(change.current), formatFieldValue(effective))}
-              />
+            <span className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground line-through">
+                <FormattedText field={change.field} value={change.current} />
+              </span>
+              <span>
+                <FormattedText field={change.field} value={effective} />
+              </span>
             </span>
           ) : (
             <span>
@@ -216,6 +228,7 @@ interface AttentionChangeListProps {
   onLinkGroup?: (group: AttentionGroup, printingId: string) => void;
   onMoveGroup?: (group: AttentionGroup, printingId: string) => void;
   onOpenNewPrinting?: (candidatePrintingId: string) => void;
+  onOpenPrinting?: (printingId: string) => void;
   blockedNewPrintings?: ReadonlyMap<string, string>;
 }
 
@@ -230,6 +243,7 @@ export function AttentionChangeList({
   onLinkGroup,
   onMoveGroup,
   onOpenNewPrinting,
+  onOpenPrinting,
   blockedNewPrintings,
 }: AttentionChangeListProps) {
   const [editing, setEditing] = useState<ReadonlySet<string>>(() => new Set());
@@ -244,12 +258,25 @@ export function AttentionChangeList({
             <div className="flex items-center gap-2 px-3">
               <SectionHeading as="h3" size="sm" className="flex min-w-0 flex-1 items-center gap-1">
                 <span className="shrink-0">{group.title}</span>
-                {group.printingLabel !== null && (
-                  <span className="min-w-0 truncate">
-                    (
-                    <PrintingIdLabel label={group.printingLabel} language={group.language} />)
-                  </span>
-                )}
+                {group.printingLabel !== null &&
+                  (onOpenPrinting && group.printingId !== null ? (
+                    <Button
+                      variant="link"
+                      className="h-auto min-w-0 truncate p-0"
+                      onClick={() => {
+                        if (group.printingId !== null) {
+                          onOpenPrinting(group.printingId);
+                        }
+                      }}
+                    >
+                      <PrintingIdLabel label={group.printingLabel} language={group.language} />
+                    </Button>
+                  ) : (
+                    <span className="min-w-0 truncate">
+                      (
+                      <PrintingIdLabel label={group.printingLabel} language={group.language} />)
+                    </span>
+                  ))}
               </SectionHeading>
               {onMoveGroup && group.kind === "printing" && (
                 <PrintingTargetMenu

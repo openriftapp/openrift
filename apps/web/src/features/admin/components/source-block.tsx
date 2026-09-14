@@ -71,6 +71,7 @@ interface SourceBlockProps {
   block: AttentionSourceBlock;
   cardSlug: string;
   compareAction: ReactNode;
+  onOpenPrinting?: (printingId: string) => void;
   renderUnlinked?: (candidateCardId: string) => ReactNode;
 }
 
@@ -79,6 +80,7 @@ export function SourceBlock({
   block,
   cardSlug,
   compareAction,
+  onOpenPrinting,
   renderUnlinked,
 }: SourceBlockProps) {
   const scope = [adminKeys.cards.detail(cardSlug), adminKeys.reviewQueue];
@@ -151,7 +153,9 @@ export function SourceBlock({
     }
     return (
       <>
-        {entry.groups.length > 0 && <AttentionChangeList groups={entry.groups} readOnly />}
+        {entry.groups.length > 0 && (
+          <AttentionChangeList groups={entry.groups} readOnly onOpenPrinting={onOpenPrinting} />
+        )}
         {unlinked.length > 0 &&
           (renderUnlinked === undefined ? (
             <ul className="flex flex-col">

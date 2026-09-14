@@ -23,6 +23,7 @@ export function CardAttentionSection({
   cardSlug,
   compareAction,
   onOpenNewPrinting,
+  onOpenPrinting,
   printingFields,
   providerLabels,
 }: {
@@ -30,6 +31,7 @@ export function CardAttentionSection({
   cardSlug: string;
   compareAction: ReactNode;
   onOpenNewPrinting: (candidatePrintingId: string) => void;
+  onOpenPrinting: (printingId: string) => void;
   printingFields: FieldDef<CandidatePrintingFieldKey>[];
   providerLabels: Record<string, string>;
 }) {
@@ -78,6 +80,7 @@ export function CardAttentionSection({
             (item) => item.candidateCardId === submission.candidateCardId,
           )}
           onOpenNewPrinting={onOpenNewPrinting}
+          onOpenPrinting={onOpenPrinting}
           blockedNewPrintings={blockedNewPrintings}
         />
       ))}
@@ -89,6 +92,7 @@ export function CardAttentionSection({
           block={source}
           cardSlug={cardSlug}
           compareAction={compareAction}
+          onOpenPrinting={onOpenPrinting}
           renderUnlinked={(candidateCardId) => (
             <CardAttentionNewPrintings
               detail={detail}
