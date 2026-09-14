@@ -1,14 +1,14 @@
 # Translating OpenRift
 
-OpenRift's interface is translated on [Hosted Weblate](https://hosted.weblate.org/projects/openrift/). You do not need a GitHub account or any development setup: create a Weblate account, pick a language, and start suggesting. Everything you write is reviewed before it goes live.
+OpenRift's interface strings live in this repository and are edited through pull requests. If you do not want to work with the repository, post corrections on [Discord](https://discord.gg/Qb6RcjXq6z) and they get applied for you. Everything you write is reviewed before it goes live.
 
 ## What is in scope
 
-Weblate holds the interface strings only: buttons, labels, headings, help text, emails. They live in `apps/web/messages/{locale}.json` and are compiled into the app at build time, so an approved translation appears on the site with the next deploy.
+In scope are the interface strings only: buttons, labels, headings, help text, emails. They live in `apps/web/messages/{locale}.json` and are compiled into the app at build time, so an approved translation appears on the site with the next deploy.
 
 Card data is not here. Card names, rules text, and keyword labels come from the catalogue database and follow the printed cards. Corrections to those go through [/contribute](https://openrift.app/contribute) instead.
 
-English is the source language. If an English string is wrong or unclear, do not fix it in your translation: open an issue or say so in a Weblate comment, and it gets fixed at the source for every language at once.
+English is the source language. If an English string is wrong or unclear, do not fix it in your translation: open an issue or say so on Discord, and it gets fixed at the source for every language at once.
 
 ## License
 
@@ -91,6 +91,6 @@ The card data is maintained by a single person with help from contributors. Wher
 
 ## Review
 
-New contributors translate in suggestion mode: your work is queued, not published. A reviewer for your language approves it, and the string ships with the next deploy. Approved strings reach the repository as `chore(l10n)` commits from Weblate; interface punctuation uses the ellipsis character (…) and never an em dash, and Weblate flags both. If you want to review for a language you speak natively, ask in a Weblate comment or on [Discord](https://discord.gg/Qb6RcjXq6z).
+Translations arrive as pull requests with `chore(l10n)` commits, or as Discord corrections that get committed for you. A reviewer for your language approves them, and the strings ship with the next deploy. Interface punctuation uses the ellipsis character (…) and never an em dash. If you want to review for a language you speak natively, ask on [Discord](https://discord.gg/Qb6RcjXq6z).
 
-Machine translation is available in the editor as a starting point. It is a starting point. A suggestion that is visibly untouched machine output gets rejected, because the whole reason for a human translator is the part the machine gets wrong.
+Machine translation is fine as a starting point. It is a starting point. A suggestion that is visibly untouched machine output gets rejected, because the whole reason for a human translator is the part the machine gets wrong.

@@ -72,7 +72,7 @@ OpenRift is a TypeScript monorepo: a TanStack Start + customized shadcn/ui front
 - [Development](docs/development.md) lists the prerequisites, setup, and commands.
 - [Deployment](docs/deployment.md) walks through VPS setup, Docker Compose, and CI/CD.
 - [Contributing](docs/contributing.md) explains code style, conventions, and the changelog.
-- [Translating](docs/translating.md) covers the Weblate workflow, voice, and terminology.
+- [Translating](docs/translating.md) covers the translation workflow, voice, and terminology.
 
 On the AI question: Claude does some of the typing, because it is way faster at that than I am (and I already have quite some typing experience accumulated over the last 20+ years of software development).
 
@@ -88,7 +88,7 @@ To contribute card data rather than code, use the in-app contribute page (sign i
 
 ## Translating
 
-The interface is available in English, German, and French. Translations are managed with [Weblate](https://hosted.weblate.org/projects/openrift/), which is free for libre projects. You don't need a GitHub account or any development setup: create a Weblate account, pick a language, and start suggesting. Everything is reviewed before it goes live.
+The interface is available in English, German, French, Simplified Chinese, Traditional Chinese, and Korean. Translations live in `apps/web/messages/{locale}.json` and are edited through pull requests. If you would rather not touch the repository, post corrections on [Discord](https://discord.gg/Qb6RcjXq6z) and they get applied for you. Everything is reviewed before it goes live.
 
 Read [Translating OpenRift](docs/translating.md) first. It covers the voice, the placeholder rules, and the terminology that has to stay consistent.
 
