@@ -62,7 +62,7 @@ function modeCopy(mode: MoveMode) {
       };
 }
 
-export interface MoveEntryCopyOption {
+interface MoveEntryCopyOption {
   copy: CopyResponse;
   printing: Printing;
   collectionName: string;

@@ -15,7 +15,6 @@ import type {
 import type {
   metaEventDriftSchema,
   metaOverlayBulkAcceptResultSchema,
-  metaOverlayDetailSchema,
   metaOverlayMatchStateSchema,
   metaOverlayQueueRowSchema,
   metaOverlayReviewResultSchema,
@@ -141,7 +140,7 @@ export type MetaOverlayBulkAcceptResult = z.infer<typeof metaOverlayBulkAcceptRe
 
 export type MetaOverlayReviewResult = z.infer<typeof metaOverlayReviewResultSchema>;
 
-export type MetaOverlayDetail = z.infer<typeof metaOverlayDetailSchema>;
+export type MetaOverlayDetail = z.infer<typeof metaOverlayQueueRowSchema>;
 
 export type AdminMetaEventSource = z.infer<typeof adminMetaEventSourceSchema>;
 

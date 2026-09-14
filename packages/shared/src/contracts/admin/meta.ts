@@ -20,7 +20,6 @@ import {
   acceptClaimFields,
   metaEventDriftSchema,
   metaOverlayBulkAcceptResultSchema,
-  metaOverlayDetailSchema,
   metaOverlayQueueRowSchema,
   metaOverlayReviewResultSchema,
   playerOverlayFieldsSchema,
@@ -171,7 +170,7 @@ export const adminMetaCandidatesContract = {
     .route({ method: "GET", path: `${BASE}/overlays/{id}`, tags: [OVERLAY_TAG] })
     .input(idParamSchema)
     .errors({ NOT_FOUND: { message: "Overlay not found" } })
-    .output(metaOverlayDetailSchema),
+    .output(metaOverlayQueueRowSchema),
 
   drift: authedRoute
     .route({ method: "GET", path: `${BASE}/events/{id}/drift`, tags: [OVERLAY_TAG] })

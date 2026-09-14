@@ -94,8 +94,6 @@ export const metaOverlayQueueRowSchema = z.object({
   createdAt: isoDateTime,
 });
 
-export const metaOverlayDetailSchema = metaOverlayQueueRowSchema;
-
 /** Absent keeps every claim. `cards` and `listStatus` are one claim: naming either keeps both. */
 export const acceptClaimFields = z
   .array(z.enum(META_PLAYER_OVERLAY_FIELDS))

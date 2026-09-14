@@ -85,8 +85,8 @@ export async function readCatalogVersionFromServerCache(): Promise<string | null
   return version;
 }
 
-export const fetchCatalog = createServerFn({ method: "GET" }).handler(
-  (): Promise<CatalogResponse> => readCatalogFromServerCache(),
+const fetchCatalog = createServerFn({ method: "GET" }).handler((): Promise<CatalogResponse> =>
+  readCatalogFromServerCache(),
 );
 
 // Goes through the Start server, not the edge, on purpose: the token must be
@@ -144,7 +144,7 @@ export function hasPrintingsOutside(catalog: CatalogResponse, langs: readonly st
 
 // Fetches /api/v1/catalog directly (bypasses the Start server) so Cloudflare edge-caches it.
 // `?v=<ETag>` must change with the catalog or max-age + stale-while-revalidate serves a stale body.
-export async function fetchCatalogFromEdge(langs: string[] | null): Promise<CatalogResponse> {
+async function fetchCatalogFromEdge(langs: string[] | null): Promise<CatalogResponse> {
   const version = consumeSeededCatalogVersion() ?? (await fetchCatalogVersion().catch(() => null));
   // Returns the identical object on an unchanged version: the enrich memo depends on reference identity.
   if (version !== null && lastCompleteCatalog?.version === version) {

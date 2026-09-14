@@ -383,7 +383,7 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
       expect(res.status).toBe(400);
     });
 
-    it("rejects moves to a different intent", async () => {
+    it("moves to a list with a different intent", async () => {
       const source = await createList("Intent source", "wish", "card");
       const dest = await createList("Intent dest", "organize", "card");
       const createRes = await app.fetch(
@@ -397,7 +397,13 @@ describe.skipIf(!ctx)("Lists routes (integration)", () => {
           entryIds: [created.id],
         }),
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ moved: 1, merged: 0 });
+
+      const destRes = await app.fetch(req("GET", `/lists/${dest}`));
+      const destDetail = (await readJson(destRes)) as { entries: { kind: string }[] };
+      expect(destDetail.entries).toHaveLength(1);
+      expect(destDetail.entries[0]).toMatchObject({ kind: "card" });
     });
 
     it("rejects moves where source and destination are the same list", async () => {

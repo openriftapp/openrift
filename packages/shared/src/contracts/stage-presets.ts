@@ -40,12 +40,10 @@ export const updateStagePresetSchema = z.object({
   config: stagePresetConfigSchema.optional(),
 });
 
-export const stagePresetConfigResponseSchema = stagePresetConfigSchema;
-
 export const stagePresetSchema = z.object({
   id: z.string(),
   name: z.string(),
-  config: stagePresetConfigResponseSchema,
+  config: stagePresetConfigSchema,
 });
 
 export const stagePresetListResponseSchema = z.object({ items: z.array(stagePresetSchema) });
