@@ -69,8 +69,9 @@ export interface LiveTradeAnnotationRow {
  */
 export function cardTradeReadsRepo(db: Kysely<Database>) {
   return {
-    getById(id: string): Promise<CardTrade | undefined> {
-      return db.selectFrom("cardTrades").selectAll().where("id", "=", id).executeTakeFirst();
+    getById(id: string, options?: { forUpdate?: boolean }): Promise<CardTrade | undefined> {
+      const query = db.selectFrom("cardTrades").selectAll().where("id", "=", id);
+      return (options?.forUpdate ? query.forUpdate() : query).executeTakeFirst();
     },
 
     findLiveTrade(

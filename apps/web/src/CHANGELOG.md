@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-14
+
+### Other
+
+- fix(Trades): **Accurate trade settlement counts** — overlapping full and partial settlements no longer add extra copies to your collection.
+
 ## 2026-09-13
 
 ### Highlights

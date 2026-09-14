@@ -87,8 +87,9 @@ async function loadTradeForParty(
   repos: Repos,
   tradeId: string,
   byUserId: string,
+  options?: { forUpdate?: boolean },
 ): Promise<{ trade: LiveCardTrade; role: CardTradeRole }> {
-  const trade = await repos.cardTrades.getById(tradeId);
+  const trade = await repos.cardTrades.getById(tradeId, options);
   if (trade === undefined) {
     throw new AppError(404, ERROR_CODES.NOT_FOUND, "Trade not found");
   }
@@ -682,7 +683,10 @@ export function applyTradeSync(
   options: { targetCollectionId?: string; copyIds?: string[]; quantity?: number } = {},
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId);
+    // Hold the trade row through settlement so splits cannot change its quantity or pins mid-flight.
+    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+      forUpdate: true,
+    });
     assertSettleable(trade);
     if (options.copyIds !== undefined && role !== "giver") {
       throw new AppError(
@@ -751,7 +755,9 @@ export function skipTradeSync(
   options: { quantity?: number } = {},
 ): Promise<CardTradeResponse> {
   return transact(async (trxRepos) => {
-    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId);
+    const { trade, role } = await loadTradeForParty(trxRepos, tradeId, byUserId, {
+      forUpdate: true,
+    });
     assertSettleable(trade);
 
     const target = await claimSettleTarget(trxRepos, trade, role, byUserId, options.quantity);

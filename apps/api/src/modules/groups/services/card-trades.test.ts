@@ -3,7 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { CardTradeDtoRow, LiveCardTrade } from "../repositories/card-trades-shared.js";
-import { acceptTrade, createTrade, listTradeCopyOptions, setTradeQuantity } from "./card-trades.js";
+import {
+  acceptTrade,
+  applyTradeSync,
+  createTrade,
+  listTradeCopyOptions,
+  setTradeQuantity,
+} from "./card-trades.js";
 
 function mockTransact(trxRepos: Repos): Transact {
   return (fn) => fn(trxRepos) as any;
@@ -54,6 +60,98 @@ const DTO_ROW: CardTradeDtoRow = {
   receiverSnapshotName: null,
   counterpartyContacts: [],
 };
+
+describe("applyTradeSync concurrent receiver settlements", () => {
+  it.each([undefined, 3])(
+    "uses the remaining quantity or rejects a stale explicit quantity (%s)",
+    async (quantity) => {
+      const original = {
+        ...DTO_ROW,
+        giverUserId: "giver-1",
+        receiverUserId: "receiver-1",
+        quantity: 3,
+        status: "reserved" as const,
+        giverSyncAppliedAt: new Date("2026-03-18T00:00:00.000Z"),
+        receiverWishEntryId: null,
+      };
+      const rows = new Map([[original.id, original]]);
+      const read = Promise.withResolvers<void>();
+      const resume = Promise.withResolvers<void>();
+      let pauseFirstRead = true;
+      let credited = 0;
+      const repos = {
+        cardTrades: {
+          getById: async (id: string, options?: { forUpdate?: boolean }) => {
+            const snapshot = { ...rows.get(id)! };
+            if (pauseFirstRead) {
+              pauseFirstRead = false;
+              read.resolve();
+              await resume.promise;
+            }
+            // A locking read sees the committed split when it acquires the row lock.
+            return options?.forUpdate ? { ...rows.get(id)! } : snapshot;
+          },
+          reserveQuantityForSplit: async (id: string, reserved: number) => {
+            const row = rows.get(id)!;
+            if (row.receiverSyncAppliedAt !== null || row.quantity <= reserved) {
+              return 0;
+            }
+            row.quantity -= reserved;
+            return 1;
+          },
+          createSettledSplit: async (values: { from: typeof original; quantity: number }) => {
+            const split = {
+              ...values.from,
+              id: "split-1",
+              quantity: values.quantity,
+              receiverSyncAppliedAt: new Date(),
+            };
+            rows.set(split.id, split);
+            return split;
+          },
+          listReservedCopyIds: async () => [],
+          setReceiverSyncApplied: async (id: string) => {
+            const row = rows.get(id)!;
+            if (row.receiverSyncAppliedAt !== null) {
+              return 0;
+            }
+            row.receiverSyncAppliedAt = new Date();
+            return 1;
+          },
+          markCompletedWhenBothSettled: async () => 1,
+          getDtoRowByIdForUser: async (id: string) => rows.get(id),
+        },
+        collections: {
+          ensureInbox: async () => "inbox-1",
+          listIdAndNameByIds: async () => [{ id: "inbox-1", name: "Inbox" }],
+        },
+        users: { findById: async () => ({ name: "Ekko" }) },
+        copies: {
+          insertBatch: async (values: { printingId: string; collectionId: string }[]) => {
+            credited += values.length;
+            return values.map((value, index) => ({ ...value, id: `copy-${credited}-${index}` }));
+          },
+        },
+        collectionEvents: { insert: async () => undefined },
+      } as unknown as Repos;
+      const transact = mockTransact(repos);
+      const full = applyTradeSync(transact, original.id, original.receiverUserId, { quantity });
+      await read.promise;
+      try {
+        await applyTradeSync(transact, original.id, original.receiverUserId, { quantity: 1 });
+      } finally {
+        resume.resolve();
+      }
+      if (quantity === undefined) {
+        await full;
+        expect(credited).toBe(3);
+      } else {
+        await expect(full).rejects.toMatchObject({ status: 409 });
+        expect(credited).toBe(1);
+      }
+    },
+  );
+});
 
 describe("acceptTrade cross-claim with a concurrent loan", () => {
   it("409s and never pins when the locked copy was pinned to a loan after the supply read", async () => {
