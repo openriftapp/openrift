@@ -8,6 +8,7 @@ import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/admin")({
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Admin", noIndex: true }),
+  ssr: false,
   staticData: { hideFooter: true },
   errorComponent: RouteErrorFallback,
   // Reruns on every /admin navigation, since grant holders are gated per section.
