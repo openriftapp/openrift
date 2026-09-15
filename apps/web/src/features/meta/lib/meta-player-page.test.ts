@@ -7,6 +7,7 @@ import {
   metaPlayerCountries,
   metaPlayerDecks,
   metaPlayerFacts,
+  metaPlayerLegendDomains,
   metaPlayerLegends,
   sortPlayerFinishes,
 } from "@/features/meta/lib/meta-player-page";
@@ -265,6 +266,25 @@ describe("metaPlayerDecks", () => {
   it("keeps nothing when no finish has a list on file", () => {
     const finishes = [makeMetaPlayerFinish({ shareToken: null })];
     expect(metaPlayerDecks([deck()], finishes)).toEqual([]);
+  });
+});
+
+describe("metaPlayerLegendDomains", () => {
+  it("keys each legend the player brought to its domains", () => {
+    const ahri = {
+      cardId: "card-ahri",
+      name: "Ahri, Nine-Tailed Fox",
+      slug: "nine-tailed-fox",
+      imageId: null,
+      domains: ["calm", "mind"],
+      archiveSlug: "ahri-nine-tailed-fox",
+    };
+    const domains = metaPlayerLegendDomains([
+      makeMetaPlayerFinish({ legend: ahri }),
+      makeMetaPlayerFinish({ legend: null }),
+    ]);
+
+    expect([...domains.entries()]).toEqual([["card-ahri", ["calm", "mind"]]]);
   });
 });
 

@@ -165,7 +165,7 @@ describe("MetaLegendsPage", () => {
     );
     const row = screen.getByRole("link", { name: /kennen/iu });
     expect(within(row).getAllByText("Regional Lyon").length).toBeGreaterThan(0);
-    expect(within(row).getAllByText("2")).not.toHaveLength(0);
+    expect(within(row).getAllByText("2nd")).not.toHaveLength(0);
     expect(within(row).getByText("2026-08-29 · 512 players")).toBeInTheDocument();
     expect(within(row).getByText("7")).toBeInTheDocument();
     expect(within(row).getByText("3")).toBeInTheDocument();

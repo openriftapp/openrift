@@ -26,7 +26,7 @@ const GUARDS: readonly Guard[] = [
       `\\b(?:bg|text|border|ring|from|to|via|fill|stroke|outline|decoration|divide|shadow)-${HUE}-\\d+\\b`,
       "u",
     ),
-    exempt: new Set(["components/ui/podium.tsx"]),
+    exempt: new Set(["components/ui/podium.tsx", "components/ui/rank-band.tsx"]),
   },
   {
     title: "never pairs a dark: variant with a status token",

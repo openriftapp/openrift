@@ -1,5 +1,7 @@
+import { formatDay } from "@openrift/shared/format-date";
 import type { MetaDeckSummary, MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import { Link } from "@tanstack/react-router";
 import { LayoutGridIcon, ListIcon } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 
@@ -24,7 +26,12 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
 import { MetaDeckCostsBridge } from "@/features/meta/components/meta-deck-costs-bridge";
 import { MetaDeckFilterControls } from "@/features/meta/components/meta-deck-filter-controls";
-import { DECK_INDEX_GRID, MetaDeckIndexRow } from "@/features/meta/components/meta-deck-index-row";
+import {
+  DECK_INDEX_GRID,
+  DECK_INDEX_GROUPED_GRID,
+  MetaDeckIndexRow,
+} from "@/features/meta/components/meta-deck-index-row";
+import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { useMetaDecks, useMetaEvents } from "@/features/meta/hooks/use-meta";
@@ -35,6 +42,7 @@ import {
   countMetaDecksUnderCost,
   curateMetaDecks,
   filterMetaDecks,
+  groupDecksByEvent,
   metaDeckSortPresets,
   metaDeckFilterCounts,
   metaDeckFilterOptions,
@@ -120,6 +128,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
     costs,
   );
   const summaries = new Map(eventsData.events.map((event) => [event.slug, event]));
+  const grouped = filters.sort === "date";
   const eventCount = new Set(decks.map((deck) => deck.event.slug)).size;
   const shown = decks.length;
   const total = data.total;
@@ -183,14 +192,12 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
           {decks.length} {decks.length === 1 ? "deck" : "decks"} · {eventCount}{" "}
           {eventCount === 1 ? "event" : "events"}
         </p>
-        {view === "grid" && (
-          <SortSelect
-            sort={filters.sort}
-            direction={filters.direction}
-            onChange={(sort, direction) => filters.setSort(sort, direction)}
-            className="ml-auto"
-          />
-        )}
+        <SortSelect
+          sort={filters.sort}
+          direction={filters.direction}
+          onChange={(sort, direction) => filters.setSort(sort, direction)}
+          className="ml-auto"
+        />
       </div>
 
       {view === "list" ? (
@@ -198,6 +205,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
           <SortHeader
             sort={filters.sort}
             direction={filters.direction}
+            grouped={grouped}
             onSort={(column) => filters.sortBy(column)}
           />
           {decks.length === 0 ? (
@@ -209,6 +217,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
               summaries={summaries}
               costs={costs}
               marketplace={marketplace}
+              grouped={grouped}
             />
           )}
         </div>
@@ -226,6 +235,7 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
             summaries={summaries}
             costs={costs}
             marketplace={marketplace}
+            grouped={grouped}
           />
         </div>
       )}
@@ -331,16 +341,18 @@ const SortButton = IndexSortButton<MetaDeckSort>;
 function SortHeader({
   sort,
   direction,
+  grouped,
   onSort,
 }: {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
+  grouped: boolean;
   onSort: (column: MetaDeckSort) => void;
 }) {
   return (
     <div
       className={cn(
-        DECK_INDEX_GRID,
+        grouped ? DECK_INDEX_GROUPED_GRID : DECK_INDEX_GRID,
         "border-border text-muted-foreground -mx-2 hidden border-b px-2 py-2 text-xs font-semibold sm:grid",
       )}
     >
@@ -350,10 +362,14 @@ function SortHeader({
       <span />
       <span>{m.meta_standings_col_legend()}</span>
       <span>{m.meta_standings_col_player()}</span>
-      <span>{m.meta_finishes_col_event()}</span>
-      <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>
-        {m.meta_col_date()}
-      </SortButton>
+      {!grouped && (
+        <>
+          <span>{m.meta_finishes_col_event()}</span>
+          <SortButton column="date" sort={sort} direction={direction} onSort={onSort}>
+            {m.meta_col_date()}
+          </SortButton>
+        </>
+      )}
       <SortButton column="value" sort={sort} direction={direction} onSort={onSort} align="end">
         {m.meta_standings_col_value()}
       </SortButton>
@@ -369,30 +385,74 @@ interface DeckListProps {
   summaries: ReadonlyMap<string, MetaEventSummary>;
   costs?: ReadonlyMap<string, MetaDeckCost>;
   marketplace: Marketplace;
+  grouped: boolean;
 }
 
 function fieldSizeOf(summary: MetaEventSummary | undefined): number | null {
   return summary === undefined ? null : metaEventFieldSize(summary);
 }
 
-function DeckList({ decks, summaries, costs, marketplace }: DeckListProps) {
+function DeckEventHeader({
+  event,
+  summary,
+}: {
+  event: MetaDeckSummary["event"];
+  summary: MetaEventSummary | undefined;
+}) {
+  return (
+    <Link
+      to="/meta/$slug"
+      params={{ slug: event.slug }}
+      className="hover:bg-muted/50 focus-visible:ring-ring/50 -mx-2 block rounded-md px-2 py-2 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+    >
+      {summary === undefined ? (
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate font-semibold">{event.name}</span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {formatDay(event.eventDate)}
+          </span>
+        </span>
+      ) : (
+        <MetaEventHeading event={summary} showTier />
+      )}
+    </Link>
+  );
+}
+
+function DeckList({ decks, summaries, costs, marketplace, grouped }: DeckListProps) {
   const [shown, setShown] = useState(PAGE_SIZE);
+  const visible = decks.slice(0, shown);
   const remaining = decks.length - shown;
+  const rows = (entries: readonly MetaDeckSummary[]) => (
+    <RowList className="flex flex-col">
+      {entries.map((deck) => (
+        <li key={deck.deckId}>
+          <MetaDeckIndexRow
+            deck={deck}
+            cost={costs?.get(deck.deckId)}
+            fieldSize={fieldSizeOf(summaries.get(deck.event.slug))}
+            marketplace={marketplace}
+            grouped={grouped}
+          />
+        </li>
+      ))}
+    </RowList>
+  );
 
   return (
     <>
-      <RowList className="flex flex-col">
-        {decks.slice(0, shown).map((deck) => (
-          <li key={deck.deckId}>
-            <MetaDeckIndexRow
-              deck={deck}
-              cost={costs?.get(deck.deckId)}
-              fieldSize={fieldSizeOf(summaries.get(deck.event.slug))}
-              marketplace={marketplace}
-            />
-          </li>
-        ))}
-      </RowList>
+      {grouped ? (
+        <div className="flex flex-col gap-4">
+          {groupDecksByEvent(visible).map((group) => (
+            <section key={group.event.slug} className="flex flex-col">
+              <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
+              {rows(group.decks)}
+            </section>
+          ))}
+        </div>
+      ) : (
+        rows(visible)
+      )}
       {remaining > 0 && (
         <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
           {remaining.toLocaleString("en-US")} more {remaining === 1 ? "deck" : "decks"}
@@ -402,25 +462,42 @@ function DeckList({ decks, summaries, costs, marketplace }: DeckListProps) {
   );
 }
 
-function DeckGrid({ decks, summaries, costs, marketplace }: DeckListProps) {
+function DeckGrid({ decks, summaries, costs, marketplace, grouped }: DeckListProps) {
   const [shown, setShown] = useState(PAGE_SIZE);
+  const visible = decks.slice(0, shown);
   const remaining = decks.length - shown;
+  const tiles = (entries: readonly MetaDeckSummary[]) => (
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {entries.map((deck) => (
+        <li key={deck.deckId}>
+          <MetaArchiveDeckTile
+            deck={deck}
+            cost={costs?.get(deck.deckId)}
+            fieldSize={
+              grouped ? undefined : (fieldSizeOf(summaries.get(deck.event.slug)) ?? undefined)
+            }
+            marketplace={marketplace}
+            showEvent={!grouped}
+          />
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {decks.slice(0, shown).map((deck) => (
-          <li key={deck.deckId}>
-            <MetaArchiveDeckTile
-              deck={deck}
-              cost={costs?.get(deck.deckId)}
-              fieldSize={fieldSizeOf(summaries.get(deck.event.slug)) ?? undefined}
-              marketplace={marketplace}
-              showEvent
-            />
-          </li>
-        ))}
-      </ul>
+      {grouped ? (
+        <div className="flex flex-col gap-6">
+          {groupDecksByEvent(visible).map((group) => (
+            <section key={group.event.slug} className="flex flex-col gap-2">
+              <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
+              {tiles(group.decks)}
+            </section>
+          ))}
+        </div>
+      ) : (
+        tiles(visible)
+      )}
       {remaining > 0 && (
         <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
           Show {Math.min(PAGE_SIZE, remaining)} more of {remaining.toLocaleString("en-US")}
@@ -441,7 +518,7 @@ export function MetaDeckBrowserPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="full">
+      <PageTopBarSticky width="capped">
         <PageTopBar>
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_browser_title()}</PageTopBarTitle>
@@ -452,7 +529,7 @@ export function MetaDeckBrowserPage() {
           )}
         </PageTopBar>
       </PageTopBarSticky>
-      <div className={cn(PAGE_WIDTH.full, "px-safe pt-3 pb-6")}>
+      <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
         <PageDescription className="pb-4">{m.meta_decks_page_description()}</PageDescription>
 
         {hydrated ? (

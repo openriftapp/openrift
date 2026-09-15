@@ -5,16 +5,23 @@ import { ChevronRightIcon } from "lucide-react";
 
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
-import { formatRecord, metaEventCounts } from "@/features/meta/lib/meta-format";
+import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
+import { formatRank, formatRecord, metaEventCounts } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn } from "@/lib/utils";
 
 /** Full width by design: a caller placing content beside the standings below must not squeeze this. */
-export function MetaEventHeading({ event }: { event: MetaEventSummary }) {
+export function MetaEventHeading({
+  event,
+  showTier = false,
+}: {
+  event: MetaEventSummary;
+  showTier?: boolean;
+}) {
   const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const venue = [event.organizer, event.location].filter(Boolean).join(" · ");
   const counts = metaEventCounts(event);
@@ -26,6 +33,7 @@ export function MetaEventHeading({ event }: { event: MetaEventSummary }) {
         <span className="truncate font-semibold">{event.name}</span>
         <span className="text-muted-foreground truncate text-xs">{venue}</span>
         <span className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
+          {showTier && <MetaTierBadge tier={event.tier} />}
           <CountryFlag code={event.country} size="sm" />
           <span className="truncate tabular-nums">{counts.join(" · ")}</span>
         </span>
@@ -47,7 +55,13 @@ export function MetaFinishRow({
 
   return (
     <span className="flex items-center gap-2.5 rounded-md px-2.5 py-1">
-      <Medal rank={finish.rank} />
+      <RankBand
+        rank={finish.rank}
+        text={formatRank(finish.rank, finish.rankIsTier)}
+        filled={false}
+        crownOnly
+        className="w-12 shrink-0 rounded-md"
+      />
       {showArt && (
         <CardArtThumb
           imageId={finish.legend?.imageId ?? null}

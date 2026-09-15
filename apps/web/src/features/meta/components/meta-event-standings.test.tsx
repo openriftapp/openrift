@@ -274,12 +274,12 @@ describe("MetaEventStandings", () => {
     expect(phoneRow("Bo")).toBeInTheDocument();
   });
 
-  it("medals the podium and numbers the rest", () => {
+  it("prints a podium place in the same ordinal form as the rest", () => {
     renderStandings([
       metaPlayer({ id: "p-1", playerName: "Ana", rank: 3 }),
       metaPlayer({ id: "p-2", playerName: "Bo", rank: 4 }),
     ]);
-    expect(within(phoneRow("Ana")).getByText("3")).toBeInTheDocument();
+    expect(within(phoneRow("Ana")).getByText("3rd")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).getByText("4th")).toBeInTheDocument();
   });
 
@@ -418,6 +418,29 @@ describe("MetaEventStandings", () => {
     ]);
     expect(within(phoneRow("Ana")).getByText("6-1-0")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).getByText("5-1-1")).toBeInTheDocument();
+  });
+
+  it("files the record under the run it sums up", () => {
+    renderStandings([metaPlayer({ id: "p-1", playerName: "Ana" })], "2020-01-01", ANA_RUN);
+
+    const strip = within(screen.getByRole("table")).getByRole("img", { name: /Round by round/u });
+    expect(strip.closest("td")).toHaveTextContent("6-1-0");
+  });
+
+  it("heads the record column as a record when the source charted no rounds", () => {
+    renderStandings([metaPlayer({ playerName: "Ana" })]);
+
+    expect(screen.getByRole("columnheader", { name: "Record" })).toBeInTheDocument();
+  });
+
+  it("bands the top cut by the bracket each player reached and leaves the rest bare", () => {
+    renderStandings(field(10), "2020-01-01", { phases: [metaPhase()] });
+
+    const band = (name: string) => phoneRow(name).querySelector("[data-slot=rank-band]");
+    expect(band("Player 0")).toHaveTextContent("Winner");
+    expect(band("Player 5")).toHaveAttribute("data-tone", "muted");
+    expect(band("Player 5")).toHaveTextContent("Top 8");
+    expect(band("Player 9")).toHaveAttribute("data-tone", "plain");
   });
 
   it("names the legend and draws its domain runes", () => {

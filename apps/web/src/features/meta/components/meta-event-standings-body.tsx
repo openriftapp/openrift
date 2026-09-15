@@ -17,6 +17,7 @@ export interface StandingsBodyProps {
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
   rounds: ReadonlyMap<string, readonly MetaPlayerRound[]>;
   pending: ReadonlyMap<string, MetaPendingRowMark>;
+  cutSize: number | null;
   expandedId: string | null;
   onToggle: (id: string) => void;
 }
@@ -29,6 +30,7 @@ export function DesktopStandings({
   costs,
   rounds,
   pending,
+  cutSize,
   expandedId,
   onToggle,
 }: StandingsBodyProps) {
@@ -39,7 +41,7 @@ export function DesktopStandings({
       <Table variant="divided" className="block">
         <TableHeader className="block">
           <TableRow className="flex w-full">
-            <TableHead className="flex w-20 shrink-0 items-center justify-center">
+            <TableHead className="flex w-24 shrink-0 items-center justify-center">
               {m.meta_standings_col_rank()}
             </TableHead>
             {columns.legend && (
@@ -50,9 +52,9 @@ export function DesktopStandings({
             <TableHead className="flex min-w-0 flex-1 items-center">
               {m.meta_standings_col_player()}
             </TableHead>
-            {columns.run && (
+            {(columns.run || columns.record) && (
               <TableHead className="flex w-52 shrink-0 items-center">
-                {m.meta_standings_col_run()}
+                {columns.run ? m.meta_standings_col_run() : m.meta_finishes_col_record()}
               </TableHead>
             )}
             {columns.value && (
@@ -79,6 +81,7 @@ export function DesktopStandings({
               costs={costs}
               rounds={rounds.get(player.id)}
               pending={pending.get(player.id)}
+              cutSize={cutSize}
               expanded={expandedId === player.id}
               onToggle={() => onToggle(player.id)}
             />
@@ -97,6 +100,7 @@ export function PhoneStandings({
   costs,
   rounds,
   pending,
+  cutSize,
   expandedId,
   onToggle,
 }: StandingsBodyProps) {
@@ -119,6 +123,7 @@ export function PhoneStandings({
           costs={costs}
           rounds={rounds.get(player.id)}
           pending={pending.get(player.id)}
+          cutSize={cutSize}
           expanded={expandedId === player.id}
           onToggle={() => onToggle(player.id)}
         />

@@ -5,14 +5,14 @@ import { Link } from "@tanstack/react-router";
 
 import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaListStatusBadge } from "@/features/meta/components/meta-list-status-badge";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
 import { DATE_WORDS } from "@/lib/date-words";
 import { compactFormatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,22 +20,20 @@ import { m } from "@/paraglide/messages.js";
 
 // Shared by the rows and the sort header above them; keep both in sync.
 export const DECK_INDEX_GRID =
-  "grid grid-cols-[3.5rem_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5";
+  "grid grid-cols-[4.5rem_2.75rem_11rem_10rem_minmax(0,1fr)_2.75rem_4rem_10.5rem] items-center gap-x-3.5";
+
+export const DECK_INDEX_GROUPED_GRID =
+  "grid grid-cols-[4.5rem_2.75rem_minmax(0,1fr)_minmax(0,1fr)_4rem_10.5rem] items-center gap-x-3.5";
 
 function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number | null }) {
   return (
-    <span className="flex flex-col items-start gap-0.5">
-      {deck.rank <= MEDAL_RANKS ? (
-        <Medal rank={deck.rank} />
-      ) : (
-        <span className="text-sm tabular-nums">{formatRank(deck.rank, deck.rankIsTier)}</span>
-      )}
-      {fieldSize !== null && (
-        <span className="text-muted-foreground text-xs leading-none tabular-nums">
-          of {fieldSize.toLocaleString("en-US")}
-        </span>
-      )}
-    </span>
+    <RankBand
+      rank={deck.rank}
+      text={formatRank(deck.rank, deck.rankIsTier)}
+      label={fieldSize === null ? null : `of ${fieldSize.toLocaleString("en-US")}`}
+      filled={false}
+      className="w-18 shrink-0 rounded-md"
+    />
   );
 }
 
@@ -121,11 +119,13 @@ export function MetaDeckIndexRow({
   cost,
   fieldSize,
   marketplace,
+  grouped = false,
 }: {
   deck: MetaDeckSummary;
   cost?: MetaDeckCost;
   fieldSize: number | null;
   marketplace: Marketplace;
+  grouped?: boolean;
 }) {
   const leaf = dateLeafPartsUtc(deck.event.eventDate, DATE_WORDS);
   const record = formatRecord(deck.wins, deck.losses, deck.draws);
@@ -141,14 +141,16 @@ export function MetaDeckIndexRow({
         className="outline-none after:absolute after:inset-0"
       />
 
-      <div className={cn(DECK_INDEX_GRID, "hidden sm:grid")}>
-        <Finish deck={deck} fieldSize={fieldSize} />
+      <div className={cn(grouped ? DECK_INDEX_GROUPED_GRID : DECK_INDEX_GRID, "hidden sm:grid")}>
+        <Finish deck={deck} fieldSize={grouped ? null : fieldSize} />
         <Art deck={deck} />
-        <MetaIdentity
-          name={deck.legendName}
-          archiveSlug={deck.legendArchiveSlug}
-          layout="stacked"
-        />
+        <div className="min-w-0">
+          <MetaIdentity
+            name={deck.legendName}
+            archiveSlug={deck.legendArchiveSlug}
+            layout="stacked"
+          />
+        </div>
         <div className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-1.5">
             <MetaPlayerName
@@ -163,20 +165,26 @@ export function MetaDeckIndexRow({
             <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
           )}
         </div>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-medium">{deck.event.name}</span>
-          <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <MetaTierBadge tier={deck.event.tier} />
-            <CountryFlag code={deck.event.country} size="sm" />
-          </span>
-        </div>
-        <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
+        {!grouped && (
+          <>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate font-medium">{deck.event.name}</span>
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <MetaTierBadge tier={deck.event.tier} />
+                <CountryFlag code={deck.event.country} size="sm" />
+              </span>
+            </div>
+            <DateLeaf month={leaf.month} day={leaf.day} size="sm" />
+          </>
+        )}
         <span className="text-right text-sm tabular-nums">{priced}</span>
-        <Owned cost={cost} marketplace={marketplace} />
+        <div className="min-w-0">
+          <Owned cost={cost} marketplace={marketplace} />
+        </div>
       </div>
 
       <div className="flex items-start gap-2.5 sm:hidden">
-        <Finish deck={deck} fieldSize={fieldSize} />
+        <Finish deck={deck} fieldSize={grouped ? null : fieldSize} />
         <CardArtThumb imageId={deck.legendImageId} variant="120w" className="w-7.5 rounded-xs" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <MetaIdentity name={deck.legendName} archiveSlug={deck.legendArchiveSlug} layout="row" />
@@ -192,13 +200,15 @@ export function MetaDeckIndexRow({
             )}
             <MetaListStatusBadge listStatus={deck.listStatus} />
           </span>
-          <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
-            <MetaTierBadge tier={deck.event.tier} />
-            <CountryFlag code={deck.event.country} size="sm" showCode={false} />
-            <span className="truncate">
-              {deck.event.name} · {formatDay(deck.event.eventDate)}
+          {!grouped && (
+            <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+              <MetaTierBadge tier={deck.event.tier} />
+              <CountryFlag code={deck.event.country} size="sm" showCode={false} />
+              <span className="truncate">
+                {deck.event.name} · {formatDay(deck.event.eventDate)}
+              </span>
             </span>
-          </span>
+          )}
         </div>
         {cost !== undefined && (
           <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">

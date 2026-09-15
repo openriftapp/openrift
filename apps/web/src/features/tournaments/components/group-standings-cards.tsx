@@ -10,7 +10,7 @@ import { TriangleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Table,
@@ -44,10 +44,9 @@ function DecidedByBadge({ tier }: { tier: GroupCutTierView | null }) {
 }
 
 function RankMark({ place }: { place: number }) {
-  if (place <= 3) {
-    return <Medal rank={place} />;
-  }
-  return <span className="text-muted-foreground tabular-nums">{place}</span>;
+  return (
+    <RankBand rank={place} text={String(place)} filled={false} className="min-w-10 rounded-md" />
+  );
 }
 
 function PlayerCell({ row }: { row: Pick<GroupStandingRowView, "displayName" | "status"> }) {
@@ -89,7 +88,7 @@ export function GroupStandingsCard({ group }: { group: GroupStageGroupView }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">#</TableHead>
+            <TableHead className="w-14">#</TableHead>
             <TableHead>{m.tournaments_group_col_player()}</TableHead>
             <TableHead>{m.tournaments_group_col_legend()}</TableHead>
             <TableHead className="text-right">{m.tournaments_group_col_points()}</TableHead>

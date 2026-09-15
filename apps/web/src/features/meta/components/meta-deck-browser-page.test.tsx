@@ -176,11 +176,49 @@ describe("MetaDeckBrowserPage", () => {
     expect(seen("1 of 2 archived decks")).toBe(true);
   });
 
-  it("names the event and the field a finish came out of on each row", () => {
+  it("heads each event's lists with the event and its tier, and leaves the field off the rows", () => {
     render(<MetaDeckBrowserPage />);
+    expect(screen.getByRole("link", { name: /Regional Qualifier Barcelona/u })).toHaveAttribute(
+      "href",
+      "/meta/regional-qualifier-barcelona",
+    );
+    expect(seen("Premier")).toBe(true);
+    expect(seen("of 86")).toBe(false);
+  });
+
+  it("starts a new header for each event, newest first", () => {
+    captured.search = { all: true };
+    captured.decks = [
+      deck({ deckId: "barcelona", playerName: "Nova" }),
+      deck({
+        deckId: "lyon",
+        playerName: "Ekko",
+        legendCardId: "card-lux",
+        event: {
+          slug: "regional-lyon",
+          name: "Regional Lyon",
+          eventDate: "2026-08-30",
+          format: "constructed",
+          tier: "premier",
+          country: "FR",
+        },
+      }),
+    ];
+    render(<MetaDeckBrowserPage />);
+
+    const headers = screen.getAllByRole("link", { name: /Regional (?:Lyon|Qualifier Barcelona)/u });
+    expect(headers.map((header) => header.getAttribute("href"))).toEqual([
+      "/meta/regional-lyon",
+      "/meta/regional-qualifier-barcelona",
+    ]);
+  });
+
+  it("keeps the event and the field on every row once sorted by anything but date", () => {
+    captured.search = { by: "value", dir: "asc" };
+    render(<MetaDeckBrowserPage />);
+    expect(screen.queryByRole("link", { name: /Regional Qualifier Barcelona/u })).toBeNull();
     expect(seen("Regional Qualifier Barcelona")).toBe(true);
     expect(seen("of 86")).toBe(true);
-    expect(seen("Premier")).toBe(true);
   });
 
   it("opens on premier and competitive events and holds the store nights back", () => {

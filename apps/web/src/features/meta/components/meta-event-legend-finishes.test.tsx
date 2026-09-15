@@ -1,9 +1,13 @@
-import type { MetaEventMatch, MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type {
+  MetaEventMatch,
+  MetaEventPhase,
+  MetaEventPlayer,
+} from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { metaMatch, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
@@ -28,8 +32,19 @@ function tiles(): HTMLElement[] {
   return screen.getAllByRole("listitem");
 }
 
-function renderFinishes(players: MetaEventPlayer[], matches: MetaEventMatch[] = []) {
-  render(<MetaEventLegendFinishes players={players} matches={matches} slug="summoner-skirmish" />);
+function renderFinishes(
+  players: MetaEventPlayer[],
+  matches: MetaEventMatch[] = [],
+  phases: MetaEventPhase[] = [],
+) {
+  render(
+    <MetaEventLegendFinishes
+      players={players}
+      matches={matches}
+      phases={phases}
+      slug="summoner-skirmish"
+    />,
+  );
 }
 
 function field(
@@ -54,6 +69,7 @@ describe("MetaEventLegendFinishes", () => {
       <MetaEventLegendFinishes
         players={[metaPlayer({ id: "p-1", legend: null }), metaPlayer({ id: "p-2", legend: null })]}
         matches={[]}
+        phases={[]}
         slug="summoner-skirmish"
       />,
     );
@@ -84,7 +100,7 @@ describe("MetaEventLegendFinishes", () => {
     ]);
   });
 
-  it("prints the pilot's finish and record beside their name", () => {
+  it("prints the pilot's finish and record", () => {
     renderFinishes([
       metaPlayer({ id: "p-1", playerName: "Ana", rank: 4, wins: 5, losses: 2, draws: 1 }),
     ]);
@@ -94,12 +110,29 @@ describe("MetaEventLegendFinishes", () => {
     expect(tile.getByText("5-2-1")).toBeInTheDocument();
   });
 
-  it("medals a podium pilot in place of the printed finish", () => {
+  it("prints a podium finish in its ordinal form", () => {
     renderFinishes([metaPlayer({ id: "p-1", playerName: "Ana", rank: 2 })]);
 
-    const tile = within(tiles()[0]!);
-    expect(tile.getByText("2")).toBeInTheDocument();
-    expect(tile.queryByText("2nd")).toBeNull();
+    expect(within(tiles()[0]!).getByText("2nd")).toBeInTheDocument();
+  });
+
+  it("names the bracket each finish reached inside the top cut, and nothing below it", () => {
+    renderFinishes(
+      [
+        metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
+        metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
+        metaPlayer({ id: "p-3", playerName: "Cy", rank: 6, legend: legend("card-c", "Caitlyn") }),
+        metaPlayer({ id: "p-4", playerName: "Di", rank: 12, legend: legend("card-d", "Darius") }),
+      ],
+      [],
+      [metaPhase()],
+    );
+
+    expect(
+      tiles().map(
+        (tile) => within(tile).queryByText(/^(?:Winner|Finalist|Top \d+)$/u)?.textContent ?? null,
+      ),
+    ).toEqual(["Winner", "Finalist", "Top 8", null]);
   });
 
   it("leads the legend to its archive page and the pilot to theirs", () => {
@@ -123,6 +156,23 @@ describe("MetaEventLegendFinishes", () => {
       "href",
       "/meta/summoner-skirmish/players/u1001",
     );
+  });
+
+  it("links the pilot's decklist from the tile when one is on file", () => {
+    renderFinishes([
+      metaPlayer({ id: "p-1", playerName: "Ana", shareToken: "tok1", listStatus: "full" }),
+    ]);
+
+    expect(within(tiles()[0]!).getByRole("link", { name: "Deck" })).toHaveAttribute(
+      "href",
+      "/meta/decks/tok1",
+    );
+  });
+
+  it("offers no deck link for a pilot without a decklist", () => {
+    renderFinishes([metaPlayer({ id: "p-1", playerName: "Ana" })]);
+
+    expect(within(tiles()[0]!).queryByRole("link", { name: "Deck" })).toBeNull();
   });
 
   it("counts nothing about how many pilots brought a legend", () => {

@@ -8,8 +8,10 @@ import type {
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { accentGlow, Medal } from "@/components/ui/podium";
+import { accentGlow } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import type { BracketMatch } from "@/features/tournaments/lib/cut-bracket-display";
 import { buildBracketColumns } from "@/features/tournaments/lib/cut-bracket-display";
 import { cutMatchShortLabel } from "@/features/tournaments/lib/group-cut-display";
@@ -60,39 +62,48 @@ function Seat({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-3 py-2.5 text-sm not-last:border-b",
+        "flex text-sm not-last:border-b",
         winner ? "font-semibold" : "text-muted-foreground",
       )}
     >
-      {place !== undefined && place <= 3 ? (
-        <Medal rank={place} />
-      ) : (
-        <Badge variant="outline" className="w-8 shrink-0 justify-center tabular-nums">
-          {seed === undefined ? "–" : `#${seed}`}
-        </Badge>
-      )}
-      <span className="min-w-0 flex-1 truncate">{member.displayName}</span>
-      {group ? (
-        <Badge variant="muted" className="shrink-0">
-          {group}
-        </Badge>
-      ) : null}
-      {chooser ? (
-        <span className="text-muted-foreground shrink-0 text-xs">
-          {m.tournaments_cut_chooses_starter()}
+      {place === undefined ? (
+        <span className="flex w-14 shrink-0 items-center justify-center">
+          <Badge variant="outline" className="w-8 justify-center tabular-nums">
+            {seed === undefined ? "–" : `#${seed}`}
+          </Badge>
         </span>
-      ) : null}
-      {legend ? (
-        <TournamentLegend
-          legendCardId={legend.legendCardId}
-          legendName={legend.legendName}
-          championOnly
-          className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
+      ) : (
+        <RankBand
+          rank={place}
+          text={formatRank(place, false)}
+          crownOnly
+          className="w-14 shrink-0"
         />
-      ) : null}
-      <span className="font-heading w-6 text-right tabular-nums">
-        {isWalkoverPod(pod) ? (winner ? "W" : "–") : (member.gamePoints ?? "–")}
-      </span>
+      )}
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5">
+        <span className="min-w-0 flex-1 truncate">{member.displayName}</span>
+        {group ? (
+          <Badge variant="muted" className="shrink-0">
+            {group}
+          </Badge>
+        ) : null}
+        {chooser ? (
+          <span className="text-muted-foreground shrink-0 text-xs">
+            {m.tournaments_cut_chooses_starter()}
+          </span>
+        ) : null}
+        {legend ? (
+          <TournamentLegend
+            legendCardId={legend.legendCardId}
+            legendName={legend.legendName}
+            championOnly
+            className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
+          />
+        ) : null}
+        <span className="font-heading w-6 text-right tabular-nums">
+          {isWalkoverPod(pod) ? (winner ? "W" : "–") : (member.gamePoints ?? "–")}
+        </span>
+      </div>
     </div>
   );
 }

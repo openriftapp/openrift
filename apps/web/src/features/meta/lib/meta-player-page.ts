@@ -140,6 +140,16 @@ export interface MetaPlayerFacts {
 }
 
 /** The country is where most of the record was played, not a nationality. Ties break to the alphabetically first code. */
+export function metaPlayerLegendDomains(
+  finishes: readonly MetaPlayerFinish[],
+): ReadonlyMap<string, readonly string[]> {
+  return new Map(
+    finishes.flatMap((finish) =>
+      finish.legend === null ? [] : [[finish.legend.cardId, finish.legend.domains] as const],
+    ),
+  );
+}
+
 export function metaPlayerFacts(finishes: readonly MetaPlayerFinish[]): MetaPlayerFacts {
   const byCountry = new Map<string, number>();
   let firstDate: string | null = null;

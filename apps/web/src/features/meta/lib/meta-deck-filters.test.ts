@@ -6,6 +6,7 @@ import {
   countMetaDecksUnderCost,
   curateMetaDecks,
   filterMetaDecks,
+  groupDecksByEvent,
   hasActiveMetaDeckFilters,
   metaDeckFilterCounts,
   metaDeckFilterOptions,
@@ -305,6 +306,37 @@ describe("curateMetaDecks", () => {
 
   it("returns nothing for an empty list", () => {
     expect(curated([])).toEqual([]);
+  });
+});
+
+describe("groupDecksByEvent", () => {
+  const riftOpen = { ...decks[0]!.event, slug: "rift-open", name: "Rift Open" };
+
+  it("gathers each event's consecutive lists under that event", () => {
+    const groups = groupDecksByEvent([
+      makeDeck({ deckId: "s1" }),
+      makeDeck({ deckId: "s2" }),
+      makeDeck({ deckId: "r1", event: riftOpen }),
+    ]);
+
+    expect(groups.map((group) => [group.event.slug, ids(group.decks)])).toEqual([
+      ["summoner-skirmish", ["s1", "s2"]],
+      ["rift-open", ["r1"]],
+    ]);
+  });
+
+  it("opens a new group when an event returns after another one", () => {
+    const groups = groupDecksByEvent([
+      makeDeck({ deckId: "s1" }),
+      makeDeck({ deckId: "r1", event: riftOpen }),
+      makeDeck({ deckId: "s2" }),
+    ]);
+
+    expect(groups.map((group) => group.event.slug)).toEqual([
+      "summoner-skirmish",
+      "rift-open",
+      "summoner-skirmish",
+    ]);
   });
 });
 

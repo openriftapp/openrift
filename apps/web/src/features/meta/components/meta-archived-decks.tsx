@@ -5,6 +5,7 @@ import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
+import { MetaPlayerDeckTile } from "@/features/meta/components/meta-player-deck-tile";
 import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
@@ -24,11 +25,13 @@ export function MetaArchivedDecks({
   decks,
   total,
   subject,
+  legendDomains,
   onShowAll,
 }: {
   decks: readonly MetaDeckSummary[];
   total: number;
   subject: MetaArchivedDecksSubject;
+  legendDomains?: ReadonlyMap<string, readonly string[]>;
   onShowAll?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -74,7 +77,16 @@ export function MetaArchivedDecks({
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {shown.map((deck) => (
             <li key={deck.deckId}>
-              <MetaArchiveDeckTile deck={deck} marketplace={marketplace} showEvent />
+              {subject === "player" ? (
+                <MetaPlayerDeckTile
+                  deck={deck}
+                  legendDomains={
+                    deck.legendCardId === null ? undefined : legendDomains?.get(deck.legendCardId)
+                  }
+                />
+              ) : (
+                <MetaArchiveDeckTile deck={deck} marketplace={marketplace} showEvent />
+              )}
             </li>
           ))}
         </ul>

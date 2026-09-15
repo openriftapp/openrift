@@ -22,7 +22,7 @@ The app chrome has a display face — **Chakra Petch**, exposed as `--font-headi
 - **Page titles** — `PageTopBarTitle` and `Heading` levels 1-2 apply it already; using those primitives is the normal path. Don't add `font-heading` to a hand-rolled heading that should be one of these components instead.
 - **Section h2s in long-form content** (help articles, legal/privacy prose, the rules version comments) sit on the same `text-lg font-semibold` tier as `Heading` level 2 and carry the face too — via `Heading` in article components, or the `prose-h1:`/`prose-h2:` modifiers in `ProsePage` (see rule 6).
 - **Hero wordmark and hero CTAs** on the landing page.
-- **Big display numerals** (2xl and larger), opt-in per spot — the landing stats, the collection stats tiles, the friend-group and tournament overview counters, and the match-tracker score. Tabular data (prices, table counts) stays on the default face.
+- **Big display numerals** (2xl and larger), opt-in per spot — the landing stats, the collection stats tiles, the friend-group and tournament overview counters, the match-tracker score, and the rank marks (`RankBand`) that lead standings and finish lists. Tabular data (prices, table counts) stays on the default face.
 
 Everything else — body copy, buttons, form labels, inputs, tables, badges, dropdowns, dialog titles, `Heading` level 3, card names in browser grids — keeps the default face (Hanken Grotesk). At body-adjacent sizes the display face reads as noise, not identity; when in doubt, leave it off.
 
@@ -31,6 +31,8 @@ Everything else — body copy, buttons, form labels, inputs, tables, badges, dro
 ## Display numerals
 
 One narrow exception sits above the Hero size: a **display numeral** — a single number meant to be read at a glance from across a room, not body or heading text. Two uses today: the match-tracker scorepad, where the score scales with the card from `text-4xl` up to `text-9xl` (`scoreSizeClass` in `apps/web/src/features/tournaments/lib/match-layout.ts`), and the reference a sent scan report prints for the user to read out (`text-4xl font-bold`, `apps/web/src/features/scan/components/scan-report-page.tsx`). Display numerals carry `font-heading`. This is deliberately not a general-purpose tier: don't reach for `text-6xl`+ on ordinary headings or copy. If you have a new display-numeral case, add it here.
+
+Rank marks (`RankBand` in `apps/web/src/components/ui/rank-band.tsx`) are the one display numeral that steps down. The number sits in a box no wider than a two-digit place, so a longer place drops to `text-lg`, then `text-base`, however wide the column is, and a narrow slot steps down further through container queries on that box. The query widths are measured against Chakra Petch bold, so a change of display face means measuring them again.
 
 ## Rules
 

@@ -18,6 +18,7 @@ import {
   metaPlayerCountries,
   metaPlayerDecks,
   metaPlayerFacts,
+  metaPlayerLegendDomains,
   metaPlayerLegends,
 } from "@/features/meta/lib/meta-player-page";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
@@ -107,6 +108,7 @@ export function MetaPlayerPage() {
             decks={decks}
             total={decks.length}
             subject="player"
+            legendDomains={metaPlayerLegendDomains(data.finishes)}
           />
         )}
       </div>

@@ -12,7 +12,7 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { RowList } from "@/components/ui/row-list";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { SearchInput } from "@/features/cards/components/search-input";
@@ -23,12 +23,7 @@ import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { useMetaEvents, useMetaLegends } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
-import {
-  formatRank,
-  MEDAL_RANKS,
-  metaShownLabel,
-  splitLegendName,
-} from "@/features/meta/lib/meta-format";
+import { formatRank, metaShownLabel, splitLegendName } from "@/features/meta/lib/meta-format";
 import type { MetaLegendIndexEntry } from "@/features/meta/lib/meta-legend-page";
 import {
   metaLegendIndexCountries,
@@ -59,15 +54,12 @@ const SortButton = IndexSortButton<MetaLegendIndexSort>;
 
 function Rank({ rank, rankIsTier }: { rank: number; rankIsTier: boolean }) {
   return (
-    <span className="flex w-10 shrink-0 justify-center">
-      {rank <= MEDAL_RANKS ? (
-        <Medal rank={rank} />
-      ) : (
-        <span className="text-muted-foreground text-sm tabular-nums">
-          {formatRank(rank, rankIsTier)}
-        </span>
-      )}
-    </span>
+    <RankBand
+      rank={rank}
+      text={formatRank(rank, rankIsTier)}
+      filled={false}
+      className="w-16 shrink-0 rounded-md"
+    />
   );
 }
 
@@ -128,15 +120,15 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
           </p>
           {title !== null && <p className="text-muted-foreground truncate text-xs">{title}</p>}
         </div>
-        <div className="min-w-0">
-          <p className="flex min-w-0 items-center gap-2">
-            <Rank rank={best.rank} rankIsTier={best.rankIsTier} />
-            <span className="truncate text-sm font-medium">{best.event.name}</span>
-          </p>
-          <p className="text-muted-foreground flex min-w-0 items-center gap-1.5 pl-12 text-xs">
-            <MetaTierBadge tier={best.event.tier} />
-            <span className="truncate tabular-nums">{bestFinishFacts(entry)}</span>
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Rank rank={best.rank} rankIsTier={best.rankIsTier} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{best.event.name}</p>
+            <p className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+              <MetaTierBadge tier={best.event.tier} />
+              <span className="truncate tabular-nums">{bestFinishFacts(entry)}</span>
+            </p>
+          </div>
         </div>
         <span className="text-muted-foreground text-right text-sm tabular-nums">
           {entry.decklists.toLocaleString("en-US")}
@@ -161,13 +153,15 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
             </span>
           </p>
           {title !== null && <p className="text-muted-foreground truncate text-xs">{title}</p>}
-          <p className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
             <Rank rank={best.rank} rankIsTier={best.rankIsTier} />
-            <span className="truncate text-sm">{best.event.name}</span>
-            <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-              {formatDay(best.event.eventDate)}
-            </span>
-          </p>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm">{best.event.name}</span>
+              <span className="text-muted-foreground text-xs tabular-nums">
+                {formatDay(best.event.eventDate)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </Link>

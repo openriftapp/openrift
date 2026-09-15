@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { RowList } from "@/components/ui/row-list";
 import {
   Table,
@@ -20,7 +20,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
 import type { MetaFinishesView } from "@/features/meta/lib/meta-legend-page";
 import { BEST_FINISH_COUNT, FINISH_PAGE_SIZE } from "@/features/meta/lib/meta-legend-page";
 import { sortPlayerFinishes } from "@/features/meta/lib/meta-player-page";
@@ -29,13 +29,13 @@ import { useUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 function Rank({ finish }: { finish: MetaPlayerFinish }) {
-  if (finish.rank <= MEDAL_RANKS) {
-    return <Medal rank={finish.rank} />;
-  }
   return (
-    <span className="text-muted-foreground inline-block w-5 text-center text-sm tabular-nums">
-      {formatRank(finish.rank, finish.rankIsTier)}
-    </span>
+    <RankBand
+      rank={finish.rank}
+      text={formatRank(finish.rank, finish.rankIsTier)}
+      filled={false}
+      className="w-16 shrink-0 rounded-md"
+    />
   );
 }
 
@@ -119,7 +119,7 @@ function FinishTableRow({
 
   return (
     <TableRow>
-      <TableCell className="w-12">
+      <TableCell className="w-20">
         <Rank finish={finish} />
       </TableCell>
       <TableCell>
@@ -160,9 +160,7 @@ function FinishPhoneRow({
   return (
     <li>
       <div className="flex items-start gap-2.5 sm:hidden">
-        <span className="mt-0.5">
-          <Rank finish={finish} />
-        </span>
+        <Rank finish={finish} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <TextLink
             variant="inherit"
@@ -244,7 +242,7 @@ export function MetaPlayerFinishes({
         <Table variant="divided" className="hidden table-fixed sm:table">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">{m.meta_standings_col_rank()}</TableHead>
+              <TableHead className="w-20">{m.meta_standings_col_rank()}</TableHead>
               <TableHead>{m.meta_finishes_col_event()}</TableHead>
               <TableHead className="w-24">{m.meta_finishes_col_tier()}</TableHead>
               <TableHead className="w-72">{m.meta_standings_col_legend()}</TableHead>

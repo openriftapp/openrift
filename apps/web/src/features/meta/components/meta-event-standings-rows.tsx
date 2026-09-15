@@ -26,6 +26,7 @@ export interface RowProps extends RowSlot {
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
   rounds: readonly MetaPlayerRound[] | undefined;
   pending: MetaPendingRowMark | undefined;
+  cutSize: number | null;
   expanded: boolean;
   onToggle: () => void;
 }
@@ -66,6 +67,7 @@ export function DesktopRow({
   costs,
   rounds,
   pending,
+  cutSize,
   expanded,
   onToggle,
   ...slot
@@ -82,8 +84,8 @@ export function DesktopRow({
         token !== null && "cursor-pointer",
       )}
     >
-      <TableCell className="w-20 shrink-0">
-        <RankCell player={player} className="w-12" />
+      <TableCell className="flex w-24 shrink-0 self-stretch p-0">
+        <RankCell player={player} cutSize={cutSize} className="flex-1" />
       </TableCell>
       {columns.legend && (
         <TableCell className="w-64 shrink-0">
@@ -97,7 +99,7 @@ export function DesktopRow({
           eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
         />
       </TableCell>
-      {columns.run && (
+      {(columns.run || columns.record) && (
         <TableCell className="w-52 shrink-0">
           <RunCell player={player} slug={slug} rounds={rounds} />
         </TableCell>
@@ -135,6 +137,7 @@ export function PhoneRow({
   costs,
   rounds,
   pending,
+  cutSize,
   expanded,
   onToggle,
   ...slot
@@ -147,52 +150,66 @@ export function PhoneRow({
       {...slot}
       {...rowToggleProps(token, expanded, onToggle)}
       className={cn(
-        "focus-visible:ring-ring aria-expanded:bg-muted/50 flex flex-col gap-2 px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
+        "focus-visible:ring-ring aria-expanded:bg-muted/50 flex flex-col text-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
         player.rank === 1 && "bg-border-accent/10",
         token !== null && "cursor-pointer",
       )}
     >
-      <div className="flex items-center gap-2.5">
-        <RankCell player={player} className="w-10 shrink-0" />
-        {columns.legend && (
-          <CardArtThumb
-            imageId={player.legend?.imageId ?? player.champion?.imageId ?? null}
-            domains={player.legend?.domains}
-            loading="lazy"
-            className="w-9"
-          />
-        )}
-        <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate font-medium">
-            <MetaPlayerName
-              name={player.playerName}
-              playerKey={player.playerKey}
-              eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
-            />
-          </p>
-          <MetaIdentity
-            name={player.legend?.name}
-            slug={player.legend?.slug}
-            archiveSlug={player.legend?.archiveSlug}
-            domains={player.legend?.domains}
-            className="text-muted-foreground text-xs"
-          />
-          {columns.run && <RunCell player={player} slug={slug} rounds={rounds} className="mt-1" />}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5 leading-tight">
-          {columns.value && <DeckValue player={player} costs={costs} />}
-          {columns.deck && (
-            <DeckCell
-              player={player}
-              slug={slug}
-              canSubmit={canSubmit}
-              expanded={expanded}
-              pending={pending}
+      <div className="flex">
+        <RankCell player={player} cutSize={cutSize} className="w-18 shrink-0" />
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-3 pl-2.5">
+          {columns.legend && (
+            <CardArtThumb
+              imageId={player.legend?.imageId ?? player.champion?.imageId ?? null}
+              domains={player.legend?.domains}
+              loading="lazy"
+              className="w-9"
             />
           )}
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate font-medium">
+              <MetaPlayerName
+                name={player.playerName}
+                playerKey={player.playerKey}
+                eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
+              />
+            </p>
+            <MetaIdentity
+              name={player.legend?.name}
+              slug={player.legend?.slug}
+              archiveSlug={player.legend?.archiveSlug}
+              domains={player.legend?.domains}
+              className="text-muted-foreground text-xs"
+            />
+            {(columns.run || columns.record) && (
+              <RunCell
+                player={player}
+                slug={slug}
+                rounds={rounds}
+                layout="inline"
+                className="mt-1"
+              />
+            )}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-0.5 leading-tight">
+            {columns.value && <DeckValue player={player} costs={costs} />}
+            {columns.deck && (
+              <DeckCell
+                player={player}
+                slug={slug}
+                canSubmit={canSubmit}
+                expanded={expanded}
+                pending={pending}
+              />
+            )}
+          </div>
         </div>
       </div>
-      {expanded && token !== null && <DeckPreview token={token} />}
+      {expanded && token !== null && (
+        <div className="px-3 pb-2">
+          <DeckPreview token={token} />
+        </div>
+      )}
     </li>
   );
 }

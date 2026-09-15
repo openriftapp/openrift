@@ -1,5 +1,6 @@
 import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
 
+import { formatRecord } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 export const ANY_LEGEND = "any";
@@ -40,6 +41,7 @@ export interface RowSlot {
 export interface StandingsColumns {
   legend: boolean;
   run: boolean;
+  record: boolean;
   value: boolean;
   deck: boolean;
 }
@@ -53,6 +55,9 @@ export function standingsColumns(
   return {
     legend: players.some((player) => player.legend !== null || player.champion !== null),
     run: hasRuns,
+    record: players.some(
+      (player) => formatRecord(player.wins, player.losses, player.draws) !== null,
+    ),
     value: anyList,
     deck: canSubmit || anyList,
   };

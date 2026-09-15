@@ -77,6 +77,7 @@ export function GroupCutStandingsView({
           {live ? (
             <TournamentLegendFinishes
               entries={bestFinishPerLegend(finalRows, legendCardByPlayer)}
+              cutSize={cutSize}
             />
           ) : null}
           <FinalStandingsCard

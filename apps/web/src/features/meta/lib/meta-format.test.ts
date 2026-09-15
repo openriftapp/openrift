@@ -4,6 +4,7 @@ import { getLocale, overwriteGetLocale } from "@/paraglide/runtime.js";
 
 import type { MetaCountedEvent } from "./meta-format";
 import {
+  finishBracketLabel,
   formatRank,
   formatRankRuns,
   joinNames,
@@ -15,6 +16,38 @@ import {
   splitLegendName,
   standingsGaps,
 } from "./meta-format";
+
+describe("finishBracketLabel", () => {
+  it("names the winner of any event", () => {
+    expect(finishBracketLabel(1, false, null)).toBe("Winner");
+  });
+
+  it("names the runner-up a finalist only when the event cut to a final", () => {
+    expect(finishBracketLabel(2, false, 8)).toBe("Finalist");
+    expect(finishBracketLabel(2, false, null)).toBeNull();
+  });
+
+  it("names the bracket round a finish inside the cut went out in", () => {
+    expect([3, 4, 5, 8].map((rank) => finishBracketLabel(rank, false, 8))).toEqual([
+      "Top 4",
+      "Top 4",
+      "Top 8",
+      "Top 8",
+    ]);
+  });
+
+  it("caps the bracket at a cut that is not a power of two", () => {
+    expect(finishBracketLabel(5, false, 6)).toBe("Top 6");
+  });
+
+  it("labels nothing below the cut", () => {
+    expect(finishBracketLabel(9, false, 8)).toBeNull();
+  });
+
+  it("leaves a tier finish to its own T-number", () => {
+    expect(finishBracketLabel(4, true, 8)).toBeNull();
+  });
+});
 
 describe("metaShownLabel", () => {
   it("names the whole count while nothing is narrowed", () => {

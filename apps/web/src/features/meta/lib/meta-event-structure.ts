@@ -11,7 +11,7 @@ export interface MetaEventStructure {
 }
 
 /** The largest elimination phase wins, so a third-place playoff filed as its own phase never shrinks the cut. */
-function cutSizeOf(phases: readonly MetaEventPhase[]): number | null {
+export function cutSizeOf(phases: readonly MetaEventPhase[]): number | null {
   let largest: number | null = null;
   for (const phase of phases) {
     if (!isSingleElimination(phase.roundType)) {

@@ -89,10 +89,20 @@ describe("MetaEventBracket", () => {
     const { container } = render(
       <MetaEventBracket matches={topFour} phases={topFourPhases} players={players} />,
     );
-    const badges = [...container.querySelectorAll('[data-slot="medal"]')].map(
+    const badges = [...container.querySelectorAll('[data-slot="rank-band"]')].map(
       (badge) => badge.textContent,
     );
-    expect(badges).toEqual(["1", "4", "2", "3", "1", "2"]);
+    expect(badges).toEqual(["1st", "4th", "2nd", "3rd", "1st", "2nd"]);
+  });
+
+  it("marks the champion's seat with the crown alone, keeping the place for screen readers", () => {
+    const { container } = render(
+      <MetaEventBracket matches={topFour} phases={topFourPhases} players={players} />,
+    );
+    const champion = container.querySelector('[data-slot="rank-band"][data-tone="gold"]');
+
+    expect(champion?.querySelector("svg")).not.toBeNull();
+    expect(champion?.querySelector(".sr-only")).toHaveTextContent("1st");
   });
 
   it("badges a seat whose standings row the archive does not hold with nothing", () => {
@@ -103,7 +113,7 @@ describe("MetaEventBracket", () => {
     const { container } = render(
       <MetaEventBracket matches={orphan} phases={topFourPhases} players={players} />,
     );
-    expect(container.querySelectorAll('[data-slot="medal"]')).toHaveLength(5);
+    expect(container.querySelectorAll('[data-slot="rank-band"]')).toHaveLength(5);
   });
 
   it("badges the third-place match beside the final from the standings", () => {
@@ -116,7 +126,7 @@ describe("MetaEventBracket", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Top 4" })).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-slot="medal"]')).toHaveLength(8);
+    expect(container.querySelectorAll('[data-slot="rank-band"]')).toHaveLength(8);
   });
 
   it("prints a dash where the source reported no games", () => {

@@ -2,7 +2,7 @@ import type { PodRoundResponse, PodStandingRow } from "@openrift/shared/types/ap
 import type { TournamentPlayMode } from "@openrift/shared/types/api/tournament";
 
 import { Badge } from "@/components/ui/badge";
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { RowList, RowListItem } from "@/components/ui/row-list";
 import {
   Table,
@@ -27,10 +27,9 @@ import { formatPlayerRecord, formatScore, podWinsHint, rankedStandings } from ".
 const rawRegionSlug = (slug: string): string => slug;
 
 function RankMark({ rank }: { rank: number }) {
-  if (rank <= 3) {
-    return <Medal rank={rank} />;
-  }
-  return <span className="text-muted-foreground tabular-nums">{rank}</span>;
+  return (
+    <RankBand rank={rank} text={String(rank)} filled={false} className="w-10 shrink-0 rounded-md" />
+  );
 }
 
 function PlayerIdentity({
@@ -106,9 +105,7 @@ export function StandingsTable({
               rank === 1 && "bg-border-accent/5",
             )}
           >
-            <div className="flex w-6 shrink-0 justify-end">
-              <RankMark rank={rank} />
-            </div>
+            <RankMark rank={rank} />
             <div className="min-w-0 flex-1">
               <PlayerIdentity row={row} regionsEnabled={regionsEnabled} regionLabel={regionLabel} />
               <div className="text-muted-foreground flex gap-x-3 text-sm">
@@ -137,7 +134,7 @@ export function StandingsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">#</TableHead>
+              <TableHead className="w-14">#</TableHead>
               <TableHead>
                 {teamMode
                   ? m.tournaments_standings_col_team()

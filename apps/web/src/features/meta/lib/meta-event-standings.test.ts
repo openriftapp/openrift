@@ -56,6 +56,20 @@ describe("standingsColumns", () => {
     expect(columns.deck).toBe(true);
   });
 
+  it("files a record column once any player carries a win-loss record", () => {
+    const columns = standingsColumns([metaPlayer({ wins: 3, losses: 1 })], false, false);
+    expect(columns.record).toBe(true);
+  });
+
+  it("files no record column for bare placings", () => {
+    const columns = standingsColumns(
+      [metaPlayer({ wins: null, losses: null, draws: null })],
+      false,
+      false,
+    );
+    expect(columns.record).toBe(false);
+  });
+
   it("shows the run column only when the event has runs", () => {
     expect(standingsColumns([metaPlayer()], false, true).run).toBe(true);
     expect(standingsColumns([metaPlayer()], false, false).run).toBe(false);

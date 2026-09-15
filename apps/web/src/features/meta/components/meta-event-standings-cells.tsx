@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ClockIcon } from "lucide-react";
 import { Suspense } from "react";
 
-import { Medal } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import {
@@ -14,33 +14,30 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaRunStrip } from "@/features/meta/components/meta-run-strip";
 import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { formatRank, formatRecord, MEDAL_RANKS } from "@/features/meta/lib/meta-format";
+import { finishBracketLabel, formatRank, formatRecord } from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-function Rank({ player }: { player: MetaEventPlayer }) {
-  if (player.rank <= MEDAL_RANKS) {
-    return <Medal rank={player.rank} />;
-  }
+export function RankCell({
+  player,
+  cutSize,
+  className,
+}: {
+  player: MetaEventPlayer;
+  cutSize: number | null;
+  className?: string;
+}) {
   return (
-    <span className="text-muted-foreground tabular-nums">
-      {formatRank(player.rank, player.rankIsTier)}
-    </span>
-  );
-}
-
-export function RankCell({ player, className }: { player: MetaEventPlayer; className?: string }) {
-  const record = formatRecord(player.wins, player.losses, player.draws);
-  return (
-    <div className={cn("flex flex-col items-center gap-0.5 leading-tight", className)}>
-      <Rank player={player} />
-      {record !== null && (
-        <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
-      )}
-    </div>
+    <RankBand
+      rank={player.rank}
+      text={formatRank(player.rank, player.rankIsTier)}
+      label={finishBracketLabel(player.rank, player.rankIsTier, cutSize)}
+      filled={cutSize !== null && player.rank <= cutSize}
+      className={className}
+    />
   );
 }
 
@@ -102,35 +99,63 @@ export function LegendCell({ player }: { player: MetaEventPlayer }) {
   );
 }
 
-export function RunCell({
+function RunStripLink({
   player,
   slug,
   rounds,
-  className,
 }: {
   player: MetaEventPlayer;
   slug: string;
-  rounds: readonly MetaPlayerRound[] | undefined;
-  className?: string;
+  rounds: readonly MetaPlayerRound[];
 }) {
-  if (rounds === undefined || rounds.length === 0) {
-    return null;
-  }
   if (player.playerKey === null) {
-    return <MetaRunStrip rounds={rounds} className={className} />;
+    return <MetaRunStrip rounds={rounds} />;
   }
   return (
     <Link
       to="/meta/$slug/players/$key"
       params={{ slug, key: player.playerKey }}
-      className={cn(
-        "text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5",
-        className,
-      )}
+      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
     >
       <MetaRunStrip rounds={rounds} />
       <ChevronRightIcon className="size-4" />
     </Link>
+  );
+}
+
+export function RunCell({
+  player,
+  slug,
+  rounds,
+  layout = "stacked",
+  className,
+}: {
+  player: MetaEventPlayer;
+  slug: string;
+  rounds: readonly MetaPlayerRound[] | undefined;
+  layout?: "stacked" | "inline";
+  className?: string;
+}) {
+  const record = formatRecord(player.wins, player.losses, player.draws);
+  const charted = rounds !== undefined && rounds.length > 0;
+  if (!charted && record === null) {
+    return null;
+  }
+  return (
+    <div
+      className={cn(
+        "flex",
+        layout === "stacked"
+          ? "flex-col items-start gap-1"
+          : "flex-wrap items-center gap-x-2 gap-y-0.5",
+        className,
+      )}
+    >
+      {charted && <RunStripLink player={player} slug={slug} rounds={rounds} />}
+      {record !== null && (
+        <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
+      )}
+    </div>
   );
 }
 

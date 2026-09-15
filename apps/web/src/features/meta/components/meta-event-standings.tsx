@@ -37,7 +37,7 @@ import {
   standingsColumns,
   subtitleFor,
 } from "@/features/meta/lib/meta-event-standings";
-import { describeEventProgress } from "@/features/meta/lib/meta-event-structure";
+import { cutSizeOf, describeEventProgress } from "@/features/meta/lib/meta-event-structure";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
 import { metaPlayerRounds } from "@/features/meta/lib/meta-player-run";
 import {
@@ -126,7 +126,9 @@ export function MetaEventStandings({
   const showSearch = players.length > 8;
   const showLegendFilter = showSearch && Object.keys(legends).length > 0;
   const toggle = (id: string) => setExpandedId(expandedId === id ? null : id);
+  const cutSize = cutSizeOf(phases);
   const body = {
+    cutSize,
     players: matching,
     slug,
     canSubmit,

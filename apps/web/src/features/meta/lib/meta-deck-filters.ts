@@ -174,6 +174,25 @@ export function nextDeckSort(
   return { sort: column, direction: column === "date" ? "desc" : "asc" };
 }
 
+export interface MetaDeckEventGroup {
+  event: MetaDeckSummary["event"];
+  decks: MetaDeckSummary[];
+}
+
+/** Groups consecutive runs only, so the decks must already be sorted with each event's lists together. */
+export function groupDecksByEvent(decks: readonly MetaDeckSummary[]): MetaDeckEventGroup[] {
+  const groups: MetaDeckEventGroup[] = [];
+  for (const deck of decks) {
+    const last = groups.at(-1);
+    if (last !== undefined && last.event.slug === deck.event.slug) {
+      last.decks.push(deck);
+    } else {
+      groups.push({ event: deck.event, decks: [deck] });
+    }
+  }
+  return groups;
+}
+
 export function metaDeckSortPresets(): {
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;

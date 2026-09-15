@@ -54,10 +54,15 @@ describe("StandingsTable", () => {
       />,
     );
     expect(tableRanks()).toEqual(["1", "2", "3", "4"]);
-    const medalled = tableRows().map(
-      (row) => within(row).getAllByRole("cell")[0]!.querySelector("[data-slot=medal]") !== null,
+    const tones = tableRows().map(
+      (row) =>
+        (
+          within(row)
+            .getAllByRole("cell")[0]!
+            .querySelector("[data-slot=rank-band]") as HTMLElement | null
+        )?.dataset.tone,
     );
-    expect(medalled).toEqual([true, true, true, false]);
+    expect(tones).toEqual(["gold", "silver", "bronze", "plain"]);
   });
 
   it("gives both players level on points the same rank and skips the next", () => {

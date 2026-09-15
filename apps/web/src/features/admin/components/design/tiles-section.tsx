@@ -24,6 +24,7 @@ import { CardLink } from "@/components/ui/card-link";
 import { CardList, CardListRow, CardRow } from "@/components/ui/card-list";
 import { Medal, Podium } from "@/components/ui/podium";
 import type { PodiumSeat } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { StatStrip } from "@/components/ui/stat-strip";
 import { StatTile } from "@/components/ui/stat-tile";
 import { UserAvatar } from "@/components/user-avatar";
@@ -31,6 +32,14 @@ import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { cn } from "@/lib/utils";
 
 import { DemoRow, DemoSection, Swatch, SwatchRow } from "./demo-primitives";
+
+const RANK_BAND_DEMOS = [
+  { rank: 1, text: "1", label: "Winner", filled: true },
+  { rank: 2, text: "2", label: "Finalist", filled: true },
+  { rank: 3, text: "3", label: "Top 4", filled: true },
+  { rank: 6, text: "6th", label: "Top 8", filled: true },
+  { rank: 12, text: "12th", label: null, filled: false },
+];
 
 // Static sample members for the avatar-stack demos. The empty gravatar hash
 // keeps the fallback on initials, so the design page makes no network calls.
@@ -303,6 +312,25 @@ export function TilesSection() {
             </span>
           </Swatch>
         ))}
+      </SwatchRow>
+      <SwatchRow
+        label="RankBand"
+        hint="The finish mark standings and finish lists lead with. The podium keeps fixed gold, silver and bronze plates in both themes. Tiles and the event standings fill the rest of a top cut with a muted band. Denser lists pass filled={false} and print every other finish as a bare numeral."
+      >
+        {RANK_BAND_DEMOS.map((demo) => (
+          <Swatch key={demo.text} label={demo.label ?? "below the cut"} colors>
+            <RankBand
+              rank={demo.rank}
+              text={demo.text}
+              label={demo.label}
+              filled={demo.filled}
+              className="w-24 rounded-md"
+            />
+          </Swatch>
+        ))}
+        <Swatch label="inline" colors>
+          <RankBand rank={1} text="1" label="Winner" layout="inline" className="w-52 rounded-md" />
+        </Swatch>
       </SwatchRow>
       <DemoRow label="UserAvatarStack">
         <div className="flex flex-wrap items-center gap-6">

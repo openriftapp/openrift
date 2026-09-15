@@ -6,7 +6,8 @@ import type {
 } from "@openrift/shared/types/api/pod-tournament";
 
 import { Badge } from "@/components/ui/badge";
-import { Medal, Podium } from "@/components/ui/podium";
+import { Podium } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Table,
@@ -63,7 +64,7 @@ export function FinalStandingsCard({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12">#</TableHead>
+            <TableHead className="w-16">#</TableHead>
             <TableHead>{m.tournaments_standings_col_player()}</TableHead>
             {showLegend ? <TableHead>{m.tournaments_standings_col_legend()}</TableHead> : null}
             <TableHead>{m.tournaments_standings_col_run()}</TableHead>
@@ -79,11 +80,12 @@ export function FinalStandingsCard({
           {rows.map((row) => (
             <TableRow key={row.playerId}>
               <TableCell>
-                {row.place <= 3 ? (
-                  <Medal rank={row.place} />
-                ) : (
-                  <span className="text-muted-foreground tabular-nums">{row.place}</span>
-                )}
+                <RankBand
+                  rank={row.place}
+                  text={String(row.place)}
+                  filled={false}
+                  className="min-w-10 rounded-md"
+                />
               </TableCell>
               <TableCell>
                 <div className="flex min-w-0 items-center gap-2">

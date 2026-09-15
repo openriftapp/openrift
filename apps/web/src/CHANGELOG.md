@@ -5,10 +5,14 @@
 ### Highlights
 
 - feat(Groups): **Group events in your calendar** — subscribe to a group's tournaments and to the events at its shops as two separate calendars in Google Calendar, Apple Calendar or Outlook, each through a personal link that stops working when you turn it off or leave the group.
+- feat(Meta): **Finishes you can read at a glance** — standings, the top-cut bracket, finish lists, the archive front page and a player's archived decklists now print places large with the podium in gold, silver and bronze, event standings name how far the top cut went, and each legend's best finish links its decklist.
 
 ### Other
 
 - feat(Meta Archive): **See decklists waiting for review** — a tournament's standings now say "In review" on an entry someone has already sent a decklist for, so nobody sends it twice, and a clock beside a decklist means an update to it is waiting. Your own submissions read "Yours, in review" and link to your submissions. Anything sent in that isn't tied to a standings row is listed under the standings.
+- feat(Tournaments): **Podium places in standings** — Swiss, group and final standings, the cut bracket and each legend's best finish now print places large with the podium in gold, silver and bronze.
+- feat(Meta): **Decks grouped under their event** — in newest-first order the decks page now lists decklists under one header per event, and the page uses the same column width as the other Meta Archive pages.
+- fix(Meta): **Deck list columns line up** — a deck without a legend no longer pushes its player, event and value into the wrong columns.
 
 ## 2026-09-14
 

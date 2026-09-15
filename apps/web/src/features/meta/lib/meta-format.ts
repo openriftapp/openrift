@@ -27,6 +27,30 @@ export function metaListStatusLabels(): Record<MetaListStatus, string> {
 
 export const MEDAL_RANKS = 3;
 
+export function finishBracketLabel(
+  rank: number,
+  rankIsTier: boolean,
+  cutSize: number | null,
+): string | null {
+  if (rank === 1) {
+    return m.meta_finish_winner();
+  }
+  if (cutSize === null || rank > cutSize) {
+    return null;
+  }
+  if (rank === 2) {
+    return m.meta_finish_finalist();
+  }
+  if (rankIsTier) {
+    return null;
+  }
+  let bracket = 4;
+  while (bracket < rank) {
+    bracket *= 2;
+  }
+  return m.meta_bracket_top_n({ size: String(Math.min(bracket, cutSize)) });
+}
+
 export function metaEventTierLabels(): Record<MetaEventTier, string> {
   return {
     premier: m.meta_event_tier_premier(),

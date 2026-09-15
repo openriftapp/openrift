@@ -6,7 +6,8 @@ import type {
 
 import { Heading } from "@/components/heading";
 import { Card } from "@/components/ui/card";
-import { accentGlow, Medal } from "@/components/ui/podium";
+import { accentGlow } from "@/components/ui/podium";
+import { RankBand } from "@/components/ui/rank-band";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import type {
@@ -15,6 +16,7 @@ import type {
   MetaBracketSeat,
 } from "@/features/meta/lib/meta-bracket";
 import { metaEventBracket } from "@/features/meta/lib/meta-bracket";
+import { formatRank } from "@/features/meta/lib/meta-format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -49,18 +51,29 @@ function Seat({ seat, player }: { seat: MetaBracketSeat; player: MetaEventPlayer
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-3 py-2.5 text-sm not-last:border-b",
+        "flex text-sm not-last:border-b",
         seat.isWinner ? "font-semibold" : "text-muted-foreground",
       )}
     >
-      {player === undefined ? <span className="size-5 shrink-0" /> : <Medal rank={player.rank} />}
-      <SeatName seat={seat} player={player} />
-      <MetaIdentity
-        name={player?.legend?.name}
-        championOnly
-        className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
-      />
-      <span className="font-heading w-4 text-right tabular-nums">{seat.gamesWon ?? "–"}</span>
+      {player === undefined ? (
+        <span className="w-14 shrink-0" />
+      ) : (
+        <RankBand
+          rank={player.rank}
+          text={formatRank(player.rank, player.rankIsTier)}
+          crownOnly
+          className="w-14 shrink-0"
+        />
+      )}
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5">
+        <SeatName seat={seat} player={player} />
+        <MetaIdentity
+          name={player?.legend?.name}
+          championOnly
+          className="text-muted-foreground hidden shrink-0 text-xs sm:flex"
+        />
+        <span className="font-heading w-4 text-right tabular-nums">{seat.gamesWon ?? "–"}</span>
+      </div>
     </div>
   );
 }

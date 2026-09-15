@@ -80,6 +80,30 @@ describe("MetaDeckIndexRow", () => {
     expect(screen.queryAllByText(/^of /u)).toHaveLength(0);
   });
 
+  it("keeps every column in its place for a deck that names no legend", () => {
+    const { container } = render(
+      <MetaDeckIndexRow
+        deck={deck({ legendName: null, legendArchiveSlug: null })}
+        fieldSize={2224}
+        marketplace="cardtrader"
+      />,
+    );
+
+    const grid = container.querySelector(String.raw`.sm\:grid`) as HTMLElement;
+    expect(grid.children).toHaveLength(8);
+  });
+
+  it("leaves the event, the date and the field to the group header when grouped", () => {
+    const { container } = render(
+      <MetaDeckIndexRow deck={deck()} fieldSize={2224} marketplace="cardtrader" grouped />,
+    );
+
+    const grid = container.querySelector(String.raw`.sm\:grid`) as HTMLElement;
+    expect(grid.children).toHaveLength(6);
+    expect(seen("Regional Qualifier Barcelona")).toBe(false);
+    expect(seen("of 2,224")).toBe(false);
+  });
+
   it("links the whole row to the list and the legend to its archive page", () => {
     render(<MetaDeckIndexRow deck={deck()} fieldSize={2224} marketplace="cardtrader" />);
     expect(
