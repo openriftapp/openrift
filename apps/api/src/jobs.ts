@@ -6,6 +6,7 @@ import type { Repos } from "./deps.js";
 import { createTransact } from "./deps.js";
 import type { createEmailSender } from "./email.js";
 import { defaultIo } from "./io.js";
+import { checkMatchingCandidates } from "./modules/candidates/services/check-matching-candidates.js";
 import { sweepSubmissionUploads } from "./modules/candidates/services/submission-uploads.js";
 import {
   flushPendingPrintingEvents,
@@ -80,6 +81,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
   const jrLog = log.child({ service: "job-runs-cleanup" });
   const suLog = log.child({ service: "submission-upload-sweep" });
   const ifLog = log.child({ service: "image-fingerprint-sweep" });
+  const cmcLog = log.child({ service: "check-matching-candidates" });
   const cteLog = log.child({ service: "card-trades-expire" });
   const tdLog = log.child({ service: "trade-match-digest" });
   const trfLog = log.child({ service: "trade-request-flush" });
@@ -221,6 +223,17 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       execute: () => sweepImageFingerprints(defaultIo, repos, ifLog),
       summarize: (result) => result,
       classifyNoop: isFingerprintSweepNoop,
+    }),
+    defineJob({
+      kind: "candidates.check_matching",
+      title: "Check matching sources",
+      description:
+        "Marks unchecked source rows checked when every value they provide equals the live card or printing.",
+      suggestedSchedule: "30 5 * * *",
+      log: cmcLog,
+      execute: () => checkMatchingCandidates(repos, new Date()),
+      summarize: (result) => result,
+      classifyNoop: (result) => result.cardsChecked === 0 && result.printingsChecked === 0,
     }),
     defineJob({
       kind: "card_trades.expire_pending",

@@ -58,15 +58,26 @@ function fingerprint(seed: number): string {
   });
 }
 
-function makeRepos(cards: unknown[], printings: unknown[]) {
-  const listUncheckedCandidateCardsWithLive = vi.fn().mockResolvedValue(cards);
+function pagedList<Row extends { id: string }>(rows: Row[]) {
+  return vi.fn(async (_excludeProvider: string, afterId: string | null, limit: number) => {
+    const start = afterId === null ? 0 : rows.findIndex((row) => row.id === afterId) + 1;
+    return rows.slice(start, start + limit);
+  });
+}
+
+function makeRepos<Card extends { id: string }, Printing extends { id: string }>(
+  cards: Card[],
+  printings: Printing[],
+) {
+  const listUncheckedCandidateCardsWithLive = pagedList(cards);
+  const listUncheckedCandidatePrintingsWithLive = pagedList(printings);
   const checkCandidateCardsByIds = vi.fn(async (ids: string[]) => ids.length);
   const checkCandidatePrintingsByIds = vi.fn(async (ids: string[]) => ids.length);
   return {
     repos: {
       candidateCards: {
         listUncheckedCandidateCardsWithLive,
-        listUncheckedCandidatePrintingsWithLive: vi.fn().mockResolvedValue(printings),
+        listUncheckedCandidatePrintingsWithLive,
         checkCandidateCardsByIds,
         checkCandidatePrintingsByIds,
       },
@@ -75,6 +86,7 @@ function makeRepos(cards: unknown[], printings: unknown[]) {
       },
     } as never,
     listUncheckedCandidateCardsWithLive,
+    listUncheckedCandidatePrintingsWithLive,
     checkCandidateCardsByIds,
     checkCandidatePrintingsByIds,
   };
@@ -203,8 +215,61 @@ describe("checkMatchingCandidates", () => {
   });
 
   it("excludes contributor submissions from the scan", async () => {
-    const { repos, listUncheckedCandidateCardsWithLive } = makeRepos([], []);
+    const { repos, listUncheckedCandidateCardsWithLive, listUncheckedCandidatePrintingsWithLive } =
+      makeRepos([], []);
     await checkMatchingCandidates(repos, NOW);
-    expect(listUncheckedCandidateCardsWithLive).toHaveBeenCalledWith("usersubmission");
+    expect(listUncheckedCandidateCardsWithLive).toHaveBeenCalledWith("usersubmission", null, 250);
+    expect(listUncheckedCandidatePrintingsWithLive).toHaveBeenCalledWith(
+      "usersubmission",
+      null,
+      250,
+    );
+  });
+
+  it("walks every page and checks each page's matches as it goes", async () => {
+    const same = { candidate: liveCard, live: liveCard };
+    const differs = { candidate: { ...liveCard, might: 4 }, live: liveCard };
+    const { repos, listUncheckedCandidateCardsWithLive, checkCandidateCardsByIds } = makeRepos(
+      [
+        { id: "a", ...differs },
+        { id: "b", ...same },
+        { id: "c", ...differs },
+        { id: "d", ...differs },
+        { id: "e", ...same },
+      ],
+      [],
+    );
+
+    const result = await checkMatchingCandidates(repos, NOW, 2);
+
+    expect(listUncheckedCandidateCardsWithLive.mock.calls.map((call) => call[1])).toEqual([
+      null,
+      "b",
+      "d",
+    ]);
+    expect(checkCandidateCardsByIds.mock.calls).toEqual([
+      [["b"], NOW],
+      [["e"], NOW],
+    ]);
+    expect(result.cardsChecked).toBe(2);
+  });
+
+  it("asks for one more page after a full last page", async () => {
+    const same = { candidate: liveCard, live: liveCard };
+    const { repos, listUncheckedCandidateCardsWithLive } = makeRepos(
+      [
+        { id: "a", ...same },
+        { id: "b", ...same },
+      ],
+      [],
+    );
+
+    const result = await checkMatchingCandidates(repos, NOW, 2);
+
+    expect(listUncheckedCandidateCardsWithLive.mock.calls.map((call) => call[1])).toEqual([
+      null,
+      "b",
+    ]);
+    expect(result.cardsChecked).toBe(2);
   });
 });

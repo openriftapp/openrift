@@ -3,10 +3,14 @@ import type {
   AcceptPrintingField,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
+import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
+import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
+import type { ScheduledJobKind } from "@openrift/shared/contracts/admin/job-schedules";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { checkMatchingResultFromRun, waitForJobRun } from "@/features/admin/lib/job-run-wait";
 import type {
   AcceptNewCardBody,
   AcceptPrintingBody,
@@ -536,17 +540,33 @@ export function useCheckProvider() {
   });
 }
 
+const CHECK_MATCHING_JOB_KIND: ScheduledJobKind = "candidates.check_matching";
+
 const checkMatchingCandidatesFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
-  .handler(({ context }): Promise<{ cardsChecked: number; printingsChecked: number }> =>
+  .handler(({ context }) =>
     apiOrpcClient(adminCardMutationsContract, context.cookie).checkMatchingCandidates(),
   );
 
-/** Checks every source row whose provided values equal the live catalog. */
+const listCheckMatchingRunsFn = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(async ({ context }): Promise<JobRunView[]> => {
+    const { runs } = await apiOrpcClient(adminJobRunsContract, context.cookie).list({
+      kind: CHECK_MATCHING_JOB_KIND,
+      limit: 5,
+    });
+    return runs;
+  });
+
+/** Starts the check matching job and resolves with its counts once the run finishes. */
 export function useCheckMatchingCandidates() {
   return useMutationWithInvalidation({
-    mutationFn: () => checkMatchingCandidatesFn(),
-    invalidates: [adminKeys.cards.all, adminKeys.sources],
+    mutationFn: async () => {
+      const started = await checkMatchingCandidatesFn();
+      const run = await waitForJobRun(started.runId, () => listCheckMatchingRunsFn());
+      return checkMatchingResultFromRun(run);
+    },
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.jobRuns],
   });
 }
 

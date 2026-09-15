@@ -14,7 +14,6 @@ import {
   reviewableProviderScope,
 } from "../../candidates/services/card-review-scope.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
-import { checkMatchingCandidates } from "../../candidates/services/check-matching-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
@@ -231,15 +230,20 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   checkMatchingCandidates: os.checkMatchingCandidates.handler(async ({ context }) => {
-    const result = await checkMatchingCandidates(context.repos, new Date());
+    if (context.scheduler === null) {
+      throw new AppError(503, ERROR_CODES.SERVICE_UNAVAILABLE, "The job scheduler is not running");
+    }
+    const started = await context.scheduler.runNow("candidates.check_matching");
 
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "candidate-card.check-matching",
-      entityType: "candidate-card",
-      newValues: { ...result },
-    });
+    if (started.status === "running") {
+      await recordAdminEvent(context.repos, context.userId, {
+        action: "candidate-card.check-matching",
+        entityType: "candidate-card",
+        newValues: { runId: started.runId },
+      });
+    }
 
-    return result;
+    return started;
   }),
 
   checkByProvider: os.checkByProvider.handler(async ({ input, context }) => {

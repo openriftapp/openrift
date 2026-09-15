@@ -7,7 +7,6 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
-import { checkMatchingCandidates } from "../../candidates/services/check-matching-candidates.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import {
   acceptPrinting,
@@ -30,9 +29,6 @@ vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
 vi.mock("../../candidates/services/relink-candidates.js", () => ({
   relinkCandidatePrintings: vi.fn(),
 }));
-vi.mock("../../candidates/services/check-matching-candidates.js", () => ({
-  checkMatchingCandidates: vi.fn(),
-}));
 
 vi.mock("@openrift/shared/fix-typography", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -46,7 +42,6 @@ const mockAcceptPrinting = vi.mocked(acceptPrinting);
 const mockAcceptFavoriteNewCard = vi.mocked(acceptFavoriteNewCard);
 const mockAcceptFavoritePrintingsForCard = vi.mocked(acceptFavoritePrintingsForCard);
 const mockRelinkCandidatePrintings = vi.mocked(relinkCandidatePrintings);
-const mockCheckMatchingCandidates = vi.mocked(checkMatchingCandidates);
 const mockFixTypography = vi.mocked(fixTypography);
 const mockAppendSetTotal = vi.mocked(appendSetTotal);
 
@@ -76,6 +71,9 @@ const mockKeywords = { recomputeForPrintingCard: vi.fn() };
 const mockCatalogDeleteGuards = { countForCard: vi.fn(), countForPrinting: vi.fn() };
 
 const mockAdminEvents = { insert: vi.fn() };
+
+const mockScheduler = { runNow: vi.fn() };
+let scheduler: typeof mockScheduler | undefined = mockScheduler;
 
 const mockTrxMut = {
   acceptNewCardFromSources: vi.fn(),
@@ -142,6 +140,7 @@ app.use("*", async (c, next) => {
   c.set("adminAccess", { isAdmin: true, sections: [] });
   c.set("io", mockIo as never);
   c.set("transact", mockTransact as never);
+  c.set("scheduler", scheduler as never);
   c.set("repos", {
     catalogMutations: mockMut,
     catalogDeleteGuards: mockCatalogDeleteGuards,
@@ -1181,16 +1180,48 @@ describe("POST /cards/candidate-printings/relink", () => {
 describe("POST /cards/candidates/check-matching", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    scheduler = mockScheduler;
   });
 
-  it("returns the check result", async () => {
-    mockCheckMatchingCandidates.mockResolvedValue({ cardsChecked: 3, printingsChecked: 7 });
+  it("starts the check matching job and records who started it", async () => {
+    mockScheduler.runNow.mockResolvedValue({ runId: "run-1", status: "running" });
 
     const res = await app.request("/api/admin/v1/cards/candidates/check-matching", {
       method: "POST",
     });
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({ cardsChecked: 3, printingsChecked: 7 });
+
+    expect(res.status).toBe(202);
+    expect(await readJson(res)).toEqual({ runId: "run-1", status: "running" });
+    expect(mockScheduler.runNow).toHaveBeenCalledWith("candidates.check_matching");
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: USER_ID,
+        action: "candidate-card.check-matching",
+        newValues: { runId: "run-1" },
+      }),
+    );
+  });
+
+  it("returns the run already in progress without recording another start", async () => {
+    mockScheduler.runNow.mockResolvedValue({ runId: "run-1", status: "already_running" });
+
+    const res = await app.request("/api/admin/v1/cards/candidates/check-matching", {
+      method: "POST",
+    });
+
+    expect(res.status).toBe(202);
+    expect(await readJson(res)).toEqual({ runId: "run-1", status: "already_running" });
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when the app runs without a scheduler", async () => {
+    scheduler = undefined;
+
+    const res = await app.request("/api/admin/v1/cards/candidates/check-matching", {
+      method: "POST",
+    });
+
+    expect(res.status).toBe(503);
   });
 });
 

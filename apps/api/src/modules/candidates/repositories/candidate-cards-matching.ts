@@ -57,6 +57,8 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
     /** Live values come from the card sharing the candidate's normalized name, or an alias of it. */
     async listUncheckedCandidateCardsWithLive(
       excludeProvider: string,
+      afterId: string | null,
+      limit: number,
     ): Promise<UncheckedCandidateCardWithLive[]> {
       const rows = await sql<UncheckedCandidateCardWithLive>`
         select
@@ -82,6 +84,9 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         from candidate_cards cc
         where cc.checked_at is null
           and cc.provider <> ${excludeProvider}
+          ${afterId === null ? sql`` : sql`and cc.id > ${afterId}`}
+        order by cc.id
+        limit ${limit}
       `.execute(db);
       return rows.rows;
     },
@@ -89,6 +94,8 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
     /** Only linked candidate printings compare; an unlinked one is a new printing. */
     async listUncheckedCandidatePrintingsWithLive(
       excludeProvider: string,
+      afterId: string | null,
+      limit: number,
     ): Promise<UncheckedCandidatePrintingWithLive[]> {
       const rows = await sql<UncheckedCandidatePrintingWithLive>`
         select
@@ -141,6 +148,9 @@ export function candidateMatchingRepo(db: Kysely<Database>) {
         join sets s on s.id = p.set_id
         where cp.checked_at is null
           and cc.provider <> ${excludeProvider}
+          ${afterId === null ? sql`` : sql`and cp.id > ${afterId}`}
+        order by cp.id
+        limit ${limit}
       `.execute(db);
       return rows.rows;
     },
