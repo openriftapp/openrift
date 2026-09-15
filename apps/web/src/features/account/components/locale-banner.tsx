@@ -56,56 +56,61 @@ export function LocaleBanner() {
       <div
         className={cn(
           CONTAINER_WIDTH,
-          "flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm",
+          "px-safe flex items-start gap-3 py-2 text-sm lg:items-center",
         )}
       >
-        <LanguagesIcon className="text-primary size-4 shrink-0" />
-        <p className="min-w-0 flex-1">
-          {decision.kind === "notice" ? (
-            <ParaglideMessage
-              message={m.locale_banner_notice}
-              inputs={{ language }}
-              markup={{
-                link: ({ children }) => (
-                  <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
-                    {children}
-                  </TextLink>
-                ),
-              }}
-            />
-          ) : (
-            m.locale_banner_suggest({ language })
-          )}
-        </p>
-        {decision.kind === "notice" && userId !== null && (
-          <TextLink render={<Link to="/profile" hash="display" />}>
-            {m.locale_banner_settings_link()}
-          </TextLink>
-        )}
-        {decision.kind === "notice" ? (
-          <Button
-            variant="outline"
-            size="xs"
-            lang="en"
-            disabled={pending}
-            onClick={() => void switchTo("en")}
-          >
-            {SWITCH_TO_ENGLISH}
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            size="xs"
-            lang={decision.locale}
-            disabled={pending}
-            onClick={() => void switchTo(decision.locale)}
-          >
-            {language}
-          </Button>
-        )}
+        <LanguagesIcon className="text-primary mt-0.5 size-4 shrink-0 lg:mt-0" />
+        <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+          <p className="min-w-0 lg:flex-1">
+            {decision.kind === "notice" ? (
+              <ParaglideMessage
+                message={m.locale_banner_notice}
+                inputs={{ language }}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink href={SOCIAL_LINKS.discordInvite} target="_blank" rel="noreferrer">
+                      {children}
+                    </TextLink>
+                  ),
+                }}
+              />
+            ) : (
+              m.locale_banner_suggest({ language })
+            )}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {decision.kind === "notice" && userId !== null && (
+              <TextLink render={<Link to="/profile" hash="display" />}>
+                {m.locale_banner_settings_link()}
+              </TextLink>
+            )}
+            {decision.kind === "notice" ? (
+              <Button
+                variant="outline"
+                size="xs"
+                lang="en"
+                disabled={pending}
+                onClick={() => void switchTo("en")}
+              >
+                {SWITCH_TO_ENGLISH}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="xs"
+                lang={decision.locale}
+                disabled={pending}
+                onClick={() => void switchTo(decision.locale)}
+              >
+                {language}
+              </Button>
+            )}
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="icon-xs"
+          className="-my-0.5 lg:my-0"
           aria-label={m.locale_banner_dismiss()}
           onClick={dismiss}
         >

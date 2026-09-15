@@ -14,7 +14,7 @@
 - feat(Meta Archive): **See decklists waiting for review** — a tournament's standings now say "In review" on an entry someone has already sent a decklist for, so nobody sends it twice, and a clock beside a decklist means an update to it is waiting. Your own submissions read "Yours, in review" and link to your submissions. Anything sent in that isn't tied to a standings row is listed under the standings.
 - feat(Tournaments): **Podium places in standings** — Swiss, group and final standings, the cut bracket and each legend's best finish now print places large with the podium in gold, silver and bronze.
 - feat(Meta): **Decks grouped under their event** — in newest-first order the decks page now lists decklists under one header per event, and the page uses the same column width as the other Meta Archive pages.
-- fix(Cards): **Banner edge no longer cut off** — the line under the language and announcement banners now runs the full width above the card browser's search bar.
+- fix(App): **Tidier language banner** — on phones and tablets the language banner's message now uses the full width with its buttons below it, and the line under it and under announcements runs the full width above the card browser's search bar.
 - fix(Meta): **Deck list columns line up** — a deck without a legend no longer pushes its player, event and value into the wrong columns.
 
 ## 2026-09-14
