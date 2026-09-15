@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LRPJ7WMJQhQnnq4yPjoTyP4lBB5K9EcyiKahsANCms7mEO6CNtsoyVvN89wuGFX
+\restrict u5dhlba6XDFJ4XuEo5lRc894b4Up77WkENduuhm7WONzupe564dgSvNMz1aBp5a
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -787,6 +787,29 @@ CREATE TABLE public.art_variants (
     is_well_known boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_art_variants_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT chk_art_variants_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+
+--
+-- Name: board_states; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.board_states (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    title text NOT NULL,
+    answer text,
+    core_rules_version text,
+    tournament_rules_version text,
+    document jsonb NOT NULL,
+    is_public boolean DEFAULT false NOT NULL,
+    share_token text,
+    is_featured boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_board_states_document_object CHECK ((jsonb_typeof(document) = 'object'::text)),
+    CONSTRAINT chk_board_states_rules_pinned CHECK (((core_rules_version IS NOT NULL) OR (tournament_rules_version IS NOT NULL))),
+    CONSTRAINT chk_board_states_title_not_empty CHECK ((title <> ''::text))
 );
 
 
@@ -3990,6 +4013,22 @@ ALTER TABLE ONLY public.art_variants
 
 
 --
+-- Name: board_states board_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: board_states board_states_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_share_token_key UNIQUE (share_token);
+
+
+--
 -- Name: candidate_cards candidate_cards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5656,6 +5695,20 @@ CREATE INDEX idx_api_keys_reference_id ON public.api_keys USING btree (reference
 
 
 --
+-- Name: idx_board_states_featured; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_board_states_featured ON public.board_states USING btree (updated_at DESC) WHERE is_featured;
+
+
+--
+-- Name: idx_board_states_user_updated; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_board_states_user_updated ON public.board_states USING btree (user_id, updated_at DESC);
+
+
+--
 -- Name: idx_candidate_cards_norm_name; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7203,6 +7256,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.admins FOR EACH ROW EX
 
 
 --
+-- Name: board_states trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.board_states FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: candidate_cards trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7694,6 +7754,14 @@ ALTER TABLE ONLY public.admins
 
 ALTER TABLE ONLY public.api_keys
     ADD CONSTRAINT api_keys_reference_id_fkey FOREIGN KEY (reference_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: board_states board_states_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.board_states
+    ADD CONSTRAINT board_states_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -9604,5 +9672,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LRPJ7WMJQhQnnq4yPjoTyP4lBB5K9EcyiKahsANCms7mEO6CNtsoyVvN89wuGFX
+\unrestrict u5dhlba6XDFJ4XuEo5lRc894b4Up77WkENduuhm7WONzupe564dgSvNMz1aBp5a
 
