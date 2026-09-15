@@ -52,7 +52,7 @@ export function LocaleBanner() {
   const language = DISPLAY_LOCALE_LABELS[decision.locale];
 
   return (
-    <div className="bg-primary/10 border-primary/20 border-b">
+    <div className="bg-primary/10 border-primary/20 relative z-40 border-b">
       <div
         className={cn(
           CONTAINER_WIDTH,

@@ -30,7 +30,7 @@ export function MilestoneBanner() {
   const milestone = latestMilestone;
 
   return (
-    <div className="bg-primary/10 border-primary/20 border-b">
+    <div className="bg-primary/10 border-primary/20 relative z-40 border-b">
       <div className={cn(CONTAINER_WIDTH, "flex items-center gap-3 px-4 py-2 text-sm")}>
         <MilestoneIcon token={milestone.icon} className="text-primary size-4 shrink-0" />
         <p className="min-w-0 flex-1">
