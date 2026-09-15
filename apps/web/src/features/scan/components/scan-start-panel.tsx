@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const BRACKET_SIZE = "18%";
+// Same geometry as centeredGuideQuad: 70% of the height, capped at 90% of the width.
+const FRAME_SIZE = "aspect-[63/88] w-[min(90%,calc(70cqh*63/88))]";
 
 export function ScanTips({ className }: { className?: string }) {
   const tips = [
@@ -31,7 +33,7 @@ export function ScanTips({ className }: { className?: string }) {
 
 export function ScanStartHint({ className }: { className?: string }) {
   return (
-    <p className={cn("max-w-80 text-white/70", className)}>
+    <p className={cn("max-w-80 text-center text-white/70", className)}>
       <span className="md:hidden">{m.scan_start_hint_below()}</span>
       <span className="hidden md:inline">{m.scan_start_hint_right()}</span>
     </p>
@@ -74,11 +76,7 @@ export function ScanStartPanel({
 }: ScanStartPanelProps) {
   return (
     <div className="[container-type:size] absolute inset-0 grid place-items-center overflow-hidden bg-radial from-neutral-800 to-neutral-950 text-white">
-      {/* Same geometry as centeredGuideQuad: 70% of the height, capped at 90% of the width. */}
-      <div
-        aria-hidden
-        className="absolute aspect-[63/88] w-[min(90%,calc(70cqh*63/88))] border-2 border-white/15"
-      >
+      <div aria-hidden className={cn("absolute border-2 border-white/15", FRAME_SIZE)}>
         <Bracket className="-top-0.5 -left-0.5 border-t-2 border-l-2" />
         <Bracket className="-top-0.5 -right-0.5 border-t-2 border-r-2" />
         <Bracket className="-bottom-0.5 -left-0.5 border-b-2 border-l-2" />
@@ -86,7 +84,9 @@ export function ScanStartPanel({
       </div>
 
       {!immersive && (
-        <div className="relative flex w-80 max-w-full flex-col items-center gap-4 px-3">
+        <div
+          className={cn("relative flex flex-col items-center justify-center gap-4 p-5", FRAME_SIZE)}
+        >
           {ready ? (
             <>
               <ScanStartHint />

@@ -15,6 +15,7 @@
 - feat(Tournaments): **Podium places in standings** — Swiss, group and final standings, the cut bracket and each legend's best finish now print places large with the podium in gold, silver and bronze.
 - feat(Meta): **Decks grouped under their event** — in newest-first order the decks page now lists decklists under one header per event, and the page uses the same column width as the other Meta Archive pages.
 - fix(App): **Tidier language banner** — on phones and tablets the language banner's message now uses the full width with its buttons below it, and the line under it and under announcements runs the full width above the card browser's search bar.
+- fix(Scanner): **Start hint sits inside the frame** — the "Hold a card in the frame" text is now centered and stays inside the card outline instead of running over its border.
 - fix(Meta): **Deck list columns line up** — a deck without a legend no longer pushes its player, event and value into the wrong columns.
 
 ## 2026-09-14
