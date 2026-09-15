@@ -1,6 +1,7 @@
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { WellKnown } from "@openrift/shared/well-known";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render } from "@testing-library/react";
 import type { PropsWithChildren, ReactNode } from "react";
@@ -560,5 +561,41 @@ describe("CardThumbnail tilt shell", () => {
       .map((el) => el.style.transform)
       .filter(Boolean);
     expect(inlineTransforms.some((value) => value.includes("perspective"))).toBe(true);
+  });
+});
+
+describe("CardThumbnail ban ribbons", () => {
+  const ban = {
+    formatId: WellKnown.banFormat.CONSTRUCTED,
+    formatName: "Standard",
+    bannedAt: "2026-09-18",
+    reason: null,
+  };
+
+  function renderThumbnail(printing: Printing) {
+    return render(<CardThumbnail printing={printing} onClick={() => {}} display={baseDisplay} />, {
+      wrapper: makeWrapper(),
+    });
+  }
+
+  it("labels a card with only a scheduled ban as ban incoming", () => {
+    const { getByTitle } = renderThumbnail(stubPrinting({ card: { upcomingBans: [ban] } }));
+    expect(getByTitle("Banned in Standard from 2026-09-18").textContent).toBe("Ban incoming");
+  });
+
+  it("shows only the banned ribbon when another ban is already in effect", () => {
+    const printing = stubPrinting({
+      card: { bans: [{ ...ban, bannedAt: "2026-03-31" }], upcomingBans: [ban] },
+    });
+    const { container } = renderThumbnail(printing);
+    expect(container.textContent).toContain("Banned");
+    expect(container.textContent).not.toContain("Ban incoming");
+  });
+
+  it("keeps the preview ribbon on an unreleased printing with a scheduled ban", () => {
+    const printing = stubPrinting({ setReleased: false, card: { upcomingBans: [ban] } });
+    const { container } = renderThumbnail(printing);
+    expect(container.textContent).toContain("Preview");
+    expect(container.textContent).not.toContain("Ban incoming");
   });
 });

@@ -1,4 +1,4 @@
-import { joinCatalogPrintings } from "@openrift/shared/catalog-join";
+import { joinCatalog } from "@openrift/shared/catalog-join";
 import type {
   CatalogResponse,
   CatalogResponsePrintingValue,
@@ -218,7 +218,7 @@ export function enrichCatalog(catalog: CatalogResponse): UseCardsResult {
 }
 
 function enrichCatalogInner(catalog: CatalogResponse): UseCardsResult {
-  const allPrintings = joinCatalogPrintings(catalog);
+  const { cardsById, printings: allPrintings } = joinCatalog(catalog);
 
   const printingsById: Record<string, Printing> = {};
   for (const printing of allPrintings) {
@@ -227,7 +227,7 @@ function enrichCatalogInner(catalog: CatalogResponse): UseCardsResult {
 
   return {
     allPrintings,
-    cardsById: catalog.cards,
+    cardsById,
     printingsById,
     printingsByCardId: Map.groupBy(allPrintings, (p) => p.cardId),
     sets: catalog.sets,

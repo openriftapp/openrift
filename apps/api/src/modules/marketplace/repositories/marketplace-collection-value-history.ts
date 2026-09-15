@@ -153,11 +153,11 @@ export function marketplaceCollectionValueHistoryRepo(db: Kysely<Database>) {
       }
       if (scope.banned === true) {
         scopeClauses.push(
-          sql`AND EXISTS (SELECT 1 FROM card_bans cb WHERE cb.card_id = c.id AND cb.unbanned_at IS NULL)`,
+          sql`AND EXISTS (SELECT 1 FROM card_bans cb WHERE cb.card_id = c.id AND cb.unbanned_at IS NULL AND cb.banned_at <= (now() AT TIME ZONE 'UTC')::date)`,
         );
       } else if (scope.banned === false) {
         scopeClauses.push(
-          sql`AND NOT EXISTS (SELECT 1 FROM card_bans cb WHERE cb.card_id = c.id AND cb.unbanned_at IS NULL)`,
+          sql`AND NOT EXISTS (SELECT 1 FROM card_bans cb WHERE cb.card_id = c.id AND cb.unbanned_at IS NULL AND cb.banned_at <= (now() AT TIME ZONE 'UTC')::date)`,
         );
       }
       if (scope.errata === true) {

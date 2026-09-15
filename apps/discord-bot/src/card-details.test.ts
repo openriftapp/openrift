@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildCardDetailsEmbed,
@@ -16,6 +16,10 @@ import {
 } from "./test/factories.js";
 
 const SITE = "https://openrift.example";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function snapshotWith(card = makeCard(), printing = makePrinting()) {
   return buildSnapshot(
@@ -126,6 +130,27 @@ describe("buildCardDetailsEmbed", () => {
       siteUrl: SITE,
     });
     expect(embed.fields).toEqual([{ name: "Bans", value: "**Standard**\n**Ranked** Combo" }]);
+  });
+
+  it("gives a scheduled ban its start day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
+    const snapshot = snapshotWith(
+      makeCard({
+        bans: [
+          { formatId: "f1", formatName: "Standard", bannedAt: "2026-09-18", reason: "Too fast" },
+        ],
+      }),
+    );
+    const embed = buildCardDetailsEmbed({
+      card: snapshot.cards[0]!,
+      printing: snapshot.printingsByCardId.get("card-1")![0],
+      snapshot,
+      siteUrl: SITE,
+    });
+    expect(embed.fields).toEqual([
+      { name: "Ban", value: "**Standard** from 2026-09-18: Too fast" },
+    ]);
   });
 
   it("renders glyphs with the app's emojis", () => {

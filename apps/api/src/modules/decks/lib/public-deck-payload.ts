@@ -1,3 +1,4 @@
+import { isBanInEffect } from "@openrift/shared/card-ban";
 import type {
   DeckCatalogSubset,
   DeckPlanCardMetaResponse,
@@ -74,10 +75,12 @@ export async function buildPublicDeckDetail(
   const catalogSubset = await catalogSubsetForCards(repos, [
     ...new Set([...uniqueCardIds, ...cardMetas.flatMap((meta) => meta.tokenCardIds)]),
   ]);
-  // Only base-list bans invalidate a deck; mode-scoped ones (e.g. 2v2) stay
+  // Only base-list bans in effect today invalidate a deck; mode-scoped ones (e.g. 2v2) stay
   // a display concern, so they never reach the share payload.
   const bannedCardIds = new Set(
-    banRows.filter((ban) => isBaseBanFormat(ban.formatId)).map((ban) => ban.cardId),
+    banRows
+      .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
+      .map((ban) => ban.cardId),
   );
 
   // The plan references cards the deck may not contain (notably the opponent

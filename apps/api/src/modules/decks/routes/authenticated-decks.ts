@@ -1,3 +1,4 @@
+import { isBanInEffect } from "@openrift/shared/card-ban";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import type { updateDeckPlanSchema } from "@openrift/shared/contracts/decks";
 import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-list-summary";
@@ -167,7 +168,9 @@ export const decksRouter = {
       ),
     ]);
     const bannedCardIds = new Set(
-      banRows.filter((ban) => isBaseBanFormat(ban.formatId)).map((ban) => ban.cardId),
+      banRows
+        .filter((ban) => isBaseBanFormat(ban.formatId) && isBanInEffect(ban))
+        .map((ban) => ban.cardId),
     );
 
     const cardsByDeckId = Map.groupBy(allCards, (card) => card.deckId);

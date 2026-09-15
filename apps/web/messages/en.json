@@ -578,6 +578,8 @@
   "cards_thumb_legal_elsewhere": "Legal in other constructed play.",
   "cards_thumb_format_ban": "{format} Ban",
   "cards_thumb_banned": "Banned",
+  "cards_thumb_ban_upcoming": "Ban incoming",
+  "cards_thumb_banned_from": "Banned in {format} from {date}",
   "common_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -679,6 +681,7 @@
   "card_detail_image_credit": "Image credit: {credit}",
   "card_detail_ban_title": "Banned in {format} since {date}",
   "card_detail_ban_other_format": "Applies to {format} play only. The card stays legal in other constructed play.",
+  "card_detail_ban_upcoming_title": "Banned in {format} from {date}",
   "card_detail_prev_card": "Previous card",
   "card_detail_next_card": "Next card",
   "card_detail_close": "Close card details",

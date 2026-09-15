@@ -1,3 +1,4 @@
+import { splitCardBans } from "@openrift/shared/card-ban";
 import { describeCardStats } from "@openrift/shared/card-stat-line";
 import { legendDisplayName, truncateWithEllipsis } from "@openrift/shared/utils";
 import type { APIEmbed, APIEmbedField } from "discord.js";
@@ -40,16 +41,23 @@ export function detailsLabel(cardName: string, multiple: boolean): string {
   return multiple ? truncateWithEllipsis(`Details: ${cardName}`, LABEL_LIMIT) : "Details";
 }
 
-/** The card embed already says a card is banned; this field says why. */
+/** The card embed already says a card is banned; this field says why, and when a scheduled ban starts. */
 function banField(card: CatalogCard): APIEmbedField | null {
-  if (card.bans.length === 0) {
+  const { bans, upcomingBans } = splitCardBans(card);
+  const lines = [
+    ...bans.map((ban) =>
+      ban.reason ? `**${ban.formatName}** ${ban.reason}` : `**${ban.formatName}**`,
+    ),
+    ...upcomingBans.map((ban) => {
+      const start = `**${ban.formatName}** from ${ban.bannedAt}`;
+      return ban.reason ? `${start}: ${ban.reason}` : start;
+    }),
+  ];
+  if (lines.length === 0) {
     return null;
   }
-  const lines = card.bans.map((ban) =>
-    ban.reason ? `**${ban.formatName}** ${ban.reason}` : `**${ban.formatName}**`,
-  );
   return {
-    name: card.bans.length === 1 ? "Ban" : "Bans",
+    name: lines.length === 1 ? "Ban" : "Bans",
     value: truncateWithEllipsis(lines.join("\n"), FIELD_LIMIT),
   };
 }

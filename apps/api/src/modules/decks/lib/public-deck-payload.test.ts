@@ -2,7 +2,8 @@ import {
   catalogCardResponseSchema,
   catalogPrintingResponseSchema,
 } from "@openrift/shared/response-schemas";
-import { describe, expect, it, vi } from "vitest";
+import { WellKnown } from "@openrift/shared/well-known";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
 import { buildPublicDeckDetail } from "./public-deck-payload.js";
@@ -96,6 +97,7 @@ function repos(options: {
   cards: ReturnType<typeof cardRow>[];
   printings: ReturnType<typeof printingRow>[];
   printingsByCardIds?: ReturnType<typeof vi.fn>;
+  bans?: { cardId: string; formatId: string; formatName: string; bannedAt: string; reason: null }[];
 }): Repos {
   const printingsByCardIds =
     options.printingsByCardIds ?? vi.fn(() => Promise.resolve(options.printings));
@@ -111,7 +113,7 @@ function repos(options: {
     catalog: {
       sets: vi.fn(() => Promise.resolve([SET])),
       cardsByIds: vi.fn(() => Promise.resolve(options.cards)),
-      cardBansByCardIds: vi.fn(() => Promise.resolve([])),
+      cardBansByCardIds: vi.fn(() => Promise.resolve(options.bans ?? [])),
       cardErrataByCardIds: vi.fn(() => Promise.resolve([])),
       printingsByCardIds,
       printingImagesByCardIds: vi.fn(() => Promise.resolve([])),
@@ -133,6 +135,10 @@ function repos(options: {
 }
 
 describe("buildPublicDeckDetail", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("carries every printing of the deck's cards and of the tokens they create", async () => {
     const printingsByCardIds = vi.fn(() =>
       Promise.resolve([
@@ -191,5 +197,26 @@ describe("buildPublicDeckDetail", () => {
     expect(Object.keys(payload.catalog.cards)).toEqual([CARD_ID, TOKEN_CARD_ID]);
     expect(catalogCardResponseSchema.safeParse(payload.catalog.cards[CARD_ID]).success).toBe(true);
     expect(payload.catalog.sets.map((set) => set.slug)).toEqual(["OGN"]);
+  });
+
+  it("marks a card banned only once its ban is in effect", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-17T12:00:00.000Z"));
+    const ban = {
+      cardId: CARD_ID,
+      formatId: WellKnown.banFormat.CONSTRUCTED,
+      formatName: "Constructed",
+      reason: null,
+    };
+    const build = (bannedAt: string) =>
+      buildPublicDeckDetail(
+        repos({ cards: [cardRow(CARD_ID)], printings: [], bans: [{ ...ban, bannedAt }] }),
+        DECK,
+      );
+
+    const upcoming = await build("2026-09-18");
+    expect(upcoming.cards[0]!.banned).toBe(false);
+    const active = await build("2026-09-17");
+    expect(active.cards[0]!.banned).toBe(true);
   });
 });

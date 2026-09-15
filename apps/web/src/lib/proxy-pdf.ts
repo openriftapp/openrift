@@ -1,3 +1,4 @@
+import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { imageUrl } from "@openrift/shared/image-url";
 import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
 import type { CatalogResponse } from "@openrift/shared/types/api/catalog";
@@ -60,8 +61,8 @@ export function resolveProxyCards(
   languageOrder: readonly string[],
 ): ProxyCard[] {
   const setsById = new Map(catalog.sets.map((set) => [set.id, set]));
-  const cardsById: Record<string, Card> = catalog.cards;
   const today = todayUtc();
+  const cardsById = joinCatalogCards(catalog.cards, today);
 
   type EnrichedPrinting = Printing & { id: string; setSlug: string };
   const printingById = new Map<string, EnrichedPrinting>();

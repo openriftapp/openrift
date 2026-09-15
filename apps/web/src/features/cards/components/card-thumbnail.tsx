@@ -490,6 +490,22 @@ export const CardThumbnail = memo(function CardThumbnail({
     </div>
   );
 
+  // Preview outranks it: the card is still legal, and the license's preview label must stay visible.
+  const upcomingBans = hideBanIndicators ? [] : printing.card.upcomingBans;
+  const upcomingOnly = activeBans.length === 0 && upcomingBans.length > 0 && printing.setReleased;
+  const upcomingBanRibbon = upcomingOnly && (
+    <div
+      className="@container pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]"
+      title={upcomingBans
+        .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
+        .join("\n")}
+    >
+      <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
+        {m.cards_thumb_ban_upcoming()}
+      </div>
+    </div>
+  );
+
   const imageSection = (
     <div
       className={cn(
@@ -602,6 +618,7 @@ export const CardThumbnail = memo(function CardThumbnail({
         {banDim}
         {previewOverlay}
         {banRibbon}
+        {upcomingBanRibbon}
       </ImageShell>
     </div>
   );

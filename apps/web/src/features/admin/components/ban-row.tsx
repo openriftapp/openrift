@@ -1,3 +1,4 @@
+import { isBanInEffect } from "@openrift/shared/card-ban";
 import type { CardBanResponse } from "@openrift/shared/contracts/admin/card-bans";
 import { formatDay } from "@openrift/shared/format-date";
 import { PencilIcon, XIcon } from "lucide-react";
@@ -17,7 +18,9 @@ export function BanRow({
   return (
     <li className="flex flex-wrap items-center gap-2 px-3 py-2">
       <Badge variant="destructive">{ban.formatName}</Badge>
-      <span className="text-muted-foreground text-sm">since {formatDay(ban.bannedAt)}</span>
+      <span className="text-muted-foreground text-sm">
+        {isBanInEffect(ban) ? "since" : "from"} {formatDay(ban.bannedAt)}
+      </span>
       {ban.reason !== null && (
         <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm italic">
           {ban.reason}

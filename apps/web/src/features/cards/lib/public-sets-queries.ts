@@ -1,7 +1,8 @@
+import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { setsContract } from "@openrift/shared/contracts/sets";
 import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
 import type { SetDetailResponse, SetListResponse } from "@openrift/shared/types/api/catalog";
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -41,13 +42,14 @@ const fetchSetDetail = createServerFn({ method: "GET" })
 interface EnrichedSetDetail {
   set: SetDetailResponse["set"];
   printings: Printing[];
-  cards: SetDetailResponse["cards"];
+  cards: Record<string, SetDetailResponse["cards"][string] & Pick<Card, "upcomingBans">>;
 }
 
 function enrichSetDetail(response: SetDetailResponse): EnrichedSetDetail {
   const today = todayUtc();
+  const cards = joinCatalogCards(response.cards, today);
   const printings: Printing[] = response.printings.flatMap((p) => {
-    const card = response.cards[p.cardId];
+    const card = cards[p.cardId];
     return card
       ? [
           {
@@ -59,7 +61,7 @@ function enrichSetDetail(response: SetDetailResponse): EnrichedSetDetail {
         ]
       : [];
   });
-  return { set: response.set, printings, cards: response.cards };
+  return { set: response.set, printings, cards };
 }
 
 export const publicSetListQueryOptions = queryOptions({

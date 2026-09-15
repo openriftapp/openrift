@@ -80,6 +80,7 @@ function buildFixture() {
       maxCopiesOverride: null,
       errata: null,
       bans: [],
+      upcomingBans: [],
     };
   });
 

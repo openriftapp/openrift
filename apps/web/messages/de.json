@@ -578,6 +578,8 @@
   "cards_thumb_legal_elsewhere": "In anderem Constructed-Spiel erlaubt.",
   "cards_thumb_format_ban": "{format}-Bann",
   "cards_thumb_banned": "Gebannt",
+  "cards_thumb_ban_upcoming": "Bann folgt",
+  "cards_thumb_banned_from": "Gebannt in {format} ab {date}",
   "common_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -679,6 +681,7 @@
   "card_detail_image_credit": "Bildnachweis: {credit}",
   "card_detail_ban_title": "Verboten in {format} seit {date}",
   "card_detail_ban_other_format": "Gilt nur für {format}. In anderen Constructed-Formaten bleibt die Karte legal.",
+  "card_detail_ban_upcoming_title": "Verboten in {format} ab {date}",
   "card_detail_prev_card": "Vorherige Karte",
   "card_detail_next_card": "Nächste Karte",
   "card_detail_close": "Kartendetails schließen",

@@ -1,7 +1,8 @@
+import { splitCardBans } from "@openrift/shared/card-ban";
 import { cardsContract } from "@openrift/shared/contracts/cards";
 import { isReleasedIn, todayUtc } from "@openrift/shared/set-release";
 import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -36,7 +37,7 @@ const fetchCardDetail = createServerFn({ method: "GET" })
   });
 
 interface EnrichedCardDetail {
-  card: CardDetailResponse["card"];
+  card: CardDetailResponse["card"] & Pick<Card, "upcomingBans">;
   printings: Printing[];
   sets: CardDetailResponse["sets"];
   productsByPrinting: ReadonlyMap<string, CardDetailResponse["products"]>;
@@ -48,6 +49,7 @@ function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
   // Printings carry `canonicalRank` from the DB view; consumers layer the
   // per-user language axis on top via `sortByLanguageAndCanonicalRank`.
   const today = todayUtc();
+  const card = splitCardBans(response.card, today);
   const printings: Printing[] = response.printings.map((p) => {
     const set = setsById.get(p.setId);
     return {
@@ -55,11 +57,11 @@ function enrichCardDetail(response: CardDetailResponse): EnrichedCardDetail {
       setSlug: set?.slug ?? "",
       // If set is missing from the payload, default setReleased to true.
       setReleased: set ? isReleasedIn(set.releases, p.language, today) : true,
-      card: response.card,
+      card,
     };
   });
   return {
-    card: response.card,
+    card,
     printings,
     sets: response.sets,
     // The API sends products flat (one row per printing+product) already

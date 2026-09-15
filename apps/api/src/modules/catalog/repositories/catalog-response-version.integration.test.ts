@@ -116,7 +116,21 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
       why: "printing.images credit",
       statements: [touch("image_files")],
     },
-    { table: "card_bans", why: "card.bans", statements: [touch("card_bans", "created_at")] },
+    {
+      table: "card_bans",
+      why: "a ban's start day",
+      statements: [
+        "UPDATE card_bans SET banned_at = banned_at - 1 WHERE ctid = (SELECT ctid FROM card_bans LIMIT 1)",
+      ],
+    },
+    {
+      table: "card_bans",
+      why: "an unban",
+      statements: [
+        `UPDATE card_bans SET unbanned_at = banned_at
+          WHERE ctid = (SELECT ctid FROM card_bans WHERE unbanned_at IS NULL LIMIT 1)`,
+      ],
+    },
     { table: "card_errata", why: "card.errata", statements: [touch("card_errata", "created_at")] },
     { table: "copies", why: "totalCopies", statements: [dropOne("copies")] },
     { table: "card_domains", why: "card.domains", statements: [dropOne("card_domains")] },

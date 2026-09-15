@@ -70,6 +70,7 @@ function buildFixture(): Printing[] {
       maxCopiesOverride: null,
       errata: null,
       bans: [],
+      upcomingBans: [],
     });
   }
 

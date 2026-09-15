@@ -1,3 +1,4 @@
+import { isBanInEffect } from "@openrift/shared/card-ban";
 import { validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckViolation } from "@openrift/shared/deck-rules";
 import type { DeckCheckMatchStatus, ZoneSuggestion } from "@openrift/shared/types/api/deck-check";
@@ -102,24 +103,23 @@ export async function buildEntryAdvisories(
     event.playMode === "2v2"
       ? [WellKnown.banFormat.CONSTRUCTED, WellKnown.banFormat.TWO_V_TWO]
       : [WellKnown.banFormat.CONSTRUCTED];
-  const [enumRows, details, setSlugsByCard, championIdentifierTags, activeBans] = await Promise.all(
-    [
-      repos.enums.all(),
-      repos.deckCheck.getCardDetails(matchedIds),
-      event.allowedSets && event.allowedSets.length > 0
-        ? repos.deckCheck.getCardSetSlugs(matchedIds)
-        : Promise.resolve(new Map<string, string[]>()),
-      // Only Custom-Region's signature rule consumes the champion-identifier
-      // tag set — skip the query for every other format.
-      event.format === WellKnown.deckFormat.CUSTOM_REGION
-        ? repos.catalog.championIdentifierTags()
-        : Promise.resolve([] as string[]),
-      repos.cardBans.listActiveForCards(matchedIds, banFormatIds),
-    ],
-  );
+  const [enumRows, details, setSlugsByCard, championIdentifierTags, banRows] = await Promise.all([
+    repos.enums.all(),
+    repos.deckCheck.getCardDetails(matchedIds),
+    event.allowedSets && event.allowedSets.length > 0
+      ? repos.deckCheck.getCardSetSlugs(matchedIds)
+      : Promise.resolve(new Map<string, string[]>()),
+    // Only Custom-Region's signature rule consumes the champion-identifier
+    // tag set — skip the query for every other format.
+    event.format === WellKnown.deckFormat.CUSTOM_REGION
+      ? repos.catalog.championIdentifierTags()
+      : Promise.resolve([] as string[]),
+    repos.cardBans.listActiveForCards(matchedIds, banFormatIds),
+  ]);
 
   const violations: DeckViolation[] = [];
 
+  const activeBans = banRows.filter((ban) => isBanInEffect(ban));
   const banned2v2 = new Set(
     activeBans
       .filter((ban) => ban.formatId === WellKnown.banFormat.TWO_V_TWO)

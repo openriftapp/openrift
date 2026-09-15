@@ -46,6 +46,7 @@ function makePrinting(overrides: Partial<Printing> & { id: string; shortCode: st
       maxCopiesOverride: null,
       errata: null,
       bans: [],
+      upcomingBans: [],
     },
     ...overrides,
   };
@@ -313,6 +314,7 @@ describe("matchEntries — Legend colloquial names", () => {
       maxCopiesOverride: null,
       errata: null,
       bans: [],
+      upcomingBans: [],
     },
   });
 

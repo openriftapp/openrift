@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildCardEmbed,
@@ -16,6 +16,10 @@ import {
 } from "./test/factories.js";
 
 const SITE = "https://openrift.example";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function snapshotWithPrices(prices = makePricesResponse()) {
   return buildSnapshot(
@@ -223,6 +227,21 @@ describe("buildCardEmbed", () => {
       ],
     });
     expect(cardWarnings(card)).toEqual(["🚫 **Banned** in Standard, Ranked"]);
+  });
+
+  it("lists a scheduled ban as incoming with its start day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
+    const card = makeCard({
+      bans: [
+        { formatId: "f1", formatName: "Standard", bannedAt: "2026-03-31", reason: null },
+        { formatId: "f2", formatName: "2v2", bannedAt: "2026-09-18", reason: null },
+      ],
+    });
+    expect(cardWarnings(card)).toEqual([
+      "🚫 **Banned** in Standard",
+      "⏳ **Ban incoming** in 2v2 from 2026-09-18",
+    ]);
   });
 
   it("keeps the errata warning unlinked when the errata has no source URL", () => {

@@ -1,4 +1,4 @@
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { CardBan, Printing } from "@openrift/shared/types/catalog";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -44,13 +44,15 @@ interface CardDetailProps {
   footerSlot?: ReactNode;
 }
 
-function BanAlert({ printing }: { printing: Printing }) {
+function BanAlert({ bans, upcoming }: { bans: CardBan[]; upcoming: boolean }) {
   return (
-    <Alert variant="destructive" className="space-y-1.5">
-      {printing.card.bans.map((ban) => (
+    <Alert variant={upcoming ? "warning" : "destructive"} className="space-y-1.5">
+      {bans.map((ban) => (
         <div key={ban.formatId}>
           <AlertTitle>
-            {m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
+            {upcoming
+              ? m.card_detail_ban_upcoming_title({ format: ban.formatName, date: ban.bannedAt })
+              : m.card_detail_ban_title({ format: ban.formatName, date: ban.bannedAt })}
           </AlertTitle>
           {ban.reason && <AlertDescription className="mt-0.5">{ban.reason}</AlertDescription>}
         </div>
@@ -83,6 +85,7 @@ export function CardDetail({
   const domainColors = useDomainColors();
   const setNumber = formatPublicCode(printing);
   const hasBans = card.bans.length > 0;
+  const hasUpcomingBans = card.upcomingBans.length > 0;
   const hasPicker =
     printings !== undefined && printings.length > 0 && onSelectPrinting !== undefined;
   const hasNav = onPrevCard !== undefined || onNextCard !== undefined;
@@ -138,7 +141,8 @@ export function CardDetail({
           </div>
 
           <div className="min-w-0 space-y-4">
-            {hasBans && <BanAlert printing={printing} />}
+            {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
+            {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
             <CardDetailStats printing={printing} align="start" />
             {text}
             {notes}
@@ -211,7 +215,8 @@ export function CardDetail({
       </div>
 
       <div className="space-y-4 p-4 md:p-0 md:pb-4">
-        {hasBans && <BanAlert printing={printing} />}
+        {hasBans && <BanAlert bans={card.bans} upcoming={false} />}
+        {hasUpcomingBans && <BanAlert bans={card.upcomingBans} upcoming />}
 
         <CardDetailArt printing={printing} showImages={showImages} />
 

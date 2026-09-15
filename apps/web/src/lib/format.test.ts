@@ -79,6 +79,7 @@ function stub(overrides: Partial<Printing> = {}): Printing {
       maxCopiesOverride: null,
       errata: null,
       bans: [],
+      upcomingBans: [],
     },
     ...overrides,
   } satisfies Printing;

@@ -25,7 +25,7 @@ export function cardBansRepo(db: Kysely<Database>) {
       }
       return db
         .selectFrom("cardBans")
-        .select(["cardId", "formatId"])
+        .select(["cardId", "formatId", "bannedAt"])
         .where("cardId", "in", cardIds)
         .where("formatId", "in", formatIds)
         .where("unbannedAt", "is", null)

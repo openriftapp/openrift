@@ -1,6 +1,7 @@
+import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import { promosContract } from "@openrift/shared/contracts/promos";
 import type { PromosListResponse } from "@openrift/shared/types/api/catalog";
-import type { Printing } from "@openrift/shared/types/catalog";
+import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -22,21 +23,22 @@ const fetchPromoList = createServerFn({ method: "GET" })
 interface EnrichedPromoList {
   channels: PromosListResponse["channels"];
   printings: Printing[];
-  cards: PromosListResponse["cards"];
+  cards: Record<string, PromosListResponse["cards"][string] & Pick<Card, "upcomingBans">>;
   sets: PromosListResponse["sets"];
   languages: string[];
 }
 
 function enrichPromoList(response: PromosListResponse): EnrichedPromoList {
   const setSlugById = new Map(response.sets.map((set) => [set.id, set.slug]));
+  const cards = joinCatalogCards(response.cards);
   const printings: Printing[] = response.printings.flatMap((p) => {
-    const card = response.cards[p.cardId];
+    const card = cards[p.cardId];
     return card ? [{ ...p, setSlug: setSlugById.get(p.setId) ?? "", setReleased: true, card }] : [];
   });
   return {
     channels: response.channels,
     printings,
-    cards: response.cards,
+    cards,
     sets: response.sets,
     languages: response.languages,
   };

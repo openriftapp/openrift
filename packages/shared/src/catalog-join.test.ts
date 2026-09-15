@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { joinCatalogPrintings } from "./catalog-join";
+import { joinCatalog, joinCatalogPrintings } from "./catalog-join";
 import type { CatalogResponse } from "./types/api/catalog.js";
 
 const CARD_ID = "00000000-0000-0000-0000-000000000001";
@@ -153,5 +153,42 @@ describe("joinCatalogPrintings", () => {
     );
     expect(printing!.canonicalRank).toBe(42);
     expect(printing!.artist).toBe("Someone Else");
+  });
+});
+
+describe("joinCatalog", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ban = {
+    formatId: "standard",
+    formatName: "Standard",
+    bannedAt: "2026-09-18",
+    reason: null,
+  };
+
+  it("shows a ban as upcoming until its start day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-17T23:59:00.000Z"));
+    const { printings } = joinCatalog(catalog({ cards: { [CARD_ID]: card({ bans: [ban] }) } }));
+    expect(printings[0]!.card.bans).toEqual([]);
+    expect(printings[0]!.card.upcomingBans).toEqual([ban]);
+  });
+
+  it("counts a ban as in effect from its start day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-18T00:00:00.000Z"));
+    const { printings } = joinCatalog(catalog({ cards: { [CARD_ID]: card({ bans: [ban] }) } }));
+    expect(printings[0]!.card.bans).toEqual([ban]);
+    expect(printings[0]!.card.upcomingBans).toEqual([]);
+  });
+
+  it("gives every printing of a card the card object from cardsById", () => {
+    const { cardsById, printings } = joinCatalog(
+      catalog({ printings: { "printing-1": printingValue(), "printing-2": printingValue() } }),
+    );
+    expect(printings[0]!.card).toBe(cardsById[CARD_ID]);
+    expect(printings[1]!.card).toBe(cardsById[CARD_ID]);
   });
 });

@@ -578,6 +578,8 @@
   "cards_thumb_legal_elsewhere": "在其他 Constructed 賽制中仍可使用。",
   "cards_thumb_format_ban": "{format} 禁用",
   "cards_thumb_banned": "禁用",
+  "cards_thumb_ban_upcoming": "即將禁用",
+  "cards_thumb_banned_from": "自 {date} 起將在 {format} 中禁用",
   "common_cards": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -679,6 +681,7 @@
   "card_detail_image_credit": "圖片來源：{credit}",
   "card_detail_ban_title": "自 {date} 起在 {format} 中禁用",
   "card_detail_ban_other_format": "僅適用於 {format} 賽制。這張卡在其他 Constructed 賽制中仍可使用。",
+  "card_detail_ban_upcoming_title": "自 {date} 起將在 {format} 中禁用",
   "card_detail_prev_card": "上一張卡牌",
   "card_detail_next_card": "下一張卡牌",
   "card_detail_close": "關閉卡牌詳細資訊",

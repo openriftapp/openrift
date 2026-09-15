@@ -1,3 +1,4 @@
+import { splitCardBans } from "@openrift/shared/card-ban";
 import { imageUrl } from "@openrift/shared/image-url";
 import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { findStandardArtFallback } from "@openrift/shared/standard";
@@ -199,11 +200,16 @@ function errataNote(errata: NonNullable<CatalogCard["errata"]>): string {
   return `*Errata (${errataCredit(errata)})*`;
 }
 
-/** The two things the artwork can't tell you: the card is banned somewhere, or its printed text is erratated. */
+/** What the artwork can't tell you: the card is banned or about to be, or its printed text is erratated. */
 export function cardWarnings(card: CatalogCard): string[] {
   const lines: string[] = [];
-  if (card.bans.length > 0) {
-    lines.push(`🚫 **Banned** in ${card.bans.map((ban) => ban.formatName).join(", ")}`);
+  const { bans, upcomingBans } = splitCardBans(card);
+  if (bans.length > 0) {
+    lines.push(`🚫 **Banned** in ${bans.map((ban) => ban.formatName).join(", ")}`);
+  }
+  if (upcomingBans.length > 0) {
+    const starts = upcomingBans.map((ban) => `${ban.formatName} from ${ban.bannedAt}`);
+    lines.push(`⏳ **Ban incoming** in ${starts.join(", ")}`);
   }
   if (card.errata) {
     lines.push(`⚠️ **Errata** (${errataCredit(card.errata)})`);

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { WellKnown } from "@openrift/shared/well-known";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
 import { buildEntryAdvisories, computeZoneSuggestions } from "./deck-check-advisories.js";
@@ -108,6 +109,10 @@ describe("computeZoneSuggestions", () => {
 });
 
 describe("buildEntryAdvisories", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   interface StubCardDetail {
     id: string;
     name: string;
@@ -123,6 +128,7 @@ describe("buildEntryAdvisories", () => {
   function stubRepos(
     cardDetails: Map<string, StubCardDetail>,
     championTags: string[] | null,
+    bans: { cardId: string; formatId: string; bannedAt: string }[] = [],
   ): Repos {
     return {
       enums: {
@@ -133,7 +139,7 @@ describe("buildEntryAdvisories", () => {
         getCardSetSlugs: () => Promise.resolve(new Map<string, string[]>()),
       },
       cardBans: {
-        listActiveForCards: () => Promise.resolve([]),
+        listActiveForCards: () => Promise.resolve(bans),
       },
       catalog: {
         championIdentifierTags: () => {
@@ -194,6 +200,25 @@ describe("buildEntryAdvisories", () => {
       [],
     );
     expect(advisories.violations.some((v) => v.code === "SIGNATURE_CHAMPION_COPIES")).toBe(false);
+  });
+
+  it("flags a card whose ban is in effect and passes one whose ban starts tomorrow", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-17T12:00:00.000Z"));
+    const constructed = WellKnown.banFormat.CONSTRUCTED;
+    const advisories = await buildEntryAdvisories(
+      stubRepos(new Map(), null, [
+        { cardId: "banned-now", formatId: constructed, bannedAt: "2026-09-17" },
+        { cardId: "banned-soon", formatId: constructed, bannedAt: "2026-09-18" },
+      ]),
+      { format: null, playMode: "1v1" as const, allowedSets: null },
+      [
+        line({ id: "a", resolvedCardId: "banned-now", zone: "main" }),
+        line({ id: "b", resolvedCardId: "banned-soon", zone: "main" }),
+      ],
+    );
+    const banned = advisories.violations.filter((violation) => violation.code === "banned-card");
+    expect(banned.map((violation) => violation.cardId)).toEqual(["banned-now"]);
   });
 
   it("suppresses the region-config rules a checked list can't satisfy", async () => {

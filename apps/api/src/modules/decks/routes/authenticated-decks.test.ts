@@ -51,7 +51,9 @@ const mockDeckFolders = {
 };
 
 const mockCatalog = {
-  cardBansByCardIds: vi.fn(() => Promise.resolve([] as { cardId: string; formatId: string }[])),
+  cardBansByCardIds: vi.fn(() =>
+    Promise.resolve([] as { cardId: string; formatId: string; bannedAt: string }[]),
+  ),
 };
 
 const mockUserPreferences = {

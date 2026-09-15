@@ -66,7 +66,7 @@ describe("cardDetailQueryOptions", () => {
 });
 
 describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
-  const card = { id: "card-1", slug: "ezreal" };
+  const card = { id: "card-1", slug: "ezreal", bans: [] };
   const printing = (id: string, setId: string, language = "EN") => ({
     id,
     setId,
@@ -88,7 +88,8 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
     const { select } = cardDetailQueryOptions("ezreal");
     expect(select).toBeDefined();
     return (select as (r: unknown) => ReturnType<typeof Object>)(response) as {
-      printings: { id: string; setSlug: string; setReleased: boolean }[];
+      card: unknown;
+      printings: { id: string; setSlug: string; setReleased: boolean; card: unknown }[];
       productsByPrinting: ReadonlyMap<string, { slug: string; quantity: number }[]>;
       related: { slug: string }[];
     };
@@ -182,5 +183,24 @@ describe("cardDetailQueryOptions select (enrichCardDetail)", () => {
 
     expect(result.printings[0]).toMatchObject({ setSlug: "ogn", setReleased: true });
     expect(result.printings[1]).toMatchObject({ setSlug: "ogn", setReleased: false });
+  });
+
+  it("keeps a ban that has not started yet out of the card's bans", () => {
+    const current = {
+      formatId: "constructed",
+      formatName: "Constructed",
+      bannedAt: "2025-01-01",
+      reason: null,
+    };
+    const scheduled = { formatId: "2v2", formatName: "2v2", bannedAt: "2099-01-01", reason: null };
+    const result = runSelect({
+      card: { ...card, bans: [current, scheduled] },
+      printings: [printing("p1", "s1")],
+      sets: [{ id: "s1", slug: "ogn", releases }],
+      products: [],
+    });
+
+    expect(result.card).toMatchObject({ bans: [current], upcomingBans: [scheduled] });
+    expect(result.printings[0]!.card).toBe(result.card);
   });
 });

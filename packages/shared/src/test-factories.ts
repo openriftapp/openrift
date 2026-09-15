@@ -45,6 +45,7 @@ export function makeCard(partial: Partial<Card> = {}): Card {
     maxCopiesOverride: null,
     errata: null,
     bans: [],
+    upcomingBans: [],
     ...overrides,
   };
 }

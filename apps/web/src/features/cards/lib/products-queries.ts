@@ -1,3 +1,4 @@
+import { joinCatalogCards } from "@openrift/shared/catalog-join";
 import type {
   ProductDetailResponse,
   ProductsListResponse,
@@ -59,11 +60,12 @@ export interface EnrichedProductDetail {
 function enrichProductDetail(response: ProductDetailResponse): EnrichedProductDetail {
   const setById = new Map(response.sets.map((set) => [set.id, set]));
   const today = todayUtc();
+  const cardsById = joinCatalogCards(response.cards, today);
   const printings: Printing[] = [];
   const printingsById: Record<string, Printing> = {};
   for (const wire of response.printings) {
     const set = setById.get(wire.setId);
-    const card = response.cards[wire.cardId];
+    const card = cardsById[wire.cardId];
     if (!set || !card) {
       continue;
     }

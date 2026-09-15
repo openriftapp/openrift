@@ -108,6 +108,7 @@ export interface Card {
   maxCopiesOverride: number | null;
   errata: CardErrata | null;
   bans: CardBan[];
+  upcomingBans: CardBan[];
 }
 
 export interface PrintingImage {
