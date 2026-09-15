@@ -280,6 +280,85 @@ describe("adding copies with client-minted ids", () => {
   });
 });
 
+describe("adding copies while the copies list refetches", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    copiesCollectionHolder.current = null;
+  });
+
+  async function makeRefetchableCollection(
+    queryClient: QueryClient,
+    queryFn: () => Promise<CopyResponse[]>,
+  ) {
+    realCollectionCounter++;
+    const collection = createCollection(
+      queryCollectionOptions<CopyResponse>({
+        id: `test-copies-${realCollectionCounter}`,
+        queryClient,
+        queryKey: ["test-copies", realCollectionCounter],
+        queryFn,
+        getKey: (copy) => copy.id,
+      }),
+    );
+    await collection.preload();
+    return collection;
+  }
+
+  const existing = stubCopy({ id: "existing-1" });
+  const placeholder = stubCopy({ id: "temp-1", printingId: "p1", collectionId: "c1" });
+  const created = stubCopy({ id: "real-1", printingId: "p1", collectionId: "c1" });
+
+  it("resolves with the created row when a refetch already dropped the placeholder", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const collection = await makeRefetchableCollection(client, async () => [existing]);
+    copiesCollectionHolder.current = collection;
+    collection.utils.writeUpsert([placeholder]);
+    await collection.utils.refetch();
+    expect(collection.has("temp-1")).toBe(false);
+
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({ items: [created] }, { status: 201 }),
+    ) as typeof fetch;
+
+    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
+    await expect(
+      result.current.mutateAsync({
+        copies: [{ printingId: "p1", collectionId: "c1" }],
+        tempIds: ["temp-1"],
+      }),
+    ).resolves.toHaveLength(1);
+
+    expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["existing-1", "real-1"]);
+  });
+
+  it("surfaces the add's own error when a refetch already dropped the placeholder", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const collection = await makeRefetchableCollection(client, async () => [existing]);
+    copiesCollectionHolder.current = collection;
+    collection.utils.writeUpsert([placeholder]);
+    await collection.utils.refetch();
+
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({ message: "boom" }, { status: 500 }),
+    ) as typeof fetch;
+
+    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
+    const rejection = await result.current
+      .mutateAsync({
+        copies: [{ printingId: "p1", collectionId: "c1" }],
+        tempIds: ["temp-1"],
+      })
+      .catch((error: unknown) => error);
+
+    expect(rejection).toBeInstanceOf(Error);
+    expect((rejection as Error).name).not.toBe("DeleteOperationItemNotFoundError");
+  });
+});
+
 describe("batch mutations reject when every selected id is still an optimistic temp id", () => {
   afterEach(() => {
     copiesCollectionHolder.current = null;

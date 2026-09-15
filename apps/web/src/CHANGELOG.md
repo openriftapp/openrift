@@ -9,6 +9,7 @@
 
 ### Other
 
+- fix(Collection): **No false errors when adding cards** — adding a card right after returning to the tab no longer shows an error even though the card was added, and undo can remove it again.
 - fix(Cards): **Bans start on their date** — a ban announced ahead of time now shows a "Ban incoming" ribbon and a notice with its start date, and the card only counts as banned in the card browser, deck checks and your decks from that day on. The Discord bot shows the start date too.
 - feat(Meta Archive): **See decklists waiting for review** — a tournament's standings now say "In review" on an entry someone has already sent a decklist for, so nobody sends it twice, and a clock beside a decklist means an update to it is waiting. Your own submissions read "Yours, in review" and link to your submissions. Anything sent in that isn't tied to a standings row is listed under the standings.
 - feat(Tournaments): **Podium places in standings** — Swiss, group and final standings, the cut bracket and each legend's best finish now print places large with the podium in gold, silver and bronze.

@@ -189,8 +189,9 @@ export function useAddCopies() {
           groupId: groupIdForCollection(queryClient, userId, item.collectionId),
         }));
         if (copiesCollection) {
+          // A refetch that lands mid-add can already have dropped the placeholder.
           copiesCollection.utils.writeBatch(() => {
-            copiesCollection.utils.writeDelete(tempIds);
+            copiesCollection.utils.writeDelete(tempIds.filter((id) => copiesCollection.has(id)));
             copiesCollection.utils.writeUpsert(realRows);
           });
         }
@@ -205,7 +206,7 @@ export function useAddCopies() {
         return apiResult;
       } catch (error) {
         if (hasRollback && copiesCollection) {
-          copiesCollection.utils.writeDelete(rollbackIds);
+          copiesCollection.utils.writeDelete(rollbackIds.filter((id) => copiesCollection.has(id)));
         }
         // A lost response may still have created the rows, so resync rather
         // than trust the rollback.
