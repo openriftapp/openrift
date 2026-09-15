@@ -9,7 +9,6 @@ import { createServerFn } from "@tanstack/react-start";
 
 import {
   boardStateQueryOptions,
-  boardStatesQueryOptions,
   featuredBoardStatesQueryOptions,
   publicBoardStateQueryOptions,
 } from "@/features/rules/lib/board-states-queries";
@@ -22,10 +21,6 @@ import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidatio
 
 type CreateBoardStateBody = ContractInput<typeof boardStatesContract, "create">;
 type UpdateBoardStateBody = ContractInput<typeof boardStatesContract, "update">;
-
-export function useBoardStates() {
-  return useSuspenseQuery(boardStatesQueryOptions(useRequiredUserId()));
-}
 
 export function useBoardState(id: string) {
   return useSuspenseQuery(boardStateQueryOptions(useRequiredUserId(), id));

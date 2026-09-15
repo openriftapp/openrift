@@ -23,7 +23,7 @@ export interface RulesPins {
   tournamentRulesVersion: string | null;
 }
 
-export function rulesKindLabel(kind: RuleRefKind): string {
+function rulesKindLabel(kind: RuleRefKind): string {
   return kind === "core"
     ? m.board_states_rules_kind_core()
     : m.board_states_rules_kind_tournament();
@@ -48,7 +48,7 @@ export function RulesPinBadges({ pins }: { pins: RulesPins }) {
   );
 }
 
-export function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesPins }) {
+function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesPins }) {
   const version = pinFor(pins, reference.kind);
   const label = `§ ${reference.kind === "tournament" ? "T " : ""}${reference.ruleNumber}`;
   if (version === null) {
@@ -67,7 +67,7 @@ export function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesP
   );
 }
 
-export function BoardCaption({ text, pins }: { text: string; pins: RulesPins }) {
+function BoardCaption({ text, pins }: { text: string; pins: RulesPins }) {
   return (
     <p className="whitespace-pre-line">
       {splitCaption(text).map((segment, index) =>

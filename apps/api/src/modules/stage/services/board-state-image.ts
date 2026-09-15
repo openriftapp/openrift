@@ -27,7 +27,7 @@ const ZONE_LABEL_SIZE = 11;
 const PIECE_ASPECT = 0.715;
 
 /** Hex equivalents of the web board's oklch player colors; satori has no oklch. */
-export const PLAYER_COLORS: Record<BoardPlayer, string> = {
+const PLAYER_COLORS: Record<BoardPlayer, string> = {
   A: "#2a8080",
   B: "#a37734",
   C: "#925b8d",

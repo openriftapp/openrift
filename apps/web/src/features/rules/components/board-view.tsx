@@ -39,7 +39,7 @@ const ZONE_LABEL: Record<PlayerZoneKind, () => string> = {
   trash: m.board_states_zone_trash,
 };
 
-export interface BoardInteraction {
+interface BoardInteraction {
   selectedPieceId?: string | null;
   onPieceClick?: (piece: BoardPiece) => void;
   onZoneClick?: (zone: BoardZoneRef, owner: BoardPlayer) => void;

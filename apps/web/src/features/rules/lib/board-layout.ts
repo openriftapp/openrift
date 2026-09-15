@@ -23,8 +23,8 @@ export function seatsFor(playerCount: number): BoardSeats {
   return { top: ["B"], bottom: ["A"] };
 }
 
-export const NEAR_ROW: readonly PlayerZoneKind[] = ["legend", "champion", "base"];
-export const FAR_ROW: readonly PlayerZoneKind[] = ["runes", "hand", "trash"];
+const NEAR_ROW: readonly PlayerZoneKind[] = ["legend", "champion", "base"];
+const FAR_ROW: readonly PlayerZoneKind[] = ["runes", "hand", "trash"];
 
 export interface ZoneSlot {
   kind: PlayerZoneKind;
