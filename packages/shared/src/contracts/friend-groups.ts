@@ -100,6 +100,22 @@ export const friendGroupSlugAndStoreIdParamSchema = z.object({
   storeId: z.coerce.number().int().positive(),
 });
 
+export const friendGroupCalendarFeedKindSchema = z.enum(["tournaments", "shop_events"]);
+
+export const friendGroupSlugAndFeedKindParamSchema = z.object({
+  slug: friendGroupSlugSchema,
+  kind: friendGroupCalendarFeedKindSchema,
+});
+
+export const friendGroupCalendarFeedResponseSchema = z.object({
+  kind: friendGroupCalendarFeedKindSchema,
+  token: z.string(),
+});
+
+export const friendGroupCalendarFeedsResponseSchema = z.object({
+  items: z.array(friendGroupCalendarFeedResponseSchema),
+});
+
 export const friendGroupShopSearchQuerySchema = z.object({
   q: z.string().min(2).max(80),
 });
@@ -704,6 +720,25 @@ export const friendGroupsContract = {
     .input(friendGroupSlugParamSchema)
     .errors({ NOT_FOUND: { message: "Group not found" } })
     .output(friendGroupShopEventsResponseSchema),
+  listCalendarFeeds: authedRoute
+    .route({ method: "GET", path: `${FG}/{slug}/calendar-feeds`, tags: [TAG] })
+    .input(friendGroupSlugParamSchema)
+    .errors({ NOT_FOUND: { message: "Group not found" } })
+    .output(friendGroupCalendarFeedsResponseSchema),
+  enableCalendarFeed: authedRoute
+    .route({ method: "PUT", path: `${FG}/{slug}/calendar-feeds/{kind}`, tags: [TAG] })
+    .input(friendGroupSlugAndFeedKindParamSchema)
+    .errors({ NOT_FOUND: { message: "Group not found" } })
+    .output(friendGroupCalendarFeedResponseSchema),
+  disableCalendarFeed: authedRoute
+    .route({
+      method: "DELETE",
+      path: `${FG}/{slug}/calendar-feeds/{kind}`,
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .errors({ NOT_FOUND: { message: "Group not found" } })
+    .input(friendGroupSlugAndFeedKindParamSchema),
   deleteDiscordLink: authedRoute
     .route({
       method: "DELETE",

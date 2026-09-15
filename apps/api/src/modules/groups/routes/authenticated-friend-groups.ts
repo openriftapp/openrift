@@ -1,5 +1,6 @@
 import { friendGroupsActivityRouter } from "./authenticated-friend-groups-activity.js";
 import { friendGroupsBannerRouter } from "./authenticated-friend-groups-banner.js";
+import { friendGroupsCalendarFeedsRouter } from "./authenticated-friend-groups-calendar-feeds.js";
 import { friendGroupsCoreRouter } from "./authenticated-friend-groups-core.js";
 import { friendGroupsDiscordRouter } from "./authenticated-friend-groups-discord.js";
 import { friendGroupsMembersRouter } from "./authenticated-friend-groups-members.js";
@@ -19,4 +20,5 @@ export const friendGroupsRouter = {
   ...friendGroupsActivityRouter,
   ...friendGroupsDiscordRouter,
   ...friendGroupsShopsRouter,
+  ...friendGroupsCalendarFeedsRouter,
 };

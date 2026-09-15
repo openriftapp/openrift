@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../db/tables.js";
 import type { ListRuleProviders } from "../lists/repositories/lists-rules.js";
 import { cardTradesRepo } from "./repositories/card-trades.js";
+import { friendGroupCalendarFeedsRepo } from "./repositories/friend-group-calendar-feeds.js";
 import { friendGroupDiscordLinksRepo } from "./repositories/friend-group-discord-links.js";
 import { friendGroupMatchesRepo } from "./repositories/friend-group-matches.js";
 import { friendGroupShopsRepo } from "./repositories/friend-group-shops.js";
@@ -37,6 +38,7 @@ import type { TradeEmailDeps } from "./services/trade-notifications.js";
 export interface GroupsRepos {
   cardTrades: ReturnType<typeof cardTradesRepo>;
   friendGroups: ReturnType<typeof friendGroupsRepo>;
+  friendGroupCalendarFeeds: ReturnType<typeof friendGroupCalendarFeedsRepo>;
   friendGroupDiscordLinks: ReturnType<typeof friendGroupDiscordLinksRepo>;
   friendGroupMatches: ReturnType<typeof friendGroupMatchesRepo>;
   friendGroupShops: ReturnType<typeof friendGroupShopsRepo>;
@@ -68,6 +70,7 @@ export function createGroupsRepos(db: Kysely<Database>, providers: ListRuleProvi
   return {
     cardTrades: cardTradesRepo(db),
     friendGroups: friendGroupsRepo(db),
+    friendGroupCalendarFeeds: friendGroupCalendarFeedsRepo(db),
     friendGroupDiscordLinks: friendGroupDiscordLinksRepo(db),
     friendGroupMatches: friendGroupMatchesRepo(db, providers),
     friendGroupShops: friendGroupShopsRepo(db),

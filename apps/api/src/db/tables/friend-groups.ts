@@ -1,5 +1,6 @@
 import type { ContactMethodType } from "@openrift/shared/types/api/contact-method";
 import type {
+  FriendGroupCalendarFeedKind,
   FriendGroupInviteDirection,
   FriendGroupRole,
 } from "@openrift/shared/types/api/friend-group";
@@ -59,6 +60,14 @@ export interface FriendGroupShopsTable {
   groupId: string;
   uvsgamesStoreId: number;
   addedByUserId: string | null;
+  createdAt: CreatedAt;
+}
+
+export interface FriendGroupCalendarFeedsTable {
+  token: string;
+  groupId: string;
+  userId: string;
+  kind: FriendGroupCalendarFeedKind;
   createdAt: CreatedAt;
 }
 

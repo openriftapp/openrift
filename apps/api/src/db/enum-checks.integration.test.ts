@@ -13,6 +13,7 @@ import { activityActionSchema } from "@openrift/shared/contracts/collection-even
 import { deckCheckClaimSourceSchema } from "@openrift/shared/contracts/deck-check";
 import { deckMatchupSwapDirectionSchema } from "@openrift/shared/contracts/decks";
 import {
+  friendGroupCalendarFeedKindSchema,
   friendGroupInviteDirectionSchema,
   friendGroupRoleSchema,
 } from "@openrift/shared/contracts/friend-groups";
@@ -90,6 +91,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_deck_check_entry_cards_match: deckCheckMatchStatusSchema.options,
   chk_deck_matchup_swaps_direction: deckMatchupSwapDirectionSchema.options,
   distribution_channels_kind_check: channelKindEnum.options,
+  chk_friend_group_calendar_feeds_kind: friendGroupCalendarFeedKindSchema.options,
   chk_friend_group_invites_direction: friendGroupInviteDirectionSchema.options,
   chk_friend_group_members_role: friendGroupRoleSchema.options,
   chk_job_runs_status: JOB_STATUSES,

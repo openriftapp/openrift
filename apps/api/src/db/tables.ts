@@ -65,6 +65,7 @@ import type {
   DecksTable,
 } from "./tables/decks.js";
 import type {
+  FriendGroupCalendarFeedsTable,
   FriendGroupCollectionSharesTable,
   FriendGroupDiscordLinksTable,
   FriendGroupInvitesTable,
@@ -277,6 +278,7 @@ export interface Database {
   friendGroupListShares: FriendGroupListSharesTable;
   friendGroupCollectionShares: FriendGroupCollectionSharesTable;
   friendGroupShops: FriendGroupShopsTable;
+  friendGroupCalendarFeeds: FriendGroupCalendarFeedsTable;
 
   userContactMethods: UserContactMethodsTable;
   friendGroupMemberContacts: FriendGroupMemberContactsTable;

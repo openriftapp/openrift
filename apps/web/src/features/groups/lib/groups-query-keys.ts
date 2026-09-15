@@ -39,6 +39,8 @@ export const friendGroupsKeys = {
     ["friend-groups", userId, slug, "shop-search", term] as const,
   shopEvents: (userId: string, slug: string) =>
     ["friend-groups", userId, slug, "shop-events"] as const,
+  calendarFeeds: (userId: string, slug: string) =>
+    ["friend-groups", userId, slug, "calendar-feeds"] as const,
 } as const;
 
 export const tradesKeys = {

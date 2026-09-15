@@ -27,6 +27,16 @@ export interface ShopEventRow {
   eventFormat: string | null;
 }
 
+export interface ShopFeedEventRow {
+  externalId: string;
+  name: string;
+  startAt: Date;
+  endAtEstimate: Date | null;
+  storeName: string;
+  location: string | null;
+  eventFormat: string | null;
+}
+
 const SEARCH_LIMIT = 20;
 
 // The source publishes no address on the store record, only on each event
@@ -164,6 +174,28 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         .where("id", "=", storeId)
         .executeTakeFirst()
         .then((row) => row !== undefined);
+    },
+
+    listFeedEvents(groupId: string, pastDays: number): Promise<ShopFeedEventRow[]> {
+      return db
+        .selectFrom("friendGroupShops as fgs")
+        .innerJoin("uvsgamesStores as s", "s.id", "fgs.uvsgamesStoreId")
+        .innerJoin("uvsgamesEvents as e", "e.storeId", "s.id")
+        .select([
+          "e.externalId as externalId",
+          "e.name as name",
+          "e.startAt as startAt",
+          "e.endAtEstimate as endAtEstimate",
+          "s.name as storeName",
+          "e.location as location",
+          "e.eventFormat as eventFormat",
+        ])
+        .where("fgs.groupId", "=", groupId)
+        .where("e.missingSince", "is", null)
+        .where(sql<SqlBool>`e.start_at >= now() - make_interval(days => ${pastDays})`)
+        .orderBy("e.startAt", "asc")
+        .orderBy("e.externalId", "asc")
+        .execute();
     },
 
     listEventsInWindow(

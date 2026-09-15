@@ -32,6 +32,7 @@ import { createPublicChatRoute } from "./modules/chat/routes/public-chat.js";
 import { collectionImageRoute } from "./modules/collections/routes/authenticated-collection-image.js";
 import { deckImageRoute } from "./modules/decks/routes/authenticated-deck-image.js";
 import { mountFriendGroupBannerMiddleware } from "./modules/groups/routes/authenticated-friend-groups-banner.js";
+import { publicFriendGroupCalendarFeedsRoute } from "./modules/groups/routes/public-friend-group-calendar-feeds.js";
 import { listImageRoute } from "./modules/lists/routes/authenticated-list-image.js";
 import { mountMetaSubmissionsMiddleware } from "./modules/meta/routes/authenticated-meta-submissions.js";
 import { mountScanReportsMiddleware } from "./modules/scan/routes/authenticated-scan-reports.js";
@@ -381,6 +382,7 @@ export function createApp(deps: AppDeps) {
     .route("/api/v1", createPublicChatRoute())
     .route("/api/v1", sentryTunnelRoute)
     .route("/api/v1", unsubscribeOneClickRoute)
+    .route("/api/v1", publicFriendGroupCalendarFeedsRoute)
     .route("/api/v1", listImageRoute)
     .route("/api/v1", collectionImageRoute)
     .route("/api/v1", deckImageRoute)

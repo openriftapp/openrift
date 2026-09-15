@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5VxkXHTQ32S9waxHdzsSqyrOnTY8S1ECNKkpohREeREFFzRDljj5zjxFYT33BfL
+\restrict LRPJ7WMJQhQnnq4yPjoTyP4lBB5K9EcyiKahsANCms7mEO6CNtsoyVvN89wuGFX
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1646,6 +1646,21 @@ CREATE TABLE public.formats (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_formats_id_not_empty CHECK ((id <> ''::text)),
     CONSTRAINT chk_formats_name_not_empty CHECK ((name <> ''::text))
+);
+
+
+--
+-- Name: friend_group_calendar_feeds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.friend_group_calendar_feeds (
+    token text NOT NULL,
+    group_id uuid NOT NULL,
+    user_id text NOT NULL,
+    kind text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_friend_group_calendar_feeds_kind CHECK ((kind = ANY (ARRAY['tournaments'::text, 'shop_events'::text]))),
+    CONSTRAINT chk_friend_group_calendar_feeds_token CHECK ((token <> ''::text))
 );
 
 
@@ -4407,6 +4422,14 @@ ALTER TABLE ONLY public.formats
 
 
 --
+-- Name: friend_group_calendar_feeds friend_group_calendar_feeds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT friend_group_calendar_feeds_pkey PRIMARY KEY (token);
+
+
+--
 -- Name: friend_group_collection_shares friend_group_collection_shares_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5308,6 +5331,14 @@ ALTER TABLE ONLY public.deck_matchup_swaps
 
 ALTER TABLE ONLY public.decks
     ADD CONSTRAINT uq_decks_id_user UNIQUE (id, user_id);
+
+
+--
+-- Name: friend_group_calendar_feeds uq_friend_group_calendar_feeds_member_kind; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT uq_friend_group_calendar_feeds_member_kind UNIQUE (group_id, user_id, kind);
 
 
 --
@@ -8482,6 +8513,14 @@ ALTER TABLE ONLY public.printings
 
 
 --
+-- Name: friend_group_calendar_feeds friend_group_calendar_feeds_member_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.friend_group_calendar_feeds
+    ADD CONSTRAINT friend_group_calendar_feeds_member_fkey FOREIGN KEY (group_id, user_id) REFERENCES public.friend_group_members(group_id, user_id) ON DELETE CASCADE;
+
+
+--
 -- Name: friend_group_discord_links friend_group_discord_links_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9565,5 +9604,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5VxkXHTQ32S9waxHdzsSqyrOnTY8S1ECNKkpohREeREFFzRDljj5zjxFYT33BfL
+\unrestrict LRPJ7WMJQhQnnq4yPjoTyP4lBB5K9EcyiKahsANCms7mEO6CNtsoyVvN89wuGFX
 

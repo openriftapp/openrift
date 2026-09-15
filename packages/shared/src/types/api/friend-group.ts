@@ -4,6 +4,9 @@ import type {
   friendGroupActivityResponseSchema,
   friendGroupBoxWantRowSchema,
   friendGroupBoxWantsResponseSchema,
+  friendGroupCalendarFeedKindSchema,
+  friendGroupCalendarFeedResponseSchema,
+  friendGroupCalendarFeedsResponseSchema,
   friendGroupCollectionCoverSchema,
   friendGroupCollectionShareResponseSchema,
   friendGroupDetailResponseSchema,
@@ -108,6 +111,14 @@ export type FriendGroupShopSearchResponse = z.infer<typeof friendGroupShopSearch
 export type FriendGroupShopEventResponse = z.infer<typeof friendGroupShopEventResponseSchema>;
 
 export type FriendGroupShopEventsResponse = z.infer<typeof friendGroupShopEventsResponseSchema>;
+
+export type FriendGroupCalendarFeedKind = z.infer<typeof friendGroupCalendarFeedKindSchema>;
+
+export type FriendGroupCalendarFeedResponse = z.infer<typeof friendGroupCalendarFeedResponseSchema>;
+
+export type FriendGroupCalendarFeedsResponse = z.infer<
+  typeof friendGroupCalendarFeedsResponseSchema
+>;
 
 export type FriendGroupDiscordLinkResponse = z.infer<typeof friendGroupDiscordLinkResponseSchema>;
 
