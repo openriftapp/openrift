@@ -133,6 +133,49 @@ docker compose down              # Keeps data (bind-mounted in ./data/)
 docker compose down -v           # Same as above — bind mounts are NOT deleted by -v
 ```
 
+## Known issues
+
+### postgres.js queries hang after a dropped connection
+
+postgres.js 3.4.9 (latest release as of 2026-09) has an unguarded `socket.write` in `nextWrite` (`src/connection.js`). When a database connection closes while a write for it is still queued, the write throws `TypeError: null is not an object (evaluating 'socket.write')`. The query that hit it never settles, and later queries routed to that connection hang the same way. The rest of the pool keeps working.
+
+The trigger we have reproduced is a backend connection closing while the API event loop is blocked. On 2026-09-15 a 45 s synchronous job (check matching, since made non-blocking) overlapped with one API connection closing. The shared version check in `createContentAddressedCache` landed on the broken connection, so every `enums.all()` caller hung until the API was restarted.
+
+**Symptoms**
+
+- Some API endpoints never answer while others do. On 2026-09-15: `/api/v1/init` and the decks list hung, `/api/v1/catalog` answered.
+- Card, promo and meta pages return 503 after about 10 s, and the web logs show `The connection was closed.`
+- No API error log, no trace in Tempo for the hung requests, and Postgres shows no active query for them. The `TypeError` may not appear in the logs either.
+
+**Recover**
+
+Restart the API: `docker compose restart api`. The broken state lives only in process memory.
+
+**Permanent fix, if it happens again**
+
+Apply the guard from [porsager/postgres#1209](https://github.com/porsager/postgres/pull/1209) with `bun patch`. It rejects the queued queries with `CONNECTION_CLOSED` instead of throwing, and the pool reconnects. Run `bun patch postgres@3.4.9` from the repo root, edit `src/connection.js` in the directory it prints, then `bun patch --commit` that directory. The API runs the `bun` export, which is `src/`; `cjs/`, `cf/` and `deno/` need no change.
+
+```js
+function nextWrite(fn) {
+  if (!socket) {
+    nextWriteTimer !== null && clearImmediate(nextWriteTimer);
+    chunk = nextWriteTimer = null;
+    error(Errors.connection("CONNECTION_CLOSED", options, socket));
+    return false;
+  }
+  const x = socket.write(chunk, fn);
+  nextWriteTimer !== null && clearImmediate(nextWriteTimer);
+  chunk = nextWriteTimer = null;
+  return x;
+}
+```
+
+This guard was tested against a local reproduction (Bun 1.4.2, postgres.js 3.4.9, PostgreSQL 18.6): with one connection terminated via `pg_terminate_backend` during a 45 s event-loop block, unpatched postgres.js left 3 of 50 later queries hanging; patched, those queries failed with `CONNECTION_CLOSED` and nothing hung. The guards in [#1168](https://github.com/porsager/postgres/pull/1168) and [#1176](https://github.com/porsager/postgres/pull/1176) only return `false`, which avoids the crash but leaves the queries hanging.
+
+Remove the patch, and the comments pointing here from `apps/api/src/db/connect.ts` and `catalog-assembly.ts`, once a postgres.js release contains the fix.
+
+Upstream: [#1066](https://github.com/porsager/postgres/issues/1066), [#1154](https://github.com/porsager/postgres/issues/1154), [#1208](https://github.com/porsager/postgres/issues/1208), [#1186](https://github.com/porsager/postgres/issues/1186) (the same class of hang inside transactions).
+
 ## Database Backups
 
 The backup container runs `pg_dump` on a schedule and uploads GPG-encrypted backups to Cloudflare R2. It uses the [siemens/postgres-backup-s3](https://github.com/siemens/postgres-backup-s3) image (`:18` tag matches our PostgreSQL version). Old backups are automatically pruned after `BACKUP_KEEP_DAYS`.
