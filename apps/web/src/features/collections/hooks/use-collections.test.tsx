@@ -13,9 +13,10 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 // Server fns are module-level; route every mocked handler to one spy so tests
 // can script the API response per hook.
-const { serverFnImpl, copiesCollectionHolder } = vi.hoisted(() => ({
+const { serverFnImpl, copiesCollectionHolder, restartRefetch } = vi.hoisted(() => ({
   serverFnImpl: vi.fn((_opts?: unknown): Promise<unknown> => Promise.resolve(null)),
   copiesCollectionHolder: { current: null as unknown },
+  restartRefetch: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
@@ -40,6 +41,10 @@ vi.mock("@/lib/server-fns/middleware", () => ({
 
 vi.mock("@/lib/server-fns/orpc-client", () => ({
   apiOrpcClient: () => ({}),
+}));
+
+vi.mock("@/features/collections/lib/copies-in-flight-refetch", () => ({
+  restartInFlightCopiesRefetch: restartRefetch,
 }));
 
 vi.mock("@/features/collections/lib/copies-collection", () => ({
@@ -198,6 +203,26 @@ describe("useDeleteCollection", () => {
       expect(writeUpdate).toHaveBeenCalledWith([
         { id: "copy-1", collectionId: "inbox-1", groupId: null },
       ]);
+    });
+  });
+
+  it("restarts an in-flight copies refetch after moving copies into the inbox", async () => {
+    restartRefetch.mockClear();
+    copiesCollectionHolder.current = {
+      toArray: [{ id: "copy-1", collectionId: "col-1", groupId: null }],
+      utils: { writeUpdate: vi.fn() },
+    };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    client.setQueryData(collectionsKeys.all("user-1"), {
+      items: [{ ...collection("inbox-1", 0), isInbox: true }],
+    });
+
+    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
+    await result.current.mutateAsync("col-1");
+
+    await waitFor(() => {
+      expect(restartRefetch).toHaveBeenCalledWith(client, "user-1");
     });
   });
 });

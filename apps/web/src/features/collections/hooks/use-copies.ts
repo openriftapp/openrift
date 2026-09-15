@@ -16,6 +16,7 @@ import { useEffect, useRef } from "react";
 
 import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
+import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
 import { isTempCopyId, TEMP_COPY_ID_PREFIX } from "@/features/collections/lib/temp-copy-id";
 import { trackEvent } from "@/lib/analytics";
 import { useUserId } from "@/lib/auth-session";
@@ -194,6 +195,7 @@ export function useAddCopies() {
             copiesCollection.utils.writeDelete(tempIds.filter((id) => copiesCollection.has(id)));
             copiesCollection.utils.writeUpsert(realRows);
           });
+          restartInFlightCopiesRefetch(queryClient, userId);
         }
         void queryClient.invalidateQueries({
           queryKey: copiesKeys.all(userId),
@@ -260,6 +262,7 @@ export function useMoveCopies() {
             collection.utils.writeUpdate(
               batch.map((id) => ({ id, collectionId: toCollectionId, groupId: toGroupId })),
             );
+            restartInFlightCopiesRefetch(queryClient, userId);
           }
           void queryClient.invalidateQueries({
             queryKey: copiesKeys.all(userId),
@@ -327,6 +330,7 @@ export function useUpdateCopies() {
             // Confirm each chunk immediately so a later chunk's failure only rolls
             // back the not-yet-committed remainder.
             collection.utils.writeUpdate(batch.map((id) => ({ id, ...applied })));
+            restartInFlightCopiesRefetch(queryClient, userId);
           }
           void queryClient.invalidateQueries({
             queryKey: copiesKeys.all(userId),
@@ -488,6 +492,7 @@ export function useDisposeCopies() {
             // Confirm each chunk immediately so a later chunk's failure only rolls
             // back the not-yet-committed remainder.
             collection.utils.writeDelete(batch);
+            restartInFlightCopiesRefetch(queryClient, userId);
           }
           void queryClient.invalidateQueries({
             queryKey: copiesKeys.all(userId),

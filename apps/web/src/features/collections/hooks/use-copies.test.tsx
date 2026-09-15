@@ -359,6 +359,148 @@ describe("adding copies while the copies list refetches", () => {
   });
 });
 
+describe("confirmed writes survive a copies refetch that started before them", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    copiesCollectionHolder.current = null;
+  });
+
+  async function makeSlowRefetchCollection(
+    queryClient: QueryClient,
+    server: { rows: CopyResponse[] },
+  ) {
+    let release = () => {};
+    // oxlint-disable-next-line promise/avoid-new -- gate resolved from outside the fetch
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let fetches = 0;
+    realCollectionCounter++;
+    const collection = createCollection(
+      queryCollectionOptions<CopyResponse>({
+        id: `test-copies-${realCollectionCounter}`,
+        queryClient,
+        queryKey: ["copies", "user-1", "store"],
+        queryFn: async () => {
+          fetches++;
+          const rows = server.rows;
+          if (fetches === 2) {
+            await gate;
+          }
+          return rows;
+        },
+        getKey: (copy) => copy.id,
+      }),
+    );
+    await collection.preload();
+    return { collection, release };
+  }
+
+  async function landLateRefetch(
+    queryClient: QueryClient,
+    release: () => void,
+    refetching: Promise<unknown>,
+  ) {
+    release();
+    await refetching.catch(() => {});
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    // oxlint-disable-next-line promise/avoid-new -- let queued result applications run
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+  }
+
+  it("keeps an added copy", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const existing = stubCopy({ id: "existing-1" });
+    const created = stubCopy({ id: "real-1", printingId: "p1", collectionId: "c1" });
+    const server = { rows: [existing] };
+    const { collection, release } = await makeSlowRefetchCollection(client, server);
+    copiesCollectionHolder.current = collection;
+    collection.utils.writeUpsert([
+      stubCopy({ id: "temp-1", printingId: "p1", collectionId: "c1" }),
+    ]);
+    const refetching = collection.utils.refetch();
+
+    globalThis.fetch = vi.fn(async () => {
+      server.rows = [existing, created];
+      return Response.json({ items: [created] }, { status: 201 });
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
+    await result.current.mutateAsync({
+      copies: [{ printingId: "p1", collectionId: "c1" }],
+      tempIds: ["temp-1"],
+    });
+    await landLateRefetch(client, release, refetching);
+
+    expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["existing-1", "real-1"]);
+  });
+
+  it("keeps a moved copy in its new collection", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const server = { rows: [stubCopy({ id: "copy-1", collectionId: "source" })] };
+    const { collection, release } = await makeSlowRefetchCollection(client, server);
+    copiesCollectionHolder.current = collection;
+    const refetching = collection.utils.refetch();
+
+    globalThis.fetch = vi.fn(async () => {
+      server.rows = [stubCopy({ id: "copy-1", collectionId: "dest" })];
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+    await result.current.mutateAsync({ copyIds: ["copy-1"], toCollectionId: "dest" });
+    await landLateRefetch(client, release, refetching);
+
+    expect(collection.get("copy-1")?.collectionId).toBe("dest");
+  });
+
+  it("keeps an edited copy's new details", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const server = { rows: [stubCopy({ id: "copy-1" })] };
+    const { collection, release } = await makeSlowRefetchCollection(client, server);
+    copiesCollectionHolder.current = collection;
+    const refetching = collection.utils.refetch();
+
+    globalThis.fetch = vi.fn(async () => {
+      server.rows = [stubCopy({ id: "copy-1", condition: "mint" })];
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useUpdateCopies(), { wrapper: wrap(client) });
+    await result.current.mutateAsync({ copyIds: ["copy-1"], patch: { condition: "mint" } });
+    await landLateRefetch(client, release, refetching);
+
+    expect(collection.get("copy-1")?.condition).toBe("mint");
+  });
+
+  it("keeps a removed copy removed", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    seedSession(client, "user-1");
+    const server = { rows: [stubCopy({ id: "copy-1" })] };
+    const { collection, release } = await makeSlowRefetchCollection(client, server);
+    copiesCollectionHolder.current = collection;
+    const refetching = collection.utils.refetch();
+
+    globalThis.fetch = vi.fn(async () => {
+      server.rows = [];
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
+    await result.current.mutateAsync({ copyIds: ["copy-1"] });
+    await landLateRefetch(client, release, refetching);
+
+    expect(collection.has("copy-1")).toBe(false);
+  });
+});
+
 describe("batch mutations reject when every selected id is still an optimistic temp id", () => {
   afterEach(() => {
     copiesCollectionHolder.current = null;

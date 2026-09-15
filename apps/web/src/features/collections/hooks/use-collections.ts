@@ -15,6 +15,7 @@ import {
 } from "@/features/collections/lib/collections-query";
 import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
+import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { reportMutationError } from "@/lib/query-client";
 import { reorderInPlace } from "@/lib/reorder-in-place";
@@ -307,6 +308,7 @@ export function useDeleteCollection() {
           copiesCollection.utils.writeUpdate(
             affected.map((copy) => ({ id: copy.id, collectionId: inboxId, groupId: null })),
           );
+          restartInFlightCopiesRefetch(queryClient, userId);
         }
       }
       void queryClient.invalidateQueries({ queryKey: collectionsKeys.all(userId) });
