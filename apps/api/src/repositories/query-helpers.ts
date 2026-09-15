@@ -258,7 +258,7 @@ export async function printingDetailsByIds(
  * Tables whose sharing follows the `share_token`/`is_public`/`user_id` pattern.
  * `collections` is deliberately excluded: it scopes its setter by id alone.
  */
-type ShareableTable = "lists" | "decks" | "tierLists";
+type ShareableTable = "lists" | "decks" | "tierLists" | "boardStates";
 
 export interface ShareState {
   shareToken: string | null;

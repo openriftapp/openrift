@@ -19,6 +19,7 @@ import {
   TrendingUpIcon,
   TrophyIcon,
   UsersIcon,
+  LayoutDashboardIcon,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -128,6 +129,13 @@ export function moreNavSections(): NavSectionConfig[] {
           icon: BookTextIcon,
           flag: "glossary",
           description: m.nav_glossary_description(),
+        },
+        {
+          label: m.board_states_title(),
+          to: "/board-states",
+          icon: LayoutDashboardIcon,
+          flag: "board-states",
+          description: m.nav_board_states_description(),
         },
         {
           label: m.nav_match_tracker(),

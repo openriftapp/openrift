@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  boardStateShareImageUrl,
   bundleShareImageUrl,
   collectionOwnerImageUrl,
   collectionShareImageUrl,
@@ -179,6 +180,20 @@ describe("deckOwnerImageUrl", () => {
         qr: false,
       }),
     ).toBe("https://openrift.app/api/v1/decks/deck-1/image.png?size=hq&aspect=vertical&qr=0");
+  });
+});
+
+describe("boardStateShareImageUrl", () => {
+  it("builds an absolute /api/v1 board state image URL with the version param", () => {
+    expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42)).toBe(
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42",
+    );
+  });
+
+  it("appends size=hq for the high-resolution download variant", () => {
+    expect(boardStateShareImageUrl("https://openrift.app", "tok123", 42, "hq")).toBe(
+      "https://openrift.app/api/v1/board-states/share/tok123/image.png?v=42&size=hq",
+    );
   });
 });
 

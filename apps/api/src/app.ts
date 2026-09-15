@@ -36,6 +36,7 @@ import { publicFriendGroupCalendarFeedsRoute } from "./modules/groups/routes/pub
 import { listImageRoute } from "./modules/lists/routes/authenticated-list-image.js";
 import { mountMetaSubmissionsMiddleware } from "./modules/meta/routes/authenticated-meta-submissions.js";
 import { mountScanReportsMiddleware } from "./modules/scan/routes/authenticated-scan-reports.js";
+import { mountBoardStatesRateLimit } from "./modules/stage/routes/authenticated-board-states-rate-limit.js";
 import { tierListImageRoute } from "./modules/stage/routes/authenticated-tier-list-image.js";
 import { mountAdminSentryTest } from "./modules/system/routes/admin-sentry-test.js";
 import { healthRoute } from "./modules/system/routes/public-health.js";
@@ -400,6 +401,7 @@ export function createApp(deps: AppDeps) {
   mountCardSubmissionsMiddleware(app);
   mountFriendGroupBannerMiddleware(app);
   mountScanReportsMiddleware(app);
+  mountBoardStatesRateLimit(app);
   mountMetaSubmissionsMiddleware(app);
   for (const path of ETAG_PATHS) {
     // immutableWhenVersionMatches reads the ETag header etag() sets, so it must run

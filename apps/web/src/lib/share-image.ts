@@ -106,6 +106,16 @@ export function tierListShareImageUrl(
   return size === "hq" ? `${base}&size=hq` : base;
 }
 
+export function boardStateShareImageUrl(
+  siteUrl: string,
+  shareToken: string,
+  version: number,
+  size?: "hq",
+): string {
+  const base = `${siteUrl}${API_BASE}/board-states/share/${shareToken}/image.png?v=${version}`;
+  return size === "hq" ? `${base}&size=hq` : base;
+}
+
 export type TierListImageOptions = Pick<ShareImageQuery, "aspect" | "scale" | "qr">;
 
 export function tierListOwnerImageUrl(

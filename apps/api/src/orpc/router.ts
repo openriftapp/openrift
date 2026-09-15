@@ -79,9 +79,12 @@ import { metaRouter } from "../modules/meta/routes/public-meta.js";
 import { adminScanRouter } from "../modules/scan/routes/admin-scan.js";
 import { scanReportsRouter } from "../modules/scan/routes/authenticated-scan-reports.js";
 import { scanRouter } from "../modules/scan/routes/public-scan.js";
+import { adminBoardStatesRouter } from "../modules/stage/routes/admin-board-states.js";
+import { boardStatesRouter } from "../modules/stage/routes/authenticated-board-states.js";
 import { overlayRouter } from "../modules/stage/routes/authenticated-overlay.js";
 import { stagePresetsRouter } from "../modules/stage/routes/authenticated-stage-presets.js";
 import { tierListsRouter } from "../modules/stage/routes/authenticated-tier-lists.js";
+import { publicBoardStatesRouter } from "../modules/stage/routes/public-board-states.js";
 import { publicOverlayRouter } from "../modules/stage/routes/public-overlay.js";
 import { publicTierListsRouter } from "../modules/stage/routes/public-tier-lists.js";
 import { adminAuditEventsRouter } from "../modules/system/routes/admin-audit-events.js";
@@ -144,6 +147,7 @@ const apiRouter = {
   adminFinishesRouter,
   adminFormatsRouter,
   adminFriendGroupBannersRouter,
+  adminBoardStatesRouter,
   adminGrantsRouter,
   adminIgnoredCandidatesRouter,
   adminIgnoredProductsRouter,
@@ -199,6 +203,7 @@ const apiRouter = {
   preferencesRouter,
   stagePresetsRouter,
   tierListsRouter,
+  boardStatesRouter,
   tournamentDeckCheckRouter,
   tournamentsRouter,
   userShareRouter,
@@ -226,6 +231,7 @@ const apiRouter = {
   scanRouter,
   sitemapRouter,
   publicTierListsRouter,
+  publicBoardStatesRouter,
   publicTournamentsRouter,
   unsubscribeRouter,
   publicUserShareRouter,

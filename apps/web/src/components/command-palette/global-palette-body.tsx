@@ -71,6 +71,7 @@ export function GlobalPaletteBody({ onOpenCard, onLockedFeature }: GlobalPalette
   const navFlags: NavFlags = {
     glossary: featureEnabled(flags, "glossary"),
     meta: featureEnabled(flags, "meta"),
+    "board-states": featureEnabled(flags, "board-states"),
   };
   const navItems = [...primaryNavItems(), ...moreNavSections().flatMap((s) => s.items)].filter(
     (item) => item.flag === undefined || navFlags[item.flag],

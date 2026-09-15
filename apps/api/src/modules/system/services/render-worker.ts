@@ -1,5 +1,6 @@
 import { defaultIo } from "../../../io.js";
 import { renderDeckImage } from "../../decks/services/deck-image.js";
+import { renderBoardStateImage } from "../../stage/services/board-state-image.js";
 import { renderTierListImage } from "../../stage/services/tier-list-image.js";
 import type { RenderJob, RenderResponse } from "./render-job.js";
 import { renderShareImage } from "./share-image.js";
@@ -12,6 +13,9 @@ function render(job: RenderJob): Promise<Buffer> {
   }
   if (job.kind === "tierList") {
     return renderTierListImage(defaultIo, job.input, job.scale, job.aspect);
+  }
+  if (job.kind === "boardState") {
+    return renderBoardStateImage(defaultIo, job.input, job.scale);
   }
   return renderShareImage(defaultIo, job.input, job.scale, job.options);
 }

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { signInRedirectFor } from "./header";
 import { navItemVisible, primaryNavItems, visibleMoreSections } from "./nav-items";
 
-const flagsOn = { glossary: true, meta: true };
-const flagsOff = { glossary: false, meta: false };
+const flagsOn = { glossary: true, meta: true, "board-states": true };
+const flagsOff = { glossary: false, meta: false, "board-states": false };
 
 describe("primaryNavItems", () => {
   const visible = (flags: typeof flagsOn, mobile: boolean) =>

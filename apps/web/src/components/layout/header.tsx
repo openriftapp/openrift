@@ -838,9 +838,14 @@ export function Header() {
   const { data: session, isPending } = useSession();
   const glossaryEnabled = useFeatureEnabled("glossary");
   const metaEnabled = useFeatureEnabled("meta");
+  const boardStatesEnabled = useFeatureEnabled("board-states");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<LockedFeatureKey | null>(null);
-  const navFlags: NavFlags = { glossary: glossaryEnabled, meta: metaEnabled };
+  const navFlags: NavFlags = {
+    glossary: glossaryEnabled,
+    meta: metaEnabled,
+    "board-states": boardStatesEnabled,
+  };
   const isLoggedIn = Boolean(session?.user);
   const { data: pendingRequestsData } = useFriendGroupPendingRequestsCount({ enabled: isLoggedIn });
   const { data: tradeActionCounts } = useTradeActionCounts();

@@ -1,7 +1,8 @@
 import type { RuleKind, RuleResponse } from "@openrift/shared/types/api/rules";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
@@ -23,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
+import { featuredBoardStatesQueryOptions } from "@/features/rules/lib/board-states-queries";
+import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
 import {
   buildChangeKindMap,
   computeAncestorsByRule,
@@ -37,10 +40,13 @@ import {
   parseSearchTerms,
 } from "@/features/rules/lib/rules-changes";
 import { ruleKindTitle } from "@/features/rules/lib/rules-kinds";
+import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
 import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -140,6 +146,17 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
     resetSearch();
     resetDiffExpands();
   });
+
+  const isHydrated = useHydrated();
+  const boardStatesEnabled = useFeatureEnabled("board-states");
+  const { data: featuredBoardStates } = useQuery({
+    ...featuredBoardStatesQueryOptions(),
+    enabled: isHydrated && boardStatesEnabled,
+  });
+  const setExamplesByRule = useRuleExamplesStore((state) => state.setExamplesByRule);
+  useEffect(() => {
+    setExamplesByRule(buildRuleExamplesMap(featuredBoardStates ?? [], kind, version));
+  }, [featuredBoardStates, kind, version, setExamplesByRule]);
 
   const versions = versionsData.versions;
   const comments = versions.find((v) => v.version === version)?.comments ?? null;

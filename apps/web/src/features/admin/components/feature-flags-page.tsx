@@ -67,6 +67,10 @@ const KNOWN_FLAGS: KnownFlag[] = [
     key: "meta",
     description: "Show the meta archive (/meta), its header link, and its sitemap entries",
   },
+  {
+    key: "board-states",
+    description: "Show board states (/board-states), their header link, and the editor",
+  },
 ];
 
 function FlagKeyCell({ row }: AdminCellSlotProps<FeatureFlagResponse>) {

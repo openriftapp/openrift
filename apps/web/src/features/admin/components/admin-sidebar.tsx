@@ -91,6 +91,7 @@ const contentPages = [
   { to: "/admin/rules" as const, icon: BookOpenIcon, title: "Rules" },
   { to: "/admin/errata" as const, icon: FileWarningIcon, title: "Errata" },
   { to: "/admin/meta" as const, icon: TrophyIcon, title: "Meta Archive" },
+  { to: "/admin/board-states" as const, icon: ShapesIcon, title: "Board States" },
 ];
 
 const contributePages = [

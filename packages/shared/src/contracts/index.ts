@@ -3,6 +3,7 @@
 // `@hono/zod-openapi` add their contract here.
 export * from "./admin/art-variants.js";
 export * from "./admin/audit-events.js";
+export * from "./admin/board-states.js";
 export * from "./admin/cache.js";
 export * from "./admin/card-bans.js";
 export * from "./admin/card-images.js";
@@ -53,6 +54,7 @@ export * from "./admin/typography-review.js";
 export * from "./admin/unified-mappings.js";
 export * from "./admin/users.js";
 export * from "./api-format.js";
+export * from "./board-states.js";
 export * from "./cards.js";
 export * from "./card-submissions.js";
 export * from "./card-trades.js";
@@ -87,6 +89,7 @@ export * from "./preferences.js";
 export * from "./prices.js";
 export * from "./products.js";
 export * from "./promos.js";
+export * from "./public-board-states.js";
 export * from "./public-collections.js";
 export * from "./public-decks.js";
 export * from "./public-friend-groups.js";

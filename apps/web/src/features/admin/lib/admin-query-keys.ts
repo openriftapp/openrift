@@ -29,6 +29,7 @@ export const adminKeys = {
   },
   marketplaceGroups: ["admin", "marketplace-groups"] as const,
   groupBanners: ["admin", "group-banners"] as const,
+  boardStates: ["admin", "board-states"] as const,
   featureFlags: ["admin", "feature-flags"] as const,
   featureFlagOverrides: ["admin", "feature-flag-overrides"] as const,
   grants: ["admin", "grants"] as const,

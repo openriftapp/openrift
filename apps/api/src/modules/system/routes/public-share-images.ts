@@ -284,6 +284,26 @@ export const publicShareImagesRoute = new Hono<{ Variables: Variables }>()
     return pngResponse(png);
   })
 
+  .get("/board-states/share/:token/image.png", shareImageRateLimit, async (c) => {
+    const repos = c.get("repos");
+    const config = c.get("config");
+
+    const found = await repos.boardStates.findByShareToken(c.req.param("token"));
+    assertFound(found, "Not found");
+
+    const png = await renderImage({
+      kind: "boardState",
+      input: {
+        title: found.boardState.title,
+        document: found.boardState.document,
+        siteHost: siteHostFromOrigin(config.corsOrigin),
+      },
+      scale: c.req.query("size") === "hq" ? 2 : 1,
+    });
+
+    return pngResponse(png);
+  })
+
   // Browser-local decks have no server row or session; saved decks use the
   // owner-auth GET route (`deck-image.ts`) instead.
   .post("/decks/image", renderRateLimit, renderBodyLimit, async (c) => {

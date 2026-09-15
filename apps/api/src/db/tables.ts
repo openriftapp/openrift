@@ -8,6 +8,7 @@ import type {
   UsersTable,
   VerificationsTable,
 } from "./tables/auth.js";
+import type { BoardStatesTable } from "./tables/board-states.js";
 import type {
   CandidateCardsTable,
   CandidatePrintingsTable,
@@ -263,6 +264,8 @@ export interface Database {
   metaSubmissions: MetaSubmissionsTable;
 
   tierLists: TierListsTable;
+
+  boardStates: BoardStatesTable;
 
   overlayChannels: OverlayChannelsTable;
 

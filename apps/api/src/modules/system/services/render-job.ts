@@ -1,6 +1,7 @@
 import type { ShareImageAspect } from "@openrift/shared/share-image-params";
 
 import type { DeckImageInput } from "../../decks/services/deck-image-parts.js";
+import type { BoardStateImageInput } from "../../stage/services/board-state-image.js";
 import type { TierListImageInput } from "../../stage/services/tier-list-image.js";
 import type { ShareImageInput, ShareImageOptions } from "./share-image.js";
 
@@ -12,7 +13,8 @@ import type { ShareImageInput, ShareImageOptions } from "./share-image.js";
 export type RenderJob =
   | { kind: "share"; input: ShareImageInput; scale: number; options: ShareImageOptions }
   | { kind: "deck"; input: DeckImageInput; scale: number; aspect: ShareImageAspect }
-  | { kind: "tierList"; input: TierListImageInput; scale: number; aspect: ShareImageAspect };
+  | { kind: "tierList"; input: TierListImageInput; scale: number; aspect: ShareImageAspect }
+  | { kind: "boardState"; input: BoardStateImageInput; scale: number };
 
 export type RenderResponse =
   | { id: number; ok: true; png: Uint8Array }
