@@ -15,7 +15,7 @@ import type { candidateCardsRepo } from "../repositories/candidate-cards.js";
 type CandidateCardsRepo = ReturnType<typeof candidateCardsRepo>;
 type KeywordsRepo = ReturnType<typeof keywordsRepo>;
 
-export const CHECK_MATCHING_PAGE_SIZE = 250;
+const CHECK_MATCHING_PAGE_SIZE = 250;
 
 export interface CheckMatchingResult {
   cardsChecked: number;
