@@ -33,7 +33,7 @@ type OpenTarget =
   | {
       to: "/admin/cards/$cardSlug";
       params: { cardSlug: string };
-      search: { section: CardSection };
+      search: { section: CardSection; status: "review" };
     }
   | { to: "/admin/cards/new/$name"; params: { name: string } };
 
@@ -43,7 +43,7 @@ function openTarget(item: ReviewQueueItem, trustedProviders: ReadonlySet<string>
     return {
       to: "/admin/cards/$cardSlug",
       params: { cardSlug: target.cardSlug },
-      search: { section: target.section },
+      search: { section: target.section, status: "review" },
     };
   }
   return { to: "/admin/cards/new/$name", params: { name: target.name } };

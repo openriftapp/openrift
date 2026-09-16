@@ -18,11 +18,15 @@ import {
   useAllCards,
   useNextUncheckedCard,
 } from "@/features/admin/hooks/use-admin-card-queries";
+import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
+import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { useUnifiedMappingsWhen } from "@/features/admin/hooks/use-unified-mappings";
 import { selectAdminCardPrevNext } from "@/features/admin/lib/admin-card-nav";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import type { CardSection } from "@/features/admin/lib/card-sections";
+import { reviewSectionsBySlug } from "@/features/admin/lib/review-queue";
 import {
   ALL_ASSIGNABLE_SCOPE,
   buildPriceAssignBucketsBySlug,
@@ -80,9 +84,18 @@ export interface CardReviewNavSearch {
 
 /**
  * List-page status filters that also narrow prev/next here. "unchecked" is not
- * one of them — it has its own flow through "Check all & next".
+ * one of them — it has its own flow through "Check all & next". "review"
+ * comes from the review inbox and returns there.
  */
-export type AdminCardListStatus = "prices-to-assign" | "new-printings";
+export type AdminCardListStatus = "prices-to-assign" | "new-printings" | "review";
+
+type CardListSearch = Omit<CardReviewNavSearch, "status"> & {
+  status?: Exclude<AdminCardListStatus, "review">;
+};
+
+export function cardListSearch({ status, ...rest }: CardReviewNavSearch): CardListSearch {
+  return status === "review" ? rest : { ...rest, status };
+}
 
 interface UseCardReviewNavigationOptions {
   identifier: string;
@@ -143,12 +156,28 @@ export function useCardReviewNavigation({
         )
       : null;
 
+  const reviewFilterActive = listStatus === "review";
+  const { data: reviewQueue } = useReviewQueueWhen(reviewFilterActive);
+  const { data: providerSettings } = useProviderSettings();
+  const reviewSections =
+    reviewFilterActive && reviewQueue
+      ? reviewSectionsBySlug(
+          reviewQueue.items,
+          favoriteProviderSet(providerSettings.providerSettings),
+        )
+      : null;
+  const reviewSlugs = reviewSections ? new Set(reviewSections.keys()) : null;
+
   // Nearest matching card is found by scanning outward from the full ordering,
   // so the buttons keep working after this card itself falls out of the filter.
   const prevNextCards: PrevNextSlugs = selectAdminCardPrevNext(
     scopedCards.map((c) => c.slug),
     identifier,
-    { priceScope: activePriceScope, assignBucketsBySlug, newPrintingSlugs },
+    {
+      priceScope: activePriceScope,
+      assignBucketsBySlug,
+      matchingSlugs: newPrintingSlugs ?? reviewSlugs,
+    },
   );
 
   const navSearch: CardReviewNavSearch = {
@@ -158,15 +187,20 @@ export function useCardReviewNavigation({
   };
 
   function goToCard(cardSlug: string) {
+    const targetSection = reviewSections?.get(cardSlug) ?? section;
     void navigate({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug },
-      search: { ...navSearch, ...(section ? { section } : {}) },
+      search: { ...navSearch, ...(targetSection ? { section: targetSection } : {}) },
     });
   }
 
   function goToList() {
-    void navigate({ to: "/admin/cards", search: navSearch });
+    if (reviewFilterActive) {
+      void navigate({ to: "/admin/review" });
+      return;
+    }
+    void navigate({ to: "/admin/cards", search: cardListSearch(navSearch) });
   }
 
   const [isCheckingAll, setIsCheckingAll] = useState(false);

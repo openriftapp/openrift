@@ -27,6 +27,7 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useDeleteCard, useRenameCard } from "@/features/admin/hooks/use-admin-card-mutations";
+import { cardListSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 
@@ -75,7 +76,17 @@ export function CardDetailHeader({
   return (
     <AdminPageTopBar
       title={canonicalName}
-      back={<PageTopBarBack to="/admin/cards" search={listSearch} aria-label="Back to cards" />}
+      back={
+        listSearch.status === "review" ? (
+          <PageTopBarBack to="/admin/review" aria-label="Back to review" />
+        ) : (
+          <PageTopBarBack
+            to="/admin/cards"
+            search={cardListSearch(listSearch)}
+            aria-label="Back to cards"
+          />
+        )
+      }
       actions={
         <>
           {isCardIdStale && <Badge variant="warning">ID &rarr; {expectedCardId}</Badge>}

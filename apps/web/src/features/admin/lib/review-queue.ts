@@ -104,8 +104,10 @@ export function summarizeReviewItem(item: ReviewQueueItem): string {
   return parts.join(" · ");
 }
 
+type CardReviewSection = "attention" | "printings" | "fields";
+
 export type ReviewItemTarget =
-  | { kind: "card"; cardSlug: string; section: "attention" | "printings" | "fields" }
+  | { kind: "card"; cardSlug: string; section: CardReviewSection }
   | { kind: "draft"; name: string };
 
 /** Untrusted sources have no attention entry, so they open where their changes are shown. */
@@ -121,4 +123,19 @@ export function reviewItemTarget(
   }
   const section = item.uncheckedPrintings > 0 || item.newPrintings > 0 ? "printings" : "fields";
   return { kind: "card", cardSlug: item.cardSlug, section };
+}
+
+/** A card with several items opens where its oldest one does, matching the inbox order. */
+export function reviewSectionsBySlug(
+  items: readonly ReviewQueueItem[],
+  trustedProviders: ReadonlySet<string>,
+): Map<string, CardReviewSection> {
+  const sections = new Map<string, CardReviewSection>();
+  for (const item of items.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    const target = reviewItemTarget(item, trustedProviders);
+    if (target.kind === "card" && !sections.has(target.cardSlug)) {
+      sections.set(target.cardSlug, target.section);
+    }
+  }
+  return sections;
 }

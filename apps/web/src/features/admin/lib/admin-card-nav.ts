@@ -35,7 +35,7 @@ export function selectPrevNextSlug(
 export interface AdminCardNavFilter {
   priceScope?: string | null;
   assignBucketsBySlug?: Map<string, PriceAssignBucket[]> | null;
-  newPrintingSlugs?: Set<string> | null;
+  matchingSlugs?: Set<string> | null;
 }
 
 /** Composes the set scope (already applied to `orderedSlugs`) with whichever list-page filter is active. */
@@ -44,9 +44,9 @@ export function selectAdminCardPrevNext(
   currentSlug: string,
   filter: AdminCardNavFilter = {},
 ): PrevNextSlugs {
-  const { priceScope, assignBucketsBySlug, newPrintingSlugs } = filter;
-  if (newPrintingSlugs) {
-    return selectPrevNextSlug(orderedSlugs, currentSlug, (slug) => newPrintingSlugs.has(slug));
+  const { priceScope, assignBucketsBySlug, matchingSlugs } = filter;
+  if (matchingSlugs) {
+    return selectPrevNextSlug(orderedSlugs, currentSlug, (slug) => matchingSlugs.has(slug));
   }
   if (!priceScope || !assignBucketsBySlug) {
     return selectPrevNextSlug(orderedSlugs, currentSlug);

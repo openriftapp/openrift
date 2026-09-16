@@ -1,3 +1,4 @@
+import type { ReviewQueueItem } from "@openrift/shared/contracts/admin/catalog-review";
 import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
@@ -19,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   allCards: [] as { slug: string; setSlugs: string[] }[],
   cardList: [] as { cardSlug: string | null; unlinkedPrintingCount: number }[],
   cardListEnabled: { current: false },
+  reviewItems: [] as ReviewQueueItem[],
+  reviewQueueEnabled: { current: false },
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => mocks.navigate }));
@@ -62,10 +65,30 @@ vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
   useUnifiedMappingsWhen: () => ({ data: undefined }),
 }));
 
+vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
+  useReviewQueueWhen: (enabled: boolean) => {
+    mocks.reviewQueueEnabled.current = enabled;
+    return { data: enabled ? { items: mocks.reviewItems } : undefined };
+  },
+}));
+
+vi.mock("@/features/admin/hooks/use-provider-settings", () => ({
+  useProviderSettings: () => ({
+    data: { providerSettings: [{ provider: "gallery", isFavorite: true }] },
+  }),
+}));
+
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess } }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-import { collectReviewCheckTargets, useCardReviewNavigation } from "./use-card-review-navigation";
+import { makeReviewQueueItem } from "@/test/factories";
+
+// oxlint-disable-next-line import/first -- must import after vi.mock
+import {
+  cardListSearch,
+  collectReviewCheckTargets,
+  useCardReviewNavigation,
+} from "./use-card-review-navigation";
 
 function stubSource(overrides: Partial<CandidateCardResponse> = {}): CandidateCardResponse {
   return { id: "cc1", checkedAt: "2026-01-01T00:00:00Z", ...overrides } as CandidateCardResponse;
@@ -177,6 +200,8 @@ beforeEach(() => {
   mocks.nextUncheckedArgs.current = null;
   mocks.cardListEnabled.current = false;
   mocks.cardList = [];
+  mocks.reviewQueueEnabled.current = false;
+  mocks.reviewItems = [];
   mocks.fetchNext.mockResolvedValue(null);
   mocks.allCards = [
     { slug: "ahri", setSlugs: ["ogn"] },
@@ -274,6 +299,44 @@ describe("useCardReviewNavigation", () => {
       to: "/admin/cards",
       search: { status: "new-printings" },
     });
+  });
+
+  it("visits only cards in the review queue and opens each where its review is", () => {
+    mocks.allCards.push({ slug: "zoe", setSlugs: ["ogn"] });
+    mocks.reviewItems = [
+      makeReviewQueueItem({ cardSlug: "ahri", provider: "gallery", isContributor: false }),
+      makeReviewQueueItem({
+        cardSlug: "zoe",
+        provider: "scraper",
+        isContributor: false,
+        newPrintings: 1,
+      }),
+      makeReviewQueueItem({ cardSlug: null, cardName: "Draft" }),
+    ];
+    const { result } = renderNav({ listStatus: "review", section: "attention" });
+
+    expect(mocks.reviewQueueEnabled.current).toBe(true);
+    expect(result.current.prevNextCards).toEqual({ prev: "ahri", next: "zoe" });
+
+    act(() => {
+      result.current.goToCard("zoe");
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/admin/cards/$cardSlug",
+      params: { cardSlug: "zoe" },
+      search: { status: "review", section: "printings" },
+    });
+  });
+
+  it("returns to the review inbox from a review run", () => {
+    const { result } = renderNav({ listStatus: "review", setSlug: "prox" });
+
+    act(() => {
+      result.current.goToList();
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: "/admin/review" });
   });
 
   it("leaves the card list query disabled when no status filter is active", () => {
@@ -405,5 +468,15 @@ describe("useCardReviewNavigation", () => {
 
     renderNav({ isAdmin: true });
     expect(mocks.hotkeys.has("Mod+Shift+Enter")).toBe(true);
+  });
+});
+
+describe("cardListSearch", () => {
+  it("drops the review status, which the card list does not know", () => {
+    expect(cardListSearch({ set: "ogn", status: "review" })).toEqual({ set: "ogn" });
+  });
+
+  it("keeps the card list's own status filters", () => {
+    expect(cardListSearch({ status: "new-printings" })).toEqual({ status: "new-printings" });
   });
 });

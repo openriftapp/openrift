@@ -6,6 +6,7 @@ import {
   countReviewKinds,
   matchesReviewFilter,
   reviewItemTarget,
+  reviewSectionsBySlug,
   selectReviewItems,
   summarizeReviewItem,
 } from "./review-queue";
@@ -134,5 +135,25 @@ describe("reviewItemTarget", () => {
       kind: "draft",
       name: "lux-lady-of-luminosity",
     });
+  });
+});
+
+describe("reviewSectionsBySlug", () => {
+  it("keys card items by slug, oldest item first, and skips drafts", () => {
+    const sections = reviewSectionsBySlug(
+      [
+        makeReviewQueueItem({
+          cardSlug: "OGN-001",
+          provider: "scraper",
+          isContributor: false,
+          createdAt: "2026-09-02T00:00:00.000Z",
+        }),
+        makeReviewQueueItem({ cardSlug: "OGN-001", createdAt: "2026-09-01T00:00:00.000Z" }),
+        makeReviewQueueItem({ cardSlug: null }),
+      ],
+      new Set(),
+    );
+
+    expect([...sections]).toEqual([["OGN-001", "attention"]]);
   });
 });

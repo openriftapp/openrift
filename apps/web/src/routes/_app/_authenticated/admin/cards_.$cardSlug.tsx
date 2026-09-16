@@ -25,7 +25,7 @@ interface CardDetailSearch {
   focusFinish?: string;
   focusLanguage?: string;
   set?: string;
-  status?: "prices-to-assign" | "new-printings";
+  status?: "prices-to-assign" | "new-printings" | "review";
   priceScope?: string;
 }
 
@@ -62,8 +62,8 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
         result.priceScope = search.priceScope;
       }
     }
-    if (search.status === "new-printings") {
-      result.status = "new-printings";
+    if (search.status === "new-printings" || search.status === "review") {
+      result.status = search.status;
     }
     return result;
   },

@@ -207,7 +207,7 @@ describe("selectAdminCardPrevNext", () => {
   it("visits only cards with new printings when that filter is on", () => {
     expect(
       selectAdminCardPrevNext(cards, "braum", {
-        newPrintingSlugs: new Set(["ahri", "braum", "darius"]),
+        matchingSlugs: new Set(["ahri", "braum", "darius"]),
       }),
     ).toEqual({ prev: "ahri", next: "darius" });
   });
@@ -215,13 +215,13 @@ describe("selectAdminCardPrevNext", () => {
   it("keeps navigating after the current card's new printings are accepted", () => {
     expect(
       selectAdminCardPrevNext(cards, "braum", {
-        newPrintingSlugs: new Set(["ahri", "caitlyn"]),
+        matchingSlugs: new Set(["ahri", "caitlyn"]),
       }),
     ).toEqual({ prev: "ahri", next: "caitlyn" });
   });
 
   it("falls back to the unfiltered ordering while the card list is loading", () => {
-    expect(selectAdminCardPrevNext(cards, "braum", { newPrintingSlugs: null })).toEqual({
+    expect(selectAdminCardPrevNext(cards, "braum", { matchingSlugs: null })).toEqual({
       prev: "ahri",
       next: "caitlyn",
     });
