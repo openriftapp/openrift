@@ -1,9 +1,10 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 
-import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
+import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
+import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -14,9 +15,17 @@ interface CollectionDetailProps {
   showImages: boolean;
   collectionId: string | undefined;
   mode: "browse" | "select";
+  wish: ReturnType<typeof useWishEntries>;
+  onAddToWishlist: (printing: Printing) => void;
 }
 
-function useDetailWiring(collectionId: string | undefined, mode: "browse" | "select") {
+function useDetailWiring({
+  printingsByCardId,
+  collectionId,
+  mode,
+  wish,
+  onAddToWishlist,
+}: Omit<CollectionDetailProps, "items" | "showImages">) {
   const isMobile = useIsMobile();
   const { setSearch } = useFilterActions();
 
@@ -30,7 +39,13 @@ function useDetailWiring(collectionId: string | undefined, mode: "browse" | "sel
   const actions =
     mode === "browse"
       ? (printing: Printing) => (
-          <PrintingCountActions printing={printing} collectionId={collectionId} />
+          <CardDetailActions
+            printing={printing}
+            siblings={printingsByCardId.get(printing.cardId)}
+            collectionId={collectionId}
+            wishEntries={wish.entriesForPrinting(printing.cardId, printing.id)}
+            onAddToWishlist={onAddToWishlist}
+          />
         )
       : undefined;
 
@@ -44,8 +59,16 @@ export function CollectionDetailPane({
   showImages,
   collectionId,
   mode,
+  wish,
+  onAddToWishlist,
 }: CollectionDetailProps) {
-  const { isMobile, searchAndClose, actions } = useDetailWiring(collectionId, mode);
+  const { isMobile, searchAndClose, actions } = useDetailWiring({
+    printingsByCardId,
+    collectionId,
+    mode,
+    wish,
+    onAddToWishlist,
+  });
 
   if (isMobile) {
     return null;
@@ -58,6 +81,7 @@ export function CollectionDetailPane({
       showImages={showImages}
       onSearchAndClose={searchAndClose}
       actions={actions}
+      collectionId={collectionId}
     />
   );
 }
@@ -68,8 +92,16 @@ export function CollectionDetailOverlays({
   showImages,
   collectionId,
   mode,
+  wish,
+  onAddToWishlist,
 }: CollectionDetailProps) {
-  const { searchAndClose, actions } = useDetailWiring(collectionId, mode);
+  const { searchAndClose, actions } = useDetailWiring({
+    printingsByCardId,
+    collectionId,
+    mode,
+    wish,
+    onAddToWishlist,
+  });
 
   return (
     <SelectionDetailOverlays
@@ -78,6 +110,7 @@ export function CollectionDetailOverlays({
       showImages={showImages}
       onSearchAndClose={searchAndClose}
       actions={actions}
+      collectionId={collectionId}
     />
   );
 }

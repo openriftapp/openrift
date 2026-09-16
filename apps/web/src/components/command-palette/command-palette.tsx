@@ -87,6 +87,7 @@ export function CommandPalette() {
             onSearchAndClose={handleSearchAndClose}
             // historyKey must be unique across detail overlays: two overlays sharing one collide on the same popstate entry.
             historyKey="paletteCardDetail"
+            allowCollectionEdits
           />
         </Suspense>
       )}

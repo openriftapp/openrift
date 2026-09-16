@@ -12,6 +12,7 @@ interface SelectionDetailOverlaysProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  collectionId?: string;
 }
 
 export function SelectionDetailOverlays(props: SelectionDetailOverlaysProps) {

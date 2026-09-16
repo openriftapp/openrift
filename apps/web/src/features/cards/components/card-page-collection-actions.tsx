@@ -1,20 +1,12 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
-import { useQuery } from "@tanstack/react-query";
 import { PackageIcon } from "lucide-react";
-import { useState } from "react";
 
 import { SectionHeading } from "@/components/ui/section-heading";
-import { CardCountStrip } from "@/features/cards/components/card-count-strip";
-import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail/owned-collections-popover";
+import { useCardDetailActionHost } from "@/features/cards/components/card-detail/card-detail-action-host";
+import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
-import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
-import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
 import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
-import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
-import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
-import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
@@ -42,26 +34,9 @@ export function CardPageCollectionActions({
 }) {
   const userId = useUserId();
   const enabled = Boolean(userId);
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled,
-  });
-  const inbox = collections?.find((collection) => collection.isInbox);
-  const {
-    handleQuickAdd,
-    handleAddToCollection,
-    tryUndoAdd,
-    handleOpenVariants,
-    handleDisposeFromCollection,
-    closeVariants,
-    pendingAnnotatedDispose,
-    confirmAnnotatedDispose,
-    cancelAnnotatedDispose,
-    disposeIsPending,
-  } = useQuickAddActions(inbox?.id);
-
-  const wish = useWishEntries(enabled);
-  const [wishTarget, setWishTarget] = useState<Printing | null>(null);
+  const printingsByCardId = new Map([[printing.cardId, [...siblings]]]);
+  const { inbox, canAdd, addCopy, removeCopy, wish, setWishTarget, hosts } =
+    useCardDetailActionHost({ printingsByCardId, enabled });
 
   const siblingIds = siblings.map((sibling) => sibling.id);
   const {
@@ -70,24 +45,6 @@ export function CardPageCollectionActions({
     total: cardTotal,
   } = useTileOwnedCounts(printing.id, siblingIds, enabled);
   const cardName = legendDisplayName(printing.card);
-
-  const removeCopy = (anchorEl: HTMLElement) => {
-    void (async () => {
-      const result = await tryUndoAdd?.(printing);
-      if (result === "ambiguous" && handleOpenVariants) {
-        handleOpenVariants(printing, anchorEl, "remove", false, true);
-      }
-    })();
-  };
-
-  const addCopy = () => {
-    if (handleQuickAdd) {
-      void handleQuickAdd(printing);
-    }
-  };
-
-  const quickAdd = handleQuickAdd ? (target: Printing) => void handleQuickAdd(target) : undefined;
-  const printingsByCardId = new Map([[printing.cardId, [...siblings]]]);
 
   return (
     <>
@@ -105,61 +62,25 @@ export function CardPageCollectionActions({
               align="end"
             />
             <div className="w-28">
-              <CardCountStrip
+              <PrintingCountActions
+                printing={printing}
+                siblings={siblings}
                 count={ownedCount}
                 totalCount={totalCount}
-                pillOverride={
-                  ownedCount > 0 ? (
-                    <OwnedCollectionsPopover
-                      printingId={printing.id}
-                      cardName={cardName}
-                      shortCode={printing.shortCode}
-                      count={ownedCount}
-                      totalCount={totalCount}
-                      siblings={siblings.length > 1 ? siblings : undefined}
-                    />
-                  ) : undefined
-                }
-                decrement={
-                  ownedCount > 0
-                    ? {
-                        onClick: (event) => removeCopy(event.currentTarget),
-                        ariaLabel: m.card_detail_remove_card({ card: cardName }),
-                      }
+                onIncrement={addCopy}
+                onDecrement={removeCopy}
+                incrementDisabled={!canAdd}
+                addLabel={
+                  inbox
+                    ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
                     : undefined
                 }
-                increment={{
-                  onClick: addCopy,
-                  disabled: !handleQuickAdd,
-                  ariaLabel: inbox
-                    ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name })
-                    : m.card_detail_add_card({ card: cardName }),
-                }}
               />
             </div>
           </div>
         </div>
       </section>
-      <VariantLocationsPopoverHost
-        catalogPrintingsByCardId={printingsByCardId}
-        languageScopedPrintingsByCardId={printingsByCardId}
-        onQuickAdd={quickAdd}
-        defaultTargetCollectionId={inbox?.id}
-        onAddToCollection={(target, collectionId) =>
-          void handleAddToCollection(target, collectionId)
-        }
-        onRemoveFromCollection={(target, collectionId) =>
-          void handleDisposeFromCollection(target, collectionId)
-        }
-        closeVariants={closeVariants}
-      />
-      <WishlistPickerHost target={wishTarget} onClose={() => setWishTarget(null)} />
-      <AnnotatedDisposeDialog
-        pending={pendingAnnotatedDispose}
-        onConfirm={() => void confirmAnnotatedDispose()}
-        onCancel={cancelAnnotatedDispose}
-        isPending={disposeIsPending}
-      />
+      {hosts}
     </>
   );
 }

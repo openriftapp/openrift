@@ -40,6 +40,7 @@ interface SelectionDetailModalProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  collectionId?: string;
 }
 
 /**
@@ -53,6 +54,7 @@ export function SelectionDetailModal({
   showImages,
   onSearchAndClose,
   actions,
+  collectionId,
 }: SelectionDetailModalProps) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const paneDocked = useDisplayStore((s) => s.paneDocked);
@@ -147,6 +149,7 @@ export function SelectionDetailModal({
             printings={siblingPrintings}
             onSelectPrinting={handleSelectPrinting}
             actions={actions?.(selectedCard)}
+            collectionId={collectionId}
             navLabel={navLabel}
             footerSlot={
               <span className="text-muted-foreground text-xs">

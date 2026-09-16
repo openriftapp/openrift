@@ -8,6 +8,7 @@ import { PrintingLanguageTabs } from "@/features/cards/components/printing-langu
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useLanguageList } from "@/hooks/use-enums";
 import { formatterForMarketplace, priceColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,10 +21,13 @@ export function PrintingPicker({
   current,
   printings,
   onSelect,
+  collectionId,
 }: {
   current: Printing;
   printings: Printing[];
   onSelect: (printing: Printing) => void;
+  /** Scopes each row's owned count to one collection; the wider total still shows. */
+  collectionId?: string;
 }) {
   const languageOrder = useLanguageList();
 
@@ -41,7 +45,14 @@ export function PrintingPicker({
         onLanguageChange={(next) => setPicked({ language: next, forPrintingId: current.id })}
         header={<PickerHeading />}
       >
-        {(shown) => <PrintingList printings={shown} current={current} onSelect={onSelect} />}
+        {(shown) => (
+          <PrintingList
+            printings={shown}
+            current={current}
+            onSelect={onSelect}
+            collectionId={collectionId}
+          />
+        )}
       </PrintingLanguageTabs>
     </div>
   );
@@ -59,11 +70,21 @@ function PrintingList({
   printings,
   current,
   onSelect,
+  collectionId,
 }: {
   printings: Printing[];
   current: Printing;
   onSelect: (printing: Printing) => void;
+  collectionId?: string;
 }) {
+  // One query for the whole list: a popover per row would each subscribe to
+  // the entire copies collection.
+  const { data: owned } = useOwnedCountsForPrintings(
+    printings.map((p) => p.id),
+    true,
+    collectionId,
+  );
+
   return (
     <div className="space-y-1">
       {printings.map((p) => {
@@ -96,6 +117,8 @@ function PrintingList({
                     printingId={p.id}
                     cardName={legendDisplayName(p.card)}
                     shortCode={p.shortCode}
+                    count={owned?.totals[p.id] ?? 0}
+                    totalCount={owned?.allTotals[p.id] ?? 0}
                   />
                   <PrintingPrices printing={p} />
                 </>

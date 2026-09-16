@@ -1,5 +1,4 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
@@ -12,11 +11,10 @@ import {
   BrowserToolbar,
   CardBrowserFilterProvider,
 } from "@/features/cards/components/card-browser-filter-scaffold";
-import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
+import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { TableCountActions } from "@/features/cards/components/table-count-actions";
-import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import { useCardData, useCatalogFilterMeta } from "@/features/cards/hooks/use-card-data";
 import { useCardDeepLink } from "@/features/cards/hooks/use-card-deep-link";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
@@ -354,23 +352,13 @@ export function CardBrowser() {
 
   const detailActions = isLoggedIn
     ? (printing: Printing) => (
-        <div className="flex items-center gap-2">
-          {canAdd && (
-            <div className="w-28">
-              <PrintingCountActions
-                printing={printing}
-                siblingIds={detailPanePrintingsByCardId
-                  .get(printing.cardId)
-                  ?.map((sibling) => sibling.id)}
-              />
-            </div>
-          )}
-          <WishlistButton
-            entries={wish.entriesForPrinting(printing.cardId, printing.id)}
-            cardName={legendDisplayName(printing.card)}
-            onAdd={() => setWishTarget(printing)}
-          />
-        </div>
+        <CardDetailActions
+          printing={printing}
+          siblings={detailPanePrintingsByCardId.get(printing.cardId)}
+          showCount={canAdd}
+          wishEntries={wish.entriesForPrinting(printing.cardId, printing.id)}
+          onAddToWishlist={setWishTarget}
+        />
       )
     : undefined;
 

@@ -39,6 +39,8 @@ interface CardDetailProps {
   onSelectPrinting?: (printing: Printing) => void;
   layout?: CardDetailLayout;
   showPrices?: boolean;
+  /** Scopes the printing picker's owned counts to one collection. */
+  collectionId?: string;
   actions?: ReactNode;
   navLabel?: string;
   footerSlot?: ReactNode;
@@ -77,6 +79,7 @@ export function CardDetail({
   onSelectPrinting,
   layout = "pane",
   showPrices = true,
+  collectionId,
   actions,
   navLabel,
   footerSlot,
@@ -94,7 +97,12 @@ export function CardDetail({
   const holdings = <CardHoldingsSection printing={printing} printings={printings} />;
   const footer = <CardFooter printing={printing} showPrices={showPrices} />;
   const picker = hasPicker ? (
-    <PrintingPicker current={printing} printings={printings} onSelect={onSelectPrinting} />
+    <PrintingPicker
+      current={printing}
+      printings={printings}
+      onSelect={onSelectPrinting}
+      collectionId={collectionId}
+    />
   ) : null;
   const text = <CardDetailText printing={printing} onKeywordClick={onKeywordClick} />;
 

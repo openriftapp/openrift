@@ -34,6 +34,7 @@ interface SelectionMobileOverlayProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  collectionId?: string;
 }
 
 export function SelectionMobileOverlay({
@@ -42,6 +43,7 @@ export function SelectionMobileOverlay({
   showImages,
   onSearchAndClose,
   actions,
+  collectionId,
 }: SelectionMobileOverlayProps) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const isMobile = useIsMobile();
@@ -107,6 +109,7 @@ export function SelectionMobileOverlay({
               printings={siblingPrintings}
               onSelectPrinting={handleSelectPrinting}
               actions={actions?.(selectedCard)}
+              collectionId={collectionId}
             />
           </Suspense>
         </div>

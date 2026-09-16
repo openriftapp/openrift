@@ -53,10 +53,26 @@ vi.mock("@/features/cards/hooks/use-price-history", () => ({
   usePriceHistory: priceHistoryMock,
 }));
 
+const { ownedMock } = vi.hoisted(() => ({
+  ownedMock: vi.fn(
+    (): {
+      data: { totals: Record<string, number>; allTotals: Record<string, number> } | undefined;
+    } => ({ data: undefined }),
+  ),
+}));
+
+vi.mock("@/features/collections/hooks/use-owned-count", () => ({
+  useOwnedCountsForPrintings: ownedMock,
+}));
+
 // Render a button inside the mocked popover so the test exercises the worst case:
 // if the outer row is also a <button>, the rendered DOM contains nested buttons.
 vi.mock("./owned-collections-popover", () => ({
-  OwnedCollectionsPopover: () => <button type="button">owned</button>,
+  OwnedCollectionsPopover: ({ count, totalCount }: { count?: number; totalCount?: number }) => (
+    <button type="button" data-count={count} data-total={totalCount}>
+      owned
+    </button>
+  ),
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -67,6 +83,8 @@ describe("PrintingPicker", () => {
     priceGetMock.mockReset();
     priceGetMock.mockReturnValue(null);
     priceHistoryMock.mockClear();
+    ownedMock.mockClear();
+    ownedMock.mockReturnValue({ data: undefined });
   });
 
   it("does not nest a <button> inside another <button>", () => {
@@ -104,6 +122,47 @@ describe("PrintingPicker", () => {
     render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
 
     expect(priceHistoryMock).toHaveBeenCalledWith(printing.id, "30d");
+  });
+
+  it("counts what the given collection holds, with the wider total beside it", () => {
+    ownedMock.mockReturnValue({ data: { totals: { "p-x": 1 }, allTotals: { "p-x": 3 } } });
+    const printing = stubPrinting({ id: "p-x" });
+
+    const { container } = render(
+      <PrintingPicker
+        current={printing}
+        printings={[printing]}
+        onSelect={() => {}}
+        collectionId="col-1"
+      />,
+    );
+
+    const pill = container.querySelector("button[data-count]");
+    expect(pill).toHaveAttribute("data-count", "1");
+    expect(pill).toHaveAttribute("data-total", "3");
+  });
+
+  it("scopes the owned query to the given collection", () => {
+    const printing = stubPrinting({ id: "p-x" });
+
+    render(
+      <PrintingPicker
+        current={printing}
+        printings={[printing]}
+        onSelect={() => {}}
+        collectionId="col-1"
+      />,
+    );
+
+    expect(ownedMock).toHaveBeenCalledWith(["p-x"], true, "col-1");
+  });
+
+  it("counts across every collection when none is given", () => {
+    const printing = stubPrinting({ id: "p-x" });
+
+    render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
+
+    expect(ownedMock).toHaveBeenCalledWith(["p-x"], true, undefined);
   });
 
   describe("language tabs", () => {

@@ -1,3 +1,4 @@
+import type { Printing } from "@openrift/shared/types/catalog";
 import { use, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -47,6 +48,7 @@ import {
   useCollectionOverlayStore,
 } from "@/features/collections/stores/collection-overlay-store";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
+import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useRegisterQuickAdd } from "@/hooks/use-command-palette";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
@@ -208,7 +210,8 @@ export function CollectionGrid({
   // Group-owned collections are a communal "bulk box": any member can take a
   // copy into their own inbox, distinct from the 1:1 trade matcher.
   const canTake = isGroupCollection && Boolean(inboxId);
-  const wish = useWishEntries(isGroupCollection);
+  const wish = useWishEntries(true);
+  const [wishTarget, setWishTarget] = useState<Printing | null>(null);
 
   // The popover's open/close state lives in VariantLocationsPopoverHost, not
   // here, so opening it doesn't re-render the whole virtualized grid.
@@ -451,6 +454,8 @@ export function CollectionGrid({
                 showImages={showImages}
                 collectionId={collectionId}
                 mode={mode}
+                wish={wish}
+                onAddToWishlist={setWishTarget}
               />
             }
             addStripHeight={ADD_STRIP_HEIGHT}
@@ -497,6 +502,8 @@ export function CollectionGrid({
               showImages={showImages}
               collectionId={collectionId}
               mode={mode}
+              wish={wish}
+              onAddToWishlist={setWishTarget}
             />
 
             <CollectionGridActionDialogs
@@ -526,6 +533,7 @@ export function CollectionGrid({
         </CardBrowserFilterProvider>
       )}
       {collectionOverlays}
+      <WishlistPickerHost target={wishTarget} onClose={() => setWishTarget(null)} />
     </>
   );
 }

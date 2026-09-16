@@ -89,12 +89,37 @@ vi.mock("@/components/ui/drawer", () => ({
 
 // CardDetail is lazy-loaded and heavy; the stub surfaces id + navLabel instead.
 vi.mock("@/features/cards/components/card-detail/card-detail", () => ({
-  CardDetail: ({ printing, navLabel }: { printing: Printing; navLabel?: string }) => (
+  CardDetail: ({
+    printing,
+    navLabel,
+    actions,
+  }: {
+    printing: Printing;
+    navLabel?: string;
+    actions?: ReactNode;
+  }) => (
     <div>
       <div>showing {printing.id}</div>
       {navLabel ? <div>{navLabel}</div> : null}
+      {actions}
     </div>
   ),
+}));
+
+vi.mock("@/features/cards/components/card-detail/card-detail-action-host", () => ({
+  useCardDetailActionHost: () => ({
+    inbox: undefined,
+    canAdd: false,
+    addCopy: () => {},
+    removeCopy: () => {},
+    wish: { entriesForPrinting: () => [] },
+    setWishTarget: () => {},
+    hosts: null,
+  }),
+}));
+
+vi.mock("@/features/cards/components/card-detail/card-detail-actions", () => ({
+  CardDetailActions: () => <div data-testid="detail-actions" />,
 }));
 
 const { CardDetailOverlay } = await import("./card-detail-overlay");
@@ -110,6 +135,7 @@ function renderOverlay(
   printings: Printing[],
   openPrintingId: string | null,
   onOpenPrintingIdChange = vi.fn(),
+  allowCollectionEdits = false,
 ) {
   const result = render(
     <CardDetailOverlay
@@ -119,6 +145,7 @@ function renderOverlay(
       showImages={false}
       onSearchAndClose={() => {}}
       historyKey="missingCardDetail"
+      allowCollectionEdits={allowCollectionEdits}
     />,
   );
   return { ...result, onOpenPrintingIdChange };
@@ -134,6 +161,21 @@ describe("CardDetailOverlay", () => {
     renderOverlay(printings, null);
 
     expect(screen.queryByText(/showing/u)).not.toBeInTheDocument();
+  });
+
+  it("stays read-only unless the host opts in", async () => {
+    const printings = seedCatalog(1);
+    renderOverlay(printings, printings[0]!.id);
+
+    expect(await screen.findByText(/showing/u)).toBeInTheDocument();
+    expect(screen.queryByTestId("detail-actions")).not.toBeInTheDocument();
+  });
+
+  it("offers the collection actions when the host opts in", async () => {
+    const printings = seedCatalog(1);
+    renderOverlay(printings, printings[0]!.id, vi.fn(), true);
+
+    expect(await screen.findByTestId("detail-actions")).toBeInTheDocument();
   });
 
   it("shows the card for the opened row", async () => {

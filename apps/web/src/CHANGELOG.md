@@ -17,6 +17,8 @@
 - feat(Lists): **Add cards from an organize list to a collection** — drag a card from an organize list that tracks cards or printings onto a collection, or pick "Add to collection…" from its right-click menu, to add new copies you own. You confirm the printing, the collection and how many copies first, and the list stays as it is.
 - fix(Scanner): **Scan sheet lays out correctly on phones** — pulling the sheet up to full height now puts the "Add to" button below the whole list instead of after the first card, and a long printing label no longer runs over the owned count and the price.
 - fix(Cards): **Owned totals match across pages** — a card you own only one printing of now shows the total across its other printings, matching your collections.
+- feat(Cards): **Add a card from search or a deck's missing list** — opening a card from the search palette or from a deck's missing-cards list now offers the same plus, minus and wishlist buttons the card browser has.
+- fix(Collection): **Wishlist and owned totals when you open a card** — opening a card from a collection now offers the wishlist button and the total you own across the card's other printings, the same as opening it from the card browser. Each printing in the list counts what that collection holds, with the total across your other collections beside it, and the owned counts open the list of collections holding the card.
 
 ## 2026-09-15
 

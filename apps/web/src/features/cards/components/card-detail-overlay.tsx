@@ -1,4 +1,5 @@
 import type { Printing } from "@openrift/shared/types/catalog";
+import { legendDisplayName } from "@openrift/shared/utils";
 import { XIcon } from "lucide-react";
 import { Suspense, lazy, useState } from "react";
 
@@ -19,6 +20,8 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCardDetailActionHost } from "@/features/cards/components/card-detail/card-detail-action-host";
+import { CardDetailActions } from "@/features/cards/components/card-detail/card-detail-actions";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCardDetailNavigation } from "@/features/cards/hooks/use-selection-detail";
 import type { OverlayHistoryKey } from "@/features/stage/hooks/use-overlay-history-entry";
@@ -45,6 +48,8 @@ interface CardDetailOverlayProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   historyKey: OverlayHistoryKey;
+  /** Opt in to the owned-count stepper and wishlist button; off by default, this overlay is read-only. */
+  allowCollectionEdits?: boolean;
 }
 
 /**
@@ -72,8 +77,11 @@ function CardDetailOverlayContent({
   showImages,
   onSearchAndClose,
   historyKey,
+  allowCollectionEdits = false,
 }: CardDetailOverlayProps) {
   const { printingsById, printingsByCardId } = useCards();
+  const { inbox, canAdd, addCopy, removeCopy, wish, setWishTarget, hosts } =
+    useCardDetailActionHost({ printingsByCardId, enabled: allowCollectionEdits });
   const isMobile = useIsMobile();
   const domainColors = useDomainColors();
 
@@ -135,6 +143,21 @@ function CardDetailOverlayContent({
   }
 
   const tint = getDomainTintStyle(selectedCard.card.domains, domainColors);
+  const cardName = legendDisplayName(selectedCard.card);
+  const actions = allowCollectionEdits ? (
+    <CardDetailActions
+      printing={selectedCard}
+      siblings={printingsByCardId.get(selectedCard.cardId)}
+      wishEntries={wish.entriesForPrinting(selectedCard.cardId, selectedCard.id)}
+      onAddToWishlist={setWishTarget}
+      onIncrement={addCopy}
+      onDecrement={removeCopy}
+      incrementDisabled={!canAdd}
+      addLabel={
+        inbox ? m.card_detail_add_card_to({ card: cardName, collection: inbox.name }) : undefined
+      }
+    />
+  ) : undefined;
 
   if (isMobile) {
     return (
@@ -166,9 +189,11 @@ function CardDetailOverlayContent({
                 onKeywordClick={handleKeywordClick}
                 printings={siblingPrintings}
                 onSelectPrinting={handleSelectPrinting}
+                actions={actions}
               />
             </Suspense>
           </div>
+          {allowCollectionEdits && hosts}
         </DrawerContent>
       </Drawer>
     );
@@ -211,9 +236,11 @@ function CardDetailOverlayContent({
             onKeywordClick={handleKeywordClick}
             printings={siblingPrintings}
             onSelectPrinting={handleSelectPrinting}
+            actions={actions}
             navLabel={navLabel}
           />
         </Suspense>
+        {allowCollectionEdits && hosts}
       </DialogContent>
     </Dialog>
   );

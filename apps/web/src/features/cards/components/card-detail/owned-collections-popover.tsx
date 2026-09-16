@@ -47,14 +47,16 @@ export function OwnedCollectionsPopover({
   // Must stay gated: an enabled instance subscribes to the entire copies collection.
   const { data: ownedCountByPrinting } = useOwnedCount(isAuthenticated && count === undefined);
   const totalOwned = count ?? ownedCountByPrinting?.[printingId] ?? 0;
+  // A scoped count of 0 still opens: the wider total means copies sit elsewhere.
+  const ownsAny = totalOwned > 0 || (totalCount ?? 0) > 0;
   const groupByVariant = Boolean(siblings && siblings.length > 1);
   const { data: singleBreakdown } = useOwnedCollections(
     printingId,
-    isAuthenticated && totalOwned > 0 && !groupByVariant,
+    isAuthenticated && ownsAny && !groupByVariant,
   );
   const { data: variantBreakdown } = useOwnedCollectionsByVariants(
     siblings ?? [],
-    isAuthenticated && totalOwned > 0 && groupByVariant,
+    isAuthenticated && ownsAny && groupByVariant,
   );
   // Optional: CardDetailOverlay renders this outside any FilterSearchProvider.
   const filterSearch = useContext(FilterSearchProvider);
@@ -62,7 +64,7 @@ export function OwnedCollectionsPopover({
   const view = filterSearch?.view ?? defaultView;
   const isPrintingsView = view === "printings" || view === "copies";
 
-  if (!isAuthenticated || totalOwned === 0) {
+  if (!isAuthenticated || !ownsAny) {
     return null;
   }
 

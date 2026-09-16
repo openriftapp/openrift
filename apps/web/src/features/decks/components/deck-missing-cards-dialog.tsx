@@ -355,6 +355,7 @@ function MissingCardsDialogBody({
         onSearchAndClose={handleSearchAndClose}
         // Must differ from the page's own store-driven overlay's history key.
         historyKey="missingCardDetail"
+        allowCollectionEdits={mode === "missing"}
       />
       {/* Mounted only while open: AddToWishlistDialog suspends on a wishlists
           query in its body, and this dialog stays mounted while closed. */}

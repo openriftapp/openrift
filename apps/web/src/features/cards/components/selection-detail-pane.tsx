@@ -23,6 +23,7 @@ interface SelectionDetailPaneProps {
   showImages: boolean;
   onSearchAndClose: (query: string) => void;
   actions?: (printing: Printing) => ReactNode;
+  collectionId?: string;
 }
 
 /** Stays mounted with an empty state when no card is selected; never unmounts. */
@@ -32,6 +33,7 @@ export function SelectionDetailPane({
   showImages,
   onSearchAndClose,
   actions,
+  collectionId,
 }: SelectionDetailPaneProps) {
   const closeDetail = useSelectionStore((s) => s.closeDetail);
   const paneDocked = useDisplayStore((s) => s.paneDocked);
@@ -78,6 +80,7 @@ export function SelectionDetailPane({
             printings={siblingPrintings}
             onSelectPrinting={handleSelectPrinting}
             actions={actions?.(selectedCard)}
+            collectionId={collectionId}
           />
         </Suspense>
       ) : (
