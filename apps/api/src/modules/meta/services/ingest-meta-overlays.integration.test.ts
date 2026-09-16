@@ -427,7 +427,7 @@ describe.skipIf(!ctx)("ingestMetaOverlays", () => {
     await upload(eventBody({ externalId, ...BRACKET }));
     await db
       .updateTable("metaEventOverlays")
-      .set({ status: "accepted" })
+      .set({ status: "accepted", acceptedAt: new Date() })
       .where("provider", "=", PROVIDER)
       .where("externalId", "=", externalId)
       .execute();
