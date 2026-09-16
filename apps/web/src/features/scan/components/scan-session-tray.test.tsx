@@ -14,6 +14,8 @@ vi.mock("@tanstack/react-router", () => ({
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { ScanSessionTray } from "@/features/scan/components/scan-session-tray";
 // oxlint-disable-next-line import/first -- must import after vi.mock
+import { ScanTrayExpandedContext } from "@/features/scan/components/scan-tray-shell";
+// oxlint-disable-next-line import/first -- must import after vi.mock
 import { printingsByCardId } from "@/features/scan/lib/scan-resolve";
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
@@ -36,7 +38,7 @@ const german = stubPrinting({
 
 const resetSession = createStoreResetter(useScanSessionStore);
 
-function renderTray() {
+function renderTray({ compact = false, expanded = false } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(
     initKeys.all,
@@ -47,22 +49,33 @@ function renderTray() {
   );
   return render(
     <QueryClientProvider client={client}>
-      <ScanSessionTray
-        printingsByCard={printingsByCardId([english, german])}
-        collections={[]}
-        destination={null}
-        adding={false}
-        failedCount={0}
-        compact={false}
-        resumed={false}
-        onAddOne={vi.fn()}
-        onRemoveOne={vi.fn()}
-        onChangePrinting={vi.fn()}
-        onClear={vi.fn()}
-        onAddAll={vi.fn()}
-      />
+      <ScanTrayExpandedContext value={expanded}>
+        <ScanSessionTray
+          printingsByCard={printingsByCardId([english, german])}
+          collections={[]}
+          destination={null}
+          adding={false}
+          failedCount={0}
+          compact={compact}
+          resumed={false}
+          onAddOne={vi.fn()}
+          onRemoveOne={vi.fn()}
+          onChangePrinting={vi.fn()}
+          onClear={vi.fn()}
+          onAddAll={vi.fn()}
+        />
+      </ScanTrayExpandedContext>
     </QueryClientProvider>,
   );
+}
+
+function addButtonFollowsLastRow(): boolean {
+  const addButton = screen.getByRole("button", { name: /add 2 cards/iu });
+  const lastRow = screen.getAllByRole("listitem").at(-1);
+  if (lastRow === undefined) {
+    return false;
+  }
+  return (addButton.compareDocumentPosition(lastRow) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
 }
 
 describe("ScanSessionTray", () => {
@@ -77,5 +90,21 @@ describe("ScanSessionTray", () => {
     const button = screen.getByRole("button", { name: /change the printing/iu });
     expect(button).toHaveTextContent("DE");
     expect(button).not.toHaveTextContent("Standard");
+  });
+
+  it("keeps the add button above the older rows while the drawer peeks", () => {
+    useScanSessionStore.getState().add(english);
+    useScanSessionStore.getState().add(german);
+    renderTray({ compact: true });
+
+    expect(addButtonFollowsLastRow()).toBe(false);
+  });
+
+  it("moves the add button below every row once the drawer is expanded", () => {
+    useScanSessionStore.getState().add(english);
+    useScanSessionStore.getState().add(german);
+    renderTray({ compact: true, expanded: true });
+
+    expect(addButtonFollowsLastRow()).toBe(true);
   });
 });

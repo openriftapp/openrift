@@ -40,6 +40,7 @@ import { pricesQueryOptions } from "@/features/cards/lib/prices-queries";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
+import { useScanTrayExpanded } from "@/features/scan/components/scan-tray-shell";
 import { useScanTrayDisclosure } from "@/features/scan/hooks/use-scan-tray-disclosure";
 import { cardWord } from "@/features/scan/lib/scan-card-word";
 import type { UnidentifiedCard } from "@/features/scan/lib/scan-catchup";
@@ -119,8 +120,13 @@ export function ScanSessionTray({
     ownedBefore: ownedTotals ? (printingId) => ownedTotals.get(printingId) ?? 0 : null,
   });
 
+  // Only the peeking drawer is short on room. Dragged open it gets the same
+  // layout as the desktop panel.
+  const expanded = useScanTrayExpanded();
+  const peek = compact && !expanded;
+
   let headPrefix: string | null = m.scan_tray_head_scanned_session();
-  if (compact) {
+  if (peek) {
     headPrefix = null;
   } else if (resumed) {
     headPrefix = m.scan_tray_head_scanned_earlier();
@@ -133,7 +139,7 @@ export function ScanSessionTray({
       count={summary.cards}
       adding={adding}
       failedCount={failedCount}
-      compact={compact}
+      compact={peek}
       onAddAll={onAddAll}
     />
   );
@@ -181,7 +187,7 @@ export function ScanSessionTray({
         summary={summary}
         formatValue={prices ? formatValue : null}
         prefix={headPrefix}
-        showNew={compact}
+        showNew={peek}
       />
       <Button variant="link-muted" size="sm" className="ml-auto shrink-0" onClick={onClear}>
         {m.scan_tray_clear()}
@@ -190,7 +196,7 @@ export function ScanSessionTray({
   );
 
   const facts = (
-    <SummaryFacts summary={summary} formatValue={prices ? formatValue : null} showNew={!compact} />
+    <SummaryFacts summary={summary} formatValue={prices ? formatValue : null} showNew={!peek} />
   );
 
   const alerts = (
@@ -212,9 +218,9 @@ export function ScanSessionTray({
     </>
   );
 
-  // The drawer peek shows only the top of the sheet, so on the phone the
-  // footer sits above the older rows instead of at the sheet's bottom.
-  if (compact) {
+  // The peek shows only the top of the sheet, so the footer sits above the
+  // older rows instead of at the sheet's bottom.
+  if (peek) {
     const [newest, ...older] = newestFirst;
     return (
       <div className="flex min-h-0 flex-auto flex-col gap-2">
@@ -394,17 +400,21 @@ function TrayRow({
             <span className="truncate font-medium">{name}</span>
             {count > 1 && <CountPill className="shrink-0">×{count}</CountPill>}
           </span>
-          <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-sm">
-            <span className="font-mono sm:hidden">{printing.shortCode}</span>
+          <span className="text-muted-foreground flex w-full min-w-0 items-center gap-1.5 text-sm">
+            <span className="shrink-0 font-mono sm:hidden">{printing.shortCode}</span>
             <Button
               variant="outline"
               size="xs"
-              className="pointer-events-auto max-w-full"
+              className="pointer-events-auto min-w-0 shrink"
               onClick={() => onChangePrinting(row)}
               aria-label={m.scan_tray_row_change_printing({ name })}
             >
               <span className="truncate">
-                <PrintingVariantLabel printing={printing} siblings={siblings} />
+                <PrintingVariantLabel
+                  printing={printing}
+                  siblings={siblings}
+                  className="flex-nowrap"
+                />
               </span>
               <ChevronDownIcon />
             </Button>

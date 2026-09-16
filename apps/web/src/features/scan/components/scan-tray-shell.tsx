@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from "react";
+import { createContext, use, useState } from "react";
 
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import type { ScanLayout } from "@/features/scan/hooks/use-scan-layout";
@@ -7,6 +8,13 @@ import { cn } from "@/lib/utils";
 // Fits the handle, the header, one row and the pinned footer. The portrait
 // viewfinder ends at this line.
 export const SCAN_TRAY_PEEK = "15rem";
+
+export const ScanTrayExpandedContext = createContext(false);
+
+/** True while the phone drawer sits at its full-height snap point. */
+export function useScanTrayExpanded(): boolean {
+  return use(ScanTrayExpandedContext);
+}
 
 const LANDSCAPE_PANEL_WIDTH = "w-72";
 
@@ -44,6 +52,18 @@ export function ScanTrayShell({ layout, fullscreen, anchorRef, children }: ScanT
     );
   }
 
+  return <ScanTrayDrawer anchorRef={anchorRef}>{children}</ScanTrayDrawer>;
+}
+
+function ScanTrayDrawer({
+  anchorRef,
+  children,
+}: {
+  anchorRef: RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <Drawer
       open
@@ -55,12 +75,13 @@ export function ScanTrayShell({ layout, fullscreen, anchorRef, children }: ScanT
       modal={false}
       snapPoints={[SCAN_TRAY_PEEK, 1]}
       defaultSnapPoint={SCAN_TRAY_PEEK}
+      onSnapPointChange={(snapPoint) => setExpanded(snapPoint === 1)}
       snapToSequentialPoints
       showSwipeHandle
     >
       <DrawerContent>
         <div ref={anchorRef} className="px-safe pb-safe flex min-h-0 flex-1 flex-col">
-          {children}
+          <ScanTrayExpandedContext value={expanded}>{children}</ScanTrayExpandedContext>
         </div>
       </DrawerContent>
     </Drawer>

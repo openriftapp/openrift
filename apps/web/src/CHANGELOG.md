@@ -4,6 +4,7 @@
 
 ### Other
 
+- fix(Scanner): **Scan sheet lays out correctly on phones** — pulling the sheet up to full height now puts the "Add to" button below the whole list instead of after the first card, and a long printing label no longer runs over the owned count and the price.
 - fix(Cards): **Owned totals match across pages** — a card you own only one printing of now shows the total across its other printings, matching your collections.
 
 ## 2026-09-15
