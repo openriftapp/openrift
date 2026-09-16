@@ -33,7 +33,7 @@ import { SelectionCheckbox } from "@/features/collections/components/selection-c
 import { tileTradeStatus } from "@/features/collections/components/tile-trade-status";
 import {
   useCopyRowsForPrintings,
-  useOwnedCountsForPrintings,
+  useTileOwnedCounts,
 } from "@/features/collections/hooks/use-owned-count";
 import { isStackSelected } from "@/features/collections/lib/stack-selection";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
@@ -106,7 +106,11 @@ export const CollectionGridCell = memo(function CollectionGridCell({
       : printing;
 
   const siblingIds = inCardsView && siblings ? siblings.map((s) => s.id) : [displayPrinting.id];
-  const { data: counts } = useOwnedCountsForPrintings(siblingIds, true, collectionId);
+  const {
+    count: ownedCount,
+    total: cardTotalInCollection,
+    totalCount: totalInCollection,
+  } = useTileOwnedCounts(displayPrinting.id, siblingIds, true, collectionId);
 
   const { data: cardCopies } = useCopyRowsForPrintings(siblingIds, true, collectionId);
   const cardCopyIds = cardCopies?.map((copy) => copy.id);
@@ -135,11 +139,6 @@ export const CollectionGridCell = memo(function CollectionGridCell({
         title={tradeStatus.title}
       />
     ) : undefined;
-
-  const ownedCount = counts?.totals[displayPrinting.id] ?? 0;
-  const totalInCollection =
-    counts && inCardsView && siblings && siblings.length > 1 ? counts.total : undefined;
-  const cardTotalInCollection = counts?.total ?? 0;
 
   const effectiveCopyIds = cardCopyIds ?? [];
   const isItemSelected = useGridSelectionStore(

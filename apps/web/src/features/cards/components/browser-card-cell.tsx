@@ -19,7 +19,7 @@ import {
 } from "@/features/cards/stores/card-row-actions-store";
 import { useGridFocusStore } from "@/features/cards/stores/grid-focus-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
-import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
+import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import type { WishEntryFlat } from "@/features/groups/lib/wish-entry";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
@@ -74,16 +74,12 @@ export const BrowserCardCell = memo(function BrowserCardCell({
       ? (siblings.find((sibling) => sibling.id === overrideId) ?? printing)
       : printing;
 
-  const siblingIds = siblings ? siblings.map((sibling) => sibling.id) : [displayPrinting.id];
-  const { data: counts } = useOwnedCountsForPrintings(siblingIds, showStrip);
-
-  const ownedCount = counts?.totals[displayPrinting.id] ?? 0;
-  const cardTotal = counts?.total ?? 0;
-  const hasMultipleOwnedVariants =
-    counts && inCardsView && siblings
-      ? siblings.filter((sibling) => (counts.totals[sibling.id] ?? 0) > 0).length > 1
-      : false;
-  const totalCount = hasMultipleOwnedVariants ? cardTotal : undefined;
+  const siblingIds = siblings?.map((sibling) => sibling.id);
+  const {
+    count: ownedCount,
+    total: cardTotal,
+    totalCount,
+  } = useTileOwnedCounts(displayPrinting.id, siblingIds, showStrip);
 
   const openLocations =
     canAdd && (ownedCount > 0 || (inCardsView && (siblings?.length ?? 0) > 1))

@@ -3,7 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useContext } from "react";
 
-import { COUNT_PILL_INTERACTIVE, countPillVariants } from "@/components/ui/count-pill";
+import {
+  COUNT_PILL_INTERACTIVE,
+  CountWithTotal,
+  countPillVariants,
+} from "@/components/ui/count-pill";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { OwnedVariantBreakdown } from "@/features/cards/components/owned-variant-breakdown";
@@ -43,7 +47,6 @@ export function OwnedCollectionsPopover({
   // Must stay gated: an enabled instance subscribes to the entire copies collection.
   const { data: ownedCountByPrinting } = useOwnedCount(isAuthenticated && count === undefined);
   const totalOwned = count ?? ownedCountByPrinting?.[printingId] ?? 0;
-  const showTotal = totalCount !== undefined && totalCount !== totalOwned;
   const groupByVariant = Boolean(siblings && siblings.length > 1);
   const { data: singleBreakdown } = useOwnedCollections(
     printingId,
@@ -70,8 +73,7 @@ export function OwnedCollectionsPopover({
         className={cn(countPillVariants({ variant: "ghost" }), COUNT_PILL_INTERACTIVE)}
       >
         <PackageIcon className="size-3" />
-        <span>{totalOwned}</span>
-        {showTotal && <span className="opacity-60"> ({totalCount})</span>}
+        <CountWithTotal count={totalOwned} totalCount={totalCount} />
       </PopoverTrigger>
       <PopoverContent side="bottom" align={align} className="w-60 p-0">
         <div className="px-3 pt-2.5 pb-1">

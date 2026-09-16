@@ -18,7 +18,7 @@ describe("OnLoanChip", () => {
   it("shows the cross-printing total when it diverges", () => {
     render(<OnLoanChip count={2} totalCount={5} />);
     const chip = screen.getByTitle("2 of this printing on loan (5 across all printings)");
-    expect(chip).toHaveTextContent("2(5)");
+    expect(chip).toHaveTextContent("2 (5)");
   });
 
   it("hides a matching total", () => {
@@ -32,7 +32,7 @@ describe("OnLoanChip", () => {
     render(<OnLoanChip count={0} totalCount={4} />);
     expect(
       screen.getByTitle("0 of this printing on loan (4 across all printings)"),
-    ).toHaveTextContent("0(4)");
+    ).toHaveTextContent("0 (4)");
   });
 
   it("renders nothing when no copies are on loan", () => {

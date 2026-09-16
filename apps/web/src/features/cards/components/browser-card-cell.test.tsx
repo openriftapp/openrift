@@ -16,13 +16,18 @@ const printingY = stubPrinting({ id: "p-y", cardId, card: { name: "Chaos Rune" }
 let ownedByPrinting: Record<string, number> = {};
 
 vi.mock("@/features/collections/hooks/use-owned-count", () => ({
-  useOwnedCountsForPrintings: (printingIds: readonly string[]) => {
-    const totals = Object.fromEntries(printingIds.map((id) => [id, ownedByPrinting[id] ?? 0]));
+  useTileOwnedCounts: (printingId: string, siblingIds: readonly string[] | undefined) => {
+    const ids = siblingIds ?? [printingId];
     let total = 0;
-    for (const id of printingIds) {
+    for (const id of ids) {
       total += ownedByPrinting[id] ?? 0;
     }
-    return { data: { totals, total, allTotals: totals, allTotal: total } };
+    return {
+      count: ownedByPrinting[printingId] ?? 0,
+      total,
+      totalCount: siblingIds !== undefined && siblingIds.length > 1 ? total : undefined,
+      allTotal: total,
+    };
   },
 }));
 

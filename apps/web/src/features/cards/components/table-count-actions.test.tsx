@@ -9,32 +9,31 @@ const printingX = stubPrinting({ id: "p-x", cardId, card: { name: "Chaos Rune" }
 let ownedByPrinting: Record<string, number> = {};
 
 vi.mock("@/features/collections/hooks/use-owned-count", () => ({
-  useOwnedCountFor: (printingId: string, enabled: boolean) => ({
-    data: enabled ? { count: ownedByPrinting[printingId] ?? 0 } : undefined,
-  }),
-  useOwnedCountsForPrintings: (printingIds: readonly string[], enabled: boolean) => {
-    if (!enabled) {
-      return { data: undefined };
-    }
-    const totals = Object.fromEntries(printingIds.map((id) => [id, ownedByPrinting[id] ?? 0]));
+  useTileOwnedCounts: (printingId: string, siblingIds: readonly string[] | undefined) => {
+    const ids = siblingIds ?? [printingId];
     let total = 0;
-    for (const id of printingIds) {
+    for (const id of ids) {
       total += ownedByPrinting[id] ?? 0;
     }
-    return { data: { totals, total, allTotals: totals, allTotal: total } };
+    return {
+      count: ownedByPrinting[printingId] ?? 0,
+      total,
+      totalCount: siblingIds !== undefined && siblingIds.length > 1 ? total : undefined,
+      allTotal: total,
+    };
   },
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
-const { CatalogTableActions } = await import("./catalog-table-actions");
+const { TableCountActions } = await import("./table-count-actions");
 
-describe("CatalogTableActions", () => {
+describe("TableCountActions", () => {
   beforeEach(() => {
     ownedByPrinting = {};
   });
 
   it("offers the add control on a card with no copies", () => {
-    render(<CatalogTableActions printing={printingX} />);
+    render(<TableCountActions printing={printingX} />);
 
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add one" })).toBeEnabled();
@@ -43,7 +42,7 @@ describe("CatalogTableActions", () => {
 
   it("enables the remove control once a copy is owned", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<CatalogTableActions printing={printingX} />);
+    render(<TableCountActions printing={printingX} />);
 
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove one" })).toBeEnabled();
@@ -51,14 +50,22 @@ describe("CatalogTableActions", () => {
 
   it("adds the card-wide total when copies are spread over several variants", () => {
     ownedByPrinting = { "p-x": 2, "p-y": 1 };
-    render(<CatalogTableActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
+    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
 
     expect(screen.getByText("(3)")).toBeInTheDocument();
   });
 
-  it("omits the card-wide total when only one variant is owned", () => {
+  it("keeps the card-wide total on a variant the viewer owns none of", () => {
+    ownedByPrinting = { "p-y": 2 };
+    render(<TableCountActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
+
+    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText("(2)")).toBeInTheDocument();
+  });
+
+  it("omits the total on a row that stands for one printing", () => {
     ownedByPrinting = { "p-x": 2 };
-    render(<CatalogTableActions printing={printingX} siblingIds={["p-x", "p-y"]} />);
+    render(<TableCountActions printing={printingX} />);
 
     expect(screen.queryByText("(2)")).not.toBeInTheDocument();
   });

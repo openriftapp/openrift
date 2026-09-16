@@ -42,12 +42,15 @@ vi.mock("@/features/collections/hooks/use-owned-count", () => ({
       ),
     ),
   }),
-  useOwnedCountsForPrintings: (printingIds: readonly string[]) => {
-    const totals = Object.fromEntries(
-      printingIds.map((id) => [id, (copiesByPrinting[id] ?? []).length]),
-    );
-    const total = copiesFor(printingIds).length;
-    return { data: { totals, total, allTotals: totals, allTotal: total } };
+  useTileOwnedCounts: (printingId: string, siblingIds: readonly string[] | undefined) => {
+    const ids = siblingIds ?? [printingId];
+    const total = copiesFor(ids).length;
+    return {
+      count: (copiesByPrinting[printingId] ?? []).length,
+      total,
+      totalCount: siblingIds !== undefined && siblingIds.length > 1 ? total : undefined,
+      allTotal: total,
+    };
   },
 }));
 

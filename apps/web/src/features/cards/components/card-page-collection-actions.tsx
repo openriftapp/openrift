@@ -10,7 +10,7 @@ import { OwnedCollectionsPopover } from "@/features/cards/components/card-detail
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
 import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
-import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
+import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
@@ -64,9 +64,11 @@ export function CardPageCollectionActions({
   const [wishTarget, setWishTarget] = useState<Printing | null>(null);
 
   const siblingIds = siblings.map((sibling) => sibling.id);
-  const { data: counts } = useOwnedCountsForPrintings(siblingIds, enabled);
-  const ownedCount = counts?.totals[printing.id] ?? 0;
-  const cardTotal = counts?.total ?? 0;
+  const {
+    count: ownedCount,
+    totalCount,
+    total: cardTotal,
+  } = useTileOwnedCounts(printing.id, siblingIds, enabled);
   const cardName = legendDisplayName(printing.card);
 
   const removeCopy = (anchorEl: HTMLElement) => {
@@ -105,7 +107,7 @@ export function CardPageCollectionActions({
             <div className="w-28">
               <CardCountStrip
                 count={ownedCount}
-                totalCount={cardTotal}
+                totalCount={totalCount}
                 pillOverride={
                   ownedCount > 0 ? (
                     <OwnedCollectionsPopover
@@ -113,7 +115,7 @@ export function CardPageCollectionActions({
                       cardName={cardName}
                       shortCode={printing.shortCode}
                       count={ownedCount}
-                      totalCount={cardTotal}
+                      totalCount={totalCount}
                       siblings={siblings.length > 1 ? siblings : undefined}
                     />
                   ) : undefined

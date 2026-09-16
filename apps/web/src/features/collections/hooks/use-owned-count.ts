@@ -143,6 +143,40 @@ export function useOwnedCountsForPrintings(
   return { data: aggregateScopedTotals(copies, printingIds, collectionId) };
 }
 
+export interface TileOwnedCounts {
+  count: number;
+  total: number;
+  totalCount: number | undefined;
+  allTotal: number;
+}
+
+export function tileOwnedCounts(
+  data: { totals: Record<string, number>; total: number; allTotal: number } | undefined,
+  printingId: string,
+  siblingIds: readonly string[] | undefined,
+): TileOwnedCounts {
+  const widens = siblingIds !== undefined && siblingIds.length > 1;
+  const total = data?.total ?? 0;
+  return {
+    count: data?.totals[printingId] ?? 0,
+    total,
+    totalCount: data && widens ? total : undefined,
+    allTotal: data?.allTotal ?? 0,
+  };
+}
+
+/** `totalCount` widens over `siblingIds`; omit or pass one id to keep it undefined. */
+export function useTileOwnedCounts(
+  printingId: string,
+  siblingIds: readonly string[] | undefined,
+  enabled: boolean,
+  collectionId?: string,
+): TileOwnedCounts {
+  const ids = siblingIds !== undefined && siblingIds.length > 0 ? siblingIds : [printingId];
+  const { data } = useOwnedCountsForPrintings(ids, enabled, collectionId);
+  return tileOwnedCounts(data, printingId, siblingIds);
+}
+
 export function useCopyRowsForPrintings(
   printingIds: readonly string[],
   enabled: boolean,

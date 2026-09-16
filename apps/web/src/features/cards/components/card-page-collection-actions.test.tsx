@@ -26,7 +26,16 @@ vi.mock("@/lib/auth-session", () => ({
 }));
 
 vi.mock("@/features/collections/hooks/use-owned-count", () => ({
-  useOwnedCountsForPrintings: () => ({ data: countsMock() }),
+  useTileOwnedCounts: (printingId: string, siblingIds: readonly string[] | undefined) => {
+    const data = countsMock();
+    const total = data?.total ?? 0;
+    return {
+      count: data?.totals[printingId] ?? 0,
+      total,
+      totalCount: data && siblingIds !== undefined && siblingIds.length > 1 ? total : undefined,
+      allTotal: data?.allTotal ?? 0,
+    };
+  },
 }));
 
 vi.mock("@/features/collections/hooks/use-quick-add-actions", () => ({

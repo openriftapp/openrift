@@ -6,11 +6,11 @@ import {
   dispatchDecrement,
   dispatchIncrement,
 } from "@/features/cards/stores/card-row-actions-store";
-import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
+import { useTileOwnedCounts } from "@/features/collections/hooks/use-owned-count";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 /**
- * `useOwnedCountsForPrintings` is a live query, so the count is gated behind
+ * `useTileOwnedCounts` is a live query, so the count is gated behind
  * hydration like every other consumer.
  */
 export function PrintingCountActions({
@@ -25,13 +25,12 @@ export function PrintingCountActions({
   siblingIds?: readonly string[];
 }) {
   const hydrated = useHydrated();
-  const { data: counts } = useOwnedCountsForPrintings(
-    siblingIds ?? [printing.id],
+  const { count: ownedCount, allTotal: totalCount } = useTileOwnedCounts(
+    printing.id,
+    siblingIds,
     hydrated,
     collectionId,
   );
-  const ownedCount = counts?.totals[printing.id] ?? 0;
-  const totalCount = counts?.allTotal ?? 0;
   const cardName = legendDisplayName(printing.card);
 
   return (

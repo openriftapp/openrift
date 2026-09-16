@@ -12,10 +12,10 @@ import {
   BrowserToolbar,
   CardBrowserFilterProvider,
 } from "@/features/cards/components/card-browser-filter-scaffold";
-import { CatalogTableActions } from "@/features/cards/components/catalog-table-actions";
 import { PrintingCountActions } from "@/features/cards/components/printing-count-actions";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
+import { TableCountActions } from "@/features/cards/components/table-count-actions";
 import { WishlistButton } from "@/features/cards/components/wishlist-heart";
 import { useCardData, useCatalogFilterMeta } from "@/features/cards/hooks/use-card-data";
 import { useCardDeepLink } from "@/features/cards/hooks/use-card-deep-link";
@@ -64,7 +64,7 @@ function CatalogActionsCell({ printing, view, printingsByCardId }: CatalogAction
     return null;
   }
   return (
-    <CatalogTableActions
+    <TableCountActions
       printing={printing}
       siblingIds={
         view === "cards"

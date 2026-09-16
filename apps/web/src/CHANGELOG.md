@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-16
+
+### Other
+
+- fix(Cards): **Owned totals match across pages** — a card you own only one printing of now shows the total across its other printings, matching your collections.
+
 ## 2026-09-15
 
 ### Highlights

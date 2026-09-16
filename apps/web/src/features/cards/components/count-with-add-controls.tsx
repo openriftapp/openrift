@@ -2,6 +2,7 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CountWithTotal } from "@/components/ui/count-pill";
 import {
   dispatchDecrement,
   dispatchIncrement,
@@ -23,12 +24,10 @@ export function CountWithAddControls({
   ownedCount,
   totalOwnedCount,
 }: CountWithAddControlsProps) {
-  const showTotal = totalOwnedCount !== undefined && totalOwnedCount !== ownedCount;
   return (
     <>
       <span className="text-center font-medium tabular-nums">
-        {ownedCount}
-        {showTotal && <span className="opacity-60"> ({totalOwnedCount})</span>}
+        <CountWithTotal count={ownedCount} totalCount={totalOwnedCount} />
       </span>
       <Button
         type="button"

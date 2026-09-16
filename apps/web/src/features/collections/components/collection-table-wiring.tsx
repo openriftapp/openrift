@@ -1,7 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 
-import { CollectionTableActions } from "@/features/cards/components/collection-table-actions";
+import { TableCountActions } from "@/features/cards/components/table-count-actions";
 import { cardsViewTileKey, tileSiblings } from "@/features/cards/lib/card-tiles";
 import { isStackSelected } from "@/features/collections/lib/stack-selection";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
@@ -28,7 +28,7 @@ export function CollectionActionsCell({
     return null;
   }
   return (
-    <CollectionTableActions
+    <TableCountActions
       printing={printing}
       collectionId={collectionId}
       siblingIds={

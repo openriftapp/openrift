@@ -1,7 +1,12 @@
 import { MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
 import type { ComponentType, MouseEvent, ReactNode, SVGProps } from "react";
 
-import { CountPill, CountPillButton } from "@/components/ui/count-pill";
+import {
+  CountPill,
+  CountPillButton,
+  CountWithTotal,
+  hasWiderTotal,
+} from "@/components/ui/count-pill";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import { cn } from "@/lib/utils";
 
@@ -38,14 +43,12 @@ export function CardCountStrip({
   increment,
   extras,
 }: CardCountStripProps) {
-  const showTotal = totalCount !== undefined && totalCount !== count;
-  const isDim = dim ?? (count === 0 && !showTotal);
+  const isDim = dim ?? (count === 0 && !hasWiderTotal(count, totalCount));
 
   const pillInner = (
     <>
       <Icon className="size-3" />
-      <span>{count}</span>
-      {showTotal && <span className="opacity-60"> ({totalCount})</span>}
+      <CountWithTotal count={count} totalCount={totalCount} />
     </>
   );
 

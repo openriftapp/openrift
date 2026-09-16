@@ -97,4 +97,18 @@ function CountPillButton({
   );
 }
 
-export { CountPill, CountPillButton, countPillVariants };
+function hasWiderTotal(count: number, totalCount?: number): totalCount is number {
+  return totalCount !== undefined && totalCount !== count;
+}
+
+/** e.g. "0 (2)": none of the printing shown, two across its siblings. */
+function CountWithTotal({ count, totalCount }: { count: number; totalCount?: number }) {
+  return (
+    <>
+      <span>{count}</span>
+      {hasWiderTotal(count, totalCount) && <span className="opacity-60"> ({totalCount})</span>}
+    </>
+  );
+}
+
+export { CountPill, CountPillButton, CountWithTotal, countPillVariants, hasWiderTotal };

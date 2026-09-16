@@ -7,6 +7,7 @@ import {
   aggregateDeckBuildingCounts,
   aggregateScopedCount,
   aggregateScopedTotals,
+  tileOwnedCounts,
 } from "./use-owned-count";
 
 function copy(printingId: string, collectionId: string, groupId: string | null): CopyResponse {
@@ -152,6 +153,43 @@ describe("aggregateDeckBuildingCounts", () => {
     expect(aggregateDeckBuildingCounts(copies, groupAvailability).available).toEqual({});
     expect(aggregateDeckBuildingCounts(copies, groupAvailability, "shared-box").available).toEqual({
       garen: 1,
+    });
+  });
+});
+
+describe("tileOwnedCounts", () => {
+  const data = { totals: { "p-x": 0, "p-y": 2 }, total: 2, allTotal: 5 };
+
+  it("keeps the sibling total on a printing the viewer owns none of", () => {
+    expect(tileOwnedCounts(data, "p-x", ["p-x", "p-y"])).toEqual({
+      count: 0,
+      total: 2,
+      totalCount: 2,
+      allTotal: 5,
+    });
+  });
+
+  it("widens the count over the tile's siblings", () => {
+    expect(tileOwnedCounts(data, "p-y", ["p-x", "p-y"])).toMatchObject({
+      count: 2,
+      totalCount: 2,
+    });
+  });
+
+  it("drops the sibling total when the tile stands for one printing", () => {
+    expect(tileOwnedCounts(data, "p-y", ["p-y"]).totalCount).toBeUndefined();
+  });
+
+  it("drops the sibling total in printings view, where a tile has no siblings", () => {
+    expect(tileOwnedCounts(data, "p-y", undefined).totalCount).toBeUndefined();
+  });
+
+  it("reads zero everywhere while the query is still loading", () => {
+    expect(tileOwnedCounts(undefined, "p-x", ["p-x", "p-y"])).toEqual({
+      count: 0,
+      total: 0,
+      totalCount: undefined,
+      allTotal: 0,
     });
   });
 });

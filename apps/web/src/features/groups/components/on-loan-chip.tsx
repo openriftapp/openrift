@@ -1,6 +1,6 @@
 import { HandHeartIcon } from "lucide-react";
 
-import { CountPill } from "@/components/ui/count-pill";
+import { CountPill, CountWithTotal, hasWiderTotal } from "@/components/ui/count-pill";
 import { m } from "@/paraglide/messages.js";
 
 export function OnLoanChip({
@@ -12,7 +12,7 @@ export function OnLoanChip({
   totalCount?: number;
   iconOnly?: boolean;
 }) {
-  const showTotal = totalCount !== undefined && totalCount !== count;
+  const showTotal = hasWiderTotal(count, totalCount);
   if (count <= 0 && !showTotal) {
     return null;
   }
@@ -24,12 +24,7 @@ export function OnLoanChip({
   return (
     <CountPill variant="ghost" title={title} aria-label={title}>
       <HandHeartIcon className="size-3" aria-hidden />
-      {!iconOnly && (
-        <>
-          <span>{count}</span>
-          {showTotal && <span className="opacity-60">({totalCount})</span>}
-        </>
-      )}
+      {!iconOnly && <CountWithTotal count={count} totalCount={totalCount} />}
     </CountPill>
   );
 }
