@@ -107,7 +107,7 @@ describe("resolveCheckedSubmissions", () => {
         now: NOW,
         io: mockIo,
       }),
-    ).toBe(0);
+    ).toEqual([]);
     expect(resolve).not.toHaveBeenCalled();
   });
 
@@ -124,7 +124,7 @@ describe("resolveCheckedSubmissions", () => {
         now: NOW,
         io: mockIo,
       }),
-    ).toBe(1);
+    ).toEqual(["sub-1"]);
     expect(resolve).toHaveBeenCalledWith("sub-1", {
       status: "accepted",
       resolvedAt: NOW,
@@ -154,12 +154,14 @@ describe("resolveCheckedSubmissions", () => {
       liveCard: null,
     });
 
-    await resolveCheckedSubmissions(repos, {
-      candidateCardIds: ["cc-1"],
-      adminUserId: ADMIN_ID,
-      now: NOW,
-      io: mockIo,
-    });
+    expect(
+      await resolveCheckedSubmissions(repos, {
+        candidateCardIds: ["cc-1"],
+        adminUserId: ADMIN_ID,
+        now: NOW,
+        io: mockIo,
+      }),
+    ).toEqual([]);
     expect(resolve).toHaveBeenCalledWith(
       "sub-1",
       expect.objectContaining({ status: "not_applied" }),
@@ -179,7 +181,7 @@ describe("resolveCheckedSubmissions", () => {
         now: NOW,
         io: mockIo,
       }),
-    ).toBe(0);
+    ).toEqual([]);
     expect(resolve).not.toHaveBeenCalled();
   });
 

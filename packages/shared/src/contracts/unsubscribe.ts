@@ -15,6 +15,7 @@ const channelSchema = z.enum([
   "metaSubmissions",
   "groupJoinRequests",
   "groupApprovals",
+  "submissionAccepted",
 ]);
 
 // `preview` is a safe, read-only GET; `confirm` is the POST that flips the

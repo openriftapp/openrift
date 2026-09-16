@@ -10,6 +10,7 @@ import { AccountInfoSection } from "@/features/account/components/account-info-s
 import { AdminNotificationsSection } from "@/features/account/components/admin-notifications-section";
 import { ConnectedAccountsSection } from "@/features/account/components/connected-accounts-section";
 import { ContactMethodsSection } from "@/features/account/components/contact-methods-section";
+import { ContributionNotificationsSection } from "@/features/account/components/contribution-notifications-section";
 import { DangerZoneSection } from "@/features/account/components/danger-zone-section";
 import { DisplaySection } from "@/features/account/components/display-section";
 import { GroupNotificationsSection } from "@/features/account/components/group-notifications-section";
@@ -42,6 +43,7 @@ function navSections(isAdmin: boolean): PageTocItem[] {
     { id: "trading", label: m.profile_nav_trading(), level: 1 },
     { id: "contacts", label: m.profile_nav_contacts(), level: 1 },
     { id: "groups", label: m.profile_nav_groups(), level: 1 },
+    { id: "contributions", label: m.profile_nav_contributions(), level: 1 },
     { id: "integrations", label: m.profile_nav_integrations() },
     ...(isAdmin ? [{ id: "admin", label: m.profile_nav_admin() }] : []),
     { id: "account", label: m.profile_nav_account() },
@@ -105,6 +107,7 @@ function ProfilePage() {
           <TradingSection />
           <ContactMethodsSection />
           <GroupNotificationsSection />
+          <ContributionNotificationsSection />
         </SettingsGroup>
 
         <SettingsGroup id="integrations" title={m.profile_nav_integrations()}>

@@ -4,10 +4,12 @@ import {
   metaSubmissionStatusSchema,
 } from "@openrift/shared/response-schemas";
 import { idParamSchema, isoDate, isoDateTime, withParams } from "@openrift/shared/schemas";
+import { META_EVENT_OVERLAY_FIELDS } from "@openrift/shared/types/enums";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
 import { metaEventFieldEditsSchema } from "../meta-submissions.js";
+import { metaOverlayReviewResultSchema } from "./meta-overlays.js";
 
 const TAG = "Admin - Meta submissions";
 const BASE = "/api/admin/v1/meta/submissions";
@@ -43,18 +45,20 @@ const correctedMetaEventSchema = z.object({
   country: z.string().nullable(),
 });
 
-/**
- * A correction has no candidate row and no accept step; an admin edits the
- * event directly and stamps the outcome.
- */
+/** A correction has no candidate row: applying it writes the submitter's own overlay on the event. */
 export const adminMetaEventCorrectionSchema = z.object({
   submission: adminMetaSubmissionSchema,
   event: correctedMetaEventSchema.nullable(),
   fieldEdits: metaEventFieldEditsSchema,
 });
 
+const applyEventCorrectionSchema = z.object({
+  /** Null applies every proposed field. */
+  fields: z.array(z.enum(META_EVENT_OVERLAY_FIELDS)).min(1).nullable().optional().default(null),
+});
+
 /**
- * `accepted` is written only by the accept transaction itself.
+ * `accepted` is written only by an accept or an applied correction.
  * `already_correct` is an expected duplicate, not a rejection.
  */
 export const metaSubmissionResolutionSchema = z.enum([
@@ -92,6 +96,16 @@ export const adminMetaSubmissionsContract = {
       NOT_FOUND: { message: "Submission not found" },
       CONFLICT: { message: "That submission was already accepted" },
     }),
+
+  applyEventCorrection: authedRoute
+    .route({ method: "POST", path: `${BASE}/{id}/apply-correction`, tags: [TAG] })
+    .input(withParams(idParamSchema, applyEventCorrectionSchema))
+    .errors({
+      NOT_FOUND: { message: "Submission not found" },
+      CONFLICT: { message: "That correction is already settled or its event is gone" },
+      BAD_REQUEST: { message: "Nothing in the correction differs from the event" },
+    })
+    .output(metaOverlayReviewResultSchema),
 
   reopen: authedRoute
     .route({ method: "POST", path: `${BASE}/{id}/reopen`, tags: [TAG], successStatus: 204 })

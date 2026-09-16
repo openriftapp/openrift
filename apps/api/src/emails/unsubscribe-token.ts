@@ -17,6 +17,7 @@ const VALID_CHANNELS: readonly EmailNotificationChannel[] = [
   "metaSubmissions",
   "groupJoinRequests",
   "groupApprovals",
+  "submissionAccepted",
 ];
 
 function base64url(input: Buffer | string): string {

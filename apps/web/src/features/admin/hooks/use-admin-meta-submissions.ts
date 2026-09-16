@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -126,5 +127,27 @@ export function useReopenMetaSubmission() {
   >({
     mutationFn: (vars) => reopenMetaSubmissionFn({ data: { submissionId: vars.submissionId } }),
     invalidates: (vars) => submissionKeys(vars.playerOverlayId),
+  });
+}
+
+export type ApplyMetaEventCorrectionInput = Omit<
+  ContractInput<typeof adminMetaSubmissionsContract, "applyEventCorrection">,
+  "id"
+> & { submissionId: string };
+
+const applyMetaEventCorrectionFn = createServerFn({ method: "POST" })
+  .validator((input: ApplyMetaEventCorrectionInput) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminMetaSubmissionsContract, context.cookie).applyEventCorrection({
+      id: data.submissionId,
+      fields: data.fields,
+    });
+  });
+
+export function useApplyMetaEventCorrection() {
+  return useMutationWithInvalidation<void, ApplyMetaEventCorrectionInput>({
+    mutationFn: (vars) => applyMetaEventCorrectionFn({ data: vars }),
+    invalidates: [adminKeys.meta.eventCorrections, adminKeys.meta.events, metaKeys.all],
   });
 }

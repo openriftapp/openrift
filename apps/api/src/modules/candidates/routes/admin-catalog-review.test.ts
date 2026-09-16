@@ -62,6 +62,8 @@ const repos = {
   adminEvents: { insert: vi.fn() },
 };
 
+const services = { notifySubmitterOfCardAcceptance: vi.fn() };
+
 let adminAccess: { isAdmin: boolean; sections: string[] } = { isAdmin: true, sections: [] };
 
 const app = new Hono<{ Variables: Variables }>();
@@ -69,6 +71,7 @@ app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("adminAccess", adminAccess as never);
   c.set("repos", repos as never);
+  c.set("services", services as never);
   c.set("io", {} as never);
   c.set("transact", ((fn: (r: unknown) => unknown) => fn(repos)) as never);
   await next();
@@ -89,6 +92,7 @@ function resetDefaults(): void {
   repos.providerSettings.helperReviewableProviders.mockResolvedValue(new Set(["usersubmission"]));
   repos.cardSubmissions.pendingReviewQueueRows.mockResolvedValue([]);
   repos.cardSubmissions.findByCandidateCardId.mockResolvedValue(pendingSubmission);
+  services.notifySubmitterOfCardAcceptance.mockResolvedValue(undefined);
   repos.cardSubmissions.liveCardByNormName.mockResolvedValue({ id: "card-1", slug: "jinx" });
   repos.cardSubmissions.findByExternalId.mockResolvedValue(pendingSubmission);
   repos.cardSubmissions.candidatePrintingImageUrls.mockResolvedValue([]);
@@ -213,6 +217,31 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
     });
   });
 
+  it("thanks the submitter once the submission is accepted", async () => {
+    repos.cardSubmissions.findByCandidateCardId
+      .mockResolvedValueOnce(pendingSubmission)
+      .mockResolvedValueOnce({ ...pendingSubmission, status: "accepted" });
+
+    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+      cardFields: [{ field: "energy", value: 3 }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(services.notifySubmitterOfCardAcceptance).toHaveBeenCalledExactlyOnceWith(
+      repos,
+      "sub-1",
+    );
+  });
+
+  it("sends no thank-you when the submission did not end up accepted", async () => {
+    const res = await post(`${BASE}/submissions/cc-1/accept`, {
+      cardFields: [{ field: "energy", value: 3 }],
+    });
+
+    expect(res.status).toBe(200);
+    expect(services.notifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
+  });
+
   it("returns 409 when the submission is already settled", async () => {
     repos.cardSubmissions.findByCandidateCardId.mockResolvedValue({
       ...pendingSubmission,
@@ -221,6 +250,7 @@ describe(`POST ${BASE}/submissions/{id}/accept`, () => {
 
     const res = await post(`${BASE}/submissions/cc-1/accept`, {});
     expect(res.status).toBe(409);
+    expect(services.notifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
   });
 
   it("returns 404 when no submission points at the candidate", async () => {
@@ -292,6 +322,22 @@ describe(`POST ${BASE}/candidates/{id}/create-card`, () => {
 
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ cardSlug: "ekko", printingsCreated: 0 });
+  });
+
+  it("thanks the submitter of a new card once it is created", async () => {
+    const newCard = { ...pendingSubmission, kind: "new_card" };
+    repos.cardSubmissions.findByCandidateCardId
+      .mockResolvedValueOnce(newCard)
+      .mockResolvedValueOnce({ ...newCard, status: "accepted" });
+    repos.cardSubmissions.liveCardByNormName.mockResolvedValue(null);
+
+    const res = await post(`${BASE}/candidates/cc-1/create-card`, { cardFields });
+
+    expect(res.status).toBe(200);
+    expect(services.notifySubmitterOfCardAcceptance).toHaveBeenCalledExactlyOnceWith(
+      repos,
+      "sub-1",
+    );
   });
 
   it("creates a card for a candidate with no ledger row", async () => {

@@ -2,6 +2,10 @@
 
 ## 2026-09-16
 
+### Highlights
+
+- feat(Contribute): **A thank-you when your submission is accepted** — when a card fix, new card, photo, tournament decklist or event correction you sent is accepted, you get an email with a link to the card, decklist or event where it now shows. Accepted event corrections now read "Applied" on your submissions page. You can turn these emails off under Contributions in your profile or from the link in the email.
+
 ### Other
 
 - fix(Scanner): **Scan sheet lays out correctly on phones** — pulling the sheet up to full height now puts the "Add to" button below the whole list instead of after the first card, and a long printing label no longer runs over the owned count and the price.

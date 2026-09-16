@@ -7,6 +7,7 @@ import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
 import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
+import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import {
   acceptPrinting,
@@ -28,6 +29,9 @@ vi.mock("../../candidates/services/accept-favorite-printings.js", () => ({
 }));
 vi.mock("../../candidates/services/relink-candidates.js", () => ({
   relinkCandidatePrintings: vi.fn(),
+}));
+vi.mock("../../candidates/services/card-submission-outcomes.js", () => ({
+  resolveCheckedSubmissions: vi.fn(async () => []),
 }));
 
 vi.mock("@openrift/shared/fix-typography", async (importOriginal) => ({
@@ -119,17 +123,11 @@ const mockTransact = vi.fn(async (cb: (repos: ReturnType<typeof trxRepos>) => Pr
   cb(trxRepos()),
 );
 
-// The check verbs settle any user submission on the candidates they touched.
-// No pending rows here, so resolution no-ops for these tests.
+const mockResolveCheckedSubmissions = vi.mocked(resolveCheckedSubmissions);
+const mockNotifySubmitterOfCardAcceptance = vi.fn(async () => {});
+
 const mockCardSubmissions = {
-  pendingByCandidateCardIds: vi.fn(async () => []),
   pendingByProvider: vi.fn(async () => []),
-  liveCardByNormName: vi.fn(async () => null),
-  liveSnapshot: vi.fn(async () => ({
-    snapshot: { card: null, printings: new Map() },
-    cardSlug: null,
-  })),
-  resolve: vi.fn(),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -170,6 +168,7 @@ app.use("*", async (c, next) => {
   c.set("services", {
     importErrata: mockImportErrata,
     ingestCandidates: mockIngestCandidates,
+    notifySubmitterOfCardAcceptance: mockNotifySubmitterOfCardAcceptance,
   } as never);
   await next();
 });
@@ -191,6 +190,32 @@ describe("POST /cards/:candidateCardId/check", () => {
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
     expect(res.status).toBe(204);
     expect(mockCandidateCards.checkCandidateCard).toHaveBeenCalledWith(CARD_ID);
+  });
+
+  it("thanks the submitter of each submission the check accepted", async () => {
+    mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 1n });
+    mockResolveCheckedSubmissions.mockResolvedValue(["sub-1", "sub-2"]);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
+
+    expect(res.status).toBe(204);
+    expect(mockResolveCheckedSubmissions).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ candidateCardIds: [CARD_ID], adminUserId: USER_ID }),
+    );
+    expect(mockNotifySubmitterOfCardAcceptance.mock.calls.map((call) => call.at(1))).toEqual([
+      "sub-1",
+      "sub-2",
+    ]);
+  });
+
+  it("sends no thank-you when the check accepted nothing", async () => {
+    mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 1n });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
+
+    expect(res.status).toBe(204);
+    expect(mockNotifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
   });
 
   it("returns 404 when candidate card not found", async () => {

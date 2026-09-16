@@ -7,6 +7,7 @@ import { ignoredCandidatesRepo } from "./repositories/ignored-candidates.js";
 import { ingestRepo } from "./repositories/ingest.js";
 import { notifyAdminsOfCardSubmission } from "./services/card-submission-notifications.js";
 import type { CardSubmissionEmailDeps } from "./services/card-submission-notifications.js";
+import { notifySubmitterOfCardAcceptance } from "./services/card-submission-thanks.js";
 import { importErrata } from "./services/import-errata.js";
 import { ingestCandidates } from "./services/ingest-candidates.js";
 import { ingestUserSubmission } from "./services/ingest-user-submission.js";
@@ -23,6 +24,7 @@ export interface CandidatesServices {
   ingestUserSubmission: typeof ingestUserSubmission;
   importErrata: typeof importErrata;
   notifyAdminsOfCardSubmission: typeof notifyAdminsOfCardSubmission;
+  notifySubmitterOfCardAcceptance: typeof notifySubmitterOfCardAcceptance;
 }
 
 export function createCandidatesRepos(db: Kysely<Database>): CandidatesRepos {
@@ -43,5 +45,9 @@ export function createCandidatesServices(emailDeps?: CardSubmissionEmailDeps): C
       emailDeps === undefined
         ? notifyAdminsOfCardSubmission
         : (repos, submission) => notifyAdminsOfCardSubmission(repos, submission, emailDeps),
+    notifySubmitterOfCardAcceptance:
+      emailDeps === undefined
+        ? notifySubmitterOfCardAcceptance
+        : (repos, submissionId) => notifySubmitterOfCardAcceptance(repos, submissionId, emailDeps),
   };
 }

@@ -75,7 +75,7 @@ export const metaEventFieldEditsSchema = z.object({
     .optional(),
 });
 
-/** Stages nothing: there's no candidate row and no accept path, an admin applies these edits by hand. */
+/** Stages nothing until an admin applies it, which writes the edits as the submitter's overlay. */
 export const metaEventCorrectionInputSchema = z.object({
   metaEventId: z.uuid(),
   fieldEdits: metaEventFieldEditsSchema.optional().default({}),

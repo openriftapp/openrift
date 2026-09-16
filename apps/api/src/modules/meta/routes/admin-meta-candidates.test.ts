@@ -98,9 +98,18 @@ const mockMetaSubmissions = {
   recordAcceptance: vi.fn(),
 };
 
+const mockNotifySubmitterOfMetaAcceptance = vi.fn(async () => {});
+
+function metaSubmission(status: string) {
+  return { id: "sub-1", userId: "user-2", status };
+}
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
+  c.set("services", {
+    notifySubmitterOfMetaAcceptance: mockNotifySubmitterOfMetaAcceptance,
+  } as never);
   c.set("repos", {
     meta: mockMeta,
     metaOverlays: mockOverlays,
@@ -1157,6 +1166,29 @@ describe("POST /meta/overlays/players/{id}/accept", () => {
 
     expect(response.status).toBe(200);
     expect(mockOverlays.linkPlayerOverlay).not.toHaveBeenCalled();
+    expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
+  });
+
+  it("thanks the submitter behind the overlay after the accept", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("pending"));
+
+    const response = await accept({ metaEventPlayerId: LIVE_PLAYER_ID });
+
+    expect(response.status).toBe(200);
+    expect(mockMetaSubmissions.recordAcceptance).toHaveBeenCalledTimes(1);
+    expect(mockNotifySubmitterOfMetaAcceptance).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      "sub-1",
+    );
+  });
+
+  it("does not thank the submitter again when the overlay was already accepted", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockResolvedValue(metaSubmission("accepted"));
+
+    const response = await accept({ metaEventPlayerId: LIVE_PLAYER_ID });
+
+    expect(response.status).toBe(200);
+    expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
   });
 });
 
@@ -1192,6 +1224,23 @@ describe("POST /meta/overlays/players/accept", () => {
     expect(promoteMetaEvent).toHaveBeenCalledTimes(1);
   });
 
+  it("thanks only the submitters behind the batch", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockImplementation((id: string) =>
+      Promise.resolve(id === SECOND ? metaSubmission("pending") : null),
+    );
+
+    const response = await acceptAll([
+      { id: PLAYER_OVERLAY_ID, metaEventPlayerId: LIVE_PLAYER_ID },
+      { id: SECOND },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(mockNotifySubmitterOfMetaAcceptance).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      "sub-1",
+    );
+  });
+
   it("writes nothing when one id is unknown", async () => {
     const response = await acceptAll([
       { id: PLAYER_OVERLAY_ID },
@@ -1201,6 +1250,7 @@ describe("POST /meta/overlays/players/accept", () => {
     expect(response.status).toBe(404);
     expect(mockOverlays.setPlayerOverlayStatus).not.toHaveBeenCalled();
     expect(promoteMetaEvent).not.toHaveBeenCalled();
+    expect(mockNotifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
   });
 
   it("refuses an empty batch", async () => {

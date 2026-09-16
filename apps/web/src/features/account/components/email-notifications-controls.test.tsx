@@ -27,6 +27,7 @@ beforeEach(() => {
       metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
+      submissionAccepted: true,
     },
     isLoading: false,
     isSaving: false,

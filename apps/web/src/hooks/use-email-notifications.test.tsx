@@ -97,6 +97,7 @@ describe("useEmailNotifications", () => {
       metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
+      submissionAccepted: true,
     });
   });
 
@@ -114,6 +115,7 @@ describe("useEmailNotifications", () => {
       metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
+      submissionAccepted: true,
     });
   });
 

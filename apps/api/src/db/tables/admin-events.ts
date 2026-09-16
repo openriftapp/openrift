@@ -64,6 +64,7 @@ export type AdminEventAction =
   | "meta-catalog.template"
   | "meta-catalog.format"
   | "meta-submission.resolve"
+  | "meta-submission.apply-correction"
   | "meta-submission.reopen";
 
 export type AdminEventEntityType =

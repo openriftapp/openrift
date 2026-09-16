@@ -200,4 +200,15 @@ describe("MetaSubmissionResolve", () => {
     expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
     expect(screen.getByText(/Settled by the accept/u)).toBeInTheDocument();
   });
+
+  it("labels an applied event correction as applied, matching the submitter's page", () => {
+    renderResolve({
+      kind: "event_correction",
+      playerName: null,
+      status: "accepted",
+      resolvedAt: "2026-08-17T09:30:00.000Z",
+    });
+    expect(screen.getByText("Applied")).toBeInTheDocument();
+    expect(screen.queryByText("Added to the archive")).not.toBeInTheDocument();
+  });
 });

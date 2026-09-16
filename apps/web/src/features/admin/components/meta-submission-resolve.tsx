@@ -71,7 +71,7 @@ function ResolvedSummary({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
-        {metaSubmissionStatusLabels()[submission.status]}
+        {metaSubmissionStatusLabels(submission.kind)[submission.status]}
       </Badge>
       <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
       {submission.resolvedAt !== null && (

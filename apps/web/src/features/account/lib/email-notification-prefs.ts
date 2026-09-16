@@ -9,6 +9,7 @@ import {
   isGroupApprovalEmailEnabled,
   isGroupJoinRequestEmailEnabled,
   isMetaSubmissionEmailEnabled,
+  isSubmissionAcceptedEmailEnabled,
   isTradeMatchDigestEnabled,
   isTradeRequestEmailEnabled,
   isTradeStatusEmailEnabled,
@@ -23,6 +24,7 @@ export interface EmailNotificationGates {
   metaSubmissions: boolean;
   groupJoinRequests: boolean;
   groupApprovals: boolean;
+  submissionAccepted: boolean;
 }
 
 export function resolveEmailNotificationGates(
@@ -37,6 +39,7 @@ export function resolveEmailNotificationGates(
     metaSubmissions: isMetaSubmissionEmailEnabled(prefs),
     groupJoinRequests: isGroupJoinRequestEmailEnabled(prefs),
     groupApprovals: isGroupApprovalEmailEnabled(prefs),
+    submissionAccepted: isSubmissionAcceptedEmailEnabled(prefs),
   };
 }
 

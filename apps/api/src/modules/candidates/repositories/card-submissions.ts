@@ -207,6 +207,15 @@ export function cardSubmissionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async findById(id: string): Promise<CardSubmissionRow | null> {
+      const row = await db
+        .selectFrom("cardSubmissions")
+        .selectAll()
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return row ?? null;
+    },
+
     /**
      * Any status, not just pending: the admin's reply dialog has to show a
      * note already written on a settled submission.

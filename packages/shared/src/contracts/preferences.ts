@@ -21,6 +21,7 @@ export const emailNotificationPreferenceSchema = z.object({
   metaSubmissions: z.boolean().optional(),
   groupJoinRequests: z.boolean().optional(),
   groupApprovals: z.boolean().optional(),
+  submissionAccepted: z.boolean().optional(),
 });
 
 const presenceStateEnum = z.enum(["any", "none"]);

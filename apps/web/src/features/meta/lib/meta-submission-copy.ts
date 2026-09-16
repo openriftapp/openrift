@@ -30,10 +30,15 @@ export function metaSubmissionFormTitles(): Record<MetaDeckSubmissionKind, strin
   };
 }
 
-export function metaSubmissionStatusLabels(): Record<MetaSubmissionStatus, string> {
+export function metaSubmissionStatusLabels(
+  kind?: MetaSubmissionKind,
+): Record<MetaSubmissionStatus, string> {
   return {
     pending: m.meta_submission_status_pending(),
-    accepted: m.meta_submission_status_accepted(),
+    accepted:
+      kind === "event_correction"
+        ? m.meta_submission_status_applied()
+        : m.meta_submission_status_accepted(),
     already_correct: m.meta_submission_status_already_correct(),
     not_applied: m.meta_submission_status_not_used(),
     rejected: m.meta_submission_status_not_used(),
@@ -52,10 +57,15 @@ export const metaSubmissionStatusBadgeVariant: Record<
   rejected: "outline",
 };
 
-export function metaSubmissionStatusHints(): Record<MetaSubmissionStatus, string | null> {
+export function metaSubmissionStatusHints(
+  kind?: MetaSubmissionKind,
+): Record<MetaSubmissionStatus, string | null> {
   return {
     pending: m.meta_submission_hint_pending(),
-    accepted: m.meta_submission_hint_accepted(),
+    accepted:
+      kind === "event_correction"
+        ? m.meta_submission_hint_applied()
+        : m.meta_submission_hint_accepted(),
     already_correct: m.meta_submission_hint_already_correct(),
     not_applied: null,
     rejected: null,

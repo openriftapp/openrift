@@ -15,7 +15,7 @@ import { stringifyUnknown } from "@openrift/shared/utils";
 import type { Insertable } from "kysely";
 
 import type { MetaEventPlayerOverlaysTable } from "../../../db/tables/meta.js";
-import type { Repos } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
 import type { MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
@@ -300,6 +300,87 @@ export async function writeEventOverlayFields(
         acceptedAt: now,
         ...columns,
       }));
+  await promoteMetaEvent(repos, metaEventId);
+  return { metaEventId, created: false };
+}
+
+/**
+ * Applies a pending event correction as the submitter's own accepted overlay,
+ * then settles the ledger row and the event credit. `fields` narrows the
+ * proposal; null takes all of it.
+ */
+export async function applyMetaEventCorrection(
+  transact: Transact,
+  repos: Repos,
+  submissionId: string,
+  options: { fields: readonly MetaEventOverlayField[] | null; reviewedByUserId: string },
+  now: Date = new Date(),
+): Promise<MetaOverlayReviewResult> {
+  const metaEventId = await transact(async (trx) => {
+    const found = await trx.metaSubmissions.byId(submissionId);
+    if (found === null) {
+      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Submission not found");
+    }
+    // Serializes a concurrent apply of the same correction behind this commit.
+    await trx.ingest.lockUserSubmissions(found.userId);
+    const submission = (await trx.metaSubmissions.byId(submissionId)) ?? found;
+    if (submission.kind !== "event_correction") {
+      throw new AppError(
+        400,
+        ERROR_CODES.BAD_REQUEST,
+        "That submission is not an event correction.",
+      );
+    }
+    if (submission.status !== "pending") {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "That correction is already settled.");
+    }
+    const eventId = submission.metaEventId;
+    const live = eventId === null ? undefined : await trx.meta.eventById(eventId);
+    if (eventId === null || live === undefined) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "The event this correction is about is gone.");
+    }
+
+    const proposed = Object.entries(submission.fieldEdits ?? {}).filter(
+      ([field, value]) =>
+        value !== undefined &&
+        (options.fields === null || options.fields.includes(field as MetaEventOverlayField)),
+    ) as [MetaEventOverlayField, string | number][];
+    const columns: Record<string, unknown> = {};
+    for (const [field, value] of proposed) {
+      const text = field === "country" ? String(value).toUpperCase() : String(value);
+      Object.assign(columns, coerceEventField(field, text));
+    }
+    const offered = proposed.map(([field]) => field);
+    const redundant = redundantClaims(offered, columns, live as unknown as Record<string, unknown>);
+    const claimedFields = offered.filter((field) => !redundant.includes(field));
+    if (claimedFields.length === 0) {
+      throw new AppError(
+        400,
+        ERROR_CODES.BAD_REQUEST,
+        "The event already shows these values. Resolve it as already in the archive.",
+      );
+    }
+
+    // Sourceless with a note: the event editor merges only noteless rows, and the uploads list skips it.
+    await trx.metaOverlays.insertEventOverlay({
+      metaEventId: eventId,
+      claimedFields,
+      status: "accepted",
+      acceptedAt: now,
+      submittedByUserId: submission.userId,
+      submissionNote: submission.note,
+      ...Object.fromEntries(claimedFields.map((field) => [field, columns[field]])),
+    });
+    await trx.metaSubmissions.recordAcceptance({
+      submissionId,
+      credit: { metaEventId: eventId, metaEventPlayerId: null, userId: submission.userId },
+      acceptedDeckId: null,
+      resolvedAt: now,
+      resolvedByUserId: options.reviewedByUserId,
+    });
+    return eventId;
+  });
+
   await promoteMetaEvent(repos, metaEventId);
   return { metaEventId, created: false };
 }

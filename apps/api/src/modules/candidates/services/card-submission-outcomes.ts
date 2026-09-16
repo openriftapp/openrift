@@ -40,18 +40,19 @@ async function submittedImageAttached(repos: Repos, candidateCardId: string): Pr
   return inUse.size > 0;
 }
 
+/** Returns the ids of the submissions this call accepted. */
 export async function resolveCheckedSubmissions(
   repos: Repos,
   args: { candidateCardIds: string[]; adminUserId: string; now: Date; io: Io },
-): Promise<number> {
+): Promise<string[]> {
   const { candidateCardIds, adminUserId, now, io } = args;
   if (candidateCardIds.length === 0) {
-    return 0;
+    return [];
   }
 
   const pending = await repos.cardSubmissions.pendingByCandidateCardIds(candidateCardIds);
   if (pending.length === 0) {
-    return 0;
+    return [];
   }
 
   const reviewStates = await repos.candidateCards.reviewStateForCandidates(
@@ -60,7 +61,7 @@ export async function resolveCheckedSubmissions(
       .filter((id): id is string => id !== null),
   );
 
-  let resolved = 0;
+  const acceptedIds: string[] = [];
   for (const submission of pending) {
     const candidateCardId = submission.candidateCardId;
     if (candidateCardId === null) {
@@ -102,13 +103,14 @@ export async function resolveCheckedSubmissions(
       resolvedByUserId: adminUserId,
       acceptedCardId: status === "accepted" ? (liveCard?.id ?? null) : null,
     });
-    if (status !== "accepted") {
+    if (status === "accepted") {
+      acceptedIds.push(submission.id);
+    } else {
       await discardSubmissionUploads(io, repos, candidateCardId);
     }
-    resolved += 1;
   }
 
-  return resolved;
+  return acceptedIds;
 }
 
 /** No-ops for candidates from scraped providers, which have no ledger row. */

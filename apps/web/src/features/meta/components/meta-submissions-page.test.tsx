@@ -105,6 +105,21 @@ describe("MetaSubmissionsPage", () => {
     expect(screen.getByText(/Reviewed 2026-08-17/u)).toBeInTheDocument();
   });
 
+  it("says an accepted event correction was applied to the event page", () => {
+    renderLedger([
+      submission({
+        kind: "event_correction",
+        playerName: null,
+        status: "accepted",
+        resolvedAt: "2026-08-17T09:00:00.000Z",
+      }),
+    ]);
+    expect(screen.getByText("Applied")).toBeInTheDocument();
+    expect(screen.getByText(/event page shows your correction/u)).toBeInTheDocument();
+    expect(screen.queryByText("Added to the archive")).not.toBeInTheDocument();
+    expect(screen.queryByText(/The list is on the archive/u)).not.toBeInTheDocument();
+  });
+
   it("shows an already-correct row", () => {
     renderLedger([submission({ status: "already_correct", resolutionReason: "already_correct" })]);
     expect(screen.getByText("Already there")).toBeInTheDocument();

@@ -8,6 +8,7 @@ import {
   isGroupApprovalEmailEnabled,
   isMetaSubmissionEmailEnabled,
   isGroupJoinRequestEmailEnabled,
+  isSubmissionAcceptedEmailEnabled,
   isTradeMatchDigestEnabled,
   isTradeRequestEmailEnabled,
   isTradeStatusEmailEnabled,
@@ -51,6 +52,9 @@ function isChannelOff(
     }
     case "groupApprovals": {
       return !isGroupApprovalEmailEnabled(prefs);
+    }
+    case "submissionAccepted": {
+      return !isSubmissionAcceptedEmailEnabled(prefs);
     }
     default: {
       return !isTradeRequestEmailEnabled(prefs);

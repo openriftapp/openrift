@@ -272,7 +272,7 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
       resolvedAt: Date;
       resolvedByUserId: string | null;
     }): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      const run = async (trx: Kysely<Database>): Promise<void> => {
         await trx
           .insertInto("metaCredits")
           .values(values.credit)
@@ -297,7 +297,8 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
           })
           .where("id", "=", values.submissionId)
           .execute();
-      });
+      };
+      await (db.isTransaction ? run(db) : db.transaction().execute(run));
     },
 
     /**

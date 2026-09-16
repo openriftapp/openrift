@@ -7,6 +7,7 @@ import {
   acceptMetaEventOverlay,
   acceptMetaPlayerOverlay,
   acceptMetaPlayerOverlays,
+  applyMetaEventCorrection,
   linkMetaPlayerOverlay,
   listMetaUploadsForEvent,
   moveMetaEventOverlay,
@@ -56,6 +57,7 @@ const mockOverlays = {
   linkPlayerOverlay: vi.fn(),
   updatePlayerOverlay: vi.fn(),
   setPlayerOverlayStatus: vi.fn(),
+  insertEventOverlay: vi.fn(),
 };
 
 const mockMeta = {
@@ -66,6 +68,7 @@ const mockMeta = {
 };
 
 const mockSubmissions = {
+  byId: vi.fn(),
   byPlayerOverlayId: vi.fn(),
   recordAcceptance: vi.fn(),
 };
@@ -282,6 +285,133 @@ describe("acceptMetaEventOverlay", () => {
       expect.objectContaining({ claimedFields: [], status: "accepted" }),
     );
     expect(mockOverlays.adoptProposedPlayers).toHaveBeenCalledWith(OVERLAY_ID, OTHER_EVENT_ID);
+  });
+});
+
+describe("applyMetaEventCorrection", () => {
+  const SUBMISSION_ID = "a0000000-0001-4000-a000-000000000009";
+  const ADMIN_ID = "admin-1";
+  const NOW = new Date("2026-09-16T12:00:00.000Z");
+
+  function correction(overrides: Record<string, unknown> = {}) {
+    return {
+      id: SUBMISSION_ID,
+      userId: "user-7",
+      kind: "event_correction",
+      status: "pending",
+      metaEventId: LIVE_EVENT_ID,
+      eventName: "Summoner Skirmish",
+      playerName: null,
+      note: "The flyer says 32 players in Piltover.",
+      fieldEdits: { playerCount: 32, location: "Piltover", country: "de" },
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    mockSubmissions.byId.mockResolvedValue(correction());
+    mockMeta.eventById.mockResolvedValue({
+      id: LIVE_EVENT_ID,
+      name: "Summoner Skirmish",
+      playerCount: 24,
+      location: "Piltover",
+      country: null,
+    });
+  });
+
+  const lockUserSubmissions = vi.fn();
+  const trxRepos = { ...repos, ingest: { lockUserSubmissions } } as unknown as Repos;
+  const transact = vi.fn((fn: (r: Repos) => Promise<unknown>) => fn(trxRepos));
+
+  function apply(fields: string[] | null = null) {
+    return applyMetaEventCorrection(
+      transact as never,
+      repos,
+      SUBMISSION_ID,
+      { fields: fields as never, reviewedByUserId: ADMIN_ID },
+      NOW,
+    );
+  }
+
+  it("writes the differing fields as the submitter's accepted overlay and settles the ledger", async () => {
+    const result = await apply();
+
+    expect(result).toEqual({ metaEventId: LIVE_EVENT_ID, created: false });
+    expect(mockOverlays.insertEventOverlay).toHaveBeenCalledExactlyOnceWith({
+      metaEventId: LIVE_EVENT_ID,
+      claimedFields: ["playerCount", "country"],
+      status: "accepted",
+      acceptedAt: NOW,
+      submittedByUserId: "user-7",
+      submissionNote: "The flyer says 32 players in Piltover.",
+      playerCount: 32,
+      country: "DE",
+    });
+    expect(promoteMetaEvent).toHaveBeenCalledWith(repos, LIVE_EVENT_ID);
+    expect(mockSubmissions.recordAcceptance).toHaveBeenCalledExactlyOnceWith({
+      submissionId: SUBMISSION_ID,
+      credit: { metaEventId: LIVE_EVENT_ID, metaEventPlayerId: null, userId: "user-7" },
+      acceptedDeckId: null,
+      resolvedAt: NOW,
+      resolvedByUserId: ADMIN_ID,
+    });
+  });
+
+  it("applies only the fields the reviewer kept", async () => {
+    await apply(["country"]);
+
+    expect(mockOverlays.insertEventOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ claimedFields: ["country"], country: "DE" }),
+    );
+    expect(mockOverlays.insertEventOverlay.mock.calls[0]![0]).not.toHaveProperty("playerCount");
+  });
+
+  it("refuses when the event already shows every kept value", async () => {
+    await expect(apply(["location"])).rejects.toMatchObject({ status: 400 });
+
+    expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();
+    expect(mockSubmissions.recordAcceptance).not.toHaveBeenCalled();
+  });
+
+  it("re-reads the row under the submitter's lock, so a concurrent apply is refused", async () => {
+    mockSubmissions.byId
+      .mockResolvedValueOnce(correction())
+      .mockResolvedValueOnce(correction({ status: "accepted" }));
+
+    await expect(apply()).rejects.toMatchObject({ status: 409 });
+    expect(lockUserSubmissions).toHaveBeenCalledExactlyOnceWith("user-7");
+    expect(lockUserSubmissions.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSubmissions.byId.mock.invocationCallOrder[1]!,
+    );
+    expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();
+    expect(promoteMetaEvent).not.toHaveBeenCalled();
+  });
+
+  it("refuses a correction that is already settled", async () => {
+    mockSubmissions.byId.mockResolvedValue(correction({ status: "accepted" }));
+
+    await expect(apply()).rejects.toMatchObject({ status: 409 });
+    expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();
+  });
+
+  it("refuses a decklist submission", async () => {
+    mockSubmissions.byId.mockResolvedValue(correction({ kind: "new_list", playerName: "Riven" }));
+
+    await expect(apply()).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("refuses when the event is gone", async () => {
+    mockMeta.eventById.mockResolvedValue(undefined);
+
+    await expect(apply()).rejects.toMatchObject({ status: 409 });
+    expect(mockOverlays.insertEventOverlay).not.toHaveBeenCalled();
+  });
+
+  it("answers 404 for an unknown submission", async () => {
+    mockSubmissions.byId.mockResolvedValue(null);
+
+    await expect(apply()).rejects.toBeInstanceOf(AppError);
+    await expect(apply()).rejects.toMatchObject({ status: 404 });
   });
 });
 

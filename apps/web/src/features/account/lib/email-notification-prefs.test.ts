@@ -17,6 +17,7 @@ describe("resolveEmailNotificationGates", () => {
       metaSubmissions: false, // admin alert is opt-in
       groupJoinRequests: true, // group join alert is opt-out
       groupApprovals: true, // group welcome is opt-out
+      submissionAccepted: true, // thank-you email is opt-out
     });
     expect(resolveEmailNotificationGates({})).toEqual({
       tradeMatches: false,
@@ -27,6 +28,7 @@ describe("resolveEmailNotificationGates", () => {
       metaSubmissions: false,
       groupJoinRequests: true,
       groupApprovals: true,
+      submissionAccepted: true,
     });
   });
 
@@ -50,6 +52,15 @@ describe("resolveEmailNotificationGates", () => {
   it("the group welcome email is off only when explicitly false", () => {
     expect(resolveEmailNotificationGates({ groupApprovals: false }).groupApprovals).toBe(false);
     expect(resolveEmailNotificationGates({ groupApprovals: true }).groupApprovals).toBe(true);
+  });
+
+  it("the accepted-submission email is off only when explicitly false", () => {
+    expect(resolveEmailNotificationGates({ submissionAccepted: false }).submissionAccepted).toBe(
+      false,
+    );
+    expect(resolveEmailNotificationGates({ submissionAccepted: true }).submissionAccepted).toBe(
+      true,
+    );
   });
 
   it("digest is on only when explicitly true", () => {

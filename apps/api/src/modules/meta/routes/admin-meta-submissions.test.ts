@@ -1,6 +1,8 @@
+import { ERROR_CODES } from "@openrift/shared/error-codes";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AppError } from "../../../errors.js";
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
 import type { Variables } from "../../../types.js";
@@ -16,6 +18,11 @@ const mockSubmissions = {
 
 const mockAdminEvents = { insert: vi.fn() };
 
+const mockServices = {
+  applyMetaEventCorrection: vi.fn(),
+  notifySubmitterOfMetaAcceptance: vi.fn(),
+};
+
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
 const SUBMISSION_ID = "b0000000-0001-4000-a000-000000000001";
 const PLAYER_OVERLAY_ID = "c0000000-0001-4000-a000-000000000001";
@@ -24,6 +31,8 @@ const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("user", { id: USER_ID } as never);
   c.set("repos", { metaSubmissions: mockSubmissions, adminEvents: mockAdminEvents } as never);
+  c.set("transact", vi.fn() as never);
+  c.set("services", mockServices as never);
   await next();
 });
 registerRouterForTest(app, adminMetaSubmissionsRouter);
@@ -65,6 +74,74 @@ function post(path: string, body?: unknown) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+});
+
+describe("POST /meta/submissions/{id}/apply-correction", () => {
+  const EVENT_ID = "d0000000-0001-4000-a000-000000000001";
+
+  beforeEach(() => {
+    mockServices.applyMetaEventCorrection.mockResolvedValue({
+      metaEventId: EVENT_ID,
+      created: false,
+    });
+    mockSubmissions.byId.mockResolvedValue(
+      ledgerRow({ kind: "event_correction", playerName: null, status: "accepted" }),
+    );
+  });
+
+  it("applies the kept fields, logs it and thanks the submitter", async () => {
+    const res = await post(`/${SUBMISSION_ID}/apply-correction`, { fields: ["playerCount"] });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ metaEventId: EVENT_ID, created: false });
+    expect(mockServices.applyMetaEventCorrection).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      SUBMISSION_ID,
+      { fields: ["playerCount"], reviewedByUserId: USER_ID },
+    );
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "meta-submission.apply-correction",
+        entityId: SUBMISSION_ID,
+      }),
+    );
+    expect(mockServices.notifySubmitterOfMetaAcceptance).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      SUBMISSION_ID,
+    );
+  });
+
+  it("applies every proposed field when none are named", async () => {
+    const res = await post(`/${SUBMISSION_ID}/apply-correction`, {});
+
+    expect(res.status).toBe(200);
+    expect(mockServices.applyMetaEventCorrection).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      SUBMISSION_ID,
+      { fields: null, reviewedByUserId: USER_ID },
+    );
+  });
+
+  it("rejects an unknown field name", async () => {
+    const res = await post(`/${SUBMISSION_ID}/apply-correction`, { fields: ["cards"] });
+
+    expect(res.status).toBe(400);
+    expect(mockServices.applyMetaEventCorrection).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the apply fails", async () => {
+    mockServices.applyMetaEventCorrection.mockRejectedValue(
+      new AppError(409, ERROR_CODES.CONFLICT, "That correction is already settled."),
+    );
+
+    const res = await post(`/${SUBMISSION_ID}/apply-correction`, {});
+
+    expect(res.status).toBe(409);
+    expect(mockAdminEvents.insert).not.toHaveBeenCalled();
+    expect(mockServices.notifySubmitterOfMetaAcceptance).not.toHaveBeenCalled();
+  });
 });
 
 describe("GET /meta/submissions/by-player-overlay/{playerOverlayId}", () => {

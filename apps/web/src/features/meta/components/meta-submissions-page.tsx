@@ -41,7 +41,7 @@ function SubmissionRow({
     submission.resolutionReason,
     submission.resolutionNote,
   );
-  const hint = metaSubmissionStatusHints()[submission.status];
+  const hint = metaSubmissionStatusHints(submission.kind)[submission.status];
 
   return (
     <RowListItem className="flex-col items-stretch gap-2">
@@ -55,7 +55,7 @@ function SubmissionRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="muted">{metaSubmissionKindLabels()[submission.kind]}</Badge>
           <Badge variant={metaSubmissionStatusBadgeVariant[submission.status]}>
-            {metaSubmissionStatusLabels()[submission.status]}
+            {metaSubmissionStatusLabels(submission.kind)[submission.status]}
           </Badge>
         </div>
       </div>

@@ -19,17 +19,26 @@ import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
+async function settleCheckedSubmissions(
+  context: ApiContext,
+  args: { candidateCardIds: string[]; adminUserId: string; now: Date },
+): Promise<void> {
+  const acceptedIds = await resolveCheckedSubmissions(context.repos, { ...args, io: context.io });
+  for (const submissionId of acceptedIds) {
+    await context.services.notifySubmitterOfCardAcceptance(context.repos, submissionId);
+  }
+}
+
 export const adminCardMutationsCandidatesRouter = {
   checkCandidateCard: os.checkCandidateCard.handler(async ({ input, context }): Promise<void> => {
     const { candidateCards } = context.repos;
     const result = await candidateCards.checkCandidateCard(input.candidateCardId);
     assertUpdated(result, "Candidate card not found");
 
-    await resolveCheckedSubmissions(context.repos, {
+    await settleCheckedSubmissions(context, {
       candidateCardIds: [input.candidateCardId],
       adminUserId: context.userId,
       now: new Date(),
-      io: context.io,
     });
   }),
 
@@ -48,11 +57,10 @@ export const adminCardMutationsCandidatesRouter = {
       input.extraIds,
     );
 
-    await resolveCheckedSubmissions(context.repos, {
+    await settleCheckedSubmissions(context, {
       candidateCardIds,
       adminUserId: context.userId,
       now: new Date(),
-      io: context.io,
     });
     return { updated };
   }),
@@ -63,11 +71,10 @@ export const adminCardMutationsCandidatesRouter = {
       const result = await candidateCards.checkCandidatePrinting(input.id);
       assertFound(result, "Candidate printing not found");
 
-      await resolveCheckedSubmissions(context.repos, {
+      await settleCheckedSubmissions(context, {
         candidateCardIds: [result.candidateCardId],
         adminUserId: context.userId,
         now: new Date(),
-        io: context.io,
       });
     },
   ),
@@ -95,11 +102,10 @@ export const adminCardMutationsCandidatesRouter = {
       card.id,
     );
 
-    await resolveCheckedSubmissions(context.repos, {
+    await settleCheckedSubmissions(context, {
       candidateCardIds,
       adminUserId: context.userId,
       now: new Date(),
-      io: context.io,
     });
     return { updated };
   }),
@@ -257,13 +263,12 @@ export const adminCardMutationsCandidatesRouter = {
 
     // checkByProvider returns a count, not ids; fetch affected submissions from the ledger.
     const pending = await context.repos.cardSubmissions.pendingByProvider(provider.trim());
-    await resolveCheckedSubmissions(context.repos, {
+    await settleCheckedSubmissions(context, {
       candidateCardIds: pending
         .map((submission) => submission.candidateCardId)
         .filter((id): id is string => id !== null),
       adminUserId: context.userId,
       now,
-      io: context.io,
     });
     return result;
   }),

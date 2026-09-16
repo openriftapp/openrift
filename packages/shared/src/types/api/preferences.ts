@@ -116,7 +116,8 @@ export type EmailNotificationChannel =
   | "cardSubmissions"
   | "metaSubmissions"
   | "groupJoinRequests"
-  | "groupApprovals";
+  | "groupApprovals"
+  | "submissionAccepted";
 
 /**
  * Must read naturally in "You'll no longer receive {label}." and
@@ -130,6 +131,7 @@ export const EMAIL_NOTIFICATION_CHANNEL_LABELS: Record<EmailNotificationChannel,
   metaSubmissions: "meta deck submission alerts",
   groupJoinRequests: "group join requests",
   groupApprovals: "group welcome emails",
+  submissionAccepted: "thank-you emails for accepted submissions",
 };
 
 export function isTradeMatchDigestEnabled(prefs: EmailNotificationPreference | undefined): boolean {
@@ -172,6 +174,13 @@ export function isGroupApprovalEmailEnabled(
   prefs: EmailNotificationPreference | undefined,
 ): boolean {
   return prefs?.groupApprovals !== false;
+}
+
+/** Default-on: the contributor asked for the change and is waiting to hear whether it landed. */
+export function isSubmissionAcceptedEmailEnabled(
+  prefs: EmailNotificationPreference | undefined,
+): boolean {
+  return prefs?.submissionAccepted !== false;
 }
 
 export function getTradeRequestEmailCadence(

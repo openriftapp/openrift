@@ -82,6 +82,27 @@ export const adminMetaSubmissionsRouter = {
     });
   }),
 
+  applyEventCorrection: os.applyEventCorrection.handler(async ({ input, context }) => {
+    const result = await context.services.applyMetaEventCorrection(
+      context.transact,
+      context.repos,
+      input.id,
+      { fields: input.fields, reviewedByUserId: context.userId },
+    );
+    const submission = await context.repos.metaSubmissions.byId(input.id);
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "meta-submission.apply-correction",
+      entityType: "meta-submission",
+      entityId: input.id,
+      entityLabel: `Event correction — ${submission?.eventName ?? input.id}`,
+      oldValues: { status: "pending" },
+      newValues: { status: "accepted", fields: input.fields },
+    });
+    await context.services.notifySubmitterOfMetaAcceptance(context.repos, input.id);
+    return result;
+  }),
+
   reopen: os.reopen.handler(async ({ input, context }): Promise<void> => {
     const submission = await requireUnsettled(context.repos, input.id);
 

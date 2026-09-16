@@ -20,6 +20,7 @@ import {
   acceptMetaEventOverlay,
   acceptMetaPlayerOverlay,
   acceptMetaPlayerOverlays,
+  applyMetaEventCorrection,
   rejectMetaOverlay,
 } from "./services/meta-overlay-review.js";
 import { promoteMetaEvent, promoteNewEvent } from "./services/meta-promote.js";
@@ -27,6 +28,7 @@ import { repromoteMetaEvents } from "./services/meta-repromote.js";
 import { retierMetaEvents } from "./services/meta-retier.js";
 import { notifyAdminsOfMetaSubmission } from "./services/meta-submission-notifications.js";
 import type { MetaSubmissionEmailDeps } from "./services/meta-submission-notifications.js";
+import { notifySubmitterOfMetaAcceptance } from "./services/meta-submission-thanks.js";
 import { submitMetaDeck, submitMetaEventCorrection } from "./services/meta-submission.js";
 
 export interface MetaRepos {
@@ -51,12 +53,14 @@ export interface MetaServices {
   acceptMetaEventOverlay: typeof acceptMetaEventOverlay;
   acceptMetaPlayerOverlay: typeof acceptMetaPlayerOverlay;
   acceptMetaPlayerOverlays: typeof acceptMetaPlayerOverlays;
+  applyMetaEventCorrection: typeof applyMetaEventCorrection;
   rejectMetaOverlay: typeof rejectMetaOverlay;
   suggestMetaEventMatches: typeof suggestMetaEventMatches;
   suggestMetaPlayerMatches: typeof suggestMetaPlayerMatches;
   submitMetaDeck: typeof submitMetaDeck;
   submitMetaEventCorrection: typeof submitMetaEventCorrection;
   notifyAdminsOfMetaSubmission: typeof notifyAdminsOfMetaSubmission;
+  notifySubmitterOfMetaAcceptance: typeof notifySubmitterOfMetaAcceptance;
 }
 
 export function createMetaRepos(db: Kysely<Database>): MetaRepos {
@@ -84,6 +88,7 @@ export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaSer
     acceptMetaEventOverlay,
     acceptMetaPlayerOverlay,
     acceptMetaPlayerOverlays,
+    applyMetaEventCorrection,
     rejectMetaOverlay,
     suggestMetaEventMatches,
     suggestMetaPlayerMatches,
@@ -93,5 +98,9 @@ export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaSer
       emailDeps === undefined
         ? notifyAdminsOfMetaSubmission
         : (repos, submission) => notifyAdminsOfMetaSubmission(repos, submission, emailDeps),
+    notifySubmitterOfMetaAcceptance:
+      emailDeps === undefined
+        ? notifySubmitterOfMetaAcceptance
+        : (repos, submissionId) => notifySubmitterOfMetaAcceptance(repos, submissionId, emailDeps),
   };
 }

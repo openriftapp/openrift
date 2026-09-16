@@ -215,9 +215,8 @@ type MetaEventCorrectionResult =
  * Record one proposed correction to an archived event's own facts.
  *
  * Nothing is staged: a candidate row is a standings entry, and this is about the
- * event around them, so there is no accept that could apply it. The ledger row
- * is the whole artifact — an admin reads it, edits the event by hand, and stamps
- * the outcome the contributor reads.
+ * event around them. The ledger row carries the proposal until an admin applies
+ * it as the submitter's overlay or stamps another outcome.
  *
  * It still counts against the same pending cap as a decklist. The thing being
  * bounded is the queue one person can build up in front of a reviewer, and a

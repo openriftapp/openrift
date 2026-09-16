@@ -62,6 +62,30 @@ const os = implement(adminMetaCandidatesContract).$context<ApiContext>().use(req
 
 const CRAWLED_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
+// Accepting an already-accepted overlay succeeds again, so only rows that were not accepted before earn a thank-you.
+async function unacceptedSubmissionIds(
+  repos: Repos,
+  overlayIds: readonly string[],
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const overlayId of overlayIds) {
+    const submission = await repos.metaSubmissions.byPlayerOverlayId(overlayId);
+    if (submission !== null && submission.status !== "accepted") {
+      ids.push(submission.id);
+    }
+  }
+  return ids;
+}
+
+async function thankSubmitters(
+  context: ApiContext,
+  submissionIds: readonly string[],
+): Promise<void> {
+  for (const submissionId of submissionIds) {
+    await context.services.notifySubmitterOfMetaAcceptance(context.repos, submissionId);
+  }
+}
+
 /**
  * `bySource` is ordered by priority, highest last; the last matching entry wins.
  * Returns null when no source published the live value.
@@ -497,16 +521,26 @@ export const adminMetaCandidatesRouter = os.router({
   ),
 
   acceptPlayerOverlay: os.acceptPlayerOverlay.handler(
-    ({ input, context }): Promise<MetaOverlayReviewResult> =>
-      acceptMetaPlayerOverlay(context.repos, input.id, {
+    async ({ input, context }): Promise<MetaOverlayReviewResult> => {
+      const submissionIds = await unacceptedSubmissionIds(context.repos, [input.id]);
+      const result = await acceptMetaPlayerOverlay(context.repos, input.id, {
         metaEventPlayerId: input.metaEventPlayerId,
         fields: input.fields,
         reviewedByUserId: context.userId,
-      }),
+      });
+      await thankSubmitters(context, submissionIds);
+      return result;
+    },
   ),
-  acceptPlayerOverlays: os.acceptPlayerOverlays.handler(({ input, context }) =>
-    acceptMetaPlayerOverlays(context.repos, input.items, context.userId),
-  ),
+  acceptPlayerOverlays: os.acceptPlayerOverlays.handler(async ({ input, context }) => {
+    const submissionIds = await unacceptedSubmissionIds(
+      context.repos,
+      input.items.map((item) => item.id),
+    );
+    const result = await acceptMetaPlayerOverlays(context.repos, input.items, context.userId);
+    await thankSubmitters(context, submissionIds);
+    return result;
+  }),
 
   linkPlayerOverlay: os.linkPlayerOverlay.handler(
     ({ input, context }): Promise<MetaOverlayReviewResult> =>
