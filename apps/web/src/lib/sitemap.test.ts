@@ -135,6 +135,28 @@ describe("renderSitemapFile", () => {
     ]);
   });
 
+  it("percent-encodes player names that carry markup, ampersands or non-ASCII", () => {
+    const xml = renderSitemapFile(
+      "meta-players",
+      0,
+      input({
+        data: {
+          ...input().data,
+          metaPlayers: [
+            { slug: "pn<猫岛巡礼>水鬼", updatedAt: "2026-09-02T10:00:00.000Z" },
+            { slug: "pn>_<", updatedAt: "2026-09-02T10:00:00.000Z" },
+            { slug: "pn神切&成年拆 #1?", updatedAt: "2026-09-02T10:00:00.000Z" },
+          ],
+        },
+      }),
+    );
+    expect(locs(xml ?? "")).toEqual([
+      "https://example.test/meta/players/pn%3C%E7%8C%AB%E5%B2%9B%E5%B7%A1%E7%A4%BC%3E%E6%B0%B4%E9%AC%BC",
+      "https://example.test/meta/players/pn%3E_%3C",
+      "https://example.test/meta/players/pn%E7%A5%9E%E5%88%87%26%E6%88%90%E5%B9%B4%E6%8B%86%20%231%3F",
+    ]);
+  });
+
   it("answers null for a file the section does not have", () => {
     expect(renderSitemapFile("meta-events", 1, input())).toBeNull();
     expect(renderSitemapFile("meta-events", 0, input({ flags: {} }))).toBeNull();

@@ -39,6 +39,7 @@ const STATIC_PAGES: StaticPage[] = [
 
 export interface SitemapUrl {
   path: string;
+  search?: string;
   lastmod: string;
   changefreq: string;
   priority: string;
@@ -121,7 +122,8 @@ function metaEventUrls({ data, flags, eras, deployDate }: SitemapInput): Sitemap
   }
   // Older eras are reachable only via ?era=; the current era is the index default.
   const eraIndexes: SitemapUrl[] = eras.slice(1).map((era) => ({
-    path: `/meta/events?era=${era.id}`,
+    path: "/meta/events",
+    search: `era=${era.id}`,
     lastmod: deployDate,
     changefreq: "monthly",
     priority: "0.4",
@@ -232,6 +234,18 @@ export function renderSitemapIndex(input: SitemapInput): string {
   ].join("\n");
 }
 
+function escapeXml(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function sitemapLoc(siteUrl: string, { path, search }: SitemapUrl): string {
+  const encoded = path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return escapeXml(`${siteUrl}${encoded}${search === undefined ? "" : `?${search}`}`);
+}
+
 export function renderSitemapFile(
   section: SitemapSection,
   index: number,
@@ -246,7 +260,7 @@ export function renderSitemapFile(
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...urls.map(
       (url) =>
-        `  <url><loc>${input.siteUrl}${url.path}</loc><lastmod>${url.lastmod}</lastmod><changefreq>${url.changefreq}</changefreq><priority>${url.priority}</priority></url>`,
+        `  <url><loc>${sitemapLoc(input.siteUrl, url)}</loc><lastmod>${url.lastmod}</lastmod><changefreq>${url.changefreq}</changefreq><priority>${url.priority}</priority></url>`,
     ),
     "</urlset>",
   ].join("\n");
