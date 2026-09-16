@@ -10,7 +10,7 @@ const BASE: CardSubmissionAlertEmailInput = {
   cardName: "Azir, Emperor of the Sands",
   printings: [{ publicCode: "OGN-123/298", setName: "Origins", language: "en", finish: "foil" }],
   note: null,
-  reviewUrl: "https://openrift.app/admin/cards?tab=candidates&source=usersubmission",
+  reviewUrl: "https://openrift.app/admin/review?filter=contributors",
   unsubscribeUrl: "https://openrift.app/api/v1/unsubscribe?token=abc",
 };
 
@@ -21,9 +21,7 @@ describe("buildCardSubmissionAlertEmail", () => {
     expect(html).toContain("Garen");
     expect(html).toContain("Azir, Emperor of the Sands");
     expect(html).toContain(BASE.submitterEmail);
-    expect(html).toContain(
-      "https://openrift.app/admin/cards?tab=candidates&amp;source=usersubmission",
-    );
+    expect(html).toContain("https://openrift.app/admin/review?filter=contributors");
     expect(html).toContain(BASE.unsubscribeUrl);
   });
 

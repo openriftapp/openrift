@@ -24,7 +24,7 @@ export interface CardSubmissionAlert {
 }
 
 function reviewUrl(appBaseUrl: string): string {
-  return `${appBaseUrl}/admin/cards?tab=candidates&source=usersubmission`;
+  return `${appBaseUrl}/admin/review?filter=contributors`;
 }
 
 function printingLines(card: IngestCard): CardSubmissionPrintingLine[] {

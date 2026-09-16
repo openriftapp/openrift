@@ -83,7 +83,7 @@ describe("notifyAdminsOfCardSubmission", () => {
     await notifyAdminsOfCardSubmission(repos, SUBMISSION, deps);
 
     expect(sendEmail.mock.calls[0]![0].html).toContain(
-      "https://openrift.app/admin/cards?tab=candidates&amp;source=usersubmission",
+      "https://openrift.app/admin/review?filter=contributors",
     );
   });
 
