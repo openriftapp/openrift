@@ -8,6 +8,7 @@ import { createRepos } from "../../../deps.js";
 import { createDbContext, syncCardCardTypes } from "../../../test/integration-context.js";
 import { META_ARCHIVE_USER_ID } from "../repositories/meta-shared.js";
 import { metaRepo } from "../repositories/meta.js";
+import { playerSourceKey } from "./ingest-meta-overlays.js";
 import { promoteMetaEvent } from "./meta-promote.js";
 
 // Uses the prefix MPI- / mpi- for everything it creates, and shop ids well
@@ -669,6 +670,145 @@ describe.skipIf(!ctx)("promoteMetaEvent", () => {
 
       const sources = await repo.sourcesForEvent(metaEventId);
       expect(sources.every((row) => row.contributes)).toBe(true);
+    });
+  });
+
+  describe("uploaded brackets", () => {
+    const PROVIDER = "mpipush";
+
+    async function seedUploadedBracket(slug: string, externalId: string): Promise<string> {
+      const metaEventId = await seedLiveEvent(slug);
+      const one = await seedStandingsOnlyPlayer(metaEventId, "MPI Ashe", 1);
+      const two = await seedStandingsOnlyPlayer(metaEventId, "MPI Riven", 2);
+
+      const eventOverlayId = await repos.metaOverlays.insertEventOverlay({
+        metaEventId,
+        provider: PROVIDER,
+        externalId,
+        claimedFields: [],
+        status: "accepted",
+        acceptedAt: new Date("2026-08-22T00:00:00Z"),
+        submittedByUserId: META_ARCHIVE_USER_ID,
+      });
+      for (const [playerExternalId, metaEventPlayerId] of [
+        ["p1", one],
+        ["p2", two],
+      ] as const) {
+        await repos.metaOverlays.insertPlayerOverlay(
+          {
+            metaEventPlayerId,
+            provider: PROVIDER,
+            sourcePlayerKey: playerSourceKey(externalId, playerExternalId),
+            claimedFields: [],
+            status: "accepted",
+            acceptedAt: new Date("2026-08-22T00:00:00Z"),
+            submittedByUserId: META_ARCHIVE_USER_ID,
+          },
+          [],
+        );
+      }
+
+      await repos.metaOverlays.replaceEventOverlayStructure(
+        eventOverlayId,
+        [
+          {
+            phaseOrder: 0,
+            name: null,
+            roundType: "swiss",
+            roundCount: 3,
+            rankRequired: null,
+            maxGameWins: null,
+          },
+          {
+            phaseOrder: 1,
+            name: "Top 2",
+            roundType: "single_elim",
+            roundCount: 1,
+            rankRequired: 2,
+            maxGameWins: 2,
+          },
+        ],
+        [
+          {
+            externalId: "m1",
+            phaseOrder: 0,
+            roundNumber: 1,
+            roundExternalId: "r1",
+            tableNumber: 4,
+            isBye: false,
+            isDraw: false,
+            player1ExternalId: "p1",
+            player2ExternalId: "p2",
+            winnerExternalId: "p1",
+            gamesWonP1: 2,
+            gamesWonP2: 1,
+          },
+          {
+            externalId: "m2",
+            phaseOrder: 0,
+            roundNumber: 2,
+            roundExternalId: "r2",
+            tableNumber: null,
+            isBye: true,
+            isDraw: false,
+            player1ExternalId: "p2",
+            player2ExternalId: null,
+            winnerExternalId: "p2",
+            gamesWonP1: null,
+            gamesWonP2: null,
+          },
+          {
+            externalId: "m3",
+            phaseOrder: 0,
+            roundNumber: 3,
+            roundExternalId: "r3",
+            tableNumber: 1,
+            isBye: false,
+            isDraw: false,
+            player1ExternalId: "p1",
+            player2ExternalId: "ghost",
+            winnerExternalId: null,
+            gamesWonP1: null,
+            gamesWonP2: null,
+          },
+        ],
+      );
+      return metaEventId;
+    }
+
+    it("promotes an upload's phases and pairings into the live event", async () => {
+      const metaEventId = await seedUploadedBracket("mpi-upload-bracket", "mpi-up-1");
+
+      await promoteMetaEvent(repos, metaEventId);
+
+      expect(await repo.phasesForEvent(metaEventId)).toMatchObject([
+        { phaseOrder: 0, roundType: "swiss", roundCount: 3, name: null },
+        { phaseOrder: 1, roundType: "single_elim", rankRequired: 2, maxGameWins: 2 },
+      ]);
+      const matches = await repo.matchesForEvent(metaEventId);
+      expect(matches.map((match) => match.sourceMatchId).toSorted()).toEqual(["m1", "m2"]);
+      const [first] = matches.filter((match) => match.sourceMatchId === "m1");
+      expect(first).toMatchObject({
+        roundNumber: 1,
+        tableNumber: 4,
+        sourceRoundId: "r1",
+        gamesWonP1: 2,
+        gamesWonP2: 1,
+      });
+      expect(first?.winnerId).toBe(first?.player1Id);
+      const [bye] = matches.filter((match) => match.sourceMatchId === "m2");
+      expect(bye).toMatchObject({ isBye: true, player2Id: null });
+    });
+
+    it("leaves a promoted bracket alone when nothing about it moved", async () => {
+      const metaEventId = await seedUploadedBracket("mpi-upload-bracket-stable", "mpi-up-2");
+      await promoteMetaEvent(repos, metaEventId);
+      const before = await repo.matchesForEvent(metaEventId);
+
+      await promoteMetaEvent(repos, metaEventId);
+
+      const after = await repo.matchesForEvent(metaEventId);
+      expect(after.map((match) => match.updatedAt)).toEqual(before.map((match) => match.updatedAt));
     });
   });
 

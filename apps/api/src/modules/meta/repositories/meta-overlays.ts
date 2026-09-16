@@ -4,6 +4,8 @@ import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type {
+  MetaEventOverlayMatchesTable,
+  MetaEventOverlayPhasesTable,
   MetaEventOverlaysTable,
   MetaEventPlayerOverlayCardsTable,
   MetaEventPlayerOverlaysTable,
@@ -24,6 +26,19 @@ export type MetaPushEventOverlayRow = MetaEventOverlayRow & {
   externalId: string;
 };
 export type MetaOverlayCardRow = Selectable<MetaEventPlayerOverlayCardsTable>;
+export type MetaOverlayPhaseRow = Selectable<MetaEventOverlayPhasesTable>;
+export type MetaOverlayMatchRow = Selectable<MetaEventOverlayMatchesTable>;
+export type MetaOverlayPhaseInput = Omit<Insertable<MetaEventOverlayPhasesTable>, "eventOverlayId">;
+export type MetaOverlayMatchInput = Omit<
+  Insertable<MetaEventOverlayMatchesTable>,
+  "eventOverlayId"
+>;
+
+/** An event overlay's bracket, as uploaded: phases and matches keyed by player external id. */
+export interface MetaOverlayStructure {
+  phases: MetaOverlayPhaseRow[];
+  matches: MetaOverlayMatchRow[];
+}
 
 export interface MetaSourcePlayerKey {
   eventExternalId: string;
@@ -161,6 +176,69 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
      */
     async deleteEventOverlay(id: string): Promise<void> {
       await db.deleteFrom("metaEventOverlays").where("id", "=", id).execute();
+    },
+
+    /** Structure is not field-reviewed, so an upload replaces it outright. */
+    async replaceEventOverlayStructure(
+      eventOverlayId: string,
+      phases: readonly MetaOverlayPhaseInput[],
+      matches: readonly MetaOverlayMatchInput[],
+    ): Promise<void> {
+      await db.transaction().execute(async (trx) => {
+        await trx
+          .deleteFrom("metaEventOverlayPhases")
+          .where("eventOverlayId", "=", eventOverlayId)
+          .execute();
+        await trx
+          .deleteFrom("metaEventOverlayMatches")
+          .where("eventOverlayId", "=", eventOverlayId)
+          .execute();
+        for (const batch of rowBatches(phases.map((phase) => ({ ...phase, eventOverlayId })))) {
+          await trx.insertInto("metaEventOverlayPhases").values(batch).execute();
+        }
+        for (const batch of rowBatches(matches.map((match) => ({ ...match, eventOverlayId })))) {
+          await trx.insertInto("metaEventOverlayMatches").values(batch).execute();
+        }
+      });
+    },
+
+    async structureByOverlayIds(
+      overlayIds: readonly string[],
+    ): Promise<Map<string, MetaOverlayStructure>> {
+      const structures = new Map<string, MetaOverlayStructure>();
+      const bucket = (id: string): MetaOverlayStructure => {
+        const existing = structures.get(id);
+        if (existing !== undefined) {
+          return existing;
+        }
+        const created: MetaOverlayStructure = { phases: [], matches: [] };
+        structures.set(id, created);
+        return created;
+      };
+      for (const batch of keyBatches(overlayIds)) {
+        const [phases, matches] = await Promise.all([
+          db
+            .selectFrom("metaEventOverlayPhases")
+            .selectAll()
+            .where("eventOverlayId", "in", batch)
+            .orderBy("phaseOrder", "asc")
+            .execute(),
+          db
+            .selectFrom("metaEventOverlayMatches")
+            .selectAll()
+            .where("eventOverlayId", "in", batch)
+            .orderBy("phaseOrder", "asc")
+            .orderBy("roundNumber", "asc")
+            .execute(),
+        ]);
+        for (const phase of phases) {
+          bucket(phase.eventOverlayId).phases.push(phase);
+        }
+        for (const match of matches) {
+          bucket(match.eventOverlayId).matches.push(match);
+        }
+      }
+      return structures;
     },
 
     async playerOverlayById(id: string): Promise<MetaPlayerOverlayWithCards | undefined> {

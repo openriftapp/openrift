@@ -140,6 +140,10 @@ export type MetaIngestEvent = z.infer<typeof metaUploadSchema>["events"][number]
 
 export type MetaIngestEventPlayer = MetaIngestEvent["players"][number];
 
+export type MetaIngestEventPhase = MetaIngestEvent["phases"][number];
+
+export type MetaIngestEventMatch = MetaIngestEvent["matches"][number];
+
 export type MetaUploadResponse = z.infer<typeof metaUploadResponseSchema>;
 
 export type MetaOverlayQueueRow = z.infer<typeof metaOverlayQueueRowSchema>;

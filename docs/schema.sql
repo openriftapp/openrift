@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict u5dhlba6XDFJ4XuEo5lRc894b4Up77WkENduuhm7WONzupe564dgSvNMz1aBp5a
+\restrict XMfdw7r4zeduVp2sklKEGBvelP7vFZr0eVMYTG7qFf86nPyD9hkv5gKWEZh6lQw
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2296,6 +2296,63 @@ CREATE TABLE public.meta_event_matches (
     CONSTRAINT chk_meta_event_matches_source_match_id CHECK (((source_match_id IS NULL) OR (source_match_id <> ''::text))),
     CONSTRAINT chk_meta_event_matches_source_round_id CHECK (((source_round_id IS NULL) OR (source_round_id <> ''::text))),
     CONSTRAINT chk_meta_event_matches_winner CHECK (((winner_id IS NULL) OR (winner_id = player1_id) OR (winner_id = player2_id)))
+);
+
+
+--
+-- Name: meta_event_overlay_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_event_overlay_matches (
+    event_overlay_id uuid NOT NULL,
+    external_id text NOT NULL,
+    phase_order integer DEFAULT 0 NOT NULL,
+    round_number integer NOT NULL,
+    round_external_id text,
+    table_number integer,
+    is_bye boolean DEFAULT false NOT NULL,
+    is_draw boolean DEFAULT false NOT NULL,
+    player1_external_id text NOT NULL,
+    player2_external_id text,
+    winner_external_id text,
+    games_won_p1 integer,
+    games_won_p2 integer,
+    CONSTRAINT chk_meta_event_overlay_matches_bye CHECK (
+CASE
+    WHEN is_bye THEN ((player2_external_id IS NULL) AND (NOT is_draw))
+    ELSE (player2_external_id IS NOT NULL)
+END),
+    CONSTRAINT chk_meta_event_overlay_matches_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_meta_event_overlay_matches_games CHECK ((((games_won_p1 IS NULL) OR (games_won_p1 >= 0)) AND ((games_won_p2 IS NULL) OR (games_won_p2 >= 0)))),
+    CONSTRAINT chk_meta_event_overlay_matches_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_overlay_matches_player1 CHECK ((player1_external_id <> ''::text)),
+    CONSTRAINT chk_meta_event_overlay_matches_player2 CHECK (((player2_external_id IS NULL) OR (player2_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_round_external_id CHECK (((round_external_id IS NULL) OR (round_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_round_number CHECK ((round_number > 0)),
+    CONSTRAINT chk_meta_event_overlay_matches_table_number CHECK (((table_number IS NULL) OR (table_number > 0))),
+    CONSTRAINT chk_meta_event_overlay_matches_winner CHECK (((winner_external_id IS NULL) OR (winner_external_id <> ''::text))),
+    CONSTRAINT chk_meta_event_overlay_matches_winner_seat CHECK (((winner_external_id IS NULL) OR (winner_external_id = player1_external_id) OR ((player2_external_id IS NOT NULL) AND (winner_external_id = player2_external_id))))
+);
+
+
+--
+-- Name: meta_event_overlay_phases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_event_overlay_phases (
+    event_overlay_id uuid NOT NULL,
+    phase_order integer NOT NULL,
+    name text,
+    round_type text NOT NULL,
+    round_count integer,
+    rank_required integer,
+    max_game_wins smallint,
+    CONSTRAINT chk_meta_event_overlay_phases_max_game_wins CHECK (((max_game_wins IS NULL) OR (max_game_wins > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_name CHECK (((name IS NULL) OR ((length(name) >= 1) AND (length(name) <= 120)))),
+    CONSTRAINT chk_meta_event_overlay_phases_phase_order CHECK ((phase_order >= 0)),
+    CONSTRAINT chk_meta_event_overlay_phases_rank_required CHECK (((rank_required IS NULL) OR (rank_required > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_round_count CHECK (((round_count IS NULL) OR (round_count > 0))),
+    CONSTRAINT chk_meta_event_overlay_phases_round_type CHECK ((round_type <> ''::text))
 );
 
 
@@ -4778,6 +4835,22 @@ ALTER TABLE ONLY public.meta_credits
 
 ALTER TABLE ONLY public.meta_event_matches
     ADD CONSTRAINT meta_event_matches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: meta_event_overlay_matches meta_event_overlay_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_matches
+    ADD CONSTRAINT meta_event_overlay_matches_pkey PRIMARY KEY (event_overlay_id, external_id);
+
+
+--
+-- Name: meta_event_overlay_phases meta_event_overlay_phases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_phases
+    ADD CONSTRAINT meta_event_overlay_phases_pkey PRIMARY KEY (event_overlay_id, phase_order);
 
 
 --
@@ -8893,6 +8966,22 @@ ALTER TABLE ONLY public.meta_event_matches
 
 
 --
+-- Name: meta_event_overlay_matches meta_event_overlay_matches_event_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_matches
+    ADD CONSTRAINT meta_event_overlay_matches_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_event_overlay_phases meta_event_overlay_phases_event_overlay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_event_overlay_phases
+    ADD CONSTRAINT meta_event_overlay_phases_event_overlay_id_fkey FOREIGN KEY (event_overlay_id) REFERENCES public.meta_event_overlays(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_event_overlays meta_event_overlays_meta_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9672,5 +9761,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict u5dhlba6XDFJ4XuEo5lRc894b4Up77WkENduuhm7WONzupe564dgSvNMz1aBp5a
+\unrestrict XMfdw7r4zeduVp2sklKEGBvelP7vFZr0eVMYTG7qFf86nPyD9hkv5gKWEZh6lQw
 

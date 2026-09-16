@@ -17,7 +17,15 @@ import {
   loadCardNameIndex,
   resolveCardIdByName,
 } from "../../candidates/services/candidate-links.js";
-import type { MetaEventOverlayRow, MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
+import type {
+  MetaEventOverlayRow,
+  MetaOverlayMatchInput,
+  MetaOverlayMatchRow,
+  MetaOverlayPhaseInput,
+  MetaOverlayPhaseRow,
+  MetaOverlayStructure,
+  MetaPlayerOverlayRow,
+} from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
 
 /**
@@ -76,6 +84,113 @@ function claimedFrom<TField extends string>(
   });
 }
 
+/** An upload carrying phases/matches replaces them outright; a structure-only
+ * change leaves the overlay's review status alone. */
+function toPhaseRows(event: MetaIngestEvent): MetaOverlayPhaseInput[] {
+  return event.phases.map((phase) => ({
+    phaseOrder: phase.phaseOrder,
+    name: phase.name,
+    roundType: phase.roundType,
+    roundCount: phase.roundCount,
+    rankRequired: phase.rankRequired,
+    maxGameWins: phase.maxGameWins,
+  }));
+}
+
+/** A match naming a player the same upload did not list is dropped and reported. */
+function toMatchRows(event: MetaIngestEvent, errors: string[]): MetaOverlayMatchInput[] {
+  const known = new Set(event.players.map((player) => player.externalId));
+  const rows: MetaOverlayMatchInput[] = [];
+  for (const match of event.matches) {
+    const missing = [
+      match.player1ExternalId,
+      match.player2ExternalId,
+      match.winnerExternalId,
+    ].filter((id): id is string => id !== null && !known.has(id));
+    if (missing.length > 0) {
+      errors.push(
+        `event "${event.externalId}" match "${match.externalId}" names unknown players: ${missing.join(", ")}`,
+      );
+      continue;
+    }
+    rows.push({
+      externalId: match.externalId,
+      phaseOrder: match.phaseOrder,
+      roundNumber: match.roundNumber,
+      roundExternalId: match.roundExternalId,
+      tableNumber: match.tableNumber,
+      isBye: match.isBye,
+      isDraw: match.isDraw,
+      player1ExternalId: match.player1ExternalId,
+      player2ExternalId: match.player2ExternalId,
+      winnerExternalId: match.winnerExternalId,
+      gamesWonP1: match.gamesWonP1,
+      gamesWonP2: match.gamesWonP2,
+    });
+  }
+  return rows;
+}
+
+function samePhases(
+  stored: readonly MetaOverlayPhaseRow[],
+  next: readonly MetaOverlayPhaseInput[],
+): boolean {
+  if (stored.length !== next.length) {
+    return false;
+  }
+  return next.every((row, index) => {
+    const was = stored[index];
+    return (
+      was !== undefined &&
+      was.phaseOrder === row.phaseOrder &&
+      was.name === row.name &&
+      was.roundType === row.roundType &&
+      was.roundCount === row.roundCount &&
+      was.rankRequired === row.rankRequired &&
+      was.maxGameWins === row.maxGameWins
+    );
+  });
+}
+
+function sameMatches(
+  stored: readonly MetaOverlayMatchRow[],
+  next: readonly MetaOverlayMatchInput[],
+): boolean {
+  if (stored.length !== next.length) {
+    return false;
+  }
+  const byKey = new Map(stored.map((row) => [row.externalId, row]));
+  return next.every((row) => {
+    const was = byKey.get(row.externalId);
+    return (
+      was !== undefined &&
+      was.phaseOrder === row.phaseOrder &&
+      was.roundNumber === row.roundNumber &&
+      was.roundExternalId === row.roundExternalId &&
+      was.tableNumber === row.tableNumber &&
+      was.isBye === row.isBye &&
+      was.isDraw === row.isDraw &&
+      was.player1ExternalId === row.player1ExternalId &&
+      was.player2ExternalId === row.player2ExternalId &&
+      was.winnerExternalId === row.winnerExternalId &&
+      was.gamesWonP1 === row.gamesWonP1 &&
+      was.gamesWonP2 === row.gamesWonP2
+    );
+  });
+}
+
+function sameStructure(
+  stored: MetaOverlayStructure | undefined,
+  phases: readonly MetaOverlayPhaseInput[],
+  matches: readonly MetaOverlayMatchInput[],
+): boolean {
+  return (
+    stored !== undefined &&
+    samePhases(stored.phases, phases) &&
+    sameMatches(stored.matches, matches)
+  );
+}
+
 export async function ingestMetaOverlays(
   repos: Repos,
   provider: string,
@@ -124,6 +239,9 @@ export async function ingestMetaOverlays(
   );
   const priorPlayersByKey = new Map(priorPlayers.map((row) => [row.sourcePlayerKey ?? "", row]));
   const priorCards = await repos.metaOverlays.cardsByOverlayIds(priorPlayers.map((row) => row.id));
+  const priorStructure = events.some((event) => event.phases.length > 0 || event.matches.length > 0)
+    ? await repos.metaOverlays.structureByOverlayIds(existing.map((row) => row.id))
+    : new Map<string, MetaOverlayStructure>();
 
   for (const event of events) {
     if (ignoredEventKeys.has(event.externalId)) {
@@ -151,23 +269,37 @@ export async function ingestMetaOverlays(
     };
 
     const prior = existingByKey.get(event.externalId);
+    const phases = toPhaseRows(event);
+    const matches = toMatchRows(event, result.errors);
+    const structureChanged =
+      (phases.length > 0 || matches.length > 0) &&
+      (prior === undefined || !sameStructure(priorStructure.get(prior.id), phases, matches));
+    const factsChanged = prior !== undefined && !sameEventPayload(prior, values);
+
     let eventOverlayId: string;
     if (prior === undefined) {
       eventOverlayId = await repos.metaOverlays.insertEventOverlay(values);
       result.newEvents++;
       result.newEventDetails.push({ externalId: event.externalId, name: event.name });
-    } else if (sameEventPayload(prior, values)) {
-      eventOverlayId = prior.id;
-      result.unchangedEvents++;
     } else {
-      await repos.metaOverlays.updateEventOverlay(prior.id, {
-        ...values,
-        status: "pending",
-        acceptedAt: null,
-      });
       eventOverlayId = prior.id;
-      result.updatedEvents++;
-      result.updatedEventDetails.push({ externalId: event.externalId, name: event.name });
+      if (factsChanged) {
+        await repos.metaOverlays.updateEventOverlay(prior.id, {
+          ...values,
+          status: "pending",
+          acceptedAt: null,
+        });
+      }
+      if (factsChanged || structureChanged) {
+        result.updatedEvents++;
+        result.updatedEventDetails.push({ externalId: event.externalId, name: event.name });
+      } else {
+        result.unchangedEvents++;
+      }
+    }
+
+    if (structureChanged) {
+      await repos.metaOverlays.replaceEventOverlayStructure(eventOverlayId, phases, matches);
     }
 
     await ingestPlayers(repos, {

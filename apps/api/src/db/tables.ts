@@ -120,6 +120,8 @@ import type {
 import type {
   MetaCreditsTable,
   MetaEventMatchesTable,
+  MetaEventOverlayMatchesTable,
+  MetaEventOverlayPhasesTable,
   MetaEventOverlaysTable,
   MetaEventPhasesTable,
   MetaEventPlayerOverlayCardsTable,
@@ -256,6 +258,8 @@ export interface Database {
   metaEventOverlays: MetaEventOverlaysTable;
   metaEventPlayerOverlays: MetaEventPlayerOverlaysTable;
   metaEventPlayerOverlayCards: MetaEventPlayerOverlayCardsTable;
+  metaEventOverlayPhases: MetaEventOverlayPhasesTable;
+  metaEventOverlayMatches: MetaEventOverlayMatchesTable;
   ignoredMetaSourceEvents: IgnoredMetaSourceEventsTable;
   ignoredMetaSourcePlayers: IgnoredMetaSourcePlayersTable;
   metaEventSources: MetaEventSourcesTable;

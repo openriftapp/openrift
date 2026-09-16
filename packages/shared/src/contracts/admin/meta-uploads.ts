@@ -64,6 +64,63 @@ const uploadPlayerSchema = z
     return { ...player, cards, listStatus: player.listStatus ?? ("full" as const) };
   });
 
+const uploadPhaseSchema = z.object({
+  phaseOrder: z.number().int().min(0),
+  name: nullStr,
+  roundType: z.string().min(1),
+  roundCount: nullNum,
+  rankRequired: nullNum,
+  maxGameWins: nullNum,
+});
+
+const uploadMatchSchema = z
+  .object({
+    externalId: z.string().min(1),
+    phaseOrder: z.number().int().min(0).optional().default(0),
+    roundNumber: z.number().int().min(1),
+    roundExternalId: nullStr,
+    tableNumber: nullNum,
+    isBye: z.boolean().optional().default(false),
+    isDraw: z.boolean().optional().default(false),
+    player1ExternalId: z.string().min(1),
+    player2ExternalId: nullStr,
+    winnerExternalId: nullStr,
+    gamesWonP1: nullNum,
+    gamesWonP2: nullNum,
+  })
+  .transform((match, ctx) => {
+    const seated = match.player2ExternalId !== null;
+    if (match.isBye === seated) {
+      ctx.addIssue({
+        code: "custom",
+        message: match.isBye
+          ? `match "${match.externalId}" is a bye but names an opponent`
+          : `match "${match.externalId}" names no opponent and is not a bye`,
+      });
+      return z.NEVER;
+    }
+    if (match.isBye && match.isDraw) {
+      ctx.addIssue({
+        code: "custom",
+        message: `match "${match.externalId}" is both a bye and a draw`,
+      });
+      return z.NEVER;
+    }
+    const winner = match.winnerExternalId;
+    if (
+      winner !== null &&
+      winner !== match.player1ExternalId &&
+      winner !== match.player2ExternalId
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: `match "${match.externalId}" names a winner who is not one of its players`,
+      });
+      return z.NEVER;
+    }
+    return match;
+  });
+
 const uploadEventSchema = z.object({
   externalId: z.string(),
   name: z.string(),
@@ -78,6 +135,8 @@ const uploadEventSchema = z.object({
   location: nullStr,
   extraData: z.unknown().nullable().optional().default(null),
   players: z.array(uploadPlayerSchema).optional().default([]),
+  phases: z.array(uploadPhaseSchema).optional().default([]),
+  matches: z.array(uploadMatchSchema).optional().default([]),
 });
 
 export const metaUploadSchema = z.object({

@@ -163,6 +163,32 @@ export interface MetaEventPlayerOverlayCardsTable {
   preferredPrintingId: string | null;
 }
 
+export interface MetaEventOverlayPhasesTable {
+  eventOverlayId: string;
+  phaseOrder: number;
+  name: string | null;
+  roundType: string;
+  roundCount: number | null;
+  rankRequired: number | null;
+  maxGameWins: number | null;
+}
+
+export interface MetaEventOverlayMatchesTable {
+  eventOverlayId: string;
+  externalId: string;
+  phaseOrder: Generated<number>;
+  roundNumber: number;
+  roundExternalId: string | null;
+  tableNumber: number | null;
+  isBye: Generated<boolean>;
+  isDraw: Generated<boolean>;
+  player1ExternalId: string;
+  player2ExternalId: string | null;
+  winnerExternalId: string | null;
+  gamesWonP1: number | null;
+  gamesWonP2: number | null;
+}
+
 export interface MetaEventSourcesTable {
   id: Generated<string>;
   metaEventId: string;

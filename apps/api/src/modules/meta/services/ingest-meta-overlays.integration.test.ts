@@ -351,4 +351,128 @@ describe.skipIf(!ctx)("ingestMetaOverlays", () => {
       },
     ]);
   });
+  const BRACKET = {
+    phases: [
+      { phaseOrder: 0, roundType: "swiss", roundCount: 3 },
+      { phaseOrder: 1, name: "Top 2", roundType: "single_elim", rankRequired: 2, maxGameWins: 2 },
+    ],
+    matches: [
+      {
+        externalId: "m1",
+        roundNumber: 1,
+        tableNumber: 4,
+        player1ExternalId: "p1",
+        player2ExternalId: "p2",
+        winnerExternalId: "p1",
+        gamesWonP1: 2,
+        gamesWonP2: 1,
+      },
+      { externalId: "m2", roundNumber: 2, isBye: true, player1ExternalId: "p2" },
+    ],
+  };
+
+  function structureFor(externalId: string) {
+    return db
+      .selectFrom("metaEventOverlays")
+      .innerJoin(
+        "metaEventOverlayMatches",
+        "metaEventOverlayMatches.eventOverlayId",
+        "metaEventOverlays.id",
+      )
+      .selectAll("metaEventOverlayMatches")
+      .where("metaEventOverlays.provider", "=", PROVIDER)
+      .where("metaEventOverlays.externalId", "=", externalId)
+      .orderBy("metaEventOverlayMatches.externalId", "asc")
+      .execute();
+  }
+
+  it("stores an uploaded bracket alongside the field", async () => {
+    const externalId = "imo-evt-bracket";
+
+    await upload(eventBody({ externalId, ...BRACKET }));
+
+    const phases = await db
+      .selectFrom("metaEventOverlays")
+      .innerJoin(
+        "metaEventOverlayPhases",
+        "metaEventOverlayPhases.eventOverlayId",
+        "metaEventOverlays.id",
+      )
+      .selectAll("metaEventOverlayPhases")
+      .where("metaEventOverlays.provider", "=", PROVIDER)
+      .where("metaEventOverlays.externalId", "=", externalId)
+      .orderBy("metaEventOverlayPhases.phaseOrder", "asc")
+      .execute();
+    expect(phases).toMatchObject([
+      { phaseOrder: 0, roundType: "swiss", roundCount: 3, name: null },
+      { phaseOrder: 1, roundType: "single_elim", rankRequired: 2, maxGameWins: 2 },
+    ]);
+    expect(await structureFor(externalId)).toMatchObject([
+      { externalId: "m1", tableNumber: 4, winnerExternalId: "p1", gamesWonP1: 2 },
+      { externalId: "m2", isBye: true, player2ExternalId: null },
+    ]);
+  });
+
+  it("leaves an unchanged bracket untouched on a repeat", async () => {
+    const externalId = "imo-evt-bracket-repeat";
+    await upload(eventBody({ externalId, ...BRACKET }));
+
+    const result = await upload(eventBody({ externalId, ...BRACKET }));
+
+    expect(result).toMatchObject({ unchangedEvents: 1, updatedEvents: 0 });
+  });
+
+  it("counts a bracket-only change as an update without reopening the review", async () => {
+    const externalId = "imo-evt-bracket-moved";
+    await upload(eventBody({ externalId, ...BRACKET }));
+    await db
+      .updateTable("metaEventOverlays")
+      .set({ status: "accepted" })
+      .where("provider", "=", PROVIDER)
+      .where("externalId", "=", externalId)
+      .execute();
+
+    const result = await upload(
+      eventBody({
+        externalId,
+        ...BRACKET,
+        matches: [{ ...BRACKET.matches[0], winnerExternalId: "p2" }, BRACKET.matches[1]],
+      }),
+    );
+
+    expect(result).toMatchObject({ updatedEvents: 1, unchangedEvents: 0 });
+    const [moved] = await structureFor(externalId);
+    expect(moved).toMatchObject({ externalId: "m1", winnerExternalId: "p2" });
+    const overlay = await db
+      .selectFrom("metaEventOverlays")
+      .select("status")
+      .where("provider", "=", PROVIDER)
+      .where("externalId", "=", externalId)
+      .executeTakeFirstOrThrow();
+    expect(overlay.status).toBe("accepted");
+  });
+
+  it("drops a match naming a player the same upload never listed", async () => {
+    const externalId = "imo-evt-bracket-unknown";
+
+    const result = await upload(
+      eventBody({
+        externalId,
+        matches: [
+          BRACKET.matches[0],
+          {
+            externalId: "m9",
+            roundNumber: 3,
+            player1ExternalId: "p1",
+            player2ExternalId: "ghost",
+          },
+        ],
+      }),
+    );
+
+    expect(result.errors).toEqual([
+      `event "${externalId}" match "m9" names unknown players: ghost`,
+    ]);
+    expect(await structureFor(externalId)).toMatchObject([{ externalId: "m1" }]);
+  });
 });

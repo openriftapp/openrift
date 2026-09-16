@@ -6,43 +6,72 @@ import type {
   NewMetaEventMatch,
   NewMetaEventPhase,
 } from "../repositories/meta-events.js";
+import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
 import type { MetaPromoteResult } from "./meta-promote-shared.js";
 
-/**
- * A mirror match promotes only once both participants resolve to a live row;
- * one that doesn't is left for the next promote to pick up naturally.
- */
+interface EventStructure {
+  phases: NewMetaEventPhase[];
+  matches: NewMetaEventMatch[];
+}
+
+/** A match promotes only once both participants resolve to a live row. The uvsgames
+ * mirror wins where it has data; an upload's own bracket fills the gap otherwise. */
 export async function promotePhasesAndMatches(
   repos: Repos,
   metaEventId: string,
   sources: readonly { provider: string | null; externalId: string | null }[],
   result: MetaPromoteResult,
 ): Promise<void> {
+  const mirror = await mirrorStructure(repos, metaEventId, sources);
+  const structure =
+    mirror !== null && (mirror.phases.length > 0 || mirror.matches.length > 0)
+      ? mirror
+      : await overlayStructure(repos, metaEventId);
+  if (structure === null) {
+    return;
+  }
+
+  if (structure.phases.length > 0) {
+    if (!samePhases(await repos.meta.phasesForEvent(metaEventId), structure.phases)) {
+      await repos.meta.replaceEventPhases(metaEventId, structure.phases);
+    }
+    result.phases = structure.phases.length;
+  }
+
+  if (structure.matches.length === 0) {
+    return;
+  }
+  result.matches = structure.matches.length;
+  const changed = changedMatches(await repos.meta.matchesForEvent(metaEventId), structure.matches);
+  if (changed.length > 0) {
+    await repos.meta.upsertEventMatches(changed);
+  }
+}
+
+async function mirrorStructure(
+  repos: Repos,
+  metaEventId: string,
+  sources: readonly { provider: string | null; externalId: string | null }[],
+): Promise<EventStructure | null> {
   const uvs = sources.find((source) => source.provider === UVSGAMES_PROVIDER);
   if (uvs === undefined || uvs.externalId === null) {
-    return;
+    return null;
   }
 
-  const phases = await repos.uvsgamesResults.phases(uvs.externalId);
-  if (phases.length > 0) {
-    const rows = phases.map((phase) => ({
-      metaEventId,
-      phaseOrder: phase.phaseOrder,
-      name: phase.name,
-      roundType: phase.roundType,
-      roundCount: phase.roundCount,
-      rankRequired: phase.rankRequired,
-      maxGameWins: phase.maxGameWins,
-    }));
-    if (!samePhases(await repos.meta.phasesForEvent(metaEventId), rows)) {
-      await repos.meta.replaceEventPhases(metaEventId, rows);
-    }
-    result.phases = phases.length;
-  }
+  const sourcePhases = await repos.uvsgamesResults.phases(uvs.externalId);
+  const phases = sourcePhases.map((phase) => ({
+    metaEventId,
+    phaseOrder: phase.phaseOrder,
+    name: phase.name,
+    roundType: phase.roundType,
+    roundCount: phase.roundCount,
+    rankRequired: phase.rankRequired,
+    maxGameWins: phase.maxGameWins,
+  }));
 
-  const matches = await repos.uvsgamesResults.matches(uvs.externalId);
-  if (matches.length === 0) {
-    return;
+  const sourceMatches = await repos.uvsgamesResults.matches(uvs.externalId);
+  if (sourceMatches.length === 0) {
+    return { phases, matches: [] };
   }
   const players = await repos.meta.rawStandingsForEvent(metaEventId);
   const liveByUvsId = new Map(
@@ -51,15 +80,15 @@ export async function promotePhasesAndMatches(
       .map((player) => [player.uvsgamesPlayerId as number, player.id]),
   );
 
-  const rows = [];
-  for (const match of matches) {
+  const matches: NewMetaEventMatch[] = [];
+  for (const match of sourceMatches) {
     const player1Id = liveByUvsId.get(match.player1UvsgamesId);
     const player2Id =
       match.player2UvsgamesId === null ? null : liveByUvsId.get(match.player2UvsgamesId);
     if (player1Id === undefined || (match.player2UvsgamesId !== null && player2Id === undefined)) {
       continue;
     }
-    rows.push({
+    matches.push({
       metaEventId,
       phaseOrder: match.phaseOrder,
       roundNumber: match.roundNumber,
@@ -76,14 +105,86 @@ export async function promotePhasesAndMatches(
       sourceMatchId: match.sourceMatchId,
     });
   }
-  result.matches = rows.length;
-  if (rows.length === 0) {
-    return;
+  return { phases, matches };
+}
+
+/** The newest accepted overlay carrying a bracket wins; its matches resolve
+ * players through that same provider's player overlays. */
+async function overlayStructure(repos: Repos, metaEventId: string): Promise<EventStructure | null> {
+  const accepted = await repos.metaOverlays.acceptedEventOverlays(metaEventId);
+  const overlays = accepted.filter(
+    (overlay) => overlay.provider !== null && overlay.externalId !== null,
+  );
+  if (overlays.length === 0) {
+    return null;
   }
-  const changed = changedMatches(await repos.meta.matchesForEvent(metaEventId), rows);
-  if (changed.length > 0) {
-    await repos.meta.upsertEventMatches(changed);
+
+  const structures = await repos.metaOverlays.structureByOverlayIds(
+    overlays.map((overlay) => overlay.id),
+  );
+  const carrier = overlays.findLast((overlay) => {
+    const structure = structures.get(overlay.id);
+    return structure !== undefined && (structure.phases.length > 0 || structure.matches.length > 0);
+  });
+  const structure = carrier === undefined ? undefined : structures.get(carrier.id);
+  if (carrier === undefined || structure === undefined) {
+    return null;
   }
+
+  const phases = structure.phases.map((phase) => ({
+    metaEventId,
+    phaseOrder: phase.phaseOrder,
+    name: phase.name,
+    roundType: phase.roundType,
+    roundCount: phase.roundCount,
+    rankRequired: phase.rankRequired,
+    maxGameWins: phase.maxGameWins,
+  }));
+
+  if (structure.matches.length === 0) {
+    return { phases, matches: [] };
+  }
+
+  const playerOverlays = await repos.metaOverlays.acceptedPlayerOverlays(metaEventId);
+  const liveByExternalId = new Map<string, string>();
+  for (const overlay of playerOverlays) {
+    if (overlay.provider !== carrier.provider || overlay.metaEventPlayerId === null) {
+      continue;
+    }
+    const key = splitSourcePlayerKey(overlay.sourcePlayerKey);
+    if (key.eventExternalId === carrier.externalId && key.playerExternalId !== null) {
+      liveByExternalId.set(key.playerExternalId, overlay.metaEventPlayerId);
+    }
+  }
+
+  const matches: NewMetaEventMatch[] = [];
+  for (const match of structure.matches) {
+    const player1Id = liveByExternalId.get(match.player1ExternalId);
+    const player2Id =
+      match.player2ExternalId === null ? null : liveByExternalId.get(match.player2ExternalId);
+    if (player1Id === undefined || (match.player2ExternalId !== null && player2Id === undefined)) {
+      continue;
+    }
+    matches.push({
+      metaEventId,
+      phaseOrder: match.phaseOrder,
+      roundNumber: match.roundNumber,
+      tableNumber: match.tableNumber,
+      isBye: match.isBye,
+      isDraw: match.isDraw,
+      player1Id,
+      player2Id: player2Id ?? null,
+      winnerId:
+        match.winnerExternalId === null
+          ? null
+          : (liveByExternalId.get(match.winnerExternalId) ?? null),
+      gamesWonP1: match.gamesWonP1,
+      gamesWonP2: match.gamesWonP2,
+      sourceRoundId: match.roundExternalId,
+      sourceMatchId: match.externalId,
+    });
+  }
+  return { phases, matches };
 }
 
 function samePhases(
