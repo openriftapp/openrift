@@ -512,6 +512,31 @@ describe("TournamentOverviewTab", () => {
     );
   });
 
+  it("links the staff rail to the staff page once a judge is assigned", () => {
+    render(
+      <TournamentOverviewTab
+        id="t-1"
+        detail={makeDetail({
+          staff: [
+            {
+              userId: "u-1",
+              name: "Teemo",
+              role: "judge",
+              source: "grant",
+              orgRole: null,
+              addedAt: "2026-07-01T10:00:00Z",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Manage" })).toHaveAttribute(
+      "href",
+      "/tournaments/t-1/staff",
+    );
+  });
+
   it("hints at dropped players and missing regions for a manager", () => {
     participants = [
       makeParticipant("a"),

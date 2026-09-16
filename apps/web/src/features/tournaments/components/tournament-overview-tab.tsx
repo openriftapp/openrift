@@ -532,7 +532,15 @@ function StaffRail({ id, detail }: { id: string; detail: TournamentDetailRespons
   const hasJudges = detail.staff.some((member) => member.role === "judge");
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading>{m.tournaments_section_staff()}</SectionHeading>
+      <div className="flex items-baseline justify-between gap-3">
+        <SectionHeading>{m.tournaments_section_staff()}</SectionHeading>
+        <TextLink
+          className="shrink-0 text-xs font-medium"
+          render={<Link to="/tournaments/$id/staff" params={{ id }} />}
+        >
+          {m.tournaments_overview_manage_staff()}
+        </TextLink>
+      </div>
       <RowList>
         {detail.staff.map((member) => (
           <RowListItem key={`${member.userId}:${member.role}`}>

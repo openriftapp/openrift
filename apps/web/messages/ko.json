@@ -7203,6 +7203,7 @@
   "tournaments_overview_staff_unnamed": "이름 없음",
   "tournaments_overview_no_judges": "아직 심판이 없습니다.",
   "tournaments_overview_add": "추가",
+  "tournaments_overview_manage_staff": "관리",
   "tier_lists_share_gone_title": "이 공유 링크는 더 이상 사용할 수 없습니다",
   "tier_lists_share_gone_description": "작성자가 이 티어 리스트의 공유를 중단했거나, 링크가 온전히 복사되지 않았을 수 있습니다.",
   "tier_lists_share_gone_action": "카드 둘러보기",

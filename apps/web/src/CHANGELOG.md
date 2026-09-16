@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-17
+
+### Highlights
+
+- fix(Tournaments): **Staff page easy to find** — the Staff box on a tournament's overview now always links to the page where you add judges and organizers, also after the first judge is added.
+
 ## 2026-09-16
 
 ### Highlights
