@@ -27,6 +27,7 @@ import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-overrid
 import { FloatingActionBar } from "@/features/collections/components/floating-action-bar";
 import { TradePreferenceDialog } from "@/features/groups/components/trade-preference-dialog";
 import { useLiveTradesByPrinting, useUserTrades } from "@/features/groups/hooks/use-card-trades";
+import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
 import { ListActionsCell } from "@/features/lists/components/list-actions-cell";
 import { ListGridCell } from "@/features/lists/components/list-grid-cell";
 import { ListIntroBanner } from "@/features/lists/components/list-intro-banner";
@@ -169,6 +170,8 @@ export function ListEntryBrowser({
     moveToCollectionOpen,
     setMoveToCollectionOpen,
     moveCopyIds,
+    addToCollectionRequest,
+    closeAddToCollection,
     openListAction,
     handleSearchAndClose,
     moveTargetLists,
@@ -409,6 +412,11 @@ export function ListEntryBrowser({
               onMoved={clearSelection}
             />
           )}
+          <AddEntryToCollectionDialog
+            request={addToCollectionRequest}
+            onClose={closeAddToCollection}
+            listId={listId}
+          />
           <ListRemoveDialog
             open={removeOpen}
             onOpenChange={setRemoveOpen}

@@ -23,6 +23,7 @@ import {
   dispatchItemClick,
   dispatchItemToggle,
   dispatchListBulkAction,
+  dispatchAddEntryToCollection,
   dispatchMoveCopyToCollection,
   dispatchRemoveEntry,
   dispatchSetPreference,
@@ -44,7 +45,7 @@ import {
   listEntryTradeStatus,
 } from "@/features/lists/components/list-trade-status";
 import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
-import { ruleEntryRef } from "@/features/lists/lib/list-move";
+import { entryAddsCopies, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
 import type { CardRenderContext } from "@/lib/card-viewer-types";
@@ -173,6 +174,9 @@ export const ListGridCell = memo(function ListGridCell({
     ) : undefined;
 
   const copyId = entry?.kind === "copy" ? entry.copyId : null;
+  const onAddToCollection = entryAddsCopies({ kind, intent })
+    ? () => dispatchAddEntryToCollection(itemId)
+    : undefined;
   const contextMenu =
     entry && editableEntryId !== null ? (
       <ListEntryContextMenu
@@ -185,6 +189,7 @@ export const ListGridCell = memo(function ListGridCell({
         onMove={() => dispatchListBulkAction(editableEntryId, "move")}
         onCopy={() => dispatchListBulkAction(editableEntryId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
+        onAddToCollection={onAddToCollection}
         onSetPreference={
           supportsTradePrefs ? () => dispatchSetPreference(editableEntryId) : undefined
         }
@@ -193,6 +198,7 @@ export const ListGridCell = memo(function ListGridCell({
       <ListEntryContextMenu
         onCopy={() => dispatchCopyRuleEntry(itemId)}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
+        onAddToCollection={onAddToCollection}
         onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}
       />
     ) : undefined;

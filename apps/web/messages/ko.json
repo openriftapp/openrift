@@ -4549,6 +4549,24 @@
   "lists_copy_intent_note": "{card}은(는) {source}에 남고 {target}에도 추가됩니다.",
   "lists_copy_confirm": "복사",
   "lists_copy_pending": "복사 중…",
+  "lists_add_to_collection_title": "컬렉션에 추가",
+  "lists_add_to_collection_title_named": "\"{collection}\"에 추가",
+  "lists_add_to_collection_note": "{card}의 보유 카드를 새로 만듭니다. 목록 항목은 그대로 유지됩니다.",
+  "lists_add_to_collection_pick_printing": "보유한 판본을 선택하세요.",
+  "lists_add_to_collection_pick_collection": "추가할 컬렉션을 선택하세요.",
+  "lists_add_to_collection_quantity": "추가할 장수",
+  "lists_add_to_collection_confirm": "카드 추가",
+  "lists_add_to_collection_pending": "추가 중…",
+  "lists_toast_added_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "\"{collection}\"에 카드 1장을 추가했습니다",
+        "countPlural=*": "\"{collection}\"에 카드 {count}장을 추가했습니다"
+      }
+    }
+  ],
   "lists_entry_copy_to_list": "목록으로 복사…",
   "lists_entry_copy_action": "복사",
   "lists_entry_copy_title": "목록으로 복사",
@@ -4563,6 +4581,7 @@
   "lists_entry_trade_preference": "교환 조건…",
   "lists_entry_move_to_list": "목록으로 이동…",
   "lists_entry_move_to_collection": "컬렉션으로 이동…",
+  "lists_entry_add_to_collection": "컬렉션에 추가…",
   "lists_entry_take_off_list": "목록에서 빼기…",
   "lists_entry_exclude": "이 카드는 제외",
   "lists_rule_combined_match": "합치면 지금 {label}입니다.",

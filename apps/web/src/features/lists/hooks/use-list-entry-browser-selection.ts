@@ -32,7 +32,12 @@ import {
   useUpdateListEntry,
 } from "@/features/lists/hooks/use-lists";
 import { resolveCopyMoveTarget, selectableEntryIds } from "@/features/lists/lib/list-entries";
-import type { MoveEntrySubject, MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
+import type {
+  AddEntryToCollectionRequest,
+  MoveEntrySubject,
+  MoveMode,
+  MoveResolution,
+} from "@/features/lists/lib/list-move";
 import { ruleEntryCopyInputs, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import type { RuleExcludeTarget } from "@/features/rules/lib/rule-exclude";
@@ -149,6 +154,27 @@ export function useListEntryBrowserSelection({
     setMoveCopyIds(resolveCopyMoveTarget(entries, selected, copyId));
     setMoveToCollectionOpen(true);
   };
+
+  const [addToCollectionItemId, setAddToCollectionItemId] = useState<string | null>(null);
+  const addToCollectionRequest: AddEntryToCollectionRequest | null = (() => {
+    if (addToCollectionItemId === null) {
+      return null;
+    }
+    const item = items.find((candidate) => candidate.id === addToCollectionItemId);
+    const entry = entryByItemId.get(addToCollectionItemId);
+    if (!item || !entry) {
+      return null;
+    }
+    return {
+      subject: {
+        sourceKind: kind,
+        totalQuantity: entry.quantity,
+        printing: item.printing,
+        cardName: entry.cardName,
+      },
+    };
+  })();
+  const closeAddToCollection = () => setAddToCollectionItemId(null);
 
   useScopeEffect(listId, () => resetSelection());
   useScopeEffect(showLibrary, (library) => {
@@ -464,6 +490,7 @@ export function useListEntryBrowserSelection({
     onRemoveEntry: (entryId, cardName) => onRemoveEntry(entryId, cardName),
     onSetPreference: (entryId) => setPrefDialogEntryId(entryId),
     onMoveCopyToCollection: handleMoveCopyToCollection,
+    onAddEntryToCollection: setAddToCollectionItemId,
     onExcludeFromRule: handleExcludeFromRule,
     isQuantityPendingFor: (entryId) => isQuantityPendingFor(entryId),
   });
@@ -501,6 +528,8 @@ export function useListEntryBrowserSelection({
     moveToCollectionOpen,
     setMoveToCollectionOpen,
     moveCopyIds,
+    addToCollectionRequest,
+    closeAddToCollection,
     openListAction,
     handleSearchAndClose,
     moveTargetLists,

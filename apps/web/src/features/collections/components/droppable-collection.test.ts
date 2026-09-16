@@ -54,11 +54,19 @@ describe("isCompatibleCollectionDrop", () => {
     ).toBe(true);
   });
 
-  it("rejects a card- or printing-kind list entry", () => {
-    expect(isCompatibleCollectionDrop(listDrag, "col-2")).toBe(false);
-    expect(isCompatibleCollectionDrop({ ...listDrag, sourceKind: "printing" }, "col-2")).toBe(
-      false,
-    );
+  it("accepts a card- or printing-kind organize entry", () => {
+    expect(isCompatibleCollectionDrop(listDrag, "col-2")).toBe(true);
+    expect(isCompatibleCollectionDrop({ ...listDrag, sourceKind: "printing" }, "col-2")).toBe(true);
+  });
+
+  it("rejects a card- or printing-kind wish or trade entry", () => {
+    expect(isCompatibleCollectionDrop({ ...listDrag, sourceIntent: "wish" }, "col-2")).toBe(false);
+    expect(
+      isCompatibleCollectionDrop(
+        { ...listDrag, sourceKind: "printing", sourceIntent: "trade" },
+        "col-2",
+      ),
+    ).toBe(false);
   });
 
   it("rejects sidebar reorder drags", () => {

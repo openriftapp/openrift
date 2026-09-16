@@ -4549,6 +4549,24 @@
   "lists_copy_intent_note": "{card} reste dans votre {source} et est aussi ajouté à votre {target}.",
   "lists_copy_confirm": "Copier",
   "lists_copy_pending": "Copie…",
+  "lists_add_to_collection_title": "Ajouter à une collection",
+  "lists_add_to_collection_title_named": "Ajouter à « {collection} »",
+  "lists_add_to_collection_note": "Crée de nouveaux exemplaires possédés de {card}. L’entrée de la liste ne change pas.",
+  "lists_add_to_collection_pick_printing": "Choisissez l’impression que vous possédez.",
+  "lists_add_to_collection_pick_collection": "Choisissez la collection où les ajouter.",
+  "lists_add_to_collection_quantity": "Exemplaires à ajouter",
+  "lists_add_to_collection_confirm": "Ajouter les exemplaires",
+  "lists_add_to_collection_pending": "Ajout…",
+  "lists_toast_added_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 exemplaire ajouté à « {collection} »",
+        "countPlural=*": "{count} exemplaires ajoutés à « {collection} »"
+      }
+    }
+  ],
   "lists_entry_copy_to_list": "Copier vers une liste…",
   "lists_entry_copy_action": "Copier",
   "lists_entry_copy_title": "Copier vers une liste",
@@ -4563,6 +4581,7 @@
   "lists_entry_trade_preference": "Préférence d'échange…",
   "lists_entry_move_to_list": "Déplacer vers une liste…",
   "lists_entry_move_to_collection": "Déplacer vers une collection…",
+  "lists_entry_add_to_collection": "Ajouter à une collection…",
   "lists_entry_take_off_list": "Retirer de la liste…",
   "lists_entry_exclude": "Ne pas inclure",
   "lists_rule_combined_match": "Au total, cela fait {label} pour le moment.",

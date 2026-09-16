@@ -1,6 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 
+import { entryAddsCopies } from "@/features/lists/lib/list-move";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
 
@@ -48,5 +49,10 @@ export function isCompatibleCollectionDrop(
   if (drag.type === "collection-card") {
     return drag.sourceCollectionId !== collectionId;
   }
-  return drag.type === "list-entry" && drag.copyIds.length > 0;
+  if (drag.type !== "list-entry") {
+    return false;
+  }
+  return (
+    drag.copyIds.length > 0 || entryAddsCopies({ kind: drag.sourceKind, intent: drag.sourceIntent })
+  );
 }

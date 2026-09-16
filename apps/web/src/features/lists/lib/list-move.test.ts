@@ -1,7 +1,7 @@
 import type { Printing } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
-import { moveNeedsDialog, movePickFor, ruleEntryCopyInputs } from "./list-move";
+import { entryAddsCopies, moveNeedsDialog, movePickFor, ruleEntryCopyInputs } from "./list-move";
 
 describe("movePickFor", () => {
   it("needs nothing for same or narrower kinds", () => {
@@ -80,5 +80,18 @@ describe("ruleEntryCopyInputs", () => {
       [],
     );
     expect(ruleEntryCopyInputs({ ...base, ruleEntry: { kind: "card" } }, "copy", null)).toEqual([]);
+  });
+});
+
+describe("entryAddsCopies", () => {
+  it("allows organize entries that track cards or printings", () => {
+    expect(entryAddsCopies({ kind: "card", intent: "organize" })).toBe(true);
+    expect(entryAddsCopies({ kind: "printing", intent: "organize" })).toBe(true);
+  });
+
+  it("rejects copy entries and wish or trade lists", () => {
+    expect(entryAddsCopies({ kind: "copy", intent: "organize" })).toBe(false);
+    expect(entryAddsCopies({ kind: "card", intent: "wish" })).toBe(false);
+    expect(entryAddsCopies({ kind: "printing", intent: "trade" })).toBe(false);
   });
 });

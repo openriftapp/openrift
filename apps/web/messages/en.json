@@ -4552,6 +4552,24 @@
   "lists_copy_intent_note": "{card} stays on your {source} and is also added to your {target}.",
   "lists_copy_confirm": "Copy",
   "lists_copy_pending": "Copying…",
+  "lists_add_to_collection_title": "Add to a collection",
+  "lists_add_to_collection_title_named": "Add to \"{collection}\"",
+  "lists_add_to_collection_note": "Creates new owned copies of {card}. The list entry stays as it is.",
+  "lists_add_to_collection_pick_printing": "Pick the printing you own.",
+  "lists_add_to_collection_pick_collection": "Pick the collection to add them to.",
+  "lists_add_to_collection_quantity": "Copies to add",
+  "lists_add_to_collection_confirm": "Add copies",
+  "lists_add_to_collection_pending": "Adding…",
+  "lists_toast_added_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added 1 copy to \"{collection}\"",
+        "countPlural=*": "Added {count} copies to \"{collection}\""
+      }
+    }
+  ],
   "lists_entry_copy_to_list": "Copy to list…",
   "lists_entry_copy_action": "Copy",
   "lists_entry_copy_title": "Copy to list",
@@ -4566,6 +4584,7 @@
   "lists_entry_trade_preference": "Trade preference…",
   "lists_entry_move_to_list": "Move to list…",
   "lists_entry_move_to_collection": "Move to collection…",
+  "lists_entry_add_to_collection": "Add to collection…",
   "lists_entry_take_off_list": "Take off list…",
   "lists_entry_exclude": "Don't include this",
   "lists_rule_combined_match": "Combined, that's {label} right now.",

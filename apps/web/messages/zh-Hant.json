@@ -4549,6 +4549,24 @@
   "lists_copy_intent_note": "{card}留在你的{source}中，同時也加入你的{target}。",
   "lists_copy_confirm": "複製",
   "lists_copy_pending": "複製中…",
+  "lists_add_to_collection_title": "加入收藏",
+  "lists_add_to_collection_title_named": "加入「{collection}」",
+  "lists_add_to_collection_note": "為 {card} 新建擁有的卡牌。清單項目保持不變。",
+  "lists_add_to_collection_pick_printing": "選擇你擁有的版本。",
+  "lists_add_to_collection_pick_collection": "選擇要加入的收藏。",
+  "lists_add_to_collection_quantity": "加入張數",
+  "lists_add_to_collection_confirm": "加入卡牌",
+  "lists_add_to_collection_pending": "加入中…",
+  "lists_toast_added_to_collection": [
+    {
+      "declarations": ["input count", "input collection", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已將 1 張卡牌加入「{collection}」",
+        "countPlural=*": "已將 {count} 張卡牌加入「{collection}」"
+      }
+    }
+  ],
   "lists_entry_copy_to_list": "複製到清單…",
   "lists_entry_copy_action": "複製",
   "lists_entry_copy_title": "複製到清單",
@@ -4563,6 +4581,7 @@
   "lists_entry_trade_preference": "交換偏好…",
   "lists_entry_move_to_list": "移動到清單…",
   "lists_entry_move_to_collection": "移動到收藏…",
+  "lists_entry_add_to_collection": "加入收藏…",
   "lists_entry_take_off_list": "從清單移除…",
   "lists_entry_exclude": "不要包含這張",
   "lists_rule_combined_match": "綜合起來，目前是 {label}。",

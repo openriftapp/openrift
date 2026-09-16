@@ -38,6 +38,7 @@ import type {
 import { COLLECTION_DRAG_TYPES } from "@/features/collections/components/dnd-types";
 import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
+import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
 import type { PendingEntryMove } from "@/features/lists/components/move-entry-dialog";
 import { MoveEntryDialog } from "@/features/lists/components/move-entry-dialog";
@@ -46,8 +47,16 @@ import {
   useBulkAddListEntries,
   useMoveListEntries,
 } from "@/features/lists/hooks/use-lists";
-import type { MoveMode, MoveResolution } from "@/features/lists/lib/list-move";
-import { moveNeedsDialog, ruleEntryCopyInputs } from "@/features/lists/lib/list-move";
+import type {
+  AddEntryToCollectionRequest,
+  MoveMode,
+  MoveResolution,
+} from "@/features/lists/lib/list-move";
+import {
+  entryAddsCopies,
+  moveNeedsDialog,
+  ruleEntryCopyInputs,
+} from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
 import { ViewSurfaceProvider } from "@/hooks/use-view-prefs";
 import { asDragData } from "@/lib/dnd-data";
@@ -79,6 +88,8 @@ export function CollectionLayout() {
   const [pendingMove, setPendingMove] = useState<
     (PendingEntryMove & { drag: ListEntryDragData }) | null
   >(null);
+  const [pendingCollectionAdd, setPendingCollectionAdd] =
+    useState<AddEntryToCollectionRequest | null>(null);
   // Ctrl while dropping a list entry copies it instead of moving it.
   const [copyModifier, setCopyModifier] = useState(false);
   // Read by the key listener below, which is mounted once and can't see
@@ -185,6 +196,10 @@ export function CollectionLayout() {
         { copyIds: dragData.copyIds, toCollectionId: dropData.collectionId },
         { onSuccess: () => toast.success(m.collections_toast_moved({ count })) },
       );
+      return;
+    }
+    if (entryAddsCopies({ kind: dragData.sourceKind, intent: dragData.sourceIntent })) {
+      setPendingCollectionAdd({ subject: dragData, collectionId: dropData.collectionId });
     }
   };
 
@@ -355,6 +370,10 @@ export function CollectionLayout() {
                 </DragOverlay>
               </DndContext>
             </SidebarProvider>
+            <AddEntryToCollectionDialog
+              request={pendingCollectionAdd}
+              onClose={() => setPendingCollectionAdd(null)}
+            />
             <MoveEntryDialog
               pending={pendingMove}
               onOpenChange={(open) => {

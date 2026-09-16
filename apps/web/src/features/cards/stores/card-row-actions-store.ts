@@ -69,6 +69,7 @@ interface ListRowHandlers {
   onCopyRuleEntry?: (itemId: string) => void;
   /** Keyed by copy id, not entry id, so rule-produced entries (no `list_entries` row) can be moved too. */
   onMoveCopyToCollection?: (copyId: string) => void;
+  onAddEntryToCollection?: (itemId: string) => void;
   /** Rule-produced entries have no `list_entries` row; this excludes them from the rule, not removes them. */
   onExcludeFromRule?: (target: RuleExcludeTarget) => void;
 }
@@ -183,6 +184,10 @@ export function dispatchCopyRuleEntry(itemId: string): void {
 
 export function dispatchMoveCopyToCollection(copyId: string): void {
   useCardRowActionsStore.getState().handlers.onMoveCopyToCollection?.(copyId);
+}
+
+export function dispatchAddEntryToCollection(itemId: string): void {
+  useCardRowActionsStore.getState().handlers.onAddEntryToCollection?.(itemId);
 }
 
 export function dispatchExcludeFromRule(target: RuleExcludeTarget): void {

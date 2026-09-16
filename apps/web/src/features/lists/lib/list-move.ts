@@ -86,3 +86,21 @@ export function moveNeedsDialog(
 ): boolean {
   return source.intent !== target.intent || movePickFor(source.kind, target.kind) !== "none";
 }
+
+/** Organize entries that track cards or printings can create new owned copies in a collection. */
+export function entryAddsCopies(source: { kind: ListKind; intent: ListIntent }): boolean {
+  return source.intent === "organize" && source.kind !== "copy";
+}
+
+export interface AddEntryToCollectionSubject {
+  sourceKind: ListKind;
+  totalQuantity: number;
+  printing: Printing;
+  cardName: string;
+}
+
+export interface AddEntryToCollectionRequest {
+  subject: AddEntryToCollectionSubject;
+  /** Set by a drop onto a sidebar collection; the menu path picks one in the dialog. */
+  collectionId?: string;
+}
