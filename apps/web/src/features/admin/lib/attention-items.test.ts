@@ -1,3 +1,4 @@
+import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -58,6 +59,26 @@ describe("buildAttentionSubmissions", () => {
     const group = buildAttentionSubmissions(detail, [])[0]?.groups[0];
     expect(group?.changes.map((change) => change.field)).toEqual(["might"]);
     expect(group?.unchangedFields).toContain("Name");
+  });
+
+  it("shows the card group with the lowest-ranked printing's active image", () => {
+    const lead = makeAdminPrinting({ canonicalRank: 1 });
+    const other = makeAdminPrinting({ canonicalRank: 2 });
+    const image = (printingId: string, originalUrl: string, isActive = true) =>
+      ({ printingId, originalUrl, rehostedUrl: null, isActive }) as AdminPrintingImageResponse;
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: "Lux, Lady of Luminosity" }),
+      sources: [makeCandidateCard({ name: "Lux, Lady of Light" })],
+      printings: [other, lead],
+      printingImages: [
+        image(other.id, "https://cdn.test/other.png"),
+        image(lead.id, "https://cdn.test/old.png", false),
+        image(lead.id, "https://cdn.test/lead.png"),
+      ],
+    });
+    expect(buildAttentionSubmissions(detail, [])[0]?.groups[0]?.imageUrl).toBe(
+      "https://cdn.test/lead.png",
+    );
   });
 
   it("groups a linked candidate printing and diffs it against its printing", () => {

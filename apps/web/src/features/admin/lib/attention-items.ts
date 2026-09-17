@@ -23,6 +23,7 @@ import {
   PRINTING_FIELD_LABELS,
 } from "@/features/admin/lib/catalog-field-labels";
 import { summarizeCandidatePrinting } from "@/features/admin/lib/printing-fields";
+import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 
 type AttentionChangeKind = "value" | "text" | "image";
 
@@ -44,6 +45,7 @@ export interface AttentionGroup {
   printingLabel: string | null;
   language: string | null;
   printingId: string | null;
+  imageUrl: string | null;
   candidate: CandidatePrintingResponse | null;
   changes: AttentionChange[];
   unchangedFields: string[];
@@ -91,6 +93,25 @@ function activeImageUrl(
     return null;
   }
   return active.rehostedUrl ?? active.originalUrl;
+}
+
+function displayImageUrl(
+  printingId: string,
+  images: readonly AdminPrintingImageResponse[],
+): string | null {
+  const active = images.find((image) => image.printingId === printingId && image.isActive);
+  return active === undefined ? null : printingImageDisplayUrl(active);
+}
+
+function primaryImageUrl(detail: AdminCardDetailResponse): string | null {
+  const ranked = detail.printings.toSorted((a, b) => a.canonicalRank - b.canonicalRank);
+  for (const printing of ranked) {
+    const url = displayImageUrl(printing.id, detail.printingImages);
+    if (url !== null) {
+      return url;
+    }
+  }
+  return null;
 }
 
 const IMAGE_CHANGE_LABELS: Record<NonNullable<ImageMatch> | "unknown", string> = {
@@ -142,14 +163,14 @@ function compareFields(
 
 function buildCardGroup(
   source: CandidateCardResponse,
-  card: AdminCardDetailResponse["card"],
+  detail: AdminCardDetailResponse,
 ): AttentionGroup | null {
   const groupKey = `card:${source.id}`;
   const { changes, unchangedFields } = compareFields(
     groupKey,
     COMPARABLE_CARD_FIELDS,
     CARD_FIELD_LABELS,
-    card as Record<string, unknown> | null,
+    detail.card as Record<string, unknown> | null,
     source as unknown as Record<string, unknown>,
   );
   if (changes.length === 0) {
@@ -162,6 +183,7 @@ function buildCardGroup(
     printingLabel: null,
     language: null,
     printingId: null,
+    imageUrl: primaryImageUrl(detail),
     candidate: null,
     changes,
     unchangedFields,
@@ -217,6 +239,7 @@ function buildLinkedPrintingGroup(
     printingLabel: printing.expectedPrintingId,
     language: printing.language,
     printingId: printing.id,
+    imageUrl: displayImageUrl(printing.id, images),
     candidate,
     changes,
     unchangedFields,
@@ -235,6 +258,7 @@ function buildNewPrintingGroup(
     printingLabel: apiGroup?.expectedPrintingId ?? candidate.shortCode,
     language: apiGroup?.language ?? candidate.language,
     printingId: null,
+    imageUrl: null,
     candidate,
     changes: [],
     unchangedFields: [],
@@ -258,7 +282,7 @@ export function buildAttentionSubmissions(
     .filter((source) => source.provider === USER_SUBMISSION_PROVIDER && source.checkedAt === null)
     .map((source) => {
       const groups: AttentionGroup[] = [];
-      const cardGroup = buildCardGroup(source, detail.card);
+      const cardGroup = buildCardGroup(source, detail);
       if (cardGroup) {
         groups.push(cardGroup);
       }
@@ -318,7 +342,7 @@ function buildSourceEntry(
 
   const groups: AttentionGroup[] = [];
   if (source.checkedAt === null) {
-    const cardGroup = buildCardGroup(source, detail.card);
+    const cardGroup = buildCardGroup(source, detail);
     if (cardGroup) {
       groups.push(cardGroup);
     }

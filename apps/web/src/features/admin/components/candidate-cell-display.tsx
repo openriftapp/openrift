@@ -13,12 +13,25 @@ export const DIFF_FIELDS = new Set([
   "flavorText",
 ]);
 
-export function DiffText({ segments }: { segments: DiffSegment[] }) {
+export function DiffText({
+  segments,
+  side = "proposed",
+}: {
+  segments: DiffSegment[];
+  side?: "current" | "proposed";
+}) {
   return (
     <>
       {segments.map((seg, i) => {
-        if (seg.type === "removed") {
+        if (seg.type === (side === "proposed" ? "removed" : "added")) {
           return null;
+        }
+        if (seg.type === "removed") {
+          return (
+            <mark key={i} className="bg-destructive-soft text-destructive">
+              {seg.text}
+            </mark>
+          );
         }
         if (seg.type === "added") {
           return (
@@ -53,22 +66,47 @@ export function renderLabeledValue(field: FieldDef, value: unknown): React.React
   );
 }
 
-export function ImageUrlCell({ url, alt }: { url: string; alt: string }) {
+export function ImageZoom({
+  url,
+  alt,
+  className,
+  title,
+  children,
+}: {
+  url: string;
+  alt: string;
+  className?: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
   return (
     <HoverCard>
       <HoverCardTrigger
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="text-info hover:text-info/80 block truncate underline"
-        title={url}
+        className={className}
+        title={title}
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
-        {url}
+        {children}
       </HoverCardTrigger>
       <HoverCardContent side="right" className="w-auto p-1">
         <img src={url} alt={alt} className="max-h-[80vh] max-w-[40vw] rounded-md object-contain" />
       </HoverCardContent>
     </HoverCard>
+  );
+}
+
+export function ImageUrlCell({ url, alt }: { url: string; alt: string }) {
+  return (
+    <ImageZoom
+      url={url}
+      alt={alt}
+      className="text-info hover:text-info/80 block truncate underline"
+      title={url}
+    >
+      {url}
+    </ImageZoom>
   );
 }

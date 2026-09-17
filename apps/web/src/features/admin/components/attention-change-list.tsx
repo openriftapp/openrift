@@ -7,12 +7,15 @@ import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Textarea } from "@/components/ui/textarea";
+import { DiffText, ImageZoom } from "@/features/admin/components/candidate-cell-display";
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingTargetMenu } from "@/features/admin/components/printing-target-menu";
 import type { PrintingTarget } from "@/features/admin/components/printing-target-menu";
 import type { AttentionChange, AttentionGroup } from "@/features/admin/lib/attention-items";
 import { formatFieldValue } from "@/features/admin/lib/catalog-field-labels";
 import { CardText } from "@/features/cards/components/card-text";
+import { textDiff } from "@/lib/text-diff";
 import { cn } from "@/lib/utils";
 
 const EMPTY_TICKED: ReadonlySet<string> = new Set();
@@ -87,8 +90,50 @@ function FormattedText({ field, value }: { field: string; value: unknown }) {
   return <CardText text={value} interactive={false} />;
 }
 
+function TextComparison({
+  field,
+  current,
+  proposed,
+  imageUrl,
+}: {
+  field: string;
+  current: unknown;
+  proposed: unknown;
+  imageUrl: string | null;
+}) {
+  const segments =
+    typeof current === "string" && typeof proposed === "string" && current !== ""
+      ? textDiff(current, proposed)
+      : null;
+  return (
+    <span className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+      {(["current", "proposed"] as const).map((side) => (
+        <span key={side} className="flex min-w-0 flex-col gap-1">
+          <span className="text-muted-foreground text-xs">
+            {side === "current" ? "Now" : "Incoming"}
+          </span>
+          <span>
+            <FormattedText field={field} value={side === "current" ? current : proposed} />
+          </span>
+          {segments !== null && (
+            <span className="text-muted-foreground text-xs whitespace-pre-line">
+              <DiffText segments={segments} side={side} />
+            </span>
+          )}
+        </span>
+      ))}
+      {imageUrl !== null && (
+        <ImageZoom url={imageUrl} alt="Printed card" className="w-24 self-start">
+          <PrintingImageBox url={imageUrl} alt="Printed card" />
+        </ImageZoom>
+      )}
+    </span>
+  );
+}
+
 interface ChangeRowProps {
   change: AttentionChange;
+  imageUrl: string | null;
   isTicked: boolean;
   editedValue: unknown;
   isEditing: boolean;
@@ -100,6 +145,7 @@ interface ChangeRowProps {
 
 function ChangeRow({
   change,
+  imageUrl,
   isTicked,
   editedValue,
   isEditing,
@@ -145,14 +191,12 @@ function ChangeRow({
               />
             </span>
           ) : change.kind === "text" ? (
-            <span className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground line-through">
-                <FormattedText field={change.field} value={change.current} />
-              </span>
-              <span>
-                <FormattedText field={change.field} value={effective} />
-              </span>
-            </span>
+            <TextComparison
+              field={change.field}
+              current={change.current}
+              proposed={effective}
+              imageUrl={imageUrl}
+            />
           ) : (
             <span>
               <span className="text-muted-foreground line-through">
@@ -331,6 +375,7 @@ export function AttentionChangeList({
                   <ChangeRow
                     key={change.key}
                     change={change}
+                    imageUrl={group.imageUrl}
                     isTicked={ticked.has(change.key)}
                     editedValue={edits.get(change.key)}
                     isEditing={editing.has(change.key)}

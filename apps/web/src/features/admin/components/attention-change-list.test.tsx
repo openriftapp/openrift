@@ -24,6 +24,7 @@ const cardGroup: AttentionGroup = {
   printingLabel: null,
   language: null,
   printingId: null,
+  imageUrl: null,
   candidate: null,
   changes: [
     {
@@ -54,6 +55,7 @@ const newPrintingGroup: AttentionGroup = {
   printingLabel: "EN:OGN-042::foil",
   language: "EN",
   printingId: null,
+  imageUrl: null,
   candidate: null,
   changes: [],
   unchangedFields: [],
@@ -67,6 +69,7 @@ const linkedPrintingGroup: AttentionGroup = {
   printingLabel: "EN:OGN-001::normal",
   language: "EN",
   printingId: "prt-1",
+  imageUrl: null,
   candidate: null,
   changes: [
     {
@@ -267,6 +270,37 @@ describe("AttentionChangeList", () => {
     expect(screen.getByText("formatted: [Accelerate] :rb_energy_2:")).toBeInTheDocument();
     expect(screen.getByText("The light (never) fades.")).toHaveClass("italic");
     expect(screen.queryByText("formatted: The light (never) fades.")).not.toBeInTheDocument();
+  });
+
+  it("marks what changed on each side and shows the group image", () => {
+    renderList({
+      groups: [
+        {
+          ...linkedPrintingGroup,
+          imageUrl: "https://cdn.test/lux.png",
+          changes: [
+            {
+              key: "printing:cp2:printedRulesText",
+              field: "printedRulesText",
+              label: "Printed Rules",
+              current: "Draw 1 card.",
+              proposed: "Draw 2 cards.",
+              kind: "text",
+            },
+          ],
+        },
+      ],
+      readOnly: true,
+    });
+
+    const marks = [...document.querySelectorAll("mark")].map((mark) => mark.textContent);
+    expect(marks).toEqual(["1", "card", "2", "cards"]);
+    expect(screen.getByText("Now")).toBeInTheDocument();
+    expect(screen.getByText("Incoming")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Printed card" })).toHaveAttribute(
+      "href",
+      "https://cdn.test/lux.png",
+    );
   });
 
   it("marks an edited row", () => {
