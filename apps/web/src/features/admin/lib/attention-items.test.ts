@@ -12,6 +12,7 @@ import {
 } from "@/test/factories";
 
 import { buildAttentionSources, buildAttentionSubmissions } from "./attention-items";
+import { printingImageDisplayUrl } from "./printing-image-display-url";
 
 beforeEach(() => {
   resetIdCounter();
@@ -348,5 +349,21 @@ describe("buildAttentionSources image comparison", () => {
     expect(labels("art")).toEqual([["image", "Image (different image)"]]);
     expect(labels("mark")).toEqual([["image", "Image (bottom mark differs)"]]);
     expect(labels(null)).toEqual([["image", "Image (not compared yet)"]]);
+  });
+
+  it("shows a rehosted live image through its display url", () => {
+    const detail = detailWith("art");
+    const image = {
+      printingId: detail.printings[0]?.id ?? "",
+      originalUrl: "https://cdn.test/lux.png",
+      rehostedUrl: "/media/cards/lux",
+      isActive: true,
+      rotation: 0,
+      needsTrim: false,
+    } as AdminPrintingImageResponse;
+    const change = buildAttentionSources({ ...detail, printingImages: [image] }, settings, [])[0]
+      ?.entries[0]?.groups[0]?.changes[0];
+    expect(change?.current).toBe(printingImageDisplayUrl(image));
+    expect(change?.current).toMatch(/^\/media\/cards\/lux-full\.webp\?/u);
   });
 });

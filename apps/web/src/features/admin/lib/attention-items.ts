@@ -222,7 +222,7 @@ function buildLinkedPrintingGroup(
       key: `${groupKey}:imageUrl`,
       field: "imageUrl",
       label: IMAGE_CHANGE_LABELS[candidate.imageMatch ?? "unknown"],
-      current: currentImage,
+      current: displayImageUrl(printing.id, images),
       proposed: candidate.imageUrl,
       kind: "image",
     });
