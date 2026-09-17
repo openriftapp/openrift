@@ -28,6 +28,7 @@ export function useIgnoreCandidateCard(invalidates: Scope = []) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
       for (const key of invalidates) {
         void queryClient.invalidateQueries({ queryKey: [...key] });
       }
@@ -50,6 +51,7 @@ export function useUnignoreCandidateCard() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
     },
   });
 }
@@ -69,6 +71,7 @@ export function useIgnoreCandidatePrinting(invalidates: Scope = []) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
       for (const key of invalidates) {
         void queryClient.invalidateQueries({ queryKey: [...key] });
       }
@@ -91,6 +94,7 @@ export function useUnignoreCandidatePrinting() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
     },
   });
 }
@@ -110,6 +114,7 @@ export function useDeletePrintingLink() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.ignoredCandidates });
       void queryClient.invalidateQueries({ queryKey: adminKeys.cards.all });
+      void queryClient.invalidateQueries({ queryKey: adminKeys.reviewQueue });
     },
   });
 }

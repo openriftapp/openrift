@@ -28,7 +28,15 @@ vi.mock("@/lib/server-fns/with-cookies", () => ({
   withCookies: () => {},
 }));
 
-const { useAcceptCardField, useAcceptPrintingGroup } = await import("./use-admin-card-mutations");
+const {
+  useAcceptCardField,
+  useAcceptPrintingGroup,
+  useCheckProvider,
+  useDeleteProvider,
+  useRelinkCandidatePrintings,
+} = await import("./use-admin-card-mutations");
+const { useUploadCandidates } = await import("./use-admin-image-mutations");
+const { useUpdateProviderSetting } = await import("./use-provider-settings");
 
 function makeClient() {
   const client = new QueryClient({
@@ -92,5 +100,29 @@ describe("useAcceptCardField", () => {
     expect(invalidateSpy).not.toHaveBeenCalledWith({
       queryKey: ["admin", "cards", "detail", "019d3342-bec8-7f50-a92d-154e120f3fa1"],
     });
+  });
+});
+
+describe.each([
+  ["useCheckProvider", () => useCheckProvider(), "ogn"],
+  ["useDeleteProvider", () => useDeleteProvider(), "ogn"],
+  ["useRelinkCandidatePrintings", () => useRelinkCandidatePrintings(), undefined],
+  ["useUploadCandidates", () => useUploadCandidates(), {}],
+  [
+    "useUpdateProviderSetting",
+    () => useUpdateProviderSetting(),
+    { provider: "ogn", isHidden: true },
+  ],
+] as const)("%s", (_name, useHook, input) => {
+  it("refetches the review queue so the sidebar count updates", async () => {
+    const { client, invalidateSpy } = makeClient();
+    const { result } = renderHook(() => useHook(), { wrapper: wrap(client) });
+
+    await act(async () => {
+      await (result.current.mutateAsync as (vars: unknown) => Promise<unknown>)(input);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["admin", "review-queue"] });
   });
 });

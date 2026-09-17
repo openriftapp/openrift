@@ -536,7 +536,7 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope) {
 export function useCheckProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => checkProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources],
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
   });
 }
 
@@ -566,7 +566,7 @@ export function useCheckMatchingCandidates() {
       const run = await waitForJobRun(started.runId, () => listCheckMatchingRunsFn());
       return checkMatchingResultFromRun(run);
     },
-    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.jobRuns],
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.jobRuns, adminKeys.reviewQueue],
   });
 }
 
@@ -580,7 +580,7 @@ const relinkCandidatePrintingsFn = createServerFn({ method: "POST" })
 export function useRelinkCandidatePrintings() {
   return useMutationWithInvalidation({
     mutationFn: () => relinkCandidatePrintingsFn(),
-    invalidates: [adminKeys.cards.all, adminKeys.sources],
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
   });
 }
 
@@ -610,7 +610,7 @@ export function useAcceptFavoritePrintings() {
 export function useDeleteProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string) => deleteProviderFn({ data: { provider } }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources],
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
   });
 }
 

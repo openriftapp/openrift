@@ -56,6 +56,11 @@ export function useUpdateProviderSetting() {
     }) => {
       await updateProviderSettingFn({ data: vars });
     },
-    invalidates: [adminKeys.providerSettings, adminKeys.cards.list, adminKeys.sources],
+    invalidates: [
+      adminKeys.providerSettings,
+      adminKeys.cards.list,
+      adminKeys.sources,
+      adminKeys.reviewQueue,
+    ],
   });
 }

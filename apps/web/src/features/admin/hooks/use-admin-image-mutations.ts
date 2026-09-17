@@ -391,6 +391,6 @@ export function useUploadFallbackArt(invalidates: Scope = defaultScope) {
 export function useUploadCandidates() {
   return useMutationWithInvalidation({
     mutationFn: (payload: UploadCandidatesBody) => uploadCandidatesFn({ data: payload }),
-    invalidates: [adminKeys.cards.all, adminKeys.sources],
+    invalidates: [adminKeys.cards.all, adminKeys.sources, adminKeys.reviewQueue],
   });
 }
