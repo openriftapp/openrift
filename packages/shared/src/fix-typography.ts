@@ -61,5 +61,8 @@ export function appendSetTotal(
   if (/^[A-Z]+-[RT]\d/u.test(publicCode)) {
     return publicCode;
   }
-  return `${publicCode}/${printedTotal}`;
+  // Vendetta-era codes end in a language suffix, which follows the total:
+  // "VEN-150-EN" → "VEN-150/166-EN".
+  const suffix = /-[A-Z]{2}$/u.exec(publicCode)?.[0] ?? "";
+  return `${publicCode.slice(0, publicCode.length - suffix.length)}/${printedTotal}${suffix}`;
 }

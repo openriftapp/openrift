@@ -174,6 +174,14 @@ describe("appendSetTotal", () => {
     expect(appendSetTotal("SFD-109", 221)).toBe("SFD-109/221");
   });
 
+  it("inserts the total before a language suffix", () => {
+    expect(appendSetTotal("VEN-150-EN", 166)).toBe("VEN-150/166-EN");
+  });
+
+  it("leaves a suffixed code unchanged when total already present", () => {
+    expect(appendSetTotal("VEN-150/166-EN", 166)).toBe("VEN-150/166-EN");
+  });
+
   it("leaves code unchanged when total already present", () => {
     expect(appendSetTotal("OGN-133/298", 298)).toBe("OGN-133/298");
   });
