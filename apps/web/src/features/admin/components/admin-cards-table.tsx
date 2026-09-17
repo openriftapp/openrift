@@ -29,16 +29,17 @@ import {
   useAcceptFavoritePrintings,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards } from "@/features/admin/hooks/use-admin-card-queries";
-import type { AdminCardListStatus } from "@/features/admin/hooks/use-card-review-navigation";
 import { useCardsTableSort } from "@/features/admin/hooks/use-cards-table-sort";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import type { CardIssue } from "@/features/admin/lib/card-attention";
+import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/card-attention";
 import {
   ANY_ISSUE,
+  attentionSectionFor,
   CARD_ISSUE_LABELS,
   CARD_ISSUES,
   cardAttentionBadges,
   hasIssue,
+  listStatusFor,
   needsAttention,
 } from "@/features/admin/lib/card-attention";
 import type { AdminSearchableCard } from "@/features/cards/hooks/use-card-search";
@@ -57,17 +58,6 @@ const ROW_HEIGHT = 41;
 export const ALL_SETS = "__all__";
 
 type Row = CandidateCardSummaryResponse;
-
-/** "unchecked" stays on the list: the detail page has its own flow for it. */
-function detailStatusFor(issue: CardIssue | undefined): AdminCardListStatus | undefined {
-  if (issue === "unlinked-products") {
-    return "prices-to-assign";
-  }
-  if (issue === "new-printings") {
-    return "new-printings";
-  }
-  return undefined;
-}
 
 /** Older links carry this filter as `status` or `source`. */
 function readIssue(search: {
@@ -125,7 +115,12 @@ interface CardsRow {
   card: Row;
   sets: { label: string; all: string; rank: number };
   printingCount: number;
-  detailSearch: { set?: string; status?: AdminCardListStatus; priceScope?: string };
+  detailSearch: {
+    set?: string;
+    status?: AdminCardListStatus;
+    priceScope?: string;
+    section?: "attention" | "marketplace";
+  };
   unlinked: number;
   allCards: AdminSearchableCard[];
   isAdmin: boolean;
@@ -344,7 +339,7 @@ export function AdminCardsTable({
   const { serverSort, sortRows } = useCardsTableSort(SORT_VALUES, "name");
 
   const priceFilterActive = issue === "unlinked-products";
-  const detailStatus = detailStatusFor(issue);
+  const detailStatus = listStatusFor(segment === "attention", issue);
   // The detail page's prev/next walks only rows matching this filter.
   const detailSearch = {
     ...(setSlug ? { set: setSlug } : {}),
@@ -536,7 +531,12 @@ export function AdminCardsTable({
       unlinked: unlinkedFor(card.cardSlug, priceScope),
       printingCount:
         card.cardSlug === null ? card.stagingShortCodes.length : card.shortCodes.length,
-      detailSearch,
+      detailSearch: detailStatus
+        ? {
+            ...detailSearch,
+            section: attentionSectionFor(card, unlinkedFor(card.cardSlug, priceScope), issue),
+          }
+        : detailSearch,
       allCards,
       isAdmin,
     })),

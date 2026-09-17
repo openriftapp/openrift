@@ -18,10 +18,17 @@ const mocks = vi.hoisted(() => ({
   nextUncheckedArgs: { current: null as [string, Set<string> | null | undefined] | null },
   checkAllCardsScope: { current: undefined as unknown },
   allCards: [] as { slug: string; setSlugs: string[] }[],
-  cardList: [] as { cardSlug: string | null; unlinkedPrintingCount: number }[],
+  cardList: [] as {
+    cardSlug: string | null;
+    unlinkedTrustedPrintingCount?: number;
+    pendingSubmissions?: number;
+    uncheckedTrustedProviders?: string[];
+  }[],
   cardListEnabled: { current: false },
   reviewItems: [] as ReviewQueueItem[],
   reviewQueueEnabled: { current: false },
+  mappingGroups: [] as unknown[],
+  bucketsBySlug: new Map<string, unknown[]>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => mocks.navigate }));
@@ -48,7 +55,13 @@ vi.mock("@/features/admin/hooks/use-admin-card-queries", () => ({
   },
   useAdminCardListWhen: (enabled: boolean) => {
     mocks.cardListEnabled.current = enabled;
-    return { data: enabled ? mocks.cardList : undefined };
+    const rows = mocks.cardList.map((row) => ({
+      unlinkedTrustedPrintingCount: 0,
+      pendingSubmissions: 0,
+      uncheckedTrustedProviders: [],
+      ...row,
+    }));
+    return { data: enabled ? rows : undefined };
   },
 }));
 
@@ -60,9 +73,15 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useCheckAllCandidatePrintings: () => mocks.checkAllPrintings,
 }));
 
-// The price filter is off in every case here, so the query never enables.
 vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
-  useUnifiedMappingsWhen: () => ({ data: undefined }),
+  useUnifiedMappingsWhen: (enabled: boolean) => ({
+    data: enabled ? { groups: mocks.mappingGroups } : undefined,
+  }),
+}));
+
+vi.mock("@/features/cards/lib/marketplace-coverage", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  buildPriceAssignBucketsBySlug: () => mocks.bucketsBySlug,
 }));
 
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
@@ -200,6 +219,7 @@ beforeEach(() => {
   mocks.nextUncheckedArgs.current = null;
   mocks.cardListEnabled.current = false;
   mocks.cardList = [];
+  mocks.bucketsBySlug = new Map();
   mocks.reviewQueueEnabled.current = false;
   mocks.reviewItems = [];
   mocks.fetchNext.mockResolvedValue(null);
@@ -246,7 +266,12 @@ describe("useCardReviewNavigation", () => {
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug: "zed" },
-      search: { set: "prox", status: "prices-to-assign", priceScope: "cardtrader:FR" },
+      search: {
+        set: "prox",
+        status: "prices-to-assign",
+        priceScope: "cardtrader:FR",
+        section: "marketplace",
+      },
     });
   });
 
@@ -266,10 +291,10 @@ describe("useCardReviewNavigation", () => {
 
   it("visits only cards with new printings while that filter is on", () => {
     mocks.cardList = [
-      { cardSlug: "ahri", unlinkedPrintingCount: 0 },
-      { cardSlug: "yasuo", unlinkedPrintingCount: 2 },
-      { cardSlug: "zed", unlinkedPrintingCount: 1 },
-      { cardSlug: null, unlinkedPrintingCount: 3 },
+      { cardSlug: "ahri", pendingSubmissions: 1 },
+      { cardSlug: "yasuo", unlinkedTrustedPrintingCount: 2 },
+      { cardSlug: "zed", unlinkedTrustedPrintingCount: 1 },
+      { cardSlug: null, unlinkedTrustedPrintingCount: 3 },
     ];
     const { result } = renderNav({ listStatus: "new-printings" });
 
@@ -279,9 +304,9 @@ describe("useCardReviewNavigation", () => {
 
   it("keeps navigating after the current card's new printings are accepted", () => {
     mocks.cardList = [
-      { cardSlug: "ahri", unlinkedPrintingCount: 1 },
-      { cardSlug: "yasuo", unlinkedPrintingCount: 0 },
-      { cardSlug: "zed", unlinkedPrintingCount: 1 },
+      { cardSlug: "ahri", unlinkedTrustedPrintingCount: 1 },
+      { cardSlug: "yasuo" },
+      { cardSlug: "zed", unlinkedTrustedPrintingCount: 1 },
     ];
     const { result } = renderNav({ listStatus: "new-printings" });
 
@@ -297,8 +322,63 @@ describe("useCardReviewNavigation", () => {
 
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/admin/cards",
-      search: { status: "new-printings" },
+      search: { tab: "attention", issue: "new-printings" },
     });
+  });
+
+  it("visits only cards needing attention and opens each in its section", () => {
+    mocks.allCards.push({ slug: "zoe", setSlugs: ["ogn"] }, { slug: "zyra", setSlugs: ["ogn"] });
+    mocks.cardList = [
+      { cardSlug: "ahri", uncheckedTrustedProviders: ["gallery"] },
+      { cardSlug: "yasuo" },
+      { cardSlug: "zed" },
+      { cardSlug: "zoe" },
+      { cardSlug: "zyra", pendingSubmissions: 1 },
+    ];
+    mocks.bucketsBySlug = new Map([
+      ["zoe", [{ marketplace: "cardmarket", assignable: true, unbound: 2 }]],
+      ["zyra", [{ marketplace: "cardmarket", assignable: true, unbound: 1 }]],
+    ]);
+    const { result } = renderNav({ listStatus: "attention", section: "printings" });
+
+    expect(result.current.prevNextCards).toEqual({ prev: "ahri", next: "zoe" });
+
+    act(() => {
+      result.current.goToCard("zoe");
+      result.current.goToCard("ahri");
+      result.current.goToCard("zyra");
+    });
+
+    expect(mocks.navigate.mock.calls.map(([call]) => call.search.section)).toEqual([
+      "marketplace",
+      "attention",
+      "attention",
+    ]);
+  });
+
+  it("walks only cards with the filtered issue", () => {
+    mocks.cardList = [
+      { cardSlug: "ahri", pendingSubmissions: 1 },
+      { cardSlug: "yasuo", pendingSubmissions: 1 },
+      { cardSlug: "zed", uncheckedTrustedProviders: ["gallery"] },
+    ];
+    const { result } = renderNav({ listStatus: "proposals" });
+
+    expect(result.current.prevNextCards).toEqual({ prev: "ahri", next: null });
+  });
+
+  it("opens the marketplace section while walking unlinked marketplace entries", () => {
+    const { result } = renderNav({ listStatus: "prices-to-assign" });
+
+    act(() => {
+      result.current.goToCard("zed");
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: { status: "prices-to-assign", section: "marketplace" },
+      }),
+    );
   });
 
   it("visits only cards in the review queue and opens each where its review is", () => {
@@ -476,7 +556,18 @@ describe("cardListSearch", () => {
     expect(cardListSearch({ set: "ogn", status: "review" })).toEqual({ set: "ogn" });
   });
 
-  it("keeps the card list's own status filters", () => {
-    expect(cardListSearch({ status: "new-printings" })).toEqual({ status: "new-printings" });
+  it("maps an issue filter back to the attention tab with that issue", () => {
+    expect(cardListSearch({ status: "prices-to-assign", priceScope: "cardmarket" })).toEqual({
+      tab: "attention",
+      issue: "unlinked-products",
+      priceScope: "cardmarket",
+    });
+  });
+
+  it("maps the unfiltered attention run back to the attention tab", () => {
+    expect(cardListSearch({ set: "ogn", status: "attention" })).toEqual({
+      set: "ogn",
+      tab: "attention",
+    });
   });
 });

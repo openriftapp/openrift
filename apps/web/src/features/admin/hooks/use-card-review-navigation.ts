@@ -25,11 +25,14 @@ import { selectAdminCardPrevNext } from "@/features/admin/lib/admin-card-nav";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
+import type { AdminCardListStatus, CardIssue } from "@/features/admin/lib/card-attention";
+import { attentionSectionFor, hasIssue, needsAttention } from "@/features/admin/lib/card-attention";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { reviewSectionsBySlug } from "@/features/admin/lib/review-queue";
 import {
   ALL_ASSIGNABLE_SCOPE,
   buildPriceAssignBucketsBySlug,
+  unlinkedProductCount,
 } from "@/features/cards/lib/marketplace-coverage";
 
 /** Everything one "Check all & next" run has to mark as checked. */
@@ -82,19 +85,31 @@ export interface CardReviewNavSearch {
   priceScope?: string;
 }
 
-/**
- * List-page status filters that also narrow prev/next here. "unchecked" is not
- * one of them — it has its own flow through "Check all & next". "review"
- * comes from the review inbox and returns there.
- */
-export type AdminCardListStatus = "prices-to-assign" | "new-printings" | "review";
-
-type CardListSearch = Omit<CardReviewNavSearch, "status"> & {
-  status?: Exclude<AdminCardListStatus, "review">;
+const STATUS_ISSUES: Partial<Record<AdminCardListStatus, CardIssue>> = {
+  proposals: "proposals",
+  "new-printings": "new-printings",
+  "unchecked-source": "unchecked-source",
+  "prices-to-assign": "unlinked-products",
 };
 
-export function cardListSearch({ status, ...rest }: CardReviewNavSearch): CardListSearch {
-  return status === "review" ? rest : { ...rest, status };
+interface CardListSearch {
+  set?: string;
+  tab?: "attention";
+  issue?: CardIssue;
+  priceScope?: string;
+}
+
+export function cardListSearch({ status, set, priceScope }: CardReviewNavSearch): CardListSearch {
+  if (status === undefined || status === "review") {
+    return set ? { set } : {};
+  }
+  const issue = STATUS_ISSUES[status];
+  return {
+    ...(set ? { set } : {}),
+    tab: "attention",
+    ...(issue ? { issue } : {}),
+    ...(priceScope ? { priceScope } : {}),
+  };
 }
 
 interface UseCardReviewNavigationOptions {
@@ -137,24 +152,37 @@ export function useCardReviewNavigation({
   // Stays subscribed (not read once): the marketplace section invalidates this
   // query after every assignment, dropping a card once its last product is bound.
   const priceFilterActive = listStatus === "prices-to-assign";
-  const { data: unifiedMappings } = useUnifiedMappingsWhen(isAdmin && priceFilterActive);
+  const attentionFilterActive =
+    listStatus !== undefined && listStatus !== "review" && !priceFilterActive;
+  const { data: unifiedMappings } = useUnifiedMappingsWhen(
+    isAdmin && (priceFilterActive || listStatus === "attention"),
+  );
   const activePriceScope = priceFilterActive ? (priceScope ?? ALL_ASSIGNABLE_SCOPE) : null;
   const assignBucketsBySlug = unifiedMappings
     ? buildPriceAssignBucketsBySlug(unifiedMappings.groups)
     : null;
 
-  // Same idea over the list corpus: stays subscribed, so accepting a card's
-  // last candidate printing drops it once the list is invalidated.
-  const newPrintingsFilterActive = listStatus === "new-printings";
-  const { data: cardList } = useAdminCardListWhen(newPrintingsFilterActive);
-  const newPrintingSlugs =
-    newPrintingsFilterActive && cardList
-      ? new Set(
-          cardList
-            .filter((row) => row.cardSlug !== null && row.unlinkedPrintingCount > 0)
-            .map((row) => row.cardSlug as string),
-        )
-      : null;
+  // Same idea over the list corpus: stays subscribed, so resolving a card's
+  // last issue drops it once the list is invalidated.
+  const issue = listStatus ? STATUS_ISSUES[listStatus] : undefined;
+  const { data: cardList } = useAdminCardListWhen(attentionFilterActive);
+  const attentionSections = new Map<string, "attention" | "marketplace">();
+  for (const row of attentionFilterActive ? (cardList ?? []) : []) {
+    if (row.cardSlug === null) {
+      continue;
+    }
+    const unlinked = unlinkedProductCount(
+      assignBucketsBySlug?.get(row.cardSlug),
+      ALL_ASSIGNABLE_SCOPE,
+    );
+    const matches = issue ? hasIssue(row, issue, unlinked) : needsAttention(row, unlinked);
+    const targetSection = attentionSectionFor(row, unlinked, issue);
+    if (matches && targetSection) {
+      attentionSections.set(row.cardSlug, targetSection);
+    }
+  }
+  const attentionSlugs =
+    attentionFilterActive && cardList ? new Set(attentionSections.keys()) : null;
 
   const reviewFilterActive = listStatus === "review";
   const { data: reviewQueue } = useReviewQueueWhen(reviewFilterActive);
@@ -176,7 +204,7 @@ export function useCardReviewNavigation({
     {
       priceScope: activePriceScope,
       assignBucketsBySlug,
-      matchingSlugs: newPrintingSlugs ?? reviewSlugs,
+      matchingSlugs: attentionSlugs ?? reviewSlugs,
     },
   );
 
@@ -187,7 +215,10 @@ export function useCardReviewNavigation({
   };
 
   function goToCard(cardSlug: string) {
-    const targetSection = reviewSections?.get(cardSlug) ?? section;
+    const targetSection =
+      reviewSections?.get(cardSlug) ??
+      (priceFilterActive ? "marketplace" : attentionSections.get(cardSlug)) ??
+      section;
     void navigate({
       to: "/admin/cards/$cardSlug",
       params: { cardSlug },

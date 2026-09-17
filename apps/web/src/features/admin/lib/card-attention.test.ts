@@ -1,7 +1,13 @@
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import { cardAttentionBadges, hasIssue, needsAttention } from "./card-attention";
+import {
+  attentionSectionFor,
+  cardAttentionBadges,
+  hasIssue,
+  listStatusFor,
+  needsAttention,
+} from "./card-attention";
 
 function makeRow(overrides: Partial<CandidateCardSummaryResponse> = {}) {
   return {
@@ -102,5 +108,37 @@ describe("hasIssue", () => {
       hasIssue(makeRow({ uncheckedTrustedProviders: ["gallery"] }), "unchecked-source", 0),
     ).toBe(true);
     expect(hasIssue(makeRow(), "unchecked-source", 0)).toBe(false);
+  });
+});
+
+describe("attentionSectionFor", () => {
+  it("opens marketplace-only work in the marketplace section", () => {
+    expect(attentionSectionFor(makeRow(), 3)).toBe("marketplace");
+  });
+
+  it("opens the attention section once anything else is open", () => {
+    expect(attentionSectionFor(makeRow({ pendingSubmissions: 1 }), 3)).toBe("attention");
+    expect(attentionSectionFor(makeRow({ uncheckedTrustedProviders: ["gallery"] }), 0)).toBe(
+      "attention",
+    );
+  });
+
+  it("follows the filtered issue over the card's other issues", () => {
+    expect(attentionSectionFor(makeRow({ pendingSubmissions: 1 }), 3, "unlinked-products")).toBe(
+      "marketplace",
+    );
+  });
+
+  it("has no section for a quiet card", () => {
+    expect(attentionSectionFor(makeRow(), 0)).toBeUndefined();
+  });
+});
+
+describe("listStatusFor", () => {
+  it("maps the attention tab and each issue to a card-page status", () => {
+    expect(listStatusFor(true)).toBe("attention");
+    expect(listStatusFor(false)).toBeUndefined();
+    expect(listStatusFor(true, "proposals")).toBe("proposals");
+    expect(listStatusFor(false, "unlinked-products")).toBe("prices-to-assign");
   });
 });

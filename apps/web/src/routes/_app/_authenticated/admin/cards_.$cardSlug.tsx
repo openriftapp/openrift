@@ -8,6 +8,8 @@ import {
   allCardsQueryOptions,
 } from "@/features/admin/lib/admin-card-queries";
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
+import type { AdminCardListStatus } from "@/features/admin/lib/card-attention";
+import { ADMIN_CARD_LIST_STATUSES } from "@/features/admin/lib/card-attention";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { isCardSection } from "@/features/admin/lib/card-sections";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
@@ -25,7 +27,7 @@ interface CardDetailSearch {
   focusFinish?: string;
   focusLanguage?: string;
   set?: string;
-  status?: "prices-to-assign" | "new-printings" | "review";
+  status?: AdminCardListStatus;
   priceScope?: string;
 }
 
@@ -62,8 +64,9 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
         result.priceScope = search.priceScope;
       }
     }
-    if (search.status === "new-printings" || search.status === "review") {
-      result.status = search.status;
+    const status = ADMIN_CARD_LIST_STATUSES.find((option) => option === search.status);
+    if (status !== undefined && status !== "prices-to-assign") {
+      result.status = status;
     }
     return result;
   },

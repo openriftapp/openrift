@@ -45,7 +45,6 @@ import {
 import type { AcceptPrintingBody } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import { useCardReviewNavigation } from "@/features/admin/hooks/use-card-review-navigation";
-import type { AdminCardListStatus } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import {
@@ -54,6 +53,7 @@ import {
   buildAttentionSubmissions,
 } from "@/features/admin/lib/attention-items";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
+import type { AdminCardListStatus } from "@/features/admin/lib/card-attention";
 import type { CardSection } from "@/features/admin/lib/card-sections";
 import { cardSectionsFor, DEFAULT_CARD_SECTION } from "@/features/admin/lib/card-sections";
 import { buildOverviewSourceGroups } from "@/features/admin/lib/source-groups";
