@@ -20,7 +20,7 @@ import { playerSourceKey } from "./ingest-meta-overlays.js";
  * and nothing is public before an admin accepts it.
  */
 
-export interface TournamentListStanding {
+interface TournamentListStanding {
   identity: string;
   rank: number;
   playerName: string | null;
@@ -74,7 +74,7 @@ export async function loadTournamentListTarget(
   };
 }
 
-export interface TournamentListCard {
+interface TournamentListCard {
   zone: string;
   quantity: number;
   cardName: string;
@@ -82,7 +82,7 @@ export interface TournamentListCard {
   preferredPrintingId: string | null;
 }
 
-export interface TournamentListInput {
+interface TournamentListInput {
   identity: string;
   cards: readonly TournamentListCard[];
 }
@@ -95,7 +95,7 @@ export interface SendTournamentListsArgs {
   lists: readonly TournamentListInput[];
 }
 
-export type TournamentListSkipReason = "settled" | "unknown_standing";
+type TournamentListSkipReason = "settled" | "unknown_standing";
 
 export interface SendTournamentListsResult {
   eventName: string;
