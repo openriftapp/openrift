@@ -17,10 +17,13 @@ import type { Insertable } from "kysely";
 import type { MetaEventPlayerOverlaysTable } from "../../../db/tables/meta.js";
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
+import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
 import type { MetaPlayerOverlayRow } from "../repositories/meta-overlays.js";
 import { sourceEventKeyPrefix } from "../repositories/meta-overlays.js";
 import type { MetaEventPlayerRow } from "../repositories/meta-players.js";
+import { splitSourcePlayerKey } from "./ingest-meta-overlays.js";
 import { promoteMetaEvent, promoteNewEvent } from "./meta-promote.js";
+import { acceptCatalogEvent } from "./meta-sync/accept.js";
 
 /** Compares the display form: the two sides type dates and numbers differently. */
 function sameValue(left: unknown, right: unknown): boolean {
@@ -94,6 +97,10 @@ export async function acceptMetaEventOverlay(
     return { metaEventId: intoMetaEventId, created: false };
   }
 
+  if (overlay.provider === TOURNAMENT_LIST_PROVIDER && overlay.externalId !== null) {
+    return await acceptMirroredProposal(repos, overlay.id, overlay.externalId, overlay.format, now);
+  }
+
   // The check runs before anything is written: a failed validation must leave
   // the overlay pending, not accepted with no live event behind it.
   if (overlay.name === null || overlay.eventDate === null || overlay.format === null) {
@@ -122,6 +129,72 @@ export async function acceptMetaEventOverlay(
   await promoteMetaEvent(repos, promoted.metaEventId);
 
   return { metaEventId: promoted.metaEventId, created: promoted.created };
+}
+
+/**
+ * Accepted the way the catalogue accepts the UVS Games event, so the official
+ * standings stay the source and the proposal claims nothing once the event is live.
+ */
+async function acceptMirroredProposal(
+  repos: Repos,
+  overlayId: string,
+  uvsgamesEventId: string,
+  format: string | null,
+  now: Date,
+): Promise<MetaOverlayReviewResult> {
+  const row = await repos.uvsgamesEvents.byKey(uvsgamesEventId);
+  if (row === undefined) {
+    throw new AppError(404, ERROR_CODES.NOT_FOUND, "That UVS Games event is not mirrored.");
+  }
+  const accepted = await acceptCatalogEvent(
+    { repos, now: () => now },
+    row,
+    format === null ? undefined : { format },
+  );
+
+  await repos.metaOverlays.updateEventOverlay(overlayId, {
+    metaEventId: accepted.metaEventId,
+    status: "accepted",
+    acceptedAt: now,
+    claimedFields: [],
+    name: null,
+    eventDate: null,
+    format: null,
+    playerCount: null,
+    organizer: null,
+    notes: null,
+    tier: null,
+    country: null,
+    location: null,
+  });
+  await repos.metaOverlays.adoptProposedPlayers(overlayId, accepted.metaEventId);
+  await anchorTournamentLists(repos, accepted.metaEventId, uvsgamesEventId);
+  await promoteMetaEvent(repos, accepted.metaEventId);
+  return { metaEventId: accepted.metaEventId, created: accepted.created };
+}
+
+async function anchorTournamentLists(
+  repos: Repos,
+  metaEventId: string,
+  uvsgamesEventId: string,
+): Promise<void> {
+  const loose = await repos.metaOverlays.unanchoredPlayerOverlays(
+    metaEventId,
+    TOURNAMENT_LIST_PROVIDER,
+  );
+  if (loose.length === 0) {
+    return;
+  }
+  const rows = await repos.meta.rawStandingsForEvent(metaEventId);
+  const byIdentity = new Map(rows.map((row) => [row.sourceIdentity, row.id]));
+  for (const overlay of loose) {
+    const key = splitSourcePlayerKey(overlay.sourcePlayerKey);
+    const identity = key.eventExternalId === uvsgamesEventId ? key.playerExternalId : null;
+    const playerId = identity === null ? undefined : byIdentity.get(identity);
+    if (playerId !== undefined) {
+      await repos.metaOverlays.linkPlayerOverlay(overlay.id, playerId);
+    }
+  }
 }
 
 export async function moveMetaEventOverlay(

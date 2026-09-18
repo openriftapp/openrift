@@ -21,6 +21,7 @@ export interface MetaSubmissionAlert {
   eventName: string;
   playerName: string | null;
   note: string | null;
+  summary?: string;
 }
 
 const KIND_SUMMARIES: Record<MetaSubmissionKind, string> = {
@@ -70,7 +71,7 @@ export async function notifyAdminsOfMetaSubmission(
         submitterEmail: submitter?.email ?? submission.submitterUserId,
         eventName: submission.eventName,
         playerName: submission.playerName,
-        summary: KIND_SUMMARIES[submission.kind],
+        summary: submission.summary ?? KIND_SUMMARIES[submission.kind],
         note: submission.note,
         reviewUrl: url,
         unsubscribeUrl: pageUrl,

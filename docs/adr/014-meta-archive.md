@@ -354,7 +354,7 @@ Card matching happens exactly once, on the way from source to live, and resolves
 
 ### Relationship to the runner
 
-None. No foreign keys between the archive tables and the runner's `tournaments` tables, no promote flow, no shared UI. Publishing a completed runner tournament's decks into the archive would be a new ADR with its own consent design.
+None. No foreign keys between the archive tables and the runner's `tournaments` tables, no promote flow, no shared UI. Publishing a completed runner tournament's decks into the archive would be a new ADR with its own consent design. [ADR-052](052-tournament-lists-to-meta-archive.md) is that ADR: a hosted tournament linked to its UVS Games event sends its decklists as standings overlays, and its standings stay the mirror's.
 
 ### Visibility and ownership rules
 
@@ -868,7 +868,7 @@ The `ignored_candidate_*` pair is renamed rather than dropped, keeping its keys 
 
 ## Deferred / Out of Scope
 
-- **Promote-from-runner.** Needs its own consent design.
+- **Promote-from-runner.** Needs its own consent design. Decklists onto a UVS Games event's standings: [ADR-052](052-tournament-lists-to-meta-archive.md).
 - **Card-detail reverse link and the `card=$cardId` deck-browser chip.** Both ship together as one fast-follow.
 - **Archetype labels.** Legend + champion already imply the archetype to a reader.
 - **Snapshot freezing, forked-from metadata, slug history/redirects.**

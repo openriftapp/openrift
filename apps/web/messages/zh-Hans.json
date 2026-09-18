@@ -7988,7 +7988,7 @@
   "tournaments_player_deck_publish_consent": "我同意赛事组织者在赛后公开发布这份卡表",
   "tournaments_player_deck_publish_name": "…包括我的姓名",
   "tournaments_player_deck_publish_riot_id": "…包括我的 Riot ID",
-  "tournaments_player_deck_sharing_note": "这些选项只决定组织者可以公开发布多少内容，例如发布在 riftdecks.com 或 OpenRift 上。赛事裁判始终能看到你的完整卡表和详细信息。",
+  "tournaments_player_deck_sharing_note": "这些选项决定组织者在赛后可以公开发布哪些内容，例如发布在 riftdecks.com 或 OpenRift 的 Meta 档案中。Meta 档案会以 UVS Games 排名中的姓名展示卡表，因此只收录同意公开姓名的卡表。赛事裁判始终能看到你的完整卡表和详细信息。",
   "tournaments_player_deck_checking": "检查中…",
   "tournaments_player_deck_preview": "预览",
   "tournaments_player_deck_preview_counts": "共 {copies} 张卡牌，{lines} 行。",
@@ -8702,5 +8702,94 @@
   "board_states_editor_view": "查看",
   "board_states_editor_desktop_only": "牌局编辑器需要更宽的屏幕。",
   "board_states_editor_invalid": "牌局出现问题：{message}",
-  "nav_board_states_description": "逐步绘制的对局情形"
+  "nav_board_states_description": "逐步绘制的对局情形",
+  "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_uvsgames_title": "UVS Games 赛事",
+  "tournaments_settings_uvsgames_description": "如果这场比赛也在 UVS Games 上举办，请在这里关联该赛事。比赛页面会链接到它，赛后你还可以按官方排名把卡表发送到 Meta 档案。",
+  "tournaments_settings_uvsgames_label": "赛事链接或编号",
+  "tournaments_settings_uvsgames_invalid": "请粘贴 UVS Games 赛事链接或赛事编号。",
+  "tournaments_settings_uvsgames_save": "保存链接",
+  "tournaments_settings_uvsgames_remove": "移除链接",
+  "tournaments_settings_uvsgames_open": "在 UVS Games 上打开",
+  "tournaments_settings_uvsgames_suggestions": "这个日期前后你小组关注的店铺赛事",
+  "tournaments_settings_uvsgames_use": "关联",
+  "tournaments_hero_uvsgames": "UVS Games 赛事",
+  "tournaments_hero_meta_archive": "Meta 档案",
+  "tournaments_archive_band_title": "Meta 档案",
+  "tournaments_archive_band_description": "把玩家同意分享的卡表发送到 Meta 档案。卡表会对应到 UVS Games 官方排名，并在管理员审核后展示。",
+  "tournaments_archive_band_open": "匹配并发送",
+  "tournaments_archive_band_unlinked": "请先在设置中关联 UVS Games 赛事。",
+  "tournaments_archive_band_settings": "设置",
+  "tournaments_archive_title": "发送到 Meta 档案",
+  "tournaments_archive_intro": "为每位要发送卡表的玩家选择其 UVS Games 排名。UVS Games 上的名字可能与这里不同，请逐一核对匹配。管理员审核后，卡表才会在档案中展示。",
+  "tournaments_archive_unlinked": "这场比赛还没有关联 UVS Games 赛事。",
+  "tournaments_archive_unlinked_action": "在设置中关联",
+  "tournaments_archive_not_ended": "比赛结束后才能发送卡表。",
+  "tournaments_archive_load": "从 UVS Games 加载排名",
+  "tournaments_archive_reload": "重新加载排名",
+  "tournaments_archive_not_found": "UVS Games 上没有这个编号的 Riftbound 赛事。请检查设置中的链接。",
+  "tournaments_archive_fetch_failed": "无法读取 UVS Games。请几分钟后再试。",
+  "tournaments_archive_not_final": "UVS Games 尚未公布这场赛事的最终排名。",
+  "tournaments_archive_no_standings": "这场 UVS Games 赛事还没有排名。",
+  "tournaments_archive_view_archive": "在 Meta 档案中查看",
+  "tournaments_archive_view_uvsgames": "在 UVS Games 上查看",
+  "tournaments_archive_players_heading": "玩家",
+  "tournaments_archive_pick_placeholder": "选择排名",
+  "tournaments_archive_pick_none": "不发送",
+  "tournaments_archive_pick_label": "{player} 的 UVS Games 排名",
+  "tournaments_archive_standing_option": "{rank}. {name}（{wins}-{losses}-{draws}）",
+  "tournaments_archive_unnamed": "未命名玩家",
+  "tournaments_archive_status_pending": "已发送，等待审核",
+  "tournaments_archive_status_accepted": "已收录",
+  "tournaments_archive_status_rejected": "已拒绝",
+  "tournaments_archive_eligibility_ready": "可发送",
+  "tournaments_archive_eligibility_unchecked": "验牌未完成",
+  "tournaments_archive_eligibility_no_consent": "未同意公开",
+  "tournaments_archive_eligibility_no_name_consent": "未同意公开姓名",
+  "tournaments_archive_eligibility_withdrawn": "卡表已撤回",
+  "tournaments_archive_eligibility_no_list": "没有卡表",
+  "tournaments_archive_force": "仍然发送",
+  "tournaments_archive_unmatched_lines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张卡未匹配",
+        "countPlural=*": "{count} 张卡未匹配"
+      }
+    }
+  ],
+  "tournaments_archive_summary_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 份卡表不会发送",
+        "countPlural=*": "{count} 份卡表不会发送"
+      }
+    }
+  ],
+  "tournaments_archive_summary_unmatched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 份卡表还没有选择排名",
+        "countPlural=*": "{count} 份卡表还没有选择排名"
+      }
+    }
+  ],
+  "tournaments_archive_duplicate": "两位玩家选了同一个排名。每个排名只能对应一份卡表。",
+  "tournaments_archive_send": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "发送 {count} 份卡表",
+        "countPlural=*": "发送 {count} 份卡表"
+      }
+    }
+  ],
+  "tournaments_archive_result": "已发送：{sent}。已更新：{updated}。已跳过：{skipped}。",
+  "tournaments_archive_resend_note": "再次发送会替换仍在等待审核的卡表。"
 }

@@ -14,8 +14,10 @@ import {
   revertMetaUpload,
 } from "./meta-overlay-review.js";
 import { promoteMetaEvent, promoteNewEvent } from "./meta-promote.js";
+import { acceptCatalogEvent } from "./meta-sync/accept.js";
 
 vi.mock("./meta-promote.js", () => ({ promoteMetaEvent: vi.fn(), promoteNewEvent: vi.fn() }));
+vi.mock("./meta-sync/accept.js", () => ({ acceptCatalogEvent: vi.fn() }));
 
 const OVERLAY_ID = "b0000000-0001-4000-a000-000000000001";
 
@@ -58,6 +60,7 @@ const mockOverlays = {
   updatePlayerOverlay: vi.fn(),
   setPlayerOverlayStatus: vi.fn(),
   insertEventOverlay: vi.fn(),
+  unanchoredPlayerOverlays: vi.fn(),
 };
 
 const mockMeta = {
@@ -65,7 +68,10 @@ const mockMeta = {
   mintedPlayerCounts: vi.fn(),
   playerById: vi.fn(),
   eventIdForPlayer: vi.fn(),
+  rawStandingsForEvent: vi.fn(),
 };
+
+const mockUvsgamesEvents = { byKey: vi.fn() };
 
 const mockSubmissions = {
   byId: vi.fn(),
@@ -77,6 +83,7 @@ const repos = {
   metaOverlays: mockOverlays,
   meta: mockMeta,
   metaSubmissions: mockSubmissions,
+  uvsgamesEvents: mockUvsgamesEvents,
 } as unknown as Repos;
 
 beforeEach(() => {
@@ -285,6 +292,79 @@ describe("acceptMetaEventOverlay", () => {
       expect.objectContaining({ claimedFields: [], status: "accepted" }),
     );
     expect(mockOverlays.adoptProposedPlayers).toHaveBeenCalledWith(OVERLAY_ID, OTHER_EVENT_ID);
+  });
+});
+
+describe("acceptMetaEventOverlay on a tournament's proposal", () => {
+  const UVS_ID = "667904";
+  const MIRROR_ROW = { externalId: UVS_ID, name: "Summoner Skirmish" };
+  const NOW = new Date("2026-09-16T12:00:00.000Z");
+
+  beforeEach(() => {
+    mockOverlays.eventOverlayById.mockResolvedValue({
+      ...PROPOSAL,
+      provider: "tournament",
+      externalId: UVS_ID,
+    });
+    mockUvsgamesEvents.byKey.mockResolvedValue(MIRROR_ROW);
+    vi.mocked(acceptCatalogEvent).mockResolvedValue({
+      metaEventId: LIVE_EVENT_ID,
+      slug: "summoner-skirmish",
+      created: true,
+    });
+    mockOverlays.unanchoredPlayerOverlays.mockResolvedValue([]);
+    mockMeta.rawStandingsForEvent.mockResolvedValue([]);
+  });
+
+  it("refuses when the event is no longer mirrored", async () => {
+    mockUvsgamesEvents.byKey.mockResolvedValue(undefined);
+
+    await expect(acceptMetaEventOverlay(repos, OVERLAY_ID)).rejects.toMatchObject({ status: 404 });
+    expect(mockOverlays.updateEventOverlay).not.toHaveBeenCalled();
+  });
+
+  it("accepts it through the catalogue and keeps no claims", async () => {
+    const result = await acceptMetaEventOverlay(repos, OVERLAY_ID, null, NOW);
+
+    expect(result).toEqual({ metaEventId: LIVE_EVENT_ID, created: true });
+    expect(acceptCatalogEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ repos }),
+      MIRROR_ROW,
+      {
+        format: "constructed",
+      },
+    );
+    expect(promoteNewEvent).not.toHaveBeenCalled();
+    expect(mockOverlays.updateEventOverlay).toHaveBeenCalledWith(
+      OVERLAY_ID,
+      expect.objectContaining({
+        metaEventId: LIVE_EVENT_ID,
+        status: "accepted",
+        claimedFields: [],
+        name: null,
+        format: null,
+      }),
+    );
+    expect(mockOverlays.adoptProposedPlayers).toHaveBeenCalledWith(OVERLAY_ID, LIVE_EVENT_ID);
+    expect(promoteMetaEvent).toHaveBeenCalledWith(repos, LIVE_EVENT_ID);
+  });
+
+  it("anchors each tournament list to the standings row it was matched to", async () => {
+    mockOverlays.unanchoredPlayerOverlays.mockResolvedValue([
+      { id: "o-1", sourcePlayerKey: playerSourceKey(UVS_ID, "u11") },
+      { id: "o-2", sourcePlayerKey: playerSourceKey(UVS_ID, "u99") },
+      { id: "o-3", sourcePlayerKey: playerSourceKey("667905", "u11") },
+    ]);
+    mockMeta.rawStandingsForEvent.mockResolvedValue([
+      { id: "row-11", sourceIdentity: "u11" },
+      { id: "row-12", sourceIdentity: "u12" },
+    ]);
+
+    await acceptMetaEventOverlay(repos, OVERLAY_ID, null, NOW);
+
+    expect(mockOverlays.unanchoredPlayerOverlays).toHaveBeenCalledWith(LIVE_EVENT_ID, "tournament");
+    expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledTimes(1);
+    expect(mockOverlays.linkPlayerOverlay).toHaveBeenCalledWith("o-1", "row-11");
   });
 });
 

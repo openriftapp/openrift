@@ -72,6 +72,8 @@ export interface TournamentsTable {
   allowedSets: string[] | null;
   selfRegistration: Generated<boolean>;
 
+  uvsgamesEventId: string | null;
+
   reportToken: string | null;
   followToken: string | null;
   submissionToken: string | null;

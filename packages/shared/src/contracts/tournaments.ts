@@ -41,6 +41,8 @@ export const tournamentParticipantStatusSchema = z.enum([
 ]);
 const tournamentViewerRoleSchema = z.enum(["host", "organizer", "judge", "participant"]);
 export const scoringSchemeSchema = podScoringSchemeSchema;
+/** The numeric id in a `locator.riftbound.uvsgames.com/events/<id>` URL. */
+export const uvsgamesEventIdSchema = z.string().regex(/^[1-9]\d{0,11}$/u);
 
 export const tournamentHostInfoSchema = z.object({
   type: z.enum(["user", "organization"]),
@@ -146,6 +148,8 @@ export const tournamentDetailResponseSchema = tournamentSummaryResponseSchema.ex
   judgeInviteToken: z.string().nullable(),
   staff: z.array(tournamentStaffMemberResponseSchema),
   hasRounds: z.boolean(),
+  uvsgamesEventId: z.string().nullable(),
+  metaEventSlug: z.string().nullable(),
   ...groupCutSettingsShape,
 });
 
@@ -259,6 +263,7 @@ export const updateTournamentSchema = z.object({
   allowedSets: z.array(z.string()).nullable().optional(),
   selfRegistration: z.boolean().optional(),
   groupId: z.uuid().nullable().optional(),
+  uvsgamesEventId: uvsgamesEventIdSchema.nullable().optional(),
 });
 
 const TAG = "Tournaments";

@@ -55,6 +55,19 @@ export function metaSourcesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
+    async eventBySourceKey(
+      provider: string,
+      externalId: string,
+    ): Promise<{ id: string; slug: string; name: string } | undefined> {
+      return await db
+        .selectFrom("metaEventSources as s")
+        .innerJoin("metaEvents as e", "e.id", "s.metaEventId")
+        .select(["e.id", "e.slug", "e.name"])
+        .where("s.provider", "=", provider)
+        .where("s.externalId", "=", externalId)
+        .executeTakeFirst();
+    },
+
     eventSourceById(id: string): Promise<MetaEventSourceRow | undefined> {
       return db.selectFrom("metaEventSources").selectAll().where("id", "=", id).executeTakeFirst();
     },

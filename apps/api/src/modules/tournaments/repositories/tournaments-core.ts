@@ -84,6 +84,7 @@ export interface TournamentPatch {
   deckFormat?: string | null;
   allowedSets?: string[] | null;
   selfRegistration?: boolean;
+  uvsgamesEventId?: string | null;
 }
 
 export interface TournamentSummaryRow extends Tournament {

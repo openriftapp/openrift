@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-19
+
+### Highlights
+
+- feat(Tournaments): **Send decklists to the Meta Archive** — link a tournament to its UVS Games event, then match your players to the official standings and send the lists they agreed to share for review.
+
+### Other
+
+- feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.
+
 ## 2026-09-18
 
 ### Highlights

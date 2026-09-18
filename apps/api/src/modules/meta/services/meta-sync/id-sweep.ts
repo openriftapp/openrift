@@ -86,7 +86,7 @@ type ProbeOutcome =
   | { kind: "probe"; probe: UvsgamesIdProbeInput }
   | { kind: "failed" };
 
-function gameTypeOf(body: unknown): { type: string | null; isRiftbound: boolean } {
+export function gameTypeOf(body: unknown): { type: string | null; isRiftbound: boolean } {
   const row = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
   const type = typeof row.game_type === "string" && row.game_type !== "" ? row.game_type : null;
   return {

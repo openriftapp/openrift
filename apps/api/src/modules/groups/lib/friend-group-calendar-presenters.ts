@@ -1,7 +1,7 @@
 import type { FriendGroupCalendarFeedKind } from "@openrift/shared/types/api/friend-group";
+import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import type { CalendarEvent } from "../../../lib/icalendar.js";
-import { uvsgamesEventUrl } from "../../meta/lib/uvsgames-catalog.js";
 import type { Tournament } from "../../tournaments/repositories/tournaments-shared.js";
 import type { ShopFeedEventRow } from "../repositories/friend-group-shops.js";
 

@@ -1,3 +1,4 @@
+import { META_USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/meta-submissions";
 import type { MetaEventFieldEdits } from "@openrift/shared/types/api/meta";
 import type {
   MetaSubmissionKind,
@@ -314,15 +315,16 @@ export function metaSubmissionsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * How many of a user's submissions are still awaiting an outcome, for the
-     * per-user cap. Counts the ledger, not overlays: corrections write no
-     * overlay row.
+     * How many of a user's own submissions are still awaiting an outcome, for
+     * the per-user cap. Counts the ledger, not overlays: corrections write no
+     * overlay row. Lists sent from a tournament do not count.
      */
     async countPendingByUser(userId: string): Promise<number> {
       const row = await db
         .selectFrom("metaSubmissions")
         .select((eb) => eb.fn.countAll<string>().as("count"))
         .where("userId", "=", userId)
+        .where("provider", "=", META_USER_SUBMISSION_PROVIDER)
         .where("status", "=", "pending")
         .executeTakeFirst();
       return row ? Number(row.count) : 0;

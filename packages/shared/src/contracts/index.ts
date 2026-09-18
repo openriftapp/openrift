@@ -107,6 +107,7 @@ export * from "./site-settings.js";
 export * from "./sitemap.js";
 export * from "./stage-presets.js";
 export * from "./tier-lists.js";
+export * from "./tournament-archive-lists.js";
 export * from "./tournament-deck-check.js";
 export * from "./tournaments.js";
 export * from "./unsubscribe.js";

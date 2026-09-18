@@ -11,7 +11,7 @@ export interface MetaSyncDeps {
   now?: () => Date;
 }
 
-export function clock(deps: MetaSyncDeps): Date {
+export function clock(deps: Pick<MetaSyncDeps, "now">): Date {
   return deps.now?.() ?? new Date();
 }
 

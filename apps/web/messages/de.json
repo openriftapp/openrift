@@ -7988,7 +7988,7 @@
   "tournaments_player_deck_publish_consent": "Ich bin einverstanden, dass der Veranstalter diese Deckliste nach dem Event öffentlich veröffentlicht",
   "tournaments_player_deck_publish_name": "… inklusive meines Namens",
   "tournaments_player_deck_publish_riot_id": "… inklusive meiner Riot-ID",
-  "tournaments_player_deck_sharing_note": "Diese Angaben steuern nur, wie viel der Veranstalter öffentlich zeigen darf, etwa auf riftdecks.com oder OpenRift. Die Judges des Events sehen immer deine vollständige Liste und deine Daten.",
+  "tournaments_player_deck_sharing_note": "Diese Angaben steuern, was der Veranstalter nach dem Event öffentlich zeigen darf, etwa auf riftdecks.com oder im OpenRift-Meta-Archiv. Das Meta-Archiv zeigt eine Liste unter deinem Namen aus der UVS-Games-Wertung, deshalb nimmt es nur Listen auf, die du mit deinem Namen teilst. Die Judges des Events sehen immer deine vollständige Liste und deine Daten.",
   "tournaments_player_deck_checking": "Wird geprüft…",
   "tournaments_player_deck_preview": "Vorschau",
   "tournaments_player_deck_preview_counts": "{copies} Karten in {lines} Zeilen.",
@@ -8699,5 +8699,94 @@
   "board_states_editor_view": "Ansehen",
   "board_states_editor_desktop_only": "Der Board-Editor braucht einen breiteren Bildschirm.",
   "board_states_editor_invalid": "Das Board hat ein Problem: {message}",
-  "nav_board_states_description": "Spielsituationen Schritt für Schritt"
+  "nav_board_states_description": "Spielsituationen Schritt für Schritt",
+  "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_uvsgames_title": "UVS-Games-Event",
+  "tournaments_settings_uvsgames_description": "Wenn dieses Turnier auch auf UVS Games läuft, verknüpfe hier sein Event. Die Turnierseite verlinkt es dann, und nach dem Event kannst du die Decklisten unter der offiziellen Wertung an das Meta-Archiv schicken.",
+  "tournaments_settings_uvsgames_label": "Event-Link oder -Nummer",
+  "tournaments_settings_uvsgames_invalid": "Füge den Link zu einem UVS-Games-Event oder seine Nummer ein.",
+  "tournaments_settings_uvsgames_save": "Link speichern",
+  "tournaments_settings_uvsgames_remove": "Link entfernen",
+  "tournaments_settings_uvsgames_open": "Auf UVS Games öffnen",
+  "tournaments_settings_uvsgames_suggestions": "Events in den Shops deiner Gruppe um dieses Datum",
+  "tournaments_settings_uvsgames_use": "Verknüpfen",
+  "tournaments_hero_uvsgames": "UVS-Games-Event",
+  "tournaments_hero_meta_archive": "Meta-Archiv",
+  "tournaments_archive_band_title": "Meta-Archiv",
+  "tournaments_archive_band_description": "Schicke die Listen, die deine Spieler freigegeben haben, an das Meta-Archiv. Sie landen in der offiziellen UVS-Games-Wertung, und ein Admin prüft sie, bevor sie erscheinen.",
+  "tournaments_archive_band_open": "Zuordnen und senden",
+  "tournaments_archive_band_unlinked": "Verknüpfe zuerst das UVS-Games-Event in den Einstellungen.",
+  "tournaments_archive_band_settings": "Einstellungen",
+  "tournaments_archive_title": "An das Meta-Archiv senden",
+  "tournaments_archive_intro": "Wähle für jeden Spieler, dessen Liste du sendest, seinen Platz in der UVS-Games-Wertung. Namen auf UVS Games können von den Namen hier abweichen, prüfe also jede Zuordnung. Ein Admin prüft die Listen, bevor sie im Archiv erscheinen.",
+  "tournaments_archive_unlinked": "Mit diesem Turnier ist kein UVS-Games-Event verknüpft.",
+  "tournaments_archive_unlinked_action": "In den Einstellungen verknüpfen",
+  "tournaments_archive_not_ended": "Du kannst Listen senden, sobald das Turnier vorbei ist.",
+  "tournaments_archive_load": "Wertung von UVS Games laden",
+  "tournaments_archive_reload": "Wertung neu laden",
+  "tournaments_archive_not_found": "UVS Games hat kein Riftbound-Event mit dieser Nummer. Prüfe den Link in den Einstellungen.",
+  "tournaments_archive_fetch_failed": "UVS Games konnte nicht gelesen werden. Versuch es in ein paar Minuten noch einmal.",
+  "tournaments_archive_not_final": "UVS Games hat die endgültige Wertung für dieses Event noch nicht veröffentlicht.",
+  "tournaments_archive_no_standings": "Das UVS-Games-Event hat noch keine Wertung.",
+  "tournaments_archive_view_archive": "Im Meta-Archiv ansehen",
+  "tournaments_archive_view_uvsgames": "Auf UVS Games ansehen",
+  "tournaments_archive_players_heading": "Spieler",
+  "tournaments_archive_pick_placeholder": "Platz wählen",
+  "tournaments_archive_pick_none": "Nicht senden",
+  "tournaments_archive_pick_label": "UVS-Games-Platz für {player}",
+  "tournaments_archive_standing_option": "{rank}. {name} ({wins}-{losses}-{draws})",
+  "tournaments_archive_unnamed": "Spieler ohne Namen",
+  "tournaments_archive_status_pending": "Gesendet, wartet auf Prüfung",
+  "tournaments_archive_status_accepted": "Im Archiv",
+  "tournaments_archive_status_rejected": "Abgelehnt",
+  "tournaments_archive_eligibility_ready": "Bereit",
+  "tournaments_archive_eligibility_unchecked": "Deck-Check nicht abgeschlossen",
+  "tournaments_archive_eligibility_no_consent": "Keine Zustimmung zur Veröffentlichung",
+  "tournaments_archive_eligibility_no_name_consent": "Keine Zustimmung zur Namensnennung",
+  "tournaments_archive_eligibility_withdrawn": "Liste zurückgezogen",
+  "tournaments_archive_eligibility_no_list": "Keine Liste",
+  "tournaments_archive_force": "Trotzdem senden",
+  "tournaments_archive_unmatched_lines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Karte nicht zugeordnet",
+        "countPlural=*": "{count} Karten nicht zugeordnet"
+      }
+    }
+  ],
+  "tournaments_archive_summary_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Liste wird nicht gesendet",
+        "countPlural=*": "{count} Listen werden nicht gesendet"
+      }
+    }
+  ],
+  "tournaments_archive_summary_unmatched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Liste hat noch keinen Platz",
+        "countPlural=*": "{count} Listen haben noch keinen Platz"
+      }
+    }
+  ],
+  "tournaments_archive_duplicate": "Zwei Spieler teilen sich einen Platz. Jeder Platz nimmt eine Liste.",
+  "tournaments_archive_send": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Liste senden",
+        "countPlural=*": "{count} Listen senden"
+      }
+    }
+  ],
+  "tournaments_archive_result": "Gesendet: {sent}. Aktualisiert: {updated}. Übersprungen: {skipped}.",
+  "tournaments_archive_resend_note": "Erneutes Senden ersetzt Listen, die noch auf Prüfung warten."
 }

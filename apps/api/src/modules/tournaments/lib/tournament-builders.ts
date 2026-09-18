@@ -17,6 +17,7 @@ import type {
 
 import type { Repos } from "../../../deps.js";
 import { gravatarHashForEmail } from "../../../lib/gravatar.js";
+import { UVSGAMES_PROVIDER } from "../../../lib/meta-providers.js";
 import type { TournamentSummaryRow } from "../repositories/tournaments-core.js";
 import type { Tournament } from "../repositories/tournaments-shared.js";
 import { hasOrgRole } from "./org-access.js";
@@ -209,6 +210,7 @@ export async function buildDetail(
     hasRounds,
     extrasMap,
     deckEntry,
+    metaEvent,
   ] = await Promise.all([
     resolveHost(repos, tournament),
     repos.tournaments.getCounts(tournament.id),
@@ -224,6 +226,9 @@ export async function buildDetail(
     tournament.deckSubmission === "none"
       ? undefined
       : repos.deckCheck.getEntryForPlayerByTournament(tournament.id, userId),
+    tournament.uvsgamesEventId === null
+      ? undefined
+      : repos.meta.eventBySourceKey(UVSGAMES_PROVIDER, tournament.uvsgamesEventId),
   ]);
   const extras = extrasMap.get(tournament.id) ?? EMPTY_EXTRAS;
   let groupSlug: string | null = null;
@@ -331,6 +336,8 @@ export async function buildDetail(
     judgeInviteToken,
     staff,
     hasRounds,
+    uvsgamesEventId: tournament.uvsgamesEventId,
+    metaEventSlug: metaEvent?.slug ?? null,
   };
 }
 

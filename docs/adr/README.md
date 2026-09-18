@@ -59,6 +59,7 @@ The MADR documentation is available at <https://adr.github.io/madr/> while gener
 - **[ADR-044](044-overnumbered-as-a-flag.md)**: Overnumbered as a Printing Flag (moves `overnumbered` off ADR-008's `art_variant` enum)
 - **[ADR-046](046-layered-module-layout.md)**: Layered Module Layout with Lint-Enforced Import Direction
 - **[ADR-047](047-printing-desk.md)**: Printing Desk for Trusted Contributors
+- **[ADR-052](052-tournament-lists-to-meta-archive.md)**: Tournament Decklists into the Meta Archive via UVS Games
 
 ### Rejected
 

@@ -3,8 +3,8 @@ import type {
   FriendGroupShopResponse,
   FriendGroupShopSearchResult,
 } from "@openrift/shared/types/api/friend-group";
+import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
-import { uvsgamesEventUrl } from "../../meta/lib/uvsgames-catalog.js";
 import type {
   GroupShopRow,
   ShopEventRow,

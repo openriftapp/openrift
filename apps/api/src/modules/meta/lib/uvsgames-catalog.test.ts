@@ -6,7 +6,6 @@ import {
   mapSourceFormat,
   projectCatalogRow,
   projectTemplateRows,
-  uvsgamesEventUrl,
   venueLocalDay,
 } from "./uvsgames-catalog.js";
 
@@ -225,12 +224,6 @@ describe("venueLocalDay", () => {
   it("falls back to UTC for a missing or unusable zone", () => {
     expect(venueLocalDay(new Date("2026-08-16T00:00:00Z"), null)).toBe("2026-08-16");
     expect(venueLocalDay(new Date("2026-08-16T00:00:00Z"), "Nowhere/Nothing")).toBe("2026-08-16");
-  });
-});
-
-describe("uvsgamesEventUrl", () => {
-  it("points at the source's own page for the event", () => {
-    expect(uvsgamesEventUrl("4821")).toBe("https://locator.riftbound.uvsgames.com/events/4821");
   });
 });
 

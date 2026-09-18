@@ -49,6 +49,7 @@ function tournamentRow(overrides: Partial<Tournament> = {}): Tournament {
     deckFormat: null,
     allowedSets: null,
     selfRegistration: false,
+    uvsgamesEventId: null,
     reportToken: null,
     followToken: null,
     submissionToken: null,

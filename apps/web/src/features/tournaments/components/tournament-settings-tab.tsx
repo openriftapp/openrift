@@ -15,6 +15,7 @@ import { PointsSection } from "@/features/tournaments/components/settings/points
 import { RegionsSection } from "@/features/tournaments/components/settings/regions-section";
 import { ScheduleSection } from "@/features/tournaments/components/settings/schedule-section";
 import { SignupLinksSection } from "@/features/tournaments/components/settings/signup-links-section";
+import { UvsgamesSection } from "@/features/tournaments/components/settings/uvsgames-section";
 import {
   effectiveTournamentState,
   hasPairing,
@@ -38,6 +39,7 @@ function buildTocItems({
         ]
       : []),
     { id: "schedule", label: m.tournaments_settings_toc_schedule(), level: 1 },
+    { id: "uvsgames", label: m.tournaments_settings_toc_uvsgames(), level: 1 },
     { id: "pairings-decks", label: m.tournaments_settings_toc_pairings_decks() },
     { id: "pairings", label: m.tournaments_settings_toc_format(), level: 1 },
     ...(runsRounds
@@ -76,6 +78,7 @@ export function TournamentSettingsTab({ detail }: { detail: TournamentDetailResp
         ) : null}
 
         <ScheduleSection detail={detail} locked={locked} canEndEarly={canEndEarly} />
+        <UvsgamesSection detail={detail} locked={locked} />
       </SettingsGroup>
 
       <SettingsGroup id="pairings-decks" title={m.tournaments_settings_toc_pairings_decks()}>

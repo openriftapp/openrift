@@ -1,11 +1,12 @@
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import { AppError } from "../../../../errors.js";
 import { UVSGAMES_PROVIDER } from "../../../../lib/meta-providers.js";
 import type { MetaAutoAcceptRule, MetaAutoAcceptSettings } from "../../lib/meta-auto-accept.js";
 import { autoAcceptRule } from "../../lib/meta-auto-accept.js";
 import { lifecycleStatus } from "../../lib/meta-recheck-schedule.js";
-import { mapSourceFormat, uvsgamesEventUrl, venueLocalDay } from "../../lib/uvsgames-catalog.js";
+import { mapSourceFormat, venueLocalDay } from "../../lib/uvsgames-catalog.js";
 import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
 import { promoteNewEvent } from "../meta-promote.js";
 import type { MetaSyncDeps } from "./deps.js";
@@ -35,7 +36,7 @@ function emptySummary(): MetaAutoAcceptSummary {
 // Recheck is armed at `now`, not the event's own schedule, so the next
 // processor pass reschedules it correctly either way.
 export async function acceptCatalogEvent(
-  deps: MetaSyncDeps,
+  deps: Pick<MetaSyncDeps, "repos" | "now">,
   row: UvsgamesListRow,
   options?: { format?: string; formatMappings?: ReadonlyMap<string, string> },
 ): Promise<AcceptedCatalogEvent> {

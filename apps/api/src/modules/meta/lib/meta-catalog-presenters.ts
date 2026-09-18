@@ -2,10 +2,11 @@ import type {
   MetaCatalogRow as MetaCatalogRowResponse,
   MetaSourceTemplate,
 } from "@openrift/shared/contracts/admin/meta-catalog";
+import { uvsgamesEventUrl } from "@openrift/shared/uvsgames-links";
 
 import type { UvsgamesCoverageRow, UvsgamesTemplateRow } from "../repositories/uvsgames-events.js";
 import { suggestTierForTemplateName } from "./meta-event-classify.js";
-import { mapSourceFormat, uvsgamesEventUrl } from "./uvsgames-catalog.js";
+import { mapSourceFormat } from "./uvsgames-catalog.js";
 
 /** `officialLabel` resolves the template uuid to its watched name; the uuid itself never reaches the client. */
 export function toMetaCatalogRow(

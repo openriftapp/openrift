@@ -16,6 +16,15 @@ import type {
   tournamentStaffInviteLandingResponseSchema,
 } from "@openrift/shared/contracts/public-tournaments";
 import type {
+  archiveListEligibilitySchema,
+  archiveListParticipantSchema,
+  archiveListRefreshResponseSchema,
+  archiveListSendResponseSchema,
+  archiveListStandingSchema,
+  archiveListStateResponseSchema,
+  uvsgamesEventSuggestionSchema,
+} from "@openrift/shared/contracts/tournament-archive-lists";
+import type {
   tournamentCoverLegendSchema,
   tournamentDeckPhaseSchema,
   tournamentDeckSubmissionSchema,
@@ -145,3 +154,17 @@ export type TournamentParticipantListResponse = z.infer<
 export type PublicTournamentLandingResponse = z.infer<typeof publicTournamentLandingResponseSchema>;
 
 export type PublicTournamentJoinResponse = z.infer<typeof publicTournamentJoinResponseSchema>;
+
+export type ArchiveListEligibility = z.infer<typeof archiveListEligibilitySchema>;
+
+export type ArchiveListParticipant = z.infer<typeof archiveListParticipantSchema>;
+
+export type ArchiveListStanding = z.infer<typeof archiveListStandingSchema>;
+
+export type ArchiveListStateResponse = z.infer<typeof archiveListStateResponseSchema>;
+
+export type ArchiveListRefreshResponse = z.infer<typeof archiveListRefreshResponseSchema>;
+
+export type ArchiveListSendResponse = z.infer<typeof archiveListSendResponseSchema>;
+
+export type UvsgamesEventSuggestion = z.infer<typeof uvsgamesEventSuggestionSchema>;

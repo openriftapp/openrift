@@ -8,7 +8,11 @@ import {
 } from "../../../lib/meta-providers.js";
 import { classifyMetaEventTier, countryFromAddress } from "../lib/meta-event-classify.js";
 import { topdeckFormat, topdeckLocalDay } from "../lib/topdeck-catalog.js";
-import { mapSourceFormat, venueLocalDay } from "../lib/uvsgames-catalog.js";
+import {
+  mapSourceFormat,
+  uvsgamesStandingIdentity,
+  venueLocalDay,
+} from "../lib/uvsgames-catalog.js";
 import type {
   MetaPromotedEventFacts,
   MetaSourceContext,
@@ -80,8 +84,7 @@ async function uvsgamesFacts(
     standings: standings
       .filter((row) => row.rank !== null)
       .map((row) => ({
-        identity:
-          row.uvsgamesPlayerId === null ? `r${row.registrationId}` : `u${row.uvsgamesPlayerId}`,
+        identity: uvsgamesStandingIdentity(row),
         legacyIdentity: legacyIdentityOf(row.uvsgamesPlayerId, row.playerName),
         uvsgamesPlayerId: row.uvsgamesPlayerId,
         // A row the source keys by user id is rendered under that player's

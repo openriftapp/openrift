@@ -1241,6 +1241,29 @@ describe("POST /meta/overlays/players/accept", () => {
     );
   });
 
+  it("thanks an organizer once for a tournament's lists", async () => {
+    mockMetaSubmissions.byPlayerOverlayId.mockImplementation((id: string) =>
+      Promise.resolve({
+        id: id === SECOND ? "sub-2" : "sub-1",
+        userId: "user-2",
+        status: "pending",
+        provider: "tournament",
+        externalId: playerSourceKey("667904", id === SECOND ? "u12" : "u11"),
+      }),
+    );
+
+    const response = await acceptAll([
+      { id: PLAYER_OVERLAY_ID, metaEventPlayerId: LIVE_PLAYER_ID },
+      { id: SECOND },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(mockNotifySubmitterOfMetaAcceptance).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      "sub-1",
+    );
+  });
+
   it("writes nothing when one id is unknown", async () => {
     const response = await acceptAll([
       { id: PLAYER_OVERLAY_ID },

@@ -11,6 +11,7 @@ import { implement } from "@orpc/server";
 
 import type { Repos } from "../../../deps.js";
 import { assertExisted } from "../../../lib/assertions.js";
+import { TOURNAMENT_LIST_PROVIDER } from "../../../lib/meta-providers.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
@@ -63,16 +64,26 @@ const os = implement(adminMetaCandidatesContract).$context<ApiContext>().use(req
 const CRAWLED_PROVIDERS: ReadonlySet<string> = new Set(META_CATALOG_PROVIDERS);
 
 // Accepting an already-accepted overlay succeeds again, so only rows that were not accepted before earn a thank-you.
+// A tournament's lists earn one per organizer and event, not one per list.
 async function unacceptedSubmissionIds(
   repos: Repos,
   overlayIds: readonly string[],
 ): Promise<string[]> {
   const ids: string[] = [];
+  const thankedSends = new Set<string>();
   for (const overlayId of overlayIds) {
     const submission = await repos.metaSubmissions.byPlayerOverlayId(overlayId);
-    if (submission !== null && submission.status !== "accepted") {
-      ids.push(submission.id);
+    if (submission === null || submission.status === "accepted") {
+      continue;
     }
+    if (submission.provider === TOURNAMENT_LIST_PROVIDER) {
+      const send = `${submission.userId}:${splitSourcePlayerKey(submission.externalId).eventExternalId}`;
+      if (thankedSends.has(send)) {
+        continue;
+      }
+      thankedSends.add(send);
+    }
+    ids.push(submission.id);
   }
   return ids;
 }

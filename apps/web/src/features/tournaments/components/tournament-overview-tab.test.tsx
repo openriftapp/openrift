@@ -51,6 +51,12 @@ vi.mock("@/features/tournaments/components/champion-plate", () => ({
   ChampionPlate: () => <div data-testid="champion-plate" />,
 }));
 
+let metaEnabled = true;
+
+vi.mock("@/hooks/use-feature-flags", () => ({
+  useFeatureEnabled: (key: string) => key === "meta" && metaEnabled,
+}));
+
 vi.mock("@/lib/auth-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
@@ -309,6 +315,8 @@ function makeDetail(overrides: Partial<TournamentDetailResponse> = {}): Tourname
     staff: [],
     hasRounds: true,
     myDeckEntry: null,
+    uvsgamesEventId: null,
+    metaEventSlug: null,
     ...overrides,
   } as TournamentDetailResponse;
 }
@@ -331,6 +339,7 @@ beforeEach(() => {
   participants = [makeParticipant("a"), makeParticipant("b")];
   participantsForbidden = false;
   runState = makeRunState();
+  metaEnabled = true;
 });
 
 describe("TournamentHero", () => {
@@ -347,6 +356,40 @@ describe("TournamentHero", () => {
     render(<TournamentHero detail={makeDetail({ selfRegistration: false })} />);
 
     expect(screen.getByText("Registration closed")).toBeInTheDocument();
+  });
+
+  it("links the UVS Games event and its Meta Archive page", () => {
+    render(
+      <TournamentHero
+        detail={makeDetail({ uvsgamesEventId: "667904", metaEventSlug: "summoner-skirmish" })}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "UVS Games event" })).toHaveAttribute(
+      "href",
+      "https://locator.riftbound.uvsgames.com/events/667904",
+    );
+    expect(screen.getByRole("link", { name: "Meta Archive" })).toHaveAttribute(
+      "href",
+      "/meta/summoner-skirmish",
+    );
+  });
+
+  it("hides the Meta Archive link while the archive is switched off", () => {
+    metaEnabled = false;
+    render(
+      <TournamentHero
+        detail={makeDetail({ uvsgamesEventId: "667904", metaEventSlug: "summoner-skirmish" })}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: "Meta Archive" })).not.toBeInTheDocument();
+  });
+
+  it("shows neither link without a linked event", () => {
+    render(<TournamentHero detail={makeDetail()} />);
+
+    expect(screen.queryByRole("link", { name: "UVS Games event" })).not.toBeInTheDocument();
   });
 });
 

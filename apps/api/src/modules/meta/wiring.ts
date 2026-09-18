@@ -30,6 +30,8 @@ import { notifyAdminsOfMetaSubmission } from "./services/meta-submission-notific
 import type { MetaSubmissionEmailDeps } from "./services/meta-submission-notifications.js";
 import { notifySubmitterOfMetaAcceptance } from "./services/meta-submission-thanks.js";
 import { submitMetaDeck, submitMetaEventCorrection } from "./services/meta-submission.js";
+import { fetchUvsgamesEvent } from "./services/meta-sync/uvsgames-on-demand.js";
+import { loadTournamentListTarget, sendTournamentLists } from "./services/meta-tournament-lists.js";
 
 export interface MetaRepos {
   meta: ReturnType<typeof metaRepo>;
@@ -61,6 +63,9 @@ export interface MetaServices {
   submitMetaEventCorrection: typeof submitMetaEventCorrection;
   notifyAdminsOfMetaSubmission: typeof notifyAdminsOfMetaSubmission;
   notifySubmitterOfMetaAcceptance: typeof notifySubmitterOfMetaAcceptance;
+  fetchUvsgamesEvent: typeof fetchUvsgamesEvent;
+  loadTournamentListTarget: typeof loadTournamentListTarget;
+  sendTournamentLists: typeof sendTournamentLists;
 }
 
 export function createMetaRepos(db: Kysely<Database>): MetaRepos {
@@ -102,5 +107,8 @@ export function createMetaServices(emailDeps?: MetaSubmissionEmailDeps): MetaSer
       emailDeps === undefined
         ? notifySubmitterOfMetaAcceptance
         : (repos, submissionId) => notifySubmitterOfMetaAcceptance(repos, submissionId, emailDeps),
+    fetchUvsgamesEvent,
+    loadTournamentListTarget,
+    sendTournamentLists,
   };
 }

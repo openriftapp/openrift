@@ -20,6 +20,17 @@ export type UvsgamesPhaseRow = Selectable<UvsgamesEventPhasesTable>;
 export type UvsgamesMatchRow = Selectable<UvsgamesEventMatchesTable>;
 export type UvsgamesDecklistCardRow = Selectable<UvsgamesDecklistCardsTable>;
 
+export interface UvsgamesNamedStandingRow {
+  registrationId: string;
+  uvsgamesPlayerId: number | null;
+  playerName: string | null;
+  rank: number | null;
+  wins: number | null;
+  losses: number | null;
+  draws: number | null;
+  legendName: string | null;
+}
+
 export interface UvsgamesDeckCoverage {
   outstanding: string[];
   held: number;
@@ -34,6 +45,26 @@ export function uvsgamesResultsRepo(db: Kysely<Database>) {
         .where("externalId", "=", externalId)
         .orderBy("rank", "asc")
         .orderBy("registrationId", "asc")
+        .execute();
+    },
+
+    namedStandings(externalId: string): Promise<UvsgamesNamedStandingRow[]> {
+      return db
+        .selectFrom("uvsgamesEventStandings as s")
+        .leftJoin("uvsgamesPlayers as up", "up.id", "s.uvsgamesPlayerId")
+        .select([
+          "s.registrationId",
+          "s.uvsgamesPlayerId",
+          "s.rank",
+          "s.wins",
+          "s.losses",
+          "s.draws",
+          "s.legendName",
+        ])
+        .select((eb) => eb.fn.coalesce("up.displayName", "s.playerName").as("playerName"))
+        .where("s.externalId", "=", externalId)
+        .orderBy("s.rank", "asc")
+        .orderBy("s.registrationId", "asc")
         .execute();
     },
 

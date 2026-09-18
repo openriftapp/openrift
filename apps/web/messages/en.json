@@ -8090,7 +8090,7 @@
   "tournaments_player_deck_publish_consent": "I agree the event organizer may publish this deck list publicly after the event",
   "tournaments_player_deck_publish_name": "…including my name",
   "tournaments_player_deck_publish_riot_id": "…including my Riot ID",
-  "tournaments_player_deck_sharing_note": "These choices only control how much the organizer may publish publicly, for example on riftdecks.com or OpenRift. The event judges always see your full list and details.",
+  "tournaments_player_deck_sharing_note": "These choices control what the organizer may publish after the event, for example on riftdecks.com or in the OpenRift Meta Archive. The Meta Archive shows a list under your name from the UVS Games standings, so it only takes lists shared with your name. The event judges always see your full list and details.",
   "tournaments_player_deck_checking": "Checking…",
   "tournaments_player_deck_preview": "Preview",
   "tournaments_player_deck_preview_counts": "{copies} cards across {lines} lines.",
@@ -8702,5 +8702,94 @@
       }
     }
   ],
-  "meta_rank_tier": "T{rank}"
+  "meta_rank_tier": "T{rank}",
+  "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_uvsgames_title": "UVS Games event",
+  "tournaments_settings_uvsgames_description": "If this tournament also runs on UVS Games, link its event here. The tournament page then links to it, and after the event you can send the decklists to the Meta Archive under its official standings.",
+  "tournaments_settings_uvsgames_label": "Event link or number",
+  "tournaments_settings_uvsgames_invalid": "Paste the link to a UVS Games event, or its number.",
+  "tournaments_settings_uvsgames_save": "Save link",
+  "tournaments_settings_uvsgames_remove": "Remove link",
+  "tournaments_settings_uvsgames_open": "Open on UVS Games",
+  "tournaments_settings_uvsgames_suggestions": "Events at your group's shops around this date",
+  "tournaments_settings_uvsgames_use": "Link",
+  "tournaments_hero_uvsgames": "UVS Games event",
+  "tournaments_hero_meta_archive": "Meta Archive",
+  "tournaments_archive_band_title": "Meta Archive",
+  "tournaments_archive_band_description": "Send the lists your players agreed to share to the Meta Archive. They go onto the official UVS Games standings, and an admin reviews them before they show.",
+  "tournaments_archive_band_open": "Match and send",
+  "tournaments_archive_band_unlinked": "Link the UVS Games event in the settings first.",
+  "tournaments_archive_band_settings": "Settings",
+  "tournaments_archive_title": "Send to Meta Archive",
+  "tournaments_archive_intro": "Pick the UVS Games standing for each player whose list you send. Names on UVS Games can differ from the names here, so check every match. An admin reviews the lists before they show in the archive.",
+  "tournaments_archive_unlinked": "This tournament has no UVS Games event linked.",
+  "tournaments_archive_unlinked_action": "Link one in the settings",
+  "tournaments_archive_not_ended": "You can send lists once the tournament has ended.",
+  "tournaments_archive_load": "Load standings from UVS Games",
+  "tournaments_archive_reload": "Reload standings",
+  "tournaments_archive_not_found": "UVS Games has no Riftbound event with this number. Check the link in the settings.",
+  "tournaments_archive_fetch_failed": "UVS Games could not be read. Try again in a few minutes.",
+  "tournaments_archive_not_final": "UVS Games has not published the final standings for this event yet.",
+  "tournaments_archive_no_standings": "The UVS Games event has no standings yet.",
+  "tournaments_archive_view_archive": "View in the Meta Archive",
+  "tournaments_archive_view_uvsgames": "View on UVS Games",
+  "tournaments_archive_players_heading": "Players",
+  "tournaments_archive_pick_placeholder": "Pick a standing",
+  "tournaments_archive_pick_none": "Don't send",
+  "tournaments_archive_pick_label": "UVS Games standing for {player}",
+  "tournaments_archive_standing_option": "{rank}. {name} ({wins}-{losses}-{draws})",
+  "tournaments_archive_unnamed": "Unnamed player",
+  "tournaments_archive_status_pending": "Sent, awaiting review",
+  "tournaments_archive_status_accepted": "In the archive",
+  "tournaments_archive_status_rejected": "Declined",
+  "tournaments_archive_eligibility_ready": "Ready",
+  "tournaments_archive_eligibility_unchecked": "Deck check not finished",
+  "tournaments_archive_eligibility_no_consent": "Didn't agree to publishing",
+  "tournaments_archive_eligibility_no_name_consent": "Didn't agree to sharing their name",
+  "tournaments_archive_eligibility_withdrawn": "List withdrawn",
+  "tournaments_archive_eligibility_no_list": "No list",
+  "tournaments_archive_force": "Send anyway",
+  "tournaments_archive_unmatched_lines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card not matched",
+        "countPlural=*": "{count} cards not matched"
+      }
+    }
+  ],
+  "tournaments_archive_summary_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} list will not be sent",
+        "countPlural=*": "{count} lists will not be sent"
+      }
+    }
+  ],
+  "tournaments_archive_summary_unmatched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} list has no standing picked",
+        "countPlural=*": "{count} lists have no standing picked"
+      }
+    }
+  ],
+  "tournaments_archive_duplicate": "Two players share a standing. Each standing takes one list.",
+  "tournaments_archive_send": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Send {count} list",
+        "countPlural=*": "Send {count} lists"
+      }
+    }
+  ],
+  "tournaments_archive_result": "Sent: {sent}. Updated: {updated}. Skipped: {skipped}.",
+  "tournaments_archive_resend_note": "Sending again replaces lists that are still awaiting review."
 }

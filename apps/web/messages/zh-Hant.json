@@ -7988,7 +7988,7 @@
   "tournaments_player_deck_publish_consent": "我同意賽事主辦人可以在賽後公開發布這份牌表",
   "tournaments_player_deck_publish_name": "…包含我的名稱",
   "tournaments_player_deck_publish_riot_id": "…包含我的 Riot ID",
-  "tournaments_player_deck_sharing_note": "這些選擇只決定主辦人可以公開發布多少內容，例如在 riftdecks.com 或 OpenRift 上。賽事裁判一律看得到你的完整清單與詳細資料。",
+  "tournaments_player_deck_sharing_note": "這些選擇決定主辦人在賽後可以公開發布哪些內容，例如在 riftdecks.com 或 OpenRift 的 Meta 檔案中。Meta 檔案會以 UVS Games 排名中的名稱顯示牌表，因此只收錄同意公開名稱的牌表。賽事裁判一律看得到你的完整清單與詳細資料。",
   "tournaments_player_deck_checking": "檢查中…",
   "tournaments_player_deck_preview": "預覽",
   "tournaments_player_deck_preview_counts": "{copies} 張卡牌，共 {lines} 行。",
@@ -8702,5 +8702,94 @@
   "board_states_editor_view": "檢視",
   "board_states_editor_desktop_only": "牌局編輯器需要更寬的畫面。",
   "board_states_editor_invalid": "牌局出現問題：{message}",
-  "nav_board_states_description": "逐步繪製的對局情境"
+  "nav_board_states_description": "逐步繪製的對局情境",
+  "tournaments_settings_toc_uvsgames": "UVS Games",
+  "tournaments_settings_uvsgames_title": "UVS Games 賽事",
+  "tournaments_settings_uvsgames_description": "如果這場比賽也在 UVS Games 上舉辦，請在這裡連結該賽事。比賽頁面會連到它，賽後你也可以依官方排名把牌表送到 Meta 檔案。",
+  "tournaments_settings_uvsgames_label": "賽事連結或編號",
+  "tournaments_settings_uvsgames_invalid": "請貼上 UVS Games 賽事連結或賽事編號。",
+  "tournaments_settings_uvsgames_save": "儲存連結",
+  "tournaments_settings_uvsgames_remove": "移除連結",
+  "tournaments_settings_uvsgames_open": "在 UVS Games 上開啟",
+  "tournaments_settings_uvsgames_suggestions": "這個日期前後你群組關注的店家賽事",
+  "tournaments_settings_uvsgames_use": "連結",
+  "tournaments_hero_uvsgames": "UVS Games 賽事",
+  "tournaments_hero_meta_archive": "Meta 檔案",
+  "tournaments_archive_band_title": "Meta 檔案",
+  "tournaments_archive_band_description": "把玩家同意分享的牌表送到 Meta 檔案。牌表會對應到 UVS Games 官方排名，並在管理員審核後顯示。",
+  "tournaments_archive_band_open": "配對並送出",
+  "tournaments_archive_band_unlinked": "請先在設定中連結 UVS Games 賽事。",
+  "tournaments_archive_band_settings": "設定",
+  "tournaments_archive_title": "送到 Meta 檔案",
+  "tournaments_archive_intro": "為每位要送出牌表的玩家選擇其 UVS Games 排名。UVS Games 上的名稱可能與這裡不同，請逐一確認配對。管理員審核後，牌表才會在檔案中顯示。",
+  "tournaments_archive_unlinked": "這場比賽還沒有連結 UVS Games 賽事。",
+  "tournaments_archive_unlinked_action": "在設定中連結",
+  "tournaments_archive_not_ended": "比賽結束後才能送出牌表。",
+  "tournaments_archive_load": "從 UVS Games 載入排名",
+  "tournaments_archive_reload": "重新載入排名",
+  "tournaments_archive_not_found": "UVS Games 上沒有這個編號的 Riftbound 賽事。請檢查設定中的連結。",
+  "tournaments_archive_fetch_failed": "無法讀取 UVS Games。請幾分鐘後再試。",
+  "tournaments_archive_not_final": "UVS Games 尚未公布這場賽事的最終排名。",
+  "tournaments_archive_no_standings": "這場 UVS Games 賽事還沒有排名。",
+  "tournaments_archive_view_archive": "在 Meta 檔案中查看",
+  "tournaments_archive_view_uvsgames": "在 UVS Games 上查看",
+  "tournaments_archive_players_heading": "玩家",
+  "tournaments_archive_pick_placeholder": "選擇排名",
+  "tournaments_archive_pick_none": "不送出",
+  "tournaments_archive_pick_label": "{player} 的 UVS Games 排名",
+  "tournaments_archive_standing_option": "{rank}. {name}（{wins}-{losses}-{draws}）",
+  "tournaments_archive_unnamed": "未命名玩家",
+  "tournaments_archive_status_pending": "已送出，等待審核",
+  "tournaments_archive_status_accepted": "已收錄",
+  "tournaments_archive_status_rejected": "已拒絕",
+  "tournaments_archive_eligibility_ready": "可送出",
+  "tournaments_archive_eligibility_unchecked": "牌組檢查未完成",
+  "tournaments_archive_eligibility_no_consent": "未同意公開",
+  "tournaments_archive_eligibility_no_name_consent": "未同意公開名稱",
+  "tournaments_archive_eligibility_withdrawn": "牌表已撤回",
+  "tournaments_archive_eligibility_no_list": "沒有牌表",
+  "tournaments_archive_force": "仍然送出",
+  "tournaments_archive_unmatched_lines": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡未配對",
+        "countPlural=*": "{count} 張卡未配對"
+      }
+    }
+  ],
+  "tournaments_archive_summary_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 份牌表不會送出",
+        "countPlural=*": "{count} 份牌表不會送出"
+      }
+    }
+  ],
+  "tournaments_archive_summary_unmatched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 份牌表還沒有選擇排名",
+        "countPlural=*": "{count} 份牌表還沒有選擇排名"
+      }
+    }
+  ],
+  "tournaments_archive_duplicate": "兩位玩家選了同一個排名。每個排名只能對應一份牌表。",
+  "tournaments_archive_send": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "送出 {count} 份牌表",
+        "countPlural=*": "送出 {count} 份牌表"
+      }
+    }
+  ],
+  "tournaments_archive_result": "已送出：{sent}。已更新：{updated}。已略過：{skipped}。",
+  "tournaments_archive_resend_note": "再次送出會取代仍在等待審核的牌表。"
 }

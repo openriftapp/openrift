@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XMfdw7r4zeduVp2sklKEGBvelP7vFZr0eVMYTG7qFf86nPyD9hkv5gKWEZh6lQw
+\restrict eff4E7VHFzoucTZWForMnF5Gqc4SHsg2nbxXYLtgGaTrZKC6jR85rmYgPOSP4nR
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3694,6 +3694,7 @@ CREATE TABLE public.tournaments (
     cut_rematch_avoidance boolean DEFAULT false NOT NULL,
     legend_tiebreak boolean DEFAULT false NOT NULL,
     groups_self_paced boolean DEFAULT true NOT NULL,
+    uvsgames_event_id text,
     CONSTRAINT chk_tournaments_allowed_sets_shape CHECK (((allowed_sets IS NULL) OR (jsonb_typeof(allowed_sets) = 'array'::text))),
     CONSTRAINT chk_tournaments_bye_points CHECK ((bye_points >= 0)),
     CONSTRAINT chk_tournaments_cut_size CHECK ((cut_size = ANY (ARRAY[4, 8, 16]))),
@@ -3712,6 +3713,7 @@ CREATE TABLE public.tournaments (
     CONSTRAINT chk_tournaments_play_mode_regions CHECK (((play_mode = '1v1'::text) OR (regions_enabled = false))),
     CONSTRAINT chk_tournaments_scheme CHECK ((scoring_scheme = ANY (ARRAY['standard'::text, 'three_pod_reduced'::text]))),
     CONSTRAINT chk_tournaments_status CHECK ((status = ANY (ARRAY['setup'::text, 'running'::text, 'completed'::text, 'cancelled'::text]))),
+    CONSTRAINT chk_tournaments_uvsgames_event_id CHECK (((uvsgames_event_id IS NULL) OR (uvsgames_event_id ~ '^[1-9][0-9]{0,11}$'::text))),
     CONSTRAINT chk_tournaments_win_points CHECK ((win_points >= 0))
 );
 
@@ -9761,5 +9763,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XMfdw7r4zeduVp2sklKEGBvelP7vFZr0eVMYTG7qFf86nPyD9hkv5gKWEZh6lQw
+\unrestrict eff4E7VHFzoucTZWForMnF5Gqc4SHsg2nbxXYLtgGaTrZKC6jR85rmYgPOSP4nR
 

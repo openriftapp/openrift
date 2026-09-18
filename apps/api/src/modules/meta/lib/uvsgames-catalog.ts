@@ -10,8 +10,12 @@ import { normalizeFormatKey } from "../../../lib/meta-providers.js";
  */
 
 /** The source's own page for an event, which becomes the citation's URL. */
-export function uvsgamesEventUrl(externalId: string): string {
-  return `https://locator.riftbound.uvsgames.com/events/${externalId}`;
+/** The `source_identity` promotion files a mirrored standings row under. */
+export function uvsgamesStandingIdentity(row: {
+  uvsgamesPlayerId: number | null;
+  registrationId: string;
+}): string {
+  return row.uvsgamesPlayerId === null ? `r${row.registrationId}` : `u${row.uvsgamesPlayerId}`;
 }
 
 /**

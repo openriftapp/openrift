@@ -330,6 +330,18 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       return rows;
     },
 
+    unanchoredPlayerOverlays(
+      metaEventId: string,
+      provider: string,
+    ): Promise<MetaPlayerOverlayRow[]> {
+      return db
+        .selectFrom("metaEventPlayerOverlays")
+        .selectAll()
+        .where("metaEventId", "=", metaEventId)
+        .where("provider", "=", provider)
+        .execute();
+    },
+
     async insertPlayerOverlay(
       values: Insertable<MetaEventPlayerOverlaysTable>,
       cards: readonly Omit<Insertable<MetaEventPlayerOverlayCardsTable>, "overlayId">[],
@@ -365,7 +377,7 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
       values: Partial<Insertable<MetaEventPlayerOverlaysTable>>,
       cards?: readonly Omit<Insertable<MetaEventPlayerOverlayCardsTable>, "overlayId">[],
     ): Promise<void> {
-      await db.transaction().execute(async (trx) => {
+      const run = async (trx: Kysely<Database>): Promise<void> => {
         await trx.updateTable("metaEventPlayerOverlays").set(values).where("id", "=", id).execute();
         if (cards === undefined) {
           return;
@@ -374,7 +386,8 @@ export function metaOverlaysRepo(db: Kysely<Database>) {
         for (const batch of rowBatches(cards.map((card) => ({ ...card, overlayId: id })))) {
           await trx.insertInto("metaEventPlayerOverlayCards").values(batch).execute();
         }
-      });
+      };
+      await (db.isTransaction ? run(db) : db.transaction().execute(run));
     },
 
     /** The one row an admin's field edits on a standings row merge into. See {@link adminEditOverlay}. */

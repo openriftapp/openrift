@@ -17,13 +17,28 @@ vi.mock("@/features/tournaments/components/deck-check-event-page", () => ({
 vi.mock("@/features/tournaments/components/deck-check-ingest-guide", () => ({
   DeckCheckIngestGuide: () => <div>ingest-guide</div>,
 }));
+vi.mock("@/features/tournaments/components/archive-lists-band", () => ({
+  ArchiveListsBand: () => <div>archive-band</div>,
+}));
 
-function detailWith(myRoles: TournamentViewerRole[]): TournamentDetailResponse {
+let metaEnabled = true;
+vi.mock("@/hooks/use-feature-flags", () => ({
+  useFeatureEnabled: () => metaEnabled,
+}));
+
+function detailWith(
+  myRoles: TournamentViewerRole[],
+  overrides: Partial<TournamentDetailResponse> = {},
+): TournamentDetailResponse {
   return {
     id: "tournament-1",
     deckSubmission: "required",
     host: { type: "user", id: "user-1", name: "Host" },
     myRoles,
+    startsAt: "2099-01-01T10:00:00Z",
+    endsAt: null,
+    status: "running",
+    ...overrides,
   } as unknown as TournamentDetailResponse;
 }
 
@@ -46,5 +61,29 @@ describe("TournamentDeckCheckTab", () => {
     render(<TournamentDeckCheckTab detail={detailWith(["organizer"])} />);
 
     expect(screen.getByText("entries-list")).toBeInTheDocument();
+  });
+
+  it("offers the Meta Archive band to an organizer once the tournament ended", () => {
+    metaEnabled = true;
+    render(<TournamentDeckCheckTab detail={detailWith(["organizer"], { status: "completed" })} />);
+
+    expect(screen.getByText("archive-band")).toBeInTheDocument();
+  });
+
+  it("keeps the band away from judges, running tournaments and a switched-off archive", () => {
+    metaEnabled = true;
+    const { rerender } = render(
+      <TournamentDeckCheckTab detail={detailWith(["judge"], { status: "completed" })} />,
+    );
+    expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
+
+    rerender(<TournamentDeckCheckTab detail={detailWith(["organizer"])} />);
+    expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
+
+    metaEnabled = false;
+    rerender(
+      <TournamentDeckCheckTab detail={detailWith(["organizer"], { status: "completed" })} />,
+    );
+    expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
   });
 });

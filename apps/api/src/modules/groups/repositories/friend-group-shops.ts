@@ -198,6 +198,27 @@ export function friendGroupShopsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    listEventsBetween(groupId: string, from: Date, to: Date): Promise<ShopEventRow[]> {
+      return db
+        .selectFrom("friendGroupShops as fgs")
+        .innerJoin("uvsgamesStores as s", "s.id", "fgs.uvsgamesStoreId")
+        .innerJoin("uvsgamesEvents as e", "e.storeId", "s.id")
+        .select([
+          "e.externalId as externalId",
+          "e.name as name",
+          "e.startAt as startAt",
+          "s.id as storeId",
+          "s.name as storeName",
+          "e.eventFormat as eventFormat",
+        ])
+        .where("fgs.groupId", "=", groupId)
+        .where(sql<SqlBool>`date_trunc('milliseconds', e.start_at) >= ${from}`)
+        .where(sql<SqlBool>`date_trunc('milliseconds', e.start_at) < ${to}`)
+        .orderBy("e.startAt", "asc")
+        .orderBy("e.externalId", "asc")
+        .execute();
+    },
+
     listEventsInWindow(
       groupId: string,
       pastDays: number,

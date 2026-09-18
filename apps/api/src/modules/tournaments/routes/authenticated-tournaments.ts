@@ -305,6 +305,7 @@ export const tournamentsRouter = {
       deckFormat: patch.deckFormat,
       allowedSets: patch.allowedSets,
       selfRegistration: patch.selfRegistration,
+      uvsgamesEventId: patch.uvsgamesEventId,
     });
     // The rounds guard above means these teams never played.
     if (playModeChanging && patch.playMode === "1v1") {

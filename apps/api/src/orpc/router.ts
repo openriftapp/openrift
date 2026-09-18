@@ -105,6 +105,7 @@ import { adminOrganizationsRouter } from "../modules/tournaments/routes/admin-or
 import { deckCheckKeysRouter } from "../modules/tournaments/routes/authenticated-deck-check-keys.js";
 import { deckCheckPlayerRouter } from "../modules/tournaments/routes/authenticated-deck-check-player.js";
 import { organizationsRouter } from "../modules/tournaments/routes/authenticated-organizations.js";
+import { tournamentArchiveListsRouter } from "../modules/tournaments/routes/authenticated-tournament-archive-lists.js";
 import { tournamentDeckCheckRouter } from "../modules/tournaments/routes/authenticated-tournament-deck-check.js";
 import { tournamentsRouter } from "../modules/tournaments/routes/authenticated-tournaments.js";
 import { deckCheckClaimRouter } from "../modules/tournaments/routes/public-deck-check-claim.js";
@@ -204,6 +205,7 @@ const apiRouter = {
   stagePresetsRouter,
   tierListsRouter,
   boardStatesRouter,
+  tournamentArchiveListsRouter,
   tournamentDeckCheckRouter,
   tournamentsRouter,
   userShareRouter,
