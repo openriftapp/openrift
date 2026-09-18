@@ -81,6 +81,7 @@ export interface ParticipantRowProps {
   dimmed?: boolean;
   teammateName?: string;
   deckEntryId?: string;
+  deckWithdrawn?: boolean;
   actionPending: boolean;
   onAction: (participantId: string, action: ParticipantAction) => void;
   onRename: (target: ParticipantTarget) => void;
@@ -101,6 +102,7 @@ export function ParticipantRow({
   dimmed = false,
   teammateName,
   deckEntryId,
+  deckWithdrawn = false,
   actionPending,
   onAction,
   onRename,
@@ -172,6 +174,12 @@ export function ParticipantRow({
           <Badge variant="muted">
             <CrownIcon className="size-3" />
             {m.tournaments_participant_no_legend()}
+          </Badge>
+        ) : null}
+        {deckWithdrawn ? (
+          <Badge variant="warning">
+            <LayersIcon className="size-3" />
+            {m.tournaments_participant_deck_withdrawn()}
           </Badge>
         ) : null}
         {participant.fixedTable === null ? null : (

@@ -7939,6 +7939,7 @@
   "tournaments_participant_linked_badge": "Lié",
   "tournaments_participant_set_legend": "Définir la Legend",
   "tournaments_participant_deck": "Deck",
+  "tournaments_participant_deck_withdrawn": "Deck retiré",
   "tournaments_participant_approve": "Accepter",
   "tournaments_participant_deny": "Refuser",
   "tournaments_participant_actions": "Actions sur le participant",

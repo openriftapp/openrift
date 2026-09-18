@@ -104,6 +104,7 @@ function missingRegionsBand(): HTMLElement {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useTournamentDeckCheckEntries.mockReturnValue({ data: undefined });
   participants = [];
 });
 
@@ -307,6 +308,24 @@ describe("TournamentParticipantsTab deck-check query gating", () => {
   it("enables the entries query for managers of deck-submission tournaments", () => {
     renderTab(makeDetail({ deckSubmission: "required" }));
     expect(useTournamentDeckCheckEntries).toHaveBeenCalledWith("tournament-1", true);
+  });
+
+  it("marks players whose deck entry is withdrawn", () => {
+    participants = [
+      makeParticipant("p1", { displayName: "Ashe" }),
+      makeParticipant("p2", { displayName: "Braum" }),
+    ];
+    useTournamentDeckCheckEntries.mockReturnValue({
+      data: {
+        entries: [
+          { id: "e1", participantId: "p1", state: "withdrawn" },
+          { id: "e2", participantId: "p2", state: "submitted" },
+        ],
+      },
+    } as never);
+    renderTab(makeDetail({ deckSubmission: "required" }));
+
+    expect(screen.getByText("Deck withdrawn").closest("li")).toHaveTextContent("Ashe");
   });
 
   it("disables the entries query for viewers without manage rights", () => {

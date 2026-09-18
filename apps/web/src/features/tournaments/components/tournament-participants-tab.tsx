@@ -300,6 +300,7 @@ export function TournamentParticipantsTab({
                   dimmed={group.dimmed}
                   teammateName={teammateNames.get(participant.id)}
                   deckEntryId={entryByParticipant.get(participant.id)?.id}
+                  deckWithdrawn={entryByParticipant.get(participant.id)?.state === "withdrawn"}
                   actionPending={participantAction.isPending}
                   onAction={fireAction}
                   onRename={setRenameTarget}

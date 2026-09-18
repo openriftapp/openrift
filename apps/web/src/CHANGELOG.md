@@ -12,6 +12,7 @@
 - feat(Trades): **Both sides of each possible trade** — people on the trades pages now show the cards you could get from them and the cards they would want from you, each with a count and card art.
 - feat(Meta): **Copied decks remember their tournament** — copying an archived decklist now names it after the full legend and the player, and its description says which event it was played at, the placement and record, with links back to the event and the original list.
 - feat(Meta): **Alphabetical legend filter in standings** — the legend picker on a tournament's standings now lists legends by name, with the play count still beside each one.
+- feat(Tournaments): **Withdrawn decks on the participants page** — players whose deck entry was withdrawn now carry a "Deck withdrawn" badge in the roster.
 
 ## 2026-09-17
 

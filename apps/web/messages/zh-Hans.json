@@ -7939,6 +7939,7 @@
   "tournaments_participant_linked_badge": "已关联",
   "tournaments_participant_set_legend": "设置传奇",
   "tournaments_participant_deck": "卡组",
+  "tournaments_participant_deck_withdrawn": "卡组已撤回",
   "tournaments_participant_approve": "通过",
   "tournaments_participant_deny": "驳回",
   "tournaments_participant_actions": "参赛者操作",

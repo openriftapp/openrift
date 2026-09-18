@@ -7939,6 +7939,7 @@
   "tournaments_participant_linked_badge": "연결됨",
   "tournaments_participant_set_legend": "전설 지정",
   "tournaments_participant_deck": "덱",
+  "tournaments_participant_deck_withdrawn": "덱 철회함",
   "tournaments_participant_approve": "승인",
   "tournaments_participant_deny": "거부",
   "tournaments_participant_actions": "참가자 작업",
