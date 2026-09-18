@@ -317,6 +317,7 @@ export function decksCoreRepo(db: Kysely<Database>) {
     async cloneFromShareToken(
       shareToken: string,
       userId: string,
+      overrides?: { name?: string; description?: string },
     ): Promise<Selectable<DecksTable> | undefined> {
       const source = await db
         .selectFrom("decks")
@@ -334,8 +335,8 @@ export function decksCoreRepo(db: Kysely<Database>) {
           .insertInto("decks")
           .values({
             userId,
-            name: `Copy of ${source.name}`,
-            description: source.description,
+            name: overrides?.name ?? `Copy of ${source.name}`,
+            description: overrides?.description ?? source.description,
             links: source.links,
             format: source.format,
             formatConfig: source.formatConfig,

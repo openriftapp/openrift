@@ -1,6 +1,9 @@
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
+import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+import { ownershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
+
 export interface MetaDeckCards {
   main: ReadonlyMap<string, number>;
   side: ReadonlyMap<string, number>;
@@ -144,4 +147,24 @@ export function metaDeckCosts(
     });
   }
   return byDeck;
+}
+
+/** Copies of the thumbnail's own printing fill first, the card's other printings after. */
+export function metaCardOwnershipBand(
+  card: { cardId: string; quantity: number },
+  displayedPrintingId: string | null,
+  ownedByPrinting: Readonly<Record<string, number>>,
+  printingsByCardId: ReadonlyMap<string, readonly { id: string }[]>,
+): OwnershipBandSegments {
+  let ownedOfDisplayed = 0;
+  let ownedOfOthers = 0;
+  for (const printing of printingsByCardId.get(card.cardId) ?? []) {
+    const owned = ownedByPrinting[printing.id] ?? 0;
+    if (printing.id === displayedPrintingId) {
+      ownedOfDisplayed += owned;
+    } else {
+      ownedOfOthers += owned;
+    }
+  }
+  return ownershipBandSegments(card.quantity, ownedOfDisplayed, ownedOfOthers);
 }

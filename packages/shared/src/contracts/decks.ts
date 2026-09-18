@@ -238,6 +238,12 @@ export const setDeckPredecessorSchema = z.object({
 });
 
 const shareTokenParamSchema = z.object({ token: z.string().min(1) });
+
+/** The archive copy composes its own name and provenance description; both fall back to the source deck's. */
+export const cloneSharedDeckSchema = shareTokenParamSchema.extend({
+  name: deckFieldRules.name.optional(),
+  description: z.string().max(8000).optional(),
+});
 const pinDeckBodySchema = z.object({ isPinned: z.boolean() });
 const archiveDeckBodySchema = z.object({ archived: z.boolean() });
 
@@ -369,7 +375,7 @@ export const decksContract = {
       tags: [TAG],
       successStatus: 201,
     })
-    .input(shareTokenParamSchema)
+    .input(cloneSharedDeckSchema)
     .errors({ NOT_FOUND: { message: "Shared deck not found" } })
     .output(deckCloneResponseSchema),
 };

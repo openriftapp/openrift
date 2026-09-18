@@ -16,13 +16,13 @@ import {
   PORTRAIT_THUMB_CLASS,
   PORTRAIT_THUMB_STYLE,
 } from "@/features/decks/components/deck-thumb-metrics";
+import { OwnershipBand } from "@/features/decks/components/ownership-band";
 import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { cardInteractiveProps, deckCardDragData } from "@/features/decks/lib/deck-card-interaction";
 import { DRAG_SOURCE_ZONES } from "@/features/decks/lib/deck-dnd-data";
 import { STEPPER_ZONES } from "@/features/decks/lib/deck-overview-derive";
 import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
-import { ownershipBandTitle } from "@/features/decks/lib/deck-ownership-band";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -311,30 +311,7 @@ export function ZoneThumb({
           alwaysVisible={isMobile}
         />
       )}
-      {band && (
-        <span
-          title={ownershipBandTitle(card.quantity, band)}
-          style={{
-            borderBottomLeftRadius: "5% 100%",
-            borderBottomRightRadius: "5% 100%",
-          }}
-          className="absolute inset-x-0 bottom-0 flex h-0.5 overflow-hidden"
-        >
-          {band.exact > 0 && (
-            <span className="bg-success" style={{ flexGrow: band.exact, flexBasis: 0 }} />
-          )}
-          {band.other > 0 && (
-            <span className="bg-info" style={{ flexGrow: band.other, flexBasis: 0 }} />
-          )}
-          {band.borrowed > 0 && (
-            <span className="bg-violet" style={{ flexGrow: band.borrowed, flexBasis: 0 }} />
-          )}
-          {band.locked > 0 && (
-            <span className="bg-warning" style={{ flexGrow: band.locked, flexBasis: 0 }} />
-          )}
-          {band.missing > 0 && <span style={{ flexGrow: band.missing, flexBasis: 0 }} />}
-        </span>
-      )}
+      {band && <OwnershipBand quantity={card.quantity} band={band} />}
     </div>
   );
 

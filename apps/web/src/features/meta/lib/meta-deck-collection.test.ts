@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   cheapestPriceByCardId,
   decodeMetaDeckCardIndex,
+  metaCardOwnershipBand,
   metaDeckCosts,
   ownedCountsByCardId,
 } from "./meta-deck-collection";
@@ -238,5 +239,39 @@ describe("metaDeckCosts", () => {
       ownedByCardId: new Map(),
     });
     expect(costs.get("deck-1")).toEqual({ needed: 0, owned: 0, value: 0, toComplete: 0 });
+  });
+});
+
+describe("metaCardOwnershipBand", () => {
+  const printings = new Map([["card-a", [{ id: "p-en" }, { id: "p-foil" }, { id: "p-fr" }]]]);
+
+  it("fills the displayed printing first, then the card's other printings", () => {
+    const band = metaCardOwnershipBand(
+      { cardId: "card-a", quantity: 3 },
+      "p-en",
+      { "p-en": 1, "p-fr": 1 },
+      printings,
+    );
+    expect(band).toEqual({ exact: 1, other: 1, borrowed: 0, locked: 0, missing: 1 });
+  });
+
+  it("caps at the quantity the list plays", () => {
+    const band = metaCardOwnershipBand(
+      { cardId: "card-a", quantity: 2 },
+      "p-en",
+      { "p-en": 5 },
+      printings,
+    );
+    expect(band).toEqual({ exact: 2, other: 0, borrowed: 0, locked: 0, missing: 0 });
+  });
+
+  it("counts every owned copy as another printing when the thumbnail has none", () => {
+    const band = metaCardOwnershipBand(
+      { cardId: "card-a", quantity: 3 },
+      null,
+      { "p-en": 1, "p-foil": 1 },
+      printings,
+    );
+    expect(band).toEqual({ exact: 0, other: 2, borrowed: 0, locked: 0, missing: 1 });
   });
 });

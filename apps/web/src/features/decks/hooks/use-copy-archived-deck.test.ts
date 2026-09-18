@@ -19,6 +19,8 @@ const { useCopyArchivedDeck } = await import("./use-copy-archived-deck");
 const { useLocalDecksStore } = await import("@/features/decks/stores/local-decks-store");
 
 const TOKEN = "aB3dE5gH7jK9";
+const NAME = "Azir, Emperor of the Sands (Ana)";
+const DESCRIPTION = "Ana played this deck at Summoner Skirmish.";
 
 const deck = {
   format: "custom-region",
@@ -64,11 +66,12 @@ describe("useCopyArchivedDeck", () => {
   it("builds a browser-local deck with the archived cards when signed out", async () => {
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    await result.current.copy({ token: TOKEN, deck, cards });
+    await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
     const stored = Object.values(useLocalDecksStore.getState().decks);
     expect(stored).toHaveLength(1);
-    expect(stored[0]?.name).toBe("Azir Control");
+    expect(stored[0]?.name).toBe(NAME);
+    expect(stored[0]?.description).toBe(DESCRIPTION);
     expect(stored[0]?.format).toBe("custom-region");
     expect(stored[0]?.cards).toEqual([
       {
@@ -85,7 +88,7 @@ describe("useCopyArchivedDeck", () => {
   it("carries the format config and links over, so a Custom-Region copy keeps its regions", async () => {
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    await result.current.copy({ token: TOKEN, deck, cards });
+    await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
     const stored = Object.values(useLocalDecksStore.getState().decks)[0];
     expect(stored?.formatConfig).toEqual({ tagSlugs: ["shurima"] });
@@ -95,7 +98,7 @@ describe("useCopyArchivedDeck", () => {
   it("navigates to the local deck it just built", async () => {
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    await result.current.copy({ token: TOKEN, deck, cards });
+    await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
     const localId = Object.keys(useLocalDecksStore.getState().decks)[0];
     expect(navigate).toHaveBeenCalledWith({ to: "/decks/$deckId", params: { deckId: localId } });
@@ -106,9 +109,13 @@ describe("useCopyArchivedDeck", () => {
     cloneMutateAsync.mockResolvedValue({ deckId: "deck-9" });
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    await result.current.copy({ token: TOKEN, deck, cards });
+    await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
-    expect(cloneMutateAsync).toHaveBeenCalledWith(TOKEN);
+    expect(cloneMutateAsync).toHaveBeenCalledWith({
+      token: TOKEN,
+      name: NAME,
+      description: DESCRIPTION,
+    });
     expect(navigate).toHaveBeenCalledWith({ to: "/decks/$deckId", params: { deckId: "deck-9" } });
     expect(Object.keys(useLocalDecksStore.getState().decks)).toHaveLength(0);
   });
@@ -118,7 +125,9 @@ describe("useCopyArchivedDeck", () => {
     cloneMutateAsync.mockRejectedValue(new Error("Deck not found"));
     const { result } = renderHook(() => useCopyArchivedDeck());
 
-    await expect(result.current.copy({ token: TOKEN, deck, cards })).resolves.toBeUndefined();
+    await expect(
+      result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION }),
+    ).resolves.toBeUndefined();
     expect(navigate).not.toHaveBeenCalled();
   });
 });

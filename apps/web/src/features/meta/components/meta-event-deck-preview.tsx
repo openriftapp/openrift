@@ -4,6 +4,7 @@ import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, CopyIcon, EllipsisVerticalIcon } from "lucide-react";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,21 @@ import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useOpenCardDetail } from "@/features/cards/components/card-detail-opener";
 import { DomainIcon } from "@/features/decks/components/domain-icon";
+import { OwnershipBand } from "@/features/decks/components/ownership-band";
 import { useCopyArchivedDeck } from "@/features/decks/hooks/use-copy-archived-deck";
 import { useEncodeDeckCards } from "@/features/decks/hooks/use-decks";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
+import type { OwnershipBandSegments } from "@/features/decks/lib/deck-ownership-band";
 import { MetaContributors } from "@/features/meta/components/meta-contributors";
+import type { MetaOwnedCards } from "@/features/meta/components/meta-owned-cards-bridge";
+import { MetaOwnedCardsBridge } from "@/features/meta/components/meta-owned-cards-bridge";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
 import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
+import { metaCardOwnershipBand } from "@/features/meta/lib/meta-deck-collection";
 import { deckRuneSplit, deckTypeSplit } from "@/features/meta/lib/meta-deck-composition";
+import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -60,10 +68,12 @@ function StripCard({
   card,
   sequence,
   sideboard,
+  band,
 }: {
   card: PublicDeckCardResponse;
   sequence: string[];
   sideboard?: boolean;
+  band?: OwnershipBandSegments;
 }) {
   const openCardDetail = useOpenCardDetail();
   const printingId = printingIdOf(card);
@@ -78,10 +88,16 @@ function StripCard({
         landscape={getOrientation(card.cardTypes) === "landscape"}
       />
       {card.quantity > 1 && (
-        <span className="text-2xs absolute right-0 bottom-0 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-black/65 px-1 font-semibold text-white tabular-nums">
+        <span
+          className={cn(
+            "text-2xs absolute right-0 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-black/65 px-1 font-semibold text-white tabular-nums",
+            band ? "bottom-0.5" : "bottom-0",
+          )}
+        >
           {card.quantity}
         </span>
       )}
+      {band && <OwnershipBand quantity={card.quantity} band={band} />}
     </>
   );
   const className = cn("relative inline-block", sideboard && "opacity-55");
@@ -111,6 +127,17 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
   const copyToMyDecks = useCopyArchivedDeck();
   const encodeMutation = useEncodeDeckCards();
   const { copied, copy } = useCopyToClipboard();
+  const hydrated = useHydrated();
+  const [owned, setOwned] = useState<MetaOwnedCards>();
+  const bandFor = (card: PublicDeckCardResponse) =>
+    owned === undefined
+      ? undefined
+      : metaCardOwnershipBand(
+          card,
+          printingIdOf(card),
+          owned.ownedByPrinting,
+          owned.printingsByCardId,
+        );
 
   const lead = [
     ...zoneCards(data.cards, WellKnown.deckZone.CHAMPION),
@@ -148,6 +175,11 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
 
   return (
     <div className="flex flex-col gap-2.5">
+      {hydrated && copyToMyDecks.isLoggedIn && (
+        <Suspense fallback={null}>
+          <MetaOwnedCardsBridge onChange={setOwned} />
+        </Suspense>
+      )}
       <div className="flex flex-wrap items-end gap-x-4 gap-y-1.5">
         {groups.map((group) => (
           <div key={group.key} data-group={group.key} className="flex flex-wrap items-end gap-1">
@@ -157,6 +189,7 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
                 card={card}
                 sequence={sequence}
                 sideboard={group.sideboard}
+                band={bandFor(card)}
               />
             ))}
           </div>
@@ -212,7 +245,12 @@ export function MetaEventDeckPreview({ token }: { token: string }) {
               <DropdownMenuItem
                 disabled={copyToMyDecks.isPending}
                 onClick={() =>
-                  void copyToMyDecks.copy({ token, deck: data.deck, cards: data.cards })
+                  void copyToMyDecks.copy({
+                    token,
+                    deck: data.deck,
+                    cards: data.cards,
+                    ...metaDeckCopyFields(data, token),
+                  })
                 }
               >
                 <CopyIcon />

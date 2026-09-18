@@ -604,17 +604,23 @@ export function usePublicDeck(token: string) {
   return useSuspenseQuery(publicDeckQueryOptions(token));
 }
 
+export interface CloneSharedDeckInput {
+  token: string;
+  name?: string;
+  description?: string;
+}
+
 const cloneSharedDeckFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
+  .validator((input: CloneSharedDeckInput) => input)
   .middleware([withCookies])
-  .handler(({ context, data: token }): Promise<DeckCloneResponse> =>
-    apiOrpcClient(decksContract, context.cookie).cloneShared({ token }),
+  .handler(({ context, data }): Promise<DeckCloneResponse> =>
+    apiOrpcClient(decksContract, context.cookie).cloneShared(data),
   );
 
 export function useCloneSharedDeck() {
   const userId = useUserId();
-  return useMutationWithInvalidation<DeckCloneResponse, string>({
-    mutationFn: (token) => cloneSharedDeckFn({ data: token }),
+  return useMutationWithInvalidation<DeckCloneResponse, CloneSharedDeckInput>({
+    mutationFn: (input) => cloneSharedDeckFn({ data: input }),
     invalidates: userId ? [decksKeys.all(userId)] : [],
   });
 }

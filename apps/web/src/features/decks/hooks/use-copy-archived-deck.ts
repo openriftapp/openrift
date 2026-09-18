@@ -10,6 +10,8 @@ interface CopyArchivedDeckInput {
   token: string;
   deck: MetaDeckDetailResponse["deck"];
   cards: MetaDeckDetailResponse["cards"];
+  name: string;
+  description: string;
 }
 
 export interface CopyArchivedDeck {
@@ -30,12 +32,13 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
   const cloneMutation = useCloneSharedDeck();
   const navigate = useNavigate();
 
-  const copy = async ({ token, deck, cards }: CopyArchivedDeckInput) => {
+  const copy = async ({ token, deck, cards, name, description }: CopyArchivedDeckInput) => {
     if (!isLoggedIn) {
       const store = useLocalDecksStore.getState();
-      const localId = store.createDeck(deck.format, deck.name);
+      const localId = store.createDeck(deck.format, name);
       // createDeck starts with formatConfig null, so a Custom-Region copy would lose its regions.
       store.updateDeck(localId, {
+        description,
         formatConfig: deck.formatConfig,
         links: deck.links,
       });
@@ -52,7 +55,7 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
       return;
     }
     try {
-      const result = await cloneMutation.mutateAsync(token);
+      const result = await cloneMutation.mutateAsync({ token, name, description });
       void navigate({ to: "/decks/$deckId", params: { deckId: result.deckId } });
     } catch {
       /* Reported by the global mutation error toast. */

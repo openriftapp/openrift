@@ -5,7 +5,7 @@ import { m } from "@/paraglide/messages.js";
 
 export const ANY_LEGEND = "any";
 
-/** The legends the field played, commonest first. Keyed by card id so legends sharing a champion stay apart. */
+/** The legends the field played, alphabetical. Keyed by card id so legends sharing a champion stay apart. */
 export function legendOptions(players: readonly MetaEventPlayer[]): Record<string, string> {
   const counts = new Map<string, { name: string; count: number }>();
   for (const player of players) {
@@ -21,9 +21,7 @@ export function legendOptions(players: readonly MetaEventPlayer[]): Record<strin
   if (counts.size < 2) {
     return {};
   }
-  const ordered = [...counts.entries()].sort(
-    (a, b) => b[1].count - a[1].count || a[1].name.localeCompare(b[1].name),
-  );
+  const ordered = [...counts.entries()].toSorted((a, b) => a[1].name.localeCompare(b[1].name));
   return {
     [ANY_LEGEND]: m.meta_standings_any_legend(),
     ...Object.fromEntries(

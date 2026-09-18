@@ -10,6 +10,12 @@ const state = vi.hoisted(() => ({
   openCardDetail: null as ReturnType<typeof vi.fn> | null,
   encode: vi.fn(),
   copy: vi.fn(),
+  owned: undefined as
+    | {
+        ownedByPrinting: Record<string, number>;
+        printingsByCardId: Map<string, { id: string }[]>;
+      }
+    | undefined,
 }));
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({ useMetaDeck: () => ({ data: state.deck }) }));
@@ -30,6 +36,17 @@ vi.mock("@/hooks/use-enums", () => ({
     labels: { domains: { fury: "Fury", calm: "Calm" } },
   }),
 }));
+vi.mock("@/features/meta/components/meta-owned-cards-bridge", async () => {
+  const { useEffect } = await import("react");
+  return {
+    MetaOwnedCardsBridge: ({ onChange }: { onChange: (value: typeof state.owned) => void }) => {
+      useEffect(() => {
+        onChange(state.owned);
+      }, [onChange]);
+      return null;
+    },
+  };
+});
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
   return { Link: fixtures.StubLink, useNavigate: () => vi.fn() };
@@ -212,6 +229,14 @@ describe("MetaEventDeckPreview", () => {
     state.openCardDetail = vi.fn();
     state.encode = vi.fn(async () => ({ code: "RB1-TESTCODE", warnings: [] }));
     state.copy = vi.fn();
+    state.owned = {
+      ownedByPrinting: { "p-ruin": 1, "p-ruin-foil": 1, "p-punch": 8 },
+      printingsByCardId: new Map([
+        ["card-ruin", [{ id: "p-ruin" }, { id: "p-ruin-foil" }]],
+        ["card-punch", [{ id: "p-punch" }]],
+        ["card-squire", [{ id: "p-squire" }]],
+      ]),
+    };
   });
 
   it("leads the strip with the champion and its battlefields", () => {
@@ -397,5 +422,21 @@ describe("MetaEventDeckPreview", () => {
     renderPreview();
 
     expect(screen.queryByText("Sign in to compare with your collection")).toBeNull();
+  });
+
+  it("bands each card by how many copies a signed-in reader owns", async () => {
+    state.userId = "user-1";
+    renderPreview();
+
+    expect(await screen.findByTitle("You own all 8 in this printing")).toBeInTheDocument();
+    expect(
+      screen.getByTitle("You own 1 of 3 in this printing and 1 in another"),
+    ).toBeInTheDocument();
+  });
+
+  it("bands nothing for a signed-out reader", () => {
+    renderPreview();
+
+    expect(screen.queryByTitle(/^You own/u)).toBeNull();
   });
 });

@@ -5,6 +5,12 @@
 ### Highlights
 
 - feat(Decks): **Compare meta and shared decks** — "Compare with another deck…" in a meta or shared deck's menu opens the comparison with that deck on one side. You can also paste a meta or shared deck link into either side, and the comparison keeps a link you can send to others.
+- feat(Meta): **See which cards you're missing** — opening a decklist in a tournament's standings now marks under each card how many copies you own, so the gaps stand out at a glance.
+
+### Other
+
+- feat(Meta): **Copied decks remember their tournament** — copying an archived decklist now names it after the full legend and the player, and its description says which event it was played at, the placement and record, with links back to the event and the original list.
+- feat(Meta): **Alphabetical legend filter in standings** — the legend picker on a tournament's standings now lists legends by name, with the play count still beside each one.
 
 ## 2026-09-17
 

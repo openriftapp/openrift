@@ -10,15 +10,22 @@ describe("legendOptions", () => {
     expect(legendOptions([metaPlayer({ legend })])).toEqual({});
   });
 
-  it("orders legends by how often they were played, then by name", () => {
+  it("orders legends alphabetically, however often each was played", () => {
     const legend = metaPlayer().legend;
-    const other = { ...legend!, cardId: "other-legend", name: "Ahri, the Nine-Tailed Fox" };
+    const ahri = { ...legend!, cardId: "card-ahri", name: "Ahri, the Nine-Tailed Fox" };
+    const vex = { ...legend!, cardId: "card-vex", name: "Vex, Gloomist" };
     const players = [
-      metaPlayer({ id: "p-1", legend }),
-      metaPlayer({ id: "p-2", legend: other }),
-      metaPlayer({ id: "p-3", legend: other }),
+      metaPlayer({ id: "p-1", legend: vex }),
+      metaPlayer({ id: "p-2", legend: vex }),
+      metaPlayer({ id: "p-3", legend }),
+      metaPlayer({ id: "p-4", legend: ahri }),
     ];
-    expect(Object.keys(legendOptions(players))).toEqual(["any", "other-legend", legend!.cardId]);
+    expect(Object.entries(legendOptions(players))).toEqual([
+      ["any", "Any legend"],
+      ["card-ahri", "Ahri, the Nine-Tailed Fox (1)"],
+      ["card-vex", "Vex, Gloomist (2)"],
+      ["card-yasuo", "Yasuo, the Unforgiven (1)"],
+    ]);
   });
 
   it("skips players with no legend", () => {

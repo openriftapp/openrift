@@ -15,6 +15,7 @@ import { MetaDeckArchiveBar } from "@/features/meta/components/meta-deck-archive
 import { MetaDeckFinish, MetaDeckHeading } from "@/features/meta/components/meta-deck-hero";
 import { useMetaDeck } from "@/features/meta/hooks/use-meta";
 import { describeIncompleteList, unknownZoneCounts } from "@/features/meta/lib/meta-deck-archive";
+import { metaDeckCopyFields } from "@/features/meta/lib/meta-deck-copy";
 import { archivedDeckIdentity } from "@/features/meta/lib/meta-deck-identity";
 import type { MetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
@@ -68,7 +69,12 @@ export function MetaDeckPage({ token }: { token: string }) {
     label: copyLabel,
   } = useCopyArchivedDeck();
   const handleCopyToMyDecks = () => {
-    void copyToMyDecks({ token, deck: data.deck, cards: data.cards });
+    void copyToMyDecks({
+      token,
+      deck: data.deck,
+      cards: data.cards,
+      ...metaDeckCopyFields(data, token),
+    });
   };
 
   const unknown = unknownZoneCounts(data.cards, data.deck.format, data.meta.listStatus);

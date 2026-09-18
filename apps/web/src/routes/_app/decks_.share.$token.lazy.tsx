@@ -29,7 +29,7 @@ function SharedDeckPage() {
       return;
     }
     try {
-      const result = await cloneMutation.mutateAsync(token);
+      const result = await cloneMutation.mutateAsync({ token });
       void navigate({ to: "/decks/$deckId", params: { deckId: result.deckId } });
     } catch {
       /* Reported by the global mutation error toast. */

@@ -878,7 +878,37 @@ describe("POST /api/v1/decks/share/:token/clone", () => {
     expect(res.status).toBe(201);
     const json = await readJson(res);
     expect(json.deckId).toBe(cloned.id);
-    expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID);
+    expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
+      name: undefined,
+      description: undefined,
+    });
+  });
+
+  it("passes a caller-composed name and description through to the copy", async () => {
+    mockRepo.cloneFromShareToken.mockResolvedValue({ ...dbDeck });
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Vex, Gloomist (Ezreal Main)",
+        description: "From the archive",
+      }),
+    });
+    expect(res.status).toBe(201);
+    expect(mockRepo.cloneFromShareToken).toHaveBeenCalledWith("abc123", USER_ID, {
+      name: "Vex, Gloomist (Ezreal Main)",
+      description: "From the archive",
+    });
+  });
+
+  it("rejects an empty name override", async () => {
+    const res = await app.request("/api/v1/decks/share/abc123/clone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "" }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockRepo.cloneFromShareToken).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the token is missing or the deck is not public", async () => {

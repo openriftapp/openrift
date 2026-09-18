@@ -580,7 +580,10 @@ export const decksRouter = {
     const { decks } = context.repos;
     const userId = context.userId;
 
-    const newDeck = await decks.cloneFromShareToken(input.token, userId);
+    const newDeck = await decks.cloneFromShareToken(input.token, userId, {
+      name: input.name,
+      description: input.description,
+    });
     assertFound(newDeck, "Not found");
     return { deckId: newDeck.id };
   }),
