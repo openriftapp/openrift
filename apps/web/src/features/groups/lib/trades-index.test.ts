@@ -166,7 +166,8 @@ describe("buildTradesIndex", () => {
     );
     expect(index.couldTrade.map((person) => person.userId)).toEqual(["user-2"]);
     expect(index.couldTrade[0]?.suggestions).toBe(2);
-    expect(index.couldTrade[0]?.suggestionPrintingIds).toEqual(["printing-1", "p-2"]);
+    expect(index.couldTrade[0]?.couldGet).toEqual({ count: 1, printingIds: ["printing-1"] });
+    expect(index.couldTrade[0]?.wouldWant).toEqual({ count: 1, printingIds: ["p-2"] });
     expect(index.couldTrade[0]?.groupNames).toEqual(["Summoner Skirmish"]);
     expect(index.couldTrade[0]?.lastActivityAt).toBeNull();
     expect(index.groupCount).toBe(1);
@@ -185,6 +186,7 @@ describe("buildTradesIndex", () => {
       ],
     );
     expect(index.couldTrade[0]?.suggestions).toBe(1);
+    expect(index.couldTrade[0]?.couldGet.count).toBe(1);
     expect(index.couldTrade[0]?.groupNames).toEqual(["Arcane League", "Summoner Skirmish"]);
     expect(index.groupCount).toBe(2);
   });

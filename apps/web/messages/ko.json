@@ -4150,8 +4150,6 @@
   ],
   "trades_suggestions_elsewhere_another": "다른 그룹에서 {trades}",
   "trades_suggestions_elsewhere_other": "다른 그룹들에서 {trades}",
-  "trades_suggestions_more_another": "{trades} · 다른 그룹에 {count}건 더",
-  "trades_suggestions_more_other": "{trades} · 다른 그룹들에 {count}건 더",
   "trades_detail_requests_from": "{who}님에게서 온 {requests}",
   "trades_detail_cards_for": "{who}님에게 줄 {cards}",
   "trades_detail_cards_from": "{who}님에게서 받을 {cards}",

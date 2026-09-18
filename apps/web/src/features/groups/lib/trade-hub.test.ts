@@ -9,8 +9,8 @@ import {
   isQuietTradeHubCard,
   needsYouCounts,
   needsYouLine,
+  elsewhereSuggestionsLine,
   sortNeedsYou,
-  suggestionsLine,
 } from "./trade-hub";
 
 function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
@@ -320,6 +320,19 @@ describe("buildTradeHubCards", () => {
     expect(card.suggestions).toBe(2);
   });
 
+  it("keeps what the viewer could get apart from what the member would want", () => {
+    const card = buildCards({
+      incoming: [
+        stubMatch({ printingId: "printing-1" }),
+        stubMatch({ printingId: "printing-2", buyEntryId: "entry-2" }),
+      ],
+      outgoing: [stubMatch({ printingId: "printing-3", buyEntryId: "entry-3" })],
+    })[0]!;
+
+    expect(card.couldGet).toEqual({ count: 2, printingIds: ["printing-1", "printing-2"] });
+    expect(card.wouldWant).toEqual({ count: 1, printingIds: ["printing-3"] });
+  });
+
   it("counts only what the viewer's other groups add on top of this one", () => {
     const card = buildCards({
       incoming: [stubMatch({ printingId: "printing-1" })],
@@ -416,28 +429,18 @@ describe("buildTradeHubCards", () => {
   });
 });
 
-describe("suggestionsLine", () => {
-  function withCounts(suggestions: number, suggestionsElsewhere: number) {
-    return { ...buildCards()[0]!, suggestions, suggestionsElsewhere };
+describe("elsewhereSuggestionsLine", () => {
+  function withElsewhere(suggestionsElsewhere: number) {
+    return { ...buildCards()[0]!, suggestionsElsewhere };
   }
 
-  it("says nothing when the matcher found nothing anywhere", () => {
-    expect(suggestionsLine(withCounts(0, 0))).toBeNull();
+  it("says nothing when the other groups hold nothing", () => {
+    expect(elsewhereSuggestionsLine(withElsewhere(0))).toBeNull();
   });
 
-  it("names this group's suggestions alone when there are no others", () => {
-    expect(suggestionsLine(withCounts(1, 0))).toBe("1 possible trade");
-    expect(suggestionsLine(withCounts(3, 0))).toBe("3 possible trades");
-  });
-
-  it("adds what the other groups hold on top", () => {
-    expect(suggestionsLine(withCounts(3, 2))).toBe("3 possible trades · 2 more in other groups");
-    expect(suggestionsLine(withCounts(3, 1))).toBe("3 possible trades · 1 more in another group");
-  });
-
-  it("stands on its own when every suggestion is in another group", () => {
-    expect(suggestionsLine(withCounts(0, 1))).toBe("1 possible trade in another group");
-    expect(suggestionsLine(withCounts(0, 4))).toBe("4 possible trades in other groups");
+  it("names one other group or several by count", () => {
+    expect(elsewhereSuggestionsLine(withElsewhere(1))).toBe("1 possible trade in another group");
+    expect(elsewhereSuggestionsLine(withElsewhere(4))).toBe("4 possible trades in other groups");
   });
 });
 

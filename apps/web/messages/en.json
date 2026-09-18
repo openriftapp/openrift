@@ -4153,8 +4153,6 @@
   ],
   "trades_suggestions_elsewhere_another": "{trades} in another group",
   "trades_suggestions_elsewhere_other": "{trades} in other groups",
-  "trades_suggestions_more_another": "{trades} · {count} more in another group",
-  "trades_suggestions_more_other": "{trades} · {count} more in other groups",
   "trades_detail_requests_from": "{requests} from {who}",
   "trades_detail_cards_for": "{cards} for {who}",
   "trades_detail_cards_from": "{cards} from {who}",

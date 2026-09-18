@@ -8,6 +8,7 @@ import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-grou
 
 import type { MatchSuggestionFields } from "./trade-derivation";
 import { matchSuggestionKey, withoutLiveTradeMatches } from "./trade-derivation";
+import type { TradeSuggestionSide } from "./trade-hub";
 import { compareNeedsYou, sortNeedsYou } from "./trade-hub";
 
 export type TradesIndexMatch = MatchSuggestionFields &
@@ -30,8 +31,9 @@ export interface TradesIndexPerson {
   doneCount: number;
   groupNames: string[];
   lastActivityAt: string | null;
+  couldGet: TradeSuggestionSide;
+  wouldWant: TradeSuggestionSide;
   suggestions: number;
-  suggestionPrintingIds: string[];
 }
 
 export interface TradesIndex {
@@ -46,9 +48,27 @@ interface PersonMatches {
   name: string | null;
   image: string | null;
   gravatarHash: string;
-  suggestionKeys: Set<string>;
-  printingIds: Set<string>;
+  incomingKeys: Set<string>;
+  incomingPrintingIds: Set<string>;
+  outgoingKeys: Set<string>;
+  outgoingPrintingIds: Set<string>;
   groupNames: Set<string>;
+}
+
+const NO_MATCHES = {
+  couldGet: { count: 0, printingIds: [] },
+  wouldWant: { count: 0, printingIds: [] },
+  suggestions: 0,
+};
+
+function matchSides(
+  person: PersonMatches,
+): Pick<TradesIndexPerson, "couldGet" | "wouldWant" | "suggestions"> {
+  return {
+    couldGet: { count: person.incomingKeys.size, printingIds: [...person.incomingPrintingIds] },
+    wouldWant: { count: person.outgoingKeys.size, printingIds: [...person.outgoingPrintingIds] },
+    suggestions: person.incomingKeys.size + person.outgoingKeys.size,
+  };
 }
 
 function personName(person: TradesIndexPerson): string {
@@ -99,12 +119,17 @@ function aggregateMatches(
           name: row.counterpartyName,
           image: row.counterpartyImage,
           gravatarHash: row.counterpartyGravatarHash,
-          suggestionKeys: new Set<string>(),
-          printingIds: new Set<string>(),
+          incomingKeys: new Set<string>(),
+          incomingPrintingIds: new Set<string>(),
+          outgoingKeys: new Set<string>(),
+          outgoingPrintingIds: new Set<string>(),
           groupNames: new Set<string>(),
         };
-        person.suggestionKeys.add(matchSuggestionKey(direction, row));
-        person.printingIds.add(row.printingId);
+        const incoming = direction === "incoming";
+        (incoming ? person.incomingKeys : person.outgoingKeys).add(
+          matchSuggestionKey(direction, row),
+        );
+        (incoming ? person.incomingPrintingIds : person.outgoingPrintingIds).add(row.printingId);
         person.groupNames.add(group.groupName);
         byPerson.set(row.counterpartyUserId, person);
       }
@@ -143,8 +168,7 @@ export function buildTradesIndex(
         (max, trade) => (trade.updatedAt > max ? trade.updatedAt : max),
         latest.updatedAt,
       ),
-      suggestions: theirMatches?.suggestionKeys.size ?? 0,
-      suggestionPrintingIds: [...(theirMatches?.printingIds ?? [])],
+      ...(theirMatches === undefined ? NO_MATCHES : matchSides(theirMatches)),
     });
   }
   for (const [userId, theirMatches] of matches.byPerson) {
@@ -161,8 +185,7 @@ export function buildTradesIndex(
       doneCount: 0,
       groupNames: sortedNames(theirMatches.groupNames),
       lastActivityAt: null,
-      suggestions: theirMatches.suggestionKeys.size,
-      suggestionPrintingIds: [...theirMatches.printingIds],
+      ...matchSides(theirMatches),
     });
   }
   const settled = people.filter(

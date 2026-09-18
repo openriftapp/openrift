@@ -23,20 +23,19 @@ import {
   useFriendGroupsList,
 } from "@/features/groups/hooks/use-friend-groups";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
-import { needsYouLine, possibleTradesLine } from "@/features/groups/lib/trade-hub";
+import { needsYouLine } from "@/features/groups/lib/trade-hub";
 import type { TradesIndexMatchGroup, TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+import { TradeSuggestionRows } from "./trade-hub";
+
 function artPrintingIds(person: TradesIndexPerson): string[] {
   if (person.needsYou.length > 0) {
     return distinctPrintingIds(person.needsYou);
   }
-  if (person.waiting.length > 0) {
-    return distinctPrintingIds(person.waiting);
-  }
-  return person.suggestionPrintingIds;
+  return distinctPrintingIds(person.waiting);
 }
 
 function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGroups: boolean }) {
@@ -76,12 +75,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       ) : null}
       {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {art.length > 0 ? <CardArtThumbStack items={art} max={5} thumbClassName="w-8" /> : null}
-      {person.suggestions > 0 ? (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm font-medium">
-          <SparklesIcon className="text-success size-3.5 shrink-0" />
-          {possibleTradesLine(person.suggestions)}
-        </p>
-      ) : null}
+      <TradeSuggestionRows couldGet={person.couldGet} wouldWant={person.wouldWant} />
       {waiting > 0 ? (
         <p className="text-muted-foreground text-sm">
           {m.trades_waiting_on_them({ count: waiting })}

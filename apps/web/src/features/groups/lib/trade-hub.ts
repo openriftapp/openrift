@@ -9,7 +9,11 @@ import { m } from "@/paraglide/messages.js";
 
 import { distinctPrintingIds } from "./friend-group-activity";
 import type { MatchDirection, MatchSuggestionFields } from "./trade-derivation";
-import { tradeSuggestionKeys, withoutLiveTradeMatches } from "./trade-derivation";
+import {
+  matchSuggestionKey,
+  tradeSuggestionKeys,
+  withoutLiveTradeMatches,
+} from "./trade-derivation";
 
 function isInFlightTrade(trade: CardTradeResponse): boolean {
   const state = cardTradeState(trade);
@@ -127,11 +131,28 @@ interface TradeHubShare {
   listIntent: "wish" | "trade" | "organize";
 }
 
+export interface TradeSuggestionSide {
+  count: number;
+  printingIds: string[];
+}
+
+function tradeSuggestionSide(
+  direction: MatchDirection,
+  matches: readonly MatchSuggestionFields[],
+): TradeSuggestionSide {
+  return {
+    count: new Set(matches.map((match) => matchSuggestionKey(direction, match))).size,
+    printingIds: distinctPrintingIds(matches),
+  };
+}
+
 export interface TradeHubCard<TMember> {
   member: TMember;
   needsYou: CardTradeResponse[];
   open: CardTradeResponse[];
   trades: CardTradeResponse[];
+  couldGet: TradeSuggestionSide;
+  wouldWant: TradeSuggestionSide;
   suggestions: number;
   suggestionsElsewhere: number;
   listCount: number;
@@ -176,29 +197,19 @@ function expiresSoonLine(count: number): string {
   return m.trades_expire_soon({ count });
 }
 
-export function possibleTradesLine(count: number): string {
+function possibleTradesLine(count: number): string {
   return m.trades_possible({ count });
 }
 
-export function suggestionsLine(card: TradeHubCard<TradeHubMember>): string | null {
-  const single = card.suggestionsElsewhere === 1;
-  if (card.suggestions === 0) {
-    if (card.suggestionsElsewhere === 0) {
-      return null;
-    }
-    const trades = possibleTradesLine(card.suggestionsElsewhere);
-    return single
-      ? m.trades_suggestions_elsewhere_another({ trades })
-      : m.trades_suggestions_elsewhere_other({ trades });
-  }
-  const trades = possibleTradesLine(card.suggestions);
-  if (card.suggestionsElsewhere === 0) {
-    return trades;
-  }
+export function elsewhereSuggestionsLine(card: TradeHubCard<TradeHubMember>): string | null {
   const count = card.suggestionsElsewhere;
-  return single
-    ? m.trades_suggestions_more_another({ trades, count })
-    : m.trades_suggestions_more_other({ trades, count });
+  if (count === 0) {
+    return null;
+  }
+  const trades = possibleTradesLine(count);
+  return count === 1
+    ? m.trades_suggestions_elsewhere_another({ trades })
+    : m.trades_suggestions_elsewhere_other({ trades });
 }
 
 export function isQuietTradeHubCard(card: TradeHubCard<TradeHubMember>): boolean {
@@ -239,10 +250,9 @@ export function buildTradeHubCards<
     .filter((member) => member.userId !== input.viewerId)
     .map((member) => {
       const trades = tradesByPerson.get(member.userId) ?? [];
-      const here = tradeSuggestionKeys(
-        incomingByPerson.get(member.userId) ?? [],
-        outgoingByPerson.get(member.userId) ?? [],
-      );
+      const incoming = incomingByPerson.get(member.userId) ?? [];
+      const outgoing = outgoingByPerson.get(member.userId) ?? [];
+      const here = tradeSuggestionKeys(incoming, outgoing);
       const elsewhere = tradeSuggestionKeys(
         elsewhereIncomingByPerson.get(member.userId) ?? [],
         elsewhereOutgoingByPerson.get(member.userId) ?? [],
@@ -252,6 +262,8 @@ export function buildTradeHubCards<
         needsYou: sortNeedsYou(trades.filter((trade) => needsViewerAction(trade))),
         open: trades.filter((trade) => cardTradeState(trade) === "waiting-on-them"),
         trades,
+        couldGet: tradeSuggestionSide("incoming", incoming),
+        wouldWant: tradeSuggestionSide("outgoing", outgoing),
         suggestions: here.size,
         suggestionsElsewhere: [...elsewhere].filter((key) => !here.has(key)).length,
         listCount: (listsByPerson.get(member.userId) ?? []).length,
@@ -349,10 +361,7 @@ function suggestionRow(
   matches: readonly MatchSuggestionFields[],
   direction: MatchDirection,
 ): TradeShelfRow | null {
-  const count =
-    direction === "incoming"
-      ? tradeSuggestionKeys(matches, []).size
-      : tradeSuggestionKeys([], matches).size;
+  const { count, printingIds } = tradeSuggestionSide(direction, matches);
   if (count === 0) {
     return null;
   }
@@ -364,7 +373,7 @@ function suggestionRow(
           cards: cardCount(count),
           members: memberCount(members),
         });
-  return { key, label, tone: "success", printingIds: distinctPrintingIds(matches), detail };
+  return { key, label, tone: "success", printingIds, detail };
 }
 
 export function buildTradeShelf({

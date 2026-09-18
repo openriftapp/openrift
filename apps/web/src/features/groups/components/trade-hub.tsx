@@ -1,7 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { FriendGroupMemberResponse } from "@openrift/shared/types/api/friend-group";
 import { Link } from "@tanstack/react-router";
-import { ChevronRightIcon, Share2Icon, SparklesIcon } from "lucide-react";
+import { ChevronRightIcon, Share2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,11 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
 import { useFriendGroupShareableLists } from "@/features/groups/hooks/use-friend-group-sharing";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
-import type { TradeHubCard } from "@/features/groups/lib/trade-hub";
+import type { TradeHubCard, TradeSuggestionSide } from "@/features/groups/lib/trade-hub";
 import {
+  elsewhereSuggestionsLine,
   isQuietTradeHubCard,
   needsYouLine,
-  suggestionsLine,
 } from "@/features/groups/lib/trade-hub";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -46,6 +46,45 @@ function footerLine(card: TradeHubCard<FriendGroupMemberResponse>): string | nul
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
+export function TradeSuggestionRows({
+  couldGet,
+  wouldWant,
+}: {
+  couldGet: TradeSuggestionSide;
+  wouldWant: TradeSuggestionSide;
+}) {
+  const { printingsById } = useCards();
+  const rows = [
+    { key: "could-get", label: m.trades_shelf_could_get(), side: couldGet },
+    { key: "would-want", label: m.trades_shelf_would_want(), side: wouldWant },
+  ].filter((row) => row.side.count > 0);
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="flex flex-col gap-1.5">
+      {rows.map((row) => (
+        <li key={row.key} className="flex items-center gap-3">
+          <span className="text-success w-32 shrink-0 text-xs font-medium tracking-wide uppercase">
+            {row.label}
+          </span>
+          <CardArtThumbStack
+            items={row.side.printingIds.map((printingId) => ({
+              key: printingId,
+              imageId: frontImageId(printingsById[printingId]),
+            }))}
+            max={3}
+            thumbClassName="w-8"
+          />
+          <span className="text-muted-foreground min-w-0 truncate text-sm">
+            {m.common_cards({ count: row.side.count })}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function TradeHubMemberCard({
   card,
   slug,
@@ -57,7 +96,7 @@ export function TradeHubMemberCard({
   const { printingsById } = useCards();
   const quiet = isQuietTradeHubCard(card);
   const action = needsYouLine(card.needsYou);
-  const suggestions = suggestionsLine(card);
+  const elsewhere = elsewhereSuggestionsLine(card);
   const facts = factsLine(card);
   const footer = footerLine(card);
   const waitingArt = distinctPrintingIds(card.needsYou).map((printingId) => ({
@@ -90,12 +129,8 @@ export function TradeHubMemberCard({
       {waitingArt.length > 0 ? (
         <CardArtThumbStack items={waitingArt} max={5} thumbClassName="w-8" />
       ) : null}
-      {suggestions === null ? null : (
-        <p className="text-muted-foreground flex items-center gap-1 text-sm font-medium">
-          <SparklesIcon className="text-success size-3.5 shrink-0" />
-          {suggestions}
-        </p>
-      )}
+      <TradeSuggestionRows couldGet={card.couldGet} wouldWant={card.wouldWant} />
+      {elsewhere === null ? null : <p className="text-muted-foreground text-sm">{elsewhere}</p>}
       {facts === null ? null : <p className="text-muted-foreground text-sm">{facts}</p>}
       {footer === null ? null : <p className="text-muted-foreground text-xs">{footer}</p>}
     </CardLink>
