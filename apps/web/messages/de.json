@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "Deck einfügen",
-  "decks_compare_paste_description": "Ein Deck-Code, ein Share-Link oder eine einfache Kartenliste.",
-  "decks_compare_paste_placeholder": "Deck-Code, Share-Link oder Kartenliste einfügen…",
+  "decks_compare_paste_description": "Ein Deck-Code, ein Deck-Link oder eine einfache Kartenliste.",
+  "decks_compare_paste_placeholder": "Deck-Code, Deck-Link oder Kartenliste einfügen…",
   "decks_compare_reading": "Wird gelesen…",
   "decks_compare_use_this_list": "Diese Liste verwenden",
   "decks_compare_error_shared_empty": "Dieses geteilte Deck hat keine Karten zum Vergleichen.",

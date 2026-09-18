@@ -13,10 +13,12 @@ export type DeckImportFormat = DeckCodeFormat;
 
 export type DeckImportUrlSniff =
   | { kind: "share-token"; token: string }
+  | { kind: "meta-token"; token: string }
   | { kind: "deck-code"; code: string }
   | { kind: "url-no-deck" };
 
 const SHARE_TOKEN_PATH = /\/decks\/share\/(?<token>[A-Za-z0-9]{6,64})\/?$/u;
+const META_TOKEN_PATH = /\/meta\/decks\/(?<token>[A-Za-z0-9]{6,64})\/?$/u;
 
 const TTS_TOKEN = /^[A-Z]+-\d+(?:-\d+)?$/u;
 
@@ -51,6 +53,10 @@ export function extractDeckFromUrl(text: string): DeckImportUrlSniff | null {
   const token = shareMatch?.groups?.token;
   if (token) {
     return { kind: "share-token", token };
+  }
+  const metaToken = META_TOKEN_PATH.exec(url.pathname)?.groups?.token;
+  if (metaToken) {
+    return { kind: "meta-token", token: metaToken };
   }
 
   const candidates: string[] = [];

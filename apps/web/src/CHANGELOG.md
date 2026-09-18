@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-18
+
+### Highlights
+
+- feat(Decks): **Compare meta and shared decks** — "Compare with another deck…" in a meta or shared deck's menu opens the comparison with that deck on one side. You can also paste a meta or shared deck link into either side, and the comparison keeps a link you can send to others.
+
 ## 2026-09-17
 
 ### Highlights

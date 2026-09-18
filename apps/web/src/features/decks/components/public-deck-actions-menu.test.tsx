@@ -15,6 +15,23 @@ const { encodeMock, copyMock, toastMock, dialogProps } = vi.hoisted(() => ({
 
 vi.mock("sonner", () => ({ toast: toastMock }));
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    to,
+    search,
+    children,
+    ...rest
+  }: {
+    to: string;
+    search: { from: string };
+    children?: React.ReactNode;
+  }) => (
+    <a href={`${to}?from=${search.from}`} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("@/features/decks/hooks/use-decks", () => ({
   useEncodeDeckCards: () => ({ mutateAsync: encodeMock, isPending: false }),
 }));
@@ -87,6 +104,7 @@ function renderMenu(props: Partial<React.ComponentProps<typeof PublicDeckActions
       deckId="deck-1"
       deckName="Yasuo Aggro"
       shareToken="tok123"
+      linkKind="share"
       updatedAt="2026-09-01T00:00:00.000Z"
       cards={[publicCard()]}
       {...props}
@@ -110,18 +128,39 @@ describe("PublicDeckActionsMenu", () => {
     copyMock.mockResolvedValue(true);
   });
 
-  it("offers the four public actions and nothing that needs an account", async () => {
+  it("offers the public actions and nothing that needs an account", async () => {
     renderMenu();
     await openMenu();
 
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
       "Copy deck code",
+      "Compare with another deck…",
       "Save image…",
       "Print…",
       "Export…",
     ]);
     expect(screen.queryByText(/share link/iu)).toBeNull();
     expect(screen.queryByText(/delete/iu)).toBeNull();
+  });
+
+  it("opens the comparison with a shared deck as the left side", async () => {
+    renderMenu();
+    await openMenu();
+
+    expect(screen.getByRole("menuitem", { name: "Compare with another deck…" })).toHaveAttribute(
+      "href",
+      "/decks/compare?from=share:tok123",
+    );
+  });
+
+  it("opens the comparison with a meta deck as the left side", async () => {
+    renderMenu({ linkKind: "meta" });
+    await openMenu();
+
+    expect(screen.getByRole("menuitem", { name: "Compare with another deck…" })).toHaveAttribute(
+      "href",
+      "/decks/compare?from=meta:tok123",
+    );
   });
 
   it("encodes the deck's own cards and copies the code back", async () => {
@@ -200,6 +239,6 @@ describe("PublicDeckActionsMenu", () => {
 
     expect(screen.getByRole("button", { name: "Deck actions" })).toHaveAttribute("data-in-top-bar");
     await openMenu();
-    expect(screen.getAllByRole("menuitem")).toHaveLength(4);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(5);
   });
 });

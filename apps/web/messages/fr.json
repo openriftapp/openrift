@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "Coller un deck",
-  "decks_compare_paste_description": "Un code de deck, un lien de partage ou une simple liste de cartes.",
-  "decks_compare_paste_placeholder": "Collez un code de deck, un lien de partage ou une liste de cartes…",
+  "decks_compare_paste_description": "Un code de deck, un lien de deck ou une simple liste de cartes.",
+  "decks_compare_paste_placeholder": "Collez un code de deck, un lien de deck ou une liste de cartes…",
   "decks_compare_reading": "Lecture…",
   "decks_compare_use_this_list": "Utiliser cette liste",
   "decks_compare_error_shared_empty": "Ce deck partagé n'a aucune carte à comparer.",

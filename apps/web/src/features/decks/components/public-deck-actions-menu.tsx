@@ -1,8 +1,10 @@
 import type { PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
+import { Link } from "@tanstack/react-router";
 import {
   CopyIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
+  GitCompareArrowsIcon,
   ImageDownIcon,
   PrinterIcon,
 } from "lucide-react";
@@ -21,6 +23,8 @@ import { DeckExportDialog } from "@/features/decks/components/deck-export-dialog
 import { DeckPrintDialog } from "@/features/decks/components/deck-print-dialog";
 import { useEncodeDeckCards } from "@/features/decks/hooks/use-decks";
 import { toBuilderCardFromPublic } from "@/features/decks/lib/deck-builder-card";
+import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
+import { compareLinkParam } from "@/features/decks/lib/deck-compare-side";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import { ShareDialog } from "@/features/groups/components/share-dialog";
@@ -49,6 +53,7 @@ interface PublicDeckActionsMenuProps {
   deckId: string;
   deckName: string;
   shareToken: string;
+  linkKind: DeckLinkKind;
   updatedAt: string;
   cards: PublicDeckCardResponse[];
   inTopBar?: boolean;
@@ -62,6 +67,7 @@ export function PublicDeckActionsMenu({
   deckId,
   deckName,
   shareToken,
+  linkKind,
   updatedAt,
   cards,
   inTopBar = false,
@@ -113,6 +119,17 @@ export function PublicDeckActionsMenu({
           >
             <CopyIcon className="size-4" />
             {m.decks_menu_copy_deck_code()}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            render={
+              <Link
+                to="/decks/compare"
+                search={{ from: compareLinkParam(linkKind, shareToken), to: undefined }}
+              />
+            }
+          >
+            <GitCompareArrowsIcon className="size-4" />
+            {m.decks_editor_menu_compare()}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setImageOpen(true)}>
             <ImageDownIcon className="size-4" />

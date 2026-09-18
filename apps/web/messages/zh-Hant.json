@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "貼上牌組",
-  "decks_compare_paste_description": "牌組代碼、分享連結或純文字牌表。",
-  "decks_compare_paste_placeholder": "貼上牌組代碼、分享連結或卡牌清單…",
+  "decks_compare_paste_description": "牌組代碼、牌組連結或純文字牌表。",
+  "decks_compare_paste_placeholder": "貼上牌組代碼、牌組連結或卡牌清單…",
   "decks_compare_reading": "讀取中…",
   "decks_compare_use_this_list": "使用這份牌表",
   "decks_compare_error_shared_empty": "那副分享的牌組沒有可供比較的卡牌。",

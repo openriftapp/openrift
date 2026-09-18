@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "粘贴卡组",
-  "decks_compare_paste_description": "卡组代码、分享链接或纯文本卡牌清单。",
-  "decks_compare_paste_placeholder": "粘贴卡组代码、分享链接或卡牌清单…",
+  "decks_compare_paste_description": "卡组代码、卡组链接或纯文本卡牌清单。",
+  "decks_compare_paste_placeholder": "粘贴卡组代码、卡组链接或卡牌清单…",
   "decks_compare_reading": "正在读取…",
   "decks_compare_use_this_list": "使用此清单",
   "decks_compare_error_shared_empty": "那个分享的卡组没有可供比较的卡牌。",

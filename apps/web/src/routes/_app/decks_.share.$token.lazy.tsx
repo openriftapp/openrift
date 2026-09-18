@@ -56,6 +56,7 @@ function SharedDeckPage() {
             deckId={data.deck.id}
             deckName={data.deck.name}
             shareToken={token}
+            linkKind="share"
             updatedAt={data.deck.updatedAt}
             cards={data.cards}
           />

@@ -210,6 +210,14 @@ describe("extractDeckFromUrl", () => {
     });
   });
 
+  it("extracts the token from an OpenRift meta deck link", () => {
+    mockValidCode(VALID_CODE);
+    expect(extractDeckFromUrl("https://openrift.app/meta/decks/eFHFCGDrFNr4/")).toEqual({
+      kind: "meta-token",
+      token: "eFHFCGDrFNr4",
+    });
+  });
+
   it("finds a deck code in a query parameter", () => {
     mockValidCode(VALID_CODE);
     expect(

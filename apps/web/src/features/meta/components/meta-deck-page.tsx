@@ -120,6 +120,7 @@ export function MetaDeckPage({ token }: { token: string }) {
                 deckId={data.deck.id}
                 deckName={data.deck.name}
                 shareToken={token}
+                linkKind="meta"
                 updatedAt={data.deck.updatedAt}
                 cards={data.cards}
                 inTopBar

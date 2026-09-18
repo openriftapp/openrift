@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "덱 붙여넣기",
-  "decks_compare_paste_description": "덱 코드, 공유 링크 또는 일반 카드 목록.",
-  "decks_compare_paste_placeholder": "덱 코드, 공유 링크 또는 카드 목록을 붙여 넣으세요…",
+  "decks_compare_paste_description": "덱 코드, 덱 링크 또는 일반 카드 목록.",
+  "decks_compare_paste_placeholder": "덱 코드, 덱 링크 또는 카드 목록을 붙여 넣으세요…",
   "decks_compare_reading": "읽는 중…",
   "decks_compare_use_this_list": "이 목록 사용",
   "decks_compare_error_shared_empty": "그 공유 덱에는 비교할 카드가 없습니다.",

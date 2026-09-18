@@ -2780,8 +2780,8 @@
     }
   ],
   "decks_compare_paste_title": "Paste a deck",
-  "decks_compare_paste_description": "A deck code, share link, or plain card list.",
-  "decks_compare_paste_placeholder": "Paste a deck code, share link, or card list…",
+  "decks_compare_paste_description": "A deck code, deck link, or plain card list.",
+  "decks_compare_paste_placeholder": "Paste a deck code, deck link, or card list…",
   "decks_compare_reading": "Reading…",
   "decks_compare_use_this_list": "Use this list",
   "decks_compare_error_shared_empty": "That shared deck has no cards to compare against.",

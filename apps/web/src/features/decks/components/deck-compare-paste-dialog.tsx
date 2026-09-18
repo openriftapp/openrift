@@ -14,16 +14,16 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
+import { compareLinkParam, queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import { diffCardsFromEntries } from "@/features/decks/lib/deck-compare-sources";
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import type { DeckImportEntry } from "@/features/decks/lib/deck-import-parsers";
 import {
-  entriesFromSharedDeck,
   extractDeckFromUrl,
   parseDeckImportData,
   sniffDeckImportFormat,
 } from "@/features/decks/lib/deck-import-parsers";
-import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { m } from "@/paraglide/messages.js";
 
 /** A list pasted into the comparison, held only for the session; not persisted. */
@@ -33,33 +33,37 @@ export interface PastedCompareSource {
   text: string;
 }
 
-/** Either the parsed entries, or the message to show instead. */
-type EntriesResult = { entries: DeckImportEntry[] } | { error: string };
+/** The parsed entries, a public deck to put in the URL, or the message to show instead. */
+type EntriesResult = { entries: DeckImportEntry[] } | { link: string } | { error: string };
 
-/** Mirrors what /decks/import does with a pasted OpenRift share link. */
-async function entriesFromShareToken(
+/** Loads the deck once so a dead or empty link errors here; the page then reads it from the cache. */
+async function checkDeckLink(
   queryClient: QueryClient,
+  kind: DeckLinkKind,
   token: string,
 ): Promise<EntriesResult> {
   try {
-    const data = await queryClient.query(publicDeckQueryOptions(token));
+    const data = await queryDeckLink(queryClient, kind, token);
     if (data.cards.length === 0) {
       return { error: m.decks_compare_error_shared_empty() };
     }
-    return { entries: entriesFromSharedDeck(data.cards) };
+    return { link: compareLinkParam(kind, token) };
   } catch {
     return { error: m.decks_compare_error_shared_load() };
   }
 }
 
-/** A URL resolves through the share API or yields the deck code embedded in it; anything else is sniffed and parsed by the same codecs the import page uses. */
+/** An OpenRift deck link becomes a linkable side; another URL yields the deck code embedded in it; anything else is sniffed and parsed by the same codecs the import page uses. */
 async function resolveCompareEntries(
   queryClient: QueryClient,
   text: string,
 ): Promise<EntriesResult> {
   const urlSniff = extractDeckFromUrl(text);
   if (urlSniff?.kind === "share-token") {
-    return await entriesFromShareToken(queryClient, urlSniff.token);
+    return await checkDeckLink(queryClient, "share", urlSniff.token);
+  }
+  if (urlSniff?.kind === "meta-token") {
+    return await checkDeckLink(queryClient, "meta", urlSniff.token);
   }
   if (urlSniff?.kind === "url-no-deck") {
     return { error: m.decks_compare_error_no_deck_in_url() };
@@ -77,10 +81,12 @@ export function DeckComparePasteDialog({
   open,
   onOpenChange,
   onResolved,
+  onLinked,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onResolved: (source: PastedCompareSource) => void;
+  onLinked: (sideParam: string) => void;
 }) {
   const queryClient = useQueryClient();
   const { allPrintings } = useCards();
@@ -109,6 +115,11 @@ export function DeckComparePasteDialog({
     setPending(false);
     if ("error" in entriesResult) {
       setError(entriesResult.error);
+      return;
+    }
+    if ("link" in entriesResult) {
+      onLinked(entriesResult.link);
+      onOpenChange(false);
       return;
     }
     const resolved = diffCardsFromEntries(entriesResult.entries, allPrintings);

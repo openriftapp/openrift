@@ -39,6 +39,8 @@ import type { DeckIdentity } from "@/features/decks/components/deck-mini-identit
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
+import type { CompareSide } from "@/features/decks/lib/deck-compare-side";
+import { parseCompareSide } from "@/features/decks/lib/deck-compare-side";
 import type { OwnDeckCard } from "@/features/decks/lib/deck-compare-sources";
 import {
   collectCompareDeckOptions,
@@ -47,10 +49,15 @@ import {
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import type { SideBySideRow } from "@/features/decks/lib/deck-side-by-side";
 import { alignDeckLists } from "@/features/decks/lib/deck-side-by-side";
-import { deckDetailQueryOptions, decksQueryOptions } from "@/features/decks/lib/decks-queries";
+import {
+  deckDetailQueryOptions,
+  decksQueryOptions,
+  publicDeckQueryOptions,
+} from "@/features/decks/lib/decks-queries";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { metaDeckQueryOptions } from "@/features/meta/lib/meta-queries";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -182,7 +189,7 @@ function ChangesRow({
 
 function DeckPicker({
   label,
-  value,
+  side,
   identity,
   pastedText,
   familyIds,
@@ -193,7 +200,7 @@ function DeckPicker({
   onClear,
 }: {
   label: string;
-  value: string | null;
+  side: CompareSide | null;
   identity: DeckIdentity | null;
   pastedText: string | null;
   familyIds: string[];
@@ -207,6 +214,7 @@ function DeckPicker({
   // Reset per open, not once: picking changes `value` while this stays mounted.
   const [highlightedId, setHighlightedId] = useState("");
   const name = identity?.name ?? m.decks_compare_choose_deck();
+  const value = side?.kind === "deck" ? side.deckId : null;
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
@@ -307,18 +315,8 @@ function DeckPicker({
             </div>
           </PopoverContent>
         </Popover>
-        {value !== null && (
-          <Button
-            variant="outline"
-            className="self-center"
-            render={
-              <Link
-                to="/decks/$deckId"
-                params={{ deckId: value }}
-                aria-label={m.decks_compare_open_aria({ name })}
-              />
-            }
-          >
+        {side !== null && (
+          <Button variant="outline" className="self-center" render={openSideLink(side, name)}>
             {m.decks_compare_open()}
           </Button>
         )}
@@ -337,7 +335,7 @@ function DeckPicker({
             {m.common_save()}
           </Button>
         )}
-        {(value !== null || pastedText !== null) && (
+        {(side !== null || pastedText !== null) && (
           <Button
             variant="ghost"
             size="icon"
@@ -407,21 +405,65 @@ function localIdentity(deck: LocalDeck): DeckIdentity {
   };
 }
 
-/** A `local:` id resolves from the browser store; a server id goes through the deck-detail query, already warmed by the route for the ids it opened with. */
-function useSideRows(deckId: string | null, userId: string | null): readonly OwnDeckCard[] | null {
+function cardsIdentity(name: string, cards: readonly OwnDeckCard[]): DeckIdentity {
+  return {
+    name,
+    legendCardId: cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
+    championCardId: cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
+    cardCount: countCopies(cards),
+  };
+}
+
+interface SideData {
+  rows: readonly OwnDeckCard[] | null;
+  /** Set for a meta or shared deck, which the picker's own-deck identities don't cover. */
+  linkIdentity: DeckIdentity | null;
+}
+
+const NO_SIDE: SideData = { rows: null, linkIdentity: null };
+
+/** A `local:` id resolves from the browser store; server ids and deck links go through their queries, already warmed by the route for the sides it opened with. */
+function useSideData(side: CompareSide | null, userId: string | null): SideData {
   const localDecks = useLocalDecksStore((state) => state.decks);
+  const deckId = side?.kind === "deck" ? side.deckId : null;
   const isLocal = deckId !== null && isLocalDeckId(deckId);
   const { data } = useQuery({
     ...deckDetailQueryOptions(userId ?? "", deckId ?? ""),
     enabled: deckId !== null && !isLocal && userId !== null,
   });
-  if (deckId === null) {
-    return null;
+  const { data: metaData } = useQuery({
+    ...metaDeckQueryOptions(side?.kind === "meta" ? side.token : ""),
+    enabled: side?.kind === "meta",
+  });
+  const { data: shareData } = useQuery({
+    ...publicDeckQueryOptions(side?.kind === "share" ? side.token : ""),
+    enabled: side?.kind === "share",
+  });
+  if (side === null) {
+    return NO_SIDE;
+  }
+  if (side.kind !== "deck") {
+    const linked = side.kind === "meta" ? metaData : shareData;
+    return linked
+      ? { rows: linked.cards, linkIdentity: cardsIdentity(linked.deck.name, linked.cards) }
+      : NO_SIDE;
   }
   if (isLocal) {
-    return localDecks[deckId]?.cards ?? null;
+    return { rows: localDecks[side.deckId]?.cards ?? null, linkIdentity: null };
   }
-  return data?.cards ?? null;
+  return { rows: data?.cards ?? null, linkIdentity: null };
+}
+
+/** Built as an element for a `render` prop, which merges its own props into it. */
+function openSideLink(side: CompareSide, name: string) {
+  const ariaLabel = m.decks_compare_open_aria({ name });
+  if (side.kind === "meta") {
+    return <Link to="/meta/decks/$token" params={{ token: side.token }} aria-label={ariaLabel} />;
+  }
+  if (side.kind === "share") {
+    return <Link to="/decks/share/$token" params={{ token: side.token }} aria-label={ariaLabel} />;
+  }
+  return <Link to="/decks/$deckId" params={{ deckId: side.deckId }} aria-label={ariaLabel} />;
 }
 
 export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: string }) {
@@ -460,7 +502,8 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     identityById.set(deck.id, localIdentity(deck));
   }
 
-  const anchorId = toId ?? fromId ?? null;
+  const anchor = parseCompareSide(toId ?? fromId);
+  const anchorId = anchor?.kind === "deck" ? anchor.deckId : null;
   const anchorFamilyId = items.find((item) => item.deck.id === anchorId)?.deck.familyId ?? null;
   const familyIds =
     anchorFamilyId === null
@@ -476,45 +519,51 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     .filter((option) => !familySet.has(option.id))
     .map((option) => option.id);
 
-  const fromDeckId = pastedFrom ? null : (fromId ?? null);
-  const toDeckId = pastedTo ? null : (toId ?? null);
-  const fromRows = useSideRows(fromDeckId, userId);
-  const toRows = useSideRows(toDeckId, userId);
+  const fromParam = pastedFrom ? null : (fromId ?? null);
+  const toParam = pastedTo ? null : (toId ?? null);
+  const fromSide = parseCompareSide(fromParam ?? undefined);
+  const toSide = parseCompareSide(toParam ?? undefined);
+  const fromData = useSideData(fromSide, userId);
+  const toData = useSideData(toSide, userId);
 
   const fromCards: DeckDiffCard[] | null = pastedFrom
     ? pastedFrom.cards
-    : fromRows
-      ? ownDeckDiffCards(fromRows, cardsById).theirs
+    : fromData.rows
+      ? ownDeckDiffCards(fromData.rows, cardsById).theirs
       : null;
   const toCards: DeckDiffCard[] | null = pastedTo
     ? pastedTo.cards
-    : toRows
-      ? ownDeckDiffCards(toRows, cardsById).theirs
+    : toData.rows
+      ? ownDeckDiffCards(toData.rows, cardsById).theirs
       : null;
 
-  const pastedIdentity = (pasted: PastedCompareSource): DeckIdentity => ({
-    name: m.decks_compare_pasted_list(),
-    legendCardId: pasted.cards.find((card) => card.zone === WellKnown.deckZone.LEGEND)?.cardId,
-    championCardId: pasted.cards.find((card) => card.zone === WellKnown.deckZone.CHAMPION)?.cardId,
-    cardCount: countCopies(pasted.cards),
-  });
-  const fromIdentity = pastedFrom
-    ? pastedIdentity(pastedFrom)
-    : (identityById.get(fromDeckId ?? "") ?? null);
-  const toIdentity = pastedTo
-    ? pastedIdentity(pastedTo)
-    : (identityById.get(toDeckId ?? "") ?? null);
+  const sideIdentity = (
+    pasted: PastedCompareSource | null,
+    side: CompareSide | null,
+    data: SideData,
+  ): DeckIdentity | null => {
+    if (pasted) {
+      return cardsIdentity(m.decks_compare_pasted_list(), pasted.cards);
+    }
+    if (side?.kind === "deck") {
+      return identityById.get(side.deckId) ?? null;
+    }
+    return data.linkIdentity;
+  };
+  const fromIdentity = sideIdentity(pastedFrom, fromSide, fromData);
+  const toIdentity = sideIdentity(pastedTo, toSide, toData);
 
   const zones = fromCards && toCards ? alignDeckLists(fromCards, toCards) : [];
   const rows = zones.flatMap((zone) => zone.rows);
   const sharedCount = rows.reduce((total, row) => total + Math.min(row.from, row.to), 0);
   const bothChosen =
-    (fromDeckId !== null || pastedFrom !== null) && (toDeckId !== null || pastedTo !== null);
+    (fromParam !== null || pastedFrom !== null) && (toParam !== null || pastedTo !== null);
   const bothPicked = fromCards !== null && toCards !== null;
   const isIdentical = bothPicked && rows.every((row) => row.kind === "same");
   const unmatched = [...(pastedFrom?.unmatched ?? []), ...(pastedTo?.unmatched ?? [])];
 
-  const handlePick = (side: SideKey, pickedId: string) => {
+  /** A deck id from the picker, or a `meta:`/`share:` param from a pasted link. */
+  const handlePick = (side: SideKey, pickedParam: string) => {
     if (side === "from") {
       setPastedFrom(null);
     } else {
@@ -523,8 +572,8 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     void navigate({
       to: "/decks/compare",
       search: {
-        from: side === "from" ? pickedId : (fromDeckId ?? undefined),
-        to: side === "to" ? pickedId : (toDeckId ?? undefined),
+        from: side === "from" ? pickedParam : (fromParam ?? undefined),
+        to: side === "to" ? pickedParam : (toParam ?? undefined),
       },
     });
   };
@@ -538,8 +587,8 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     void navigate({
       to: "/decks/compare",
       search: {
-        from: side === "from" ? undefined : (fromDeckId ?? undefined),
-        to: side === "to" ? undefined : (toDeckId ?? undefined),
+        from: side === "from" ? undefined : (fromParam ?? undefined),
+        to: side === "to" ? undefined : (toParam ?? undefined),
       },
       replace: true,
     });
@@ -556,8 +605,8 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     void navigate({
       to: "/decks/compare",
       search: {
-        from: pasteFor === "from" ? undefined : (fromDeckId ?? undefined),
-        to: pasteFor === "to" ? undefined : (toDeckId ?? undefined),
+        from: pasteFor === "from" ? undefined : (fromParam ?? undefined),
+        to: pasteFor === "to" ? undefined : (toParam ?? undefined),
       },
       replace: true,
     });
@@ -579,14 +628,29 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
     <>
       <PageTopBarSticky width="capped">
         <PageTopBar>
-          {anchorId === null ? (
-            <PageTopBarBack to="/decks" aria-label={m.decks_compare_back_to_decks()} />
-          ) : (
+          {anchor?.kind === "deck" && (
             <PageTopBarBack
               to="/decks/$deckId"
-              params={{ deckId: anchorId }}
+              params={{ deckId: anchor.deckId }}
               aria-label={m.decks_compare_back_to_deck()}
             />
+          )}
+          {anchor?.kind === "meta" && (
+            <PageTopBarBack
+              to="/meta/decks/$token"
+              params={{ token: anchor.token }}
+              aria-label={m.decks_compare_back_to_deck()}
+            />
+          )}
+          {anchor?.kind === "share" && (
+            <PageTopBarBack
+              to="/decks/share/$token"
+              params={{ token: anchor.token }}
+              aria-label={m.decks_compare_back_to_deck()}
+            />
+          )}
+          {anchor === null && (
+            <PageTopBarBack to="/decks" aria-label={m.decks_compare_back_to_decks()} />
           )}
           <PageTopBarTitle>{m.decks_compare_title()}</PageTopBarTitle>
           <PageTopBarActions>
@@ -603,7 +667,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-2">
             <DeckPicker
               label={m.decks_compare_from()}
-              value={fromDeckId}
+              side={fromSide}
               identity={fromIdentity}
               pastedText={pastedFrom?.text ?? null}
               familyIds={familyIds}
@@ -618,7 +682,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
             </span>
             <DeckPicker
               label={m.decks_compare_to()}
-              value={toDeckId}
+              side={toSide}
               identity={toIdentity}
               pastedText={pastedTo?.text ?? null}
               familyIds={familyIds}
@@ -689,6 +753,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
         open={pasteFor !== null}
         onOpenChange={(open) => setPasteFor(open ? pasteFor : null)}
         onResolved={handlePasted}
+        onLinked={(sideParam) => handlePick(pasteFor ?? "to", sideParam)}
       />
     </>
   );

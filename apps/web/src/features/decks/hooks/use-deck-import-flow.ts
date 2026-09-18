@@ -9,6 +9,8 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
+import { queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import {
   dedupeMatchedEntries,
   defaultImportDeckName,
@@ -31,7 +33,7 @@ import {
 } from "@/features/decks/lib/deck-import-parsers";
 import { sortDeckImportEntries } from "@/features/decks/lib/deck-import-preview";
 import { resolveReplaceTarget } from "@/features/decks/lib/deck-import-replace";
-import { deckDetailQueryOptions, publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
+import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";
@@ -118,13 +120,13 @@ export function useDeckImportFlow() {
     setStep("preview");
   };
 
-  const resolveShareLink = async (token: string) => {
+  const resolveDeckLink = async (kind: DeckLinkKind, token: string) => {
     setIsResolvingLink(true);
     // No try/finally: the React Compiler can't yet compile finalizer clauses.
     // The catch never rethrows, so the reset below still runs on both paths.
     let data: PublicDeckDetailResponse | null = null;
     try {
-      data = await queryClient.query(publicDeckQueryOptions(token));
+      data = await queryDeckLink(queryClient, kind, token);
     } catch (error) {
       setParseWarnings([
         error instanceof Error && error.message === "NOT_FOUND"
@@ -159,7 +161,11 @@ export function useDeckImportFlow() {
     if (urlSniff) {
       switch (urlSniff.kind) {
         case "share-token": {
-          await resolveShareLink(urlSniff.token);
+          await resolveDeckLink("share", urlSniff.token);
+          return;
+        }
+        case "meta-token": {
+          await resolveDeckLink("meta", urlSniff.token);
           return;
         }
         case "deck-code": {
