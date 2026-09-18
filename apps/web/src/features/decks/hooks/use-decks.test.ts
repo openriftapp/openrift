@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -35,8 +35,13 @@ vi.mock("@/lib/auth-session", () => ({
   useUserId: () => currentUserId,
 }));
 
+vi.mock("@/features/decks/lib/deck-cards-save", () => ({
+  saveDeckCardsFn: async () => ({ cards: [] }),
+}));
+
 const { deckDetailQueryOptions } = await import("@/features/decks/lib/decks-queries");
-const { deleteDeckFn, useDeleteDeck } = await import("./use-decks");
+const { hydrateDeckDraft, useDeckDraftHydrated } = await import("./deck-builder-collection");
+const { deleteDeckFn, useDeleteDeck, useSaveDeckCards } = await import("./use-decks");
 
 describe("deckDetailQueryOptions", () => {
   afterEach(() => {
@@ -129,5 +134,24 @@ describe("useDeleteDeck", () => {
     const { result } = renderHook(() => useDeleteDeck(), { wrapper });
 
     expect(result.current.isPending).toBe(false);
+  });
+});
+
+describe("useSaveDeckCards", () => {
+  it("marks the deck's editor draft stale so the editor shows the saved cards", async () => {
+    const client = new QueryClient();
+    hydrateDeckDraft(client, "user-1", "deck-1", []);
+    const { result } = renderHook(
+      () => ({
+        save: useSaveDeckCards(),
+        hydrated: useDeckDraftHydrated(client, "user-1", "deck-1"),
+      }),
+      { wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children) },
+    );
+    expect(result.current.hydrated).toBe(true);
+
+    await act(() => result.current.save.mutateAsync({ deckId: "deck-1", cards: [] }));
+
+    expect(result.current.hydrated).toBe(false);
   });
 });

@@ -1,18 +1,25 @@
 import { WellKnown } from "@openrift/shared/well-known";
 import { QueryClient } from "@tanstack/react-query";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { getDeckDraftCollection, hydrateDeckDraft } from "./deck-builder-collection";
+import {
+  getDeckDraftCollection,
+  hydrateDeckDraft,
+  resetDeckDraft,
+  useDeckDraftHydrated,
+  useDeckSaveStatus,
+} from "./deck-builder-collection";
 
 // `vi.hoisted` keeps the spy available to the hoisted `vi.mock` factory below.
 const { saveDeckCardsSpy } = vi.hoisted(() => ({
   saveDeckCardsSpy: vi.fn(async (_arg: unknown) => ({ cards: [] })),
 }));
-vi.mock("@/features/decks/hooks/use-decks", () => ({
+vi.mock("@/features/decks/lib/deck-cards-save", () => ({
   saveDeckCardsFn: (arg: unknown) => saveDeckCardsSpy(arg),
 }));
 
@@ -153,5 +160,77 @@ describe("persistence sink (ADR-035 local decks)", () => {
     expect(saveDeckCardsSpy).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ deckId: "server-deck-1" }) }),
     );
+  });
+});
+
+describe("resetDeckDraft", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    saveDeckCardsSpy.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("marks a hydrated draft as stale so the editor re-hydrates it", () => {
+    hydrateDeckDraft(queryClient, userA, "deck-reset", [
+      stubDeckBuilderCard({ cardId: "old", zone: "main" }),
+    ]);
+    const { result } = renderHook(() => useDeckDraftHydrated(queryClient, userA, "deck-reset"));
+    expect(result.current).toBe(true);
+
+    act(() => resetDeckDraft(queryClient, userA, "deck-reset"));
+
+    expect(result.current).toBe(false);
+  });
+
+  it("drops a pending debounced save", async () => {
+    hydrateDeckDraft(queryClient, userA, "deck-reset-pending", []);
+    getDeckDraftCollection(queryClient, userA, "deck-reset-pending").insert(
+      stubDeckBuilderCard({ cardId: "edit", zone: "main" }),
+    );
+
+    resetDeckDraft(queryClient, userA, "deck-reset-pending");
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(saveDeckCardsSpy).not.toHaveBeenCalled();
+  });
+
+  it("leaves no error behind when it aborts an in-flight save", async () => {
+    saveDeckCardsSpy.mockImplementationOnce(
+      (arg: unknown) =>
+        // oxlint-disable-next-line promise/avoid-new -- a save that only settles when aborted
+        new Promise((_resolve, reject) => {
+          (arg as { signal: AbortSignal }).signal.addEventListener("abort", () =>
+            reject(new Error("aborted")),
+          );
+        }),
+    );
+    hydrateDeckDraft(queryClient, userA, "deck-reset-inflight", []);
+    getDeckDraftCollection(queryClient, userA, "deck-reset-inflight").insert(
+      stubDeckBuilderCard({ cardId: "edit", zone: "main" }),
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(saveDeckCardsSpy).toHaveBeenCalledOnce();
+
+    resetDeckDraft(queryClient, userA, "deck-reset-inflight");
+    await vi.advanceTimersByTimeAsync(0);
+
+    const { result } = renderHook(() =>
+      useDeckSaveStatus(queryClient, userA, "deck-reset-inflight"),
+    );
+    expect(result.current).toEqual({ isSaving: false, isDirty: false, error: null });
+  });
+
+  it("does nothing for a draft under another scope", () => {
+    hydrateDeckDraft(queryClient, userA, "deck-reset-scope", []);
+
+    resetDeckDraft(queryClient, userB, "deck-reset-scope");
+
+    const { result } = renderHook(() =>
+      useDeckDraftHydrated(queryClient, userA, "deck-reset-scope"),
+    );
+    expect(result.current).toBe(true);
   });
 });

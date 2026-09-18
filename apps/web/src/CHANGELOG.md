@@ -6,6 +6,7 @@
 
 - feat(Decks): **Compare meta and shared decks** — "Compare with another deck…" in a meta or shared deck's menu opens the comparison with that deck on one side. You can also paste a meta or shared deck link into either side, and the comparison keeps a link you can send to others.
 - feat(Meta): **See which cards you're missing** — opening a decklist in a tournament's standings now marks under each card how many copies you own, so the gaps stand out at a glance.
+- fix(Decks): **Replaced decks show their new cards** — importing into an existing deck with Replace now shows the imported cards in the deck editor right away, without a page reload.
 
 ### Other
 

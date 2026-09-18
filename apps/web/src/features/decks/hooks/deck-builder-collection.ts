@@ -6,9 +6,9 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
-import { saveDeckCardsFn } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
+import { saveDeckCardsFn } from "@/features/decks/lib/deck-cards-save";
 import { decksKeys } from "@/features/decks/lib/decks-query-keys";
 import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
@@ -293,6 +293,29 @@ export function hydrateDeckDraft(
   }
 
   useDeckUndoStore.getState().reset(deckId);
+}
+
+/**
+ * For writes that bypass the editor: drops pending draft saves and marks the
+ * draft stale so the editor re-hydrates from the deck detail.
+ */
+export function resetDeckDraft(queryClient: QueryClient, scope: string, deckId: string): void {
+  const cached = cache.get(queryClient);
+  const entry = cached?.userId === scope ? cached.drafts.get(deckId) : undefined;
+  if (!entry) {
+    return;
+  }
+
+  if (entry.saveTimer) {
+    clearTimeout(entry.saveTimer);
+    entry.saveTimer = null;
+  }
+  entry.saveController?.abort();
+  entry.saveController = null;
+  entry.saveSeq += 1;
+  entry.status = CLEAN_STATUS;
+  entry.hydrated = false;
+  notify(entry);
 }
 
 export function useDeckDraftHydrated(

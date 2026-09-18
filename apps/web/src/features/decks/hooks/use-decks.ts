@@ -18,6 +18,8 @@ import { isDefinedError, safe } from "@orpc/client";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
+import { resetDeckDraft } from "@/features/decks/hooks/deck-builder-collection";
+import { saveDeckCardsFn } from "@/features/decks/lib/deck-cards-save";
 import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
 import {
   deckDetailQueryOptions,
@@ -151,26 +153,6 @@ export function useDeleteDeck() {
   });
 }
 
-export const saveDeckCardsFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      deckId: string;
-      cards: {
-        cardId: string;
-        zone: DeckZone;
-        quantity: number;
-        preferredPrintingId: string | null;
-      }[];
-    }) => input,
-  )
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<{ cards: DeckCardResponse[] }> =>
-    apiOrpcClient(decksContract, context.cookie).replaceCards({
-      id: data.deckId,
-      cards: data.cards,
-    }),
-  );
-
 export function useSaveDeckCards() {
   // The import page instantiates this hook before knowing the session; do not throw on a missing userId.
   const userId = useUserId();
@@ -202,6 +184,7 @@ export function useSaveDeckCards() {
           return { ...old, cards: data.cards };
         },
       );
+      resetDeckDraft(queryClient, userId, variables.deckId);
 
       // exact: true keeps this from also refetching the detail query set above.
       void queryClient.invalidateQueries({

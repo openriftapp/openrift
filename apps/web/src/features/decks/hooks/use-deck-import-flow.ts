@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { handleImportFileUpload } from "@/features/collections/hooks/import-flow-shared";
 import { classifyBucket } from "@/features/collections/lib/import-summary";
+import { resetDeckDraft } from "@/features/decks/hooks/deck-builder-collection";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { queryDeckLink } from "@/features/decks/lib/deck-compare-side";
@@ -266,6 +267,7 @@ export function useDeckImportFlow() {
     setIsImporting(true);
     if (replaceTarget.mode === "local") {
       useLocalDecksStore.getState().setCards(replaceTarget.deckId, importCards);
+      resetDeckDraft(queryClient, "local", replaceTarget.deckId);
       toast.success(m.decks_import_replaced_toast({ name: targetName, count: totalCards }));
       void navigate({ to: "/decks/$deckId", params: { deckId: replaceTarget.deckId } });
       return;
