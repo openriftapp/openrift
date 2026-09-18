@@ -15,8 +15,8 @@
     "typecheck": "tsgo --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
-    "@better-auth/api-key": "1.7.3",
-    "@better-auth/core": "1.7.3",
+    "@better-auth/api-key": "1.7.4",
+    "@better-auth/core": "1.7.4",
     "@hono/swagger-ui": "0.6.1",
     "@openrift/shared": "workspace:*",
     "@opentelemetry/api": "1.9.1",
@@ -27,14 +27,14 @@
     "@orpc/zod": "1.15.0",
     "@piltoverarchive/riftbound-deck-codes": "1.4.0",
     "@resvg/resvg-js": "2.6.2",
-    "@sentry/bun": "10.73.0",
-    "better-auth": "1.7.3",
+    "@sentry/bun": "10.74.0",
+    "better-auth": "1.7.4",
     "croner": "10.0.1",
     "hono": "4.13.7",
     "hono-rate-limiter": "0.5.4",
     "kysely": "0.29.5",
     "kysely-postgres-js": "4.0.0",
-    "nodemailer": "10.0.1",
+    "nodemailer": "10.0.9",
     "onnxruntime-node": "1.29.0",
     "postgres": "3.4.9",
     "prom-client": "15.1.3",
@@ -42,7 +42,7 @@
     "sharp": "0.35.4",
     "swagger-ui-dist": "5.32.15",
     "uuid": "14.0.2",
-    "zod": "4.5.4"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@opentelemetry/context-async-hooks": "2.11.0",
