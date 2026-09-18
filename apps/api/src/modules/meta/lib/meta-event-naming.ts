@@ -8,42 +8,46 @@ const SLUG_FALLBACK_STEM = "event";
 
 const RESERVED_SLUGS = new Set(RESERVED_META_EVENT_SLUGS);
 
-const MAX_SLUG_VARIANTS = 50;
-
 function trimHyphens(text: string): string {
   return text.replaceAll(/^-+|-+$/gu, "");
 }
 
-function yearOf(eventDate: string): string {
-  return /^(?<year>\d{4})/u.exec(eventDate)?.groups?.year ?? "";
+function withSuffix(stem: string, suffix: string): string {
+  const trimmed = trimHyphens(stem.slice(0, MAX_SLUG_LENGTH - suffix.length));
+  return `${trimmed === "" ? SLUG_FALLBACK_STEM : trimmed}${suffix}`;
 }
 
-/** The year is part of the base, not a disambiguation suffix, so a recurring series doesn't collide every season. */
-export function metaEventSlugBase(name: string, eventDate: string): string {
-  const year = yearOf(eventDate);
+function slugParts(name: string, eventDate: string): { stem: string; suffix: string } {
+  const date = /^\d{4}-\d{2}-\d{2}/u.exec(eventDate)?.[0];
+  const year = /^\d{4}/u.exec(eventDate)?.[0] ?? "";
   const slugified = slugifyName(name);
-  const stem = slugified === "" ? SLUG_FALLBACK_STEM : slugified;
+  const endsWithYear = year !== "" && (slugified === year || slugified.endsWith(`-${year}`));
+  const stem = endsWithYear ? slugified.slice(0, -year.length) : slugified;
+  if (date !== undefined) {
+    return { stem, suffix: `-${date}` };
+  }
+  return { stem, suffix: year === "" ? "" : `-${year}` };
+}
 
-  const suffix = year === "" || stem === year || stem.endsWith(`-${year}`) ? "" : `-${year}`;
-  const trimmed = trimHyphens(stem.slice(0, MAX_SLUG_LENGTH - suffix.length));
-  const candidate = `${trimmed === "" ? SLUG_FALLBACK_STEM : trimmed}${suffix}`;
+export function metaEventSlugBase(name: string, eventDate: string): string {
+  const { stem, suffix } = slugParts(name, eventDate);
+  const candidate = withSuffix(stem, suffix);
 
-  // Only reachable for a very short name in a year-less date, e.g. "AB".
+  // Only reachable for a very short name in a date-less string, e.g. "AB".
   return candidate.length < MIN_SLUG_LENGTH ? `${SLUG_FALLBACK_STEM}${suffix}` : candidate;
 }
 
-export function metaEventSlugCandidates(name: string, eventDate: string): string[] {
-  const base = metaEventSlugBase(name, eventDate);
-  const slugs: string[] = [];
-  for (let n = 1; n <= MAX_SLUG_VARIANTS; n++) {
-    const suffix = n === 1 ? "" : `-${n}`;
-    const stem = trimHyphens(base.slice(0, MAX_SLUG_LENGTH - suffix.length));
-    const slug = `${stem}${suffix}`;
-    if (!RESERVED_SLUGS.has(slug) && slug.length >= MIN_SLUG_LENGTH) {
-      slugs.push(slug);
-    }
-  }
-  return slugs;
+export function metaEventSlugCandidates(
+  name: string,
+  eventDate: string,
+  ids: readonly string[],
+): string[] {
+  const { stem, suffix } = slugParts(name, eventDate);
+  const slugs = [
+    metaEventSlugBase(name, eventDate),
+    ...ids.map((id) => withSuffix(stem, `${suffix}-${id}`)),
+  ];
+  return slugs.filter((slug) => !RESERVED_SLUGS.has(slug) && slug.length >= MIN_SLUG_LENGTH);
 }
 
 const MAX_DECK_NAME_LENGTH = 200;

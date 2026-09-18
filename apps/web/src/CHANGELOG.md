@@ -5,6 +5,7 @@
 ### Highlights
 
 - feat(Tournaments): **Send decklists to the Meta Archive** — link a tournament to its UVS Games event, then match your players to the official standings and send the lists they agreed to share for review.
+- fix(Meta): **Missing events with common names** — events sharing a name with many others, such as weekly store nights and Chinese events, were not added to the archive. They are now added.
 
 ### Other
 

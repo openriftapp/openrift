@@ -11,36 +11,39 @@ import {
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,49}$/u;
 
 describe("metaEventSlugBase", () => {
-  it("slugifies the name and appends the event's year", () => {
+  it("slugifies the name and appends the event's date", () => {
     expect(metaEventSlugBase("Summoner Skirmish Berlin", "2026-08-01")).toBe(
-      "summoner-skirmish-berlin-2026",
+      "summoner-skirmish-berlin-2026-08-01",
     );
   });
 
-  it("keeps a year the name already ends with", () => {
-    expect(metaEventSlugBase("Rift Open 2026", "2026-08-01")).toBe("rift-open-2026");
+  it("does not repeat a year the name already ends with", () => {
+    expect(metaEventSlugBase("Rift Open 2026", "2026-08-01")).toBe("rift-open-2026-08-01");
   });
 
-  it("still appends when the name carries a different year", () => {
-    expect(metaEventSlugBase("Rift Open 2025", "2026-08-01")).toBe("rift-open-2025-2026");
+  it("keeps a different year the name carries", () => {
+    expect(metaEventSlugBase("Rift Open 2025", "2026-08-01")).toBe("rift-open-2025-2026-08-01");
   });
 
   it("collapses punctuation and casing", () => {
     expect(metaEventSlugBase("Noxus  Invitational -- Round #2!", "2026-01-05")).toBe(
-      "noxus-invitational-round-2-2026",
+      "noxus-invitational-round-2-2026-01-05",
     );
   });
 
   it("falls back when the name slugifies to nothing", () => {
-    expect(metaEventSlugBase("???", "2026-08-01")).toBe("event-2026");
-    expect(metaEventSlugBase("東京", "2026-08-01")).toBe("event-2026");
+    expect(metaEventSlugBase("???", "2026-08-01")).toBe("event-2026-08-01");
+    expect(metaEventSlugBase("第一赛季 全国公开赛", "2026-08-01")).toBe("event-2026-08-01");
   });
 
-  it("truncates a long name to fit the column, hyphens trimmed", () => {
-    const slug = metaEventSlugBase(`${"a".repeat(80)} open`, "2026-08-01");
-    expect(slug.length).toBeLessThanOrEqual(50);
-    expect(slug.endsWith("-2026")).toBe(true);
-    expect(slug).toMatch(SLUG_PATTERN);
+  it("truncates a long name and keeps the date whole", () => {
+    expect(metaEventSlugBase("Saturday Afternoon Summoner Skirmish - December", "2025-12-13")).toBe(
+      "saturday-afternoon-summoner-skirmish-de-2025-12-13",
+    );
+  });
+
+  it("appends only the year when the date has no month and day", () => {
+    expect(metaEventSlugBase("Rift Open", "2026")).toBe("rift-open-2026");
   });
 
   it("produces a valid slug when the date carries no year", () => {
@@ -60,33 +63,57 @@ describe("metaEventSlugBase", () => {
 });
 
 describe("metaEventSlugCandidates", () => {
-  it("offers the base first, then numbered variants", () => {
-    const slugs = metaEventSlugCandidates("Rift Open", "2026-08-01");
-    expect(slugs.slice(0, 3)).toEqual(["rift-open-2026", "rift-open-2026-2", "rift-open-2026-3"]);
+  it("offers the base, then the base plus each id", () => {
+    const slugs = metaEventSlugCandidates("Rift Open", "2026-08-01", ["ab12cd", "ef34gh"]);
+    expect(slugs).toEqual([
+      "rift-open-2026-08-01",
+      "rift-open-2026-08-01-ab12cd",
+      "rift-open-2026-08-01-ef34gh",
+    ]);
+  });
+
+  it("keeps the date and id whole when the name is long", () => {
+    const name = "Saturday Afternoon Summoner Skirmish - December";
+    const slugs = metaEventSlugCandidates(name, "2025-12-13", ["ab12cd"]);
+    expect(slugs).toEqual([
+      "saturday-afternoon-summoner-skirmish-de-2025-12-13",
+      "saturday-afternoon-summoner-skir-2025-12-13-ab12cd",
+    ]);
+  });
+
+  it("ids a name that slugifies to nothing", () => {
+    expect(metaEventSlugCandidates("第一赛季 全国公开赛", "2026-03-14", ["ab12cd"])).toEqual([
+      "event-2026-03-14",
+      "event-2026-03-14-ab12cd",
+    ]);
+  });
+
+  it("appends ids to the base when the date is not a full date", () => {
+    expect(metaEventSlugCandidates("Rift Open", "no-year-here", ["ab12cd"])).toEqual([
+      "rift-open",
+      "rift-open-ab12cd",
+    ]);
   });
 
   it("drops a reserved slug rather than rewriting it", () => {
-    const slugs = metaEventSlugCandidates("Decks", "no-year-here");
-    expect(slugs).not.toContain("decks");
-    expect(slugs[0]).toBe("decks-2");
+    const slugs = metaEventSlugCandidates("Decks", "no-year-here", ["ab12cd"]);
+    expect(slugs).toEqual(["decks-ab12cd"]);
   });
 
   it("reserves every name a static /meta child owns", () => {
     for (const name of ["Legends", "Submit", "Submissions"]) {
-      const slugs = metaEventSlugCandidates(name, "no-year-here");
+      const slugs = metaEventSlugCandidates(name, "no-year-here", []);
       expect(slugs).not.toContain(name.toLowerCase());
     }
   });
 
   it("keeps every variant inside the column's grammar", () => {
-    for (const slug of metaEventSlugCandidates(`${"a".repeat(80)} open`, "2026-08-01")) {
-      expect(slug).toMatch(SLUG_PATTERN);
+    const names = [`${"a".repeat(80)} open`, "2026", "???", "AB"];
+    for (const name of names) {
+      for (const slug of metaEventSlugCandidates(name, "2026-08-01", ["ab12cd"])) {
+        expect(slug).toMatch(SLUG_PATTERN);
+      }
     }
-  });
-
-  it("returns distinct slugs", () => {
-    const slugs = metaEventSlugCandidates("Rift Open", "2026-08-01");
-    expect(new Set(slugs).size).toBe(slugs.length);
   });
 });
 

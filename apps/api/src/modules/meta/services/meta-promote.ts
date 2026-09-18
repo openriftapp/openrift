@@ -22,6 +22,12 @@ import {
 import { factsFor } from "./meta-promote-sources.js";
 import { promoteStandings } from "./meta-promote-standings.js";
 
+const SLUG_ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+
+const SLUG_ID_LENGTH = 6;
+
+const SLUG_ID_ATTEMPTS = 5;
+
 /**
  * `live = promote(sources) + accepted overlays`; there is no staging tier
  * in between. `decks`, `meta_event_matches`, and public share tokens hang
@@ -214,8 +220,18 @@ export async function promoteNewEvent(
   return { metaEventId: created.id, slug, created: true };
 }
 
+function mintSlugId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(SLUG_ID_LENGTH));
+  let out = "";
+  for (const byte of bytes) {
+    out += SLUG_ID_ALPHABET.charAt(byte % SLUG_ID_ALPHABET.length);
+  }
+  return out;
+}
+
 async function resolveEventSlug(repos: Repos, name: string, eventDate: string): Promise<string> {
-  for (const slug of metaEventSlugCandidates(name, eventDate)) {
+  const ids = Array.from({ length: SLUG_ID_ATTEMPTS }, mintSlugId);
+  for (const slug of metaEventSlugCandidates(name, eventDate, ids)) {
     const taken = await repos.meta.eventBySlug(slug);
     if (taken === undefined) {
       return slug;
