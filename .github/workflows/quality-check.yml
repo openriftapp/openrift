@@ -40,14 +40,6 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Cache Bun install store
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -88,14 +80,6 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Cache Bun install store
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -126,14 +110,6 @@ jobs:
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
-
-      - name: Cache Bun install store
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

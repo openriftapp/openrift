@@ -11,6 +11,13 @@ const paraglideDir = path.resolve(import.meta.dirname, "./src/paraglide");
 
 const domTests = ["src/**/*.test.tsx", "src/**/use-*.test.ts", "src/**/hooks/**/*.test.ts"];
 
+// The only tests that assert translated output; everything else reads
+// English straight out of `messages/en.js`.
+const localeTests = ["src/features/meta/lib/meta-format.test.ts", "src/lib/date-words.test.ts"];
+
+const englishMessages = path.resolve(import.meta.dirname, "./src/test/paraglide-en.js");
+const allMessages = path.resolve(import.meta.dirname, "./src/paraglide/messages.js");
+
 // Every test file re-evaluates the 20 MB of generated messages, and half of
 // those bytes are JSDoc that only tsgo reads.
 const stripParaglideJsdoc: Plugin = {
@@ -33,6 +40,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@/paraglide/messages.js": englishMessages,
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
@@ -52,9 +60,14 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["src/**/*.test.ts"],
-          exclude: [...configDefaults.exclude, ...domTests],
+          exclude: [...configDefaults.exclude, ...domTests, ...localeTests],
           setupFiles: [],
         },
+      },
+      {
+        extends: true,
+        resolve: { alias: { "@/paraglide/messages.js": allMessages } },
+        test: { name: "i18n", environment: "node", include: localeTests, setupFiles: [] },
       },
     ],
     coverage: {

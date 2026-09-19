@@ -76,7 +76,8 @@ Each workspace has its own `vitest.config.ts`:
 
 - `packages/shared/vitest.config.ts` — node environment, no aliases.
 - `apps/api/vitest.config.ts` — node environment, loads `DATABASE_URL` from the root `.env` so integration tests can find it.
-- `apps/web/vitest.config.ts` — two projects: component, hook and store tests (`*.test.tsx`, `use-*.test.ts`, anything under `hooks/` or `stores/`) run in `jsdom`, every other `.test.ts` runs in node. A lib test that needs the DOM opts in with `// @vitest-environment jsdom` as its first line. Creating jsdom is most of a small test's cost, so keep pure logic in node. `@/` → `src/` alias.
+- `apps/web/vitest.config.ts` — three projects: component and hook tests (`*.test.tsx`, `use-*.test.ts`, anything under `hooks/`) run in `happy-dom`, the two files that assert translated output run in `i18n`, every other `.test.ts` runs in node. A lib test that needs the DOM opts in with `// @vitest-environment jsdom` as its first line, and a dom test that depends on jsdom's CSS, image or ARIA fidelity opts out of happy-dom the same way. Creating a DOM is most of a small test's cost, so keep pure logic in node. `@/` → `src/` alias.
+- Every project except `i18n` resolves `@/paraglide/messages.js` to `src/test/paraglide-en.js`, which re-exports the English module and skips the locale dispatcher and the other five locales. It halves the web suite. A test that asserts a non-English string therefore belongs in the `i18n` project's `include` list, where the real messages module is restored.
 
 Use `vi.mock()` when the module under test imports something with side effects or heavy dependencies (React components, DOM APIs, browser globals). If a utility only imports plain constants or types from such a module, mock just that export to avoid pulling in the entire dependency tree.
 

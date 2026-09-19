@@ -27,7 +27,7 @@
         "src/tracing.server.ts",
         "src/components/error-fallback.tsx"
       ],
-      "ignore": ["src/components/ui/**", "public/sw.js"],
+      "ignore": ["src/components/ui/**", "public/sw.js", "src/test/paraglide-en.js"],
       "ignoreDependencies": ["@tanstack/router-plugin", "flag-icons"]
     },
     "packages/shared": {},
