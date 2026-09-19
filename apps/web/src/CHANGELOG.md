@@ -9,6 +9,8 @@
 
 ### Other
 
+- fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.
+
 - feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.
 
 ## 2026-09-18

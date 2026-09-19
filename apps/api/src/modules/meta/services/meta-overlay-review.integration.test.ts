@@ -42,6 +42,8 @@ let repos: Repos;
 let otherAdminId: string;
 let sourceCardId: string;
 let addedCardId: string;
+let legendCardId: string;
+let championCardId: string;
 let addedPrintingId: string;
 let setId: string;
 
@@ -58,10 +60,10 @@ if (ctx) {
   otherAdminId = other.id;
   createdUserIds.push(other.id);
 
-  const seedCard = async (name: string, normName: string): Promise<string> => {
+  const seedCard = async (name: string, normName: string, type = "spell"): Promise<string> => {
     const [card] = await db
       .insertInto("cards")
-      .values({ name, slug: normName, type: "spell", normName, keywords: [], tags: [] })
+      .values({ name, slug: normName, type, normName, keywords: [], tags: [] })
       .returning("id")
       .execute();
     createdCardIds.push(card!.id);
@@ -70,6 +72,8 @@ if (ctx) {
 
   sourceCardId = await seedCard("MOR Source Spell", "morsourcespell");
   addedCardId = await seedCard("MOR Added Spell", "moraddedspell");
+  legendCardId = await seedCard("MOR Legend", "morlegend", "legend");
+  championCardId = await seedCard("MOR Champion", "morchampion", "unit");
   await syncCardCardTypes(db);
 
   const [set] = await db
@@ -400,6 +404,30 @@ describe.skipIf(!ctx)("overlay review", () => {
       ]);
       const [player] = await repo.rawStandingsForEvent(metaEventId);
       expect(player!.listStatus).toBe("partial");
+    });
+
+    it("files the row under the legend and champion its list names", async () => {
+      const { metaEventId, metaEventPlayerId } = await seedMirroredPlayer("mor-player-legend");
+
+      await writeMetaPlayerOverlayFields(
+        repos,
+        metaEventPlayerId,
+        {
+          list: {
+            cards: [
+              { cardId: legendCardId, zone: "legend", quantity: 1 },
+              { cardId: championCardId, zone: "champion", quantity: 1 },
+              { cardId: addedCardId, zone: "main", quantity: 2 },
+            ],
+            listStatus: "full",
+          },
+        },
+        META_ARCHIVE_USER_ID,
+      );
+      await promoteMetaEvent(repos, metaEventId);
+
+      const [player] = await repo.rawStandingsForEvent(metaEventId);
+      expect(player).toMatchObject({ legendCardId, championCardId });
     });
 
     it("detaches the deck for a claimed-empty list, and keeps it detached", async () => {

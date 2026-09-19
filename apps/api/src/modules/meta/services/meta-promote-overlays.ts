@@ -1,4 +1,5 @@
 import type { DeckZone, MetaListStatus } from "@openrift/shared/types/enums";
+import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../deps.js";
 import type { CardNameIndex } from "../../candidates/services/candidate-links.js";
@@ -95,12 +96,24 @@ export async function applyPlayerOverlays(
         } as Partial<typeof base>,
       })),
     );
-    await repos.meta.updatePlayer(player.id, applied);
 
     const withList = patches.filter((overlay) => overlay.claimedFields.includes("cards"));
     const latest = withList.at(-1);
-    if (latest !== undefined) {
-      await applyOverlayList(repos, player.id, latest.id, format, cardIndex);
+    const list =
+      latest === undefined ? undefined : await resolveOverlayList(repos, latest.id, cardIndex);
+    if (list !== undefined && list !== null) {
+      // The archive files an entry under the standings row's legend, so a
+      // list's own legend and champion zones win over the row's fields.
+      const inZone = (zone: string) => list.cards.find((card) => card.zone === zone)?.cardId;
+      applied.legendCardId = inZone(WellKnown.deckZone.LEGEND) ?? applied.legendCardId;
+      applied.championCardId = inZone(WellKnown.deckZone.CHAMPION) ?? applied.championCardId;
+    }
+    await repos.meta.updatePlayer(player.id, applied);
+
+    if (list === null) {
+      await repos.meta.clearPlayerDeck(player.id);
+    } else if (list !== undefined) {
+      await applyOverlayList(repos, player.id, list, format);
     }
   }
 }
@@ -175,30 +188,32 @@ export async function dropOrphanMintedPlayers(
   }
 }
 
+interface ResolvedOverlayList {
+  cards: MetaDeckCardInput[];
+  listStatus: Exclude<MetaListStatus, "none">;
+}
+
 /**
- * A submitted list becomes the live deck only once every line resolves; a
- * `cards` claim with no lines detaches the deck instead, since it claims there is none.
+ * A submitted list becomes the live deck only once every line resolves
+ * (`undefined` until then); a `cards` claim with no lines is `null`, since it claims there is none.
  */
-async function applyOverlayList(
+async function resolveOverlayList(
   repos: Repos,
-  metaEventPlayerId: string,
   overlayId: string,
-  format: string,
   cardIndex: CardNameIndex,
-): Promise<void> {
+): Promise<ResolvedOverlayList | null | undefined> {
   const overlay = await repos.metaOverlays.playerOverlayById(overlayId);
   if (overlay === undefined) {
-    return;
+    return undefined;
   }
   if (overlay.cards.length === 0) {
-    await repos.meta.clearPlayerDeck(metaEventPlayerId);
-    return;
+    return null;
   }
   const cards: MetaDeckCardInput[] = [];
   for (const line of overlay.cards) {
     const cardId = line.cardId ?? resolveCardIdByName(cardIndex, line.cardName);
     if (cardId === null) {
-      return;
+      return undefined;
     }
     cards.push({
       cardId,
@@ -207,6 +222,18 @@ async function applyOverlayList(
       preferredPrintingId: line.preferredPrintingId,
     });
   }
+  return {
+    cards,
+    listStatus: (overlay.listStatus ?? "full") as Exclude<MetaListStatus, "none">,
+  };
+}
+
+async function applyOverlayList(
+  repos: Repos,
+  metaEventPlayerId: string,
+  list: ResolvedOverlayList,
+  format: string,
+): Promise<void> {
   const player = await repos.meta.playerById(metaEventPlayerId);
   if (player === undefined) {
     return;
@@ -215,7 +242,7 @@ async function applyOverlayList(
     name: player.deckName ?? defaultMetaDeckName(player.legendName, player.playerName, ""),
     format,
     formatConfig: null,
-    cards,
-    listStatus: (overlay.listStatus ?? "full") as Exclude<MetaListStatus, "none">,
+    cards: list.cards,
+    listStatus: list.listStatus,
   });
 }
