@@ -12,7 +12,7 @@ const captured = vi.hoisted(() => ({
     eventsByTier: { premier: 0, competitive: 0, local: 0 },
   },
   activity: [] as MetaActivityItem[],
-  search: {} as Record<string, string | string[] | undefined>,
+  search: {} as Record<string, string | string[] | boolean | undefined>,
   userId: null as string | null,
   submissionCount: 0,
 }));
@@ -525,6 +525,51 @@ describe("MetaFrontPage", () => {
     expect(screen.getByText("No results on file for this scope yet.")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Premier" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Coming up" })).toBeInTheDocument();
+  });
+
+  it("points played events without results to the event index under the same era and query", () => {
+    const resultless = { playerRowCount: 0, deckCount: 0, topFinishes: [] };
+    captured.search = { era: "all", q: "allerlei" };
+    captured.events = [
+      event({ id: "evt-2", name: "Nexus Night von Allerlei Spielerei", ...resultless }),
+      event({ id: "evt-3", name: "Summoner Skirmish im Allerlei Spielerei", ...resultless }),
+    ];
+
+    render(<MetaFrontPage />);
+
+    expect(screen.getByText("No results on file for this scope yet.")).toBeInTheDocument();
+    expect(screen.getByText(/There are 2 more events without results\./u)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Check them on the event page" });
+    expect(link).toHaveAttribute("href", "/meta/events");
+    expect(link).toHaveAttribute("data-search", JSON.stringify({ era: "all", q: "allerlei" }));
+  });
+
+  it("lists the resultless count below events that have results", () => {
+    captured.events = [event(), event({ id: "evt-2", playerRowCount: 0, topFinishes: [] })];
+
+    render(<MetaFrontPage />);
+
+    expect(screen.getByRole("heading", { name: "Premier" })).toBeInTheDocument();
+    expect(screen.getByText(/There is 1 more event without results\./u)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Check it on the event page" })).toBeInTheDocument();
+  });
+
+  it("carries the decklist toggle over as the index's decks holding", () => {
+    captured.search = { decks: true };
+    captured.events = [event({ playerRowCount: 0, topFinishes: [] })];
+
+    render(<MetaFrontPage />);
+
+    expect(screen.getByRole("link", { name: "Check it on the event page" })).toHaveAttribute(
+      "data-search",
+      JSON.stringify({ holds: "decks" }),
+    );
+  });
+
+  it("leaves the resultless note out when every played event has results", () => {
+    render(<MetaFrontPage />);
+
+    expect(screen.queryByText(/without results/u)).not.toBeInTheDocument();
   });
 
   it("leaves the rail's upcoming section out when nothing is scheduled", () => {

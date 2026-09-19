@@ -8368,6 +8368,26 @@
   "meta_run_organizer_note": "本页的每一场比赛都是锦标赛主办方公布的结果。",
   "meta_cost_include_sideboard": "也计入备牌",
   "meta_front_scope_empty": "此范围暂无成绩记录。",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "另有 {count} 场赛事尚无成绩。",
+        "countPlural=*": "另有 {count} 场赛事尚无成绩。"
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "前往赛事页面查看",
+        "countPlural=*": "前往赛事页面查看"
+      }
+    }
+  ],
   "meta_events_col_players": "选手",
   "meta_events_col_decks": "卡组",
   "meta_deck_incomplete_complete_it": "知道缺的是哪些卡牌？帮忙补全",

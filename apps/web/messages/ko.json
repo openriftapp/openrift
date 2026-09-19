@@ -8368,6 +8368,26 @@
   "meta_run_organizer_note": "이 페이지의 모든 경기는 토너먼트 주최자가 공개한 결과입니다.",
   "meta_cost_include_sideboard": "사이드보드도 포함",
   "meta_front_scope_empty": "이 범위에는 아직 기록된 결과가 없습니다.",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "결과가 없는 이벤트가 {count}개 더 있습니다.",
+        "countPlural=*": "결과가 없는 이벤트가 {count}개 더 있습니다."
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "이벤트 페이지에서 확인하세요",
+        "countPlural=*": "이벤트 페이지에서 확인하세요"
+      }
+    }
+  ],
   "meta_events_col_players": "플레이어",
   "meta_events_col_decks": "덱",
   "meta_deck_incomplete_complete_it": "빠진 카드를 아시나요? 목록 채우기",

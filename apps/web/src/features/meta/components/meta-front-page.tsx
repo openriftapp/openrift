@@ -179,6 +179,34 @@ function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number
   );
 }
 
+function ResultlessNote({
+  count,
+  search,
+}: {
+  count: number;
+  search: MetaScope & { q?: string; decks?: boolean };
+}) {
+  if (count === 0) {
+    return null;
+  }
+  const { decks, ...scope } = search;
+  return (
+    <p className="text-muted-foreground">
+      {m.meta_front_resultless({ count })}{" "}
+      <TextLink
+        render={
+          <Link
+            to="/meta/events"
+            search={{ ...scope, holds: decks === true ? "decks" : undefined }}
+          />
+        }
+      >
+        {m.meta_front_resultless_link({ count })}
+      </TextLink>
+    </p>
+  );
+}
+
 function UpcomingTeaser({ next, count }: { next: MetaEventSummary; count: number }) {
   const leaf = dateLeafPartsUtc(next.eventDate, DATE_WORDS);
 
@@ -414,6 +442,7 @@ export function MetaFrontPage() {
                         </EmptyHeader>
                       </Empty>
                     )}
+                    <ResultlessNote count={sections.resultless.length} search={search} />
                   </div>
 
                   {hasRail && (

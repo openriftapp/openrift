@@ -8368,6 +8368,26 @@
   "meta_run_organizer_note": "Chaque match de cette page correspond au résultat publié par l'organisateur du tournoi.",
   "meta_cost_include_sideboard": "Compter aussi la réserve",
   "meta_front_scope_empty": "Aucun résultat enregistré pour cette sélection.",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Il y a {count} autre événement sans résultats.",
+        "countPlural=*": "Il y a {count} autres événements sans résultats."
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Consultez-le sur la page des événements",
+        "countPlural=*": "Consultez-les sur la page des événements"
+      }
+    }
+  ],
   "meta_events_col_players": "Joueurs",
   "meta_events_col_decks": "Decks",
   "meta_deck_incomplete_complete_it": "Vous connaissez les cartes manquantes ? Complétez-la",

@@ -8368,6 +8368,26 @@
   "meta_run_organizer_note": "Jede Partie auf dieser Seite ist das vom Turnierveranstalter veröffentlichte Ergebnis.",
   "meta_cost_include_sideboard": "Sideboard mitzählen",
   "meta_front_scope_empty": "Für diesen Bereich sind noch keine Ergebnisse hinterlegt.",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Es gibt noch {count} weiteres Event ohne Ergebnisse.",
+        "countPlural=*": "Es gibt noch {count} weitere Events ohne Ergebnisse."
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Sieh es dir auf der Event-Seite an",
+        "countPlural=*": "Sieh sie dir auf der Event-Seite an"
+      }
+    }
+  ],
   "meta_events_col_players": "Spieler",
   "meta_events_col_decks": "Decks",
   "meta_deck_incomplete_complete_it": "Kennst du die fehlenden Karten? Vervollständige sie",

@@ -72,6 +72,7 @@ export interface MetaFrontSections {
   competitive: MetaEventSummary[];
   local: MetaEventSummary[];
   upcoming: MetaEventSummary[];
+  resultless: MetaEventSummary[];
 }
 
 const UPCOMING_TIER_RANK: Record<MetaEventTier, number> = {
@@ -102,5 +103,6 @@ export function metaFrontSections(
     competitive: played.filter((event) => event.tier === "competitive"),
     local: played.filter((event) => event.tier === "local"),
     upcoming,
+    resultless: events.filter((event) => event.playerRowCount === 0 && event.eventDate <= today),
   };
 }

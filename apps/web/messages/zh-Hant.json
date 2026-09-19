@@ -8368,6 +8368,26 @@
   "meta_run_organizer_note": "本頁每一場對戰都是錦標賽主辦方公布的結果。",
   "meta_cost_include_sideboard": "也計入備牌",
   "meta_front_scope_empty": "這個範圍目前還沒有成績。",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "另有 {count} 場賽事尚無成績。",
+        "countPlural=*": "另有 {count} 場賽事尚無成績。"
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "前往賽事頁面查看",
+        "countPlural=*": "前往賽事頁面查看"
+      }
+    }
+  ],
   "meta_events_col_players": "選手",
   "meta_events_col_decks": "牌組",
   "meta_deck_incomplete_complete_it": "知道缺哪些卡嗎？補完它",

@@ -265,6 +265,7 @@ describe("metaFrontSections", () => {
       competitive: [],
       local: [],
       upcoming: [],
+      resultless: [],
     });
   });
 
@@ -277,13 +278,30 @@ describe("metaFrontSections", () => {
     expect(sections.upcoming.map((row) => row.id)).toEqual(["future"]);
   });
 
-  it("puts a played event with no standings in no bucket at all", () => {
+  it("sets a played event with no standings aside as resultless", () => {
     const sections = metaFrontSections(
       [event({ id: "empty", tier: "premier", eventDate: "2026-08-01", playerRowCount: 0 })],
       TODAY,
     );
     expect(sections.premier).toEqual([]);
     expect(sections.upcoming).toEqual([]);
+    expect(sections.resultless.map((row) => row.id)).toEqual(["empty"]);
+  });
+
+  it("counts an event with no standings dated today as resultless", () => {
+    const sections = metaFrontSections(
+      [event({ id: "today", eventDate: TODAY, playerRowCount: 0 })],
+      TODAY,
+    );
+    expect(sections.resultless.map((row) => row.id)).toEqual(["today"]);
+  });
+
+  it("does not count a future event without standings as resultless", () => {
+    const sections = metaFrontSections(
+      [event({ id: "future", eventDate: "2026-09-10", playerRowCount: 0 })],
+      TODAY,
+    );
+    expect(sections.resultless).toEqual([]);
   });
 
   it("does not treat an event dated exactly today as upcoming", () => {

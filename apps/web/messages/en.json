@@ -8470,6 +8470,26 @@
   "meta_run_organizer_note": "Every match on this page is the result published by the tournament organizer.",
   "meta_cost_include_sideboard": "Count the sideboard too",
   "meta_front_scope_empty": "No results on file for this scope yet.",
+  "meta_front_resultless": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "There is {count} more event without results.",
+        "countPlural=*": "There are {count} more events without results."
+      }
+    }
+  ],
+  "meta_front_resultless_link": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Check it on the event page",
+        "countPlural=*": "Check them on the event page"
+      }
+    }
+  ],
   "meta_events_col_players": "Players",
   "meta_events_col_decks": "Decks",
   "meta_deck_incomplete_complete_it": "Know the missing cards? Complete it",
