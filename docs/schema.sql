@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eff4E7VHFzoucTZWForMnF5Gqc4SHsg2nbxXYLtgGaTrZKC6jR85rmYgPOSP4nR
+\restrict gZQ1SwDsXSvS1bOkGeF67fvpjdFP8hvzhjmGFl8WaB09BtaoL6KdethPW6M2ilB
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3947,9 +3947,12 @@ CREATE TABLE public.uvsgames_events (
     event_configuration_template text,
     store_id integer,
     results_fetched_at timestamp with time zone,
+    missing_probe text,
     CONSTRAINT chk_uvsgames_events_content_hash CHECK ((content_hash <> ''::text)),
     CONSTRAINT chk_uvsgames_events_display_status CHECK ((display_status <> ''::text)),
     CONSTRAINT chk_uvsgames_events_external_id CHECK ((external_id <> ''::text)),
+    CONSTRAINT chk_uvsgames_events_missing_probe CHECK ((missing_probe = ANY (ARRAY['found'::text, 'absent'::text]))),
+    CONSTRAINT chk_uvsgames_events_missing_probe_needs_missing CHECK (((missing_probe IS NULL) OR (missing_since IS NOT NULL))),
     CONSTRAINT chk_uvsgames_events_name CHECK ((name <> ''::text)),
     CONSTRAINT chk_uvsgames_events_player_count CHECK (((player_count IS NULL) OR (player_count >= 0)))
 );
@@ -9763,5 +9766,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eff4E7VHFzoucTZWForMnF5Gqc4SHsg2nbxXYLtgGaTrZKC6jR85rmYgPOSP4nR
+\unrestrict gZQ1SwDsXSvS1bOkGeF67fvpjdFP8hvzhjmGFl8WaB09BtaoL6KdethPW6M2ilB
 

@@ -4,6 +4,7 @@ import { autoAcceptCatalogEvents } from "./accept.js";
 import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText, EVENTS_PATH, GAME_SLUG } from "./deps.js";
+import { probeId } from "./id-sweep.js";
 import type { MetaSyncResultBase } from "./result.js";
 import { emptyMetaSyncResult } from "./result.js";
 import { syncEventTemplates } from "./templates.js";
@@ -31,6 +32,10 @@ const MAX_CONSECUTIVE_FAILURES = 20;
 
 const HEARTBEAT_RANGES = 25;
 
+const MAX_MISSING_PROBES = 1000;
+
+const HEARTBEAT_PROBES = 100;
+
 const MAX_ERRORS = 50;
 const MAX_SKIPPED = 50;
 
@@ -42,6 +47,8 @@ export interface MetaCatalogSyncResult extends MetaSyncResultBase {
   skipped: number;
   templatesNamed: number;
   templatesRetired: number;
+  missingFound: number;
+  missingAbsent: number;
   skippedRanges: string[];
 }
 
@@ -53,6 +60,8 @@ function emptyResult(): MetaCatalogSyncResult {
     skipped: 0,
     templatesNamed: 0,
     templatesRetired: 0,
+    missingFound: 0,
+    missingAbsent: 0,
     skippedRanges: [],
   };
 }
@@ -65,6 +74,8 @@ export function isCatalogSyncNoop(result: MetaCatalogSyncResult): boolean {
     result.inserted === 0 &&
     result.changed === 0 &&
     result.missing === 0 &&
+    result.missingFound === 0 &&
+    result.missingAbsent === 0 &&
     result.autoAccepted === 0
   );
 }
@@ -370,6 +381,48 @@ async function finish(deps: MetaSyncDeps, ctx: CrawlContext): Promise<MetaCatalo
   return ctx.result;
 }
 
+// The listing drops cancelled, archived and unlisted events, while the
+// per-event endpoint still serves them.
+async function probeMissing(deps: MetaSyncDeps, ctx: CrawlContext): Promise<void> {
+  if (ctx.stopped) {
+    return;
+  }
+  const ids = await deps.repos.uvsgamesEvents.unprobedMissing(MAX_MISSING_PROBES);
+  const found: UvsgamesCatalogProjection[] = [];
+  const absent: string[] = [];
+  let failures = 0;
+  for (const [index, id] of ids.entries()) {
+    if (index > 0 && index % HEARTBEAT_PROBES === 0) {
+      await heartbeat(deps, ctx);
+    }
+    if (ctx.stopped) {
+      break;
+    }
+    const outcome = await probeId(deps, Number(id));
+    if (outcome.kind === "event") {
+      found.push(outcome.projection);
+      failures = 0;
+    } else if (outcome.kind === "probe" && outcome.probe.outcome === "absent") {
+      absent.push(id);
+      failures = 0;
+    } else {
+      record(
+        ctx,
+        outcome.kind === "failed" ? outcome.error : `Event ${id}: ${outcome.probe.outcome}`,
+      );
+      failures++;
+      if (failures >= MAX_CONSECUTIVE_FAILURES) {
+        record(ctx, `Stopped probing missing events after ${failures} failures in a row`);
+        break;
+      }
+    }
+  }
+  await deps.repos.uvsgamesEvents.refreshFromProbe(found);
+  await deps.repos.uvsgamesEvents.markProbeAbsent(absent);
+  ctx.result.missingFound = found.length;
+  ctx.result.missingAbsent = absent.length;
+}
+
 function shift(from: Date, days: number): Date {
   return new Date(from.getTime() + days * DAY_MS);
 }
@@ -394,6 +447,7 @@ export async function syncCatalog(
       at: now,
     });
   }
+  await probeMissing(deps, ctx);
 
   return await finish(deps, ctx);
 }

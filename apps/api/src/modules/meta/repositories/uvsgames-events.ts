@@ -290,6 +290,29 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     return { ...row, mappedFormat: mappings.get(normalizeFormatKey(row.sourceFormat)) ?? null };
   }
 
+  // Store rows must exist before the events that reference them. A repeated
+  // name updates the store in place, so renames propagate.
+  async function upsertStores(rows: readonly UvsgamesUpsertInput[]): Promise<void> {
+    const stores = [
+      ...new Map(
+        rows
+          .filter((row) => row.storeId !== null && row.storeName !== null)
+          .map((row) => [row.storeId, { id: row.storeId, name: row.storeName }] as const),
+      ).values(),
+    ] as { id: number; name: string }[];
+    for (const batch of rowBatches(
+      stores.map((store) => ({ id: store.id, name: store.name.slice(0, 200) })),
+    )) {
+      await db
+        .insertInto("uvsgamesStores")
+        .values(batch)
+        .onConflict((oc) =>
+          oc.column("id").doUpdateSet((eb) => ({ name: eb.ref("excluded.name") })),
+        )
+        .execute();
+    }
+  }
+
   function pagedTriagePredicate(state: UvsgamesTriage) {
     if (state === "dismissed") {
       return dismissed;
@@ -308,30 +331,11 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         return { inserted: [], changed: [], unchanged: [] };
       }
 
-      // Store rows must exist before the events that reference them. A repeated
-      // name updates the store in place, so renames propagate.
-      const stores = [
-        ...new Map(
-          rows
-            .filter((row) => row.storeId !== null && row.storeName !== null)
-            .map((row) => [row.storeId, { id: row.storeId, name: row.storeName }] as const),
-        ).values(),
-      ] as { id: number; name: string }[];
-      for (const batch of rowBatches(
-        stores.map((store) => ({ id: store.id, name: store.name.slice(0, 200) })),
-      )) {
-        await db
-          .insertInto("uvsgamesStores")
-          .values(batch)
-          .onConflict((oc) =>
-            oc.column("id").doUpdateSet((eb) => ({ name: eb.ref("excluded.name") })),
-          )
-          .execute();
-      }
+      await upsertStores(rows);
 
       const written: { externalId: string; inserted: boolean }[] = [];
       for (const batch of rowBatches(
-        rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null })),
+        rows.map((row) => ({ ...row, lastSeenAt: seenAt, missingSince: null, missingProbe: null })),
       )) {
         written.push(
           ...(await db
@@ -357,6 +361,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
                   contentHash: eb.ref("excluded.contentHash"),
                   lastSeenAt: eb.ref("excluded.lastSeenAt"),
                   missingSince: eb.ref("excluded.missingSince"),
+                  missingProbe: eb.ref("excluded.missingProbe"),
                 }))
                 .where(
                   sql<SqlBool>`uvsgames_events.content_hash is distinct from excluded.content_hash
@@ -399,13 +404,67 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
     }): Promise<number> {
       const result = await db
         .updateTable("uvsgamesEvents")
-        .set({ missingSince: params.at })
+        .set({ missingSince: params.at, missingProbe: null })
         .where("startAt", ">=", params.from)
         .where("startAt", "<=", params.to)
         .where("lastSeenAt", "<", params.seenBefore)
         .where("missingSince", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows ?? 0n);
+    },
+
+    async unprobedMissing(limit: number): Promise<string[]> {
+      const rows = await db
+        .selectFrom("uvsgamesEvents")
+        .select("externalId")
+        .where("missingSince", "is not", null)
+        .where("missingProbe", "is", null)
+        .orderBy("missingSince", "asc")
+        .orderBy("externalId", "asc")
+        .limit(limit)
+        .execute();
+      return rows.map((row) => row.externalId);
+    },
+
+    // Leaves `missing_since` and `last_seen_at` alone: the listing still omits
+    // the row, and clearing them would re-flag and re-probe it every crawl.
+    async refreshFromProbe(rows: readonly UvsgamesUpsertInput[]): Promise<void> {
+      await upsertStores(rows);
+      for (const row of rows) {
+        await db
+          .updateTable("uvsgamesEvents")
+          .set({
+            name: row.name,
+            startAt: row.startAt,
+            endAtEstimate: row.endAtEstimate,
+            displayStatus: row.displayStatus,
+            decklistStatus: row.decklistStatus,
+            playerCount: row.playerCount,
+            eventType: row.eventType,
+            eventFormat: row.eventFormat,
+            storeName: row.storeName,
+            location: row.location,
+            timezone: row.timezone,
+            storeId: row.storeId,
+            eventConfigurationTemplate: row.eventConfigurationTemplate,
+            contentHash: row.contentHash,
+            missingProbe: "found",
+          })
+          .where("externalId", "=", row.externalId)
+          .where("missingSince", "is not", null)
+          .execute();
+      }
+    },
+
+    async markProbeAbsent(externalIds: readonly string[]): Promise<void> {
+      for (const batch of keyBatches([...externalIds])) {
+        await db
+          .updateTable("uvsgamesEvents")
+          .set({ missingProbe: "absent" })
+          .where("externalId", "in", batch)
+          .where("missingSince", "is not", null)
+          .execute();
+      }
     },
 
     async sweepBounds(): Promise<{ fromId: number; toId: number } | undefined> {

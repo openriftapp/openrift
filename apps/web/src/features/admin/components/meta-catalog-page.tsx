@@ -96,15 +96,31 @@ function StatusCell({ row }: AdminCellSlotProps<MetaCatalogRow>) {
       )}
       <Badge variant={status.variant}>{status.label}</Badge>
       {row.decklistStatus === "PUBLISHED" && <Badge variant="subtle">Decklists</Badge>}
-      {row.missingSince !== null && (
-        <Badge
-          variant="destructive"
-          title={`Gone from the listing since ${formatDayTime(row.missingSince)}`}
-        >
-          Missing
-        </Badge>
-      )}
+      {row.missingSince !== null && <MissingBadge row={row} missingSince={row.missingSince} />}
     </div>
+  );
+}
+
+function MissingBadge({ row, missingSince }: { row: MetaCatalogRow; missingSince: string }) {
+  const since = formatDayTime(missingSince);
+  if (row.missingProbe === "found") {
+    return (
+      <Badge variant="subtle" title={`Only reachable by id since ${since}`}>
+        Unlisted
+      </Badge>
+    );
+  }
+  if (row.missingProbe === "absent") {
+    return (
+      <Badge variant="destructive" title={`Gone from the source since ${since}`}>
+        Missing
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" title={`Gone from the listing since ${since}, not looked up yet`}>
+      Checking
+    </Badge>
   );
 }
 

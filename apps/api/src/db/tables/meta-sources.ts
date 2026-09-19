@@ -2,6 +2,7 @@ import type {
   MetaEventTier,
   MetaEntryStatus,
   MetaSourceFetchStatus,
+  UvsgamesMissingProbe,
 } from "@openrift/shared/types/enums";
 import type { Generated } from "kysely";
 
@@ -25,6 +26,7 @@ export interface UvsgamesEventsTable {
   firstSeenAt: Generated<Date>;
   lastSeenAt: Date;
   missingSince: Date | null;
+  missingProbe: UvsgamesMissingProbe | null;
   eventConfigurationTemplate: string | null;
   resultsFetchedAt: Date | null;
 }

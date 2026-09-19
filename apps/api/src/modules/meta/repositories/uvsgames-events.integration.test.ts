@@ -38,6 +38,8 @@ const EXTERNAL_IDS = [
   "mtc-sort-b",
   "mtc-sort-c",
   "mtc-dismissed-after-accept",
+  "mtc-unlisted",
+  "mtc-deleted",
 ];
 
 const STORE_ID = 990_001;
@@ -190,6 +192,42 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
     await repo().upsertBatch([row({ externalId: "mtc-gone" })], new Date(SEEN.getTime() + 2000));
     const reseen = await repo().byKey("mtc-gone");
     expect(reseen?.missingSince).toBeNull();
+  });
+
+  it("records what the per-event lookup said about a dropped row, and forgets it once listed again", async () => {
+    await repo().upsertBatch(
+      [row({ externalId: "mtc-unlisted" }), row({ externalId: "mtc-deleted" })],
+      SEEN,
+    );
+    const at = new Date(SEEN.getTime() + 1000);
+    await repo().markMissing({
+      from: new Date("2026-08-01T00:00:00Z"),
+      to: new Date("2026-09-01T00:00:00Z"),
+      seenBefore: at,
+      at,
+    });
+
+    const unprobed = await repo().unprobedMissing(10_000);
+    expect(unprobed).toEqual(expect.arrayContaining(["mtc-unlisted", "mtc-deleted"]));
+
+    await repo().refreshFromProbe([
+      row({ externalId: "mtc-unlisted", displayStatus: "canceled", contentHash: "hash-2" }),
+    ]);
+    await repo().markProbeAbsent(["mtc-deleted"]);
+
+    const unlisted = await repo().byKey("mtc-unlisted");
+    expect(unlisted).toMatchObject({ displayStatus: "canceled", missingProbe: "found" });
+    expect(unlisted?.missingSince?.getTime()).toBe(at.getTime());
+    expect(unlisted?.lastSeenAt.getTime()).toBe(SEEN.getTime());
+    const deleted = await repo().byKey("mtc-deleted");
+    expect(deleted?.missingProbe).toBe("absent");
+    expect(await repo().unprobedMissing(10_000)).not.toEqual(
+      expect.arrayContaining(["mtc-unlisted"]),
+    );
+
+    await repo().upsertBatch([row({ externalId: "mtc-unlisted" })], new Date(at.getTime() + 1000));
+    const relisted = await repo().byKey("mtc-unlisted");
+    expect(relisted).toMatchObject({ missingSince: null, missingProbe: null });
   });
 
   it("derives triage state from the candidate link and the ignore table", async () => {

@@ -81,10 +81,10 @@ function record(ctx: SweepContext, message: string): void {
 }
 
 /** A failure isn't a probe: it stays undecided so the next run retries it. */
-type ProbeOutcome =
+export type ProbeOutcome =
   | { kind: "event"; projection: UvsgamesCatalogProjection }
   | { kind: "probe"; probe: UvsgamesIdProbeInput }
-  | { kind: "failed" };
+  | { kind: "failed"; error: string };
 
 export function gameTypeOf(body: unknown): { type: string | null; isRiftbound: boolean } {
   const row = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
@@ -95,7 +95,7 @@ export function gameTypeOf(body: unknown): { type: string | null; isRiftbound: b
   };
 }
 
-async function probeId(deps: MetaSyncDeps, ctx: SweepContext, id: number): Promise<ProbeOutcome> {
+export async function probeId(deps: MetaSyncDeps, id: number): Promise<ProbeOutcome> {
   let body: unknown;
   try {
     body = await deps.client.get<unknown>(`/api/v2/events/${id}/`);
@@ -103,8 +103,7 @@ async function probeId(deps: MetaSyncDeps, ctx: SweepContext, id: number): Promi
     if (error instanceof UvsHttpError && error.status === 404) {
       return { kind: "probe", probe: { externalId: id, outcome: "absent", gameType: null } };
     }
-    record(ctx, errorText(error, `Event ${id}`));
-    return { kind: "failed" };
+    return { kind: "failed", error: errorText(error, `Event ${id}`) };
   }
 
   const game = gameTypeOf(body);
@@ -178,6 +177,7 @@ function apply(ctx: SweepContext, outcome: ProbeOutcome): void {
       break;
     }
     case "failed": {
+      record(ctx, outcome.error);
       ctx.result.failed++;
       ctx.result.complete = false;
       ctx.consecutiveFailures++;
@@ -215,7 +215,7 @@ async function sweepRange(
       if (ctx.stopped || ctx.result.probed >= ctx.maxProbes) {
         break;
       }
-      apply(ctx, await probeId(deps, ctx, id));
+      apply(ctx, await probeId(deps, id));
       if (ctx.pendingRows.length + ctx.pendingProbes.length >= FLUSH_PROBES) {
         await flush(deps, ctx);
       }

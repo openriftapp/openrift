@@ -33,6 +33,7 @@ function row(overrides: Partial<UvsgamesCoverageRow> = {}): UvsgamesCoverageRow 
     firstSeenAt: new Date("2026-08-01T00:00:00Z"),
     lastSeenAt: new Date("2026-08-20T00:00:00Z"),
     missingSince: null,
+    missingProbe: null,
     nextCheckAt: null,
     checkStage: 0,
     triage: "new",

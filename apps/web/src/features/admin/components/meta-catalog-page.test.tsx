@@ -123,6 +123,7 @@ function makeRow(overrides: Partial<MetaCatalogRow> = {}): MetaCatalogRow {
     firstSeenAt: "2026-07-01T00:00:00.000Z",
     lastSeenAt: "2026-08-16T00:00:00.000Z",
     missingSince: null,
+    missingProbe: null,
     nextCheckAt: null,
     checkStage: 0,
     triage: "new",
@@ -216,8 +217,29 @@ describe("MetaCatalogPage", () => {
     expect(screen.queryByText("Regional Qualifier")).not.toBeInTheDocument();
   });
 
-  it("flags a row a covering crawl stopped returning", () => {
+  it("says a dropped row is being checked until the source is asked", () => {
     setResponse([makeRow({ missingSince: "2026-08-20T00:00:00.000Z" })]);
+    render(<MetaCatalogPage />);
+    expect(screen.getByText("Checking")).toBeInTheDocument();
+    expect(screen.queryByText("Missing")).not.toBeInTheDocument();
+  });
+
+  it("shows a dropped row the source still serves by id as unlisted, with its real status", () => {
+    setResponse([
+      makeRow({
+        displayStatus: "canceled",
+        missingSince: "2026-08-20T00:00:00.000Z",
+        missingProbe: "found",
+      }),
+    ]);
+    render(<MetaCatalogPage />);
+    expect(screen.getByText("Unlisted")).toBeInTheDocument();
+    expect(screen.getByText("Canceled")).toBeInTheDocument();
+    expect(screen.queryByText("Missing")).not.toBeInTheDocument();
+  });
+
+  it("flags a dropped row the source no longer serves at all", () => {
+    setResponse([makeRow({ missingSince: "2026-08-20T00:00:00.000Z", missingProbe: "absent" })]);
     render(<MetaCatalogPage />);
     expect(screen.getByText("Missing")).toBeInTheDocument();
   });

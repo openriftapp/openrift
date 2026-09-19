@@ -27,10 +27,11 @@ describe("catalogStatusDisplay", () => {
   it("names each status the source publishes", () => {
     expect(catalogStatusDisplay("inProgress").label).toBe("In progress");
     expect(catalogStatusDisplay("complete").label).toBe("Complete");
+    expect(catalogStatusDisplay("canceled")).toEqual({ label: "Canceled", variant: "muted" });
   });
 
   it("shows a status it has never seen verbatim rather than dropping it", () => {
-    expect(catalogStatusDisplay("cancelled")).toEqual({ label: "cancelled", variant: "outline" });
+    expect(catalogStatusDisplay("postponed")).toEqual({ label: "postponed", variant: "outline" });
   });
 });
 

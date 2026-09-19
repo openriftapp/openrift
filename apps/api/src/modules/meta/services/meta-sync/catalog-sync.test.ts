@@ -7,6 +7,7 @@ import type { UvsgamesUpsertInput } from "../../repositories/uvsgames-events.js"
 import { ARCHIVE_START, backfillCatalog, syncCatalog, sliceRange } from "./catalog-sync.js";
 import type { MetaSyncDeps } from "./deps.js";
 import type { UvsClient, UvsPage, UvsQuery } from "./uvsgames-client.js";
+import { UvsHttpError } from "./uvsgames-client.js";
 
 const NOW = new Date("2026-08-20T12:00:00Z");
 
@@ -45,7 +46,10 @@ function spans(request: PageRequest): { from: number; to: number } {
   return { from: Date.parse(after), to: Date.parse(before) };
 }
 
-function fakeClient(respond: (request: PageRequest) => UvsPage<unknown>): {
+function fakeClient(
+  respond: (request: PageRequest) => UvsPage<unknown>,
+  details: Record<string, unknown> = {},
+): {
   client: UvsClient;
   requests: PageRequest[];
   gets: { path: string; query: UvsQuery | undefined }[];
@@ -57,7 +61,18 @@ function fakeClient(respond: (request: PageRequest) => UvsPage<unknown>): {
     get: <T>(path: string, query?: UvsQuery) => {
       gets.push({ path, query });
       count++;
-      return Promise.resolve(TEMPLATE_VOCABULARY as T);
+      const id = /^\/api\/v2\/events\/(?<id>\d+)\/$/u.exec(path)?.groups?.id;
+      if (id === undefined) {
+        return Promise.resolve(TEMPLATE_VOCABULARY as T);
+      }
+      const detail = details[id];
+      if (detail === undefined) {
+        return Promise.reject(new UvsHttpError(404, path, "Not found"));
+      }
+      if (detail instanceof Error) {
+        return Promise.reject(detail);
+      }
+      return Promise.resolve(detail as T);
     },
     page: <T>(path: string, query: UvsQuery, page: number, pageSize = 250) => {
       requests.push({ path, query, page, pageSize });
@@ -79,6 +94,7 @@ interface MarkMissingCall {
 function fakeDeps(
   client: UvsClient,
   watched: [string, string][] = WATCHED_TEMPLATES,
+  unprobed: string[] = [],
 ): {
   deps: MetaSyncDeps;
   upserted: UvsgamesUpsertInput[];
@@ -86,7 +102,11 @@ function fakeDeps(
   markMissingCalls: MarkMissingCall[];
   heartbeats: { runId: string; result: Record<string, unknown> }[];
   stored: { value: unknown };
+  refreshed: UvsgamesUpsertInput[];
+  absent: string[];
 } {
+  const refreshed: UvsgamesUpsertInput[] = [];
+  const absent: string[] = [];
   const upserted: UvsgamesUpsertInput[] = [];
   const namedTemplates: unknown[] = [];
   const markMissingCalls: MarkMissingCall[] = [];
@@ -111,6 +131,15 @@ function fakeDeps(
     markMissing: (params: MarkMissingCall) => {
       markMissingCalls.push({ from: params.from, to: params.to });
       return Promise.resolve(2);
+    },
+    unprobedMissing: (limit: number) => Promise.resolve(unprobed.slice(0, limit)),
+    refreshFromProbe: (rows: readonly UvsgamesUpsertInput[]) => {
+      refreshed.push(...rows);
+      return Promise.resolve();
+    },
+    markProbeAbsent: (ids: readonly string[]) => {
+      absent.push(...ids);
+      return Promise.resolve();
     },
     settings: () =>
       Promise.resolve({
@@ -145,7 +174,16 @@ function fakeDeps(
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, upserted, namedTemplates, markMissingCalls, heartbeats, stored };
+  return {
+    deps,
+    upserted,
+    namedTemplates,
+    markMissingCalls,
+    heartbeats,
+    stored,
+    refreshed,
+    absent,
+  };
 }
 
 function pageOf(results: unknown[], count = results.length): UvsPage<unknown> {
@@ -283,6 +321,40 @@ describe("syncCatalog", () => {
 
     expect(result.complete).toBe(false);
     expect(markMissingCalls).toHaveLength(0);
+  });
+
+  it("looks up each dropped row by id and stores the status the source still serves", async () => {
+    const detail = {
+      ...listingRow(7, "2026-08-18T00:00:00Z"),
+      game_type: "RIFTBOUND",
+      display_status: "canceled",
+    };
+    const { client, gets } = fakeClient(() => pageOf([]), { "7": detail });
+    const { deps, refreshed, absent } = fakeDeps(client, WATCHED_TEMPLATES, ["7", "8"]);
+
+    const result = await syncCatalog(deps);
+
+    expect(gets.map((get) => get.path)).toEqual(
+      expect.arrayContaining(["/api/v2/events/7/", "/api/v2/events/8/"]),
+    );
+    expect(refreshed).toHaveLength(1);
+    expect(refreshed[0]).toMatchObject({ externalId: "7", displayStatus: "canceled" });
+    expect(absent).toEqual(["8"]);
+    expect(result.missingFound).toBe(1);
+    expect(result.missingAbsent).toBe(1);
+  });
+
+  it("leaves a dropped row unprobed when its lookup fails, so the next run retries it", async () => {
+    const { client } = fakeClient(() => pageOf([]), {
+      "7": new UvsHttpError(503, "/api/v2/events/7/", "Unavailable"),
+    });
+    const { deps, refreshed, absent } = fakeDeps(client, WATCHED_TEMPLATES, ["7"]);
+
+    const result = await syncCatalog(deps);
+
+    expect(refreshed).toHaveLength(0);
+    expect(absent).toHaveLength(0);
+    expect(result.errors.some((message) => message.includes("503"))).toBe(true);
   });
 
   it("stores the projection of every row it reads and counts the unreadable ones", async () => {

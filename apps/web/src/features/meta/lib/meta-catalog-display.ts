@@ -42,6 +42,7 @@ const STATUS_DISPLAY: Record<string, CatalogChipDisplay> = {
   upcoming: { label: "Upcoming", variant: "outline" },
   inProgress: { label: "In progress", variant: "warning" },
   complete: { label: "Complete", variant: "success" },
+  canceled: { label: "Canceled", variant: "muted" },
 };
 
 export function catalogStatusDisplay(status: string): CatalogChipDisplay {

@@ -37,6 +37,7 @@ export function toMetaCatalogRow(
     firstSeenAt: row.firstSeenAt.toISOString(),
     lastSeenAt: row.lastSeenAt.toISOString(),
     missingSince: row.missingSince?.toISOString() ?? null,
+    missingProbe: row.missingProbe,
     nextCheckAt: row.nextCheckAt?.toISOString() ?? null,
     checkStage: row.checkStage,
     triage: row.triage,

@@ -46,6 +46,7 @@ function catalogRow(overrides: Partial<UvsgamesListRow> = {}): UvsgamesListRow {
     firstSeenAt: NOW,
     lastSeenAt: NOW,
     missingSince: null,
+    missingProbe: null,
     nextCheckAt: null,
     checkStage: 0,
     triage: "accepted",

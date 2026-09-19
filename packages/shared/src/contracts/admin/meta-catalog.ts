@@ -9,6 +9,7 @@ import {
   META_CATALOG_SORTS,
   META_CATALOG_TRIAGE,
   PLAYLOLTCG_STATUSES,
+  UVSGAMES_MISSING_PROBES,
 } from "../../types/enums.js";
 import type { PlayloltcgStatus } from "../../types/enums.js";
 import { authedRoute } from "../_base.js";
@@ -68,6 +69,7 @@ export const metaCatalogRowSchema = z.object({
   firstSeenAt: isoDateTime,
   lastSeenAt: isoDateTime,
   missingSince: isoDateTime.nullable(),
+  missingProbe: z.enum(UVSGAMES_MISSING_PROBES).nullable(),
   nextCheckAt: isoDateTime.nullable(),
   checkStage: z.number().int(),
   triage: triageSchema,

@@ -96,6 +96,12 @@ export type UvsgamesProbeOutcome = "other_game" | "absent" | "unreadable";
 /** The {@link UvsgamesProbeOutcome} values. */
 export const UVSGAMES_PROBE_OUTCOMES = ["other_game", "absent", "unreadable"] as const;
 
+/** What the per-event endpoint said about an event the listing stopped returning. */
+export type UvsgamesMissingProbe = "found" | "absent";
+
+/** The {@link UvsgamesMissingProbe} values. */
+export const UVSGAMES_MISSING_PROBES = ["found", "absent"] as const;
+
 /** Admin corrections start `accepted`; user submissions start `pending`. Only `accepted` overlays are applied. */
 export type MetaOverlayStatus = "pending" | "accepted" | "rejected";
 
