@@ -5,7 +5,7 @@ import type {
   MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, configure, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -195,14 +195,13 @@ globalThis.scrollTo = () => {};
 
 const { MetaEventStandings } = await import("./meta-event-standings");
 
+// The search box debounces for 200 ms and then fetches, which outlasts the
+// 1 s default under suite load.
+configure({ asyncUtilTimeout: 5000 });
+
 function phoneRow(name: string): HTMLElement {
   const list = screen.getByRole("list");
   return within(list).getByText(name).closest("li") as HTMLElement;
-}
-
-/** The debounced search commit plus its fetch outlast the default timeout under suite load. */
-function waitForPhoneRows(assert: () => void): Promise<void> {
-  return waitFor(assert, { timeout: 5000 });
 }
 
 /** What the API would state about a field of these rows. */
@@ -846,7 +845,7 @@ describe("MetaEventStandings", () => {
 
     await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "player 7");
 
-    await waitForPhoneRows(() => {
+    await waitFor(() => {
       expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
     });
     expect(phoneRow("Player 7")).toBeInTheDocument();
@@ -858,12 +857,12 @@ describe("MetaEventStandings", () => {
 
     const box = screen.getByRole("searchbox", { name: "Find a player" });
     await user.type(box, "player 7");
-    await waitForPhoneRows(() => {
+    await waitFor(() => {
       expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
     });
 
     await user.clear(box);
-    await waitForPhoneRows(() => {
+    await waitFor(() => {
       expect(phoneRow("Player 6")).toBeInTheDocument();
     });
     expect(phoneRow("Player 7")).toBeInTheDocument();
