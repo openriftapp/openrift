@@ -126,7 +126,7 @@ export interface MetaDeckFacetRows {
   countries: string[];
 }
 
-export const DECK_PAGE_SIZE = 50;
+const DECK_PAGE_SIZE = 50;
 
 const FINISH_BOUNDS = [1, 4, 8, 16] as const;
 

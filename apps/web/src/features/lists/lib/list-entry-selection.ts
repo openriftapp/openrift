@@ -15,7 +15,7 @@ type EntryMap = ReadonlyMap<string, ListEntryDetailResponse>;
 type PrintingMap = ReadonlyMap<string, Printing>;
 
 /** A rule-derived entry copies as a fresh entry built from its card or printing. */
-export interface RuleCopySubject {
+interface RuleCopySubject {
   ruleEntry: RuleEntryRef;
   printing: Printing;
   totalQuantity: number;

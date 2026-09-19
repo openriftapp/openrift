@@ -182,7 +182,7 @@ export function AddEntryToCollectionDialogBody({
   );
 }
 
-export interface AddCopiesPick {
+interface AddCopiesPick {
   printingId: string;
   quantity: number;
 }

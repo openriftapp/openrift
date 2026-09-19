@@ -12,7 +12,7 @@ export const META_ARCHIVE_USER_ID = "meta-archive";
  * Inclusive date-only bounds on the event a deck was played at. Either end may
  * be open; both absent is the whole archive.
  */
-export interface MetaDeckDateRange {
+interface MetaDeckDateRange {
   from?: string;
   to?: string;
 }

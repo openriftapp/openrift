@@ -150,7 +150,7 @@ export interface MetaStandingsFilters {
   legend?: string;
 }
 
-export interface MetaEventLegendCount {
+interface MetaEventLegendCount {
   cardId: string;
   name: string;
   types: CardType[] | null;
