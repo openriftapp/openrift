@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { OverlayBoard } from "@openrift/shared/contracts/overlay";
 import { DEFAULT_OVERLAY_PAYLOAD } from "@openrift/shared/contracts/overlay";
 import { fireEvent, render } from "@testing-library/react";

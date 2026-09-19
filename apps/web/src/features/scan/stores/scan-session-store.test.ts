@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { Printing } from "@openrift/shared/types/catalog";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

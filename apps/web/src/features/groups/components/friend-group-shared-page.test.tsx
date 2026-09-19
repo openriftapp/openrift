@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type {
   FriendGroupCollectionShareResponse,

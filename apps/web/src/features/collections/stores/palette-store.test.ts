@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

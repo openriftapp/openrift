@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { imageUrl } from "@openrift/shared/image-url";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render } from "@testing-library/react";

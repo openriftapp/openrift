@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { PREFERENCE_DEFAULTS } from "@openrift/shared/types/api/preferences";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

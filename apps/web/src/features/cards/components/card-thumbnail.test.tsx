@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { EMPTY_PRICE_LOOKUP } from "@openrift/shared/price-lookup";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";

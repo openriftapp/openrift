@@ -9,12 +9,7 @@ import { latestMilestonePlugin } from "./vite-plugins/latest-milestone";
 
 const paraglideDir = path.resolve(import.meta.dirname, "./src/paraglide");
 
-const domTests = [
-  "src/**/*.test.tsx",
-  "src/**/use-*.test.ts",
-  "src/**/hooks/**/*.test.ts",
-  "src/**/stores/**/*.test.ts",
-];
+const domTests = ["src/**/*.test.tsx", "src/**/use-*.test.ts", "src/**/hooks/**/*.test.ts"];
 
 // Every test file re-evaluates the 20 MB of generated messages, and half of
 // those bytes are JSDoc that only tsgo reads.
@@ -43,12 +38,13 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["src/vitest.setup.ts"],
-    // Any other `.test.ts` that needs the DOM opts in with a
+    // Other `.test.ts` files opt into a DOM, and dom files that depend on
+    // jsdom's CSS/img fidelity opt out of happy-dom, via a
     // `// @vitest-environment jsdom` docblock.
     projects: [
       {
         extends: true,
-        test: { name: "dom", environment: "jsdom", include: domTests },
+        test: { name: "dom", environment: "happy-dom", include: domTests },
       },
       {
         extends: true,
