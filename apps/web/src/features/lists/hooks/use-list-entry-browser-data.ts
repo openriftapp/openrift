@@ -11,6 +11,7 @@ import {
   buildEntryByKey,
   buildItems,
   buildItemsFromCatalog,
+  buildPrintingByEntryId,
   collectListPrintings,
   kindToView,
 } from "@/features/lists/lib/list-entries";
@@ -124,12 +125,13 @@ export function useListEntryBrowserData({
     : buildItems(view, sortedCards, entriesByPrintingId);
 
   const entryByKey = buildEntryByKey(kind, entries);
+  const printingByEntryId = buildPrintingByEntryId(items, entryByItemId);
 
   // Effect deps are the recomputed maps directly: their identities stay stable across
   // renders when entries don't change, so cells can self-subscribe via the store.
   useEffect(() => {
-    useListEntriesStore.getState().setEntries(entryByItemId, entryByKey);
-  }, [entryByItemId, entryByKey]);
+    useListEntriesStore.getState().setEntries(entryByItemId, entryByKey, printingByEntryId);
+  }, [entryByItemId, entryByKey, printingByEntryId]);
 
   return {
     allPrintings,
@@ -155,5 +157,6 @@ export function useListEntryBrowserData({
     items,
     entryByItemId,
     entryByKey,
+    printingByEntryId,
   };
 }

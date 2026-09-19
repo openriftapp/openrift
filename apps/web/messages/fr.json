@@ -8809,5 +8809,70 @@
     }
   ],
   "tournaments_archive_result": "Envoyées : {sent}. Mises à jour : {updated}. Ignorées : {skipped}.",
-  "tournaments_archive_resend_note": "Un nouvel envoi remplace les listes encore en attente de vérification."
+  "tournaments_archive_resend_note": "Un nouvel envoi remplace les listes encore en attente de vérification.",
+  "lists_entry_add_to_collection_action": "Ajouter à la collection",
+  "lists_add_to_collection_note_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Crée de nouveaux exemplaires possédés. L'entrée de liste reste en place.",
+        "countPlural=*": "Crée de nouveaux exemplaires possédés pour ces {count} cartes. Les entrées de liste restent en place."
+      }
+    }
+  ],
+  "lists_add_to_collection_pick_printings": "Choisissez l'édition que vous possédez pour chaque carte.",
+  "lists_add_to_collection_printing_aria": "Édition pour {card}",
+  "lists_add_to_collection_confirm_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Ajouter 1 exemplaire",
+        "countPlural=*": "Ajouter {count} exemplaires"
+      }
+    }
+  ],
+  "lists_add_to_collection_too_many": "Cela dépasse {max} exemplaires en une fois. Sélectionnez moins de cartes.",
+  "lists_move_pick_one_at_a_time": "L'édition se choisit une carte à la fois.",
+  "lists_trade_pref_subject_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 carte",
+        "countPlural=*": "{count} cartes"
+      }
+    }
+  ],
+  "lists_move_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte quitte votre {source} et rejoint votre {target}.",
+        "countPlural=*": "{count} cartes quittent votre {source} et rejoignent votre {target}."
+      }
+    }
+  ],
+  "lists_copy_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte reste sur votre {source} et est aussi ajoutée à votre {target}.",
+        "countPlural=*": "{count} cartes restent sur votre {source} et sont aussi ajoutées à votre {target}."
+      }
+    }
+  ]
 }

@@ -119,39 +119,71 @@ export function buildItemsFromCatalog(sortedCards: Printing[]): {
   return { items, entryByItemId: new Map() };
 }
 
+const RULE_SELECTION_PREFIX = "rule:";
+
+/**
+ * Rule-derived entries have no `list_entries` row, so the selection tracks
+ * them by tile id instead; the row actions refuse a selection holding one.
+ */
+export function entrySelectionId(itemId: string, entry: ListEntryDetailResponse): string {
+  return entry.id ?? `${RULE_SELECTION_PREFIX}${itemId}`;
+}
+
+export function isRuleSelectionId(id: string): boolean {
+  return id.startsWith(RULE_SELECTION_PREFIX);
+}
+
+export function ruleSelectionItemId(id: string): string {
+  return id.slice(RULE_SELECTION_PREFIX.length);
+}
+
 export function selectableEntryIds(
   items: readonly CardViewerItem[],
   entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
 ): string[] {
   return items.flatMap((item) => {
     const entry = entryByItemId.get(item.id);
-    return entry && entry.id !== null ? [entry.id] : [];
+    return entry ? [entrySelectionId(item.id, entry)] : [];
   });
 }
 
 export function resolveCopyMoveTarget(
-  entries: readonly ListEntryDetailResponse[],
+  entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
   selected: ReadonlySet<string>,
   copyId: string,
 ): string[] {
-  const entryIdByCopyId = new Map(
-    entries.flatMap((entry) =>
-      entry.kind === "copy" && entry.id !== null ? [[entry.copyId, entry.id] as const] : [],
-    ),
-  );
-  const entryId = entryIdByCopyId.get(copyId);
-  if (entryId === undefined || !selected.has(entryId)) {
+  const copyIdBySelectionId = new Map<string, string>();
+  for (const [itemId, entry] of entryByItemId) {
+    if (entry.kind === "copy") {
+      copyIdBySelectionId.set(entrySelectionId(itemId, entry), entry.copyId);
+    }
+  }
+  const selectionId = [...copyIdBySelectionId].find(([, id]) => id === copyId)?.[0];
+  if (selectionId === undefined || !selected.has(selectionId)) {
     return [copyId];
   }
-  const copyIdByEntryId = new Map(
-    entries.flatMap((entry) =>
-      entry.kind === "copy" && entry.id !== null ? [[entry.id, entry.copyId] as const] : [],
-    ),
+  return [...copyIdBySelectionId].flatMap(([id, selectedCopyId]) =>
+    selected.has(id) ? [selectedCopyId] : [],
   );
-  return [...selected].flatMap((id) => {
-    const selectedCopyId = copyIdByEntryId.get(id);
-    return selectedCopyId === undefined ? [] : [selectedCopyId];
-  });
+}
+
+/** The printing each selectable entry shows, keyed by selection id. */
+export function buildPrintingByEntryId(
+  items: readonly CardViewerItem[],
+  entryByItemId: ReadonlyMap<string, ListEntryDetailResponse>,
+): Map<string, Printing> {
+  const result = new Map<string, Printing>();
+  for (const item of items) {
+    const entry = entryByItemId.get(item.id);
+    if (!entry) {
+      continue;
+    }
+    const selectionId = entrySelectionId(item.id, entry);
+    if (!result.has(selectionId)) {
+      result.set(selectionId, item.printing);
+    }
+  }
+  return result;
 }
 
 export function buildEntryByKey(

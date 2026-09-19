@@ -23,6 +23,7 @@ function renderBody(props: Partial<Parameters<typeof MoveEntryDialogBody>[0]> = 
         <MoveEntryDialogBody
           mode="move"
           cardName="Chaos Rune"
+          subjectCount={1}
           sourceIntent="wish"
           target={{ name: "Trades", intent: "trade" }}
           pick="none"

@@ -8811,5 +8811,70 @@
     }
   ],
   "tournaments_archive_result": "Sent: {sent}. Updated: {updated}. Skipped: {skipped}.",
-  "tournaments_archive_resend_note": "Sending again replaces lists that are still awaiting review."
+  "tournaments_archive_resend_note": "Sending again replaces lists that are still awaiting review.",
+  "lists_entry_add_to_collection_action": "Add to collection",
+  "lists_add_to_collection_note_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Creates new owned copies of this card. The list entry stays as it is.",
+        "countPlural=*": "Creates new owned copies of these {count} cards. The list entries stay as they are."
+      }
+    }
+  ],
+  "lists_add_to_collection_pick_printings": "Pick the printing you own for each card.",
+  "lists_add_to_collection_printing_aria": "Printing for {card}",
+  "lists_add_to_collection_confirm_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Add 1 copy",
+        "countPlural=*": "Add {count} copies"
+      }
+    }
+  ],
+  "lists_add_to_collection_too_many": "That is more than {max} copies in one go. Select fewer cards.",
+  "lists_move_pick_one_at_a_time": "Pick a printing one card at a time.",
+  "lists_trade_pref_subject_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 card",
+        "countPlural=*": "{count} cards"
+      }
+    }
+  ],
+  "lists_move_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card leaves your {source} and joins your {target}.",
+        "countPlural=*": "{count} cards leave your {source} and join your {target}."
+      }
+    }
+  ],
+  "lists_copy_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} card stays on your {source} and is also added to your {target}.",
+        "countPlural=*": "{count} cards stay on your {source} and are also added to your {target}."
+      }
+    }
+  ]
 }

@@ -50,6 +50,7 @@ function modeCopy(mode: MoveMode) {
         title: m.lists_copy_dialog_title,
         sameIntent: m.lists_copy_same_intent_note,
         crossIntent: m.lists_copy_intent_note,
+        crossIntentMulti: m.lists_copy_intent_note_multi,
         confirm: m.lists_copy_confirm,
         pending: m.lists_copy_pending,
       }
@@ -57,6 +58,7 @@ function modeCopy(mode: MoveMode) {
         title: m.lists_move_dialog_title,
         sameIntent: m.lists_move_same_intent_note,
         crossIntent: m.lists_move_intent_note,
+        crossIntentMulti: m.lists_move_intent_note_multi,
         confirm: m.lists_move_confirm,
         pending: m.lists_move_pending,
       };
@@ -71,6 +73,8 @@ interface MoveEntryCopyOption {
 interface MoveEntryDialogBodyProps {
   mode: MoveMode;
   cardName: string;
+  /** Tiles the confirmation covers; a dropped selection carries more than one. */
+  subjectCount: number;
   sourceIntent: ListIntent;
   target: { name: string; intent: ListIntent };
   pick: MovePick;
@@ -89,6 +93,7 @@ const SELECTED_ROW =
 export function MoveEntryDialogBody({
   mode,
   cardName,
+  subjectCount,
   sourceIntent,
   target,
   pick,
@@ -149,11 +154,17 @@ export function MoveEntryDialogBody({
         <DialogDescription>
           {sourceIntent === target.intent
             ? text.sameIntent({ card: cardName })
-            : text.crossIntent({
-                card: cardName,
-                source: intentNoun(sourceIntent),
-                target: intentNoun(target.intent),
-              })}
+            : subjectCount > 1
+              ? text.crossIntentMulti({
+                  count: subjectCount,
+                  source: intentNoun(sourceIntent),
+                  target: intentNoun(target.intent),
+                })
+              : text.crossIntent({
+                  card: cardName,
+                  source: intentNoun(sourceIntent),
+                  target: intentNoun(target.intent),
+                })}
         </DialogDescription>
       </DialogHeader>
       {pick === "printing" && (
@@ -261,6 +272,7 @@ export function ConnectedMoveEntryDialogBody({
     <MoveEntryDialogBody
       mode={mode}
       cardName={subject.cardName}
+      subjectCount={subject.selectionIds?.length ?? 1}
       sourceIntent={subject.sourceIntent}
       target={{ name: target.listName, intent: target.listIntent }}
       pick={pick}

@@ -20,15 +20,25 @@ export interface CardDragData {
  */
 export interface ListEntryDragData {
   type: "list-entry";
+  /** Every dragged tile, rule-derived ones included; see `entrySelectionId`. */
+  selectionIds: string[];
   /** Empty for a rule-derived entry, which carries `ruleEntry` instead and only ever copies. */
   entryIds: string[];
+  /** Only ever set on a single-tile drag; a selection resolves its rule entries on drop. */
   ruleEntry?: RuleEntryRef;
   copyIds: string[];
+  /**
+   * A tile in an active multi-selection carries this instead of frozen ids, since
+   * already-selected cells don't re-render as the selection grows.
+   */
+  fromSelection: boolean;
   sourceListId: string;
   sourceKind: ListKind;
   sourceIntent: ListIntent;
   totalQuantity: number;
   printing: Printing;
+  /** The overlay fan; empty until a selection drag resolves. */
+  previewPrintings: Printing[];
   cardName: string;
 }
 

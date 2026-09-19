@@ -16,7 +16,6 @@ import { CardCountStrip } from "@/features/cards/components/card-count-strip";
 import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import {
-  dispatchCopyRuleEntry,
   dispatchEntryQuantityChange,
   dispatchExcludeFromRule,
   dispatchIncrement,
@@ -45,6 +44,7 @@ import {
   listEntryTradeStatus,
 } from "@/features/lists/components/list-trade-status";
 import { isRuleSourced, RuleSourceBadge } from "@/features/lists/components/rule-source-badge";
+import { entrySelectionId } from "@/features/lists/lib/list-entries";
 import { entryAddsCopies, ruleEntryRef } from "@/features/lists/lib/list-move";
 import { useListEntriesStore } from "@/features/lists/stores/list-entries-store";
 import { entryToExcludeTarget } from "@/features/rules/lib/rule-exclude";
@@ -66,6 +66,7 @@ interface ListGridCellProps {
   listTradeDefaults: TradePreference;
   listCurrency: Currency | null;
   mode: "browse" | "select";
+  selectionHasRuleEntry: boolean;
   showLibrary: boolean;
   supportsTradePrefs: boolean;
   siblings: Printing[] | undefined;
@@ -91,6 +92,7 @@ export const ListGridCell = memo(function ListGridCell({
   listTradeDefaults,
   listCurrency,
   mode,
+  selectionHasRuleEntry,
   showLibrary,
   supportsTradePrefs,
   siblings,
@@ -128,12 +130,16 @@ export const ListGridCell = memo(function ListGridCell({
     showLibrary ? s.entryByKey.get(key) : s.entryByItemId.get(itemId),
   );
 
-  // Rule-derived entries have no list_entries row, so entry.id is null and
-  // they can't be selected, edited, or removed; they can only be copied or excluded.
+  // Rule-derived entries have no list_entries row, so entry.id is null and they
+  // can't be edited or removed; they can only be copied, added or excluded.
   const editableEntryId = entry !== undefined && entry.id !== null ? entry.id : null;
+  const selectionId = entry ? entrySelectionId(itemId, entry) : null;
   const isItemSelected = useGridSelectionStore(
-    (state) => inSelectMode && editableEntryId !== null && state.selected.has(editableEntryId),
+    (state) => inSelectMode && selectionId !== null && state.selected.has(selectionId),
   );
+  // Acting on a selection that holds a rule entry would silently skip it, so the
+  // row actions stand down until the selection is narrowed.
+  const blockRowActions = isItemSelected && selectionHasRuleEntry;
 
   const tradeStatus = entry ? listEntryTradeStatus(entry, tradeIndex) : null;
   const trades = tradeStatus ? listEntryTrades(tradeStatus, tradeIndex) : NO_TRADES;
@@ -155,48 +161,56 @@ export const ListGridCell = memo(function ListGridCell({
   const dragData: ListEntryDragData | undefined = entry
     ? {
         type: "list-entry",
+        selectionIds: selectionId === null ? [] : [selectionId],
         entryIds: editableEntryId === null ? [] : [editableEntryId],
         ruleEntry: editableEntryId === null ? ruleEntryRef(entry) : undefined,
         copyIds: entry.kind === "copy" ? [entry.copyId] : [],
+        fromSelection: isItemSelected,
         sourceListId: listId,
         sourceKind: kind,
         sourceIntent: intent,
         totalQuantity: entry.quantity,
         printing,
+        previewPrintings: [],
         cardName: entry.cardName,
       }
     : undefined;
   const dragId =
     editableEntryId === null ? `list-rule-entry-${itemId}` : `list-entry-${editableEntryId}`;
   const wrap =
-    !inSelectMode && !showLibrary && dragData ? (
-      <DraggableListEntry id={dragId} data={dragData} />
-    ) : undefined;
+    !showLibrary && dragData ? <DraggableListEntry id={dragId} data={dragData} /> : undefined;
 
   const copyId = entry?.kind === "copy" ? entry.copyId : null;
-  const onAddToCollection = entryAddsCopies({ kind, intent })
-    ? () => dispatchAddEntryToCollection(itemId)
-    : undefined;
+  const onAddToCollection =
+    entryAddsCopies(kind) && selectionId !== null
+      ? () => dispatchAddEntryToCollection(selectionId)
+      : undefined;
   const contextMenu =
-    entry && editableEntryId !== null ? (
+    entry && selectionId !== null && editableEntryId !== null ? (
       <ListEntryContextMenu
         onRemove={
-          kind === "copy" ? undefined : () => dispatchListBulkAction(editableEntryId, "remove")
+          kind === "copy" || blockRowActions
+            ? undefined
+            : () => dispatchListBulkAction(selectionId, "remove")
         }
         onTakeOff={
-          kind === "copy" ? () => dispatchListBulkAction(editableEntryId, "takeOff") : undefined
+          kind === "copy" && !blockRowActions
+            ? () => dispatchListBulkAction(selectionId, "takeOff")
+            : undefined
         }
-        onMove={() => dispatchListBulkAction(editableEntryId, "move")}
-        onCopy={() => dispatchListBulkAction(editableEntryId, "copy")}
+        onMove={blockRowActions ? undefined : () => dispatchListBulkAction(selectionId, "move")}
+        onCopy={() => dispatchListBulkAction(selectionId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
         onAddToCollection={onAddToCollection}
         onSetPreference={
-          supportsTradePrefs ? () => dispatchSetPreference(editableEntryId) : undefined
+          supportsTradePrefs && !blockRowActions
+            ? () => dispatchSetPreference(selectionId)
+            : undefined
         }
       />
-    ) : entry && !showLibrary ? (
+    ) : entry && selectionId !== null && !showLibrary ? (
       <ListEntryContextMenu
-        onCopy={() => dispatchCopyRuleEntry(itemId)}
+        onCopy={() => dispatchListBulkAction(selectionId, "copy")}
         onMoveToCollection={copyId ? () => dispatchMoveCopyToCollection(copyId) : undefined}
         onAddToCollection={onAddToCollection}
         onExclude={() => dispatchExcludeFromRule(entryToExcludeTarget(entry))}

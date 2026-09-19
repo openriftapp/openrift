@@ -411,12 +411,16 @@ describe("ListPage", () => {
     expect(screen.getAllByRole("button", { name: "Manage cards" })[0]).toBeInTheDocument();
   });
 
-  it("hides the manage button on a list whose entries all came from a dynamic rule", () => {
+  it("still manages a list whose entries all came from a dynamic rule", async () => {
     listDetail = copyKindListDetail;
     sortedCards = [printingOnList];
+    const user = userEvent.setup();
     renderListPage();
 
-    expect(screen.queryByRole("button", { name: "Manage copies" })).not.toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Manage copies" })[0]!);
+    await user.click(screen.getAllByRole("button", { name: "Select all" })[0]!);
+
+    expect(toggleSelectAll).toHaveBeenCalledWith(["rule:copy-1"]);
   });
 
   it("feeds the detail pane every catalog printing of a card on a printing-kind list", () => {

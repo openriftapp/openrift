@@ -156,7 +156,7 @@ describe("selectableEntryIds", () => {
     expect(selectableEntryIds(items, entryByItemId)).toEqual(["e1", "e3"]);
   });
 
-  it("skips rule-produced entries", () => {
+  it("gives rule-produced entries a tile-scoped id", () => {
     const items = [
       { id: "e1", printing: stubPrinting({ id: "pa" }) },
       { id: "copy-2", printing: stubPrinting({ id: "pb" }) },
@@ -165,7 +165,7 @@ describe("selectableEntryIds", () => {
       ["e1", first],
       ["copy-2", ruleProduced],
     ]);
-    expect(selectableEntryIds(items, entryByItemId)).toEqual(["e1"]);
+    expect(selectableEntryIds(items, entryByItemId)).toEqual(["e1", "rule:copy-2"]);
   });
 
   it("skips tiles with no entry behind them", () => {
@@ -182,33 +182,40 @@ describe("resolveCopyMoveTarget", () => {
   const selectable = copyEntry("e1", "copy-1", "pa");
   const alsoSelectable = copyEntry("e2", "copy-2", "pb");
   const ruleProduced = copyEntry(null, "copy-3", "pa");
-  const entries = [selectable, alsoSelectable, ruleProduced];
+  const entryByItemId = new Map([
+    ["i1", selectable],
+    ["i2", alsoSelectable],
+    ["i3", ruleProduced],
+  ]);
 
   it("targets just the clicked copy when nothing is selected", () => {
-    expect(resolveCopyMoveTarget(entries, new Set(), "copy-1")).toEqual(["copy-1"]);
+    expect(resolveCopyMoveTarget(entryByItemId, new Set(), "copy-1")).toEqual(["copy-1"]);
   });
 
   it("targets just the clicked copy when the selection does not contain it", () => {
-    expect(resolveCopyMoveTarget(entries, new Set(["e2"]), "copy-1")).toEqual(["copy-1"]);
+    expect(resolveCopyMoveTarget(entryByItemId, new Set(["e2"]), "copy-1")).toEqual(["copy-1"]);
   });
 
   it("widens to the whole selection when the clicked copy is part of it", () => {
-    const target = resolveCopyMoveTarget(entries, new Set(["e1", "e2"]), "copy-1");
-    expect(target).toHaveLength(2);
-    expect(new Set(target)).toEqual(new Set(["copy-1", "copy-2"]));
+    const target = resolveCopyMoveTarget(entryByItemId, new Set(["e1", "e2"]), "copy-1");
+    expect(target).toEqual(["copy-1", "copy-2"]);
   });
 
-  it("targets a rule-produced copy alone even while other entries are selected", () => {
-    expect(resolveCopyMoveTarget(entries, new Set(["e1", "e2"]), "copy-3")).toEqual(["copy-3"]);
+  it("carries a selected rule-produced copy along", () => {
+    const target = resolveCopyMoveTarget(entryByItemId, new Set(["e1", "rule:i3"]), "copy-1");
+    expect(target).toEqual(["copy-1", "copy-3"]);
   });
 
   it("drops selected entries that have no copy behind them", () => {
-    const mixed = [selectable, cardEntry("e9", "ca")];
+    const mixed = new Map([
+      ["i1", selectable],
+      ["i9", cardEntry("e9", "ca")],
+    ]);
     expect(resolveCopyMoveTarget(mixed, new Set(["e1", "e9"]), "copy-1")).toEqual(["copy-1"]);
   });
 
   it("falls back to the clicked copy when it is not on the list at all", () => {
-    expect(resolveCopyMoveTarget(entries, new Set(["e1"]), "copy-unknown")).toEqual([
+    expect(resolveCopyMoveTarget(entryByItemId, new Set(["e1"]), "copy-unknown")).toEqual([
       "copy-unknown",
     ]);
   });

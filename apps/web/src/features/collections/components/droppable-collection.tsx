@@ -52,7 +52,5 @@ export function isCompatibleCollectionDrop(
   if (drag.type !== "list-entry") {
     return false;
   }
-  return (
-    drag.copyIds.length > 0 || entryAddsCopies({ kind: drag.sourceKind, intent: drag.sourceIntent })
-  );
+  return drag.copyIds.length > 0 || entryAddsCopies(drag.sourceKind);
 }

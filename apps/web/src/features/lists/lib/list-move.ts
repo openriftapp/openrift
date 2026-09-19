@@ -56,6 +56,8 @@ export function ruleEntryCopyInputs(
 
 /** The entry being moved; a `ListEntryDragData` satisfies it directly. */
 export interface MoveEntrySubject {
+  /** Every dragged tile when a selection was dropped; absent for a menu action. */
+  selectionIds?: string[];
   /** Empty for a rule-derived entry, which carries `ruleEntry` instead and can only be copied. */
   entryIds: string[];
   ruleEntry?: RuleEntryRef;
@@ -87,9 +89,12 @@ export function moveNeedsDialog(
   return source.intent !== target.intent || movePickFor(source.kind, target.kind) !== "none";
 }
 
-/** Organize entries that track cards or printings can create new owned copies in a collection. */
-export function entryAddsCopies(source: { kind: ListKind; intent: ListIntent }): boolean {
-  return source.intent === "organize" && source.kind !== "copy";
+/**
+ * Entries that track cards or printings can create new owned copies in a
+ * collection. Copy-kind entries already point at copies, so they move instead.
+ */
+export function entryAddsCopies(kind: ListKind): boolean {
+  return kind !== "copy";
 }
 
 export interface AddEntryToCollectionSubject {
@@ -100,7 +105,8 @@ export interface AddEntryToCollectionSubject {
 }
 
 export interface AddEntryToCollectionRequest {
-  subject: AddEntryToCollectionSubject;
+  /** Several when the action ran on a selection; the dialog picks a printing per card. */
+  subjects: AddEntryToCollectionSubject[];
   /** Set by a drop onto a sidebar collection; the menu path picks one in the dialog. */
   collectionId?: string;
 }

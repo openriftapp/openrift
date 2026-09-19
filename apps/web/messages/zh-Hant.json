@@ -8811,5 +8811,70 @@
     }
   ],
   "tournaments_archive_result": "已送出：{sent}。已更新：{updated}。已略過：{skipped}。",
-  "tournaments_archive_resend_note": "再次送出會取代仍在等待審核的牌表。"
+  "tournaments_archive_resend_note": "再次送出會取代仍在等待審核的牌表。",
+  "lists_entry_add_to_collection_action": "加入收藏",
+  "lists_add_to_collection_note_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "建立新的持有卡。清單項目維持不變。",
+        "countPlural=*": "為這 {count} 張卡建立新的持有卡。清單項目維持不變。"
+      }
+    }
+  ],
+  "lists_add_to_collection_pick_printings": "為每張卡選擇你持有的版本。",
+  "lists_add_to_collection_printing_aria": "{card} 的版本",
+  "lists_add_to_collection_confirm_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "加入 1 張",
+        "countPlural=*": "加入 {count} 張"
+      }
+    }
+  ],
+  "lists_add_to_collection_too_many": "一次不能超過 {max} 張。請少選一些卡。",
+  "lists_move_pick_one_at_a_time": "版本只能逐張選擇。",
+  "lists_trade_pref_subject_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1 張卡",
+        "countPlural=*": "{count} 張卡"
+      }
+    }
+  ],
+  "lists_move_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡將離開你的{source}，加入你的{target}。",
+        "countPlural=*": "{count} 張卡將離開你的{source}，加入你的{target}。"
+      }
+    }
+  ],
+  "lists_copy_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張卡將留在你的{source}，同時加入你的{target}。",
+        "countPlural=*": "{count} 張卡將留在你的{source}，同時加入你的{target}。"
+      }
+    }
+  ]
 }

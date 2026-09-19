@@ -26,13 +26,16 @@ const collectionDrag: CardDragData = {
 
 const listDrag: ListEntryDragData = {
   type: "list-entry",
+  selectionIds: ["entry-1"],
   entryIds: ["entry-1"],
   copyIds: [],
+  fromSelection: false,
   sourceListId: "list-a",
   sourceKind: "card",
   sourceIntent: "wish",
   totalQuantity: 1,
   printing: STUB_PRINTING,
+  previewPrintings: [],
   cardName: "Card",
 };
 

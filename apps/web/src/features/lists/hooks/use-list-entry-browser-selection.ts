@@ -31,7 +31,19 @@ import {
   useUpdateList,
   useUpdateListEntry,
 } from "@/features/lists/hooks/use-lists";
-import { resolveCopyMoveTarget, selectableEntryIds } from "@/features/lists/lib/list-entries";
+import {
+  entrySelectionId,
+  isRuleSelectionId,
+  resolveCopyMoveTarget,
+  selectableEntryIds,
+} from "@/features/lists/lib/list-entries";
+import {
+  entrySelectionEntry,
+  hasRuleSelection,
+  listSelectionSubjects,
+  orderedSelectedEntryIds,
+  splitSelectionParts,
+} from "@/features/lists/lib/list-entry-selection";
 import type {
   AddEntryToCollectionRequest,
   MoveEntrySubject,
@@ -62,8 +74,9 @@ export interface UseListEntryBrowserSelectionParams {
   items: CardViewerItem[];
   entryByItemId: Map<string, ListEntryDetailResponse>;
   entryByKey: Map<string, ListEntryDetailResponse>;
+  printingByEntryId: Map<string, Printing>;
   setSearch: (query: string) => void;
-  setPrefDialogEntryId: (entryId: string | null) => void;
+  setPrefDialogEntryIds: (entryIds: string[]) => void;
   onRemoveEntry: (entryId: string, cardName: string) => void;
   onQuantityChange: (entryId: string, quantity: number) => void;
   isQuantityPendingFor: (entryId: string) => boolean;
@@ -83,8 +96,9 @@ export function useListEntryBrowserSelection({
   items,
   entryByItemId,
   entryByKey,
+  printingByEntryId,
   setSearch,
-  setPrefDialogEntryId,
+  setPrefDialogEntryIds,
   onRemoveEntry,
   onQuantityChange,
   isQuantityPendingFor,
@@ -103,8 +117,7 @@ export function useListEntryBrowserSelection({
   } = useCardSelection();
   const mode: "browse" | "select" = selectMode ? "select" : "browse";
   const [actionEntryIds, setActionEntryIds] = useState<string[]>([]);
-  // The grid item of a rule-derived entry being copied; it has no entry id to put in actionEntryIds.
-  const [ruleCopyItemId, setRuleCopyItemId] = useState<string | null>(null);
+  const actionRowIds = actionEntryIds.filter((id) => !isRuleSelectionId(id));
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveMode, setMoveMode] = useState<MoveMode>("move");
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -138,43 +151,32 @@ export function useListEntryBrowserSelection({
       const copyId = copyIdByEntryId.get(entryId);
       return copyId ? [copyId] : [];
     });
-  const takeOffCopyIds = entriesToCopyIds(actionEntryIds);
+  const takeOffCopyIds = entriesToCopyIds(actionRowIds);
   const takeOffMemberships = useCopyListMemberships(takeOffCopyIds, takeOffOpen, listId);
   // Copies pinned to a live trade block the sold outcome: disposing one would break the trade.
   const reservedEntryIds = new Set(
     entries.flatMap((entry) => (entry.kind === "copy" && entry.reserved ? [entry.id] : [])),
   );
-  const takeOffReservedCount = actionEntryIds.filter((id) => reservedEntryIds.has(id)).length;
+  const takeOffReservedCount = actionRowIds.filter((id) => reservedEntryIds.has(id)).length;
 
-  // Targeted by copy id: a rule-produced entry has no `list_entries` row and can't be
-  // selected, but still names a real copy that can move.
+  // Targeted by copy id, which a rule-produced entry has even without a `list_entries` row.
   const [moveToCollectionOpen, setMoveToCollectionOpen] = useState(false);
   const [moveCopyIds, setMoveCopyIds] = useState<string[]>([]);
   const handleMoveCopyToCollection = (copyId: string) => {
-    setMoveCopyIds(resolveCopyMoveTarget(entries, selected, copyId));
+    setMoveCopyIds(resolveCopyMoveTarget(entryByItemId, selected, copyId));
     setMoveToCollectionOpen(true);
   };
 
-  const [addToCollectionItemId, setAddToCollectionItemId] = useState<string | null>(null);
-  const addToCollectionRequest: AddEntryToCollectionRequest | null = (() => {
-    if (addToCollectionItemId === null) {
-      return null;
-    }
-    const item = items.find((candidate) => candidate.id === addToCollectionItemId);
-    const entry = entryByItemId.get(addToCollectionItemId);
-    if (!item || !entry) {
-      return null;
-    }
-    return {
-      subject: {
-        sourceKind: kind,
-        totalQuantity: entry.quantity,
-        printing: item.printing,
-        cardName: entry.cardName,
-      },
-    };
-  })();
-  const closeAddToCollection = () => setAddToCollectionItemId(null);
+  const [addToCollectionIds, setAddToCollectionIds] = useState<string[]>([]);
+  const addToCollectionSubjects = listSelectionSubjects(
+    orderedSelectedEntryIds(new Set(addToCollectionIds), entryByItemId),
+    kind,
+    entryByItemId,
+    printingByEntryId,
+  );
+  const addToCollectionRequest: AddEntryToCollectionRequest | null =
+    addToCollectionSubjects.length === 0 ? null : { subjects: addToCollectionSubjects };
+  const closeAddToCollection = () => setAddToCollectionIds([]);
 
   useScopeEffect(listId, () => resetSelection());
   useScopeEffect(showLibrary, (library) => {
@@ -269,26 +271,41 @@ export function useListEntryBrowserSelection({
       lastSelectedItemId: getLastSelectedItemId(),
       itemId,
       idsForItem: (rangeItem) => {
-        // Rule-derived entries (null id) aren't selectable.
         const rangeEntry = entryByItemId.get(rangeItem.id);
-        return rangeEntry && rangeEntry.id !== null ? [rangeEntry.id] : [];
+        return rangeEntry ? [entrySelectionId(rangeItem.id, rangeEntry)] : [];
       },
     });
     if (rangeIds === null) {
-      // Rule-derived entries (null id) aren't selectable.
-      if (targetEntry.id !== null) {
-        toggleSelect(targetEntry.id);
-        setLastSelectedItemId(itemId);
-      }
+      toggleSelect(entrySelectionId(itemId, targetEntry));
+      setLastSelectedItemId(itemId);
       return;
     }
     addToSelection(rangeIds);
     setLastSelectedItemId(itemId);
   };
 
+  /**
+   * A context action on a selected tile runs on the whole selection; on any
+   * other tile it narrows the selection to that one first.
+   */
+  const narrowToSelection = (selectionId: string): string[] => {
+    const { copyIds, narrowSelectionTo } = resolveContextActionTarget({
+      mode,
+      stacked: false,
+      itemId: selectionId,
+      cardCopyIds: [selectionId],
+      selected,
+    });
+    if (narrowSelectionTo) {
+      clearSelection();
+      addToSelection(narrowSelectionTo);
+      setLastSelectedItemId(selectionId);
+    }
+    return copyIds;
+  };
+
   const openListAction = (action: ListBulkAction, entryIds: string[]) => {
     setActionEntryIds(entryIds);
-    setRuleCopyItemId(null);
     if (action === "move" || action === "copy") {
       setMoveMode(action);
       setMoveOpen(true);
@@ -301,88 +318,89 @@ export function useListEntryBrowserSelection({
 
   // A wider-kind target needs a printing or copies picked, which only makes sense per card.
   const moveSubject: MoveEntrySubject | null = (() => {
-    if (ruleCopyItemId !== null) {
-      const item = items.find((candidate) => candidate.id === ruleCopyItemId);
-      const entry = entryByItemId.get(ruleCopyItemId);
-      if (!item || !entry) {
-        return null;
-      }
-      return {
-        entryIds: [],
-        ruleEntry: ruleEntryRef(entry),
-        sourceKind: kind,
-        sourceIntent: intent,
-        totalQuantity: entry.quantity,
-        printing: item.printing,
-        cardName: entry.cardName,
-      };
-    }
-    if (actionEntryIds.length !== 1) {
+    const [id] = actionEntryIds;
+    if (actionEntryIds.length !== 1 || id === undefined) {
       return null;
     }
-    const entryId = actionEntryIds[0];
-    const item = items.find((candidate) => entryByItemId.get(candidate.id)?.id === entryId);
-    const entry = item ? entryByItemId.get(item.id) : undefined;
-    if (!item || !entry || entry.id === null) {
+    const entry = entrySelectionEntry(id, entryByItemId);
+    const printing = printingByEntryId.get(id);
+    if (!entry || !printing) {
       return null;
     }
+    const rule = isRuleSelectionId(id);
     return {
-      entryIds: [entry.id],
+      entryIds: rule ? [] : [id],
+      ruleEntry: rule ? ruleEntryRef(entry) : undefined,
       sourceKind: kind,
       sourceIntent: intent,
       totalQuantity: entry.quantity,
-      printing: item.printing,
+      printing,
       cardName: entry.cardName,
     };
   })();
 
-  const handleBulkMove = (toList: ListResponse, resolution: MoveResolution | null) => {
-    if (moveSubject?.ruleEntry) {
-      const subject = { ...moveSubject, ruleEntry: moveSubject.ruleEntry };
-      bulkAddEntries.mutate(
-        { listId: toList.id, entries: ruleEntryCopyInputs(subject, toList.kind, resolution) },
-        {
-          onSuccess: (result) => {
-            toast.success(
-              m.lists_toast_copied_to_list({
-                count: result.added + result.updated,
-                list: toList.name,
-              }),
-            );
-            setMoveOpen(false);
-          },
-        },
-      );
+  // A selection can hold both kinds: rows the API moves and rule entries it can
+  // only re-add on the target list.
+  const runBulkMove = async (toList: ListResponse, resolution: MoveResolution | null) => {
+    const { entryIds, ruleSubjects } = splitSelectionParts(
+      actionEntryIds,
+      entryByItemId,
+      printingByEntryId,
+    );
+    const added = ruleSubjects.flatMap((subject) =>
+      ruleEntryCopyInputs(subject, toList.kind, resolution),
+    );
+    const resolutions = resolution
+      ? entryIds.map((entryId) => ({ entryId, ...resolution }))
+      : undefined;
+    const movePromise =
+      entryIds.length > 0
+        ? moveEntries.mutateAsync({
+            fromListId: listId,
+            toListId: toList.id,
+            entryIds,
+            mode: moveMode,
+            resolutions,
+          })
+        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
+          Promise.resolve(undefined);
+    const addPromise =
+      added.length > 0
+        ? bulkAddEntries.mutateAsync({ listId: toList.id, entries: added })
+        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
+          Promise.resolve(undefined);
+
+    // The compiler can't optimize a conditional inside try/catch, so the
+    // await is the only thing the try block does.
+    let results: [
+      Awaited<ReturnType<typeof moveEntries.mutateAsync>> | undefined,
+      Awaited<ReturnType<typeof bulkAddEntries.mutateAsync>> | undefined,
+    ];
+    try {
+      results = await Promise.all([movePromise, addPromise]);
+    } catch {
       return;
     }
-    moveEntries.mutate(
-      {
-        fromListId: listId,
-        toListId: toList.id,
-        entryIds: actionEntryIds,
-        mode: moveMode,
-        resolutions: resolution
-          ? actionEntryIds.map((entryId) => ({ entryId, ...resolution }))
-          : undefined,
-      },
-      {
-        onSuccess: (result) => {
-          toast.success(
-            moveMode === "copy"
-              ? m.lists_toast_copied_to_list({ count: result.moved, list: toList.name })
-              : m.lists_toast_moved_to_list({ count: result.moved, list: toList.name }),
-          );
-          clearSelection();
-          setMoveOpen(false);
-        },
-      },
+
+    const [moveResult, addResult] = results;
+    const count = (moveResult?.moved ?? 0) + (addResult ? addResult.added + addResult.updated : 0);
+    toast.success(
+      moveMode === "copy"
+        ? m.lists_toast_copied_to_list({ count, list: toList.name })
+        : m.lists_toast_moved_to_list({ count, list: toList.name }),
     );
+    clearSelection();
+    setMoveOpen(false);
+  };
+
+  const handleBulkMove = (toList: ListResponse, resolution: MoveResolution | null) => {
+    void runBulkMove(toList, resolution);
   };
 
   const handleBulkRemove = () => {
-    const count = actionEntryIds.length;
+    const count = actionRowIds.length;
     bulkRemove.mutate(
-      { listId, entryIds: actionEntryIds },
+      { listId, entryIds: actionRowIds },
       {
         onSuccess: () => {
           toast.success(`Removed ${count} card${count === 1 ? "" : "s"} from list`);
@@ -394,9 +412,9 @@ export function useListEntryBrowserSelection({
   };
 
   const handleTakeOffKeep = () => {
-    const count = actionEntryIds.length;
+    const count = actionRowIds.length;
     bulkRemove.mutate(
-      { listId, entryIds: actionEntryIds },
+      { listId, entryIds: actionRowIds },
       {
         onSuccess: () => {
           toast.success(`Removed ${count} card${count === 1 ? "" : "s"} from list`);
@@ -439,46 +457,26 @@ export function useListEntryBrowserSelection({
         return;
       }
       const entry = entryByItemId.get(itemId);
-      // Rule-derived entries (null id) aren't selectable.
-      if (!entry || entry.id === null) {
+      if (!entry) {
         return;
       }
       if (modifiers.shift) {
         shiftSelectRange(itemId);
       } else {
-        toggleSelect(entry.id);
+        toggleSelect(entrySelectionId(itemId, entry));
         setLastSelectedItemId(itemId);
       }
     },
     onItemToggle: (itemId) => {
       const entry = entryByItemId.get(itemId);
-      // Rule-derived entries (null id) aren't selectable.
-      if (!entry || entry.id === null) {
+      if (!entry) {
         return;
       }
-      toggleSelect(entry.id);
+      toggleSelect(entrySelectionId(itemId, entry));
       setLastSelectedItemId(itemId);
     },
-    onListBulkAction: (entryId, action) => {
-      const { copyIds, narrowSelectionTo } = resolveContextActionTarget({
-        mode,
-        stacked: false,
-        itemId: entryId,
-        cardCopyIds: [entryId],
-        selected,
-      });
-      if (narrowSelectionTo) {
-        clearSelection();
-        addToSelection(narrowSelectionTo);
-        setLastSelectedItemId(entryId);
-      }
-      openListAction(action, copyIds);
-    },
-    onCopyRuleEntry: (itemId) => {
-      setActionEntryIds([]);
-      setRuleCopyItemId(itemId);
-      setMoveMode("copy");
-      setMoveOpen(true);
+    onListBulkAction: (selectionId, action) => {
+      openListAction(action, narrowToSelection(selectionId));
     },
     onEntryQuantityChange: (entryId, quantity) => {
       // Defensive: the cell already disables the button when there's no entry.
@@ -488,9 +486,10 @@ export function useListEntryBrowserSelection({
       onQuantityChange(entryId, quantity);
     },
     onRemoveEntry: (entryId, cardName) => onRemoveEntry(entryId, cardName),
-    onSetPreference: (entryId) => setPrefDialogEntryId(entryId),
+    onSetPreference: (selectionId) =>
+      setPrefDialogEntryIds(narrowToSelection(selectionId).filter((id) => !isRuleSelectionId(id))),
     onMoveCopyToCollection: handleMoveCopyToCollection,
-    onAddEntryToCollection: setAddToCollectionItemId,
+    onAddEntryToCollection: (selectionId) => setAddToCollectionIds(narrowToSelection(selectionId)),
     onExcludeFromRule: handleExcludeFromRule,
     isQuantityPendingFor: (entryId) => isQuantityPendingFor(entryId),
   });
@@ -506,6 +505,7 @@ export function useListEntryBrowserSelection({
     selectAll,
     isAllSelected,
     hasSelectableEntries: selectableIds.length > 0,
+    selectionHasRuleEntry: hasRuleSelection(selected),
     moveOpen,
     setMoveOpen,
     moveMode,
@@ -529,6 +529,7 @@ export function useListEntryBrowserSelection({
     setMoveToCollectionOpen,
     moveCopyIds,
     addToCollectionRequest,
+    openAddToCollection: setAddToCollectionIds,
     closeAddToCollection,
     openListAction,
     handleSearchAndClose,

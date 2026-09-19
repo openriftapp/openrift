@@ -84,14 +84,12 @@ describe("ruleEntryCopyInputs", () => {
 });
 
 describe("entryAddsCopies", () => {
-  it("allows organize entries that track cards or printings", () => {
-    expect(entryAddsCopies({ kind: "card", intent: "organize" })).toBe(true);
-    expect(entryAddsCopies({ kind: "printing", intent: "organize" })).toBe(true);
+  it("allows entries that track cards or printings", () => {
+    expect(entryAddsCopies("card")).toBe(true);
+    expect(entryAddsCopies("printing")).toBe(true);
   });
 
-  it("rejects copy entries and wish or trade lists", () => {
-    expect(entryAddsCopies({ kind: "copy", intent: "organize" })).toBe(false);
-    expect(entryAddsCopies({ kind: "card", intent: "wish" })).toBe(false);
-    expect(entryAddsCopies({ kind: "printing", intent: "trade" })).toBe(false);
+  it("rejects copy entries, which already point at copies you own", () => {
+    expect(entryAddsCopies("copy")).toBe(false);
   });
 });

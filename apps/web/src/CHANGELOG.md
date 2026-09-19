@@ -5,10 +5,12 @@
 ### Highlights
 
 - feat(Tournaments): **Send decklists to the Meta Archive** — link a tournament to its UVS Games event, then match your players to the official standings and send the lists they agreed to share for review.
+- feat(Collection): **Add a selection to a collection** — every list can now create owned copies, and drag-and-drop or the right-click menu acts on all the cards you picked with Manage.
 - fix(Meta): **Missing events with common names** — events sharing a name with many others, such as weekly store nights and Chinese events, were not added to the archive. They are now added.
 
 ### Other
 
+- feat(Collection): **Manage dynamic list entries** — cards a list rule fills in can now be picked in Manage and copied or added to a collection along with the rest.
 - fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.
 
 - feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.

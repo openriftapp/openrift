@@ -19,13 +19,16 @@ const collectionDrag: CardDragData = {
 
 const listDrag: ListEntryDragData = {
   type: "list-entry",
+  selectionIds: ["entry-1"],
   entryIds: ["entry-1"],
   copyIds: [],
+  fromSelection: false,
   sourceListId: "list-a",
   sourceKind: "card",
   sourceIntent: "organize",
   totalQuantity: 1,
   printing: STUB_PRINTING,
+  previewPrintings: [],
   cardName: "Card",
 };
 
@@ -54,19 +57,16 @@ describe("isCompatibleCollectionDrop", () => {
     ).toBe(true);
   });
 
-  it("accepts a card- or printing-kind organize entry", () => {
+  it("accepts a card- or printing-kind entry from any list", () => {
     expect(isCompatibleCollectionDrop(listDrag, "col-2")).toBe(true);
     expect(isCompatibleCollectionDrop({ ...listDrag, sourceKind: "printing" }, "col-2")).toBe(true);
-  });
-
-  it("rejects a card- or printing-kind wish or trade entry", () => {
-    expect(isCompatibleCollectionDrop({ ...listDrag, sourceIntent: "wish" }, "col-2")).toBe(false);
+    expect(isCompatibleCollectionDrop({ ...listDrag, sourceIntent: "wish" }, "col-2")).toBe(true);
     expect(
       isCompatibleCollectionDrop(
         { ...listDrag, sourceKind: "printing", sourceIntent: "trade" },
         "col-2",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("rejects sidebar reorder drags", () => {

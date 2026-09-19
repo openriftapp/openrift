@@ -8811,5 +8811,70 @@
     }
   ],
   "tournaments_archive_result": "보냄: {sent}. 업데이트됨: {updated}. 건너뜀: {skipped}.",
-  "tournaments_archive_resend_note": "다시 보내면 아직 검토 대기 중인 리스트가 교체됩니다."
+  "tournaments_archive_resend_note": "다시 보내면 아직 검토 대기 중인 리스트가 교체됩니다.",
+  "lists_entry_add_to_collection_action": "컬렉션에 추가",
+  "lists_add_to_collection_note_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "보유 카드를 새로 만듭니다. 목록 항목은 그대로 유지됩니다.",
+        "countPlural=*": "이 카드 {count}장으로 보유 카드를 새로 만듭니다. 목록 항목은 그대로 유지됩니다."
+      }
+    }
+  ],
+  "lists_add_to_collection_pick_printings": "카드마다 보유한 인쇄본을 선택하세요.",
+  "lists_add_to_collection_printing_aria": "{card}의 인쇄본",
+  "lists_add_to_collection_confirm_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "1장 추가",
+        "countPlural=*": "{count}장 추가"
+      }
+    }
+  ],
+  "lists_add_to_collection_too_many": "한 번에 {max}장을 넘을 수 없습니다. 카드를 더 적게 선택하세요.",
+  "lists_move_pick_one_at_a_time": "인쇄본은 카드마다 하나씩 선택해야 합니다.",
+  "lists_trade_pref_subject_multi": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 1장",
+        "countPlural=*": "카드 {count}장"
+      }
+    }
+  ],
+  "lists_move_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장이 {source}에서 빠지고 {target}에 추가됩니다.",
+        "countPlural=*": "카드 {count}장이 {source}에서 빠지고 {target}에 추가됩니다."
+      }
+    }
+  ],
+  "lists_copy_intent_note_multi": [
+    {
+      "declarations": [
+        "input count",
+        "input source",
+        "input target",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "카드 {count}장이 {source}에 남고 {target}에도 추가됩니다.",
+        "countPlural=*": "카드 {count}장이 {source}에 남고 {target}에도 추가됩니다."
+      }
+    }
+  ]
 }

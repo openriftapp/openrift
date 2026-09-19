@@ -21,7 +21,11 @@ function stubEntry(overrides: Partial<ListEntryDetailResponse> = {}): ListEntryD
 }
 
 beforeEach(() => {
-  useListEntriesStore.setState({ entryByItemId: new Map(), entryByKey: new Map() });
+  useListEntriesStore.setState({
+    entryByItemId: new Map(),
+    entryByKey: new Map(),
+    printingByEntryId: new Map(),
+  });
 });
 
 describe("useListEntriesStore", () => {
@@ -35,7 +39,7 @@ describe("useListEntriesStore", () => {
     const entry = stubEntry();
     const byItem = new Map([["item-1", entry]]);
     const byKey = new Map([["card-1", entry]]);
-    useListEntriesStore.getState().setEntries(byItem, byKey);
+    useListEntriesStore.getState().setEntries(byItem, byKey, new Map());
     const state = useListEntriesStore.getState();
     expect(state.entryByItemId.get("item-1")).toBe(entry);
     expect(state.entryByKey.get("card-1")).toBe(entry);
@@ -45,12 +49,12 @@ describe("useListEntriesStore", () => {
     const entry = stubEntry({ id: "stable-1" });
     const byItem = new Map([["item-1", entry]]);
     const byKey = new Map([["card-1", entry]]);
-    useListEntriesStore.getState().setEntries(byItem, byKey);
+    useListEntriesStore.getState().setEntries(byItem, byKey, new Map());
     const first = useListEntriesStore.getState().entryByItemId.get("item-1");
 
     useListEntriesStore
       .getState()
-      .setEntries(new Map([["item-1", entry]]), new Map([["card-1", entry]]));
+      .setEntries(new Map([["item-1", entry]]), new Map([["card-1", entry]]), new Map());
     const second = useListEntriesStore.getState().entryByItemId.get("item-1");
 
     expect(second).toBe(first);

@@ -59,17 +59,15 @@ interface ListRowHandlers {
   onEntryQuantityChange?: (entryId: string, quantity: number) => void;
   /** Remove an entry directly (the minus button at quantity 1, no confirm). */
   onRemoveEntry?: (entryId: string, cardName: string) => void;
-  /** Open the trade-preference editor for an entry. */
-  onSetPreference?: (entryId: string) => void;
+  /** Open the trade-preference editor; the browser widens it to the selection. */
+  onSetPreference?: (selectionId: string) => void;
   /** Is the given entry currently waiting on a pending quantity mutation? */
   isQuantityPendingFor?: (entryId: string) => boolean;
   /** The browser resolves the target (multi-selection, or just this entry) before opening the dialog. */
-  onListBulkAction?: (entryId: string, action: ListBulkAction) => void;
-  /** Rule-produced entries have no entry id; the browser resolves the item into a copy subject. */
-  onCopyRuleEntry?: (itemId: string) => void;
+  onListBulkAction?: (selectionId: string, action: ListBulkAction) => void;
   /** Keyed by copy id, not entry id, so rule-produced entries (no `list_entries` row) can be moved too. */
   onMoveCopyToCollection?: (copyId: string) => void;
-  onAddEntryToCollection?: (itemId: string) => void;
+  onAddEntryToCollection?: (selectionId: string) => void;
   /** Rule-produced entries have no `list_entries` row; this excludes them from the rule, not removes them. */
   onExcludeFromRule?: (target: RuleExcludeTarget) => void;
 }
@@ -174,20 +172,16 @@ export function dispatchSetPreference(entryId: string): void {
   useCardRowActionsStore.getState().handlers.onSetPreference?.(entryId);
 }
 
-export function dispatchListBulkAction(entryId: string, action: ListBulkAction): void {
-  useCardRowActionsStore.getState().handlers.onListBulkAction?.(entryId, action);
-}
-
-export function dispatchCopyRuleEntry(itemId: string): void {
-  useCardRowActionsStore.getState().handlers.onCopyRuleEntry?.(itemId);
+export function dispatchListBulkAction(selectionId: string, action: ListBulkAction): void {
+  useCardRowActionsStore.getState().handlers.onListBulkAction?.(selectionId, action);
 }
 
 export function dispatchMoveCopyToCollection(copyId: string): void {
   useCardRowActionsStore.getState().handlers.onMoveCopyToCollection?.(copyId);
 }
 
-export function dispatchAddEntryToCollection(itemId: string): void {
-  useCardRowActionsStore.getState().handlers.onAddEntryToCollection?.(itemId);
+export function dispatchAddEntryToCollection(selectionId: string): void {
+  useCardRowActionsStore.getState().handlers.onAddEntryToCollection?.(selectionId);
 }
 
 export function dispatchExcludeFromRule(target: RuleExcludeTarget): void {

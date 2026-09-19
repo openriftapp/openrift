@@ -5,7 +5,7 @@ import type {
 import type { ListEntryDetailResponse, ListKind } from "@openrift/shared/types/api/list";
 import type { Currency, TradePreference } from "@openrift/shared/types/api/trade-preferences";
 import type { ListRule } from "@openrift/shared/types/list-rule";
-import { CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
+import { BookOpenIcon, CopyIcon, LibraryBigIcon, ListIcon, Trash2Icon, XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -38,6 +38,7 @@ import { MoveToListDialog } from "@/features/lists/components/move-to-list-dialo
 import { TakeOffTradelistDialog } from "@/features/lists/components/take-off-tradelist-dialog";
 import { useListEntryBrowserData } from "@/features/lists/hooks/use-list-entry-browser-data";
 import { useListEntryBrowserSelection } from "@/features/lists/hooks/use-list-entry-browser-selection";
+import { entryAddsCopies } from "@/features/lists/lib/list-move";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
@@ -89,9 +90,9 @@ export function ListEntryBrowser({
   isQuantityPendingFor,
 }: ListEntryBrowserProps) {
   const supportsTradePrefs = intent !== "organize";
-  const [prefDialogEntryId, setPrefDialogEntryId] = useState<string | null>(null);
-  const prefDialogEntry =
-    prefDialogEntryId === null ? null : (entries.find((e) => e.id === prefDialogEntryId) ?? null);
+  const [prefDialogEntryIds, setPrefDialogEntryIds] = useState<string[]>([]);
+  // The dialog seeds its fields from the first entry and saves to all of them.
+  const prefDialogEntry = entries.find((e) => e.id === prefDialogEntryIds[0]) ?? null;
   const {
     allPrintings,
     sets,
@@ -116,6 +117,7 @@ export function ListEntryBrowser({
     items,
     entryByItemId,
     entryByKey,
+    printingByEntryId,
   } = useListEntryBrowserData({ kind, entries, showLibrary });
   const isMobile = useIsMobile();
 
@@ -148,6 +150,7 @@ export function ListEntryBrowser({
     selectAll,
     isAllSelected,
     hasSelectableEntries,
+    selectionHasRuleEntry,
     moveOpen,
     setMoveOpen,
     moveMode,
@@ -171,6 +174,7 @@ export function ListEntryBrowser({
     setMoveToCollectionOpen,
     moveCopyIds,
     addToCollectionRequest,
+    openAddToCollection,
     closeAddToCollection,
     openListAction,
     handleSearchAndClose,
@@ -191,8 +195,9 @@ export function ListEntryBrowser({
     items,
     entryByItemId,
     entryByKey,
+    printingByEntryId,
     setSearch,
-    setPrefDialogEntryId,
+    setPrefDialogEntryIds,
     onRemoveEntry,
     onQuantityChange,
     isQuantityPendingFor,
@@ -215,6 +220,7 @@ export function ListEntryBrowser({
       kind={kind}
       intent={intent}
       listId={listId}
+      selectionHasRuleEntry={selectionHasRuleEntry}
       listTradeDefaults={listTradeDefaults}
       listCurrency={listCurrency}
       mode={mode}
@@ -338,7 +344,7 @@ export function ListEntryBrowser({
                 supportsTradePrefs={supportsTradePrefs}
                 listTradeDefaults={listTradeDefaults}
                 listCurrency={listCurrency}
-                onEditTradePref={setPrefDialogEntryId}
+                onEditTradePref={(entryId) => setPrefDialogEntryIds([entryId])}
                 onRemoveEntry={onRemoveEntry}
                 onQuantityChange={onQuantityChange}
                 onTakeOff={
@@ -364,7 +370,7 @@ export function ListEntryBrowser({
                   label: m.lists_entry_move_action(),
                   icon: <ListIcon />,
                   onClick: () => openListAction("move", [...selected]),
-                  disabled: moveEntries.isPending,
+                  disabled: moveEntries.isPending || selectionHasRuleEntry,
                 },
                 {
                   label: m.lists_entry_copy_action(),
@@ -372,20 +378,30 @@ export function ListEntryBrowser({
                   onClick: () => openListAction("copy", [...selected]),
                   disabled: moveEntries.isPending,
                 },
+                ...(entryAddsCopies(kind)
+                  ? [
+                      {
+                        label: m.lists_entry_add_to_collection_action(),
+                        icon: <BookOpenIcon />,
+                        onClick: () => openAddToCollection([...selected]),
+                      },
+                    ]
+                  : []),
                 kind === "copy"
                   ? {
                       label: m.lists_entry_take_off(),
                       icon: <XIcon />,
                       variant: "destructive" as const,
                       onClick: () => openListAction("takeOff", [...selected]),
-                      disabled: bulkRemove.isPending || disposeCopies.isPending,
+                      disabled:
+                        bulkRemove.isPending || disposeCopies.isPending || selectionHasRuleEntry,
                     }
                   : {
                       label: m.lists_entry_remove_action(),
                       icon: <Trash2Icon />,
                       variant: "destructive" as const,
                       onClick: () => openListAction("remove", [...selected]),
-                      disabled: bulkRemove.isPending,
+                      disabled: bulkRemove.isPending || selectionHasRuleEntry,
                     },
               ]}
               onClear={clearSelection}
@@ -438,13 +454,17 @@ export function ListEntryBrowser({
         </CardViewer>
         {prefDialogEntry && (
           <TradePreferenceDialog
-            open={prefDialogEntryId !== null}
+            open={prefDialogEntryIds.length > 0}
             onOpenChange={(next) => {
               if (!next) {
-                setPrefDialogEntryId(null);
+                setPrefDialogEntryIds([]);
               }
             }}
-            cardName={prefDialogEntry.cardName}
+            cardName={
+              prefDialogEntryIds.length === 1
+                ? prefDialogEntry.cardName
+                : m.lists_trade_pref_subject_multi({ count: prefDialogEntryIds.length })
+            }
             override={prefDialogEntry.tradeOverride}
             listDefault={listTradeDefaults}
             currency={listCurrency}
@@ -453,9 +473,12 @@ export function ListEntryBrowser({
               prefDialogEntry.tradeOverride.priceAbsoluteCents !== null ||
               prefDialogEntry.tradeOverride.tradeType !== null
             }
-            onSave={(next, listCurrencyToSet) =>
-              onTradeOverrideChange(prefDialogEntryId ?? "", next, listCurrencyToSet)
-            }
+            onSave={(next, listCurrencyToSet) => {
+              // Only the first call carries the currency; it patches the list, not the entry.
+              for (const [index, entryId] of prefDialogEntryIds.entries()) {
+                onTradeOverrideChange(entryId, next, index === 0 ? listCurrencyToSet : undefined);
+              }
+            }}
           />
         )}
       </CardBrowserFilterProvider>

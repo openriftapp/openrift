@@ -40,6 +40,11 @@ import { useMoveCopies } from "@/features/collections/hooks/use-copies";
 import { useDragPreviewStore } from "@/features/collections/stores/drag-preview-store";
 import { AddEntryToCollectionDialog } from "@/features/lists/components/add-entry-to-collection-dialog";
 import type { SidebarListDropData } from "@/features/lists/components/droppable-sidebar-list";
+import {
+  listDragParts,
+  listDragSubjects,
+  resolveListEntryDrag,
+} from "@/features/lists/components/list-entry-drag";
 import type { PendingEntryMove } from "@/features/lists/components/move-entry-dialog";
 import { MoveEntryDialog } from "@/features/lists/components/move-entry-dialog";
 import {
@@ -47,6 +52,7 @@ import {
   useBulkAddListEntries,
   useMoveListEntries,
 } from "@/features/lists/hooks/use-lists";
+import { hasRuleSelection } from "@/features/lists/lib/list-entry-selection";
 import type {
   AddEntryToCollectionRequest,
   MoveMode,
@@ -55,6 +61,7 @@ import type {
 import {
   entryAddsCopies,
   moveNeedsDialog,
+  movePickFor,
   ruleEntryCopyInputs,
 } from "@/features/lists/lib/list-move";
 import { describeListAdd } from "@/features/lists/lib/list-toast";
@@ -157,15 +164,19 @@ export function CollectionLayout() {
       return;
     }
     if (data?.type === "list-entry") {
-      setActiveDrag(data);
+      setActiveDrag(resolveListEntryDrag(data));
     }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const modifier = moveModifier;
-    const dragData = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
-    const mode: MoveMode =
-      copyModifier || (dragData?.type === "list-entry" && dragData.ruleEntry) ? "copy" : "move";
+    const raw = asDragData<AnyDragData>(event.active.data.current, COLLECTION_DRAG_TYPES);
+    const dragData = raw?.type === "list-entry" ? resolveListEntryDrag(raw) : raw;
+    // Rule entries have no row to move, so a drag carrying one copies everything.
+    const carriesRuleEntry =
+      dragData?.type === "list-entry" &&
+      (dragData.ruleEntry !== undefined || hasRuleSelection(dragData.selectionIds));
+    const mode: MoveMode = copyModifier || carriesRuleEntry ? "copy" : "move";
     dragActiveRef.current = false;
     setActiveDrag(null);
 
@@ -192,14 +203,25 @@ export function CollectionLayout() {
     }
     if (dragData.copyIds.length > 0) {
       const count = dragData.copyIds.length;
+      const fromSelection = dragData.fromSelection;
       moveCopies.mutate(
         { copyIds: dragData.copyIds, toCollectionId: dropData.collectionId },
-        { onSuccess: () => toast.success(m.collections_toast_moved({ count })) },
+        {
+          onSuccess: () => {
+            toast.success(m.collections_toast_moved({ count }));
+            if (fromSelection) {
+              useGridSelectionStore.getState().clearSelection();
+            }
+          },
+        },
       );
       return;
     }
-    if (entryAddsCopies({ kind: dragData.sourceKind, intent: dragData.sourceIntent })) {
-      setPendingCollectionAdd({ subject: dragData, collectionId: dropData.collectionId });
+    if (entryAddsCopies(dragData.sourceKind)) {
+      setPendingCollectionAdd({
+        subjects: listDragSubjects(dragData),
+        collectionId: dropData.collectionId,
+      });
     }
   };
 
@@ -263,56 +285,64 @@ export function CollectionLayout() {
     return m.collections_toast_moved_to_list_cards({ count, list });
   }
 
-  function runListEntryMove(
+  // A dragged selection can hold both kinds: rows the API moves and rule entries
+  // it can only re-add on the target list.
+  async function runListEntryMove(
     dragData: ListEntryDragData,
     dropData: SidebarListDropData,
     mode: MoveMode,
     resolution: MoveResolution | null,
   ) {
-    if (dragData.ruleEntry) {
-      const subject = { ...dragData, ruleEntry: dragData.ruleEntry };
-      bulkAddListEntries.mutate(
-        {
-          listId: dropData.listId,
-          entries: ruleEntryCopyInputs(subject, dropData.listKind, resolution),
-        },
-        {
-          onSuccess: (result) => {
-            setPendingMove(null);
-            toast.success(
-              m.lists_toast_copied_to_list({
-                count: result.added + result.updated,
-                list: dropData.listName,
-              }),
-            );
-          },
-        },
-      );
+    const { entryIds, ruleSubjects } = listDragParts(dragData);
+    const added = ruleSubjects.flatMap((subject) =>
+      ruleEntryCopyInputs(subject, dropData.listKind, resolution),
+    );
+    const resolutions = resolution
+      ? entryIds.map((entryId) => ({ entryId, ...resolution }))
+      : undefined;
+    const movePromise =
+      entryIds.length > 0
+        ? moveListEntries.mutateAsync({
+            fromListId: dragData.sourceListId,
+            toListId: dropData.listId,
+            entryIds,
+            mode,
+            resolutions,
+          })
+        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
+          Promise.resolve(undefined);
+    const addPromise =
+      added.length > 0
+        ? bulkAddListEntries.mutateAsync({ listId: dropData.listId, entries: added })
+        : // oxlint-disable-next-line unicorn/no-useless-undefined -- typed as Promise<undefined>, not Promise<void>
+          Promise.resolve(undefined);
+
+    // The compiler can't optimize a conditional inside try/catch, so the
+    // await is the only thing the try block does.
+    let results: [
+      Awaited<ReturnType<typeof moveListEntries.mutateAsync>> | undefined,
+      Awaited<ReturnType<typeof bulkAddListEntries.mutateAsync>> | undefined,
+    ];
+    try {
+      results = await Promise.all([movePromise, addPromise]);
+    } catch {
       return;
     }
-    moveListEntries.mutate(
-      {
-        fromListId: dragData.sourceListId,
-        toListId: dropData.listId,
-        entryIds: dragData.entryIds,
-        mode,
-        resolutions: resolution
-          ? dragData.entryIds.map((entryId) => ({ entryId, ...resolution }))
-          : undefined,
-      },
-      {
-        onSuccess: (result) => {
-          setPendingMove(null);
-          if (result.moved === 0) {
-            return;
-          }
-          toast.success(
-            mode === "copy"
-              ? m.lists_toast_copied_to_list({ count: result.moved, list: dropData.listName })
-              : movedToListMessage(dropData.listKind, result.moved, dropData.listName),
-          );
-        },
-      },
+
+    setPendingMove(null);
+    const [moveResult, addResult] = results;
+    const copied = (addResult?.added ?? 0) + (addResult?.updated ?? 0);
+    const count = (moveResult?.moved ?? 0) + copied;
+    if (count === 0) {
+      return;
+    }
+    if (dragData.fromSelection) {
+      useGridSelectionStore.getState().clearSelection();
+    }
+    toast.success(
+      mode === "copy"
+        ? m.lists_toast_copied_to_list({ count, list: dropData.listName })
+        : movedToListMessage(dropData.listKind, count, dropData.listName),
     );
   }
 
@@ -324,6 +354,15 @@ export function CollectionLayout() {
     if (dropData.listId === dragData.sourceListId) {
       return;
     }
+    // Picking one printing or copy only makes sense per card, so a multi-tile
+    // drag onto a wider-kind list has nothing sensible to ask for.
+    if (
+      dragData.selectionIds.length > 1 &&
+      movePickFor(dragData.sourceKind, dropData.listKind) !== "none"
+    ) {
+      toast.info(m.lists_move_pick_one_at_a_time());
+      return;
+    }
     if (
       moveNeedsDialog(
         { kind: dragData.sourceKind, intent: dragData.sourceIntent },
@@ -333,7 +372,7 @@ export function CollectionLayout() {
       setPendingMove({ mode, subject: dragData, target: dropData, drag: dragData });
       return;
     }
-    runListEntryMove(dragData, dropData, mode, null);
+    void runListEntryMove(dragData, dropData, mode, null);
   }
 
   return (
@@ -381,15 +420,16 @@ export function CollectionLayout() {
                   setPendingMove(null);
                 }
               }}
-              onConfirm={(resolution) =>
-                pendingMove &&
-                runListEntryMove(
-                  pendingMove.drag,
-                  { type: "list", ...pendingMove.target },
-                  pendingMove.mode,
-                  resolution,
-                )
-              }
+              onConfirm={(resolution) => {
+                if (pendingMove) {
+                  void runListEntryMove(
+                    pendingMove.drag,
+                    { type: "list", ...pendingMove.target },
+                    pendingMove.mode,
+                    resolution,
+                  );
+                }
+              }}
               isPending={moveListEntries.isPending || bulkAddListEntries.isPending}
             />
           </div>
@@ -421,12 +461,15 @@ function CollectionContent({
 }
 
 function ListEntryDragPreview({ drag, copy }: { drag: ListEntryDragData; copy: boolean }) {
-  const name = legendDisplayName(drag.printing.card);
+  const multiple = drag.selectionIds.length > 1;
+  const name = multiple
+    ? pluralNoun(drag.sourceKind, drag.selectionIds.length)
+    : legendDisplayName(drag.printing.card);
   return (
     <CardDragGhost
-      printings={[drag.printing]}
+      printings={drag.previewPrintings.length > 0 ? drag.previewPrintings : [drag.printing]}
       label={copy ? m.collections_drag_copy_label({ name }) : name}
-      count={drag.totalQuantity}
+      count={multiple ? drag.selectionIds.length : drag.totalQuantity}
     />
   );
 }

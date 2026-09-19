@@ -18,6 +18,13 @@ import { DialogForm } from "@/components/ui/dialog-form";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { QuantityStepperField } from "@/components/ui/quantity-stepper";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ImportPrintingLabel } from "@/features/cards/components/printing-label";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useCollections } from "@/features/collections/hooks/use-collections";
@@ -27,12 +34,57 @@ import type {
   AddEntryToCollectionSubject,
 } from "@/features/lists/lib/list-move";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
+import { useEnumOrders } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";
+import { formatImportPrintingLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const SELECTED_ROW =
   "bg-primary/10 text-primary data-selected:bg-primary/10 data-selected:text-primary data-selected:**:text-primary";
+
+function CollectionPicker({
+  collections,
+  collectionId,
+  onSelect,
+}: {
+  collections: CollectionResponse[];
+  collectionId: string | null;
+  onSelect: (collectionId: string) => void;
+}) {
+  const [highlighted, setHighlighted] = useState("");
+  if (collections.length === 0) {
+    return (
+      <Empty>
+        <EmptyDescription>{m.collections_dialog_move_empty()}</EmptyDescription>
+      </Empty>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-sm">{m.lists_add_to_collection_pick_collection()}</p>
+      <PickerList highlightedId={highlighted} onHighlightChange={setHighlighted}>
+        {collections.map((collection) => (
+          <PickerRow
+            key={collection.id}
+            value={collection.id}
+            keywords={[collection.name]}
+            onSelect={() => onSelect(collection.id)}
+            className={cn("px-3 py-2", collectionId === collection.id && SELECTED_ROW)}
+          >
+            {collection.isInbox ? (
+              <InboxIcon className="size-4 shrink-0" />
+            ) : (
+              <BookOpenIcon className="size-4 shrink-0" />
+            )}
+            <span className="min-w-0 flex-1 truncate">{collection.name}</span>
+            {collectionId === collection.id && <CheckIcon className="size-4 shrink-0" />}
+          </PickerRow>
+        ))}
+      </PickerList>
+    </div>
+  );
+}
 
 interface AddEntryToCollectionDialogBodyProps {
   subject: AddEntryToCollectionSubject;
@@ -54,7 +106,6 @@ export function AddEntryToCollectionDialogBody({
   isPending,
 }: AddEntryToCollectionDialogBodyProps) {
   const [printingHighlight, setPrintingHighlight] = useState("");
-  const [collectionHighlight, setCollectionHighlight] = useState("");
   const [printingId, setPrintingId] = useState(subject.printing.id);
   const [collectionId, setCollectionId] = useState(
     () =>
@@ -104,38 +155,13 @@ export function AddEntryToCollectionDialogBody({
           </PickerList>
         </div>
       )}
-      {!fixedCollection &&
-        (collections.length === 0 ? (
-          <Empty>
-            <EmptyDescription>{m.collections_dialog_move_empty()}</EmptyDescription>
-          </Empty>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm">{m.lists_add_to_collection_pick_collection()}</p>
-            <PickerList
-              highlightedId={collectionHighlight}
-              onHighlightChange={setCollectionHighlight}
-            >
-              {collections.map((collection) => (
-                <PickerRow
-                  key={collection.id}
-                  value={collection.id}
-                  keywords={[collection.name]}
-                  onSelect={() => setCollectionId(collection.id)}
-                  className={cn("px-3 py-2", collectionId === collection.id && SELECTED_ROW)}
-                >
-                  {collection.isInbox ? (
-                    <InboxIcon className="size-4 shrink-0" />
-                  ) : (
-                    <BookOpenIcon className="size-4 shrink-0" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate">{collection.name}</span>
-                  {collectionId === collection.id && <CheckIcon className="size-4 shrink-0" />}
-                </PickerRow>
-              ))}
-            </PickerList>
-          </div>
-        ))}
+      {!fixedCollection && (
+        <CollectionPicker
+          collections={collections}
+          collectionId={collectionId}
+          onSelect={setCollectionId}
+        />
+      )}
       <QuantityStepperField
         label={m.lists_add_to_collection_quantity()}
         value={quantity}
@@ -156,6 +182,151 @@ export function AddEntryToCollectionDialogBody({
   );
 }
 
+export interface AddCopiesPick {
+  printingId: string;
+  quantity: number;
+}
+
+interface AddEntriesToCollectionDialogBodyProps {
+  subjects: AddEntryToCollectionSubject[];
+  fixedCollection?: CollectionResponse;
+  collections: CollectionResponse[];
+  /** Every printing of each card, for the per-row picker on a card-kind list. */
+  printingsByCardId: ReadonlyMap<string, Printing[]>;
+  printingLabel: (printing: Printing) => string;
+  onConfirm: (input: { collectionId: string; picks: AddCopiesPick[] }) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+export function AddEntriesToCollectionDialogBody({
+  subjects,
+  fixedCollection,
+  collections,
+  printingsByCardId,
+  printingLabel,
+  onConfirm,
+  onCancel,
+  isPending,
+}: AddEntriesToCollectionDialogBodyProps) {
+  const [collectionId, setCollectionId] = useState(
+    () =>
+      fixedCollection?.id ??
+      collections.find((collection) => collection.isInbox)?.id ??
+      collections.at(0)?.id ??
+      null,
+  );
+  const [printingIds, setPrintingIds] = useState(() =>
+    subjects.map((subject) => subject.printing.id),
+  );
+
+  const canPickPrinting = subjects[0]?.sourceKind === "card";
+  const total = subjects.reduce((sum, subject) => sum + Math.max(subject.totalQuantity, 1), 0);
+  const overLimit = total > MAX_COPIES_PER_ADD;
+  const canConfirm = !isPending && collectionId !== null && !overLimit && subjects.length > 0;
+  const submit = () => {
+    if (canConfirm && collectionId !== null) {
+      onConfirm({
+        collectionId,
+        picks: subjects.map((subject, index) => ({
+          printingId: printingIds[index] ?? subject.printing.id,
+          quantity: Math.max(subject.totalQuantity, 1),
+        })),
+      });
+    }
+  };
+
+  return (
+    <DialogForm onSubmit={submit}>
+      <DialogHeader>
+        <DialogTitle>
+          {fixedCollection
+            ? m.lists_add_to_collection_title_named({ collection: fixedCollection.name })
+            : m.lists_add_to_collection_title()}
+        </DialogTitle>
+        <DialogDescription>
+          {m.lists_add_to_collection_note_multi({ count: subjects.length })}
+        </DialogDescription>
+      </DialogHeader>
+      {canPickPrinting && <p className="text-sm">{m.lists_add_to_collection_pick_printings()}</p>}
+      <div className="max-h-56 space-y-1 overflow-y-auto">
+        {subjects.map((subject, index) => {
+          const printings = printingsByCardId.get(subject.printing.cardId) ?? [subject.printing];
+          const items = printings.map((printing) => ({
+            value: printing.id,
+            label: printingLabel(printing),
+          }));
+          return (
+            <div
+              key={`${subject.printing.id}-${index}`}
+              className="flex items-center gap-2 px-1 py-0.5"
+            >
+              <span className="text-muted-foreground w-8 shrink-0 text-right font-mono text-sm">
+                {subject.totalQuantity}&times;
+              </span>
+              <span className="min-w-0 flex-1 truncate">{subject.cardName}</span>
+              {canPickPrinting && printings.length > 1 ? (
+                <Select
+                  items={items}
+                  value={printingIds[index] ?? subject.printing.id}
+                  onValueChange={(next) =>
+                    setPrintingIds((current) =>
+                      current.map((id, at) => (at === index ? String(next) : id)),
+                    )
+                  }
+                >
+                  <SelectTrigger
+                    className="h-7 w-44"
+                    aria-label={m.lists_add_to_collection_printing_aria({
+                      card: subject.cardName,
+                    })}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {items.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <ImportPrintingLabel
+                  printing={printings.find((p) => p.id === printingIds[index]) ?? subject.printing}
+                  className="max-w-44 min-w-0 shrink-0 truncate"
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {!fixedCollection && (
+        <CollectionPicker
+          collections={collections}
+          collectionId={collectionId}
+          onSelect={setCollectionId}
+        />
+      )}
+      {overLimit && (
+        <p className="text-destructive text-sm">
+          {m.lists_add_to_collection_too_many({ max: MAX_COPIES_PER_ADD })}
+        </p>
+      )}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+          {m.common_cancel()}
+        </Button>
+        <Button type="submit" disabled={!canConfirm}>
+          {isPending
+            ? m.lists_add_to_collection_pending()
+            : m.lists_add_to_collection_confirm_multi({ count: total })}
+        </Button>
+      </div>
+    </DialogForm>
+  );
+}
+
 function ConnectedBody({
   request,
   listId,
@@ -169,34 +340,26 @@ function ConnectedBody({
   const queryClient = useQueryClient();
   const { data: collections } = useCollections();
   const { printingsByCardId } = useCards();
+  const { labels } = useEnumOrders();
   const addCopies = useAddCopies();
-  const { subject } = request;
-  const printings =
-    subject.sourceKind === "card"
-      ? (printingsByCardId.get(subject.printing.cardId) ?? [subject.printing])
-      : [subject.printing];
+  const [subject] = request.subjects;
   const fixedCollection =
     request.collectionId === undefined
       ? undefined
       : collections.find((collection) => collection.id === request.collectionId);
 
-  const handleConfirm = ({
-    printingId,
-    collectionId,
-    quantity,
-  }: {
-    printingId: string;
-    collectionId: string;
-    quantity: number;
-  }) => {
+  const addPicks = (collectionId: string, picks: AddCopiesPick[]) => {
     const collectionName = collections.find((collection) => collection.id === collectionId)?.name;
+    const copies = picks.flatMap((pick) =>
+      Array.from({ length: pick.quantity }, () => ({ printingId: pick.printingId, collectionId })),
+    );
     addCopies.mutate(
-      { copies: Array.from({ length: quantity }, () => ({ printingId, collectionId })) },
+      { copies },
       {
         onSuccess: () => {
           toast.success(
             m.lists_toast_added_to_collection({
-              count: quantity,
+              count: copies.length,
               collection: collectionName ?? "",
             }),
           );
@@ -211,13 +374,35 @@ function ConnectedBody({
     );
   };
 
+  if (request.subjects.length !== 1 || !subject) {
+    return (
+      <AddEntriesToCollectionDialogBody
+        subjects={request.subjects}
+        fixedCollection={fixedCollection}
+        collections={collections}
+        printingsByCardId={printingsByCardId}
+        printingLabel={(printing) => formatImportPrintingLabel(printing, labels)}
+        onConfirm={({ collectionId, picks }) => addPicks(collectionId, picks)}
+        onCancel={onClose}
+        isPending={addCopies.isPending}
+      />
+    );
+  }
+
+  const printings =
+    subject.sourceKind === "card"
+      ? (printingsByCardId.get(subject.printing.cardId) ?? [subject.printing])
+      : [subject.printing];
+
   return (
     <AddEntryToCollectionDialogBody
       subject={subject}
       fixedCollection={fixedCollection}
       collections={collections}
       printings={printings}
-      onConfirm={handleConfirm}
+      onConfirm={({ printingId, collectionId, quantity }) =>
+        addPicks(collectionId, [{ printingId, quantity }])
+      }
       onCancel={onClose}
       isPending={addCopies.isPending}
     />
@@ -249,7 +434,7 @@ export function AddEntryToCollectionDialog({
         {request && (
           <Suspense fallback={null}>
             <ConnectedBody
-              key={`${request.subject.printing.id}-${request.collectionId ?? ""}`}
+              key={`${request.subjects.map((subject) => subject.printing.id).join(",")}-${request.collectionId ?? ""}`}
               request={request}
               listId={listId}
               onClose={onClose}
