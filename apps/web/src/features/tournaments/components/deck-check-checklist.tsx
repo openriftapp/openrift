@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { SelectionStamp } from "@/components/ui/selection-mark";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardCell } from "@/features/cards/components/card-cell";
@@ -22,6 +21,7 @@ import {
 } from "@/features/cards/components/card-strip";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
 import { FixCardDialog } from "@/features/tournaments/components/deck-check-entry-dialogs";
 import {
@@ -285,13 +285,17 @@ function ZoneSection({
   const done = totalCopies > 0 && verifiedCopies === totalCopies;
 
   const heading = (
-    <SectionHeading as="h3" className={cn("flex items-center gap-1.5", done && "text-success")}>
-      <span>{label}</span>
-      <span>
-        · {verifiedCopies}/{totalCopies}
+    <DeckZoneHeader label={label} labelAs="h3" labelClassName={done ? "text-success" : undefined}>
+      <span
+        className={cn(
+          "ml-auto flex shrink-0 items-center gap-1 text-xs tabular-nums",
+          done ? "text-success" : "text-muted-foreground",
+        )}
+      >
+        {verifiedCopies}/{totalCopies}
+        {done ? <CheckIcon className="size-3.5" /> : null}
       </span>
-      {done ? <CheckIcon className="size-3.5" /> : null}
-    </SectionHeading>
+    </DeckZoneHeader>
   );
 
   if (displayMode === "list") {
