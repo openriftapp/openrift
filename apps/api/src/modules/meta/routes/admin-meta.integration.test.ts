@@ -583,23 +583,26 @@ describe.skipIf(!ctx || !anonCtx)("Meta archive public reads (anonymous)", () =>
     const json = await readJson(res);
     expect(json.event.id).toBe(eventId);
     expect(json.event.notes).toBe("MTR notes");
-    expect(json.players).toHaveLength(2);
-    expect(json.players[0].playerName).toBe("MTR Anon");
-    expect(json.players[0].legend.name).toBe("MTR Legend");
+    expect(json.standings.players).toHaveLength(2);
+    expect(json.standings.total).toBe(2);
+    expect(json.standings.players[0].playerName).toBe("MTR Anon");
+    expect(json.standings.players[0].legend.name).toBe("MTR Legend");
     // The slug is what the standings line links to on /cards.
-    expect(json.players[0].legend.slug).toBe("mtr-legend");
-    expect([json.players[0].wins, json.players[0].losses, json.players[0].draws]).toEqual([
-      4, 2, 0,
-    ]);
-    expect(json.players[0].shareToken).not.toBeNull();
+    expect(json.standings.players[0].legend.slug).toBe("mtr-legend");
+    expect([
+      json.standings.players[0].wins,
+      json.standings.players[0].losses,
+      json.standings.players[0].draws,
+    ]).toEqual([4, 2, 0]);
+    expect(json.standings.players[0].shareToken).not.toBeNull();
 
     // Enough to render a standings line, not enough to click one.
-    expect(json.players[1].playerName).toBe("MTR Unlisted");
-    expect(json.players[1].listStatus).toBe("none");
-    expect(json.players[1].deckId).toBeNull();
-    expect(json.players[1].shareToken).toBeNull();
-    expect(json.players[1].rankIsTier).toBe(true);
-    expect(json.players[1].legend.name).toBe("MTR Legend");
+    expect(json.standings.players[1].playerName).toBe("MTR Unlisted");
+    expect(json.standings.players[1].listStatus).toBe("none");
+    expect(json.standings.players[1].deckId).toBeNull();
+    expect(json.standings.players[1].shareToken).toBeNull();
+    expect(json.standings.players[1].rankIsTier).toBe(true);
+    expect(json.standings.players[1].legend.name).toBe("MTR Legend");
   });
 
   it("prints the event's citations and no contributor line by default", async () => {

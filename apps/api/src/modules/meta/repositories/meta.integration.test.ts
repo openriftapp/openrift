@@ -991,12 +991,14 @@ describe.skipIf(!ctx)("metaRepo", () => {
     });
 
     it("counts what each holdings choice would leave, and the rows in scope", async () => {
-      const withDeck = await seedEvent(repo, "mta-holds-deck", { eventDate: "2029-08-01" });
+      const withDeck = await seedEvent(repo, "mta-holds-deck", { eventDate: "2026-08-01" });
       await seedListedPlayer(repo, withDeck, { playerName: "MTA Holds Lister", rank: 1 });
       await seedDecklessPlayer(repo, withDeck, { playerName: "MTA Holds Second", rank: 2 });
-      await seedEvent(repo, "mta-holds-bare", { eventDate: "2029-08-02" });
+      await seedEvent(repo, "mta-holds-bare", { eventDate: "2026-08-02" });
       await seedEvent(repo, "mta-holds-ahead", { eventDate: "2099-08-03" });
-      const filters = { from: "2029-08-01" };
+      // Narrowed by needle, not by date: this shares a database with every
+      // other meta test, and the buckets below need events on both sides of today.
+      const filters = { q: "mta-holds" };
 
       const [holdings, totals] = await Promise.all([
         repo.eventHoldingsCounts(filters),
@@ -1277,7 +1279,12 @@ describe.skipIf(!ctx)("metaRepo", () => {
 
     it("states what the page says about the whole field", async () => {
       const eventId = await seedEvent(repo, "mta-field-summary");
-      await seedListedPlayer(repo, eventId, { playerName: "MTA Field Ana", rank: 1, wins: 6 });
+      await seedListedPlayer(repo, eventId, {
+        playerName: "MTA Field Ana",
+        rank: 1,
+        wins: 6,
+        losses: 1,
+      });
       await seedDecklessPlayer(repo, eventId, { playerName: "MTA Field Bo", rank: 2 });
 
       const field = await repo.fieldSummaryForEvent(eventId);
@@ -1756,13 +1763,13 @@ describe.skipIf(!ctx)("metaRepo", () => {
     });
 
     it("offers a picked event the scope counted no decks for first, at count 0", async () => {
-      const counted = await seedEvent(repo, "mta-facet-lift-counted", { eventDate: "2027-06-06" });
-      await seedEvent(repo, "mta-facet-lift-empty", { eventDate: "2027-06-05" });
+      const counted = await seedEvent(repo, "mta-facet-lift-counted", { eventDate: "2028-03-06" });
+      await seedEvent(repo, "mta-facet-lift-empty", { eventDate: "2028-03-05" });
       await seedListedPlayer(repo, counted, { playerName: "MTA Lift Counted", rank: 1 });
 
       const facets = await repo.deckFacetCounts({
-        from: "2027-06-06",
-        to: "2027-06-06",
+        from: "2028-03-06",
+        to: "2028-03-06",
         events: ["mta-facet-lift-empty"],
       });
 
@@ -1770,26 +1777,26 @@ describe.skipIf(!ctx)("metaRepo", () => {
         {
           slug: "mta-facet-lift-empty",
           name: "MTA mta-facet-lift-empty",
-          eventDate: "2027-06-05",
+          eventDate: "2028-03-05",
           count: 0,
         },
         {
           slug: "mta-facet-lift-counted",
           name: "MTA mta-facet-lift-counted",
-          eventDate: "2027-06-06",
+          eventDate: "2028-03-06",
           count: 1,
         },
       ]);
     });
 
     it("offers a picked legend the scope counted no decks for, named and at count 0", async () => {
-      const eventId = await seedEvent(repo, "mta-facet-lift-legend", { eventDate: "2027-06-08" });
+      const eventId = await seedEvent(repo, "mta-facet-lift-legend", { eventDate: "2028-03-08" });
       await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Legend", rank: 1 });
       const unplayed = await seedCard("MTA Unplayed", "mta-unplayed", "legend", ["MTA Ahri"]);
 
       const facets = await repo.deckFacetCounts({
-        from: "2027-06-08",
-        to: "2027-06-08",
+        from: "2028-03-08",
+        to: "2028-03-08",
         legends: [unplayed],
       });
       const byCard = new Map(facets.legends.map((row) => [row.cardId, row]));
@@ -1801,13 +1808,13 @@ describe.skipIf(!ctx)("metaRepo", () => {
     });
 
     it("counts a picked value the scope does have decks for exactly once", async () => {
-      const eventId = await seedEvent(repo, "mta-facet-lift-dedupe", { eventDate: "2027-06-10" });
+      const eventId = await seedEvent(repo, "mta-facet-lift-dedupe", { eventDate: "2028-03-10" });
       await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Dedupe One", rank: 1 });
       await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Dedupe Two", rank: 2 });
 
       const facets = await repo.deckFacetCounts({
-        from: "2027-06-10",
-        to: "2027-06-10",
+        from: "2028-03-10",
+        to: "2028-03-10",
         events: ["mta-facet-lift-dedupe"],
         legends: [legendCardId],
       });
@@ -1816,7 +1823,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         {
           slug: "mta-facet-lift-dedupe",
           name: "MTA mta-facet-lift-dedupe",
-          eventDate: "2027-06-10",
+          eventDate: "2028-03-10",
           count: 2,
         },
       ]);
