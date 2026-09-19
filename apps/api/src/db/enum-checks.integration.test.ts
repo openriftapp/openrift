@@ -60,6 +60,7 @@ import {
   META_EVENT_OVERLAY_FIELDS,
   META_PLAYER_OVERLAY_FIELDS,
   META_SOURCE_FETCH_STATUSES,
+  UVSGAMES_MISSING_PROBES,
   UVSGAMES_PROBE_OUTCOMES,
 } from "@openrift/shared/types/enums";
 import { listRuleCombineSchema } from "@openrift/shared/types/list-rule";
@@ -151,6 +152,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_uvsgames_decklists_fetch_status: META_SOURCE_FETCH_STATUSES,
   chk_uvsgames_event_standings_entry_status: META_ENTRY_STATUSES,
   chk_uvsgames_event_templates_tier: metaEventTierSchema.options,
+  chk_uvsgames_events_missing_probe: UVSGAMES_MISSING_PROBES,
   chk_uvsgames_id_probes_outcome: UVSGAMES_PROBE_OUTCOMES,
 };
 
