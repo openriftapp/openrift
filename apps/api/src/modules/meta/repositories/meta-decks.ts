@@ -1,3 +1,4 @@
+import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type {
   CardType,
@@ -6,11 +7,11 @@ import type {
   MetaListStatus,
 } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import type { Kysely } from "kysely";
+import type { Kysely, SelectQueryBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
-import type { MetaDeckDateRange, MetaScopeFilters } from "./meta-shared.js";
+import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
 import {
   META_ARCHIVE_USER_ID,
   foldedPlayerIdentity,
@@ -85,7 +86,89 @@ export interface MetaDeckFilters extends MetaScopeFilters {
   legend?: string;
   /** A player key, as {@link foldedPlayerIdentity} yields it. */
   player?: string;
+  events?: readonly string[];
+  legends?: readonly string[];
+  maxRank?: number;
+  curated?: boolean;
+  by?: "date" | "finish";
+  dir?: "asc" | "desc";
   limit?: number;
+  offset?: number;
+}
+
+export interface MetaDeckCardFilters extends MetaDeckFilters {
+  eventSlug?: string;
+}
+
+export type MetaDeckFacet = "events" | "legends" | "finish" | MetaScopeFacet;
+
+const SCOPE_FACETS = new Set<string>(["formats", "tiers", "countries"]);
+
+export interface MetaDeckEventFacetRow {
+  slug: string;
+  name: string;
+  eventDate: string;
+  count: number;
+}
+
+export interface MetaDeckLegendFacetRow {
+  cardId: string;
+  name: string | null;
+  types: CardType[] | null;
+  tags: string[] | null;
+  count: number;
+}
+
+export interface MetaDeckFacetRows {
+  events: MetaDeckEventFacetRow[];
+  legends: MetaDeckLegendFacetRow[];
+  finishes: { value: number; count: number }[];
+  countries: string[];
+}
+
+export const DECK_PAGE_SIZE = 50;
+
+const FINISH_BOUNDS = [1, 4, 8, 16] as const;
+
+const DECK_ORDER = {
+  date: sql`me.event_date`,
+  finish: sql`p.rank`,
+} as const;
+
+function deckOrderDirection(filters: MetaDeckFilters) {
+  const fallback = (filters.by ?? "date") === "date" ? "desc" : "asc";
+  return (filters.dir ?? fallback) === "asc" ? sql`asc` : sql`desc`;
+}
+
+function applyDeckFilters<DB, TB extends keyof DB, O>(
+  query: SelectQueryBuilder<DB, TB, O>,
+  filters: MetaDeckFilters,
+  lifted?: MetaDeckFacet,
+): SelectQueryBuilder<DB, TB, O> {
+  const scopeLift =
+    lifted !== undefined && SCOPE_FACETS.has(lifted) ? (lifted as MetaScopeFacet) : undefined;
+  let narrowing = query;
+  for (const condition of scopeConditions(filters, scopeLift)) {
+    narrowing = narrowing.where(condition);
+  }
+  if (filters.legend !== undefined) {
+    narrowing = narrowing.where(sql<SqlBool>`p.legend_card_id = ${filters.legend}::uuid`);
+  }
+  if (filters.player !== undefined) {
+    narrowing = narrowing.where(sql<SqlBool>`${foldedPlayerIdentity} = ${filters.player}`);
+  }
+  if (lifted !== "events" && filters.events !== undefined && filters.events.length > 0) {
+    narrowing = narrowing.where(sql<SqlBool>`me.slug = any(${[...filters.events]}::text[])`);
+  }
+  if (lifted !== "legends" && filters.legends !== undefined && filters.legends.length > 0) {
+    narrowing = narrowing.where(
+      sql<SqlBool>`p.legend_card_id = any(${[...filters.legends]}::uuid[])`,
+    );
+  }
+  if (lifted !== "finish" && filters.maxRank !== undefined) {
+    narrowing = narrowing.where(sql<SqlBool>`p.rank <= ${filters.maxRank}`);
+  }
+  return narrowing;
 }
 
 export interface MetaDeckCardInput {
@@ -217,6 +300,130 @@ export async function insertDeckForPlayer(
 }
 
 export function metaDecksRepo(db: Kysely<Database>) {
+  function deckQuery() {
+    return (
+      db
+        .selectFrom("metaEventPlayers as p")
+        .innerJoin("decks as d", "d.id", "p.deckId")
+        .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
+        .leftJoin("cards as lc", "lc.id", "p.legendCardId")
+        .leftJoin("cards as cc", "cc.id", "p.championCardId")
+        .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "p.legendCardId")
+        .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
+        // Narrows the type, not the rows: a deck is minted with its permalink.
+        .where("d.shareToken", "is not", null)
+    );
+  }
+
+  function curatedIds(filters: MetaDeckFilters, lifted?: MetaDeckFacet) {
+    const legendKey = sql`coalesce(p.legend_card_id::text, 'deck:' || p.deck_id)`;
+    return applyDeckFilters(deckQuery(), filters, lifted)
+      .distinctOn([sql`p.meta_event_id`, legendKey])
+      .select("p.id")
+      .orderBy(sql`p.meta_event_id`)
+      .orderBy(legendKey)
+      .orderBy("p.rank", "asc")
+      .orderBy(resolvedPlayerName, "asc")
+      .orderBy("p.id", "asc");
+  }
+
+  function orderedDeckPage<DB, TB extends keyof DB, O>(
+    query: SelectQueryBuilder<DB, TB, O>,
+    filters: MetaDeckFilters,
+  ): SelectQueryBuilder<DB, TB, O> {
+    return (
+      query
+        .orderBy(sql`${DECK_ORDER[filters.by ?? "date"]} ${deckOrderDirection(filters)}`)
+        // A total order, so a page boundary neither repeats nor skips a row.
+        .orderBy(sql`me.event_date desc`)
+        .orderBy(sql`me.slug asc`)
+        .orderBy(sql`p.rank asc`)
+        .orderBy(sql`${resolvedPlayerName} asc`)
+        .orderBy(sql`p.id asc`)
+        .limit(filters.limit ?? DECK_PAGE_SIZE)
+        .offset(filters.offset ?? 0)
+    );
+  }
+
+  function narrowedDecks(filters: MetaDeckFilters, lifted?: MetaDeckFacet) {
+    const query = applyDeckFilters(deckQuery(), filters, lifted);
+    const curated =
+      filters.curated === true
+        ? query.where(sql<boolean>`p.id in (${curatedIds(filters, lifted)})`)
+        : query;
+    return curated;
+  }
+
+  function eventFacetRows(filters: MetaDeckFilters): Promise<MetaDeckEventFacetRow[]> {
+    const counted = narrowedDecks(filters, "events")
+      .select(["me.slug", "me.name", "me.eventDate", sql<number>`count(*)::int`.as("count")])
+      .groupBy(["me.slug", "me.name", "me.eventDate"]);
+    const picked = filters.events ?? [];
+    if (picked.length === 0) {
+      return counted
+        .orderBy("me.eventDate", "desc")
+        .orderBy("me.slug", "asc")
+        .limit(MAX_FACET_VALUES)
+        .execute();
+    }
+    const pickedSlugs = sql`${[...picked]}::text[]`;
+    const lifted = db
+      .selectFrom("metaEvents as me")
+      .select(["me.slug", "me.name", "me.eventDate", sql<number>`0`.as("count")])
+      .where(sql<SqlBool>`me.slug = any(${pickedSlugs})`);
+    return (
+      db
+        .selectFrom(counted.unionAll(lifted).as("f"))
+        .select(["f.slug", "f.name", "f.eventDate", sql<number>`sum(f."count")::int`.as("count")])
+        .groupBy(["f.slug", "f.name", "f.eventDate"])
+        // Picked events first, so the cap never drops a chip the filter is using.
+        .orderBy(sql`f.slug = any(${pickedSlugs}) desc`)
+        .orderBy("f.eventDate", "desc")
+        .orderBy("f.slug", "asc")
+        .limit(MAX_FACET_VALUES)
+        .execute()
+    );
+  }
+
+  function legendFacetRows(filters: MetaDeckFilters): Promise<MetaDeckLegendFacetRow[]> {
+    const counted = narrowedDecks(filters, "legends")
+      .where("p.legendCardId", "is not", null)
+      .select([
+        sql<string>`p.legend_card_id`.as("cardId"),
+        "lc.name",
+        "lmca.types",
+        "lc.tags",
+        sql<number>`count(*)::int`.as("count"),
+      ])
+      .groupBy(["p.legendCardId", "lc.name", "lmca.types", "lc.tags"]);
+    const picked = filters.legends ?? [];
+    if (picked.length === 0) {
+      return counted.execute();
+    }
+    const lifted = db
+      .selectFrom("cards as lc")
+      .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "lc.id")
+      .select([
+        sql<string>`lc.id`.as("cardId"),
+        "lc.name",
+        "lmca.types",
+        "lc.tags",
+        sql<number>`0`.as("count"),
+      ])
+      .where(sql<SqlBool>`lc.id = any(${[...picked]}::uuid[])`);
+    return db
+      .selectFrom(counted.unionAll(lifted).as("f"))
+      .select([
+        "f.cardId",
+        "f.name",
+        "f.types",
+        "f.tags",
+        sql<number>`sum(f."count")::int`.as("count"),
+      ])
+      .groupBy(["f.cardId", "f.name", "f.types", "f.tags"])
+      .execute();
+  }
+
   return {
     /**
      * The archived decks a browser is asking for, newest event first. Only rows
@@ -226,19 +433,16 @@ export function metaDecksRepo(db: Kysely<Database>) {
      * request fills its grid with rows that are already in scope.
      *
      * `total` counts the whole match, so a capped request can still say how much
-     * of what it found it is showing.
+     * of what it found it is showing, `eventCount` the events that match spans.
+     * `archiveTotal` counts the same population with no filter at all.
      */
-    async allDeckSummaries(
-      filters: MetaDeckFilters = {},
-    ): Promise<{ rows: MetaDeckSummaryRow[]; total: number }> {
-      let query = db
-        .selectFrom("metaEventPlayers as p")
-        .innerJoin("decks as d", "d.id", "p.deckId")
-        .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
-        .leftJoin("cards as lc", "lc.id", "p.legendCardId")
-        .leftJoin("cards as cc", "cc.id", "p.championCardId")
-        .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "p.legendCardId")
-        .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
+    async allDeckSummaries(filters: MetaDeckFilters = {}): Promise<{
+      rows: MetaDeckSummaryRow[];
+      total: number;
+      eventCount: number;
+      archiveTotal: number;
+    }> {
+      const rowQuery = narrowedDecks(filters)
         .select([
           "p.id as playerId",
           "p.deckId",
@@ -267,44 +471,70 @@ export function metaDecksRepo(db: Kysely<Database>) {
           "me.tier as eventTier",
           "me.country as eventCountry",
         ])
-        // A deck is minted with its permalink, so this only ever narrows the
-        // type; a token cleared by hand would leave a row with no page anyway.
-        .where("d.shareToken", "is not", null)
         .$narrowType<{ deckId: string; shareToken: string }>();
-      for (const condition of scopeConditions(filters)) {
-        query = query.where(condition);
-      }
-      if (filters.legend !== undefined) {
-        query = query.where("p.legendCardId", "=", filters.legend);
-      }
-      if (filters.player !== undefined) {
-        query = query.where(foldedPlayerIdentity, "=", filters.player);
-      }
 
-      const countQuery = query.clearSelect().select((eb) => eb.fn.countAll<string>().as("total"));
-      let rowQuery = query
-        .orderBy("me.eventDate", "desc")
-        .orderBy("p.rank", "asc")
-        .orderBy(resolvedPlayerName, "asc");
-      if (filters.limit !== undefined) {
-        rowQuery = rowQuery.limit(filters.limit);
-      }
-
-      const [rows, countRow] = await Promise.all([
-        rowQuery.execute(),
-        countQuery.executeTakeFirstOrThrow(),
+      const [rows, countRow, archiveRow] = await Promise.all([
+        orderedDeckPage(rowQuery, filters).execute(),
+        narrowedDecks(filters)
+          .select((eb) => [
+            eb.fn.countAll<string>().as("total"),
+            sql<number>`count(distinct p.meta_event_id)::int`.as("eventCount"),
+          ])
+          .executeTakeFirstOrThrow(),
+        deckQuery()
+          .select((eb) => eb.fn.countAll<string>().as("total"))
+          .executeTakeFirstOrThrow(),
       ]);
-      return { rows, total: Number(countRow.total) };
+      return {
+        rows,
+        total: Number(countRow.total),
+        eventCount: countRow.eventCount,
+        archiveTotal: Number(archiveRow.total),
+      };
+    },
+
+    async deckFacetCounts(filters: MetaDeckFilters = {}): Promise<MetaDeckFacetRows> {
+      const [events, legends, finishes, countries] = await Promise.all([
+        eventFacetRows(filters),
+        legendFacetRows(filters),
+        narrowedDecks(filters, "finish")
+          .select([
+            sql<number>`count(*) filter (where p.rank <= 1)::int`.as("top1"),
+            sql<number>`count(*) filter (where p.rank <= 4)::int`.as("top4"),
+            sql<number>`count(*) filter (where p.rank <= 8)::int`.as("top8"),
+            sql<number>`count(*) filter (where p.rank <= 16)::int`.as("top16"),
+          ])
+          .executeTakeFirstOrThrow(),
+        narrowedDecks(filters, "countries")
+          .select("me.country")
+          .distinct()
+          .where("me.country", "is not", null)
+          .execute(),
+      ]);
+      const byBound: Record<number, number> = {
+        1: finishes.top1,
+        4: finishes.top4,
+        8: finishes.top8,
+        16: finishes.top16,
+      };
+      return {
+        events,
+        legends,
+        finishes: FINISH_BOUNDS.map((bound) => ({ value: bound, count: byBound[bound] ?? 0 })),
+        countries: countries
+          .map((row) => row.country)
+          .filter((country): country is string => country !== null)
+          .toSorted((left, right) => left.localeCompare(right)),
+      };
     },
 
     /**
-     * What every archived list holds, for the browser's collection overlay.
-     * Unpaginated like {@link allDeckSummaries} and for the same reason.
-     * The sideboard stays its own row; every other zone is summed together.
+     * One event's whole field, or the page of the grid the caller is showing,
+     * never the whole archive. The sideboard stays its own row.
      */
-    async allDeckCards(range: MetaDeckDateRange = {}): Promise<MetaDeckCardRow[]> {
+    async allDeckCards(filters: MetaDeckCardFilters = {}): Promise<MetaDeckCardRow[]> {
       const isSideboard = sql<boolean>`dc.zone = ${sql.lit(WellKnown.deckZone.SIDEBOARD)}`;
-      const { from, to } = range;
+      const { eventSlug } = filters;
       const rows = await db
         .selectFrom("deckCards as dc")
         .select(({ fn }) => [
@@ -316,28 +546,24 @@ export function metaDecksRepo(db: Kysely<Database>) {
         // `exists`, not a join: a join would double quantities if
         // `uq_meta_event_players_deck` ever allows more than one standings
         // row per deck.
-        .where((eb) => {
-          if (from === undefined && to === undefined) {
-            return eb.exists(
-              eb
-                .selectFrom("metaEventPlayers as p")
-                .select(sql.lit(1).as("x"))
-                .whereRef("p.deckId", "=", "dc.deckId"),
-            );
-          }
-          let scoped = eb
-            .selectFrom("metaEventPlayers as p")
-            .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
-            .select(sql.lit(1).as("x"))
-            .whereRef("p.deckId", "=", "dc.deckId");
-          if (from !== undefined) {
-            scoped = scoped.where("me.eventDate", ">=", from);
-          }
-          if (to !== undefined) {
-            scoped = scoped.where("me.eventDate", "<=", to);
-          }
-          return eb.exists(scoped);
-        })
+        .where((eb) =>
+          eventSlug === undefined
+            ? eb(
+                "dc.deckId",
+                "in",
+                orderedDeckPage(narrowedDecks(filters).select("p.deckId"), filters).$narrowType<{
+                  deckId: string;
+                }>(),
+              )
+            : eb.exists(
+                eb
+                  .selectFrom("metaEventPlayers as p")
+                  .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
+                  .select(sql.lit(1).as("x"))
+                  .whereRef("p.deckId", "=", "dc.deckId")
+                  .where("me.slug", "=", eventSlug),
+              ),
+        )
         .groupBy(["dc.deckId", "dc.cardId", isSideboard])
         .orderBy("dc.deckId")
         .orderBy("dc.cardId")

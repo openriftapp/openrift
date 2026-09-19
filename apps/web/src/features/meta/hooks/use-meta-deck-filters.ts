@@ -6,7 +6,12 @@ import type {
   MetaDeckSort,
   MetaDeckSortDirection,
 } from "@/features/meta/lib/meta-deck-search";
-import { DEFAULT_DECK_DIRECTION, DEFAULT_DECK_SORT } from "@/features/meta/lib/meta-deck-search";
+import {
+  DEFAULT_DECK_DIRECTION,
+  DEFAULT_DECK_PAGE_SIZE,
+  DEFAULT_DECK_SORT,
+} from "@/features/meta/lib/meta-deck-search";
+import type { MetaPageSizeValue } from "@/features/meta/lib/meta-paging";
 import type { MetaScope, MetaScopeControls } from "@/features/meta/lib/meta-scope";
 import { CLEARED_SCOPE, nextScopeSearch } from "@/features/meta/lib/meta-scope";
 
@@ -22,6 +27,8 @@ export interface MetaDeckFilterState {
   valueRange: { min: number | null; max: number | null };
   sort: MetaDeckSort;
   direction: MetaDeckSortDirection;
+  page: number;
+  perPage: number;
 }
 
 export interface MetaDeckFilterActions {
@@ -34,6 +41,8 @@ export interface MetaDeckFilterActions {
   setMaxCost: (value: number | null) => void;
   setIncludeSideboard: (value: boolean) => void;
   setValueRange: (value: { min: number | null; max: number | null }) => void;
+  setPage: (page: number) => void;
+  setPerPage: (size: MetaPageSizeValue) => void;
   sortBy: (column: MetaDeckSort) => void;
   setSort: (sort: MetaDeckSort, direction: MetaDeckSortDirection) => void;
   clearCostFilters: () => void;
@@ -51,8 +60,12 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
+  // Every narrowing changes which decks the pages hold, so it opens the first one.
   const update = (patch: Partial<MetaDeckSearch>, replace = false) => {
-    void navigate({ search: (prev) => nextScopeSearch(prev, patch), replace });
+    void navigate({
+      search: (prev) => nextScopeSearch({ ...prev, page: undefined }, patch),
+      replace,
+    });
   };
 
   const events = search.events ?? [];
@@ -86,7 +99,15 @@ export function useMetaDeckFilters(): MetaDeckFilterState &
     valueRange: { min: search.valueMin ?? null, max: search.valueMax ?? null },
     sort,
     direction,
+    page: search.page ?? 1,
+    perPage: search.per ?? DEFAULT_DECK_PAGE_SIZE,
 
+    setPage: (page) =>
+      void navigate({
+        search: (prev) => ({ ...prev, page: page === 1 ? undefined : page }),
+        resetScroll: false,
+      }),
+    setPerPage: (size) => update({ per: size === DEFAULT_DECK_PAGE_SIZE ? undefined : size }),
     toggleEvent: (value) => update({ events: toggle(events, value) }),
     toggleLegend: (value) => update({ legends: toggle(legends, value) }),
     setEvents: (values) => update({ events: values }),

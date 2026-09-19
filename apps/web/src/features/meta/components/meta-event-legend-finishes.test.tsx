@@ -1,13 +1,13 @@
 import type {
-  MetaEventMatch,
   MetaEventPhase,
   MetaEventPlayer,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaPhase, metaPlayer, metaRow } from "@/test/meta-event-fixtures";
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
@@ -32,27 +32,17 @@ function tiles(): HTMLElement[] {
   return screen.getAllByRole("listitem");
 }
 
-function renderFinishes(
-  players: MetaEventPlayer[],
-  matches: MetaEventMatch[] = [],
-  phases: MetaEventPhase[] = [],
-) {
-  render(
-    <MetaEventLegendFinishes
-      players={players}
-      matches={matches}
-      phases={phases}
-      slug="summoner-skirmish"
-    />,
-  );
+/** The API folds the field to one entry per legend; the tiles print what it sends. */
+function renderFinishes(entries: MetaStandingsRow[], phases: MetaEventPhase[] = []) {
+  render(<MetaEventLegendFinishes entries={entries} phases={phases} slug="summoner-skirmish" />);
 }
 
 function field(
   names: string[],
-  overrides: (index: number) => Partial<MetaEventPlayer> = () => ({}),
+  overrides: (index: number) => Partial<MetaStandingsRow> = () => ({}),
 ) {
   return names.map((name, index) =>
-    metaPlayer({
+    metaRow({
       id: `p-${index}`,
       playerName: `Player ${index}`,
       playerKey: `u${index}`,
@@ -64,11 +54,20 @@ function field(
 }
 
 describe("MetaEventLegendFinishes", () => {
+  it("renders nothing for an empty field", () => {
+    const { container } = render(
+      <MetaEventLegendFinishes entries={[]} phases={[]} slug="summoner-skirmish" />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("renders nothing for a field whose entries name no legend", () => {
     const { container } = render(
       <MetaEventLegendFinishes
-        players={[metaPlayer({ id: "p-1", legend: null }), metaPlayer({ id: "p-2", legend: null })]}
-        matches={[]}
+        entries={[
+          metaRow({ id: "p-1", playerName: "Ana", rank: 1, legend: null }),
+          metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: null }),
+        ]}
         phases={[]}
         slug="summoner-skirmish"
       />,
@@ -76,22 +75,32 @@ describe("MetaEventLegendFinishes", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("names one tile per legend, keeping the best-placed pilot of each", () => {
+  it("gives an entry naming no legend no cell of its own", () => {
     renderFinishes([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
-      metaPlayer({ id: "p-3", playerName: "Cy", rank: 9, legend: legend("card-a", "Ahri") }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, legend: null }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
     ]);
 
-    expect(tiles()).toHaveLength(2);
-    expect(within(tiles()[0]!).getByText("Ana")).toBeInTheDocument();
-    expect(screen.queryByText("Cy")).toBeNull();
+    expect(tiles()).toHaveLength(1);
+    expect(screen.queryByText("Ana")).toBeNull();
   });
 
-  it("orders the legends by the finish behind them", () => {
+  it("leaves entries naming no legend out of the count behind the toggle", async () => {
+    const user = userEvent.setup();
     renderFinishes([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 4, legend: legend("card-a", "Ahri") }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
+      ...field(["a", "b", "c", "d", "e", "f", "g", "h", "i"]),
+      metaRow({ id: "p-x", playerName: "Nameless", rank: 40, legend: null }),
+      metaRow({ id: "p-y", playerName: "Unknown", rank: 41, legend: null }),
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Show all 9" }));
+    expect(tiles()).toHaveLength(9);
+  });
+
+  it("names one tile per entry, in the order the API sent them", () => {
+    renderFinishes([
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 4, legend: legend("card-a", "Ahri") }),
     ]);
 
     expect(tiles().map((tile) => tile.textContent)).toEqual([
@@ -102,7 +111,7 @@ describe("MetaEventLegendFinishes", () => {
 
   it("prints the pilot's finish and record", () => {
     renderFinishes([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 4, wins: 5, losses: 2, draws: 1 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 4, wins: 5, losses: 2, draws: 1 }),
     ]);
 
     const tile = within(tiles()[0]!);
@@ -111,7 +120,7 @@ describe("MetaEventLegendFinishes", () => {
   });
 
   it("prints a podium finish in its ordinal form", () => {
-    renderFinishes([metaPlayer({ id: "p-1", playerName: "Ana", rank: 2 })]);
+    renderFinishes([metaRow({ id: "p-1", playerName: "Ana", rank: 2 })]);
 
     expect(within(tiles()[0]!).getByText("2nd")).toBeInTheDocument();
   });
@@ -119,12 +128,11 @@ describe("MetaEventLegendFinishes", () => {
   it("names the bracket each finish reached inside the top cut, and nothing below it", () => {
     renderFinishes(
       [
-        metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
-        metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
-        metaPlayer({ id: "p-3", playerName: "Cy", rank: 6, legend: legend("card-c", "Caitlyn") }),
-        metaPlayer({ id: "p-4", playerName: "Di", rank: 12, legend: legend("card-d", "Darius") }),
+        metaRow({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
+        metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
+        metaRow({ id: "p-3", playerName: "Cy", rank: 6, legend: legend("card-c", "Caitlyn") }),
+        metaRow({ id: "p-4", playerName: "Di", rank: 12, legend: legend("card-d", "Darius") }),
       ],
-      [],
       [metaPhase()],
     );
 
@@ -136,7 +144,7 @@ describe("MetaEventLegendFinishes", () => {
   });
 
   it("leads the legend to its archive page and the pilot to theirs", () => {
-    renderFinishes([metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })]);
+    renderFinishes([metaRow({ id: "p-1", playerName: "Ana", playerKey: "u1001" })]);
 
     const tile = within(tiles()[0]!);
     expect(tile.getByRole("link", { name: "Yasuo" })).toHaveAttribute(
@@ -147,10 +155,14 @@ describe("MetaEventLegendFinishes", () => {
   });
 
   it("leads a pilot with a charted run to their run through the event", () => {
-    renderFinishes(
-      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })],
-      [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
-    );
+    renderFinishes([
+      metaRow({
+        id: "p-1",
+        playerName: "Ana",
+        playerKey: "u1001",
+        rounds: [{ phaseOrder: 0, roundNumber: 1, isCut: false, outcome: "win" }],
+      }),
+    ]);
 
     expect(within(tiles()[0]!).getByRole("link", { name: "Ana" })).toHaveAttribute(
       "href",
@@ -160,7 +172,7 @@ describe("MetaEventLegendFinishes", () => {
 
   it("links the pilot's decklist from the tile when one is on file", () => {
     renderFinishes([
-      metaPlayer({ id: "p-1", playerName: "Ana", shareToken: "tok1", listStatus: "full" }),
+      metaRow({ id: "p-1", playerName: "Ana", shareToken: "tok1", listStatus: "full" }),
     ]);
 
     expect(within(tiles()[0]!).getByRole("link", { name: "Deck" })).toHaveAttribute(
@@ -170,16 +182,16 @@ describe("MetaEventLegendFinishes", () => {
   });
 
   it("offers no deck link for a pilot without a decklist", () => {
-    renderFinishes([metaPlayer({ id: "p-1", playerName: "Ana" })]);
+    renderFinishes([metaRow({ id: "p-1", playerName: "Ana" })]);
 
     expect(within(tiles()[0]!).queryByRole("link", { name: "Deck" })).toBeNull();
   });
 
   it("counts nothing about how many pilots brought a legend", () => {
     renderFinishes([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-a", "Ahri") }),
-      metaPlayer({ id: "p-3", playerName: "Cy", rank: 3, legend: legend("card-a", "Ahri") }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, legend: legend("card-a", "Ahri") }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: legend("card-b", "Braum") }),
+      metaRow({ id: "p-3", playerName: "Cy", rank: 3, legend: legend("card-c", "Caitlyn") }),
     ]);
 
     expect(screen.queryByText(/pilots?|players?|entries|%|\(3\)/u)).toBeNull();

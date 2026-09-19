@@ -30,7 +30,7 @@ function Finish({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize: number 
     <RankBand
       rank={deck.rank}
       text={formatRank(deck.rank, deck.rankIsTier)}
-      label={fieldSize === null ? null : `of ${fieldSize.toLocaleString("en-US")}`}
+      label={fieldSize === null ? null : m.meta_deck_of_field({ count: fieldSize })}
       filled={false}
       className="w-18 shrink-0 rounded-md"
     />

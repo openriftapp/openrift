@@ -13,6 +13,7 @@ import { collectionsKeys } from "@/features/collections/lib/collections-query-ke
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
@@ -33,7 +34,7 @@ const fetchSharedList = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -56,7 +57,7 @@ const fetchSharedCollection = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

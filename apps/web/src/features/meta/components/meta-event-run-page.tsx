@@ -1,5 +1,5 @@
 import { formatRank as formatRankEnglish, formatRecord } from "@openrift/shared/meta-standings";
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventPlayer, MetaRunRound } from "@openrift/shared/types/api/meta";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ChevronRightIcon } from "lucide-react";
 
@@ -19,17 +19,10 @@ import { MetaHeroArt, MetaHeroCounter } from "@/features/meta/components/meta-he
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import { MetaResultChip } from "@/features/meta/components/meta-result-chip";
-import { useMetaEvent } from "@/features/meta/hooks/use-meta";
-import { isSingleElimination } from "@/features/meta/lib/meta-bracket";
+import { useMetaRun } from "@/features/meta/hooks/use-meta";
 import { describeEventStructure } from "@/features/meta/lib/meta-event-structure";
 import { formatRank, splitLegendName } from "@/features/meta/lib/meta-format";
-import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
-import {
-  metaCutRoundLabel,
-  metaEventPlayerByKey,
-  metaPlayerRun,
-  metaRunRecord,
-} from "@/features/meta/lib/meta-player-run";
+import { metaCutRoundLabel, metaRunRecord } from "@/features/meta/lib/meta-player-run";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { deckGlowStyle } from "@/lib/domain";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -128,7 +121,7 @@ function OpponentName({
 }
 
 interface RunRowProps {
-  round: MetaPlayerRound;
+  round: MetaRunRound;
   opponent: MetaEventPlayer | undefined;
   label: string;
   shortLabel: string;
@@ -217,15 +210,15 @@ function RunRow({ round, opponent, label, shortLabel, grid, isFinal }: RunRowPro
   );
 }
 
-function sectionSubtitle(rounds: readonly MetaPlayerRound[], bestOf: number | null): string {
-  const parts = [`${rounds.length} ${rounds.length === 1 ? "round" : "rounds"}`];
+function sectionSubtitle(rounds: readonly MetaRunRound[], bestOf: number | null): string {
+  const parts: string[] = [m.meta_run_count_rounds({ count: rounds.length })];
   const record = metaRunRecord(rounds);
   const formatted = formatRecord(record.wins, record.losses, record.draws);
   if (formatted !== null) {
     parts.push(formatted);
   }
   if (bestOf !== null) {
-    parts.push(`best of ${bestOf}`);
+    parts.push(m.meta_run_best_of({ count: bestOf }));
   }
   return parts.join(" · ");
 }
@@ -233,7 +226,7 @@ function sectionSubtitle(rounds: readonly MetaPlayerRound[], bestOf: number | nu
 interface RunSectionProps {
   title: string;
   bestOf: number | null;
-  rounds: readonly MetaPlayerRound[];
+  rounds: readonly MetaRunRound[];
   players: ReadonlyMap<string, MetaEventPlayer>;
   lastCutRound: number | null;
   finalRoundNumber: number | null;
@@ -294,30 +287,17 @@ function RunSection({
 
 export function MetaEventRunPage() {
   const { slug, key } = routeApi.useParams();
-  const { data } = useMetaEvent(slug);
+  const { data } = useMetaRun(slug, key);
   const domainColors = useDomainColors();
 
-  const player = metaEventPlayerByKey(data.players, key);
-  if (player === null) {
-    return null;
-  }
-
-  const players = new Map(data.players.map((row) => [row.id, row]));
-  const run = metaPlayerRun(data.matches, data.phases, player.id);
+  const { player, rounds } = data;
+  const players = new Map(data.opponents.map((row) => [row.id, row]));
+  const run = {
+    swiss: rounds.filter((round) => !round.isCut),
+    cut: rounds.filter((round) => round.isCut),
+  };
   const structure = describeEventStructure(data.phases);
-  const cutPhases = new Set(
-    data.phases.filter((phase) => isSingleElimination(phase.roundType)).map((p) => p.phaseOrder),
-  );
-  const cutMatches = data.matches.filter((match) => cutPhases.has(match.phaseOrder));
-  const lastCutRound =
-    cutMatches
-      .map((match) => match.roundNumber)
-      .toSorted((a, b) => a - b)
-      .at(-1) ?? 0;
-  const finalRoundNumber =
-    cutMatches.filter((match) => match.roundNumber === lastCutRound).length === 1
-      ? lastCutRound
-      : null;
+  const lastCutRound = data.lastCutRound ?? 0;
 
   const champion = player.legend === null ? null : splitLegendName(player.legend.name).champion;
   const fieldSize = data.event.playerCount ?? data.event.playerRowCount;
@@ -378,7 +358,7 @@ export function MetaEventRunPage() {
             <div className="flex flex-wrap gap-x-9 gap-y-3">
               <MetaHeroCounter
                 value={formatRank(player.rank, player.rankIsTier)}
-                label={m.meta_run_of_players({ count: fieldSize.toLocaleString("en-US") })}
+                label={m.meta_run_of_players({ count: fieldSize })}
                 className="text-border-accent"
               />
               {record !== null && (
@@ -430,7 +410,7 @@ export function MetaEventRunPage() {
           rounds={run.cut}
           players={players}
           lastCutRound={lastCutRound}
-          finalRoundNumber={finalRoundNumber}
+          finalRoundNumber={data.finalRoundNumber}
         />
 
         <p className="text-muted-foreground text-sm">

@@ -1,12 +1,12 @@
 import type { CardType, MetaEntryStatus, MetaListStatus } from "@openrift/shared/types/enums";
-import type { Kysely, Selectable, Updateable } from "kysely";
+import type { Kysely, Selectable, SelectQueryBuilder, SqlBool, Updateable } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
 import type { MetaEventPlayersTable } from "../../../db/tables/meta.js";
 import type { MetaArchivedDeckInput } from "./meta-decks.js";
 import { insertDeckForPlayer } from "./meta-decks.js";
-import { resolvedPlayerName } from "./meta-shared.js";
+import { foldedPlayerIdentity, resolvedPlayerName } from "./meta-shared.js";
 
 /**
  * One player's entry as a public standings table renders it.
@@ -144,6 +144,29 @@ const PLAYER_PATCH_COLUMNS = [
   type: string;
 }[];
 
+export interface MetaStandingsFilters {
+  q?: string;
+  withList?: boolean;
+  legend?: string;
+}
+
+export interface MetaEventLegendCount {
+  cardId: string;
+  name: string;
+  types: CardType[] | null;
+  tags: string[] | null;
+  count: number;
+}
+
+export interface MetaEventFieldSummary {
+  withLists: number;
+  hasLegends: boolean;
+  hasRecords: boolean;
+  hasRuns: boolean;
+  legends: MetaEventLegendCount[];
+  progress: { phaseOrder: number; roundNumber: number } | null;
+}
+
 export function metaPlayersRepo(db: Kysely<Database>) {
   function playerQuery() {
     return (
@@ -184,6 +207,38 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     );
   }
 
+  /** Requires `p`, `up` and `d` in the query, as {@link playerQuery} joins them. */
+  function standingsFilters<DB, TB extends keyof DB, O>(
+    query: SelectQueryBuilder<DB, TB, O>,
+    eventId: string,
+    filters: MetaStandingsFilters,
+  ): SelectQueryBuilder<DB, TB, O> {
+    let narrowed = query.where(sql<SqlBool>`p.meta_event_id = ${eventId}::uuid`);
+    const needle = filters.q?.trim() ?? "";
+    if (needle !== "") {
+      narrowed = narrowed.where(sql<SqlBool>`${resolvedPlayerName} ilike ${`%${needle}%`}`);
+    }
+    if (filters.withList === true) {
+      narrowed = narrowed.where(sql<SqlBool>`d.share_token is not null`);
+    }
+    if (filters.legend !== undefined) {
+      narrowed = narrowed.where(sql<SqlBool>`p.legend_card_id = ${filters.legend}::uuid`);
+    }
+    return narrowed;
+  }
+
+  function standingsRowsByIds(ids: readonly string[]): Promise<MetaEventPlayerRow[]> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+    return playerQuery()
+      .where(sql<boolean>`p.id = any(${[...ids]}::uuid[])`)
+      .orderBy("p.rank", "asc")
+      .orderBy(resolvedPlayerName, "asc")
+      .orderBy("p.id", "asc")
+      .execute();
+  }
+
   return {
     /**
      * Every podium (rank ≤ 3) standings row of the named events, best first.
@@ -196,23 +251,140 @@ export function metaPlayersRepo(db: Kysely<Database>) {
       if (eventIds.length === 0) {
         return Promise.resolve([]);
       }
-      return playerQuery()
-        .select("p.metaEventId")
-        .where("p.metaEventId", "in", [...eventIds])
-        .where("p.rank", "<=", 3)
-        .orderBy("p.metaEventId")
-        .orderBy("p.rank", "asc")
-        .orderBy(resolvedPlayerName, "asc")
-        .execute();
+      return (
+        playerQuery()
+          .select("p.metaEventId")
+          // One array parameter: the whole archive outgrows the 65,534 bind-parameter cap.
+          .where(sql<boolean>`p.meta_event_id = any(${[...eventIds]}::uuid[])`)
+          .where("p.rank", "<=", 3)
+          .orderBy("p.metaEventId")
+          .orderBy("p.rank", "asc")
+          .orderBy(resolvedPlayerName, "asc")
+          .orderBy("p.id", "asc")
+          .execute()
+      );
     },
 
-    /** The whole field, deckless entries included, best finish first. */
-    standingsForEvent(eventId: string): Promise<MetaEventPlayerRow[]> {
+    async standingsPage(
+      eventId: string,
+      filters: MetaStandingsFilters,
+      page: { limit: number; offset: number },
+    ): Promise<{ rows: MetaEventPlayerRow[]; total: number }> {
+      const narrowed = standingsFilters(playerQuery(), eventId, filters);
+      const [rows, countRow] = await Promise.all([
+        narrowed
+          .orderBy("p.rank", "asc")
+          .orderBy(resolvedPlayerName, "asc")
+          .orderBy("p.id", "asc")
+          .limit(page.limit)
+          .offset(page.offset)
+          .execute(),
+        standingsFilters(
+          db
+            .selectFrom("metaEventPlayers as p")
+            .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
+            .leftJoin("decks as d", "d.id", "p.deckId"),
+          eventId,
+          filters,
+        )
+          .select((eb) => eb.fn.countAll<string>().as("total"))
+          .executeTakeFirstOrThrow(),
+      ]);
+      return { rows, total: Number(countRow.total) };
+    },
+
+    standingsRowsByIds,
+
+    /**
+     * The best finish each legend took at one event, one row per legend. Never a
+     * count of who brought it: that would be a play rate.
+     */
+    async bestPerLegendForEvent(eventId: string): Promise<MetaEventPlayerRow[]> {
+      const best = await db
+        .selectFrom("metaEventPlayers as p")
+        .select([sql<string>`(array_agg(p.id order by p.rank asc, p.id asc))[1]`.as("playerId")])
+        .where("p.metaEventId", "=", eventId)
+        .where("p.legendCardId", "is not", null)
+        .groupBy("p.legendCardId")
+        .execute();
+      return standingsRowsByIds(best.map((row) => row.playerId));
+    },
+
+    /**
+     * The row that finished on the cut line, for the record the header prints. A
+     * tiered rank names a bucket, not a place, so those rows are skipped.
+     */
+    cutLineRowForEvent(eventId: string, cutSize: number): Promise<MetaEventPlayerRow | undefined> {
       return playerQuery()
         .where("p.metaEventId", "=", eventId)
-        .orderBy("p.rank", "asc")
+        .where("p.rank", "=", cutSize)
+        .where("p.rankIsTier", "=", false)
         .orderBy(resolvedPlayerName, "asc")
-        .execute();
+        .orderBy("p.id", "asc")
+        .executeTakeFirst();
+    },
+
+    /** One player's standings row at one event, the better finish when a key names two. */
+    standingsRowByKey(eventId: string, key: string): Promise<MetaEventPlayerRow | undefined> {
+      return playerQuery()
+        .where("p.metaEventId", "=", eventId)
+        .where(foldedPlayerIdentity, "=", key)
+        .orderBy("p.rank", "asc")
+        .orderBy("p.id", "asc")
+        .executeTakeFirst();
+    },
+
+    async fieldSummaryForEvent(eventId: string): Promise<MetaEventFieldSummary> {
+      const [counts, legends, progress] = await Promise.all([
+        db
+          .selectFrom("metaEventPlayers as p")
+          .leftJoin("decks as d", "d.id", "p.deckId")
+          .select([
+            sql<number>`count(*) filter (where d.share_token is not null)::int`.as("withLists"),
+            sql<boolean>`bool_or(p.legend_card_id is not null or p.champion_card_id is not null)`.as(
+              "hasLegends",
+            ),
+            sql<boolean>`bool_or(p.wins is not null and p.losses is not null)`.as("hasRecords"),
+          ])
+          .where("p.metaEventId", "=", eventId)
+          .executeTakeFirstOrThrow(),
+        db
+          .selectFrom("metaEventPlayers as p")
+          .innerJoin("cards as lc", "lc.id", "p.legendCardId")
+          .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "p.legendCardId")
+          .select([
+            "lc.id as cardId",
+            "lc.name",
+            "lmca.types",
+            "lc.tags",
+            sql<number>`count(*)::int`.as("count"),
+          ])
+          .where("p.metaEventId", "=", eventId)
+          .groupBy(["lc.id", "lc.name", "lmca.types", "lc.tags"])
+          .orderBy("lc.name", "asc")
+          .execute(),
+        db
+          .selectFrom("metaEventMatches")
+          .select([
+            sql<number | null>`max(phase_order)::int`.as("phaseOrder"),
+            sql<number | null>`max(round_number) filter (
+              where phase_order = (select max(phase_order) from meta_event_matches m where m.meta_event_id = ${eventId})
+            )::int`.as("roundNumber"),
+          ])
+          .where("metaEventId", "=", eventId)
+          .executeTakeFirstOrThrow(),
+      ]);
+      return {
+        withLists: counts.withLists,
+        hasLegends: counts.hasLegends ?? false,
+        hasRecords: counts.hasRecords ?? false,
+        hasRuns: progress.phaseOrder !== null,
+        legends,
+        progress:
+          progress.phaseOrder === null || progress.roundNumber === null
+            ? null
+            : { phaseOrder: progress.phaseOrder, roundNumber: progress.roundNumber },
+      };
     },
 
     playerById(id: string): Promise<MetaEventPlayerRow | undefined> {
@@ -230,8 +402,8 @@ export function metaPlayersRepo(db: Kysely<Database>) {
     },
 
     /**
-     * The standings rows as stored, without the display resolution
-     * {@link standingsForEvent} applies.
+     * The standings rows as stored, without the display resolution the read
+     * queries apply.
      *
      * Promotion needs the raw columns: `playerName` NULL where the source names
      * the player, and the source key it reconciles identity on. The read query

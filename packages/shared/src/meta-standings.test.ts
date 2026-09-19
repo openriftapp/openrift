@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { formatRank, formatRecord } from "./meta-standings.js";
+import type { CutPhase } from "./meta-standings.js";
+import { cutPhaseOrders, cutSizeOf, formatRank, formatRecord } from "./meta-standings.js";
 
 describe("formatRank", () => {
   it("renders an exact standing as an ordinal", () => {
@@ -50,5 +51,52 @@ describe("formatRecord", () => {
     expect(formatRecord(null, null, null)).toBeNull();
     expect(formatRecord(5, null, null)).toBeNull();
     expect(formatRecord(null, 1, 0)).toBeNull();
+  });
+});
+
+function phase(overrides: Partial<CutPhase> = {}): CutPhase {
+  return {
+    phaseOrder: 1,
+    roundType: "RANKED_SINGLE_ELIMINATION",
+    roundCount: 3,
+    rankRequired: null,
+    ...overrides,
+  };
+}
+
+describe("cutPhaseOrders", () => {
+  it("names the elimination phases and leaves the Swiss rounds out", () => {
+    const orders = cutPhaseOrders([
+      phase({ phaseOrder: 0, roundType: "SWISS" }),
+      phase({ phaseOrder: 1 }),
+      phase({ phaseOrder: 2, roundType: "ranked_single_elimination" }),
+    ]);
+
+    expect([...orders]).toEqual([1, 2]);
+  });
+});
+
+describe("cutSizeOf", () => {
+  it("reads the size off the rank a phase required", () => {
+    expect(cutSizeOf([phase({ rankRequired: 16 })])).toBe(16);
+  });
+
+  it("derives the size from the round count when no rank was recorded", () => {
+    expect(cutSizeOf([phase({ roundCount: 3 })])).toBe(8);
+  });
+
+  it("keeps the largest elimination phase, so a third-place playoff cannot shrink the cut", () => {
+    expect(
+      cutSizeOf([
+        phase({ phaseOrder: 1, rankRequired: 8 }),
+        phase({ phaseOrder: 2, roundCount: 1 }),
+      ]),
+    ).toBe(8);
+  });
+
+  it("answers nothing for an event that ran no cut", () => {
+    expect(cutSizeOf([phase({ roundType: "SWISS" })])).toBeNull();
+    expect(cutSizeOf([phase({ roundCount: null })])).toBeNull();
+    expect(cutSizeOf([])).toBeNull();
   });
 });

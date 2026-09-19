@@ -7,10 +7,6 @@ import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import type { MetaPlayerLegendEntry } from "@/features/meta/lib/meta-player-page";
 import { m } from "@/paraglide/messages.js";
 
-function countLabel(value: number, singular: string, plural: string): string {
-  return `${value.toLocaleString("en-US")} ${value === 1 ? singular : plural}`;
-}
-
 function LegendTile({ entry }: { entry: MetaPlayerLegendEntry }) {
   const { legend } = entry;
 
@@ -41,12 +37,12 @@ function LegendTile({ entry }: { entry: MetaPlayerLegendEntry }) {
           className="text-sm"
         />
         <p className="text-muted-foreground text-xs tabular-nums">
-          {countLabel(entry.finishes, "finish", "finishes")}
+          {m.meta_count_finishes({ count: entry.finishes })}
           {entry.wins > 0 && (
             <>
               {" · "}
               <span className="text-border-accent font-medium">
-                {countLabel(entry.wins, "win", "wins")}
+                {m.meta_count_event_wins({ count: entry.wins })}
               </span>
             </>
           )}
@@ -73,7 +69,7 @@ export function MetaPlayerLegends({
         <Heading>{m.meta_player_legends_played()}</Heading>
         {withoutLegend > 0 && (
           <p className="text-muted-foreground text-xs">
-            {countLabel(withoutLegend, "finish has", "finishes have")} no legend on file
+            {m.meta_player_legends_without_legend({ count: withoutLegend })}
           </p>
         )}
       </div>

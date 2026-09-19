@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { productsKeys } from "@/features/cards/lib/cards-query-keys";
 import { serverCache } from "@/lib/server-cache";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -40,7 +41,7 @@ const fetchProductDetail = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

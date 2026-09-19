@@ -1,4 +1,5 @@
-import type { MetaEventSummary, MetaLegendSummary } from "@openrift/shared/types/api/meta";
+import { matchesCardQuery } from "@openrift/shared/card-search";
+import type { MetaLegendSummary } from "@openrift/shared/types/api/meta";
 
 import type {
   MetaLegendIndexSort,
@@ -9,7 +10,6 @@ import {
   DEFAULT_LEGEND_SORT,
 } from "@/features/meta/lib/meta-legends-search";
 import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
-import { scopeMatches } from "@/features/meta/lib/meta-scope-match";
 import { normalizeCountryCode } from "@/lib/country";
 
 /** `best` and `all` are the same rows in different order; neither is a filtered subset. */
@@ -53,75 +53,16 @@ export function metaScopedCountries(
   return [...codes].sort((left, right) => left.localeCompare(right));
 }
 
-export interface MetaLegendIndexEntry {
-  slug: string;
-  legend: MetaLegendSummary["legend"];
-  bestFinish: {
-    rank: number;
-    rankIsTier: boolean;
-    event: MetaEventSummary;
-  };
-  finishes: number;
-  decklists: number;
-  eventWins: number;
-}
+export type MetaLegendIndexEntry = MetaLegendSummary;
 
-export interface MetaLegendIndexFilter extends MetaLegendScope {
-  search?: string;
-}
-
-/**
- * A legend with no finish inside the scope drops out entirely. Every number
- * here is a raw fact; this never computes a rate or a share.
- */
-export function metaLegendIndexEntries(
-  legends: readonly MetaLegendSummary[],
-  events: readonly MetaEventSummary[],
-  filter: MetaLegendIndexFilter,
-): MetaLegendIndexEntry[] {
-  const eventsBySlug = new Map(events.map((event) => [event.slug, event]));
-  const needle = filter.search?.trim().toLowerCase() ?? "";
-
-  const entries: MetaLegendIndexEntry[] = [];
-  for (const summary of legends) {
-    if (needle !== "" && !summary.legend.name.toLowerCase().includes(needle)) {
-      continue;
-    }
-
-    let best: MetaLegendIndexEntry["bestFinish"] | null = null;
-    let finishes = 0;
-    let decklists = 0;
-    let eventWins = 0;
-    for (const record of summary.records) {
-      const event = eventsBySlug.get(record.eventSlug);
-      if (event === undefined || !scopeMatches(event, filter.scope, filter.eras)) {
-        continue;
-      }
-      finishes += record.finishes;
-      decklists += record.decklists;
-      if (record.won) {
-        eventWins += 1;
-      }
-      // Assumes records arrive newest event first, so a strict `<` keeps the newest of an equal placing.
-      if (best === null || record.bestRank < best.rank) {
-        best = { rank: record.bestRank, rankIsTier: record.rankIsTier, event };
-      }
-    }
-    if (best === null) {
-      continue;
-    }
-
-    entries.push({
-      slug: summary.slug,
-      legend: summary.legend,
-      bestFinish: best,
-      finishes,
-      decklists,
-      eventWins,
-    });
-  }
-
-  return entries;
+export function searchMetaLegendEntries(
+  entries: readonly MetaLegendSummary[],
+  search?: string,
+): MetaLegendSummary[] {
+  const needle = search?.trim() ?? "";
+  return needle === ""
+    ? [...entries]
+    : entries.filter((entry) => matchesCardQuery(needle, [entry.legend.name]));
 }
 
 function compareBestFinish(a: MetaLegendIndexEntry, b: MetaLegendIndexEntry): number {
@@ -168,22 +109,3 @@ export function nextLegendSort(
 }
 
 const DESCENDING_FIRST = new Set<MetaLegendIndexSort>(["decklists", "finishes"]);
-
-export function metaLegendIndexCountries(
-  legends: readonly MetaLegendSummary[],
-  events: readonly MetaEventSummary[],
-): string[] {
-  const referenced = new Set<string>();
-  for (const summary of legends) {
-    for (const record of summary.records) {
-      referenced.add(record.eventSlug);
-    }
-  }
-  const codes = new Set<string>();
-  for (const event of events) {
-    if (referenced.has(event.slug) && event.country !== null && event.country !== "") {
-      codes.add(event.country);
-    }
-  }
-  return [...codes].toSorted((left, right) => left.localeCompare(right));
-}

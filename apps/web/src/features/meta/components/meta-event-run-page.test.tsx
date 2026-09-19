@@ -1,20 +1,24 @@
 import type {
   MetaEventDetail,
-  MetaEventMatch,
   MetaEventPhase,
   MetaEventPlayer,
+  MetaRunRound,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { metaEvent, metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaEvent, metaPhase, metaPlayer, metaRow } from "@/test/meta-event-fixtures";
 
 const captured = vi.hoisted(() => ({
   event: null as MetaEventDetail | null,
-  players: [] as MetaEventPlayer[],
-  matches: [] as MetaEventMatch[],
+  player: null as MetaStandingsRow | null,
+  opponents: [] as MetaEventPlayer[],
+  rounds: [] as MetaRunRound[],
   phases: [] as MetaEventPhase[],
+  lastCutRound: null as number | null,
+  finalRoundNumber: null as number | null,
   key: "u1001",
 }));
 
@@ -29,12 +33,15 @@ vi.mock("@tanstack/react-router", async () => {
 });
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaEvent: () => ({
+  useMetaRun: () => ({
     data: {
       event: captured.event,
-      players: captured.players,
-      matches: captured.matches,
       phases: captured.phases,
+      player: captured.player,
+      rounds: captured.rounds,
+      opponents: captured.opponents,
+      lastCutRound: captured.lastCutRound,
+      finalRoundNumber: captured.finalRoundNumber,
     },
   }),
 }));
@@ -111,45 +118,83 @@ const SWISS_PHASE = metaPhase({
 
 const CUT_PHASE = metaPhase({ phaseOrder: 2, roundCount: 2, rankRequired: 4, maxGameWins: 2 });
 
-const MATCHES: MetaEventMatch[] = [
-  metaMatch({
+function round(overrides: Partial<MetaRunRound> = {}): MetaRunRound {
+  return {
     phaseOrder: 1,
     roundNumber: 1,
+    isCut: false,
+    tableNumber: 1,
+    outcome: "win",
+    gamesWon: 2,
+    gamesLost: 0,
+    opponentId: "p-2",
+    ...overrides,
+  };
+}
+
+const ROUNDS: MetaRunRound[] = [
+  round({
+    roundNumber: 1,
     tableNumber: null,
-    isBye: true,
-    player2Id: null,
-    winnerId: null,
-    gamesWonP1: null,
-    gamesWonP2: null,
+    outcome: "bye",
+    gamesWon: null,
+    gamesLost: null,
+    opponentId: null,
   }),
-  metaMatch({ phaseOrder: 1, roundNumber: 2, tableNumber: 3, player2Id: "p-2" }),
-  metaMatch({
-    phaseOrder: 1,
+  round({ roundNumber: 2, tableNumber: 3 }),
+  round({
     roundNumber: 3,
     tableNumber: 5,
-    isDraw: true,
-    player2Id: "p-99",
-    winnerId: null,
-    gamesWonP1: 1,
-    gamesWonP2: 1,
+    outcome: "draw",
+    gamesWon: 1,
+    gamesLost: 1,
+    opponentId: "p-99",
   }),
-  metaMatch({ phaseOrder: 2, roundNumber: 1, tableNumber: 2, player2Id: "p-3", gamesWonP2: 1 }),
-  metaMatch({ phaseOrder: 2, roundNumber: 2, tableNumber: 1, player2Id: "p-2" }),
+  round({
+    phaseOrder: 2,
+    roundNumber: 1,
+    isCut: true,
+    tableNumber: 2,
+    gamesLost: 1,
+    opponentId: "p-3",
+  }),
+  round({ phaseOrder: 2, roundNumber: 2, isCut: true, tableNumber: 1 }),
 ];
 
 function renderPage(
   overrides: {
-    players?: MetaEventPlayer[];
-    matches?: MetaEventMatch[];
+    player?: MetaEventPlayer;
+    opponents?: MetaEventPlayer[];
+    rounds?: MetaRunRound[];
     phases?: MetaEventPhase[];
     event?: Partial<MetaEventDetail>;
+    lastCutRound?: number | null;
+    finalRoundNumber?: number | null;
+    playerRowCount?: number;
     key?: string;
   } = {},
 ): void {
-  captured.players = overrides.players ?? [ANA, BO, CY];
-  captured.matches = overrides.matches ?? MATCHES;
+  captured.rounds = overrides.rounds ?? ROUNDS;
+  captured.player = metaRow({
+    ...(overrides.player ?? ANA),
+    rounds: captured.rounds.map((entry) => ({
+      phaseOrder: entry.phaseOrder,
+      roundNumber: entry.roundNumber,
+      isCut: entry.isCut,
+      outcome: entry.outcome,
+    })),
+  });
+  captured.opponents = overrides.opponents ?? [BO, CY];
   captured.phases = overrides.phases ?? [SWISS_PHASE, CUT_PHASE];
-  captured.event = metaEvent({ playerRowCount: captured.players.length, ...overrides.event });
+  captured.lastCutRound =
+    overrides.lastCutRound === undefined
+      ? (captured.rounds.filter((entry) => entry.isCut).at(-1)?.roundNumber ?? null)
+      : overrides.lastCutRound;
+  captured.finalRoundNumber = overrides.finalRoundNumber ?? captured.lastCutRound;
+  captured.event = metaEvent({
+    playerRowCount: overrides.playerRowCount ?? 3,
+    ...overrides.event,
+  });
   captured.key = overrides.key ?? "u1001";
   render(<MetaEventRunPage />);
 }
@@ -165,9 +210,12 @@ function hrefOf(label: string): string | null {
 describe("MetaEventRunPage", () => {
   beforeEach(() => {
     captured.event = null;
-    captured.players = [];
-    captured.matches = [];
+    captured.player = null;
+    captured.opponents = [];
+    captured.rounds = [];
     captured.phases = [];
+    captured.lastCutRound = null;
+    captured.finalRoundNumber = null;
     captured.key = "u1001";
   });
 
@@ -217,13 +265,21 @@ describe("MetaEventRunPage", () => {
 
   it("still calls a quarterfinal exit a quarterfinal", () => {
     renderPage({
-      players: [ANA, CY],
+      opponents: [CY],
       phases: [CUT_PHASE],
-      matches: [
-        metaMatch({ phaseOrder: 2, roundNumber: 1, player2Id: "p-3", winnerId: "p-3" }),
-        metaMatch({ phaseOrder: 2, roundNumber: 2, player1Id: "p-3", player2Id: "p-4" }),
-        metaMatch({ phaseOrder: 2, roundNumber: 3, player1Id: "p-3", player2Id: "p-5" }),
+      rounds: [
+        round({
+          phaseOrder: 2,
+          roundNumber: 1,
+          isCut: true,
+          outcome: "loss",
+          gamesWon: 0,
+          gamesLost: 2,
+          opponentId: "p-3",
+        }),
       ],
+      lastCutRound: 3,
+      finalRoundNumber: 3,
     });
 
     expect(screen.getAllByText("Quarterfinal").length).toBeGreaterThan(0);
@@ -236,7 +292,7 @@ describe("MetaEventRunPage", () => {
   });
 
   it("heads everyone else's page as the run it was", () => {
-    renderPage({ players: [metaPlayer({ ...ANA, rank: 7 }), BO, CY] });
+    renderPage({ player: metaPlayer({ ...ANA, rank: 7 }) });
     expect(screen.getByText("Tournament run")).toBeInTheDocument();
   });
 

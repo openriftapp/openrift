@@ -1,7 +1,6 @@
 import { GROUP_STAGE_ROUNDS } from "@openrift/shared/pairing/group-cut-types";
+import type { MetaRunOutcome, MetaRunRound } from "@openrift/shared/types/api/meta";
 import type { GroupStageView, PodRoundResponse } from "@openrift/shared/types/api/pod-tournament";
-
-import type { MetaPlayerRound, MetaRoundOutcome } from "@/features/meta/lib/meta-player-run";
 
 export interface PlayerLegend {
   legendCardId: string | null;
@@ -22,7 +21,7 @@ export function legendsByPlayer(groupStage: GroupStageView | null): Map<string, 
 function outcomeOf(
   members: readonly { playerId: string; placement: number | null }[],
   playerId: string,
-): MetaRoundOutcome {
+): MetaRunOutcome {
   const own = members.find((member) => member.playerId === playerId)?.placement ?? null;
   if (own === null) {
     return "unknown";
@@ -38,10 +37,10 @@ export function playerRunRounds(
   rounds: readonly PodRoundResponse[],
   playerId: string,
   hasCut: boolean,
-): MetaPlayerRound[] {
+): MetaRunRound[] {
   return rounds
     .toSorted((a, b) => a.roundNumber - b.roundNumber)
-    .flatMap((round): MetaPlayerRound[] => {
+    .flatMap((round): MetaRunRound[] => {
       const isCut = hasCut && round.roundNumber > GROUP_STAGE_ROUNDS;
       const base = { phaseOrder: isCut ? 1 : 0, roundNumber: round.roundNumber, isCut };
       if (round.byes.some((bye) => bye.playerId === playerId)) {

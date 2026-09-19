@@ -10,6 +10,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { tierListsKeys } from "@/features/stage/lib/stage-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -29,7 +30,7 @@ const fetchTierList = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -44,7 +45,7 @@ const fetchPublicTierList = createServerFn({ method: "GET" })
     const { error, data } = await safe(apiOrpcClient(publicTierListsContract).share({ token }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

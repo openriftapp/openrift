@@ -24,17 +24,6 @@ export interface MetaLegendSitemapRow extends MetaArchiveLegendRow {
   updatedAt: Date;
 }
 
-/** One legend's standings rows at one event, folded for the index. */
-export interface MetaLegendEventRecordRow {
-  legendCardId: string;
-  eventSlug: string;
-  bestRank: number;
-  rankIsTier: boolean;
-  finishes: number;
-  decklists: number;
-  won: boolean;
-}
-
 /** One archived standings row as a legend's own page lists it. */
 export interface MetaLegendFinishRow {
   playerId: string;
@@ -79,6 +68,15 @@ export interface MetaPlayerFinishRow {
   eventTier: MetaEventTier;
   eventCountry: string | null;
   eventPlayerCount: number | null;
+}
+
+export interface MetaLegendIndexRow extends MetaArchiveLegendRow {
+  bestRank: number;
+  bestRankIsTier: boolean;
+  bestEventId: string;
+  finishes: number;
+  decklists: number;
+  eventWins: number;
 }
 
 /** One legend's headline numbers inside a scope. */
@@ -147,32 +145,70 @@ export function metaLegendsRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Every legend's standings rows folded per event, for the index's scoped
-     * counts and best-finish line. One row per (legend, event) pair, newest
-     * event first.
+     * One row per legend in scope. A legend with no standings row is absent.
+     * `eventWins` counts events and `decklists` permalinks, never rows.
      */
-    archiveLegendEventRecords(): Promise<MetaLegendEventRecordRow[]> {
-      return db
+    scopedLegendRecords(scope: MetaScopeFilters = {}): Promise<MetaLegendIndexRow[]> {
+      // Ends on `p.id`: the three aggregates below sort separately, so without
+      // a unique tiebreak a tie can take each field from a different row.
+      const best = sql`order by p.rank asc, me.event_date desc, p.id asc`;
+      let query = db
         .selectFrom("metaEventPlayers as p")
         .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
+        .innerJoin("cards as lc", "lc.id", "p.legendCardId")
+        .leftJoin("mvCardAggregates as mca", "mca.cardId", "lc.id")
         .leftJoin("decks as d", "d.id", "p.deckId")
         .select([
-          sql<string>`p.legend_card_id`.as("legendCardId"),
-          "me.slug as eventSlug",
-          sql<number>`min(p.rank)::int`.as("bestRank"),
-          // The flag belonging to the best-ranked row, not an aggregate of all.
-          sql<boolean>`(array_agg(p.rank_is_tier order by p.rank asc))[1]`.as("rankIsTier"),
+          "lc.id as cardId",
+          "lc.name",
+          "lc.slug",
+          "mca.types",
+          "lc.tags",
+          "mca.domains",
+          sql<number>`(array_agg(p.rank ${best}))[1]::int`.as("bestRank"),
+          sql<boolean>`(array_agg(p.rank_is_tier ${best}))[1]`.as("bestRankIsTier"),
+          sql<string>`(array_agg(me.id ${best}))[1]`.as("bestEventId"),
           sql<number>`count(*)::int`.as("finishes"),
-          // Mirrors what `allDeckSummaries` yields for this legend: a row with
-          // no permalink has no page for the count to promise.
-          sql<number>`count(*) filter (where d.share_token is not null)::int`.as("decklists"),
-          sql<boolean>`bool_or(p.rank = 1)`.as("won"),
+          sql<number>`count(distinct d.share_token)::int`.as("decklists"),
+          sql<number>`count(distinct me.id) filter (where p.rank = 1)::int`.as("eventWins"),
         ])
+        .groupBy(["lc.id", "lc.name", "lc.slug", "mca.types", "lc.tags", "mca.domains"]);
+      for (const condition of scopeConditions(scope)) {
+        query = query.where(condition);
+      }
+      return query.execute();
+    },
+
+    /** How many legends `scopedLegendRecords` returns for the same scope. */
+    async scopedLegendCount(scope: MetaScopeFilters = {}): Promise<number> {
+      let query = db
+        .selectFrom("metaEventPlayers as p")
+        .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
+        .select(sql<number>`count(distinct p.legend_card_id)::int`.as("total"))
+        .where("p.legendCardId", "is not", null);
+      for (const condition of scopeConditions(scope)) {
+        query = query.where(condition);
+      }
+      const row = await query.executeTakeFirstOrThrow();
+      return row.total;
+    },
+
+    async scopedLegendCountries(scope: MetaScopeFilters = {}): Promise<string[]> {
+      let query = db
+        .selectFrom("metaEventPlayers as p")
+        .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
+        .select("me.country")
+        .distinct()
         .where("p.legendCardId", "is not", null)
-        .groupBy(["p.legendCardId", "me.slug", "me.eventDate"])
-        .orderBy("me.eventDate", "desc")
-        .orderBy("me.slug", "asc")
-        .execute();
+        .where("me.country", "is not", null);
+      for (const condition of scopeConditions(scope, "countries")) {
+        query = query.where(condition);
+      }
+      const rows = await query.execute();
+      return rows
+        .map((row) => row.country)
+        .filter((country): country is string => country !== null)
+        .toSorted((left, right) => left.localeCompare(right));
     },
 
     /**
@@ -190,7 +226,8 @@ export function metaLegendsRepo(db: Kysely<Database>) {
       let rowQuery = legendFinishRows(legendCardId, scope)
         .orderBy("me.eventDate", "desc")
         .orderBy("p.rank", "asc")
-        .orderBy("me.name", "asc");
+        .orderBy("me.name", "asc")
+        .orderBy("p.id", "asc");
       if (page !== undefined) {
         rowQuery = rowQuery.limit(page.limit).offset(page.offset);
       }
@@ -216,6 +253,7 @@ export function metaLegendsRepo(db: Kysely<Database>) {
         .orderBy("p.rank", "asc")
         .orderBy("me.eventDate", "desc")
         .orderBy("me.name", "asc")
+        .orderBy("p.id", "asc")
         .limit(limit)
         .execute();
     },

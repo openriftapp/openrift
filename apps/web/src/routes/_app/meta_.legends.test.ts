@@ -43,26 +43,31 @@ async function warmedKeys(search: Record<string, unknown>): Promise<readonly unk
 }
 
 describe("/meta/legends loader", () => {
-  it("warms only the era the scope names", async () => {
+  it("warms the legend index under the era the scope names", async () => {
     const keys = await warmedKeys({ era: "origins" });
 
-    expect(keys).toContainEqual([...metaKeys.events(ORIGINS_RANGE)]);
-    expect(keys).not.toContainEqual([...metaKeys.events()]);
+    expect(keys).toContainEqual([
+      ...metaKeys.legends({ ...ORIGINS_RANGE, formats: ["constructed"] }),
+    ]);
+    expect(keys).not.toContainEqual([...metaKeys.legends()]);
   });
 
-  it("reruns for a different era but not for the sort column", async () => {
+  it("reruns for a facet, which the server now applies, but not for the sort column", async () => {
     const deps = Route.options.loaderDeps as unknown as LoaderDepsFn;
 
     expect(deps({ search: { era: "origins" } })).not.toEqual(deps({ search: { era: "proving" } }));
+    expect(deps({ search: { era: "origins", tiers: ["premier"] } })).not.toEqual(
+      deps({ search: { era: "origins" } }),
+    );
     expect(deps({ search: { era: "origins", by: "best" } })).toEqual(
       deps({ search: { era: "origins" } }),
     );
   });
 
-  it("warms the whole list once the reader asks for all time", async () => {
+  it("warms the whole index once the reader asks for all time", async () => {
     const keys = await warmedKeys({ era: "all" });
 
-    expect(keys).toContainEqual([...metaKeys.events()]);
+    expect(keys).toContainEqual([...metaKeys.legends({ formats: ["constructed"] })]);
   });
 
   it("warms the set list its eras are derived from", async () => {

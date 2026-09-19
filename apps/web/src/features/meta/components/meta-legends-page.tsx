@@ -21,14 +21,14 @@ import { DomainIcon } from "@/features/decks/components/domain-icon";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
-import { useMetaEvents, useMetaLegends } from "@/features/meta/hooks/use-meta";
+import { useMetaLegends } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
+import { metaEventCountries } from "@/features/meta/lib/meta-events-index";
 import { formatRank, metaShownLabel, splitLegendName } from "@/features/meta/lib/meta-format";
 import type { MetaLegendIndexEntry } from "@/features/meta/lib/meta-legend-page";
 import {
-  metaLegendIndexCountries,
-  metaLegendIndexEntries,
   nextLegendSort,
+  searchMetaLegendEntries,
   sortMetaLegendEntries,
 } from "@/features/meta/lib/meta-legend-page";
 import type { MetaLegendIndexSort } from "@/features/meta/lib/meta-legends-search";
@@ -37,7 +37,12 @@ import {
   DEFAULT_LEGEND_SORT,
 } from "@/features/meta/lib/meta-legends-search";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
-import { CLEARED_SCOPE, nextScopeSearch, resolveScopeRange } from "@/features/meta/lib/meta-scope";
+import {
+  CLEARED_SCOPE,
+  metaScopeQueryFromScope,
+  nextScopeSearch,
+} from "@/features/meta/lib/meta-scope";
+import { formatCount } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -67,9 +72,7 @@ function bestFinishFacts(entry: MetaLegendIndexEntry): string {
   const { event } = entry.bestFinish;
   const parts = [formatDay(event.eventDate)];
   if (event.playerCount !== null) {
-    parts.push(
-      `${event.playerCount.toLocaleString("en-US")} ${event.playerCount === 1 ? "player" : "players"}`,
-    );
+    parts.push(m.meta_count_players({ count: event.playerCount }));
   }
   return parts.join(" · ");
 }
@@ -80,7 +83,7 @@ function WinsChip({ eventWins, className }: { eventWins: number; className?: str
   }
   return (
     <Badge variant="subtle" className={className}>
-      {eventWins.toLocaleString("en-US")} {eventWins === 1 ? "event win" : "event wins"}
+      {m.meta_count_event_wins({ count: eventWins })}
     </Badge>
   );
 }
@@ -131,10 +134,10 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
           </div>
         </div>
         <span className="text-muted-foreground text-right text-sm tabular-nums">
-          {entry.decklists.toLocaleString("en-US")}
+          {formatCount(entry.decklists)}
         </span>
         <span className="text-muted-foreground text-right text-sm tabular-nums">
-          {entry.finishes.toLocaleString("en-US")}
+          {formatCount(entry.finishes)}
         </span>
       </div>
 
@@ -148,8 +151,7 @@ function LegendRow({ entry }: { entry: MetaLegendIndexEntry }) {
             ))}
             <WinsChip eventWins={entry.eventWins} />
             <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
-              {entry.decklists.toLocaleString("en-US")}{" "}
-              {entry.decklists === 1 ? "decklist" : "decklists"}
+              {m.meta_count_decklists({ count: entry.decklists })}
             </span>
           </p>
           {title !== null && <p className="text-muted-foreground truncate text-xs">{title}</p>}
@@ -219,13 +221,12 @@ function SortHeader({
   );
 }
 
-/** The scoped era ships as one payload, so search, facets, and sort all run client-side against it. */
+/** The API scopes and folds the records; the page only searches and sorts the entries it gets. */
 export function MetaLegendsPage() {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const { data } = useMetaLegends();
   const eras = useMetaEras();
-  const { data: eventsData } = useMetaEvents(resolveScopeRange(search, eras));
+  const { data } = useMetaLegends(metaScopeQueryFromScope(search, eras));
 
   const sort = search.by ?? DEFAULT_LEGEND_SORT;
   const direction = search.dir ?? DEFAULT_LEGEND_DIRECTION;
@@ -242,14 +243,12 @@ export function MetaLegendsPage() {
   };
   const commitQuery = (value: string) => setSearchParams({ q: value === "" ? undefined : value });
 
-  const all = data.legends;
-  const events = eventsData.events;
   const entries = sortMetaLegendEntries(
-    metaLegendIndexEntries(all, events, { scope: search, eras, search: search.q }),
+    searchMetaLegendEntries(data.legends, search.q),
     sort,
     direction,
   );
-  const countries = metaLegendIndexCountries(all, events);
+  const countries = metaEventCountries(data.countries, search);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -258,7 +257,7 @@ export function MetaLegendsPage() {
           <PageTopBarBack to="/meta" aria-label={m.meta_back_to_archive_aria()} />
           <PageTopBarTitle>{m.meta_legends_title()}</PageTopBarTitle>
           <span className="text-muted-foreground shrink-0 tabular-nums">
-            {metaShownLabel(entries.length, all.length, "legends")}
+            {metaShownLabel(entries.length, data.archiveTotal, "legends")}
           </span>
         </PageTopBar>
       </PageTopBarSticky>
@@ -266,7 +265,7 @@ export function MetaLegendsPage() {
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
         <PageDescription className="pb-4">{m.meta_legends_page_description()}</PageDescription>
 
-        {all.length === 0 ? (
+        {data.archiveTotal === 0 ? (
           <EmptyState
             className="py-12"
             icon={SwordsIcon}

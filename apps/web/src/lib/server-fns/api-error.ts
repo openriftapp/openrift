@@ -51,6 +51,16 @@ export function errorStatus(error: unknown): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
+/** The sentinel a server function throws for a typed 404, whose message route loaders match on. */
+export function notFoundError(): Error {
+  return Object.assign(new Error("NOT_FOUND"), { status: 404 });
+}
+
+export function isRetryableError(error: unknown): boolean {
+  const status = errorStatus(error);
+  return status === undefined || status >= 500 || status === 408 || status === 429;
+}
+
 /** Structural (not `instanceof`) check: the prototype is lost crossing a server-function boundary. */
 export function isApiError(value: unknown): value is ApiErrorShape {
   return (

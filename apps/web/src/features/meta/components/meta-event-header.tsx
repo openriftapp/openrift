@@ -3,9 +3,9 @@ import { dateLeafPartsUtc, formatRelativeTime } from "@openrift/shared/format-da
 import { imageUrl } from "@openrift/shared/image-url";
 import type {
   MetaEventDetail,
-  MetaEventMatch,
+  MetaEventField,
   MetaEventPhase,
-  MetaEventPlayer,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import { ExternalLinkIcon } from "lucide-react";
 import { Fragment } from "react";
@@ -28,10 +28,10 @@ import {
 } from "@/features/meta/lib/meta-event-structure";
 import { formatRecord } from "@/features/meta/lib/meta-format";
 import { metaEventWinners } from "@/features/meta/lib/meta-front-page";
-import { metaCutLineRecord } from "@/features/meta/lib/meta-player-run";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { DATE_WORDS } from "@/lib/date-words";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 /** Every citation is printed, never collapsed behind a "+2 more". */
@@ -70,18 +70,13 @@ function Counter({ value, label }: { value: string; label: string }) {
   );
 }
 
-/** Pinned grouping: a server on another default locale would send "1.247" into a browser rendering "1,247". */
-function counterValue(value: number): string {
-  return value.toLocaleString("en-US");
-}
-
 function ChampionPlate({
   player,
   artId,
   slug,
   hasRun,
 }: {
-  player: MetaEventPlayer;
+  player: MetaStandingsRow;
   artId: string | null;
   slug: string;
   hasRun: boolean;
@@ -137,14 +132,14 @@ function ChampionPlate({
 /** The flag and venue are independently optional; the tier badge lives in the top bar, not here. */
 export function MetaEventHeader({
   event,
-  players,
-  matches,
+  champion,
+  field,
   phases,
   slug,
 }: {
   event: MetaEventDetail;
-  players: readonly MetaEventPlayer[];
-  matches: readonly MetaEventMatch[];
+  champion: MetaStandingsRow | null;
+  field: MetaEventField;
   phases: readonly MetaEventPhase[];
   slug: string;
 }) {
@@ -153,14 +148,14 @@ export function MetaEventHeader({
   const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
   const structure = describeEventStructure(phases);
   const live = event.status === "in_progress";
-  const champion = players.find((player) => player.rank === 1) ?? null;
   const winnerLegend =
     champion?.legend ?? metaEventWinners(event).find((winner) => winner.legend !== null)?.legend;
   const artId = winnerLegend?.imageId ?? null;
-  const cutLineRecord = metaCutLineRecord(players, structure.cutSize);
-  const championHasRun =
-    champion !== null &&
-    matches.some((match) => match.player1Id === champion.id || match.player2Id === champion.id);
+  const cutLineRecord =
+    field.cutLine === null
+      ? null
+      : formatRecord(field.cutLine.wins, field.cutLine.losses, field.cutLine.draws);
+  const championHasRun = champion !== null && champion.rounds.length > 0;
 
   const byline: string[] = [];
   if (event.organizer !== null) {
@@ -172,7 +167,7 @@ export function MetaEventHeader({
   }
   const liveLine: string[] = [];
   if (live) {
-    liveLine.push(describeEventProgress(matches, phases) ?? m.meta_event_header_round_one());
+    liveLine.push(describeEventProgress(field.progress, phases) ?? m.meta_event_header_round_one());
     // Relative to the reader's clock, so it only renders once hydrated.
     if (hydrated && event.sourceCheckedAt !== null) {
       liveLine.push(`checked ${formatRelativeTime(event.sourceCheckedAt)}`);
@@ -219,18 +214,15 @@ export function MetaEventHeader({
           <div className="flex flex-wrap gap-x-9 gap-y-3">
             {event.playerCount !== null && (
               <Counter
-                value={counterValue(event.playerCount)}
+                value={formatCount(event.playerCount)}
                 label={m.meta_event_header_players()}
               />
             )}
             <Counter
-              value={counterValue(event.playerRowCount)}
+              value={formatCount(event.playerRowCount)}
               label={m.meta_event_header_results()}
             />
-            <Counter
-              value={counterValue(event.deckCount)}
-              label={m.meta_event_header_decklists()}
-            />
+            <Counter value={formatCount(event.deckCount)} label={m.meta_event_header_decklists()} />
             {cutLineRecord !== null && (
               <Counter value={cutLineRecord} label={m.meta_event_header_cut_record()} />
             )}

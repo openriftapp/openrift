@@ -1,3 +1,4 @@
+import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
 import { describe, expect, it } from "vitest";
 
 import type { EraSet } from "./meta-scope";
@@ -11,6 +12,7 @@ import {
   ERA_CUSTOM,
   isScopeCustomized,
   isScopeRestricting,
+  metaEventFilterQuery,
   metaScopeQueryFromScope,
   metaScopeSearchSchema,
   nextScopeSearch,
@@ -313,6 +315,27 @@ describe("metaScopeSearchSchema", () => {
       countries: ["de"],
     });
   });
+
+  it("drops a facet holding an empty value the API would reject", () => {
+    expect(metaScopeSearchSchema.parse({ tiers: [""] }).tiers).toBeUndefined();
+    expect(metaScopeSearchSchema.parse({ tiers: "" }).tiers).toBeUndefined();
+    expect(metaScopeSearchSchema.parse({ countriesEx: ["de", ""] }).countriesEx).toBeUndefined();
+  });
+
+  it("drops a custom window the API would not read as a date", () => {
+    expect(metaScopeSearchSchema.parse({ from: "2026-01-01" }).from).toBe("2026-01-01");
+    expect(metaScopeSearchSchema.parse({ from: "2026-1-1" }).from).toBeUndefined();
+    expect(metaScopeSearchSchema.parse({ to: "2026-02-31" }).to).toBeUndefined();
+    expect(metaScopeSearchSchema.parse({ to: "yesterday" }).to).toBeUndefined();
+  });
+
+  it("drops a facet list longer than the API accepts", () => {
+    const tiers = Array.from({ length: MAX_FACET_VALUES + 1 }, (_, index) => `tier-${index}`);
+    expect(metaScopeSearchSchema.parse({ tiers }).tiers).toBeUndefined();
+    expect(metaScopeSearchSchema.parse({ tiers: tiers.slice(1) }).tiers).toHaveLength(
+      MAX_FACET_VALUES,
+    );
+  });
 });
 
 describe("metaScopeQueryFromScope", () => {
@@ -408,5 +431,28 @@ describe("eraCounts", () => {
   it("sums the custom range from the scope's own bounds", () => {
     expect(eraCounts(days, eras, { from: "2026-08-01", to: "2026-08-31" }).get(ERA_CUSTOM)).toBe(3);
     expect(eraCounts(days, eras, { to: "2026-03-31" }).get(ERA_CUSTOM)).toBe(2);
+  });
+});
+
+describe("metaEventFilterQuery", () => {
+  const eras = deriveSetEras([set("origins", "Origins", "2026-01-01")], "2026-09-01");
+
+  it("carries the page's own controls alongside the scope", () => {
+    const query = metaEventFilterQuery(
+      { era: ERA_ALL, formats: [], q: "worlds", holds: "decks", playersMin: 8, playersMax: 64 },
+      eras,
+    );
+
+    expect(query).toEqual({ q: "worlds", holds: "decks", playersMin: 8, playersMax: 64 });
+  });
+
+  it("leaves a blank search box off the request", () => {
+    expect(metaEventFilterQuery({ era: ERA_ALL, formats: [], q: "   " }, eras)).toEqual({});
+  });
+
+  it("keeps the era window the scope resolves to", () => {
+    expect(metaEventFilterQuery({ era: "origins", formats: [] }, eras)).toMatchObject({
+      from: "2026-01-01",
+    });
   });
 });

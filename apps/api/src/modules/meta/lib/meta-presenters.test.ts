@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import type { MetaContributorRow } from "../repositories/meta-credits.js";
-import type { MetaDeckContextRow, MetaDeckSummaryRow } from "../repositories/meta-decks.js";
-import type { MetaEventWithCounts } from "../repositories/meta-events.js";
+import type {
+  MetaDeckContextRow,
+  MetaDeckFacetRows,
+  MetaDeckSummaryRow,
+} from "../repositories/meta-decks.js";
+import type { MetaEventRow, MetaEventWithCounts } from "../repositories/meta-events.js";
 import type {
   MetaArchiveLegendRow,
   MetaLegendFinishRow,
+  MetaLegendIndexRow,
   MetaPlayerFinishRow,
 } from "../repositories/meta-legends.js";
-import type { AdminMetaPlayerRow, MetaEventPlayerRow } from "../repositories/meta-players.js";
+import type {
+  AdminMetaPlayerRow,
+  MetaEventFieldSummary,
+  MetaEventPlayerRow,
+} from "../repositories/meta-players.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import type { MetaSubmissionRow } from "../repositories/meta-submissions.js";
 import {
@@ -21,8 +30,10 @@ import {
   toAdminMetaSubmission,
   toMetaDeckCardIndex,
   toMetaDeckContext,
+  toMetaDeckFacets,
   toMetaDeckSummary,
   toMetaEventDetail,
+  toMetaEventField,
   toMetaEventMatch,
   toMetaEventPhase,
   toMetaEventPlayer,
@@ -573,6 +584,131 @@ describe("toMetaEventPlayer", () => {
   });
 });
 
+describe("toMetaEventField", () => {
+  const summary: MetaEventFieldSummary = {
+    withLists: 4,
+    hasLegends: true,
+    hasRecords: true,
+    hasRuns: false,
+    legends: [
+      {
+        cardId: "legend-2",
+        name: "Emperor of the Sands",
+        types: ["legend"],
+        tags: ["Azir"],
+        count: 3,
+      },
+      { cardId: "legend-1", name: "Jinx", types: ["legend"], tags: [], count: 5 },
+    ],
+    progress: { phaseOrder: 1, roundNumber: 3 },
+  };
+
+  it("names a Legend for its champion and orders the picker by that name", () => {
+    const field = toMetaEventField({ ...summary, legends: [...summary.legends] }, undefined);
+
+    expect(field.legends).toEqual([
+      { cardId: "legend-2", name: "Azir, Emperor of the Sands", count: 3 },
+      { cardId: "legend-1", name: "Jinx", count: 5 },
+    ]);
+    expect(field.progress).toEqual({ phaseOrder: 1, roundNumber: 3 });
+  });
+
+  it("keeps an untagged card's own name, and a card with no aggregates row", () => {
+    const field = toMetaEventField(
+      {
+        ...summary,
+        legends: [{ cardId: "legend-3", name: "Sett, Kingpin", types: null, tags: null, count: 1 }],
+      },
+      undefined,
+    );
+
+    expect(field.legends).toEqual([{ cardId: "legend-3", name: "Sett, Kingpin", count: 1 }]);
+  });
+
+  it("prints the cut line's record, and null when no row sits on it", () => {
+    const withCut = toMetaEventField(
+      { ...summary, legends: [] },
+      playerRow({ wins: 5, losses: 2, draws: 1 }),
+    );
+
+    expect(withCut.cutLine).toEqual({ wins: 5, losses: 2, draws: 1 });
+    expect(toMetaEventField({ ...summary, legends: [] }, undefined).cutLine).toBeNull();
+  });
+});
+
+describe("toMetaDeckFacets", () => {
+  function facetRows(overrides: Partial<MetaDeckFacetRows> = {}): MetaDeckFacetRows {
+    return {
+      events: [
+        { slug: "rift-open", name: "Rift Open", eventDate: "2026-08-01", count: 4 },
+        { slug: "summoner-skirmish", name: "Summoner Skirmish", eventDate: "2026-09-01", count: 2 },
+      ],
+      legends: [
+        {
+          cardId: "legend-2",
+          name: "Emperor of the Sands",
+          types: ["legend"],
+          tags: ["Azir"],
+          count: 3,
+        },
+        { cardId: "legend-1", name: "Jinx", types: ["legend"], tags: [], count: 5 },
+      ],
+      finishes: [{ value: 8, count: 6 }],
+      countries: ["DE", "FR"],
+      ...overrides,
+    };
+  }
+
+  it("names a Legend for its champion and orders the chips by that name", () => {
+    const facets = toMetaDeckFacets(facetRows());
+
+    expect(facets.legends).toEqual([
+      { value: "legend-2", label: "Azir, Emperor of the Sands", count: 3 },
+      { value: "legend-1", label: "Jinx", count: 5 },
+    ]);
+  });
+
+  it("keeps an untagged card's own name and falls back to the card id", () => {
+    const facets = toMetaDeckFacets(
+      facetRows({
+        legends: [
+          { cardId: "legend-3", name: "Sett, Kingpin", types: null, tags: null, count: 1 },
+          { cardId: "legend-4", name: null, types: null, tags: null, count: 1 },
+        ],
+      }),
+    );
+
+    expect(facets.legends).toEqual([
+      { value: "legend-4", label: "legend-4", count: 1 },
+      { value: "legend-3", label: "Sett, Kingpin", count: 1 },
+    ]);
+  });
+
+  it("offers the events newest first, whatever order the rows arrive in", () => {
+    const facets = toMetaDeckFacets(facetRows());
+
+    expect(facets.events).toEqual([
+      { value: "summoner-skirmish", label: "Summoner Skirmish", count: 2 },
+      { value: "rift-open", label: "Rift Open", count: 4 },
+    ]);
+    expect(facets.finishes).toEqual([{ value: 8, count: 6 }]);
+    expect(facets.countries).toEqual(["DE", "FR"]);
+  });
+
+  it("breaks a shared event date on the slug", () => {
+    const facets = toMetaDeckFacets(
+      facetRows({
+        events: [
+          { slug: "rift-open", name: "Rift Open", eventDate: "2026-08-01", count: 1 },
+          { slug: "arena-cup", name: "Arena Cup", eventDate: "2026-08-01", count: 1 },
+        ],
+      }),
+    );
+
+    expect(facets.events.map((event) => event.value)).toEqual(["arena-cup", "rift-open"]);
+  });
+});
+
 describe("toMetaDeckCardIndex", () => {
   it("pools card ids and points each deck at them by position", () => {
     expect(
@@ -1047,6 +1183,23 @@ function archiveLegendRow(overrides: Partial<MetaArchiveLegendRow> = {}): MetaAr
   };
 }
 
+function legendIndexRow(overrides: Partial<MetaLegendIndexRow> = {}): MetaLegendIndexRow {
+  return {
+    ...archiveLegendRow(),
+    bestRank: 2,
+    bestRankIsTier: true,
+    bestEventId: "3f7a1c2e-0000-7000-8000-0000000000e1",
+    finishes: 4,
+    decklists: 3,
+    eventWins: 0,
+    ...overrides,
+  };
+}
+
+function bestEventRow(): MetaEventRow {
+  return eventRow({ id: "3f7a1c2e-0000-7000-8000-0000000000e1" });
+}
+
 function legendFinishRow(overrides: Partial<MetaLegendFinishRow> = {}): MetaLegendFinishRow {
   return {
     playerId: "3f7a1c2e-0000-7000-8000-00000000000f",
@@ -1073,9 +1226,9 @@ function legendFinishRow(overrides: Partial<MetaLegendFinishRow> = {}): MetaLege
 describe("toMetaLegendSummary", () => {
   it("names the legend the way players say it and keys it on champion plus card slug", () => {
     const summary = toMetaLegendSummary(
-      archiveLegendRow(),
+      legendIndexRow(),
       new Map([["3f7a1c2e-0000-7000-8000-00000000000e", "img-1"]]),
-      [],
+      bestEventRow(),
     );
     expect(summary.slug).toBe("kennen-heart-of-the-tempest");
     expect(summary.legend).toEqual({
@@ -1090,9 +1243,9 @@ describe("toMetaLegendSummary", () => {
 
   it("renders a legend with no artwork and no domains rather than dropping it", () => {
     const summary = toMetaLegendSummary(
-      archiveLegendRow({ domains: null, types: null, tags: null }),
+      legendIndexRow({ domains: null, types: null, tags: null }),
       new Map(),
-      [],
+      bestEventRow(),
     );
     expect(summary.legend.imageId).toBeNull();
     expect(summary.legend.domains).toEqual([]);
@@ -1100,35 +1253,36 @@ describe("toMetaLegendSummary", () => {
     expect(summary.slug).toBe("heart-of-the-tempest");
   });
 
-  it("carries each event record as archive facts, dropping the join key", () => {
-    const summary = toMetaLegendSummary(archiveLegendRow(), new Map(), [
-      {
-        legendCardId: "3f7a1c2e-0000-7000-8000-00000000000e",
-        eventSlug: "summoner-skirmish-berlin",
-        bestRank: 2,
-        rankIsTier: true,
-        finishes: 4,
-        decklists: 3,
-        won: false,
+  it("carries the scoped counts and the best finish's own event", () => {
+    const summary = toMetaLegendSummary(
+      legendIndexRow({ eventWins: 1 }),
+      new Map(),
+      bestEventRow(),
+    );
+
+    expect(summary.bestFinish).toEqual({
+      rank: 2,
+      rankIsTier: true,
+      event: {
+        slug: "summoner-skirmish-berlin",
+        name: "Summoner Skirmish Berlin",
+        eventDate: "2026-08-01",
+        format: "constructed",
+        tier: "local",
+        country: "DE",
+        playerCount: 64,
       },
-    ]);
-    expect(summary.records).toEqual([
-      {
-        eventSlug: "summoner-skirmish-berlin",
-        bestRank: 2,
-        rankIsTier: true,
-        finishes: 4,
-        decklists: 3,
-        won: false,
-      },
-    ]);
+    });
+    expect([summary.finishes, summary.decklists, summary.eventWins]).toEqual([4, 3, 1]);
   });
 });
 
 describe("archiveLegendSlug", () => {
   it("agrees with the slug the summary carries", () => {
     const row = archiveLegendRow();
-    expect(archiveLegendSlug(row)).toBe(toMetaLegendSummary(row, new Map(), []).slug);
+    expect(archiveLegendSlug(row)).toBe(
+      toMetaLegendSummary(legendIndexRow(), new Map(), bestEventRow()).slug,
+    );
   });
 
   it("keeps two legends of one champion apart", () => {

@@ -1,4 +1,9 @@
-import type { MetaEventMatch, MetaEventPhase } from "@openrift/shared/types/api/meta";
+import { isSingleElimination } from "@openrift/shared/meta-standings";
+import type {
+  MetaEventMatch,
+  MetaEventPhase,
+  MetaEventPlayer,
+} from "@openrift/shared/types/api/meta";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -24,6 +29,21 @@ export interface MetaBracket {
   rounds: MetaBracketRound[];
 }
 
+/** Every player a seat can name, since the standings arrive one page at a time. */
+export function bracketPlayers(
+  ...lists: readonly (readonly MetaEventPlayer[])[]
+): MetaEventPlayer[] {
+  const byId = new Map<string, MetaEventPlayer>();
+  for (const list of lists) {
+    for (const player of list) {
+      if (!byId.has(player.id)) {
+        byId.set(player.id, player);
+      }
+    }
+  }
+  return [...byId.values()];
+}
+
 function roundLabel(fromEnd: number): string {
   const labels = [
     m.meta_bracket_round_final(),
@@ -31,14 +51,6 @@ function roundLabel(fromEnd: number): string {
     m.meta_bracket_round_quarterfinals(),
   ];
   return labels[fromEnd] ?? m.meta_bracket_top_n({ size: String(2 ** (fromEnd + 1)) });
-}
-
-/**
- * `roundType` is source vocabulary kept raw (`SWISS`,
- * `RANKED_SINGLE_ELIMINATION`); matched by substring, not a fixed list.
- */
-export function isSingleElimination(roundType: string): boolean {
-  return roundType.toUpperCase().includes("SINGLE_ELIMINATION");
 }
 
 function toBracketMatch(match: MetaEventMatch): MetaBracketMatch {

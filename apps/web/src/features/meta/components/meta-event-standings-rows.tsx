@@ -1,4 +1,4 @@
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
 
 import { TableCell, TableRow } from "@/components/ui/table";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
@@ -15,16 +15,14 @@ import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { RowSlot, StandingsColumns } from "@/features/meta/lib/meta-event-standings";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
-import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { cn } from "@/lib/utils";
 
 export interface RowProps extends RowSlot {
-  player: MetaEventPlayer;
+  player: MetaStandingsRow;
   slug: string;
   canSubmit: boolean;
   columns: StandingsColumns;
   costs: ReadonlyMap<string, MetaDeckCost> | undefined;
-  rounds: readonly MetaPlayerRound[] | undefined;
   pending: MetaPendingRowMark | undefined;
   cutSize: number | null;
   expanded: boolean;
@@ -65,7 +63,6 @@ export function DesktopRow({
   canSubmit,
   columns,
   costs,
-  rounds,
   pending,
   cutSize,
   expanded,
@@ -96,12 +93,12 @@ export function DesktopRow({
         <MetaPlayerName
           name={player.playerName}
           playerKey={player.playerKey}
-          eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
+          eventSlug={player.rounds.length > 0 ? slug : undefined}
         />
       </TableCell>
       {(columns.run || columns.record) && (
         <TableCell className="w-52 shrink-0">
-          <RunCell player={player} slug={slug} rounds={rounds} />
+          <RunCell player={player} slug={slug} />
         </TableCell>
       )}
       {columns.value && (
@@ -135,7 +132,6 @@ export function PhoneRow({
   canSubmit,
   columns,
   costs,
-  rounds,
   pending,
   cutSize,
   expanded,
@@ -171,7 +167,7 @@ export function PhoneRow({
               <MetaPlayerName
                 name={player.playerName}
                 playerKey={player.playerKey}
-                eventSlug={rounds !== undefined && rounds.length > 0 ? slug : undefined}
+                eventSlug={player.rounds.length > 0 ? slug : undefined}
               />
             </p>
             <MetaIdentity
@@ -182,13 +178,7 @@ export function PhoneRow({
               className="text-muted-foreground text-xs"
             />
             {(columns.run || columns.record) && (
-              <RunCell
-                player={player}
-                slug={slug}
-                rounds={rounds}
-                layout="inline"
-                className="mt-1"
-              />
+              <RunCell player={player} slug={slug} layout="inline" className="mt-1" />
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5 leading-tight">

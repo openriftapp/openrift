@@ -2,25 +2,40 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { getPageItems } from "@/lib/paginate";
+import { m } from "@/paraglide/messages.js";
+
+// `html { scroll-padding-top }` clears the global header only, so a target
+// under a PageTopBarSticky row needs that row's height on top of it.
+export const PAGER_SCROLL_TARGET = "scroll-mt-[calc(var(--header-height)+4rem)]";
 
 /**
- * The numbered pager for a server-paged admin table. Renders nothing on a
+ * The numbered pager for a server-paged list. Renders nothing on a
  * single-page result, so a caller can mount it unconditionally.
  */
-export function AdminPager({
+export function Pager({
   page,
   totalPages,
   onPageChange,
   label,
+  scrollTargetId,
 }: {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   label: string;
+  scrollTargetId?: string;
 }) {
   if (totalPages <= 1) {
     return null;
   }
+  // The scroll only survives when the caller navigates with `resetScroll: false`.
+  const goTo = (next: number) => {
+    onPageChange(next);
+    if (scrollTargetId !== undefined) {
+      // oxlint-disable-next-line unicorn/prefer-query-selector -- an id is not a selector: `#${id}` breaks on characters an id may legally hold
+      document.getElementById(scrollTargetId)?.scrollIntoView({ block: "start" });
+    }
+  };
   const items = getPageItems(page, totalPages);
   return (
     <nav className="flex items-center justify-center gap-1" aria-label={label}>
@@ -29,8 +44,8 @@ export function AdminPager({
         size="icon"
         className="size-8"
         disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        aria-label="Previous page"
+        onClick={() => goTo(page - 1)}
+        aria-label={m.pager_previous_page()}
       >
         <ChevronLeftIcon className="size-4" />
       </Button>
@@ -46,7 +61,7 @@ export function AdminPager({
             size="icon"
             className="size-8 font-mono"
             aria-current={item === page ? "page" : undefined}
-            onClick={() => onPageChange(item)}
+            onClick={() => goTo(item)}
           >
             {item}
           </Button>
@@ -57,8 +72,8 @@ export function AdminPager({
         size="icon"
         className="size-8"
         disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-        aria-label="Next page"
+        onClick={() => goTo(page + 1)}
+        aria-label={m.pager_next_page()}
       >
         <ChevronRightIcon className="size-4" />
       </Button>

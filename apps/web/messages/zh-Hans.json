@@ -5832,6 +5832,7 @@
   "meta_sort_cheapest": "补齐成本最低",
   "meta_sort_lowest_value": "价值最低",
   "meta_sort_highest_value": "价值最高",
+  "meta_sort_page_only": "价格在浏览器中计算，因此仅对当前页排序。",
   "tier_lists_add_tier": "添加梯度",
   "tier_lists_add_unranked_row": "添加未排名行",
   "tier_lists_row_label_aria": "梯度 {position} 的标签",
@@ -6522,7 +6523,15 @@
   "meta_legend_finishes_best_per_legend": "各传奇的最佳成绩",
   "meta_legend_finishes_deck": "卡组",
   "meta_show_fewer": "收起",
-  "meta_show_all_n": "显示全部 {count} 项",
+  "meta_show_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "显示全部 {countFormatted} 项"
+      }
+    }
+  ],
   "meta_deck_incomplete_title": "这份清单并不完整",
   "meta_deck_copying": "正在复制…",
   "meta_deck_copy_played": "{player} 于 {date} 在 {event} 使用了此卡组。",
@@ -7010,6 +7019,20 @@
       }
     }
   ],
+  "meta_shown_decks_page": [
+    {
+      "declarations": [
+        "input shown",
+        "local shownPlural = shown: plural",
+        "local shownFormatted = shown: number"
+      ],
+      "selectors": ["shownPlural"],
+      "match": {
+        "shownPlural=one": "本页 {shownFormatted} 副卡组",
+        "shownPlural=*": "本页 {shownFormatted} 副卡组"
+      }
+    }
+  ],
   "meta_filter_any_finish": "任意名次",
   "meta_filter_legend": "传奇",
   "meta_filter_event": "赛事",
@@ -7027,9 +7050,16 @@
   "meta_events_empty_title": "暂无已归档的赛事",
   "meta_events_empty_description": "赛事一经录入，排名和卡表就会出现在这里。",
   "meta_events_no_match": "没有赛事符合这些筛选条件。",
+  "meta_events_pages_aria": "赛事分页",
+  "pager_previous_page": "上一页",
+  "pager_next_page": "下一页",
+  "meta_page_past_end": "此页已超出结果范围。",
+  "meta_events_per_page_aria": "每页赛事数",
+  "meta_events_per_page": "显示 {size}",
   "meta_events_holdings_any": "全部赛事",
   "meta_events_holdings_decks": "含卡表",
   "meta_events_holdings_standings": "含排名",
+  "meta_events_holdings_resultless": "无成绩",
   "meta_events_holdings_aria": "档案收录内容",
   "meta_events_players_label": "玩家",
   "meta_events_players_min": "最少",
@@ -7063,11 +7093,24 @@
   "meta_standings_none": "本赛事暂无排名记录。",
   "meta_standings_which_entries": "显示哪些参赛记录",
   "meta_standings_all_entries": "全部参赛记录",
-  "meta_standings_with_decklist": "含卡表（{count}）",
+  "meta_standings_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "含卡表（{countFormatted}）"
+      }
+    }
+  ],
   "meta_standings_find_player": "查找选手",
   "meta_standings_find_player_placeholder": "查找选手…",
   "meta_standings_filter_legend": "按传奇筛选",
   "meta_standings_no_entries": "没有符合的参赛记录。",
+  "meta_standings_cost_none_on_page": "本页没有符合价格筛选的参赛记录。价格在浏览器中计算，因此筛选仅适用于当前页。",
+  "meta_standings_pages_aria": "排名分页",
+  "meta_standings_per_page_aria": "每页条目数",
+  "meta_standings_per_page": "显示 {size}",
+  "meta_standings_per_all": "全部",
   "meta_pending_in_review": "审核中",
   "meta_pending_yours_in_review": "你的提交，审核中",
   "meta_pending_update_in_review": "此卡表的更新正在审核",
@@ -7387,10 +7430,34 @@
       }
     }
   ],
-  "meta_front_browse_all": "浏览全部 {count} 项",
-  "meta_front_browse_all_events": "浏览全部 {count} 场赛事",
+  "meta_front_browse_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "浏览全部 {countFormatted} 项"
+      }
+    }
+  ],
+  "meta_front_browse_all_events": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "浏览全部 {countFormatted} 场赛事"
+      }
+    }
+  ],
   "meta_front_coming_up": "近期赛事",
-  "meta_front_all_n": "全部 {count} 项",
+  "meta_front_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "全部 {countFormatted} 项"
+      }
+    }
+  ],
   "meta_front_fresh": "档案新收录",
   "meta_cost_buildable_now": "现在就能凑齐",
   "meta_cost_to_complete_max": "凑齐花费 ≤ {amount}",
@@ -7404,6 +7471,7 @@
   "meta_cost_presets": "凑齐花费预设",
   "meta_cost_max_aria": "凑齐花费上限",
   "meta_cost_any": "不限",
+  "meta_cost_page_only": "价格在浏览器中计算，因此仅筛选当前页。",
   "meta_cost_deck_value": "卡组价值",
   "meta_cost_deck_value_presets": "卡组价值预设",
   "meta_cost_deck_value_range_aria": "卡组价值区间",
@@ -7417,7 +7485,20 @@
   "meta_run_col_list": "清单",
   "meta_run_title_win": "夺冠之路",
   "meta_run_title": "赛事征程",
-  "meta_run_of_players": "／共 {count} 位选手",
+  "meta_run_of_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "／共 {countFormatted} 位选手",
+        "countPlural=*": "／共 {countFormatted} 位选手"
+      }
+    }
+  ],
   "meta_run_final_record": "最终战绩",
   "meta_run_rounds_played": "已打轮次",
   "meta_run_swiss": "瑞士轮",
@@ -7440,6 +7521,9 @@
   "meta_browser_best_per_legend": "每张传奇的最佳清单",
   "meta_browser_every_list": "全部清单",
   "meta_browser_no_match": "没有卡组符合这些筛选条件。",
+  "meta_browser_pages_aria": "套牌分页",
+  "meta_browser_per_page_aria": "每页套牌数",
+  "meta_browser_per_page": "显示 {size}",
   "meta_browser_layout": "布局",
   "meta_browser_sort": "排序",
   "meta_browser_title": "已归档卡组",
@@ -8368,7 +8452,20 @@
   "meta_col_date": "日期",
   "meta_event_contribute_sign_in": "登录后添加卡表",
   "meta_event_contribute_add": "添加卡表",
-  "meta_event_contribute_missing": "{total} 条记录中还有 {missing} 条缺少卡表。每一场赛事都会为贡献者署名。",
+  "meta_event_contribute_missing": [
+    {
+      "declarations": [
+        "input missing",
+        "input total",
+        "local missingFormatted = missing: number",
+        "local totalFormatted = total: number"
+      ],
+      "selectors": ["missingFormatted", "totalFormatted"],
+      "match": {
+        "missingFormatted=*,totalFormatted=*": "{totalFormatted} 条记录中还有 {missingFormatted} 条缺少卡表。每一场赛事都会为贡献者署名。"
+      }
+    }
+  ],
   "meta_deck_preview_sign_in_compare": "登录后与你的收藏比对",
   "meta_deck_preview_open_deck": "打开卡组",
   "meta_event_header_champion": "冠军",
@@ -8387,11 +8484,15 @@
   "meta_front_scope_empty": "此范围暂无成绩记录。",
   "meta_front_resultless": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "另有 {count} 场赛事尚无成绩。",
-        "countPlural=*": "另有 {count} 场赛事尚无成绩。"
+        "countPlural=one": "另有 {countFormatted} 场赛事尚无成绩。",
+        "countPlural=*": "另有 {countFormatted} 场赛事尚无成绩。"
       }
     }
   ],
@@ -8891,6 +8992,145 @@
       "match": {
         "countPlural=one": "{count} 张卡将留在你的{source}，同时加入你的{target}。",
         "countPlural=*": "{count} 张卡将留在你的{source}，同时加入你的{target}。"
+      }
+    }
+  ],
+  "meta_standings_count_entries": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 条参赛记录",
+        "countPlural=*": "{countFormatted} 条参赛记录"
+      }
+    }
+  ],
+  "meta_standings_count_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} 条含卡表"
+      }
+    }
+  ],
+  "meta_count_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 场赛事",
+        "countPlural=*": "{countFormatted} 场赛事"
+      }
+    }
+  ],
+  "meta_count_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 份卡表",
+        "countPlural=*": "{countFormatted} 份卡表"
+      }
+    }
+  ],
+  "meta_count_event_wins": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 次赛事冠军",
+        "countPlural=*": "{countFormatted} 次赛事冠军"
+      }
+    }
+  ],
+  "meta_count_finishes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 项成绩",
+        "countPlural=*": "{countFormatted} 项成绩"
+      }
+    }
+  ],
+  "meta_player_legends_without_legend": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 项成绩没有传奇记录",
+        "countPlural=*": "{countFormatted} 项成绩没有传奇记录"
+      }
+    }
+  ],
+  "meta_run_count_rounds": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 轮",
+        "countPlural=*": "{countFormatted} 轮"
+      }
+    }
+  ],
+  "meta_run_best_of": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} 局制"
+      }
+    }
+  ],
+  "meta_upcoming_registered": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 人报名",
+        "countPlural=*": "{countFormatted} 人报名"
+      }
+    }
+  ],
+  "meta_deck_of_field": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "／共 {countFormatted}"
       }
     }
   ]

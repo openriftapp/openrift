@@ -8,8 +8,8 @@ import { useState } from "react";
 import { PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/ui/pager";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { AdminPager } from "@/features/admin/components/admin-pager";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { MetaEventDialog } from "@/features/admin/components/meta-event-dialog";
@@ -226,12 +226,7 @@ export function MetaEventsPage() {
         }}
       />
 
-      <AdminPager
-        page={page}
-        totalPages={totalPages}
-        onPageChange={goToPage}
-        label="Archive pages"
-      />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Archive pages" />
 
       {dialog && (
         <MetaEventDialog

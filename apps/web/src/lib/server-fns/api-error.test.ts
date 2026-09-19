@@ -5,7 +5,9 @@ import {
   apiErrorFromResponse,
   errorStatus,
   isApiError,
+  isRetryableError,
   isSessionExpiredError,
+  notFoundError,
 } from "./api-error";
 
 function mockResponse(body: string, init: { status?: number; statusText?: string } = {}) {
@@ -34,6 +36,59 @@ describe("errorStatus", () => {
     expect(errorStatus({ status: "500" })).toBeUndefined();
     expect(errorStatus(null)).toBeUndefined();
     expect(errorStatus("boom")).toBeUndefined();
+  });
+});
+
+describe("notFoundError", () => {
+  it("carries the NOT_FOUND message the route loaders match on", () => {
+    const error = notFoundError();
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe("NOT_FOUND");
+  });
+
+  it("carries status 404 as an own property, so it survives the server-function boundary", () => {
+    const error = notFoundError();
+
+    expect(errorStatus(error)).toBe(404);
+    expect(Object.getOwnPropertyNames(error)).toContain("status");
+  });
+});
+
+describe("isRetryableError", () => {
+  it("returns false for a 404, a 401 and a 400", () => {
+    expect(isRetryableError(notFoundError())).toBe(false);
+    expect(isRetryableError({ status: 401 })).toBe(false);
+    expect(isRetryableError(new ApiError("Bad input", { status: 400, diagnostic: "" }))).toBe(
+      false,
+    );
+  });
+
+  it("returns true for a 408, since it reports a timeout", () => {
+    expect(isRetryableError({ status: 408 })).toBe(true);
+  });
+
+  it("returns true for a 429, since the rate limit lifts on its own", () => {
+    expect(isRetryableError({ status: 429 })).toBe(true);
+    expect(isRetryableError(new ApiError("Slow down", { status: 429, diagnostic: "" }))).toBe(true);
+  });
+
+  it("returns false for the other 4xx around 429", () => {
+    expect(isRetryableError({ status: 409 })).toBe(false);
+    expect(isRetryableError({ status: 422 })).toBe(false);
+    expect(isRetryableError({ status: 428 })).toBe(false);
+    expect(isRetryableError({ status: 431 })).toBe(false);
+  });
+
+  it("returns true for a 500 and a 503", () => {
+    expect(isRetryableError(new ApiError("Boom", { status: 500, diagnostic: "" }))).toBe(true);
+    expect(isRetryableError({ status: 503 })).toBe(true);
+  });
+
+  it("returns true for an unclassifiable error, so a network blip keeps its retries", () => {
+    expect(isRetryableError(new Error("Failed to fetch"))).toBe(true);
+    expect(isRetryableError(null)).toBe(true);
+    expect(isRetryableError("boom")).toBe(true);
   });
 });
 

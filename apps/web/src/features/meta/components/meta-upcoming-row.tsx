@@ -6,6 +6,7 @@ import { CountryFlag } from "@/components/ui/country-flag";
 import { DateLeaf } from "@/components/ui/date-leaf";
 import { MetaTierBadge } from "@/features/meta/components/meta-tier-badge";
 import { DATE_WORDS } from "@/lib/date-words";
+import { m } from "@/paraglide/messages.js";
 
 export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
   const leaf = dateLeafPartsUtc(event.eventDate, DATE_WORDS);
@@ -25,7 +26,7 @@ export function MetaUpcomingRow({ event }: { event: MetaEventSummary }) {
           <CountryFlag code={event.country} size="sm" />
           {event.playerCount !== null && (
             <span className="tabular-nums">
-              {event.playerCount.toLocaleString("en-US")} registered
+              {m.meta_upcoming_registered({ count: event.playerCount })}
             </span>
           )}
         </span>

@@ -7,7 +7,6 @@ import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { MetaArchiveDeckTile } from "@/features/meta/components/meta-archive-deck-tile";
 import { MetaPlayerDeckTile } from "@/features/meta/components/meta-player-deck-tile";
 import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
-import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -69,7 +68,7 @@ export function MetaArchivedDecks({
               }
             }}
           >
-            {expanded ? m.meta_show_fewer() : m.meta_show_all_n({ count: formatCount(total) })}
+            {expanded ? m.meta_show_fewer() : m.meta_show_all_n({ count: total })}
           </Button>
         )}
       </div>

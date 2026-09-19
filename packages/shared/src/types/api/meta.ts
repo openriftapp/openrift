@@ -38,10 +38,22 @@ import type {
 } from "../../contracts/meta-submissions.js";
 import type {
   metaDeckCardIndexResponseSchema,
+  metaDeckCardsQuerySchema,
+  metaDeckFacetsQuerySchema,
+  metaDeckFacetsResponseSchema,
+  metaDeckQuerySchema,
   metaDeckDetailResponseSchema,
   metaDeckListResponseSchema,
   metaDeckSummarySchema,
   metaEventDetailResponseSchema,
+  metaEventFieldSchema,
+  metaEventRunResponseSchema,
+  metaEventStandingsQuerySchema,
+  metaEventStandingsResponseSchema,
+  metaRunOutcomeSchema,
+  metaRunRoundSchema,
+  metaStandingsRoundSchema,
+  metaStandingsRowSchema,
   metaEventDetailSchema,
   metaPendingSubmissionSchema,
   metaPendingSubmissionsResponseSchema,
@@ -57,6 +69,9 @@ import type {
   metaCountsQuerySchema,
   metaEventDayCountsQuerySchema,
   metaEventDayCountsResponseSchema,
+  metaEventFacetsResponseSchema,
+  metaEventFilterQuerySchema,
+  metaEventListQuerySchema,
   metaCountsResponseSchema,
   metaScopeQuerySchema,
   metaLegendDetailResponseSchema,
@@ -93,6 +108,23 @@ export type MetaActivityResponse = z.infer<typeof metaActivityResponseSchema>;
 
 export type MetaEventDetailResponse = z.infer<typeof metaEventDetailResponseSchema>;
 
+export type MetaEventField = z.infer<typeof metaEventFieldSchema>;
+
+/** A standings row with the rounds its strip draws. */
+export type MetaStandingsRow = z.infer<typeof metaStandingsRowSchema>;
+
+export type MetaStandingsRound = z.infer<typeof metaStandingsRoundSchema>;
+
+export type MetaRunOutcome = z.infer<typeof metaRunOutcomeSchema>;
+
+export type MetaRunRound = z.infer<typeof metaRunRoundSchema>;
+
+export type MetaEventStandingsQuery = z.infer<typeof metaEventStandingsQuerySchema>;
+
+export type MetaEventStandingsResponse = z.infer<typeof metaEventStandingsResponseSchema>;
+
+export type MetaEventRunResponse = z.infer<typeof metaEventRunResponseSchema>;
+
 export type MetaPendingSubmission = z.infer<typeof metaPendingSubmissionSchema>;
 
 export type MetaPendingSubmissionsResponse = z.infer<typeof metaPendingSubmissionsResponseSchema>;
@@ -101,6 +133,14 @@ export type MetaDeckListResponse = z.infer<typeof metaDeckListResponseSchema>;
 
 export type MetaDeckCardIndexResponse = z.infer<typeof metaDeckCardIndexResponseSchema>;
 
+export type MetaDeckCardsQuery = z.infer<typeof metaDeckCardsQuerySchema>;
+
+export type MetaDeckQuery = z.infer<typeof metaDeckQuerySchema>;
+
+export type MetaDeckFacetsQuery = z.infer<typeof metaDeckFacetsQuerySchema>;
+
+export type MetaDeckFacetsResponse = z.infer<typeof metaDeckFacetsResponseSchema>;
+
 export type MetaDeckDetailResponse = z.infer<typeof metaDeckDetailResponseSchema>;
 
 export type MetaCountsResponse = z.infer<typeof metaCountsResponseSchema>;
@@ -108,8 +148,6 @@ export type MetaCountsResponse = z.infer<typeof metaCountsResponseSchema>;
 export type MetaLegendFinish = z.infer<typeof metaLegendFinishSchema>;
 
 export type MetaLegendSummary = z.infer<typeof metaLegendSummarySchema>;
-
-export type { MetaLegendEventRecord } from "../../contracts/meta.js";
 
 export type MetaLegendListResponse = z.infer<typeof metaLegendListResponseSchema>;
 
@@ -126,6 +164,12 @@ export type MetaCountsQuery = z.infer<typeof metaCountsQuerySchema>;
 export type MetaEventDayCountsQuery = z.infer<typeof metaEventDayCountsQuerySchema>;
 
 export type MetaEventDayCountsResponse = z.infer<typeof metaEventDayCountsResponseSchema>;
+
+export type MetaEventFilterQuery = z.infer<typeof metaEventFilterQuerySchema>;
+
+export type MetaEventListQuery = z.infer<typeof metaEventListQuerySchema>;
+
+export type MetaEventFacetsResponse = z.infer<typeof metaEventFacetsResponseSchema>;
 
 export type AdminMetaEvent = z.infer<typeof adminMetaEventSchema>;
 

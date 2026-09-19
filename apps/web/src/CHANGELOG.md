@@ -8,17 +8,23 @@
 - feat(Collection): **Add a selection to a collection** — every list can now create owned copies, and drag-and-drop or the right-click menu acts on all the cards you picked with Manage.
 - feat(Groups): **Mark borrowed cards returned** — you can now record that you gave a borrowed card back, and the lender confirms it or puts the loan back out.
 - fix(Meta): **Missing events with common names** — events sharing a name with many others, such as weekly store nights and Chinese events, were not added to the archive. They are now added.
+- fix(Meta): **Paged event index and deck browser** — both stopped loading past 65,000 events and now come 50 to a page, sorted and filtered across all of it.
+- fix(Meta): **Faster event pages** — a large event pulled every standings row before it could draw, and now comes 200 to a page.
+- fix(Meta): **Price controls name their scope** — prices are worked out in your browser, so the cost filters and price sorts now say they cover one page.
 
 ### Other
 
 - feat(Collection): **Manage dynamic list entries** — cards a list rule fills in can now be picked in Manage and copied or added to a collection along with the rest.
 - feat(Collection): **Clearer card selection** — picked cards now carry a gold seal instead of a checkbox and a ring, and the table views mark picked rows as well.
-- fix(Tournaments): **Steady deck check ticking** — cards no longer blink when you tick them, and the found mark now matches the one on picked cards.
-- fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.
-
 - feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.
-- fix(Meta): **Events without results on the archive page** — the Meta Archive page now says how many matching events have no results yet and links to them in the event index, keeping your search and era.
 - feat(Groups): **Dispute a loan at any time** — a borrowed card's menu now offers “I don't have this” for as long as the loan is open, not only before you confirm it.
+- feat(Meta): **Views you can link to** — the page you are on, its size, the standings search, the decklist toggle and the legend picker all ride in the address bar.
+- feat(Meta): **Search for your tournament** — the decklist form finds your event as you type, instead of asking you to scroll a list of every event in the archive.
+- fix(Tournaments): **Steady deck check ticking** — cards no longer blink when you tick them, and the found mark now matches the one on picked cards.
+- fix(Meta): **Counts in your language** — entry, decklist and player counts now use your language's plural forms and number format.
+- fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.
+- fix(Meta): **Events without results on the archive page** — the Meta Archive page now says how many matching events have no results yet and links to them in the event index, keeping your search and era.
+- fix(Meta): **Full legend names in the pickers** — event standings and the deck browser left the champion off each legend's name, so Azir filed under E.
 
 ## 2026-09-18
 

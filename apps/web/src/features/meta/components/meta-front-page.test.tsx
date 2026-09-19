@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
   events: [] as MetaEventSummary[],
-  ranges: [] as unknown[],
+  queries: [] as Record<string, unknown>[],
   counts: {
     totalPlayers: 0,
     decksWithMainDeck: 0,
@@ -57,15 +57,79 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaEvents: (range?: unknown) => {
-    captured.ranges.push(range);
-    return { data: { events: captured.events } };
-  },
-  useMetaEventDayCounts: () => ({ data: { days: {} } }),
-  useMetaCounts: () => ({ data: captured.counts }),
-  useMetaActivity: () => ({ data: { items: captured.activity } }),
-}));
+// Stands in for the index endpoint: each section is its own filtered,
+// ordered, capped read, and the page renders whatever comes back.
+vi.mock("@/features/meta/hooks/use-meta", () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const held = (row: MetaEventSummary, holds: unknown) => {
+    if (holds === "decks") {
+      return row.deckCount > 0;
+    }
+    if (holds === "upcoming") {
+      return row.eventDate > today;
+    }
+    if (holds === "resultless") {
+      return row.playerRowCount === 0 && row.eventDate <= today;
+    }
+    return row.playerRowCount > 0;
+  };
+  return {
+    useMetaEventPage: (query: Record<string, unknown>) => {
+      captured.queries.push(query);
+      const tiers = query.tiers as string[] | undefined;
+      const matching = captured.events.filter(
+        (row) =>
+          held(row, query.holds) &&
+          (tiers === undefined || tiers.includes(row.tier)) &&
+          (typeof query.q !== "string" || row.name.toLowerCase().includes(query.q.toLowerCase())),
+      );
+      const ordered = matching.toSorted((left, right) =>
+        query.dir === "asc"
+          ? left.eventDate.localeCompare(right.eventDate)
+          : right.eventDate.localeCompare(left.eventDate),
+      );
+      return {
+        data: {
+          events: ordered.slice(0, query.limit as number),
+          total: matching.length,
+        },
+      };
+    },
+    useMetaEventFacets: (query: Record<string, unknown>) => {
+      const tiers = query.tiers as string[] | undefined;
+      const scoped = captured.events.filter(
+        (row) =>
+          (query.holds !== "decks" || row.deckCount > 0) &&
+          (tiers === undefined || tiers.includes(row.tier)) &&
+          (typeof query.q !== "string" || row.name.toLowerCase().includes(query.q.toLowerCase())),
+      );
+      const count = (keep: (row: MetaEventSummary) => boolean) =>
+        scoped.filter((row) => keep(row)).length;
+      return {
+        data: {
+          formats: [],
+          tiers: [],
+          countries: [],
+          holdings: {
+            all: scoped.length,
+            decks: count((row) => row.deckCount > 0),
+            standings: count((row) => row.playerRowCount > 0),
+            upcoming: count((row) => row.eventDate > today),
+            resultless: count((row) => row.playerRowCount === 0 && row.eventDate <= today),
+          },
+          totals: {
+            events: scoped.length,
+            playerRows: scoped.reduce((sum, row) => sum + row.playerRowCount, 0),
+            decks: scoped.reduce((sum, row) => sum + row.deckCount, 0),
+          },
+        },
+      };
+    },
+    useMetaEventDayCounts: () => ({ data: { days: {} } }),
+    useMetaCounts: () => ({ data: captured.counts }),
+    useMetaActivity: () => ({ data: { items: captured.activity } }),
+  };
+});
 
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({ useMetaEras: () => [] }));
 
@@ -171,7 +235,7 @@ function activityItem(overrides: Partial<MetaActivityItem> = {}): MetaActivityIt
 beforeEach(() => {
   navigate.mockReset();
   captured.events = [event()];
-  captured.ranges = [];
+  captured.queries = [];
   captured.counts = {
     totalPlayers: 0,
     decksWithMainDeck: 0,
@@ -312,6 +376,27 @@ describe("MetaFrontPage", () => {
     expect(screen.queryByRole("heading", { name: "Premier" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Competitive" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Local" })).toBeInTheDocument();
+  });
+
+  it("leaves out a tier section the scope excludes", () => {
+    captured.search = { tiersEx: ["premier"] };
+    captured.events = [event(), event({ id: "evt-2", name: "Store Night", tier: "local" })];
+
+    render(<MetaFrontPage />);
+
+    expect(screen.queryByRole("heading", { name: "Premier" })).not.toBeInTheDocument();
+    expect(within(section("Local")).getByText("Store Night")).toBeInTheDocument();
+  });
+
+  it("leaves out every tier section but the one the scope includes", () => {
+    captured.search = { tiers: ["local"] };
+    captured.events = [event(), event({ id: "evt-2", name: "Store Night", tier: "local" })];
+
+    render(<MetaFrontPage />);
+
+    expect(screen.queryByRole("heading", { name: "Premier" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Competitive" })).not.toBeInTheDocument();
+    expect(within(section("Local")).getByText("Store Night")).toBeInTheDocument();
   });
 
   it("names a store row's winner and the legend they played", () => {
@@ -455,12 +540,23 @@ describe("MetaFrontPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("groups the thousands in the archive-wide event count", () => {
+    captured.events = [event({ tier: "local" })];
+    captured.counts = { ...captured.counts, totalEvents: 2054 };
+
+    render(<MetaFrontPage />);
+
+    expect(
+      within(section("Local")).getByRole("link", { name: "Browse all 2,054 events" }),
+    ).toBeInTheDocument();
+  });
+
   it("asks for the era the scope names rather than the whole archive", () => {
     captured.search = { era: "custom", from: "2026-03-01", to: "2026-09-30" };
 
     render(<MetaFrontPage />);
 
-    expect(captured.ranges).toContainEqual({ from: "2026-03-01", to: "2026-09-30" });
+    expect(captured.queries.at(-1)).toMatchObject({ from: "2026-03-01", to: "2026-09-30" });
   });
 
   it("holds an event with no results out of the tier sections and in the rail", () => {
@@ -495,6 +591,21 @@ describe("MetaFrontPage", () => {
     const link = within(section("Coming up")).getByRole("link", { name: "All 2" });
     expect(link).toHaveAttribute("href", "/meta/events");
     expect(link).toHaveAttribute(
+      "data-search",
+      JSON.stringify({ holds: "upcoming", by: "date", dir: "asc" }),
+    );
+  });
+
+  it("leaves this page's own decklist toggle out of the upcoming link", () => {
+    captured.search = { decks: true };
+    captured.events = [
+      event(),
+      event({ id: "evt-2", slug: "worlds-2099", name: "Worlds 2099", eventDate: "2099-06-01" }),
+    ];
+
+    render(<MetaFrontPage />);
+
+    expect(within(section("Coming up")).getByRole("link", { name: "All 1" })).toHaveAttribute(
       "data-search",
       JSON.stringify({ holds: "upcoming", by: "date", dir: "asc" }),
     );
@@ -541,7 +652,10 @@ describe("MetaFrontPage", () => {
     expect(screen.getByText(/There are 2 more events without results\./u)).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "Check them on the event page" });
     expect(link).toHaveAttribute("href", "/meta/events");
-    expect(link).toHaveAttribute("data-search", JSON.stringify({ era: "all", q: "allerlei" }));
+    expect(link).toHaveAttribute(
+      "data-search",
+      JSON.stringify({ era: "all", q: "allerlei", holds: "resultless" }),
+    );
   });
 
   it("lists the resultless count below events that have results", () => {
@@ -554,7 +668,7 @@ describe("MetaFrontPage", () => {
     expect(screen.getByRole("link", { name: "Check it on the event page" })).toBeInTheDocument();
   });
 
-  it("carries the decklist toggle over as the index's decks holding", () => {
+  it("narrows the index to the events without results, dropping the decklist toggle", () => {
     captured.search = { decks: true };
     captured.events = [event({ playerRowCount: 0, topFinishes: [] })];
 
@@ -562,7 +676,7 @@ describe("MetaFrontPage", () => {
 
     expect(screen.getByRole("link", { name: "Check it on the event page" })).toHaveAttribute(
       "data-search",
-      JSON.stringify({ holds: "decks" }),
+      JSON.stringify({ holds: "resultless" }),
     );
   });
 

@@ -1,31 +1,18 @@
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventField } from "@openrift/shared/types/api/meta";
 
-import { formatRecord } from "@/features/meta/lib/meta-format";
 import { m } from "@/paraglide/messages.js";
 
 export const ANY_LEGEND = "any";
 
 /** The legends the field played, alphabetical. Keyed by card id so legends sharing a champion stay apart. */
-export function legendOptions(players: readonly MetaEventPlayer[]): Record<string, string> {
-  const counts = new Map<string, { name: string; count: number }>();
-  for (const player of players) {
-    if (player.legend === null) {
-      continue;
-    }
-    const seen = counts.get(player.legend.cardId);
-    counts.set(player.legend.cardId, {
-      name: player.legend.name,
-      count: (seen?.count ?? 0) + 1,
-    });
-  }
-  if (counts.size < 2) {
+export function legendOptions(legends: MetaEventField["legends"]): Record<string, string> {
+  if (legends.length < 2) {
     return {};
   }
-  const ordered = [...counts.entries()].toSorted((a, b) => a[1].name.localeCompare(b[1].name));
   return {
     [ANY_LEGEND]: m.meta_standings_any_legend(),
     ...Object.fromEntries(
-      ordered.map(([cardId, entry]) => [cardId, `${entry.name} (${entry.count})`]),
+      legends.map((legend) => [legend.cardId, `${legend.name} (${legend.count})`]),
     ),
   };
 }
@@ -44,27 +31,21 @@ export interface StandingsColumns {
   deck: boolean;
 }
 
-export function standingsColumns(
-  players: readonly MetaEventPlayer[],
-  canSubmit: boolean,
-  hasRuns: boolean,
-): StandingsColumns {
-  const anyList = players.some((player) => player.shareToken !== null);
+export function standingsColumns(field: MetaEventField, canSubmit: boolean): StandingsColumns {
+  const anyList = field.withLists > 0;
   return {
-    legend: players.some((player) => player.legend !== null || player.champion !== null),
-    run: hasRuns,
-    record: players.some(
-      (player) => formatRecord(player.wins, player.losses, player.draws) !== null,
-    ),
+    legend: field.hasLegends,
+    run: field.hasRuns,
+    record: field.hasRecords,
     value: anyList,
     deck: canSubmit || anyList,
   };
 }
 
 export function subtitleFor(total: number, withLists: number): string {
-  const entries = `${total.toLocaleString("en-US")} ${total === 1 ? "entry" : "entries"}`;
+  const entries = m.meta_standings_count_entries({ count: total });
   if (withLists === 0) {
     return entries;
   }
-  return `${entries} · ${withLists.toLocaleString("en-US")} with a decklist`;
+  return `${entries} · ${m.meta_standings_count_with_decklist({ count: withLists })}`;
 }

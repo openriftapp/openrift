@@ -6,6 +6,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { userShareKeys } from "@/features/groups/lib/groups-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -21,7 +22,7 @@ const fetchPublicUserBundleFn = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -47,7 +48,7 @@ const fetchPublicUserBundleListFn = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

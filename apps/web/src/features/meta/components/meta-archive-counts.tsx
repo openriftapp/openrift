@@ -1,9 +1,5 @@
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
-// Pinned to `en-US` grouping (not the runtime's locale): the page is server-rendered,
-// and a server on a different locale would otherwise mismatch what the browser renders.
-function grouped(value: number): string {
-  return value.toLocaleString("en-US");
-}
 
 export function MetaArchiveCounts({
   eventCount,
@@ -27,7 +23,7 @@ function CountItem({ value, label }: { value: number; label: string }) {
   return (
     <p className="flex flex-col gap-0.5">
       <span className="font-heading text-2xl leading-none font-bold tabular-nums">
-        {grouped(value)}
+        {formatCount(value)}
       </span>
       <span className="text-muted-foreground text-xs">{label}</span>
     </p>

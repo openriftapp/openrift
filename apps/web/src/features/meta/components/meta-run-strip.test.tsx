@@ -1,11 +1,10 @@
+import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
-
 import { MetaRunStrip, runStripLabel } from "./meta-run-strip";
 
-function round(overrides: Partial<MetaPlayerRound> = {}): MetaPlayerRound {
+function round(overrides: Partial<MetaRunRound> = {}): MetaRunRound {
   return {
     phaseOrder: 1,
     roundNumber: 1,

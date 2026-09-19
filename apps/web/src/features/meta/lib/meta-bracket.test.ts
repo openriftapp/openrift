@@ -1,7 +1,13 @@
-import type { MetaEventMatch, MetaEventPhase } from "@openrift/shared/types/api/meta";
+import type {
+  MetaEventMatch,
+  MetaEventPhase,
+  MetaEventPlayer,
+} from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
-import { metaEventBracket } from "./meta-bracket";
+import { metaPlayer } from "@/test/meta-event-fixtures";
+
+import { bracketPlayers, metaEventBracket } from "./meta-bracket";
 
 function match(overrides: Partial<MetaEventMatch> = {}): MetaEventMatch {
   return {
@@ -244,5 +250,22 @@ describe("metaEventBracket seats", () => {
     const bracket = metaEventBracket(TOP_8, [phase()]);
     const keys = bracket?.rounds.flatMap((entry) => entry.matches.map((one) => one.key)) ?? [];
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("bracketPlayers", () => {
+  const player = (id: string, playerName: string): MetaEventPlayer =>
+    metaPlayer({ id, playerName });
+
+  it("names a player the standings page does not carry", () => {
+    const players = bracketPlayers([player("p1", "Ana")], [player("p9", "Zed")]);
+
+    expect(players.map((entry) => entry.id)).toEqual(["p1", "p9"]);
+  });
+
+  it("keeps the standings row for a player both lists hold", () => {
+    const players = bracketPlayers([player("p1", "Ana")], [player("p1", "Ana, again")]);
+
+    expect(players).toEqual([player("p1", "Ana")]);
   });
 });

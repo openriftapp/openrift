@@ -4,7 +4,12 @@ import { m } from "@/paraglide/messages.js";
 
 import { sessionQueryOptions } from "./auth-session";
 import { captureHandledError } from "./report-error";
-import { errorStatus, isApiError, isSessionExpiredError } from "./server-fns/api-error";
+import {
+  errorStatus,
+  isApiError,
+  isRetryableError,
+  isSessionExpiredError,
+} from "./server-fns/api-error";
 import { isStaleServerFnError, reloadIfStaleServerFnError } from "./stale-bundle-reload";
 import { PERSISTENT_ERROR_TOAST, toastError } from "./toast";
 import { toastableMessage } from "./toastable-message";
@@ -52,7 +57,7 @@ export function createQueryClient() {
     defaultOptions: {
       queries: {
         retry: (failureCount, error) =>
-          !isSessionExpiredError(error) &&
+          isRetryableError(error) &&
           !isStaleServerFnError(error) &&
           globalThis.window !== undefined &&
           failureCount < 3,

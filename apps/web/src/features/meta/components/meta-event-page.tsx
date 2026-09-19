@@ -26,6 +26,7 @@ import { MetaEventLegendFinishes } from "@/features/meta/components/meta-event-l
 import { MetaEventPendingList } from "@/features/meta/components/meta-event-pending-list";
 import { MetaEventStandings } from "@/features/meta/components/meta-event-standings";
 import { useMetaEvent, useMetaPendingSubmissions } from "@/features/meta/hooks/use-meta";
+import { bracketPlayers } from "@/features/meta/lib/meta-bracket";
 import {
   groupPendingSubmissions,
   NO_PENDING_SUBMISSIONS,
@@ -66,12 +67,10 @@ function EventActionsMenu({ event }: { event: MetaEventDetail }) {
 
 export function MetaEventPage({ slug }: { slug: string }) {
   const { data } = useMetaEvent(slug);
-  const { event, players, matches, phases } = data;
+  const { event, standings, field, bestPerLegend, cutMatches, phases } = data;
   const { data: pendingData } = useMetaPendingSubmissions(slug);
   const pending =
-    pendingData === undefined
-      ? NO_PENDING_SUBMISSIONS
-      : groupPendingSubmissions(pendingData.items, players);
+    pendingData === undefined ? NO_PENDING_SUBMISSIONS : groupPendingSubmissions(pendingData.items);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -94,8 +93,8 @@ export function MetaEventPage({ slug }: { slug: string }) {
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-10")}>
         <MetaEventHeader
           event={event}
-          players={players}
-          matches={matches}
+          champion={standings.players.find((player) => player.rank === 1) ?? null}
+          field={field}
           phases={phases}
           slug={slug}
         />
@@ -107,13 +106,17 @@ export function MetaEventPage({ slug }: { slug: string }) {
           </div>
         )}
 
-        <MetaEventBracket matches={matches} phases={phases} players={players} />
+        <MetaEventBracket
+          matches={cutMatches}
+          phases={phases}
+          players={bracketPlayers(standings.players, bestPerLegend)}
+        />
 
-        <MetaEventLegendFinishes players={players} matches={matches} phases={phases} slug={slug} />
+        <MetaEventLegendFinishes entries={bestPerLegend} phases={phases} slug={slug} />
 
         <MetaEventStandings
-          players={players}
-          matches={matches}
+          firstPage={standings}
+          field={field}
           phases={phases}
           slug={slug}
           eventDate={event.eventDate}
@@ -124,7 +127,12 @@ export function MetaEventPage({ slug }: { slug: string }) {
         <MetaEventPendingList items={pending.unmatched} />
 
         <div className="mt-8">
-          <MetaEventContributeBand event={event} players={players} slug={slug} />
+          <MetaEventContributeBand
+            event={event}
+            entries={standings.total}
+            withLists={field.withLists}
+            slug={slug}
+          />
         </div>
 
         <p className="text-muted-foreground mt-8 text-sm">

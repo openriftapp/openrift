@@ -1,8 +1,8 @@
+import type { MetaDeckCardsQuery } from "@openrift/shared/types/api/meta";
 import { useEffect } from "react";
 
 import { useMetaDeckCosts } from "@/features/meta/hooks/use-meta-deck-costs";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import type { MetaDateRange } from "@/features/meta/lib/meta-scope";
 
 /**
  * Client-only: the copies live query has no server snapshot, and the catalog
@@ -12,15 +12,15 @@ import type { MetaDateRange } from "@/features/meta/lib/meta-scope";
 export function MetaDeckCostsBridge({
   includeSideboard,
   withCollection,
-  range,
+  decks,
   onChange,
 }: {
   includeSideboard: boolean;
   withCollection: boolean;
-  range?: MetaDateRange;
+  decks?: MetaDeckCardsQuery;
   onChange: (value: ReadonlyMap<string, MetaDeckCost> | undefined) => void;
 }) {
-  const costs = useMetaDeckCosts(includeSideboard, { withCollection, range });
+  const costs = useMetaDeckCosts(includeSideboard, { withCollection, decks });
   useEffect(() => {
     onChange(costs);
   }, [costs, onChange]);

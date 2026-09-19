@@ -10,6 +10,8 @@ import { stubPrinting } from "@/test/factories";
 
 const captured = vi.hoisted(() => ({
   events: [] as MetaEventSummary[],
+  /** Pins the picker's list, as the debounce and `keepPreviousData` do between keystrokes. */
+  searchResults: null as MetaEventSummary[] | null,
   printings: [] as Printing[],
   outcome: null as MetaSubmissionOutcome | null,
 }));
@@ -17,7 +19,22 @@ const captured = vi.hoisted(() => ({
 const mutateAsync = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaEvents: () => ({ data: { events: captured.events } }),
+  useMetaEventPage: (query: { slug?: string }) => {
+    const matching =
+      query.slug === undefined
+        ? captured.events
+        : captured.events.filter((event) => event.slug === query.slug);
+    return { data: { events: matching.slice(0, 1), total: matching.length } };
+  },
+  useMetaEventSearch: (needle: string) => ({
+    data: {
+      events:
+        captured.searchResults ??
+        captured.events.filter((event) =>
+          event.name.toLowerCase().includes(needle.trim().toLowerCase()),
+        ),
+    },
+  }),
 }));
 
 vi.mock("@/features/cards/hooks/use-cards", () => ({
@@ -114,6 +131,7 @@ const ROW_PREFILL = {
 beforeEach(() => {
   mutateAsync.mockReset();
   captured.events = [EVENT];
+  captured.searchResults = null;
   captured.printings = [
     stubPrinting({
       cardId: LEGEND_CARD_ID,
@@ -135,9 +153,9 @@ async function pasteDeck(text: string): Promise<void> {
   });
 }
 
-async function pickEvent(): Promise<void> {
+async function pickEvent(name = /Summoner Skirmish/u): Promise<void> {
   await userEvent.click(screen.getByLabelText("Tournament"));
-  await userEvent.click(await screen.findByRole("option", { name: /Summoner Skirmish/u }));
+  await userEvent.click(await screen.findByRole("option", { name }));
 }
 
 function send(): Promise<void> {
@@ -337,6 +355,22 @@ describe("MetaSubmitPage without a standings row", () => {
     expect(screen.getByLabelText("Who played it")).toBeInTheDocument();
   });
 
+  it("offers the picker for a link naming an event the archive does not hold", () => {
+    render(<MetaSubmitPage slug="mystery-cup" />);
+
+    expect(screen.getByLabelText("Tournament")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tournament name")).not.toBeInTheDocument();
+  });
+
+  it("opens on the proposal form only when the archive holds no event at all", () => {
+    captured.events = [];
+
+    render(<MetaSubmitPage />);
+
+    expect(screen.getByLabelText("Tournament name")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tournament")).not.toBeInTheDocument();
+  });
+
   it("submits against an event the archive already has", async () => {
     render(<MetaSubmitPage />);
     await pickEvent();
@@ -354,6 +388,37 @@ describe("MetaSubmitPage without a standings row", () => {
       listStatus: "full",
       cards: expect.arrayContaining([{ name: "Blade of the Exile", zone: "main", quantity: 3 }]),
     });
+  });
+
+  it("keeps the second tournament when the reader picks again", async () => {
+    const other = { ...EVENT, id: "event-2", slug: "rift-open-berlin", name: "Rift Open Berlin" };
+    captured.events = [EVENT, other];
+    captured.searchResults = [EVENT, other];
+    render(<MetaSubmitPage />);
+    await pickEvent();
+    await pickEvent(/Rift Open Berlin/u);
+    await userEvent.type(screen.getByLabelText("Who played it"), "Kira");
+    await pasteDeck(FULL_DECK);
+    await send();
+
+    expect(mutateAsync.mock.calls[0]![0]).toMatchObject({ metaEventId: "event-2" });
+  });
+
+  it("forgets the tournament once the reader types over it", async () => {
+    render(<MetaSubmitPage />);
+    await pickEvent();
+    await userEvent.clear(screen.getByLabelText("Tournament"));
+    await userEvent.type(screen.getByLabelText("Who played it"), "Kira");
+    await pasteDeck(FULL_DECK);
+    await send();
+
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("labels the tournament box, so clicking the label puts the cursor in it", async () => {
+    render(<MetaSubmitPage />);
+
+    expect(screen.getByLabelText("Tournament")).toHaveAttribute("id", "meta-submit-event");
   });
 
   it("proposes a tournament the archive does not have", async () => {

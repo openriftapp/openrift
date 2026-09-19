@@ -14,7 +14,7 @@ import { MetaLegendHero } from "@/features/meta/components/meta-legend-hero";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { useMetaLegend } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
-import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
+import { DECK_GRID_ALL_LIMIT, DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { splitLegendName } from "@/features/meta/lib/meta-format";
 import { metaScopedCountries } from "@/features/meta/lib/meta-legend-page";
 import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/lib/meta-queries";
@@ -80,7 +80,7 @@ function LegendDecks({
     ...metaDecksQueryOptions({
       ...query,
       legend: legendCardId,
-      limit: showAll ? undefined : DECK_GRID_LIMIT,
+      limit: showAll ? DECK_GRID_ALL_LIMIT : DECK_GRID_LIMIT,
     }),
     placeholderData: keepPreviousData,
   });

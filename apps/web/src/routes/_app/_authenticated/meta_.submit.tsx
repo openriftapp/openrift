@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
-import { metaEventsQueryOptions } from "@/features/meta/lib/meta-queries";
+import { metaEventPageQueryOptions, metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -26,7 +26,10 @@ export const Route = createFileRoute("/_app/_authenticated/meta_/submit")({
     }
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      context.queryClient.query({ ...metaEventsQueryOptions(), staleTime: "static" }),
+      context.queryClient.query({
+        ...metaEventPageQueryOptions(metaSubmitEventQuery()),
+        staleTime: "static",
+      }),
       // The catalog turns a pasted deck code's short codes into the card names
       // the submission endpoint takes.
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),

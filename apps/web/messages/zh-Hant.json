@@ -5832,6 +5832,7 @@
   "meta_sort_cheapest": "湊齊最便宜",
   "meta_sort_lowest_value": "價值最低",
   "meta_sort_highest_value": "價值最高",
+  "meta_sort_page_only": "價格在瀏覽器中計算，因此僅對目前頁面排序。",
   "tier_lists_add_tier": "新增一級",
   "tier_lists_add_unranked_row": "新增未排名列",
   "tier_lists_row_label_aria": "第 {position} 級標籤",
@@ -6522,7 +6523,15 @@
   "meta_legend_finishes_best_per_legend": "各傳奇的最佳名次",
   "meta_legend_finishes_deck": "牌組",
   "meta_show_fewer": "顯示較少",
-  "meta_show_all_n": "顯示全部 {count} 筆",
+  "meta_show_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "顯示全部 {countFormatted} 筆"
+      }
+    }
+  ],
   "meta_deck_incomplete_title": "這份清單並不完整",
   "meta_deck_copying": "複製中…",
   "meta_deck_copy_played": "{player} 於 {date} 在 {event} 使用了此牌組。",
@@ -7010,6 +7019,20 @@
       }
     }
   ],
+  "meta_shown_decks_page": [
+    {
+      "declarations": [
+        "input shown",
+        "local shownPlural = shown: plural",
+        "local shownFormatted = shown: number"
+      ],
+      "selectors": ["shownPlural"],
+      "match": {
+        "shownPlural=one": "本頁 {shownFormatted} 副牌組",
+        "shownPlural=*": "本頁 {shownFormatted} 副牌組"
+      }
+    }
+  ],
   "meta_filter_any_finish": "不限名次",
   "meta_filter_legend": "傳奇",
   "meta_filter_event": "賽事",
@@ -7027,9 +7050,16 @@
   "meta_events_empty_title": "還沒有封存任何賽事",
   "meta_events_empty_description": "只要有賽事被輸入，排名與牌表就會出現在這裡。",
   "meta_events_no_match": "沒有符合這些篩選條件的賽事。",
+  "meta_events_pages_aria": "賽事分頁",
+  "pager_previous_page": "上一頁",
+  "pager_next_page": "下一頁",
+  "meta_page_past_end": "此頁已超出結果範圍。",
+  "meta_events_per_page_aria": "每頁賽事數",
+  "meta_events_per_page": "顯示 {size}",
   "meta_events_holdings_any": "所有賽事",
   "meta_events_holdings_decks": "含牌表",
   "meta_events_holdings_standings": "含排名",
+  "meta_events_holdings_resultless": "無成績",
   "meta_events_holdings_aria": "檔案館藏",
   "meta_events_players_label": "玩家",
   "meta_events_players_min": "最少",
@@ -7063,11 +7093,24 @@
   "meta_standings_none": "這場賽事還沒有排名紀錄。",
   "meta_standings_which_entries": "要顯示哪些參賽資料",
   "meta_standings_all_entries": "全部參賽資料",
-  "meta_standings_with_decklist": "含牌表（{count}）",
+  "meta_standings_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "含牌表（{countFormatted}）"
+      }
+    }
+  ],
   "meta_standings_find_player": "尋找玩家",
   "meta_standings_find_player_placeholder": "尋找玩家…",
   "meta_standings_filter_legend": "依傳奇篩選",
   "meta_standings_no_entries": "沒有符合的參賽資料。",
+  "meta_standings_cost_none_on_page": "本頁沒有符合價格篩選的參賽資料。價格在瀏覽器中計算，因此篩選僅適用於目前頁面。",
+  "meta_standings_pages_aria": "排名分頁",
+  "meta_standings_per_page_aria": "每頁項目數",
+  "meta_standings_per_page": "顯示 {size}",
+  "meta_standings_per_all": "全部",
   "meta_pending_in_review": "審核中",
   "meta_pending_yours_in_review": "你的提交，審核中",
   "meta_pending_update_in_review": "此牌表的更新正在審核",
@@ -7387,10 +7430,34 @@
       }
     }
   ],
-  "meta_front_browse_all": "瀏覽全部 {count} 筆",
-  "meta_front_browse_all_events": "瀏覽全部 {count} 場賽事",
+  "meta_front_browse_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "瀏覽全部 {countFormatted} 筆"
+      }
+    }
+  ],
+  "meta_front_browse_all_events": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "瀏覽全部 {countFormatted} 場賽事"
+      }
+    }
+  ],
   "meta_front_coming_up": "近期登場",
-  "meta_front_all_n": "全部 {count} 筆",
+  "meta_front_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "全部 {countFormatted} 筆"
+      }
+    }
+  ],
   "meta_front_fresh": "檔案新進",
   "meta_cost_buildable_now": "現在就能組出",
   "meta_cost_to_complete_max": "補齊 ≤ {amount}",
@@ -7404,6 +7471,7 @@
   "meta_cost_presets": "補齊費用預設值",
   "meta_cost_max_aria": "補齊費用上限",
   "meta_cost_any": "不限",
+  "meta_cost_page_only": "價格在瀏覽器中計算，因此僅篩選目前頁面。",
   "meta_cost_deck_value": "牌組價值",
   "meta_cost_deck_value_presets": "牌組價值預設值",
   "meta_cost_deck_value_range_aria": "牌組價值範圍",
@@ -7417,7 +7485,20 @@
   "meta_run_col_list": "牌表",
   "meta_run_title_win": "奪冠之路",
   "meta_run_title": "賽事歷程",
-  "meta_run_of_players": "共 {count} 位玩家",
+  "meta_run_of_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "共 {countFormatted} 位玩家",
+        "countPlural=*": "共 {countFormatted} 位玩家"
+      }
+    }
+  ],
   "meta_run_final_record": "最終戰績",
   "meta_run_rounds_played": "已進行輪次",
   "meta_run_swiss": "瑞士制",
@@ -7440,6 +7521,9 @@
   "meta_browser_best_per_legend": "每張傳奇最佳牌表",
   "meta_browser_every_list": "所有牌表",
   "meta_browser_no_match": "沒有符合這些篩選條件的牌組。",
+  "meta_browser_pages_aria": "套牌分頁",
+  "meta_browser_per_page_aria": "每頁套牌數",
+  "meta_browser_per_page": "顯示 {size}",
   "meta_browser_layout": "版面",
   "meta_browser_sort": "排序",
   "meta_browser_title": "已封存的牌組",
@@ -8368,7 +8452,20 @@
   "meta_col_date": "日期",
   "meta_event_contribute_sign_in": "登入以新增牌表",
   "meta_event_contribute_add": "新增牌表",
-  "meta_event_contribute_missing": "{total} 筆紀錄中仍有 {missing} 筆缺少牌表。投稿者會在每一場賽事中獲得標註。",
+  "meta_event_contribute_missing": [
+    {
+      "declarations": [
+        "input missing",
+        "input total",
+        "local missingFormatted = missing: number",
+        "local totalFormatted = total: number"
+      ],
+      "selectors": ["missingFormatted", "totalFormatted"],
+      "match": {
+        "missingFormatted=*,totalFormatted=*": "{totalFormatted} 筆紀錄中仍有 {missingFormatted} 筆缺少牌表。投稿者會在每一場賽事中獲得標註。"
+      }
+    }
+  ],
   "meta_deck_preview_sign_in_compare": "登入以與你的收藏比較",
   "meta_deck_preview_open_deck": "開啟牌組",
   "meta_event_header_champion": "冠軍",
@@ -8387,11 +8484,15 @@
   "meta_front_scope_empty": "這個範圍目前還沒有成績。",
   "meta_front_resultless": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "另有 {count} 場賽事尚無成績。",
-        "countPlural=*": "另有 {count} 場賽事尚無成績。"
+        "countPlural=one": "另有 {countFormatted} 場賽事尚無成績。",
+        "countPlural=*": "另有 {countFormatted} 場賽事尚無成績。"
       }
     }
   ],
@@ -8891,6 +8992,145 @@
       "match": {
         "countPlural=one": "{count} 張卡將留在你的{source}，同時加入你的{target}。",
         "countPlural=*": "{count} 張卡將留在你的{source}，同時加入你的{target}。"
+      }
+    }
+  ],
+  "meta_standings_count_entries": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 筆參賽資料",
+        "countPlural=*": "{countFormatted} 筆參賽資料"
+      }
+    }
+  ],
+  "meta_standings_count_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} 筆含牌表"
+      }
+    }
+  ],
+  "meta_count_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 場賽事",
+        "countPlural=*": "{countFormatted} 場賽事"
+      }
+    }
+  ],
+  "meta_count_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 份牌表",
+        "countPlural=*": "{countFormatted} 份牌表"
+      }
+    }
+  ],
+  "meta_count_event_wins": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 次賽事冠軍",
+        "countPlural=*": "{countFormatted} 次賽事冠軍"
+      }
+    }
+  ],
+  "meta_count_finishes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 項名次",
+        "countPlural=*": "{countFormatted} 項名次"
+      }
+    }
+  ],
+  "meta_player_legends_without_legend": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 項名次沒有傳奇紀錄",
+        "countPlural=*": "{countFormatted} 項名次沒有傳奇紀錄"
+      }
+    }
+  ],
+  "meta_run_count_rounds": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 輪",
+        "countPlural=*": "{countFormatted} 輪"
+      }
+    }
+  ],
+  "meta_run_best_of": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} 戰制"
+      }
+    }
+  ],
+  "meta_upcoming_registered": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} 人報名",
+        "countPlural=*": "{countFormatted} 人報名"
+      }
+    }
+  ],
+  "meta_deck_of_field": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "共 {countFormatted}"
       }
     }
   ]

@@ -14,6 +14,7 @@ import {
 } from "@/features/tournaments/lib/tournaments-queries";
 import { tournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -26,7 +27,7 @@ const fetchStaffCandidates = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

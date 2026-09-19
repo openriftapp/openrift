@@ -1,37 +1,25 @@
-import type { MetaDeckSummary } from "@openrift/shared/types/api/meta";
+import type { MetaDeckQuery, MetaDeckSummary } from "@openrift/shared/types/api/meta";
 
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import type { MetaDeckSort, MetaDeckSortDirection } from "@/features/meta/lib/meta-deck-search";
 import { DEFAULT_DECK_DIRECTION, DEFAULT_DECK_SORT } from "@/features/meta/lib/meta-deck-search";
 import type { MetaEra, MetaScope, ScopeFacetDefaults } from "@/features/meta/lib/meta-scope";
-import { isScopeCustomized } from "@/features/meta/lib/meta-scope";
-import { scopeMatches } from "@/features/meta/lib/meta-scope-match";
-import { normalizeCountryCode } from "@/lib/country";
+import { isScopeCustomized, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
 import { m } from "@/paraglide/messages.js";
 
 const DEFAULT_DECK_TIERS: readonly string[] = ["premier", "competitive"];
 
 export const DECK_SCOPE_DEFAULTS: ScopeFacetDefaults = { tiers: DEFAULT_DECK_TIERS };
 
-/**
- * Each axis is a union within itself and an intersection against the others:
- * a deck passes when it matches at least one selected value on every populated axis.
- */
+/** What "any filter is on" is read off, whichever surface asks. */
 export interface MetaDeckFilterValues {
   scope: MetaScope;
-  eras: readonly MetaEra[];
   events: string[];
   legends: string[];
   maxRank: number | null;
   maxCost: number | null;
   valueMin: number | null;
   valueMax: number | null;
-  includeSideboard: boolean;
-  showAll: boolean;
-}
-
-export interface MetaDeckFilterContext {
-  costs?: ReadonlyMap<string, MetaDeckCost>;
 }
 
 export function metaFinishOptions(): { value: number; label: string }[] {
@@ -43,85 +31,72 @@ export function metaFinishOptions(): { value: number; label: string }[] {
   ];
 }
 
-type MetaDeckFilterAxis = "scope" | "events" | "legends" | "finish" | "cost" | "value";
+export interface MetaDeckNarrowing {
+  scope: MetaScope;
+  events: string[];
+  legends: string[];
+  maxRank: number | null;
+  showAll: boolean;
+}
 
-function passesAxis(
-  deck: MetaDeckSummary,
-  filters: MetaDeckFilterValues,
-  context: MetaDeckFilterContext,
-  axis: MetaDeckFilterAxis,
-): boolean {
-  if (axis === "events") {
-    return filters.events.length === 0 || filters.events.includes(deck.event.slug);
+/** The browser's narrowing as the API takes it, the scope bar's facets included. */
+export function metaDeckQueryFromFilters(
+  filters: MetaDeckNarrowing,
+  eras: readonly MetaEra[],
+): MetaDeckQuery {
+  const query: MetaDeckQuery = metaScopeQueryFromScope(filters.scope, eras, DECK_SCOPE_DEFAULTS);
+  if (filters.events.length > 0) {
+    query.events = [...filters.events];
   }
-  if (axis === "legends") {
-    return (
-      filters.legends.length === 0 ||
-      (deck.legendCardId !== null && filters.legends.includes(deck.legendCardId))
-    );
+  if (filters.legends.length > 0) {
+    query.legends = [...filters.legends];
   }
-  if (axis === "finish") {
-    return filters.maxRank === null || deck.rank <= filters.maxRank;
+  if (filters.maxRank !== null) {
+    query.maxRank = filters.maxRank;
   }
-  if (axis === "cost") {
-    // Inert until costs load, so a shared `?cost=` link doesn't open on an
-    // empty archive while the bridge answers.
-    if (filters.maxCost === null || context.costs === undefined) {
+  if (!filters.showAll) {
+    query.curated = true;
+  }
+  return query;
+}
+
+/** What the browser prices itself, and so narrows on the page it is showing. */
+export interface MetaDeckCostFilterValues {
+  maxCost: number | null;
+  valueMin: number | null;
+  valueMax: number | null;
+}
+
+/**
+ * Inert until the costs load, so a shared `?cost=` link does not open on an
+ * empty grid while the bridge answers.
+ */
+export function filterDecksByCost(
+  decks: readonly MetaDeckSummary[],
+  filters: MetaDeckCostFilterValues,
+  costs: ReadonlyMap<string, MetaDeckCost> | undefined,
+): MetaDeckSummary[] {
+  if (costs === undefined) {
+    return [...decks];
+  }
+  return decks.filter((deck) => {
+    const cost = costs.get(deck.deckId);
+    if (filters.maxCost !== null) {
+      const toComplete = cost?.toComplete;
+      if (toComplete === undefined || toComplete > filters.maxCost) {
+        return false;
+      }
+    }
+    if (filters.valueMin === null && filters.valueMax === null) {
       return true;
     }
-    const toComplete = context.costs.get(deck.deckId)?.toComplete;
-    return toComplete !== undefined && toComplete <= filters.maxCost;
-  }
-  if (axis === "value") {
-    if ((filters.valueMin === null && filters.valueMax === null) || context.costs === undefined) {
-      return true;
-    }
-    const value = context.costs.get(deck.deckId)?.value;
-    if (value === undefined) {
-      return false;
-    }
+    const value = cost?.value;
     return (
+      value !== undefined &&
       (filters.valueMin === null || value >= filters.valueMin) &&
       (filters.valueMax === null || value <= filters.valueMax)
     );
-  }
-  return scopeMatches(deck.event, filters.scope, filters.eras, DECK_SCOPE_DEFAULTS);
-}
-
-const ALL_AXES: MetaDeckFilterAxis[] = ["scope", "events", "legends", "finish", "cost", "value"];
-
-export function filterMetaDecks(
-  decks: readonly MetaDeckSummary[],
-  filters: MetaDeckFilterValues,
-  context: MetaDeckFilterContext = {},
-): MetaDeckSummary[] {
-  return decks.filter((deck) => ALL_AXES.every((axis) => passesAxis(deck, filters, context, axis)));
-}
-
-/** A deck with an unknown legend stands alone; it is not merged with other unknown-legend decks at the event. */
-function curateBestPerLegend(decks: readonly MetaDeckSummary[]): MetaDeckSummary[] {
-  const best = new Map<string, MetaDeckSummary>();
-  for (const deck of decks) {
-    const key = `${deck.event.slug}|${deck.legendCardId ?? `deck:${deck.deckId}`}`;
-    const held = best.get(key);
-    if (held === undefined || deck.rank < held.rank) {
-      best.set(key, deck);
-      continue;
-    }
-    // Ties break by name for a stable render order.
-    if (deck.rank === held.rank && deck.playerName.localeCompare(held.playerName) < 0) {
-      best.set(key, deck);
-    }
-  }
-  return [...best.values()];
-}
-
-/** Both the grid and the faceted counts go through this, so a count never lies about the grid. */
-export function curateMetaDecks(
-  decks: readonly MetaDeckSummary[],
-  filters: Pick<MetaDeckFilterValues, "showAll">,
-): MetaDeckSummary[] {
-  return filters.showAll ? [...decks] : curateBestPerLegend(decks);
+  });
 }
 
 /** A deck whose value or cost is not known yet sorts last whichever way the column runs. */
@@ -208,101 +183,7 @@ export function metaDeckSortPresets(): {
   ];
 }
 
-// Curated after filtering, like the grid, or a count would promise decks the grid folds away.
-function shownWithoutAxis(
-  decks: readonly MetaDeckSummary[],
-  filters: MetaDeckFilterValues,
-  context: MetaDeckFilterContext,
-  skip: MetaDeckFilterAxis,
-): MetaDeckSummary[] {
-  return curateMetaDecks(
-    decks.filter((deck) =>
-      ALL_AXES.every((axis) => axis === skip || passesAxis(deck, filters, context, axis)),
-    ),
-    filters,
-  );
-}
-
-export interface MetaDeckFilterCounts {
-  events: Map<string, number>;
-  legends: Map<string, number>;
-  finish: Map<number, number>;
-}
-
-function bump<K>(counts: Map<K, number>, key: K): void {
-  counts.set(key, (counts.get(key) ?? 0) + 1);
-}
-
-/** Counted with every other axis already applied and curated like the grid, or a count would promise decks the grid folds away. */
-export function metaDeckFilterCounts(
-  decks: readonly MetaDeckSummary[],
-  filters: MetaDeckFilterValues,
-  context: MetaDeckFilterContext = {},
-): MetaDeckFilterCounts {
-  const counts: MetaDeckFilterCounts = {
-    events: new Map(),
-    legends: new Map(),
-    finish: new Map(),
-  };
-  const shownWithout = (skip: MetaDeckFilterAxis) =>
-    shownWithoutAxis(decks, filters, context, skip);
-
-  for (const deck of shownWithout("events")) {
-    bump(counts.events, deck.event.slug);
-  }
-  for (const deck of shownWithout("legends")) {
-    if (deck.legendCardId !== null) {
-      bump(counts.legends, deck.legendCardId);
-    }
-  }
-  for (const deck of shownWithout("finish")) {
-    for (const option of metaFinishOptions()) {
-      if (deck.rank <= option.value) {
-        bump(counts.finish, option.value);
-      }
-    }
-  }
-  return counts;
-}
-
-interface MetaDeckFilterOption {
-  value: string;
-  label: string;
-}
-
-export interface MetaDeckFilterOptions {
-  events: MetaDeckFilterOption[];
-  legends: MetaDeckFilterOption[];
-  countries: string[];
-}
-
-export function metaDeckFilterOptions(decks: readonly MetaDeckSummary[]): MetaDeckFilterOptions {
-  const events = new Map<string, { label: string; date: string }>();
-  const legends = new Map<string, string>();
-  const countries = new Set<string>();
-  for (const deck of decks) {
-    events.set(deck.event.slug, { label: deck.event.name, date: deck.event.eventDate });
-    if (deck.legendCardId !== null) {
-      legends.set(deck.legendCardId, deck.legendName ?? deck.legendCardId);
-    }
-    const country = normalizeCountryCode(deck.event.country);
-    if (country !== null) {
-      countries.add(country.toUpperCase());
-    }
-  }
-  return {
-    events: [...events]
-      .toSorted(([, left], [, right]) => (left.date < right.date ? 1 : -1))
-      .map(([value, entry]) => ({ value, label: entry.label })),
-    legends: [...legends]
-      .map(([value, label]) => ({ value, label }))
-      .toSorted((left, right) => left.label.localeCompare(right.label)),
-    countries: [...countries].sort((left, right) => left.localeCompare(right)),
-  };
-}
-
-/** Eras are irrelevant here: an era selection narrows whether the page can resolve it to dates yet. */
-export function hasActiveMetaDeckFilters(filters: Omit<MetaDeckFilterValues, "eras">): boolean {
+export function hasActiveMetaDeckFilters(filters: MetaDeckFilterValues): boolean {
   return (
     isScopeCustomized(filters.scope) ||
     filters.events.length > 0 ||
@@ -312,16 +193,4 @@ export function hasActiveMetaDeckFilters(filters: Omit<MetaDeckFilterValues, "er
     filters.valueMin !== null ||
     filters.valueMax !== null
   );
-}
-
-export function countMetaDecksUnderCost(
-  decks: readonly MetaDeckSummary[],
-  filters: MetaDeckFilterValues,
-  context: MetaDeckFilterContext,
-  maxCost: number | null,
-): number {
-  const swapped = { ...filters, maxCost };
-  return shownWithoutAxis(decks, swapped, context, "cost").filter((deck) =>
-    passesAxis(deck, swapped, context, "cost"),
-  ).length;
 }

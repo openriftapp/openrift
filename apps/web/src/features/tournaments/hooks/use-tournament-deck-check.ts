@@ -10,6 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { deckCheckEntryInvalidationKeys } from "@/features/tournaments/lib/tournament-invalidation";
 import { tournamentDeckCheckKeys } from "@/features/tournaments/lib/tournaments-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
@@ -26,7 +27,7 @@ const fetchEntries = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -42,7 +43,7 @@ const fetchEntry = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

@@ -4,6 +4,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
+import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaDecksQueryOptions, metaPlayerQueryOptions } from "@/features/meta/lib/meta-queries";
 import {
   ERA_ALL,
@@ -73,6 +74,7 @@ export const Route = createFileRoute("/_app/meta_/players_/$key")({
         ...metaDecksQueryOptions({
           ...metaScopeQueryFromScope(scopeWithDefaultEra(deps, ERA_ALL), deriveSetEras(sets.sets)),
           player: params.key,
+          limit: DECK_GRID_ALL_LIMIT,
         }),
         staleTime: "static",
       });

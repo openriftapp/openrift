@@ -21,8 +21,6 @@ import type {
   MetaEventsTable,
 } from "../../../db/tables/meta.js";
 import { rowBatches } from "../../../lib/bind-batches.js";
-import type { MetaDeckDateRange, MetaScopeFilters } from "./meta-shared.js";
-import { scopeConditions } from "./meta-shared.js";
 
 export type MetaEventMatchRow = Selectable<MetaEventMatchesTable>;
 
@@ -100,14 +98,6 @@ export interface MetaEventFilters {
   incompleteStandings?: boolean;
   /** Keeps only events where no standings row carries a decklist. */
   noDecks?: boolean;
-}
-
-/** Must be applied against the `me` event alias, as {@link scopeConditions} expects. */
-export interface MetaEventDayCountsFilters extends Omit<MetaScopeFilters, "from" | "to"> {
-  q?: string;
-  holds?: "decks" | "standings" | "upcoming";
-  playersMin?: number;
-  playersMax?: number;
 }
 
 /** How one page of the live event list is ordered. Defaults to newest first. */
@@ -193,22 +183,6 @@ export function metaEventsRepo(db: Kysely<Database>) {
   }
 
   return {
-    /**
-     * The archived events inside an inclusive event-date window, unpaged. The
-     * public `/meta` lists are the only callers; anything the admin pages or
-     * narrows by more than the date goes through {@link listEvents} instead.
-     */
-    allEvents(range: MetaDeckDateRange = {}): Promise<MetaEventWithCounts[]> {
-      let query = eventQuery();
-      if (range.from !== undefined) {
-        query = query.where("metaEvents.eventDate", ">=", range.from);
-      }
-      if (range.to !== undefined) {
-        query = query.where("metaEvents.eventDate", "<=", range.to);
-      }
-      return query.orderBy("eventDate", "desc").orderBy("name", "asc").execute();
-    },
-
     async listEvents(
       filters: MetaEventFilters,
       page: { limit: number; offset: number },
@@ -267,61 +241,23 @@ export function metaEventsRepo(db: Kysely<Database>) {
       return { rows, total: Number(countRow.total) };
     },
 
-    /** Events per event day under the filters, days with none omitted. */
-    async eventDayCounts(filters: MetaEventDayCountsFilters): Promise<Record<string, number>> {
-      let query = db
-        .selectFrom("metaEvents as me")
-        .leftJoinLateral(
-          (eb) =>
-            eb
-              .selectFrom("metaEventPlayers as p")
-              .whereRef("p.metaEventId", "=", "me.id")
-              .select([
-                eb.cast<number>(eb.fn.countAll(), "integer").as("playerRowCount"),
-                sql<number>`count(*) filter (where p.deck_id is not null)::int`.as("deckCount"),
-              ])
-              .as("c"),
-          (join) => join.onTrue(),
-        )
-        .select((eb) => ["me.eventDate", eb.cast<number>(eb.fn.countAll(), "integer").as("count")])
-        .groupBy("me.eventDate");
-      for (const condition of scopeConditions(filters)) {
-        query = query.where(condition);
-      }
-      const needle = filters.q?.trim() ?? "";
-      if (needle !== "") {
-        const pattern = `%${needle}%`;
-        query = query.where((eb) =>
-          eb.or([
-            eb("me.name", "ilike", pattern),
-            eb("me.organizer", "ilike", pattern),
-            eb("me.location", "ilike", pattern),
-          ]),
-        );
-      }
-      if (filters.holds === "decks") {
-        query = query.where(sql<boolean>`c.deck_count > 0`);
-      } else if (filters.holds === "standings") {
-        query = query.where(sql<boolean>`c.player_row_count > 0`);
-      } else if (filters.holds === "upcoming") {
-        query = query.where(sql<boolean>`me.event_date > (now() at time zone 'UTC')::date`);
-      }
-      if (filters.playersMin !== undefined) {
-        query = query.where("me.playerCount", ">=", filters.playersMin);
-      }
-      if (filters.playersMax !== undefined) {
-        query = query.where("me.playerCount", "<=", filters.playersMax);
-      }
-      const rows = await query.execute();
-      return Object.fromEntries(rows.map((row) => [row.eventDate, row.count]));
-    },
-
     eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {
       return eventQuery().where("slug", "=", slug).executeTakeFirst();
     },
 
     eventById(id: string): Promise<MetaEventWithCounts | undefined> {
       return eventQuery().where("id", "=", id).executeTakeFirst();
+    },
+
+    eventRowsByIds(ids: readonly string[]): Promise<MetaEventRow[]> {
+      if (ids.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("metaEvents")
+        .selectAll()
+        .where(sql<boolean>`id = any(${[...ids]}::uuid[])`)
+        .execute();
     },
 
     /** The row's own columns, without the standings counts {@link eventById} joins for. */
@@ -450,6 +386,37 @@ export function metaEventsRepo(db: Kysely<Database>) {
         .selectFrom("metaEventMatches")
         .selectAll()
         .where("metaEventId", "=", eventId)
+        .orderBy("phaseOrder", "asc")
+        .orderBy("roundNumber", "asc")
+        .orderBy("tableNumber", "asc")
+        .orderBy("id", "asc")
+        .execute();
+    },
+
+    matchesForPlayers(eventId: string, playerIds: readonly string[]): Promise<MetaEventMatchRow[]> {
+      if (playerIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      const ids = sql`${[...playerIds]}::uuid[]`;
+      return db
+        .selectFrom("metaEventMatches")
+        .selectAll()
+        .where("metaEventId", "=", eventId)
+        .where(sql<boolean>`(player1_id = any(${ids}) or player2_id = any(${ids}))`)
+        .orderBy("phaseOrder", "asc")
+        .orderBy("roundNumber", "asc")
+        .execute();
+    },
+
+    matchesInPhases(eventId: string, phaseOrders: readonly number[]): Promise<MetaEventMatchRow[]> {
+      if (phaseOrders.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("metaEventMatches")
+        .selectAll()
+        .where("metaEventId", "=", eventId)
+        .where(sql<boolean>`phase_order = any(${[...phaseOrders]}::int[])`)
         .orderBy("phaseOrder", "asc")
         .orderBy("roundNumber", "asc")
         .orderBy("tableNumber", "asc")

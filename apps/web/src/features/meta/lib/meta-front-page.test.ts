@@ -2,20 +2,12 @@ import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
 import {
-  filterMetaEvents,
-  metaEventCountries,
+  META_FRONT_SECTION_LIMITS,
   metaEventWinners,
-  metaFrontDecklistCount,
-  metaFrontFacetCounts,
-  metaFrontSections,
+  metaFrontSectionQuery,
+  metaFrontSectionShown,
+  metaFrontUpcomingQuery,
 } from "@/features/meta/lib/meta-front-page";
-import type { MetaEra } from "@/features/meta/lib/meta-scope";
-import { ERA_ALL, ERA_CUSTOM } from "@/features/meta/lib/meta-scope";
-
-const ERAS: MetaEra[] = [
-  { id: "vendetta", label: "Vendetta", from: "2026-08-01", to: null },
-  { id: "origins", label: "Origins", from: "2026-01-01", to: "2026-07-31" },
-];
 
 function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
   return {
@@ -55,291 +47,72 @@ const WINNER = {
   },
 };
 
-const CO_WINNER = { ...WINNER, playerName: "Ekko" };
-const RUNNER_UP = { ...WINNER, playerName: "Rell", rank: 2 };
-
-describe("metaFrontFacetCounts", () => {
-  it("counts a facet's values with the other narrowing applied", () => {
-    const events = [
-      event({ id: "a", country: "DE", tier: "premier", deckCount: 2 }),
-      event({ id: "b", country: "FR", tier: "local", deckCount: 0 }),
-    ];
-    const counts = metaFrontFacetCounts(events, { scope: {}, eras: ERAS, decksOnly: true });
-    expect(counts.countries.get("de")).toBe(1);
-    expect(counts.countries.get("fr")).toBeUndefined();
-    expect(counts.tiers.get("premier")).toBe(1);
-  });
-
-  it("counts what the decklist toggle would leave, whether or not it is on", () => {
-    const events = [event({ id: "a", deckCount: 2 }), event({ id: "b", deckCount: 0 })];
-    expect(metaFrontDecklistCount(events, { scope: {}, eras: ERAS })).toBe(1);
-    expect(metaFrontDecklistCount(events, { scope: {}, eras: ERAS, decksOnly: true })).toBe(1);
-  });
-});
-
-describe("filterMetaEvents", () => {
-  it("keeps everything when nothing narrows the scope", () => {
-    const events = [event(), event({ id: "evt-2", slug: "nexus-night" })];
-    expect(filterMetaEvents(events, { scope: {}, eras: ERAS })).toHaveLength(2);
-  });
-
-  it("keeps only events with decklists when asked", () => {
-    const events = [
-      event({ id: "listed", deckCount: 3 }),
-      event({ id: "standings-only", deckCount: 0 }),
-    ];
-    const kept = filterMetaEvents(events, { scope: {}, eras: ERAS, decksOnly: true });
-    expect(kept.map((row) => row.id)).toEqual(["listed"]);
-    expect(filterMetaEvents(events, { scope: {}, eras: ERAS, decksOnly: false })).toHaveLength(2);
-  });
-
-  it("treats the all-time era as no narrowing at all", () => {
-    const events = [event({ eventDate: "2026-02-01" })];
-    expect(filterMetaEvents(events, { scope: { era: ERA_ALL }, eras: ERAS })).toHaveLength(1);
-  });
-
-  it("narrows to one era's window, both ends inclusive", () => {
-    const events = [
-      event({ id: "before", eventDate: "2026-07-31" }),
-      event({ id: "opening", eventDate: "2026-08-01" }),
-      event({ id: "later", eventDate: "2026-09-20" }),
-    ];
-    const kept = filterMetaEvents(events, { scope: { era: "vendetta" }, eras: ERAS });
-    expect(kept.map((row) => row.id)).toEqual(["opening", "later"]);
-  });
-
-  it("closes a past era at the day before the next one opens", () => {
-    const events = [
-      event({ id: "inside", eventDate: "2026-07-31" }),
-      event({ id: "outside", eventDate: "2026-08-01" }),
-    ];
-    const kept = filterMetaEvents(events, { scope: { era: "origins" }, eras: ERAS });
-    expect(kept.map((row) => row.id)).toEqual(["inside"]);
-  });
-
-  it("uses the custom range's own bounds", () => {
-    const events = [
-      event({ id: "in", eventDate: "2026-03-10" }),
-      event({ id: "out", eventDate: "2026-04-10" }),
-    ];
-    const kept = filterMetaEvents(events, {
-      scope: { era: ERA_CUSTOM, from: "2026-03-01", to: "2026-03-31" },
-      eras: ERAS,
-    });
-    expect(kept.map((row) => row.id)).toEqual(["in"]);
-  });
-
-  it("keeps an event standing on either bound of a custom range", () => {
-    const events = [
-      event({ id: "on-from", eventDate: "2026-03-01" }),
-      event({ id: "on-to", eventDate: "2026-03-31" }),
-      event({ id: "day-after", eventDate: "2026-04-01" }),
-      event({ id: "day-before", eventDate: "2026-02-28" }),
-    ];
-    const kept = filterMetaEvents(events, {
-      scope: { era: ERA_CUSTOM, from: "2026-03-01", to: "2026-03-31" },
-      eras: ERAS,
-    });
-    expect(kept.map((row) => row.id)).toEqual(["on-from", "on-to"]);
-  });
-
-  it("matches a country whichever case either side arrives in", () => {
-    const events = [event({ id: "spain", country: "es" }), event({ id: "italy", country: "IT" })];
-    expect(
-      filterMetaEvents(events, { scope: { countries: ["ES"] }, eras: ERAS }).map((row) => row.id),
-    ).toEqual(["spain"]);
-  });
-
-  it("ignores a country code the list cannot resolve rather than emptying the page", () => {
-    expect(filterMetaEvents([event()], { scope: { countries: ["??"] }, eras: ERAS })).toHaveLength(
-      1,
-    );
-  });
-
-  it("narrows by format, tier and country together", () => {
-    const events = [
-      event({ id: "match", format: "constructed", tier: "premier", country: "ES" }),
-      event({ id: "wrong-tier", format: "constructed", tier: "local", country: "ES" }),
-      event({ id: "wrong-country", format: "constructed", tier: "premier", country: "IT" }),
-      event({ id: "wrong-format", format: "freeform", tier: "premier", country: "ES" }),
-    ];
-    const kept = filterMetaEvents(events, {
-      scope: { formats: ["constructed"], tiers: ["premier"], countries: ["ES"] },
-      eras: ERAS,
-    });
-    expect(kept.map((row) => row.id)).toEqual(["match"]);
-  });
-
-  it("matches the search against the name, organizer and venue, case-insensitively", () => {
-    const events = [
-      event({ id: "by-name", name: "Nexus Night" }),
-      event({ id: "by-organizer", name: "Other", organizer: "Mana Vortex" }),
-      event({ id: "by-venue", name: "Other", organizer: null, location: "Mana Vortex, Rotterdam" }),
-      event({ id: "no-match", name: "Other", organizer: null, location: null }),
-    ];
-    expect(
-      filterMetaEvents(events, { scope: {}, eras: ERAS, search: "  MANA vortex " }).map(
-        (row) => row.id,
-      ),
-    ).toEqual(["by-organizer", "by-venue"]);
-  });
-
-  it("ignores a search of only whitespace", () => {
-    expect(filterMetaEvents([event()], { scope: {}, eras: ERAS, search: "   " })).toHaveLength(1);
-  });
-
-  it("drops an era the set list no longer offers rather than emptying the page", () => {
-    const events = [event({ eventDate: "2026-02-01" })];
-    expect(filterMetaEvents(events, { scope: { era: "retired-set" }, eras: ERAS })).toHaveLength(1);
-  });
-
-  it("returns nothing for an empty archive", () => {
-    expect(filterMetaEvents([], { scope: { tiers: ["premier"] }, eras: ERAS })).toEqual([]);
-  });
-});
-
-describe("metaEventCountries", () => {
-  it("dedupes and sorts the codes the events cover", () => {
-    const events = [
-      event({ country: "IT" }),
-      event({ country: "DE" }),
-      event({ country: "IT" }),
-      event({ country: "AT" }),
-    ];
-    expect(metaEventCountries(events)).toEqual(["AT", "DE", "IT"]);
-  });
-
-  it("leaves out events no source gave a country for", () => {
-    expect(metaEventCountries([event({ country: null }), event({ country: "" })])).toEqual([]);
-  });
-
-  it("returns nothing for an empty archive", () => {
-    expect(metaEventCountries([])).toEqual([]);
-  });
-});
-
 describe("metaEventWinners", () => {
-  it("keeps only the rank-1 rows of the podium", () => {
-    const row = event({ topFinishes: [WINNER, CO_WINNER, RUNNER_UP] });
-    expect(metaEventWinners(row).map((finish) => finish.playerName)).toEqual(["Nova", "Ekko"]);
+  it("names every player the source placed first, and nobody below", () => {
+    const winners = metaEventWinners(
+      event({
+        topFinishes: [WINNER, { ...WINNER, playerName: "Ekko" }, { ...WINNER, rank: 2 }],
+      }),
+    );
+
+    expect(winners.map((finish) => finish.playerName)).toEqual(["Nova", "Ekko"]);
   });
 
-  it("names no winner for an event whose standings have not arrived", () => {
-    expect(metaEventWinners(event({ topFinishes: [] }))).toEqual([]);
+  it("names nobody for an event whose standings have not arrived", () => {
+    expect(metaEventWinners(event())).toEqual([]);
   });
 });
 
-describe("metaFrontSections", () => {
-  const TODAY = "2026-09-02";
-
-  it("splits events into the three tier buckets", () => {
-    const sections = metaFrontSections(
-      [
-        event({ id: "p", tier: "premier" }),
-        event({ id: "c", tier: "competitive" }),
-        event({ id: "l", tier: "local" }),
-        event({ id: "x", tier: "local" }),
-      ],
-      TODAY,
-    );
-    expect(sections.premier.map((row) => row.id)).toEqual(["p"]);
-    expect(sections.competitive.map((row) => row.id)).toEqual(["c"]);
-    expect(sections.local.map((row) => row.id)).toEqual(["l", "x"]);
-  });
-
-  it("orders each bucket newest first rather than trusting the caller's order", () => {
-    const sections = metaFrontSections(
-      [
-        event({ id: "middle", tier: "premier", eventDate: "2026-08-10" }),
-        event({ id: "oldest", tier: "premier", eventDate: "2026-01-02" }),
-        event({ id: "newest", tier: "premier", eventDate: "2026-08-20" }),
-      ],
-      TODAY,
-    );
-    expect(sections.premier.map((row) => row.id)).toEqual(["newest", "middle", "oldest"]);
-  });
-
-  it("leaves every bucket empty for an empty archive", () => {
-    expect(metaFrontSections([], TODAY)).toEqual({
-      premier: [],
-      competitive: [],
-      local: [],
-      upcoming: [],
-      resultless: [],
+describe("metaFrontSectionQuery", () => {
+  it("asks for one tier's newest events that hold standings", () => {
+    expect(metaFrontSectionQuery({ from: "2026-01-01" }, "premier")).toEqual({
+      from: "2026-01-01",
+      tiers: ["premier"],
+      tiersEx: undefined,
+      holds: "standings",
+      by: "date",
+      dir: "desc",
+      limit: META_FRONT_SECTION_LIMITS.premier,
     });
   });
 
-  it("puts a future event with no results in upcoming, not its tier bucket", () => {
-    const sections = metaFrontSections(
-      [event({ id: "future", tier: "premier", eventDate: "2026-09-10", playerRowCount: 0 })],
-      TODAY,
-    );
-    expect(sections.premier).toEqual([]);
-    expect(sections.upcoming.map((row) => row.id)).toEqual(["future"]);
+  it("asks for its own tier, whatever the scope bar picked", () => {
+    const query = metaFrontSectionQuery({ tiers: ["local"], tiersEx: ["premier"] }, "competitive");
+
+    expect(query.tiers).toEqual(["competitive"]);
+    expect(query.tiersEx).toBeUndefined();
   });
 
-  it("sets a played event with no standings aside as resultless", () => {
-    const sections = metaFrontSections(
-      [event({ id: "empty", tier: "premier", eventDate: "2026-08-01", playerRowCount: 0 })],
-      TODAY,
-    );
-    expect(sections.premier).toEqual([]);
-    expect(sections.upcoming).toEqual([]);
-    expect(sections.resultless.map((row) => row.id)).toEqual(["empty"]);
+  it("narrows to decklists when that is all the reader asked for", () => {
+    expect(metaFrontSectionQuery({ holds: "decks" }, "local").holds).toBe("decks");
+  });
+});
+
+describe("metaFrontSectionShown", () => {
+  it("shows every tier while the scope picks none", () => {
+    expect(metaFrontSectionShown({}, "premier")).toBe(true);
+    expect(metaFrontSectionShown({ from: "2026-01-01" }, "local")).toBe(true);
   });
 
-  it("counts an event with no standings dated today as resultless", () => {
-    const sections = metaFrontSections(
-      [event({ id: "today", eventDate: TODAY, playerRowCount: 0 })],
-      TODAY,
-    );
-    expect(sections.resultless.map((row) => row.id)).toEqual(["today"]);
+  it("shows only the tiers the scope includes", () => {
+    expect(metaFrontSectionShown({ tiers: ["premier"] }, "premier")).toBe(true);
+    expect(metaFrontSectionShown({ tiers: ["premier"] }, "local")).toBe(false);
   });
 
-  it("does not count a future event without standings as resultless", () => {
-    const sections = metaFrontSections(
-      [event({ id: "future", eventDate: "2026-09-10", playerRowCount: 0 })],
-      TODAY,
-    );
-    expect(sections.resultless).toEqual([]);
+  it("drops a tier the scope excludes", () => {
+    expect(metaFrontSectionShown({ tiersEx: ["local"] }, "local")).toBe(false);
+    expect(metaFrontSectionShown({ tiersEx: ["local"] }, "competitive")).toBe(true);
   });
+});
 
-  it("does not treat an event dated exactly today as upcoming", () => {
-    const sections = metaFrontSections(
-      [event({ id: "today", tier: "premier", eventDate: TODAY })],
-      TODAY,
-    );
-    expect(sections.upcoming).toEqual([]);
-  });
-
-  it("orders upcoming soonest first", () => {
-    const sections = metaFrontSections(
-      [
-        event({ id: "later", tier: "premier", eventDate: "2026-10-01" }),
-        event({ id: "sooner", tier: "premier", eventDate: "2026-09-05" }),
-      ],
-      TODAY,
-    );
-    expect(sections.upcoming.map((row) => row.id)).toEqual(["sooner", "later"]);
-  });
-
-  it("breaks a same-day upcoming tie by tier, then name", () => {
-    const sections = metaFrontSections(
-      [
-        event({ id: "local-zed", name: "Zed", tier: "local", eventDate: "2026-09-10" }),
-        event({ id: "local-alpha", name: "Alpha", tier: "local", eventDate: "2026-09-10" }),
-        event({ id: "competitive", name: "Beta", tier: "competitive", eventDate: "2026-09-10" }),
-        event({ id: "premier", name: "Gamma", tier: "premier", eventDate: "2026-09-10" }),
-        event({ id: "local-zulu", name: "Zulu", tier: "local", eventDate: "2026-09-10" }),
-      ],
-      TODAY,
-    );
-    expect(sections.upcoming.map((row) => row.id)).toEqual([
-      "premier",
-      "competitive",
-      "local-alpha",
-      "local-zed",
-      "local-zulu",
-    ]);
+describe("metaFrontUpcomingQuery", () => {
+  it("asks for what is still to come, soonest first", () => {
+    expect(metaFrontUpcomingQuery({ holds: "decks", q: "worlds" })).toEqual({
+      q: "worlds",
+      holds: "upcoming",
+      by: "date",
+      dir: "asc",
+      limit: META_FRONT_SECTION_LIMITS.upcoming,
+    });
   });
 });

@@ -26,10 +26,10 @@ describe("/meta/decks loader", () => {
     expect(keys).not.toContainEqual([...metaKeys.decks()]);
   });
 
-  it("keeps the event list out of the dehydrated SSR payload", async () => {
+  it("keeps the event index out of the dehydrated SSR payload", async () => {
     const keys = await warmedKeys();
 
-    expect(keys).not.toContainEqual([...metaKeys.events()]);
+    expect(keys).not.toContainEqual([...metaKeys.eventPage({})]);
   });
 
   it("still warms the shared init query", async () => {

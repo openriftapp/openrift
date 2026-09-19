@@ -17,9 +17,9 @@ import { toast } from "sonner";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/ui/pager";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { AdminPager } from "@/features/admin/components/admin-pager";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { MetaAutoAcceptDialog } from "@/features/admin/components/meta-auto-accept-dialog";
@@ -448,12 +448,7 @@ export function MetaCatalogPage() {
         actions={<CatalogRowActions onPickFormat={setFormatTarget} />}
       />
 
-      <AdminPager
-        page={page}
-        totalPages={totalPages}
-        onPageChange={goToPage}
-        label="Catalogue pages"
-      />
+      <Pager page={page} totalPages={totalPages} onPageChange={goToPage} label="Catalogue pages" />
 
       <MetaCatalogAcceptDialog
         row={formatTarget}

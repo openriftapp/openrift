@@ -11,6 +11,7 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/ui/pager";
 import {
   Table,
   TableBody,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/table";
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
-import { AdminPager } from "@/features/admin/components/admin-pager";
 import { JobStatusBadge } from "@/features/admin/components/job-status-badge";
 import { RefreshCountdownButton } from "@/features/admin/components/refresh-countdown-button";
 import { useAdminJobRuns } from "@/features/admin/hooks/use-job-runs";
@@ -243,7 +243,7 @@ export function JobRunsPage() {
         </TableBody>
       </Table>
 
-      <AdminPager
+      <Pager
         page={page}
         totalPages={totalPages}
         onPageChange={(next) =>

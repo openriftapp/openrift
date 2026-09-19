@@ -101,7 +101,7 @@ function eventFacts(finish: MetaPlayerFinish): string {
   const size = finish.event.playerCount;
   const parts = [formatDay(finish.event.eventDate)];
   if (size !== null) {
-    parts.push(`${size.toLocaleString("en-US")} ${size === 1 ? "player" : "players"}`);
+    parts.push(m.meta_count_players({ count: size }));
   }
   return parts.join(" · ");
 }
@@ -231,9 +231,7 @@ export function MetaPlayerFinishes({
               setShown(FINISH_PAGE_SIZE);
             }}
           >
-            {view === "best"
-              ? m.meta_show_all_n({ count: finishes.length.toLocaleString("en-US") })
-              : m.meta_show_fewer()}
+            {view === "best" ? m.meta_show_all_n({ count: finishes.length }) : m.meta_show_fewer()}
           </Button>
         )}
       </div>

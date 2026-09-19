@@ -10,8 +10,9 @@ import { createRepos } from "../../../deps.js";
 import { createDbContext } from "../../../test/integration-context.js";
 import { promoteMetaEvent } from "../services/meta-promote.js";
 import type { MetaArchivedDeckInput, MetaDeckCardInput } from "./meta-decks.js";
+import type { MetaEventIndexOrder } from "./meta-event-index.js";
 import type { NewMetaEventPhase } from "./meta-events.js";
-import type { MetaEventPlayerInput } from "./meta-players.js";
+import type { MetaEventPlayerInput, MetaEventPlayerRow } from "./meta-players.js";
 import { META_ARCHIVE_USER_ID } from "./meta-shared.js";
 import { metaRepo } from "./meta.js";
 
@@ -52,6 +53,13 @@ interface PlayerOpts {
 
 function shareToken(): string {
   return `mta${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+}
+
+function standingsFor(
+  repo: ReturnType<typeof metaRepo>,
+  eventId: string,
+): Promise<MetaEventPlayerRow[]> {
+  return repo.standingsPage(eventId, {}, { limit: 100, offset: 0 }).then((page) => page.rows);
 }
 
 async function seedUser(
@@ -717,8 +725,9 @@ describe.skipIf(!ctx)("metaRepo", () => {
       await seedListedPlayer(repo, newer, { playerName: "MTA Reader", rank: 1 });
       await seedDecklessPlayer(repo, newer, { playerName: "MTA Watcher", rank: 2 });
 
-      const events = await repo.allEvents();
-      const mine = events.filter((event) => [older, newer].includes(event.id));
+      const { rows } = await repo.eventIndex({}, {}, { limit: 500, offset: 0 });
+      const mine = rows.filter((event) => [older, newer].includes(event.id));
+
       expect(mine.map((event) => event.id)).toEqual([newer, older]);
       expect(mine[0]!.playerRowCount).toBe(2);
       expect(mine[0]!.deckCount).toBe(1);
@@ -732,13 +741,276 @@ describe.skipIf(!ctx)("metaRepo", () => {
       const closeDay = await seedEvent(repo, "mta-events-close", { eventDate: "2027-04-30" });
       const after = await seedEvent(repo, "mta-events-after", { eventDate: "2027-05-01" });
 
-      const scoped = await repo.allEvents({ from: "2027-04-01", to: "2027-04-30" });
-      const ids = new Set(scoped.map((event) => event.id));
+      const scoped = await repo.eventIndex(
+        { from: "2027-04-01", to: "2027-04-30" },
+        {},
+        { limit: 500, offset: 0 },
+      );
+      const ids = new Set(scoped.rows.map((event) => event.id));
 
       expect(ids.has(openDay)).toBe(true);
       expect(ids.has(closeDay)).toBe(true);
       expect(ids.has(before)).toBe(false);
       expect(ids.has(after)).toBe(false);
+    });
+
+    it("pages the index and reports the whole match count", async () => {
+      const slugs = ["mta-page-a", "mta-page-b", "mta-page-c"];
+      for (const [index, slug] of slugs.entries()) {
+        await seedEvent(repo, slug, {
+          eventDate: `2029-05-0${index + 1}`,
+          name: `MTA Page ${slug}`,
+        });
+      }
+      const filters = { from: "2029-05-01", to: "2029-05-31" };
+
+      const first = await repo.eventIndex(filters, {}, { limit: 2, offset: 0 });
+      const second = await repo.eventIndex(filters, {}, { limit: 2, offset: 2 });
+
+      expect(first.total).toBe(3);
+      expect(first.rows.map((event) => event.slug)).toEqual(["mta-page-c", "mta-page-b"]);
+      expect(second.rows.map((event) => event.slug)).toEqual(["mta-page-a"]);
+    });
+
+    it("orders by a column the index's headers offer, unknown values last", async () => {
+      const named = await seedEvent(repo, "mta-order-de", {
+        eventDate: "2029-06-01",
+        country: "DE",
+      });
+      const unknown = await seedEvent(repo, "mta-order-none", {
+        eventDate: "2029-06-02",
+        country: null,
+      });
+      const filters = { from: "2029-06-01", to: "2029-06-30" };
+
+      const ascending = await repo.eventIndex(
+        filters,
+        { by: "country", dir: "asc" },
+        { limit: 10, offset: 0 },
+      );
+      const descending = await repo.eventIndex(
+        filters,
+        { by: "country", dir: "desc" },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(ascending.rows.map((event) => event.id)).toEqual([named, unknown]);
+      expect(descending.rows.map((event) => event.id)).toEqual([named, unknown]);
+    });
+
+    it("breaks a tie on the sort column by tier before name", async () => {
+      const local = await seedEvent(repo, "mta-tie-local", {
+        eventDate: "2029-06-15",
+        name: "MTA Tie Local",
+        tier: "local",
+      });
+      const premier = await seedEvent(repo, "mta-tie-premier", {
+        eventDate: "2029-06-15",
+        name: "MTA Tie Premier",
+        tier: "premier",
+      });
+
+      const { rows } = await repo.eventIndex(
+        { from: "2029-06-15", to: "2029-06-15" },
+        {},
+        { limit: 10, offset: 0 },
+      );
+
+      expect(rows.map((event) => event.id)).toEqual([premier, local]);
+    });
+
+    // The standings count and the decklist count have to disagree, or a query
+    // that read one for the other would still order these the way both expect.
+    async function seedCountSet(month: string) {
+      const crowded = await seedEvent(repo, `mta-count-crowded-${month}`, {
+        eventDate: `${month}-01`,
+        tier: "premier",
+      });
+      const listed = await seedEvent(repo, `mta-count-listed-${month}`, {
+        eventDate: `${month}-02`,
+        tier: "premier",
+      });
+      const bare = await seedEvent(repo, `mta-count-bare-${month}`, {
+        eventDate: `${month}-03`,
+        tier: "premier",
+      });
+      await seedListedPlayer(repo, crowded, { playerName: `MTA Count One ${month}`, rank: 1 });
+      await seedDecklessPlayer(repo, crowded, { playerName: `MTA Count Two ${month}`, rank: 2 });
+      await seedDecklessPlayer(repo, crowded, { playerName: `MTA Count Three ${month}`, rank: 3 });
+      await seedListedPlayer(repo, listed, { playerName: `MTA Count Four ${month}`, rank: 1 });
+      await seedListedPlayer(repo, listed, { playerName: `MTA Count Five ${month}`, rank: 2 });
+      return { crowded, listed, bare };
+    }
+
+    it("orders the index by how many standings rows each event holds", async () => {
+      const { crowded, listed, bare } = await seedCountSet("2030-03");
+      const filters = { from: "2030-03-01", to: "2030-03-31" };
+
+      const descending = await repo.eventIndex(
+        filters,
+        { by: "players", dir: "desc" },
+        { limit: 10, offset: 0 },
+      );
+      const ascending = await repo.eventIndex(
+        filters,
+        { by: "players", dir: "asc" },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(descending.rows.map((event) => event.id)).toEqual([crowded, listed, bare]);
+      expect(ascending.rows.map((event) => event.id)).toEqual([bare, listed, crowded]);
+      expect(descending.rows.map((event) => event.playerRowCount)).toEqual([3, 2, 0]);
+    });
+
+    it("orders by decklists held, which ranks the events differently from standings", async () => {
+      const { crowded, listed, bare } = await seedCountSet("2030-04");
+      const filters = { from: "2030-04-01", to: "2030-04-30" };
+
+      const descending = await repo.eventIndex(
+        filters,
+        { by: "decks", dir: "desc" },
+        { limit: 10, offset: 0 },
+      );
+      const ascending = await repo.eventIndex(
+        filters,
+        { by: "decks", dir: "asc" },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(descending.rows.map((event) => event.id)).toEqual([listed, crowded, bare]);
+      expect(ascending.rows.map((event) => event.id)).toEqual([bare, crowded, listed]);
+      expect(descending.rows.map((event) => event.deckCount)).toEqual([2, 1, 0]);
+    });
+
+    it("counts only the standings of the events the scope keeps", async () => {
+      const { crowded, listed, bare } = await seedCountSet("2030-05");
+      const excluded = await seedEvent(repo, "mta-count-excluded-2030-05", {
+        eventDate: "2030-05-04",
+        tier: "local",
+      });
+      for (const rank of [1, 2, 3, 4]) {
+        await seedDecklessPlayer(repo, excluded, {
+          playerName: `MTA Count Excluded ${rank}`,
+          rank,
+        });
+      }
+      const filters = { from: "2030-05-01", to: "2030-05-31", tiers: ["premier"] };
+
+      const { rows, total } = await repo.eventIndex(
+        filters,
+        { by: "players", dir: "desc" },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(rows.map((event) => event.id)).toEqual([crowded, listed, bare]);
+      expect(rows.map((event) => event.playerRowCount)).toEqual([3, 2, 0]);
+      expect(rows.map((event) => event.deckCount)).toEqual([1, 2, 0]);
+      expect(total).toBe(3);
+    });
+
+    it("orders by count across the whole archive when nothing narrows it", async () => {
+      const { crowded, listed, bare } = await seedCountSet("2030-06");
+      const mine = [crowded, listed, bare];
+      // Paged to the end: the archive this shares a database with has no bound.
+      const ours = async (order: MetaEventIndexOrder) => {
+        const found: string[] = [];
+        for (let offset = 0; ; offset += 200) {
+          const { rows, total } = await repo.eventIndex({}, order, { limit: 200, offset });
+          found.push(...rows.filter((event) => mine.includes(event.id)).map((event) => event.id));
+          if (rows.length === 0 || offset + 200 >= total) {
+            return found;
+          }
+        }
+      };
+
+      expect(await ours({ by: "players", dir: "desc" })).toEqual([crowded, listed, bare]);
+      expect(await ours({ by: "decks", dir: "asc" })).toEqual([bare, crowded, listed]);
+    });
+
+    it("breaks a count tie by tier, then name, then slug", async () => {
+      // Seeded backwards from the order the tiebreak chain has to produce.
+      const local = await seedEvent(repo, "mta-count-tie-local", {
+        eventDate: "2030-07-01",
+        name: "MTA Count Tie",
+        tier: "local",
+      });
+      const beta = await seedEvent(repo, "mta-count-tie-beta", {
+        eventDate: "2030-07-02",
+        name: "MTA Count Tie",
+        tier: "premier",
+      });
+      const alpha = await seedEvent(repo, "mta-count-tie-alpha", {
+        eventDate: "2030-07-03",
+        name: "MTA Count Tie",
+        tier: "premier",
+      });
+      for (const [index, eventId] of [local, beta, alpha].entries()) {
+        await seedDecklessPlayer(repo, eventId, {
+          playerName: `MTA Count Tie ${index}`,
+          rank: 1,
+        });
+      }
+      const filters = { from: "2030-07-01", to: "2030-07-31" };
+
+      const descending = await repo.eventIndex(
+        filters,
+        { by: "players", dir: "desc" },
+        { limit: 10, offset: 0 },
+      );
+      const ascending = await repo.eventIndex(
+        filters,
+        { by: "players", dir: "asc" },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(descending.rows.map((event) => event.id)).toEqual([alpha, beta, local]);
+      expect(ascending.rows.map((event) => event.id)).toEqual([alpha, beta, local]);
+    });
+
+    it("counts each facet's values with its own picks lifted", async () => {
+      const premier = await seedEvent(repo, "mta-facet-premier", {
+        eventDate: "2029-07-01",
+        tier: "premier",
+        country: "DE",
+      });
+      await seedListedPlayer(repo, premier, { playerName: "MTA Facet Winner", rank: 1 });
+      await seedEvent(repo, "mta-facet-local", {
+        eventDate: "2029-07-02",
+        tier: "local",
+        country: "FR",
+      });
+      const filters = { from: "2029-07-01", to: "2029-07-31", tiers: ["premier"] };
+
+      const facets = await repo.eventFacetCounts(filters);
+
+      expect(facets.tiers).toEqual([
+        { value: "local", count: 1 },
+        { value: "premier", count: 1 },
+      ]);
+      expect(facets.countries).toEqual([{ value: "DE", count: 1 }]);
+    });
+
+    it("counts what each holdings choice would leave, and the rows in scope", async () => {
+      const withDeck = await seedEvent(repo, "mta-holds-deck", { eventDate: "2029-08-01" });
+      await seedListedPlayer(repo, withDeck, { playerName: "MTA Holds Lister", rank: 1 });
+      await seedDecklessPlayer(repo, withDeck, { playerName: "MTA Holds Second", rank: 2 });
+      await seedEvent(repo, "mta-holds-bare", { eventDate: "2029-08-02" });
+      await seedEvent(repo, "mta-holds-ahead", { eventDate: "2099-08-03" });
+      const filters = { from: "2029-08-01" };
+
+      const [holdings, totals] = await Promise.all([
+        repo.eventHoldingsCounts(filters),
+        repo.eventTotals(filters),
+      ]);
+
+      expect(holdings).toEqual({
+        all: 3,
+        decks: 1,
+        standings: 1,
+        upcoming: 1,
+        resultless: 1,
+      });
+      expect(totals).toEqual({ events: 3, playerRows: 2, decks: 1 });
     });
 
     it("counts events per day under the tournaments page's narrowing", async () => {
@@ -780,9 +1052,9 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(mine(await repo.eventDayCounts({ q: "days-later" }))).toEqual({ "2028-01-09": 1 });
     });
 
-    it("folds a legend's standings per event for the index, newest event first", async () => {
-      const older = await seedEvent(repo, "mta-records-older", { eventDate: "2026-02-01" });
-      const newer = await seedEvent(repo, "mta-records-newer", { eventDate: "2026-11-01" });
+    it("folds a legend's whole record in scope onto its best finish", async () => {
+      const older = await seedEvent(repo, "mta-records-older", { eventDate: "2031-02-01" });
+      const newer = await seedEvent(repo, "mta-records-newer", { eventDate: "2031-11-01" });
       await seedListedPlayer(repo, newer, { playerName: "MTA Rec Winner", rank: 1 });
       await seedDecklessPlayer(repo, newer, { playerName: "MTA Rec Fourth", rank: 4 });
       await seedDecklessPlayer(repo, older, {
@@ -790,33 +1062,48 @@ describe.skipIf(!ctx)("metaRepo", () => {
         rank: 8,
         rankIsTier: true,
       });
+      const filters = { from: "2031-02-01", to: "2031-11-01" };
 
-      const allRecords = await repo.archiveLegendEventRecords();
-      const records = allRecords.filter(
-        (row) =>
-          row.legendCardId === legendCardId &&
-          ["mta-records-older", "mta-records-newer"].includes(row.eventSlug),
-      );
+      const scoped = await repo.scopedLegendRecords(filters);
+      const record = scoped.find((row) => row.cardId === legendCardId);
 
-      expect(records).toEqual([
-        {
-          legendCardId,
-          eventSlug: "mta-records-newer",
-          bestRank: 1,
-          rankIsTier: false,
-          finishes: 2,
-          decklists: 1,
-          won: true,
-        },
-        {
-          legendCardId,
-          eventSlug: "mta-records-older",
-          bestRank: 8,
-          rankIsTier: true,
-          finishes: 1,
-          decklists: 0,
-          won: false,
-        },
+      expect(record).toMatchObject({
+        bestRank: 1,
+        bestRankIsTier: false,
+        bestEventId: newer,
+        finishes: 3,
+        decklists: 1,
+        eventWins: 1,
+      });
+
+      const earlyOnly = await repo.scopedLegendRecords({ from: "2031-02-01", to: "2031-02-01" });
+      expect(earlyOnly.find((row) => row.cardId === legendCardId)).toMatchObject({
+        bestRank: 8,
+        bestRankIsTier: true,
+        bestEventId: older,
+        finishes: 1,
+        decklists: 0,
+        eventWins: 0,
+      });
+    });
+
+    it("offers every country the scoped legends placed in, its own pick lifted", async () => {
+      const french = await seedEvent(repo, "mta-legend-country-fr", {
+        eventDate: "2031-06-01",
+        country: "FR",
+      });
+      const spanish = await seedEvent(repo, "mta-legend-country-es", {
+        eventDate: "2031-06-02",
+        country: "ES",
+      });
+      await seedDecklessPlayer(repo, french, { playerName: "MTA Country One", rank: 1 });
+      await seedDecklessPlayer(repo, spanish, { playerName: "MTA Country Two", rank: 1 });
+      const window = { from: "2031-06-01", to: "2031-06-02" };
+
+      expect(await repo.scopedLegendCountries(window)).toEqual(["ES", "FR"]);
+      expect(await repo.scopedLegendCountries({ ...window, countries: ["FR"] })).toEqual([
+        "ES",
+        "FR",
       ]);
     });
 
@@ -887,7 +1174,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         draws: 1,
       });
 
-      const standings = await repo.standingsForEvent(eventId);
+      const standings = await standingsFor(repo, eventId);
       expect(standings.map((row) => row.playerName)).toEqual(["MTA Winner", "MTA Fourth"]);
       expect(standings[0]!.legendName).toBe("MTA Legend");
       expect(standings[0]!.championName).toBe("MTA Champion");
@@ -926,6 +1213,221 @@ describe.skipIf(!ctx)("metaRepo", () => {
       const finishes = await repo.topFinishesForEvents([eventId]);
 
       expect(finishes.map((row) => row.playerName)).toEqual(["MTA Ashe", "MTA Zed", "MTA Bronze"]);
+    });
+
+    it("takes more event ids than Postgres allows bind parameters", async () => {
+      const eventId = await seedEvent(repo, "mta-winner-many");
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Many", rank: 1 });
+      const ids = [...Array.from({ length: 70_000 }, () => crypto.randomUUID()), eventId];
+
+      const finishes = await repo.topFinishesForEvents(ids);
+
+      expect(finishes.map((row) => row.playerName)).toEqual(["MTA Many"]);
+    });
+
+    it("pages one event's standings and narrows them the way the page does", async () => {
+      const eventId = await seedEvent(repo, "mta-standings-page");
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Standings Ana", rank: 1 });
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Standings Bo", rank: 2 });
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Standings Cy", rank: 3 });
+
+      const first = await repo.standingsPage(eventId, {}, { limit: 2, offset: 0 });
+      const second = await repo.standingsPage(eventId, {}, { limit: 2, offset: 2 });
+      const searched = await repo.standingsPage(eventId, { q: "bo" }, { limit: 10, offset: 0 });
+      const listed = await repo.standingsPage(
+        eventId,
+        { withList: true },
+        { limit: 10, offset: 0 },
+      );
+      const byLegend = await repo.standingsPage(
+        eventId,
+        { legend: legendCardId },
+        { limit: 10, offset: 0 },
+      );
+
+      expect(first.total).toBe(3);
+      expect(first.rows.map((row) => row.playerName)).toEqual([
+        "MTA Standings Ana",
+        "MTA Standings Bo",
+      ]);
+      expect(second.rows.map((row) => row.playerName)).toEqual(["MTA Standings Cy"]);
+      expect(searched.rows.map((row) => row.playerName)).toEqual(["MTA Standings Bo"]);
+      expect(searched.total).toBe(1);
+      expect(listed.rows.map((row) => row.playerName)).toEqual(["MTA Standings Ana"]);
+      expect(byLegend.total).toBe(3);
+    });
+
+    it("pages a field that ties on both rank and name without repeating or skipping a row", async () => {
+      const eventId = await seedEvent(repo, "mta-standings-tie-page");
+      const ana = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Ana", rank: 1 });
+      const boA = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Bo", rank: 2 });
+      const boB = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Bo", rank: 2 });
+      const boC = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Bo", rank: 2 });
+      const cy = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Tie Cy", rank: 3 });
+
+      const first = await repo.standingsPage(eventId, {}, { limit: 2, offset: 0 });
+      const second = await repo.standingsPage(eventId, {}, { limit: 2, offset: 2 });
+      const third = await repo.standingsPage(eventId, {}, { limit: 2, offset: 4 });
+      const secondAgain = await repo.standingsPage(eventId, {}, { limit: 2, offset: 2 });
+
+      const paged = [...first.rows, ...second.rows, ...third.rows].map((row) => row.id);
+      expect(paged.toSorted()).toEqual([ana, boA, boB, boC, cy].toSorted());
+      expect(secondAgain.rows).toEqual(second.rows);
+    });
+
+    it("states what the page says about the whole field", async () => {
+      const eventId = await seedEvent(repo, "mta-field-summary");
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Field Ana", rank: 1, wins: 6 });
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Field Bo", rank: 2 });
+
+      const field = await repo.fieldSummaryForEvent(eventId);
+
+      expect(field).toMatchObject({ withLists: 1, hasLegends: true, hasRecords: true });
+      expect(field.legends).toEqual([expect.objectContaining({ cardId: legendCardId, count: 2 })]);
+      expect(field.hasRuns).toBe(false);
+      expect(field.progress).toBeNull();
+    });
+
+    it("names the best finish per legend and the row on the cut line", async () => {
+      const eventId = await seedEvent(repo, "mta-best-per-legend");
+      await seedDecklessPlayer(repo, eventId, { playerName: "MTA Best Deep", rank: 40 });
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Best Top", rank: 3 });
+      await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Best Cut",
+        rank: 8,
+        wins: 11,
+        losses: 2,
+      });
+
+      const best = await repo.bestPerLegendForEvent(eventId);
+      const cutLine = await repo.cutLineRowForEvent(eventId, 8);
+      const tiered = await repo.cutLineRowForEvent(eventId, 40);
+
+      expect(best.map((row) => row.playerName)).toEqual(["MTA Best Top"]);
+      expect(cutLine?.playerName).toBe("MTA Best Cut");
+      expect(tiered?.playerName).toBe("MTA Best Deep");
+    });
+
+    it("names the same cut-line row when two players tie at the cut rank", async () => {
+      const eventId = await seedEvent(repo, "mta-cut-line-tie");
+      await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Cut Zoe",
+        rank: 8,
+        wins: 10,
+        losses: 3,
+      });
+      await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Cut Ana",
+        rank: 8,
+        wins: 11,
+        losses: 2,
+      });
+
+      const first = await repo.cutLineRowForEvent(eventId, 8);
+      const again = await repo.cutLineRowForEvent(eventId, 8);
+
+      expect(first?.playerName).toBe("MTA Cut Ana");
+      expect(again?.playerName).toBe("MTA Cut Ana");
+    });
+
+    it("reads the rounds of the players asked for, and the cut's own matches", async () => {
+      const eventId = await seedEvent(repo, "mta-round-reads");
+      const ana = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Round Ana", rank: 1 });
+      const bo = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Round Bo", rank: 2 });
+      const cy = await seedDecklessPlayer(repo, eventId, { playerName: "MTA Round Cy", rank: 3 });
+      await repo.upsertEventMatches([
+        {
+          metaEventId: eventId,
+          sourceMatchId: "mta-round-1",
+          sourceRoundId: "1",
+          phaseOrder: 0,
+          roundNumber: 1,
+          tableNumber: 1,
+          isBye: false,
+          isDraw: false,
+          player1Id: ana,
+          player2Id: bo,
+          winnerId: ana,
+          gamesWonP1: 2,
+          gamesWonP2: 0,
+        },
+        {
+          metaEventId: eventId,
+          sourceMatchId: "mta-round-2",
+          sourceRoundId: "2",
+          phaseOrder: 1,
+          roundNumber: 1,
+          tableNumber: 1,
+          isBye: false,
+          isDraw: false,
+          player1Id: bo,
+          player2Id: cy,
+          winnerId: bo,
+          gamesWonP1: 2,
+          gamesWonP2: 1,
+        },
+      ]);
+
+      const mine = await repo.matchesForPlayers(eventId, [ana]);
+      const cut = await repo.matchesInPhases(eventId, [1]);
+
+      expect(mine.map((row) => row.sourceMatchId)).toEqual(["mta-round-1"]);
+      expect(cut.map((row) => row.sourceMatchId)).toEqual(["mta-round-2"]);
+      expect(await repo.matchesForPlayers(eventId, [])).toEqual([]);
+      expect(await repo.matchesInPhases(eventId, [])).toEqual([]);
+    });
+
+    it("finds a standings row by the key its player page answers to", async () => {
+      const eventId = await seedEvent(repo, "mta-row-by-key");
+      await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Keyed",
+        rank: 4,
+        sourceIdentity: "mtaKeyed#3",
+      });
+
+      const row = await repo.standingsRowByKey(eventId, "mtaKeyed");
+
+      expect(row?.playerName).toBe("MTA Keyed");
+      expect(await repo.standingsRowByKey(eventId, "nobody")).toBeUndefined();
+    });
+
+    it("names the same standings row every time a folded key holds two rows at one rank", async () => {
+      const eventId = await seedEvent(repo, "mta-row-by-key-tie");
+      const one = await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Keyed Tie One",
+        rank: 4,
+        sourceIdentity: "mtaKeyedTie#1",
+      });
+      const two = await seedDecklessPlayer(repo, eventId, {
+        playerName: "MTA Keyed Tie Two",
+        rank: 4,
+        sourceIdentity: "mtaKeyedTie#2",
+      });
+
+      const row = await repo.standingsRowByKey(eventId, "mtaKeyedTie");
+      const again = await repo.standingsRowByKey(eventId, "mtaKeyedTie");
+
+      expect(row?.id).toBe([one, two].toSorted()[0]);
+      expect(again?.id).toBe(row?.id);
+    });
+
+    it("reads the card index of one event's decks and nothing else", async () => {
+      const mine = await seedEvent(repo, "mta-cards-one-event");
+      const other = await seedEvent(repo, "mta-cards-other-event");
+      const { deckId } = await seedListedPlayer(repo, mine, {
+        playerName: "MTA Cards Mine",
+        rank: 1,
+      });
+      const { deckId: theirs } = await seedListedPlayer(repo, other, {
+        playerName: "MTA Cards Theirs",
+        rank: 1,
+      });
+
+      const rows = await repo.allDeckCards({ eventSlug: "mta-cards-one-event" });
+      const deckIds = new Set(rows.map((row) => row.deckId));
+
+      expect(deckIds.has(deckId)).toBe(true);
+      expect(deckIds.has(theirs)).toBe(false);
     });
 
     it("asks nothing of the database for an empty event list", async () => {
@@ -999,7 +1501,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         withChampion: false,
       });
 
-      const [row] = await repo.standingsForEvent(eventId);
+      const [row] = await standingsFor(repo, eventId);
       expect(row!.legendCardId).toBe(legendCardId);
       expect(row!.championCardId).toBeNull();
       expect(row!.championName).toBeNull();
@@ -1153,6 +1655,176 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(capped.total).toBe(3);
     });
 
+    it("curates to the best finish per legend per event, and pages what is left", async () => {
+      const first = await seedEvent(repo, "mta-deck-curated-one", { eventDate: "2027-03-05" });
+      const second = await seedEvent(repo, "mta-deck-curated-two", { eventDate: "2027-03-06" });
+      await seedListedPlayer(repo, first, { playerName: "MTA Curate Winner", rank: 1 });
+      await seedListedPlayer(repo, first, { playerName: "MTA Curate Second", rank: 2 });
+      await seedListedPlayer(repo, second, { playerName: "MTA Curate Other", rank: 4 });
+
+      const window = { from: "2027-03-05", to: "2027-03-06" };
+      const curated = await repo.allDeckSummaries({ ...window, curated: true });
+      const page = await repo.allDeckSummaries({ ...window, curated: true, limit: 1, offset: 1 });
+
+      expect(curated.rows.map((deck) => deck.playerName)).toEqual([
+        "MTA Curate Other",
+        "MTA Curate Winner",
+      ]);
+      expect(curated.total).toBe(2);
+      expect(page.rows.map((deck) => deck.playerName)).toEqual(["MTA Curate Winner"]);
+      expect(page.total).toBe(2);
+    });
+
+    it("orders by finish across the window and narrows to the events and bound asked for", async () => {
+      const first = await seedEvent(repo, "mta-deck-sort-one", { eventDate: "2027-04-05" });
+      const second = await seedEvent(repo, "mta-deck-sort-two", { eventDate: "2027-04-06" });
+      await seedListedPlayer(repo, first, { playerName: "MTA Sort Winner", rank: 1 });
+      await seedListedPlayer(repo, first, { playerName: "MTA Sort Eighth", rank: 8 });
+      await seedListedPlayer(repo, second, { playerName: "MTA Sort Fourth", rank: 4 });
+
+      const window = { from: "2027-04-05", to: "2027-04-06" };
+      const byFinish = await repo.allDeckSummaries({ ...window, by: "finish", dir: "asc" });
+      const named = await repo.allDeckSummaries({ ...window, events: ["mta-deck-sort-two"] });
+      const bounded = await repo.allDeckSummaries({ ...window, maxRank: 4 });
+      const byLegend = await repo.allDeckSummaries({ ...window, legends: [legendCardId] });
+
+      expect(byFinish.rows.map((deck) => deck.playerName)).toEqual([
+        "MTA Sort Winner",
+        "MTA Sort Fourth",
+        "MTA Sort Eighth",
+      ]);
+      expect(named.rows.map((deck) => deck.playerName)).toEqual(["MTA Sort Fourth"]);
+      expect(bounded.rows.map((deck) => deck.playerName)).toEqual([
+        "MTA Sort Fourth",
+        "MTA Sort Winner",
+      ]);
+      expect(byLegend.total).toBe(3);
+    });
+
+    it("counts each deck facet with its own picks lifted, the picked events first", async () => {
+      const first = await seedEvent(repo, "mta-deck-facet-one", {
+        eventDate: "2027-05-05",
+        country: "FR",
+      });
+      const second = await seedEvent(repo, "mta-deck-facet-two", {
+        eventDate: "2027-05-06",
+        country: "ES",
+      });
+      await seedListedPlayer(repo, first, { playerName: "MTA Count Winner", rank: 1 });
+      await seedListedPlayer(repo, first, { playerName: "MTA Count Eighth", rank: 8 });
+      await seedListedPlayer(repo, second, { playerName: "MTA Count Second", rank: 2 });
+
+      const facets = await repo.deckFacetCounts({
+        from: "2027-05-05",
+        to: "2027-05-06",
+        events: ["mta-deck-facet-one"],
+        maxRank: 4,
+      });
+
+      expect(facets.events).toEqual([
+        {
+          slug: "mta-deck-facet-one",
+          name: "MTA mta-deck-facet-one",
+          eventDate: "2027-05-05",
+          count: 1,
+        },
+        {
+          slug: "mta-deck-facet-two",
+          name: "MTA mta-deck-facet-two",
+          eventDate: "2027-05-06",
+          count: 1,
+        },
+      ]);
+      expect(facets.finishes).toEqual([
+        { value: 1, count: 1 },
+        { value: 4, count: 1 },
+        { value: 8, count: 2 },
+        { value: 16, count: 2 },
+      ]);
+      expect(facets.legends).toEqual([
+        expect.objectContaining({ cardId: legendCardId, name: "MTA Legend", count: 1 }),
+      ]);
+      expect(facets.countries).toEqual(["FR"]);
+
+      const byCountry = await repo.deckFacetCounts({
+        from: "2027-05-05",
+        to: "2027-05-06",
+        countries: ["FR"],
+      });
+
+      expect(byCountry.countries).toEqual(["ES", "FR"]);
+    });
+
+    it("offers a picked event the scope counted no decks for first, at count 0", async () => {
+      const counted = await seedEvent(repo, "mta-facet-lift-counted", { eventDate: "2027-06-06" });
+      await seedEvent(repo, "mta-facet-lift-empty", { eventDate: "2027-06-05" });
+      await seedListedPlayer(repo, counted, { playerName: "MTA Lift Counted", rank: 1 });
+
+      const facets = await repo.deckFacetCounts({
+        from: "2027-06-06",
+        to: "2027-06-06",
+        events: ["mta-facet-lift-empty"],
+      });
+
+      expect(facets.events).toEqual([
+        {
+          slug: "mta-facet-lift-empty",
+          name: "MTA mta-facet-lift-empty",
+          eventDate: "2027-06-05",
+          count: 0,
+        },
+        {
+          slug: "mta-facet-lift-counted",
+          name: "MTA mta-facet-lift-counted",
+          eventDate: "2027-06-06",
+          count: 1,
+        },
+      ]);
+    });
+
+    it("offers a picked legend the scope counted no decks for, named and at count 0", async () => {
+      const eventId = await seedEvent(repo, "mta-facet-lift-legend", { eventDate: "2027-06-08" });
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Legend", rank: 1 });
+      const unplayed = await seedCard("MTA Unplayed", "mta-unplayed", "legend", ["MTA Ahri"]);
+
+      const facets = await repo.deckFacetCounts({
+        from: "2027-06-08",
+        to: "2027-06-08",
+        legends: [unplayed],
+      });
+      const byCard = new Map(facets.legends.map((row) => [row.cardId, row]));
+
+      expect(byCard.get(unplayed)).toEqual(
+        expect.objectContaining({ name: "MTA Unplayed", tags: ["MTA Ahri"], count: 0 }),
+      );
+      expect(byCard.get(legendCardId)?.count).toBe(1);
+    });
+
+    it("counts a picked value the scope does have decks for exactly once", async () => {
+      const eventId = await seedEvent(repo, "mta-facet-lift-dedupe", { eventDate: "2027-06-10" });
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Dedupe One", rank: 1 });
+      await seedListedPlayer(repo, eventId, { playerName: "MTA Lift Dedupe Two", rank: 2 });
+
+      const facets = await repo.deckFacetCounts({
+        from: "2027-06-10",
+        to: "2027-06-10",
+        events: ["mta-facet-lift-dedupe"],
+        legends: [legendCardId],
+      });
+
+      expect(facets.events).toEqual([
+        {
+          slug: "mta-facet-lift-dedupe",
+          name: "MTA mta-facet-lift-dedupe",
+          eventDate: "2027-06-10",
+          count: 2,
+        },
+      ]);
+      expect(facets.legends).toEqual([
+        expect.objectContaining({ cardId: legendCardId, name: "MTA Legend", count: 2 }),
+      ]);
+    });
+
     it("keeps only the card rows of decks inside the window", async () => {
       const inside = await seedEvent(repo, "mta-cards-inside", { eventDate: "2026-05-10" });
       const outside = await seedEvent(repo, "mta-cards-outside", { eventDate: "2026-06-10" });
@@ -1165,11 +1837,58 @@ describe.skipIf(!ctx)("metaRepo", () => {
         rank: 1,
       });
 
-      const rows = await repo.allDeckCards({ from: "2026-05-01", to: "2026-05-31" });
+      const rows = await repo.allDeckCards({
+        from: "2026-05-01",
+        to: "2026-05-31",
+        events: ["mta-cards-inside", "mta-cards-outside"],
+      });
       const deckIds = new Set(rows.map((row) => row.deckId));
 
       expect(deckIds.has(insideDeck)).toBe(true);
       expect(deckIds.has(outsideDeck)).toBe(false);
+    });
+
+    it("covers the page the grid shows and no deck beyond it", async () => {
+      const eventId = await seedEvent(repo, "mta-cards-paged", { eventDate: "2027-03-03" });
+      const { deckId: first } = await seedListedPlayer(repo, eventId, {
+        playerName: "MTA Paged First",
+        rank: 1,
+      });
+      const { deckId: second } = await seedListedPlayer(repo, eventId, {
+        playerName: "MTA Paged Second",
+        rank: 2,
+      });
+      const narrowing = { events: ["mta-cards-paged"], by: "finish", dir: "asc" } as const;
+
+      const page = await repo.allDeckCards({ ...narrowing, limit: 1, offset: 0 });
+      const next = await repo.allDeckCards({ ...narrowing, limit: 1, offset: 1 });
+
+      expect(new Set(page.map((row) => row.deckId))).toEqual(new Set([first]));
+      expect(new Set(next.map((row) => row.deckId))).toEqual(new Set([second]));
+    });
+
+    it("names the same decks in the grid and the card index when event, finish and name tie", async () => {
+      const eventId = await seedEvent(repo, "mta-cards-tied", { eventDate: "2027-03-04" });
+      const tied = { playerName: "MTA Tied Brand", rank: 2 } as const;
+      const { deckId: one } = await seedListedPlayer(repo, eventId, tied);
+      const { deckId: two } = await seedListedPlayer(repo, eventId, tied);
+      const { deckId: three } = await seedListedPlayer(repo, eventId, tied);
+      const { deckId: four } = await seedListedPlayer(repo, eventId, tied);
+      const narrowing = { events: ["mta-cards-tied"] } as const;
+
+      const grid = await repo.allDeckSummaries({ ...narrowing, limit: 2, offset: 0 });
+      const gridNext = await repo.allDeckSummaries({ ...narrowing, limit: 2, offset: 2 });
+      const cards = await repo.allDeckCards({ ...narrowing, limit: 2, offset: 0 });
+      const cardsNext = await repo.allDeckCards({ ...narrowing, limit: 2, offset: 2 });
+
+      const paged = [...grid.rows, ...gridNext.rows].map((deck) => deck.deckId);
+      expect(paged.toSorted()).toEqual([one, two, three, four].toSorted());
+      expect(new Set(cards.map((row) => row.deckId))).toEqual(
+        new Set(grid.rows.map((deck) => deck.deckId)),
+      );
+      expect(new Set(cardsNext.map((row) => row.deckId))).toEqual(
+        new Set(gridNext.rows.map((deck) => deck.deckId)),
+      );
     });
 
     it("reports each archived list's cards, summing every zone but the sideboard", async () => {
@@ -1180,7 +1899,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
         withSideboard: true,
       });
 
-      const all = await repo.allDeckCards();
+      const all = await repo.allDeckCards({ eventSlug: "mta-deck-cards" });
       const rows = all.filter((row) => row.deckId === deckId);
       expect(
         rows.map((row) => ({
@@ -2221,7 +2940,7 @@ describe.skipIf(!ctx)("metaRepo", () => {
       );
       expect(created).not.toBeUndefined();
 
-      const standings = await repo.standingsForEvent(eventId);
+      const standings = await standingsFor(repo, eventId);
       expect(standings[0]!.playerName).toBe("MTA Source Name");
     });
 
@@ -2232,22 +2951,22 @@ describe.skipIf(!ctx)("metaRepo", () => {
         .where("id", "=", UVS_PLAYER_ID)
         .execute();
 
-      const standings = await repo.standingsForEvent(eventId);
+      const standings = await standingsFor(repo, eventId);
       expect(standings[0]!.playerName).toBe("MTA Renamed");
     });
 
     it("lets a locally written name win over the source's", async () => {
-      const standings = await repo.standingsForEvent(eventId);
+      const standings = await standingsFor(repo, eventId);
       expect(await repo.updatePlayer(standings[0]!.id, { playerName: "MTA Admin Override" })).toBe(
         true,
       );
 
-      const overridden = await repo.standingsForEvent(eventId);
+      const overridden = await standingsFor(repo, eventId);
       expect(overridden[0]!.playerName).toBe("MTA Admin Override");
 
       // Clearing it hands the player back to the source's renames.
       await repo.updatePlayer(standings[0]!.id, { playerName: null });
-      const restored = await repo.standingsForEvent(eventId);
+      const restored = await standingsFor(repo, eventId);
       expect(restored[0]!.playerName).toBe("MTA Renamed");
     });
 

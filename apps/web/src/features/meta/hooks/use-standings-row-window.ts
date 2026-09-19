@@ -1,4 +1,4 @@
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { useEffect, useState } from "react";
 
 import type { RowSlot } from "@/features/meta/lib/meta-event-standings";
@@ -17,11 +17,11 @@ function measureRow(element: Element): number {
 export interface RowWindow {
   containerRef: (node: HTMLElement | null) => void;
   height: number | undefined;
-  rows: { player: MetaEventPlayer; slot: RowSlot }[];
+  rows: { player: MetaStandingsRow; slot: RowSlot }[];
 }
 
 /** Before hydration, a fixed opening slice matches the server HTML. */
-export function useRowWindow(players: readonly MetaEventPlayer[]): RowWindow {
+export function useRowWindow(players: readonly MetaStandingsRow[]): RowWindow {
   const hydrated = useHydrated();
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [scrollMargin, setScrollMargin] = useState(0);

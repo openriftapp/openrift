@@ -4,10 +4,20 @@ import type {
   MetaCountsQuery,
   MetaCountsResponse,
   MetaDeckCardIndexResponse,
+  MetaDeckCardsQuery,
+  MetaDeckFacetsQuery,
+  MetaDeckFacetsResponse,
+  MetaDeckQuery,
   MetaDeckDetailResponse,
   MetaDeckListResponse,
   MetaEventDayCountsQuery,
   MetaEventDayCountsResponse,
+  MetaEventFacetsResponse,
+  MetaEventFilterQuery,
+  MetaEventListQuery,
+  MetaEventRunResponse,
+  MetaEventStandingsQuery,
+  MetaEventStandingsResponse,
   MetaEventDetailResponse,
   MetaEventListResponse,
   MetaLegendDetailResponse,
@@ -21,8 +31,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { metaKeys, metaSubmissionsKeys } from "@/features/meta/lib/meta-query-keys";
-import type { MetaDateRange, MetaDeckQuery } from "@/features/meta/lib/meta-scope";
 import { serverCache } from "@/lib/server-cache";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -46,20 +56,53 @@ function cacheKeyFor(query: Record<string, unknown>): unknown[] {
 }
 
 const fetchMetaEvents = createServerFn({ method: "GET" })
-  .validator(optionalQuery<MetaDateRange>)
+  .validator(optionalQuery<MetaEventListQuery>)
   .middleware([withCookies])
-  .handler(({ context, data: range }): Promise<MetaEventListResponse> =>
+  .handler(({ context, data: query }): Promise<MetaEventListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "events", ...cacheKeyFor(range)],
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).events(range),
+      queryKey: ["server-cache", "meta", "events", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).events(query),
     }),
   );
 
-export function metaEventsQueryOptions(range?: MetaDateRange) {
-  const narrowed = narrow(range);
+/** One fixed page of the index, for a surface that shows a handful of events and no more. */
+export function metaEventPageQueryOptions(query: MetaEventListQuery) {
+  const narrowed = narrow(query);
   return queryOptions({
-    queryKey: metaKeys.events(narrowed),
+    queryKey: metaKeys.eventPage(narrowed),
     queryFn: () => fetchMetaEvents({ data: narrowed }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** What the decklist form needs up front: the linked event, or one row to tell an empty archive from a filled one. */
+export function metaSubmitEventQuery(slug?: string): MetaEventListQuery {
+  return slug === undefined ? { limit: 1 } : { slug, limit: 1 };
+}
+
+const EVENT_SEARCH_SIZE = 20;
+
+/** The picker's own read: a handful of matches for what the reader has typed. */
+export function metaEventSearchQuery(query: string): MetaEventListQuery {
+  const needle = query.trim();
+  return needle === "" ? { limit: EVENT_SEARCH_SIZE } : { q: needle, limit: EVENT_SEARCH_SIZE };
+}
+
+const fetchMetaEventFacets = createServerFn({ method: "GET" })
+  .validator(optionalQuery<MetaEventFilterQuery>)
+  .middleware([withCookies])
+  .handler(({ context, data: query }): Promise<MetaEventFacetsResponse> =>
+    serverCache.query({
+      queryKey: ["server-cache", "meta", "event-facets", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).eventFacets(query),
+    }),
+  );
+
+export function metaEventFacetsQueryOptions(query: MetaEventFilterQuery = {}) {
+  const narrowed = narrow(query);
+  return queryOptions({
+    queryKey: metaKeys.eventFacets(narrowed),
+    queryFn: () => fetchMetaEventFacets({ data: narrowed }),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -121,11 +164,10 @@ const fetchMetaEvent = createServerFn({ method: "GET" })
   .validator((input: string) => input)
   .middleware([withCookies])
   .handler(async ({ context, data: slug }): Promise<MetaEventDetailResponse> => {
-    // 404 maps to NOT_FOUND: the ApiError prototype doesn't survive the server-function boundary.
     const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).event({ slug }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -143,6 +185,62 @@ export function metaEventQueryOptions(slug: string) {
 }
 
 const LIVE_EVENT_REFETCH_MS = 5 * 60 * 1000;
+
+const fetchMetaStandings = createServerFn({ method: "GET" })
+  .validator((input: MetaEventStandingsQuery) => input)
+  .middleware([withCookies])
+  .handler(({ context, data: query }): Promise<MetaEventStandingsResponse> =>
+    serverCache.query({
+      queryKey: ["server-cache", "meta", "standings", query.slug, ...cacheKeyFor(query)],
+      queryFn: async () => {
+        const { error, data } = await safe(
+          apiOrpcClient(metaContract, context.cookie).standings(query),
+        );
+        if (error) {
+          if (isDefinedError(error) && error.code === "NOT_FOUND") {
+            throw notFoundError();
+          }
+          throw error;
+        }
+        return data;
+      },
+    }),
+  );
+
+/** One page of an event's standings under the page's own narrowing. */
+export function metaStandingsQueryOptions(
+  slug: string,
+  query: Omit<MetaEventStandingsQuery, "slug"> = {},
+) {
+  const narrowed = narrow(query);
+  return queryOptions({
+    queryKey: metaKeys.standings(slug, narrowed),
+    queryFn: () => fetchMetaStandings({ data: { ...narrowed, slug } }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+const fetchMetaRun = createServerFn({ method: "GET" })
+  .validator((input: { slug: string; key: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }): Promise<MetaEventRunResponse> => {
+    const { error, data: run } = await safe(apiOrpcClient(metaContract, context.cookie).run(data));
+    if (error) {
+      if (isDefinedError(error) && error.code === "NOT_FOUND") {
+        throw notFoundError();
+      }
+      throw error;
+    }
+    return run;
+  });
+
+export function metaRunQueryOptions(slug: string, key: string) {
+  return queryOptions({
+    queryKey: metaKeys.run(slug, key),
+    queryFn: () => fetchMetaRun({ data: { slug, key } }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 const fetchMetaPendingSubmissions = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -179,18 +277,37 @@ export function metaDecksQueryOptions(query?: MetaDeckQuery) {
   });
 }
 
-const fetchMetaDeckCards = createServerFn({ method: "GET" })
-  .validator(optionalQuery<MetaDateRange>)
+const fetchMetaDeckFacets = createServerFn({ method: "GET" })
+  .validator(optionalQuery<MetaDeckFacetsQuery>)
   .middleware([withCookies])
-  .handler(({ context, data: range }): Promise<MetaDeckCardIndexResponse> =>
+  .handler(({ context, data: query }): Promise<MetaDeckFacetsResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "deck-cards", range.from ?? null, range.to ?? null],
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).deckCards(range),
+      queryKey: ["server-cache", "meta", "deck-facets", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).deckFacets(query),
     }),
   );
 
-export function metaDeckCardsQueryOptions(range?: MetaDateRange) {
-  const narrowed = narrow(range);
+export function metaDeckFacetsQueryOptions(query?: MetaDeckFacetsQuery) {
+  const narrowed = narrow(query);
+  return queryOptions({
+    queryKey: metaKeys.deckFacets(narrowed),
+    queryFn: () => fetchMetaDeckFacets({ data: narrowed }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+const fetchMetaDeckCards = createServerFn({ method: "GET" })
+  .validator(optionalQuery<MetaDeckCardsQuery>)
+  .middleware([withCookies])
+  .handler(({ context, data: query }): Promise<MetaDeckCardIndexResponse> =>
+    serverCache.query({
+      queryKey: ["server-cache", "meta", "deck-cards", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).deckCards(query),
+    }),
+  );
+
+export function metaDeckCardsQueryOptions(query?: MetaDeckCardsQuery) {
+  const narrowed = narrow(query);
   return queryOptions({
     queryKey: metaKeys.deckCards(narrowed),
     queryFn: () => fetchMetaDeckCards({ data: narrowed }),
@@ -205,7 +322,7 @@ const fetchMetaDeck = createServerFn({ method: "GET" })
     const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).deck({ token }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -221,19 +338,23 @@ export function metaDeckQueryOptions(token: string) {
 }
 
 const fetchMetaLegends = createServerFn({ method: "GET" })
+  .validator(optionalQuery<MetaScopeQuery>)
   .middleware([withCookies])
-  .handler(({ context }): Promise<MetaLegendListResponse> =>
+  .handler(({ context, data: query }): Promise<MetaLegendListResponse> =>
     serverCache.query({
-      queryKey: ["server-cache", "meta", "legends"],
-      queryFn: () => apiOrpcClient(metaContract, context.cookie).legends(),
+      queryKey: ["server-cache", "meta", "legends", ...cacheKeyFor(query)],
+      queryFn: () => apiOrpcClient(metaContract, context.cookie).legends(query),
     }),
   );
 
-export const metaLegendsQueryOptions = queryOptions({
-  queryKey: metaKeys.legends,
-  queryFn: () => fetchMetaLegends(),
-  staleTime: 5 * 60 * 1000,
-});
+export function metaLegendsQueryOptions(query: MetaScopeQuery = {}) {
+  const narrowed = narrow(query);
+  return queryOptions({
+    queryKey: metaKeys.legends(narrowed),
+    queryFn: () => fetchMetaLegends({ data: narrowed }),
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 const fetchMetaLegend = createServerFn({ method: "GET" })
   .validator((input: MetaLegendPageQuery & { slug: string }) => input)
@@ -242,7 +363,7 @@ const fetchMetaLegend = createServerFn({ method: "GET" })
     const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).legend(query));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -265,7 +386,7 @@ const fetchMetaPlayer = createServerFn({ method: "GET" })
     const { error, data } = await safe(apiOrpcClient(metaContract, context.cookie).player({ key }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

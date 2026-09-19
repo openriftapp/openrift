@@ -1,23 +1,118 @@
 import type {
-  MetaEventMatch,
   MetaEventPhase,
-  MetaEventPlayer,
+  MetaEventStandingsQuery,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import type { MetaEventStatus } from "@openrift/shared/types/enums";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MetaDeckCostFilterProps } from "@/features/meta/components/meta-deck-cost-filter";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
-import { metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import type { MetaStandingsSearch } from "@/features/meta/lib/meta-standings-search";
+import { standingsPageQuery } from "@/features/meta/lib/meta-standings-search";
+import { metaField, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 const session = vi.hoisted(() => ({ userId: null as string | null }));
-const archive = vi.hoisted(() => ({
-  costs: undefined as ReadonlyMap<string, MetaDeckCost> | undefined,
-  withCollection: [] as boolean[],
-  includeSideboard: [] as boolean[],
-}));
+
+/** The URL the route would carry, so a narrowing re-renders the way navigation does. */
+const searchStore = vi.hoisted(() => {
+  let search: Record<string, unknown> = {};
+  const listeners = new Set<() => void>();
+  return {
+    read: () => search,
+    write: (next: Record<string, unknown>) => {
+      search = next;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+});
+type StandingsQuery = Omit<MetaEventStandingsQuery, "slug">;
+interface StandingsPage {
+  players: unknown[];
+  total: number;
+}
+
+const archive = vi.hoisted(() => {
+  const store = {
+    costs: undefined as ReadonlyMap<string, MetaDeckCost> | undefined,
+    withCollection: [] as boolean[],
+    includeSideboard: [] as boolean[],
+    rows: [] as { id: string; playerName: string; shareToken: string | null; legend: unknown }[],
+    cache: new Map<string, StandingsPage>(),
+    fetched: [] as string[],
+    kept: undefined as StandingsPage | undefined,
+    // Keys the API rejects, and keys whose request never lands.
+    failing: new Set<string>(),
+    holding: new Set<string>(),
+    keyOf: (slug: string, query: StandingsQuery) => JSON.stringify([slug, query]),
+    pageFor: (query: StandingsQuery): StandingsPage => {
+      const needle = query.q?.toLowerCase() ?? "";
+      const matching = store.rows.filter(
+        (row) =>
+          (needle === "" || row.playerName.toLowerCase().includes(needle)) &&
+          (query.list !== "with" || row.shareToken !== null) &&
+          (query.legend === undefined ||
+            (row.legend as { cardId?: string } | null)?.cardId === query.legend),
+      );
+      const offset = query.offset ?? 0;
+      return {
+        players: matching.slice(offset, offset + (query.limit ?? 200)),
+        total: matching.length,
+      };
+    },
+  };
+  return store;
+});
+
+// Stands in for the query cache: an unseeded key has to be fetched, and
+// `keepPreviousData` holds the page before it on screen until that lands.
+vi.mock("@/features/meta/hooks/use-meta", async () => {
+  const react = await import("react");
+  return {
+    useMetaStandings: (slug: string, query: StandingsQuery) => {
+      const key = archive.keyOf(slug, query);
+      const hit = archive.cache.get(key);
+      const [, settle] = react.useState(0);
+      const rejected = archive.failing.has(key);
+      react.useEffect(() => {
+        if (rejected || archive.holding.has(key)) {
+          return;
+        }
+        if (hit === undefined) {
+          archive.fetched.push(key);
+          archive.cache.set(key, archive.pageFor(query));
+          settle((round) => round + 1);
+          return;
+        }
+        archive.kept = hit;
+      });
+      const refetch = () => {
+        archive.failing.delete(key);
+        settle((round) => round + 1);
+      };
+      if (rejected) {
+        return { data: undefined, isError: true, isPlaceholderData: false, refetch };
+      }
+      if (hit !== undefined) {
+        return { data: hit, isError: false, isPlaceholderData: false, refetch };
+      }
+      return {
+        data: archive.kept,
+        isError: false,
+        isPlaceholderData: archive.kept !== undefined,
+        refetch,
+      };
+    },
+  };
+});
 
 vi.mock("@/lib/auth-session", () => ({ useUserId: () => session.userId }));
 vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
@@ -69,8 +164,20 @@ vi.mock("@/hooks/use-enums", () => ({
 }));
 
 vi.mock("@tanstack/react-router", async () => {
+  const react = await import("react");
   const fixtures = await import("@/test/meta-event-fixtures");
-  return { Link: fixtures.StubLink };
+  return {
+    Link: fixtures.StubLink,
+    getRouteApi: () => ({
+      useSearch: () =>
+        react.useSyncExternalStore(searchStore.subscribe, searchStore.read, searchStore.read),
+      useNavigate:
+        () =>
+        ({ search }: { search: (prev: Record<string, unknown>) => Record<string, unknown> }) => {
+          searchStore.write(search(searchStore.read()));
+        },
+    }),
+  };
 });
 
 vi.mock("@/features/cards/components/card-detail-opener", () => ({
@@ -92,19 +199,74 @@ function phoneRow(name: string): HTMLElement {
   return within(list).getByText(name).closest("li") as HTMLElement;
 }
 
+/** What the API would state about a field of these rows. */
+function fieldOf(
+  players: MetaStandingsRow[],
+  extra: { progress?: { phaseOrder: number; roundNumber: number } } = {},
+) {
+  const legends = new Map<string, { cardId: string; name: string; count: number }>();
+  for (const player of players) {
+    if (player.legend === null) {
+      continue;
+    }
+    const seen = legends.get(player.legend.cardId);
+    legends.set(player.legend.cardId, {
+      cardId: player.legend.cardId,
+      name: player.legend.name,
+      count: (seen?.count ?? 0) + 1,
+    });
+  }
+  return metaField({
+    withLists: players.filter((player) => player.shareToken !== null).length,
+    hasLegends: players.some((player) => player.legend !== null || player.champion !== null),
+    hasRecords: players.some((player) => player.wins !== null && player.losses !== null),
+    hasRuns: players.some((player) => player.rounds.length > 0),
+    legends: [...legends.values()].toSorted((a, b) => a.name.localeCompare(b.name)),
+    progress: extra.progress ?? null,
+  });
+}
+
+const SLUG = "summoner-skirmish";
+
+function seedFromLoader(search: MetaStandingsSearch, total: number) {
+  const query = standingsPageQuery(search, total);
+  archive.cache.set(archive.keyOf(SLUG, query), archive.pageFor(query));
+}
+
+function keyFor(search: MetaStandingsSearch, total: number) {
+  return archive.keyOf(SLUG, standingsPageQuery(search, total));
+}
+
+/** Lets every held request land, then re-renders the way a navigation would. */
+async function landHeldRequests() {
+  archive.holding.clear();
+  await act(async () => {
+    searchStore.write({ ...searchStore.read() });
+  });
+}
+
 function renderStandings(
-  players: MetaEventPlayer[] = [metaPlayer()],
+  players: MetaStandingsRow[] = [metaRow()],
   eventDate = "2020-01-01",
-  rounds: { matches?: MetaEventMatch[]; phases?: MetaEventPhase[] } = {},
+  extra: {
+    phases?: MetaEventPhase[];
+    progress?: { phaseOrder: number; roundNumber: number };
+    search?: Record<string, unknown>;
+  } = {},
   status: MetaEventStatus = "complete",
   pending: ReadonlyMap<string, { mine: boolean }> = new Map(),
 ) {
+  archive.rows = players as never;
+  const search = (extra.search ?? {}) as MetaStandingsSearch;
+  searchStore.write(search);
+  seedFromLoader({}, players.length);
+  seedFromLoader(search, players.length);
   render(
     <MetaEventStandings
-      players={players}
-      matches={rounds.matches ?? []}
-      phases={rounds.phases ?? []}
-      slug="summoner-skirmish"
+      firstPage={{ players: players.slice(0, 200), total: players.length }}
+      field={fieldOf(players, extra)}
+      phases={extra.phases ?? []}
+      slug={SLUG}
       status={status}
       eventDate={eventDate}
       pending={pending}
@@ -114,21 +276,23 @@ function renderStandings(
 
 const SWISS = metaPhase({ phaseOrder: 1, name: "Phase 1", roundType: "SWISS", rankRequired: null });
 
-const ANA_RUN = {
-  phases: [SWISS, metaPhase()],
-  matches: [
-    metaMatch({ phaseOrder: 1, roundNumber: 1, player2Id: null, winnerId: null, isBye: true }),
-    metaMatch({ phaseOrder: 1, roundNumber: 2, winnerId: "p-1" }),
-    metaMatch({ phaseOrder: 1, roundNumber: 3, winnerId: "p-2" }),
-    metaMatch({ phaseOrder: 1, roundNumber: 4, winnerId: null, isDraw: true }),
-    metaMatch({ roundNumber: 1, winnerId: "p-1" }),
-    metaMatch({ roundNumber: 2, winnerId: "p-1" }),
-  ],
-};
+const ANA_ROUNDS = [
+  { phaseOrder: 0, roundNumber: 1, isCut: false, outcome: "bye" as const },
+  { phaseOrder: 0, roundNumber: 2, isCut: false, outcome: "win" as const },
+  { phaseOrder: 0, roundNumber: 3, isCut: false, outcome: "loss" as const },
+  { phaseOrder: 0, roundNumber: 4, isCut: false, outcome: "draw" as const },
+  { phaseOrder: 1, roundNumber: 1, isCut: true, outcome: "win" as const },
+  { phaseOrder: 1, roundNumber: 2, isCut: true, outcome: "win" as const },
+];
 
-function field(count: number, overrides: (index: number) => Partial<MetaEventPlayer> = () => ({})) {
+const CUT_PHASES = { phases: [SWISS, metaPhase()] };
+
+function field(
+  count: number,
+  overrides: (index: number) => Partial<MetaStandingsRow> = () => ({}),
+) {
   return Array.from({ length: count }, (_, index) =>
-    metaPlayer({
+    metaRow({
       id: `p-${index}`,
       playerName: `Player ${index}`,
       rank: index + 1,
@@ -143,10 +307,20 @@ describe("MetaEventStandings", () => {
     archive.costs = undefined;
     archive.withCollection = [];
     archive.includeSideboard = [];
+    archive.cache.clear();
+    archive.fetched = [];
+    archive.kept = undefined;
+    archive.failing.clear();
+    archive.holding.clear();
+    searchStore.write({});
   });
 
   it("charts each player's run once the source filed round-by-round results", () => {
-    renderStandings([metaPlayer({ id: "p-1", playerName: "Ana" })], "2020-01-01", ANA_RUN);
+    renderStandings(
+      [metaRow({ id: "p-1", playerName: "Ana", rounds: ANA_ROUNDS })],
+      "2020-01-01",
+      CUT_PHASES,
+    );
 
     expect(screen.getByRole("columnheader", { name: "Run" })).toBeInTheDocument();
     const strip = within(phoneRow("Ana")).getByRole("img", {
@@ -157,7 +331,7 @@ describe("MetaEventStandings", () => {
   });
 
   it("keeps the run column out of an event that arrived as bare standings", () => {
-    renderStandings([metaPlayer({ playerName: "Ana" })]);
+    renderStandings([metaRow({ playerName: "Ana" })]);
 
     expect(screen.queryByRole("columnheader", { name: "Run" })).toBeNull();
     expect(within(phoneRow("Ana")).queryByRole("img", { name: /Round by round/u })).toBeNull();
@@ -165,9 +339,9 @@ describe("MetaEventStandings", () => {
 
   it("leads a charted run to the player's page for the event", () => {
     renderStandings(
-      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })],
+      [metaRow({ id: "p-1", playerName: "Ana", playerKey: "u1001", rounds: ANA_ROUNDS })],
       "2020-01-01",
-      ANA_RUN,
+      CUT_PHASES,
     );
 
     const links = screen.getAllByRole("link", { name: /Round by round/u });
@@ -179,9 +353,9 @@ describe("MetaEventStandings", () => {
 
   it("charts the run of a player the source filed under no identity without a link", () => {
     renderStandings(
-      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: null })],
+      [metaRow({ id: "p-1", playerName: "Ana", playerKey: null, rounds: ANA_ROUNDS })],
       "2020-01-01",
-      ANA_RUN,
+      CUT_PHASES,
     );
 
     expect(
@@ -193,11 +367,11 @@ describe("MetaEventStandings", () => {
   it("leaves the run blank for a player the source paired in no round", () => {
     renderStandings(
       [
-        metaPlayer({ id: "p-1", playerName: "Ana" }),
-        metaPlayer({ id: "p-9", playerName: "Zed", rank: 9 }),
+        metaRow({ id: "p-1", playerName: "Ana", rounds: ANA_ROUNDS }),
+        metaRow({ id: "p-9", playerName: "Zed", rank: 9 }),
       ],
       "2020-01-01",
-      ANA_RUN,
+      CUT_PHASES,
     );
 
     expect(within(phoneRow("Zed")).queryByRole("img", { name: /Round by round/u })).toBeNull();
@@ -206,9 +380,9 @@ describe("MetaEventStandings", () => {
   it("leaves a row's run link out of the decklist disclosure", async () => {
     const user = userEvent.setup();
     renderStandings(
-      [metaPlayer({ id: "p-1", playerName: "Ana", shareToken: "tok1" })],
+      [metaRow({ id: "p-1", playerName: "Ana", shareToken: "tok1", rounds: ANA_ROUNDS })],
       "2020-01-01",
-      ANA_RUN,
+      CUT_PHASES,
     );
 
     await user.click(within(phoneRow("Ana")).getByRole("link", { name: /Round by round/u }));
@@ -232,9 +406,9 @@ describe("MetaEventStandings", () => {
 
   it("marks a running event's standings provisional, with the round they stand after", () => {
     renderStandings(
-      [metaPlayer()],
+      [metaRow()],
       "2020-01-01",
-      { matches: [metaMatch({ phaseOrder: 1, roundNumber: 2 })], phases: [SWISS] },
+      { phases: [SWISS], progress: { phaseOrder: 1, roundNumber: 2 } },
       "in_progress",
     );
     expect(screen.getByText(/After round 2 of \d+ · provisional/u)).toBeInTheDocument();
@@ -251,24 +425,24 @@ describe("MetaEventStandings", () => {
 
   it("counts the field and how much of it has a list", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
     expect(screen.getByText("2 entries · 1 with a decklist")).toBeInTheDocument();
   });
 
   it("counts only the entries when the archive holds no list at all", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
     expect(screen.getByText("2 entries")).toBeInTheDocument();
   });
 
   it("lists every player, the deckless ones included", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
     expect(phoneRow("Ana")).toBeInTheDocument();
     expect(phoneRow("Bo")).toBeInTheDocument();
@@ -276,15 +450,15 @@ describe("MetaEventStandings", () => {
 
   it("prints a podium place in the same ordinal form as the rest", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 3 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 4 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 3 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 4 }),
     ]);
     expect(within(phoneRow("Ana")).getByText("3rd")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).getByText("4th")).toBeInTheDocument();
   });
 
   it("offers a legend filter once the field played more than one", () => {
-    const legend = metaPlayer().legend;
+    const legend = metaRow().legend;
     renderStandings(
       field(9, (index) => ({
         legend:
@@ -304,15 +478,15 @@ describe("MetaEventStandings", () => {
   });
 
   it("prints a cut bucket as a bracket rather than an ordinal", () => {
-    renderStandings([metaPlayer({ playerName: "Bo", rank: 8, rankIsTier: true })]);
+    renderStandings([metaRow({ playerName: "Bo", rank: 8, rankIsTier: true })]);
     expect(within(phoneRow("Bo")).getByText("T8")).toBeInTheDocument();
   });
 
   it("shows legend art on every row, cut or not", () => {
-    const legend = metaPlayer().legend;
+    const legend = metaRow().legend;
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 4, legend: { ...legend!, imageId: "art" } }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 40, legend: { ...legend!, imageId: "art" } }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 4, legend: { ...legend!, imageId: "art" } }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 40, legend: { ...legend!, imageId: "art" } }),
     ]);
     expect(phoneRow("Ana").querySelector('img[src*="art-120w"]')).not.toBeNull();
     expect(phoneRow("Bo").querySelector('img[src*="art-120w"]')).not.toBeNull();
@@ -332,8 +506,8 @@ describe("MetaEventStandings", () => {
       ["d1", { needed: 40, owned: undefined, value: 123.4, toComplete: undefined }],
     ]);
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
 
     expect(screen.getByRole("columnheader", { name: "Value" })).toBeInTheDocument();
@@ -345,7 +519,7 @@ describe("MetaEventStandings", () => {
     archive.costs = new Map([
       ["d1", { needed: 40, owned: undefined, value: undefined, toComplete: undefined }],
     ]);
-    renderStandings([metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
 
     expect(within(phoneRow("Ana")).queryByText(/€|--/u)).toBeNull();
   });
@@ -357,8 +531,8 @@ describe("MetaEventStandings", () => {
       ["d2", { needed: 40, owned: 40, value: 80, toComplete: 0 }],
     ]);
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
+      metaRow({ id: "p-1", playerName: "Ana", deckId: "d1", shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
     ]);
 
     expect(archive.withCollection).toContain(true);
@@ -370,7 +544,7 @@ describe("MetaEventStandings", () => {
     archive.costs = new Map([
       ["d1", { needed: 40, owned: undefined, value: 123.4, toComplete: undefined }],
     ]);
-    renderStandings([metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
 
     expect(archive.withCollection).not.toContain(true);
     expect(within(phoneRow("Ana")).queryByText(/missing|Buildable/u)).toBeNull();
@@ -386,8 +560,8 @@ describe("MetaEventStandings", () => {
 
   it("keeps the legend column when a single entry names one", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, legend: null }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, legend: null }),
     ]);
 
     expect(screen.getByRole("columnheader", { name: "Legend" })).toBeInTheDocument();
@@ -404,8 +578,8 @@ describe("MetaEventStandings", () => {
 
   it("washes the winner's row in the archive's gold", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
     expect(phoneRow("Ana").className).toContain("bg-border-accent/10");
     expect(phoneRow("Bo").className).not.toContain("bg-border-accent/10");
@@ -413,22 +587,26 @@ describe("MetaEventStandings", () => {
 
   it("derives the record as all three parts", () => {
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", wins: 6, losses: 1, draws: null }),
-      metaPlayer({ id: "p-2", playerName: "Bo", wins: 5, losses: 1, draws: 1 }),
+      metaRow({ id: "p-1", playerName: "Ana", wins: 6, losses: 1, draws: null }),
+      metaRow({ id: "p-2", playerName: "Bo", wins: 5, losses: 1, draws: 1 }),
     ]);
     expect(within(phoneRow("Ana")).getByText("6-1-0")).toBeInTheDocument();
     expect(within(phoneRow("Bo")).getByText("5-1-1")).toBeInTheDocument();
   });
 
   it("files the record under the run it sums up", () => {
-    renderStandings([metaPlayer({ id: "p-1", playerName: "Ana" })], "2020-01-01", ANA_RUN);
+    renderStandings(
+      [metaRow({ id: "p-1", playerName: "Ana", rounds: ANA_ROUNDS })],
+      "2020-01-01",
+      CUT_PHASES,
+    );
 
     const strip = within(screen.getByRole("table")).getByRole("img", { name: /Round by round/u });
     expect(strip.closest("td")).toHaveTextContent("6-1-0");
   });
 
   it("heads the record column as a record when the source charted no rounds", () => {
-    renderStandings([metaPlayer({ playerName: "Ana" })]);
+    renderStandings([metaRow({ playerName: "Ana" })]);
 
     expect(screen.getByRole("columnheader", { name: "Record" })).toBeInTheDocument();
   });
@@ -460,7 +638,7 @@ describe("MetaEventStandings", () => {
   it("marks a linked list that is only partial in place of the decklist label", async () => {
     const user = userEvent.setup();
     renderStandings([
-      metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1", listStatus: "partial" }),
+      metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1", listStatus: "partial" }),
     ]);
     expect(within(phoneRow("Ana")).queryByText("Decklist")).toBeNull();
     expect(within(phoneRow("Ana")).queryByRole("button")).toBeNull();
@@ -471,7 +649,7 @@ describe("MetaEventStandings", () => {
 
   it("leaves a full list unmarked", () => {
     renderStandings([
-      metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1", listStatus: "full" }),
+      metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1", listStatus: "full" }),
     ]);
     expect(within(phoneRow("Ana")).queryByText("Partial list")).toBeNull();
   });
@@ -479,7 +657,7 @@ describe("MetaEventStandings", () => {
   it("offers a signed-in reader the form, prefilled from the row", () => {
     session.userId = "user-1";
     renderStandings([
-      metaPlayer({ playerName: "Ana", rank: 8, rankIsTier: true, wins: 12, losses: 3, draws: 0 }),
+      metaRow({ playerName: "Ana", rank: 8, rankIsTier: true, wins: 12, losses: 3, draws: 0 }),
     ]);
 
     const link = within(phoneRow("Ana")).getByRole("link", { name: "+ Add" });
@@ -493,13 +671,13 @@ describe("MetaEventStandings", () => {
   });
 
   it("offers a signed-out reader nothing to click on a list-less row", () => {
-    renderStandings([metaPlayer({ playerName: "Ana" })]);
+    renderStandings([metaRow({ playerName: "Ana" })]);
     expect(screen.queryByRole("link", { name: "+ Add" })).toBeNull();
   });
 
   it("tells a signed-out reader a list for the row is already in review", () => {
     renderStandings(
-      [metaPlayer({ playerName: "Ana" })],
+      [metaRow({ playerName: "Ana" })],
       undefined,
       {},
       undefined,
@@ -511,7 +689,7 @@ describe("MetaEventStandings", () => {
   it("points a signed-in reader's own pending list at their submissions instead of the form", () => {
     session.userId = "user-1";
     renderStandings(
-      [metaPlayer({ playerName: "Ana" })],
+      [metaRow({ playerName: "Ana" })],
       undefined,
       {},
       undefined,
@@ -525,7 +703,7 @@ describe("MetaEventStandings", () => {
 
   it("marks an archived list that has an update waiting", () => {
     renderStandings(
-      [metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })],
+      [metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })],
       undefined,
       {},
       undefined,
@@ -538,7 +716,7 @@ describe("MetaEventStandings", () => {
 
   it("opens a row's decklist in place", async () => {
     const user = userEvent.setup();
-    renderStandings([metaPlayer({ playerName: "Ana", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", shareToken: "tok1" })]);
 
     expect(screen.queryByText("Preview for tok1")).toBeNull();
     await user.click(within(phoneRow("Ana")).getByText("Decklist"));
@@ -547,7 +725,7 @@ describe("MetaEventStandings", () => {
 
   it("opens and closes a decklist from the keyboard", async () => {
     const user = userEvent.setup();
-    renderStandings([metaPlayer({ playerName: "Ana", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", shareToken: "tok1" })]);
 
     const row = phoneRow("Ana");
     expect(row.getAttribute("aria-expanded")).toBe("false");
@@ -561,14 +739,14 @@ describe("MetaEventStandings", () => {
   });
 
   it("gives a list-less row no disclosure to focus", () => {
-    renderStandings([metaPlayer({ playerName: "Ana" })]);
+    renderStandings([metaRow({ playerName: "Ana" })]);
     expect(phoneRow("Ana").hasAttribute("tabindex")).toBe(false);
     expect(phoneRow("Ana").hasAttribute("aria-expanded")).toBe(false);
   });
 
   it("opens and closes a decklist from anywhere on the row", async () => {
     const user = userEvent.setup();
-    renderStandings([metaPlayer({ playerName: "Ana", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", shareToken: "tok1" })]);
 
     await user.click(within(phoneRow("Ana")).getByText("6-1-0"));
     expect(within(phoneRow("Ana")).getByText("Preview for tok1")).toBeInTheDocument();
@@ -579,14 +757,14 @@ describe("MetaEventStandings", () => {
 
   it("leaves a row's own links clickable", async () => {
     const user = userEvent.setup();
-    renderStandings([metaPlayer({ playerName: "Ana", shareToken: "tok1" })]);
+    renderStandings([metaRow({ playerName: "Ana", shareToken: "tok1" })]);
 
     await user.click(within(phoneRow("Ana")).getByRole("link", { name: /Yasuo/u }));
     expect(screen.queryByText("Preview for tok1")).toBeNull();
   });
 
   it("sends a player the archive has a page for to it, in both renderings", () => {
-    renderStandings([metaPlayer({ playerName: "Ana", playerKey: "u1001" })]);
+    renderStandings([metaRow({ playerName: "Ana", playerKey: "u1001" })]);
 
     const links = screen.getAllByRole("link", { name: "Ana" });
     expect(links).toHaveLength(2);
@@ -597,9 +775,9 @@ describe("MetaEventStandings", () => {
 
   it("sends a player with a charted run to their run through the event", () => {
     renderStandings(
-      [metaPlayer({ id: "p-1", playerName: "Ana", playerKey: "u1001" })],
+      [metaRow({ id: "p-1", playerName: "Ana", playerKey: "u1001", rounds: ANA_ROUNDS })],
       "2020-01-01",
-      ANA_RUN,
+      CUT_PHASES,
     );
 
     const links = screen.getAllByRole("link", { name: "Ana" });
@@ -610,7 +788,7 @@ describe("MetaEventStandings", () => {
   });
 
   it("prints a player the source filed under no identity as plain text", () => {
-    renderStandings([metaPlayer({ playerName: "Ana", playerKey: null })]);
+    renderStandings([metaRow({ playerName: "Ana", playerKey: null })]);
 
     expect(screen.queryByRole("link", { name: "Ana" })).toBeNull();
     expect(within(phoneRow("Ana")).getByText("Ana")).toBeInTheDocument();
@@ -619,8 +797,8 @@ describe("MetaEventStandings", () => {
   it("closes an open decklist when another one opens", async () => {
     const user = userEvent.setup();
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, shareToken: "tok2" }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2, shareToken: "tok2" }),
     ]);
 
     await user.click(within(phoneRow("Ana")).getByText("Decklist"));
@@ -633,8 +811,8 @@ describe("MetaEventStandings", () => {
   it("narrows the field to the entries with a list", async () => {
     const user = userEvent.setup();
     renderStandings([
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
 
     await user.click(screen.getByRole("button", { name: "With decklist (1)" }));
@@ -643,6 +821,12 @@ describe("MetaEventStandings", () => {
 
     await user.click(screen.getByRole("button", { name: "All entries" }));
     expect(phoneRow("Bo")).toBeInTheDocument();
+  });
+
+  it("groups the thousands in the decklist toggle's count", () => {
+    renderStandings(field(1200, (index) => (index < 1100 ? { shareToken: `tok-${index}` } : {})));
+
+    expect(screen.getByRole("button", { name: "With decklist (1,100)" })).toBeInTheDocument();
   });
 
   it("offers no decklist filter for a field with none on file", () => {
@@ -655,8 +839,43 @@ describe("MetaEventStandings", () => {
     renderStandings(field(12));
 
     await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "player 7");
+
+    await waitFor(() => {
+      expect(screen.queryByText("Player 6")).toBeNull();
+    });
     expect(phoneRow("Player 7")).toBeInTheDocument();
-    expect(screen.queryByText("Player 6")).toBeNull();
+  });
+
+  it("gives the whole field back when the search box is cleared", async () => {
+    const user = userEvent.setup();
+    renderStandings(field(12));
+
+    const box = screen.getByRole("searchbox", { name: "Find a player" });
+    await user.type(box, "player 7");
+    await waitFor(() => {
+      expect(screen.queryByText("Player 6")).toBeNull();
+    });
+
+    await user.clear(box);
+    await waitFor(() => {
+      expect(phoneRow("Player 6")).toBeInTheDocument();
+    });
+    expect(phoneRow("Player 7")).toBeInTheDocument();
+  });
+
+  it("clearing a decklist narrowing reopens the unnarrowed first page without a fetch", async () => {
+    const user = userEvent.setup();
+    renderStandings(
+      field(420, (index) => (index < 300 ? { shareToken: `tok-${index}` } : {})),
+      "2020-01-01",
+      { search: { page: 2, list: "with" } },
+    );
+
+    await user.click(screen.getByRole("button", { name: "All entries" }));
+
+    expect(phoneRow("Player 0")).toBeInTheDocument();
+    expect(searchStore.read().page).toBeUndefined();
+    expect(archive.fetched).toEqual([]);
   });
 
   it("says so when nothing matches what was typed", async () => {
@@ -664,7 +883,8 @@ describe("MetaEventStandings", () => {
     renderStandings(field(12));
 
     await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "Ziggs");
-    expect(screen.getByText("No entries match.")).toBeInTheDocument();
+
+    expect(await screen.findByText("No entries match.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
@@ -695,6 +915,162 @@ describe("MetaEventStandings", () => {
     expect(Number.parseInt(screen.getByRole("list").style.height, 10)).toBeLessThan(full);
   });
 
+  describe("paging", () => {
+    it("pages a long field and reads the page from the URL", async () => {
+      const user = userEvent.setup();
+      renderStandings(field(420));
+
+      expect(phoneRow("Player 0")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "2" }));
+
+      expect(searchStore.read()).toMatchObject({ page: 2 });
+      expect(phoneRow("Player 200")).toBeInTheDocument();
+      expect(screen.queryByText("Player 0")).toBeNull();
+    });
+
+    it("renders the page the URL names, asking the API for its own slice", () => {
+      renderStandings(field(420), "2020-01-01", { search: { page: 3 } });
+
+      expect(phoneRow("Player 400")).toBeInTheDocument();
+      expect(screen.queryByText("Player 399")).toBeNull();
+      expect(screen.queryByRole("button", { name: "4" })).toBeNull();
+    });
+
+    it("keeps the size picker when a narrowing emptied the page it names", () => {
+      renderStandings(field(420), "2020-01-01", { search: { per: 500, q: "Ziggs" } });
+
+      expect(screen.getByLabelText("Entries per page")).toBeInTheDocument();
+    });
+
+    it("offers no pager for a field that fits on one page", () => {
+      renderStandings(field(12));
+
+      expect(screen.queryByRole("navigation", { name: "Standings pages" })).toBeNull();
+    });
+
+    it("offers no size picker for a field that fits the smallest page on offer", () => {
+      renderStandings(field(40));
+
+      expect(screen.queryByLabelText("Entries per page")).toBeNull();
+    });
+
+    it("offers the size picker for a one-page field that could still be cut smaller", () => {
+      renderStandings(field(150));
+
+      expect(screen.getByLabelText("Entries per page")).toBeInTheDocument();
+    });
+
+    it("offers the size picker once the field outgrows the default page", () => {
+      renderStandings(field(240));
+
+      expect(screen.getByLabelText("Entries per page")).toBeInTheDocument();
+    });
+
+    it("takes the page size from the URL and reopens at the first page", async () => {
+      const user = userEvent.setup();
+      renderStandings(field(420), "2020-01-01", { search: { page: 2 } });
+
+      await user.click(screen.getByLabelText("Entries per page"));
+      await user.click(await screen.findByRole("option", { name: "Show 50" }));
+
+      expect(searchStore.read()).toMatchObject({ per: 50 });
+      expect(searchStore.read().page).toBeUndefined();
+      expect(phoneRow("Player 0")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "9" })).toBeInTheDocument();
+    });
+
+    it("hands the whole field over when the reader asks for all of it", () => {
+      renderStandings(field(420), "2020-01-01", { search: { per: "all" } });
+
+      expect(phoneRow("Player 0")).toBeInTheDocument();
+      expect(screen.queryByRole("navigation", { name: "Standings pages" })).toBeNull();
+      // oxlint-disable-next-line unicorn/prefer-number-coercion -- style.height carries a "px" suffix, which Number() cannot parse
+      expect(Number.parseInt(screen.getByRole("list").style.height, 10)).toBeGreaterThan(420 * 40);
+    });
+
+    it("writes every narrowing to the URL, so a view is a link", async () => {
+      const user = userEvent.setup();
+      renderStandings(
+        [
+          metaRow({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1" }),
+          metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
+        ],
+        "2020-01-01",
+        { search: { page: 4 } },
+      );
+
+      await user.click(screen.getByRole("button", { name: "With decklist (1)" }));
+
+      expect(searchStore.read()).toMatchObject({ list: "with" });
+      expect(searchStore.read().page).toBeUndefined();
+    });
+  });
+
+  describe("a request that fails or is still out", () => {
+    const NARROWED = { q: "Player", page: 3 };
+
+    it("says the request failed instead of showing the field the reader did not ask for", () => {
+      archive.failing.add(keyFor(NARROWED, 420));
+      renderStandings(field(420), "2020-01-01", { search: NARROWED });
+
+      expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument();
+      expect(screen.queryByText("Player 0")).toBeNull();
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+
+    it("leaves the reader the search box and the pager to get back out", () => {
+      archive.failing.add(keyFor(NARROWED, 420));
+      renderStandings(field(420), "2020-01-01", { search: NARROWED });
+
+      expect(screen.getByRole("searchbox", { name: "Find a player" })).toHaveValue("Player");
+      expect(screen.getByRole("navigation", { name: "Standings pages" })).toBeInTheDocument();
+    });
+
+    it("puts the rows back when the reader retries", async () => {
+      const user = userEvent.setup();
+      archive.failing.add(keyFor(NARROWED, 420));
+      renderStandings(field(420), "2020-01-01", { search: NARROWED });
+
+      await user.click(screen.getByRole("button", { name: "Retry" }));
+
+      expect(phoneRow("Player 400")).toBeInTheDocument();
+      expect(screen.queryByText("Something went wrong. Please try again.")).toBeNull();
+    });
+
+    it("holds the pager on the rows on screen until the next page lands", async () => {
+      const user = userEvent.setup();
+      renderStandings(field(420));
+      archive.holding.add(keyFor({ page: 2 }, 420));
+
+      await user.click(screen.getByRole("button", { name: "2" }));
+
+      expect(phoneRow("Player 0")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page");
+      expect(phoneRow("Player 0").closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
+
+      await landHeldRequests();
+
+      expect(phoneRow("Player 200")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "2" })).toHaveAttribute("aria-current", "page");
+      expect(phoneRow("Player 200").closest("[aria-busy]")).toHaveAttribute("aria-busy", "false");
+    });
+
+    it("counts the pages against the size the rows on screen were cut to", async () => {
+      const user = userEvent.setup();
+      renderStandings(field(420), "2020-01-01", { search: { page: 2 } });
+      archive.holding.add(keyFor({ per: 50 }, 420));
+
+      await user.click(screen.getByLabelText("Entries per page"));
+      await user.click(await screen.findByRole("option", { name: "Show 50" }));
+
+      expect(screen.queryByRole("button", { name: "9" })).toBeNull();
+
+      await landHeldRequests();
+
+      expect(screen.getByRole("button", { name: "9" })).toBeInTheDocument();
+    });
+  });
+
   describe("cost filter", () => {
     function pricedField() {
       session.userId = "u-1";
@@ -704,10 +1080,10 @@ describe("MetaEventStandings", () => {
         ["d3", { needed: 40, owned: 30, value: 300, toComplete: 5 }],
       ]);
       renderStandings([
-        metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, deckId: "d1", shareToken: "tok1" }),
-        metaPlayer({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
-        metaPlayer({ id: "p-3", playerName: "Cy", rank: 3, deckId: "d3", shareToken: "tok3" }),
-        metaPlayer({ id: "p-4", playerName: "Dee", rank: 4 }),
+        metaRow({ id: "p-1", playerName: "Ana", rank: 1, deckId: "d1", shareToken: "tok1" }),
+        metaRow({ id: "p-2", playerName: "Bo", rank: 2, deckId: "d2", shareToken: "tok2" }),
+        metaRow({ id: "p-3", playerName: "Cy", rank: 3, deckId: "d3", shareToken: "tok3" }),
+        metaRow({ id: "p-4", playerName: "Dee", rank: 4 }),
       ]);
     }
 
@@ -726,7 +1102,7 @@ describe("MetaEventStandings", () => {
     });
 
     it("holds the cost filter unready until the archive's prices are in", () => {
-      renderStandings([metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
+      renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
       expect(screen.getByText("cost ready: false")).toBeInTheDocument();
     });
 
@@ -736,7 +1112,7 @@ describe("MetaEventStandings", () => {
     });
 
     it("tells the control whether a collection stands behind it", () => {
-      renderStandings([metaPlayer({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
+      renderStandings([metaRow({ playerName: "Ana", deckId: "d1", shareToken: "tok1" })]);
       expect(screen.getByText("cost collection: false")).toBeInTheDocument();
     });
 
@@ -787,6 +1163,46 @@ describe("MetaEventStandings", () => {
 
       expect(phoneRow("Ana")).toBeInTheDocument();
       expect(phoneRow("Dee")).toBeInTheDocument();
+    });
+
+    it("keeps a decklist narrowing the reader picked when the cost filter is cleared", async () => {
+      const user = userEvent.setup();
+      pricedField();
+
+      await user.click(screen.getByRole("button", { name: /With decklist/u }));
+      await user.click(screen.getByRole("button", { name: "cost bound" }));
+      await user.click(screen.getByRole("button", { name: "clear cost" }));
+
+      expect(searchStore.read()).toMatchObject({ list: "with" });
+      expect(screen.queryByText("Dee")).toBeNull();
+    });
+
+    it("leaves the entries toggle alone when Clear follows no bound at all", async () => {
+      const user = userEvent.setup();
+      pricedField();
+
+      await user.click(screen.getByRole("button", { name: /With decklist/u }));
+      await user.click(screen.getByRole("button", { name: "clear cost" }));
+
+      expect(searchStore.read()).toMatchObject({ list: "with" });
+    });
+
+    it("says a bound emptied this page rather than that the field holds nothing", async () => {
+      const user = userEvent.setup();
+      session.userId = "u-1";
+      archive.costs = new Map([["d1", { needed: 40, owned: 0, value: 300, toComplete: 250 }]]);
+      renderStandings([
+        metaRow({ id: "p-1", playerName: "Ana", rank: 1, deckId: "d1", shareToken: "tok1" }),
+      ]);
+
+      await user.click(screen.getByRole("button", { name: "buildable" }));
+
+      expect(
+        screen.getByText(
+          "No entry on this page is within the price filter. Prices are worked out in your browser, so it only narrows the page you are on.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("No entries match.")).toBeNull();
     });
 
     it("counts a bound against the value range already in force, not against the raw field", async () => {

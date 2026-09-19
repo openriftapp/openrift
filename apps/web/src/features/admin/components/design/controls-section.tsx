@@ -7,6 +7,7 @@ import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Pager } from "@/components/ui/pager";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
@@ -121,6 +122,7 @@ const GROUPS = {
   toggle: { id: "controls-toggle", title: "Toggle" },
   textEntry: { id: "controls-text-entry", title: "Text entry" },
   choice: { id: "controls-choice", title: "Choice controls" },
+  pager: { id: "controls-pager", title: "Pager" },
   fills: { id: "controls-fills", title: "Fills in play" },
 } as const;
 
@@ -420,6 +422,13 @@ export function ControlsSection() {
           />
         </DemoGroup>
 
+        <DemoGroup {...GROUPS.pager} hint="Server-paged lists. A single page renders nothing.">
+          <div className="flex flex-col gap-4">
+            <PagerDemo totalPages={4} />
+            <PagerDemo totalPages={42} />
+          </div>
+        </DemoGroup>
+
         <DemoGroup
           {...GROUPS.fills}
           hint="Every background a control surface resolves to, measured in the theme you are viewing."
@@ -531,6 +540,16 @@ function FillSwatch({ label, className }: { label: string; className: string }) 
         <p className="font-mono text-xs">{label}</p>
         <p className="text-muted-foreground text-2xs font-mono">{background || "measuring…"}</p>
       </div>
+    </div>
+  );
+}
+
+function PagerDemo({ totalPages }: { totalPages: number }) {
+  const [page, setPage] = useState(1);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <Pager page={page} totalPages={totalPages} onPageChange={setPage} label="Demo pages" />
+      <p className="text-muted-foreground text-2xs font-mono">{`page ${page} of ${totalPages}`}</p>
     </div>
   );
 }

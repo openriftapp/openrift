@@ -4,6 +4,7 @@ import type { Database } from "../../../db/tables.js";
 import { metaArchiveRepo } from "./meta-archive.js";
 import { metaCreditsRepo } from "./meta-credits.js";
 import { metaDecksRepo } from "./meta-decks.js";
+import { metaEventIndexRepo } from "./meta-event-index.js";
 import { metaEventsRepo } from "./meta-events.js";
 import { metaLegendsRepo } from "./meta-legends.js";
 import { metaPlayersRepo } from "./meta-players.js";
@@ -18,6 +19,7 @@ import { metaSourcesRepo } from "./meta-sources.js";
 export function metaRepo(db: Kysely<Database>) {
   return {
     ...metaEventsRepo(db),
+    ...metaEventIndexRepo(db),
     ...metaPlayersRepo(db),
     ...metaDecksRepo(db),
     ...metaLegendsRepo(db),

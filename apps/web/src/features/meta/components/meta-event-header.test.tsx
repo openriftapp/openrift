@@ -2,7 +2,7 @@ import type { MetaEventSource } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { metaEvent, metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaEvent, metaField, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
@@ -45,20 +45,20 @@ const swiss = metaPhase({
 
 function renderHeader({
   event = metaEvent(),
-  players = [],
-  matches = [],
+  champion = null,
+  field = metaField(),
   phases = [],
 }: {
   event?: ReturnType<typeof metaEvent>;
-  players?: ReturnType<typeof metaPlayer>[];
-  matches?: ReturnType<typeof metaMatch>[];
+  champion?: ReturnType<typeof metaRow> | null;
+  field?: ReturnType<typeof metaField>;
   phases?: ReturnType<typeof metaPhase>[];
 } = {}) {
   return render(
     <MetaEventHeader
       event={event}
-      players={players}
-      matches={matches}
+      champion={champion}
+      field={field}
       phases={phases}
       slug="summoner-skirmish"
     />,
@@ -134,34 +134,20 @@ describe("MetaEventHeader counters", () => {
 
   it("counts the record of the last standing that made the cut", () => {
     renderHeader({
-      players: [
-        metaPlayer({ id: "p-1", rank: 1, wins: 13, losses: 0, draws: 1 }),
-        metaPlayer({ id: "p-8", rank: 8, wins: 11, losses: 2, draws: 1 }),
-      ],
+      field: metaField({ cutLine: { wins: 11, losses: 2, draws: 1 } }),
       phases: [swiss, metaPhase()],
     });
     expect(counterValue("record at the cut line")).toBe("11-2-1");
   });
 
-  it("leaves out the cut line for an event that ran no cut", () => {
-    renderHeader({
-      players: [metaPlayer({ id: "p-8", rank: 8, wins: 11, losses: 2, draws: 1 })],
-      phases: [swiss],
-    });
-    expect(screen.queryByText("record at the cut line")).toBeNull();
-  });
-
-  it("leaves out the cut line when the standings bucket the last cut place", () => {
-    renderHeader({
-      players: [metaPlayer({ id: "p-8", rank: 8, rankIsTier: true, wins: 11, losses: 2 })],
-      phases: [swiss, metaPhase()],
-    });
+  it("leaves out the cut line for an event the archive holds none for", () => {
+    renderHeader({ phases: [swiss] });
     expect(screen.queryByText("record at the cut line")).toBeNull();
   });
 
   it("counts nothing against the cut", () => {
     renderHeader({
-      players: [metaPlayer({ id: "p-1", rank: 1, shareToken: "tok-1" })],
+      champion: metaRow({ id: "p-1", rank: 1, shareToken: "tok-1" }),
       phases: [swiss, metaPhase()],
     });
     expect(screen.queryByText(/with lists/u)).toBeNull();
@@ -169,7 +155,7 @@ describe("MetaEventHeader counters", () => {
 });
 
 describe("MetaEventHeader champion plate", () => {
-  const winner = metaPlayer({
+  const winner = metaRow({
     playerName: "Ana",
     rank: 1,
     wins: 6,
@@ -186,7 +172,7 @@ describe("MetaEventHeader champion plate", () => {
   });
 
   it("names the winner, their legend and their record", () => {
-    renderHeader({ players: [winner] });
+    renderHeader({ champion: winner });
     expect(screen.getByText("Champion")).toBeInTheDocument();
     expect(screen.getByText("Ana")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Yasuo" })).toBeInTheDocument();
@@ -195,12 +181,12 @@ describe("MetaEventHeader champion plate", () => {
   });
 
   it("leaves out a record the source never published", () => {
-    renderHeader({ players: [metaPlayer({ rank: 1, wins: null, losses: null })] });
+    renderHeader({ champion: metaRow({ rank: 1, wins: null, losses: null }) });
     expect(screen.queryByText(/^\d+-\d+-\d+$/u)).toBeNull();
   });
 
   it("sends the champion to their player page", () => {
-    renderHeader({ players: [winner] });
+    renderHeader({ champion: winner });
     expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute(
       "href",
       "/meta/players/u1001",
@@ -209,8 +195,10 @@ describe("MetaEventHeader champion plate", () => {
 
   it("leads the champion to their run through the event", () => {
     renderHeader({
-      players: [winner],
-      matches: [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
+      champion: {
+        ...winner,
+        rounds: [{ phaseOrder: 0, roundNumber: 1, isCut: false, outcome: "win" }],
+      },
     });
 
     expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute(
@@ -220,21 +208,13 @@ describe("MetaEventHeader champion plate", () => {
   });
 
   it("prints a champion the source filed under no identity as plain text", () => {
-    renderHeader({
-      players: [metaPlayer({ id: "p-1", rank: 1, playerName: "Ana", playerKey: null })],
-      matches: [metaMatch({ player1Id: "p-1", player2Id: "p-2" })],
-    });
-    expect(screen.queryByRole("link", { name: "Ana" })).toBeNull();
-  });
-
-  it("prints a champion the source filed under no identity as plain text", () => {
-    renderHeader({ players: [metaPlayer({ playerName: "Ana", rank: 1, playerKey: null })] });
+    renderHeader({ champion: metaRow({ playerName: "Ana", rank: 1, playerKey: null }) });
     expect(screen.queryByRole("link", { name: "Ana" })).toBeNull();
     expect(screen.getByText("Ana")).toBeInTheDocument();
   });
 
   it("stands the winner's legend card beside the plate and blurs it behind the band", () => {
-    const { container } = renderHeader({ players: [winner] });
+    const { container } = renderHeader({ champion: winner });
     expect(cardArt(container)).toEqual([
       "/media/cards/uo/img-yasuo-400w.webp",
       "/media/cards/uo/img-yasuo-240w.webp",
@@ -242,12 +222,12 @@ describe("MetaEventHeader champion plate", () => {
   });
 
   it("paints no art for a winner whose legend has no image", () => {
-    const { container } = renderHeader({ players: [metaPlayer({ rank: 1 })] });
+    const { container } = renderHeader({ champion: metaRow({ rank: 1 }) });
     expect(cardArt(container)).toEqual([]);
   });
 
   it("shows no plate at all for an event whose standings nobody has archived", () => {
-    renderHeader({ players: [metaPlayer({ rank: 4 })] });
+    renderHeader();
     expect(screen.queryByText("Champion")).toBeNull();
   });
 });
@@ -326,7 +306,7 @@ describe("a running event", () => {
   it("wears an in-progress badge and says how far the rounds have got", () => {
     renderHeader({
       event: metaEvent({ status: "in_progress", sourceCheckedAt: null }),
-      matches: [metaMatch({ phaseOrder: 1, roundNumber: 4 })],
+      field: metaField({ progress: { phaseOrder: 1, roundNumber: 4 } }),
       phases: [swiss],
     });
 

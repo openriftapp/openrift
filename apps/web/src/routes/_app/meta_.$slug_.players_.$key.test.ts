@@ -1,12 +1,8 @@
-import type {
-  MetaEventMatch,
-  MetaEventPhase,
-  MetaEventPlayer,
-} from "@openrift/shared/types/api/meta";
+import type { MetaRunRound } from "@openrift/shared/types/api/meta";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
-import { metaEvent, metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaEvent, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 import { Route } from "./meta_.$slug_.players_.$key";
 
@@ -19,32 +15,44 @@ type LoaderFn = (ctx: {
 
 const SLUG = "summoner-skirmish";
 
+const ROUND: MetaRunRound = {
+  phaseOrder: 1,
+  roundNumber: 1,
+  isCut: false,
+  tableNumber: 1,
+  outcome: "win",
+  gamesWon: 2,
+  gamesLost: 0,
+  opponentId: "p-2",
+};
+
 function runLoader(
-  overrides: {
-    meta?: boolean;
-    players?: MetaEventPlayer[];
-    matches?: MetaEventMatch[];
-    phases?: MetaEventPhase[];
-    key?: string;
-  } = {},
+  overrides: { meta?: boolean; rounds?: MetaRunRound[]; missing?: boolean } = {},
 ): Promise<unknown> {
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
     if (options.queryKey[0] === "feature-flags") {
       return Promise.resolve({ meta: overrides.meta ?? true });
     }
     if (options.queryKey[0] === "meta") {
+      // The endpoint 404s a key no standings row answers to; the server
+      // function turns that into this error.
+      if (overrides.missing === true) {
+        return Promise.reject(new Error("NOT_FOUND"));
+      }
       return Promise.resolve({
         event: metaEvent(),
-        players: overrides.players ?? [metaPlayer()],
-        matches: overrides.matches ?? [metaMatch({ player2Id: "p-2" })],
-        phases: overrides.phases ?? [metaPhase()],
+        phases: [metaPhase()],
+        player: metaRow(),
+        rounds: overrides.rounds ?? [ROUND],
+        opponents: [],
+        lastCutRound: null,
       });
     }
     return Promise.resolve({});
   });
   return (Route.options.loader as unknown as LoaderFn)({
     context: { queryClient: { query } },
-    params: { slug: SLUG, key: overrides.key ?? "u1001" },
+    params: { slug: SLUG, key: "u1001" },
   });
 }
 
@@ -66,11 +74,11 @@ describe("/meta/$slug/players/$key loader", () => {
   });
 
   it("404s a key no standings row at this event answers to", async () => {
-    expect(isNotFound(await thrownBy(runLoader({ key: "nobody" })))).toBe(true);
+    expect(isNotFound(await thrownBy(runLoader({ missing: true })))).toBe(true);
   });
 
   it("404s a player whose event published standings but no rounds", async () => {
-    expect(isNotFound(await thrownBy(runLoader({ matches: [] })))).toBe(true);
+    expect(isNotFound(await thrownBy(runLoader({ rounds: [] })))).toBe(true);
   });
 
   it("sends the reader to the catalog while the archive is off", async () => {

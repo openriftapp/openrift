@@ -1,8 +1,11 @@
 import type {
   MetaEventDetail,
+  MetaEventField,
   MetaEventMatch,
   MetaEventPhase,
   MetaEventPlayer,
+  MetaEventStandingsResponse,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import { stringifyUnknown } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
@@ -37,6 +40,34 @@ export function metaPlayer(overrides: Partial<MetaEventPlayer> = {}): MetaEventP
     deckName: null,
     shareToken: null,
     listStatus: "none",
+    ...overrides,
+  };
+}
+
+/** A standings row as the API serves it: an entry with the run its strip draws. */
+export function metaRow(overrides: Partial<MetaStandingsRow> = {}): MetaStandingsRow {
+  const { rounds, ...player } = overrides;
+  return { ...metaPlayer(player), rounds: rounds ?? [] };
+}
+
+/** One page of standings, the whole field by default. */
+export function metaStandings(
+  players: readonly MetaStandingsRow[],
+  total = players.length,
+): MetaEventStandingsResponse {
+  return { players: [...players], total };
+}
+
+/** What the page states about the field: placings and nothing else unless overridden. */
+export function metaField(overrides: Partial<MetaEventField> = {}): MetaEventField {
+  return {
+    withLists: 0,
+    hasLegends: false,
+    hasRecords: false,
+    hasRuns: false,
+    legends: [],
+    cutLine: null,
+    progress: null,
     ...overrides,
   };
 }

@@ -1,4 +1,4 @@
-import type { MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventPlayer, MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ClockIcon } from "lucide-react";
 import { Suspense } from "react";
@@ -16,7 +16,6 @@ import { useMetaPriceFormat } from "@/features/meta/hooks/use-meta-price-format"
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import { finishBracketLabel, formatRank, formatRecord } from "@/features/meta/lib/meta-format";
 import type { MetaPendingRowMark } from "@/features/meta/lib/meta-pending-submissions";
-import type { MetaPlayerRound } from "@/features/meta/lib/meta-player-run";
 import { metaSubmitSearchForPlayer } from "@/features/meta/lib/meta-submit-link";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -99,15 +98,8 @@ export function LegendCell({ player }: { player: MetaEventPlayer }) {
   );
 }
 
-function RunStripLink({
-  player,
-  slug,
-  rounds,
-}: {
-  player: MetaEventPlayer;
-  slug: string;
-  rounds: readonly MetaPlayerRound[];
-}) {
+function RunStripLink({ player, slug }: { player: MetaStandingsRow; slug: string }) {
+  const rounds = player.rounds;
   if (player.playerKey === null) {
     return <MetaRunStrip rounds={rounds} />;
   }
@@ -126,18 +118,16 @@ function RunStripLink({
 export function RunCell({
   player,
   slug,
-  rounds,
   layout = "stacked",
   className,
 }: {
-  player: MetaEventPlayer;
+  player: MetaStandingsRow;
   slug: string;
-  rounds: readonly MetaPlayerRound[] | undefined;
   layout?: "stacked" | "inline";
   className?: string;
 }) {
   const record = formatRecord(player.wins, player.losses, player.draws);
-  const charted = rounds !== undefined && rounds.length > 0;
+  const charted = player.rounds.length > 0;
   if (!charted && record === null) {
     return null;
   }
@@ -151,7 +141,7 @@ export function RunCell({
         className,
       )}
     >
-      {charted && <RunStripLink player={player} slug={slug} rounds={rounds} />}
+      {charted && <RunStripLink player={player} slug={slug} />}
       {record !== null && (
         <span className="text-muted-foreground text-xs tabular-nums">{record}</span>
       )}

@@ -2,7 +2,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
-import { metaDeckQueryOptions, metaEventsQueryOptions } from "@/features/meta/lib/meta-queries";
+import {
+  metaDeckQueryOptions,
+  metaEventPageQueryOptions,
+  metaSubmitEventQuery,
+} from "@/features/meta/lib/meta-queries";
 import { parseMetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
@@ -16,7 +20,7 @@ export const Route = createFileRoute("/_app/_authenticated/meta_/$slug_/submit")
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Send a decklist", noIndex: true }),
   validateSearch: parseMetaSubmitSearch,
   loaderDeps: ({ search }) => ({ deck: search.deck }),
-  loader: async ({ context, deps }) => {
+  loader: async ({ context, deps, params }) => {
     const flags = (await context.queryClient.query({
       ...featureFlagsQueryOptions,
       staleTime: "static",
@@ -26,7 +30,10 @@ export const Route = createFileRoute("/_app/_authenticated/meta_/$slug_/submit")
     }
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      context.queryClient.query({ ...metaEventsQueryOptions(), staleTime: "static" }),
+      context.queryClient.query({
+        ...metaEventPageQueryOptions(metaSubmitEventQuery(params.slug)),
+        staleTime: "static",
+      }),
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),
       // Puts the edited list in cache before the form mounts. A token that no
       // longer resolves is not fatal: the box just opens empty.

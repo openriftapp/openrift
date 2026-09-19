@@ -7,8 +7,14 @@ import type {
   AdminMetaPlayer,
   MetaDeckCardIndexResponse,
   MetaDeckDetailResponse,
+  MetaDeckFacetsResponse,
   MetaDeckSummary,
   MetaEventDetail,
+  MetaEventField,
+  MetaRunOutcome,
+  MetaRunRound,
+  MetaStandingsRound,
+  MetaStandingsRow,
   MetaEventMatch,
   MetaEventPhase,
   MetaEventPlayer,
@@ -27,21 +33,27 @@ import type { MetaContributorRow } from "../repositories/meta-credits.js";
 import type {
   MetaDeckCardRow,
   MetaDeckContextRow,
+  MetaDeckFacetRows,
   MetaDeckSummaryRow,
 } from "../repositories/meta-decks.js";
 import type {
   MetaActivityRow,
   MetaEventMatchRow,
   MetaEventPhaseRow,
+  MetaEventRow,
   MetaEventWithCounts,
 } from "../repositories/meta-events.js";
 import type {
   MetaArchiveLegendRow,
-  MetaLegendEventRecordRow,
   MetaLegendFinishRow,
+  MetaLegendIndexRow,
   MetaPlayerFinishRow,
 } from "../repositories/meta-legends.js";
-import type { AdminMetaPlayerRow, MetaEventPlayerRow } from "../repositories/meta-players.js";
+import type {
+  AdminMetaPlayerRow,
+  MetaEventFieldSummary,
+  MetaEventPlayerRow,
+} from "../repositories/meta-players.js";
 import type { MetaEventSourceRow } from "../repositories/meta-sources.js";
 import type {
   MetaEventCorrectionRow,
@@ -276,6 +288,35 @@ export function toMetaEventPlayer(row: MetaEventPlayerRow, images: ImageIds): Me
   };
 }
 
+/** The field as a whole, with the legend picker labelled and ordered by display name. */
+export function toMetaEventField(
+  summary: MetaEventFieldSummary,
+  cutLine: MetaEventPlayerRow | undefined,
+): MetaEventField {
+  return {
+    withLists: summary.withLists,
+    hasLegends: summary.hasLegends,
+    hasRecords: summary.hasRecords,
+    hasRuns: summary.hasRuns,
+    legends: summary.legends
+      .map((legend) => ({
+        cardId: legend.cardId,
+        name: legendDisplayName({
+          name: legend.name,
+          types: legend.types ?? [],
+          tags: legend.tags ?? [],
+        }),
+        count: legend.count,
+      }))
+      .toSorted((left, right) => left.name.localeCompare(right.name)),
+    cutLine:
+      cutLine === undefined
+        ? null
+        : { wins: cutLine.wins, losses: cutLine.losses, draws: cutLine.draws },
+    progress: summary.progress,
+  };
+}
+
 /**
  * One stage of an event. `roundType` travels as the source wrote it: the client
  * needs to tell a cut from the Swiss rounds, and normalizing the vocabulary here
@@ -305,6 +346,74 @@ export function toMetaEventMatch(row: MetaEventMatchRow): MetaEventMatch {
     winnerId: row.winnerId,
     gamesWonP1: row.gamesWonP1,
     gamesWonP2: row.gamesWonP2,
+  };
+}
+
+function outcomeFor(row: MetaEventMatchRow, playerId: string): MetaRunOutcome {
+  if (row.isBye) {
+    return "bye";
+  }
+  if (row.isDraw) {
+    return "draw";
+  }
+  if (row.winnerId === null) {
+    return "unknown";
+  }
+  return row.winnerId === playerId ? "win" : "loss";
+}
+
+/** Each player's rounds, keyed by their standings row id. */
+export function toStandingsRounds(
+  matches: readonly MetaEventMatchRow[],
+  cutPhases: ReadonlySet<number>,
+): Map<string, MetaStandingsRound[]> {
+  const rounds = new Map<string, MetaStandingsRound[]>();
+  const push = (playerId: string, row: MetaEventMatchRow) => {
+    const round = {
+      phaseOrder: row.phaseOrder,
+      roundNumber: row.roundNumber,
+      isCut: cutPhases.has(row.phaseOrder),
+      outcome: outcomeFor(row, playerId),
+    };
+    const own = rounds.get(playerId);
+    if (own) {
+      own.push(round);
+    } else {
+      rounds.set(playerId, [round]);
+    }
+  };
+  for (const row of matches) {
+    push(row.player1Id, row);
+    if (row.player2Id !== null) {
+      push(row.player2Id, row);
+    }
+  }
+  return rounds;
+}
+
+export function toMetaStandingsRow(
+  row: MetaEventPlayerRow,
+  images: ImageIds,
+  rounds: readonly MetaStandingsRound[] = [],
+): MetaStandingsRow {
+  return { ...toMetaEventPlayer(row, images), rounds: [...rounds] };
+}
+
+export function toMetaRunRound(
+  row: MetaEventMatchRow,
+  playerId: string,
+  cutPhases: ReadonlySet<number>,
+): MetaRunRound {
+  const isPlayer1 = row.player1Id === playerId;
+  return {
+    phaseOrder: row.phaseOrder,
+    roundNumber: row.roundNumber,
+    isCut: cutPhases.has(row.phaseOrder),
+    tableNumber: row.tableNumber,
+    outcome: outcomeFor(row, playerId),
+    gamesWon: isPlayer1 ? row.gamesWonP1 : row.gamesWonP2,
+    gamesLost: isPlayer1 ? row.gamesWonP2 : row.gamesWonP1,
+    opponentId: isPlayer1 ? row.player2Id : row.player1Id,
   };
 }
 
@@ -343,6 +452,32 @@ export function toMetaDeckSummary(row: MetaDeckSummaryRow, images: ImageIds): Me
   };
 }
 
+/** The browser's filter chips: legends labelled and ordered by display name, events by date. */
+export function toMetaDeckFacets(rows: MetaDeckFacetRows): MetaDeckFacetsResponse {
+  return {
+    events: rows.events
+      .toSorted(
+        (left, right) =>
+          right.eventDate.localeCompare(left.eventDate) || left.slug.localeCompare(right.slug),
+      )
+      .map((row) => ({ value: row.slug, label: row.name, count: row.count })),
+    legends: rows.legends
+      .map((row) => ({
+        value: row.cardId,
+        label:
+          legendLabel({
+            legendName: row.name,
+            legendTypes: row.types,
+            legendTags: row.tags,
+          }) ?? row.cardId,
+        count: row.count,
+      }))
+      .toSorted((left, right) => left.label.localeCompare(right.label)),
+    finishes: rows.finishes.map((finish) => ({ value: finish.value, count: finish.count })),
+    countries: [...rows.countries],
+  };
+}
+
 /**
  * The champion-led display name for one legend card, as every archive surface
  * prints it. A row whose legend is untagged keeps the card's own name.
@@ -371,20 +506,28 @@ export function toMetaLegendRef(
 }
 
 export function toMetaLegendSummary(
-  row: MetaArchiveLegendRow,
+  row: MetaLegendIndexRow,
   images: ImageIds,
-  records: readonly MetaLegendEventRecordRow[],
+  bestEvent: MetaEventRow,
 ): MetaLegendSummary {
   return {
     ...toMetaLegendRef(row, images),
-    records: records.map((record) => ({
-      eventSlug: record.eventSlug,
-      bestRank: record.bestRank,
-      rankIsTier: record.rankIsTier,
-      finishes: record.finishes,
-      decklists: record.decklists,
-      won: record.won,
-    })),
+    bestFinish: {
+      rank: row.bestRank,
+      rankIsTier: row.bestRankIsTier,
+      event: {
+        slug: bestEvent.slug,
+        name: bestEvent.name,
+        eventDate: bestEvent.eventDate,
+        format: bestEvent.format,
+        tier: bestEvent.tier,
+        country: bestEvent.country,
+        playerCount: bestEvent.playerCount,
+      },
+    },
+    finishes: row.finishes,
+    decklists: row.decklists,
+    eventWins: row.eventWins,
   };
 }
 

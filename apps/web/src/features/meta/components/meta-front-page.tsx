@@ -40,28 +40,31 @@ import {
   useMetaActivity,
   useMetaCounts,
   useMetaEventDayCounts,
-  useMetaEvents,
+  useMetaEventFacets,
+  useMetaEventPage,
 } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import { useMetaSubmissions } from "@/features/meta/hooks/use-meta-submissions";
 import {
-  filterMetaEvents,
+  facetCountsFrom,
+  facetPresenceFrom,
   metaEventCountries,
-  metaFrontDecklistCount,
-  metaFrontFacetCounts,
-  metaFrontSections,
+} from "@/features/meta/lib/meta-events-index";
+import {
+  metaFrontSectionQuery,
+  metaFrontSectionShown,
+  metaFrontUpcomingQuery,
 } from "@/features/meta/lib/meta-front-page";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   eraCounts,
+  metaEventFilterQuery,
   metaScopeQueryFromScope,
   CLEARED_SCOPE,
   isScopeCustomized,
   nextScopeSearch,
-  resolveScopeRange,
   UNSCOPED,
 } from "@/features/meta/lib/meta-scope";
-import { scopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { useUserId } from "@/lib/auth-session";
 import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -85,11 +88,6 @@ function archiveIndexes() {
     },
   ] as const;
 }
-
-const PREMIER_LIMIT = 3;
-const COMPETITIVE_LIMIT = 4;
-const LOCAL_LIMIT = 5;
-const UPCOMING_LIMIT = 6;
 
 /** Hidden for a signed-in visitor who has never contributed, so the link is never to an empty page. */
 function ContributionsLink() {
@@ -174,31 +172,29 @@ function TierIndexLink({ tiers, count }: { tiers: MetaEventTier[]; count: number
       className="text-sm font-medium"
       render={<Link to="/meta/events" search={{ ...UNSCOPED, tiers }} />}
     >
-      {m.meta_front_browse_all({ count: String(count) })}
+      {m.meta_front_browse_all({ count })}
     </TextLink>
   );
 }
 
-function ResultlessNote({
-  count,
-  search,
-}: {
-  count: number;
-  search: MetaScope & { q?: string; decks?: boolean };
-}) {
+type MetaFrontSearch = MetaScope & { q?: string; decks?: boolean };
+
+/** `decks` is this page's own param; the event index narrows by `holds` instead. */
+function eventIndexScope(search: MetaFrontSearch): MetaScope & { q?: string } {
+  const { decks: _decks, ...scope } = search;
+  return scope;
+}
+
+function ResultlessNote({ count, search }: { count: number; search: MetaFrontSearch }) {
   if (count === 0) {
     return null;
   }
-  const { decks, ...scope } = search;
   return (
     <p className="text-muted-foreground">
       {m.meta_front_resultless({ count })}{" "}
       <TextLink
         render={
-          <Link
-            to="/meta/events"
-            search={{ ...scope, holds: decks === true ? "decks" : undefined }}
-          />
+          <Link to="/meta/events" search={{ ...eventIndexScope(search), holds: "resultless" }} />
         }
       >
         {m.meta_front_resultless_link({ count })}
@@ -240,7 +236,15 @@ export function MetaFrontPage() {
   const navigate = routeApi.useNavigate();
   const userId = useUserId();
   const eras = useMetaEras();
-  const { data: eventsData } = useMetaEvents(resolveScopeRange(search, eras));
+  const filters = metaEventFilterQuery(
+    { ...search, holds: search.decks === true ? "decks" : undefined },
+    eras,
+  );
+  const { data: facets } = useMetaEventFacets(filters);
+  const { data: premier } = useMetaEventPage(metaFrontSectionQuery(filters, "premier"));
+  const { data: competitive } = useMetaEventPage(metaFrontSectionQuery(filters, "competitive"));
+  const { data: local } = useMetaEventPage(metaFrontSectionQuery(filters, "local"));
+  const { data: upcoming } = useMetaEventPage(metaFrontUpcomingQuery(filters));
   const { data: counts } = useMetaCounts();
   const { data: activityData } = useMetaActivity();
 
@@ -259,26 +263,23 @@ export function MetaFrontPage() {
     void navigate({ search: (prev) => nextScopeSearch({ ...prev, q: next }, {}) });
   };
 
-  const fetchedEvents = eventsData.events;
-  const frontFilter = { scope: search, eras, search: search.q, decksOnly: search.decks };
-  const events = filterMetaEvents(fetchedEvents, frontFilter);
-  const facetCounts = metaFrontFacetCounts(fetchedEvents, frontFilter);
-  const decklistCount = metaFrontDecklistCount(fetchedEvents, frontFilter);
+  const facetCounts = facetCountsFrom(facets);
   const { from: _from, to: _to, ...facetQuery } = metaScopeQueryFromScope(search, eras);
   const { data: dayCounts } = useMetaEventDayCounts({
     ...facetQuery,
     q: search.q,
     holds: search.decks === true ? "decks" : undefined,
   });
-  const sections = metaFrontSections(events);
-  const hasResults =
-    sections.premier.length > 0 || sections.competitive.length > 0 || sections.local.length > 0;
-  const playerResults = events.reduce((total, event) => total + event.playerRowCount, 0);
-  const deckResults = events.reduce((total, event) => total + event.deckCount, 0);
+  const shown = {
+    premier: premier.events.length > 0 && metaFrontSectionShown(filters, "premier"),
+    competitive: competitive.events.length > 0 && metaFrontSectionShown(filters, "competitive"),
+    local: local.events.length > 0 && metaFrontSectionShown(filters, "local"),
+  };
+  const hasResults = shown.premier || shown.competitive || shown.local;
   const showActivity =
     !isScopeCustomized(search) && search.decks !== true && (search.q ?? "").trim() === "";
-  const hasRail = sections.upcoming.length > 0 || (showActivity && activityData.items.length > 0);
-  const nextUpcoming = sections.upcoming.at(0);
+  const hasRail = upcoming.events.length > 0 || (showActivity && activityData.items.length > 0);
+  const nextUpcoming = upcoming.events.at(0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -301,9 +302,12 @@ export function MetaFrontPage() {
                 setScope={setScope}
                 clearScope={clearScope}
                 eras={eras}
-                countries={metaEventCountries(fetchedEvents)}
+                countries={metaEventCountries(
+                  facets.countries.map((entry) => entry.value),
+                  search,
+                )}
                 facetCounts={facetCounts}
-                present={scopeFacetPresence(fetchedEvents)}
+                present={facetPresenceFrom(facets)}
                 eraCounts={
                   dayCounts === undefined ? undefined : eraCounts(dayCounts.days, eras, search)
                 }
@@ -318,7 +322,7 @@ export function MetaFrontPage() {
                   >
                     {m.meta_events_holdings_decks()}
                     <span className="text-muted-foreground text-2xs tabular-nums">
-                      {decklistCount}
+                      {facets.holdings.decks}
                     </span>
                   </Button>
                 }
@@ -336,14 +340,14 @@ export function MetaFrontPage() {
                 }
               />
               <MetaArchiveCounts
-                eventCount={events.length}
-                playerResultCount={playerResults}
-                deckCount={deckResults}
+                eventCount={facets.totals.events}
+                playerResultCount={facets.totals.playerRows}
+                deckCount={facets.totals.decks}
               />
               <ArchiveIndexTiles />
             </div>
 
-            {events.length === 0 ? (
+            {facets.totals.events === 0 ? (
               <>
                 <Empty>
                   <EmptyHeader>
@@ -355,7 +359,7 @@ export function MetaFrontPage() {
             ) : (
               <>
                 {nextUpcoming && (
-                  <UpcomingTeaser next={nextUpcoming} count={sections.upcoming.length} />
+                  <UpcomingTeaser next={nextUpcoming} count={facets.holdings.upcoming} />
                 )}
 
                 <div
@@ -368,7 +372,7 @@ export function MetaFrontPage() {
                   <div className="flex min-w-0 flex-col gap-8">
                     {hasResults ? (
                       <>
-                        {sections.premier.length > 0 && (
+                        {shown.premier && (
                           <Section
                             title={m.meta_event_tier_premier()}
                             accent="bg-border-accent"
@@ -380,7 +384,7 @@ export function MetaFrontPage() {
                             }
                           >
                             <RowList>
-                              {sections.premier.slice(0, PREMIER_LIMIT).map((event) => (
+                              {premier.events.map((event) => (
                                 <li key={event.id}>
                                   <MetaFrontEventBlock event={event} />
                                 </li>
@@ -389,7 +393,7 @@ export function MetaFrontPage() {
                           </Section>
                         )}
 
-                        {sections.competitive.length > 0 && (
+                        {shown.competitive && (
                           <Section
                             title={m.meta_event_tier_competitive()}
                             accent="bg-primary"
@@ -401,7 +405,7 @@ export function MetaFrontPage() {
                             }
                           >
                             <RowList>
-                              {sections.competitive.slice(0, COMPETITIVE_LIMIT).map((event) => (
+                              {competitive.events.map((event) => (
                                 <li key={event.id}>
                                   <MetaFrontEventBlock event={event} />
                                 </li>
@@ -410,7 +414,7 @@ export function MetaFrontPage() {
                           </Section>
                         )}
 
-                        {sections.local.length > 0 && (
+                        {shown.local && (
                           <Section
                             title={m.meta_event_tier_local()}
                             accent="bg-muted-foreground/40"
@@ -419,14 +423,12 @@ export function MetaFrontPage() {
                                 className="text-sm font-medium"
                                 render={<Link to="/meta/events" search={UNSCOPED} />}
                               >
-                                {m.meta_front_browse_all_events({
-                                  count: String(counts.totalEvents),
-                                })}
+                                {m.meta_front_browse_all_events({ count: counts.totalEvents })}
                               </TextLink>
                             }
                           >
                             <RowList>
-                              {sections.local.slice(0, LOCAL_LIMIT).map((event) => (
+                              {local.events.map((event) => (
                                 <li key={event.id}>
                                   <MetaEventRow event={event} />
                                 </li>
@@ -442,12 +444,12 @@ export function MetaFrontPage() {
                         </EmptyHeader>
                       </Empty>
                     )}
-                    <ResultlessNote count={sections.resultless.length} search={search} />
+                    <ResultlessNote count={facets.holdings.resultless} search={search} />
                   </div>
 
                   {hasRail && (
                     <aside className="flex flex-col gap-8 lg:sticky lg:top-[calc(var(--header-height)+0.75rem)] lg:col-start-2 lg:row-span-2 lg:row-start-1">
-                      {sections.upcoming.length > 0 && (
+                      {upcoming.events.length > 0 && (
                         <Section
                           id="coming-up"
                           title={m.meta_front_coming_up()}
@@ -457,16 +459,21 @@ export function MetaFrontPage() {
                               render={
                                 <Link
                                   to="/meta/events"
-                                  search={{ ...search, holds: "upcoming", by: "date", dir: "asc" }}
+                                  search={{
+                                    ...eventIndexScope(search),
+                                    holds: "upcoming",
+                                    by: "date",
+                                    dir: "asc",
+                                  }}
                                 />
                               }
                             >
-                              {m.meta_front_all_n({ count: String(sections.upcoming.length) })}
+                              {m.meta_front_all_n({ count: facets.holdings.upcoming })}
                             </TextLink>
                           }
                         >
                           <RowList>
-                            {sections.upcoming.slice(0, UPCOMING_LIMIT).map((event) => (
+                            {upcoming.events.map((event) => (
                               <li key={event.id}>
                                 <MetaUpcomingRow event={event} />
                               </li>

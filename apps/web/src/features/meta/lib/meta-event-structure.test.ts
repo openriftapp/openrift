@@ -1,8 +1,6 @@
 import type { MetaEventPhase } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
-import { metaMatch } from "@/test/meta-event-fixtures";
-
 import { describeEventProgress, describeEventStructure } from "./meta-event-structure";
 
 function phase(overrides: Partial<MetaEventPhase> = {}): MetaEventPhase {
@@ -119,21 +117,24 @@ describe("describeEventStructure", () => {
 
 describe("describeEventProgress", () => {
   it("says nothing before the first round is in", () => {
-    expect(describeEventProgress([], [phase(), cut])).toBeNull();
+    expect(describeEventProgress(null, [phase(), cut])).toBeNull();
   });
 
   it("counts the Swiss rounds on file against the rounds announced", () => {
-    const matches = [1, 2, 3].map((roundNumber) => metaMatch({ phaseOrder: 1, roundNumber }));
-    expect(describeEventProgress(matches, [phase(), cut])).toBe("After round 3 of 6");
+    expect(describeEventProgress({ phaseOrder: 1, roundNumber: 3 }, [phase(), cut])).toBe(
+      "After round 3 of 6",
+    );
   });
 
   it("leaves the total off when the source never announced one", () => {
-    const matches = [metaMatch({ phaseOrder: 1, roundNumber: 1 })];
-    expect(describeEventProgress(matches, [phase({ roundCount: null })])).toBe("After round 1");
+    expect(
+      describeEventProgress({ phaseOrder: 1, roundNumber: 1 }, [phase({ roundCount: null })]),
+    ).toBe("After round 1");
   });
 
   it("names the cut once its first round is on file", () => {
-    const matches = [metaMatch({ phaseOrder: 1, roundNumber: 6 }), metaMatch({ phaseOrder: 2 })];
-    expect(describeEventProgress(matches, [phase(), cut])).toBe("Top 8 under way");
+    expect(describeEventProgress({ phaseOrder: 2, roundNumber: 1 }, [phase(), cut])).toBe(
+      "Top 8 under way",
+    );
   });
 });

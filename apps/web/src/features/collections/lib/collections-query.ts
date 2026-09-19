@@ -9,6 +9,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -38,7 +39,7 @@ const fetchPublicCollectionFn = createServerFn({ method: "GET" })
     const { error, data: firstPage } = await safe(client.share({ token }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

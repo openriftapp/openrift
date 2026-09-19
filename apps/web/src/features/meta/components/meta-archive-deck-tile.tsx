@@ -19,7 +19,7 @@ const PLATE_CLASS = "absolute rounded-full bg-black/60 text-xs font-medium text-
 
 function PlacementPlate({ deck, fieldSize }: { deck: MetaDeckSummary; fieldSize?: number }) {
   const field =
-    fieldSize === undefined ? null : <span>of {fieldSize.toLocaleString("en-US")}</span>;
+    fieldSize === undefined ? null : <span>{m.meta_deck_of_field({ count: fieldSize })}</span>;
   if (deck.rank <= MEDAL_RANKS) {
     return (
       <span

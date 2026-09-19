@@ -12,6 +12,7 @@ import { MetaPlayerLegends } from "@/features/meta/components/meta-player-legend
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { useMetaDecks, useMetaPlayer } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
+import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import {
   filterPlayerFinishes,
   metaPlayerCounts,
@@ -45,6 +46,7 @@ export function MetaPlayerPage() {
   const { data: deckData } = useMetaDecks({
     ...metaScopeQueryFromScope(scope, eras),
     player: key,
+    limit: DECK_GRID_ALL_LIMIT,
   });
 
   const setScope = (patch: Partial<MetaScope>) => {

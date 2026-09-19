@@ -98,6 +98,31 @@ export const metaEventPlayerSchema = z.object({
   listStatus: metaListStatusSchema,
 });
 
+export const metaRunOutcomeSchema = z.enum(["win", "loss", "draw", "bye", "unknown"]);
+
+/** Round numbers restart with each phase, so `phaseOrder` is what tells two rounds apart. */
+export const metaStandingsRoundSchema = z.object({
+  phaseOrder: z.number().int(),
+  roundNumber: z.number().int(),
+  isCut: z.boolean(),
+  outcome: metaRunOutcomeSchema,
+});
+
+export const metaStandingsRowSchema = metaEventPlayerSchema.extend({
+  rounds: z.array(metaStandingsRoundSchema),
+});
+
+export const metaRunRoundSchema = z.object({
+  phaseOrder: z.number().int(),
+  roundNumber: z.number().int(),
+  isCut: z.boolean(),
+  tableNumber: z.number().int().nullable(),
+  outcome: metaRunOutcomeSchema,
+  gamesWon: z.number().int().nullable(),
+  gamesLost: z.number().int().nullable(),
+  opponentId: z.string().nullable(),
+});
+
 /**
  * Distinguishes a cut from the Swiss rounds before it: match rows carry only
  * `phaseOrder`, so infer the stage from this, not from round shape.
@@ -150,7 +175,38 @@ export const metaDeckSummarySchema = z.object({
   event: metaDeckEventSchema,
 });
 
-export const metaEventListResponseSchema = z.object({ events: z.array(metaEventSummarySchema) });
+/** One page of the event index, with the count the whole filter matches. */
+export const metaEventListResponseSchema = z.object({
+  events: z.array(metaEventSummarySchema),
+  total: z.number().int().nonnegative(),
+});
+
+const metaEventFacetValueSchema = z.object({
+  value: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+/**
+ * Each facet's values are counted with every other narrowing applied and the
+ * facet's own picks lifted. `holdings` and `totals` carry the whole filter.
+ */
+export const metaEventFacetsResponseSchema = z.object({
+  formats: z.array(metaEventFacetValueSchema),
+  tiers: z.array(metaEventFacetValueSchema),
+  countries: z.array(metaEventFacetValueSchema),
+  holdings: z.object({
+    all: z.number().int().nonnegative(),
+    decks: z.number().int().nonnegative(),
+    standings: z.number().int().nonnegative(),
+    upcoming: z.number().int().nonnegative(),
+    resultless: z.number().int().nonnegative(),
+  }),
+  totals: z.object({
+    events: z.number().int().nonnegative(),
+    playerRows: z.number().int().nonnegative(),
+    decks: z.number().int().nonnegative(),
+  }),
+});
 
 export const metaActivityKindSchema = z.enum(["event-added", "decks-added", "results-added"]);
 
@@ -168,12 +224,86 @@ export const metaActivityItemSchema = z.object({
 /** Newest first. */
 export const metaActivityResponseSchema = z.object({ items: z.array(metaActivityItemSchema) });
 
-/** Standings sorted best finish first. */
+/** One page of an event's standings, best finish first. */
+export const metaEventStandingsResponseSchema = z.object({
+  players: z.array(metaStandingsRowSchema),
+  total: z.number().int().nonnegative(),
+});
+
+/** Computed over the whole field, never over one page of standings rows. */
+export const metaEventFieldSchema = z.object({
+  withLists: z.number().int().nonnegative(),
+  hasLegends: z.boolean(),
+  hasRecords: z.boolean(),
+  hasRuns: z.boolean(),
+  legends: z.array(
+    z.object({
+      cardId: z.string(),
+      name: z.string(),
+      count: z.number().int().positive(),
+    }),
+  ),
+  cutLine: z
+    .object({
+      wins: z.number().int().nullable(),
+      losses: z.number().int().nullable(),
+      draws: z.number().int().nullable(),
+    })
+    .nullable(),
+  progress: z.object({ phaseOrder: z.number().int(), roundNumber: z.number().int() }).nullable(),
+});
+
+/** Match rows are served for the cut only. A player's own rounds ride on their standings row. */
 export const metaEventDetailResponseSchema = z.object({
   event: metaEventDetailSchema,
-  players: z.array(metaEventPlayerSchema),
-  matches: z.array(metaEventMatchSchema),
+  standings: metaEventStandingsResponseSchema,
+  field: metaEventFieldSchema,
+  bestPerLegend: z.array(metaStandingsRowSchema),
+  cutMatches: z.array(metaEventMatchSchema),
   phases: z.array(metaEventPhaseSchema),
+});
+
+// `z.coerce.number()` accepts 1e30, which postgres.js sends in exponent form and
+// Postgres rejects. Every paged input is bounded before it reaches a query.
+export const MAX_OFFSET = 1_000_000;
+
+export const MAX_FACET_VALUES = 300;
+
+const pageOffset = z.coerce.number().int().nonnegative().max(MAX_OFFSET).optional();
+
+// The event payload carries this many rows, and the web seeds its cache under a
+// key built from it, so a change here silently mismatches that key on both sides.
+export const STANDINGS_PAGE_SIZE = 200;
+
+/** The page sizes a list's picker offers. */
+export const META_PAGE_SIZES = [50, 100, 200, 500] as const;
+
+/** The largest page a list serves, which is the largest size its picker offers. */
+export const META_MAX_LIST_PAGE_SIZE = Math.max(...META_PAGE_SIZES);
+
+/** The whole field of the largest event the archive holds, for a reader who asked for all of it. */
+export const META_MAX_PAGE_SIZE = 5000;
+
+const listLimit = z.coerce.number().int().positive().max(META_MAX_LIST_PAGE_SIZE).optional();
+
+export const metaEventStandingsQuerySchema = z.object({
+  slug: z.string().min(1),
+  q: z.string().max(200).optional(),
+  list: z.literal("with").optional(),
+  legend: z.uuid().optional(),
+  limit: z.coerce.number().int().positive().max(META_MAX_PAGE_SIZE).optional(),
+  offset: pageOffset,
+});
+
+export const metaEventRunResponseSchema = z.object({
+  event: metaEventSummarySchema,
+  phases: z.array(metaEventPhaseSchema),
+  player: metaStandingsRowSchema,
+  rounds: z.array(metaRunRoundSchema),
+  opponents: z.array(metaEventPlayerSchema),
+  lastCutRound: z.number().int().nullable(),
+  /** Null when the cut's last round held more than one match: nothing says which was the title. */
+  finalRoundNumber: z.number().int().nullable(),
 });
 
 export const metaPendingSubmissionSchema = z.object({
@@ -190,9 +320,18 @@ export const metaPendingSubmissionsResponseSchema = z.object({
   items: z.array(metaPendingSubmissionSchema),
 });
 
+/**
+ * `events` carries a summary for every event the returned decks were played at,
+ * and nothing else. `total` counts every deck the filter matched and
+ * `eventCount` the events that match spans, `archiveTotal` the archive's decks
+ * whatever the filter.
+ */
 export const metaDeckListResponseSchema = z.object({
   decks: z.array(metaDeckSummarySchema),
+  events: z.array(metaEventSummarySchema),
   total: z.number().int().nonnegative(),
+  eventCount: z.number().int().nonnegative(),
+  archiveTotal: z.number().int().nonnegative(),
 });
 
 /**
@@ -269,24 +408,33 @@ export const metaLegendFinishSchema = z.object({
   event: metaLegendEventSchema,
 });
 
-const metaLegendEventRecordSchema = z.object({
-  eventSlug: z.string(),
-  bestRank: z.number().int(),
-  rankIsTier: z.boolean(),
-  finishes: z.number().int().nonnegative(),
-  decklists: z.number().int().nonnegative(),
-  won: z.boolean(),
-});
-
+/**
+ * Every number is a raw count: the archive never serves a rate or a share.
+ * `eventWins` counts events, so a shared first place at one event is one win.
+ */
 export const metaLegendSummarySchema = z.object({
   slug: z.string(),
   legend: metaCardRefSchema,
-  records: z.array(metaLegendEventRecordSchema),
+  bestFinish: z.object({
+    rank: z.number().int(),
+    rankIsTier: z.boolean(),
+    event: metaLegendEventSchema,
+  }),
+  finishes: z.number().int().nonnegative(),
+  decklists: z.number().int().nonnegative(),
+  eventWins: z.number().int().nonnegative(),
 });
 
-export type MetaLegendEventRecord = z.infer<typeof metaLegendEventRecordSchema>;
-
-export const metaLegendListResponseSchema = z.object({ legends: z.array(metaLegendSummarySchema) });
+/**
+ * `legends` is the whole scoped list, never a page, and `total` counts it.
+ * `archiveTotal` counts the archive's legends whatever the scope.
+ */
+export const metaLegendListResponseSchema = z.object({
+  legends: z.array(metaLegendSummarySchema),
+  total: z.number().int().nonnegative(),
+  archiveTotal: z.number().int().nonnegative(),
+  countries: z.array(z.string()),
+});
 
 /** Facts only: never a rate, a share, or a comparison against another legend. */
 export const metaLegendDetailResponseSchema = z.object({
@@ -339,7 +487,7 @@ export const metaDateRangeQuerySchema = z.object({
  * Plain strings, not the tier/format enums. A stale bookmark naming a
  * retired value narrows to nothing; the request still succeeds.
  */
-const scopeFacetList = z.array(z.string().min(1)).max(300).optional();
+const scopeFacetList = z.array(z.string().min(1)).max(MAX_FACET_VALUES).optional();
 
 /**
  * Each facet is an include list or an exclude list, never both. An event
@@ -354,35 +502,98 @@ export const metaScopeQuerySchema = metaDateRangeQuerySchema.extend({
   countriesEx: scopeFacetList,
 });
 
-export const META_EVENT_HOLDINGS = ["decks", "standings", "upcoming"] as const;
+export const META_EVENT_HOLDINGS = ["decks", "standings", "upcoming", "resultless"] as const;
+
+/** Everything the event index narrows by: the scope bar, plus the page's own controls. */
+export const metaEventFilterQuerySchema = metaScopeQuerySchema.extend({
+  /** One event by its own slug, for a surface holding a link and nothing else. */
+  slug: z.string().min(1).optional(),
+  q: z.string().max(200).optional(),
+  holds: z.enum(META_EVENT_HOLDINGS).optional(),
+  playersMin: z.coerce.number().int().nonnegative().optional(),
+  playersMax: z.coerce.number().int().nonnegative().optional(),
+});
+
+export const META_EVENT_INDEX_SORTS = [
+  "date",
+  "name",
+  "tier",
+  "country",
+  "players",
+  "decks",
+] as const;
+
+export const metaEventListQuerySchema = metaEventFilterQuerySchema.extend({
+  by: z.enum(META_EVENT_INDEX_SORTS).optional(),
+  dir: z.enum(["asc", "desc"]).optional(),
+  limit: listLimit,
+  offset: pageOffset,
+});
 
 /** No `from`/`to`: the era is summed client-side from the per-day counts this feeds. */
-export const metaEventDayCountsQuerySchema = metaScopeQuerySchema
-  .omit({ from: true, to: true })
-  .extend({
-    q: z.string().max(200).optional(),
-    holds: z.enum(META_EVENT_HOLDINGS).optional(),
-    playersMin: z.coerce.number().int().nonnegative().optional(),
-    playersMax: z.coerce.number().int().nonnegative().optional(),
-  });
+export const metaEventDayCountsQuerySchema = metaEventFilterQuerySchema.omit({
+  from: true,
+  to: true,
+  slug: true,
+});
 
 export const metaEventDayCountsResponseSchema = z.object({
   days: z.record(isoDate, z.number().int().nonnegative()),
 });
 
-/**
- * Sort order is fixed server-side (event date desc, then rank, then player),
- * not exposed as a query param.
- */
+export const META_DECK_SORTS = ["date", "finish"] as const;
+
+/** `curated` keeps one deck per legend per event, the best finish of each. */
 export const metaDeckQuerySchema = metaScopeQuerySchema.extend({
-  legend: z.string().min(1).optional(),
+  legend: z.uuid().optional(),
   player: z.string().min(1).optional(),
-  limit: z.coerce.number().int().positive().optional(),
+  events: z.array(z.string().min(1)).max(MAX_FACET_VALUES).optional(),
+  legends: z.array(z.uuid()).max(MAX_FACET_VALUES).optional(),
+  maxRank: z.coerce.number().int().positive().optional(),
+  // Not `z.coerce.boolean()`: that is `Boolean(value)`, so `curated=false` arrives as true.
+  curated: z.union([z.boolean(), z.stringbool()]).optional(),
+  by: z.enum(META_DECK_SORTS).optional(),
+  dir: z.enum(["asc", "desc"]).optional(),
+  limit: listLimit,
+  offset: pageOffset,
+});
+
+/** A caller names what it shows: one event's field, or the page of the browser it is pricing. */
+export const metaDeckCardsQuerySchema = metaDeckQuerySchema.extend({
+  event: z.string().min(1).optional(),
+});
+
+/** The deck browser's filter, without the axis a facet counts its own values on. */
+export const metaDeckFacetsQuerySchema = metaDeckQuerySchema.omit({
+  by: true,
+  dir: true,
+  limit: true,
+  offset: true,
+});
+
+const metaDeckFacetValueSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+/**
+ * Each facet's values are counted with every other narrowing applied, its own
+ * picks lifted, and the same curation the grid renders. A picked value the rest
+ * of the narrowing counts no row for comes back at count 0. `events` stops at
+ * the cap `metaDeckQuerySchema.events` accepts back.
+ */
+export const metaDeckFacetsResponseSchema = z.object({
+  events: z.array(metaDeckFacetValueSchema).max(MAX_FACET_VALUES),
+  legends: z.array(metaDeckFacetValueSchema),
+  finishes: z.array(z.object({ value: z.number().int(), count: z.number().int().nonnegative() })),
+  /** ISO 3166-1 alpha-2 */
+  countries: z.array(z.string()),
 });
 
 export const metaLegendQuerySchema = metaScopeQuerySchema.extend({
   slug: z.string().min(1),
-  page: z.coerce.number().int().min(1).optional(),
+  page: z.coerce.number().int().min(1).max(MAX_OFFSET).optional(),
 });
 
 /**
@@ -396,8 +607,14 @@ export const metaContract = {
   events: oc
     .route({ method: "GET", path: `${BASE}/events`, tags: [TAG] })
     .meta({ auth: "public", cache: "medium", etag: true })
-    .input(metaDateRangeQuerySchema)
+    .input(metaEventListQuerySchema)
     .output(metaEventListResponseSchema),
+
+  eventFacets: oc
+    .route({ method: "GET", path: `${BASE}/events/facets`, tags: [TAG] })
+    .meta({ auth: "public", cache: "medium", etag: true })
+    .input(metaEventFilterQuerySchema)
+    .output(metaEventFacetsResponseSchema),
 
   eventDayCounts: oc
     .route({ method: "GET", path: `${BASE}/events/day-counts`, tags: [TAG] })
@@ -417,6 +634,20 @@ export const metaContract = {
     .errors({ NOT_FOUND: { message: "Event not found" } })
     .output(metaEventDetailResponseSchema),
 
+  standings: oc
+    .route({ method: "GET", path: `${BASE}/events/{slug}/standings`, tags: [TAG] })
+    .meta({ auth: "public", cache: "medium", etag: true })
+    .input(metaEventStandingsQuerySchema)
+    .errors({ NOT_FOUND: { message: "Event not found" } })
+    .output(metaEventStandingsResponseSchema),
+
+  run: oc
+    .route({ method: "GET", path: `${BASE}/events/{slug}/players/{key}/run`, tags: [TAG] })
+    .meta({ auth: "public", cache: "medium", etag: true })
+    .input(z.object({ slug: z.string().min(1), key: z.string().min(1) }))
+    .errors({ NOT_FOUND: { message: "Player not found" } })
+    .output(metaEventRunResponseSchema),
+
   pendingSubmissions: oc
     .route({ method: "GET", path: `${BASE}/events/{slug}/pending-submissions`, tags: [TAG] })
     .meta({ auth: "public", cache: "short", cacheVary: "viewer" })
@@ -430,10 +661,16 @@ export const metaContract = {
     .input(metaDeckQuerySchema)
     .output(metaDeckListResponseSchema),
 
+  deckFacets: oc
+    .route({ method: "GET", path: `${BASE}/decks/facets`, tags: [TAG] })
+    .meta({ auth: "public", cache: "medium", etag: true })
+    .input(metaDeckFacetsQuerySchema)
+    .output(metaDeckFacetsResponseSchema),
+
   deckCards: oc
     .route({ method: "GET", path: `${BASE}/deck-cards`, tags: [TAG] })
     .meta({ auth: "public", cache: "medium", etag: true })
-    .input(metaDateRangeQuerySchema)
+    .input(metaDeckCardsQuerySchema)
     .output(metaDeckCardIndexResponseSchema),
 
   deck: oc
@@ -446,6 +683,7 @@ export const metaContract = {
   legends: oc
     .route({ method: "GET", path: `${BASE}/legends`, tags: [TAG] })
     .meta({ auth: "public", cache: "medium", etag: true })
+    .input(metaScopeQuerySchema)
     .output(metaLegendListResponseSchema),
 
   legend: oc

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sessionQueryOptions } from "./auth-session";
 import { createQueryClient } from "./query-client";
 import { captureHandledError } from "./report-error";
+import { notFoundError } from "./server-fns/api-error";
 import { _resetReloadStateForTesting } from "./stale-bundle-reload";
 import { loadSonner, PERSISTENT_ERROR_TOAST } from "./toast";
 
@@ -194,10 +195,7 @@ describe("createQueryClient session-expiry handling", () => {
   });
 
   it("never retries a 401 or a stale server function but keeps 3 browser retries otherwise", () => {
-    const retry = createQueryClient().getDefaultOptions().queries?.retry as (
-      failureCount: number,
-      error: unknown,
-    ) => boolean;
+    const retry = getRetry();
 
     expect(retry(0, unauthorized)).toBe(false);
     expect(retry(0, staleServerFn)).toBe(false);
@@ -205,4 +203,44 @@ describe("createQueryClient session-expiry handling", () => {
     expect(retry(2, new Error("boom"))).toBe(true);
     expect(retry(3, new Error("boom"))).toBe(false);
   });
+
+  it("does not retry a server function's 404, so a stale link reaches notFoundComponent at once", () => {
+    const retry = getRetry();
+
+    expect(retry(0, notFoundError())).toBe(false);
+  });
+
+  it("does not retry a 400 or a 403", () => {
+    const retry = getRetry();
+
+    expect(retry(0, { name: "ApiError", message: "Bad input", status: 400 })).toBe(false);
+    expect(retry(0, { name: "Error", message: "Forbidden", status: 403 })).toBe(false);
+  });
+
+  it("retries a 429 up to three times, so a rate limit that lifts recovers on its own", () => {
+    const retry = getRetry();
+    const rateLimited = { name: "ApiError", message: "Too many requests", status: 429 };
+
+    expect(retry(0, rateLimited)).toBe(true);
+    expect(retry(2, rateLimited)).toBe(true);
+    expect(retry(3, rateLimited)).toBe(false);
+  });
+
+  it("still retries a 5xx and a network failure up to three times", () => {
+    const retry = getRetry();
+    const serverError = { name: "ApiError", message: "Internal error", status: 500 };
+    const networkError = new TypeError("Failed to fetch");
+
+    expect(retry(0, serverError)).toBe(true);
+    expect(retry(2, serverError)).toBe(true);
+    expect(retry(3, serverError)).toBe(false);
+    expect(retry(2, networkError)).toBe(true);
+  });
 });
+
+function getRetry() {
+  return createQueryClient().getDefaultOptions().queries?.retry as (
+    failureCount: number,
+    error: unknown,
+  ) => boolean;
+}

@@ -1,7 +1,6 @@
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import { getRouteApi } from "@tanstack/react-router";
 import { TrophyIcon } from "lucide-react";
-import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -13,7 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList } from "@/components/ui/row-list";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
@@ -23,20 +30,19 @@ import {
 } from "@/features/meta/components/meta-event-index-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
 import { MetaScopeBar, ScopeSelect } from "@/features/meta/components/meta-scope-bar";
-import { MetaShowMore } from "@/features/meta/components/meta-show-more";
 import {
   useMetaCounts,
   useMetaEventDayCounts,
-  useMetaEvents,
+  useMetaEventFacets,
+  useMetaEventPage,
 } from "@/features/meta/hooks/use-meta";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import {
-  filterMetaEvents,
+  facetCountsFrom,
+  facetPresenceFrom,
+  holdingsCountsFrom,
   metaEventCountries,
-  metaEventFacetCounts,
-  metaEventHoldingsCounts,
   nextEventSort,
-  sortMetaEvents,
 } from "@/features/meta/lib/meta-events-index";
 import type {
   MetaEventHoldings,
@@ -44,42 +50,49 @@ import type {
   MetaEventIndexSortDirection,
 } from "@/features/meta/lib/meta-events-search";
 import {
-  DEFAULT_EVENT_DIRECTION,
-  DEFAULT_EVENT_SORT,
+  DEFAULT_EVENT_PAGE_SIZE,
+  eventPageOrder,
+  eventPageSlice,
   META_EVENT_HOLDINGS,
 } from "@/features/meta/lib/meta-events-search";
 import { metaShownLabel } from "@/features/meta/lib/meta-format";
+import { META_PAGE_SIZES, metaPageCount } from "@/features/meta/lib/meta-paging";
 import type { MetaScope } from "@/features/meta/lib/meta-scope";
 import {
   CLEARED_SCOPE,
   eraCounts,
+  metaEventFilterQuery,
   metaScopeQueryFromScope,
   nextScopeSearch,
-  resolveScopeRange,
   scopeKey,
 } from "@/features/meta/lib/meta-scope";
-import { scopeFacetPresence } from "@/features/meta/lib/meta-scope-match";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/events");
 
-const PAGE_SIZE = 50;
-
 const ANY_HOLDINGS = "";
+
+const EVENT_LIST_ID = "meta-event-list";
 
 export function MetaEventsPage() {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const eras = useMetaEras();
-  const { data } = useMetaEvents(resolveScopeRange(search, eras));
+  const order = eventPageOrder(search);
+  const sort = order.by;
+  const direction = order.dir;
+  const filters = metaEventFilterQuery(search, eras);
+  const { data } = useMetaEventPage({ ...filters, ...order, ...eventPageSlice(search) });
+  const { data: facets } = useMetaEventFacets(filters);
   const { data: counts } = useMetaCounts();
 
-  const sort = search.by ?? DEFAULT_EVENT_SORT;
-  const direction = search.dir ?? DEFAULT_EVENT_DIRECTION;
-
+  // Every narrowing changes which events the pages hold, so it opens the first one.
   const setSearchParams = (patch: Record<string, unknown>) => {
-    void navigate({ search: (prev) => nextScopeSearch(prev, patch), replace: true });
+    void navigate({
+      search: (prev) => nextScopeSearch({ ...prev, page: undefined }, patch),
+      replace: true,
+    });
   };
 
   const setScope = (patch: Partial<MetaScope>) => setSearchParams(patch);
@@ -97,17 +110,9 @@ export function MetaEventsPage() {
   };
   const commitQuery = (value: string) => setSearchParams({ q: value === "" ? undefined : value });
 
-  const fetched = data.events;
-  const indexFilter = {
-    query: search.q,
-    scope: search,
-    eras,
-    holds: search.holds,
-    playersMin: search.playersMin,
-    playersMax: search.playersMax,
-  };
-  const events = sortMetaEvents(filterMetaEvents(fetched, indexFilter), sort, direction);
-  const facetCounts = metaEventFacetCounts(fetched, indexFilter);
+  const events = data.events;
+  const matched = data.total;
+  const perPage = search.per ?? DEFAULT_EVENT_PAGE_SIZE;
   const { from: _from, to: _to, ...facetQuery } = metaScopeQueryFromScope(search, eras);
   const { data: dayCounts } = useMetaEventDayCounts({
     ...facetQuery,
@@ -116,9 +121,8 @@ export function MetaEventsPage() {
     playersMin: search.playersMin,
     playersMax: search.playersMax,
   });
-  const holdingsCounts = metaEventHoldingsCounts(fetched, indexFilter);
-  const countries = metaEventCountries(fetched);
-  // Sort keys are deliberately absent: reordering keeps the same rows expanded.
+  // `by` and `dir` are deliberately absent: a re-sort keeps the rows mounted,
+  // and with them each thumbnail's record of the source that failed to load.
   const listKey = `${search.q ?? ""}|${search.holds ?? ""}|${search.playersMin ?? ""}|${search.playersMax ?? ""}|${scopeKey(search)}`;
 
   return (
@@ -145,16 +149,19 @@ export function MetaEventsPage() {
                 <EventSearchBox
                   urlValue={search.q ?? ""}
                   onCommit={commitQuery}
-                  shown={metaShownLabel(events.length, counts.totalEvents, "events")}
+                  shown={metaShownLabel(matched, counts.totalEvents, "events")}
                 />
               }
               scope={search}
               setScope={setScope}
               clearScope={clearScope}
               eras={eras}
-              countries={countries}
-              facetCounts={facetCounts}
-              present={scopeFacetPresence(fetched)}
+              countries={metaEventCountries(
+                facets.countries.map((entry) => entry.value),
+                search,
+              )}
+              facetCounts={facetCountsFrom(facets)}
+              present={facetPresenceFrom(facets)}
               eraCounts={
                 dayCounts === undefined ? undefined : eraCounts(dayCounts.days, eras, search)
               }
@@ -162,7 +169,7 @@ export function MetaEventsPage() {
                 <>
                   <HoldingsChip
                     value={search.holds}
-                    counts={holdingsCounts}
+                    counts={holdingsCountsFrom(facets)}
                     onChange={(holds) => setSearchParams({ holds })}
                   />
                   <PlayersChip
@@ -183,7 +190,7 @@ export function MetaEventsPage() {
                   : [
                       {
                         key: "holds",
-                        label: holdingsItems()[search.holds] ?? search.holds,
+                        label: holdingsItems()[search.holds],
                         onRemove: () => setSearchParams({ holds: undefined }),
                       },
                     ]),
@@ -200,16 +207,41 @@ export function MetaEventsPage() {
               ]}
             />
 
-            <div className="mt-4 text-sm">
+            <div className={cn("mt-4 text-sm", PAGER_SCROLL_TARGET)} id={EVENT_LIST_ID}>
               <SortHeader sort={sort} direction={direction} onSort={setSort} />
               {events.length === 0 ? (
                 <Empty className="py-10">
                   <EmptyHeader>
-                    <EmptyDescription>{m.meta_events_no_match()}</EmptyDescription>
+                    <EmptyDescription>
+                      {matched === 0 ? m.meta_events_no_match() : m.meta_page_past_end()}
+                    </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               ) : (
                 <EventList key={listKey} events={events} />
+              )}
+              {(matched > 0 || search.per !== undefined) && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                  <Pager
+                    page={search.page ?? 1}
+                    totalPages={metaPageCount(matched, perPage)}
+                    onPageChange={(next) =>
+                      void navigate({
+                        search: (prev) => ({ ...prev, page: next === 1 ? undefined : next }),
+                        resetScroll: false,
+                      })
+                    }
+                    label={m.meta_events_pages_aria()}
+                    scrollTargetId={EVENT_LIST_ID}
+                  />
+                  <EventPageSizePicker
+                    value={perPage}
+                    total={matched}
+                    onChange={(per) =>
+                      setSearchParams({ per: per === DEFAULT_EVENT_PAGE_SIZE ? undefined : per })
+                    }
+                  />
+                </div>
               )}
             </div>
           </>
@@ -219,12 +251,13 @@ export function MetaEventsPage() {
   );
 }
 
-function holdingsItems(): Record<string, string> {
+function holdingsItems(): Record<MetaEventHoldings | typeof ANY_HOLDINGS, string> {
   return {
     [ANY_HOLDINGS]: m.meta_events_holdings_any(),
     decks: m.meta_events_holdings_decks(),
     standings: m.meta_events_holdings_standings(),
     upcoming: m.meta_event_status_upcoming(),
+    resultless: m.meta_events_holdings_resultless(),
   };
 }
 
@@ -355,24 +388,47 @@ function EventSearchBox({
 }
 
 function EventList({ events }: { events: MetaEventSummary[] }) {
-  const [shown, setShown] = useState(PAGE_SIZE);
-  const remaining = events.length - shown;
-
   return (
-    <>
-      <RowList className="flex flex-col">
-        {events.slice(0, shown).map((event) => (
-          <li key={event.id}>
-            <MetaEventIndexRow event={event} />
-          </li>
+    <RowList className="flex flex-col">
+      {events.map((event) => (
+        <li key={event.id}>
+          <MetaEventIndexRow event={event} />
+        </li>
+      ))}
+    </RowList>
+  );
+}
+
+function EventPageSizePicker({
+  value,
+  total,
+  onChange,
+}: {
+  value: number;
+  total: number;
+  onChange: (value: number) => void;
+}) {
+  if (total <= META_PAGE_SIZES[0] && value === DEFAULT_EVENT_PAGE_SIZE) {
+    return null;
+  }
+  const items = Object.fromEntries(META_PAGE_SIZES.map((size) => [String(size), String(size)]));
+  return (
+    <Select
+      value={String(value)}
+      items={items}
+      onValueChange={(next) => onChange(Number((next as string | null) ?? DEFAULT_EVENT_PAGE_SIZE))}
+    >
+      <SelectTrigger className="w-36" aria-label={m.meta_events_per_page_aria()}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(items).map(([key, label]) => (
+          <SelectItem key={key} value={key}>
+            {m.meta_events_per_page({ size: label })}
+          </SelectItem>
         ))}
-      </RowList>
-      {remaining > 0 && (
-        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
-          {remaining.toLocaleString()} more {remaining === 1 ? "event" : "events"}
-        </MetaShowMore>
-      )}
-    </>
+      </SelectContent>
+    </Select>
   );
 }
 

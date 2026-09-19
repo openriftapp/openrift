@@ -74,7 +74,7 @@ function eventFacts(finish: MetaLegendFinish): string {
   const size = finish.event.playerCount;
   const parts = [formatDay(finish.event.eventDate)];
   if (size !== null) {
-    parts.push(`${size.toLocaleString("en-US")} ${size === 1 ? "player" : "players"}`);
+    parts.push(m.meta_count_players({ count: size }));
   }
   return parts.join(" · ");
 }
@@ -194,9 +194,7 @@ export function MetaLegendFinishes({
             className="h-auto p-0 text-sm font-medium"
             onClick={() => setView(view === "best" ? "all" : "best")}
           >
-            {view === "best"
-              ? m.meta_show_all_n({ count: total.toLocaleString("en-US") })
-              : m.meta_show_fewer()}
+            {view === "best" ? m.meta_show_all_n({ count: total }) : m.meta_show_fewer()}
           </Button>
         )}
       </div>

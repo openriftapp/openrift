@@ -21,6 +21,7 @@ import {
 import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import type { GroupMatchPanels } from "@/features/groups/lib/trade-derivation";
 import { useRequiredUserId } from "@/lib/auth-session";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -68,7 +69,7 @@ const fetchJoinPreview = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

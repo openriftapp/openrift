@@ -5832,6 +5832,7 @@
   "meta_sort_cheapest": "완성 비용이 낮은 순",
   "meta_sort_lowest_value": "가치가 낮은 순",
   "meta_sort_highest_value": "가치가 높은 순",
+  "meta_sort_page_only": "가격은 브라우저에서 계산하므로 지금 보고 있는 페이지만 정렬됩니다.",
   "tier_lists_add_tier": "티어 추가",
   "tier_lists_add_unranked_row": "순위 없는 행 추가",
   "tier_lists_row_label_aria": "{position}번째 티어 이름",
@@ -6522,7 +6523,15 @@
   "meta_legend_finishes_best_per_legend": "전설별 최고 성적",
   "meta_legend_finishes_deck": "덱",
   "meta_show_fewer": "간략히 보기",
-  "meta_show_all_n": "{count}개 모두 보기",
+  "meta_show_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted}개 모두 보기"
+      }
+    }
+  ],
   "meta_deck_incomplete_title": "이 리스트는 완전하지 않습니다",
   "meta_deck_copying": "복사 중…",
   "meta_deck_copy_played": "{player} 님이 {date} {event}에서 사용한 덱입니다.",
@@ -7010,6 +7019,20 @@
       }
     }
   ],
+  "meta_shown_decks_page": [
+    {
+      "declarations": [
+        "input shown",
+        "local shownPlural = shown: plural",
+        "local shownFormatted = shown: number"
+      ],
+      "selectors": ["shownPlural"],
+      "match": {
+        "shownPlural=one": "이 페이지의 덱 {shownFormatted}개",
+        "shownPlural=*": "이 페이지의 덱 {shownFormatted}개"
+      }
+    }
+  ],
   "meta_filter_any_finish": "모든 성적",
   "meta_filter_legend": "전설",
   "meta_filter_event": "이벤트",
@@ -7027,9 +7050,16 @@
   "meta_events_empty_title": "아직 아카이브된 이벤트가 없습니다",
   "meta_events_empty_description": "이벤트가 등록되는 대로 순위와 덱 리스트가 여기에 표시됩니다.",
   "meta_events_no_match": "이 필터와 일치하는 이벤트가 없습니다.",
+  "meta_events_pages_aria": "대회 페이지",
+  "pager_previous_page": "이전 페이지",
+  "pager_next_page": "다음 페이지",
+  "meta_page_past_end": "이 페이지는 결과의 마지막을 넘어섰습니다.",
+  "meta_events_per_page_aria": "페이지당 대회 수",
+  "meta_events_per_page": "{size}개 보기",
   "meta_events_holdings_any": "모든 이벤트",
   "meta_events_holdings_decks": "덱 리스트 있음",
   "meta_events_holdings_standings": "순위 있음",
+  "meta_events_holdings_resultless": "결과 없음",
   "meta_events_holdings_aria": "아카이브 보유 자료",
   "meta_events_players_label": "플레이어",
   "meta_events_players_min": "최소",
@@ -7063,11 +7093,24 @@
   "meta_standings_none": "아직 이 이벤트의 순위 기록이 없습니다.",
   "meta_standings_which_entries": "표시할 참가자",
   "meta_standings_all_entries": "모든 참가자",
-  "meta_standings_with_decklist": "덱 리스트 있음 ({count})",
+  "meta_standings_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "덱 리스트 있음 ({countFormatted})"
+      }
+    }
+  ],
   "meta_standings_find_player": "플레이어 찾기",
   "meta_standings_find_player_placeholder": "플레이어 찾기…",
   "meta_standings_filter_legend": "전설로 필터",
   "meta_standings_no_entries": "일치하는 참가자가 없습니다.",
+  "meta_standings_cost_none_on_page": "이 페이지에는 가격 필터에 맞는 참가자가 없습니다. 가격은 브라우저에서 계산하므로 필터는 지금 보고 있는 페이지에만 적용됩니다.",
+  "meta_standings_pages_aria": "순위 페이지",
+  "meta_standings_per_page_aria": "페이지당 항목 수",
+  "meta_standings_per_page": "{size}개 보기",
+  "meta_standings_per_all": "전체",
   "meta_pending_in_review": "검토 중",
   "meta_pending_yours_in_review": "내 제출, 검토 중",
   "meta_pending_update_in_review": "이 리스트의 업데이트가 검토 중입니다",
@@ -7387,10 +7430,34 @@
       }
     }
   ],
-  "meta_front_browse_all": "전체 {count}개 보기",
-  "meta_front_browse_all_events": "이벤트 전체 {count}개 보기",
+  "meta_front_browse_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "전체 {countFormatted}개 보기"
+      }
+    }
+  ],
+  "meta_front_browse_all_events": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "이벤트 전체 {countFormatted}개 보기"
+      }
+    }
+  ],
   "meta_front_coming_up": "예정",
-  "meta_front_all_n": "전체 {count}개",
+  "meta_front_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "전체 {countFormatted}개"
+      }
+    }
+  ],
   "meta_front_fresh": "최근 등록",
   "meta_cost_buildable_now": "지금 완성 가능",
   "meta_cost_to_complete_max": "완성 비용 {amount} 이하",
@@ -7404,6 +7471,7 @@
   "meta_cost_presets": "완성 비용 프리셋",
   "meta_cost_max_aria": "최대 완성 비용",
   "meta_cost_any": "전체",
+  "meta_cost_page_only": "가격은 브라우저에서 계산하므로 지금 보고 있는 페이지에만 적용됩니다.",
   "meta_cost_deck_value": "덱 가치",
   "meta_cost_deck_value_presets": "덱 가치 프리셋",
   "meta_cost_deck_value_range_aria": "덱 가치 범위",
@@ -7417,7 +7485,20 @@
   "meta_run_col_list": "덱 리스트",
   "meta_run_title_win": "우승까지의 여정",
   "meta_run_title": "토너먼트 여정",
-  "meta_run_of_players": "{count}명 중",
+  "meta_run_of_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted}명 중",
+        "countPlural=*": "{countFormatted}명 중"
+      }
+    }
+  ],
   "meta_run_final_record": "최종 전적",
   "meta_run_rounds_played": "진행 라운드",
   "meta_run_swiss": "스위스",
@@ -7440,6 +7521,9 @@
   "meta_browser_best_per_legend": "전설별 최고 성적 리스트",
   "meta_browser_every_list": "모든 리스트",
   "meta_browser_no_match": "이 필터와 일치하는 덱이 없습니다.",
+  "meta_browser_pages_aria": "덱 페이지",
+  "meta_browser_per_page_aria": "페이지당 덱 수",
+  "meta_browser_per_page": "{size}개 보기",
   "meta_browser_layout": "레이아웃",
   "meta_browser_sort": "정렬",
   "meta_browser_title": "아카이브된 덱",
@@ -8368,7 +8452,20 @@
   "meta_col_date": "날짜",
   "meta_event_contribute_sign_in": "로그인하고 덱 리스트 추가하기",
   "meta_event_contribute_add": "덱 리스트 추가",
-  "meta_event_contribute_missing": "전체 {total}개 중 {missing}개 등록에 아직 덱 리스트가 없습니다. 기여자는 모든 이벤트에 표시됩니다.",
+  "meta_event_contribute_missing": [
+    {
+      "declarations": [
+        "input missing",
+        "input total",
+        "local missingFormatted = missing: number",
+        "local totalFormatted = total: number"
+      ],
+      "selectors": ["missingFormatted", "totalFormatted"],
+      "match": {
+        "missingFormatted=*,totalFormatted=*": "전체 {totalFormatted}개 중 {missingFormatted}개 등록에 아직 덱 리스트가 없습니다. 기여자는 모든 이벤트에 표시됩니다."
+      }
+    }
+  ],
   "meta_deck_preview_sign_in_compare": "로그인하고 내 컬렉션과 비교하기",
   "meta_deck_preview_open_deck": "덱 열기",
   "meta_event_header_champion": "우승자",
@@ -8387,11 +8484,15 @@
   "meta_front_scope_empty": "이 범위에는 아직 기록된 결과가 없습니다.",
   "meta_front_resultless": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "결과가 없는 이벤트가 {count}개 더 있습니다.",
-        "countPlural=*": "결과가 없는 이벤트가 {count}개 더 있습니다."
+        "countPlural=one": "결과가 없는 이벤트가 {countFormatted}개 더 있습니다.",
+        "countPlural=*": "결과가 없는 이벤트가 {countFormatted}개 더 있습니다."
       }
     }
   ],
@@ -8891,6 +8992,145 @@
       "match": {
         "countPlural=one": "카드 {count}장이 {source}에 남고 {target}에도 추가됩니다.",
         "countPlural=*": "카드 {count}장이 {source}에 남고 {target}에도 추가됩니다."
+      }
+    }
+  ],
+  "meta_standings_count_entries": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "참가 기록 {countFormatted}건",
+        "countPlural=*": "참가 기록 {countFormatted}건"
+      }
+    }
+  ],
+  "meta_standings_count_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "덱 리스트 있음 {countFormatted}건"
+      }
+    }
+  ],
+  "meta_count_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "이벤트 {countFormatted}개",
+        "countPlural=*": "이벤트 {countFormatted}개"
+      }
+    }
+  ],
+  "meta_count_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "덱 리스트 {countFormatted}개",
+        "countPlural=*": "덱 리스트 {countFormatted}개"
+      }
+    }
+  ],
+  "meta_count_event_wins": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "이벤트 우승 {countFormatted}회",
+        "countPlural=*": "이벤트 우승 {countFormatted}회"
+      }
+    }
+  ],
+  "meta_count_finishes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "성적 {countFormatted}건",
+        "countPlural=*": "성적 {countFormatted}건"
+      }
+    }
+  ],
+  "meta_player_legends_without_legend": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "성적 {countFormatted}건에 기록된 전설이 없습니다",
+        "countPlural=*": "성적 {countFormatted}건에 기록된 전설이 없습니다"
+      }
+    }
+  ],
+  "meta_run_count_rounds": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted}라운드",
+        "countPlural=*": "{countFormatted}라운드"
+      }
+    }
+  ],
+  "meta_run_best_of": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted}선승제"
+      }
+    }
+  ],
+  "meta_upcoming_registered": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted}명 등록",
+        "countPlural=*": "{countFormatted}명 등록"
+      }
+    }
+  ],
+  "meta_deck_of_field": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted}명 중"
       }
     }
   ]

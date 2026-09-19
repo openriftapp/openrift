@@ -13,6 +13,7 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { PAGER_SCROLL_TARGET, Pager } from "@/components/ui/pager";
 import { RowList } from "@/components/ui/row-list";
 import {
   Select,
@@ -33,33 +34,34 @@ import {
 } from "@/features/meta/components/meta-deck-index-row";
 import { MetaEventHeading } from "@/features/meta/components/meta-event-row";
 import { IndexSortButton } from "@/features/meta/components/meta-index-sort-button";
-import { MetaShowMore } from "@/features/meta/components/meta-show-more";
-import { useMetaDecks, useMetaEvents } from "@/features/meta/hooks/use-meta";
+import { useMetaDeckFacets, useMetaDecks } from "@/features/meta/hooks/use-meta";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
 import { useMetaEras } from "@/features/meta/hooks/use-meta-eras";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import {
-  countMetaDecksUnderCost,
-  curateMetaDecks,
-  filterMetaDecks,
+  filterDecksByCost,
   groupDecksByEvent,
+  metaDeckQueryFromFilters,
   metaDeckSortPresets,
-  metaDeckFilterCounts,
-  metaDeckFilterOptions,
   sortMetaDecks,
 } from "@/features/meta/lib/meta-deck-filters";
 import type { MetaDeckSort, MetaDeckSortDirection } from "@/features/meta/lib/meta-deck-search";
+import {
+  DEFAULT_DECK_PAGE_SIZE,
+  isBrowserDeckSort,
+  serverDeckOrder,
+} from "@/features/meta/lib/meta-deck-search";
 import { metaEventFieldSize, metaShownLabel } from "@/features/meta/lib/meta-format";
-import { resolveScopeRange, scopeKey } from "@/features/meta/lib/meta-scope";
+import type { MetaPageSizeValue } from "@/features/meta/lib/meta-paging";
+import { META_PAGE_SIZES, metaPageCount, metaPageSlice } from "@/features/meta/lib/meta-paging";
+import { scopeKey } from "@/features/meta/lib/meta-scope";
+import { isCostFilterActive } from "@/features/meta/lib/meta-standings-cost";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useSession } from "@/lib/auth-session";
 import type { MetaDeckView } from "@/lib/sanitize-preferences";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
-
-/** How many lists the page opens with, and how many each "more" adds. */
-const PAGE_SIZE = 40;
 
 function highest(
   costs: ReadonlyMap<string, MetaDeckCost> | undefined,
@@ -78,6 +80,8 @@ function highest(
   return top;
 }
 
+const DECK_LIST_ID = "meta-deck-list";
+
 function MetaDeckBrowserFallback() {
   return (
     <div className="flex flex-col gap-3">
@@ -88,15 +92,27 @@ function MetaDeckBrowserFallback() {
 }
 
 /**
- * Mounts only after hydration: the archive is a multi-megabyte payload, and
+ * Mounts only after hydration: the collection overlay reads a live query, and
  * anything the server touches here is dehydrated into the HTML document.
+ *
+ * The API pages and narrows the archive. Cost and value are priced in the
+ * browser, so those two filters and their sorts work on the page on screen.
  */
-function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) => void }) {
+function MetaDeckBrowser({
+  onCount,
+}: {
+  onCount: (matched: number, archive: number, onPage: number | null) => void;
+}) {
   const filters = useMetaDeckFilters();
   const eras = useMetaEras();
-  const range = resolveScopeRange(filters.scope, eras);
-  const { data } = useMetaDecks(range);
-  const { data: eventsData } = useMetaEvents();
+  const narrowing = metaDeckQueryFromFilters(filters, eras);
+  const page = {
+    ...narrowing,
+    ...serverDeckOrder(filters.sort, filters.direction),
+    ...metaPageSlice(filters.page, filters.perPage),
+  };
+  const { data } = useMetaDecks(page);
+  const { data: facets } = useMetaDeckFacets(narrowing);
   const { data: session } = useSession();
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const view = useDisplayStore((state) => state.metaDeckView);
@@ -104,49 +120,43 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
   const [costs, setCosts] = useState<ReadonlyMap<string, MetaDeckCost>>();
 
   const signedIn = Boolean(session?.user);
-  const values = {
-    scope: filters.scope,
-    eras,
-    events: filters.events,
-    legends: filters.legends,
-    maxRank: filters.maxRank,
+  // A priced bound narrows the page in the browser, so an emptied page is not
+  // the same thing as a page past the end of the results.
+  const costActive = isCostFilterActive({
+    maxCost: signedIn ? filters.maxCost : null,
+    valueRange: filters.valueRange,
+  });
+  const priced = {
     maxCost: signedIn ? filters.maxCost : null,
     valueMin: filters.valueRange.min,
     valueMax: filters.valueRange.max,
-    includeSideboard: filters.includeSideboard,
-    showAll: filters.showAll,
   };
-  const context = { costs };
 
-  const options = metaDeckFilterOptions(data.decks);
-  const counts = metaDeckFilterCounts(data.decks, values, context);
-  const matching = filterMetaDecks(data.decks, values, context);
-  const decks = sortMetaDecks(
-    curateMetaDecks(matching, values),
-    filters.sort,
-    filters.direction,
-    costs,
-  );
-  const summaries = new Map(eventsData.events.map((event) => [event.slug, event]));
+  const matching = filterDecksByCost(data.decks, priced, costs);
+  const decks = sortMetaDecks(matching, filters.sort, filters.direction, costs);
+  const summaries = new Map(data.events.map((event) => [event.slug, event]));
   const grouped = filters.sort === "date";
-  const eventCount = new Set(decks.map((deck) => deck.event.slug)).size;
-  const shown = decks.length;
   const total = data.total;
+  const archiveTotal = data.archiveTotal;
+  const onPage = costActive ? decks.length : null;
   useEffect(() => {
-    onCount(shown, total);
-  }, [onCount, shown, total]);
+    onCount(total, archiveTotal, onPage);
+  }, [onCount, total, archiveTotal, onPage]);
 
   const cost = {
     ready: costs !== undefined,
     withCollection: signedIn,
     countUnderCost: (maxCost: number | null) =>
-      countMetaDecksUnderCost(data.decks, values, context, maxCost),
+      filterDecksByCost(data.decks, { ...priced, maxCost }, costs).length,
     maxToComplete: highest(costs, (entry) => entry.toComplete),
     maxValue: highest(costs, (entry) => entry.value),
   };
 
-  // Reordering is not renarrowing: the same lists in a new order keep their
-  // depth, so the sort keys are deliberately absent here.
+  const handlePageChange = (next: number) => filters.setPage(next);
+  const handlePerPageChange = (next: MetaPageSizeValue) => filters.setPerPage(next);
+
+  // The sort keys are deliberately absent: a re-sort keeps the rows mounted,
+  // and with them each thumbnail's record of the source that failed to load.
   const listKey = [
     scopeKey(filters.scope),
     filters.events.join(","),
@@ -159,17 +169,17 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
   ].join("|");
 
   return (
-    <>
+    <div>
       <Suspense fallback={null}>
         <MetaDeckCostsBridge
           includeSideboard={filters.includeSideboard}
           withCollection={signedIn}
-          range={range}
+          decks={page}
           onChange={setCosts}
         />
       </Suspense>
 
-      <MetaDeckFilterControls options={options} counts={counts} eras={eras} cost={cost} />
+      <MetaDeckFilterControls facets={facets} eras={eras} cost={cost} />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <ViewToggle view={view} onChange={setView} />
@@ -189,9 +199,18 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
           <ToggleGroupItem value="all">{m.meta_browser_every_list()}</ToggleGroupItem>
         </ToggleGroup>
         <p className="text-muted-foreground text-sm tabular-nums">
-          {decks.length} {decks.length === 1 ? "deck" : "decks"} · {eventCount}{" "}
-          {eventCount === 1 ? "event" : "events"}
+          {onPage === null ? (
+            <>
+              {m.meta_count_decks({ count: total })} ·{" "}
+              {m.meta_count_events({ count: data.eventCount })}
+            </>
+          ) : (
+            m.meta_shown_decks_page({ shown: onPage })
+          )}
         </p>
+        {isBrowserDeckSort(filters.sort) && (
+          <p className="text-muted-foreground text-2xs">{m.meta_sort_page_only()}</p>
+        )}
         <SortSelect
           sort={filters.sort}
           direction={filters.direction}
@@ -200,18 +219,39 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
         />
       </div>
 
-      {view === "list" ? (
-        <div className="mt-6 text-sm">
-          <SortHeader
-            sort={filters.sort}
-            direction={filters.direction}
-            grouped={grouped}
-            onSort={(column) => filters.sortBy(column)}
-          />
-          {decks.length === 0 ? (
-            <NoMatches />
-          ) : (
-            <DeckList
+      <div id={DECK_LIST_ID} className={PAGER_SCROLL_TARGET}>
+        {view === "list" ? (
+          <div className="mt-6 text-sm">
+            <SortHeader
+              sort={filters.sort}
+              direction={filters.direction}
+              grouped={grouped}
+              onSort={(column) => filters.sortBy(column)}
+            />
+            {decks.length === 0 ? (
+              <NoMatches pastEnd={total > 0 && !costActive} />
+            ) : (
+              <DeckList
+                key={listKey}
+                decks={decks}
+                summaries={summaries}
+                costs={costs}
+                marketplace={marketplace}
+                grouped={grouped}
+              />
+            )}
+          </div>
+        ) : decks.length === 0 ? (
+          <Empty className="mt-6">
+            <EmptyHeader>
+              <EmptyDescription>
+                {total > 0 && !costActive ? m.meta_page_past_end() : m.meta_browser_no_match()}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="mt-6">
+            <DeckGrid
               key={listKey}
               decks={decks}
               summaries={summaries}
@@ -219,35 +259,72 @@ function MetaDeckBrowser({ onCount }: { onCount: (shown: number, total: number) 
               marketplace={marketplace}
               grouped={grouped}
             />
-          )}
-        </div>
-      ) : decks.length === 0 ? (
-        <Empty className="mt-6">
-          <EmptyHeader>
-            <EmptyDescription>{m.meta_browser_no_match()}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="mt-6">
-          <DeckGrid
-            key={listKey}
-            decks={decks}
-            summaries={summaries}
-            costs={costs}
-            marketplace={marketplace}
-            grouped={grouped}
-          />
-        </div>
-      )}
-    </>
+          </div>
+        )}
+
+        {(total > 0 || filters.perPage !== DEFAULT_DECK_PAGE_SIZE) && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <Pager
+              page={filters.page}
+              totalPages={metaPageCount(total, filters.perPage)}
+              onPageChange={handlePageChange}
+              label={m.meta_browser_pages_aria()}
+              scrollTargetId={DECK_LIST_ID}
+            />
+            <DeckPageSizePicker
+              value={filters.perPage}
+              total={total}
+              onChange={handlePerPageChange}
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-function NoMatches() {
+function DeckPageSizePicker({
+  value,
+  total,
+  onChange,
+}: {
+  value: number;
+  total: number;
+  onChange: (value: MetaPageSizeValue) => void;
+}) {
+  if (total <= META_PAGE_SIZES[0] && value === DEFAULT_DECK_PAGE_SIZE) {
+    return null;
+  }
+  const items = Object.fromEntries(META_PAGE_SIZES.map((size) => [String(size), String(size)]));
+  return (
+    <Select
+      value={String(value)}
+      items={items}
+      onValueChange={(next) =>
+        onChange(Number((next as string | null) ?? DEFAULT_DECK_PAGE_SIZE) as MetaPageSizeValue)
+      }
+    >
+      <SelectTrigger className="w-36" aria-label={m.meta_browser_per_page_aria()}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(items).map(([key, label]) => (
+          <SelectItem key={key} value={key}>
+            {m.meta_browser_per_page({ size: label })}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function NoMatches({ pastEnd }: { pastEnd: boolean }) {
   return (
     <Empty className="py-10">
       <EmptyHeader>
-        <EmptyDescription>{m.meta_browser_no_match()}</EmptyDescription>
+        <EmptyDescription>
+          {pastEnd ? m.meta_page_past_end() : m.meta_browser_no_match()}
+        </EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
@@ -420,9 +497,6 @@ function DeckEventHeader({
 }
 
 function DeckList({ decks, summaries, costs, marketplace, grouped }: DeckListProps) {
-  const [shown, setShown] = useState(PAGE_SIZE);
-  const visible = decks.slice(0, shown);
-  const remaining = decks.length - shown;
   const rows = (entries: readonly MetaDeckSummary[]) => (
     <RowList className="flex flex-col">
       {entries.map((deck) => (
@@ -439,33 +513,22 @@ function DeckList({ decks, summaries, costs, marketplace, grouped }: DeckListPro
     </RowList>
   );
 
+  if (!grouped) {
+    return rows(decks);
+  }
   return (
-    <>
-      {grouped ? (
-        <div className="flex flex-col gap-4">
-          {groupDecksByEvent(visible).map((group) => (
-            <section key={group.event.slug} className="flex flex-col">
-              <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
-              {rows(group.decks)}
-            </section>
-          ))}
-        </div>
-      ) : (
-        rows(visible)
-      )}
-      {remaining > 0 && (
-        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
-          {remaining.toLocaleString("en-US")} more {remaining === 1 ? "deck" : "decks"}
-        </MetaShowMore>
-      )}
-    </>
+    <div className="flex flex-col gap-4">
+      {groupDecksByEvent(decks).map((group) => (
+        <section key={group.event.slug} className="flex flex-col">
+          <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
+          {rows(group.decks)}
+        </section>
+      ))}
+    </div>
   );
 }
 
 function DeckGrid({ decks, summaries, costs, marketplace, grouped }: DeckListProps) {
-  const [shown, setShown] = useState(PAGE_SIZE);
-  const visible = decks.slice(0, shown);
-  const remaining = decks.length - shown;
   const tiles = (entries: readonly MetaDeckSummary[]) => (
     <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {entries.map((deck) => (
@@ -484,36 +547,30 @@ function DeckGrid({ decks, summaries, costs, marketplace, grouped }: DeckListPro
     </ul>
   );
 
+  if (!grouped) {
+    return tiles(decks);
+  }
   return (
-    <>
-      {grouped ? (
-        <div className="flex flex-col gap-6">
-          {groupDecksByEvent(visible).map((group) => (
-            <section key={group.event.slug} className="flex flex-col gap-2">
-              <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
-              {tiles(group.decks)}
-            </section>
-          ))}
-        </div>
-      ) : (
-        tiles(visible)
-      )}
-      {remaining > 0 && (
-        <MetaShowMore onClick={() => setShown(shown + PAGE_SIZE)}>
-          Show {Math.min(PAGE_SIZE, remaining)} more of {remaining.toLocaleString("en-US")}
-        </MetaShowMore>
-      )}
-    </>
+    <div className="flex flex-col gap-6">
+      {groupDecksByEvent(decks).map((group) => (
+        <section key={group.event.slug} className="flex flex-col gap-2">
+          <DeckEventHeader event={group.event} summary={summaries.get(group.event.slug)} />
+          {tiles(group.decks)}
+        </section>
+      ))}
+    </div>
   );
 }
 
-// The endpoint hands over the scoped archive and every filter runs
-// client-side, so one cacheable payload serves every view.
 export function MetaDeckBrowserPage() {
   const hydrated = useHydrated();
-  const [count, setCount] = useState<{ shown: number; total: number }>();
-  const onCount = (shown: number, total: number) => {
-    setCount((prev) => (prev?.shown === shown && prev.total === total ? prev : { shown, total }));
+  const [count, setCount] = useState<{ matched: number; archive: number; onPage: number | null }>();
+  const onCount = (matched: number, archive: number, onPage: number | null) => {
+    setCount((prev) =>
+      prev?.matched === matched && prev.archive === archive && prev.onPage === onPage
+        ? prev
+        : { matched, archive, onPage },
+    );
   };
 
   return (
@@ -524,7 +581,9 @@ export function MetaDeckBrowserPage() {
           <PageTopBarTitle>{m.meta_browser_title()}</PageTopBarTitle>
           {count !== undefined && (
             <span className="text-muted-foreground shrink-0 tabular-nums">
-              {metaShownLabel(count.shown, count.total, "decks")}
+              {count.onPage === null
+                ? metaShownLabel(count.matched, count.archive, "decks")
+                : m.meta_shown_decks_page({ shown: count.onPage })}
             </span>
           )}
         </PageTopBar>

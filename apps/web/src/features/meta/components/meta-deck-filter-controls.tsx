@@ -1,3 +1,5 @@
+import type { MetaDeckFacetsResponse } from "@openrift/shared/types/api/meta";
+
 import {
   Select,
   SelectContent,
@@ -10,28 +12,23 @@ import type { MetaDeckCostFilterData } from "@/features/meta/components/meta-dec
 import { MetaDeckCostFilter } from "@/features/meta/components/meta-deck-cost-filter";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
 import { useMetaDeckFilters } from "@/features/meta/hooks/use-meta-deck-filters";
-import type {
-  MetaDeckFilterCounts,
-  MetaDeckFilterOptions,
-} from "@/features/meta/lib/meta-deck-filters";
 import {
   DECK_SCOPE_DEFAULTS,
   hasActiveMetaDeckFilters,
   metaFinishOptions,
 } from "@/features/meta/lib/meta-deck-filters";
+import { metaEventCountries } from "@/features/meta/lib/meta-events-index";
 import type { MetaEra } from "@/features/meta/lib/meta-scope";
 import { m } from "@/paraglide/messages.js";
 
 const ANY_FINISH = "";
 
 export function MetaDeckFilterControls({
-  options,
-  counts,
+  facets,
   eras,
   cost,
 }: {
-  options: MetaDeckFilterOptions;
-  counts: MetaDeckFilterCounts;
+  facets: MetaDeckFacetsResponse;
   eras: readonly MetaEra[];
   cost: MetaDeckCostFilterData;
 }) {
@@ -41,6 +38,10 @@ export function MetaDeckFilterControls({
   for (const option of metaFinishOptions()) {
     finishItems[String(option.value)] = option.label;
   }
+  const counts = {
+    events: new Map(facets.events.map((entry) => [entry.value, entry.count])),
+    legends: new Map(facets.legends.map((entry) => [entry.value, entry.count])),
+  };
 
   const extrasActive = hasActiveMetaDeckFilters({
     ...filters,
@@ -54,17 +55,17 @@ export function MetaDeckFilterControls({
       setScope={filters.setScope}
       clearScope={filters.clearAllFilters}
       eras={eras}
-      countries={options.countries}
+      countries={metaEventCountries(facets.countries, filters.scope)}
       facetDefaults={DECK_SCOPE_DEFAULTS}
       extrasActive={extrasActive}
       extras={
         <>
-          {options.legends.length > 1 && (
+          {(facets.legends.length > 1 || filters.legends.length > 0) && (
             <MultiSelectCombobox
               label={m.meta_filter_legend()}
               triggerStyle="button"
               triggerSize="sm"
-              options={options.legends}
+              options={facets.legends}
               selected={filters.legends}
               onChange={(next) => filters.setLegends(next)}
               counts={counts.legends}
@@ -72,12 +73,12 @@ export function MetaDeckFilterControls({
             />
           )}
 
-          {options.events.length > 1 && (
+          {(facets.events.length > 1 || filters.events.length > 0) && (
             <MultiSelectCombobox
               label={m.meta_filter_event()}
               triggerStyle="button"
               triggerSize="sm"
-              options={options.events}
+              options={facets.events}
               selected={filters.events}
               onChange={(next) => filters.setEvents(next)}
               counts={counts.events}

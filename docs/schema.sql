@@ -6398,6 +6398,13 @@ CREATE INDEX idx_meta_event_sources_event ON public.meta_event_sources USING btr
 
 
 --
+-- Name: idx_meta_events_country; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_events_country ON public.meta_events USING btree (country);
+
+
+--
 -- Name: idx_meta_events_event_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6409,6 +6416,20 @@ CREATE INDEX idx_meta_events_event_date ON public.meta_events USING btree (event
 --
 
 CREATE INDEX idx_meta_events_format ON public.meta_events USING btree (format);
+
+
+--
+-- Name: idx_meta_events_search_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_events_search_trgm ON public.meta_events USING gin (name public.gin_trgm_ops, organizer public.gin_trgm_ops, location public.gin_trgm_ops);
+
+
+--
+-- Name: idx_meta_events_tier; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_events_tier ON public.meta_events USING btree (tier);
 
 
 --

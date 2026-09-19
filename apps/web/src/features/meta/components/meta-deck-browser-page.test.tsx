@@ -9,10 +9,14 @@ import { useDisplayStore } from "@/stores/display-store";
 
 const captured = vi.hoisted(() => ({
   decks: [] as MetaDeckSummary[],
+  total: undefined as number | undefined,
+  eventCount: undefined as number | undefined,
+  archiveTotal: undefined as number | undefined,
   search: {} as Record<string, unknown>,
   signedIn: false,
   costs: undefined as Map<string, MetaDeckCost> | undefined,
   hydrated: true,
+  query: {} as Record<string, unknown>,
 }));
 
 const navigate = vi.hoisted(() => vi.fn());
@@ -61,8 +65,22 @@ const EVENT_SUMMARY = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaDecks: () => ({ data: { decks: captured.decks, total: captured.decks.length } }),
-  useMetaEvents: () => ({ data: { events: [EVENT_SUMMARY] } }),
+  useMetaDecks: (query: Record<string, unknown>) => {
+    captured.query = query;
+    return {
+      data: {
+        decks: captured.decks,
+        events: [EVENT_SUMMARY],
+        total: captured.total ?? captured.decks.length,
+        eventCount:
+          captured.eventCount ?? new Set(captured.decks.map((entry) => entry.event.slug)).size,
+        archiveTotal: captured.archiveTotal ?? captured.total ?? captured.decks.length,
+      },
+    };
+  },
+  useMetaDeckFacets: () => ({
+    data: { events: [], legends: [], finishes: [], countries: [] },
+  }),
 }));
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({
@@ -140,6 +158,10 @@ describe("MetaDeckBrowserPage", () => {
   beforeEach(() => {
     navigate.mockReset();
     captured.decks = SAME_LEGEND_TWICE;
+    captured.total = undefined;
+    captured.eventCount = undefined;
+    captured.archiveTotal = undefined;
+    captured.query = {};
     captured.search = {};
     captured.signedIn = false;
     captured.costs = undefined;
@@ -163,17 +185,158 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.queryByRole("button", { name: "Every list" })).not.toBeInTheDocument();
   });
 
-  it("opens on the best finish per legend at each event, as rows", () => {
+  it("renders the page the API served, as rows", () => {
     render(<MetaDeckBrowserPage />);
     expect(seen("Nova")).toBe(true);
-    expect(seen("Ekko")).toBe(false);
-    expect(seen("1 deck · 1 event")).toBe(true);
+    expect(seen("Ekko")).toBe(true);
+    expect(seen("2 decks · 1 event")).toBe(true);
     expect(screen.getByRole("button", { name: "List" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("counts what is shown against the archive in the top bar", () => {
+  it("asks the API to curate until the reader opens the whole archive", () => {
     render(<MetaDeckBrowserPage />);
-    expect(seen("1 of 2 archived decks")).toBe(true);
+    expect(captured.query.curated).toBe(true);
+    expect(captured.query.limit).toBe(50);
+    expect(captured.query.offset).toBe(0);
+  });
+
+  it("asks for the page the URL names", () => {
+    captured.search = { page: 3, per: 100 };
+    render(<MetaDeckBrowserPage />);
+    expect(captured.query.limit).toBe(100);
+    expect(captured.query.offset).toBe(200);
+  });
+
+  it("asks for the order the URL names", () => {
+    captured.search = { by: "finish", dir: "asc" };
+    render(<MetaDeckBrowserPage />);
+    expect(captured.query).toMatchObject({ by: "finish", dir: "asc" });
+  });
+
+  it("asks for the newest page under a priced sort, which it orders itself", () => {
+    captured.search = { by: "cost", dir: "asc" };
+    render(<MetaDeckBrowserPage />);
+    expect(captured.query).toMatchObject({ by: "date", dir: "desc" });
+    expect(seen("Prices are worked out in your browser, so this orders the page you are on.")).toBe(
+      true,
+    );
+  });
+
+  it("leaves the page-local note off a sort the API applies", () => {
+    render(<MetaDeckBrowserPage />);
+    expect(seen("Prices are worked out in your browser, so this orders the page you are on.")).toBe(
+      false,
+    );
+  });
+
+  it("scrolls a page change to the list, not to the filter chrome above it", () => {
+    captured.total = 412;
+    render(<MetaDeckBrowserPage />);
+
+    const target = document.querySelector("#meta-deck-list") as HTMLElement;
+    expect(target).not.toBeNull();
+    expect(target.contains(screen.getByLabelText("Sort"))).toBe(false);
+    expect(target.contains(screen.getByRole("navigation", { name: "Deck pages" }))).toBe(true);
+  });
+
+  it("keeps the size picker when a large page size left the page empty", () => {
+    captured.decks = [];
+    captured.total = 0;
+    captured.search = { per: 500 };
+    render(<MetaDeckBrowserPage />);
+
+    expect(screen.getByLabelText("Decks per page")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Deck pages" })).toBeNull();
+  });
+
+  it("counts what the filter matched against the whole archive in the top bar", () => {
+    captured.total = 60;
+    captured.archiveTotal = 6266;
+    render(<MetaDeckBrowserPage />);
+    expect(seen("60 of 6,266 archived decks")).toBe(true);
+  });
+
+  it("counts the filtered set in the toolbar line, not the page on screen", () => {
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    render(<MetaDeckBrowserPage />);
+    expect(seen("60 decks · 7 events")).toBe(true);
+  });
+
+  it("reads as none of the archive when the filter matched no deck", () => {
+    captured.decks = [];
+    captured.total = 0;
+    captured.eventCount = 0;
+    captured.archiveTotal = 6266;
+    render(<MetaDeckBrowserPage />);
+    expect(seen("0 of 6,266 archived decks")).toBe(true);
+    expect(seen("0 decks · 0 events")).toBe(true);
+  });
+
+  it("counts the decks left on screen once a cost bound narrows the page", () => {
+    captured.signedIn = true;
+    captured.search = { all: true, cost: 0 };
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    captured.costs = new Map([
+      ["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }],
+      ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+    ]);
+    render(<MetaDeckBrowserPage />);
+    expect(screen.getAllByText("1 deck on this page").length).toBe(2);
+    expect(seen("60 of 6,266 archived decks")).toBe(false);
+    expect(seen("60 decks · 7 events")).toBe(false);
+  });
+
+  it("counts the page the same way under a value bound alone", () => {
+    captured.search = { all: true, valueMin: 100 };
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    captured.costs = new Map([
+      ["winner", { owned: undefined, needed: 40, value: 120, toComplete: undefined }],
+      ["eighth", { owned: undefined, needed: 40, value: 60, toComplete: undefined }],
+    ]);
+    render(<MetaDeckBrowserPage />);
+    expect(screen.getAllByText("1 deck on this page").length).toBe(2);
+    expect(seen("60 decks · 7 events")).toBe(false);
+  });
+
+  it("counts none on the page when a cost bound leaves nothing to show", () => {
+    captured.signedIn = true;
+    captured.search = { all: true, cost: 0 };
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    captured.costs = new Map([
+      ["winner", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+      ["eighth", { owned: 4, needed: 40, value: 120, toComplete: 95 }],
+    ]);
+    render(<MetaDeckBrowserPage />);
+    expect(screen.getAllByText("0 decks on this page").length).toBe(2);
+    expect(seen("No decks match these filters.")).toBe(true);
+    expect(seen("60 decks · 7 events")).toBe(false);
+  });
+
+  it("keeps the archive counts when the sideboard toggle is the only priced option on", () => {
+    captured.signedIn = true;
+    captured.search = { all: true, side: true };
+    captured.total = 60;
+    captured.eventCount = 7;
+    captured.archiveTotal = 6266;
+    captured.costs = new Map([["winner", { owned: 40, needed: 40, value: 120, toComplete: 0 }]]);
+    render(<MetaDeckBrowserPage />);
+    expect(seen("60 of 6,266 archived decks")).toBe(true);
+    expect(seen("60 decks · 7 events")).toBe(true);
+  });
+
+  it("pages through the archive from the numbered pager", async () => {
+    captured.total = 412;
+    render(<MetaDeckBrowserPage />);
+    await userEvent.click(screen.getByRole("button", { name: "2" }));
+    expect(lastSearch()({})).toEqual({ page: 2 });
   });
 
   it("heads each event's lists with the event and its tier, and leaves the field off the rows", () => {
@@ -221,63 +384,10 @@ describe("MetaDeckBrowserPage", () => {
     expect(seen("of 86")).toBe(true);
   });
 
-  it("opens on premier and competitive events and holds the store nights back", () => {
-    captured.decks = [
-      deck({ deckId: "premier", playerName: "Nova" }),
-      deck({
-        deckId: "store",
-        playerName: "Ekko",
-        legendCardId: "card-lux",
-        event: {
-          slug: "store-night",
-          name: "Store Night",
-          eventDate: "2026-08-24",
-          format: "constructed",
-          tier: "local",
-          country: "DE",
-        },
-      }),
-    ];
-    render(<MetaDeckBrowserPage />);
-    expect(seen("Nova")).toBe(true);
-    expect(seen("Ekko")).toBe(false);
-  });
-
-  it("lists every tier once the reader empties the tier facet", () => {
-    captured.search = { tiers: [] };
-    captured.decks = [
-      deck({ deckId: "premier", playerName: "Nova" }),
-      deck({
-        deckId: "store",
-        playerName: "Ekko",
-        legendCardId: "card-lux",
-        event: {
-          slug: "store-night",
-          name: "Store Night",
-          eventDate: "2026-08-24",
-          format: "constructed",
-          tier: "local",
-          country: "DE",
-        },
-      }),
-    ];
-    render(<MetaDeckBrowserPage />);
-    expect(seen("Nova")).toBe(true);
-    expect(seen("Ekko")).toBe(true);
-  });
-
   it("offers every archived list one click away", async () => {
     render(<MetaDeckBrowserPage />);
     await userEvent.click(screen.getByRole("button", { name: "Every list" }));
     expect(lastSearch()({})).toEqual({ all: true });
-  });
-
-  it("lists every entry once the curation is off", () => {
-    captured.search = { all: true };
-    render(<MetaDeckBrowserPage />);
-    expect(seen("Nova")).toBe(true);
-    expect(seen("Ekko")).toBe(true);
-    expect(seen("2 decks · 1 event")).toBe(true);
   });
 
   it("sorts by a column from its header and flips it on the second click", async () => {
@@ -312,17 +422,6 @@ describe("MetaDeckBrowserPage", () => {
     expect(screen.queryByRole("button", { name: "Sort by value" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "List" }));
     expect(useDisplayStore.getState().metaDeckView).toBe("list");
-  });
-
-  it("extends the rows a page at a time", async () => {
-    captured.search = { all: true };
-    captured.decks = Array.from({ length: 41 }, (_, index) =>
-      deck({ deckId: `deck-${index}`, playerName: `Player ${index}`, rank: index + 1 }),
-    );
-    render(<MetaDeckBrowserPage />);
-    expect(screen.getAllByRole("listitem")).toHaveLength(40);
-    await userEvent.click(screen.getByRole("button", { name: "1 more deck" }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(41);
   });
 
   it("counts the reader's own cards on each row once the collection is in", () => {
@@ -381,7 +480,7 @@ describe("MetaDeckBrowserPage", () => {
   });
 
   it("says so when nothing matches", () => {
-    captured.search = { tiers: ["local"] };
+    captured.decks = [];
     render(<MetaDeckBrowserPage />);
     expect(seen("No decks match these filters.")).toBe(true);
   });

@@ -1,4 +1,4 @@
-import type { MetaEventDetail, MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
@@ -8,27 +8,26 @@ import { m } from "@/paraglide/messages.js";
 
 export function MetaEventContributeBand({
   event,
-  players,
+  entries,
+  withLists,
   slug,
 }: {
   event: MetaEventDetail;
-  players: readonly MetaEventPlayer[];
+  entries: number;
+  withLists: number;
   slug: string;
 }) {
   const userId = useUserId();
 
-  if (players.length === 0) {
+  if (entries === 0) {
     return null;
   }
 
-  const missing = players.filter((player) => player.shareToken === null).length;
+  const missing = entries - withLists;
   const body =
     missing === 0
       ? m.meta_event_contribute_complete()
-      : m.meta_event_contribute_missing({
-          missing: String(missing),
-          total: String(players.length),
-        });
+      : m.meta_event_contribute_missing({ missing, total: entries });
 
   return (
     <MetaContributeBandShell

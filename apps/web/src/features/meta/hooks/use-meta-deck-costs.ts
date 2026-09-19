@@ -1,3 +1,5 @@
+import type { MetaDeckCardsQuery } from "@openrift/shared/types/api/meta";
+
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
@@ -9,16 +11,15 @@ import {
   metaDeckCosts,
   ownedCountsByCardId,
 } from "@/features/meta/lib/meta-deck-collection";
-import type { MetaDateRange } from "@/features/meta/lib/meta-scope";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useDisplayStore } from "@/stores/display-store";
 
 /** Reads a live query, so it must sit under `useHydrated`. */
 export function useMetaDeckCosts(
   includeSideboard: boolean,
-  options: { withCollection: boolean; range?: MetaDateRange },
+  options: { withCollection: boolean; decks?: MetaDeckCardsQuery },
 ): ReadonlyMap<string, MetaDeckCost> | undefined {
-  const { data: index } = useMetaDeckCards(options.range);
+  const { data: index } = useMetaDeckCards(options.decks);
   const { printingsByCardId } = useCards();
   const prices = usePrices();
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);

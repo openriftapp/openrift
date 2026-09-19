@@ -1,9 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
-import type {
-  MetaEventMatch,
-  MetaEventPhase,
-  MetaEventPlayer,
-} from "@openrift/shared/types/api/meta";
+import { cutSizeOf } from "@openrift/shared/meta-standings";
+import type { MetaEventPhase, MetaStandingsRow } from "@openrift/shared/types/api/meta";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -15,25 +12,24 @@ import { RankBand, rankBandRingClass, rankBandTone } from "@/components/ui/rank-
 import { TextLink } from "@/components/ui/text-link";
 import { MetaIdentity } from "@/features/meta/components/meta-identity";
 import { MetaPlayerName } from "@/features/meta/components/meta-player-name";
-import { cutSizeOf } from "@/features/meta/lib/meta-event-structure";
 import { finishBracketLabel, formatRank, formatRecord } from "@/features/meta/lib/meta-format";
-import type { MetaLegendBestFinish } from "@/features/meta/lib/meta-player-run";
-import { metaBestFinishPerLegend } from "@/features/meta/lib/meta-player-run";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const TILES_SHOWN = 8;
 
+type NamedLegendRow = MetaStandingsRow & { legend: NonNullable<MetaStandingsRow["legend"]> };
+
 function LegendFinishTile({
-  entry,
+  player,
   eventSlug,
   cutSize,
 }: {
-  entry: MetaLegendBestFinish;
+  player: NamedLegendRow;
   eventSlug: string | undefined;
   cutSize: number | null;
 }) {
-  const { legend, player } = entry;
+  const legend = player.legend;
   const record = formatRecord(player.wins, player.losses, player.draws);
 
   return (
@@ -95,49 +91,46 @@ function LegendFinishTile({
 }
 
 export function MetaEventLegendFinishes({
-  players,
-  matches,
+  entries,
   phases,
   slug,
 }: {
-  players: readonly MetaEventPlayer[];
-  matches: readonly MetaEventMatch[];
+  entries: readonly MetaStandingsRow[];
   phases: readonly MetaEventPhase[];
   slug: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const entries = metaBestFinishPerLegend(players);
-  const playersWithRun = new Set(matches.flatMap((match) => [match.player1Id, match.player2Id]));
   const cutSize = cutSizeOf(phases);
+  // The row's legend card id is composed through a left join, so a card the
+  // catalogue is missing arrives as a null ref with nothing to put on a tile.
+  const named = entries.filter((player): player is NamedLegendRow => player.legend !== null);
 
-  if (entries.length === 0) {
+  if (named.length === 0) {
     return null;
   }
 
-  const shown = expanded ? entries : entries.slice(0, TILES_SHOWN);
+  const shown = expanded ? named : named.slice(0, TILES_SHOWN);
 
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Heading>{m.meta_legend_finishes_best_per_legend()}</Heading>
-        {entries.length > TILES_SHOWN && (
+        {named.length > TILES_SHOWN && (
           <Button
             variant="link"
             className="h-auto p-0 text-sm font-medium"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded
-              ? m.meta_show_fewer()
-              : m.meta_show_all_n({ count: entries.length.toLocaleString("en-US") })}
+            {expanded ? m.meta_show_fewer() : m.meta_show_all_n({ count: named.length })}
           </Button>
         )}
       </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {shown.map((entry) => (
-          <li key={entry.legend.cardId}>
+        {shown.map((player) => (
+          <li key={player.legend.cardId}>
             <LegendFinishTile
-              entry={entry}
-              eventSlug={playersWithRun.has(entry.player.id) ? slug : undefined}
+              player={player}
+              eventSlug={player.rounds.length > 0 ? slug : undefined}
               cutSize={cutSize}
             />
           </li>

@@ -37,6 +37,7 @@ export interface MetaDeckCostFilterProps {
   onIncludeSideboardChange: (next: boolean) => void;
   onClear: () => void;
   trigger?: "badge" | "control";
+  triggerSize?: "sm" | "default";
   noun?: "deck" | "list";
 }
 
@@ -111,6 +112,7 @@ export function MetaDeckCostFilter({
   onIncludeSideboardChange,
   onClear,
   trigger = "badge",
+  triggerSize = "sm",
   noun = "deck",
 }: MetaDeckCostFilterProps) {
   const format = useMetaPriceFormat();
@@ -142,7 +144,7 @@ export function MetaDeckCostFilter({
             <Button
               type="button"
               variant="control"
-              size="sm"
+              size={triggerSize}
               data-active={isActive || undefined}
               className="font-medium"
             />
@@ -190,7 +192,8 @@ export function MetaDeckCostFilter({
           valueRange={value.valueRange}
           onValueRangeChange={onValueRangeChange}
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-muted-foreground text-2xs">{m.meta_cost_page_only()}</p>
           <Button type="button" variant="ghost" size="sm" onClick={() => onClear()}>
             {m.common_clear()}
           </Button>

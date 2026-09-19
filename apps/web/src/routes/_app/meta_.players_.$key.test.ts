@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
 
 import { Route } from "./meta_.players_.$key";
@@ -65,7 +66,9 @@ describe("/meta/players/$key loader", () => {
   it("covers the whole career when the URL names no era", async () => {
     const keys = await warmedKeys();
 
-    expect(keys).toContainEqual([...metaKeys.decks({ formats: ["constructed"], player: KEY })]);
+    expect(keys).toContainEqual([
+      ...metaKeys.decks({ formats: ["constructed"], player: KEY, limit: DECK_GRID_ALL_LIMIT }),
+    ]);
   });
 
   it("warms this player's own lists under the scope the URL names, facets and all", async () => {
@@ -78,13 +81,14 @@ describe("/meta/players/$key loader", () => {
         formats: ["constructed"],
         countriesEx: ["DE"],
         player: KEY,
+        limit: DECK_GRID_ALL_LIMIT,
       }),
     ]);
   });
 
-  it("asks for the whole record uncapped, since a player's is a few dozen rows", async () => {
+  it("asks for the whole record in one page, since a player's is a few dozen rows", async () => {
     const keys = await warmedKeys({ era: "all", formats: [] });
 
-    expect(keys).toContainEqual([...metaKeys.decks({ player: KEY })]);
+    expect(keys).toContainEqual([...metaKeys.decks({ player: KEY, limit: DECK_GRID_ALL_LIMIT })]);
   });
 });

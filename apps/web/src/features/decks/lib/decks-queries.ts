@@ -10,6 +10,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { decksKeys } from "@/features/decks/lib/decks-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -27,7 +28,7 @@ async function fetchDeckDetailImpl(
   if (error) {
     // The route matches this exact message to render its not-found page.
     if (isDefinedError(error) && error.code === "NOT_FOUND") {
-      throw new Error("NOT_FOUND");
+      throw notFoundError();
     }
     throw error;
   }
@@ -61,7 +62,7 @@ const fetchPublicDeckFn = createServerFn({ method: "GET" })
     const { error, data } = await safe(apiOrpcClient(publicDecksContract).share({ token }));
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

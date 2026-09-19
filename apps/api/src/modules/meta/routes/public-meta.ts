@@ -1,11 +1,16 @@
-import { metaContract } from "@openrift/shared/contracts/meta";
+import { metaContract, STANDINGS_PAGE_SIZE } from "@openrift/shared/contracts/meta";
+import { cutPhaseOrders, cutSizeOf } from "@openrift/shared/meta-standings";
 import type {
   MetaDeckCardIndexResponse,
   MetaDeckDetailResponse,
+  MetaDeckFacetsResponse,
   MetaDeckListResponse,
   MetaActivityResponse,
   MetaEventDayCountsResponse,
+  MetaEventFacetsResponse,
   MetaEventDetailResponse,
+  MetaEventRunResponse,
+  MetaEventStandingsResponse,
   MetaEventListResponse,
   MetaCountsResponse,
   MetaLegendDetailResponse,
@@ -23,12 +28,17 @@ import {
   archiveLegendSlug,
   toMetaDeckCardIndex,
   toMetaDeckContext,
+  toMetaDeckFacets,
   toMetaDeckSummary,
   toMetaEventDetail,
+  toMetaEventField,
   toMetaEventMatch,
   toMetaEventPhase,
   toMetaEventPlayer,
   toMetaEventSummary,
+  toMetaRunRound,
+  toMetaStandingsRow,
+  toStandingsRounds,
   toMetaActivityItem,
   toMetaEventFinish,
   toMetaLegendFinish,
@@ -37,10 +47,13 @@ import {
   toMetaPendingSubmission,
   toMetaPlayerFinish,
 } from "../lib/meta-presenters.js";
+import type { MetaEventPlayerRow } from "../repositories/meta-players.js";
 
 const os = implement(metaContract).$context<ApiContext>().use(requireUser);
 
 const ACTIVITY_LIMIT = 6;
+
+const EVENT_PAGE_SIZE = 50;
 
 const BEST_FINISH_COUNT = 5;
 
@@ -76,8 +89,13 @@ function referencedCardIds(
 export const metaRouter = {
   events: os.events.handler(async ({ input, context }): Promise<MetaEventListResponse> => {
     const { meta, canonicalPrintings } = context.repos;
+    const { by, dir, limit, offset, ...filters } = input;
 
-    const rows = await meta.allEvents(input);
+    const { rows, total } = await meta.eventIndex(
+      filters,
+      { by, dir },
+      { limit: limit ?? EVENT_PAGE_SIZE, offset: offset ?? 0 },
+    );
     const finishes = await meta.topFinishesForEvents(rows.map((row) => row.id));
     const images = await imageIdsForCards(
       canonicalPrintings,
@@ -92,8 +110,21 @@ export const metaRouter = {
           (byEvent.get(row.id) ?? []).map((finish) => toMetaEventFinish(finish, images)),
         ),
       ),
+      total,
     };
   }),
+
+  eventFacets: os.eventFacets.handler(
+    async ({ input, context }): Promise<MetaEventFacetsResponse> => {
+      const { meta } = context.repos;
+      const [facets, holdings, totals] = await Promise.all([
+        meta.eventFacetCounts(input),
+        meta.eventHoldingsCounts(input),
+        meta.eventTotals(input),
+      ]);
+      return { ...facets, holdings, totals };
+    },
+  ),
 
   eventDayCounts: os.eventDayCounts.handler(
     async ({ input, context }): Promise<MetaEventDayCountsResponse> => ({
@@ -114,23 +145,124 @@ export const metaRouter = {
       throw errors.NOT_FOUND({ message: "Event not found" });
     }
 
-    const [players, matches, phases, sources, contributors] = await Promise.all([
-      meta.standingsForEvent(event.id),
-      meta.matchesForEvent(event.id),
+    const [standings, field, bestPerLegend, phases, sources, contributors] = await Promise.all([
+      meta.standingsPage(event.id, {}, { limit: STANDINGS_PAGE_SIZE, offset: 0 }),
+      meta.fieldSummaryForEvent(event.id),
+      meta.bestPerLegendForEvent(event.id),
       meta.phasesForEvent(event.id),
       meta.sourcesForEvent(event.id),
       meta.contributorsForEvent(event.id),
     ]);
-    const images = await imageIdsForCards(canonicalPrintings, referencedCardIds(players));
-    const topFinishes = players
+    const cutPhases = cutPhaseOrders(phases);
+    const cutSize = cutSizeOf(phases);
+    const shown = [...standings.rows, ...bestPerLegend];
+    const [images, matches, cutMatches, cutLine] = await Promise.all([
+      imageIdsForCards(canonicalPrintings, referencedCardIds(shown)),
+      meta.matchesForPlayers(
+        event.id,
+        shown.map((row) => row.id),
+      ),
+      meta.matchesInPhases(event.id, [...cutPhases]),
+      cutSize === null ? undefined : meta.cutLineRowForEvent(event.id, cutSize),
+    ]);
+    const rounds = toStandingsRounds(matches, cutPhases);
+    const row = (player: MetaEventPlayerRow) =>
+      toMetaStandingsRow(player, images, rounds.get(player.id));
+    const topFinishes = standings.rows
       .filter((player) => player.rank <= 3)
       .map((player) => toMetaEventFinish(player, images));
 
     return {
       event: toMetaEventDetail(event, { sources, contributors, topFinishes }),
-      players: players.map((row) => toMetaEventPlayer(row, images)),
-      matches: matches.map((row) => toMetaEventMatch(row)),
-      phases: phases.map((row) => toMetaEventPhase(row)),
+      standings: { players: standings.rows.map((player) => row(player)), total: standings.total },
+      field: toMetaEventField(field, cutLine),
+      bestPerLegend: bestPerLegend.map((player) => row(player)),
+      cutMatches: cutMatches.map((match) => toMetaEventMatch(match)),
+      phases: phases.map((phase) => toMetaEventPhase(phase)),
+    };
+  }),
+
+  standings: os.standings.handler(
+    async ({ input, context, errors }): Promise<MetaEventStandingsResponse> => {
+      const { meta, canonicalPrintings } = context.repos;
+
+      const event = await meta.eventBySlug(input.slug);
+      if (!event) {
+        throw errors.NOT_FOUND({ message: "Event not found" });
+      }
+
+      const { rows, total } = await meta.standingsPage(
+        event.id,
+        { q: input.q, withList: input.list === "with", legend: input.legend },
+        { limit: input.limit ?? STANDINGS_PAGE_SIZE, offset: input.offset ?? 0 },
+      );
+      const phases = await meta.phasesForEvent(event.id);
+      const [images, matches] = await Promise.all([
+        imageIdsForCards(canonicalPrintings, referencedCardIds(rows)),
+        meta.matchesForPlayers(
+          event.id,
+          rows.map((player) => player.id),
+        ),
+      ]);
+      const rounds = toStandingsRounds(matches, cutPhaseOrders(phases));
+
+      return {
+        players: rows.map((player) => toMetaStandingsRow(player, images, rounds.get(player.id))),
+        total,
+      };
+    },
+  ),
+
+  run: os.run.handler(async ({ input, context, errors }): Promise<MetaEventRunResponse> => {
+    const { meta, canonicalPrintings } = context.repos;
+
+    const event = await meta.eventBySlug(input.slug);
+    if (!event) {
+      throw errors.NOT_FOUND({ message: "Event not found" });
+    }
+    const player = await meta.standingsRowByKey(event.id, input.key);
+    if (!player) {
+      throw errors.NOT_FOUND({ message: "Player not found" });
+    }
+
+    const phases = await meta.phasesForEvent(event.id);
+    const cutPhases = cutPhaseOrders(phases);
+    const [matches, cutMatches] = await Promise.all([
+      meta.matchesForPlayers(event.id, [player.id]),
+      meta.matchesInPhases(event.id, [...cutPhases]),
+    ]);
+    const rounds = matches.map((match) => toMetaRunRound(match, player.id, cutPhases));
+    const opponents = await meta.standingsRowsByIds([
+      ...new Set(rounds.map((round) => round.opponentId).filter((id) => id !== null)),
+    ]);
+    const images = await imageIdsForCards(
+      canonicalPrintings,
+      referencedCardIds([player, ...opponents]),
+    );
+    // Round numbers restart with each phase, so the final is read from the last
+    // cut phase alone.
+    const lastCutPhase = cutMatches.at(-1)?.phaseOrder ?? null;
+    const lastPhaseMatches = cutMatches.filter((match) => match.phaseOrder === lastCutPhase);
+    const lastCutRound = lastPhaseMatches.at(-1)?.roundNumber ?? null;
+    const finalRound = lastPhaseMatches.filter((match) => match.roundNumber === lastCutRound);
+
+    return {
+      event: toMetaEventSummary(event),
+      phases: phases.map((phase) => toMetaEventPhase(phase)),
+      player: toMetaStandingsRow(
+        player,
+        images,
+        rounds.map((round) => ({
+          phaseOrder: round.phaseOrder,
+          roundNumber: round.roundNumber,
+          isCut: round.isCut,
+          outcome: round.outcome,
+        })),
+      ),
+      rounds,
+      opponents: opponents.map((opponent) => toMetaEventPlayer(opponent, images)),
+      lastCutRound,
+      finalRoundNumber: finalRound.length === 1 ? lastCutRound : null,
     };
   }),
 
@@ -151,16 +283,30 @@ export const metaRouter = {
   decks: os.decks.handler(async ({ input, context }): Promise<MetaDeckListResponse> => {
     const { meta, canonicalPrintings } = context.repos;
 
-    const { rows, total } = await meta.allDeckSummaries(input);
-    const images = await imageIdsForCards(canonicalPrintings, referencedCardIds(rows));
+    const { rows, total, eventCount, archiveTotal } = await meta.allDeckSummaries(input);
+    const [images, events] = await Promise.all([
+      imageIdsForCards(canonicalPrintings, referencedCardIds(rows)),
+      meta.eventsBySlugs([...new Set(rows.map((row) => row.eventSlug))]),
+    ]);
 
-    return { decks: rows.map((row) => toMetaDeckSummary(row, images)), total };
+    return {
+      decks: rows.map((row) => toMetaDeckSummary(row, images)),
+      events: events.map((event) => toMetaEventSummary(event)),
+      total,
+      eventCount,
+      archiveTotal,
+    };
   }),
+
+  deckFacets: os.deckFacets.handler(async ({ input, context }): Promise<MetaDeckFacetsResponse> =>
+    toMetaDeckFacets(await context.repos.meta.deckFacetCounts(input)),
+  ),
 
   deckCards: os.deckCards.handler(
     async ({ input, context }): Promise<MetaDeckCardIndexResponse> => {
       const { meta } = context.repos;
-      return toMetaDeckCardIndex(await meta.allDeckCards(input));
+      const { event, ...narrowing } = input;
+      return toMetaDeckCardIndex(await meta.allDeckCards({ ...narrowing, eventSlug: event }));
     },
   ),
 
@@ -184,24 +330,35 @@ export const metaRouter = {
     return { ...payload, meta: toMetaDeckContext(metaContext, contributors) };
   }),
 
-  legends: os.legends.handler(async ({ context }): Promise<MetaLegendListResponse> => {
+  legends: os.legends.handler(async ({ input, context }): Promise<MetaLegendListResponse> => {
     const { meta, canonicalPrintings } = context.repos;
 
-    const [rows, records] = await Promise.all([
-      meta.archiveLegends(),
-      meta.archiveLegendEventRecords(),
+    const [rows, total, archiveTotal, countries] = await Promise.all([
+      meta.scopedLegendRecords(input),
+      meta.scopedLegendCount(input),
+      meta.scopedLegendCount({}),
+      meta.scopedLegendCountries(input),
     ]);
-    const images = await imageIdsForCards(
-      canonicalPrintings,
-      rows.map((row) => row.cardId),
-    );
-    const recordsByLegend = Map.groupBy(records, (record) => record.legendCardId);
+    const [images, events] = await Promise.all([
+      imageIdsForCards(
+        canonicalPrintings,
+        rows.map((row) => row.cardId),
+      ),
+      meta.eventRowsByIds(rows.map((row) => row.bestEventId)),
+    ]);
+    const eventById = new Map(events.map((event) => [event.id, event]));
 
     return {
       legends: rows
-        .map((row) => toMetaLegendSummary(row, images, recordsByLegend.get(row.cardId) ?? []))
-        // Sorted by display name; the repo orders by stored epithet (files Azir under E).
+        .flatMap((row) => {
+          const bestEvent = eventById.get(row.bestEventId);
+          return bestEvent === undefined ? [] : [toMetaLegendSummary(row, images, bestEvent)];
+        })
+        // Sorted here: the repo groups by the stored epithet, which files Azir under E.
         .toSorted((a, b) => a.legend.name.localeCompare(b.legend.name)),
+      total,
+      archiveTotal,
+      countries,
     };
   }),
 

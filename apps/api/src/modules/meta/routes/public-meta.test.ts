@@ -7,21 +7,35 @@ import type { Variables } from "../../../types.js";
 import { metaRouter } from "./public-meta";
 
 const mockMeta = {
-  allEvents: vi.fn(),
+  eventIndex: vi.fn(),
+  eventFacetCounts: vi.fn(),
+  eventHoldingsCounts: vi.fn(),
+  eventTotals: vi.fn(),
+  eventsBySlugs: vi.fn(),
+  eventRowsByIds: vi.fn(),
   topFinishesForEvents: vi.fn(),
   recentActivity: vi.fn(),
   eventBySlug: vi.fn(),
-  standingsForEvent: vi.fn(),
-  matchesForEvent: vi.fn(),
+  standingsPage: vi.fn(),
+  standingsRowsByIds: vi.fn(),
+  standingsRowByKey: vi.fn(),
+  bestPerLegendForEvent: vi.fn(),
+  cutLineRowForEvent: vi.fn(),
+  fieldSummaryForEvent: vi.fn(),
+  matchesForPlayers: vi.fn(),
+  matchesInPhases: vi.fn(),
   phasesForEvent: vi.fn(),
   sourcesForEvent: vi.fn(),
   contributorsForEvent: vi.fn(),
   playerCountInScope: vi.fn(),
   deckCountInScope: vi.fn(),
   allDeckSummaries: vi.fn(),
+  deckFacetCounts: vi.fn(),
   allDeckCards: vi.fn(),
   archiveLegends: vi.fn(),
-  archiveLegendEventRecords: vi.fn(),
+  scopedLegendRecords: vi.fn(),
+  scopedLegendCount: vi.fn(),
+  scopedLegendCountries: vi.fn(),
   finishesForLegend: vi.fn(),
   bestFinishesForLegend: vi.fn(),
   legendRecordCounts: vi.fn(),
@@ -30,6 +44,66 @@ const mockMeta = {
 };
 
 const NO_TIER_COUNTS = { premier: 0, competitive: 0, local: 0 };
+
+const NO_FIELD = {
+  withLists: 0,
+  hasLegends: false,
+  hasRecords: false,
+  hasRuns: false,
+  legends: [],
+  progress: null,
+};
+
+function standingsPage(rows: Record<string, unknown>[], total = rows.length) {
+  return { rows, total };
+}
+
+function matchRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "m0000000-0000-4000-a000-000000000001",
+    metaEventId: EVENT_ID,
+    phaseOrder: 0,
+    roundNumber: 1,
+    tableNumber: 4,
+    isBye: false,
+    isDraw: false,
+    player1Id: "p0000000-0001-4000-a000-000000000001",
+    player2Id: "p0000000-0001-4000-a000-000000000002",
+    winnerId: "p0000000-0001-4000-a000-000000000001",
+    gamesWonP1: 2,
+    gamesWonP2: 1,
+    createdAt: new Date("2026-08-18T10:00:00.000Z"),
+    updatedAt: new Date("2026-08-18T10:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function phaseRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "h0000000-0000-4000-a000-000000000001",
+    metaEventId: EVENT_ID,
+    phaseOrder: 0,
+    name: "Phase 1",
+    roundType: "SWISS",
+    roundCount: 8,
+    rankRequired: null,
+    maxGameWins: 2,
+    createdAt: new Date("2026-08-18T10:00:00.000Z"),
+    updatedAt: new Date("2026-08-18T10:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function cutPhaseRow() {
+  return phaseRow({
+    id: "h0000000-0000-4000-a000-000000000002",
+    phaseOrder: 1,
+    name: "Phase 3",
+    roundType: "RANKED_SINGLE_ELIMINATION",
+    roundCount: 3,
+    rankRequired: 8,
+  });
+}
 
 const mockCanonicalPrintings = { resolvePrintingMetaForRows: vi.fn() };
 
@@ -121,15 +195,37 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockMeta.topFinishesForEvents.mockResolvedValue([]);
   mockMeta.recentActivity.mockResolvedValue([]);
-  mockMeta.standingsForEvent.mockResolvedValue([]);
-  mockMeta.matchesForEvent.mockResolvedValue([]);
+  mockMeta.standingsPage.mockResolvedValue({ rows: [], total: 0 });
+  mockMeta.standingsRowsByIds.mockResolvedValue([]);
+  mockMeta.standingsRowByKey.mockResolvedValue(undefined);
+  mockMeta.bestPerLegendForEvent.mockResolvedValue([]);
+  mockMeta.cutLineRowForEvent.mockResolvedValue(undefined);
+  mockMeta.fieldSummaryForEvent.mockResolvedValue(NO_FIELD);
+  mockMeta.matchesForPlayers.mockResolvedValue([]);
+  mockMeta.matchesInPhases.mockResolvedValue([]);
   mockMeta.phasesForEvent.mockResolvedValue([]);
   mockMeta.sourcesForEvent.mockResolvedValue([]);
   mockMeta.contributorsForEvent.mockResolvedValue([]);
-  mockMeta.allDeckSummaries.mockResolvedValue({ rows: [], total: 0 });
+  mockMeta.allDeckSummaries.mockResolvedValue({
+    rows: [],
+    total: 0,
+    eventCount: 0,
+    archiveTotal: 0,
+  });
+  mockMeta.deckFacetCounts.mockResolvedValue({
+    events: [],
+    legends: [],
+    finishes: [],
+    countries: [],
+  });
   mockMeta.allDeckCards.mockResolvedValue([]);
   mockMeta.archiveLegends.mockResolvedValue([]);
-  mockMeta.archiveLegendEventRecords.mockResolvedValue([]);
+  mockMeta.scopedLegendRecords.mockResolvedValue([]);
+  mockMeta.scopedLegendCount.mockResolvedValue(0);
+  mockMeta.scopedLegendCountries.mockResolvedValue([]);
+  mockMeta.eventIndex.mockResolvedValue({ rows: [], total: 0 });
+  mockMeta.eventRowsByIds.mockResolvedValue([]);
+  mockMeta.eventsBySlugs.mockResolvedValue([]);
   mockMeta.finishesForLegend.mockResolvedValue({ rows: [], total: 0 });
   mockMeta.bestFinishesForLegend.mockResolvedValue([]);
   mockMeta.legendRecordCounts.mockResolvedValue({ wins: 0, finishes: 0, decklists: 0 });
@@ -187,134 +283,198 @@ describe("GET /meta/events/{slug}", () => {
     expect(json.event.sources).toEqual([]);
   });
 
-  it("returns the whole standings table, deckless entries included", async () => {
+  it("returns the first page of the standings, deckless entries included", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow({ playerRowCount: 3, deckCount: 1 }));
-    mockMeta.standingsForEvent.mockResolvedValue([
-      playerRow({
-        deckId: "d0000000-0001-4000-a000-000000000001",
-        deckName: "Renata Control",
-        shareToken: "tok-1",
-        listStatus: "full",
-      }),
-      playerRow({ id: "p0000000-0001-4000-a000-000000000002", rank: 2, playerName: "Ekko" }),
-      playerRow({
-        id: "p0000000-0001-4000-a000-000000000003",
-        rank: 3,
-        playerName: "Jinx",
-        wins: null,
-        losses: null,
-        draws: null,
-      }),
-    ]);
+    mockMeta.standingsPage.mockResolvedValue(
+      standingsPage([
+        playerRow({
+          deckId: "d0000000-0001-4000-a000-000000000001",
+          deckName: "Renata Control",
+          shareToken: "tok-1",
+          listStatus: "full",
+        }),
+        playerRow({ id: "p0000000-0001-4000-a000-000000000002", rank: 2, playerName: "Ekko" }),
+        playerRow({
+          id: "p0000000-0001-4000-a000-000000000003",
+          rank: 3,
+          playerName: "Jinx",
+          wins: null,
+          losses: null,
+          draws: null,
+        }),
+      ]),
+    );
 
     const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026");
 
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json.players).toHaveLength(3);
-    expect(json.players[0]).toMatchObject({
+    expect(json.standings.players).toHaveLength(3);
+    expect(json.standings.total).toBe(3);
+    expect(json.standings.players[0]).toMatchObject({
       deckId: "d0000000-0001-4000-a000-000000000001",
       deckName: "Renata Control",
       shareToken: "tok-1",
       listStatus: "full",
     });
-    expect(json.players[1]).toMatchObject({
+    expect(json.standings.players[1]).toMatchObject({
       playerName: "Ekko",
       deckId: null,
       shareToken: null,
       listStatus: "none",
     });
-    expect(json.players[2]).toMatchObject({ wins: null, losses: null, draws: null });
+    expect(json.standings.players[2]).toMatchObject({ wins: null, losses: null, draws: null });
     expect(json.event.playerRowCount).toBe(3);
     expect(json.event.deckCount).toBe(1);
   });
 
-  it("says whether a rank is an exact standing or a cut bucket", async () => {
+  it("asks for one page and no more, however long the field", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow({ playerRowCount: 2054 }));
+
+    await app.request("/api/v1/meta/events/summoner-skirmish-2026");
+
+    expect(mockMeta.standingsPage).toHaveBeenCalledWith(EVENT_ID, {}, { limit: 200, offset: 0 });
+  });
+
+  it("states what the page says about the whole field, not about the page", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.standingsForEvent.mockResolvedValue([
-      playerRow({ rank: 1, rankIsTier: false }),
+    mockMeta.fieldSummaryForEvent.mockResolvedValue({
+      withLists: 38,
+      hasLegends: true,
+      hasRecords: true,
+      hasRuns: true,
+      legends: [{ cardId: LEGEND_ID, name: "Azir", count: 12 }],
+      progress: { phaseOrder: 1, roundNumber: 2 },
+    });
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
+    mockMeta.cutLineRowForEvent.mockResolvedValue(playerRow({ wins: 11, losses: 2, draws: 1 }));
+
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
+
+    expect(json.field).toMatchObject({
+      withLists: 38,
+      hasLegends: true,
+      hasRecords: true,
+      hasRuns: true,
+      legends: [{ cardId: LEGEND_ID, name: "Azir", count: 12 }],
+      cutLine: { wins: 11, losses: 2, draws: 1 },
+      progress: { phaseOrder: 1, roundNumber: 2 },
+    });
+    expect(mockMeta.cutLineRowForEvent).toHaveBeenCalledWith(EVENT_ID, 8);
+  });
+
+  it("names a Legend for its champion in the field's legend picker", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.fieldSummaryForEvent.mockResolvedValue({
+      ...NO_FIELD,
+      hasLegends: true,
+      legends: [
+        { cardId: CHAMPION_ID, name: "Swift Scout", types: ["legend"], tags: ["Teemo"], count: 2 },
+        {
+          cardId: LEGEND_ID,
+          name: "Emperor of the Sands",
+          types: ["legend"],
+          tags: ["Azir"],
+          count: 12,
+        },
+      ],
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
+
+    expect(json.field.legends).toEqual([
+      { cardId: LEGEND_ID, name: "Azir, Emperor of the Sands", count: 12 },
+      { cardId: CHAMPION_ID, name: "Teemo, Swift Scout", count: 2 },
+    ]);
+  });
+
+  it("leaves the cut line out of an event that ran no cut", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow()]);
+
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
+
+    expect(json.field.cutLine).toBeNull();
+    expect(mockMeta.cutLineRowForEvent).not.toHaveBeenCalled();
+  });
+
+  it("draws each row's run from the matches its own players played", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsPage.mockResolvedValue(standingsPage([playerRow()]));
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
+    mockMeta.matchesForPlayers.mockResolvedValue([
+      matchRow({ roundNumber: 1 }),
+      matchRow({ id: "m-2", phaseOrder: 1, roundNumber: 1, winnerId: null, isDraw: true }),
+    ]);
+
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
+
+    expect(json.standings.players[0].rounds).toEqual([
+      { phaseOrder: 0, roundNumber: 1, isCut: false, outcome: "win" },
+      { phaseOrder: 1, roundNumber: 1, isCut: true, outcome: "draw" },
+    ]);
+    expect(mockMeta.matchesForPlayers).toHaveBeenCalledWith(EVENT_ID, [
+      "p0000000-0001-4000-a000-000000000001",
+    ]);
+  });
+
+  it("serves the cut's matches and nothing of the Swiss rounds", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
+    mockMeta.matchesInPhases.mockResolvedValue([matchRow({ phaseOrder: 1 })]);
+
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
+
+    expect(mockMeta.matchesInPhases).toHaveBeenCalledWith(EVENT_ID, [1]);
+    expect(json.cutMatches).toHaveLength(1);
+    expect(json.cutMatches[0]).toMatchObject({ phaseOrder: 1, roundNumber: 1 });
+  });
+
+  it("names the best finish each legend took, whatever page it sits on", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.bestPerLegendForEvent.mockResolvedValue([
       playerRow({
-        id: "p0000000-0001-4000-a000-000000000002",
-        rank: 8,
-        rankIsTier: true,
-        playerName: "Ekko",
+        id: "p0000000-0001-4000-a000-000000000099",
+        rank: 412,
+        playerName: "Jinx",
+        legendCardId: LEGEND_ID,
+        legendName: "Azir",
+        legendSlug: "azir",
       }),
     ]);
 
-    const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026");
+    const json = await readJson(await app.request("/api/v1/meta/events/summoner-skirmish-2026"));
 
-    const json = await readJson(res);
-    expect(json.players.map((p: { rankIsTier: boolean }) => p.rankIsTier)).toEqual([false, true]);
+    expect(json.bestPerLegend).toHaveLength(1);
+    expect(json.bestPerLegend[0]).toMatchObject({ playerName: "Jinx", rank: 412 });
   });
 
-  it("serves the round-by-round matches keyed to the standings rows", async () => {
+  it("says whether a rank is an exact standing or a cut bucket", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.matchesForEvent.mockResolvedValue([
-      {
-        id: "m0000000-0000-4000-a000-000000000001",
-        metaEventId: "e0000000-0000-4000-a000-000000000001",
-        phaseOrder: 0,
-        roundNumber: 1,
-        tableNumber: 4,
-        isBye: false,
-        isDraw: false,
-        player1Id: "p0000000-0001-4000-a000-000000000001",
-        player2Id: "p0000000-0001-4000-a000-000000000002",
-        winnerId: "p0000000-0001-4000-a000-000000000001",
-        gamesWonP1: 2,
-        gamesWonP2: 1,
-        createdAt: new Date("2026-08-18T10:00:00.000Z"),
-        updatedAt: new Date("2026-08-18T10:00:00.000Z"),
-      },
-    ]);
+    mockMeta.standingsPage.mockResolvedValue(
+      standingsPage([
+        playerRow({ rank: 1, rankIsTier: false }),
+        playerRow({
+          id: "p0000000-0001-4000-a000-000000000002",
+          rank: 8,
+          rankIsTier: true,
+          playerName: "Ekko",
+        }),
+      ]),
+    );
 
     const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026");
 
     const json = await readJson(res);
-    expect(json.matches).toEqual([
-      {
-        phaseOrder: 0,
-        roundNumber: 1,
-        tableNumber: 4,
-        isBye: false,
-        isDraw: false,
-        player1Id: "p0000000-0001-4000-a000-000000000001",
-        player2Id: "p0000000-0001-4000-a000-000000000002",
-        winnerId: "p0000000-0001-4000-a000-000000000001",
-        gamesWonP1: 2,
-        gamesWonP2: 1,
-      },
+    expect(json.standings.players.map((p: { rankIsTier: boolean }) => p.rankIsTier)).toEqual([
+      false,
+      true,
     ]);
   });
 
   it("serves the phases those rounds belong to, so a cut is not guessed from their shape", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.phasesForEvent.mockResolvedValue([
-      {
-        id: "h0000000-0000-4000-a000-000000000001",
-        metaEventId: EVENT_ID,
-        phaseOrder: 0,
-        name: "Phase 1",
-        roundType: "SWISS",
-        roundCount: 8,
-        rankRequired: null,
-        maxGameWins: 2,
-        createdAt: new Date("2026-08-18T10:00:00.000Z"),
-        updatedAt: new Date("2026-08-18T10:00:00.000Z"),
-      },
-      {
-        id: "h0000000-0000-4000-a000-000000000002",
-        metaEventId: EVENT_ID,
-        phaseOrder: 1,
-        name: "Phase 3",
-        roundType: "RANKED_SINGLE_ELIMINATION",
-        roundCount: 3,
-        rankRequired: 8,
-        maxGameWins: 2,
-        createdAt: new Date("2026-08-18T10:00:00.000Z"),
-        updatedAt: new Date("2026-08-18T10:00:00.000Z"),
-      },
-    ]);
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
 
     const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026");
 
@@ -341,26 +501,28 @@ describe("GET /meta/events/{slug}", () => {
 
   it("resolves every legend and champion image in one batch", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.standingsForEvent.mockResolvedValue([
-      playerRow({
-        legendCardId: LEGEND_ID,
-        legendName: "Azir",
-        legendSlug: "azir",
-        legendDomains: ["order", "calm"],
-        championCardId: CHAMPION_ID,
-        championName: "Jinx",
-        championSlug: "jinx",
-        championDomains: ["chaos"],
-      }),
-      playerRow({
-        id: "p0000000-0001-4000-a000-000000000002",
-        rank: 2,
-        playerName: "Ekko",
-        legendCardId: LEGEND_ID,
-        legendName: "Azir",
-        legendSlug: "azir",
-      }),
-    ]);
+    mockMeta.standingsPage.mockResolvedValue(
+      standingsPage([
+        playerRow({
+          legendCardId: LEGEND_ID,
+          legendName: "Azir",
+          legendSlug: "azir",
+          legendDomains: ["order", "calm"],
+          championCardId: CHAMPION_ID,
+          championName: "Jinx",
+          championSlug: "jinx",
+          championDomains: ["chaos"],
+        }),
+        playerRow({
+          id: "p0000000-0001-4000-a000-000000000002",
+          rank: 2,
+          playerName: "Ekko",
+          legendCardId: LEGEND_ID,
+          legendName: "Azir",
+          legendSlug: "azir",
+        }),
+      ]),
+    );
     mockCanonicalPrintings.resolvePrintingMetaForRows.mockResolvedValue([
       { imageId: "img-legend" },
       { imageId: null },
@@ -374,7 +536,7 @@ describe("GET /meta/events/{slug}", () => {
       { cardId: LEGEND_ID, preferredPrintingId: null },
       { cardId: CHAMPION_ID, preferredPrintingId: null },
     ]);
-    expect(json.players[0].legend).toEqual({
+    expect(json.standings.players[0].legend).toEqual({
       cardId: LEGEND_ID,
       name: "Azir",
       slug: "azir",
@@ -382,7 +544,7 @@ describe("GET /meta/events/{slug}", () => {
       domains: ["order", "calm"],
       archiveSlug: "azir",
     });
-    expect(json.players[0].champion).toEqual({
+    expect(json.standings.players[0].champion).toEqual({
       cardId: CHAMPION_ID,
       name: "Jinx",
       slug: "jinx",
@@ -390,20 +552,22 @@ describe("GET /meta/events/{slug}", () => {
       domains: ["chaos"],
       archiveSlug: null,
     });
-    expect(json.players[1].champion).toBeNull();
+    expect(json.standings.players[1].champion).toBeNull();
   });
 
   it("names a Legend for its champion, so a standings line reads the way players say it", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.standingsForEvent.mockResolvedValue([
-      playerRow({
-        legendCardId: LEGEND_ID,
-        legendName: "Emperor of the Sands",
-        legendSlug: "emperor-of-the-sands",
-        legendTypes: ["legend"],
-        legendTags: ["Azir"],
-      }),
-    ]);
+    mockMeta.standingsPage.mockResolvedValue(
+      standingsPage([
+        playerRow({
+          legendCardId: LEGEND_ID,
+          legendName: "Emperor of the Sands",
+          legendSlug: "emperor-of-the-sands",
+          legendTypes: ["legend"],
+          legendTags: ["Azir"],
+        }),
+      ]),
+    );
     mockCanonicalPrintings.resolvePrintingMetaForRows.mockResolvedValue([
       { imageId: "img-legend" },
     ]);
@@ -411,7 +575,7 @@ describe("GET /meta/events/{slug}", () => {
     const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026");
 
     const json = await readJson(res);
-    expect(json.players[0].legend).toEqual({
+    expect(json.standings.players[0].legend).toEqual({
       cardId: LEGEND_ID,
       name: "Azir, Emperor of the Sands",
       slug: "emperor-of-the-sands",
@@ -427,9 +591,183 @@ describe("GET /meta/events/{slug}", () => {
     const res = await app.request("/api/v1/meta/events/no-such-event");
 
     expect(res.status).toBe(404);
-    expect(mockMeta.standingsForEvent).not.toHaveBeenCalled();
+    expect(mockMeta.standingsPage).not.toHaveBeenCalled();
     expect(mockMeta.sourcesForEvent).not.toHaveBeenCalled();
     expect(mockMeta.contributorsForEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /meta/events/{slug}/standings", () => {
+  it("pages the field and reports how many the filter matches", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsPage.mockResolvedValue(standingsPage([playerRow()], 2054));
+
+    const res = await app.request(
+      "/api/v1/meta/events/summoner-skirmish-2026/standings?limit=200&offset=200",
+    );
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.players).toHaveLength(1);
+    expect(json.total).toBe(2054);
+    expect(mockMeta.standingsPage).toHaveBeenCalledWith(
+      EVENT_ID,
+      { q: undefined, withList: false, legend: undefined },
+      { limit: 200, offset: 200 },
+    );
+  });
+
+  it("forwards the page's own narrowing", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+
+    await app.request(
+      `/api/v1/meta/events/summoner-skirmish-2026/standings?q=ren&list=with&legend=${LEGEND_ID}`,
+    );
+
+    expect(mockMeta.standingsPage).toHaveBeenCalledWith(
+      EVENT_ID,
+      { q: "ren", withList: true, legend: LEGEND_ID },
+      { limit: 200, offset: 0 },
+    );
+  });
+
+  it("draws each row's run and 404s an unknown event", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsPage.mockResolvedValue(standingsPage([playerRow()]));
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow()]);
+    mockMeta.matchesForPlayers.mockResolvedValue([matchRow()]);
+
+    const json = await readJson(
+      await app.request("/api/v1/meta/events/summoner-skirmish-2026/standings"),
+    );
+    expect(json.players[0].rounds).toEqual([
+      { phaseOrder: 0, roundNumber: 1, isCut: false, outcome: "win" },
+    ]);
+
+    mockMeta.eventBySlug.mockResolvedValue(undefined);
+    const missing = await app.request("/api/v1/meta/events/nope/standings");
+    expect(missing.status).toBe(404);
+  });
+
+  it("serves the whole field to a reader who asks for it, and no more", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+
+    const all = await app.request(
+      "/api/v1/meta/events/summoner-skirmish-2026/standings?limit=5000",
+    );
+    const past = await app.request(
+      "/api/v1/meta/events/summoner-skirmish-2026/standings?limit=5001",
+    );
+
+    expect(all.status).toBe(200);
+    expect(past.status).toBe(400);
+  });
+});
+
+describe("GET /meta/events/{slug}/players/{key}/run", () => {
+  const OPPONENT_ID = "p0000000-0001-4000-a000-000000000002";
+
+  it("serves one player's rounds with the opponents they were played against", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsRowByKey.mockResolvedValue(playerRow());
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
+    mockMeta.matchesForPlayers.mockResolvedValue([
+      matchRow({ roundNumber: 1 }),
+      matchRow({ id: "m-2", phaseOrder: 1, roundNumber: 2, winnerId: OPPONENT_ID }),
+    ]);
+    mockMeta.standingsRowsByIds.mockResolvedValue([
+      playerRow({ id: OPPONENT_ID, rank: 2, playerName: "Ekko" }),
+    ]);
+
+    const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026/players/u347713/run");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.rounds).toEqual([
+      {
+        phaseOrder: 0,
+        roundNumber: 1,
+        isCut: false,
+        tableNumber: 4,
+        outcome: "win",
+        gamesWon: 2,
+        gamesLost: 1,
+        opponentId: OPPONENT_ID,
+      },
+      {
+        phaseOrder: 1,
+        roundNumber: 2,
+        isCut: true,
+        tableNumber: 4,
+        outcome: "loss",
+        gamesWon: 2,
+        gamesLost: 1,
+        opponentId: OPPONENT_ID,
+      },
+    ]);
+    expect(json.opponents.map((row: { playerName: string }) => row.playerName)).toEqual(["Ekko"]);
+    expect(json.player.rounds).toHaveLength(2);
+    expect(json.lastCutRound).toBeNull();
+    expect(mockMeta.standingsRowByKey).toHaveBeenCalledWith(EVENT_ID, "u347713");
+  });
+
+  it("names the final only when the cut's last round held one match", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsRowByKey.mockResolvedValue(playerRow());
+    mockMeta.phasesForEvent.mockResolvedValue([phaseRow(), cutPhaseRow()]);
+    mockMeta.matchesInPhases.mockResolvedValue([
+      matchRow({ phaseOrder: 1, roundNumber: 1 }),
+      matchRow({ id: "m-2", phaseOrder: 1, roundNumber: 2 }),
+    ]);
+
+    const json = await readJson(
+      await app.request("/api/v1/meta/events/summoner-skirmish-2026/players/u347713/run"),
+    );
+    expect(json).toMatchObject({ lastCutRound: 2, finalRoundNumber: 2 });
+
+    mockMeta.matchesInPhases.mockResolvedValue([
+      matchRow({ phaseOrder: 1, roundNumber: 2 }),
+      matchRow({ id: "m-3", phaseOrder: 1, roundNumber: 2, tableNumber: 2 }),
+    ]);
+
+    const withPlayoff = await readJson(
+      await app.request("/api/v1/meta/events/summoner-skirmish-2026/players/u347713/run"),
+    );
+    expect(withPlayoff).toMatchObject({ lastCutRound: 2, finalRoundNumber: null });
+  });
+
+  it("reads the opponents once, however often they were played", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsRowByKey.mockResolvedValue(playerRow());
+    mockMeta.matchesForPlayers.mockResolvedValue([
+      matchRow({ roundNumber: 1 }),
+      matchRow({ id: "m-2", roundNumber: 2 }),
+    ]);
+
+    await app.request("/api/v1/meta/events/summoner-skirmish-2026/players/u347713/run");
+
+    expect(mockMeta.standingsRowsByIds).toHaveBeenCalledWith([OPPONENT_ID]);
+  });
+
+  it("says nothing about a player no standings row at this event answers to", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(eventRow());
+    mockMeta.standingsRowByKey.mockResolvedValue(undefined);
+
+    const res = await app.request("/api/v1/meta/events/summoner-skirmish-2026/players/nobody/run");
+
+    expect(res.status).toBe(404);
+    expect(mockMeta.matchesForPlayers).not.toHaveBeenCalled();
+  });
+
+  it("404s an unknown event without reading a standings row", async () => {
+    mockMeta.eventBySlug.mockResolvedValue(undefined);
+
+    const res = await app.request("/api/v1/meta/events/no-such-event/players/u347713/run");
+
+    expect(res.status).toBe(404);
+    const json = await readJson(res);
+    expect(json.message).toBe("Event not found");
+    expect(mockMeta.standingsRowByKey).not.toHaveBeenCalled();
   });
 });
 
@@ -492,33 +830,72 @@ describe("GET /meta/events/{slug}/pending-submissions", () => {
   });
 });
 
-describe("GET /meta/events", () => {
-  it("asks for the whole archive when the request names no window", async () => {
-    mockMeta.allEvents.mockResolvedValue([]);
+function indexPage(rows: Record<string, unknown>[] = [], total = rows.length) {
+  return { rows, total };
+}
 
+describe("GET /meta/events", () => {
+  it("asks for the first page of the whole archive when the request narrows nothing", async () => {
     const res = await app.request("/api/v1/meta/events");
 
     expect(res.status).toBe(200);
-    expect(mockMeta.allEvents).toHaveBeenCalledWith({});
+    expect(mockMeta.eventIndex).toHaveBeenCalledWith({}, {}, { limit: 50, offset: 0 });
   });
 
-  it("forwards an inclusive window to the repo", async () => {
-    mockMeta.allEvents.mockResolvedValue([]);
+  it("forwards the window, the page's own filters, the sort and the page", async () => {
+    await app.request(
+      "/api/v1/meta/events?from=2026-01-01&to=2026-06-30&q=skirmish&holds=decks" +
+        "&playersMin=8&playersMax=64&by=players&dir=asc&limit=10&offset=20",
+    );
 
-    await app.request("/api/v1/meta/events?from=2026-01-01&to=2026-06-30");
-
-    expect(mockMeta.allEvents).toHaveBeenCalledWith({ from: "2026-01-01", to: "2026-06-30" });
+    expect(mockMeta.eventIndex).toHaveBeenCalledWith(
+      {
+        from: "2026-01-01",
+        to: "2026-06-30",
+        q: "skirmish",
+        holds: "decks",
+        playersMin: 8,
+        playersMax: 64,
+      },
+      { by: "players", dir: "asc" },
+      { limit: 10, offset: 20 },
+    );
   });
 
   it("rejects a bound that is not a calendar day", async () => {
     const res = await app.request("/api/v1/meta/events?to=2026-06");
 
     expect(res.status).toBe(400);
-    expect(mockMeta.allEvents).not.toHaveBeenCalled();
+    expect(mockMeta.eventIndex).not.toHaveBeenCalled();
+  });
+
+  it("serves the largest page the index's own picker offers", async () => {
+    const res = await app.request("/api/v1/meta/events?limit=500");
+
+    expect(res.status).toBe(200);
+    expect(mockMeta.eventIndex).toHaveBeenCalledWith({}, {}, { limit: 500, offset: 0 });
+  });
+
+  it("refuses to serve a page larger than the cap", async () => {
+    const res = await app.request("/api/v1/meta/events?limit=5000");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.eventIndex).not.toHaveBeenCalled();
+  });
+
+  it("reports how many events the filter matches beyond the page", async () => {
+    mockMeta.eventIndex.mockResolvedValue(indexPage([eventRow()], 812));
+
+    const json = await readJson(await app.request("/api/v1/meta/events?limit=1"));
+
+    expect(json.events).toHaveLength(1);
+    expect(json.total).toBe(812);
   });
 
   it("leaves the long-form fields off the list rows", async () => {
-    mockMeta.allEvents.mockResolvedValue([eventRow({ playerRowCount: 64, deckCount: 8 })]);
+    mockMeta.eventIndex.mockResolvedValue(
+      indexPage([eventRow({ playerRowCount: 64, deckCount: 8 })]),
+    );
 
     const res = await app.request("/api/v1/meta/events");
 
@@ -532,7 +909,9 @@ describe("GET /meta/events", () => {
   });
 
   it("names each event's podium inline, with the legend's artwork", async () => {
-    mockMeta.allEvents.mockResolvedValue([eventRow({ playerRowCount: 64, deckCount: 8 })]);
+    mockMeta.eventIndex.mockResolvedValue(
+      indexPage([eventRow({ playerRowCount: 64, deckCount: 8 })]),
+    );
     mockMeta.topFinishesForEvents.mockResolvedValue([
       {
         ...playerRow({ legendCardId: LEGEND_ID, legendName: "Jinx", legendSlug: "jinx" }),
@@ -557,7 +936,7 @@ describe("GET /meta/events", () => {
   });
 
   it("names both players when the source published two first places", async () => {
-    mockMeta.allEvents.mockResolvedValue([eventRow()]);
+    mockMeta.eventIndex.mockResolvedValue(indexPage([eventRow()]));
     mockMeta.topFinishesForEvents.mockResolvedValue([
       { ...playerRow({ playerName: "Ashe" }), metaEventId: EVENT_ID },
       {
@@ -575,12 +954,64 @@ describe("GET /meta/events", () => {
   });
 
   it("names no winner for an event whose standings have not arrived", async () => {
-    mockMeta.allEvents.mockResolvedValue([eventRow()]);
+    mockMeta.eventIndex.mockResolvedValue(indexPage([eventRow()]));
 
     const res = await app.request("/api/v1/meta/events");
 
     const json = await readJson(res);
     expect(json.events[0].topFinishes).toEqual([]);
+  });
+});
+
+describe("GET /meta/events/facets", () => {
+  beforeEach(() => {
+    mockMeta.eventFacetCounts.mockResolvedValue({ formats: [], tiers: [], countries: [] });
+    mockMeta.eventHoldingsCounts.mockResolvedValue({
+      all: 0,
+      decks: 0,
+      standings: 0,
+      upcoming: 0,
+      resultless: 0,
+    });
+    mockMeta.eventTotals.mockResolvedValue({ events: 0, playerRows: 0, decks: 0 });
+  });
+
+  it("counts the facets, the holdings and the rows under one filter", async () => {
+    mockMeta.eventFacetCounts.mockResolvedValue({
+      formats: [{ value: "constructed", count: 3 }],
+      tiers: [{ value: "premier", count: 1 }],
+      countries: [{ value: "DE", count: 2 }],
+    });
+    mockMeta.eventHoldingsCounts.mockResolvedValue({
+      all: 3,
+      decks: 1,
+      standings: 2,
+      upcoming: 1,
+      resultless: 0,
+    });
+    mockMeta.eventTotals.mockResolvedValue({ events: 3, playerRows: 96, decks: 8 });
+
+    const res = await app.request("/api/v1/meta/events/facets?q=skirmish&tiers[0]=premier");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.formats).toEqual([{ value: "constructed", count: 3 }]);
+    expect(json.holdings.decks).toBe(1);
+    expect(json.totals).toEqual({ events: 3, playerRows: 96, decks: 8 });
+    for (const spy of [
+      mockMeta.eventFacetCounts,
+      mockMeta.eventHoldingsCounts,
+      mockMeta.eventTotals,
+    ]) {
+      expect(spy).toHaveBeenCalledWith({ q: "skirmish", tiers: ["premier"] });
+    }
+  });
+
+  it("rejects a filter the index would not accept either", async () => {
+    const res = await app.request("/api/v1/meta/events/facets?holds=maybe");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.eventFacetCounts).not.toHaveBeenCalled();
   });
 });
 
@@ -666,17 +1097,31 @@ function finishRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function legendIndexRow(overrides: Record<string, unknown> = {}) {
+  return {
+    ...legendRow(),
+    bestRank: 4,
+    bestRankIsTier: false,
+    bestEventId: EVENT_ID,
+    finishes: 2,
+    decklists: 1,
+    eventWins: 0,
+    ...overrides,
+  };
+}
+
 describe("GET /meta/legends", () => {
   it("keys each legend on its champion and its card slug, ordered by the name a reader sees", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([
-      legendRow(),
-      legendRow({
+    mockMeta.scopedLegendRecords.mockResolvedValue([
+      legendIndexRow(),
+      legendIndexRow({
         cardId: "f0000000-0001-4000-a000-000000000009",
         name: "Emperor of the Sands",
         slug: "emperor-of-the-sands",
         tags: ["Azir"],
       }),
     ]);
+    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
 
     const res = await app.request("/api/v1/meta/legends");
 
@@ -693,67 +1138,69 @@ describe("GET /meta/legends", () => {
     });
   });
 
-  it("hands each legend its own event records and nothing of its neighbours'", async () => {
-    const azirId = "f0000000-0001-4000-a000-000000000009";
-    mockMeta.archiveLegends.mockResolvedValue([
-      legendRow(),
-      legendRow({
-        cardId: azirId,
-        name: "Emperor of the Sands",
-        slug: "emperor-of-the-sands",
-        tags: ["Azir"],
-      }),
+  it("carries each legend's scoped record and the event its best finish came at", async () => {
+    mockMeta.scopedLegendRecords.mockResolvedValue([
+      legendIndexRow({ finishes: 7, decklists: 3, eventWins: 1, bestRank: 1 }),
     ]);
-    mockMeta.archiveLegendEventRecords.mockResolvedValue([
-      {
-        legendCardId: LEGEND_ID,
-        eventSlug: "summoner-skirmish-2026",
-        bestRank: 4,
-        rankIsTier: false,
-        finishes: 2,
-        decklists: 1,
-        won: false,
-      },
-      {
-        legendCardId: azirId,
-        eventSlug: "regional-lyon",
-        bestRank: 1,
-        rankIsTier: false,
-        finishes: 1,
-        decklists: 1,
-        won: true,
-      },
-    ]);
+    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.scopedLegendCount.mockResolvedValue(12);
+    mockMeta.scopedLegendCountries.mockResolvedValue(["DE", "FR"]);
 
-    const res = await app.request("/api/v1/meta/legends");
+    const json = await readJson(await app.request("/api/v1/meta/legends?tiers[0]=premier"));
 
-    const json = await readJson(res);
-    expect(json.legends[0].records).toEqual([
-      {
-        eventSlug: "regional-lyon",
-        bestRank: 1,
+    expect(json.legends[0]).toMatchObject({
+      finishes: 7,
+      decklists: 3,
+      eventWins: 1,
+      bestFinish: {
+        rank: 1,
         rankIsTier: false,
-        finishes: 1,
-        decklists: 1,
-        won: true,
+        event: { slug: "summoner-skirmish-2026", playerCount: 64 },
       },
-    ]);
-    expect(json.legends[1].records).toEqual([
-      {
-        eventSlug: "summoner-skirmish-2026",
-        bestRank: 4,
-        rankIsTier: false,
-        finishes: 2,
-        decklists: 1,
-        won: false,
-      },
-    ]);
+    });
+    expect(json.total).toBe(12);
+    expect(json.countries).toEqual(["DE", "FR"]);
+    expect(mockMeta.scopedLegendRecords).toHaveBeenCalledWith({ tiers: ["premier"] });
+  });
+
+  it("counts the legends the scope matched, and the archive's own beside them", async () => {
+    mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow()]);
+    mockMeta.eventRowsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.scopedLegendCount.mockImplementation((scope: Record<string, unknown>) =>
+      Promise.resolve(Object.keys(scope).length === 0 ? 217 : 1),
+    );
+
+    const json = await readJson(await app.request("/api/v1/meta/legends?tiers[0]=premier"));
+
+    expect(json).toMatchObject({ total: 1, archiveTotal: 217 });
+    expect(mockMeta.scopedLegendCount).toHaveBeenCalledWith({ tiers: ["premier"] });
+    expect(mockMeta.scopedLegendCount).toHaveBeenCalledWith({});
+  });
+
+  it("reports a total of zero for a scope no legend matched, the archive's size aside", async () => {
+    mockMeta.scopedLegendRecords.mockResolvedValue([]);
+    mockMeta.scopedLegendCount.mockImplementation((scope: Record<string, unknown>) =>
+      Promise.resolve(Object.keys(scope).length === 0 ? 217 : 0),
+    );
+
+    const json = await readJson(await app.request("/api/v1/meta/legends?countries[0]=FR"));
+
+    expect(json.legends).toEqual([]);
+    expect(json).toMatchObject({ total: 0, archiveTotal: 217 });
+  });
+
+  it("drops a legend whose best event went missing between the two reads", async () => {
+    mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow()]);
+    mockMeta.eventRowsByIds.mockResolvedValue([]);
+
+    const json = await readJson(await app.request("/api/v1/meta/legends"));
+
+    expect(json.legends).toEqual([]);
   });
 
   it("returns nothing for an archive with no standings yet", async () => {
-    const res = await app.request("/api/v1/meta/legends");
+    const json = await readJson(await app.request("/api/v1/meta/legends"));
 
-    const json = await readJson(res);
     expect(json.legends).toEqual([]);
   });
 });
@@ -874,21 +1321,23 @@ describe("GET /meta/legends/{slug}", () => {
 
   it("resolves the key a standings row hands its legend link", async () => {
     mockMeta.eventBySlug.mockResolvedValue(eventRow());
-    mockMeta.standingsForEvent.mockResolvedValue([
-      playerRow({
-        legendCardId: LEGEND_ID,
-        legendName: "Heart of the Tempest",
-        legendSlug: "heart-of-the-tempest",
-        legendTypes: ["legend"],
-        legendTags: ["Kennen"],
-      }),
-    ]);
+    mockMeta.standingsPage.mockResolvedValue(
+      standingsPage([
+        playerRow({
+          legendCardId: LEGEND_ID,
+          legendName: "Heart of the Tempest",
+          legendSlug: "heart-of-the-tempest",
+          legendTypes: ["legend"],
+          legendTags: ["Kennen"],
+        }),
+      ]),
+    );
     mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
 
     const standings = await readJson(
       await app.request("/api/v1/meta/events/summoner-skirmish-2026"),
     );
-    const linked = standings.players[0].legend.archiveSlug as string;
+    const linked = standings.standings.players[0].legend.archiveSlug as string;
 
     const res = await app.request(`/api/v1/meta/legends/${linked}`);
     expect(res.status).toBe(200);
@@ -1078,12 +1527,44 @@ describe("GET /meta/decks", () => {
   });
 
   it("reports the count before the cap alongside the rows", async () => {
-    mockMeta.allDeckSummaries.mockResolvedValue({ rows: [deckSummaryRow()], total: 40 });
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [deckSummaryRow()],
+      total: 40,
+      eventCount: 3,
+      archiveTotal: 6266,
+    });
 
     const json = await readJson(await app.request("/api/v1/meta/decks?limit=1"));
 
     expect(json.decks).toHaveLength(1);
     expect(json.total).toBe(40);
+  });
+
+  it("counts the events the match spans and the archive's own size beside the match", async () => {
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [deckSummaryRow()],
+      total: 60,
+      eventCount: 7,
+      archiveTotal: 6266,
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks?tiers[0]=premier&limit=50"));
+
+    expect(json).toMatchObject({ total: 60, eventCount: 7, archiveTotal: 6266 });
+  });
+
+  it("still reports the archive's size for a filter that matched no deck", async () => {
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [],
+      total: 0,
+      eventCount: 0,
+      archiveTotal: 6266,
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks?countries[0]=FR"));
+
+    expect(json.decks).toEqual([]);
+    expect(json).toMatchObject({ total: 0, eventCount: 0, archiveTotal: 6266 });
   });
 
   it("rejects a bound that is not a calendar day", async () => {
@@ -1099,24 +1580,163 @@ describe("GET /meta/decks", () => {
     expect(res.status).toBe(400);
     expect(mockMeta.allDeckSummaries).not.toHaveBeenCalled();
   });
+
+  it("rejects a legend that is not a card id, which the database cannot compare", async () => {
+    const res = await app.request("/api/v1/meta/decks?legends[0]=not-a-card");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.allDeckSummaries).not.toHaveBeenCalled();
+  });
+
+  it("rejects an offset past the bound rather than handing it to the database", async () => {
+    const res = await app.request("/api/v1/meta/decks?offset=99999999999999999999");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.allDeckSummaries).not.toHaveBeenCalled();
+  });
+
+  it("forwards the browser's narrowing, its order and the page it asks for", async () => {
+    await app.request(
+      `/api/v1/meta/decks?events[0]=rift-open&legends[0]=${LEGEND_ID}&maxRank=8&curated=true&by=finish&dir=asc&limit=50&offset=100`,
+    );
+
+    expect(mockMeta.allDeckSummaries).toHaveBeenCalledWith({
+      events: ["rift-open"],
+      legends: [LEGEND_ID],
+      maxRank: 8,
+      curated: true,
+      by: "finish",
+      dir: "asc",
+      limit: 50,
+      offset: 100,
+    });
+  });
+
+  it("rejects an order it cannot run in the database", async () => {
+    const res = await app.request("/api/v1/meta/decks?by=value");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.allDeckSummaries).not.toHaveBeenCalled();
+  });
+
+  it("hands over the events the page's lists were played at", async () => {
+    mockMeta.allDeckSummaries.mockResolvedValue({
+      rows: [deckSummaryRow()],
+      total: 1,
+      eventCount: 1,
+      archiveTotal: 1,
+    });
+    mockMeta.eventsBySlugs.mockResolvedValue([]);
+
+    await app.request("/api/v1/meta/decks");
+
+    expect(mockMeta.eventsBySlugs).toHaveBeenCalledWith(["summoner-skirmish-2026"]);
+  });
+});
+
+describe("GET /meta/decks/facets", () => {
+  it("counts each facet under the same narrowing, the page aside", async () => {
+    mockMeta.deckFacetCounts.mockResolvedValue({
+      events: [{ slug: "rift-open", name: "Rift Open", eventDate: "2026-08-01", count: 4 }],
+      legends: [],
+      finishes: [{ value: 8, count: 2 }],
+      countries: ["DE"],
+    });
+
+    const res = await app.request("/api/v1/meta/decks/facets?tiers[0]=premier&curated=true");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.events).toEqual([{ value: "rift-open", label: "Rift Open", count: 4 }]);
+    expect(json.finishes).toEqual([{ value: 8, count: 2 }]);
+    expect(mockMeta.deckFacetCounts).toHaveBeenCalledWith({ tiers: ["premier"], curated: true });
+  });
+
+  it("labels a legend chip with the champion-led name, and orders the chips by it", async () => {
+    mockMeta.deckFacetCounts.mockResolvedValue({
+      events: [],
+      legends: [
+        { cardId: CHAMPION_ID, name: "Swift Scout", types: ["legend"], tags: ["Teemo"], count: 2 },
+        {
+          cardId: LEGEND_ID,
+          name: "Emperor of the Sands",
+          types: ["legend"],
+          tags: ["Azir"],
+          count: 9,
+        },
+      ],
+      finishes: [],
+      countries: [],
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks/facets"));
+
+    expect(json.legends).toEqual([
+      { value: LEGEND_ID, label: "Azir, Emperor of the Sands", count: 9 },
+      { value: CHAMPION_ID, label: "Teemo, Swift Scout", count: 2 },
+    ]);
+  });
+
+  it("offers the events newest first", async () => {
+    mockMeta.deckFacetCounts.mockResolvedValue({
+      events: [
+        { slug: "rift-open", name: "Rift Open", eventDate: "2026-08-01", count: 4 },
+        { slug: "skirmish", name: "Summoner Skirmish", eventDate: "2026-09-01", count: 1 },
+      ],
+      legends: [],
+      finishes: [],
+      countries: [],
+    });
+
+    const json = await readJson(await app.request("/api/v1/meta/decks/facets"));
+
+    expect(json.events.map((event: { value: string }) => event.value)).toEqual([
+      "skirmish",
+      "rift-open",
+    ]);
+  });
+
+  it("counts the whole narrowing, whatever page the caller is on", async () => {
+    await app.request("/api/v1/meta/decks/facets?limit=10&offset=50");
+
+    expect(mockMeta.deckFacetCounts).toHaveBeenCalledWith({});
+  });
 });
 
 describe("GET /meta/deck-cards", () => {
-  it("asks for every archived list when the request names no window", async () => {
-    const res = await app.request("/api/v1/meta/deck-cards");
+  it("names one event's whole field when the request asks for an event", async () => {
+    const res = await app.request("/api/v1/meta/deck-cards?event=summoner-skirmish-2026");
 
     expect(res.status).toBe(200);
-    expect(mockMeta.allDeckCards).toHaveBeenCalledWith({});
+    expect(mockMeta.allDeckCards).toHaveBeenCalledWith({ eventSlug: "summoner-skirmish-2026" });
   });
 
-  it("forwards the window the deck list was scoped to", async () => {
-    await app.request("/api/v1/meta/deck-cards?from=2026-01-01&to=2026-06-30");
+  it("forwards the browser's own narrowing and page, so it prices what the grid shows", async () => {
+    await app.request(
+      `/api/v1/meta/deck-cards?from=2026-01-01&legends[0]=${LEGEND_ID}&curated=true&by=finish&dir=asc&limit=50&offset=100`,
+    );
 
-    expect(mockMeta.allDeckCards).toHaveBeenCalledWith({ from: "2026-01-01", to: "2026-06-30" });
+    expect(mockMeta.allDeckCards).toHaveBeenCalledWith({
+      from: "2026-01-01",
+      legends: [LEGEND_ID],
+      curated: true,
+      by: "finish",
+      dir: "asc",
+      limit: 50,
+      offset: 100,
+      eventSlug: undefined,
+    });
   });
 
   it("rejects a bound that is not a calendar day", async () => {
     const res = await app.request("/api/v1/meta/deck-cards?to=2026-06");
+
+    expect(res.status).toBe(400);
+    expect(mockMeta.allDeckCards).not.toHaveBeenCalled();
+  });
+
+  it("rejects a legend that is not a card id, which the database cannot compare", async () => {
+    const res = await app.request("/api/v1/meta/deck-cards?legends[0]=not-a-card");
 
     expect(res.status).toBe(400);
     expect(mockMeta.allDeckCards).not.toHaveBeenCalled();

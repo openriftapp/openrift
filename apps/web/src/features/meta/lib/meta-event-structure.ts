@@ -1,6 +1,6 @@
-import type { MetaEventMatch, MetaEventPhase } from "@openrift/shared/types/api/meta";
+import { cutSizeOf, isSingleElimination } from "@openrift/shared/meta-standings";
+import type { MetaEventField, MetaEventPhase } from "@openrift/shared/types/api/meta";
 
-import { isSingleElimination } from "@/features/meta/lib/meta-bracket";
 import { m } from "@/paraglide/messages.js";
 
 export interface MetaEventStructure {
@@ -8,21 +8,6 @@ export interface MetaEventStructure {
   cutSize: number | null;
   bestOf: number | null;
   sentence: string | null;
-}
-
-/** The largest elimination phase wins, so a third-place playoff filed as its own phase never shrinks the cut. */
-export function cutSizeOf(phases: readonly MetaEventPhase[]): number | null {
-  let largest: number | null = null;
-  for (const phase of phases) {
-    if (!isSingleElimination(phase.roundType)) {
-      continue;
-    }
-    const size = phase.rankRequired ?? (phase.roundCount === null ? null : 2 ** phase.roundCount);
-    if (size !== null && (largest === null || size > largest)) {
-      largest = size;
-    }
-  }
-  return largest;
 }
 
 function swissRoundsOf(phases: readonly MetaEventPhase[]): number | null {
@@ -74,25 +59,22 @@ export function describeEventStructure(phases: readonly MetaEventPhase[]): MetaE
 
 /** Null before the first round is in. */
 export function describeEventProgress(
-  matches: readonly MetaEventMatch[],
+  progress: MetaEventField["progress"],
   phases: readonly MetaEventPhase[],
 ): string | null {
-  if (matches.length === 0) {
+  if (progress === null) {
     return null;
   }
-  const phaseOrder = Math.max(...matches.map((match) => match.phaseOrder));
-  const phase = phases.find((candidate) => candidate.phaseOrder === phaseOrder);
+  const phase = phases.find((candidate) => candidate.phaseOrder === progress.phaseOrder);
   if (phase !== undefined && isSingleElimination(phase.roundType)) {
     const cutSize = cutSizeOf(phases);
     return cutSize === null
       ? m.meta_progress_top_cut_under_way()
       : m.meta_progress_top_n_under_way({ cut: String(cutSize) });
   }
-  const played = Math.max(
-    ...matches.filter((match) => match.phaseOrder === phaseOrder).map((match) => match.roundNumber),
-  );
   const total = phase?.roundCount ?? null;
+  const played = String(progress.roundNumber);
   return total === null
-    ? m.meta_progress_after_round({ played: String(played) })
-    : m.meta_progress_after_round_of({ played: String(played), total: String(total) });
+    ? m.meta_progress_after_round({ played })
+    : m.meta_progress_after_round_of({ played, total: String(total) });
 }

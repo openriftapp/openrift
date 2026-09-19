@@ -3,13 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import type { MetaDeckFilterValues } from "./meta-deck-filters";
 import {
-  countMetaDecksUnderCost,
-  curateMetaDecks,
-  filterMetaDecks,
+  filterDecksByCost,
   groupDecksByEvent,
   hasActiveMetaDeckFilters,
-  metaDeckFilterCounts,
-  metaDeckFilterOptions,
+  metaDeckQueryFromFilters,
   nextDeckSort,
   sortMetaDecks,
 } from "./meta-deck-filters";
@@ -23,15 +20,12 @@ const ERAS: MetaEra[] = [
 
 const EMPTY: MetaDeckFilterValues = {
   scope: { era: ERA_ALL, formats: [], tiers: [] },
-  eras: ERAS,
   events: [],
   legends: [],
   maxRank: null,
   maxCost: null,
   valueMin: null,
   valueMax: null,
-  includeSideboard: false,
-  showAll: false,
 };
 
 const COSTS = new Map([
@@ -39,6 +33,8 @@ const COSTS = new Map([
   ["b", { needed: 40, owned: 20, value: 60, toComplete: 25 }],
   ["c", { needed: 40, owned: 0, value: undefined, toComplete: undefined }],
 ]);
+
+const COST_EMPTY = { maxCost: null, valueMin: null, valueMax: null };
 
 function makeDeck(overrides: Partial<MetaDeckSummary> = {}): MetaDeckSummary {
   const event = {
@@ -104,210 +100,6 @@ const decks: MetaDeckSummary[] = [
 ];
 
 const ids = (result: MetaDeckSummary[]) => result.map((deck) => deck.deckId);
-const curated = (list: readonly MetaDeckSummary[]) => curateMetaDecks(list, { showAll: false });
-
-describe("filterMetaDecks", () => {
-  it("keeps everything when no axis is set", () => {
-    expect(ids(filterMetaDecks(decks, EMPTY))).toEqual(["a", "b", "c"]);
-  });
-
-  it("returns nothing for an empty archive", () => {
-    expect(filterMetaDecks([], EMPTY)).toEqual([]);
-  });
-
-  it("opens on premier and competitive events while the URL names no tier", () => {
-    const untouched = { ...EMPTY, scope: { era: ERA_ALL, formats: [] } };
-    expect(ids(filterMetaDecks(decks, untouched))).toEqual(["a", "b"]);
-  });
-
-  it("lists every tier once the tier facet is emptied by hand", () => {
-    expect(ids(filterMetaDecks(decks, EMPTY))).toEqual(["a", "b", "c"]);
-  });
-
-  it("filters by the scope's format", () => {
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, scope: { ...EMPTY.scope, formats: ["legacy"] } })),
-    ).toEqual(["c"]);
-  });
-
-  it("filters by the event's tier", () => {
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, scope: { ...EMPTY.scope, tiers: ["premier"] } })),
-    ).toEqual(["a", "b"]);
-  });
-
-  it("filters by country whatever case the code is stored in", () => {
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, scope: { ...EMPTY.scope, countries: ["fr"] } })),
-    ).toEqual(["c"]);
-  });
-
-  it("filters by event slug", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, events: ["rift-open"] });
-    expect(ids(result)).toEqual(["c"]);
-  });
-
-  it("filters by legend and drops decks with no legend", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, legends: ["card-jinx"] });
-    expect(ids(result)).toEqual(["a"]);
-  });
-
-  it("treats several values on one axis as a union", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, legends: ["card-jinx", "card-lux"] });
-    expect(ids(result)).toEqual(["a", "b"]);
-  });
-
-  it("treats the finish bound as inclusive", () => {
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, maxRank: 4 }))).toEqual(["a", "b"]);
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, maxRank: 1 }))).toEqual(["a"]);
-  });
-
-  it("resolves a set era to its own window", () => {
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, scope: { ...EMPTY.scope, era: "origins" } })),
-    ).toEqual(["c"]);
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, scope: { ...EMPTY.scope, era: "vendetta" } })),
-    ).toEqual(["a", "b"]);
-  });
-
-  it("treats both custom-range bounds as inclusive", () => {
-    const exact = filterMetaDecks(decks, {
-      ...EMPTY,
-      scope: { ...EMPTY.scope, era: ERA_CUSTOM, from: "2026-06-15", to: "2026-06-15" },
-    });
-    expect(ids(exact)).toEqual(["c"]);
-    const open = filterMetaDecks(decks, {
-      ...EMPTY,
-      scope: { ...EMPTY.scope, era: ERA_CUSTOM, from: "2026-07-01" },
-    });
-    expect(ids(open)).toEqual(["a", "b"]);
-  });
-
-  it("keeps only the lists completable within the cost bound", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, maxCost: 25 }, { costs: COSTS });
-    expect(ids(result)).toEqual(["a", "b"]);
-  });
-
-  it("treats a bound of zero as the lists the reader can build now", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, maxCost: 0 }, { costs: COSTS });
-    expect(ids(result)).toEqual(["a"]);
-  });
-
-  it("drops a list whose completion cannot be costed", () => {
-    const result = filterMetaDecks(decks, { ...EMPTY, maxCost: 1000 }, { costs: COSTS });
-    expect(ids(result)).toEqual(["a", "b"]);
-  });
-
-  it("keeps the whole archive while no costs have loaded, rather than emptying a shared link", () => {
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, maxCost: 0 }))).toEqual(["a", "b", "c"]);
-  });
-
-  it("ignores the costs while no bound is set", () => {
-    expect(ids(filterMetaDecks(decks, EMPTY, { costs: COSTS }))).toEqual(["a", "b", "c"]);
-  });
-
-  it("treats both value bounds as inclusive", () => {
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, valueMin: 60 }, { costs: COSTS }))).toEqual([
-      "a",
-      "b",
-    ]);
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, valueMax: 60 }, { costs: COSTS }))).toEqual([
-      "b",
-    ]);
-    expect(
-      ids(filterMetaDecks(decks, { ...EMPTY, valueMin: 61, valueMax: 200 }, { costs: COSTS })),
-    ).toEqual(["a"]);
-  });
-
-  it("drops a list whose value is unknown once a bound is set", () => {
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, valueMin: 0 }, { costs: COSTS }))).toEqual([
-      "a",
-      "b",
-    ]);
-  });
-
-  it("keeps the whole archive on a value bound while no costs have loaded", () => {
-    expect(ids(filterMetaDecks(decks, { ...EMPTY, valueMax: 1 }))).toEqual(["a", "b", "c"]);
-  });
-
-  it("intersects across axes", () => {
-    const result = filterMetaDecks(decks, {
-      ...EMPTY,
-      scope: { ...EMPTY.scope, formats: ["standard"] },
-      maxRank: 4,
-      legends: ["card-lux"],
-    });
-    expect(ids(result)).toEqual(["b"]);
-  });
-
-  it("returns nothing when the axes cannot overlap", () => {
-    const result = filterMetaDecks(decks, {
-      ...EMPTY,
-      scope: { ...EMPTY.scope, formats: ["legacy"] },
-      maxRank: 1,
-    });
-    expect(result).toEqual([]);
-  });
-});
-
-describe("curateMetaDecks", () => {
-  it("leaves the list alone once the reader has opened the full archive", () => {
-    const sameLegend = [
-      makeDeck({ deckId: "worse", playerName: "Bram", rank: 8 }),
-      makeDeck({ deckId: "better", playerName: "Ashen", rank: 2 }),
-    ];
-    expect(ids(curateMetaDecks(sameLegend, { showAll: true }))).toEqual(["worse", "better"]);
-  });
-
-  it("keeps one deck per legend per event, the best finish", () => {
-    const sameLegend = [
-      makeDeck({ deckId: "worse", playerName: "Bram", rank: 8 }),
-      makeDeck({ deckId: "better", playerName: "Ashen", rank: 2 }),
-    ];
-    expect(ids(curated(sameLegend))).toEqual(["better"]);
-  });
-
-  it("keeps the same legend once per event it appeared at", () => {
-    const twoEvents = [
-      makeDeck({ deckId: "here", rank: 4 }),
-      makeDeck({
-        deckId: "there",
-        rank: 4,
-        event: {
-          slug: "rift-open",
-          name: "Rift Open",
-          eventDate: "2026-06-15",
-          format: "standard",
-          tier: "local",
-          country: "FR",
-        },
-      }),
-    ];
-    expect(ids(curated(twoEvents)).toSorted()).toEqual(["here", "there"]);
-  });
-
-  it("breaks a tied finish on player name, so the tile does not flip between renders", () => {
-    const tied = [
-      makeDeck({ deckId: "zed", playerName: "Zed", rank: 4 }),
-      makeDeck({ deckId: "mel", playerName: "Mel", rank: 4 }),
-    ];
-    expect(ids(curated(tied))).toEqual(["mel"]);
-    expect(ids(curated(tied.toReversed()))).toEqual(["mel"]);
-  });
-
-  it("never folds two unknown legends together", () => {
-    const unknown = [
-      makeDeck({ deckId: "one", legendCardId: null, rank: 4 }),
-      makeDeck({ deckId: "two", legendCardId: null, rank: 8 }),
-    ];
-    expect(ids(curated(unknown)).toSorted()).toEqual(["one", "two"]);
-  });
-
-  it("returns nothing for an empty list", () => {
-    expect(curated([])).toEqual([]);
-  });
-});
 
 describe("groupDecksByEvent", () => {
   const riftOpen = { ...decks[0]!.event, slug: "rift-open", name: "Rift Open" };
@@ -413,75 +205,101 @@ describe("nextDeckSort", () => {
     });
   });
 });
-
-describe("metaDeckFilterCounts", () => {
-  it("counts every value when nothing is filtered, finish buckets cumulative", () => {
-    const counts = metaDeckFilterCounts(decks, EMPTY);
-    expect(counts.events.get("rift-open")).toBe(1);
-    expect(counts.legends.get("card-jinx")).toBe(1);
-    expect(counts.finish.get(1)).toBe(1);
-    expect(counts.finish.get(4)).toBe(2);
-    expect(counts.finish.get(8)).toBe(3);
+describe("filterDecksByCost", () => {
+  it("keeps only the lists completable within the bound", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, maxCost: 25 }, COSTS))).toEqual([
+      "a",
+      "b",
+    ]);
   });
 
-  it("counts an axis with the other axes already applied", () => {
-    const counts = metaDeckFilterCounts(decks, {
-      ...EMPTY,
-      scope: { ...EMPTY.scope, formats: ["standard"] },
-    });
-    expect(counts.events.get("rift-open")).toBeUndefined();
-    expect(counts.finish.get(8)).toBe(2);
+  it("treats a bound of zero as the lists the reader can build now", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, maxCost: 0 }, COSTS))).toEqual(["a"]);
   });
 
-  it("counts an axis without applying itself", () => {
-    const counts = metaDeckFilterCounts(decks, { ...EMPTY, legends: ["card-jinx"] });
-    expect(counts.legends.get("card-lux")).toBe(1);
+  it("drops a list whose completion cannot be costed", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, maxCost: 1000 }, COSTS))).toEqual([
+      "a",
+      "b",
+    ]);
   });
 
-  it("counts what the curated grid will render, not the raw matches", () => {
-    const sameLegendTwice = [
-      makeDeck({ deckId: "winner", playerName: "Ashen", rank: 1 }),
-      makeDeck({ deckId: "eighth", playerName: "Bram", rank: 8 }),
-    ];
-    expect(metaDeckFilterCounts(sameLegendTwice, EMPTY).legends.get("card-jinx")).toBe(1);
+  it("keeps the page while no costs have loaded, rather than emptying a shared link", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, maxCost: 0 }, undefined))).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("ignores the costs while no bound is set", () => {
+    expect(ids(filterDecksByCost(decks, COST_EMPTY, COSTS))).toEqual(["a", "b", "c"]);
+  });
+
+  it("treats both value bounds as inclusive", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMin: 60 }, COSTS))).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMax: 60 }, COSTS))).toEqual(["b"]);
     expect(
-      metaDeckFilterCounts(sameLegendTwice, { ...EMPTY, showAll: true }).legends.get("card-jinx"),
-    ).toBe(2);
+      ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMin: 61, valueMax: 200 }, COSTS)),
+    ).toEqual(["a"]);
+  });
+
+  it("drops a list whose value is unknown once a bound is set", () => {
+    expect(ids(filterDecksByCost(decks, { ...COST_EMPTY, valueMin: 0 }, COSTS))).toEqual([
+      "a",
+      "b",
+    ]);
   });
 });
 
-describe("metaDeckFilterOptions", () => {
-  it("derives the distinct values present in the archive", () => {
-    const options = metaDeckFilterOptions(decks);
-    expect(options.events).toEqual([
-      { value: "summoner-skirmish", label: "Summoner Skirmish" },
-      { value: "rift-open", label: "Rift Open" },
-    ]);
-    expect(options.legends).toEqual([
-      { value: "card-jinx", label: "Jinx, Loose Cannon" },
-      { value: "card-lux", label: "Lux" },
-    ]);
-    expect(options.countries).toEqual(["DE", "FR"]);
+describe("metaDeckQueryFromFilters", () => {
+  const STATE = { events: [], legends: [], maxRank: null, showAll: false };
+
+  it("curates and holds the default facets while nothing is narrowed", () => {
+    expect(metaDeckQueryFromFilters({ ...STATE, scope: { era: ERA_ALL } }, ERAS)).toEqual({
+      formats: ["constructed"],
+      tiers: ["premier", "competitive"],
+      curated: true,
+    });
   });
 
-  it("leaves out a country no source recorded", () => {
-    const options = metaDeckFilterOptions([
-      makeDeck({
-        event: {
-          slug: "unknown-venue",
-          name: "Unknown Venue",
-          eventDate: "2026-08-01",
-          format: "standard",
-          tier: "local",
-          country: null,
+  it("carries every populated axis and drops the curation once the reader opens the archive", () => {
+    expect(
+      metaDeckQueryFromFilters(
+        {
+          events: ["rift-open"],
+          legends: ["card-lux"],
+          maxRank: 8,
+          showAll: true,
+          scope: { era: ERA_ALL, formats: ["standard"], tiers: ["local"] },
         },
-      }),
-    ]);
-    expect(options.countries).toEqual([]);
+        ERAS,
+      ),
+    ).toEqual({
+      formats: ["standard"],
+      tiers: ["local"],
+      events: ["rift-open"],
+      legends: ["card-lux"],
+      maxRank: 8,
+    });
   });
 
-  it("returns empty lists for an empty archive", () => {
-    expect(metaDeckFilterOptions([])).toEqual({ events: [], legends: [], countries: [] });
+  it("resolves a set era to its own window", () => {
+    const query = metaDeckQueryFromFilters({ ...STATE, scope: { era: "origins" } }, ERAS);
+    expect(query.from).toBe("2026-01-01");
+    expect(query.to).toBe("2026-07-31");
+  });
+
+  it("carries a custom range as the reader set it", () => {
+    const query = metaDeckQueryFromFilters(
+      { ...STATE, scope: { era: ERA_CUSTOM, from: "2026-07-01", to: "2026-08-31" } },
+      ERAS,
+    );
+    expect(query.from).toBe("2026-07-01");
+    expect(query.to).toBe("2026-08-31");
   });
 });
 
@@ -503,35 +321,5 @@ describe("hasActiveMetaDeckFilters", () => {
     expect(hasActiveMetaDeckFilters({ ...EMPTY, valueMin: 5 })).toBe(true);
     expect(hasActiveMetaDeckFilters({ ...EMPTY, valueMax: 5 })).toBe(true);
     expect(hasActiveMetaDeckFilters({ ...EMPTY, events: ["rift-open"] })).toBe(true);
-  });
-});
-
-describe("countMetaDecksUnderCost", () => {
-  it("counts what the grid would show at another bound", () => {
-    expect(countMetaDecksUnderCost(decks, { ...EMPTY, showAll: true }, { costs: COSTS }, 0)).toBe(
-      1,
-    );
-    expect(countMetaDecksUnderCost(decks, { ...EMPTY, showAll: true }, { costs: COSTS }, 25)).toBe(
-      2,
-    );
-  });
-
-  it("holds the other axes as they are", () => {
-    const filters = { ...EMPTY, showAll: true, legends: ["card-jinx"] };
-    expect(countMetaDecksUnderCost(decks, filters, { costs: COSTS }, 25)).toBe(1);
-  });
-
-  it("counts the curated grid rather than the raw matches", () => {
-    const sameLegendTwice = [
-      makeDeck({ deckId: "a", playerName: "Ashen", rank: 1 }),
-      makeDeck({ deckId: "b", playerName: "Bram", rank: 8 }),
-    ];
-    expect(countMetaDecksUnderCost(sameLegendTwice, EMPTY, { costs: COSTS }, 25)).toBe(1);
-  });
-
-  it("counts the whole curated archive for a lifted bound", () => {
-    expect(
-      countMetaDecksUnderCost(decks, { ...EMPTY, showAll: true }, { costs: COSTS }, null),
-    ).toBe(3);
   });
 });

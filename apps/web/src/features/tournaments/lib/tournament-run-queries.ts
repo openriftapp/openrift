@@ -10,6 +10,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { openRoundRefetchInterval } from "@/features/tournaments/lib/open-round-polling";
 import { podTournamentsKeys } from "@/features/tournaments/lib/tournaments-query-keys";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
@@ -24,7 +25,7 @@ const fetchRunState = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }
@@ -40,7 +41,7 @@ const fetchReport = createServerFn({ method: "GET" })
     );
     if (error) {
       if (isDefinedError(error) && error.code === "NOT_FOUND") {
-        throw new Error("NOT_FOUND");
+        throw notFoundError();
       }
       throw error;
     }

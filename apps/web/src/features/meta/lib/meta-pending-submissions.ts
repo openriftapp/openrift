@@ -1,4 +1,4 @@
-import type { MetaEventPlayer, MetaPendingSubmission } from "@openrift/shared/types/api/meta";
+import type { MetaPendingSubmission } from "@openrift/shared/types/api/meta";
 
 export interface MetaPendingRowMark {
   mine: boolean;
@@ -14,16 +14,17 @@ export const NO_PENDING_SUBMISSIONS: MetaPendingSubmissions = {
   unmatched: [],
 };
 
-/** A row id that no longer appears in the standings counts as unmatched. */
+/**
+ * `meta_submissions.meta_event_player_id` is `on delete set null`, so a
+ * non-null id always names a row this event still holds.
+ */
 export function groupPendingSubmissions(
   items: readonly MetaPendingSubmission[],
-  players: readonly Pick<MetaEventPlayer, "id">[],
 ): MetaPendingSubmissions {
-  const playerIds = new Set(players.map((player) => player.id));
   const byPlayer = new Map<string, MetaPendingRowMark>();
   const unmatched: MetaPendingSubmission[] = [];
   for (const item of items) {
-    if (item.metaEventPlayerId === null || !playerIds.has(item.metaEventPlayerId)) {
+    if (item.metaEventPlayerId === null) {
       unmatched.push(item);
       continue;
     }

@@ -1,6 +1,7 @@
 import { imageUrl } from "@openrift/shared/image-url";
 
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** The crop is pulled toward the top third, where the character sits on every Riftbound legend. */
@@ -36,9 +37,7 @@ export function MetaHeroCounter({
   return (
     <p className="flex flex-col gap-0.5">
       <span className={cn("font-heading text-2xl leading-none font-bold tabular-nums", className)}>
-        {/* Pinned grouping: the page is server-rendered, and a server on another
-            default locale would send "1.247" into a browser rendering "1,247". */}
-        {typeof value === "number" ? value.toLocaleString("en-US") : value}
+        {typeof value === "number" ? formatCount(value) : value}
       </span>
       <span className="text-muted-foreground text-xs">{label}</span>
     </p>

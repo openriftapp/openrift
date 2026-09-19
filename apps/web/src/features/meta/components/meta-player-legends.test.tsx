@@ -74,7 +74,7 @@ describe("MetaPlayerLegends", () => {
     expect(screen.getByText("Lux")).toBeInTheDocument();
     expect(screen.getByText("Lady of Luminosity")).toBeInTheDocument();
     expect(screen.getByText(/9 finishes/u)).toBeInTheDocument();
-    expect(screen.getByText("2 wins")).toBeInTheDocument();
+    expect(screen.getByText("2 event wins")).toBeInTheDocument();
   });
 
   it("sends the legend's name to its archive page", () => {

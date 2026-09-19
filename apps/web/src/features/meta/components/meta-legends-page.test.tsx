@@ -1,13 +1,14 @@
-import type { MetaLegendEventRecord } from "@openrift/shared/contracts/meta";
-import type { MetaEventSummary, MetaLegendSummary } from "@openrift/shared/types/api/meta";
+import type { MetaLegendSummary } from "@openrift/shared/types/api/meta";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
   legends: [] as MetaLegendSummary[],
-  events: [] as MetaEventSummary[],
-  ranges: [] as unknown[],
+  total: 0,
+  archiveTotal: 0,
+  countries: [] as string[],
+  scopes: [] as unknown[],
   search: {} as Record<string, unknown>,
   navigated: [] as Record<string, unknown>[],
 }));
@@ -49,10 +50,16 @@ vi.mock("@tanstack/react-router", () => {
 });
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaLegends: () => ({ data: { legends: captured.legends } }),
-  useMetaEvents: (range?: unknown) => {
-    captured.ranges.push(range);
-    return { data: { events: captured.events } };
+  useMetaLegends: (scope?: unknown) => {
+    captured.scopes.push(scope);
+    return {
+      data: {
+        legends: captured.legends,
+        total: captured.total,
+        archiveTotal: captured.archiveTotal,
+        countries: captured.countries,
+      },
+    };
   },
 }));
 vi.mock("@/features/meta/hooks/use-meta-eras", () => ({ useMetaEras: () => [] }));
@@ -70,64 +77,55 @@ vi.mock("@/hooks/use-enums", () => ({
 // oxlint-disable-next-line import/first -- must import after vi.mock
 import { MetaLegendsPage } from "./meta-legends-page";
 
-function record(
-  eventSlug: string,
-  overrides: Partial<MetaLegendEventRecord> = {},
-): MetaLegendEventRecord {
-  return {
-    eventSlug,
-    bestRank: 8,
-    rankIsTier: false,
-    finishes: 1,
-    decklists: 0,
-    won: false,
-    ...overrides,
-  };
-}
+type LegendOverrides = Partial<Omit<MetaLegendSummary, "slug" | "legend">> & {
+  event?: Partial<MetaLegendSummary["bestFinish"]["event"]>;
+};
 
-function legend(
-  name: string,
-  slug: string,
-  records: MetaLegendEventRecord[] = [record("summoner-skirmish")],
-): MetaLegendSummary {
+function legend(name: string, slug: string, overrides: LegendOverrides = {}): MetaLegendSummary {
+  const { event, ...rest } = overrides;
   return {
     slug,
     legend: { cardId: slug, name, slug, imageId: null, domains: ["fury"], archiveSlug: slug },
-    records,
-  };
-}
-
-function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
-  return {
-    id: "e1",
-    slug: "summoner-skirmish",
-    name: "Summoner Skirmish at Cardhouse Vienna",
-    eventDate: "2026-08-29",
-    format: "constructed",
-    tier: "local",
-    status: "complete",
-    country: "AT",
-    location: "Vienna",
-    playerCount: 18,
-    organizer: "Cardhouse",
-    playerRowCount: 18,
-    deckCount: 4,
-    topFinishes: [],
-    ...overrides,
+    bestFinish: {
+      rank: 8,
+      rankIsTier: false,
+      event: {
+        slug: "summoner-skirmish",
+        name: "Summoner Skirmish at Cardhouse Vienna",
+        eventDate: "2026-08-29",
+        format: "constructed",
+        tier: "local",
+        country: "AT",
+        playerCount: 18,
+        ...event,
+      },
+    },
+    finishes: 1,
+    decklists: 0,
+    eventWins: 0,
+    ...rest,
   };
 }
 
 function renderPage(
   legends: MetaLegendSummary[],
   search: Record<string, unknown> = {},
-  events: MetaEventSummary[] = [event()],
+  total = legends.length,
+  archiveTotal = total,
 ) {
   captured.legends = legends;
-  captured.events = events;
-  captured.ranges = [];
+  captured.total = total;
+  captured.archiveTotal = archiveTotal;
+  captured.countries = ["AT"];
+  captured.scopes = [];
   captured.search = search;
   captured.navigated = [];
   render(<MetaLegendsPage />);
+}
+
+function rankedBest(rank: number): MetaLegendSummary["bestFinish"] {
+  const base = legend("x", "x").bestFinish;
+  return { ...base, rank };
 }
 
 function rowLinks(): (string | null)[] {
@@ -154,15 +152,25 @@ describe("MetaLegendsPage", () => {
   });
 
   it("shows each legend's best finish and its on-file counts", () => {
-    renderPage(
-      [
-        legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", [
-          record("summoner-skirmish", { bestRank: 2, finishes: 7, decklists: 3 }),
-        ]),
-      ],
-      {},
-      [event({ name: "Regional Lyon", playerCount: 512 })],
-    );
+    renderPage([
+      legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", {
+        bestFinish: {
+          rank: 2,
+          rankIsTier: false,
+          event: {
+            slug: "regional-lyon",
+            name: "Regional Lyon",
+            eventDate: "2026-08-29",
+            format: "constructed",
+            tier: "premier",
+            country: "FR",
+            playerCount: 512,
+          },
+        },
+        finishes: 7,
+        decklists: 3,
+      }),
+    ]);
     const row = screen.getByRole("link", { name: /kennen/iu });
     expect(within(row).getAllByText("Regional Lyon").length).toBeGreaterThan(0);
     expect(within(row).getAllByText("2nd")).not.toHaveLength(0);
@@ -173,9 +181,7 @@ describe("MetaLegendsPage", () => {
 
   it("chips the events a legend has won", () => {
     renderPage([
-      legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", [
-        record("summoner-skirmish", { bestRank: 1, won: true }),
-      ]),
+      legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", { eventWins: 1 }),
     ]);
     expect(screen.getAllByText("1 event win").length).toBeGreaterThan(0);
   });
@@ -183,12 +189,13 @@ describe("MetaLegendsPage", () => {
   it("reorders by best finish from the column header", async () => {
     const user = userEvent.setup();
     renderPage([
-      legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", [
-        record("summoner-skirmish", { bestRank: 5 }),
-      ]),
-      legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", [
-        record("summoner-skirmish", { bestRank: 1, won: true }),
-      ]),
+      legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", {
+        bestFinish: rankedBest(5),
+      }),
+      legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", {
+        bestFinish: rankedBest(1),
+        eventWins: 1,
+      }),
     ]);
     await user.click(screen.getByRole("button", { name: "Sort by best finish in this scope" }));
     expect(captured.navigated).toEqual([expect.objectContaining({ by: "best", dir: "asc" })]);
@@ -197,12 +204,13 @@ describe("MetaLegendsPage", () => {
   it("renders the reader's chosen order from the URL", () => {
     renderPage(
       [
-        legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", [
-          record("summoner-skirmish", { bestRank: 5 }),
-        ]),
-        legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", [
-          record("summoner-skirmish", { bestRank: 1, won: true }),
-        ]),
+        legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", {
+          bestFinish: rankedBest(5),
+        }),
+        legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", {
+          bestFinish: rankedBest(1),
+          eventWins: 1,
+        }),
       ],
       { by: "best", dir: "asc" },
     );
@@ -212,22 +220,17 @@ describe("MetaLegendsPage", () => {
     ]);
   });
 
-  it("drops a legend with no finish inside the scope", () => {
+  it("counts the legends the scope matched against the whole archive", () => {
     renderPage(
-      [
-        legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", [
-          record("competitive-event"),
-        ]),
-        legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", [record("store-event")]),
-      ],
+      [legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest")],
       { tiers: ["competitive"] },
-      [
-        event({ id: "e1", slug: "competitive-event", tier: "competitive" }),
-        event({ id: "e2", slug: "store-event", tier: "local" }),
-      ],
+      1,
+      217,
     );
+
     expect(rowLinks()).toEqual(["/meta/legends/kennen-heart-of-the-tempest"]);
-    expect(screen.getByText("1 of 2 legends")).toBeInTheDocument();
+    expect(screen.getByText("1 of 217 legends")).toBeInTheDocument();
+    expect(captured.scopes.at(-1)).toMatchObject({ tiers: ["competitive"] });
   });
 
   it("narrows to the legends whose name matches the query", () => {
@@ -237,22 +240,42 @@ describe("MetaLegendsPage", () => {
         legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands"),
       ],
       { q: "kennen" },
+      2,
+      217,
     );
     expect(screen.getAllByText("Kennen").length).toBeGreaterThan(0);
     expect(screen.queryByText("Azir")).not.toBeInTheDocument();
-    expect(screen.getByText("1 of 2 legends")).toBeInTheDocument();
+    expect(screen.getByText("1 of 217 legends")).toBeInTheDocument();
   });
 
-  it("says so when nothing matches instead of showing an empty table", () => {
-    renderPage([legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest")], {
-      q: "teemo",
-    });
+  it("keeps the query reachable when the name query matched nothing", () => {
+    renderPage(
+      [legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest")],
+      { q: "teemo" },
+      1,
+      217,
+    );
+
+    expect(screen.getByText("0 of 217 legends")).toBeInTheDocument();
     expect(screen.getByText("No legend matches these filters.")).toBeInTheDocument();
+    expect(screen.queryByText("No legends on record yet")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search legends")).toBeInTheDocument();
   });
 
-  it("explains an archive with no standings yet", () => {
-    renderPage([]);
+  it("explains an archive that holds no legend at all", () => {
+    renderPage([], {}, 0, 0);
+
     expect(screen.getByText("No legends on record yet")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search legends")).not.toBeInTheDocument();
+  });
+
+  it("keeps the filters reachable when the scope holds no legend", () => {
+    renderPage([], { tiers: ["premier"] }, 0, 217);
+
+    expect(screen.getByText("0 of 217 legends")).toBeInTheDocument();
+    expect(screen.getByText("No legend matches these filters.")).toBeInTheDocument();
+    expect(screen.queryByText("No legends on record yet")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search legends")).toBeInTheDocument();
   });
 
   it("asks for the era the scope names rather than the whole archive", () => {
@@ -261,24 +284,6 @@ describe("MetaLegendsPage", () => {
       from: "2026-08-01",
       to: "2026-09-30",
     });
-    expect(captured.ranges).toContainEqual({ from: "2026-08-01", to: "2026-09-30" });
-  });
-
-  it("drops a record whose event the fetched era left out", () => {
-    renderPage(
-      [
-        legend("Kennen, Heart of the Tempest", "kennen-heart-of-the-tempest", [
-          record("summoner-skirmish"),
-        ]),
-        legend("Azir, Emperor of the Sands", "azir-emperor-of-the-sands", [
-          record("worlds-2025", { bestRank: 1, won: true }),
-        ]),
-      ],
-      {},
-      [event()],
-    );
-    expect(screen.getAllByText("Kennen").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Azir")).not.toBeInTheDocument();
-    expect(screen.getByText("1 of 2 legends")).toBeInTheDocument();
+    expect(captured.scopes.at(-1)).toMatchObject({ from: "2026-08-01", to: "2026-09-30" });
   });
 });

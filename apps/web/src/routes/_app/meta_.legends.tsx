@@ -4,8 +4,8 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { META_LEGENDS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import { metaLegendsSearchSchema } from "@/features/meta/lib/meta-legends-search";
-import { metaEventsQueryOptions, metaLegendsQueryOptions } from "@/features/meta/lib/meta-queries";
-import { deriveSetEras, resolveScopeRange } from "@/features/meta/lib/meta-scope";
+import { metaLegendsQueryOptions } from "@/features/meta/lib/meta-queries";
+import { deriveSetEras, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -14,9 +14,19 @@ import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/meta_/legends")({
   validateSearch: metaLegendsSearchSchema,
-  // Only the window: the facets and the search box narrow the fetched era in
-  // the browser.
-  loaderDeps: ({ search }) => ({ era: search.era, from: search.from, to: search.to }),
+  // The whole scope: the API folds each legend's record under it. The search
+  // box stays out, narrowing the entries in the browser.
+  loaderDeps: ({ search }) => ({
+    era: search.era,
+    from: search.from,
+    to: search.to,
+    formats: search.formats,
+    formatsEx: search.formatsEx,
+    tiers: search.tiers,
+    tiersEx: search.tiersEx,
+    countries: search.countries,
+    countriesEx: search.countriesEx,
+  }),
   head: () => {
     const siteUrl = getSiteUrl();
     return {
@@ -48,11 +58,10 @@ export const Route = createFileRoute("/_app/meta_/legends")({
       ...publicSetListQueryOptions,
       staleTime: "static",
     });
-    const range = resolveScopeRange(deps, deriveSetEras(sets.sets));
+    const scope = metaScopeQueryFromScope(deps, deriveSetEras(sets.sets));
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-      context.queryClient.query({ ...metaLegendsQueryOptions, staleTime: "static" }),
-      context.queryClient.query({ ...metaEventsQueryOptions(range), staleTime: "static" }),
+      context.queryClient.query({ ...metaLegendsQueryOptions(scope), staleTime: "static" }),
     ]);
   },
   errorComponent: RouteErrorFallback,

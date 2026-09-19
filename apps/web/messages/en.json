@@ -5835,6 +5835,7 @@
   "meta_sort_cheapest": "Cheapest to complete",
   "meta_sort_lowest_value": "Lowest value",
   "meta_sort_highest_value": "Highest value",
+  "meta_sort_page_only": "Prices are worked out in your browser, so this orders the page you are on.",
   "tier_lists_add_tier": "Add a tier",
   "tier_lists_add_unranked_row": "Add an unranked row",
   "tier_lists_row_label_aria": "Tier {position} label",
@@ -6525,7 +6526,15 @@
   "meta_legend_finishes_best_per_legend": "Best finish per legend",
   "meta_legend_finishes_deck": "Deck",
   "meta_show_fewer": "Show fewer",
-  "meta_show_all_n": "Show all {count}",
+  "meta_show_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Show all {countFormatted}"
+      }
+    }
+  ],
   "meta_deck_incomplete_title": "This list is incomplete",
   "meta_deck_copying": "Copying…",
   "meta_deck_copy_played": "{player} played this deck at {event} on {date}.",
@@ -7013,6 +7022,20 @@
       }
     }
   ],
+  "meta_shown_decks_page": [
+    {
+      "declarations": [
+        "input shown",
+        "local shownPlural = shown: plural",
+        "local shownFormatted = shown: number"
+      ],
+      "selectors": ["shownPlural"],
+      "match": {
+        "shownPlural=one": "{shownFormatted} deck on this page",
+        "shownPlural=*": "{shownFormatted} decks on this page"
+      }
+    }
+  ],
   "meta_filter_any_finish": "Any finish",
   "meta_filter_legend": "Legend",
   "meta_filter_event": "Event",
@@ -7030,9 +7053,16 @@
   "meta_events_empty_title": "No events archived yet",
   "meta_events_empty_description": "Standings and decklists land here as soon as an event is entered.",
   "meta_events_no_match": "No events match these filters.",
+  "meta_events_pages_aria": "Event pages",
+  "pager_previous_page": "Previous page",
+  "pager_next_page": "Next page",
+  "meta_page_past_end": "This page is past the end of the results.",
+  "meta_events_per_page_aria": "Events per page",
+  "meta_events_per_page": "Show {size}",
   "meta_events_holdings_any": "Any events",
   "meta_events_holdings_decks": "With decklists",
   "meta_events_holdings_standings": "With standings",
+  "meta_events_holdings_resultless": "Without results",
   "meta_events_holdings_aria": "Archive holdings",
   "meta_events_players_label": "Players",
   "meta_events_players_min": "Min",
@@ -7066,11 +7096,24 @@
   "meta_standings_none": "No standings on file for this event yet.",
   "meta_standings_which_entries": "Which entries to show",
   "meta_standings_all_entries": "All entries",
-  "meta_standings_with_decklist": "With decklist ({count})",
+  "meta_standings_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "With decklist ({countFormatted})"
+      }
+    }
+  ],
   "meta_standings_find_player": "Find a player",
   "meta_standings_find_player_placeholder": "Find a player…",
   "meta_standings_filter_legend": "Filter by legend",
   "meta_standings_no_entries": "No entries match.",
+  "meta_standings_cost_none_on_page": "No entry on this page is within the price filter. Prices are worked out in your browser, so it only narrows the page you are on.",
+  "meta_standings_pages_aria": "Standings pages",
+  "meta_standings_per_page_aria": "Entries per page",
+  "meta_standings_per_page": "Show {size}",
+  "meta_standings_per_all": "all",
   "meta_pending_in_review": "In review",
   "meta_pending_yours_in_review": "Yours, in review",
   "meta_pending_update_in_review": "An update to this list is in review",
@@ -7489,10 +7532,34 @@
       }
     }
   ],
-  "meta_front_browse_all": "Browse all {count}",
-  "meta_front_browse_all_events": "Browse all {count} events",
+  "meta_front_browse_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Browse all {countFormatted}"
+      }
+    }
+  ],
+  "meta_front_browse_all_events": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Browse all {countFormatted} events"
+      }
+    }
+  ],
   "meta_front_coming_up": "Coming up",
-  "meta_front_all_n": "All {count}",
+  "meta_front_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "All {countFormatted}"
+      }
+    }
+  ],
   "meta_front_fresh": "Fresh in the archive",
   "meta_cost_buildable_now": "Buildable now",
   "meta_cost_to_complete_max": "≤ {amount} to complete",
@@ -7506,6 +7573,7 @@
   "meta_cost_presets": "Cost to complete presets",
   "meta_cost_max_aria": "Maximum cost to complete",
   "meta_cost_any": "Any",
+  "meta_cost_page_only": "Prices are worked out in your browser, so this narrows the page you are on.",
   "meta_cost_deck_value": "Deck value",
   "meta_cost_deck_value_presets": "Deck value presets",
   "meta_cost_deck_value_range_aria": "Deck value range",
@@ -7519,7 +7587,20 @@
   "meta_run_col_list": "List",
   "meta_run_title_win": "Road to the title",
   "meta_run_title": "Tournament run",
-  "meta_run_of_players": "of {count} players",
+  "meta_run_of_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "of {countFormatted} player",
+        "countPlural=*": "of {countFormatted} players"
+      }
+    }
+  ],
   "meta_run_final_record": "final record",
   "meta_run_rounds_played": "rounds played",
   "meta_run_swiss": "Swiss",
@@ -7542,6 +7623,9 @@
   "meta_browser_best_per_legend": "Best list per legend",
   "meta_browser_every_list": "Every list",
   "meta_browser_no_match": "No decks match these filters.",
+  "meta_browser_pages_aria": "Deck pages",
+  "meta_browser_per_page_aria": "Decks per page",
+  "meta_browser_per_page": "Show {size}",
   "meta_browser_layout": "Layout",
   "meta_browser_sort": "Sort",
   "meta_browser_title": "Archived decks",
@@ -8470,7 +8554,20 @@
   "meta_col_date": "Date",
   "meta_event_contribute_sign_in": "Sign in to add a decklist",
   "meta_event_contribute_add": "Add a decklist",
-  "meta_event_contribute_missing": "{missing} of {total} entries are still missing their decklist. Contributors are credited on every event.",
+  "meta_event_contribute_missing": [
+    {
+      "declarations": [
+        "input missing",
+        "input total",
+        "local missingFormatted = missing: number",
+        "local totalFormatted = total: number"
+      ],
+      "selectors": ["missingFormatted", "totalFormatted"],
+      "match": {
+        "missingFormatted=*,totalFormatted=*": "{missingFormatted} of {totalFormatted} entries are still missing their decklist. Contributors are credited on every event."
+      }
+    }
+  ],
   "meta_deck_preview_sign_in_compare": "Sign in to compare with your collection",
   "meta_deck_preview_open_deck": "Open deck",
   "meta_event_header_champion": "Champion",
@@ -8489,11 +8586,15 @@
   "meta_front_scope_empty": "No results on file for this scope yet.",
   "meta_front_resultless": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "There is {count} more event without results.",
-        "countPlural=*": "There are {count} more events without results."
+        "countPlural=one": "There is {countFormatted} more event without results.",
+        "countPlural=*": "There are {countFormatted} more events without results."
       }
     }
   ],
@@ -8891,6 +8992,145 @@
       "match": {
         "countPlural=one": "{count} card stays on your {source} and is also added to your {target}.",
         "countPlural=*": "{count} cards stay on your {source} and are also added to your {target}."
+      }
+    }
+  ],
+  "meta_standings_count_entries": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} entry",
+        "countPlural=*": "{countFormatted} entries"
+      }
+    }
+  ],
+  "meta_standings_count_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} with a decklist"
+      }
+    }
+  ],
+  "meta_count_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} event",
+        "countPlural=*": "{countFormatted} events"
+      }
+    }
+  ],
+  "meta_count_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} decklist",
+        "countPlural=*": "{countFormatted} decklists"
+      }
+    }
+  ],
+  "meta_count_event_wins": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} event win",
+        "countPlural=*": "{countFormatted} event wins"
+      }
+    }
+  ],
+  "meta_count_finishes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} finish",
+        "countPlural=*": "{countFormatted} finishes"
+      }
+    }
+  ],
+  "meta_player_legends_without_legend": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} finish has no legend on file",
+        "countPlural=*": "{countFormatted} finishes have no legend on file"
+      }
+    }
+  ],
+  "meta_run_count_rounds": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} round",
+        "countPlural=*": "{countFormatted} rounds"
+      }
+    }
+  ],
+  "meta_run_best_of": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "best of {countFormatted}"
+      }
+    }
+  ],
+  "meta_upcoming_registered": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} registered",
+        "countPlural=*": "{countFormatted} registered"
+      }
+    }
+  ],
+  "meta_deck_of_field": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "of {countFormatted}"
       }
     }
   ]

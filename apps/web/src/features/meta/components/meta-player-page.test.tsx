@@ -111,6 +111,8 @@ vi.mock("@/features/meta/components/meta-scope-bar", () => ({
 }));
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
+import { DECK_GRID_ALL_LIMIT } from "@/features/meta/lib/meta-deck-grid";
+// oxlint-disable-next-line import/first -- must import after vi.mock
 import { makeMetaPlayerDetail, makeMetaPlayerFinish, resetIdCounter } from "@/test/factories";
 
 // oxlint-disable-next-line import/first -- must import after vi.mock
@@ -264,6 +266,7 @@ describe("MetaPlayerPage", () => {
       formats: ["constructed"],
       tiers: ["premier"],
       player: "pnrenata",
+      limit: DECK_GRID_ALL_LIMIT,
     });
   });
 

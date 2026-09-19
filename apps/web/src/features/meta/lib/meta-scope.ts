@@ -1,7 +1,9 @@
 /* oxlint-disable unicorn/no-useless-undefined, promise/prefer-await-to-then, unicorn/prefer-top-level-await -- zod's `.catch(undefined)` is a sync fallback, not a Promise#catch */
+import { MAX_FACET_VALUES } from "@openrift/shared/contracts/meta";
+import { isoDate } from "@openrift/shared/schemas";
 import type { SetReleases } from "@openrift/shared/set-release";
 import { earliestRelease, todayUtc } from "@openrift/shared/set-release";
-import type { MetaScopeQuery } from "@openrift/shared/types/api/meta";
+import type { MetaEventFilterQuery, MetaScopeQuery } from "@openrift/shared/types/api/meta";
 import { z } from "zod";
 
 import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
@@ -9,7 +11,13 @@ import { cycleIncludeExclude } from "@/features/cards/lib/filter-cycle";
 /** Must accept a bare string as a one-element list: old links used a scalar param. */
 const facetList = () =>
   z
-    .union([z.string().transform((value) => [value]), z.array(z.string())])
+    .union([
+      z
+        .string()
+        .min(1)
+        .transform((value) => [value]),
+      z.array(z.string().min(1)).max(MAX_FACET_VALUES),
+    ])
     .optional()
     .catch(undefined);
 
@@ -21,8 +29,8 @@ const facetList = () =>
  */
 export const metaScopeSearchSchema = z.object({
   era: z.string().optional().catch(undefined),
-  from: z.string().optional().catch(undefined),
-  to: z.string().optional().catch(undefined),
+  from: isoDate.optional().catch(undefined),
+  to: isoDate.optional().catch(undefined),
   formats: facetList(),
   formatsEx: facetList(),
   tiers: facetList(),
@@ -52,18 +60,6 @@ export interface MetaEra {
 export interface MetaDateRange {
   from?: string;
   to?: string;
-}
-
-/**
- * Which archived decks a browser asks the API for: the whole scope, plus who
- * the rows belong to and how many to send. The facets ride along un-applied;
- * the answer already matches the scope.
- */
-export interface MetaDeckQuery extends MetaScopeQuery {
-  legend?: string;
-  /** As `/meta/players/{key}` spells it. */
-  player?: string;
-  limit?: number;
 }
 
 /**
@@ -336,6 +332,33 @@ export function metaScopeQueryFromScope(
     if (excluded.length > 0) {
       query[SCOPE_EXCLUDE_KEYS[facet]] = [...excluded];
     }
+  }
+  return query;
+}
+
+/** The page's whole narrowing as the API takes it: the scope bar plus the index's own controls. */
+export function metaEventFilterQuery(
+  search: MetaScope & {
+    q?: string;
+    holds?: MetaEventFilterQuery["holds"];
+    playersMin?: number;
+    playersMax?: number;
+  },
+  eras: readonly MetaEra[],
+): MetaEventFilterQuery {
+  const query: MetaEventFilterQuery = metaScopeQueryFromScope(search, eras);
+  const needle = search.q?.trim() ?? "";
+  if (needle !== "") {
+    query.q = needle;
+  }
+  if (search.holds !== undefined) {
+    query.holds = search.holds;
+  }
+  if (search.playersMin !== undefined) {
+    query.playersMin = search.playersMin;
+  }
+  if (search.playersMax !== undefined) {
+    query.playersMax = search.playersMax;
   }
   return query;
 }

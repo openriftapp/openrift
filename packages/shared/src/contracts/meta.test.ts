@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_FACET_VALUES,
   metaDateRangeQuerySchema,
   metaDeckQuerySchema,
   metaLegendQuerySchema,
@@ -71,6 +72,8 @@ describe("metaScopeQuerySchema", () => {
   });
 });
 
+const LEGEND_ID = "f0000000-0001-4000-a000-000000000001";
+
 describe("metaDeckQuerySchema", () => {
   it("accepts a request that names nothing", () => {
     expect(metaDeckQuerySchema.safeParse({}).success).toBe(true);
@@ -82,14 +85,14 @@ describe("metaDeckQuerySchema", () => {
 
   it("carries the scope's facets alongside the legend and the cap", () => {
     const parsed = metaDeckQuerySchema.parse({
-      legend: "card-id",
+      legend: LEGEND_ID,
       limit: "8",
       tiers: ["premier"],
       countriesEx: ["DE"],
     });
 
     expect(parsed).toEqual({
-      legend: "card-id",
+      legend: LEGEND_ID,
       limit: 8,
       tiers: ["premier"],
       countriesEx: ["DE"],
@@ -102,9 +105,9 @@ describe("metaDeckQuerySchema", () => {
   });
 
   it("keeps the legend and player keys", () => {
-    const parsed = metaDeckQuerySchema.parse({ legend: "card-id", player: "renata" });
+    const parsed = metaDeckQuerySchema.parse({ legend: LEGEND_ID, player: "renata" });
 
-    expect(parsed).toEqual({ legend: "card-id", player: "renata" });
+    expect(parsed).toEqual({ legend: LEGEND_ID, player: "renata" });
   });
 
   it.each([0, -1, 2.5, "many"])("rejects a limit of %s", (limit) => {
@@ -114,6 +117,30 @@ describe("metaDeckQuerySchema", () => {
   it("rejects an empty legend or player key", () => {
     expect(metaDeckQuerySchema.safeParse({ legend: "" }).success).toBe(false);
     expect(metaDeckQuerySchema.safeParse({ player: "" }).success).toBe(false);
+  });
+
+  it("rejects a legend the database could not compare against a card id", () => {
+    expect(metaDeckQuerySchema.safeParse({ legend: "card-id" }).success).toBe(false);
+    expect(metaDeckQuerySchema.safeParse({ legends: ["card-id"] }).success).toBe(false);
+  });
+
+  it("bounds the offset before a query can carry it in exponent form", () => {
+    expect(metaDeckQuerySchema.safeParse({ offset: 1_000_001 }).success).toBe(false);
+    expect(metaDeckQuerySchema.safeParse({ offset: 1e30 }).success).toBe(false);
+    expect(metaDeckQuerySchema.parse({ offset: 1_000_000 }).offset).toBe(1_000_000);
+  });
+
+  it("reads a curated flag off a query string as written, both ways", () => {
+    expect(metaDeckQuerySchema.parse({ curated: "true" }).curated).toBe(true);
+    expect(metaDeckQuerySchema.parse({ curated: "false" }).curated).toBe(false);
+    expect(metaDeckQuerySchema.parse({ curated: true }).curated).toBe(true);
+    expect(metaDeckQuerySchema.parse({}).curated).toBeUndefined();
+  });
+
+  it("offers no more facet values than it accepts back", () => {
+    const events = Array.from({ length: MAX_FACET_VALUES + 1 }, (_, index) => `event-${index}`);
+    expect(metaDeckQuerySchema.safeParse({ events }).success).toBe(false);
+    expect(metaDeckQuerySchema.safeParse({ events: events.slice(1) }).success).toBe(true);
   });
 });
 

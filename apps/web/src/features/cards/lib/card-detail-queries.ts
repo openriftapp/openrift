@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { cardsKeys } from "@/features/cards/lib/cards-query-keys";
 import { serverCache } from "@/lib/server-cache";
+import { notFoundError } from "@/lib/server-fns/api-error";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
 async function loadCardDetail(cardSlug: string): Promise<CardDetailResponse> {
@@ -17,7 +18,7 @@ async function loadCardDetail(cardSlug: string): Promise<CardDetailResponse> {
   const { error, data: detail } = await safe(apiOrpcClient(cardsContract).detail({ cardSlug }));
   if (error) {
     if (isDefinedError(error) && error.code === "NOT_FOUND") {
-      throw new Error("NOT_FOUND");
+      throw notFoundError();
     }
     throw error;
   }

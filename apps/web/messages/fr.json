@@ -5832,6 +5832,7 @@
   "meta_sort_cheapest": "Le moins cher à compléter",
   "meta_sort_lowest_value": "Valeur la plus basse",
   "meta_sort_highest_value": "Valeur la plus élevée",
+  "meta_sort_page_only": "Les prix sont calculés dans votre navigateur, donc ceci ne trie que la page affichée.",
   "tier_lists_add_tier": "Ajouter un tier",
   "tier_lists_add_unranked_row": "Ajouter une rangée non classée",
   "tier_lists_row_label_aria": "Libellé du tier {position}",
@@ -6522,7 +6523,15 @@
   "meta_legend_finishes_best_per_legend": "Meilleur classement par légende",
   "meta_legend_finishes_deck": "Deck",
   "meta_show_fewer": "Afficher moins",
-  "meta_show_all_n": "Afficher les {count}",
+  "meta_show_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Afficher les {countFormatted}"
+      }
+    }
+  ],
   "meta_deck_incomplete_title": "Cette liste est incomplète",
   "meta_deck_copying": "Copie en cours…",
   "meta_deck_copy_played": "{player} a joué ce deck à {event} le {date}.",
@@ -7010,6 +7019,20 @@
       }
     }
   ],
+  "meta_shown_decks_page": [
+    {
+      "declarations": [
+        "input shown",
+        "local shownPlural = shown: plural",
+        "local shownFormatted = shown: number"
+      ],
+      "selectors": ["shownPlural"],
+      "match": {
+        "shownPlural=one": "{shownFormatted} deck sur cette page",
+        "shownPlural=*": "{shownFormatted} decks sur cette page"
+      }
+    }
+  ],
   "meta_filter_any_finish": "Tout classement",
   "meta_filter_legend": "Légende",
   "meta_filter_event": "Événement",
@@ -7027,9 +7050,16 @@
   "meta_events_empty_title": "Aucun événement archivé pour l'instant",
   "meta_events_empty_description": "Classements et decklists apparaissent ici dès qu'un événement est saisi.",
   "meta_events_no_match": "Aucun événement ne correspond à ces filtres.",
+  "meta_events_pages_aria": "Pages d'événements",
+  "pager_previous_page": "Page précédente",
+  "pager_next_page": "Page suivante",
+  "meta_page_past_end": "Cette page se situe au-delà de la fin des résultats.",
+  "meta_events_per_page_aria": "Événements par page",
+  "meta_events_per_page": "Afficher {size}",
   "meta_events_holdings_any": "Tous les événements",
   "meta_events_holdings_decks": "Avec decklists",
   "meta_events_holdings_standings": "Avec classement",
+  "meta_events_holdings_resultless": "Sans résultats",
   "meta_events_holdings_aria": "Contenu des archives",
   "meta_events_players_label": "Joueurs",
   "meta_events_players_min": "Min",
@@ -7063,11 +7093,24 @@
   "meta_standings_none": "Aucun classement enregistré pour cet événement.",
   "meta_standings_which_entries": "Quelles entrées afficher",
   "meta_standings_all_entries": "Toutes les entrées",
-  "meta_standings_with_decklist": "Avec decklist ({count})",
+  "meta_standings_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Avec decklist ({countFormatted})"
+      }
+    }
+  ],
   "meta_standings_find_player": "Trouver un joueur",
   "meta_standings_find_player_placeholder": "Trouver un joueur…",
   "meta_standings_filter_legend": "Filtrer par légende",
   "meta_standings_no_entries": "Aucune entrée ne correspond.",
+  "meta_standings_cost_none_on_page": "Aucune entrée de cette page ne rentre dans le filtre de prix. Les prix sont calculés dans votre navigateur, donc le filtre ne s'applique qu'à la page affichée.",
+  "meta_standings_pages_aria": "Pages du classement",
+  "meta_standings_per_page_aria": "Entrées par page",
+  "meta_standings_per_page": "Afficher {size}",
+  "meta_standings_per_all": "tout",
   "meta_pending_in_review": "En vérification",
   "meta_pending_yours_in_review": "La vôtre, en vérification",
   "meta_pending_update_in_review": "Une mise à jour de cette liste est en vérification",
@@ -7387,10 +7430,34 @@
       }
     }
   ],
-  "meta_front_browse_all": "Voir les {count}",
-  "meta_front_browse_all_events": "Voir les {count} événements",
+  "meta_front_browse_all": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Voir les {countFormatted}"
+      }
+    }
+  ],
+  "meta_front_browse_all_events": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Voir les {countFormatted} événements"
+      }
+    }
+  ],
   "meta_front_coming_up": "Prochainement",
-  "meta_front_all_n": "Les {count}",
+  "meta_front_all_n": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "Les {countFormatted}"
+      }
+    }
+  ],
   "meta_front_fresh": "Nouveautés des archives",
   "meta_cost_buildable_now": "Constructible maintenant",
   "meta_cost_to_complete_max": "≤ {amount} pour compléter",
@@ -7404,6 +7471,7 @@
   "meta_cost_presets": "Préréglages de coût pour compléter",
   "meta_cost_max_aria": "Coût maximum pour compléter",
   "meta_cost_any": "Tout",
+  "meta_cost_page_only": "Les prix sont calculés dans votre navigateur, donc ceci ne filtre que la page affichée.",
   "meta_cost_deck_value": "Valeur du deck",
   "meta_cost_deck_value_presets": "Préréglages de valeur du deck",
   "meta_cost_deck_value_range_aria": "Plage de valeur du deck",
@@ -7417,7 +7485,20 @@
   "meta_run_col_list": "Liste",
   "meta_run_title_win": "La route vers le titre",
   "meta_run_title": "Parcours en tournoi",
-  "meta_run_of_players": "sur {count} joueurs",
+  "meta_run_of_players": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sur {countFormatted} joueur",
+        "countPlural=*": "sur {countFormatted} joueurs"
+      }
+    }
+  ],
   "meta_run_final_record": "bilan final",
   "meta_run_rounds_played": "rondes jouées",
   "meta_run_swiss": "Ronde suisse",
@@ -7440,6 +7521,9 @@
   "meta_browser_best_per_legend": "Meilleure liste par légende",
   "meta_browser_every_list": "Toutes les listes",
   "meta_browser_no_match": "Aucun deck ne correspond à ces filtres.",
+  "meta_browser_pages_aria": "Pages de decks",
+  "meta_browser_per_page_aria": "Decks par page",
+  "meta_browser_per_page": "Afficher {size}",
   "meta_browser_layout": "Disposition",
   "meta_browser_sort": "Trier",
   "meta_browser_title": "Decks archivés",
@@ -8368,7 +8452,20 @@
   "meta_col_date": "Date",
   "meta_event_contribute_sign_in": "Connectez-vous pour ajouter une decklist",
   "meta_event_contribute_add": "Ajouter une decklist",
-  "meta_event_contribute_missing": "Il manque encore la decklist pour {missing} entrées sur {total}. Les contributeurs sont crédités sur chaque événement.",
+  "meta_event_contribute_missing": [
+    {
+      "declarations": [
+        "input missing",
+        "input total",
+        "local missingFormatted = missing: number",
+        "local totalFormatted = total: number"
+      ],
+      "selectors": ["missingFormatted", "totalFormatted"],
+      "match": {
+        "missingFormatted=*,totalFormatted=*": "Il manque encore la decklist pour {missingFormatted} entrées sur {totalFormatted}. Les contributeurs sont crédités sur chaque événement."
+      }
+    }
+  ],
   "meta_deck_preview_sign_in_compare": "Connectez-vous pour comparer avec votre collection",
   "meta_deck_preview_open_deck": "Ouvrir le deck",
   "meta_event_header_champion": "Champion",
@@ -8387,11 +8484,15 @@
   "meta_front_scope_empty": "Aucun résultat enregistré pour cette sélection.",
   "meta_front_resultless": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "Il y a {count} autre événement sans résultats.",
-        "countPlural=*": "Il y a {count} autres événements sans résultats."
+        "countPlural=one": "Il y a {countFormatted} autre événement sans résultats.",
+        "countPlural=*": "Il y a {countFormatted} autres événements sans résultats."
       }
     }
   ],
@@ -8889,6 +8990,145 @@
       "match": {
         "countPlural=one": "{count} carte reste sur votre {source} et est aussi ajoutée à votre {target}.",
         "countPlural=*": "{count} cartes restent sur votre {source} et sont aussi ajoutées à votre {target}."
+      }
+    }
+  ],
+  "meta_standings_count_entries": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} entrée",
+        "countPlural=*": "{countFormatted} entrées"
+      }
+    }
+  ],
+  "meta_standings_count_with_decklist": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "{countFormatted} avec decklist"
+      }
+    }
+  ],
+  "meta_count_events": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} événement",
+        "countPlural=*": "{countFormatted} événements"
+      }
+    }
+  ],
+  "meta_count_decklists": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} decklist",
+        "countPlural=*": "{countFormatted} decklists"
+      }
+    }
+  ],
+  "meta_count_event_wins": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} victoire en événement",
+        "countPlural=*": "{countFormatted} victoires en événement"
+      }
+    }
+  ],
+  "meta_count_finishes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} classement",
+        "countPlural=*": "{countFormatted} classements"
+      }
+    }
+  ],
+  "meta_player_legends_without_legend": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} classement sans légende enregistrée",
+        "countPlural=*": "{countFormatted} classements sans légende enregistrée"
+      }
+    }
+  ],
+  "meta_run_count_rounds": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} ronde",
+        "countPlural=*": "{countFormatted} rondes"
+      }
+    }
+  ],
+  "meta_run_best_of": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "au meilleur des {countFormatted}"
+      }
+    }
+  ],
+  "meta_upcoming_registered": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural",
+        "local countFormatted = count: number"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{countFormatted} inscrit",
+        "countPlural=*": "{countFormatted} inscrits"
+      }
+    }
+  ],
+  "meta_deck_of_field": [
+    {
+      "declarations": ["input count", "local countFormatted = count: number"],
+      "selectors": ["countFormatted"],
+      "match": {
+        "countFormatted=*": "sur {countFormatted}"
       }
     }
   ]

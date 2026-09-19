@@ -32,8 +32,7 @@ export function MetaDeckFinish({ meta }: { meta: MetaDeckContext }) {
       </span>
       {field !== null && (
         <span className="text-muted-foreground text-xs tabular-nums">
-          {/* en-US pinned: a server on another locale would send "1.280" to a "1,280" browser. */}
-          of {field.toLocaleString("en-US")} players
+          {m.meta_run_of_players({ count: field })}
         </span>
       )}
       {record !== null && (

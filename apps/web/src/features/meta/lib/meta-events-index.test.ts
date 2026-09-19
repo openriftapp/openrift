@@ -1,320 +1,108 @@
-import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
+import type { MetaEventFacetsResponse } from "@openrift/shared/types/api/meta";
 import { describe, expect, it } from "vitest";
 
 import {
-  filterMetaEvents,
+  facetCountsFrom,
+  facetPresenceFrom,
+  holdingsCountsFrom,
   metaEventCountries,
-  metaEventFacetCounts,
-  metaEventHoldingsCounts,
   nextEventSort,
-  sortMetaEvents,
-} from "./meta-events-index";
-import type { MetaEra } from "./meta-scope";
-import { ERA_CUSTOM } from "./meta-scope";
+} from "@/features/meta/lib/meta-events-index";
 
-const ERAS: MetaEra[] = [
-  { id: "vendetta", label: "Vendetta", from: "2026-06-01", to: null },
-  { id: "origins", label: "Origins", from: "2025-10-31", to: "2026-05-31" },
-];
-
-function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
+function facets(overrides: Partial<MetaEventFacetsResponse> = {}): MetaEventFacetsResponse {
   return {
-    id: "e1",
-    slug: "summoner-skirmish-vienna",
-    name: "Summoner Skirmish at Cardhouse Vienna",
-    eventDate: "2026-08-29",
-    format: "constructed",
-    tier: "local",
-    status: "complete",
-    country: "AT",
-    location: "Vienna",
-    playerCount: 18,
-    organizer: "Cardhouse",
-    playerRowCount: 18,
-    deckCount: 4,
-    topFinishes: [],
+    formats: [{ value: "constructed", count: 12 }],
+    tiers: [
+      { value: "local", count: 9 },
+      { value: "premier", count: 3 },
+    ],
+    countries: [
+      { value: "DE", count: 7 },
+      { value: "FR", count: 2 },
+    ],
+    holdings: { all: 12, decks: 4, standings: 8, upcoming: 2, resultless: 2 },
+    totals: { events: 12, playerRows: 384, decks: 40 },
     ...overrides,
   };
 }
 
+describe("facetCountsFrom", () => {
+  it("keys each facet's count by the value the chip shows", () => {
+    const counts = facetCountsFrom(facets());
+
+    expect(counts.tiers.get("premier")).toBe(3);
+    expect(counts.formats.get("draft")).toBeUndefined();
+  });
+
+  it("keys a country by its normalized code, which is what the chip looks up", () => {
+    const counts = facetCountsFrom(facets());
+
+    expect(counts.countries.get("de")).toBe(7);
+    expect(counts.countries.get("DE")).toBeUndefined();
+  });
+
+  it("drops a country code no country answers to", () => {
+    const counts = facetCountsFrom(facets({ countries: [{ value: "???", count: 4 }] }));
+
+    expect([...counts.countries]).toEqual([]);
+  });
+});
+
+describe("facetPresenceFrom", () => {
+  it("offers a chip only the values the filtered events carry", () => {
+    const present = facetPresenceFrom(facets());
+
+    expect([...present.tiers]).toEqual(["local", "premier"]);
+    expect(present.countries.has("US")).toBe(false);
+  });
+
+  it("carries a country under its normalized code, which is what the chip looks up", () => {
+    const present = facetPresenceFrom(facets());
+
+    expect(present.countries.has("fr")).toBe(true);
+    expect(present.countries.has("FR")).toBe(false);
+  });
+});
+
+describe("holdingsCountsFrom", () => {
+  it("counts every choice, the unnarrowed one under the empty key", () => {
+    const counts = holdingsCountsFrom(facets());
+
+    expect(counts.get("")).toBe(12);
+    expect(counts.get("decks")).toBe(4);
+    expect(counts.get("standings")).toBe(8);
+    expect(counts.get("upcoming")).toBe(2);
+  });
+});
+
 describe("metaEventCountries", () => {
-  it("offers each country once, alphabetically, in upper case", () => {
-    const countries = metaEventCountries([
-      event({ country: "de" }),
-      event({ country: "AT" }),
-      event({ country: "DE" }),
-    ]);
-    expect(countries).toEqual(["AT", "DE"]);
+  it("offers each country the filtered events name, alphabetically", () => {
+    expect(metaEventCountries(["DE", "FR"], {})).toEqual(["DE", "FR"]);
   });
 
-  it("offers nothing for events no source gave a country", () => {
-    expect(metaEventCountries([event({ country: null }), event({ country: "??" })])).toEqual([]);
+  it("still offers a country the scope picked, so the reader can pick it back off", () => {
+    expect(metaEventCountries([], { countries: ["it"] })).toEqual(["IT"]);
+    expect(metaEventCountries([], { countriesEx: ["AT"] })).toEqual(["AT"]);
   });
 
-  it("offers nothing for an empty archive", () => {
-    expect(metaEventCountries([])).toEqual([]);
-  });
-});
-
-describe("filterMetaEvents", () => {
-  const events = [
-    event({ id: "a", name: "Regional Qualifier Barcelona", country: "ES", tier: "premier" }),
-    event({ id: "b", name: "City Challenge Cologne", country: "DE", tier: "competitive" }),
-    event({ id: "c", name: "Nexus Night", organizer: "Mana Vortex", location: "Rotterdam" }),
-  ];
-  const all = { scope: {}, eras: ERAS };
-
-  it("keeps everything when nothing narrows it", () => {
-    expect(filterMetaEvents(events, all)).toHaveLength(3);
-  });
-
-  it("matches the search against name, organizer and venue alike", () => {
-    expect(filterMetaEvents(events, { ...all, query: "barcelona" }).map((e) => e.id)).toEqual([
-      "a",
-    ]);
-    expect(filterMetaEvents(events, { ...all, query: "mana vortex" }).map((e) => e.id)).toEqual([
-      "c",
-    ]);
-    expect(filterMetaEvents(events, { ...all, query: "Rotterdam" }).map((e) => e.id)).toEqual([
-      "c",
-    ]);
-  });
-
-  it("ignores surrounding whitespace and an empty search", () => {
-    expect(filterMetaEvents(events, { ...all, query: "  " })).toHaveLength(3);
-    expect(filterMetaEvents(events, { ...all, query: "  cologne " }).map((e) => e.id)).toEqual([
-      "b",
-    ]);
-  });
-
-  it("narrows by tier and by country, whatever case the URL carries", () => {
-    expect(
-      filterMetaEvents(events, { ...all, scope: { tiers: ["premier"] } }).map((e) => e.id),
-    ).toEqual(["a"]);
-    expect(
-      filterMetaEvents(events, { ...all, scope: { countries: ["de"] } }).map((e) => e.id),
-    ).toEqual(["b"]);
-  });
-
-  it("narrows by player count and drops events with no known head count", () => {
-    const sized = [
-      event({ id: "small", playerCount: 8 }),
-      event({ id: "mid", playerCount: 32 }),
-      event({ id: "big", playerCount: 128 }),
-      event({ id: "unknown", playerCount: null }),
-    ];
-    expect(filterMetaEvents(sized, { ...all, playersMin: 16 }).map((e) => e.id)).toEqual([
-      "mid",
-      "big",
-    ]);
-    expect(filterMetaEvents(sized, { ...all, playersMax: 32 }).map((e) => e.id)).toEqual([
-      "small",
-      "mid",
-    ]);
-    expect(
-      filterMetaEvents(sized, { ...all, playersMin: 16, playersMax: 32 }).map((e) => e.id),
-    ).toEqual(["mid"]);
-    expect(filterMetaEvents(sized, all).map((e) => e.id)).toContain("unknown");
-  });
-
-  it("narrows to the events the archive already holds something for", () => {
-    const holdings = [
-      event({ id: "listed", playerRowCount: 18, deckCount: 4 }),
-      event({ id: "standings-only", playerRowCount: 18, deckCount: 0 }),
-      event({ id: "pending", playerRowCount: 0, deckCount: 0 }),
-    ];
-    expect(filterMetaEvents(holdings, { ...all, holds: "decks" }).map((e) => e.id)).toEqual([
-      "listed",
-    ]);
-    expect(filterMetaEvents(holdings, { ...all, holds: "standings" }).map((e) => e.id)).toEqual([
-      "listed",
-      "standings-only",
-    ]);
-    expect(filterMetaEvents(holdings, all)).toHaveLength(3);
-  });
-
-  it("narrows to events that have not happened yet", () => {
-    const spread = [
-      event({ id: "future", eventDate: "2026-09-01" }),
-      event({ id: "today", eventDate: "2026-08-31" }),
-      event({ id: "past", eventDate: "2026-08-30" }),
-    ];
-    expect(
-      filterMetaEvents(spread, { ...all, holds: "upcoming", today: "2026-08-31" }).map((e) => e.id),
-    ).toEqual(["future"]);
-  });
-
-  it("narrows by format", () => {
-    const mixed = [event({ id: "a" }), event({ id: "b", format: "limited" })];
-    expect(
-      filterMetaEvents(mixed, { ...all, scope: { formats: ["limited"] } }).map((e) => e.id),
-    ).toEqual(["b"]);
-  });
-
-  it("narrows to an era's own window", () => {
-    const spread = [
-      event({ id: "old", eventDate: "2026-02-01" }),
-      event({ id: "new", eventDate: "2026-08-29" }),
-    ];
-    expect(
-      filterMetaEvents(spread, { ...all, scope: { era: "origins" } }).map((e) => e.id),
-    ).toEqual(["old"]);
-  });
-
-  it("narrows to a custom range, inclusive at both ends", () => {
-    const spread = [
-      event({ id: "before", eventDate: "2026-07-31" }),
-      event({ id: "first", eventDate: "2026-08-01" }),
-      event({ id: "last", eventDate: "2026-08-31" }),
-      event({ id: "after", eventDate: "2026-09-01" }),
-    ];
-    const scope = { era: ERA_CUSTOM, from: "2026-08-01", to: "2026-08-31" };
-    expect(filterMetaEvents(spread, { ...all, scope }).map((e) => e.id)).toEqual(["first", "last"]);
-  });
-
-  it("keeps nothing when the search matches nothing", () => {
-    expect(filterMetaEvents(events, { ...all, query: "Piltover" })).toEqual([]);
-  });
-
-  it("keeps nothing from an empty archive", () => {
-    expect(filterMetaEvents([], { ...all, query: "anything" })).toEqual([]);
-  });
-});
-
-describe("metaEventFacetCounts", () => {
-  const events = [
-    event({ id: "a", country: "ES", tier: "premier", deckCount: 3 }),
-    event({ id: "b", country: "DE", tier: "competitive", deckCount: 0 }),
-    event({ id: "c", country: "de", tier: "premier", deckCount: 1 }),
-  ];
-
-  it("counts each value with the other facets applied and its own lifted", () => {
-    const counts = metaEventFacetCounts(events, { scope: { tiers: ["premier"] }, eras: ERAS });
-    expect(counts.tiers.get("premier")).toBe(2);
-    expect(counts.tiers.get("competitive")).toBe(1);
-    expect(counts.countries.get("de")).toBe(1);
-    expect(counts.countries.get("es")).toBe(1);
-  });
-
-  it("applies the page's own narrowing before counting", () => {
-    const counts = metaEventFacetCounts(events, { scope: {}, eras: ERAS, holds: "decks" });
-    expect(counts.tiers.get("competitive")).toBeUndefined();
-    expect(counts.countries.get("de")).toBe(1);
-  });
-
-  it("counts holdings choices with the current choice lifted", () => {
-    const counts = metaEventHoldingsCounts(events, { scope: {}, eras: ERAS, holds: "decks" });
-    expect(counts.get("")).toBe(3);
-    expect(counts.get("decks")).toBe(2);
-    expect(counts.get("standings")).toBe(3);
-    expect(counts.get("upcoming")).toBeUndefined();
-  });
-});
-
-describe("sortMetaEvents", () => {
-  const events = [
-    event({ id: "mid", name: "Beta", eventDate: "2026-05-01", playerRowCount: 50, deckCount: 5 }),
-    event({ id: "new", name: "Alpha", eventDate: "2026-08-01", playerRowCount: 10, deckCount: 1 }),
-    event({ id: "old", name: "Gamma", eventDate: "2026-01-01", playerRowCount: 90, deckCount: 9 }),
-  ];
-
-  it("orders newest first by default", () => {
-    expect(sortMetaEvents(events).map((e) => e.id)).toEqual(["new", "mid", "old"]);
-  });
-
-  it("reverses on the ascending direction", () => {
-    expect(sortMetaEvents(events, "date", "asc").map((e) => e.id)).toEqual(["old", "mid", "new"]);
-  });
-
-  it("orders by name, players and decks", () => {
-    expect(sortMetaEvents(events, "name", "asc").map((e) => e.id)).toEqual(["new", "mid", "old"]);
-    expect(sortMetaEvents(events, "players", "desc").map((e) => e.id)).toEqual([
-      "old",
-      "mid",
-      "new",
-    ]);
-    expect(sortMetaEvents(events, "decks", "asc").map((e) => e.id)).toEqual(["new", "mid", "old"]);
-  });
-
-  it("puts the tiers that count for most first when ascending", () => {
-    const tiers = [
-      event({ id: "local-a", name: "A", tier: "local" }),
-      event({ id: "premier", name: "B", tier: "premier" }),
-      event({ id: "local-c", name: "C", tier: "local" }),
-      event({ id: "competitive", name: "D", tier: "competitive" }),
-    ];
-    expect(sortMetaEvents(tiers, "tier", "asc").map((e) => e.id)).toEqual([
-      "premier",
-      "competitive",
-      "local-a",
-      "local-c",
-    ]);
-  });
-
-  it("leaves an unrecorded country last in both directions", () => {
-    const countries = [
-      event({ id: "none", name: "A", country: null }),
-      event({ id: "es", name: "B", country: "ES" }),
-      event({ id: "at", name: "C", country: "AT" }),
-    ];
-    expect(sortMetaEvents(countries, "country", "asc").map((e) => e.id)).toEqual([
-      "at",
-      "es",
-      "none",
-    ]);
-    expect(sortMetaEvents(countries, "country", "desc").map((e) => e.id)).toEqual([
-      "es",
-      "at",
-      "none",
-    ]);
-  });
-
-  it("breaks ties on the event name so the order never reshuffles", () => {
-    const sameDay = [
-      event({ id: "z", name: "Zaun Open", eventDate: "2026-08-01" }),
-      event({ id: "p", name: "Piltover Open", eventDate: "2026-08-01" }),
-    ];
-    expect(sortMetaEvents(sameDay, "date", "desc").map((e) => e.id)).toEqual(["p", "z"]);
-  });
-
-  it("leaves the caller's array untouched", () => {
-    const original = [...events];
-    sortMetaEvents(events, "name", "asc");
-    expect(events).toEqual(original);
-  });
-
-  it("sorts an empty archive to an empty list", () => {
-    expect(sortMetaEvents([], "players", "asc")).toEqual([]);
+  it("drops a code no country answers to", () => {
+    expect(metaEventCountries(["??"], {})).toEqual([]);
   });
 });
 
 describe("nextEventSort", () => {
-  it("flips the direction when the same column is clicked again", () => {
+  it("flips the direction on the active column", () => {
     expect(nextEventSort({ sort: "date", direction: "desc" }, "date")).toEqual({
       sort: "date",
       direction: "asc",
     });
-    expect(nextEventSort({ sort: "date", direction: "asc" }, "date")).toEqual({
-      sort: "date",
-      direction: "desc",
-    });
   });
 
-  it("starts a count column at its biggest values", () => {
-    expect(nextEventSort({ sort: "date", direction: "desc" }, "players")).toEqual({
-      sort: "players",
-      direction: "desc",
-    });
-  });
+  it("starts a new column at its most interesting order", () => {
+    const from = { sort: "name", direction: "asc" } as const;
 
-  it("starts a name or tier column at the top of its scale", () => {
-    expect(nextEventSort({ sort: "date", direction: "desc" }, "name")).toEqual({
-      sort: "name",
-      direction: "asc",
-    });
-    expect(nextEventSort({ sort: "date", direction: "desc" }, "tier")).toEqual({
-      sort: "tier",
-      direction: "asc",
-    });
+    expect(nextEventSort(from, "players")).toEqual({ sort: "players", direction: "desc" });
+    expect(nextEventSort(from, "decks")).toEqual({ sort: "decks", direction: "desc" });
+    expect(nextEventSort(from, "country")).toEqual({ sort: "country", direction: "asc" });
   });
 });

@@ -4,6 +4,7 @@ import type { MetaEventSummary, MetaSubmissionResult } from "@openrift/shared/ty
 import type { Printing } from "@openrift/shared/types/catalog";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2Icon, TriangleAlertIcon } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 import { useDeferredValue, useState } from "react";
 
 import {
@@ -30,11 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CatalogSearchCombobox } from "@/features/cards/components/card-search-dropdown";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useMetaEvents } from "@/features/meta/hooks/use-meta";
+import { useMetaEventPage, useMetaEventSearch } from "@/features/meta/hooks/use-meta";
 import type { MetaSubmissionOutcome } from "@/features/meta/hooks/use-meta-submissions";
 import { useSubmitMetaDeck } from "@/features/meta/hooks/use-meta-submissions";
 import { formatRank, formatRecord } from "@/features/meta/lib/meta-format";
+import { metaSubmitEventQuery } from "@/features/meta/lib/meta-queries";
 import {
   metaSubmissionCompletenessLabels,
   metaSubmissionFormTitles,
@@ -110,6 +113,48 @@ function eventFacts(event: MetaEventSummary, formatLabel: string): string {
     facts.push(m.meta_submit_players({ count: event.playerCount }));
   }
   return facts.join(" · ");
+}
+
+function itemLabel(event: MetaEventSummary): string {
+  return `${event.name} · ${formatDay(event.eventDate)}`;
+}
+
+function EventPicker({
+  selected,
+  setSelected,
+}: {
+  selected: MetaEventSummary | undefined;
+  setSelected: Dispatch<SetStateAction<MetaEventSummary | undefined>>;
+}) {
+  const [query, setQuery] = useState("");
+  const { data } = useMetaEventSearch(query);
+
+  return (
+    <CatalogSearchCombobox<MetaEventSummary>
+      results={data?.events ?? []}
+      getKey={(event) => event.id}
+      renderItem={(event) => (
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate">{event.name}</span>
+          <span className="text-muted-foreground text-xs">{formatDay(event.eventDate)}</span>
+        </span>
+      )}
+      itemToInputValue={itemLabel}
+      initialQuery={selected === undefined ? undefined : itemLabel(selected)}
+      onSelect={setSelected}
+      onQueryChange={setQuery}
+      // Raw keystrokes, not the debounced query: a pick fills the input and
+      // fires this too, so read `prev` to keep a pick this render has not seen.
+      onRawInputChange={(value) => {
+        setSelected((prev) => (prev !== undefined && value !== itemLabel(prev) ? undefined : prev));
+      }}
+      id="meta-submit-event"
+      ariaLabel={m.meta_submit_event_label()}
+      placeholder={m.meta_submit_event_placeholder()}
+      emptyMessage={m.meta_events_no_match()}
+      className="w-full"
+    />
+  );
 }
 
 function LegendCheck({
@@ -276,20 +321,22 @@ export function MetaSubmitPage({
   slug?: string;
   prefill?: MetaSubmissionPrefill;
 }) {
-  const { data: eventsData } = useMetaEvents();
+  const { data: known } = useMetaEventPage(metaSubmitEventQuery(slug));
   const { allPrintings } = useCards();
   const { formats, labels: formatLabels } = useDeckFormatList();
   const submit = useSubmitMetaDeck();
 
-  const events = eventsData.events;
-  const eventFromSlug = slug === undefined ? undefined : events.find((row) => row.slug === slug);
+  const eventFromSlug = slug === undefined ? undefined : known.events[0];
+  // Only the unfiltered read answers this; a slug the archive does not hold
+  // narrows the same query to nothing.
+  const archiveIsEmpty = slug === undefined && known.total === 0;
   const row = prefill ?? {};
 
   const [draft, setDraft] = useState<MetaSubmissionDraft>(() =>
     metaSubmissionDraftFromPrefill(row),
   );
-  const [selectedEventId, setSelectedEventId] = useState<string>(eventFromSlug?.id ?? "");
-  const [proposing, setProposing] = useState(eventFromSlug === undefined && events.length === 0);
+  const [selectedEvent, setSelectedEvent] = useState<MetaEventSummary | undefined>(eventFromSlug);
+  const [proposing, setProposing] = useState(eventFromSlug === undefined && archiveIsEmpty);
   const [noteOpen, setNoteOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [result, setResult] = useState<MetaSubmissionResult | null>(null);
@@ -329,7 +376,8 @@ export function MetaSubmitPage({
       setFormError(problem);
       return;
     }
-    if (!proposing && selectedEventId === "") {
+    const event = proposing ? null : selectedEvent;
+    if (event === undefined) {
       setFormError(m.meta_submit_error_pick_event());
       return;
     }
@@ -338,13 +386,14 @@ export function MetaSubmitPage({
       return;
     }
 
-    const target = proposing
-      ? null
-      : {
-          metaEventId: selectedEventId,
-          metaEventPlayerId:
-            fromRow && selectedEventId === eventFromSlug?.id ? row.metaEventPlayerId : undefined,
-        };
+    const target =
+      event === null
+        ? null
+        : {
+            metaEventId: event.id,
+            metaEventPlayerId:
+              fromRow && event.id === eventFromSlug?.id ? row.metaEventPlayerId : undefined,
+          };
     const input = buildMetaSubmissionInput(draft, parsed, target);
     setFormError("");
     try {
@@ -356,11 +405,6 @@ export function MetaSubmitPage({
 
   function handleSendAnother() {
     setResult(null);
-  }
-
-  const eventItems: Record<string, string> = {};
-  for (const event of events) {
-    eventItems[event.id] = `${event.name} · ${formatDay(event.eventDate)}`;
   }
 
   const formatItems: Record<string, string> = {};
@@ -454,22 +498,7 @@ export function MetaSubmitPage({
                           <FieldLabel htmlFor="meta-submit-event">
                             {m.meta_submit_event_label()}
                           </FieldLabel>
-                          <Select
-                            items={eventItems}
-                            value={selectedEventId}
-                            onValueChange={(value) => setSelectedEventId((value as string) ?? "")}
-                          >
-                            <SelectTrigger id="meta-submit-event" className="w-full">
-                              <SelectValue placeholder={m.meta_submit_event_placeholder()} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(eventItems).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <EventPicker selected={selectedEvent} setSelected={setSelectedEvent} />
                           <FieldDescription>
                             <Button
                               type="button"

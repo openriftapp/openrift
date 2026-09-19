@@ -5,23 +5,47 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captured = vi.hoisted(() => ({
   events: [] as MetaEventSummary[],
+  matched: 0,
   totalEvents: 0,
-  ranges: [] as unknown[],
-  search: {} as Record<string, unknown>,
+  queries: [] as Record<string, unknown>[],
+  facetQueries: [] as unknown[],
   navigated: [] as Record<string, unknown>[],
 }));
 
-vi.mock("@tanstack/react-router", () => {
+/** The URL the route would carry, so paging re-renders the way navigation does. */
+const searchStore = vi.hoisted(() => {
+  let search: Record<string, unknown> = {};
+  const listeners = new Set<() => void>();
+  return {
+    read: () => search,
+    write: (next: Record<string, unknown>) => {
+      search = next;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+});
+
+vi.mock("@tanstack/react-router", async () => {
+  const react = await import("react");
   function Anchor({ children, ...rest }: { children?: React.ReactNode }) {
     return <a {...rest}>{children ?? "link"}</a>;
   }
   return {
     getRouteApi: () => ({
-      useSearch: () => captured.search,
+      useSearch: () =>
+        react.useSyncExternalStore(searchStore.subscribe, searchStore.read, searchStore.read),
       useNavigate:
         () =>
         ({ search }: { search: (prev: Record<string, unknown>) => Record<string, unknown> }) => {
-          captured.navigated.push(search(captured.search));
+          const next = search(searchStore.read());
+          captured.navigated.push(next);
+          searchStore.write(next);
         },
     }),
     Link: Anchor,
@@ -30,9 +54,28 @@ vi.mock("@tanstack/react-router", () => {
 });
 
 vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaEvents: (range?: unknown) => {
-    captured.ranges.push(range);
-    return { data: { events: captured.events } };
+  useMetaEventPage: (query: Record<string, unknown>) => {
+    captured.queries.push(query);
+    const offset = (query.offset as number | undefined) ?? 0;
+    const limit = (query.limit as number | undefined) ?? 50;
+    return {
+      data: {
+        events: captured.events.slice(offset, offset + limit),
+        total: captured.matched,
+      },
+    };
+  },
+  useMetaEventFacets: (query: unknown) => {
+    captured.facetQueries.push(query);
+    return {
+      data: {
+        formats: [],
+        tiers: [],
+        countries: [],
+        holdings: { all: captured.matched, decks: 0, standings: 0, upcoming: 0, resultless: 0 },
+        totals: { events: captured.matched, playerRows: 0, decks: 0 },
+      },
+    };
   },
   useMetaEventDayCounts: () => ({ data: { days: {} } }),
   useMetaCounts: () => ({
@@ -83,21 +126,36 @@ function event(overrides: Partial<MetaEventSummary> = {}): MetaEventSummary {
   };
 }
 
+/**
+ * The API pages and filters the index, so a render is told what the whole
+ * filter matches and hands back the slice the URL asks for.
+ */
+function renderPages(
+  events: MetaEventSummary[],
+  {
+    search = {},
+    matched = events.length,
+    totalEvents = matched,
+  }: { search?: Record<string, unknown>; matched?: number; totalEvents?: number } = {},
+) {
+  captured.events = events;
+  captured.matched = matched;
+  captured.totalEvents = totalEvents;
+  searchStore.write(search);
+  render(<MetaEventsPage />);
+  return {
+    navigateTo(next: Record<string, unknown>) {
+      searchStore.write(next);
+    },
+  };
+}
+
 function renderPage(
   events: MetaEventSummary[],
   search: Record<string, unknown> = {},
   totalEvents = events.length,
 ) {
-  captured.events = events;
-  captured.totalEvents = totalEvents;
-  captured.search = search;
-  const view = render(<MetaEventsPage />);
-  return {
-    navigateTo(next: Record<string, unknown>) {
-      captured.search = next;
-      view.rerender(<MetaEventsPage />);
-    },
-  };
+  return renderPages(events, { search, matched: events.length, totalEvents });
 }
 
 function winner(playerName: string): MetaEventSummary["topFinishes"][number] {
@@ -138,19 +196,26 @@ function rowNames(): string[] {
 
 beforeEach(() => {
   captured.events = [];
+  captured.matched = 0;
   captured.totalEvents = 0;
-  captured.ranges = [];
-  captured.search = {};
+  captured.queries = [];
+  captured.facetQueries = [];
   captured.navigated = [];
+  searchStore.write({});
 });
 
 describe("MetaEventsPage", () => {
-  it("lists every archived event, newest first", () => {
+  it("lists the page in the order the API sent it", () => {
     renderPage([
-      event({ id: "old", name: "City Challenge Lyon", eventDate: "2026-08-09" }),
       event({ id: "new", name: "Regional Qualifier Milan", eventDate: "2026-08-16" }),
+      event({ id: "old", name: "City Challenge Lyon", eventDate: "2026-08-09" }),
     ]);
     expect(rowNames()).toEqual(["Regional Qualifier Milan", "City Challenge Lyon"]);
+  });
+
+  it("asks for the newest first until the reader picks another column", () => {
+    renderPage([event()]);
+    expect(captured.queries.at(-1)).toMatchObject({ by: "date", dir: "desc" });
   });
 
   it("counts what the archive holds in the top bar", () => {
@@ -159,9 +224,32 @@ describe("MetaEventsPage", () => {
   });
 
   it("says how many of the archive a narrowed view is showing", () => {
-    renderPage([event({ id: "a" }), event({ id: "b", name: "Nexus Night" })], { q: "nexus" });
+    renderPages([event({ id: "b", name: "Nexus Night" })], {
+      search: { q: "nexus" },
+      matched: 1,
+      totalEvents: 2,
+    });
     expect(screen.getByText("1 of 2 archived events")).toBeDefined();
     expect(rowNames()).toEqual(["Nexus Night"]);
+  });
+
+  it("hands the whole narrowing to the API, the sort included", () => {
+    renderPage([event()], { q: "nexus", holds: "decks", playersMin: 8, by: "players", dir: "asc" });
+
+    expect(captured.queries.at(-1)).toMatchObject({
+      q: "nexus",
+      holds: "decks",
+      playersMin: 8,
+      by: "players",
+      dir: "asc",
+    });
+  });
+
+  it("asks for the facet counts under the same filter, minus the sort", () => {
+    renderPage([event()], { q: "nexus", by: "players" });
+
+    expect(captured.facetQueries.at(-1)).toMatchObject({ q: "nexus" });
+    expect(captured.facetQueries.at(-1)).not.toHaveProperty("by");
   });
 
   it("dates a row by month, day and year, so a multi-year archive reads unambiguously", () => {
@@ -221,46 +309,71 @@ describe("MetaEventsPage", () => {
     expect(captured.navigated.at(-1)).toMatchObject({ by: "players", dir: "asc" });
   });
 
-  it("offers the rest of a long archive rather than rendering all of it", async () => {
-    renderPage(manyEvents());
+  it("pages a long archive and reads the page from the URL", async () => {
+    renderPages(manyEvents(), { matched: 52 });
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(50);
-    await userEvent.click(screen.getByRole("button", { name: "2 more events" }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(52);
+    expect(rowNames()).toHaveLength(50);
+    await userEvent.click(screen.getByRole("button", { name: "2" }));
+
+    expect(captured.navigated.at(-1)).toMatchObject({ page: 2 });
+    expect(rowNames()).toHaveLength(2);
   });
 
-  it("keeps an expanded list expanded when the reader only reorders it", async () => {
-    const page = renderPage(manyEvents());
-    await userEvent.click(screen.getByRole("button", { name: "2 more events" }));
+  it("asks the API for the page the URL names", () => {
+    renderPages(manyEvents(), { search: { page: 2 }, matched: 52 });
 
-    page.navigateTo({ by: "name", dir: "asc" });
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(52);
+    expect(captured.queries.at(-1)).toMatchObject({ limit: 50, offset: 50 });
   });
 
-  it("collapses an expanded list back to the first page once the filters change", async () => {
-    const page = renderPage(manyEvents());
-    await userEvent.click(screen.getByRole("button", { name: "2 more events" }));
+  it("takes the page size from the URL and reopens at the first page", async () => {
+    const page = renderPages(manyEvents(), { search: { page: 2 }, matched: 52 });
+    page.navigateTo({ page: 2 });
 
-    page.navigateTo({ q: "Event" });
+    await userEvent.click(screen.getByLabelText("Events per page"));
+    await userEvent.click(await screen.findByRole("option", { name: "Show 100" }));
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(50);
+    expect(captured.navigated.at(-1)).toMatchObject({ per: 100 });
+    expect(captured.navigated.at(-1)?.page).toBeUndefined();
+  });
+
+  it("keeps the size picker when a large page size narrowed the archive to nothing", () => {
+    renderPages([], { search: { per: 500 }, matched: 0, totalEvents: 412 });
+
+    expect(screen.getByLabelText("Events per page")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Event pages" })).toBeNull();
+  });
+
+  it("offers no pager for an archive that fits on one page", () => {
+    renderPages([event()], { matched: 1 });
+
+    expect(screen.queryByRole("navigation", { name: "Event pages" })).toBeNull();
+  });
+
+  it("opens at the first page again once the filters change", async () => {
+    renderPages(manyEvents(), { search: { page: 2 }, matched: 52 });
+
+    await userEvent.click(screen.getByRole("button", { name: /sort by players/iu }));
+
+    expect(captured.navigated.at(-1)?.page).toBeUndefined();
   });
 
   it("tells a reader whose filters match nothing, without emptying the page", () => {
-    renderPage([event()], { q: "piltover" });
+    renderPages([], { search: { q: "piltover" }, matched: 0, totalEvents: 12 });
     expect(screen.getByText("No events match these filters.")).toBeDefined();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("measures the era it fetched against the whole archive, not against itself", () => {
-    renderPage([event({ id: "a" }), event({ id: "b", name: "Nexus Night" })], {}, 6266);
+    renderPages([event({ id: "a" }), event({ id: "b", name: "Nexus Night" })], {
+      matched: 2,
+      totalEvents: 6266,
+    });
     expect(screen.getByText("2 of 6,266 archived events")).toBeDefined();
   });
 
   it("asks for the era the scope names rather than the whole archive", () => {
     renderPage([event()], { era: "custom", from: "2026-03-01", to: "2026-09-30" });
-    expect(captured.ranges).toContainEqual({ from: "2026-03-01", to: "2026-09-30" });
+    expect(captured.queries.at(-1)).toMatchObject({ from: "2026-03-01", to: "2026-09-30" });
   });
 
   it("invites the first event when the archive is empty", () => {
@@ -270,14 +383,14 @@ describe("MetaEventsPage", () => {
   });
 
   it("lists only the events holding what the reader asked for", () => {
-    const events = [
-      event({ id: "listed", name: "With lists", deckCount: 4 }),
-      event({ id: "pending", name: "Nothing yet", playerRowCount: 0, deckCount: 0 }),
-    ];
-    renderPage(events, { holds: "decks" });
+    renderPages([event({ id: "listed", name: "With lists", deckCount: 4 })], {
+      search: { holds: "decks" },
+      matched: 1,
+      totalEvents: 2,
+    });
 
+    expect(captured.queries.at(-1)).toMatchObject({ holds: "decks" });
     expect(screen.getAllByText("With lists").length).toBeGreaterThan(0);
-    expect(screen.queryAllByText("Nothing yet")).toHaveLength(0);
     expect(screen.getByText("1 of 2 archived events")).toBeDefined();
   });
 

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import type { IconChipTone } from "@/components/ui/icon-chip";
 import { IconChip } from "@/components/ui/icon-chip";
 import { bestFinishHint, contributionsHint } from "@/features/groups/lib/user-profile-copy";
+import { formatCount } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 interface StatEntry {
@@ -24,7 +25,7 @@ function ProfileStat({ icon, tone, label, value, hint }: Omit<StatEntry, "key">)
         <IconChip icon={icon} tone={tone} />
         <span className="text-muted-foreground text-sm font-medium">{label}</span>
         <span className="font-heading ml-auto text-3xl font-semibold tabular-nums">
-          {value.toLocaleString("en-US")}
+          {formatCount(value)}
         </span>
       </div>
       {hint ? <span className="text-muted-foreground text-xs">{hint}</span> : null}

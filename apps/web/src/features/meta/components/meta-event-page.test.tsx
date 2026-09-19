@@ -2,34 +2,46 @@ import type {
   MetaEventDetail,
   MetaEventMatch,
   MetaEventPhase,
-  MetaEventPlayer,
+  MetaStandingsRow,
 } from "@openrift/shared/types/api/meta";
 import { render, screen } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { cloneElement, isValidElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { metaEvent, metaMatch, metaPhase, metaPlayer } from "@/test/meta-event-fixtures";
+import { metaEvent, metaMatch, metaPhase, metaRow } from "@/test/meta-event-fixtures";
 
 const captured = vi.hoisted(() => ({
   event: null as MetaEventDetail | null,
-  players: [] as MetaEventPlayer[],
-  matches: [] as MetaEventMatch[],
+  players: [] as MetaStandingsRow[],
+  cutMatches: [] as MetaEventMatch[],
   phases: [] as MetaEventPhase[],
   userId: null as string | null,
 }));
 
-vi.mock("@/features/meta/hooks/use-meta", () => ({
-  useMetaEvent: () => ({
-    data: {
-      event: captured.event,
-      players: captured.players,
-      matches: captured.matches,
-      phases: captured.phases,
-    },
-  }),
-  useMetaPendingSubmissions: () => ({ data: undefined }),
-}));
+vi.mock("@/features/meta/hooks/use-meta", async () => {
+  const fixtures = await import("@/test/meta-event-fixtures");
+  return {
+    useMetaEvent: () => ({
+      data: {
+        event: captured.event,
+        standings: { players: captured.players, total: captured.players.length },
+        field: fixtures.metaField({
+          withLists: captured.players.filter((player) => player.shareToken !== null).length,
+          hasLegends: captured.players.some((player) => player.legend !== null),
+          hasRecords: captured.players.some((player) => player.wins !== null),
+        }),
+        bestPerLegend: [],
+        cutMatches: captured.cutMatches,
+        phases: captured.phases,
+      },
+    }),
+    useMetaStandings: () => ({
+      data: { players: captured.players, total: captured.players.length },
+    }),
+    useMetaPendingSubmissions: () => ({ data: undefined }),
+  };
+});
 
 vi.mock("@/hooks/use-enums", () => ({
   useDeckFormatList: () => ({ labels: { freeform: "Freeform" } }),
@@ -92,15 +104,18 @@ vi.mock("@/components/markdown-text", () => ({
 
 vi.mock("@tanstack/react-router", async () => {
   const fixtures = await import("@/test/meta-event-fixtures");
-  return { Link: fixtures.StubLink };
+  return {
+    Link: fixtures.StubLink,
+    getRouteApi: () => ({ useSearch: () => ({}), useNavigate: () => () => {} }),
+  };
 });
 
 const { MetaEventPage } = await import("./meta-event-page");
 
 function renderPage(
   overrides: Partial<MetaEventDetail> = {},
-  players: MetaEventPlayer[] = [],
-  matches: MetaEventMatch[] = [],
+  players: MetaStandingsRow[] = [],
+  cutMatches: MetaEventMatch[] = [],
   phases: MetaEventPhase[] = [],
 ): void {
   captured.event = metaEvent({
@@ -109,7 +124,7 @@ function renderPage(
     ...overrides,
   });
   captured.players = players;
-  captured.matches = matches;
+  captured.cutMatches = cutMatches;
   captured.phases = phases;
   render(<MetaEventPage slug="summoner-skirmish" />);
 }
@@ -122,7 +137,7 @@ describe("MetaEventPage", () => {
   beforeEach(() => {
     captured.event = null;
     captured.players = [];
-    captured.matches = [];
+    captured.cutMatches = [];
     captured.phases = [];
     captured.userId = null;
   });
@@ -137,12 +152,12 @@ describe("MetaEventPage", () => {
 
   it("offers a signed-in reader the submission form for this event", () => {
     captured.userId = "user-1";
-    renderPage({}, [metaPlayer()]);
+    renderPage({}, [metaRow()]);
     expect(ctaHref("Add a decklist")).toBe("/meta/summoner-skirmish/submit");
   });
 
   it("tells a logged-out reader that signing in is what stands in the way", () => {
-    renderPage({}, [metaPlayer()]);
+    renderPage({}, [metaRow()]);
     expect(screen.getByText("Sign in to add a decklist")).toBeInTheDocument();
     expect(ctaHref("Sign in to add a decklist")).toBe(
       "/login?redirect=%2Fmeta%2Fsummoner-skirmish%2Fsubmit",
@@ -151,7 +166,7 @@ describe("MetaEventPage", () => {
 
   it("keeps the top bar to the breadcrumb and the overflow menu", () => {
     captured.userId = "user-1";
-    renderPage({}, [metaPlayer()]);
+    renderPage({}, [metaRow()]);
     expect(document.querySelector('[data-slot="top-bar-cta"]')).toBeNull();
   });
 
@@ -173,8 +188,8 @@ describe("MetaEventPage", () => {
 
   it("reads top-down: the hero, the field, then the ask", () => {
     renderPage({}, [
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1", deckId: "d1" }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1, shareToken: "tok1", deckId: "d1" }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
 
     const headings = screen
@@ -191,20 +206,20 @@ describe("MetaEventPage", () => {
 
   it("names the champion above the field", () => {
     renderPage({}, [
-      metaPlayer({ id: "p-1", playerName: "Ana", rank: 1 }),
-      metaPlayer({ id: "p-2", playerName: "Bo", rank: 2 }),
+      metaRow({ id: "p-1", playerName: "Ana", rank: 1 }),
+      metaRow({ id: "p-2", playerName: "Bo", rank: 2 }),
     ]);
     expect(screen.getByText("Champion")).toBeInTheDocument();
   });
 
   it("stands the bracket down for an event with no archived pairings", () => {
-    renderPage({}, [metaPlayer()]);
+    renderPage({}, [metaRow()]);
     expect(screen.queryByRole("heading", { name: /^Top \d+$/u })).toBeNull();
   });
 
   it("shows the cut when the archive holds one", () => {
     const players = ["Ana", "Bo", "Cy", "Dee"].map((playerName, index) =>
-      metaPlayer({ id: `p-${index + 1}`, playerName, rank: index + 1 }),
+      metaRow({ id: `p-${index + 1}`, playerName, rank: index + 1 }),
     );
     renderPage(
       {},

@@ -1,108 +1,54 @@
-import { todayUtc } from "@openrift/shared/set-release";
-import type { MetaEventFinish, MetaEventSummary } from "@openrift/shared/types/api/meta";
+import type {
+  MetaEventFilterQuery,
+  MetaEventFinish,
+  MetaEventListQuery,
+  MetaEventSummary,
+} from "@openrift/shared/types/api/meta";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
-
-import type { MetaEra, MetaScope } from "@/features/meta/lib/meta-scope";
-import type { ScopeFacetCounts } from "@/features/meta/lib/meta-scope-match";
-import { scopeFacetCounts, scopeMatches } from "@/features/meta/lib/meta-scope-match";
-
-export interface MetaFrontFilter {
-  scope: MetaScope;
-  eras: readonly MetaEra[];
-  search?: string;
-  decksOnly?: boolean;
-}
-
-function matchesSearch(event: MetaEventSummary, needle: string): boolean {
-  const haystack = [event.name, event.organizer, event.location].filter(Boolean).join(" ");
-  return haystack.toLowerCase().includes(needle);
-}
-
-/** Every list on the page narrows from this same array; separate requests would let the counts and the lists describe different scopes. */
-export function filterMetaEvents(
-  events: readonly MetaEventSummary[],
-  filter: MetaFrontFilter,
-): MetaEventSummary[] {
-  const keep = outsideScope(filter);
-  return events.filter((event) => keep(event) && scopeMatches(event, filter.scope, filter.eras));
-}
-
-export function metaFrontFacetCounts(
-  events: readonly MetaEventSummary[],
-  filter: MetaFrontFilter,
-): ScopeFacetCounts {
-  return scopeFacetCounts(events, filter.scope, filter.eras, {}, outsideScope(filter));
-}
-
-/** The page's own narrowing, everything but the scope bar's facets. */
-function outsideScope(filter: MetaFrontFilter): (event: MetaEventSummary) => boolean {
-  const needle = filter.search?.trim().toLowerCase() ?? "";
-  return (event) =>
-    (needle === "" || matchesSearch(event, needle)) &&
-    (filter.decksOnly !== true || event.deckCount > 0);
-}
-
-/** How many events the decklist toggle would leave, with everything else applied. */
-export function metaFrontDecklistCount(
-  events: readonly MetaEventSummary[],
-  filter: MetaFrontFilter,
-): number {
-  const keep = outsideScope({ ...filter, decksOnly: false });
-  return events.filter(
-    (event) => event.deckCount > 0 && keep(event) && scopeMatches(event, filter.scope, filter.eras),
-  ).length;
-}
-
-export function metaEventCountries(events: readonly MetaEventSummary[]): string[] {
-  const codes = new Set<string>();
-  for (const event of events) {
-    if (event.country !== null && event.country !== "") {
-      codes.add(event.country);
-    }
-  }
-  return [...codes].toSorted((left, right) => left.localeCompare(right));
-}
 
 export function metaEventWinners(event: MetaEventSummary): MetaEventFinish[] {
   return event.topFinishes.filter((finish) => finish.rank === 1);
 }
 
-export interface MetaFrontSections {
-  premier: MetaEventSummary[];
-  competitive: MetaEventSummary[];
-  local: MetaEventSummary[];
-  upcoming: MetaEventSummary[];
-  resultless: MetaEventSummary[];
+/** How many events each front-page section shows before its "see all" link takes over. */
+export const META_FRONT_SECTION_LIMITS = {
+  premier: 3,
+  competitive: 4,
+  local: 5,
+  upcoming: 6,
+} as const satisfies Record<MetaEventTier | "upcoming", number>;
+
+/** A section asks for its own tier, so the scope's tier picks have to gate the section itself. */
+export function metaFrontSectionShown(filters: MetaEventFilterQuery, tier: MetaEventTier): boolean {
+  const included = filters.tiers ?? [];
+  return included.length > 0 ? included.includes(tier) : !(filters.tiersEx ?? []).includes(tier);
 }
 
-const UPCOMING_TIER_RANK: Record<MetaEventTier, number> = {
-  premier: 0,
-  competitive: 1,
-  local: 2,
-};
-
-export function metaFrontSections(
-  events: readonly MetaEventSummary[],
-  today = todayUtc(),
-): MetaFrontSections {
-  const played = events
-    .filter((event) => event.playerRowCount > 0)
-    .toSorted((left, right) => right.eventDate.localeCompare(left.eventDate));
-  const upcoming = events
-    .filter((event) => event.eventDate > today)
-    .toSorted((left, right) => {
-      const byDate = left.eventDate.localeCompare(right.eventDate);
-      if (byDate !== 0) {
-        return byDate;
-      }
-      const byTier = UPCOMING_TIER_RANK[left.tier] - UPCOMING_TIER_RANK[right.tier];
-      return byTier === 0 ? left.name.localeCompare(right.name) : byTier;
-    });
+/**
+ * One tier's section: the newest events that have standings, or that have
+ * decklists when the reader is asking only for those.
+ */
+export function metaFrontSectionQuery(
+  filters: MetaEventFilterQuery,
+  tier: MetaEventTier,
+): MetaEventListQuery {
   return {
-    premier: played.filter((event) => event.tier === "premier"),
-    competitive: played.filter((event) => event.tier === "competitive"),
-    local: played.filter((event) => event.tier === "local"),
-    upcoming,
-    resultless: events.filter((event) => event.playerRowCount === 0 && event.eventDate <= today),
+    ...filters,
+    tiers: [tier],
+    tiersEx: undefined,
+    holds: filters.holds === "decks" ? "decks" : "standings",
+    by: "date",
+    dir: "desc",
+    limit: META_FRONT_SECTION_LIMITS[tier],
+  };
+}
+
+export function metaFrontUpcomingQuery(filters: MetaEventFilterQuery): MetaEventListQuery {
+  return {
+    ...filters,
+    holds: "upcoming",
+    by: "date",
+    dir: "asc",
+    limit: META_FRONT_SECTION_LIMITS.upcoming,
   };
 }

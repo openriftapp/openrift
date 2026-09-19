@@ -68,14 +68,23 @@ function facetCondition(
   return undefined;
 }
 
-/** Every condition a scope puts on the event alias `me`. */
-export function scopeConditions(scope: MetaScopeFilters): RawBuilder<SqlBool>[] {
+export type MetaScopeFacet = "formats" | "tiers" | "countries";
+
+/** Every condition a scope puts on the event alias `me`. A lifted facet is left unapplied. */
+export function scopeConditions(
+  scope: MetaScopeFilters,
+  lifted?: MetaScopeFacet,
+): RawBuilder<SqlBool>[] {
   const upper = (values?: readonly string[]) => values?.map((value) => value.toUpperCase());
+  const facet = (name: MetaScopeFacet, condition: () => RawBuilder<SqlBool> | undefined) =>
+    lifted === name ? undefined : condition();
   return [
     scope.from === undefined ? undefined : sql<SqlBool>`me.event_date >= ${scope.from}`,
     scope.to === undefined ? undefined : sql<SqlBool>`me.event_date <= ${scope.to}`,
-    facetCondition(sql`me.format`, scope.formats, scope.formatsEx),
-    facetCondition(sql`me.tier`, scope.tiers, scope.tiersEx),
-    facetCondition(sql`me.country`, upper(scope.countries), upper(scope.countriesEx)),
+    facet("formats", () => facetCondition(sql`me.format`, scope.formats, scope.formatsEx)),
+    facet("tiers", () => facetCondition(sql`me.tier`, scope.tiers, scope.tiersEx)),
+    facet("countries", () =>
+      facetCondition(sql`me.country`, upper(scope.countries), upper(scope.countriesEx)),
+    ),
   ].filter((condition) => condition !== undefined);
 }

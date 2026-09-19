@@ -1,11 +1,10 @@
 import { formatRank } from "@openrift/shared/meta-standings";
-import type { MetaEventDetail, MetaEventPlayer } from "@openrift/shared/types/api/meta";
+import type { MetaEventRunResponse } from "@openrift/shared/types/api/meta";
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
-import { metaEventPlayerByKey, metaPlayerRun } from "@/features/meta/lib/meta-player-run";
-import { metaEventQueryOptions } from "@/features/meta/lib/meta-queries";
+import { metaRunQueryOptions } from "@/features/meta/lib/meta-queries";
 import type { FeatureFlags } from "@/lib/feature-flags";
 import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -13,12 +12,8 @@ import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 import { PAGE_WIDTH, PAGE_PADDING, cn } from "@/lib/utils";
 
-export interface MetaEventRunLoaderData {
-  event: MetaEventDetail;
-  player: MetaEventPlayer;
-}
+export type MetaEventRunLoaderData = Pick<MetaEventRunResponse, "event" | "player">;
 
-// Read off the event payload the event page already ships: no endpoint of its own.
 export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
   head: ({ loaderData, params }) => {
     const siteUrl = getSiteUrl();
@@ -53,11 +48,14 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
     if (!featureEnabled(flags, "meta")) {
       throw redirect({ to: "/cards" });
     }
-    let detail;
+    let run;
     try {
-      [, detail] = await Promise.all([
+      [, run] = await Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
-        context.queryClient.query({ ...metaEventQueryOptions(params.slug), staleTime: "static" }),
+        context.queryClient.query({
+          ...metaRunQueryOptions(params.slug, params.key),
+          staleTime: "static",
+        }),
       ]);
     } catch (error) {
       if (error instanceof Error && error.message === "NOT_FOUND") {
@@ -65,15 +63,10 @@ export const Route = createFileRoute("/_app/meta_/$slug_/players_/$key")({
       }
       throw error;
     }
-    const player = metaEventPlayerByKey(detail.players, params.key);
-    if (player === null) {
+    if (run.rounds.length === 0) {
       throw notFound();
     }
-    const run = metaPlayerRun(detail.matches, detail.phases, player.id);
-    if (run.swiss.length === 0 && run.cut.length === 0) {
-      throw notFound();
-    }
-    return { event: detail.event, player };
+    return { event: run.event, player: run.player };
   },
   pendingComponent: MetaEventRunPending,
   errorComponent: RouteErrorFallback,

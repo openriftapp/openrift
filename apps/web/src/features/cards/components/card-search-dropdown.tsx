@@ -25,6 +25,7 @@ interface CatalogSearchComboboxProps<T> {
   renderActivePreview?: (item: T, anchorRef: RefObject<HTMLElement | null>) => ReactNode;
   onRawInputChange?: (value: string) => void;
   initialQuery?: string;
+  id?: string;
   ariaLabel?: string;
   placeholder?: string;
   emptyMessage?: string;
@@ -47,6 +48,7 @@ export function CatalogSearchCombobox<T>({
   renderActivePreview,
   onRawInputChange,
   initialQuery,
+  id,
   ariaLabel,
   placeholder = m.cards_search_placeholder(),
   emptyMessage = m.cards_search_empty(),
@@ -81,6 +83,7 @@ export function CatalogSearchCombobox<T>({
       }}
     >
       <ComboboxInput
+        id={id}
         aria-label={ariaLabel}
         className={className}
         placeholder={placeholder}
