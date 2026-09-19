@@ -115,3 +115,4 @@ if (!body.includes("<html")) {
 
 cleanup();
 console.log(`SSR bundle OK (GET / rendered ${body.length} bytes).`);
+process.exit(0);

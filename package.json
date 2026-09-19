@@ -78,7 +78,7 @@
     "html2canvas": "npm:html2canvas-pro@2.4.3",
     "kysely": "0.29.5"
   },
-  "packageManager": "bun@1.3.11",
+  "packageManager": "bun@1.4.2",
   "//overrides": {
     "all": "Patch vulnerable transitive deps. Run `bun audit` after removing any to check if still needed. These notes sit outside `overrides` because bun records that block verbatim into bun.lock: bun >= 1.4 strips `//` keys when reading package.json but not when reading the lockfile, so a comment key inside `overrides` fails --frozen-lockfile in the Docker build.",
     "@tanstack/query-core": "Dedupe: query-db-collection and router-ssr-query peer-resolve an older query-core; TS treats identical-but-different-path type copies as distinct, collapsing createCollection generics to Record<string, unknown>.",

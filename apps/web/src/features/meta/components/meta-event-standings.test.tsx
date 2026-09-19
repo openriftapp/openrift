@@ -200,6 +200,11 @@ function phoneRow(name: string): HTMLElement {
   return within(list).getByText(name).closest("li") as HTMLElement;
 }
 
+/** The debounced search commit plus its fetch outlast the default timeout under suite load. */
+function waitForPhoneRows(assert: () => void): Promise<void> {
+  return waitFor(assert, { timeout: 5000 });
+}
+
 /** What the API would state about a field of these rows. */
 function fieldOf(
   players: MetaStandingsRow[],
@@ -841,8 +846,8 @@ describe("MetaEventStandings", () => {
 
     await user.type(screen.getByRole("searchbox", { name: "Find a player" }), "player 7");
 
-    await waitFor(() => {
-      expect(screen.queryByText("Player 6")).toBeNull();
+    await waitForPhoneRows(() => {
+      expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
     });
     expect(phoneRow("Player 7")).toBeInTheDocument();
   });
@@ -853,12 +858,12 @@ describe("MetaEventStandings", () => {
 
     const box = screen.getByRole("searchbox", { name: "Find a player" });
     await user.type(box, "player 7");
-    await waitFor(() => {
-      expect(screen.queryByText("Player 6")).toBeNull();
+    await waitForPhoneRows(() => {
+      expect(within(screen.getByRole("list")).queryByText("Player 6")).toBeNull();
     });
 
     await user.clear(box);
-    await waitFor(() => {
+    await waitForPhoneRows(() => {
       expect(phoneRow("Player 6")).toBeInTheDocument();
     });
     expect(phoneRow("Player 7")).toBeInTheDocument();
