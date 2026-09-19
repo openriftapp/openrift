@@ -23,6 +23,7 @@ import { useFilterActions } from "@/features/cards/hooks/use-card-filters";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { FilterSearchProvider, useFilterSearch } from "@/features/cards/lib/search-schemas";
+import { dispatchItemToggle } from "@/features/cards/stores/card-row-actions-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import { FloatingActionBar } from "@/features/collections/components/floating-action-bar";
 import { TradePreferenceDialog } from "@/features/groups/components/trade-preference-dialog";
@@ -335,6 +336,16 @@ export function ListEntryBrowser({
           table={{
             actionsColumn: kind === "copy" ? "narrow" : "wide",
             actionsLabel: "",
+            selection:
+              mode === "select"
+                ? {
+                    isPicked: (itemId) => {
+                      const entryId = entryByItemId.get(itemId)?.id;
+                      return entryId !== undefined && entryId !== null && selected.has(entryId);
+                    },
+                    onToggle: (itemId) => dispatchItemToggle(itemId),
+                  }
+                : undefined,
             actionsCell: (
               <ListActionsCell
                 kind={kind}

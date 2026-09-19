@@ -5304,6 +5304,7 @@
   "tournaments_deck_check_copy_index": "第{index}张",
   "tournaments_deck_check_move_card": "移动{name}",
   "tournaments_deck_check_fix_card": "修正{name}",
+  "tournaments_deck_check_edit_card": "编辑{name}",
   "tournaments_deck_check_remove_copy": "移除{name}的这一张",
   "tournaments_deck_check_remove_title": "要移除{name}吗？",
   "tournaments_deck_check_remove_only_copy": "只从卡表中移除这一张。",

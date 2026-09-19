@@ -12,9 +12,14 @@ import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { SelectionStamp } from "@/components/ui/selection-mark";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CardCell } from "@/features/cards/components/card-cell";
-import { CardStrip, StripIconButton } from "@/features/cards/components/card-strip";
+import {
+  CardStrip,
+  StripActionButton,
+  StripIconButton,
+} from "@/features/cards/components/card-strip";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
@@ -575,13 +580,7 @@ function ChecklistCell({
     }
   };
 
-  const foundOverlay = found ? (
-    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-      <div className="bg-background/80 rounded-full p-3 shadow-md">
-        <CheckIcon className="text-success size-12" />
-      </div>
-    </div>
-  ) : null;
+  const foundOverlay = found ? <SelectionStamp tone="success" /> : null;
 
   const actionStrip =
     fixLocked && locked ? null : (
@@ -590,17 +589,15 @@ function ChecklistCell({
           right={
             <>
               {fixLocked ? null : (
-                <StripIconButton
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label={
-                    fixZoneOnly
-                      ? m.tournaments_deck_check_move_card({ name: card.rawName })
-                      : m.tournaments_deck_check_fix_card({ name: card.rawName })
-                  }
+                <StripActionButton
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground gap-1 font-medium"
+                  aria-label={m.tournaments_deck_check_edit_card({ name: card.rawName })}
                   onClick={() => setFixOpen(true)}
                 >
-                  <PencilIcon />
-                </StripIconButton>
+                  <PencilIcon className="size-3" />
+                  {m.common_edit()}
+                </StripActionButton>
               )}
               {locked ? null : (
                 <StripIconButton
@@ -680,7 +677,7 @@ function ChecklistCell({
       showImages
       onClick={() => void toggle()}
       strip={actionStrip}
-      leftOverlay={foundOverlay}
+      imageOverlay={foundOverlay}
       dimmed={found}
     />
   );

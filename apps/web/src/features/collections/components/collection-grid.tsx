@@ -14,6 +14,7 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { tileSiblings } from "@/features/cards/lib/card-tiles";
 import { isCopiesOnlyGrouping } from "@/features/cards/lib/group-by-collection";
+import { dispatchItemToggle } from "@/features/cards/stores/card-row-actions-store";
 import { useLibraryToggle } from "@/features/cards/stores/library-toggle-store";
 import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-override-store";
 import {
@@ -32,6 +33,7 @@ import { CollectionSelectionBar } from "@/features/collections/components/collec
 import {
   CollectionActionsCell,
   CollectionRowWrapper,
+  isCollectionRowPicked,
 } from "@/features/collections/components/collection-table-wiring";
 import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
 import { useCollectionAdminActions } from "@/features/collections/hooks/use-collection-admin-actions";
@@ -485,6 +487,18 @@ export function CollectionGrid({
                   selected={selected}
                 />
               ),
+              selection:
+                mode === "select"
+                  ? {
+                      isPicked: (itemId, printing) =>
+                        isCollectionRowPicked(
+                          { stackByItemId, allCopyIdsByTile, tileGroupBy, stacked, selected },
+                          printing,
+                          itemId,
+                        ),
+                      onToggle: (itemId) => dispatchItemToggle(itemId),
+                    }
+                  : undefined,
             }}
           >
             <CollectionSelectionBar

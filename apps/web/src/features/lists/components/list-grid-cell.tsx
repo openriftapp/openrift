@@ -110,13 +110,6 @@ export const ListGridCell = memo(function ListGridCell({
   const isFlashing = useGridFocusStore(
     (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
   );
-  const resolvedCtx: CardRenderContext = {
-    isSelected,
-    isFlashing,
-    cardWidth,
-    priority,
-  };
-
   const overrideId = useSiblingOverrideStore((s) =>
     inCardsView ? s.overrides.list.get(printing.cardId) : undefined,
   );
@@ -140,6 +133,13 @@ export const ListGridCell = memo(function ListGridCell({
   // Acting on a selection that holds a rule entry would silently skip it, so the
   // row actions stand down until the selection is narrowed.
   const blockRowActions = isItemSelected && selectionHasRuleEntry;
+
+  const resolvedCtx: CardRenderContext = {
+    isSelected,
+    isFlashing,
+    cardWidth,
+    priority,
+  };
 
   const tradeStatus = entry ? listEntryTradeStatus(entry, tradeIndex) : null;
   const trades = tradeStatus ? listEntryTrades(tradeStatus, tradeIndex) : NO_TRADES;
@@ -217,17 +217,9 @@ export const ListGridCell = memo(function ListGridCell({
       />
     ) : undefined;
 
-  const leftOverlay =
+  const imageOverlay =
     inSelectMode && entry ? (
-      <>
-        <SelectionCheckbox
-          isSelected={isItemSelected}
-          onToggle={() => dispatchItemToggle(itemId)}
-        />
-        {isItemSelected && (
-          <div className="ring-primary pointer-events-none absolute inset-1.5 z-10 rounded-lg ring-2" />
-        )}
-      </>
+      <SelectionCheckbox isSelected={isItemSelected} onToggle={() => dispatchItemToggle(itemId)} />
     ) : undefined;
 
   return (
@@ -248,7 +240,7 @@ export const ListGridCell = memo(function ListGridCell({
       priceRange={priceRange}
       dimmed={showLibrary && (entry?.quantity ?? 0) === 0}
       strip={strip}
-      leftOverlay={leftOverlay}
+      imageOverlay={imageOverlay}
       contextMenu={contextMenu}
       wrap={wrap}
     />

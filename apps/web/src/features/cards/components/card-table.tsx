@@ -5,6 +5,7 @@ import { Fragment, cloneElement, memo, useEffect, useLayoutEffect, useRef, useSt
 
 import { Button } from "@/components/ui/button";
 import { OrnamentRule } from "@/components/ui/ornament";
+import { SelectionRowMark } from "@/components/ui/selection-mark";
 import { buildGroups } from "@/features/cards/lib/card-groups";
 import type { CardGroup } from "@/features/cards/lib/card-groups";
 import { useCardRowActionsStore } from "@/features/cards/stores/card-row-actions-store";
@@ -14,8 +15,10 @@ import { useHeaderHeight } from "@/hooks/use-header-height";
 import type { GroupInfo } from "@/lib/card-group-types";
 import type { CardViewerItem } from "@/lib/card-viewer-types";
 import { useWindowVirtualizerFresh } from "@/lib/virtualizer-fresh";
+import { m } from "@/paraglide/messages.js";
 
 import type { VRow } from "./card-grid-types";
+import type { CardTableColumnOptions } from "./card-table-row";
 import {
   CARD_TABLE_HEADER_HEIGHT,
   CARD_TABLE_ROW_HEIGHT,
@@ -55,8 +58,11 @@ const DataRow = memo(function DataRow({
   printing,
   itemId,
   isSelected,
+  isPicked,
+  selectionCell,
   actionsColumn,
   columns,
+  options,
   groupBy,
   cardTypeLabels,
   superTypeLabels,
@@ -67,8 +73,11 @@ const DataRow = memo(function DataRow({
   printing: Printing;
   itemId: string;
   isSelected: boolean;
+  isPicked?: boolean;
+  selectionCell?: ReactNode;
   actionsColumn: ActionsColumn;
   columns: string;
+  options?: CardTableColumnOptions;
   groupBy?: GroupByField;
   cardTypeLabels: Record<string, string>;
   superTypeLabels: Record<string, string>;
@@ -81,8 +90,11 @@ const DataRow = memo(function DataRow({
       printing={printing}
       itemId={itemId}
       isSelected={isSelected}
+      isPicked={isPicked}
+      selectionCell={selectionCell}
       actionsColumn={actionsColumn}
       columns={columns}
+      options={options}
       groupBy={groupBy}
       cardTypeLabels={cardTypeLabels}
       superTypeLabels={superTypeLabels}
@@ -130,6 +142,12 @@ export interface TableRowSlotProps {
   itemId?: string;
 }
 
+/** Turns on the leading mark column; `isPicked` reruns on every table render. */
+export interface CardTableSelection {
+  isPicked: (itemId: string, printing: Printing) => boolean;
+  onToggle: (itemId: string, printing: Printing) => void;
+}
+
 interface CardTableProps {
   items: CardViewerItem[];
   totalItems: number;
@@ -143,6 +161,7 @@ interface CardTableProps {
   actionsCell?: ReactElement<TableRowSlotProps>;
   actionsLabel?: string;
   rowWrapper?: ReactElement<TableRowSlotProps & { children?: ReactNode }>;
+  selection?: CardTableSelection;
   noResultsDescription?: ReactNode;
 }
 
@@ -161,6 +180,7 @@ export function CardTable({
   actionsCell,
   actionsLabel,
   rowWrapper,
+  selection,
   noResultsDescription,
 }: CardTableProps) {
   const { orders, labels } = useEnumOrders();
@@ -274,8 +294,11 @@ export function CardTable({
   // With a single group, headers are suppressed, so the column is the only
   // place its value shows.
   const groupingColumn = multipleGroups ? groupBy : undefined;
-  const columns = getCardTableColumns(actionsColumn, groupingColumn);
-  const minWidth = getCardTableMinWidth(actionsColumn, groupingColumn);
+  const columnOptions: CardTableColumnOptions | undefined = selection
+    ? { selectable: true }
+    : undefined;
+  const columns = getCardTableColumns(actionsColumn, groupingColumn, columnOptions);
+  const minWidth = getCardTableMinWidth(actionsColumn, groupingColumn, columnOptions);
 
   if (items.length === 0) {
     return (
@@ -318,6 +341,7 @@ export function CardTable({
             columns={columns}
             actionsColumn={actionsColumn}
             groupBy={groupingColumn}
+            options={columnOptions}
             bordered={!multipleGroups}
             actionsLabel={actionsLabel}
           />
@@ -354,6 +378,7 @@ export function CardTable({
                       const cellForRow = actionsCell
                         ? cloneElement(actionsCell, { printing: item.printing, itemId: item.id })
                         : undefined;
+                      const picked = selection?.isPicked(item.id, item.printing);
                       const rowNode = (
                         <DataRow
                           printing={item.printing}
@@ -361,8 +386,19 @@ export function CardTable({
                           isSelected={
                             item.id === selectedItemId || item.printing.id === selectedItemId
                           }
+                          isPicked={picked}
+                          selectionCell={
+                            selection ? (
+                              <SelectionRowMark
+                                label={m.collections_grid_select_card()}
+                                checked={picked === true}
+                                onCheckedChange={() => selection.onToggle(item.id, item.printing)}
+                              />
+                            ) : undefined
+                          }
                           actionsColumn={actionsColumn}
                           columns={columns}
+                          options={columnOptions}
                           groupBy={groupingColumn}
                           cardTypeLabels={labels.cardTypes}
                           superTypeLabels={labels.superTypes}

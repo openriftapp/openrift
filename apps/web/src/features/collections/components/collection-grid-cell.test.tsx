@@ -63,21 +63,21 @@ interface StripProbeProps {
   tradeAnnotation?: CardTradeLiveAnnotation | null;
 }
 
-// Renders leftOverlay and the strip's extras/tradeAnnotation only, skipping the
+// Renders imageOverlay and the strip's extras/tradeAnnotation only, skipping the
 // thumbnail tree; a real count strip would drag in the owned-collections popover.
 vi.mock("@/features/cards/components/card-cell", () => ({
   CardCell: ({
-    leftOverlay,
+    imageOverlay,
     strip,
     wrap,
   }: {
-    leftOverlay?: ReactNode;
+    imageOverlay?: ReactNode;
     strip?: ReactElement<StripProbeProps>;
     wrap?: ReactNode;
   }) => (
     <div>
       {wrap}
-      {leftOverlay}
+      {imageOverlay}
       {strip ? (
         <div
           data-testid="cell-strip"

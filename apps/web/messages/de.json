@@ -5304,6 +5304,7 @@
   "tournaments_deck_check_copy_index": "Exemplar {index}",
   "tournaments_deck_check_move_card": "{name} verschieben",
   "tournaments_deck_check_fix_card": "{name} korrigieren",
+  "tournaments_deck_check_edit_card": "{name} bearbeiten",
   "tournaments_deck_check_remove_copy": "Dieses Exemplar von {name} entfernen",
   "tournaments_deck_check_remove_title": "{name} entfernen?",
   "tournaments_deck_check_remove_only_copy": "Nur dieses Exemplar wird von der Liste entfernt.",

@@ -507,13 +507,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   );
 
   const imageSection = (
-    <div
-      className={cn(
-        "relative",
-        otherPrintings.length > 0 && "group-hover:z-20",
-        dimmed && "opacity-50",
-      )}
-    >
+    <div className={cn("relative", otherPrintings.length > 0 && "group-hover:z-20")}>
       {otherPrintings.map((sibling, i) => {
         const depth = otherPrintings.length - i;
         const hiddenWhenClosed = depth > MAX_CLOSED_STACK_EDGES;
@@ -524,12 +518,13 @@ export const CardThumbnail = memo(function CardThumbnail({
         const siblingImageId = showImages ? (sibling.images[0]?.imageId ?? null) : null;
         const siblingSizes = cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride;
         return (
-          // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- decorative layer inside a parent <button>; keyboard nav handled by parent
+          // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- decorative layer beside the card's own click target; keyboard nav handled by the grid
           <div
             key={sibling.id}
             className={cn(
               "pointer-events-none absolute inset-0",
               fanReady && "pointer-events-auto cursor-pointer",
+              dimmed && "opacity-50",
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -597,28 +592,34 @@ export const CardThumbnail = memo(function CardThumbnail({
         );
       })}
       <ImageShell>
-        <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
-          <CardImageContent
-            thumbnailUrl={thumbnailUrl}
-            srcSet={srcSet}
-            sizes={cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride}
-            alt={card.name}
-            priority={Boolean(priority)}
-            rotated={rotated}
-            rarity={printing.rarity}
-            publicCode={printing.publicCode}
-            artist={printing.artist}
-            promoLabel={promoMarkerLabel(printing)}
-            card={card}
-            showFoil={isFoilCard && gridFoil}
-            fallbackArt={fallbackArt}
-            spacerClassName="bg-muted"
-          />
-        </div>
+        <Pressable
+          className={cn("block w-full", dimmed && "opacity-50")}
+          onClick={(event) => onClick(printing, event)}
+        >
+          <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
+            <CardImageContent
+              thumbnailUrl={thumbnailUrl}
+              srcSet={srcSet}
+              sizes={cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride}
+              alt={card.name}
+              priority={Boolean(priority)}
+              rotated={rotated}
+              rarity={printing.rarity}
+              publicCode={printing.publicCode}
+              artist={printing.artist}
+              promoLabel={promoMarkerLabel(printing)}
+              card={card}
+              showFoil={isFoilCard && gridFoil}
+              fallbackArt={fallbackArt}
+              spacerClassName="bg-muted"
+            />
+          </div>
+        </Pressable>
         {banDim}
         {previewOverlay}
         {banRibbon}
         {upcomingBanRibbon}
+        {imageOverlay}
       </ImageShell>
     </div>
   );
@@ -725,10 +726,7 @@ export const CardThumbnail = memo(function CardThumbnail({
       {flashOverlay}
       {aboveCard}
       <div className="relative">
-        <Pressable className="block w-full" onClick={(e) => onClick(printing, e)}>
-          {imageSection}
-        </Pressable>
-        {imageOverlay}
+        {imageSection}
         {/* Sibling of the image (not inside it) so the unowned opacity-50 dim
             on imageSection never greys the notice out. */}
         <SuggestImageNotice printing={printing} />

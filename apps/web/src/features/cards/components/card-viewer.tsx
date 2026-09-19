@@ -8,7 +8,7 @@ import {
 } from "@/features/cards/components/card-browser-layout";
 import { CardGrid } from "@/features/cards/components/card-grid";
 import { CardTable } from "@/features/cards/components/card-table";
-import type { TableRowSlotProps } from "@/features/cards/components/card-table";
+import type { CardTableSelection, TableRowSlotProps } from "@/features/cards/components/card-table";
 import { useGridKeyboardNav } from "@/features/cards/components/use-grid-keyboard-nav";
 import type { ActionsColumn } from "@/features/collections/lib/collection-table";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -21,6 +21,7 @@ export interface CardTableProps {
   actionsCell?: ReactElement<TableRowSlotProps>;
   actionsLabel?: string;
   rowWrapper?: ReactElement<TableRowSlotProps & { children?: ReactNode }>;
+  selection?: CardTableSelection;
 }
 
 interface CardViewerProps {

@@ -12,6 +12,8 @@
 ### Other
 
 - feat(Collection): **Manage dynamic list entries** — cards a list rule fills in can now be picked in Manage and copied or added to a collection along with the rest.
+- feat(Collection): **Clearer card selection** — picked cards now carry a gold seal instead of a checkbox and a ring, and the table views mark picked rows as well.
+- fix(Tournaments): **Steady deck check ticking** — cards no longer blink when you tick them, and the found mark now matches the one on picked cards.
 - fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.
 
 - feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.

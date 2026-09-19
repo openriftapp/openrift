@@ -5307,6 +5307,7 @@
   "tournaments_deck_check_copy_index": "copy {index}",
   "tournaments_deck_check_move_card": "Move {name}",
   "tournaments_deck_check_fix_card": "Fix {name}",
+  "tournaments_deck_check_edit_card": "Edit {name}",
   "tournaments_deck_check_remove_copy": "Remove this copy of {name}",
   "tournaments_deck_check_remove_title": "Remove {name}?",
   "tournaments_deck_check_remove_only_copy": "Only this copy is removed from the list.",

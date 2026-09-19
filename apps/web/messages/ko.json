@@ -5304,6 +5304,7 @@
   "tournaments_deck_check_copy_index": "{index}번째 사본",
   "tournaments_deck_check_move_card": "{name} 이동",
   "tournaments_deck_check_fix_card": "{name} 수정",
+  "tournaments_deck_check_edit_card": "{name} 편집",
   "tournaments_deck_check_remove_copy": "{name}의 이 사본 삭제",
   "tournaments_deck_check_remove_title": "{name}을(를) 삭제할까요?",
   "tournaments_deck_check_remove_only_copy": "이 사본만 리스트에서 삭제됩니다.",

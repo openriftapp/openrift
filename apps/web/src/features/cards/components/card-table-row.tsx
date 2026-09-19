@@ -48,7 +48,10 @@ const GROUP_HIDDEN_COLUMN: Partial<Record<GroupByField, StaticColumnKey>> = {
 export interface CardTableColumnOptions {
   columns?: readonly StaticColumnKey[];
   stretch?: StaticColumnKey;
+  selectable?: boolean;
 }
+
+const SELECT_COLUMN_PX = 36;
 
 function visibleStaticColumns(
   groupBy?: GroupByField,
@@ -78,6 +81,9 @@ export function getCardTableColumns(
   const tracks = visibleStaticColumns(groupBy, options).map((column) =>
     column.key === stretch ? `minmax(${column.minPx}px, 1fr)` : column.track,
   );
+  if (options?.selectable) {
+    tracks.unshift(`${SELECT_COLUMN_PX}px`);
+  }
   if (actionsColumn !== "none") {
     tracks.push(`${ACTIONS_WIDTH_PX[actionsColumn]}px`);
   }
@@ -95,8 +101,10 @@ export function getCardTableMinWidth(
   const columns = visibleStaticColumns(groupBy, options);
   const staticPx = columns.reduce((sum, column) => sum + column.minPx, 0);
   const actionsPx = actionsColumn === "none" ? 0 : ACTIONS_WIDTH_PX[actionsColumn];
-  const trackCount = columns.length + (actionsColumn === "none" ? 0 : 1);
-  return staticPx + actionsPx + (trackCount - 1) * COLUMN_GAP;
+  const selectPx = options?.selectable ? SELECT_COLUMN_PX : 0;
+  const trackCount =
+    columns.length + (actionsColumn === "none" ? 0 : 1) + (options?.selectable ? 1 : 0);
+  return staticPx + actionsPx + selectPx + (trackCount - 1) * COLUMN_GAP;
 }
 
 const STATIC_COLUMN_HEADER: Record<StaticColumnKey, string> = {
@@ -145,6 +153,7 @@ export function CardTableHeader({
         ...(sticky && stickyOffset !== undefined ? { top: stickyOffset } : {}),
       }}
     >
+      {options?.selectable && <div />}
       {visibleStaticColumns(groupBy, options).map((column) => (
         <div key={column.key}>{STATIC_COLUMN_HEADER[column.key]}</div>
       ))}
@@ -201,6 +210,8 @@ export function CardTableGroupHeader({
 interface CardTableRowProps {
   printing: Printing;
   isSelected?: boolean;
+  isPicked?: boolean;
+  selectionCell?: ReactNode;
   actionsColumn: ActionsColumn;
   columns: string;
   groupBy?: GroupByField;
@@ -222,6 +233,8 @@ export function CardTableRow({
   printing,
   itemId: _itemId,
   isSelected,
+  isPicked,
+  selectionCell,
   actionsColumn,
   columns,
   groupBy,
@@ -315,10 +328,11 @@ export function CardTableRow({
       data-printing-id={printing.id}
       className={cn(
         "grid cursor-pointer items-center gap-3 text-sm transition-colors outline-none",
-        isSelected ? "bg-muted/50" : "hover:bg-muted/50",
+        isPicked ? "bg-border-accent/15" : isSelected ? "bg-muted/50" : "hover:bg-muted/50",
       )}
       style={{ gridTemplateColumns: columns, height: CARD_TABLE_ROW_HEIGHT }}
     >
+      {options?.selectable && <div className="flex justify-center">{selectionCell}</div>}
       {visibleStaticColumns(groupBy, options).map((column) => (
         <Fragment key={column.key}>{staticCellByKey[column.key]}</Fragment>
       ))}

@@ -23,7 +23,6 @@ export interface CardCellProps {
 
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
-  leftOverlay?: ReactNode;
 
   dimmed?: boolean;
   highlighted?: boolean;
@@ -50,7 +49,6 @@ export function CardCell({
   priceRange,
   belowLabel,
   imageOverlay,
-  leftOverlay,
   dimmed,
   highlighted,
   showBanOverlay,
@@ -87,14 +85,6 @@ export function CardCell({
   );
 
   let content: ReactNode = thumbnail;
-  if (leftOverlay) {
-    content = (
-      <div className="relative">
-        {leftOverlay}
-        {content}
-      </div>
-    );
-  }
   if (contextMenu) {
     content = cloneElement(contextMenu, undefined, content);
   }

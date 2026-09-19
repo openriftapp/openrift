@@ -23,6 +23,7 @@ import { PickersSection } from "./pickers-section";
 import { PressableSection } from "./pressable-section";
 import { QrCodesSection } from "./qr-codes-section";
 import { SectionHeadingSection } from "./section-heading-section";
+import { SelectionSection } from "./selection-section";
 import { TextLinksSection } from "./text-links-section";
 import { TilesSection } from "./tiles-section";
 import { TokensSection } from "./tokens-section";
@@ -51,6 +52,7 @@ const SECTIONS: DesignSection[] = [
   { id: "tiles", title: "Tiles", Component: TilesSection },
   { id: "flat-sections", title: "Flat sections & lists", Component: FlatSectionsSection },
   { id: "card-thumbnails", title: "Card thumbnails", Component: CardThumbnailsSection },
+  { id: "selection", title: "Selection", Component: SelectionSection },
   { id: "form-controls", title: "Form controls", Component: FormControlsSection },
   { id: "pickers", title: "Pickers & commands", Component: PickersSection },
   { id: "overlays", title: "Overlays", Component: OverlaysSection },

@@ -90,13 +90,6 @@ export const CollectionGridCell = memo(function CollectionGridCell({
   const isFlashing = useGridFocusStore(
     (s) => s.flashCardId === itemId || s.flashCardId === printing.id,
   );
-  const resolvedCtx: CardRenderContext = {
-    isSelected,
-    isFlashing,
-    cardWidth,
-    priority,
-  };
-
   const overrideId = useSiblingOverrideStore((s) =>
     inCardsView ? s.overrides.collection.get(printing.cardId) : undefined,
   );
@@ -145,6 +138,13 @@ export const CollectionGridCell = memo(function CollectionGridCell({
     (state) =>
       mode === "select" && isStackSelected(stacked, itemId, effectiveCopyIds, state.selected),
   );
+
+  const resolvedCtx: CardRenderContext = {
+    isSelected,
+    isFlashing,
+    cardWidth,
+    priority,
+  };
 
   const openLocations =
     ownedCount > 0 || (inCardsView && (siblings?.length ?? 0) > 1)
@@ -288,17 +288,9 @@ export const CollectionGridCell = memo(function CollectionGridCell({
     });
   };
 
-  const leftOverlay =
+  const imageOverlay =
     mode === "select" && cardTotalInCollection > 0 ? (
-      <>
-        <SelectionCheckbox
-          isSelected={isItemSelected}
-          onToggle={() => dispatchItemToggle(itemId)}
-        />
-        {isItemSelected && (
-          <div className="ring-primary pointer-events-none absolute inset-1.5 z-10 rounded-lg ring-2" />
-        )}
-      </>
+      <SelectionCheckbox isSelected={isItemSelected} onToggle={() => dispatchItemToggle(itemId)} />
     ) : undefined;
 
   return (
@@ -314,7 +306,7 @@ export const CollectionGridCell = memo(function CollectionGridCell({
       priceRange={showLibrary ? priceRange : undefined}
       dimmed={cardTotalInCollection === 0}
       strip={strip}
-      leftOverlay={leftOverlay}
+      imageOverlay={imageOverlay}
       contextMenu={
         cardTotalInCollection > 0 ? (
           <CollectionCardContextMenu

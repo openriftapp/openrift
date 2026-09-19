@@ -145,6 +145,20 @@ describe("getCardTableMinWidth", () => {
   });
 });
 
+describe("selection column", () => {
+  it("leads the template with its own track", () => {
+    expect(getCardTableColumns("narrow", "set", { selectable: true })).toBe(
+      `36px ${getCardTableColumns("narrow", "set")}`,
+    );
+  });
+
+  it("adds its width and one more gap to the minimum", () => {
+    expect(getCardTableMinWidth("narrow", "set", { selectable: true })).toBe(
+      getCardTableMinWidth("narrow", "set") + 36 + 12,
+    );
+  });
+});
+
 describe("getCardTableColumns", () => {
   it("omits the grouped column's track", () => {
     expect(getCardTableColumns("narrow", "set")).toBe("72px minmax(180px, 1fr) 200px 130px 96px");

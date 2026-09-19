@@ -42,6 +42,36 @@ export function CollectionActionsCell({
   );
 }
 
+interface RowCopyIdParams {
+  stackByItemId: Map<string, StackedEntry>;
+  allCopyIdsByTile: Map<string, string[]>;
+  tileGroupBy: GroupByField;
+}
+
+function rowCopyIds(
+  { stackByItemId, allCopyIdsByTile, tileGroupBy }: RowCopyIdParams,
+  printing: Printing,
+  itemId: string,
+): string[] | undefined {
+  const stack = stackByItemId.get(itemId);
+  if (!stack) {
+    return undefined;
+  }
+  return allCopyIdsByTile.get(cardsViewTileKey(printing, tileGroupBy)) ?? stack.copyIds;
+}
+
+export function isCollectionRowPicked(
+  params: RowCopyIdParams & { stacked: boolean; selected: Set<string> },
+  printing: Printing,
+  itemId: string,
+): boolean {
+  const copyIds = rowCopyIds(params, printing, itemId);
+  if (!copyIds) {
+    return false;
+  }
+  return isStackSelected(params.stacked, itemId, copyIds, params.selected);
+}
+
 interface CollectionRowWrapperProps {
   printing?: Printing;
   itemId?: string;
@@ -75,12 +105,14 @@ export function CollectionRowWrapper({
   if (!printing || !itemId) {
     return children;
   }
-  const stack = stackByItemId.get(itemId);
-  if (!stack) {
+  const effectiveCopyIds = rowCopyIds(
+    { stackByItemId, allCopyIdsByTile, tileGroupBy },
+    printing,
+    itemId,
+  );
+  if (!effectiveCopyIds) {
     return children;
   }
-  const cardCopyIds = allCopyIdsByTile.get(cardsViewTileKey(printing, tileGroupBy));
-  const effectiveCopyIds = cardCopyIds ?? stack.copyIds;
   const isItemSelected =
     mode === "select" && isStackSelected(stacked, itemId, effectiveCopyIds, selected);
   const isFromSelection = mode === "select" && isItemSelected && selected.size > 0;

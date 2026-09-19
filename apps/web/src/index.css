@@ -129,6 +129,9 @@ html.hide-scrollbar::-webkit-scrollbar {
   --violet-soft: oklch(0.5 0.16 300 / 0.14);
   --border: oklch(0.82 0.03 75);
   --border-accent: oklch(0.55 0.1 75);
+  /* Gold for marks drawn on card art. Art is dark under every scheme and
+     palette, so this one does not follow them. */
+  --gilt: oklch(0.78 0.11 82);
   --border-opaque: oklch(0.82 0.03 75);
   --input: oklch(0.82 0.03 75);
   --ring: oklch(0.55 0.1 75);
@@ -405,6 +408,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --color-violet-foreground: var(--violet-foreground);
   --color-border: var(--border);
   --color-border-accent: var(--border-accent);
+  --color-gilt: var(--gilt);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
