@@ -25,6 +25,7 @@ function stubLoan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     cardId: "c1",
     quantity: 2,
     returnedQuantity: 0,
+    borrowerReturnedQuantity: 0,
     status: "active",
     acknowledgedAt: "2026-07-02T00:00:00Z",
     rejectedAt: null,

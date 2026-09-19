@@ -19,6 +19,7 @@ interface ReturnLoanDialogProps {
   onOpenChange: (open: boolean) => void;
   outstanding: number;
   pending: boolean;
+  description: string;
   onConfirm: (quantity: number) => void;
 }
 
@@ -27,6 +28,7 @@ export function ReturnLoanDialog({
   onOpenChange,
   outstanding,
   pending,
+  description,
   onConfirm,
 }: ReturnLoanDialogProps) {
   const [quantity, setQuantity] = useState(() => Math.max(1, outstanding));
@@ -37,7 +39,7 @@ export function ReturnLoanDialog({
         <DialogForm onSubmit={() => onConfirm(quantity)}>
           <DialogHeader>
             <DialogTitle>{m.loans_mark_returned()}</DialogTitle>
-            <DialogDescription>{m.loans_return_description()}</DialogDescription>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center justify-between gap-4 py-2">

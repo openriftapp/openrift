@@ -3423,6 +3423,22 @@
   "loans_how_many": "How many?",
   "loans_return_description": "The loan closes once everything is returned.",
   "loans_copies_returned": "Copies returned",
+  "loans_declare_return_description": "This closes the loan on {name}'s side too. They can put it back out if something is still missing.",
+  "loans_declared_returned_badge": "Given back?",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name} marked {count} copy returned. Confirm it, or put the loan back out.",
+        "countPlural=*": "{name} marked {count} copies returned. Confirm it, or put the loan back out."
+      }
+    }
+  ],
+  "loans_confirm_return": "Confirm",
+  "loans_confirm_return_toast": "Return confirmed",
+  "loans_reopen_return": "Still out",
+  "loans_reopen_return_toast": "Loan reopened",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

@@ -16,6 +16,11 @@ export interface CreateLoanInput {
   contextCollectionId?: string;
 }
 
+function tooFewOutstanding(count: number): AppError {
+  const noun = count === 1 ? "copy is" : "copies are";
+  return new AppError(400, ERROR_CODES.BAD_REQUEST, `Only ${count} ${noun} still out on this loan`);
+}
+
 function tooFewAvailable(count: number): AppError {
   const noun = count === 1 ? "copy is" : "copies are";
   return new AppError(409, ERROR_CODES.CONFLICT, `Only ${count} ${noun} still available`);
@@ -125,12 +130,7 @@ export function returnLoanCopies(
 
     const outstanding = loan.quantity - loan.returnedQuantity;
     if (count > outstanding) {
-      const noun = outstanding === 1 ? "copy is" : "copies are";
-      throw new AppError(
-        400,
-        ERROR_CODES.BAD_REQUEST,
-        `Only ${outstanding} ${noun} still out on this loan`,
-      );
+      throw tooFewOutstanding(outstanding);
     }
 
     const updated = await trxRepos.loans.recordReturn(loanId, userId, count);
@@ -138,6 +138,94 @@ export function returnLoanCopies(
       throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
     }
     await trxRepos.loans.releasePins(loanId, count);
+
+    return reloadDto(trxRepos, loanId, userId);
+  });
+}
+
+/** `returnLoanCopies` from the borrower's side, pending the lender's review. */
+export function declareLoanReturn(
+  transact: Transact,
+  loanId: string,
+  userId: string,
+  count: number,
+): Promise<LoanResponse> {
+  return transact(async (trxRepos) => {
+    const loan = await trxRepos.loans.getById(loanId);
+    if (loan === undefined || loan.borrowerUserId !== userId) {
+      throw new AppError(404, ERROR_CODES.NOT_FOUND, "Loan not found");
+    }
+    if (loan.status !== "active" || loan.acknowledgedAt === null) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan is not active");
+    }
+
+    const outstanding = loan.quantity - loan.returnedQuantity;
+    if (count > outstanding) {
+      throw tooFewOutstanding(outstanding);
+    }
+
+    const updated = await trxRepos.loans.recordBorrowerReturn(loanId, userId, count);
+    if (updated === 0) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+    }
+    await trxRepos.loans.releasePins(loanId, count);
+
+    return reloadDto(trxRepos, loanId, userId);
+  });
+}
+
+/** The lender accepts a declared return; it becomes an ordinary one. */
+export function confirmBorrowerReturn(
+  transact: Transact,
+  loanId: string,
+  userId: string,
+): Promise<LoanResponse> {
+  return transact(async (trxRepos) => {
+    await requireLenderLoan(trxRepos, loanId, userId);
+
+    const updated = await trxRepos.loans.clearBorrowerReturn(loanId, userId);
+    if (updated === 0) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "No declared return to review");
+    }
+
+    return reloadDto(trxRepos, loanId, userId);
+  });
+}
+
+/**
+ * Puts a declared return's copies back out on the loan. Re-pinning is
+ * best-effort: a released copy can be gone, and the loan reopens regardless.
+ */
+export function reopenBorrowerReturn(
+  transact: Transact,
+  loanId: string,
+  userId: string,
+): Promise<LoanResponse> {
+  return transact(async (trxRepos) => {
+    const loan = await requireLenderLoan(trxRepos, loanId, userId);
+    const count = loan.borrowerReturnedQuantity;
+    if (count === 0) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "No declared return to review");
+    }
+
+    const updated = await trxRepos.loans.undoBorrowerReturn(loanId, userId, count);
+    if (updated === 0) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+    }
+
+    const unclaimed = await trxRepos.loans.listUnclaimedCopyIds(userId, loan.printingId);
+    const surviving = new Set(await trxRepos.copies.lockByIds(unclaimed));
+    const lockedCopyIds = unclaimed.filter((id) => surviving.has(id));
+    const reservedByTrade = new Set(await trxRepos.cardTrades.filterReservedCopyIds(lockedCopyIds));
+    const availableCopyIds = lockedCopyIds.filter((id) => !reservedByTrade.has(id));
+    try {
+      await trxRepos.loans.pinCopies(loanId, availableCopyIds.slice(0, count));
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new AppError(409, ERROR_CODES.CONFLICT, "Loan state has changed");
+      }
+      throw error;
+    }
 
     return reloadDto(trxRepos, loanId, userId);
   });

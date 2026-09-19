@@ -3420,6 +3420,22 @@
   "loans_how_many": "몇 장인가요?",
   "loans_return_description": "모두 반납되면 대여가 종료됩니다.",
   "loans_copies_returned": "반납된 장수",
+  "loans_declare_return_description": "{name}님 쪽의 대여 기록도 함께 종료됩니다. 아직 남은 카드가 있으면 상대방이 다시 열 수 있습니다.",
+  "loans_declared_returned_badge": "돌려받으셨나요?",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name}님이 {count}장을 반납으로 표시했습니다. 확인하거나 대여를 다시 여세요.",
+        "countPlural=*": "{name}님이 {count}장을 반납으로 표시했습니다. 확인하거나 대여를 다시 여세요."
+      }
+    }
+  ],
+  "loans_confirm_return": "확인",
+  "loans_confirm_return_toast": "반납을 확인했습니다",
+  "loans_reopen_return": "아직 대여 중",
+  "loans_reopen_return_toast": "대여를 다시 열었습니다",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

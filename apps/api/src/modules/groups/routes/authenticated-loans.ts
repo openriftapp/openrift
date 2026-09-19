@@ -37,7 +37,7 @@ export const loansRouter = {
 
   actionCounts: os.actionCounts.handler(async ({ context }): Promise<LoanActionCountsResponse> => {
     const { loans } = context.repos;
-    const total = await loans.acknowledgeNeededCountForUser(context.userId);
+    const total = await loans.actionNeededCountForUser(context.userId);
     return { total };
   }),
 
@@ -60,6 +60,21 @@ export const loansRouter = {
   reject: os.reject.handler(({ input, context }): Promise<LoanResponse> => {
     const { rejectLoan } = context.services;
     return rejectLoan(context.transact, input.id, context.userId);
+  }),
+
+  declareReturn: os.declareReturn.handler(({ input, context }): Promise<LoanResponse> => {
+    const { declareLoanReturn } = context.services;
+    return declareLoanReturn(context.transact, input.id, context.userId, input.quantity);
+  }),
+
+  confirmReturn: os.confirmReturn.handler(({ input, context }): Promise<LoanResponse> => {
+    const { confirmBorrowerReturn } = context.services;
+    return confirmBorrowerReturn(context.transact, input.id, context.userId);
+  }),
+
+  reopenReturn: os.reopenReturn.handler(({ input, context }): Promise<LoanResponse> => {
+    const { reopenBorrowerReturn } = context.services;
+    return reopenBorrowerReturn(context.transact, input.id, context.userId);
   }),
 
   returnCopies: os.returnCopies.handler(({ input, context }): Promise<LoanResponse> => {

@@ -14,6 +14,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     cardId: "c1",
     quantity: 1,
     returnedQuantity: 0,
+    borrowerReturnedQuantity: 0,
     status: "active",
     acknowledgedAt: "2026-09-01T00:00:00.000Z",
     rejectedAt: null,

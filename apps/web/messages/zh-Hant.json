@@ -3420,6 +3420,22 @@
   "loans_how_many": "幾張？",
   "loans_return_description": "全部歸還後，這筆出借紀錄就會結案。",
   "loans_copies_returned": "已歸還張數",
+  "loans_declare_return_description": "這也會在 {name} 那邊結案這筆出借紀錄。如果還有沒還的，對方可以重新開啟。",
+  "loans_declared_returned_badge": "已歸還？",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name} 標記了 {count} 張已歸還。確認無誤，或重新開啟這筆出借紀錄。",
+        "countPlural=*": "{name} 標記了 {count} 張已歸還。確認無誤，或重新開啟這筆出借紀錄。"
+      }
+    }
+  ],
+  "loans_confirm_return": "確認",
+  "loans_confirm_return_toast": "已確認歸還",
+  "loans_reopen_return": "尚未歸還",
+  "loans_reopen_return_toast": "已重新開啟出借紀錄",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

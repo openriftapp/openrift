@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../deps.js";
 import { AppError } from "../../../errors.js";
-import { createLoan } from "./loans.js";
+import { createLoan, reopenBorrowerReturn } from "./loans.js";
 
 function mockTransact(trxRepos: Repos): Transact {
   return (fn) => fn(trxRepos) as any;
@@ -74,5 +74,114 @@ describe("createLoan cross-claim with a concurrent trade accept", () => {
     expect((result as AppError).status).toBe(409);
     expect(create).not.toHaveBeenCalled();
     expect(pinCopies).not.toHaveBeenCalled();
+  });
+});
+
+function dtoRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "loan-1",
+    lenderUserId: "lender-1",
+    borrowerUserId: "borrower-1",
+    borrowerName: null,
+    printingId: "printing-1",
+    cardId: "card-1",
+    quantity: 2,
+    returnedQuantity: 0,
+    borrowerReturnedQuantity: 0,
+    status: "active",
+    acknowledgedAt: null,
+    rejectedAt: null,
+    createdAt: new Date("2026-09-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-09-02T00:00:00.000Z"),
+    closedAt: null,
+    lenderName: "Ekko",
+    lenderImage: null,
+    lenderEmail: "ekko@example.com",
+    borrowerUserName: "Jinx",
+    borrowerUserImage: null,
+    borrowerUserEmail: "jinx@example.com",
+    ...overrides,
+  };
+}
+
+describe("reopenBorrowerReturn re-pinning", () => {
+  it("pins the declared count, skipping copies a trade reserved in the meantime", async () => {
+    const pinCopies = vi.fn(async () => undefined);
+    const repos = {
+      copies: {
+        lockByIds: vi.fn(async (ids: string[]) => ids),
+      },
+      loans: {
+        getById: vi.fn(async () => ({
+          id: "loan-1",
+          lenderUserId: "lender-1",
+          printingId: "printing-1",
+          borrowerReturnedQuantity: 2,
+        })),
+        undoBorrowerReturn: vi.fn(async () => 1),
+        listUnclaimedCopyIds: vi.fn(async () => ["copy-1", "copy-2", "copy-3", "copy-4"]),
+        pinCopies,
+        getDtoRowByIdForUser: vi.fn(async () => dtoRow({ quantity: 2 })),
+      },
+      cardTrades: {
+        filterReservedCopyIds: vi.fn(async () => ["copy-1"]),
+      },
+    } as unknown as Repos;
+
+    await reopenBorrowerReturn(mockTransact(repos), "loan-1", "lender-1");
+
+    expect(pinCopies).toHaveBeenCalledWith("loan-1", ["copy-2", "copy-3"]);
+  });
+
+  it("reopens with fewer pins when the released copies are gone", async () => {
+    const pinCopies = vi.fn(async () => undefined);
+    const repos = {
+      copies: {
+        lockByIds: vi.fn(async () => []),
+      },
+      loans: {
+        getById: vi.fn(async () => ({
+          id: "loan-1",
+          lenderUserId: "lender-1",
+          printingId: "printing-1",
+          borrowerReturnedQuantity: 2,
+        })),
+        undoBorrowerReturn: vi.fn(async () => 1),
+        listUnclaimedCopyIds: vi.fn(async () => ["copy-1"]),
+        pinCopies,
+        getDtoRowByIdForUser: vi.fn(async () => dtoRow()),
+      },
+      cardTrades: {
+        filterReservedCopyIds: vi.fn(async () => []),
+      },
+    } as unknown as Repos;
+
+    const result = await reopenBorrowerReturn(mockTransact(repos), "loan-1", "lender-1");
+
+    expect(result.status).toBe("active");
+    expect(pinCopies).toHaveBeenCalledWith("loan-1", []);
+  });
+
+  it("409s when there is no declared return to undo", async () => {
+    const undoBorrowerReturn = vi.fn(async () => 1);
+    const repos = {
+      loans: {
+        getById: vi.fn(async () => ({
+          id: "loan-1",
+          lenderUserId: "lender-1",
+          printingId: "printing-1",
+          borrowerReturnedQuantity: 0,
+        })),
+        undoBorrowerReturn,
+      },
+    } as unknown as Repos;
+
+    const result = await reopenBorrowerReturn(mockTransact(repos), "loan-1", "lender-1").catch(
+      (error: unknown) => error,
+    );
+
+    expect(result).toBeInstanceOf(AppError);
+    expect((result as AppError).status).toBe(409);
+    expect(undoBorrowerReturn).not.toHaveBeenCalled();
   });
 });

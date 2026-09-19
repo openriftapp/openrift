@@ -6,6 +6,7 @@
 
 - feat(Tournaments): **Send decklists to the Meta Archive** — link a tournament to its UVS Games event, then match your players to the official standings and send the lists they agreed to share for review.
 - feat(Collection): **Add a selection to a collection** — every list can now create owned copies, and drag-and-drop or the right-click menu acts on all the cards you picked with Manage.
+- feat(Groups): **Mark borrowed cards returned** — you can now record that you gave a borrowed card back, and the lender confirms it or puts the loan back out.
 - fix(Meta): **Missing events with common names** — events sharing a name with many others, such as weekly store nights and Chinese events, were not added to the archive. They are now added.
 
 ### Other
@@ -15,6 +16,7 @@
 
 - feat(Tournaments): **Meta Archive in the sharing note** — the sharing choices on your deck page now say that the Meta Archive only takes lists shared with your name.
 - fix(Meta): **Events without results on the archive page** — the Meta Archive page now says how many matching events have no results yet and links to them in the event index, keeping your search and era.
+- feat(Groups): **Dispute a loan at any time** — a borrowed card's menu now offers “I don't have this” for as long as the loan is open, not only before you confirm it.
 
 ## 2026-09-18
 

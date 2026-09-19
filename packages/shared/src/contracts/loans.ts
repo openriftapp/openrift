@@ -51,14 +51,16 @@ export const loanResponseSchema = z.object({
   cardId: z.string(),
   quantity: z.number().int().positive(),
   returnedQuantity: z.number().int().nonnegative(),
+  /** The part of `returnedQuantity` the borrower declared and the lender has not reviewed. */
+  borrowerReturnedQuantity: z.number().int().nonnegative(),
   status: loanStatusSchema,
   acknowledgedAt: z.string().nullable(),
   rejectedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   closedAt: z.string().nullable(),
-  /** `acknowledge` when the viewer is an unconfirmed member borrower. */
-  actionNeeded: z.enum(["acknowledge"]).nullable(),
+  /** `acknowledge` for an unconfirmed member borrower, `review_return` for a lender whose borrower declared a return. */
+  actionNeeded: z.enum(["acknowledge", "review_return"]).nullable(),
 });
 
 export const loanListResponseSchema = z.object({ items: z.array(loanResponseSchema) });
@@ -106,6 +108,31 @@ export const loansContract = {
     .errors({
       NOT_FOUND: { message: "Loan not found" },
       CONFLICT: { message: "Loan is not active" },
+    })
+    .output(loanResponseSchema),
+  declareReturn: authedRoute
+    .route({ method: "POST", path: "/api/v1/loans/{id}/declare-return", tags: [TAG] })
+    .input(withParams(idParamSchema, returnLoanCopiesSchema))
+    .errors({
+      NOT_FOUND: { message: "Loan not found" },
+      BAD_REQUEST: { message: "More copies than are outstanding" },
+      CONFLICT: { message: "Loan is not active" },
+    })
+    .output(loanResponseSchema),
+  confirmReturn: authedRoute
+    .route({ method: "POST", path: "/api/v1/loans/{id}/confirm-return", tags: [TAG] })
+    .input(idParamSchema)
+    .errors({
+      NOT_FOUND: { message: "Loan not found" },
+      CONFLICT: { message: "No declared return to review" },
+    })
+    .output(loanResponseSchema),
+  reopenReturn: authedRoute
+    .route({ method: "POST", path: "/api/v1/loans/{id}/reopen-return", tags: [TAG] })
+    .input(idParamSchema)
+    .errors({
+      NOT_FOUND: { message: "Loan not found" },
+      CONFLICT: { message: "No declared return to review" },
     })
     .output(loanResponseSchema),
   returnCopies: authedRoute

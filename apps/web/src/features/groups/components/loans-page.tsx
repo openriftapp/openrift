@@ -33,9 +33,12 @@ import { CardMetaLine } from "@/features/groups/components/trade-row-parts";
 import { WriteOffLoanDialog } from "@/features/groups/components/write-off-loan-dialog";
 import {
   useAcknowledgeLoan,
+  useConfirmBorrowerReturn,
+  useDeclareLoanReturn,
   useDeleteLoan,
   useLoans,
   useRejectLoan,
+  useReopenBorrowerReturn,
   useReturnLoanCopies,
   useWriteOffLoan,
 } from "@/features/groups/hooks/use-loans";
@@ -56,6 +59,9 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
   const acknowledge = useAcknowledgeLoan();
   const reject = useRejectLoan();
   const returnCopies = useReturnLoanCopies();
+  const declareReturn = useDeclareLoanReturn();
+  const confirmReturn = useConfirmBorrowerReturn();
+  const reopenReturn = useReopenBorrowerReturn();
   const writeOff = useWriteOffLoan();
   const deleteLoan = useDeleteLoan();
 
@@ -73,8 +79,18 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
     acknowledge.isPending ||
     reject.isPending ||
     returnCopies.isPending ||
+    declareReturn.isPending ||
+    confirmReturn.isPending ||
+    reopenReturn.isPending ||
     writeOff.isPending ||
     deleteLoan.isPending;
+
+  const recordReturn = lending ? returnCopies : declareReturn;
+  const canReturn =
+    loan.status === "active" &&
+    loan.actionNeeded === null &&
+    (lending || loan.acknowledgedAt !== null);
+  const canDispute = !lending && loan.status === "active" && loan.acknowledgedAt !== null;
 
   const counterpartyName = loanCounterpartyLabel(loan);
   const quantityLabel =
@@ -150,13 +166,43 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
             </>
           ) : null}
 
-          {lending && loan.status === "active" ? (
+          {loan.actionNeeded === "review_return" ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={acting}
+                onClick={() =>
+                  reopenReturn.mutate(
+                    { loanId: loan.id },
+                    { onSuccess: () => toast.success(m.loans_reopen_return_toast()) },
+                  )
+                }
+              >
+                {m.loans_reopen_return()}
+              </Button>
+              <Button
+                size="sm"
+                disabled={acting}
+                onClick={() =>
+                  confirmReturn.mutate(
+                    { loanId: loan.id },
+                    { onSuccess: () => toast.success(m.loans_confirm_return_toast()) },
+                  )
+                }
+              >
+                {m.loans_confirm_return()}
+              </Button>
+            </>
+          ) : null}
+
+          {canReturn ? (
             <Button
               size="sm"
               disabled={acting}
               onClick={() =>
                 outstanding === 1
-                  ? returnCopies.mutate({ loanId: loan.id, quantity: 1 })
+                  ? recordReturn.mutate({ loanId: loan.id, quantity: 1 })
                   : setReturnOpen(true)
               }
             >
@@ -164,7 +210,7 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
             </Button>
           ) : null}
 
-          {lending ? (
+          {lending || canDispute ? (
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -174,22 +220,29 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
                 <EllipsisVerticalIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {loan.status === "active" ? (
+                {canDispute ? (
+                  <DropdownMenuItem onClick={() => reject.mutate({ loanId: loan.id })}>
+                    {m.loans_dont_have_this()}
+                  </DropdownMenuItem>
+                ) : null}
+                {lending && loan.status === "active" ? (
                   <DropdownMenuItem onClick={() => setWriteOffOpen(true)}>
                     {m.loans_not_coming_back()}
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() =>
-                    deleteLoan.mutate(
-                      { loanId: loan.id },
-                      { onSuccess: () => toast.success(m.loans_deleted_toast()) },
-                    )
-                  }
-                >
-                  {m.common_delete()}
-                </DropdownMenuItem>
+                {lending ? (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() =>
+                      deleteLoan.mutate(
+                        { loanId: loan.id },
+                        { onSuccess: () => toast.success(m.loans_deleted_toast()) },
+                      )
+                    }
+                  >
+                    {m.common_delete()}
+                  </DropdownMenuItem>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
@@ -201,9 +254,14 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
           open={returnOpen}
           onOpenChange={setReturnOpen}
           outstanding={outstanding}
-          pending={returnCopies.isPending}
+          pending={recordReturn.isPending}
+          description={
+            lending
+              ? m.loans_return_description()
+              : m.loans_declare_return_description({ name: counterpartyName })
+          }
           onConfirm={(quantity) =>
-            returnCopies.mutate(
+            recordReturn.mutate(
               { loanId: loan.id, quantity },
               { onSuccess: () => setReturnOpen(false) },
             )
@@ -231,10 +289,24 @@ function LoanRow({ loan }: { loan: LoanResponse }) {
 }
 
 function LoanStatusBadge({ loan }: { loan: LoanResponse }) {
-  if (loan.status !== "active") {
+  if (loan.status !== "active" && loan.actionNeeded === null) {
     return (
       <Badge variant="secondary" className="shrink-0">
         {loanStatusLabel(loan.status)}
+      </Badge>
+    );
+  }
+  if (loan.actionNeeded === "review_return") {
+    return (
+      <Badge
+        variant="warning"
+        className="shrink-0"
+        title={m.loans_declared_returned_badge_title({
+          name: loanCounterpartyLabel(loan),
+          count: loan.borrowerReturnedQuantity,
+        })}
+      >
+        {m.loans_declared_returned_badge()}
       </Badge>
     );
   }

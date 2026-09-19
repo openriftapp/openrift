@@ -5,6 +5,16 @@ date: 2026-07-08
 
 # ADR-039: Card Lending Ledger
 
+> Amended 2026-09-19: returns are no longer lender-only, and the borrower can dispute a loan at any time.
+>
+> Fork 6 chose lender-only returns so that the lender's data is correct without the borrower having to act. That still holds. What it left with no exit is the mirror case: a borrower who has handed the cards back cannot record it, and a lender who never updates leaves the loan open forever, with the borrowed copies still counting toward the borrower's deck building. Rejecting was the only borrower-side lever, and the UI offered it only before acknowledgment.
+>
+> - **Either party records a return.** The borrower's takes effect immediately, exactly like the lender's: pins release, `returned_quantity` climbs, the loan closes when everything is back. The amount is also banked in `borrower_returned_quantity`.
+> - **The lender reviews, they do not gate.** A non-zero `borrower_returned_quantity` pulls the loan into the lender's attention section, closed or not, with confirm and reopen. Confirming zeroes the column and the return becomes an ordinary one. Reopening subtracts it from `returned_quantity`, reopens the loan, and re-pins whatever copies are still free; a copy traded or disposed in between simply leaves the pin count short, the same cost-of-skipping rule the trade-sync skip takes. The lender recording their own return, or writing the loan off, reviews a pending declaration along with it.
+> - **Disputing is no longer a one-shot.** "I don't have this" stays available to a member borrower for as long as the loan is active, so a borrower can always detach from a loan that is wrong.
+>
+> Only the lender's own copies are ever at stake, so a mistaken or dishonest declaration costs the lender accuracy in their collection, never a card. They already had the same unilateral power in the other direction through write-off.
+
 ## Context and Problem Statement
 
 Playgroups lend cards constantly: a friend borrows the missing playset for a Summoner Skirmish and returns it two weeks later. OpenRift has no way to record this. Every existing primitive assumes ownership and possession coincide: a lent card should still count as owned (collection stats, exports, playset math) but is physically absent (it must not count for deck building and must not be offered in trade matching). Today the closest workaround is a "Lent to Bob" collection marked unavailable for deck building, which loses who has the card, since when, and whether it came back, and gives the borrower nothing. How do we track lending without breaking the meaning of collections, availability, or trade matching?
@@ -27,7 +37,7 @@ The load-bearing forks, each resolved with the project owner:
 3. **Borrower**: a friend-group co-member or a free-text name _(chosen)_ · members only · free text only.
 4. **Initiation**: lender records, loan is active immediately, member borrowers acknowledge or reject _(chosen)_ · accept-gated like trades · lender-private with no borrower side.
 5. **Borrower surfaces**: borrowed view plus deck-builder counts, after acknowledgment _(chosen)_ · borrowed view only · none in v1.
-6. **Returns**: only the lender marks returns, partial quantities allowed _(chosen)_ · all-or-nothing · either party, like mark-traded.
+6. **Returns**: either party marks returns, partial quantities allowed, the lender reviews the borrower's _(chosen, amended 2026-09-19)_ · lender only _(original choice)_ · all-or-nothing.
 7. **Non-return**: one terminal write-off with a lender-side removal proposal _(chosen)_ · convert to a completed trade with two-sided sync · no special support.
 8. **Trade interplay**: lent copies excluded from matching plus a mutual claim guard _(chosen)_ · exclusion without guard · still matchable with an "on loan" hint.
 9. **Copy selection**: automatic, preferring the collection the action was triggered in _(chosen)_ · strict to that collection · explicit picker.
@@ -69,8 +79,9 @@ Deck-building availability subtracts pinned copies as a copy-level overlay on th
 ### Lifecycle
 
 - **Record**: the lender creates the loan, active immediately, copies pinned. Naming a member creates a bell notification (the ADR-019 bell) with acknowledge and reject actions.
-- **Acknowledge / reject** (member borrowers, orthogonal to status): unconfirmed loans show on the borrower's side but affect nothing. Acknowledging turns on their borrowed surfaces. Rejecting ("I don't have this") does not close the loan, the lender's card is still out; it flags the loan back to the lender, who can delete it or repoint the borrower to free text. Rejected loans vanish from the borrower's surfaces.
-- **Return**: the lender marks any number of copies returned; that many pin rows are deleted and `returned_quantity` increments. At `returned_quantity = quantity` the loan closes as `returned`. The borrower never has to act.
+- **Acknowledge / reject** (member borrowers, orthogonal to status): unconfirmed loans show on the borrower's side but affect nothing. Acknowledging turns on their borrowed surfaces. Rejecting ("I don't have this") does not close the loan, the lender's card is still out; it flags the loan back to the lender, who can delete it or repoint the borrower to free text. Rejected loans vanish from the borrower's surfaces. Rejecting stays available for the whole active life of the loan.
+- **Return**: either party marks any number of copies returned; that many pin rows are deleted and `returned_quantity` increments. At `returned_quantity = quantity` the loan closes as `returned`. The borrower never has to act for the lender's return to land.
+- **Review** (lender, after a borrower-marked return): the amount sits in `borrower_returned_quantity` and holds the loan in the lender's attention section. Confirm zeroes it. Reopen subtracts it from `returned_quantity`, sets the loan back to `active`, and re-pins the copies that are still unclaimed.
 - **Write-off**: for the card that is never coming back, whether the borrower keeps it by agreement or vanishes. Remaining pins are released, the loan closes as `written_off`, and the lender gets a one-sided proposal: remove the outstanding copies via `disposeCopies` (emitting collection events), or skip and fix manually. The borrower's side gets nothing, no trade record and no "add to your collection" proposal; if they actually have the card, adding it is on them.
 - **Delete**: the lender can always delete a loan (mis-entry or unwanted history); pins release and it disappears from the borrower's view. It is a personal ledger, history is best-effort.
 

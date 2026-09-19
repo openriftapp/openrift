@@ -3420,6 +3420,22 @@
   "loans_how_many": "Combien ?",
   "loans_return_description": "Le prêt se termine une fois que tout est rendu.",
   "loans_copies_returned": "Exemplaires rendus",
+  "loans_declare_return_description": "Cela termine aussi le prêt du côté de {name}. Cette personne peut le rouvrir s'il manque encore quelque chose.",
+  "loans_declared_returned_badge": "Rendue ?",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name} a marqué {count} exemplaire comme rendu. Confirmez, ou rouvrez le prêt.",
+        "countPlural=*": "{name} a marqué {count} exemplaires comme rendus. Confirmez, ou rouvrez le prêt."
+      }
+    }
+  ],
+  "loans_confirm_return": "Confirmer",
+  "loans_confirm_return_toast": "Retour confirmé",
+  "loans_reopen_return": "Encore dehors",
+  "loans_reopen_return_toast": "Prêt rouvert",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

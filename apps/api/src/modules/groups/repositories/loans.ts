@@ -20,6 +20,7 @@ export interface LoanDtoRow {
   cardId: string;
   quantity: number;
   returnedQuantity: number;
+  borrowerReturnedQuantity: number;
   status: LoanStatus;
   acknowledgedAt: Date | null;
   rejectedAt: Date | null;
@@ -63,6 +64,7 @@ function loanDtoBaseQuery(db: Kysely<Database>) {
       "l.cardId",
       "l.quantity",
       "l.returnedQuantity",
+      "l.borrowerReturnedQuantity",
       "l.status",
       "l.acknowledgedAt",
       "l.rejectedAt",
@@ -124,17 +126,24 @@ export function loansRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Active loans naming the viewer as borrower that they have neither
-     * acknowledged nor rejected: the loans nav badge count.
+     * The loans nav badge count: unacknowledged borrower loans, plus the
+     * viewer's own loans carrying an unreviewed declared return.
      */
-    async acknowledgeNeededCountForUser(userId: string): Promise<number> {
+    async actionNeededCountForUser(userId: string): Promise<number> {
       const row = await db
         .selectFrom("loans")
         .select((eb) => eb.fn.countAll<string>().as("count"))
-        .where("borrowerUserId", "=", userId)
-        .where("status", "=", "active")
-        .where("acknowledgedAt", "is", null)
-        .where("rejectedAt", "is", null)
+        .where((eb) =>
+          eb.or([
+            eb.and([
+              eb("borrowerUserId", "=", userId),
+              eb("status", "=", "active"),
+              eb("acknowledgedAt", "is", null),
+              eb("rejectedAt", "is", null),
+            ]),
+            eb.and([eb("lenderUserId", "=", userId), eb("borrowerReturnedQuantity", ">", 0)]),
+          ]),
+        )
         .executeTakeFirst();
       return Number(row?.count ?? 0);
     },
@@ -269,6 +278,8 @@ export function loansRepo(db: Kysely<Database>) {
         .updateTable("loans")
         .set({
           returnedQuantity: sql`returned_quantity + ${count}`,
+          // The lender touching the loan reviews any pending declaration.
+          borrowerReturnedQuantity: 0,
           status: sql`CASE WHEN returned_quantity + ${count} = quantity THEN 'returned' ELSE status END`,
           closedAt: sql`CASE WHEN returned_quantity + ${count} = quantity THEN now() ELSE closed_at END`,
           updatedAt: sql`now()`,
@@ -282,13 +293,79 @@ export function loansRepo(db: Kysely<Database>) {
     },
 
     /**
+     * `recordReturn` from the borrower's side, banking the amount under
+     * `borrower_returned_quantity` for the lender to review.
+     */
+    async recordBorrowerReturn(
+      loanId: string,
+      borrowerUserId: string,
+      count: number,
+    ): Promise<number> {
+      const result = await db
+        .updateTable("loans")
+        .set({
+          returnedQuantity: sql`returned_quantity + ${count}`,
+          borrowerReturnedQuantity: sql`borrower_returned_quantity + ${count}`,
+          status: sql`CASE WHEN returned_quantity + ${count} = quantity THEN 'returned' ELSE status END`,
+          closedAt: sql`CASE WHEN returned_quantity + ${count} = quantity THEN now() ELSE closed_at END`,
+          updatedAt: sql`now()`,
+        })
+        .where("id", "=", loanId)
+        .where("borrowerUserId", "=", borrowerUserId)
+        .where("status", "=", "active")
+        .where("acknowledgedAt", "is not", null)
+        .where(sql<boolean>`returned_quantity + ${count} <= quantity`)
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    /** The lender accepts a declared return: it becomes an ordinary one. */
+    async clearBorrowerReturn(loanId: string, lenderUserId: string): Promise<number> {
+      const result = await db
+        .updateTable("loans")
+        .set({ borrowerReturnedQuantity: 0, updatedAt: sql`now()` })
+        .where("id", "=", loanId)
+        .where("lenderUserId", "=", lenderUserId)
+        .where("borrowerReturnedQuantity", ">", 0)
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    /**
+     * Takes `count` copies back out of `returned_quantity` and reopens the
+     * loan; guarded on the count the caller read. Re-pinning lives in the service.
+     */
+    async undoBorrowerReturn(loanId: string, lenderUserId: string, count: number): Promise<number> {
+      const result = await db
+        .updateTable("loans")
+        .set({
+          returnedQuantity: sql`returned_quantity - ${count}`,
+          borrowerReturnedQuantity: 0,
+          status: "active",
+          closedAt: null,
+          updatedAt: sql`now()`,
+        })
+        .where("id", "=", loanId)
+        .where("lenderUserId", "=", lenderUserId)
+        .where("borrowerReturnedQuantity", "=", count)
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    /**
      * Closes an active loan as `written_off` (lender only). Pin release and
      * the optional dispose live in the service.
      */
     async markWrittenOff(loanId: string, lenderUserId: string): Promise<number> {
       const result = await db
         .updateTable("loans")
-        .set({ status: "written_off", closedAt: sql`now()`, updatedAt: sql`now()` })
+        // The lender touching the loan reviews any pending declaration.
+        .set({
+          status: "written_off",
+          borrowerReturnedQuantity: 0,
+          closedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
         .where("id", "=", loanId)
         .where("lenderUserId", "=", lenderUserId)
         .where("status", "=", "active")

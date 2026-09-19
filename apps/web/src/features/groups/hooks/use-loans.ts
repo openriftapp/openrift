@@ -34,7 +34,12 @@ const createLoanFn = createServerFn({ method: "POST" })
   .handler(({ context, data }) => apiOrpcClient(loansContract, context.cookie).create(data));
 
 const loanActionFn = createServerFn({ method: "POST" })
-  .validator((input: { loanId: string; action: "acknowledge" | "reject" }) => input)
+  .validator(
+    (input: {
+      loanId: string;
+      action: "acknowledge" | "reject" | "confirmReturn" | "reopenReturn";
+    }) => input,
+  )
   .middleware([withCookies])
   .handler(({ context, data }): Promise<LoanResponse> =>
     apiOrpcClient(loansContract, context.cookie)[data.action]({ id: data.loanId }),
@@ -45,6 +50,16 @@ const returnLoanCopiesFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(({ context, data }) =>
     apiOrpcClient(loansContract, context.cookie).returnCopies({
+      id: data.loanId,
+      quantity: data.quantity,
+    }),
+  );
+
+const declareLoanReturnFn = createServerFn({ method: "POST" })
+  .validator((input: { loanId: string; quantity: number }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }) =>
+    apiOrpcClient(loansContract, context.cookie).declareReturn({
       id: data.loanId,
       quantity: data.quantity,
     }),
@@ -195,6 +210,30 @@ export function useReturnLoanCopies() {
   const userId = useRequiredUserId();
   return useMutationWithInvalidation<LoanResponse, { loanId: string; quantity: number }>({
     mutationFn: (data) => returnLoanCopiesFn({ data }),
+    invalidates: () => loanInvalidationKeys(userId),
+  });
+}
+
+export function useDeclareLoanReturn() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<LoanResponse, { loanId: string; quantity: number }>({
+    mutationFn: (data) => declareLoanReturnFn({ data }),
+    invalidates: () => loanInvalidationKeys(userId),
+  });
+}
+
+export function useConfirmBorrowerReturn() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<LoanResponse, { loanId: string }>({
+    mutationFn: (data) => loanActionFn({ data: { loanId: data.loanId, action: "confirmReturn" } }),
+    invalidates: () => loanInvalidationKeys(userId),
+  });
+}
+
+export function useReopenBorrowerReturn() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<LoanResponse, { loanId: string }>({
+    mutationFn: (data) => loanActionFn({ data: { loanId: data.loanId, action: "reopenReturn" } }),
     invalidates: () => loanInvalidationKeys(userId),
   });
 }

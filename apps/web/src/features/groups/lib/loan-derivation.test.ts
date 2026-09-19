@@ -19,6 +19,7 @@ function stubLoan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     cardId: "c1",
     quantity: 2,
     returnedQuantity: 0,
+    borrowerReturnedQuantity: 0,
     status: "active",
     acknowledgedAt: null,
     rejectedAt: null,
@@ -96,6 +97,19 @@ describe("loanSection", () => {
 
   it("puts an ordinary active lent loan into lent", () => {
     expect(loanSection(stubLoan())).toBe("lent");
+  });
+
+  it("holds a closed loan in attention while a declared return is unreviewed", () => {
+    expect(
+      loanSection(
+        stubLoan({
+          status: "returned",
+          returnedQuantity: 2,
+          borrowerReturnedQuantity: 2,
+          actionNeeded: "review_return",
+        }),
+      ),
+    ).toBe("attention");
   });
 });
 

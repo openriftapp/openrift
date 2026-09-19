@@ -12,6 +12,7 @@ export interface LoansTable {
   cardId: string;
   quantity: number;
   returnedQuantity: Generated<number>;
+  borrowerReturnedQuantity: Generated<number>;
   status: Generated<LoanStatus>;
   acknowledgedAt: Date | null;
   rejectedAt: Date | null;

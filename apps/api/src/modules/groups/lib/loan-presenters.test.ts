@@ -17,6 +17,7 @@ function loanRow(overrides: Partial<LoanDtoRow> = {}): LoanDtoRow {
     cardId: "OGS-001",
     quantity: 3,
     returnedQuantity: 0,
+    borrowerReturnedQuantity: 0,
     status: "active",
     acknowledgedAt: null,
     rejectedAt: null,
@@ -91,6 +92,24 @@ describe("toLoanResponse", () => {
       const row = loanRow({ status, closedAt: new Date("2026-03-20T10:00:00.000Z") });
       expect(toLoanResponse(row, BORROWER_ID).actionNeeded).toBeNull();
     }
+  });
+
+  it("asks the lender to review a declared return, and tells the borrower nothing of it", () => {
+    const row = loanRow({
+      status: "returned",
+      returnedQuantity: 3,
+      borrowerReturnedQuantity: 3,
+      acknowledgedAt: new Date("2026-03-19T10:00:00.000Z"),
+      closedAt: new Date("2026-03-20T10:00:00.000Z"),
+    });
+
+    const lenderView = toLoanResponse(row, LENDER_ID);
+    expect(lenderView.actionNeeded).toBe("review_return");
+    expect(lenderView.borrowerReturnedQuantity).toBe(3);
+
+    const borrowerView = toLoanResponse(row, BORROWER_ID);
+    expect(borrowerView.actionNeeded).toBeNull();
+    expect(borrowerView.borrowerReturnedQuantity).toBe(0);
   });
 
   it("converts every timestamp to ISO, keeping the unset ones null", () => {

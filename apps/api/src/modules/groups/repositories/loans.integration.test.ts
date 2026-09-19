@@ -1,16 +1,25 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRepos, createTransact } from "../../../deps.js";
-import { CARD_FURY_UNIT, PRINTING_1, PRINTING_2 } from "../../../test/fixtures/constants.js";
+import {
+  CARD_FURY_UNIT,
+  PRINTING_1,
+  PRINTING_2,
+  PRINTING_3,
+  PRINTING_4,
+} from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
 import { disposeCopies } from "../../collections/services/copies.js";
 import { toLoanResponse } from "../lib/loan-presenters.js";
 import { acceptTrade, createTrade } from "../services/card-trades.js";
 import {
   acknowledgeLoan,
+  confirmBorrowerReturn,
   createLoan,
+  declareLoanReturn,
   deleteLoan,
   rejectLoan,
+  reopenBorrowerReturn,
   returnLoanCopies,
   writeOffLoan,
 } from "../services/loans.js";
@@ -247,7 +256,7 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     expect(borrowerView?.role).toBe("borrower");
     expect(borrowerView?.counterparty?.userId).toBe(LENDER_ID);
     expect(borrowerView?.actionNeeded).toBe("acknowledge");
-    expect(await repos.loans.acknowledgeNeededCountForUser(BORROWER_ID)).toBe(1);
+    expect(await repos.loans.actionNeededCountForUser(BORROWER_ID)).toBe(1);
 
     await expect(acknowledgeLoan(transact, loan.id, OUTSIDER_ID)).rejects.toMatchObject({
       status: 404,
@@ -256,7 +265,7 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     const acknowledged = await acknowledgeLoan(transact, loan.id, BORROWER_ID);
     expect(acknowledged.acknowledgedAt).not.toBeNull();
     expect(acknowledged.actionNeeded).toBeNull();
-    expect(await repos.loans.acknowledgeNeededCountForUser(BORROWER_ID)).toBe(0);
+    expect(await repos.loans.actionNeededCountForUser(BORROWER_ID)).toBe(0);
 
     const rejected = await rejectLoan(transact, loan.id, BORROWER_ID);
     expect(rejected.rejectedAt).not.toBeNull();
@@ -296,6 +305,118 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     await expect(returnLoanCopies(transact, loan.id, LENDER_ID, 1)).rejects.toMatchObject({
       status: 400,
     });
+  });
+
+  it("lets an acknowledged borrower declare returns, leaving the lender to review", async () => {
+    await groupWithBorrower();
+    const collectionId = await freshCollection(LENDER_ID);
+    await addCopies(collectionId, 2);
+    const loan = await createLoan(transact, {
+      lenderUserId: LENDER_ID,
+      printingId: PRINTING_1.id,
+      quantity: 2,
+      borrowerUserId: BORROWER_ID,
+      contextCollectionId: collectionId,
+    });
+
+    await expect(declareLoanReturn(transact, loan.id, BORROWER_ID, 1)).rejects.toMatchObject({
+      status: 409,
+    });
+    await acknowledgeLoan(transact, loan.id, BORROWER_ID);
+    await expect(declareLoanReturn(transact, loan.id, OUTSIDER_ID, 1)).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(declareLoanReturn(transact, loan.id, BORROWER_ID, 3)).rejects.toMatchObject({
+      status: 400,
+    });
+
+    const lenderBefore = await repos.loans.actionNeededCountForUser(LENDER_ID);
+
+    const partial = await declareLoanReturn(transact, loan.id, BORROWER_ID, 1);
+    expect(partial.status).toBe("active");
+    expect(partial.returnedQuantity).toBe(1);
+    expect(partial.borrowerReturnedQuantity).toBe(0);
+    expect(partial.actionNeeded).toBeNull();
+    expect(await repos.loans.listPinnedCopyIds(loan.id)).toHaveLength(1);
+
+    const pendingRow = await repos.loans.getDtoRowByIdForUser(loan.id, LENDER_ID);
+    const pending = pendingRow && toLoanResponse(pendingRow, LENDER_ID);
+    expect(pending?.borrowerReturnedQuantity).toBe(1);
+    expect(pending?.actionNeeded).toBe("review_return");
+    expect(await repos.loans.actionNeededCountForUser(LENDER_ID)).toBe(lenderBefore + 1);
+
+    const closed = await declareLoanReturn(transact, loan.id, BORROWER_ID, 1);
+    expect(closed.status).toBe("returned");
+    expect(closed.closedAt).not.toBeNull();
+    expect(await repos.loans.listPinnedCopyIds(loan.id)).toHaveLength(0);
+    await expect(declareLoanReturn(transact, loan.id, BORROWER_ID, 1)).rejects.toMatchObject({
+      status: 409,
+    });
+
+    const confirmed = await confirmBorrowerReturn(transact, loan.id, LENDER_ID);
+    expect(confirmed.status).toBe("returned");
+    expect(confirmed.borrowerReturnedQuantity).toBe(0);
+    expect(confirmed.actionNeeded).toBeNull();
+    expect(await repos.loans.actionNeededCountForUser(LENDER_ID)).toBe(lenderBefore);
+    await expect(confirmBorrowerReturn(transact, loan.id, LENDER_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("reopens a declared return, re-pinning the copies that are still free", async () => {
+    await groupWithBorrower();
+    const collectionId = await freshCollection(LENDER_ID);
+    // Re-pinning draws from every collection the lender has, so this needs a
+    // printing no earlier test left free copies of.
+    const copyIds = await addCopies(collectionId, 2, PRINTING_3.id);
+    const loan = await createLoan(transact, {
+      lenderUserId: LENDER_ID,
+      printingId: PRINTING_3.id,
+      quantity: 2,
+      borrowerUserId: BORROWER_ID,
+      contextCollectionId: collectionId,
+    });
+    await acknowledgeLoan(transact, loan.id, BORROWER_ID);
+    await declareLoanReturn(transact, loan.id, BORROWER_ID, 2);
+
+    await expect(reopenBorrowerReturn(transact, loan.id, BORROWER_ID)).rejects.toMatchObject({
+      status: 404,
+    });
+
+    const reopened = await reopenBorrowerReturn(transact, loan.id, LENDER_ID);
+    expect(reopened.status).toBe("active");
+    expect(reopened.closedAt).toBeNull();
+    expect(reopened.returnedQuantity).toBe(0);
+    expect(reopened.borrowerReturnedQuantity).toBe(0);
+    expect(reopened.actionNeeded).toBeNull();
+    expect(await repos.loans.listPinnedCopyIds(loan.id)).toHaveLength(2);
+    expect(copyIds).toEqual(expect.arrayContaining(await repos.loans.listPinnedCopyIds(loan.id)));
+
+    await expect(reopenBorrowerReturn(transact, loan.id, LENDER_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("reopening after a released copy is gone re-pins only what is left", async () => {
+    await groupWithBorrower();
+    const collectionId = await freshCollection(LENDER_ID);
+    const copyIds = await addCopies(collectionId, 2, PRINTING_4.id);
+    const loan = await createLoan(transact, {
+      lenderUserId: LENDER_ID,
+      printingId: PRINTING_4.id,
+      quantity: 2,
+      borrowerUserId: BORROWER_ID,
+      contextCollectionId: collectionId,
+    });
+    await acknowledgeLoan(transact, loan.id, BORROWER_ID);
+    await declareLoanReturn(transact, loan.id, BORROWER_ID, 2);
+
+    await disposeCopies(transact, LENDER_ID, [copyIds[0]!]);
+
+    const reopened = await reopenBorrowerReturn(transact, loan.id, LENDER_ID);
+    expect(reopened.status).toBe("active");
+    expect(reopened.quantity).toBe(2);
+    expect(await repos.loans.listPinnedCopyIds(loan.id)).toEqual([copyIds[1]]);
   });
 
   it("write-off with removal disposes the outstanding copies and logs events", async () => {

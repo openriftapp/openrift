@@ -3420,6 +3420,22 @@
   "loans_how_many": "借出几张？",
   "loans_return_description": "全部归还后，这条借出记录就会关闭。",
   "loans_copies_returned": "已归还数量",
+  "loans_declare_return_description": "这也会在 {name} 那边关闭这条借出记录。如果还有没还的，对方可以重新打开。",
+  "loans_declared_returned_badge": "已归还？",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name} 标记了 {count} 张已归还。确认无误，或者重新打开这条借出记录。",
+        "countPlural=*": "{name} 标记了 {count} 张已归还。确认无误，或者重新打开这条借出记录。"
+      }
+    }
+  ],
+  "loans_confirm_return": "确认",
+  "loans_confirm_return_toast": "已确认归还",
+  "loans_reopen_return": "还在外面",
+  "loans_reopen_return_toast": "已重新打开借出记录",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

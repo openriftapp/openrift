@@ -29,11 +29,17 @@ export function toLoanResponse(row: LoanDtoRow, userId: string): LoanResponse {
     };
   }
 
-  const needsAcknowledge =
+  let actionNeeded: LoanResponse["actionNeeded"] = null;
+  if (
     role === "borrower" &&
     row.status === "active" &&
     row.acknowledgedAt === null &&
-    row.rejectedAt === null;
+    row.rejectedAt === null
+  ) {
+    actionNeeded = "acknowledge";
+  } else if (role === "lender" && row.borrowerReturnedQuantity > 0) {
+    actionNeeded = "review_return";
+  }
 
   return {
     id: row.id,
@@ -44,12 +50,13 @@ export function toLoanResponse(row: LoanDtoRow, userId: string): LoanResponse {
     cardId: row.cardId,
     quantity: row.quantity,
     returnedQuantity: row.returnedQuantity,
+    borrowerReturnedQuantity: role === "lender" ? row.borrowerReturnedQuantity : 0,
     status: row.status,
     acknowledgedAt: isoOrNull(row.acknowledgedAt),
     rejectedAt: isoOrNull(row.rejectedAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     closedAt: isoOrNull(row.closedAt),
-    actionNeeded: needsAcknowledge ? "acknowledge" : null,
+    actionNeeded,
   };
 }

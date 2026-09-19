@@ -27,9 +27,12 @@ import {
 import { ensureInbox } from "./services/inbox.js";
 import {
   acknowledgeLoan,
+  confirmBorrowerReturn,
   createLoan,
+  declareLoanReturn,
   deleteLoan,
   rejectLoan,
+  reopenBorrowerReturn,
   returnLoanCopies,
   writeOffLoan,
 } from "./services/loans.js";
@@ -60,6 +63,9 @@ export interface GroupsServices {
   skipTradeSync: typeof skipTradeSync;
   createLoan: typeof createLoan;
   returnLoanCopies: typeof returnLoanCopies;
+  declareLoanReturn: typeof declareLoanReturn;
+  confirmBorrowerReturn: typeof confirmBorrowerReturn;
+  reopenBorrowerReturn: typeof reopenBorrowerReturn;
   writeOffLoan: typeof writeOffLoan;
   acknowledgeLoan: typeof acknowledgeLoan;
   rejectLoan: typeof rejectLoan;
@@ -103,6 +109,9 @@ export function createGroupsServices(emailDeps?: TradeEmailDeps): GroupsServices
     skipTradeSync,
     createLoan,
     returnLoanCopies,
+    declareLoanReturn,
+    confirmBorrowerReturn,
+    reopenBorrowerReturn,
     writeOffLoan,
     acknowledgeLoan,
     rejectLoan,

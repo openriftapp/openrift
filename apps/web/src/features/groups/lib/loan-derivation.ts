@@ -43,6 +43,10 @@ export type LoanSection = "attention" | "lent" | "borrowed" | "history";
 
 /** A borrower's rejected loans are hidden entirely; they stay visible to the lender. */
 export function loanSection(loan: LoanResponse): LoanSection | null {
+  // Outranks the status check below: a declared return usually closes the loan.
+  if (loan.actionNeeded === "review_return") {
+    return "attention";
+  }
   if (loan.status !== "active") {
     return "history";
   }

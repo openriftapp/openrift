@@ -3420,6 +3420,22 @@
   "loans_how_many": "Wie viele?",
   "loans_return_description": "Der Verleih wird geschlossen, sobald alles zurück ist.",
   "loans_copies_returned": "Zurückgegebene Exemplare",
+  "loans_declare_return_description": "Damit wird der Verleih auch bei {name} geschlossen. Die Person kann ihn wieder öffnen, falls noch etwas fehlt.",
+  "loans_declared_returned_badge": "Zurückgegeben?",
+  "loans_declared_returned_badge_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{name} hat {count} Exemplar als zurück markiert. Bestätige das oder öffne den Verleih wieder.",
+        "countPlural=*": "{name} hat {count} Exemplare als zurück markiert. Bestätige das oder öffne den Verleih wieder."
+      }
+    }
+  ],
+  "loans_confirm_return": "Bestätigen",
+  "loans_confirm_return_toast": "Rückgabe bestätigt",
+  "loans_reopen_return": "Noch draußen",
+  "loans_reopen_return_toast": "Verleih wieder geöffnet",
   "loans_still_out": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

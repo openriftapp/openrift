@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gZQ1SwDsXSvS1bOkGeF67fvpjdFP8hvzhjmGFl8WaB09BtaoL6KdethPW6M2ilB
+\restrict raOyy7df2Nj8wNRlHbm7zszVxagWMtVWrYIgizDhGKe9jRO4ynZRSCr7JvBAKZS
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2107,8 +2107,10 @@ CREATE TABLE public.loans (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     closed_at timestamp with time zone,
+    borrower_returned_quantity integer DEFAULT 0 NOT NULL,
     CONSTRAINT chk_loans_ack_reject CHECK ((NOT ((acknowledged_at IS NOT NULL) AND (rejected_at IS NOT NULL)))),
     CONSTRAINT chk_loans_borrower_name_not_empty CHECK (((borrower_name IS NULL) OR (borrower_name <> ''::text))),
+    CONSTRAINT chk_loans_borrower_returned_bounds CHECK (((borrower_returned_quantity >= 0) AND (borrower_returned_quantity <= returned_quantity))),
     CONSTRAINT chk_loans_borrower_shape CHECK ((num_nonnulls(borrower_user_id, borrower_name) = 1)),
     CONSTRAINT chk_loans_closed_shape CHECK (((status = 'active'::text) = (closed_at IS NULL))),
     CONSTRAINT chk_loans_distinct_parties CHECK (((borrower_user_id IS NULL) OR (borrower_user_id <> lender_user_id))),
@@ -9766,5 +9768,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gZQ1SwDsXSvS1bOkGeF67fvpjdFP8hvzhjmGFl8WaB09BtaoL6KdethPW6M2ilB
+\unrestrict raOyy7df2Nj8wNRlHbm7zszVxagWMtVWrYIgizDhGKe9jRO4ynZRSCr7JvBAKZS
 
