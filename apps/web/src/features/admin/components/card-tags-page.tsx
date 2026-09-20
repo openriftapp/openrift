@@ -335,6 +335,7 @@ function ClassificationSection({
               className="h-8 w-56"
             />
             <Toggle
+              variant="outline"
               pressed={unclassifiedOnly}
               onPressedChange={setUnclassifiedOnly}
               aria-label="Show unclassified tags only"

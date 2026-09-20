@@ -4,6 +4,12 @@ import type { VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// custom: the shared control surface (docs/design-language.md), one neutral fill ladder
+// on foreground alpha, so light and dark need no separate classes. `data-active` marks a
+// filter carrying a value; a Button used as a toggle signals the same with `aria-pressed`.
+const CONTROL_FILL =
+  "border-input bg-foreground/5 hover:bg-foreground/10 aria-expanded:bg-foreground/10 data-popup-open:bg-foreground/10 data-active:border-foreground/50 data-active:bg-foreground/16 data-active:hover:bg-foreground/24 aria-pressed:border-foreground/50 aria-pressed:bg-foreground/16 aria-pressed:hover:bg-foreground/24";
+
 const buttonVariants = cva(
   // custom: ring-2 focus/invalid rings — app-wide focus width (scaffold ships ring-3)
   "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -13,19 +19,15 @@ const buttonVariants = cva(
         // custom: corner-cut signature on the filled primary (docs/design-language.md); ring-inset because clip-path clips outset box-shadows
         default:
           "bg-primary text-primary-foreground hover:bg-primary/80 btn-corner-cut rounded-none focus-visible:ring-inset",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        // custom: outline runs the control ladder too, so a bordered button matches the
+        // inputs and segmented toggles it shares a row with
+        outline: `${CONTROL_FILL} hover:text-foreground aria-expanded:text-foreground`,
         // custom: corner-cut on the filled secondary too — all solid fills share the signature shape (docs/design-language.md)
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground btn-corner-cut rounded-none focus-visible:ring-inset",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        // custom: the shared control surface (docs/design-language.md) — one neutral
-        // fill ladder on foreground alpha, so light and dark need no separate classes.
-        // `data-active` marks a filter carrying a value; a Button used as a toggle
-        // signals the same thing with `aria-pressed`.
-        control:
-          "border-input bg-foreground/5 hover:bg-foreground/10 aria-expanded:bg-foreground/10 data-popup-open:bg-foreground/10 data-active:border-foreground/50 data-active:bg-foreground/16 data-active:hover:bg-foreground/24 aria-pressed:border-foreground/50 aria-pressed:bg-foreground/16 aria-pressed:hover:bg-foreground/24",
+        control: CONTROL_FILL,
         // custom: solid destructive fill with the corner-cut signature — destructive commits share the family shape (docs/design-language.md); text-destructive-foreground instead of text-white to track the token
         // custom: dark:hover:bg-destructive/70 — scaffold's dark:bg-destructive/60 wins over hover:bg-destructive/90 in the cascade, leaving dark mode with no hover feedback
         destructive:

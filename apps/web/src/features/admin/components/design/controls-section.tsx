@@ -247,7 +247,7 @@ export function ControlsSection() {
         <DemoGroup {...GROUPS.toggle}>
           <Matrix<ToggleState>
             label="States"
-            hint="ToggleGroupItem resolves to the same classes; grouping only changes the corner radii."
+            hint="outline and control share one fill ladder. ToggleGroupItem resolves to the same classes, grouping only changes the corner radii."
             states={TOGGLE_STATES}
             rows={[
               {

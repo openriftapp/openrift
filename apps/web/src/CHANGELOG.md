@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-20
+
+### Other
+
+- fix(App): **Clearer bordered buttons and toggles** — segmented pickers and outlined buttons, such as the printing desk's front/back switch, now stand out from their rest state in both themes.
+
 ## 2026-09-19
 
 ### Highlights

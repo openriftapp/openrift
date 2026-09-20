@@ -46,6 +46,11 @@ describe("control variant", () => {
     );
   });
 
+  it("gives the outline variant the same fill ladder", () => {
+    const outline = buttonVariants({ variant: "outline" }).split(/\s+/u);
+    expect(outline).toStrictEqual(expect.arrayContaining(controlClasses()));
+  });
+
   it("treats aria-pressed as active, for a Button used as a toggle", () => {
     expect(controlClasses()).toStrictEqual(
       expect.arrayContaining([
