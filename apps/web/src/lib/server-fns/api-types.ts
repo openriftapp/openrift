@@ -1,5 +1,4 @@
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
-import type { CollectionListResponse } from "@openrift/shared/types/api/collection";
 
 export type {
   UploadCandidatesBody,
@@ -42,5 +41,4 @@ export type {
   UnifiedMappingsResponse,
 } from "@openrift/shared/contracts/admin/unified-mappings";
 
-export type CollectionsResponse = CollectionListResponse;
 export type { MarketplaceGroup } from "@openrift/shared/contracts/admin/marketplace-groups";

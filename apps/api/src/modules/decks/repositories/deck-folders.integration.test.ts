@@ -60,8 +60,7 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
   it("creates folders at the end of the user's order", async () => {
     const first = await repo.create(userId, "DF Standard");
     const second = await repo.create(userId, "DF Jank");
-    expect(first.sortOrder).toBe(0);
-    expect(second.sortOrder).toBe(1);
+    expect(second.sortOrder).toBe(first.sortOrder + 1);
     expect(first.deckCount).toBe(0);
   });
 

@@ -52,7 +52,7 @@ export function isTransparentColor(value: string): boolean {
   return alpha === 0;
 }
 
-export function parsePx(value: string): number {
+function parsePx(value: string): number {
   // oxlint-disable-next-line unicorn/prefer-number-coercion -- computed values carry px units; Number() would reject them
   return Number.parseFloat(value);
 }

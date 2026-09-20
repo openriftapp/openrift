@@ -1,4 +1,4 @@
-export interface CopyDeltaKeyset {
+interface CopyDeltaKeyset {
   xid: string;
   id: string;
 }
