@@ -3,7 +3,6 @@ import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
   FriendGroupDetailResponse,
   FriendGroupListResponse,
-  FriendGroupPendingRequestsCountResponse,
   FriendGroupResponse,
   FriendGroupSummaryResponse,
 } from "@openrift/shared/types/api/friend-group";
@@ -58,15 +57,6 @@ export const friendGroupsCoreRouter = {
       })),
     };
   }),
-
-  pendingRequestsCount: os.pendingRequestsCount.handler(
-    async ({ context }): Promise<FriendGroupPendingRequestsCountResponse> => {
-      const userId = context.userId;
-      const { friendGroups } = context.repos;
-      const count = await friendGroups.pendingRequestsCountForUser(userId);
-      return { count };
-    },
-  ),
 
   create: os.create.handler(async ({ input, context }): Promise<FriendGroupResponse> => {
     const userId = context.userId;

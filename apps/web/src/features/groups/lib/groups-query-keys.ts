@@ -24,9 +24,6 @@ export const friendGroupsKeys = {
     ["friend-groups", userId, slug, "shareable-lists"] as const,
   shareableCollections: (userId: string, slug: string) =>
     ["friend-groups", userId, slug, "shareable-collections"] as const,
-  // Not user-scoped: the header polls it without an authenticated route
-  // boundary; the server answers for whoever the cookie identifies.
-  pendingRequestsCount: () => ["friend-groups", "pending-requests-count"] as const,
   joinPreview: (code: string) => ["friend-groups", "join-preview", code] as const,
   sharedList: (userId: string, slug: string, listId: string) =>
     ["friend-groups", userId, slug, "lists", listId] as const,
@@ -43,11 +40,14 @@ export const friendGroupsKeys = {
     ["friend-groups", userId, slug, "calendar-feeds"] as const,
 } as const;
 
+export const badgesKeys = {
+  all: (userId: string) => ["badges", userId] as const,
+} as const;
+
 export const tradesKeys = {
-  // Prefix-based: invalidating `all` also clears byGroup/actionCounts.
+  // Prefix-based: invalidating `all` also clears byGroup.
   all: (userId: string) => ["trades", userId] as const,
   byGroup: (userId: string, groupId: string) => ["trades", userId, "group", groupId] as const,
-  actionCounts: (userId: string) => ["trades", userId, "action-counts"] as const,
   // Under the `all` prefix on purpose, so every trade mutation refreshes it.
   liveByPrinting: (userId: string) => ["trades", userId, "live-by-printing"] as const,
   // Under the `all` prefix so an accept or a quantity change drops it
@@ -61,8 +61,7 @@ export const tradesKeys = {
 
 export const loansKeys = {
   // Same prefix-invalidation shape as trades: invalidating `all` also
-  // clears actionCounts and borrowerOptions.
+  // clears borrowerOptions.
   all: (userId: string) => ["loans", userId] as const,
-  actionCounts: (userId: string) => ["loans", userId, "action-counts"] as const,
   borrowerOptions: (userId: string) => ["loans", userId, "borrower-options"] as const,
 } as const;

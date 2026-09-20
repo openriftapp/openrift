@@ -73,9 +73,7 @@ import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import { usePaletteStore } from "@/features/collections/stores/palette-store";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
-import { useTradeActionCounts } from "@/features/groups/hooks/use-card-trades";
-import { useFriendGroupPendingRequestsCount } from "@/features/groups/hooks/use-friend-groups";
-import { useLoanActionCounts } from "@/features/groups/hooks/use-loans";
+import { useBadges } from "@/features/groups/hooks/use-badges";
 import { milestoneBannerDecision } from "@/features/marketing/lib/milestone-banner";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -847,12 +845,10 @@ export function Header() {
     "board-states": boardStatesEnabled,
   };
   const isLoggedIn = Boolean(session?.user);
-  const { data: pendingRequestsData } = useFriendGroupPendingRequestsCount({ enabled: isLoggedIn });
-  const { data: tradeActionCounts } = useTradeActionCounts();
-  const { data: loanActionCounts } = useLoanActionCounts();
-  const loansBadge = loanActionCounts?.total ?? 0;
-  const groupsBadge = pendingRequestsData?.count ?? 0;
-  const tradesBadge = tradeActionCounts?.people ?? 0;
+  const { data: badges } = useBadges();
+  const loansBadge = badges?.loans.total ?? 0;
+  const groupsBadge = badges?.groupRequests.count ?? 0;
+  const tradesBadge = badges?.trades.people ?? 0;
 
   return (
     <header

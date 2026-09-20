@@ -14,17 +14,13 @@ import {
   tradeSheetQueryOptions,
   userTradesQueryOptions,
 } from "@/features/groups/lib/card-trades-queries";
-import { friendGroupsKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
+import { badgesKeys, friendGroupsKeys, tradesKeys } from "@/features/groups/lib/groups-query-keys";
 import { runTradeSettlement } from "@/features/groups/lib/trade-settlement-request";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchTradeActionCounts = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }) => apiOrpcClient(cardTradesContract, context.cookie).actionCounts());
 
 const fetchLiveTradesByPrinting = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -122,17 +118,6 @@ export function useGroupTrades(groupId: string) {
 }
 
 /** A plain (non-suspense) query so it can live in the header without an authenticated route boundary. */
-export function useTradeActionCounts() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: tradesKeys.actionCounts(userId ?? ""),
-    queryFn: () => fetchTradeActionCounts(),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    enabled: userId !== null,
-  });
-}
-
 export function useUserTrades() {
   const userId = useUserId();
   return useQuery({
@@ -220,6 +205,7 @@ export function tradeCopyOptionsQueryOptions(userId: string, tradeId: string) {
 function tradeInvalidationKeys(userId: string, groupSlug?: string): (readonly unknown[])[] {
   const keys: (readonly unknown[])[] = [
     tradesKeys.all(userId),
+    badgesKeys.all(userId),
     copiesKeys.all(userId),
     listsKeys.all(userId),
   ];

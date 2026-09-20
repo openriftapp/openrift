@@ -21,7 +21,6 @@ import type {
   friendGroupMemberDetailResponseSchema,
   friendGroupMemberPreviewSchema,
   friendGroupMemberResponseSchema,
-  friendGroupPendingRequestsCountResponseSchema,
   friendGroupRequestResponseSchema,
   friendGroupResponseSchema,
   friendGroupRoleSchema,
@@ -135,10 +134,6 @@ export type FriendGroupDiscordLinkCodeResponse = z.infer<
 export type FriendGroupActivityEvent = z.infer<typeof friendGroupActivityEventSchema>;
 
 export type FriendGroupActivityResponse = z.infer<typeof friendGroupActivityResponseSchema>;
-
-export type FriendGroupPendingRequestsCountResponse = z.infer<
-  typeof friendGroupPendingRequestsCountResponseSchema
->;
 
 export type ListGroupSharesResponse = z.infer<typeof listGroupSharesResponseSchema>;
 

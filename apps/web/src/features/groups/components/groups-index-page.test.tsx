@@ -12,8 +12,11 @@ vi.mock("@/features/groups/hooks/use-friend-groups", () => ({
 }));
 
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
-  useTradeActionCounts: () => ({ data: { byGroup: [] } }),
   useUserTrades: () => ({ data: { items: [] } }),
+}));
+
+vi.mock("@/features/groups/hooks/use-badges", () => ({
+  useBadges: () => ({ data: { trades: { byGroup: [] } } }),
 }));
 
 vi.mock("@/features/groups/hooks/use-friend-group-mutations", () => ({

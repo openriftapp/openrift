@@ -4,17 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
-import { loansKeys } from "@/features/groups/lib/groups-query-keys";
+import { badgesKeys, loansKeys } from "@/features/groups/lib/groups-query-keys";
 import { loanCounterpartyLabel } from "@/features/groups/lib/loan-derivation";
 import { loansQueryOptions } from "@/features/groups/lib/loans-queries";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
-
-const fetchLoanActionCounts = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }) => apiOrpcClient(loansContract, context.cookie).actionCounts());
 
 const fetchBorrowerOptions = createServerFn({ method: "GET" })
   .middleware([withCookies])
@@ -123,18 +119,6 @@ export function useLoans() {
   return useQuery(loansQueryOptions(userId));
 }
 
-/** A plain, non-suspense query so this can live in the header outside an authenticated route boundary. */
-export function useLoanActionCounts() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: loansKeys.actionCounts(userId ?? ""),
-    queryFn: () => fetchLoanActionCounts(),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-    enabled: userId !== null,
-  });
-}
-
 export function useLoanBorrowerOptions(enabled: boolean) {
   const userId = useUserId();
   return useQuery({
@@ -170,7 +154,7 @@ export function useBorrowedLenders(): { data: Record<string, string[]> | undefin
 }
 
 function loanInvalidationKeys(userId: string): (readonly unknown[])[] {
-  return [loansKeys.all(userId), copiesKeys.all(userId)];
+  return [loansKeys.all(userId), badgesKeys.all(userId), copiesKeys.all(userId)];
 }
 
 export function useCreateLoan() {

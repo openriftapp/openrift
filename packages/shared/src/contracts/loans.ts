@@ -65,8 +65,6 @@ export const loanResponseSchema = z.object({
 
 export const loanListResponseSchema = z.object({ items: z.array(loanResponseSchema) });
 
-export const loanActionCountsResponseSchema = z.object({ total: z.number().int().nonnegative() });
-
 /** Borrower-picker data: co-members across the viewer's groups + past free-text names. */
 export const loanBorrowerOptionsResponseSchema = z.object({
   members: z.array(loanCounterpartySchema),
@@ -88,9 +86,6 @@ export const loansContract = {
   list: authedRoute
     .route({ method: "GET", path: "/api/v1/loans", tags: [TAG] })
     .output(loanListResponseSchema),
-  actionCounts: authedRoute
-    .route({ method: "GET", path: "/api/v1/loans/action-counts", tags: [TAG] })
-    .output(loanActionCountsResponseSchema),
   borrowerOptions: authedRoute
     .route({ method: "GET", path: "/api/v1/loans/borrower-options", tags: [TAG] })
     .output(loanBorrowerOptionsResponseSchema),

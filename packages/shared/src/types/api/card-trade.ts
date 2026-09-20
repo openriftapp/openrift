@@ -1,6 +1,5 @@
 import type {
   CARD_TRADE_STATUSES,
-  cardTradeActionCountsResponseSchema,
   cardTradeCopyOptionSchema,
   cardTradeCopyOptionsResponseSchema,
   cardTradeCounterpartySchema,
@@ -31,8 +30,6 @@ export type CardTradeCounterparty = z.infer<typeof cardTradeCounterpartySchema>;
 export type CardTradeResponse = z.infer<typeof cardTradeResponseSchema>;
 
 export type CardTradeListResponse = z.infer<typeof cardTradeListResponseSchema>;
-
-export type CardTradeActionCountsResponse = z.infer<typeof cardTradeActionCountsResponseSchema>;
 
 export type CardTradeCopyOption = z.infer<typeof cardTradeCopyOptionSchema>;
 

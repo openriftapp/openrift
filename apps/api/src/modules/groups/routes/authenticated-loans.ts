@@ -1,6 +1,5 @@
 import { loansContract } from "@openrift/shared/contracts/loans";
 import type {
-  LoanActionCountsResponse,
   LoanBorrowerOptionsResponse,
   LoanListResponse,
   LoanResponse,
@@ -33,12 +32,6 @@ export const loansRouter = {
     const { loans } = context.repos;
     const rows = await loans.listDtoRowsForUser(context.userId);
     return { items: rows.map((row) => toLoanResponse(row, context.userId)) };
-  }),
-
-  actionCounts: os.actionCounts.handler(async ({ context }): Promise<LoanActionCountsResponse> => {
-    const { loans } = context.repos;
-    const total = await loans.actionNeededCountForUser(context.userId);
-    return { total };
   }),
 
   borrowerOptions: os.borrowerOptions.handler(

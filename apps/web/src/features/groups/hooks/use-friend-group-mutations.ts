@@ -5,7 +5,7 @@ import type {
 } from "@openrift/shared/types/api/friend-group";
 import { createServerFn } from "@tanstack/react-start";
 
-import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
+import { badgesKeys, friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -207,7 +207,7 @@ export function useAcceptFriendGroupInvite() {
     invalidates: (variables) => [
       friendGroupsKeys.all(userId),
       friendGroupsKeys.detail(userId, variables.slug),
-      friendGroupsKeys.pendingRequestsCount(),
+      badgesKeys.all(userId),
     ],
   });
 }
@@ -219,7 +219,7 @@ export function useDeclineFriendGroupInvite() {
     invalidates: (variables) => [
       friendGroupsKeys.all(userId),
       friendGroupsKeys.detail(userId, variables.slug),
-      friendGroupsKeys.pendingRequestsCount(),
+      badgesKeys.all(userId),
     ],
   });
 }

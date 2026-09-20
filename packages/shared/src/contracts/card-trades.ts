@@ -128,21 +128,6 @@ export const cardTradeLiveByPrintingResponseSchema = z.object({
   annotations: z.array(cardTradeLiveAnnotationSchema),
 });
 
-/** `people` is distinct counterparties waiting on the viewer, pooled across groups. */
-export const cardTradeActionCountsResponseSchema = z.object({
-  total: z.number().int().nonnegative(),
-  people: z.number().int().nonnegative(),
-  byGroup: z.array(
-    z.object({
-      groupId: z.string(),
-      groupSlug: z.string(),
-      count: z.number().int().nonnegative(),
-      respondCount: z.number().int().nonnegative(),
-      settleCount: z.number().int().nonnegative(),
-    }),
-  ),
-});
-
 export const cardTradeSheetGroupSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -181,9 +166,6 @@ export const cardTradesContract = {
     .route({ method: "GET", path: "/api/v1/trades", tags: [TAG] })
     .input(cardTradesQuerySchema)
     .output(cardTradeListResponseSchema),
-  actionCounts: authedRoute
-    .route({ method: "GET", path: "/api/v1/trades/action-counts", tags: [TAG] })
-    .output(cardTradeActionCountsResponseSchema),
   liveByPrinting: authedRoute
     .route({ method: "GET", path: "/api/v1/trades/live-by-printing", tags: [TAG] })
     .output(cardTradeLiveByPrintingResponseSchema),

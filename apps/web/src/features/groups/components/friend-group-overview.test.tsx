@@ -25,7 +25,6 @@ const declineMutate = vi.fn();
 
 vi.mock("@/features/groups/hooks/use-card-trades", () => ({
   useGroupTrades: () => ({ data: { items: [] } }),
-  useTradeActionCounts: () => ({ data: { byGroup: [] } }),
   useUserTrades: () => ({ data: { items: [] } }),
 }));
 

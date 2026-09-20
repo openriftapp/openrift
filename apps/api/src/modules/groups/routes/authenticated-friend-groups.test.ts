@@ -254,15 +254,6 @@ describe("friend-groups route", () => {
     ]);
   });
 
-  it("GET /pending-requests-count returns the count", async () => {
-    const { app } = makeApp({
-      friendGroups: { pendingRequestsCountForUser: vi.fn(() => Promise.resolve(2)) },
-    });
-    const res = await app.request("/api/v1/friend-groups/pending-requests-count");
-    expect(res.status).toBe(200);
-    expect(await readJson(res)).toEqual({ count: 2 });
-  });
-
   it("POST / creates a group", async () => {
     const created = vi.fn(() => Promise.resolve(group));
     const { app } = makeApp({

@@ -54,6 +54,7 @@ export * from "./admin/typography-review.js";
 export * from "./admin/unified-mappings.js";
 export * from "./admin/users.js";
 export * from "./api-format.js";
+export * from "./badges.js";
 export * from "./board-states.js";
 export * from "./cards.js";
 export * from "./card-submissions.js";

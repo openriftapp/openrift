@@ -1,6 +1,5 @@
 import type {
   LOAN_STATUSES,
-  loanActionCountsResponseSchema,
   loanBorrowerOptionsResponseSchema,
   loanCounterpartySchema,
   loanListResponseSchema,
@@ -18,7 +17,5 @@ export type LoanCounterparty = z.infer<typeof loanCounterpartySchema>;
 export type LoanResponse = z.infer<typeof loanResponseSchema>;
 
 export type LoanListResponse = z.infer<typeof loanListResponseSchema>;
-
-export type LoanActionCountsResponse = z.infer<typeof loanActionCountsResponseSchema>;
 
 export type LoanBorrowerOptionsResponse = z.infer<typeof loanBorrowerOptionsResponseSchema>;

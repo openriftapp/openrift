@@ -35,7 +35,8 @@ import { UserAvatarStack } from "@/components/user-avatar-stack";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
-import { useTradeActionCounts, useUserTrades } from "@/features/groups/hooks/use-card-trades";
+import { useBadges } from "@/features/groups/hooks/use-badges";
+import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import {
   useCreateFriendGroup,
   useDeclineFriendGroupInvite,
@@ -225,9 +226,9 @@ function CreateGroupDialog({
 
 export function GroupsIndexPage() {
   const { data } = useFriendGroups();
-  const { data: actionCounts } = useTradeActionCounts();
+  const { data: badges } = useBadges();
   const actionCountByGroup = new Map(
-    (actionCounts?.byGroup ?? []).map((entry) => [entry.groupId, entry]),
+    (badges?.trades.byGroup ?? []).map((entry) => [entry.groupId, entry]),
   );
   // Matching is expensive; it's queried per group here, so cards paint first
   // and each strip arrives when its group answers.

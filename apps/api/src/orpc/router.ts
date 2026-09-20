@@ -52,6 +52,7 @@ import { deckFoldersRouter } from "../modules/decks/routes/authenticated-deck-fo
 import { decksRouter } from "../modules/decks/routes/authenticated-decks.js";
 import { publicDecksRouter } from "../modules/decks/routes/public-decks.js";
 import { adminFriendGroupBannersRouter } from "../modules/groups/routes/admin-friend-group-banners.js";
+import { badgesRouter } from "../modules/groups/routes/authenticated-badges.js";
 import { cardTradesRouter } from "../modules/groups/routes/authenticated-card-trades.js";
 import { friendGroupsRouter } from "../modules/groups/routes/authenticated-friend-groups.js";
 import { loansRouter } from "../modules/groups/routes/authenticated-loans.js";
@@ -180,6 +181,7 @@ const apiRouter = {
   adminTypographyReviewRouter,
   adminUnifiedMappingsRouter,
   adminUsersRouter,
+  badgesRouter,
   cardSubmissionsRouter,
   scanReportsRouter,
   cardTradesRouter,

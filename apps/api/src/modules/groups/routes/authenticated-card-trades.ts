@@ -1,7 +1,6 @@
 import { cardTradesContract } from "@openrift/shared/contracts/card-trades";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
-  CardTradeActionCountsResponse,
   CardTradeCopyOptionsResponse,
   CardTradeListResponse,
   CardTradeLiveByPrintingResponse,
@@ -48,18 +47,6 @@ export const cardTradesRouter = {
     });
     return { items: rows.map((row) => toCardTradeResponse(row, context.userId)) };
   }),
-
-  actionCounts: os.actionCounts.handler(
-    async ({ context }): Promise<CardTradeActionCountsResponse> => {
-      const { cardTrades } = context.repos;
-      const [byGroup, people] = await Promise.all([
-        cardTrades.actionNeededCountsForUser(context.userId),
-        cardTrades.actionNeededPeopleForUser(context.userId),
-      ]);
-      const total = byGroup.reduce((sum, entry) => sum + entry.count, 0);
-      return { total, people, byGroup };
-    },
-  ),
 
   liveByPrinting: os.liveByPrinting.handler(
     async ({ context }): Promise<CardTradeLiveByPrintingResponse> => {

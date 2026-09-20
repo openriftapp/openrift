@@ -1,6 +1,6 @@
 import { TRADED_CARD_TRADE_STATUSES } from "@openrift/shared/card-trade-lifecycle";
+import type { BadgesResponse } from "@openrift/shared/types/api/badges";
 import type {
-  CardTradeActionCountsResponse,
   CardTradeInitiator,
   CardTradeLivePhase,
   CardTradeRole,
@@ -275,9 +275,7 @@ export function cardTradeReadsRepo(db: Kysely<Database>) {
      * Must mirror the two `action-needed` cases in `deriveActionNeeded` (`cancel` is
      * deliberately excluded), or `count` stops equaling the two split parts summed.
      */
-    async actionNeededCountsForUser(
-      userId: string,
-    ): Promise<CardTradeActionCountsResponse["byGroup"]> {
+    async actionNeededCountsForUser(userId: string): Promise<BadgesResponse["trades"]["byGroup"]> {
       const { awaitingResponse, awaitingSettle } = actionNeededPredicates(userId);
       const rows = await db
         .selectFrom("cardTrades as t")

@@ -448,10 +448,6 @@ export const friendGroupActivityResponseSchema = z.object({
   events: z.array(friendGroupActivityEventSchema),
 });
 
-export const friendGroupPendingRequestsCountResponseSchema = z.object({
-  count: z.number().int().nonnegative(),
-});
-
 export const friendGroupSharedListDetailResponseSchema = z.object({
   list: z.object({
     id: z.string(),
@@ -485,15 +481,12 @@ const TAG = "Friend Groups";
 
 const FG = "/api/v1/friend-groups";
 
-// Static single-segment paths (pending-requests-count, join, and `preview` on
-// the public contract) take precedence over `{slug}`.
+// Static single-segment paths (join, and `preview` on the public contract)
+// take precedence over `{slug}`.
 export const friendGroupsContract = {
   list: authedRoute
     .route({ method: "GET", path: FG, tags: [TAG] })
     .output(friendGroupListResponseSchema),
-  pendingRequestsCount: authedRoute
-    .route({ method: "GET", path: `${FG}/pending-requests-count`, tags: [TAG] })
-    .output(friendGroupPendingRequestsCountResponseSchema),
   create: authedRoute
     .route({ method: "POST", path: FG, tags: [TAG], successStatus: 201 })
     .input(createFriendGroupSchema)

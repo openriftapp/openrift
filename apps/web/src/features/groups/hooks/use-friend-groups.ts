@@ -6,7 +6,6 @@ import type {
   FriendGroupMatchesResponse,
   FriendGroupMatchRow,
   FriendGroupMemberDetailResponse,
-  FriendGroupPendingRequestsCountResponse,
 } from "@openrift/shared/types/api/friend-group";
 import { isDefinedError, safe } from "@orpc/client";
 import { queryOptions, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
@@ -24,12 +23,6 @@ import { useRequiredUserId } from "@/lib/auth-session";
 import { notFoundError } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-
-const fetchPendingRequestsCount = createServerFn({ method: "GET" })
-  .middleware([withCookies])
-  .handler(({ context }): Promise<FriendGroupPendingRequestsCountResponse> =>
-    apiOrpcClient(friendGroupsContract, context.cookie).pendingRequestsCount(),
-  );
 
 const fetchGroupMatches = createServerFn({ method: "GET" })
   .validator((input: string) => input)
@@ -203,17 +196,4 @@ export function useFriendGroupMemberDetail(slug: string, memberUserId: string) {
       queryFn: () => fetchMemberDetail({ data: { slug, userId: memberUserId } }),
     }),
   );
-}
-
-/**
- * Non-suspense so it can sit in the header without an authenticated route
- * boundary.
- */
-export function useFriendGroupPendingRequestsCount(opts?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: friendGroupsKeys.pendingRequestsCount(),
-    queryFn: () => fetchPendingRequestsCount(),
-    staleTime: 60 * 1000,
-    enabled: opts?.enabled ?? true,
-  });
 }
