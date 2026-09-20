@@ -29,6 +29,11 @@ function serverDeck(overrides: {
       id: overrides.id,
       name: overrides.name,
       descriptionSnippet: null,
+      description: null,
+      links: [],
+      oddsConfig: null,
+      isPublic: false,
+      shareToken: null,
       format: WellKnown.deckFormat.CONSTRUCTED,
       formatConfig: null,
       isPinned: false,
@@ -60,7 +65,7 @@ function serverDeck(overrides: {
 
 function localDeck(overrides: Partial<LocalDeck> = {}): LocalDeck {
   return {
-    id: "local:test",
+    id: "own-test",
     name: "Test",
     description: "",
     format: WellKnown.deckFormat.CONSTRUCTED,
@@ -84,9 +89,7 @@ describe("collectCompareDeckOptions", () => {
         serverDeck({ id: "srv-1", name: "Zed Tempo" }),
         serverDeck({ id: "srv-2", name: "Ahri Mid" }),
       ],
-      {
-        "local:a": localDeck({ id: "local:a", name: "Malphite Rock" }),
-      },
+      [localDeck({ id: "own-a", name: "Malphite Rock" })],
     );
 
     expect(options.map((option) => option.name)).toEqual([
@@ -94,7 +97,7 @@ describe("collectCompareDeckOptions", () => {
       "Malphite Rock",
       "Zed Tempo",
     ]);
-    expect(options.map((option) => option.id)).toEqual(["srv-2", "local:a", "srv-1"]);
+    expect(options.map((option) => option.id)).toEqual(["srv-2", "own-a", "srv-1"]);
   });
 
   it("excludes the open deck from both stores", () => {
@@ -104,15 +107,19 @@ describe("collectCompareDeckOptions", () => {
         serverDeck({ id: "srv-1", name: "Zed Tempo" }),
         serverDeck({ id: "srv-2", name: "Ahri Mid" }),
       ],
-      { "local:a": localDeck({ id: "local:a", name: "Malphite Rock" }) },
+      [localDeck({ id: "own-a", name: "Malphite Rock" })],
     );
-    expect(options.map((option) => option.id)).toEqual(["srv-2", "local:a"]);
+    expect(options.map((option) => option.id)).toEqual(["srv-2", "own-a"]);
 
-    const localOpen = collectCompareDeckOptions("local:a", [], {
-      "local:a": localDeck({ id: "local:a", name: "Malphite Rock" }),
-      "local:b": localDeck({ id: "local:b", name: "Jinx Burn" }),
-    });
-    expect(localOpen.map((option) => option.id)).toEqual(["local:b"]);
+    const localOpen = collectCompareDeckOptions(
+      "own-a",
+      [],
+      [
+        localDeck({ id: "own-a", name: "Malphite Rock" }),
+        localDeck({ id: "own-b", name: "Jinx Burn" }),
+      ],
+    );
+    expect(localOpen.map((option) => option.id)).toEqual(["own-b"]);
   });
 
   it("excludes archived server decks", () => {
@@ -122,7 +129,7 @@ describe("collectCompareDeckOptions", () => {
         serverDeck({ id: "srv-1", name: "Zed Tempo", archivedAt: "2026-02-01T00:00:00.000Z" }),
         serverDeck({ id: "srv-2", name: "Ahri Mid" }),
       ],
-      {},
+      [],
     );
     expect(options.map((option) => option.id)).toEqual(["srv-2"]);
   });
@@ -131,9 +138,9 @@ describe("collectCompareDeckOptions", () => {
     const options = collectCompareDeckOptions(
       "open-deck",
       [serverDeck({ id: "srv-1", name: "Ahri Mid", totalCards: 41 })],
-      {
-        "local:a": localDeck({
-          id: "local:a",
+      [
+        localDeck({
+          id: "own-a",
           name: "Zed Tempo",
           cards: [
             { zone: "legend", cardId: "legend-1", quantity: 1, preferredPrintingId: null },
@@ -141,17 +148,17 @@ describe("collectCompareDeckOptions", () => {
             { zone: "runes", cardId: "rune-1", quantity: 12, preferredPrintingId: null },
           ],
         }),
-      },
+      ],
     );
     expect(options).toEqual([
       { id: "srv-1", name: "Ahri Mid", cardCount: 41 },
-      { id: "local:a", name: "Zed Tempo", cardCount: 16 },
+      { id: "own-a", name: "Zed Tempo", cardCount: 16 },
     ]);
   });
 
   it("handles both stores being empty", () => {
-    expect(collectCompareDeckOptions("open-deck", [], {})).toEqual([]);
-    expect(collectCompareDeckOptions("open-deck", undefined, {})).toEqual([]);
+    expect(collectCompareDeckOptions("open-deck", [], [])).toEqual([]);
+    expect(collectCompareDeckOptions("open-deck", undefined, [])).toEqual([]);
   });
 });
 

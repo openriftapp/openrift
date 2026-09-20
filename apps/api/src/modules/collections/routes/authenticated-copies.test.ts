@@ -9,6 +9,10 @@ import { copiesRouter } from "./authenticated-copies";
 
 const mockRepo = {
   listForAccessibleCollections: vi.fn(() => Promise.resolve([] as object[])),
+  listChangedForAccessibleCollections: vi.fn(() => Promise.resolve([] as object[])),
+  deletionsSince: vi.fn(() => Promise.resolve([] as { copyId: string; deletedXid: string }[])),
+  currentSafeXid: vi.fn(() => Promise.resolve("5000")),
+  prunedThroughXid: vi.fn(() => Promise.resolve("100")),
 };
 
 const mockAddCopies = vi.fn(() => Promise.resolve([] as object[]));
@@ -121,6 +125,137 @@ describe("GET /api/v1/copies", () => {
       10,
       "2026-03-17T00:00:00.000Z",
     );
+  });
+});
+
+describe("GET /api/v1/copies with a watermark", () => {
+  const DELETED_ID = "a0000000-0001-4000-a000-000000000021";
+
+  beforeEach(() => {
+    mockRepo.listForAccessibleCollections.mockReset();
+    mockRepo.listChangedForAccessibleCollections.mockReset();
+    mockRepo.deletionsSince.mockReset();
+    mockRepo.currentSafeXid.mockReset();
+    mockRepo.prunedThroughXid.mockReset();
+    mockRepo.listForAccessibleCollections.mockResolvedValue([]);
+    mockRepo.listChangedForAccessibleCollections.mockResolvedValue([]);
+    mockRepo.deletionsSince.mockResolvedValue([]);
+    mockRepo.currentSafeXid.mockResolvedValue("5000");
+    mockRepo.prunedThroughXid.mockResolvedValue("100");
+  });
+
+  it("returns what changed and what was deleted since the watermark", async () => {
+    mockRepo.listChangedForAccessibleCollections.mockResolvedValue([
+      { ...dbCopy, updatedXid: "4200" },
+    ]);
+    mockRepo.deletionsSince.mockResolvedValue([{ copyId: DELETED_ID, deletedXid: "4300" }]);
+
+    const res = await app.request("/api/v1/copies?since=1000");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(1);
+    expect(json.deletedIds).toEqual([DELETED_ID]);
+    expect(json.syncedXid).toBe("5000");
+    expect(mockRepo.listForAccessibleCollections).not.toHaveBeenCalled();
+  });
+
+  it("reads only transactions that have finished, so one still in flight is not skipped", async () => {
+    await app.request("/api/v1/copies?since=1000");
+
+    expect(mockRepo.listChangedForAccessibleCollections).toHaveBeenCalledWith(
+      USER_ID,
+      "1000",
+      "5000",
+      expect.any(Number),
+      undefined,
+    );
+  });
+
+  it("withholds the watermark and hands back a cursor while a page is full", async () => {
+    const rows = Array.from({ length: 11 }, (_, index) => ({
+      ...dbCopy,
+      id: `a0000000-0001-4000-a000-${String(index).padStart(12, "0")}`,
+      updatedXid: String(4000 + index),
+    }));
+    mockRepo.listChangedForAccessibleCollections.mockResolvedValue(rows);
+
+    const res = await app.request("/api/v1/copies?limit=10&since=1000");
+
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(10);
+    expect(json.syncedXid).toBeUndefined();
+    expect(json.nextDeltaCursor).toBe("5000~4009_a0000000-0001-4000-a000-000000000009~");
+  });
+
+  it("resumes from the cursor's keyset and keeps its pinned watermark", async () => {
+    mockRepo.currentSafeXid.mockResolvedValue("6000");
+    const cursor = "5000~4009_a0000000-0001-4000-a000-000000000009~";
+
+    await app.request(`/api/v1/copies?since=1000&deltaCursor=${encodeURIComponent(cursor)}`);
+
+    expect(mockRepo.listChangedForAccessibleCollections).toHaveBeenCalledWith(
+      USER_ID,
+      "1000",
+      "5000",
+      expect.any(Number),
+      { xid: "4009", id: "a0000000-0001-4000-a000-000000000009" },
+    );
+  });
+
+  it("clamps a cursor whose watermark runs ahead of the server's", async () => {
+    const cursor = "9999~4009_a0000000-0001-4000-a000-000000000009~";
+
+    await app.request(`/api/v1/copies?since=1000&deltaCursor=${encodeURIComponent(cursor)}`);
+
+    expect(mockRepo.listChangedForAccessibleCollections).toHaveBeenCalledWith(
+      USER_ID,
+      "1000",
+      "5000",
+      expect.any(Number),
+      { xid: "4009", id: "a0000000-0001-4000-a000-000000000009" },
+    );
+  });
+
+  it("falls back to a full read when the watermark runs ahead of the server's", async () => {
+    mockRepo.listForAccessibleCollections.mockResolvedValue([dbCopy]);
+
+    const res = await app.request("/api/v1/copies?since=9999");
+
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(1);
+    expect(json.syncedXid).toBe("5000");
+    expect(mockRepo.listForAccessibleCollections).toHaveBeenCalled();
+    expect(mockRepo.listChangedForAccessibleCollections).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a full read when the watermark predates the pruned tombstones", async () => {
+    mockRepo.prunedThroughXid.mockResolvedValue("2000");
+    mockRepo.listForAccessibleCollections.mockResolvedValue([dbCopy]);
+
+    const res = await app.request("/api/v1/copies?since=1000");
+
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(1);
+    expect(json.deletedIds).toBeUndefined();
+    expect(json.syncedXid).toBe("5000");
+    expect(mockRepo.listChangedForAccessibleCollections).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a full read when the sweep prunes past the watermark during the read", async () => {
+    mockRepo.prunedThroughXid.mockResolvedValueOnce("100").mockResolvedValueOnce("2000");
+    mockRepo.listChangedForAccessibleCollections.mockResolvedValue([
+      { ...dbCopy, updatedXid: "4200" },
+    ]);
+    mockRepo.listForAccessibleCollections.mockResolvedValue([dbCopy]);
+
+    const res = await app.request("/api/v1/copies?since=1000");
+
+    const json = await readJson(res);
+    expect(json.deletedIds).toBeUndefined();
+    expect(json.syncedXid).toBe("5000");
+    expect(mockRepo.listChangedForAccessibleCollections).toHaveBeenCalledOnce();
+    expect(mockRepo.listForAccessibleCollections).toHaveBeenCalledOnce();
   });
 });
 

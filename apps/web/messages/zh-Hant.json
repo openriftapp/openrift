@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "這張實體卡在社團收藏裡，所以社團中的每個人都看得到。永遠不會顯示在公開分享頁面上。",
   "collections_copies_links_label": "照片與影片",
   "collections_copies_link_title_placeholder": "標籤",
-  "collections_copies_still_adding": "這些卡牌還在加入中。請稍後再試一次。",
   "collections_copies_network_error": "無法連線到伺服器。請檢查你的網路連線。",
   "collections_copies_signed_out": "登出狀態下無法加入實體卡",
   "collections_copies_quick_scope_move": "移動",

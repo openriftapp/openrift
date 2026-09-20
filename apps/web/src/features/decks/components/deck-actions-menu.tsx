@@ -1,5 +1,5 @@
 import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
-import { useQuery } from "@tanstack/react-query";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArchiveIcon,
@@ -54,11 +54,10 @@ import {
   useSetDeckPinned,
   useUpdateDeck,
 } from "@/features/decks/hooks/use-decks";
+import { useDeckCardsCollection } from "@/features/decks/hooks/use-decks-collections";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
 import { useDeckFormatList } from "@/hooks/use-enums";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 import { DeckExportDialog } from "./deck-export-dialog";
@@ -69,7 +68,6 @@ import { DeckVariantsDialog } from "./deck-variants-dialog";
 import { ManageDeckFoldersDialog } from "./manage-deck-folders-dialog";
 
 export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
-  const userId = useRequiredUserId();
   const { deck } = item;
   const navigate = useNavigate();
   const updateDeck = useUpdateDeck();
@@ -92,15 +90,17 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
   const setDeckFolders = useSetDeckFolders();
   const folderList = folders ?? [];
 
-  // Fetched lazily: only while share/export/print need it.
-  const needsDetail = shareOpen || exportOpen || printOpen;
-  const { data: detail } = useQuery({
-    ...deckDetailQueryOptions(userId, deck.id),
-    enabled: needsDetail,
+  const needsCards = shareOpen || exportOpen || printOpen;
+  const cardsCollection = useDeckCardsCollection();
+  const { data: cardRows } = useLiveQuery({
+    query: (q) =>
+      needsCards && cardsCollection
+        ? q.from({ card: cardsCollection }).where(({ card }) => eq(card.deckId, deck.id))
+        : null,
   });
   const { cardsById } = useCards();
-  const detailCards = detail
-    ? detail.cards
+  const detailCards = cardRows
+    ? cardRows
         .map((card) => toDeckBuilderCard(card, cardsById))
         .filter((card): card is DeckBuilderCard => card !== null)
     : undefined;
@@ -299,8 +299,8 @@ export function DeckActionsMenu({ item }: { item: DeckListItemResponse }) {
       <DeckShareDialog
         deckId={deck.id}
         deckName={deck.name}
-        isPublic={detail?.deck.isPublic ?? false}
-        shareToken={detail?.deck.shareToken ?? null}
+        isPublic={deck.isPublic}
+        shareToken={deck.shareToken}
         open={shareOpen}
         onOpenChange={setShareOpen}
         cards={detailCards}

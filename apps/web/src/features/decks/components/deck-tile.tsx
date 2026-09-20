@@ -8,8 +8,8 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { resolveFormatTagSummary } from "@/features/collections/lib/format-tag-config";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -220,7 +220,7 @@ export function DeckTile({
     requiredProgress,
     requiredTotal,
   } = item;
-  const isLocal = isLocalDeckId(deck.id);
+  const isLocal = useIsLocalDeck(deck.id);
   const { getPreferredPrinting, getPreferredFrontImage } = usePreferredPrinting();
   const { all: customTags } = useCustomTagList();
 

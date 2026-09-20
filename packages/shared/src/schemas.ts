@@ -85,9 +85,40 @@ export const keysetCursorSchema = z
     { message: 'cursor must be an ISO 8601 timestamp, optionally suffixed with "_<id>"' },
   );
 
+const XID8_MAX = 18_446_744_073_709_551_615n;
+
+function inXid8Range(xid: string): boolean {
+  try {
+    return BigInt(xid) <= XID8_MAX;
+  } catch {
+    return false;
+  }
+}
+
+/** A Postgres `xid8`, decimal. */
+export const xidWatermarkSchema = z
+  .string()
+  .regex(/^\d{1,20}$/u)
+  .refine(inXid8Range);
+
+/** `<safeXid>~<rowXid>_<rowId>~<deletionXid>_<copyId>`, either keyset empty once drained. */
+export const deltaCursorSchema = z
+  .string()
+  .regex(
+    /^\d{1,20}~(?:\d{1,20}_[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})?~(?:\d{1,20}_[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})?$/u,
+  )
+  .refine((cursor) =>
+    cursor
+      .split("~")
+      .map((part, index) => (index === 0 ? part : (part.split("_")[0] ?? "")))
+      .every((xid) => xid === "" || inXid8Range(xid)),
+  );
+
 export const copiesQuerySchema = z.object({
   cursor: keysetCursorSchema.optional(),
   limit: z.coerce.number().int().min(1).max(1000).optional(),
+  since: xidWatermarkSchema.optional(),
+  deltaCursor: deltaCursorSchema.optional(),
 });
 
 /**

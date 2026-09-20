@@ -26,13 +26,6 @@ describe("useGridSelectionStore", () => {
       useGridSelectionStore.getState().toggleSelect("copy-1");
       expect(useGridSelectionStore.getState().selected.size).toBe(0);
     });
-
-    it("ignores optimistic temp-prefixed ids", () => {
-      const before = useGridSelectionStore.getState();
-      useGridSelectionStore.getState().toggleSelect("temp-1");
-      expect(useGridSelectionStore.getState()).toBe(before);
-      expect(useGridSelectionStore.getState().selected.has("temp-1")).toBe(false);
-    });
   });
 
   describe("toggleStack", () => {
@@ -51,17 +44,6 @@ describe("useGridSelectionStore", () => {
       useGridSelectionStore.getState().toggleSelect("copy-1");
       useGridSelectionStore.getState().toggleStack(["copy-1", "copy-2"]);
       expect(useGridSelectionStore.getState().selected).toEqual(new Set(["copy-1", "copy-2"]));
-    });
-
-    it("filters out temp ids before deciding select-all-vs-clear", () => {
-      useGridSelectionStore.getState().toggleStack(["copy-1", "temp-2"]);
-      expect(useGridSelectionStore.getState().selected).toEqual(new Set(["copy-1"]));
-    });
-
-    it("does nothing when the stack contains only temp ids", () => {
-      const before = useGridSelectionStore.getState();
-      useGridSelectionStore.getState().toggleStack(["temp-1", "temp-2"]);
-      expect(useGridSelectionStore.getState()).toBe(before);
     });
 
     it("does nothing for an empty array", () => {
@@ -83,11 +65,6 @@ describe("useGridSelectionStore", () => {
       useGridSelectionStore.getState().toggleSelectAll(["copy-1", "copy-2"]);
       useGridSelectionStore.getState().toggleSelectAll(["copy-1", "copy-2"]);
       expect(useGridSelectionStore.getState().selected.size).toBe(0);
-    });
-
-    it("filters temp ids out of the target set", () => {
-      useGridSelectionStore.getState().toggleSelectAll(["copy-1", "temp-2"]);
-      expect(useGridSelectionStore.getState().selected).toEqual(new Set(["copy-1"]));
     });
 
     it("re-selects all when sizes match but ids differ (size-only comparison)", () => {
@@ -115,17 +92,6 @@ describe("useGridSelectionStore", () => {
       useGridSelectionStore.getState().toggleSelect("copy-1");
       useGridSelectionStore.getState().addToSelection(["copy-1"]);
       expect(useGridSelectionStore.getState().selected).toEqual(new Set(["copy-1"]));
-    });
-
-    it("filters out temp ids", () => {
-      useGridSelectionStore.getState().addToSelection(["copy-1", "temp-2"]);
-      expect(useGridSelectionStore.getState().selected).toEqual(new Set(["copy-1"]));
-    });
-
-    it("does nothing when all ids are temp ids", () => {
-      const before = useGridSelectionStore.getState();
-      useGridSelectionStore.getState().addToSelection(["temp-1"]);
-      expect(useGridSelectionStore.getState()).toBe(before);
     });
 
     it("does nothing for an empty array", () => {

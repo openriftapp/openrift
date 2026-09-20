@@ -3,7 +3,6 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import { CollectionTopBar } from "@/features/collections/components/collection-top-bar";
 import { aggregatePersonalCollectionValue } from "@/features/collections/lib/collection-value";
-import { isTempCopyId } from "@/features/collections/lib/temp-copy-id";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import { formatterForMarketplace } from "@/lib/format";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -52,10 +51,6 @@ export function CollectionGridTopBar({
     ? currentCollection.unpricedCopyCount
     : aggregate.unpricedCount;
 
-  // Excludes optimistic temp copies, mirroring what `toggleSelectAll` can
-  // actually select.
-  const selectableRealCount = selectableCopyIds.filter((id) => !isTempCopyId(id)).length;
-
   const canAdminCollection = Boolean(currentCollection?.viewerCanAdmin);
   const canDeleteCollection = Boolean(
     currentCollection && !currentCollection.isInbox && canAdminCollection,
@@ -77,7 +72,7 @@ export function CollectionGridTopBar({
       onEnterSelect={onEnterSelect}
       onExitSelect={onExitSelect}
       hasCards={hasCards}
-      isAllSelected={selectableRealCount > 0 && selectedCount === selectableRealCount}
+      isAllSelected={selectableCopyIds.length > 0 && selectedCount === selectableCopyIds.length}
       view={view}
       canEdit={Boolean(currentCollection) && canAdminCollection}
       canDelete={canDeleteCollection}

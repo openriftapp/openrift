@@ -37,6 +37,26 @@ export function deckFoldersRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
     },
 
+    // Undefined when the id is taken, so a replayed create reads the existing folder.
+    createUnlessIdTaken(
+      userId: string,
+      name: string,
+      id: string,
+    ): Promise<DeckFolderWithCount | undefined> {
+      return db
+        .insertInto("deckFolders")
+        .values({
+          id,
+          userId,
+          name,
+          sortOrder: sql<number>`coalesce((select max(sort_order) + 1 from deck_folders where user_id = ${userId}), 0)`,
+        })
+        .onConflict((oc) => oc.column("id").doNothing())
+        .returningAll()
+        .returning(deckCountExpr.as("deckCount"))
+        .executeTakeFirst();
+    },
+
     // Raises the same unique violation as `create` on a name collision.
     rename(id: string, userId: string, name: string): Promise<DeckFolderWithCount | undefined> {
       return db

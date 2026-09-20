@@ -3,9 +3,12 @@ import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import {
+  createLocalDeck,
+  getLocalDecksCollection,
+  preloadLocalDecks,
+} from "@/features/decks/lib/local-decks-collection";
 import { resetIdCounter, stubDeckBuilderCard } from "@/test/factories";
-import { createStoreResetter } from "@/test/store-helpers";
 
 import {
   getDeckDraftCollection,
@@ -15,12 +18,26 @@ import {
   useDeckSaveStatus,
 } from "./deck-builder-collection";
 
+await preloadLocalDecks();
+
+function clearLocalDecks() {
+  const rows = getLocalDecksCollection().toArray;
+  if (rows.length > 0) {
+    getLocalDecksCollection().delete(rows.map((deck) => deck.id));
+  }
+}
+
 // `vi.hoisted` keeps the spy available to the hoisted `vi.mock` factory below.
 const { saveDeckCardsSpy } = vi.hoisted(() => ({
-  saveDeckCardsSpy: vi.fn(async (_arg: unknown) => ({ cards: [] })),
+  saveDeckCardsSpy: vi.fn((..._args: unknown[]) => ({
+    isPersisted: { promise: Promise.resolve() },
+  })),
 }));
-vi.mock("@/features/decks/lib/deck-cards-save", () => ({
-  saveDeckCardsFn: (arg: unknown) => saveDeckCardsSpy(arg),
+vi.mock("@/features/decks/lib/decks-write", () => ({
+  saveDeckCards: (...args: unknown[]) => saveDeckCardsSpy(...args),
+}));
+vi.mock("@/features/decks/lib/decks-collection", () => ({
+  getDeckCardsCollection: () => ({ preload: () => Promise.resolve() }),
 }));
 
 let queryClient: QueryClient;
@@ -124,33 +141,31 @@ describe("hydrateDeckDraft", () => {
 });
 
 describe("persistence sink (ADR-035 local decks)", () => {
-  let resetStore: () => void;
-
   beforeEach(() => {
-    resetStore = createStoreResetter(useLocalDecksStore);
+    clearLocalDecks();
     vi.useFakeTimers();
     saveDeckCardsSpy.mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    resetStore();
+    clearLocalDecks();
   });
 
   it("writes a local deck's cards to the local store and never calls the server", async () => {
-    const localId = useLocalDecksStore.getState().createDeck(WellKnown.deckFormat.CONSTRUCTED);
+    const localId = createLocalDeck(WellKnown.deckFormat.CONSTRUCTED);
     const collection = getDeckDraftCollection(queryClient, "local", localId);
 
     collection.insert(stubDeckBuilderCard({ cardId: "card-a", zone: "main", quantity: 2 }));
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(saveDeckCardsSpy).not.toHaveBeenCalled();
-    expect(useLocalDecksStore.getState().decks[localId]?.cards).toEqual([
+    expect(getLocalDecksCollection().get(localId)?.cards).toEqual([
       { cardId: "card-a", zone: "main", quantity: 2, preferredPrintingId: null },
     ]);
   });
 
-  it("sends a server deck's cards through saveDeckCardsFn", async () => {
+  it("writes a server deck's cards through the deck-cards store", async () => {
     const collection = getDeckDraftCollection(queryClient, "user-save", "server-deck-1");
 
     collection.insert(stubDeckBuilderCard({ cardId: "card-b", zone: "main", quantity: 1 }));
@@ -158,7 +173,10 @@ describe("persistence sink (ADR-035 local decks)", () => {
 
     expect(saveDeckCardsSpy).toHaveBeenCalledOnce();
     expect(saveDeckCardsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ deckId: "server-deck-1" }) }),
+      expect.anything(),
+      "server-deck-1",
+      [expect.objectContaining({ cardId: "card-b", quantity: 1 })],
+      expect.objectContaining({ userId: "user-save" }),
     );
   });
 });
@@ -198,15 +216,10 @@ describe("resetDeckDraft", () => {
   });
 
   it("leaves no error behind when it aborts an in-flight save", async () => {
-    saveDeckCardsSpy.mockImplementationOnce(
-      (arg: unknown) =>
-        // oxlint-disable-next-line promise/avoid-new -- a save that only settles when aborted
-        new Promise((_resolve, reject) => {
-          (arg as { signal: AbortSignal }).signal.addEventListener("abort", () =>
-            reject(new Error("aborted")),
-          );
-        }),
-    );
+    saveDeckCardsSpy.mockImplementationOnce(() => ({
+      // oxlint-disable-next-line promise/avoid-new -- a save that never settles, so the reset's abort is what ends it
+      isPersisted: { promise: new Promise<void>(() => {}) },
+    }));
     hydrateDeckDraft(queryClient, userA, "deck-reset-inflight", []);
     getDeckDraftCollection(queryClient, userA, "deck-reset-inflight").insert(
       stubDeckBuilderCard({ cardId: "edit", zone: "main" }),

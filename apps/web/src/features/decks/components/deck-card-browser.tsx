@@ -41,6 +41,7 @@ import {
 import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckDetail, useUpdateDeck } from "@/features/decks/hooks/use-decks";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import {
   buildDeckQuantityByCell,
@@ -51,7 +52,6 @@ import {
 } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -232,7 +232,7 @@ function DeckOverviewForEditor({
   const customTagAssignments = useCustomTagAssignments();
   const { getPreferredFrontImage } = usePreferredPrinting();
   const updateDeck = useUpdateDeck();
-  const isLocal = isLocalDeckId(deck.id);
+  const isLocal = useIsLocalDeck(deck.id);
 
   // Mirrors the parent editor's deckItems so arrow-key nav and the detail
   // pane's prev/next walk the same dedup'd visual-order list on both paths.

@@ -16,8 +16,8 @@ vi.mock("@tanstack/react-query", () => ({
   queryOptions: (options: unknown) => options,
 }));
 
-vi.mock("@/features/collections/lib/collections-query", () => ({
-  collectionsQueryOptions: () => ({ queryKey: ["collections"] }),
+vi.mock("@/features/collections/hooks/use-collections", () => ({
+  useCollectionsList: () => collectionsMock(),
 }));
 
 vi.mock("@/lib/auth-session", () => ({

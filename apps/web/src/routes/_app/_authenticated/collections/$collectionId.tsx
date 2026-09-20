@@ -6,12 +6,10 @@ import {
   collectionDetailSearchSchema,
 } from "@/features/cards/lib/search-schemas";
 import { CollectionPending } from "@/features/collections/components/collection-pending";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/$collectionId")({
-  ssr: "data-only",
   // The layout route validates the shared filter set; this route adds `wanted`
   // on top, because the group-box filter it drives exists on no other surface.
   validateSearch: collectionDetailSearchSchema,
@@ -34,11 +32,11 @@ export const Route = createFileRoute("/_app/_authenticated/collections/$collecti
   },
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Collection", noIndex: true }),
   loader: async ({ context, params }) => {
-    const collections = await context.queryClient.query({
-      ...collectionsQueryOptions(context.userId),
-      staleTime: "static",
-    });
-    if (!collections.some((col) => col.id === params.collectionId)) {
+    const { getCollectionsCollection } =
+      await import("@/features/collections/lib/collections-collection");
+    const collections = getCollectionsCollection(context.queryClient, context.userId);
+    await collections.preload();
+    if (!collections.has(params.collectionId)) {
       throw notFound();
     }
   },

@@ -2,7 +2,11 @@ import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { useNavigate } from "@tanstack/react-router";
 
 import { useCloneSharedDeck } from "@/features/decks/hooks/use-decks";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import {
+  createLocalDeck,
+  setLocalDeckCards,
+  updateLocalDeck,
+} from "@/features/decks/lib/local-decks-collection";
 import { useUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
@@ -34,15 +38,14 @@ export function useCopyArchivedDeck(): CopyArchivedDeck {
 
   const copy = async ({ token, deck, cards, name, description }: CopyArchivedDeckInput) => {
     if (!isLoggedIn) {
-      const store = useLocalDecksStore.getState();
-      const localId = store.createDeck(deck.format, name);
-      // createDeck starts with formatConfig null, so a Custom-Region copy would lose its regions.
-      store.updateDeck(localId, {
+      const localId = createLocalDeck(deck.format, name);
+      // createLocalDeck starts with formatConfig null, so a Custom-Region copy would lose its regions.
+      updateLocalDeck(localId, {
         description,
         formatConfig: deck.formatConfig,
         links: deck.links,
       });
-      store.setCards(
+      setLocalDeckCards(
         localId,
         cards.map((card) => ({
           zone: card.zone,

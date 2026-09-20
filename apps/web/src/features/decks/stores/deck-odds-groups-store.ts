@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { OddsGroupDef } from "@/features/decks/lib/deck-odds-groups";
+import { bareLocalDeckId } from "@/features/decks/lib/local-deck-sanitize";
 
 interface DeckOddsGroupsState {
   selectionByDeck: Record<string, string[]>;
@@ -97,7 +98,8 @@ export const useDeckOddsGroupsStore = create<DeckOddsGroupsState>()(
             state.selectionByDeck as Record<string, unknown>,
           )) {
             if (Array.isArray(keys) && keys.every((key) => typeof key === "string")) {
-              selectionByDeck[deckId] = keys;
+              // Entries written before local decks moved off the `local:` prefix.
+              selectionByDeck[bareLocalDeckId(deckId)] = keys;
             }
           }
         }
@@ -111,7 +113,7 @@ export const useDeckOddsGroupsStore = create<DeckOddsGroupsState>()(
                 .map((group) => sanitizeCustomGroup(group))
                 .filter((group) => group !== null);
               if (sanitized.length > 0) {
-                customByDeck[deckId] = sanitized;
+                customByDeck[bareLocalDeckId(deckId)] = sanitized;
               }
             }
           }

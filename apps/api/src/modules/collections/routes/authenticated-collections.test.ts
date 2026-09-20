@@ -11,6 +11,7 @@ const mockCollectionsRepo = {
   listForUser: vi.fn(() => Promise.resolve([] as object[])),
   listAccessibleForUser: vi.fn(() => Promise.resolve([] as object[])),
   create: vi.fn(() => Promise.resolve({} as object)),
+  createUnlessIdTaken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   getAccessForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   filterWritableByViewer: vi.fn(() => Promise.resolve([] as string[])),
@@ -208,13 +209,13 @@ describe("GET /api/v1/collections", () => {
 
 describe("POST /api/v1/collections", () => {
   beforeEach(() => {
-    mockCollectionsRepo.create.mockReset();
+    mockCollectionsRepo.createUnlessIdTaken.mockReset();
     mockFriendGroupsRepo.getBySlug.mockReset();
     mockFriendGroupsRepo.getMembership.mockReset();
   });
 
   it("returns 201 with created personal collection", async () => {
-    mockCollectionsRepo.create.mockResolvedValue(dbCollection);
+    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue(dbCollection);
     const res = await app.request("/api/v1/collections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -223,7 +224,7 @@ describe("POST /api/v1/collections", () => {
     expect(res.status).toBe(201);
     const json = await readJson(res);
     expect(json.name).toBe("Main Binder");
-    expect(mockCollectionsRepo.create).toHaveBeenCalledWith({
+    expect(mockCollectionsRepo.createUnlessIdTaken).toHaveBeenCalledWith({
       userId: USER_ID,
       groupId: null,
       name: "Main Binder",
@@ -240,7 +241,7 @@ describe("POST /api/v1/collections", () => {
       name: "Friday Night",
     });
     mockFriendGroupsRepo.getMembership.mockResolvedValue({ role: "owner" });
-    mockCollectionsRepo.create.mockResolvedValue(dbSharedCollection);
+    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue(dbSharedCollection);
     const res = await app.request("/api/v1/collections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -249,7 +250,7 @@ describe("POST /api/v1/collections", () => {
     expect(res.status).toBe(201);
     const json = await readJson(res);
     expect(json.groupSlug).toBe("friday-night");
-    expect(mockCollectionsRepo.create).toHaveBeenCalledWith(
+    expect(mockCollectionsRepo.createUnlessIdTaken).toHaveBeenCalledWith(
       expect.objectContaining({ userId: null, groupId: dbSharedCollection.groupId }),
     );
   });
@@ -267,6 +268,31 @@ describe("POST /api/v1/collections", () => {
       body: JSON.stringify({ name: "Pool", groupSlug: "friday-night" }),
     });
     expect(res.status).toBe(403);
+  });
+
+  it("returns the caller's existing collection when a create is replayed with its id", async () => {
+    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue(undefined);
+    mockCollectionsRepo.listAccessibleForUser.mockResolvedValueOnce([
+      { ...dbCollection, copyCount: 3, groupSlug: null, groupName: null, viewerCanAdmin: true },
+    ]);
+    const res = await app.request("/api/v1/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: dbCollection.id, name: "Main Binder" }),
+    });
+    expect(res.status).toBe(201);
+    expect(await readJson(res)).toMatchObject({ id: dbCollection.id, copyCount: 3 });
+  });
+
+  it("returns 409 when the id belongs to a collection the caller cannot see", async () => {
+    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue(undefined);
+    mockCollectionsRepo.listAccessibleForUser.mockResolvedValueOnce([]);
+    const res = await app.request("/api/v1/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "a0000000-0001-4000-a000-000000000099", name: "Main Binder" }),
+    });
+    expect(res.status).toBe(409);
   });
 
   it("returns 404 when groupSlug does not match any group", async () => {

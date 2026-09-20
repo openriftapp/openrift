@@ -1,7 +1,7 @@
 import { useLocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
 import { useShareDeck, useUnshareDeck } from "@/features/decks/hooks/use-decks";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { ShareDialog } from "@/features/groups/components/share-dialog";
 import {
   deckImageFromCardsUrl,
@@ -112,7 +112,8 @@ function LocalDeckShareDialog({
 }
 
 export function DeckShareDialog(props: DeckShareDialogProps) {
-  if (isLocalDeckId(props.deckId)) {
+  const isLocal = useIsLocalDeck(props.deckId);
+  if (isLocal) {
     return <LocalDeckShareDialog {...props} />;
   }
   return <ServerDeckShareDialog {...props} />;

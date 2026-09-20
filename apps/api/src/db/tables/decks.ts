@@ -3,7 +3,7 @@ import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import type { ColumnType, Generated } from "kysely";
 
-import type { CreatedAt, UpdatedAt } from "./columns.js";
+import type { CreatedAt, UpdatedAt, UpdatedXid } from "./columns.js";
 
 export interface DecksTable {
   id: Generated<string>;
@@ -28,6 +28,7 @@ export interface DecksTable {
   isDraft: Generated<boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
+  updatedXid: UpdatedXid;
 }
 
 export interface DeckCardsTable {

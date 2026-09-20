@@ -11,7 +11,7 @@ import type {
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
-import type { CopyResponse } from "@openrift/shared/types/api/collection";
+import type { CollectionResponse, CopyResponse } from "@openrift/shared/types/api/collection";
 import type { MetaPlayerDetailResponse, MetaPlayerFinish } from "@openrift/shared/types/api/meta";
 import type { PriceLookup } from "@openrift/shared/types/api/pricing";
 import type { TradePreference } from "@openrift/shared/types/api/trade-preferences";
@@ -55,6 +55,31 @@ export function stubCopy(overrides: Partial<CopyResponse> = {}): CopyResponse {
     notesPrivate: null,
     isAltered: false,
     links: [],
+    ...overrides,
+  };
+}
+
+export function stubCollection(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
+  return {
+    id: nextId(),
+    name: "Binder",
+    description: null,
+    availableForDeckbuilding: true,
+    sidebarHidden: false,
+    isInbox: false,
+    sortOrder: 0,
+    isPublic: false,
+    shareToken: null,
+    copyCount: 0,
+    totalValueCents: null,
+    unpricedCopyCount: null,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    groupId: null,
+    groupSlug: null,
+    groupName: null,
+    viewerCanAdmin: true,
+    homeDecks: [],
     ...overrides,
   };
 }

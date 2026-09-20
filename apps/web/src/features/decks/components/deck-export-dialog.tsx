@@ -16,9 +16,9 @@ import { TextLink } from "@/components/ui/text-link";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useEncodeDeckCards, useExportDeck } from "@/features/decks/hooks/use-decks";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { m } from "@/paraglide/messages.js";
@@ -110,7 +110,8 @@ export function DeckExportDialog({
   // A local deck or one reached by share token has no server row to export by
   // id; encode its cards through the public endpoint instead.
   const encodeDeck = useEncodeDeckCards();
-  const fromCards = publicSource !== undefined || isLocalDeckId(deckId);
+  const isLocal = useIsLocalDeck(deckId);
+  const fromCards = publicSource !== undefined || isLocal;
   // Subscribing the draft of a deck the viewer doesn't own would fetch someone
   // else's deck, and a caller bringing its own cards never reads it anyway.
   const liveCards = useDeckCards(cardsProp === undefined ? deckId : "");

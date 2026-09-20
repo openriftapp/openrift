@@ -2,6 +2,7 @@ import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useState } from "react";
 import { toast } from "sonner";
+import { v7 as uuidv7 } from "uuid";
 
 import { useBatchedAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
@@ -11,7 +12,6 @@ import { addInChunks, addJobsFor, reconcileJobs, settleAdd } from "@/features/sc
 import { appendScanJournal } from "@/features/scan/lib/scan-journal";
 import type { ScanSessionRow } from "@/features/scan/stores/scan-session-store";
 import { useScanSessionStore } from "@/features/scan/stores/scan-session-store";
-import { randomUuid } from "@/lib/random-uuid";
 import { m } from "@/paraglide/messages.js";
 
 interface WishFollowUp {
@@ -67,14 +67,13 @@ export function useScanAdd(collections: CollectionResponse[]): ScanAdd {
     if (jobs.length === 0) {
       return;
     }
-    const batchId = reusable ? reusable.batchId : randomUuid();
+    const batchId = reusable ? reusable.batchId : uuidv7();
     store.setPending({ batchId, collectionId, jobs });
     appendScanJournal({ type: "add-start", batchId, collectionId, jobs: jobs.length });
     setAdding(true);
     setFailedCount(0);
-    const outcomes = await addInChunks(
-      jobs,
-      (job) => batchedAdd.add(job.printingId, collectionId, job.id, batchId).result,
+    const outcomes = await addInChunks(jobs, (job) =>
+      batchedAdd.add(job.printingId, collectionId, job.id, batchId),
     );
     setAdding(false);
     const { confirmed, copyIds, failed } = settleAdd(jobs, outcomes);

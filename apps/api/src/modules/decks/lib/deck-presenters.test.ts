@@ -36,6 +36,7 @@ describe("toDeck", () => {
       isDraft: true,
       createdAt: NOW,
       updatedAt: LATER,
+      updatedXid: "4242",
     });
     expect(result).toEqual({
       id: "deck-1",
@@ -86,6 +87,7 @@ describe("toDeck", () => {
       isDraft: false,
       createdAt: NOW,
       updatedAt: LATER,
+      updatedXid: "4242",
     });
     expect("userId" in result).toBe(false);
   });
@@ -116,6 +118,7 @@ describe("toPublicDeck", () => {
       isDraft: true,
       createdAt: NOW,
       updatedAt: LATER,
+      updatedXid: "4242",
     });
     expect(result).toEqual({
       id: "deck-1",
@@ -167,11 +170,17 @@ describe("toDeckSummary", () => {
       isDraft: false,
       createdAt: NOW,
       updatedAt: LATER,
+      updatedXid: "4242",
     });
     expect(result).toEqual({
       id: "deck-1",
       name: "Aggro",
       descriptionSnippet: "A fast deck",
+      description: "A fast deck",
+      links: [],
+      oddsConfig: null,
+      isPublic: true,
+      shareToken: "abc123",
       format: "constructed",
       formatConfig: null,
       isPinned: true,
@@ -214,6 +223,7 @@ describe("toDeckSummary", () => {
       isDraft: false,
       createdAt: NOW,
       updatedAt: LATER,
+      updatedXid: "4242",
     });
     expect(result.archivedAt).toBe("2026-04-01T10:00:00.000Z");
   });

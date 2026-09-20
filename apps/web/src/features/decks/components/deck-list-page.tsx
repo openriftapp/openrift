@@ -1,5 +1,5 @@
 import type { DeckListItemResponse, DeckResponse } from "@openrift/shared/types/api/deck";
-import { useQuery } from "@tanstack/react-query";
+import { useLiveQuery } from "@tanstack/react-db";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, CircleHelpIcon, PlusIcon, SwordsIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
@@ -43,6 +43,8 @@ import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-print
 import { useDeckFolders } from "@/features/decks/hooks/use-deck-folders";
 import { useDeckListFilters } from "@/features/decks/hooks/use-deck-list-filters";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CollapsedDeckEntry } from "@/features/decks/lib/deck-family";
 import { collapseFamilies } from "@/features/decks/lib/deck-family";
 import type { DeckListItemWithNames } from "@/features/decks/lib/deck-list-utils";
@@ -57,8 +59,8 @@ import {
   partitionByArchived,
   sortDecks,
 } from "@/features/decks/lib/deck-list-utils";
-import { decksQueryOptions } from "@/features/decks/lib/decks-queries";
 import { localDeckToListItem } from "@/features/decks/lib/local-deck-list-item";
+import { createLocalDeck, setLocalDeckCards } from "@/features/decks/lib/local-decks-collection";
 import {
   buildSampleDeckCards,
   SAMPLE_DECK_FORMAT,
@@ -69,7 +71,6 @@ import {
   useDeckListPrefsStore,
   useDeckListViewPrefs,
 } from "@/features/decks/stores/deck-list-prefs-store";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useDeckFormatList, useEnumOrders } from "@/hooks/use-enums";
 import { useHeaderHeight } from "@/hooks/use-header-height";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -93,7 +94,6 @@ function CreateDeckDialog({
   const navigate = useNavigate();
   const userId = useUserId();
   const createDeck = useCreateDeck();
-  const createLocalDeck = useLocalDecksStore((state) => state.createDeck);
   const { formats, labels: formatLabels } = useDeckFormatList();
   const [name, setName] = useState<string>(m.decks_list_new_deck_default_name());
   const [format, setFormat] = useState<string>(formats[0]?.slug ?? "");
@@ -204,14 +204,16 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 }
 
 export function DeckListPage() {
-  // Server decks load only when signed in; local decks always render, gated
-  // behind hydration. Non-suspense so a logged-out visitor doesn't suspend.
+  // Non-suspense: a logged-out visitor has no decks store to suspend on.
   const userId = useUserId();
-  const serverQuery = useQuery({ ...decksQueryOptions(userId ?? ""), enabled: Boolean(userId) });
-  const serverItems = serverQuery.data ?? [];
+  const decksCollection = useDecksCollection();
+  const { data: serverRows } = useLiveQuery({
+    query: (q) => (decksCollection ? q.from({ deck: decksCollection }) : null),
+  });
+  const serverItems = serverRows ?? [];
 
   const hydrated = useHydrated();
-  const localDecks = useLocalDecksStore((state) => state.decks);
+  const localDecks = useLocalDecks();
   const { cardsById, allPrintings } = useCards();
   const { getPreferredFrontImage } = usePreferredPrinting();
   const navigate = useNavigate();
@@ -220,8 +222,8 @@ export function DeckListPage() {
   const [creatingSample, setCreatingSample] = useState(false);
   const { orders, labels } = useEnumOrders();
   const localItems: DeckListItemResponse[] =
-    hydrated && Object.keys(localDecks).length > 0
-      ? Object.values(localDecks).map((deck) =>
+    hydrated && localDecks.length > 0
+      ? localDecks.map((deck) =>
           localDeckToListItem(deck, {
             cardsById,
             cardTypeOrder: orders.cardTypes,
@@ -230,7 +232,12 @@ export function DeckListPage() {
         )
       : [];
 
-  const deckItems: DeckListItemResponse[] = [...localItems, ...serverItems];
+  // A claim reuses the local deck's id, so both rows exist until the local one is cleared.
+  const serverIds = new Set(serverItems.map((item) => item.deck.id));
+  const deckItems: DeckListItemResponse[] = [
+    ...localItems.filter((item) => !serverIds.has(item.deck.id)),
+    ...serverItems,
+  ];
   const [createOpen, setCreateOpen] = useState(false);
 
   const sampleCards =
@@ -258,9 +265,8 @@ export function DeckListPage() {
     // Without this, the list flashes in before navigation to the new deck completes.
     setCreatingSample(true);
     if (!userId) {
-      const store = useLocalDecksStore.getState();
-      const localId = store.createDeck(SAMPLE_DECK_FORMAT, sampleDeckName());
-      store.setCards(localId, cards);
+      const localId = createLocalDeck(SAMPLE_DECK_FORMAT, sampleDeckName());
+      setLocalDeckCards(localId, cards);
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });
       return;
     }

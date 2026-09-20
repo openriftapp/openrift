@@ -2,7 +2,7 @@ import type { CopyLink } from "@openrift/shared/types/api/collection";
 import type { ActivityAction } from "@openrift/shared/types/enums";
 import type { ColumnType, Generated } from "kysely";
 
-import type { CreatedAt, UpdatedAt } from "./columns.js";
+import type { CreatedAt, UpdatedAt, UpdatedXid } from "./columns.js";
 
 export interface CollectionsTable {
   id: Generated<string>;
@@ -31,6 +31,22 @@ export interface CopiesTable {
   notesPrivate: string | null;
   isAltered: Generated<boolean>;
   links: ColumnType<CopyLink[], CopyLink[] | undefined, CopyLink[]>;
+  updatedXid: UpdatedXid;
+}
+
+/** Owner columns are snapshotted by the trigger: a tombstone outlives its collection. */
+export interface CopyDeletionsTable {
+  copyId: string;
+  collectionId: string;
+  userId: string | null;
+  groupId: string | null;
+  deletedAt: Generated<Date>;
+  deletedXid: Generated<string>;
+}
+
+export interface CopyDeletionSweepTable {
+  onlyRow: Generated<boolean>;
+  prunedThroughXid: Generated<string>;
 }
 
 export interface CollectionDeckbuildingPrefsTable {

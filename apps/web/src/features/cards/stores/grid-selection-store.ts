@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-import { isTempCopyId } from "@/features/collections/lib/temp-copy-id";
-
 interface GridSelectionState {
   selected: Set<string>;
   selectMode: boolean;
@@ -16,15 +14,10 @@ interface GridSelectionState {
   resetSelection: () => void;
 }
 
-// Optimistic rows from useBatchedAddCopies carry a temp- id until the add API
-// returns a server uuid; toggle/add filter those out so dispose/move never 400s.
 export const useGridSelectionStore = create<GridSelectionState>()((set) => ({
   selected: new Set(),
   selectMode: false,
   toggleSelect: (copyId) => {
-    if (isTempCopyId(copyId)) {
-      return;
-    }
     set((state) => {
       const next = new Set(state.selected);
       if (next.has(copyId)) {
@@ -36,14 +29,13 @@ export const useGridSelectionStore = create<GridSelectionState>()((set) => ({
     });
   },
   toggleStack: (copyIds) => {
-    const realIds = copyIds.filter((id) => !isTempCopyId(id));
-    if (realIds.length === 0) {
+    if (copyIds.length === 0) {
       return;
     }
     set((state) => {
       const next = new Set(state.selected);
-      const allSelected = realIds.every((id) => next.has(id));
-      for (const id of realIds) {
+      const allSelected = copyIds.every((id) => next.has(id));
+      for (const id of copyIds) {
         if (allSelected) {
           next.delete(id);
         } else {
@@ -54,22 +46,20 @@ export const useGridSelectionStore = create<GridSelectionState>()((set) => ({
     });
   },
   toggleSelectAll: (allCopyIds) => {
-    const realIds = allCopyIds.filter((id) => !isTempCopyId(id));
     set((state) => {
-      if (state.selected.size === realIds.length) {
+      if (state.selected.size === allCopyIds.length) {
         return { selected: new Set() };
       }
-      return { selected: new Set(realIds) };
+      return { selected: new Set(allCopyIds) };
     });
   },
   addToSelection: (ids) => {
-    const realIds = ids.filter((id) => !isTempCopyId(id));
-    if (realIds.length === 0) {
+    if (ids.length === 0) {
       return;
     }
     set((state) => {
       const next = new Set(state.selected);
-      for (const id of realIds) {
+      for (const id of ids) {
         next.add(id);
       }
       return { selected: next };

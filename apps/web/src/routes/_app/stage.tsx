@@ -6,6 +6,7 @@ import { z } from "zod";
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
 import { filterSearchSchema } from "@/features/cards/lib/search-schemas";
+import { DeckPending } from "@/features/decks/components/deck-pending";
 import { queueCardsSearchSchema } from "@/features/stage/lib/presentation-queue-search";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
@@ -37,6 +38,9 @@ const stageSearchSchema = filterSearchSchema.extend({
 });
 
 export const Route = createFileRoute("/_app/stage")({
+  // The deck and tier views read client-held stores through live queries, which
+  // have no server snapshot and would render an empty stage during SSR.
+  ssr: false,
   // Deliberately not indexed: a stage URL is a working link for one creator's
   // recording session, not a page anyone should land on from search.
   head: () =>
@@ -65,14 +69,36 @@ export const Route = createFileRoute("/_app/stage")({
       });
     }
   },
-  loader: async ({ context }) => {
+  loaderDeps: ({ search }) => ({ deck: search.deck }),
+  loader: async ({ context, deps }) => {
     // Both the deck walk and the ad-hoc queue resolve their cards against the
     // catalog, and the stage reads zone labels off /init.
     await Promise.all([
       context.queryClient.query({ ...catalogQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
     ]);
+    if (deps.deck === undefined) {
+      return null;
+    }
+    // A deck the stores have not loaded resolves to the empty stand-in, which
+    // puts a deck named "Deck" holding no cards on screen.
+    const { preloadLocalDecks } = await import("@/features/decks/lib/local-decks-collection");
+    await preloadLocalDecks();
+    const session = await context.queryClient.query({
+      ...sessionQueryOptions(),
+      staleTime: "static",
+    });
+    if (!session?.user) {
+      return null;
+    }
+    const { getDeckCardsCollection, getDecksCollection } =
+      await import("@/features/decks/lib/decks-collection");
+    await Promise.all([
+      getDecksCollection(context.queryClient, session.user.id).preload(),
+      getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+    ]);
     return null;
   },
+  pendingComponent: DeckPending,
   errorComponent: RouteErrorFallback,
 });

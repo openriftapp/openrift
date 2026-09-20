@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { isApiCall } from "../../helpers/api-endpoint.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 
 async function createDeckViaApi(
@@ -14,21 +15,6 @@ async function createDeckViaApi(
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { id: string };
   return body.id;
-}
-
-// TanStack Start encodes each server fn id as base64url(JSON); decoding lets
-// us wait on a specific mutation without colliding with other server fns.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
 }
 
 // Valid UUID shape, guaranteed not to match any real deck.
@@ -136,8 +122,8 @@ test.describe("deck editor shell", () => {
 
       await input.fill("Renamed");
 
-      const updateRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "updateDeckFn"),
+      const updateRequest = page.waitForRequest((request) =>
+        isApiCall(request, "PATCH", "/api/v1/decks/{id}"),
       );
       await dialog.getByRole("button", { name: "Save" }).click();
       await updateRequest;

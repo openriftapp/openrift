@@ -97,37 +97,4 @@ describe("useCardSelection", () => {
     expect(renderCount).toBe(before);
     expect(result.current.getLastSelectedItemId()).toBe("item-1");
   });
-
-  describe("temp copy ids are excluded from selection", () => {
-    it("toggleSelect ignores a temp id", () => {
-      const { result } = renderHook(() => useCardSelection());
-      act(() => result.current.toggleSelect("temp-abc"));
-      expect(result.current.selected.size).toBe(0);
-    });
-
-    it("toggleStack only selects the real ids in the stack", () => {
-      const { result } = renderHook(() => useCardSelection());
-      act(() => result.current.toggleStack(["a", "temp-b", "c"]));
-      expect([...result.current.selected].toSorted()).toEqual(["a", "c"]);
-    });
-
-    it("toggleStack with only temp ids is a no-op", () => {
-      const { result } = renderHook(() => useCardSelection());
-      act(() => result.current.toggleSelect("real"));
-      act(() => result.current.toggleStack(["temp-a", "temp-b"]));
-      expect([...result.current.selected]).toEqual(["real"]);
-    });
-
-    it("toggleSelectAll filters temp ids out", () => {
-      const { result } = renderHook(() => useCardSelection());
-      act(() => result.current.toggleSelectAll(["a", "temp-b", "c"]));
-      expect([...result.current.selected].toSorted()).toEqual(["a", "c"]);
-    });
-
-    it("addToSelection filters temp ids out", () => {
-      const { result } = renderHook(() => useCardSelection());
-      act(() => result.current.addToSelection(["a", "temp-b", "c"]));
-      expect([...result.current.selected].toSorted()).toEqual(["a", "c"]);
-    });
-  });
 });

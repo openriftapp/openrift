@@ -1,21 +1,26 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
-import { useQuery } from "@tanstack/react-query";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
-import { useUserId } from "@/lib/auth-session";
+import { useCollectionsCollection } from "@/features/collections/hooks/use-collections-collection";
 
 /**
  * Resolves the collection a deck is stored in. Safe with no signed-in
  * viewer: an anonymous viewer has no collections to match against.
  */
 export function useHomeCollection(collectionId?: string | null): CollectionResponse | undefined {
-  const userId = useUserId();
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: Boolean(userId) && Boolean(collectionId),
+  const collectionsCollection = useCollectionsCollection();
+  // No store to read during SSR.
+  const { data, isReady } = useLiveQuery({
+    query: (q) =>
+      globalThis.window === undefined || !collectionsCollection || !collectionId
+        ? null
+        : q
+            .from({ collection: collectionsCollection })
+            .where(({ collection }) => eq(collection.id, collectionId))
+            .findOne(),
   });
-  if (!collectionId) {
+  if (!isReady) {
     return undefined;
   }
-  return collections?.find((collection) => collection.id === collectionId);
+  return data;
 }

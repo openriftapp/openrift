@@ -57,6 +57,26 @@ async function homeDecksByCollection(
   return byCollection;
 }
 
+type AccessibleCollectionRow = Awaited<
+  ReturnType<ApiContext["repos"]["collections"]["listAccessibleForUser"]>
+>[number];
+
+async function presentCollections(
+  repos: ApiContext["repos"],
+  userId: string,
+  rows: readonly AccessibleCollectionRow[],
+): Promise<CollectionResponse[]> {
+  const favMarketplace = await getFavoriteMarketplace(repos, userId);
+  const [values, homeDecks] = await Promise.all([
+    repos.marketplace.collectionValues(
+      rows.map((row) => row.id),
+      favMarketplace,
+    ),
+    homeDecksByCollection(repos, userId),
+  ]);
+  return rows.map((row) => toCollection(row, values.get(row.id), homeDecks.get(row.id)));
+}
+
 /**
  * Authenticated collections contract (mounted at `/api/v1/collections`).
  * Not-found / forbidden / conflict states are thrown as `AppError` and mapped
@@ -64,20 +84,8 @@ async function homeDecksByCollection(
  */
 export const collectionsRouter = {
   list: os.list.handler(async ({ context }): Promise<CollectionListResponse> => {
-    const repos = context.repos;
-    const userId = context.userId;
-    const favMarketplace = await getFavoriteMarketplace(repos, userId);
-    const rows = await repos.collections.listAccessibleForUser(userId);
-    const [values, homeDecks] = await Promise.all([
-      repos.marketplace.collectionValues(
-        rows.map((row) => row.id),
-        favMarketplace,
-      ),
-      homeDecksByCollection(repos, userId),
-    ]);
-    return {
-      items: rows.map((row) => toCollection(row, values.get(row.id), homeDecks.get(row.id))),
-    };
+    const rows = await context.repos.collections.listAccessibleForUser(context.userId);
+    return { items: await presentCollections(context.repos, context.userId, rows) };
   }),
 
   create: os.create.handler(async ({ input, context }): Promise<CollectionResponse> => {
@@ -103,7 +111,8 @@ export const collectionsRouter = {
     // name ordering in `listAccessibleForUser`). Personal collections get
     // appended to the user's list via max+1.
     const sortOrder = groupId ? 0 : await collections.nextPersonalSortOrder(userId);
-    const row = await collections.create({
+    const row = await collections.createUnlessIdTaken({
+      id: input.id,
       userId: groupId ? null : userId,
       groupId,
       name: input.name,
@@ -111,6 +120,24 @@ export const collectionsRouter = {
       isInbox: false,
       sortOrder,
     });
+    if (!row) {
+      const accessible = await collections.listAccessibleForUser(userId);
+      // Membership is not ownership: a visible group collection is not this caller's create.
+      const existing = accessible.filter(
+        (collection) =>
+          collection.id === input.id &&
+          (groupId ? collection.groupId === groupId : collection.userId === userId),
+      );
+      const [replayed] = await presentCollections(context.repos, userId, existing);
+      if (!replayed) {
+        throw new AppError(
+          409,
+          ERROR_CODES.CONFLICT,
+          "Collection id already belongs to someone else",
+        );
+      }
+      return replayed;
+    }
 
     // Deck-building availability is a per-viewer preference, not a column.
     // The type default is "available if it's my own collection" (group_id IS

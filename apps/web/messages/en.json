@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "This copy lives in a group collection, so everyone in the group can see this. Never shown on public share pages.",
   "collections_copies_links_label": "Photos & videos",
   "collections_copies_link_title_placeholder": "Label",
-  "collections_copies_still_adding": "These cards are still being added. Try again in a moment.",
   "collections_copies_network_error": "Can't reach the server. Check your connection.",
   "collections_copies_signed_out": "Cannot add copies while signed out",
   "collections_copies_quick_scope_move": "Move",

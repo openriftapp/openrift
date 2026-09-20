@@ -1,14 +1,13 @@
 import { WellKnown } from "@openrift/shared/well-known";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { and, inArray, not, eq, useLiveQuery } from "@tanstack/react-db";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+import { useDeckCardsCollection } from "@/features/decks/hooks/use-decks-collections";
 import type { DeckBoxPlan } from "@/features/decks/lib/deck-box";
 import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useConditionList } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";
@@ -27,10 +26,7 @@ export function useDeckBox(
   const languageOrder = useEffectiveLanguageOrder();
   const conditions = useConditionList();
 
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled,
-  });
+  const collections = useCollectionsList();
   const { data: copies } = useLiveQuery({
     query: (q) => (enabled && copiesCollection ? q.from({ copy: copiesCollection }) : null),
   });
@@ -41,25 +37,30 @@ export function useDeckBox(
       ?.find((collection) => collection.id === homeCollectionId)
       ?.homeDecks.filter((deck) => deck.id !== deckId)
       .map((deck) => deck.id) ?? [];
-  const sharingDecks = useQueries({
-    queries: sharingDeckIds.map((id) => ({
-      ...deckDetailQueryOptions(userId ?? "", id),
-      enabled,
-    })),
+
+  const cardsCollection = useDeckCardsCollection();
+  const { data: deckCards, isReady: deckCardsReady } = useLiveQuery({
+    query: (q) =>
+      enabled && cardsCollection && sharingDeckIds.length > 0
+        ? q
+            .from({ card: cardsCollection })
+            .where(({ card }) =>
+              and(
+                inArray(card.deckId, sharingDeckIds),
+                not(eq(card.zone, WellKnown.deckZone.OVERFLOW)),
+              ),
+            )
+        : null,
   });
 
-  if (!homeCollectionId || !copies || !collections) {
+  const awaitingDeckCards = sharingDeckIds.length > 0 && !deckCardsReady;
+  if (!homeCollectionId || !copies || !collections || awaitingDeckCards) {
     return undefined;
   }
 
   const otherDeckNeeds = new Map<string, number>();
-  for (const query of sharingDecks) {
-    for (const card of query.data?.cards ?? []) {
-      if (card.zone === WellKnown.deckZone.OVERFLOW) {
-        continue;
-      }
-      otherDeckNeeds.set(card.cardId, (otherDeckNeeds.get(card.cardId) ?? 0) + card.quantity);
-    }
+  for (const card of deckCards ?? []) {
+    otherDeckNeeds.set(card.cardId, (otherDeckNeeds.get(card.cardId) ?? 0) + card.quantity);
   }
 
   return computeDeckBoxPlan({

@@ -31,7 +31,7 @@ vi.mock("@/lib/auth-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
 
-vi.mock("@/features/collections/lib/copies-collection", () => ({
+vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
   useCopiesCollection: () => null,
 }));
 

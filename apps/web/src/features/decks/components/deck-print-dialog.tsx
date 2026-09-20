@@ -33,9 +33,10 @@ import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import type { LocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
 import { useLocalDeckImageBody } from "@/features/decks/components/local-deck-image-body";
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { sortCardsLikeSidebar } from "@/features/decks/lib/deck-card-order";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
+import { isLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import type { PublicDeckSource } from "@/features/decks/lib/public-deck-source";
 import type {
   RegistrationFields,
@@ -622,7 +623,7 @@ function fetchSheetImage(
       deckShareImageUrl(getSiteUrl(), publicSource.shareToken, publicSource.imageVersion, options),
     );
   }
-  if (isLocalDeckId(deckId)) {
+  if (isLocalDeck(deckId)) {
     return fetchImageBlobFromPost(deckImageFromCardsUrl(getSiteUrl(), options), imageBody());
   }
   return fetchImageBlob(deckOwnerImageUrl(getSiteUrl(), deckId, options));
@@ -639,7 +640,7 @@ function DeckSheetPrintPanel({
   cards?: DeckBuilderCard[];
   publicSource?: PublicDeckSource;
 }) {
-  const isLocal = isLocalDeckId(deckId);
+  const isLocal = useIsLocalDeck(deckId);
   const imageBody = useLocalDeckImageBody(deckId, deckName, cards);
   const [qr, setQr] = useState(true);
   const [downloading, setDownloading] = useState(false);

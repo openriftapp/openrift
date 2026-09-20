@@ -7,7 +7,6 @@ import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/lists/$listId")({
-  ssr: "data-only",
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "List", noIndex: true }),
   loader: async ({ context, params }) => {
     try {

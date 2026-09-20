@@ -1,13 +1,12 @@
 import { evaluateListRule, evaluateListRules, expandList } from "@openrift/shared/list-rule-eval";
 import type { ListIntent, ListKind } from "@openrift/shared/types/api/list";
-import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { useCollections } from "@/features/collections/hooks/use-collections";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { useCustomTagAssignments } from "@/features/collections/hooks/use-custom-tag-assignments";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { RuleList } from "@/features/lists/components/rule-list";
 import {
   ownedCopiesFromCopyList,
@@ -18,7 +17,6 @@ import type { RuleWording } from "@/features/rules/lib/rule-wording";
 import { matchLabel } from "@/features/rules/lib/rule-wording";
 import { useRuleEditorStore } from "@/features/rules/stores/rule-editor-store";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 /**
@@ -35,8 +33,7 @@ export function CopyRuleEditor({
   kind: ListKind;
   wording: RuleWording;
 }) {
-  const userId = useRequiredUserId();
-  const { data: collections } = useSuspenseQuery(collectionsQueryOptions(userId));
+  const { data: collections } = useCollections();
   const { allPrintings, printingsById } = useCards();
   const customTagAssignments = useCustomTagAssignments();
   // Reference orders keep the offered-copy count exact, matching the server's

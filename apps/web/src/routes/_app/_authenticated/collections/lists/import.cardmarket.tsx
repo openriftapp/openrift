@@ -8,8 +8,6 @@ import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/lists/import/cardmarket")({
-  // data-only: the picks arrive in the URL fragment, which only the browser can read.
-  ssr: "data-only",
   head: () =>
     seoHead({ siteUrl: getSiteUrl(), title: "Cards picked on Cardmarket", noIndex: true }),
   loader: async ({ context }) => {

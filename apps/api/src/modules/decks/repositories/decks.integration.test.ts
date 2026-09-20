@@ -41,6 +41,48 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
     expect(deck.isPublic).toBe(false);
   });
 
+  it("creates a deck with the id the caller supplies", async () => {
+    const id = "a0000000-0028-4000-a000-0000000000d1";
+    const deck = await repo.createUnlessIdTaken({
+      id,
+      userId,
+      name: "Client Deck",
+      description: null,
+      format: "constructed",
+      formatConfig: null,
+      isPublic: false,
+    });
+    createdDeckIds.push(id);
+
+    expect(deck?.id).toBe(id);
+  });
+
+  it("skips a create whose id is already taken and keeps the existing deck", async () => {
+    const first = await repo.create({
+      userId,
+      name: "Taken Deck",
+      description: null,
+      format: "constructed",
+      formatConfig: null,
+      isPublic: false,
+    });
+    createdDeckIds.push(first.id);
+
+    const replay = await repo.createUnlessIdTaken({
+      id: first.id,
+      userId,
+      name: "Replayed Deck",
+      description: null,
+      format: "constructed",
+      formatConfig: null,
+      isPublic: false,
+    });
+
+    expect(replay).toBeUndefined();
+    const kept = await repo.getByIdForUser(first.id, userId);
+    expect(kept?.name).toBe("Taken Deck");
+  });
+
   it("creates a deck in a non-default format", async () => {
     const deck = await repo.create({
       userId,
@@ -223,6 +265,22 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
 
     const cards = await repo.cardsWithDetails(deckId, userId);
     expect(cards).toEqual([]);
+  });
+
+  it("stamps the deck when a card row alone changes, as an admin printing deletion does", async () => {
+    const deckId = createdDeckIds[0]!;
+    await repo.replaceCards(deckId, [
+      { cardId: seedCardId, zone: "main", quantity: 3, preferredPrintingId: null },
+    ]);
+    const before = await repo.currentSafeXid();
+
+    await db.updateTable("deckCards").set({ quantity: 2 }).where("deckId", "=", deckId).execute();
+
+    const touched = await repo.deckIdsTouchedSince(userId, {
+      sinceXid: before,
+      safeXid: await repo.currentSafeXid(),
+    });
+    expect(touched).toContain(deckId);
   });
 
   it("deletes a deck and returns numDeletedRows = 1", async () => {

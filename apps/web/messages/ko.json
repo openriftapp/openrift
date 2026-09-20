@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "이 사본은 그룹 컬렉션에 있어 그룹 멤버 모두가 볼 수 있습니다. 공개 공유 페이지에는 표시되지 않습니다.",
   "collections_copies_links_label": "사진 및 영상",
   "collections_copies_link_title_placeholder": "라벨",
-  "collections_copies_still_adding": "카드를 아직 추가하는 중입니다. 잠시 후 다시 시도하세요.",
   "collections_copies_network_error": "서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.",
   "collections_copies_signed_out": "로그아웃 상태에서는 사본을 추가할 수 없습니다",
   "collections_copies_quick_scope_move": "이동",

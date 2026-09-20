@@ -1,59 +1,75 @@
 import { collectionsContract } from "@openrift/shared/contracts/collections";
 import type {
   CollectionResponse,
-  CollectionShareResponse,
   ResetCollectionsResponse,
 } from "@openrift/shared/types/api/collection";
+import type { FriendGroupListResponse } from "@openrift/shared/types/api/friend-group";
 import { isDefinedError, safe } from "@orpc/client";
-import { useLiveQuery } from "@tanstack/react-db";
+import { count, useLiveQuery, useLiveSuspenseQuery } from "@tanstack/react-db";
+import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { useSyncExternalStore } from "react";
+import { v7 as uuidv7 } from "uuid";
 
-import {
-  collectionsQueryOptions,
-  publicCollectionQueryOptions,
-} from "@/features/collections/lib/collections-query";
-import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
-import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
+import { useCollectionsCollection } from "@/features/collections/hooks/use-collections-collection";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
+import { getCollectionsCollection } from "@/features/collections/lib/collections-collection";
+import { compareCollections } from "@/features/collections/lib/collections-order";
+import { publicCollectionQueryOptions } from "@/features/collections/lib/collections-query";
+import { reorderCollections } from "@/features/collections/lib/collections-write";
+import type { CopiesCollection } from "@/features/collections/lib/copies-write";
+import { friendGroupsKeys } from "@/features/groups/lib/groups-query-keys";
 import { useRequiredUserId } from "@/lib/auth-session";
-import { reportMutationError } from "@/lib/query-client";
-import { reorderInPlace } from "@/lib/reorder-in-place";
-import type { CollectionsResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
-// Route loaders must import from @/lib/collections-query directly, or the
-// loader path drags in @tanstack/react-db.
-export { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
+function withLiveCopyCounts(
+  collections: readonly CollectionResponse[],
+  counts?: readonly { collectionId: string; copies: number }[],
+): CollectionResponse[] {
+  const sorted = collections.toSorted(compareCollections);
+  if (!counts) {
+    return sorted;
+  }
+  const countById = new Map(counts.map((row) => [row.collectionId, row.copies]));
+  return sorted.map((col) => ({ ...col, copyCount: countById.get(col.id) ?? 0 }));
+}
 
-export function useCollections() {
+// Subscribing to a store starts its sync; a page that only lists collections must not download every copy.
+const unsubscribed = (): void => undefined;
+
+function useCopiesSyncing(copies: CopiesCollection | null): boolean {
+  return useSyncExternalStore(
+    (onChange) => (copies ? copies.on("status:change", onChange) : unsubscribed),
+    () => copies !== null && (copies.status === "loading" || copies.status === "ready"),
+    () => false,
+  );
+}
+
+/** Suspends until the viewer's collections are loaded. Copy counts turn live once the copies store is syncing. */
+export function useCollections(): { data: CollectionResponse[] } {
   const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
+  const collectionsCollection = getCollectionsCollection(queryClient, userId);
   const copiesCollection = useCopiesCollection();
-  const serverQuery = useSuspenseQuery(collectionsQueryOptions(userId));
+  const copiesSyncing = useCopiesSyncing(copiesCollection);
 
-  // SSR: TanStack DB's live-query internals call useSyncExternalStore without
-  // a getServerSnapshot, forcing a client-render fallback warning server-side.
-  const { data: copies } = useLiveQuery({
+  const { data: collections } = useLiveSuspenseQuery({
+    query: (q) => q.from({ collection: collectionsCollection }),
+  });
+  const { data: counts, isReady } = useLiveQuery({
     query: (q) =>
-      globalThis.window === undefined || !copiesCollection
-        ? null
-        : q.from({ copy: copiesCollection }),
+      copiesSyncing && copiesCollection
+        ? q
+            .from({ copy: copiesCollection })
+            .groupBy(({ copy }) => copy.collectionId)
+            .select(({ copy }) => ({ collectionId: copy.collectionId, copies: count(copy.id) }))
+        : null,
   });
 
-  if (!copies) {
-    return serverQuery;
-  }
-  const countById = new Map<string, number>();
-  for (const copy of copies) {
-    countById.set(copy.collectionId, (countById.get(copy.collectionId) ?? 0) + 1);
-  }
-  const data = serverQuery.data.map((col) => ({
-    ...col,
-    copyCount: countById.get(col.id) ?? 0,
-  }));
-  return { ...serverQuery, data };
+  return { data: withLiveCopyCounts(collections, isReady ? counts : undefined) };
 }
 
 export function useCollectionsMap(): Map<string, CollectionResponse> {
@@ -62,58 +78,115 @@ export function useCollectionsMap(): Map<string, CollectionResponse> {
   return new Map(collections.map((col) => [col.id, col]));
 }
 
-const createCollectionFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      name: string;
-      description?: string | null;
-      availableForDeckbuilding?: boolean;
-      groupSlug?: string;
-    }) => input,
-  )
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<CollectionResponse> =>
-    apiOrpcClient(collectionsContract, context.cookie).create(data),
-  );
+/** The viewer's collections, or undefined while they load or when nobody is signed in. */
+export function useCollectionsList(): CollectionResponse[] | undefined {
+  const collectionsCollection = useCollectionsCollection();
+  // No store to read during SSR.
+  const { data, isReady } = useLiveQuery({
+    query: (q) =>
+      globalThis.window === undefined || !collectionsCollection
+        ? null
+        : q.from({ collection: collectionsCollection }),
+  });
+  if (!collectionsCollection || !isReady) {
+    return undefined;
+  }
+  return (data ?? []).toSorted(compareCollections);
+}
+
+async function loadedCollections(queryClient: QueryClient, userId: string) {
+  const collection = getCollectionsCollection(queryClient, userId);
+  await collection.preload();
+  return collection;
+}
+
+interface CreateCollectionInput {
+  name: string;
+  description?: string | null;
+  availableForDeckbuilding?: boolean;
+  groupSlug?: string;
+}
+
+function optimisticCollection(
+  queryClient: QueryClient,
+  userId: string,
+  existing: readonly CollectionResponse[],
+  input: CreateCollectionInput,
+): CollectionResponse {
+  const isGroupCollection = input.groupSlug !== undefined;
+  const group = isGroupCollection
+    ? queryClient
+        .getQueryData<FriendGroupListResponse>(friendGroupsKeys.all(userId))
+        ?.items.find((item) => item.slug === input.groupSlug)
+    : undefined;
+  const personalSortOrders = existing
+    .filter((row) => row.groupId === null)
+    .map((row) => row.sortOrder);
+  const now = new Date().toISOString();
+  return {
+    id: uuidv7(),
+    name: input.name,
+    description: input.description ?? null,
+    availableForDeckbuilding: isGroupCollection ? false : (input.availableForDeckbuilding ?? true),
+    sidebarHidden: false,
+    isInbox: false,
+    sortOrder: isGroupCollection ? 0 : Math.max(0, ...personalSortOrders) + 1,
+    isPublic: false,
+    shareToken: null,
+    copyCount: 0,
+    totalValueCents: null,
+    unpricedCopyCount: null,
+    createdAt: now,
+    updatedAt: now,
+    groupId: group?.id ?? null,
+    groupSlug: input.groupSlug ?? null,
+    groupName: group?.name ?? null,
+    viewerCanAdmin: true,
+    homeDecks: [],
+  };
+}
 
 export function useCreateCollection() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (body: {
-      name: string;
-      description?: string | null;
-      availableForDeckbuilding?: boolean;
-      groupSlug?: string;
-    }) => createCollectionFn({ data: body }),
-    invalidates: [collectionsKeys.all(userId)],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateCollectionInput): Promise<CollectionResponse> => {
+      const collection = await loadedCollections(queryClient, userId);
+      const row = optimisticCollection(queryClient, userId, collection.toArray, input);
+      await collection.insert(row).isPersisted.promise;
+      return collection.get(row.id) ?? row;
+    },
   });
 }
-
-const updateCollectionFn = createServerFn({ method: "POST" })
-  .validator((input: { id: string; name?: string; description?: string | null }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<CollectionResponse> =>
-    apiOrpcClient(collectionsContract, context.cookie).update(data),
-  );
 
 export function useUpdateCollection() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (body: { id: string; name?: string; description?: string | null }) =>
-      updateCollectionFn({ data: body }),
-    invalidates: [collectionsKeys.all(userId)],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      description,
+    }: {
+      id: string;
+      name?: string;
+      description?: string | null;
+    }) => {
+      const collection = await loadedCollections(queryClient, userId);
+      if (!collection.has(id)) {
+        return;
+      }
+      await collection.update(id, (draft) => {
+        if (name !== undefined) {
+          draft.name = name;
+        }
+        if (description !== undefined) {
+          draft.description = description;
+        }
+      }).isPersisted.promise;
+    },
   });
 }
-
-const setDeckbuildingFn = createServerFn({ method: "POST" })
-  .validator((input: { id: string; available: boolean }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(collectionsContract, context.cookie).setDeckbuilding({
-      id: data.id,
-      available: data.available,
-    });
-  });
 
 /**
  * Sets the current viewer's own deck-building availability for a collection: a
@@ -121,21 +194,19 @@ const setDeckbuildingFn = createServerFn({ method: "POST" })
  */
 export function useSetCollectionDeckbuilding() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (body: { id: string; available: boolean }) => setDeckbuildingFn({ data: body }),
-    invalidates: [collectionsKeys.all(userId)],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, available }: { id: string; available: boolean }) => {
+      const collection = await loadedCollections(queryClient, userId);
+      if (!collection.has(id)) {
+        return;
+      }
+      await collection.update(id, (draft) => {
+        draft.availableForDeckbuilding = available;
+      }).isPersisted.promise;
+    },
   });
 }
-
-const setCollectionSidebarHiddenFn = createServerFn({ method: "POST" })
-  .validator((input: { id: string; hidden: boolean }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(collectionsContract, context.cookie).setSidebarHidden({
-      id: data.id,
-      hidden: data.hidden,
-    });
-  });
 
 /**
  * Moves a collection behind the sidebar's "Show more" toggle. Per-viewer like
@@ -144,140 +215,60 @@ const setCollectionSidebarHiddenFn = createServerFn({ method: "POST" })
 export function useSetCollectionSidebarHidden() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
-  return useMutation<
-    unknown,
-    Error,
-    { id: string; hidden: boolean },
-    { previous: CollectionsResponse | undefined }
-  >({
-    mutationFn: (variables) => setCollectionSidebarHiddenFn({ data: variables }),
-    onMutate: ({ id, hidden }) => {
-      const key = collectionsKeys.all(userId);
-      const previous = queryClient.getQueryData<CollectionsResponse>(key);
-      if (previous) {
-        queryClient.setQueryData<CollectionsResponse>(key, {
-          ...previous,
-          items: previous.items.map((col) =>
-            col.id === id ? { ...col, sidebarHidden: hidden } : col,
-          ),
-        });
+  return useMutation({
+    mutationFn: async ({ id, hidden }: { id: string; hidden: boolean }) => {
+      const collection = await loadedCollections(queryClient, userId);
+      if (!collection.has(id)) {
+        return;
       }
-      return { previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(collectionsKeys.all(userId), context.previous);
-      }
-      // Declaring onError here replaces the QueryClient's default one.
-      reportMutationError(error, queryClient);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: collectionsKeys.all(userId) });
+      await collection.update(id, (draft) => {
+        draft.sidebarHidden = hidden;
+      }).isPersisted.promise;
     },
   });
 }
-
-const reorderCollectionsFn = createServerFn({ method: "POST" })
-  .validator((input: { orderedIds: string[] }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(collectionsContract, context.cookie).reorder(data);
-  });
 
 /** Rows not in `orderedIds` (e.g. group-owned collections) stay where they are. */
 export function useReorderCollections() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
-  return useMutation<
-    unknown,
-    Error,
-    { orderedIds: string[] },
-    { previous: CollectionsResponse | undefined }
-  >({
-    mutationFn: (variables) => reorderCollectionsFn({ data: variables }),
-    onMutate: ({ orderedIds }) => {
-      const key = collectionsKeys.all(userId);
-      const previous = queryClient.getQueryData<CollectionsResponse>(key);
-      if (previous) {
-        queryClient.setQueryData<CollectionsResponse>(key, {
-          ...previous,
-          items: reorderInPlace(previous.items, orderedIds),
-        });
-      }
-      return { previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(collectionsKeys.all(userId), context.previous);
-      }
-      // Declaring onError here replaces the QueryClient's default one.
-      reportMutationError(error, queryClient);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: collectionsKeys.all(userId) });
+  return useMutation({
+    mutationFn: async ({ orderedIds }: { orderedIds: string[] }) => {
+      const collection = await loadedCollections(queryClient, userId);
+      await reorderCollections(collection, orderedIds).isPersisted.promise;
     },
   });
 }
-
-const deleteCollectionFn = createServerFn({ method: "POST" })
-  .validator((input: { id: string }) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(collectionsContract, context.cookie).remove({ id: data.id });
-  });
-
-const shareCollectionFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: collectionId }): Promise<CollectionShareResponse> =>
-    apiOrpcClient(collectionsContract, context.cookie).share({ id: collectionId }),
-  );
 
 export function useShareCollection() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (collectionId: string) => shareCollectionFn({ data: collectionId }),
-    onSuccess: (data, collectionId) => {
-      queryClient.setQueryData<CollectionsResponse>(collectionsKeys.all(userId), (old) =>
-        old
-          ? {
-              ...old,
-              items: old.items.map((col) =>
-                col.id === collectionId
-                  ? { ...col, isPublic: data.isPublic, shareToken: data.shareToken }
-                  : col,
-              ),
-            }
-          : old,
-      );
+    mutationFn: async (collectionId: string) => {
+      const collection = await loadedCollections(queryClient, userId);
+      if (!collection.has(collectionId)) {
+        return;
+      }
+      await collection.update(collectionId, (draft) => {
+        draft.isPublic = true;
+      }).isPersisted.promise;
     },
   });
 }
-
-const unshareCollectionFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: collectionId }) => {
-    await apiOrpcClient(collectionsContract, context.cookie).unshare({ id: collectionId });
-  });
 
 export function useUnshareCollection() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (collectionId: string) => unshareCollectionFn({ data: collectionId }),
-    onSuccess: (_, collectionId) => {
-      queryClient.setQueryData<CollectionsResponse>(collectionsKeys.all(userId), (old) =>
-        old
-          ? {
-              ...old,
-              items: old.items.map((col) =>
-                col.id === collectionId ? { ...col, isPublic: false, shareToken: null } : col,
-              ),
-            }
-          : old,
-      );
+    mutationFn: async (collectionId: string) => {
+      const collection = await loadedCollections(queryClient, userId);
+      if (!collection.has(collectionId)) {
+        return;
+      }
+      await collection.update(collectionId, (draft) => {
+        draft.isPublic = false;
+        draft.shareToken = null;
+      }).isPersisted.promise;
     },
   });
 }
@@ -289,33 +280,13 @@ export function usePublicCollection(token: string) {
 export function useDeleteCollection() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
-  const copiesCollection = useCopiesCollection();
-
   return useMutation({
     mutationFn: async (id: string) => {
-      await deleteCollectionFn({ data: { id } });
-      return id;
-    },
-    onSuccess: (deletedId) => {
-      // The server moved the remaining copies to the inbox; mirror that in the store.
-      const cached = queryClient.getQueryData<CollectionsResponse>(collectionsKeys.all(userId));
-      const inboxId = cached?.items.find((col) => col.isInbox)?.id;
-      if (inboxId && copiesCollection) {
-        const affected = copiesCollection.toArray.filter((copy) => copy.collectionId === deletedId);
-        if (affected.length > 0) {
-          // The schema forbids a group inbox, so groupId must clear too or these
-          // copies stay excluded from the viewer's personal owned totals.
-          copiesCollection.utils.writeUpdate(
-            affected.map((copy) => ({ id: copy.id, collectionId: inboxId, groupId: null })),
-          );
-          restartInFlightCopiesRefetch(queryClient, userId);
-        }
+      const collection = await loadedCollections(queryClient, userId);
+      if (collection.has(id)) {
+        await collection.delete(id).isPersisted.promise;
       }
-      void queryClient.invalidateQueries({ queryKey: collectionsKeys.all(userId) });
-      void queryClient.invalidateQueries({
-        queryKey: copiesKeys.all(userId),
-        refetchType: "none",
-      });
+      return id;
     },
   });
 }
@@ -352,6 +323,7 @@ export function useResetCollections() {
       if (copiesCollection) {
         const personal = copiesCollection.toArray.filter((copy) => copy.groupId === null);
         if (personal.length > 0) {
+          startSyncIfNeeded(copiesCollection);
           copiesCollection.utils.writeDelete(personal.map((copy) => copy.id));
         }
       }

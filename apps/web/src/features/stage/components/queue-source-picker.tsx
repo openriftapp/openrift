@@ -1,5 +1,6 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import type { ListIntent } from "@openrift/shared/types/api/list";
+import { useLiveQuery } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -13,7 +14,8 @@ import { CommandEmpty } from "@/components/ui/command";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { deckDetailQueryOptions, decksQueryOptions } from "@/features/decks/lib/decks-queries";
+import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
+import { deckCardsForDeck } from "@/features/decks/lib/deck-card-rows";
 import { listDetailQueryOptions, listsQueryOptions } from "@/features/lists/lib/lists-queries";
 import { deckPrintingIds, listPrintingIds } from "@/features/stage/lib/present-queue-sources";
 import { useUserId } from "@/lib/auth-session";
@@ -107,11 +109,10 @@ function SourceRow({
 
 async function loadDeckCards(queryClient: QueryClient, userId: string, deckId: string) {
   try {
-    const detail = await queryClient.query({
-      ...deckDetailQueryOptions(userId, deckId),
-      staleTime: "static",
-    });
-    return detail.cards;
+    const { getDeckCardsCollection } = await import("@/features/decks/lib/decks-collection");
+    const collection = getDeckCardsCollection(queryClient, userId);
+    await collection.preload();
+    return deckCardsForDeck(collection.toArray, deckId);
   } catch {
     toast.error(m.stage_queue_source_deck_error());
     return [];
@@ -139,9 +140,12 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
   const [openSource, setOpenSource] = useState<"deck" | "list" | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const decks = useQuery({
-    ...decksQueryOptions(userId ?? ""),
-    enabled: userId !== null && openSource === "deck",
+  const decksCollection = useDecksCollection();
+  const { data: deckRows } = useLiveQuery({
+    query: (q) =>
+      globalThis.window === undefined || openSource !== "deck" || !decksCollection
+        ? null
+        : q.from({ deck: decksCollection }),
   });
   const lists = useQuery({
     ...listsQueryOptions(userId ?? ""),
@@ -221,11 +225,11 @@ export function QueueSourcePicker({ onAdd }: { onAdd: (source: QueueSource) => v
         searchPlaceholder={m.stage_queue_source_deck_search()}
       >
         <CommandEmpty>
-          {decks.isPending
+          {deckRows === undefined
             ? m.stage_queue_source_decks_loading()
             : m.stage_queue_source_decks_empty()}
         </CommandEmpty>
-        {(decks.data ?? [])
+        {(deckRows ?? [])
           .filter((item) => item.deck.archivedAt === null)
           .map(({ deck }) => (
             <SourceRow

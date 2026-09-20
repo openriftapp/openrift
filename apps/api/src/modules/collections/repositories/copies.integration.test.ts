@@ -9,6 +9,7 @@ import {
   PRINTING_4,
 } from "../../../test/fixtures/constants.js";
 import { createDbContext, seedTestUser } from "../../../test/integration-context.js";
+import { friendGroupsRepo } from "../../groups/repositories/friend-groups.js";
 import { collectionDeckbuildingPrefsRepo } from "./collection-deckbuilding-prefs.js";
 import { collectionsRepo } from "./collections.js";
 import { copiesRepo } from "./copies.js";
@@ -38,6 +39,11 @@ describe.skipIf(!ctx)("copiesRepo (integration)", () => {
     }
     if (createdCollectionIds.length > 0) {
       await db.deleteFrom("copies").where("collectionId", "in", createdCollectionIds).execute();
+      // After the copies: deleting them is what writes the tombstones.
+      await db
+        .deleteFrom("copyDeletions")
+        .where("collectionId", "in", createdCollectionIds)
+        .execute();
       await db.deleteFrom("collections").where("id", "in", createdCollectionIds).execute();
     }
   });
@@ -93,6 +99,263 @@ describe.skipIf(!ctx)("copiesRepo (integration)", () => {
       expect(copy.collectionId).toBeDefined();
       expect(copy.groupId).toBeNull();
     }
+  });
+
+  it("records a tombstone when a copy is deleted", async () => {
+    const before = await copies.currentSafeXid();
+    const [copy] = await copies.insertBatch([{ printingId: printingId1, collectionId }]);
+
+    await copies.deleteBatchById([copy!.id]);
+
+    const safe = await copies.currentSafeXid();
+    const deletions = await copies.deletionsSince(userId, before, safe, 100);
+    expect(deletions.map((row) => row.copyId)).toContain(copy!.id);
+  });
+
+  it("withholds a tombstone stamped at or above the window's end", async () => {
+    const before = await copies.currentSafeXid();
+    const [copy] = await copies.insertBatch([{ printingId: printingId2, collectionId }]);
+    await copies.deleteBatchById([copy!.id]);
+
+    const deletions = await copies.deletionsSince(userId, before, before, 100);
+
+    expect(deletions.map((row) => row.copyId)).not.toContain(copy!.id);
+  });
+
+  it("keeps a tombstone readable after its collection is deleted", async () => {
+    const before = await copies.currentSafeXid();
+    const doomed = await collections.create({
+      userId,
+      groupId: null,
+      name: "Doomed Collection",
+      description: null,
+      isInbox: false,
+      sortOrder: 9,
+    });
+    const [copy] = await copies.insertBatch([{ printingId: printingId1, collectionId: doomed.id }]);
+    await copies.deleteBatchById([copy!.id]);
+    await db.deleteFrom("collections").where("id", "=", doomed.id).execute();
+
+    const safe = await copies.currentSafeXid();
+    const deletions = await copies.deletionsSince(userId, before, safe, 100);
+
+    expect(deletions.map((row) => row.copyId)).toContain(copy!.id);
+    await db.deleteFrom("copyDeletions").where("copyId", "=", copy!.id).execute();
+  });
+
+  it("stamps the owner on a tombstone written by a cascade", async () => {
+    const groups = friendGroupsRepo(db);
+    const before = await copies.currentSafeXid();
+    const group = await groups.createWithOwner(
+      {
+        slug: `copy-sync-cascade-${Date.now().toString(36)}`,
+        name: "Copy Sync Group",
+        description: null,
+        code: null,
+      },
+      userId,
+    );
+    const pool = await collections.create({
+      userId: null,
+      groupId: group.id,
+      name: "Group Pool",
+      description: null,
+      isInbox: false,
+      sortOrder: 0,
+    });
+    const [copy] = await copies.insertBatch([{ printingId: printingId1, collectionId: pool.id }]);
+
+    await db.deleteFrom("collections").where("id", "=", pool.id).execute();
+
+    const safe = await copies.currentSafeXid();
+    const deletions = await copies.deletionsSince(userId, before, safe, 100);
+    expect(deletions.map((row) => row.copyId)).toContain(copy!.id);
+
+    await db.deleteFrom("copyDeletions").where("copyId", "=", copy!.id).execute();
+    await db.deleteFrom("friendGroups").where("id", "=", group.id).execute();
+  });
+
+  it("leaves one owned tombstone per copy when a cascade and the delete trigger overlap", async () => {
+    const groups = friendGroupsRepo(db);
+    const before = await copies.currentSafeXid();
+    const group = await groups.createWithOwner(
+      {
+        slug: `copy-sync-once-${Date.now().toString(36)}`,
+        name: "Copy Sync Once Group",
+        description: null,
+        code: null,
+      },
+      userId,
+    );
+    const pool = await collections.create({
+      userId: null,
+      groupId: group.id,
+      name: "Group Pool Once",
+      description: null,
+      isInbox: false,
+      sortOrder: 0,
+    });
+    const inserted = await copies.insertBatch([
+      { printingId: printingId1, collectionId: pool.id },
+      { printingId: printingId2, collectionId: pool.id },
+    ]);
+    const copyIds = inserted.map((row) => row.id);
+
+    await db.deleteFrom("collections").where("id", "=", pool.id).execute();
+
+    const tombstones = await db
+      .selectFrom("copyDeletions")
+      .select(["copyId", "collectionId", "userId", "groupId"])
+      .where("copyId", "in", copyIds)
+      .execute();
+
+    expect(tombstones).toHaveLength(2);
+    expect(new Set(tombstones.map((row) => row.copyId))).toEqual(new Set(copyIds));
+    for (const row of tombstones) {
+      expect(row.collectionId).toBe(pool.id);
+      expect(row.groupId).toBe(group.id);
+      expect(row.userId).toBeNull();
+    }
+
+    const safe = await copies.currentSafeXid();
+    const deletions = await copies.deletionsSince(userId, before, safe, 100);
+    expect(deletions.filter((row) => copyIds.includes(row.copyId))).toHaveLength(2);
+
+    await db.deleteFrom("copyDeletions").where("copyId", "in", copyIds).execute();
+    await db.deleteFrom("friendGroups").where("id", "=", group.id).execute();
+  });
+
+  it("records a tombstone when a copy moves to a collection with another owner", async () => {
+    const groups = friendGroupsRepo(db);
+    const group = await groups.createWithOwner(
+      {
+        slug: `cp-scope-${Date.now()}`,
+        name: "Copy Sync Scope",
+        description: null,
+        code: null,
+      },
+      userId,
+    );
+    const pool = await collections.create({
+      userId: null,
+      groupId: group.id,
+      name: "Scope Pool",
+      description: null,
+      isInbox: false,
+      sortOrder: 0,
+    });
+    const [copy] = await copies.insertBatch([{ printingId: printingId1, collectionId: pool.id }]);
+    const before = await copies.currentSafeXid();
+
+    await copies.moveBatchById([copy!.id], collectionId);
+
+    const safe = await copies.currentSafeXid();
+    const deletions = await copies.deletionsSince(userId, before, safe, 100);
+    expect(deletions.map((row) => row.copyId)).toContain(copy!.id);
+
+    await db.deleteFrom("copies").where("id", "=", copy!.id).execute();
+    await db.deleteFrom("copyDeletions").where("copyId", "=", copy!.id).execute();
+    await db.deleteFrom("collections").where("id", "=", pool.id).execute();
+    await db.deleteFrom("friendGroups").where("id", "=", group.id).execute();
+  });
+
+  it("keeps another user's tombstones out of the caller's deletions", async () => {
+    const stranger = await seedTestUser(db);
+    const theirBinder = await collections.create({
+      userId: stranger.id,
+      groupId: null,
+      name: "Stranger Binder",
+      description: null,
+      isInbox: false,
+      sortOrder: 0,
+    });
+    const before = await copies.currentSafeXid();
+    const [theirs] = await copies.insertBatch([
+      { printingId: printingId1, collectionId: theirBinder.id },
+    ]);
+    await copies.deleteBatchById([theirs!.id]);
+
+    const safe = await copies.currentSafeXid();
+    const mine = await copies.deletionsSince(userId, before, safe, 100);
+    const theirOwn = await copies.deletionsSince(stranger.id, before, safe, 100);
+
+    expect(mine.map((row) => row.copyId)).not.toContain(theirs!.id);
+    expect(theirOwn.map((row) => row.copyId)).toContain(theirs!.id);
+
+    await db.deleteFrom("copyDeletions").where("copyId", "=", theirs!.id).execute();
+    await db.deleteFrom("collections").where("id", "=", theirBinder.id).execute();
+    await db.deleteFrom("users").where("id", "=", stranger.id).execute();
+  });
+
+  it("keeps a group's tombstones out of a non-member's deletions", async () => {
+    const groups = friendGroupsRepo(db);
+    const outsider = await seedTestUser(db);
+    const group = await groups.createWithOwner(
+      {
+        slug: `copy-sync-isolation-${Date.now().toString(36)}`,
+        name: "Copy Sync Isolation",
+        description: null,
+        code: null,
+      },
+      userId,
+    );
+    const pool = await collections.create({
+      userId: null,
+      groupId: group.id,
+      name: "Isolation Pool",
+      description: null,
+      isInbox: false,
+      sortOrder: 0,
+    });
+    const before = await copies.currentSafeXid();
+    const [copy] = await copies.insertBatch([{ printingId: printingId1, collectionId: pool.id }]);
+    await copies.deleteBatchById([copy!.id]);
+
+    const safe = await copies.currentSafeXid();
+    const member = await copies.deletionsSince(userId, before, safe, 100);
+    const nonMember = await copies.deletionsSince(outsider.id, before, safe, 100);
+
+    expect(member.map((row) => row.copyId)).toContain(copy!.id);
+    expect(nonMember.map((row) => row.copyId)).not.toContain(copy!.id);
+
+    await db.deleteFrom("copyDeletions").where("copyId", "=", copy!.id).execute();
+    await db.deleteFrom("collections").where("id", "=", pool.id).execute();
+    await db.deleteFrom("friendGroups").where("id", "=", group.id).execute();
+    await db.deleteFrom("users").where("id", "=", outsider.id).execute();
+  });
+
+  it("prunes tombstones past the cutoff and records how far it pruned", async () => {
+    const [copy] = await copies.insertBatch([{ printingId: printingId2, collectionId }]);
+    await copies.deleteBatchById([copy!.id]);
+    await db
+      .updateTable("copyDeletions")
+      .set({ deletedAt: new Date("2020-01-01T00:00:00.000Z") })
+      .where("copyId", "=", copy!.id)
+      .execute();
+    const prunedBefore = await copies.prunedThroughXid();
+
+    const deleted = await copies.purgeDeletionsOlderThan(new Date("2020-06-01T00:00:00.000Z"));
+
+    expect(deleted).toBeGreaterThanOrEqual(1);
+    expect(BigInt(await copies.prunedThroughXid())).toBeGreaterThan(BigInt(prunedBefore));
+    const remaining = await copies.deletionsSince(userId, "1", await copies.currentSafeXid(), 100);
+    expect(remaining.map((row) => row.copyId)).not.toContain(copy!.id);
+  });
+
+  it("returns a copy whose metadata changed since the watermark", async () => {
+    const [copy] = await copies.insertBatch([{ printingId: printingId3, collectionId }]);
+    insertedCopyIds.push(copy!.id);
+    const before = await copies.currentSafeXid();
+
+    await copies.updateMetadataBatchById([copy!.id], { notesPublic: "signed" });
+
+    const changed = await copies.listChangedForAccessibleCollections(
+      userId,
+      before,
+      await copies.currentSafeXid(),
+      100,
+    );
+    expect(changed.map((row) => row.id)).toContain(copy!.id);
   });
 
   it("lists all copies in the viewer's accessible collections", async () => {
@@ -243,6 +506,11 @@ describe.skipIf(!paginationCtx)("copies pagination (integration)", () => {
     }
     if (createdCollectionIds.length > 0) {
       await db.deleteFrom("copies").where("collectionId", "in", createdCollectionIds).execute();
+      // After the copies: deleting them is what writes the tombstones.
+      await db
+        .deleteFrom("copyDeletions")
+        .where("collectionId", "in", createdCollectionIds)
+        .execute();
       await db.deleteFrom("collections").where("id", "in", createdCollectionIds).execute();
     }
   });
@@ -558,6 +826,11 @@ describe.skipIf(!coverCtx)("copies coverPrintingsAcross (integration)", () => {
   afterAll(async () => {
     if (createdCollectionIds.length > 0) {
       await db.deleteFrom("copies").where("collectionId", "in", createdCollectionIds).execute();
+      // After the copies: deleting them is what writes the tombstones.
+      await db
+        .deleteFrom("copyDeletions")
+        .where("collectionId", "in", createdCollectionIds)
+        .execute();
       await db.deleteFrom("collections").where("id", "in", createdCollectionIds).execute();
     }
     // Dependency order: printingImages -> printings -> cards, then imageFiles.

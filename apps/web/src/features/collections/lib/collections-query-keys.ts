@@ -2,6 +2,7 @@ import type { TimeRange } from "@openrift/shared/types/pricing";
 
 export const collectionsKeys = {
   all: (userId: string) => ["collections", userId] as const,
+  syncedStore: (userId: string) => ["collections", userId, "store"] as const,
   publicByToken: (token: string) => ["collections", "share", token] as const,
   groupShares: (userId: string, id: string) => ["collections", userId, id, "group-shares"] as const,
 } as const;

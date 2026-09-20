@@ -1,43 +1,41 @@
-import type { DeckCardResponse, DeckDetailResponse } from "@openrift/shared/types/api/deck";
+import type { DeckCardWithDeckResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import { WellKnown } from "@openrift/shared/well-known";
+import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { decksKeys } from "@/features/decks/lib/decks-query-keys";
-
-const USER_ID = "user-1";
-
-function deckCard(cardId: string, quantity: number): DeckCardResponse {
-  return { cardId, zone: WellKnown.deckZone.MAIN, quantity, preferredPrintingId: null };
+function cardRow(deckId: string, quantity: number): DeckCardWithDeckResponse {
+  return {
+    deckId,
+    cardId: "card-1",
+    zone: WellKnown.deckZone.MAIN,
+    quantity,
+    preferredPrintingId: null,
+  };
 }
 
-function deckDetail(cards: DeckCardResponse[]): DeckDetailResponse {
-  return { deck: {}, cards } as unknown as DeckDetailResponse;
+function rowKey(row: DeckCardWithDeckResponse) {
+  return `${row.deckId}:${row.cardId}:${row.zone}`;
 }
 
-// The server state each member's detail query resolves to. Tests mutate the
-// query cache directly to stand in for an autosave writing new cards back.
-const details: Record<string, DeckDetailResponse> = {};
+const cardsCollection = createCollection(
+  localOnlyCollectionOptions<DeckCardWithDeckResponse>({
+    id: "deck-cards:rail-test",
+    getKey: rowKey,
+  }),
+);
 
-vi.mock("@/lib/auth-session", () => ({ useRequiredUserId: () => USER_ID }));
+vi.mock("@/features/decks/hooks/use-decks-collections", () => ({
+  useDeckCardsCollection: () => cardsCollection,
+}));
 
 vi.mock("@/features/cards/hooks/use-cards", async () => {
   const { stubCard } = await import("@/test/factories");
   const cardsById: Record<string, Card> = { "card-1": stubCard({ slug: "card-1", name: "Yasuo" }) };
   return { useCards: () => ({ cardsById }) };
-});
-
-vi.mock("@/features/decks/lib/decks-queries", async () => {
-  const { decksKeys: keys } = await import("@/features/decks/lib/decks-query-keys");
-  return {
-    deckDetailQueryOptions: (userId: string, deckId: string) => ({
-      queryKey: keys.detail(userId, deckId),
-      queryFn: () => Promise.resolve(details[deckId]),
-    }),
-  };
 });
 
 vi.mock("@/features/decks/hooks/use-decks", () => ({
@@ -77,8 +75,16 @@ describe("DeckVariantRail", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    details["deck-a"] = deckDetail([deckCard("card-1", 3)]);
-    details["deck-b"] = deckDetail([deckCard("card-1", 3)]);
+    const existing = cardsCollection.toArray;
+    if (existing.length > 0) {
+      cardsCollection.delete(existing.map((row) => rowKey(row)));
+    }
+    cardsCollection.insert([
+      cardRow("deck-a", 3),
+      cardRow("deck-b", 3),
+      // A deck outside the family: its rows must never reach the rail's diff.
+      cardRow("deck-outsider", 7),
+    ]);
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
 
@@ -101,13 +107,26 @@ describe("DeckVariantRail", () => {
     await screen.findByText("−0");
 
     act(() => {
-      queryClient.setQueryData<DeckDetailResponse>(
-        decksKeys.detail(USER_ID, "deck-b"),
-        deckDetail([deckCard("card-1", 1)]),
-      );
+      cardsCollection.update(rowKey(cardRow("deck-b", 3)), (draft) => {
+        draft.quantity = 1;
+      });
     });
 
     expect(await screen.findByText("−2")).toBeInTheDocument();
+    expect(screen.getByText("+0")).toBeInTheDocument();
+  });
+
+  it("ignores edits to a deck outside the rail", async () => {
+    renderRail();
+    await screen.findByText("−0");
+
+    act(() => {
+      cardsCollection.update(rowKey(cardRow("deck-outsider", 7)), (draft) => {
+        draft.quantity = 1;
+      });
+    });
+
+    expect(await screen.findByText("−0")).toBeInTheDocument();
     expect(screen.getByText("+0")).toBeInTheDocument();
   });
 });

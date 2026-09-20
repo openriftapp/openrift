@@ -56,7 +56,7 @@ describe("persisted Zustand stores", () => {
         "after a deploy, and an older bundle (implicit version 0, no migrate) that rehydrates " +
         "a newer-versioned blob DISCARDS the whole blob — the exact data loss versioning looks " +
         "like it prevents. Absorb shape changes in the store's defensive `merge` instead; see " +
-        "local-decks-store.ts for the original rationale and CLAUDE.md (Conventions) for options.",
+        "CLAUDE.md (Conventions) for options.",
     ).toEqual([]);
   });
 });

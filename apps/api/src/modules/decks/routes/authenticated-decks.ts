@@ -5,6 +5,7 @@ import { isValidInDeckList, summarizeDeckCards } from "@openrift/shared/deck-lis
 import { requiredZoneProgress } from "@openrift/shared/deck-zones";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
 import type {
+  DeckCardsListResponse,
   DeckDetailResponse,
   DeckExportResponse,
   DeckListItemResponse,
@@ -33,6 +34,11 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { buildPatchUpdates } from "../../../patch.js";
 import type { FieldMapping } from "../../../patch.js";
 import { resolveFavoriteMarketplace } from "../../users/lib/preferences.js";
+import {
+  buildDeckCardsCursor,
+  clampDeckCardsLimit,
+  parseDeckCardsCursor,
+} from "../lib/deck-cards-page-limit.js";
 import { assertKnownFormat, validateFormatConfig } from "../lib/deck-format-validation.js";
 import { toDeck, toDeckCard, toDeckPlan, toDeckSummary } from "../lib/deck-presenters.js";
 import type { DeckUpdateInput } from "../repositories/decks-core.js";
@@ -259,12 +265,51 @@ export const decksRouter = {
     return { items };
   }),
 
+  allCards: os.allCards.handler(async ({ input, context }): Promise<DeckCardsListResponse> => {
+    // Pinned before the read: every transaction below it has finished, so a save
+    // still in flight lands in the next delta.
+    const currentSafeXid = await context.repos.decks.currentSafeXid();
+    const cursor = input.cursor === undefined ? undefined : parseDeckCardsCursor(input.cursor);
+    // The cursor's watermark is client input, so it may only narrow the window.
+    const safeXid =
+      cursor !== undefined && BigInt(cursor.safeXid) < BigInt(currentSafeXid)
+        ? cursor.safeXid
+        : currentSafeXid;
+    const window =
+      input.since === undefined || BigInt(input.since) > BigInt(safeXid)
+        ? undefined
+        : { sinceXid: input.since, safeXid };
+    const limit = clampDeckCardsLimit(input.limit);
+    // Rows before ids: a deck re-stamped between the two reads leaves the window,
+    // and a touched deck without its rows would be emptied by the reader.
+    const rows = await context.repos.decks.allDeckCardsForUser(context.userId, window, {
+      limit,
+      ...(cursor === undefined ? {} : { after: cursor.id }),
+    });
+    // Deck ids only, and the reader keeps them across pages, so they ship once.
+    const touchedDeckIds =
+      window === undefined || cursor !== undefined
+        ? undefined
+        : await context.repos.decks.deckIdsTouchedSince(context.userId, window);
+    const page = rows.slice(0, limit);
+    const drained = rows.length <= limit;
+    const last = page.at(-1);
+    return {
+      items: page.map((row) => ({ deckId: row.deckId, ...toDeckCard(row) })),
+      ...(touchedDeckIds === undefined ? {} : { touchedDeckIds }),
+      nextCursor:
+        drained || last === undefined ? null : buildDeckCardsCursor({ safeXid, id: last.id }),
+      ...(drained ? { syncedXid: safeXid } : {}),
+    };
+  }),
+
   create: os.create.handler(async ({ input, context }) => {
     const { decks, deckFormats, customTags } = context.repos;
     const userId = context.userId;
     await assertKnownFormat(deckFormats, input.format);
     const formatConfig = await validateFormatConfig(customTags, input.format, input.formatConfig);
-    const row = await decks.create({
+    const row = await decks.createUnlessIdTaken({
+      id: input.id,
       userId,
       name: input.name,
       description: input.description ?? null,
@@ -273,7 +318,15 @@ export const decksRouter = {
       isPublic: input.isPublic ?? false,
       links: input.links,
     });
-    return toDeck(row);
+    if (row) {
+      return toDeck(row);
+    }
+    const existing =
+      input.id === undefined ? undefined : await decks.getByIdForUser(input.id, userId);
+    if (!existing) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Deck id already belongs to someone else");
+    }
+    return toDeck(existing);
   }),
 
   get: os.get.handler(async ({ input, context }): Promise<DeckDetailResponse> => {

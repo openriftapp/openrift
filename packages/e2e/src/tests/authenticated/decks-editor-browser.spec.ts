@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -75,21 +76,6 @@ async function addCopyViaApi(page: Page, printingId: string, count = 1) {
     data: { copies },
   });
   expect(response.ok()).toBeTruthy();
-}
-
-// TanStack Start encodes each server fn id as base64url(JSON); decoding the
-// segment lets us target a specific server fn without colliding with others.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
 }
 
 // Normal-foiling print of "Annie, Fiery" (OGS-001). See apps/api/src/test/fixtures/seed.sql.
@@ -294,8 +280,8 @@ test.describe("deck editor card browser", () => {
       const tile = cardTile(page, "Annie, Fiery");
       const row = strip(tile);
 
-      const saveRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "saveDeckCardsFn"),
+      const saveRequest = page.waitForRequest((request) =>
+        isApiCall(request, "PUT", "/api/v1/decks/{id}/cards"),
       );
 
       await addCardButton(tile).click();
@@ -314,7 +300,7 @@ test.describe("deck editor card browser", () => {
       await expect(row.getByTitle("1 in deck")).toBeVisible();
 
       const saveResponse = await saveRequest;
-      expect(saveResponse.method()).toBe("POST");
+      expect(saveResponse.method()).toBe("PUT");
 
       await expect(page.getByText("1/56", { exact: true })).toBeVisible();
     });
@@ -474,9 +460,8 @@ test.describe("deck editor card browser", () => {
 
       // Wait for the save response, not just the request: reloading before the
       // debounced save commits can abort the in-flight POST.
-      const saveResponse = page.waitForResponse(
-        (response) =>
-          response.request().method() === "POST" && isServerFn(response.url(), "saveDeckCardsFn"),
+      const saveResponse = page.waitForResponse((response) =>
+        isApiCall(response.request(), "PUT", "/api/v1/decks/{id}/cards"),
       );
 
       await addCardButton(cardTile(page, "Annie, Fiery")).click();

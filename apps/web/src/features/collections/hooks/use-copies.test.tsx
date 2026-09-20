@@ -1,17 +1,14 @@
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
-import { createCollection } from "@tanstack/react-db";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
 import { stubCopy } from "@/test/factories";
 
-const { copiesCollectionHolder } = vi.hoisted(() => ({
-  copiesCollectionHolder: { current: null as unknown },
-}));
+const fetchCopies = vi.hoisted(() => vi.fn());
+vi.mock("@/features/collections/lib/copies-query", () => ({ fetchCopies }));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -39,16 +36,28 @@ vi.mock("@/lib/server-fns/middleware", () => ({
   withCookies: () => {},
 }));
 
-vi.mock("@tanstack/react-pacer", () => ({
-  useBatcher: () => ({ addItem: vi.fn() }),
-}));
-
-vi.mock("@/features/collections/lib/copies-collection", () => ({
-  useCopiesCollection: () => copiesCollectionHolder.current,
-}));
-
+const { getCopiesCollection } = await import("@/features/collections/lib/copies-collection");
 const { useAddCopies, useBatchedAddCopies, useDisposeCopies, useMoveCopies, useUpdateCopies } =
   await import("./use-copies");
+
+const USER = "user-1";
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+
+interface SentRequest {
+  path: string;
+  body: unknown;
+}
+
+let sent: SentRequest[];
+let respond: (request: SentRequest) => Response;
+
+function succeed(request: SentRequest): Response {
+  if (request.path !== "/api/v1/copies") {
+    return new Response(null, { status: 204 });
+  }
+  const { copies } = request.body as { copies: Partial<CopyResponse>[] };
+  return Response.json({ items: copies.map((copy) => stubCopy(copy)) }, { status: 201 });
+}
 
 function wrap(client: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -56,11 +65,15 @@ function wrap(client: QueryClient) {
   };
 }
 
-function seedSession(client: QueryClient, userId: string) {
+function newClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+}
+
+function seedSession(client: QueryClient) {
   client.setQueryData(["session"], {
-    session: { id: "s", userId, expiresAt: "", token: "" },
+    session: { id: "s", userId: USER, expiresAt: "", token: "" },
     user: {
-      id: userId,
+      id: USER,
       name: "Test",
       email: "test@example.test",
       emailVerified: true,
@@ -72,646 +85,245 @@ function seedSession(client: QueryClient, userId: string) {
 
 function seedCollections(
   client: QueryClient,
-  userId: string,
   collections: { id: string; groupId: string | null }[],
 ) {
-  client.setQueryData(collectionsKeys.all(userId), {
-    items: collections.map(({ id, groupId }) => ({
-      id,
-      groupId,
-      name: id,
-      description: null,
-      availableForDeckbuilding: true,
-      sidebarHidden: false,
-      isInbox: false,
-      sortOrder: 0,
-      isPublic: false,
-      shareToken: null,
-      copyCount: 0,
-      totalValueCents: null,
-      unpricedCopyCount: null,
-      createdAt: "",
-      updatedAt: "",
-      groupSlug: groupId === null ? null : "group",
-      groupName: groupId === null ? null : "Group",
-      viewerCanAdmin: true,
-      homeDecks: [],
-    })),
-  });
+  client.setQueryData(
+    collectionsKeys.syncedStore(USER),
+    collections.map(({ id, groupId }) => ({ id, groupId })),
+  );
 }
 
-let realCollectionCounter = 0;
+async function signedInWithCopies(rows: CopyResponse[]) {
+  const client = newClient();
+  seedSession(client);
+  fetchCopies.mockResolvedValue({ items: rows, nextCursor: null });
+  const collection = getCopiesCollection(client, USER);
+  await collection.preload();
+  return { client, collection };
+}
 
-// createTransaction is real (not mocked) here, so collection.update/.delete
-// need a genuine collection to register mutations onto; a stub object can't.
-async function makeRealCopiesCollection(queryClient: QueryClient, items: CopyResponse[]) {
-  realCollectionCounter++;
-  const collection = createCollection(
-    queryCollectionOptions<CopyResponse>({
-      id: `test-copies-${realCollectionCounter}`,
-      queryClient,
-      queryKey: ["test-copies", realCollectionCounter],
-      queryFn: async () => items,
-      getKey: (copy) => copy.id,
+beforeEach(() => {
+  sent = [];
+  respond = succeed;
+  fetchCopies.mockReset();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: Request) => {
+      const request = {
+        path: new URL(input.url).pathname,
+        body: input.method === "GET" ? undefined : await input.clone().json(),
+      };
+      sent.push(request);
+      return respond(request);
     }),
   );
-  await collection.preload();
-  return collection;
-}
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("copies mutation hooks tolerate an unauthenticated session at mount", () => {
   it("useAddCopies does not throw when no session is cached", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    expect(() => renderHook(() => useAddCopies(), { wrapper: wrap(client) })).not.toThrow();
+    expect(() => renderHook(() => useAddCopies(), { wrapper: wrap(newClient()) })).not.toThrow();
   });
 
   it("useMoveCopies does not throw when no session is cached", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    expect(() => renderHook(() => useMoveCopies(), { wrapper: wrap(client) })).not.toThrow();
+    expect(() => renderHook(() => useMoveCopies(), { wrapper: wrap(newClient()) })).not.toThrow();
   });
 
   it("useDisposeCopies does not throw when no session is cached", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    expect(() => renderHook(() => useDisposeCopies(), { wrapper: wrap(client) })).not.toThrow();
+    expect(() =>
+      renderHook(() => useDisposeCopies(), { wrapper: wrap(newClient()) }),
+    ).not.toThrow();
   });
 
   it("useBatchedAddCopies does not throw when no session is cached", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    expect(() => renderHook(() => useBatchedAddCopies(), { wrapper: wrap(client) })).not.toThrow();
+    expect(() =>
+      renderHook(() => useBatchedAddCopies(), { wrapper: wrap(newClient()) }),
+    ).not.toThrow();
   });
 
   it("useUpdateCopies does not throw when no session is cached", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    expect(() => renderHook(() => useUpdateCopies(), { wrapper: wrap(client) })).not.toThrow();
+    expect(() => renderHook(() => useUpdateCopies(), { wrapper: wrap(newClient()) })).not.toThrow();
   });
 });
 
-describe("copy mutations refresh derived collection totals", () => {
-  const originalFetch = globalThis.fetch;
-
-  beforeEach(() => {
-    globalThis.fetch = vi.fn(async () =>
-      Response.json(
-        {
-          items: [
-            {
-              id: "real-1",
-              printingId: "p1",
-              collectionId: "c1",
-              groupId: null,
-              condition: null,
-              grader: null,
-              grade: null,
-              notesPublic: null,
-              notesPrivate: null,
-              isAltered: false,
-              links: [],
-            },
-          ],
-        },
-        { status: 201 },
-      ),
-    ) as typeof fetch;
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  it("useAddCopies invalidates the collections query so header totals refresh", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
-
+describe("useAddCopies", () => {
+  it("mints a UUIDv7 id for a copy without one, so a replayed add cannot create a second row", async () => {
+    const { client } = await signedInWithCopies([]);
     const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({
-      copies: [{ printingId: "p1", collectionId: "c1" }],
-    });
 
-    await waitFor(() => {
-      const calls = invalidateSpy.mock.calls.map(([arg]) => arg?.queryKey);
-      expect(calls).toContainEqual(["collections", "user-1"]);
-    });
+    await result.current.mutateAsync({ copies: [{ printingId: "p1", collectionId: "col-1" }] });
+
+    const body = sent[0]?.body as { copies: { id: string }[] };
+    expect(body.copies[0]?.id).toMatch(UUID_V7);
   });
 
-  it("useAddCopies unwraps the { items } envelope and resolves with the created rows", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-
+  it("resolves with the rows the API stored", async () => {
+    const { client } = await signedInWithCopies([]);
     const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
+
     const added = await result.current.mutateAsync({
-      copies: [{ printingId: "p1", collectionId: "c1" }],
+      copies: [{ id: "c1", printingId: "p1", collectionId: "col-1" }],
     });
 
-    expect(added).toEqual([
-      {
-        id: "real-1",
-        printingId: "p1",
-        collectionId: "c1",
-        groupId: null,
-        condition: null,
-        grader: null,
-        grade: null,
-        notesPublic: null,
-        notesPrivate: null,
-        isAltered: false,
-        links: [],
-      },
-    ]);
-  });
-});
-
-describe("adding copies with client-minted ids", () => {
-  const originalFetch = globalThis.fetch;
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
+    expect(added.map((copy) => copy.id)).toEqual(["c1"]);
   });
 
-  it("sends the id so a replayed add cannot create a second row", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-
-    let sentBody: unknown;
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      sentBody = await (input as Request).clone().json();
-      return Response.json(
-        { items: [stubCopy({ id: "given-1", printingId: "p1", collectionId: "c1" })] },
-        { status: 201 },
-      );
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({
-      copies: [{ id: "given-1", printingId: "p1", collectionId: "c1" }],
-      clientIds: ["given-1"],
-    });
-
-    expect(sentBody).toEqual({
-      copies: [{ id: "given-1", printingId: "p1", collectionId: "c1" }],
-    });
-  });
-
-  it("removes the optimistic row and refetches copies when the add fails, since a lost response may still have created it", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const collection = await makeRealCopiesCollection(client, [stubCopy({ id: "given-1" })]);
-    copiesCollectionHolder.current = collection;
-    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
-
-    globalThis.fetch = vi.fn(async () =>
-      Response.json({ message: "boom" }, { status: 500 }),
-    ) as typeof fetch;
-
-    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
+  it("rejects while signed out", async () => {
+    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(newClient()) });
 
     await expect(
-      result.current.mutateAsync({
-        copies: [{ id: "given-1", printingId: "p1", collectionId: "c1" }],
-        clientIds: ["given-1"],
-      }),
-    ).rejects.toThrow();
-
-    expect(collection.toArray.map((copy) => copy.id)).toEqual([]);
-    expect(invalidateSpy.mock.calls.map(([arg]) => arg)).toContainEqual({
-      queryKey: ["copies", "user-1"],
-    });
+      result.current.mutateAsync({ copies: [{ printingId: "p1", collectionId: "col-1" }] }),
+    ).rejects.toThrow(/signed out/iu);
   });
 });
 
-describe("adding copies while the copies list refetches", () => {
-  const originalFetch = globalThis.fetch;
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
-  });
-
-  async function makeRefetchableCollection(
-    queryClient: QueryClient,
-    queryFn: () => Promise<CopyResponse[]>,
-  ) {
-    realCollectionCounter++;
-    const collection = createCollection(
-      queryCollectionOptions<CopyResponse>({
-        id: `test-copies-${realCollectionCounter}`,
-        queryClient,
-        queryKey: ["test-copies", realCollectionCounter],
-        queryFn,
-        getKey: (copy) => copy.id,
-      }),
-    );
-    await collection.preload();
-    return collection;
-  }
-
-  const existing = stubCopy({ id: "existing-1" });
-  const placeholder = stubCopy({ id: "temp-1", printingId: "p1", collectionId: "c1" });
-  const created = stubCopy({ id: "real-1", printingId: "p1", collectionId: "c1" });
-
-  it("resolves with the created row when a refetch already dropped the placeholder", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const collection = await makeRefetchableCollection(client, async () => [existing]);
-    copiesCollectionHolder.current = collection;
-    collection.utils.writeUpsert([placeholder]);
-    await collection.utils.refetch();
-    expect(collection.has("temp-1")).toBe(false);
-
-    globalThis.fetch = vi.fn(async () =>
-      Response.json({ items: [created] }, { status: 201 }),
-    ) as typeof fetch;
-
-    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
-    await expect(
-      result.current.mutateAsync({
-        copies: [{ printingId: "p1", collectionId: "c1" }],
-        tempIds: ["temp-1"],
-      }),
-    ).resolves.toHaveLength(1);
-
-    expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["existing-1", "real-1"]);
-  });
-
-  it("surfaces the add's own error when a refetch already dropped the placeholder", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const collection = await makeRefetchableCollection(client, async () => [existing]);
-    copiesCollectionHolder.current = collection;
-    collection.utils.writeUpsert([placeholder]);
-    await collection.utils.refetch();
-
-    globalThis.fetch = vi.fn(async () =>
-      Response.json({ message: "boom" }, { status: 500 }),
-    ) as typeof fetch;
-
-    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
-    const rejection = await result.current
-      .mutateAsync({
-        copies: [{ printingId: "p1", collectionId: "c1" }],
-        tempIds: ["temp-1"],
-      })
-      .catch((error: unknown) => error);
-
-    expect(rejection).toBeInstanceOf(Error);
-    expect((rejection as Error).name).not.toBe("DeleteOperationItemNotFoundError");
-  });
-});
-
-describe("confirmed writes survive a copies refetch that started before them", () => {
-  const originalFetch = globalThis.fetch;
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
-  });
-
-  async function makeSlowRefetchCollection(
-    queryClient: QueryClient,
-    server: { rows: CopyResponse[] },
-  ) {
-    let release = () => {};
-    // oxlint-disable-next-line promise/avoid-new -- gate resolved from outside the fetch
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let fetches = 0;
-    realCollectionCounter++;
-    const collection = createCollection(
-      queryCollectionOptions<CopyResponse>({
-        id: `test-copies-${realCollectionCounter}`,
-        queryClient,
-        queryKey: ["copies", "user-1", "store"],
-        queryFn: async () => {
-          fetches++;
-          const rows = server.rows;
-          if (fetches === 2) {
-            await gate;
-          }
-          return rows;
-        },
-        getKey: (copy) => copy.id,
-      }),
-    );
-    await collection.preload();
-    return { collection, release };
-  }
-
-  async function landLateRefetch(
-    queryClient: QueryClient,
-    release: () => void,
-    refetching: Promise<unknown>,
-  ) {
-    release();
-    await refetching.catch(() => {});
-    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
-    // oxlint-disable-next-line promise/avoid-new -- let queued result applications run
-    await new Promise((resolve) => {
-      setTimeout(resolve, 20);
-    });
-  }
-
-  it("keeps an added copy", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const existing = stubCopy({ id: "existing-1" });
-    const created = stubCopy({ id: "real-1", printingId: "p1", collectionId: "c1" });
-    const server = { rows: [existing] };
-    const { collection, release } = await makeSlowRefetchCollection(client, server);
-    copiesCollectionHolder.current = collection;
-    collection.utils.writeUpsert([
-      stubCopy({ id: "temp-1", printingId: "p1", collectionId: "c1" }),
-    ]);
-    const refetching = collection.utils.refetch();
-
-    globalThis.fetch = vi.fn(async () => {
-      server.rows = [existing, created];
-      return Response.json({ items: [created] }, { status: 201 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useAddCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({
-      copies: [{ printingId: "p1", collectionId: "c1" }],
-      tempIds: ["temp-1"],
-    });
-    await landLateRefetch(client, release, refetching);
-
-    expect(collection.toArray.map((copy) => copy.id).toSorted()).toEqual(["existing-1", "real-1"]);
-  });
-
-  it("keeps a moved copy in its new collection", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const server = { rows: [stubCopy({ id: "copy-1", collectionId: "source" })] };
-    const { collection, release } = await makeSlowRefetchCollection(client, server);
-    copiesCollectionHolder.current = collection;
-    const refetching = collection.utils.refetch();
-
-    globalThis.fetch = vi.fn(async () => {
-      server.rows = [stubCopy({ id: "copy-1", collectionId: "dest" })];
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["copy-1"], toCollectionId: "dest" });
-    await landLateRefetch(client, release, refetching);
-
-    expect(collection.get("copy-1")?.collectionId).toBe("dest");
-  });
-
-  it("keeps an edited copy's new details", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const server = { rows: [stubCopy({ id: "copy-1" })] };
-    const { collection, release } = await makeSlowRefetchCollection(client, server);
-    copiesCollectionHolder.current = collection;
-    const refetching = collection.utils.refetch();
-
-    globalThis.fetch = vi.fn(async () => {
-      server.rows = [stubCopy({ id: "copy-1", condition: "mint" })];
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useUpdateCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["copy-1"], patch: { condition: "mint" } });
-    await landLateRefetch(client, release, refetching);
-
-    expect(collection.get("copy-1")?.condition).toBe("mint");
-  });
-
-  it("keeps a removed copy removed", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    const server = { rows: [stubCopy({ id: "copy-1" })] };
-    const { collection, release } = await makeSlowRefetchCollection(client, server);
-    copiesCollectionHolder.current = collection;
-    const refetching = collection.utils.refetch();
-
-    globalThis.fetch = vi.fn(async () => {
-      server.rows = [];
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["copy-1"] });
-    await landLateRefetch(client, release, refetching);
-
-    expect(collection.has("copy-1")).toBe(false);
-  });
-});
-
-describe("batch mutations reject when every selected id is still an optimistic temp id", () => {
-  afterEach(() => {
-    copiesCollectionHolder.current = null;
-  });
-
-  it("useDisposeCopies rejects with a clear message instead of silently succeeding", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    copiesCollectionHolder.current = {};
-
-    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
-
-    await expect(result.current.mutateAsync({ copyIds: ["temp-a", "temp-b"] })).rejects.toThrow(
-      /still being added/iu,
-    );
-  });
-
-  it("useMoveCopies rejects with a clear message instead of silently succeeding", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    copiesCollectionHolder.current = {};
-
-    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
-
-    await expect(
-      result.current.mutateAsync({ copyIds: ["temp-a"], toCollectionId: "col-2" }),
-    ).rejects.toThrow(/still being added/iu);
-  });
-
-  it("useUpdateCopies rejects with a clear message instead of silently succeeding", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    copiesCollectionHolder.current = {};
-
-    const { result } = renderHook(() => useUpdateCopies(), { wrapper: wrap(client) });
-
-    await expect(
-      result.current.mutateAsync({ copyIds: ["temp-a"], patch: { condition: "mint" } }),
-    ).rejects.toThrow(/still being added/iu);
-  });
-});
-
-describe("batch mutations with a mix of real and temp ids process only the real ids", () => {
-  const originalFetch = globalThis.fetch;
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
-  });
-
-  it("useDisposeCopies only sends the real id to the API", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    copiesCollectionHolder.current = await makeRealCopiesCollection(client, [
-      stubCopy({ id: "real-1" }),
-    ]);
-
-    let sentBody: unknown;
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      sentBody = await (input as Request).clone().json();
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["temp-x", "real-1"] });
-
-    expect(sentBody).toEqual({ copyIds: ["real-1"] });
-  });
-
-  it("useMoveCopies only sends the real id to the API", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    copiesCollectionHolder.current = await makeRealCopiesCollection(client, [
-      stubCopy({ id: "real-1", collectionId: "source" }),
-    ]);
-
-    let sentBody: unknown;
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      sentBody = await (input as Request).clone().json();
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["temp-x", "real-1"], toCollectionId: "dest" });
-
-    expect(sentBody).toEqual({ copyIds: ["real-1"], toCollectionId: "dest" });
-  });
-});
-
-describe("moving copies carries the destination collection's group id", () => {
-  const originalFetch = globalThis.fetch;
-
-  beforeEach(() => {
-    globalThis.fetch = vi.fn(async () => new Response(null, { status: 204 })) as typeof fetch;
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
-  });
-
+describe("useMoveCopies", () => {
   it("clears groupId when taking a copy from a group box into a personal collection", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    seedCollections(client, "user-1", [
+    const { client, collection } = await signedInWithCopies([
+      stubCopy({ id: "c1", collectionId: "box", groupId: "group-1" }),
+    ]);
+    seedCollections(client, [
       { id: "box", groupId: "group-1" },
       { id: "inbox", groupId: null },
     ]);
-    const collection = await makeRealCopiesCollection(client, [
-      stubCopy({ id: "real-1", collectionId: "box", groupId: "group-1" }),
-    ]);
-    copiesCollectionHolder.current = collection;
-
     const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["real-1"], toCollectionId: "inbox" });
 
-    const moved = collection.toArray.find((copy) => copy.id === "real-1");
-    expect(moved?.collectionId).toBe("inbox");
-    expect(moved?.groupId).toBeNull();
+    await result.current.mutateAsync({ copyIds: ["c1"], toCollectionId: "inbox" });
+
+    expect(collection.get("c1")).toMatchObject({ collectionId: "inbox", groupId: null });
   });
 
   it("sets groupId when contributing a personal copy to a group collection", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    seedCollections(client, "user-1", [
+    const { client, collection } = await signedInWithCopies([
+      stubCopy({ id: "c1", collectionId: "inbox", groupId: null }),
+    ]);
+    seedCollections(client, [
       { id: "inbox", groupId: null },
       { id: "box", groupId: "group-1" },
     ]);
-    const collection = await makeRealCopiesCollection(client, [
-      stubCopy({ id: "real-1", collectionId: "inbox", groupId: null }),
-    ]);
-    copiesCollectionHolder.current = collection;
-
     const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ copyIds: ["real-1"], toCollectionId: "box" });
 
-    const moved = collection.toArray.find((copy) => copy.id === "real-1");
-    expect(moved?.collectionId).toBe("box");
-    expect(moved?.groupId).toBe("group-1");
+    await result.current.mutateAsync({ copyIds: ["c1"], toCollectionId: "box" });
+
+    expect(collection.get("c1")).toMatchObject({ collectionId: "box", groupId: "group-1" });
+  });
+
+  it("skips ids that are no longer in the collection", async () => {
+    const { client } = await signedInWithCopies([stubCopy({ id: "c1", collectionId: "source" })]);
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+
+    await result.current.mutateAsync({ copyIds: ["gone", "c1"], toCollectionId: "dest" });
+
+    expect(sent.map((request) => request.body)).toEqual([
+      { copyIds: ["c1"], toCollectionId: "dest" },
+    ]);
+  });
+
+  it("rejects while signed out", async () => {
+    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(newClient()) });
+
+    await expect(
+      result.current.mutateAsync({ copyIds: ["c1"], toCollectionId: "dest" }),
+    ).rejects.toThrow(/signed out/iu);
   });
 });
 
-describe("chunked batch mutations confirm each chunk as it succeeds", () => {
-  const originalFetch = globalThis.fetch;
+describe("useUpdateCopies", () => {
+  it("applies the edit to the stored copy", async () => {
+    const { client, collection } = await signedInWithCopies([stubCopy({ id: "c1" })]);
+    const { result } = renderHook(() => useUpdateCopies(), { wrapper: wrap(client) });
 
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    copiesCollectionHolder.current = null;
+    await result.current.mutateAsync({ copyIds: ["c1"], patch: { condition: "mint" } });
+
+    expect(collection.get("c1")?.condition).toBe("mint");
   });
 
-  it("useMoveCopies keeps chunk 1 applied when chunk 2 fails, and the error propagates", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-
-    const ids = Array.from({ length: 700 }, (_, i) => `real-${i}`);
-    const collection = await makeRealCopiesCollection(
-      client,
-      ids.map((id) => stubCopy({ id, collectionId: "source" })),
-    );
-    copiesCollectionHolder.current = collection;
-
-    let callCount = 0;
-    globalThis.fetch = vi.fn(async () => {
-      callCount++;
-      if (callCount === 2) {
-        return Response.json({ message: "boom" }, { status: 500 });
-      }
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    const { result } = renderHook(() => useMoveCopies(), { wrapper: wrap(client) });
+  it("rejects while signed out", async () => {
+    const { result } = renderHook(() => useUpdateCopies(), { wrapper: wrap(newClient()) });
 
     await expect(
-      result.current.mutateAsync({ copyIds: ids, toCollectionId: "dest" }),
-    ).rejects.toThrow();
-
-    expect(callCount).toBe(2);
-    const byId = new Map(collection.toArray.map((copy) => [copy.id, copy]));
-    expect(byId.get("real-0")?.collectionId).toBe("dest");
-    expect(byId.get("real-499")?.collectionId).toBe("dest");
-    expect(byId.get("real-699")?.collectionId).toBe("source");
+      result.current.mutateAsync({ copyIds: ["c1"], patch: { condition: "mint" } }),
+    ).rejects.toThrow(/signed out/iu);
   });
+});
 
-  it("useDisposeCopies keeps chunk 1's deletions applied when chunk 2 fails, and the error propagates", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-
-    const ids = Array.from({ length: 700 }, (_, i) => `real-${i}`);
-    const collection = await makeRealCopiesCollection(
-      client,
-      ids.map((id) => stubCopy({ id })),
-    );
-    copiesCollectionHolder.current = collection;
-
-    let callCount = 0;
-    globalThis.fetch = vi.fn(async () => {
-      callCount++;
-      if (callCount === 2) {
-        return Response.json({ message: "boom" }, { status: 500 });
-      }
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
+describe("useDisposeCopies", () => {
+  it("removes the disposed copies", async () => {
+    const { client, collection } = await signedInWithCopies([
+      stubCopy({ id: "c1" }),
+      stubCopy({ id: "c2" }),
+    ]);
     const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(client) });
 
-    await expect(result.current.mutateAsync({ copyIds: ids })).rejects.toThrow();
+    await result.current.mutateAsync({ copyIds: ["c1"] });
 
-    expect(callCount).toBe(2);
-    const remainingIds = new Set(collection.toArray.map((copy) => copy.id));
-    expect(remainingIds.has("real-0")).toBe(false);
-    expect(remainingIds.has("real-499")).toBe(false);
-    expect(remainingIds.has("real-699")).toBe(true);
+    expect(collection.toArray.map((copy) => copy.id)).toEqual(["c2"]);
+  });
+
+  it("rejects while signed out", async () => {
+    const { result } = renderHook(() => useDisposeCopies(), { wrapper: wrap(newClient()) });
+
+    await expect(result.current.mutateAsync({ copyIds: ["c1"] })).rejects.toThrow(/signed out/iu);
+  });
+});
+
+describe("useBatchedAddCopies", () => {
+  it("shows each add at once and sends rapid adds as one request", async () => {
+    const { client, collection } = await signedInWithCopies([]);
+    const { result } = renderHook(() => useBatchedAddCopies(), { wrapper: wrap(client) });
+
+    const first = result.current.add("p1", "col-1");
+    const second = result.current.add("p2", "col-1");
+    expect(collection.toArray).toHaveLength(2);
+
+    const stored = await Promise.all([first, second]);
+
+    expect(sent.filter((request) => request.path === "/api/v1/copies")).toHaveLength(1);
+    expect(stored.map((copy) => copy.printingId)).toEqual(["p1", "p2"]);
+  });
+
+  it("sends the copy id and batch id the caller passes", async () => {
+    const { client } = await signedInWithCopies([]);
+    const { result } = renderHook(() => useBatchedAddCopies(), { wrapper: wrap(client) });
+
+    await result.current.add("p1", "col-1", "given-1", "batch-1");
+
+    expect(sent[0]?.body).toEqual({
+      batchId: "batch-1",
+      copies: [{ id: "given-1", printingId: "p1", collectionId: "col-1" }],
+    });
+  });
+
+  it("sends the open batch when the view unmounts before the delay elapses", async () => {
+    const { client } = await signedInWithCopies([]);
+    const { result, unmount } = renderHook(() => useBatchedAddCopies(), { wrapper: wrap(client) });
+
+    const stored = result.current.add("p1", "col-1");
+    unmount();
+
+    await vi.waitFor(() =>
+      expect(sent.filter((request) => request.path === "/api/v1/copies")).toHaveLength(1),
+    );
+    await expect(stored).resolves.toMatchObject({ printingId: "p1" });
+  });
+
+  it("rejects every add in a failed batch and reports the batch", async () => {
+    const { client, collection } = await signedInWithCopies([]);
+    respond = () => Response.json({ message: "boom" }, { status: 500 });
+    const onBatchError = vi.fn();
+    const { result } = renderHook(() => useBatchedAddCopies({ onBatchError }), {
+      wrapper: wrap(client),
+    });
+
+    const adds = [result.current.add("p1", "col-1"), result.current.add("p2", "col-1")];
+
+    await expect(Promise.all(adds)).rejects.toThrow();
+    await vi.waitFor(() =>
+      expect(onBatchError).toHaveBeenCalledWith(["p1", "p2"], expect.any(Error)),
+    );
+    expect(collection.toArray).toEqual([]);
   });
 });

@@ -12,6 +12,7 @@ import {
   notPinnedToLoan,
   notReservedByTrade,
   requireFrontImage,
+  safeXidExpression,
   selectCopyWithCard,
 } from "../../../repositories/query-helpers.js";
 
@@ -131,6 +132,114 @@ export function copiesRepo(db: Kysely<Database>) {
         );
       }
       return query.execute();
+    },
+
+    async currentSafeXid(): Promise<string> {
+      const row = await db.selectNoFrom(safeXidExpression.as("xid")).executeTakeFirstOrThrow();
+      return row.xid;
+    },
+
+    // `>= since` pairs with the exclusive `< safe` of the read that issued the
+    // watermark: rows stamped exactly at it were withheld then and are due now.
+    listChangedForAccessibleCollections(
+      userId: string,
+      sinceXid: string,
+      safeXid: string,
+      limit: number,
+      after?: { xid: string; id: string },
+    ): Promise<(CopyRow & { updatedXid: string })[]> {
+      let query = db
+        .selectFrom("copies as cp")
+        .innerJoin("collections as col", "col.id", "cp.collectionId")
+        .leftJoin("friendGroupMembers as gm", (join) =>
+          join.onRef("gm.groupId", "=", "col.groupId").on("gm.userId", "=", userId),
+        )
+        .leftJoin("loanCopies as lc", "lc.copyId", "cp.id")
+        .leftJoin("cardTradeCopies as ctc", "ctc.copyId", "cp.id")
+        .select([
+          "cp.id",
+          "cp.printingId",
+          "cp.collectionId",
+          "cp.createdAt",
+          sql<string>`cp.updated_xid::text`.as("updatedXid"),
+          "col.groupId as groupId",
+          ...COPY_METADATA_COLUMNS,
+          sql<boolean>`(lc.copy_id is not null)`.as("onLoan"),
+          sql<boolean>`(ctc.copy_id is not null)`.as("reserved"),
+        ])
+        .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
+        .where(sql<boolean>`cp.updated_xid >= ${sinceXid}::xid8`)
+        .where(sql<boolean>`cp.updated_xid < ${safeXid}::xid8`)
+        .orderBy(sql`cp.updated_xid`)
+        .orderBy("cp.id")
+        .limit(limit + 1);
+      if (after !== undefined) {
+        query = query.where(
+          sql<boolean>`(cp.updated_xid, cp.id) > (${after.xid}::xid8, ${after.id}::uuid)`,
+        );
+      }
+      return query.execute();
+    },
+
+    /** Reads the owner off the tombstone, so a deleted collection does not hide its own deletions. */
+    deletionsSince(
+      userId: string,
+      sinceXid: string,
+      safeXid: string,
+      limit: number,
+      after?: { xid: string; id: string },
+    ): Promise<{ copyId: string; deletedXid: string }[]> {
+      let query = db
+        .selectFrom("copyDeletions as cd")
+        .leftJoin("friendGroupMembers as gm", (join) =>
+          join.onRef("gm.groupId", "=", "cd.groupId").on("gm.userId", "=", userId),
+        )
+        .select(["cd.copyId", sql<string>`cd.deleted_xid::text`.as("deletedXid")])
+        .where((eb) => eb.or([eb("cd.userId", "=", userId), eb("gm.userId", "=", userId)]))
+        .where(sql<boolean>`cd.deleted_xid >= ${sinceXid}::xid8`)
+        .where(sql<boolean>`cd.deleted_xid < ${safeXid}::xid8`)
+        .orderBy(sql`cd.deleted_xid`)
+        .orderBy("cd.copyId")
+        .limit(limit + 1);
+      if (after !== undefined) {
+        query = query.where(
+          sql<boolean>`(cd.deleted_xid, cd.copy_id) > (${after.xid}::xid8, ${after.id}::uuid)`,
+        );
+      }
+      return query.execute();
+    },
+
+    /** A watermark at or below this predates pruned tombstones and must take a full read. */
+    async prunedThroughXid(): Promise<string> {
+      const row = await db
+        .selectFrom("copyDeletionSweep")
+        .select(sql<string>`pruned_through_xid::text`.as("xid"))
+        .executeTakeFirstOrThrow();
+      return row.xid;
+    },
+
+    async purgeDeletionsOlderThan(cutoff: Date): Promise<number> {
+      return await db.transaction().execute(async (trx) => {
+        // Must be raised before the rows are dropped, or a delta landing
+        // between the two steps would miss them.
+        const highest = await trx
+          .selectFrom("copyDeletions")
+          .select(sql<string | null>`max(deleted_xid)::text`.as("xid"))
+          .where("deletedAt", "<", cutoff)
+          .executeTakeFirst();
+        const pruned = highest?.xid ?? null;
+        if (pruned !== null) {
+          await sql`
+            update copy_deletion_sweep set pruned_through_xid = ${pruned}::xid8
+              where pruned_through_xid < ${pruned}::xid8
+          `.execute(trx);
+        }
+        const result = await trx
+          .deleteFrom("copyDeletions")
+          .where("deletedAt", "<", cutoff)
+          .executeTakeFirst();
+        return Number(result.numDeletedRows);
+      });
     },
 
     existsForViewer(

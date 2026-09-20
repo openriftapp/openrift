@@ -41,6 +41,48 @@ describe.skipIf(!ctx)("collectionsRepo (integration)", () => {
     expect(fetched!.name).toBe("Test Binder");
   });
 
+  it("creates a collection with the id the caller supplies", async () => {
+    const id = "a0000000-0026-4000-a000-0000000000c1";
+    const col = await repo.createUnlessIdTaken({
+      id,
+      userId,
+      groupId: null,
+      name: "Client Binder",
+      description: null,
+      isInbox: false,
+      sortOrder: 3,
+    });
+    createdCollectionIds.push(id);
+
+    expect(col?.id).toBe(id);
+  });
+
+  it("skips a create whose id is already taken and keeps the existing row", async () => {
+    const col = await repo.create({
+      userId,
+      groupId: null,
+      name: "Taken Binder",
+      description: null,
+      isInbox: false,
+      sortOrder: 4,
+    });
+    createdCollectionIds.push(col.id);
+
+    const replay = await repo.createUnlessIdTaken({
+      id: col.id,
+      userId,
+      groupId: null,
+      name: "Replayed Binder",
+      description: null,
+      isInbox: false,
+      sortOrder: 5,
+    });
+
+    expect(replay).toBeUndefined();
+    const kept = await repo.getByIdForUser(col.id, userId);
+    expect(kept?.name).toBe("Taken Binder");
+  });
+
   it("returns undefined when queried with a different userId", async () => {
     const col = await repo.create({
       userId,

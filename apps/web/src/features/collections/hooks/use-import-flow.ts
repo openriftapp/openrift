@@ -15,7 +15,7 @@ import {
 } from "@/features/collections/hooks/import-flow-shared";
 import { useCreateCollection } from "@/features/collections/hooks/use-collections";
 import { useAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 import type { MatchedEntry } from "@/features/collections/lib/import-matcher";
 import { matchEntries } from "@/features/collections/lib/import-matcher";
 import type { ImportCopyMetadata } from "@/features/collections/lib/import-parsers";

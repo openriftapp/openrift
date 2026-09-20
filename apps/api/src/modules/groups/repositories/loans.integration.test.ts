@@ -155,6 +155,41 @@ describe.skipIf(!ctx)("loansRepo (integration)", () => {
     expect(unclaimed).toContain(remaining[0]);
   });
 
+  it("stamps a copy when a loan pins it, and again when the pin goes", async () => {
+    const collectionId = await freshCollection(LENDER_ID);
+    await addCopies(collectionId, 2);
+    const beforePin = await repos.copies.currentSafeXid();
+
+    const loan = await createLoan(transact, {
+      lenderUserId: LENDER_ID,
+      printingId: PRINTING_1.id,
+      quantity: 1,
+      borrowerName: "Trigger Tester",
+      contextCollectionId: collectionId,
+    });
+
+    const [pinnedCopyId] = await repos.loans.listPinnedCopyIds(loan.id);
+    const afterPin = await repos.copies.currentSafeXid();
+    const stamped = await repos.copies.listChangedForAccessibleCollections(
+      LENDER_ID,
+      beforePin,
+      afterPin,
+      100,
+    );
+    expect(stamped.map((row) => row.id)).toContain(pinnedCopyId);
+
+    // Straight at the pin row: a cascade clears it the same way, with no repository call.
+    await db.deleteFrom("loanCopies").where("copyId", "=", pinnedCopyId!).execute();
+
+    const released = await repos.copies.listChangedForAccessibleCollections(
+      LENDER_ID,
+      afterPin,
+      await repos.copies.currentSafeXid(),
+      100,
+    );
+    expect(released.map((row) => row.id)).toContain(pinnedCopyId);
+  });
+
   it("prefers the context collection when picking copies", async () => {
     const otherCollection = await freshCollection(LENDER_ID);
     await addCopies(otherCollection, 2);

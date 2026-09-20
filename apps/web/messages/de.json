@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "Dieses Exemplar liegt in einer Gruppensammlung, also sieht es jeder in der Gruppe. Wird nie auf öffentlich geteilten Seiten angezeigt.",
   "collections_copies_links_label": "Fotos & Videos",
   "collections_copies_link_title_placeholder": "Bezeichnung",
-  "collections_copies_still_adding": "Diese Karten werden gerade noch hinzugefügt. Versuch es gleich noch einmal.",
   "collections_copies_network_error": "Server nicht erreichbar, prüfe deine Verbindung",
   "collections_copies_signed_out": "Karten können nicht hinzugefügt werden, solange du abgemeldet bist",
   "collections_copies_quick_scope_move": "Verschieben",

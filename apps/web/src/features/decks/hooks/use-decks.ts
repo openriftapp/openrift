@@ -1,52 +1,123 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
 import { decksContract } from "@openrift/shared/contracts/decks";
 import { publicDecksContract } from "@openrift/shared/contracts/public-decks";
+import { descriptionSnippet } from "@openrift/shared/description-snippet";
 import type {
-  DeckCardResponse,
+  DeckCardWithDeckResponse,
   DeckCloneResponse,
   DeckDetailResponse,
   DeckExportResponse,
   DeckFormatConfig,
   DeckLink,
-  DeckListResponse,
+  DeckListItemResponse,
   DeckResponse,
-  DeckShareResponse,
 } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
-import { isDefinedError, safe } from "@orpc/client";
+import {
+  createCollection,
+  eq,
+  localOnlyCollectionOptions,
+  useLiveSuspenseQuery,
+} from "@tanstack/react-db";
+import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import { v7 as uuidv7 } from "uuid";
 
-import { resetDeckDraft } from "@/features/decks/hooks/deck-builder-collection";
-import { saveDeckCardsFn } from "@/features/decks/lib/deck-cards-save";
-import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
+import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup";
 import {
-  deckDetailQueryOptions,
-  decksQueryOptions,
-  publicDeckQueryOptions,
-} from "@/features/decks/lib/decks-queries";
+  useDeckCardsCollection,
+  useDecksCollection,
+} from "@/features/decks/hooks/use-decks-collections";
+import { useIsLocalDeck, useLocalDeck } from "@/features/decks/hooks/use-local-decks";
+import { toDeckCard } from "@/features/decks/lib/deck-card-rows";
+import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
+import { getDeckCardsCollection, getDecksCollection } from "@/features/decks/lib/decks-collection";
+import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import { deckFoldersKeys, decksKeys } from "@/features/decks/lib/decks-query-keys";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import {
+  deckCardKey,
+  saveDeckCards as applyDeckCards,
+  updateDeck,
+} from "@/features/decks/lib/decks-write";
+import type { LocalDeck } from "@/features/decks/lib/local-deck";
+import { updateLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
-import { reportMutationError } from "@/lib/query-client";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
-export function useDecks() {
+export function useDecks(): { data: DeckListItemResponse[] } {
   const userId = useRequiredUserId();
-  return useSuspenseQuery(decksQueryOptions(userId));
+  const queryClient = useQueryClient();
+  const collection = getDecksCollection(queryClient, userId);
+  const { data } = useLiveSuspenseQuery({ query: (q) => q.from({ deck: collection }) });
+  return { data };
+}
+
+async function loadedDecks(queryClient: QueryClient, userId: string) {
+  const collection = getDecksCollection(queryClient, userId);
+  await collection.preload();
+  return collection;
+}
+
+function newDeckRow(input: {
+  id?: string;
+  name: string;
+  description?: string | null;
+  format: DeckFormat;
+  links?: DeckLink[];
+}): DeckListItemResponse {
+  const now = new Date().toISOString();
+  return {
+    deck: {
+      id: input.id ?? uuidv7(),
+      name: input.name,
+      descriptionSnippet: descriptionSnippet(input.description ?? null),
+      description: input.description ?? null,
+      links: input.links ?? [],
+      oddsConfig: null,
+      isPublic: false,
+      shareToken: null,
+      format: input.format,
+      formatConfig: null,
+      isPinned: false,
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      coverCardId: null,
+      coverPrintingId: null,
+      coverPosition: null,
+      collectionId: null,
+      familyId: null,
+      predecessorDeckId: null,
+      isPrimary: false,
+      isDraft: false,
+    },
+    legendCardId: null,
+    championCardId: null,
+    totalCards: 0,
+    typeCounts: [],
+    domainDistribution: [],
+    isValid: false,
+    requiredProgress: 0,
+    requiredTotal: 0,
+    totalValueCents: null,
+    missingCount: null,
+    folderIds: [],
+  };
 }
 
 /**
- * Synthesizes a deck-detail response for a browser-local deck from the local
- * store. Owner-only fields (isPublic / shareToken / isPinned / archivedAt) are
- * constants because a local deck has no server-side state.
+ * Synthesizes a deck-detail response for a browser-local deck. Owner-only
+ * fields (isPublic / shareToken / isPinned / archivedAt) are constants because
+ * a local deck has no server-side state.
  */
-function useLocalDeckDetail(deckId: string): { data: DeckDetailResponse } {
-  const deck = useLocalDecksStore((state) => state.decks[deckId]);
+function localDeckDetail(
+  deckId: string,
+  deck: LocalDeck | undefined,
+): { data: DeckDetailResponse } {
   const data: DeckDetailResponse = {
     deck: {
       id: deckId,
@@ -76,90 +147,109 @@ function useLocalDeckDetail(deckId: string): { data: DeckDetailResponse } {
   return { data };
 }
 
-/**
- * A `local:` id resolves from the local store; a server id keeps the suspense
- * query, called unconditionally either way and left inert for a local id.
- */
-export function useDeckDetail(deckId: string): { data: DeckDetailResponse } {
-  const isLocal = isLocalDeckId(deckId);
-  const userId = useUserId();
-  const local = useLocalDeckDetail(deckId);
-  const query = useSuspenseQuery(
-    isLocal
-      ? {
-          queryKey: decksKeys.detail("local", deckId),
-          queryFn: () => local.data,
-          initialData: local.data,
-          staleTime: Number.POSITIVE_INFINITY,
-        }
-      : deckDetailQueryOptions(userId ?? "", deckId),
-  );
-  return isLocal ? local : query;
-}
+// Stand-ins so the live queries below run unconditionally for a signed-out visitor.
+const noDecks = createCollection(
+  localOnlyCollectionOptions<DeckListItemResponse>({
+    id: "decks:none",
+    getKey: (row) => row.deck.id,
+  }),
+);
+const noDeckCards = createCollection(
+  localOnlyCollectionOptions<DeckCardWithDeckResponse>({
+    id: "deck-cards:none",
+    getKey: (row) => deckCardKey(row),
+  }),
+);
 
-const createDeckFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      name: string;
-      description?: string | null;
-      format: DeckFormat;
-      isPublic?: boolean;
-      links?: DeckLink[];
-    }) => input,
-  )
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<DeckResponse> =>
-    apiOrpcClient(decksContract, context.cookie).create(data),
-  );
+export function useDeckDetail(deckId: string): { data: DeckDetailResponse } {
+  const localDeck = useLocalDeck(deckId);
+  const decksCollection = useDecksCollection();
+  const cardsCollection = useDeckCardsCollection();
+  // A browser-local deck reads nothing from the server stores, so it must not start their sync.
+  const decks = localDeck === undefined ? (decksCollection ?? noDecks) : noDecks;
+  const cards = localDeck === undefined ? (cardsCollection ?? noDeckCards) : noDeckCards;
+  const { data: stored } = useLiveSuspenseQuery({
+    query: (q) =>
+      q
+        .from({ row: decks })
+        .where(({ row }) => eq(row.deck.id, deckId))
+        .findOne(),
+  });
+  const { data: cardRows } = useLiveSuspenseQuery({
+    query: (q) => q.from({ card: cards }).where(({ card }) => eq(card.deckId, deckId)),
+  });
+
+  if (!stored) {
+    return localDeckDetail(deckId, localDeck);
+  }
+  const { descriptionSnippet: _snippet, ...deck } = stored.deck;
+  return {
+    data: {
+      deck,
+      cards: cardRows.map((row) => toDeckCard(row)),
+    },
+  };
+}
 
 export function useCreateDeck() {
-  // A local-only visitor instantiates this hook before ever calling `.mutate`; do not throw on a missing userId.
   const userId = useUserId();
-  return useMutationWithInvalidation({
-    mutationFn: (body: {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      id?: string;
       name: string;
       description?: string | null;
       format: DeckFormat;
-      isPublic?: boolean;
       links?: DeckLink[];
-    }) => createDeckFn({ data: body }),
-    invalidates: userId ? [decksKeys.all(userId)] : [],
+    }): Promise<DeckListItemResponse["deck"]> => {
+      if (!userId) {
+        throw new Error("Cannot create a deck while signed out");
+      }
+      const collection = await loadedDecks(queryClient, userId);
+      const row = newDeckRow(body);
+      // A claim retried after its cards failed already holds the row, and inserting it again throws.
+      const existing = collection.get(row.deck.id);
+      if (existing) {
+        return existing.deck;
+      }
+      await collection.insert(row).isPersisted.promise;
+      return collection.get(row.deck.id)?.deck ?? row.deck;
+    },
   });
 }
 
-// Exported for tests only — call through useDeleteDeck in app code.
-export const deleteDeckFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: deckId }) => {
-    // A 404 means the deck is already gone; treat it as success.
-    const { error } = await safe(
-      apiOrpcClient(decksContract, context.cookie).remove({ id: deckId }),
-    );
-    if (error) {
-      if (isDefinedError(error) && error.code === "NOT_FOUND") {
+export function useDeleteDeck() {
+  const userId = useUserId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deckId: string) => {
+      if (!userId) {
         return;
       }
-      throw error;
-    }
-  });
-
-export function useDeleteDeck() {
-  // Shared with local decks, which branch to the local store before `.mutate`; do not throw on a missing userId.
-  const userId = useUserId();
-  return useMutationWithInvalidation<unknown, string>({
-    mutationFn: (deckId) => deleteDeckFn({ data: deckId }),
-    invalidates: userId ? [decksKeys.all(userId)] : [],
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await collection.delete(deckId).isPersisted.promise;
+      // The deck-cards delta keys on live decks, so a deleted deck's rows never leave on their own.
+      const cards = getDeckCardsCollection(queryClient, userId);
+      const keys = cards.toArray
+        .filter((row) => row.deckId === deckId)
+        .map((row) => deckCardKey(row));
+      if (keys.length > 0) {
+        startSyncIfNeeded(cards);
+        cards.utils.writeDelete(keys);
+      }
+    },
   });
 }
 
 export function useSaveDeckCards() {
-  // The import page instantiates this hook before knowing the session; do not throw on a missing userId.
   const userId = useUserId();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       deckId,
       cards,
     }: {
@@ -170,66 +260,23 @@ export function useSaveDeckCards() {
         quantity: number;
         preferredPrintingId: string | null;
       }[];
-    }): Promise<{ cards: DeckCardResponse[] }> => saveDeckCardsFn({ data: { deckId, cards } }),
-    onSuccess: (data, variables) => {
+    }): Promise<void> => {
       if (!userId) {
         return;
       }
-      queryClient.setQueryData<DeckDetailResponse>(
-        decksKeys.detail(userId, variables.deckId),
-        (old) => {
-          if (!old) {
-            return old;
-          }
-          return { ...old, cards: data.cards };
-        },
-      );
-      resetDeckDraft(queryClient, userId, variables.deckId);
-
-      // exact: true keeps this from also refetching the detail query set above.
-      void queryClient.invalidateQueries({
-        queryKey: decksKeys.all(userId),
-        exact: true,
-      });
+      const collection = getDeckCardsCollection(queryClient, userId);
+      await collection.preload();
+      await applyDeckCards(collection, deckId, cards, { queryClient, userId }).isPersisted.promise;
     },
   });
 }
 
-const updateDeckFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: {
-      deckId: string;
-      name?: string;
-      description?: string | null;
-      format?: DeckFormat;
-      formatConfig?: DeckFormatConfig | null;
-      oddsConfig?: DeckOddsConfig | null;
-      coverCardId?: string | null;
-      coverPrintingId?: string | null;
-      coverPosition?: number | null;
-      links?: DeckLink[];
-      collectionId?: string | null;
-      isDraft?: boolean;
-    }) => input,
-  )
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<DeckResponse> => {
-    const { deckId, ...fields } = data;
-    return apiOrpcClient(decksContract, context.cookie).update({
-      id: deckId,
-      ...fields,
-      // The contract types formatConfig as a loose record; widen it at the boundary.
-      formatConfig: fields.formatConfig as Record<string, unknown> | null | undefined,
-    });
-  });
-
 export function useUpdateDeck() {
-  // Shared with local decks, which branch to the local store before `.mutate`; do not throw on a missing userId.
   const userId = useUserId();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       deckId,
       ...fields
     }: {
@@ -245,31 +292,15 @@ export function useUpdateDeck() {
       links?: DeckLink[];
       collectionId?: string | null;
       isDraft?: boolean;
-    }): Promise<DeckResponse> => updateDeckFn({ data: { deckId, ...fields } }),
-    onSuccess: (data, variables) => {
+    }) => {
       if (!userId) {
         return;
       }
-      queryClient.setQueryData<DeckDetailResponse>(
-        decksKeys.detail(userId, variables.deckId),
-        (old) => {
-          if (!old) {
-            return old;
-          }
-          return { ...old, deck: data };
-        },
-      );
-
-      queryClient.setQueryData<DeckListResponse>(decksKeys.all(userId), (old) => {
-        if (!old) {
-          return old;
-        }
-        return {
-          items: old.items.map((item) =>
-            item.deck.id === variables.deckId ? { ...item, deck: { ...item.deck, ...data } } : item,
-          ),
-        };
-      });
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await updateDeck(collection, deckId, fields).isPersisted.promise;
     },
   });
 }
@@ -286,20 +317,16 @@ export interface DeckMetaPatch {
   links?: DeckLink[];
 }
 
-/**
- * Branches on the `local:` prefix: a local deck writes straight to the local
- * store; a server deck goes through {@link useUpdateDeck}.
- */
 export function useUpdateDeckMeta(deckId: string): {
   update: (patch: DeckMetaPatch, opts?: { onSuccess?: () => void }) => void;
   isPending: boolean;
 } {
   const serverUpdate = useUpdateDeck();
-  const isLocal = isLocalDeckId(deckId);
+  const isLocal = useIsLocalDeck(deckId);
   return {
     update: (patch, opts) => {
       if (isLocal) {
-        useLocalDecksStore.getState().updateDeck(deckId, patch);
+        updateLocalDeck(deckId, patch);
         opts?.onSuccess?.();
         return;
       }
@@ -309,55 +336,19 @@ export function useUpdateDeckMeta(deckId: string): {
   };
 }
 
-const setDeckPinnedFn = createServerFn({ method: "POST" })
-  .validator((input: { deckId: string; isPinned: boolean }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<DeckResponse> =>
-    apiOrpcClient(decksContract, context.cookie).setPinned({
-      id: data.deckId,
-      isPinned: data.isPinned,
-    }),
-  );
-
-const setDeckArchivedFn = createServerFn({ method: "POST" })
-  .validator((input: { deckId: string; archived: boolean }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<DeckResponse> =>
-    apiOrpcClient(decksContract, context.cookie).setArchived({
-      id: data.deckId,
-      archived: data.archived,
-    }),
-  );
-
-function applyDeckUpdateToCaches(
-  queryClient: ReturnType<typeof useQueryClient>,
-  userId: string,
-  deckId: string,
-  data: DeckResponse,
-) {
-  queryClient.setQueryData<DeckDetailResponse>(decksKeys.detail(userId, deckId), (old) =>
-    old ? { ...old, deck: data } : old,
-  );
-  queryClient.setQueryData<DeckListResponse>(decksKeys.all(userId), (old) => {
-    if (!old) {
-      return old;
-    }
-    return {
-      items: old.items.map((item) =>
-        item.deck.id === deckId ? { ...item, deck: { ...item.deck, ...data } } : item,
-      ),
-    };
-  });
-}
-
 export function useSetDeckPinned() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ deckId, isPinned }: { deckId: string; isPinned: boolean }) =>
-      setDeckPinnedFn({ data: { deckId, isPinned } }),
-    onSuccess: (data, variables) =>
-      applyDeckUpdateToCaches(queryClient, userId, variables.deckId, data),
+    mutationFn: async ({ deckId, isPinned }: { deckId: string; isPinned: boolean }) => {
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await collection.update(deckId, (draft) => {
+        draft.deck = { ...draft.deck, isPinned };
+      }).isPersisted.promise;
+    },
   });
 }
 
@@ -365,10 +356,15 @@ export function useSetDeckArchived() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ deckId, archived }: { deckId: string; archived: boolean }) =>
-      setDeckArchivedFn({ data: { deckId, archived } }),
-    onSuccess: (data, variables) =>
-      applyDeckUpdateToCaches(queryClient, userId, variables.deckId, data),
+    mutationFn: async ({ deckId, archived }: { deckId: string; archived: boolean }) => {
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await collection.update(deckId, (draft) => {
+        draft.deck = { ...draft.deck, archivedAt: archived ? new Date().toISOString() : null };
+      }).isPersisted.promise;
+    },
   });
 }
 
@@ -385,9 +381,17 @@ const createDeckVariantFn = createServerFn({ method: "POST" })
 /** The variant joins the source's folders, so the folder counts move too. */
 export function useCreateDeckVariant() {
   const userId = useRequiredUserId();
-  return useMutationWithInvalidation<DeckResponse, { deckId: string; name?: string }>({
-    mutationFn: (input) => createDeckVariantFn({ data: input }),
-    invalidates: [decksKeys.all(userId), deckFoldersKeys.all(userId)],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { deckId: string; name?: string }): Promise<DeckResponse> => {
+      const created = await createDeckVariantFn({ data: input });
+      // Awaited: the caller navigates to the variant, whose route reads it from the store.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) }),
+        queryClient.invalidateQueries({ queryKey: deckFoldersKeys.all(userId) }),
+      ]);
+      return created;
+    },
   });
 }
 
@@ -406,14 +410,13 @@ const linkDeckVariantFn = createServerFn({ method: "POST" })
 
 export function useLinkDeckVariant() {
   const userId = useRequiredUserId();
-  // Linking rewrites the family (and possibly the primary) of every member on
-  // both sides, so nothing narrower than the decks prefix would stay correct.
+  // Linking rewrites the family and primary of every member on both sides.
   return useMutationWithInvalidation<
     DeckResponse,
     { deckId: string; otherDeckId: string; markAsPreviousVersion?: boolean }
   >({
     mutationFn: (input) => linkDeckVariantFn({ data: input }),
-    invalidates: [decksKeys.all(userId)],
+    invalidates: [decksKeys.syncedStore(userId)],
   });
 }
 
@@ -426,79 +429,50 @@ const unlinkDeckVariantFn = createServerFn({ method: "POST" })
 
 export function useUnlinkDeckVariant() {
   const userId = useRequiredUserId();
-  // Leaving a family can promote a survivor and splice the predecessor chain,
-  // so the whole decks prefix (list and details) is refetched.
+  // Leaving a family can promote a survivor and splice the predecessor chain.
   return useMutationWithInvalidation<DeckResponse, string>({
     mutationFn: (deckId) => unlinkDeckVariantFn({ data: deckId }),
-    invalidates: [decksKeys.all(userId)],
+    invalidates: [decksKeys.syncedStore(userId)],
   });
 }
 
-const setDeckPredecessorFn = createServerFn({ method: "POST" })
-  .validator((input: { deckId: string; predecessorDeckId: string | null }) => input)
-  .middleware([withCookies])
-  .handler(({ context, data }): Promise<DeckResponse> =>
-    apiOrpcClient(decksContract, context.cookie).setPredecessor({
-      id: data.deckId,
-      predecessorDeckId: data.predecessorDeckId,
-    }),
-  );
-
-/**
- * Optimistic: the lineage graph is laid out from these pointers, so waiting
- * for the round trip would leave the picker and the lines showing different things.
- */
 export function useSetDeckPredecessor() {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
-  return useMutation<
-    DeckResponse,
-    Error,
-    { deckId: string; predecessorDeckId: string | null },
-    { previous: DeckListResponse | undefined }
-  >({
-    mutationFn: (input) => setDeckPredecessorFn({ data: input }),
-    onMutate: ({ deckId, predecessorDeckId }) => {
-      const key = decksKeys.all(userId);
-      const previous = queryClient.getQueryData<DeckListResponse>(key);
-      if (previous) {
-        queryClient.setQueryData<DeckListResponse>(key, {
-          items: previous.items.map((item) =>
-            item.deck.id === deckId ? { ...item, deck: { ...item.deck, predecessorDeckId } } : item,
-          ),
-        });
+  return useMutation({
+    mutationFn: async ({
+      deckId,
+      predecessorDeckId,
+    }: {
+      deckId: string;
+      predecessorDeckId: string | null;
+    }) => {
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
       }
-      return { previous };
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(decksKeys.all(userId), context.previous);
-      }
-      // Declaring onError here replaces the QueryClient's default one; call it
-      // explicitly or the rollback happens silently with no error toast.
-      reportMutationError(error, queryClient);
-    },
-    // The rail and lineage list read every member's pointer; invalidating only the changed row misses them.
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: decksKeys.all(userId) });
+      await collection.update(deckId, (draft) => {
+        draft.deck = { ...draft.deck, predecessorDeckId };
+      }).isPersisted.promise;
+      // The rail and lineage list read every member's pointer, not just this row's.
+      void queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) });
     },
   });
 }
 
-const promoteDeckPrimaryFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: deckId }): Promise<DeckResponse> =>
-    apiOrpcClient(decksContract, context.cookie).promotePrimary({ id: deckId }),
-  );
-
 export function usePromoteDeckPrimary() {
   const userId = useRequiredUserId();
-  // Promotion demotes another family member, so a targeted cache patch isn't
-  // enough; the prefix invalidation refreshes the list and both details.
-  return useMutationWithInvalidation<DeckResponse, string>({
-    mutationFn: (deckId) => promoteDeckPrimaryFn({ data: deckId }),
-    invalidates: [decksKeys.all(userId)],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deckId: string) => {
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await collection.update(deckId, (draft) => {
+        draft.deck = { ...draft.deck, isPrimary: true };
+      }).isPersisted.promise;
+    },
   });
 }
 
@@ -541,46 +515,28 @@ export function useEncodeDeckCards() {
   });
 }
 
-const shareDeckFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(({ context, data: deckId }): Promise<DeckShareResponse> =>
-    apiOrpcClient(decksContract, context.cookie).share({ id: deckId }),
-  );
-
-export function useShareDeck() {
+function useSetDeckPublic(isPublic: boolean) {
   const userId = useRequiredUserId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (deckId: string) => shareDeckFn({ data: deckId }),
-    onSuccess: (data, deckId) => {
-      queryClient.setQueryData<DeckDetailResponse>(decksKeys.detail(userId, deckId), (old) =>
-        old
-          ? { ...old, deck: { ...old.deck, isPublic: data.isPublic, shareToken: data.shareToken } }
-          : old,
-      );
+    mutationFn: async (deckId: string) => {
+      const collection = await loadedDecks(queryClient, userId);
+      if (!collection.has(deckId)) {
+        return;
+      }
+      await collection.update(deckId, (draft) => {
+        draft.deck = { ...draft.deck, isPublic };
+      }).isPersisted.promise;
     },
   });
 }
 
-const unshareDeckFn = createServerFn({ method: "POST" })
-  .validator((input: string) => input)
-  .middleware([withCookies])
-  .handler(async ({ context, data: deckId }) => {
-    await apiOrpcClient(decksContract, context.cookie).unshare({ id: deckId });
-  });
+export function useShareDeck() {
+  return useSetDeckPublic(true);
+}
 
 export function useUnshareDeck() {
-  const userId = useRequiredUserId();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (deckId: string) => unshareDeckFn({ data: deckId }),
-    onSuccess: (_, deckId) => {
-      queryClient.setQueryData<DeckDetailResponse>(decksKeys.detail(userId, deckId), (old) =>
-        old ? { ...old, deck: { ...old.deck, isPublic: false, shareToken: null } } : old,
-      );
-    },
-  });
+  return useSetDeckPublic(false);
 }
 
 export function usePublicDeck(token: string) {
@@ -602,8 +558,18 @@ const cloneSharedDeckFn = createServerFn({ method: "POST" })
 
 export function useCloneSharedDeck() {
   const userId = useUserId();
-  return useMutationWithInvalidation<DeckCloneResponse, CloneSharedDeckInput>({
-    mutationFn: (input) => cloneSharedDeckFn({ data: input }),
-    invalidates: userId ? [decksKeys.all(userId)] : [],
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CloneSharedDeckInput): Promise<DeckCloneResponse> => {
+      const cloned = await cloneSharedDeckFn({ data: input });
+      // A clone lands a new deck and its cards; awaited because the caller navigates to it.
+      if (userId) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: decksKeys.syncedStore(userId) }),
+          queryClient.invalidateQueries({ queryKey: decksKeys.cardsStore(userId) }),
+        ]);
+      }
+      return cloned;
+    },
   });
 }

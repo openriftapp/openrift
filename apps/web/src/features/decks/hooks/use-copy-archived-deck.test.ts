@@ -1,8 +1,6 @@
 import type { MetaDeckDetailResponse } from "@openrift/shared/types/api/meta";
 import { renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createStoreResetter } from "@/test/store-helpers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const navigate = vi.fn();
 const cloneMutateAsync = vi.fn();
@@ -16,7 +14,21 @@ vi.mock("@/lib/auth-session", () => ({ useUserId: () => userId }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 const { useCopyArchivedDeck } = await import("./use-copy-archived-deck");
-const { useLocalDecksStore } = await import("@/features/decks/stores/local-decks-store");
+const { getLocalDecksCollection, preloadLocalDecks } =
+  await import("@/features/decks/lib/local-decks-collection");
+
+await preloadLocalDecks();
+
+function storedDecks() {
+  return getLocalDecksCollection().toArray;
+}
+
+function clearLocalDecks() {
+  const rows = storedDecks();
+  if (rows.length > 0) {
+    getLocalDecksCollection().delete(rows.map((deck) => deck.id));
+  }
+}
 
 const TOKEN = "aB3dE5gH7jK9";
 const NAME = "Azir, Emperor of the Sands (Ana)";
@@ -35,17 +47,11 @@ const cards = [
 ] as unknown as MetaDeckDetailResponse["cards"];
 
 describe("useCopyArchivedDeck", () => {
-  let resetDecks: () => void;
-
   beforeEach(() => {
-    resetDecks = createStoreResetter(useLocalDecksStore);
+    clearLocalDecks();
     navigate.mockReset();
     cloneMutateAsync.mockReset();
     userId = null;
-  });
-
-  afterEach(() => {
-    resetDecks();
   });
 
   it("labels the copy as opening the builder for a signed-out reader", () => {
@@ -68,7 +74,7 @@ describe("useCopyArchivedDeck", () => {
 
     await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
-    const stored = Object.values(useLocalDecksStore.getState().decks);
+    const stored = storedDecks();
     expect(stored).toHaveLength(1);
     expect(stored[0]?.name).toBe(NAME);
     expect(stored[0]?.description).toBe(DESCRIPTION);
@@ -90,7 +96,7 @@ describe("useCopyArchivedDeck", () => {
 
     await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
-    const stored = Object.values(useLocalDecksStore.getState().decks)[0];
+    const stored = storedDecks()[0];
     expect(stored?.formatConfig).toEqual({ tagSlugs: ["shurima"] });
     expect(stored?.links).toEqual([{ label: "Primer", url: "https://example.invalid/primer" }]);
   });
@@ -100,7 +106,7 @@ describe("useCopyArchivedDeck", () => {
 
     await result.current.copy({ token: TOKEN, deck, cards, name: NAME, description: DESCRIPTION });
 
-    const localId = Object.keys(useLocalDecksStore.getState().decks)[0];
+    const localId = storedDecks()[0]?.id;
     expect(navigate).toHaveBeenCalledWith({ to: "/decks/$deckId", params: { deckId: localId } });
   });
 
@@ -117,7 +123,7 @@ describe("useCopyArchivedDeck", () => {
       description: DESCRIPTION,
     });
     expect(navigate).toHaveBeenCalledWith({ to: "/decks/$deckId", params: { deckId: "deck-9" } });
-    expect(Object.keys(useLocalDecksStore.getState().decks)).toHaveLength(0);
+    expect(storedDecks()).toHaveLength(0);
   });
 
   it("swallows a rejected clone and navigates nowhere", async () => {

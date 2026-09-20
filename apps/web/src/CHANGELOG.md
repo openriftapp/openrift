@@ -13,6 +13,7 @@
 - feat(Tournaments): **Send decklists to the Meta Archive** — link a tournament to its UVS Games event, then match your players to the official standings and send the lists they agreed to share for review.
 - feat(Collection): **Add a selection to a collection** — every list can now create owned copies, and drag-and-drop or the right-click menu acts on all the cards you picked with Manage.
 - feat(Groups): **Mark borrowed cards returned** — you can now record that you gave a borrowed card back, and the lender confirms it or puts the loan back out.
+- feat(App): **Instant decks and collections** — these pages now read from data your browser already holds, so moving between them costs no request.
 - fix(Meta): **Missing events with common names** — events sharing a name with many others, such as weekly store nights and Chinese events, were not added to the archive. They are now added.
 - fix(Meta): **Paged event index and deck browser** — both stopped loading past 65,000 events and now come 50 to a page, sorted and filtered across all of it.
 - fix(Meta): **Faster event pages** — a large event pulled every standings row before it could draw, and now comes 200 to a page.
@@ -26,6 +27,7 @@
 - feat(Groups): **Dispute a loan at any time** — a borrowed card's menu now offers “I don't have this” for as long as the loan is open, not only before you confirm it.
 - feat(Meta): **Views you can link to** — the page you are on, its size, the standings search, the decklist toggle and the legend picker all ride in the address bar.
 - feat(Meta): **Search for your tournament** — the decklist form finds your event as you type, instead of asking you to scroll a list of every event in the archive.
+- feat(Decks): **Same link for claimed decks** — a deck you built while signed out keeps its address after you sign in and claim it.
 - fix(Tournaments): **Steady deck check ticking** — cards no longer blink when you tick them, and the found mark now matches the one on picked cards.
 - fix(Meta): **Counts in your language** — entry, decklist and player counts now use your language's plural forms and number format.
 - fix(Meta): **Legends for submitted decklists** — an accepted decklist submission now sets the player's legend and champion in the standings, where they showed as unknown before.

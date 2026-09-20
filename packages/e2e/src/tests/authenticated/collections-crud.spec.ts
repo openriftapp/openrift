@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -113,21 +114,6 @@ async function countCopiesInCollection(collectionId: string): Promise<number> {
   }
 }
 
-// The server fn id is base64url(JSON) referencing the source file + export
-// name, so decoding it targets a specific fn out of the bundle.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
-}
-
 test.describe("collections CRUD", () => {
   let userEmail: string | undefined;
 
@@ -152,8 +138,8 @@ test.describe("collections CRUD", () => {
       const name = `E2E Create ${Date.now()}`;
       await input.fill(name);
 
-      const createRequest = page.waitForRequest(
-        (req) => req.method() === "POST" && isServerFn(req.url(), "createCollectionFn"),
+      const createRequest = page.waitForRequest((req) =>
+        isApiCall(req, "POST", "/api/v1/collections"),
       );
       await input.press("Enter");
       await createRequest;
@@ -171,10 +157,10 @@ test.describe("collections CRUD", () => {
       await page.goto("/collections");
       await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible({ timeout: 15_000 });
 
-      let serverFnFired = false;
+      let apiCallFired = false;
       page.on("request", (req) => {
-        if (req.method() === "POST" && isServerFn(req.url(), "createCollectionFn")) {
-          serverFnFired = true;
+        if (isApiCall(req, "POST", "/api/v1/collections")) {
+          apiCallFired = true;
         }
       });
 
@@ -186,7 +172,7 @@ test.describe("collections CRUD", () => {
       // Give the event loop a beat to fire any request that would have gone out.
       await page.waitForTimeout(500);
 
-      expect(serverFnFired).toBe(false);
+      expect(apiCallFired).toBe(false);
       // Input is still open (handleCreate returns without flipping isCreating).
       await expect(input).toBeVisible();
     });
@@ -260,8 +246,8 @@ test.describe("collections CRUD", () => {
       await page.getByRole("menuitem", { name: "Delete collection" }).click();
 
       const dialog = page.getByRole("alertdialog");
-      const deleteRequest = page.waitForRequest(
-        (req) => req.method() === "POST" && isServerFn(req.url(), "deleteCollectionFn"),
+      const deleteRequest = page.waitForRequest((req) =>
+        isApiCall(req, "DELETE", "/api/v1/collections/{id}"),
       );
       await dialog.getByRole("button", { name: "Delete" }).click();
       await deleteRequest;
@@ -289,8 +275,8 @@ test.describe("collections CRUD", () => {
         dialog.getByText(/The 2 cards in this collection will be moved to your Inbox\./u),
       ).toBeVisible();
 
-      const deleteRequest = page.waitForRequest(
-        (req) => req.method() === "POST" && isServerFn(req.url(), "deleteCollectionFn"),
+      const deleteRequest = page.waitForRequest((req) =>
+        isApiCall(req, "DELETE", "/api/v1/collections/{id}"),
       );
       await dialog.getByRole("button", { name: "Delete" }).click();
       await deleteRequest;

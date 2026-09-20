@@ -4,6 +4,7 @@ import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
 import type { Card, Printing } from "@openrift/shared/types/catalog";
 import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -39,6 +40,11 @@ import type { DeckIdentity } from "@/features/decks/components/deck-mini-identit
 import { DeckMiniIdentity } from "@/features/decks/components/deck-mini-identity";
 import { DeckZoneHeader } from "@/features/decks/components/deck-zone-header";
 import { HoveredCardPreview } from "@/features/decks/components/hovered-card-preview";
+import {
+  useDeckCardsCollection,
+  useDecksCollection,
+} from "@/features/decks/hooks/use-decks-collections";
+import { useLocalDeck, useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { CompareSide } from "@/features/decks/lib/deck-compare-side";
 import { parseCompareSide } from "@/features/decks/lib/deck-compare-side";
 import type { OwnDeckCard } from "@/features/decks/lib/deck-compare-sources";
@@ -49,19 +55,12 @@ import {
 import type { DeckDiffCard } from "@/features/decks/lib/deck-diff";
 import type { SideBySideRow } from "@/features/decks/lib/deck-side-by-side";
 import { alignDeckLists } from "@/features/decks/lib/deck-side-by-side";
-import {
-  deckDetailQueryOptions,
-  decksQueryOptions,
-  publicDeckQueryOptions,
-} from "@/features/decks/lib/decks-queries";
+import { publicDeckQueryOptions } from "@/features/decks/lib/decks-queries";
 import type { LocalDeck } from "@/features/decks/lib/local-deck";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { metaDeckQueryOptions } from "@/features/meta/lib/meta-queries";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useUserId } from "@/lib/auth-session";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -422,14 +421,16 @@ interface SideData {
 
 const NO_SIDE: SideData = { rows: null, linkIdentity: null };
 
-/** A `local:` id resolves from the browser store; server ids and deck links go through their queries, already warmed by the route for the sides it opened with. */
-function useSideData(side: CompareSide | null, userId: string | null): SideData {
-  const localDecks = useLocalDecksStore((state) => state.decks);
+/** A deck the local store holds resolves from it; a server id reads its rows from the deck-cards store; a deck link goes through its query, already warmed by the route for the sides it opened with. */
+function useSideData(side: CompareSide | null): SideData {
   const deckId = side?.kind === "deck" ? side.deckId : null;
-  const isLocal = deckId !== null && isLocalDeckId(deckId);
-  const { data } = useQuery({
-    ...deckDetailQueryOptions(userId ?? "", deckId ?? ""),
-    enabled: deckId !== null && !isLocal && userId !== null,
+  const localDeck = useLocalDeck(deckId ?? "");
+  const cardsCollection = useDeckCardsCollection();
+  const { data: cardRows } = useLiveQuery({
+    query: (q) =>
+      deckId !== null && localDeck === undefined && cardsCollection
+        ? q.from({ card: cardsCollection }).where(({ card }) => eq(card.deckId, deckId))
+        : null,
   });
   const { data: metaData } = useQuery({
     ...metaDeckQueryOptions(side?.kind === "meta" ? side.token : ""),
@@ -448,10 +449,10 @@ function useSideData(side: CompareSide | null, userId: string | null): SideData 
       ? { rows: linked.cards, linkIdentity: cardsIdentity(linked.deck.name, linked.cards) }
       : NO_SIDE;
   }
-  if (isLocal) {
-    return { rows: localDecks[side.deckId]?.cards ?? null, linkIdentity: null };
+  if (localDeck) {
+    return { rows: localDeck.cards, linkIdentity: null };
   }
-  return { rows: data?.cards ?? null, linkIdentity: null };
+  return { rows: cardRows ?? null, linkIdentity: null };
 }
 
 /** Built as an element for a `render` prop, which merges its own props into it. */
@@ -476,15 +477,14 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const userId = useUserId();
   const { cardsById } = useCards();
   const { getPreferredPrinting } = usePreferredPrinting();
   const { labels } = useEnumOrders();
   const domainColors = useDomainColors();
-  const localDecks = useLocalDecksStore((state) => state.decks);
-  const { data: serverDecks } = useQuery({
-    ...decksQueryOptions(userId ?? ""),
-    enabled: userId !== null,
+  const localDecks = useLocalDecks();
+  const decksCollection = useDecksCollection();
+  const { data: serverDecks } = useLiveQuery({
+    query: (q) => (decksCollection ? q.from({ deck: decksCollection }) : null),
   });
 
   const display: RowDisplay = {
@@ -498,7 +498,7 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
   for (const item of items) {
     identityById.set(item.deck.id, serverIdentity(item));
   }
-  for (const deck of Object.values(localDecks)) {
+  for (const deck of localDecks) {
     identityById.set(deck.id, localIdentity(deck));
   }
 
@@ -523,8 +523,8 @@ export function DeckComparePage({ fromId, toId }: { fromId?: string; toId?: stri
   const toParam = pastedTo ? null : (toId ?? null);
   const fromSide = parseCompareSide(fromParam ?? undefined);
   const toSide = parseCompareSide(toParam ?? undefined);
-  const fromData = useSideData(fromSide, userId);
-  const toData = useSideData(toSide, userId);
+  const fromData = useSideData(fromSide);
+  const toData = useSideData(toSide);
 
   const fromCards: DeckDiffCard[] | null = pastedFrom
     ? pastedFrom.cards

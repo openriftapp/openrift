@@ -1,7 +1,9 @@
+import type { DeckListItemResponse } from "@openrift/shared/types/api/deck";
+import { WellKnown } from "@openrift/shared/well-known";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { createElement, Suspense } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -32,85 +34,13 @@ vi.mock("@/lib/auth-session", () => ({
     }
     return currentUserId;
   },
+  useSession: () => ({ data: currentUserId === null ? null : { user: { id: currentUserId } } }),
   useUserId: () => currentUserId,
 }));
 
-vi.mock("@/features/decks/lib/deck-cards-save", () => ({
-  saveDeckCardsFn: async () => ({ cards: [] }),
-}));
-
-const { deckDetailQueryOptions } = await import("@/features/decks/lib/decks-queries");
-const { hydrateDeckDraft, useDeckDraftHydrated } = await import("./deck-builder-collection");
-const { deleteDeckFn, useDeleteDeck, useSaveDeckCards } = await import("./use-decks");
-
-describe("deckDetailQueryOptions", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("throws Error('NOT_FOUND') when the deck API returns 404", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        Response.json(
-          { defined: true, code: "NOT_FOUND", status: 404, message: "Not Found" },
-          { status: 404 },
-        ),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const { queryFn } = deckDetailQueryOptions("user-1", "does-not-exist");
-    expect(queryFn).toBeDefined();
-    await expect((queryFn as () => Promise<unknown>)()).rejects.toThrow("NOT_FOUND");
-
-    // oRPC's fetch link may call fetch(url, init) or fetch(request); read the URL
-    // from whichever shape so the assertion isn't coupled to the convention.
-    const [first] = fetchMock.mock.calls[0] as [string | Request];
-    const calledUrl = first instanceof Request ? first.url : String(first);
-    expect(calledUrl).toBe("http://localhost:3000/api/v1/decks/does-not-exist");
-  });
-
-  it("returns the parsed payload on 200", async () => {
-    const payload = { deck: { id: "d1" }, cards: [] };
-    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(payload));
-    vi.stubGlobal("fetch", fetchMock);
-
-    const { queryFn } = deckDetailQueryOptions("user-1", "d1");
-    const result = await (queryFn as () => Promise<unknown>)();
-    expect(result).toEqual(payload);
-  });
-});
-
-describe("deleteDeckFn", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  it("treats a 404 as success — the deck is already gone", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        Response.json(
-          { defined: true, code: "NOT_FOUND", status: 404, message: "Not Found" },
-          { status: 404 },
-        ),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(deleteDeckFn({ data: "already-deleted" })).resolves.toBeUndefined();
-  });
-
-  it("still throws on other API errors", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ message: "Couldn't delete deck" }, { status: 500 }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(deleteDeckFn({ data: "d1" })).rejects.toThrow();
-  });
-});
+const { getDeckCardsCollection, getDecksCollection } =
+  await import("@/features/decks/lib/decks-collection");
+const { useCreateDeck, useDeckDetail, useDeleteDeck } = await import("./use-decks");
 
 describe("useDeleteDeck", () => {
   afterEach(() => {
@@ -137,21 +67,238 @@ describe("useDeleteDeck", () => {
   });
 });
 
-describe("useSaveDeckCards", () => {
-  it("marks the deck's editor draft stale so the editor shows the saved cards", async () => {
-    const client = new QueryClient();
-    hydrateDeckDraft(client, "user-1", "deck-1", []);
-    const { result } = renderHook(
-      () => ({
-        save: useSaveDeckCards(),
-        hydrated: useDeckDraftHydrated(client, "user-1", "deck-1"),
+describe("useCreateDeck", () => {
+  const DECK_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11";
+  let sent: { method: string; path: string }[];
+
+  function stubDeckRow(): DeckListItemResponse {
+    return {
+      deck: {
+        id: DECK_ID,
+        name: "Poro Party",
+        descriptionSnippet: null,
+        description: null,
+        links: [],
+        oddsConfig: null,
+        isPublic: false,
+        shareToken: null,
+        format: WellKnown.deckFormat.CONSTRUCTED,
+        formatConfig: null,
+        isPinned: false,
+        archivedAt: null,
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+        coverCardId: null,
+        coverPrintingId: null,
+        coverPosition: null,
+        collectionId: null,
+        familyId: null,
+        predecessorDeckId: null,
+        isPrimary: false,
+        isDraft: false,
+      },
+      legendCardId: null,
+      championCardId: null,
+      totalCards: 0,
+      typeCounts: [],
+      domainDistribution: [],
+      isValid: false,
+      requiredProgress: 0,
+      requiredTotal: 0,
+      totalValueCents: null,
+      missingCount: null,
+      folderIds: [],
+    } as unknown as DeckListItemResponse;
+  }
+
+  beforeEach(() => {
+    sent = [];
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        sent.push({ method: input.method, path: new URL(input.url).pathname });
+        return Promise.resolve(Response.json({ items: [stubDeckRow()] }));
       }),
-      { wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children) },
     );
-    expect(result.current.hydrated).toBe(true);
+  });
 
-    await act(() => result.current.save.mutateAsync({ deckId: "deck-1", cards: [] }));
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
-    expect(result.current.hydrated).toBe(false);
+  it("returns the deck a retried claim already created instead of creating a second one", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await getDecksCollection(client, "user-1").preload();
+    sent = [];
+    const { result } = renderHook(() => useCreateDeck(), {
+      wrapper: ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client }, children),
+    });
+
+    const created = await result.current.mutateAsync({
+      id: DECK_ID,
+      name: "Poro Party",
+      format: WellKnown.deckFormat.CONSTRUCTED,
+    });
+
+    expect(created.id).toBe(DECK_ID);
+    expect(sent).toEqual([]);
+  });
+});
+
+describe("a deck read from the stores", () => {
+  const DECK_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a11";
+  const OTHER_ID = "0191a9c4-2f3e-7c1d-9b4a-3f0c6d2e8a22";
+
+  function deckRow(id: string): DeckListItemResponse {
+    return {
+      deck: {
+        id,
+        name: "Poro Party",
+        descriptionSnippet: null,
+        description: null,
+        links: [],
+        oddsConfig: null,
+        isPublic: false,
+        shareToken: null,
+        format: WellKnown.deckFormat.CONSTRUCTED,
+        formatConfig: null,
+        isPinned: false,
+        archivedAt: null,
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+        coverCardId: null,
+        coverPrintingId: null,
+        coverPosition: null,
+        collectionId: null,
+        familyId: null,
+        predecessorDeckId: null,
+        isPrimary: false,
+        isDraft: false,
+      },
+      legendCardId: null,
+      championCardId: null,
+      totalCards: 0,
+      typeCounts: [],
+      domainDistribution: [],
+      isValid: false,
+      requiredProgress: 0,
+      requiredTotal: 0,
+      totalValueCents: null,
+      missingCount: null,
+      folderIds: [],
+    } as unknown as DeckListItemResponse;
+  }
+
+  function cardRow(deckId: string, cardId: string) {
+    return {
+      deckId,
+      cardId,
+      zone: WellKnown.deckZone.MAIN,
+      quantity: 1,
+      preferredPrintingId: null,
+    };
+  }
+
+  let client: QueryClient;
+
+  beforeEach(async () => {
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        const path = new URL(input.url).pathname;
+        if (input.method === "GET" && path === "/api/v1/deck-cards") {
+          return Promise.resolve(
+            Response.json({
+              items: [cardRow(DECK_ID, "card-a"), cardRow(OTHER_ID, "card-z")],
+              syncedXid: "1000",
+            }),
+          );
+        }
+        if (input.method === "GET") {
+          return Promise.resolve(Response.json({ items: [deckRow(DECK_ID), deckRow(OTHER_ID)] }));
+        }
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }),
+    );
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await Promise.all([
+      getDecksCollection(client, "user-1").preload(),
+      getDeckCardsCollection(client, "user-1").preload(),
+    ]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    client.clear();
+  });
+
+  function wrapper({ children }: { children: React.ReactNode }) {
+    return createElement(
+      QueryClientProvider,
+      { client },
+      createElement(Suspense, { fallback: null }, children),
+    );
+  }
+
+  it("assembles the detail from the deck's own rows", async () => {
+    const { result } = renderHook(() => useDeckDetail(DECK_ID), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.deck.id).toBe(DECK_ID);
+    });
+    expect(result.current.data.cards.map((card) => card.cardId)).toEqual(["card-a"]);
+  });
+
+  it("drops a deleted deck's cards from the cards store", async () => {
+    const { result } = renderHook(() => useDeleteDeck(), { wrapper });
+
+    await result.current.mutateAsync(DECK_ID);
+
+    const remaining = getDeckCardsCollection(client, "user-1").toArray;
+    expect(remaining.map((row) => row.deckId)).toEqual([OTHER_ID]);
+  });
+});
+
+describe("a browser-local deck read while signed in", () => {
+  let client: QueryClient;
+  let requested: string[];
+
+  beforeEach(() => {
+    requested = [];
+    vi.stubGlobal("location", { origin: "http://localhost" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: Request) => {
+        requested.push(new URL(input.url).pathname);
+        return Promise.resolve(Response.json({ items: [] }));
+      }),
+    );
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    client.clear();
+  });
+
+  it("reads the local store without starting the server stores", async () => {
+    const { createLocalDeck } = await import("@/features/decks/lib/local-decks-collection");
+    const localId = createLocalDeck(WellKnown.deckFormat.CONSTRUCTED, "Poro Party");
+    const { result } = renderHook(() => useDeckDetail(localId), {
+      wrapper: ({ children }: { children: React.ReactNode }) =>
+        createElement(
+          QueryClientProvider,
+          { client },
+          createElement(Suspense, { fallback: null }, children),
+        ),
+    });
+
+    await waitFor(() => {
+      expect(result.current.data.deck.name).toBe("Poro Party");
+    });
+    expect(requested).toEqual([]);
   });
 });

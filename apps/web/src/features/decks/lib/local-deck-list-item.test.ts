@@ -28,7 +28,7 @@ const ctx = {
 
 function localDeck(overrides: Partial<LocalDeck> = {}): LocalDeck {
   return {
-    id: "local:test",
+    id: "test",
     name: "Test",
     description: "",
     format: WellKnown.deckFormat.CONSTRUCTED,
@@ -73,9 +73,9 @@ describe("localDeckToListItem", () => {
   });
 
   it("carries metadata constants and timestamps onto the synthesized deck", () => {
-    const item = localDeckToListItem(localDeck({ id: "local:abc", name: "Aggro" }), ctx);
+    const item = localDeckToListItem(localDeck({ id: "abc", name: "Aggro" }), ctx);
     expect(item.deck).toMatchObject({
-      id: "local:abc",
+      id: "abc",
       name: "Aggro",
       isPinned: false,
       archivedAt: null,

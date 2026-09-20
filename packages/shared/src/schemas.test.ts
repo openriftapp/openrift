@@ -24,11 +24,13 @@ import {
 import {
   copiesQuerySchema,
   createListEntrySchema,
+  deltaCursorSchema,
   idParamSchema,
   isoDate,
   isoDateTime,
   keyParamSchema,
   withParams,
+  xidWatermarkSchema,
 } from "./schemas";
 import type { ListRule } from "./types/list-rule.js";
 import { EMPTY_CARD_FILTERS } from "./types/search.js";
@@ -843,6 +845,36 @@ describe("copiesQuerySchema", () => {
     expect(copiesQuerySchema.safeParse({ cursor: "2025-01-01T00:00:00.000Z_cp-123" }).success).toBe(
       true,
     );
+  });
+});
+
+describe("xidWatermarkSchema", () => {
+  it("accepts a decimal xid", () => {
+    expect(xidWatermarkSchema.safeParse("12345").success).toBe(true);
+  });
+
+  it("rejects a value above the xid8 max", () => {
+    expect(xidWatermarkSchema.safeParse("18446744073709551616").success).toBe(false);
+  });
+
+  it("rejects non-digit characters", () => {
+    expect(xidWatermarkSchema.safeParse("123abc").success).toBe(false);
+  });
+});
+
+describe("deltaCursorSchema", () => {
+  it("accepts a real cursor", () => {
+    expect(
+      deltaCursorSchema.safeParse("5000~4009_a0000000-0001-4000-a000-000000000009~").success,
+    ).toBe(true);
+  });
+
+  it("accepts empty keysets", () => {
+    expect(deltaCursorSchema.safeParse("5000~~").success).toBe(true);
+  });
+
+  it("rejects a 36-dash string standing in for a uuid", () => {
+    expect(deltaCursorSchema.safeParse(`5000~4009_${"-".repeat(36)}~`).success).toBe(false);
   });
 });
 

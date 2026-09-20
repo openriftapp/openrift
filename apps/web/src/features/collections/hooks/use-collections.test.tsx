@@ -1,29 +1,26 @@
+import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { collectionsKeys } from "@/features/collections/lib/collections-query-keys";
 import { createQueryClient } from "@/lib/query-client";
-import type { CollectionsResponse } from "@/lib/server-fns/api-types";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
+import { stubCollection, stubCopy } from "@/test/factories";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-// Server fns are module-level; route every mocked handler to one spy so tests
-// can script the API response per hook.
-const { serverFnImpl, copiesCollectionHolder, restartRefetch } = vi.hoisted(() => ({
-  serverFnImpl: vi.fn((_opts?: unknown): Promise<unknown> => Promise.resolve(null)),
-  copiesCollectionHolder: { current: null as unknown },
-  restartRefetch: vi.fn(),
-}));
+const fetchCopies = vi.hoisted(() => vi.fn());
+vi.mock("@/features/collections/lib/copies-query", () => ({ fetchCopies }));
 
 vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
-      handler: () => (opts?: unknown) => serverFnImpl(opts),
+      // oxlint-disable-next-line react/function-component-definition -- mocked server-fn handler, not a component
+      handler: () => async () => null,
       middleware: () => chain,
       validator: () => chain,
     };
@@ -39,32 +36,75 @@ vi.mock("@/lib/server-fns/middleware", () => ({
   withCookies: () => {},
 }));
 
-vi.mock("@/lib/server-fns/orpc-client", () => ({
-  apiOrpcClient: () => ({}),
-}));
+const { getCollectionsCollection } =
+  await import("@/features/collections/lib/collections-collection");
+const { getCopiesCollection } = await import("@/features/collections/lib/copies-collection");
+const {
+  useCollections,
+  useCollectionsList,
+  useCreateCollection,
+  useReorderCollections,
+  useSetCollectionSidebarHidden,
+} = await import("./use-collections");
 
-vi.mock("@/features/collections/lib/copies-in-flight-refetch", () => ({
-  restartInFlightCopiesRefetch: restartRefetch,
-}));
+const USER = "user-1";
 
-vi.mock("@/features/collections/lib/copies-collection", () => ({
-  useCopiesCollection: () => copiesCollectionHolder.current,
-}));
+interface SentRequest {
+  method: string;
+  path: string;
+  body: unknown;
+}
 
-const { useDeleteCollection, useReorderCollections, useSetCollectionSidebarHidden } =
-  await import("./use-collections");
+let serverCollections: CollectionResponse[];
+let sent: SentRequest[];
+let respond: (request: SentRequest) => Response | Promise<Response>;
+
+// A fake server, not a fixed payload: these handlers refetch, so the next GET
+// is what lands in the store.
+function succeed(request: SentRequest): Response {
+  if (request.method === "GET") {
+    return Response.json({ items: serverCollections });
+  }
+  if (request.method === "POST" && request.path === "/api/v1/collections") {
+    return Response.json(stubCollection(request.body as Partial<CollectionResponse>), {
+      status: 201,
+    });
+  }
+  if (request.method === "PUT" && request.path.endsWith("/sidebar")) {
+    const { hidden } = request.body as { hidden: boolean };
+    const id = request.path.split("/")[4] ?? "";
+    serverCollections = serverCollections.map((row) =>
+      row.id === id ? { ...row, sidebarHidden: hidden } : row,
+    );
+    return new Response(null, { status: 204 });
+  }
+  return new Response(null, { status: 204 });
+}
+
+function refuse(): Response {
+  return Response.json({ message: "Service unavailable" }, { status: 503 });
+}
+
+async function bodyOf(request: Request): Promise<unknown> {
+  const text = await request.clone().text();
+  return text === "" ? undefined : JSON.parse(text);
+}
 
 function wrap(client: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={client}>
+        <Suspense fallback={null}>{children}</Suspense>
+      </QueryClientProvider>
+    );
   };
 }
 
-function seedSession(client: QueryClient, userId: string) {
+function seedSession(client: QueryClient) {
   client.setQueryData(["session"], {
-    session: { id: "s", userId, expiresAt: "", token: "" },
+    session: { id: "s", userId: USER, expiresAt: "", token: "" },
     user: {
-      id: userId,
+      id: USER,
       name: "Test",
       email: "test@example.test",
       emailVerified: true,
@@ -74,57 +114,106 @@ function seedSession(client: QueryClient, userId: string) {
   });
 }
 
-function collection(id: string, sortOrder: number): CollectionsResponse["items"][number] {
-  return {
-    id,
-    name: id,
-    description: null,
-    availableForDeckbuilding: true,
-    sidebarHidden: false,
-    isInbox: false,
-    sortOrder,
-    isPublic: false,
-    shareToken: null,
-    copyCount: 0,
-    totalValueCents: null,
-    unpricedCopyCount: null,
-    createdAt: "2026-05-17T00:00:00Z",
-    updatedAt: "2026-05-17T00:00:00Z",
-    groupId: null,
-    groupSlug: null,
-    groupName: null,
-    viewerCanAdmin: true,
-  };
+async function signedInWithCollections(client: QueryClient, rows: CollectionResponse[]) {
+  seedSession(client);
+  serverCollections = rows;
+  const collection = getCollectionsCollection(client, USER);
+  await collection.preload();
+  return collection;
 }
 
-// The hook's rollback onError replaces the QueryClient's default mutation onError
-// (react-query merges mutation options shallowly), so it must report the failure itself.
-describe("useReorderCollections", () => {
-  let errorSpy: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  serverCollections = [];
+  sent = [];
+  respond = succeed;
+  fetchCopies.mockReset();
+  fetchCopies.mockResolvedValue({ items: [], nextCursor: null });
+  vi.mocked(toast.error).mockClear();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: Request) => {
+      const request = {
+        method: input.method,
+        path: new URL(input.url).pathname,
+        body: await bodyOf(input),
+      };
+      sent.push(request);
+      return respond(request);
+    }),
+  );
+});
 
-  beforeEach(() => {
-    serverFnImpl.mockReset();
-    vi.mocked(toast.error).mockClear();
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("useCollections", () => {
+  function twoCollections(client: QueryClient) {
+    seedSession(client);
+    serverCollections = [
+      stubCollection({ id: "trades", name: "Trades", sortOrder: 2 }),
+      stubCollection({ id: "inbox", isInbox: true, copyCount: 99 }),
+    ];
+    fetchCopies.mockResolvedValue({
+      items: [stubCopy({ collectionId: "inbox" }), stubCopy({ collectionId: "inbox" })],
+      nextCursor: null,
+    });
+  }
+
+  it("lists the viewer's collections in sidebar order with live copy counts once the copies store is syncing", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    twoCollections(client);
+    await getCopiesCollection(client, USER).preload();
+
+    const { result } = renderHook(() => useCollections(), { wrapper: wrap(client) });
+
+    await waitFor(() => {
+      expect(result.current.data.map((col) => [col.id, col.copyCount])).toEqual([
+        ["inbox", 2],
+        ["trades", 0],
+      ]);
+    });
   });
 
-  afterEach(() => {
-    errorSpy.mockRestore();
+  it("keeps the server's counts and never starts the copies store on its own", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    twoCollections(client);
+
+    const { result } = renderHook(() => useCollections(), { wrapper: wrap(client) });
+
+    await waitFor(() => {
+      expect(result.current.data.map((col) => [col.id, col.copyCount])).toEqual([
+        ["inbox", 99],
+        ["trades", 0],
+      ]);
+    });
+    expect(fetchCopies).not.toHaveBeenCalled();
   });
+});
 
-  it("restores the previous order and toasts when the reorder fails", async () => {
-    serverFnImpl.mockRejectedValue(new Error("Service unavailable"));
-    const client = createQueryClient();
-    seedSession(client, "user-1");
-    const items = [collection("col-1", 0), collection("col-2", 1)];
-    client.setQueryData(["collections", "user-1"], { items });
+describe("useCollectionsList", () => {
+  it("is undefined while nobody is signed in", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-    const { result } = renderHook(() => useReorderCollections(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ orderedIds: ["col-2", "col-1"] }).catch(() => {});
+    const { result } = renderHook(() => useCollectionsList(), { wrapper: wrap(client) });
 
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(client.getQueryData(["collections", "user-1"])).toEqual({ items });
-    expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
+    expect(result.current).toBeUndefined();
+  });
+});
+
+describe("useCreateCollection", () => {
+  it("sends a client id and resolves with the collection the API stored", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await signedInWithCollections(client, []);
+    const { result } = renderHook(() => useCreateCollection(), { wrapper: wrap(client) });
+
+    const created = await result.current.mutateAsync({ name: "Summoner Skirmish" });
+
+    expect(created.name).toBe("Summoner Skirmish");
+    expect(sent.find((request) => request.method === "POST")?.body).toMatchObject({
+      id: created.id,
+      name: "Summoner Skirmish",
+    });
   });
 });
 
@@ -132,8 +221,6 @@ describe("useSetCollectionSidebarHidden", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    serverFnImpl.mockReset();
-    vi.mocked(toast.error).mockClear();
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -141,88 +228,76 @@ describe("useSetCollectionSidebarHidden", () => {
     errorSpy.mockRestore();
   });
 
-  it("hides the row in the cache as soon as the menu item is picked", async () => {
-    serverFnImpl.mockResolvedValue(null);
-    const client = createQueryClient();
-    seedSession(client, "user-1");
-    client.setQueryData(["collections", "user-1"], {
-      items: [collection("col-1", 0), collection("col-2", 1)],
+  it("hides the row before the API answers", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const collection = await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
+    let release = () => {};
+    // oxlint-disable-next-line promise/avoid-new -- held open so the optimistic state is observable
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    respond = async (request) => {
+      if (request.method === "PUT") {
+        await gate;
+      }
+      return succeed(request);
+    };
+    const { result } = renderHook(() => useSetCollectionSidebarHidden(), {
+      wrapper: wrap(client),
     });
 
-    const { result } = renderHook(() => useSetCollectionSidebarHidden(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ id: "col-1", hidden: true });
+    const pending = result.current.mutateAsync({ id: "col-1", hidden: true });
 
-    const cached = client.getQueryData(["collections", "user-1"]) as CollectionsResponse;
-    expect(cached.items.map((col) => col.sidebarHidden)).toEqual([true, false]);
+    await waitFor(() => expect(collection.get("col-1")?.sidebarHidden).toBe(true));
+    release();
+    await pending;
+    // The refetch reaches synced state on the tick after the mutation settles.
+    await waitFor(() => expect(collection.get("col-1")?.sidebarHidden).toBe(true));
   });
 
-  it("restores the previous visibility and toasts when the update fails", async () => {
-    serverFnImpl.mockRejectedValue(new Error("Service unavailable"));
+  it("restores the previous visibility and reports the failure", async () => {
     const client = createQueryClient();
-    seedSession(client, "user-1");
-    const items = [collection("col-1", 0), collection("col-2", 1)];
-    client.setQueryData(["collections", "user-1"], { items });
+    const collection = await signedInWithCollections(client, [stubCollection({ id: "col-1" })]);
+    respond = (request) => (request.method === "PUT" ? refuse() : succeed(request));
+    const { result } = renderHook(() => useSetCollectionSidebarHidden(), {
+      wrapper: wrap(client),
+    });
 
-    const { result } = renderHook(() => useSetCollectionSidebarHidden(), { wrapper: wrap(client) });
-    await result.current.mutateAsync({ id: "col-1", hidden: true }).catch(() => {});
+    await expect(result.current.mutateAsync({ id: "col-1", hidden: true })).rejects.toThrow();
 
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(client.getQueryData(["collections", "user-1"])).toEqual({ items });
-    expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
+    expect(collection.get("col-1")?.sidebarHidden).toBe(false);
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
+    });
   });
 });
 
-// An inbox is always personal, so a copy moved there on collection delete must also
-// lose its groupId or it stays counted as group-owned until a full copies refetch.
-describe("useDeleteCollection", () => {
+describe("useReorderCollections", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
-    serverFnImpl.mockReset();
-    serverFnImpl.mockResolvedValue(null);
-    copiesCollectionHolder.current = null;
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("clears groupId on the copies it moves into the inbox", async () => {
-    const writeUpdate = vi.fn();
-    copiesCollectionHolder.current = {
-      toArray: [
-        { id: "copy-1", collectionId: "group-box", groupId: "group-1" },
-        { id: "copy-other", collectionId: "col-2", groupId: null },
-      ],
-      utils: { writeUpdate },
-    };
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    client.setQueryData(collectionsKeys.all("user-1"), {
-      items: [{ ...collection("inbox-1", 0), isInbox: true }],
-    });
-
-    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
-    await result.current.mutateAsync("group-box");
-
-    await waitFor(() => {
-      expect(writeUpdate).toHaveBeenCalledWith([
-        { id: "copy-1", collectionId: "inbox-1", groupId: null },
-      ]);
-    });
+  afterEach(() => {
+    errorSpy.mockRestore();
   });
 
-  it("restarts an in-flight copies refetch after moving copies into the inbox", async () => {
-    restartRefetch.mockClear();
-    copiesCollectionHolder.current = {
-      toArray: [{ id: "copy-1", collectionId: "col-1", groupId: null }],
-      utils: { writeUpdate: vi.fn() },
-    };
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    seedSession(client, "user-1");
-    client.setQueryData(collectionsKeys.all("user-1"), {
-      items: [{ ...collection("inbox-1", 0), isInbox: true }],
-    });
+  it("restores the previous order and reports the failure", async () => {
+    const client = createQueryClient();
+    const collection = await signedInWithCollections(client, [
+      stubCollection({ id: "col-1", sortOrder: 0 }),
+      stubCollection({ id: "col-2", sortOrder: 1 }),
+    ]);
+    respond = (request) => (request.method === "POST" ? refuse() : succeed(request));
+    const { result } = renderHook(() => useReorderCollections(), { wrapper: wrap(client) });
 
-    const { result } = renderHook(() => useDeleteCollection(), { wrapper: wrap(client) });
-    await result.current.mutateAsync("col-1");
+    await expect(result.current.mutateAsync({ orderedIds: ["col-2", "col-1"] })).rejects.toThrow();
 
+    expect(collection.get("col-1")?.sortOrder).toBe(0);
+    expect(collection.get("col-2")?.sortOrder).toBe(1);
     await waitFor(() => {
-      expect(restartRefetch).toHaveBeenCalledWith(client, "user-1");
+      expect(toast.error).toHaveBeenCalledWith(expect.any(String), PERSISTENT_ERROR_TOAST);
     });
   });
 });

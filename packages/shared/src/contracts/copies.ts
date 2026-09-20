@@ -32,6 +32,8 @@ const METADATA_CONSISTENCY_MESSAGE =
 
 export const MAX_COPIES_PER_ADD = 500;
 
+export const MAX_COPIES_PER_REQUEST = 500;
+
 export const addCopiesSchema = z.object({
   batchId: z.uuid().optional(),
   copies: z
@@ -71,17 +73,17 @@ export const copyMetadataPatchSchema = z
   .refine(metadataConsistent, METADATA_CONSISTENCY_MESSAGE);
 
 export const updateCopiesSchema = z.object({
-  copyIds: z.array(z.uuid()).min(1).max(500),
+  copyIds: z.array(z.uuid()).min(1).max(MAX_COPIES_PER_REQUEST),
   patch: copyMetadataPatchSchema,
 });
 
 export const moveCopiesSchema = z.object({
-  copyIds: z.array(z.uuid()).min(1).max(500),
+  copyIds: z.array(z.uuid()).min(1).max(MAX_COPIES_PER_REQUEST),
   toCollectionId: z.uuid(),
 });
 
 export const disposeCopiesSchema = z.object({
-  copyIds: z.array(z.uuid()).min(1).max(500),
+  copyIds: z.array(z.uuid()).min(1).max(MAX_COPIES_PER_REQUEST),
 });
 
 export const copyListMembershipsSchema = z.object({

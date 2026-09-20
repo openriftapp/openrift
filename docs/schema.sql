@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict raOyy7df2Nj8wNRlHbm7zszVxagWMtVWrYIgizDhGKe9jRO4ynZRSCr7JvBAKZS
+\restrict jimiDX8aT90Yvqbh3439p11tb6Ym4rhwjKQJQOYuYuM1qawnYi2GhRuyhAiHUZY
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -380,6 +380,26 @@ CREATE FUNCTION public.set_updated_at() RETURNS trigger
 
 
 --
+-- Name: set_updated_stamps(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_updated_stamps() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF (to_jsonb(NEW) - 'updated_at' - 'updated_xid')
+         IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at' - 'updated_xid') THEN
+        NEW.updated_at := now();
+      END IF;
+      IF (to_jsonb(NEW) - 'updated_xid') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_xid') THEN
+        NEW.updated_xid := pg_current_xact_id();
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+
+--
 -- Name: snapshot_deleted_group_names(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -519,6 +539,96 @@ CREATE FUNCTION public.trg_cards_seed_card_types() RETURNS trigger
       IF NOT EXISTS (SELECT 1 FROM card_card_types WHERE card_id = NEW.id) THEN
         INSERT INTO card_card_types (card_id, type_slug, position)
         VALUES (NEW.id, NEW.type, 0);
+      END IF;
+      RETURN NULL;
+    END;
+    $$;
+
+
+--
+-- Name: trg_collections_record_copy_deletions(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_collections_record_copy_deletions() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+      SELECT cp.id, OLD.id, OLD.user_id, OLD.group_id, now(), pg_current_xact_id()
+        FROM copies cp WHERE cp.collection_id = OLD.id
+      ON CONFLICT (copy_id) DO UPDATE
+        SET collection_id = EXCLUDED.collection_id,
+            user_id = EXCLUDED.user_id,
+            group_id = EXCLUDED.group_id,
+            deleted_at = EXCLUDED.deleted_at,
+            deleted_xid = EXCLUDED.deleted_xid;
+      RETURN OLD;
+    END;
+    $$;
+
+
+--
+-- Name: trg_copies_record_deletion(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_copies_record_deletion() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      owner_id text;
+      owning_group_id uuid;
+    BEGIN
+      SELECT c.user_id, c.group_id INTO owner_id, owning_group_id
+        FROM collections c WHERE c.id = OLD.collection_id;
+      IF FOUND THEN
+        INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, owner_id, owning_group_id, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET collection_id = EXCLUDED.collection_id,
+              user_id = EXCLUDED.user_id,
+              group_id = EXCLUDED.group_id,
+              deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid
+          WHERE copy_deletions.deleted_xid <> pg_current_xact_id();
+      ELSE
+        INSERT INTO copy_deletions (copy_id, collection_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid
+          WHERE copy_deletions.deleted_xid <> pg_current_xact_id();
+      END IF;
+      RETURN OLD;
+    END;
+    $$;
+
+
+--
+-- Name: trg_copies_record_scope_change(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_copies_record_scope_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      old_owner text;
+      old_group uuid;
+      new_owner text;
+      new_group uuid;
+    BEGIN
+      SELECT c.user_id, c.group_id INTO old_owner, old_group
+        FROM collections c WHERE c.id = OLD.collection_id;
+      SELECT c.user_id, c.group_id INTO new_owner, new_group
+        FROM collections c WHERE c.id = NEW.collection_id;
+      IF (old_owner, old_group) IS DISTINCT FROM (new_owner, new_group) THEN
+        INSERT INTO copy_deletions (copy_id, collection_id, user_id, group_id, deleted_at, deleted_xid)
+        VALUES (OLD.id, OLD.collection_id, old_owner, old_group, now(), pg_current_xact_id())
+        ON CONFLICT (copy_id) DO UPDATE
+          SET collection_id = EXCLUDED.collection_id,
+              user_id = EXCLUDED.user_id,
+              group_id = EXCLUDED.group_id,
+              deleted_at = EXCLUDED.deleted_at,
+              deleted_xid = EXCLUDED.deleted_xid;
       END IF;
       RETURN NULL;
     END;
@@ -674,6 +784,38 @@ CREATE FUNCTION public.trg_printings_set_slug() RETURNS trigger
       END LOOP;
       NEW.slug := candidate;
       RETURN NEW;
+    END;
+    $$;
+
+
+--
+-- Name: trg_touch_deck_of_card(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_touch_deck_of_card() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      UPDATE decks SET updated_xid = pg_current_xact_id()
+        WHERE id = COALESCE(NEW.deck_id, OLD.deck_id)
+          AND updated_xid <> pg_current_xact_id();
+      RETURN NULL;
+    END;
+    $$;
+
+
+--
+-- Name: trg_touch_pinned_copy(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.trg_touch_pinned_copy() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      UPDATE copies SET updated_xid = pg_current_xact_id()
+        WHERE id = COALESCE(NEW.copy_id, OLD.copy_id)
+          AND updated_xid <> pg_current_xact_id();
+      RETURN NULL;
     END;
     $$;
 
@@ -1299,10 +1441,36 @@ CREATE TABLE public.copies (
     notes_private text,
     is_altered boolean DEFAULT false NOT NULL,
     links jsonb DEFAULT '[]'::jsonb NOT NULL,
+    updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
     CONSTRAINT chk_copies_condition_or_graded CHECK (((condition IS NULL) OR (grader IS NULL))),
     CONSTRAINT chk_copies_grade_half_steps CHECK (((grade IS NULL) OR ((grade >= (1)::double precision) AND (grade <= (10)::double precision) AND ((grade * (2)::double precision) = trunc((grade * (2)::double precision)))))),
     CONSTRAINT chk_copies_grader_with_grade CHECK (((grader IS NULL) = (grade IS NULL))),
     CONSTRAINT chk_copies_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text)))
+);
+
+
+--
+-- Name: copy_deletion_sweep; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.copy_deletion_sweep (
+    only_row boolean DEFAULT true NOT NULL,
+    pruned_through_xid xid8 DEFAULT '0'::xid8 NOT NULL,
+    CONSTRAINT copy_deletion_sweep_only_row_check CHECK (only_row)
+);
+
+
+--
+-- Name: copy_deletions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.copy_deletions (
+    copy_id uuid NOT NULL,
+    collection_id uuid NOT NULL,
+    user_id text,
+    group_id uuid,
+    deleted_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_xid xid8 DEFAULT pg_current_xact_id() NOT NULL
 );
 
 
@@ -1584,6 +1752,7 @@ CREATE TABLE public.decks (
     predecessor_deck_id uuid,
     is_primary boolean DEFAULT false NOT NULL,
     is_draft boolean DEFAULT false NOT NULL,
+    updated_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
     CONSTRAINT chk_decks_format_config_shape CHECK (((format_config IS NULL) OR (jsonb_typeof(format_config) = 'object'::text))),
     CONSTRAINT chk_decks_links_shape CHECK (((links IS NULL) OR (jsonb_typeof(links) = 'array'::text))),
     CONSTRAINT chk_decks_name_not_empty CHECK ((name <> ''::text)),
@@ -4325,6 +4494,22 @@ ALTER TABLE ONLY public.copies
 
 
 --
+-- Name: copy_deletion_sweep copy_deletion_sweep_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copy_deletion_sweep
+    ADD CONSTRAINT copy_deletion_sweep_pkey PRIMARY KEY (only_row);
+
+
+--
+-- Name: copy_deletions copy_deletions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.copy_deletions
+    ADD CONSTRAINT copy_deletions_pkey PRIMARY KEY (copy_id);
+
+
+--
 -- Name: custom_tag_categories custom_tag_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6048,6 +6233,41 @@ CREATE INDEX idx_copies_printing ON public.copies USING btree (printing_id);
 
 
 --
+-- Name: idx_copies_updated_xid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_copies_updated_xid ON public.copies USING btree (updated_xid, id);
+
+
+--
+-- Name: idx_copy_deletions_deleted_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_copy_deletions_deleted_at ON public.copy_deletions USING btree (deleted_at);
+
+
+--
+-- Name: idx_copy_deletions_group; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_copy_deletions_group ON public.copy_deletions USING btree (group_id);
+
+
+--
+-- Name: idx_copy_deletions_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_copy_deletions_user ON public.copy_deletions USING btree (user_id);
+
+
+--
+-- Name: idx_copy_deletions_xid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_copy_deletions_xid ON public.copy_deletions USING btree (deleted_xid, copy_id);
+
+
+--
 -- Name: idx_custom_tags_category_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6136,6 +6356,13 @@ CREATE INDEX idx_decks_predecessor_deck_id ON public.decks USING btree (predeces
 --
 
 CREATE INDEX idx_decks_user_id ON public.decks USING btree (user_id);
+
+
+--
+-- Name: idx_decks_user_updated_xid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_decks_user_updated_xid ON public.decks USING btree (user_id, updated_xid);
 
 
 --
@@ -7133,10 +7360,45 @@ CREATE CONSTRAINT TRIGGER card_card_types_sync AFTER INSERT OR DELETE OR UPDATE 
 
 
 --
+-- Name: card_trade_copies card_trade_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER card_trade_copies_touch_copy AFTER INSERT OR DELETE ON public.card_trade_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
+
+
+--
 -- Name: cards cards_seed_card_types; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE CONSTRAINT TRIGGER cards_seed_card_types AFTER INSERT ON public.cards DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.trg_cards_seed_card_types();
+
+
+--
+-- Name: collections collections_record_copy_deletions; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER collections_record_copy_deletions BEFORE DELETE ON public.collections FOR EACH ROW EXECUTE FUNCTION public.trg_collections_record_copy_deletions();
+
+
+--
+-- Name: copies copies_record_deletion; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER copies_record_deletion AFTER DELETE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.trg_copies_record_deletion();
+
+
+--
+-- Name: copies copies_record_scope_change; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER copies_record_scope_change AFTER UPDATE OF collection_id ON public.copies FOR EACH ROW WHEN ((old.collection_id IS DISTINCT FROM new.collection_id)) EXECUTE FUNCTION public.trg_copies_record_scope_change();
+
+
+--
+-- Name: deck_cards deck_cards_touch_deck; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER deck_cards_touch_deck AFTER INSERT OR DELETE OR UPDATE ON public.deck_cards FOR EACH ROW EXECUTE FUNCTION public.trg_touch_deck_of_card();
 
 
 --
@@ -7151,6 +7413,13 @@ CREATE TRIGGER distribution_channels_validate BEFORE INSERT OR UPDATE ON public.
 --
 
 CREATE TRIGGER keywords_set_updated_at BEFORE UPDATE ON public.keywords FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: loan_copies loan_copies_touch_copy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER loan_copies_touch_copy AFTER INSERT OR DELETE ON public.loan_copies FOR EACH ROW EXECUTE FUNCTION public.trg_touch_pinned_copy();
 
 
 --
@@ -7399,13 +7668,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.collections FOR EACH R
 
 
 --
--- Name: copies trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
 -- Name: custom_tag_categories trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7445,13 +7707,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_matchup_plans FOR
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.deck_plans FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: decks trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.decks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -7788,6 +8043,20 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.uvsgames_stores FOR EA
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.verifications FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: copies trg_set_updated_stamps; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.copies FOR EACH ROW EXECUTE FUNCTION public.set_updated_stamps();
+
+
+--
+-- Name: decks trg_set_updated_stamps; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_stamps BEFORE UPDATE ON public.decks FOR EACH ROW EXECUTE FUNCTION public.set_updated_stamps();
 
 
 --
@@ -9789,5 +10058,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict raOyy7df2Nj8wNRlHbm7zszVxagWMtVWrYIgizDhGKe9jRO4ynZRSCr7JvBAKZS
+\unrestrict jimiDX8aT90Yvqbh3439p11tb6Ym4rhwjKQJQOYuYuM1qawnYi2GhRuyhAiHUZY
 

@@ -36,7 +36,7 @@ function localDeckCardCount(deck: LocalDeck): number {
 export function collectCompareDeckOptions(
   openDeckId: string,
   serverDecks: readonly DeckListItemResponse[] | undefined,
-  localDecks: Record<string, LocalDeck>,
+  localDecks: readonly LocalDeck[],
 ): CompareDeckOption[] {
   const options: CompareDeckOption[] = [];
   for (const item of serverDecks ?? []) {
@@ -45,7 +45,7 @@ export function collectCompareDeckOptions(
     }
     options.push({ id: item.deck.id, name: item.deck.name, cardCount: item.totalCards });
   }
-  for (const deck of Object.values(localDecks)) {
+  for (const deck of localDecks) {
     if (deck.id === openDeckId) {
       continue;
     }

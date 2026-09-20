@@ -1,11 +1,10 @@
 import type { DeckFormat } from "@openrift/shared/types/enums";
 
 import { useDeckCards } from "@/features/decks/hooks/use-deck-builder";
+import { useIsLocalDeck, useLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { EncodeDeckCardInput } from "@/features/decks/lib/deck-encode-input";
 import { toEncodeDeckCards } from "@/features/decks/lib/deck-encode-input";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useSession } from "@/lib/auth-session";
 
 /**
@@ -45,11 +44,10 @@ export function useLocalDeckImageBody(
   const { data: session } = useSession();
   // Only reads the live draft when needed; otherwise this would subscribe a
   // draft collection whose rows go unused, once per deck row in the list.
-  const needsLiveCards = cards === undefined && isLocalDeckId(deckId);
+  const isLocal = useIsLocalDeck(deckId);
+  const needsLiveCards = cards === undefined && isLocal;
   const liveCards = useDeckCards(needsLiveCards ? deckId : "");
-  const format = useLocalDecksStore((state) =>
-    isLocalDeckId(deckId) ? state.decks[deckId]?.format : undefined,
-  );
+  const format = useLocalDeck(deckId)?.format;
 
   return () => buildLocalDeckImageBody(deckName, format, session?.user?.name, cards ?? liveCards);
 }

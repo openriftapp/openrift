@@ -1,8 +1,6 @@
 import { copyMetadataWeight } from "@openrift/shared/copy-metadata";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 
-import { isTempCopyId } from "@/features/collections/lib/temp-copy-id";
-
 export const MOVE_FROM_ANYWHERE = "anywhere";
 
 export interface MoveSource {
@@ -16,8 +14,8 @@ interface MovableScope {
 }
 
 /**
- * Drops copies already in the target, ones reserved by a live trade (the move
- * API rejects the whole batch for them), and temp rows still in flight from a batched add.
+ * Drops copies already in the target and ones reserved by a live trade (the move
+ * API rejects the whole batch for them).
  */
 export function groupMovableCopies(
   copies: readonly CopyResponse[],
@@ -27,8 +25,7 @@ export function groupMovableCopies(
     (copy) =>
       copy.collectionId !== scope.excludeCollectionId &&
       (scope.onlyCollectionId === undefined || copy.collectionId === scope.onlyCollectionId) &&
-      !copy.reserved &&
-      !isTempCopyId(copy.id),
+      !copy.reserved,
   );
   return Map.groupBy(movable, (copy) => copy.printingId);
 }

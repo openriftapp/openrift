@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "Cet exemplaire est dans une collection de groupe, donc tout le groupe peut voir ceci. Jamais affiché sur les pages publiques partagées.",
   "collections_copies_links_label": "Photos et vidéos",
   "collections_copies_link_title_placeholder": "Libellé",
-  "collections_copies_still_adding": "Ces cartes sont encore en cours d'ajout. Réessayez dans un instant.",
   "collections_copies_network_error": "Serveur injoignable, vérifiez votre connexion",
   "collections_copies_signed_out": "Impossible d'ajouter des cartes hors connexion",
   "collections_copies_quick_scope_move": "Déplacer",

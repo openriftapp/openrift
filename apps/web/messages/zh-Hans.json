@@ -1371,7 +1371,6 @@
   "collections_copies_notes_private_hint_group": "这张实体卡属于小组收藏，因此小组里的所有人都能看到。绝不会在公开分享页面上显示。",
   "collections_copies_links_label": "照片与视频",
   "collections_copies_link_title_placeholder": "标签",
-  "collections_copies_still_adding": "这些卡牌仍在添加中。请稍后重试。",
   "collections_copies_network_error": "无法连接服务器。请检查你的网络连接。",
   "collections_copies_signed_out": "未登录时无法添加实体卡",
   "collections_copies_quick_scope_move": "移动",

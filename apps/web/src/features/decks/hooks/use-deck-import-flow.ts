@@ -1,6 +1,7 @@
 import type { DeckResponse, PublicDeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +11,8 @@ import { handleImportFileUpload } from "@/features/collections/hooks/import-flow
 import { classifyBucket } from "@/features/collections/lib/import-summary";
 import { resetDeckDraft } from "@/features/decks/hooks/deck-builder-collection";
 import { useCreateDeck, useSaveDeckCards } from "@/features/decks/hooks/use-decks";
+import { useDecksCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import type { DeckLinkKind } from "@/features/decks/lib/deck-compare-side";
 import { queryDeckLink } from "@/features/decks/lib/deck-compare-side";
 import {
@@ -34,8 +37,11 @@ import {
 } from "@/features/decks/lib/deck-import-parsers";
 import { sortDeckImportEntries } from "@/features/decks/lib/deck-import-preview";
 import { resolveReplaceTarget } from "@/features/decks/lib/deck-import-replace";
-import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import {
+  createLocalDeck,
+  setLocalDeckCards,
+  updateLocalDeck,
+} from "@/features/decks/lib/local-decks-collection";
 import { useDeckFormatList, useZoneOrder } from "@/hooks/use-enums";
 import { useUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
@@ -59,22 +65,26 @@ export function useDeckImportFlow() {
   const saveDeckCards = useSaveDeckCards();
   const navigate = useNavigate();
 
-  const localDecks = useLocalDecksStore((state) => state.decks);
-  const replaceTarget = resolveReplaceTarget(
-    replaceDeckId,
-    Boolean(userId),
-    (id) => localDecks[id] !== undefined,
+  const localDecks = useLocalDecks();
+  const replaceTarget = resolveReplaceTarget(replaceDeckId, Boolean(userId), (id) =>
+    localDecks.some((deck) => deck.id === id),
   );
-  const replaceDeckQuery = useQuery({
-    ...deckDetailQueryOptions(userId ?? "", replaceDeckId ?? ""),
-    enabled: replaceTarget.mode === "server",
+  const decksCollection = useDecksCollection();
+  const { data: deckRow } = useLiveQuery({
+    query: (q) =>
+      replaceTarget.mode === "server" && decksCollection
+        ? q
+            .from({ row: decksCollection })
+            .where(({ row }) => eq(row.deck.id, replaceTarget.deckId))
+            .findOne()
+        : null,
   });
   // Replace mode keeps the target's own name, format, and format config.
   const replaceTargetDeck =
     replaceTarget.mode === "local"
-      ? localDecks[replaceTarget.deckId]
+      ? localDecks.find((deck) => deck.id === replaceTarget.deckId)
       : replaceTarget.mode === "server"
-        ? replaceDeckQuery.data?.deck
+        ? deckRow?.deck
         : undefined;
   const replaceDeckName = replaceTargetDeck?.name;
   const isReplaceMode = replaceTarget.mode !== "none";
@@ -266,7 +276,7 @@ export function useDeckImportFlow() {
     const targetName = replaceDeckName ?? m.decks_import_fallback_deck_name();
     setIsImporting(true);
     if (replaceTarget.mode === "local") {
-      useLocalDecksStore.getState().setCards(replaceTarget.deckId, importCards);
+      setLocalDeckCards(replaceTarget.deckId, importCards);
       resetDeckDraft(queryClient, "local", replaceTarget.deckId);
       toast.success(m.decks_import_replaced_toast({ name: targetName, count: totalCards }));
       void navigate({ to: "/decks/$deckId", params: { deckId: replaceTarget.deckId } });
@@ -295,10 +305,10 @@ export function useDeckImportFlow() {
     setIsImporting(true);
 
     if (!userId) {
-      const localId = useLocalDecksStore.getState().createDeck(deckFormat, trimmedName);
-      useLocalDecksStore.getState().setCards(localId, importCards);
+      const localId = createLocalDeck(deckFormat, trimmedName);
+      setLocalDeckCards(localId, importCards);
       if (links) {
-        useLocalDecksStore.getState().updateDeck(localId, { links });
+        updateLocalDeck(localId, { links });
       }
       toast.success(m.decks_import_created_toast({ name: trimmedName, count: totalCards }));
       void navigate({ to: "/decks/$deckId", params: { deckId: localId } });

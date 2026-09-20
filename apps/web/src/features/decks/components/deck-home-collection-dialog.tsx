@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,10 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CreateCollectionDialog } from "@/features/collections/components/create-collection-dialog";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useUpdateDeck } from "@/features/decks/hooks/use-decks";
 import { sharedBoxWarning } from "@/features/decks/lib/deck-box-label";
-import { useUserId } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
 const NONE = "none";
@@ -47,14 +45,10 @@ export function DeckHomeCollectionDialog({
   open,
   onOpenChange,
 }: DeckHomeCollectionDialogProps) {
-  const userId = useUserId();
   const [value, setValue] = useState(currentCollectionId ?? NONE);
   const [createOpen, setCreateOpen] = useState(false);
   const updateDeck = useUpdateDeck();
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: open && Boolean(userId),
-  });
+  const collections = useCollectionsList();
 
   const pickable = (collections ?? []).filter(
     (collection) => collection.groupId === null || collection.id === currentCollectionId,

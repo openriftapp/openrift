@@ -200,7 +200,7 @@ Date entry is separate and unchanged: always the `DatePicker` from `@/components
 
 ## Persisted Zustand Stores
 
-Never pass `version`/`migrate` to `persist()`. Users run stale cached bundles after a deploy, and an older bundle (implicit version 0, no migrate) that rehydrates a newer-versioned blob discards the whole blob — the exact data loss versioning looks like it prevents (rationale: `apps/web/src/features/decks/stores/local-decks-store.ts`).
+Never pass `version`/`migrate` to `persist()`. Users run stale cached bundles after a deploy, and an older bundle (implicit version 0, no migrate) that rehydrates a newer-versioned blob discards the whole blob — the exact data loss versioning looks like it prevents.
 
 Absorb shape changes in a defensive `merge` that validates each field and falls back to defaults. For a genuinely breaking change, branch on a `schemaVersion` field inside the persisted state (handled by `merge`), or rotate to a new storage key with a one-time migration from the old key. Enforced by `apps/web/src/stores/persist-no-version.test.ts`.
 

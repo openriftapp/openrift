@@ -7,7 +7,7 @@ import {
   domainSchema,
   formatConfigResponseSchema,
 } from "@openrift/shared/response-schemas";
-import { idParamSchema, withParams } from "@openrift/shared/schemas";
+import { idParamSchema, withParams, xidWatermarkSchema } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "./_base.js";
@@ -32,6 +32,7 @@ export const decksQuerySchema = z.object({
 const formatConfigSchema = z.record(z.string(), z.unknown()).nullable();
 
 export const createDeckSchema = z.object({
+  id: z.uuid().optional(),
   name: deckFieldRules.name,
   description: z.string().max(8000).nullish(),
   format: deckFieldRules.format,
@@ -167,6 +168,11 @@ export const deckSummaryResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   descriptionSnippet: z.string().nullable(),
+  description: z.string().nullable(),
+  links: z.array(deckLinkSchema),
+  oddsConfig: deckOddsConfigSchema.nullable(),
+  isPublic: z.boolean(),
+  shareToken: z.string().nullable(),
   format: deckFormatSchema,
   formatConfig: formatConfigResponseSchema,
   isPinned: z.boolean(),
@@ -205,6 +211,26 @@ export const deckCardResponseSchema = z.object({
   zone: deckZoneSchema,
   quantity: z.number(),
   preferredPrintingId: z.string().nullable(),
+});
+
+export const deckCardWithDeckResponseSchema = deckCardResponseSchema.extend({
+  deckId: z.string(),
+});
+
+export const deckCardsQuerySchema = z.object({
+  since: xidWatermarkSchema.optional(),
+  cursor: z
+    .string()
+    .regex(/^\d{1,20}_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u)
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(10_000).optional(),
+});
+
+export const deckCardsListResponseSchema = z.object({
+  items: z.array(deckCardWithDeckResponseSchema),
+  touchedDeckIds: z.array(z.uuid()).optional(),
+  nextCursor: z.string().nullish(),
+  syncedXid: z.string().optional(),
 });
 
 export const deckDetailResponseSchema = z.object({
@@ -252,10 +278,17 @@ export const decksContract = {
     .route({ method: "GET", path: "/api/v1/decks", tags: [TAG] })
     .input(decksQuerySchema)
     .output(deckListResponseSchema),
+  allCards: authedRoute
+    .route({ method: "GET", path: "/api/v1/deck-cards", tags: [TAG] })
+    .input(deckCardsQuerySchema)
+    .output(deckCardsListResponseSchema),
   create: authedRoute
     .route({ method: "POST", path: "/api/v1/decks", tags: [TAG], successStatus: 201 })
     .input(createDeckSchema)
-    .errors({ BAD_REQUEST: { message: "Unknown format or invalid format config" } })
+    .errors({
+      BAD_REQUEST: { message: "Unknown format or invalid format config" },
+      CONFLICT: { message: "Deck id already belongs to someone else" },
+    })
     .output(deckResponseSchema),
   get: authedRoute
     .route({ method: "GET", path: "/api/v1/decks/{id}", tags: [TAG] })

@@ -1,4 +1,3 @@
-import type { DeckDetailResponse } from "@openrift/shared/types/api/deck";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection, localOnlyCollectionOptions } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
@@ -6,13 +5,13 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 
 import { cleanupWhenIdle, markOrphaned } from "@/features/collections/lib/collection-cleanup";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
-import { saveDeckCardsFn } from "@/features/decks/lib/deck-cards-save";
-import { decksKeys } from "@/features/decks/lib/decks-query-keys";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
+import { getDeckCardsCollection } from "@/features/decks/lib/decks-collection";
+import { saveDeckCards } from "@/features/decks/lib/decks-write";
+import { isLocalDeck, setLocalDeckCards } from "@/features/decks/lib/local-decks-collection";
 import { useDeckUndoStore } from "@/features/decks/stores/deck-undo-store";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
 import { useUserId } from "@/lib/auth-session";
 import { withTimeout } from "@/lib/with-timeout";
 import { m } from "@/paraglide/messages.js";
@@ -84,12 +83,12 @@ function collectionCards(entry: DraftEntry): {
 }
 
 function runLocalSave(entry: DraftEntry): void {
-  useLocalDecksStore.getState().setCards(entry.deckId, collectionCards(entry));
+  setLocalDeckCards(entry.deckId, collectionCards(entry));
   setStatus(entry, { isSaving: false, isDirty: entry.saveTimer !== null, error: null });
 }
 
 async function runSave(queryClient: QueryClient, userId: string, entry: DraftEntry): Promise<void> {
-  if (isLocalDeckId(entry.deckId)) {
+  if (isLocalDeck(entry.deckId)) {
     runLocalSave(entry);
     return;
   }
@@ -104,8 +103,10 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
   setStatus(entry, { isSaving: true, error: null });
 
   try {
-    const result = await withTimeout(
-      saveDeckCardsFn({ data: { deckId: entry.deckId, cards }, signal: controller.signal }),
+    const collection = getDeckCardsCollection(queryClient, userId);
+    await collection.preload();
+    await withTimeout(
+      saveDeckCards(collection, entry.deckId, cards, { queryClient, userId }).isPersisted.promise,
       { label: m.decks_editor_timeout_save(), abortController: controller },
     );
 
@@ -113,11 +114,6 @@ async function runSave(queryClient: QueryClient, userId: string, entry: DraftEnt
       return;
     }
     entry.lastAppliedSeq = seq;
-
-    queryClient.setQueryData<DeckDetailResponse>(decksKeys.detail(userId, entry.deckId), (old) =>
-      old ? { ...old, cards: result.cards } : old,
-    );
-    void queryClient.invalidateQueries({ queryKey: decksKeys.all(userId), exact: true });
 
     const stillDirty = entry.saveTimer !== null;
     setStatus(entry, { isSaving: false, isDirty: stillDirty, error: null });
@@ -360,7 +356,8 @@ export function useDeckDraftCollection(
 
 export function useDeckDraftScope(deckId: string): string | null {
   const userId = useUserId();
-  return isLocalDeckId(deckId) ? LOCAL_SCOPE : userId;
+  const isLocal = useIsLocalDeck(deckId);
+  return isLocal ? LOCAL_SCOPE : userId;
 }
 
 export function useDeckSaveStatus(

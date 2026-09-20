@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 
 import { getCodeFromDeck } from "@piltoverarchive/riftbound-deck-codes";
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { APIRequestContext, Locator, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { isApiCall, isApiPath } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -55,93 +56,6 @@ async function deleteUser(email: string) {
   } finally {
     await sql.end();
   }
-}
-
-// TanStack Start encodes each server fn id as base64url(JSON); decoding the
-// segment lets us target a specific server fn without colliding with others.
-function isServerFn(fnName: string) {
-  return (url: string) => {
-    const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-    const encoded = match?.groups?.encoded;
-    if (encoded === undefined) {
-      return false;
-    }
-    try {
-      return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-    } catch {
-      return false;
-    }
-  };
-}
-
-// Seroval (used by TanStack Start server functions) encodes POST bodies as an
-// AST (`{ t: <typeId>, p: { k: [...keys], v: [...children] }, ... }`); decode
-// just enough of it to reach plain objects/arrays/primitives back out.
-interface SerovalEnvelope {
-  t: SerovalNode;
-}
-
-interface SerovalNode {
-  t: number;
-  s?: unknown;
-  p?: { k: string[]; v: SerovalNode[] };
-  l?: number;
-  a?: SerovalNode[];
-}
-
-function decodeSerovalNode(node: SerovalNode): unknown {
-  // t=0 number, t=1 string, t=2 bool (s=2 true, s=3 false), t=3 null, t=4 undefined.
-  switch (node.t) {
-    case 0: {
-      return node.s;
-    }
-    case 1: {
-      return node.s;
-    }
-    case 2: {
-      return node.s === 2;
-    }
-    case 3: {
-      return null;
-    }
-    case 4: {
-      return undefined;
-    }
-    case 9: {
-      // plain array
-      return (node.a ?? []).map((entry) => decodeSerovalNode(entry));
-    }
-    case 10: {
-      // plain object
-      const out: Record<string, unknown> = {};
-      const p = node.p;
-      if (p) {
-        for (const [index, key] of p.k.entries()) {
-          const child = p.v[index];
-          if (child !== undefined) {
-            out[key] = decodeSerovalNode(child);
-          }
-        }
-      }
-      return out;
-    }
-    default: {
-      return undefined;
-    }
-  }
-}
-
-function decodeServerFnData<T = unknown>(rawBody: unknown): T {
-  const envelope = rawBody as SerovalEnvelope | { data: unknown } | undefined;
-  if (envelope && typeof envelope === "object" && "t" in envelope && envelope.t) {
-    const decoded = decodeSerovalNode(envelope.t) as { data?: T } | undefined;
-    return (decoded?.data ?? {}) as T;
-  }
-  // Fall back to the plain-JSON shape older versions used.
-  if (envelope && typeof envelope === "object" && "data" in envelope) {
-    return (envelope as { data: T }).data ?? ({} as T);
-  }
-  return {} as T;
 }
 
 function buildPiltoverSample(): string {
@@ -355,11 +269,11 @@ test.describe("deck import", () => {
       userEmail = await createAndLogin(page);
       await advanceToPreviewWithPiltover(page);
 
-      const createPromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("createDeckFn")(request.url()),
+      const createPromise = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
-      const savePromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("saveDeckCardsFn")(request.url()),
+      const savePromise = page.waitForRequest((request) =>
+        isApiCall(request, "PUT", "/api/v1/decks/{id}/cards"),
       );
 
       const importButton = page.getByRole("button", { name: /^Import \d+ cards?$/u });
@@ -369,9 +283,7 @@ test.describe("deck import", () => {
       const createRequest = await createPromise;
       await savePromise;
 
-      const body = decodeServerFnData<{ name?: string; format?: string }>(
-        createRequest.postDataJSON(),
-      );
+      const body = createRequest.postDataJSON() as { name?: string; format?: string };
       expect(body.name).toBe("Imported Deck");
       expect(body.format).toBe("constructed");
 
@@ -402,13 +314,13 @@ test.describe("deck import", () => {
 
       await page.getByLabel("Deck name").fill("Named By Hand");
 
-      const createPromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("createDeckFn")(request.url()),
+      const createPromise = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
       await importButton.click();
       const createRequest = await createPromise;
 
-      const body = decodeServerFnData<{ name?: string }>(createRequest.postDataJSON());
+      const body = createRequest.postDataJSON() as { name?: string };
       expect(body.name).toBe("Named By Hand");
     });
 
@@ -420,14 +332,14 @@ test.describe("deck import", () => {
       await page.getByRole("option", { name: "Freeform" }).click();
       await expect(page.locator("#preview-deck-format")).toContainText("Freeform");
 
-      const createPromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("createDeckFn")(request.url()),
+      const createPromise = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
 
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();
       const createRequest = await createPromise;
 
-      const body = decodeServerFnData<{ format?: string }>(createRequest.postDataJSON());
+      const body = createRequest.postDataJSON() as { format?: string };
       expect(body.format).toBe("freeform");
     });
   });
@@ -561,15 +473,15 @@ test.describe("deck import", () => {
       });
       await page.getByLabel("Deck name").fill("Text Import E2E");
 
-      const savePromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("saveDeckCardsFn")(request.url()),
+      const savePromise = page.waitForRequest((request) =>
+        isApiCall(request, "PUT", "/api/v1/decks/{id}/cards"),
       );
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();
       const saveRequest = await savePromise;
 
-      const savePayload = decodeServerFnData<{
+      const savePayload = saveRequest.postDataJSON() as {
         cards: { cardId: string; zone: string; quantity: number }[];
-      }>(saveRequest.postDataJSON());
+      };
       const zones = new Set((savePayload.cards ?? []).map((card) => card.zone));
       expect(zones.has("legend")).toBe(true);
       expect(zones.has("main")).toBe(true);
@@ -604,15 +516,15 @@ test.describe("deck import", () => {
       });
       await page.getByLabel("Deck name").fill("TTS Import E2E");
 
-      const savePromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("saveDeckCardsFn")(request.url()),
+      const savePromise = page.waitForRequest((request) =>
+        isApiCall(request, "PUT", "/api/v1/decks/{id}/cards"),
       );
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();
       const saveRequest = await savePromise;
 
-      const savePayload = decodeServerFnData<{
+      const savePayload = saveRequest.postDataJSON() as {
         cards: { cardId: string; zone: string; quantity: number }[];
-      }>(saveRequest.postDataJSON());
+      };
       const zones = new Set((savePayload.cards ?? []).map((card) => card.zone));
       expect(zones.has("champion")).toBe(true);
 
@@ -630,27 +542,33 @@ test.describe("deck import", () => {
       }
     });
 
-    test("createDeckFn failure shows an error toast and no save request fires", async ({
-      page,
-    }) => {
+    test("deck create failure shows an error toast and no save request fires", async ({ page }) => {
       userEmail = await createAndLogin(page);
 
-      // Route must be registered before navigating so the server fn is
+      // Routes must be registered before navigating so the create is
       // intercepted when the user clicks Import.
       let saveRequestSeen = false;
-      await page.route("**/_serverFn/**", async (route) => {
-        const url = route.request().url();
-        if (isServerFn("createDeckFn")(url)) {
-          // Aborting, not fulfilling a 500: the server-fn client reads a
-          // hand-rolled error body as a result and the mutation resolves.
-          await route.abort("failed");
-          return;
-        }
-        if (isServerFn("saveDeckCardsFn")(url)) {
-          saveRequestSeen = true;
-        }
-        await route.continue();
-      });
+      await page.route(
+        (url) => isApiPath(url, "/api/v1/decks/{id}/cards"),
+        async (route) => {
+          if (route.request().method() === "PUT") {
+            saveRequestSeen = true;
+          }
+          await route.continue();
+        },
+      );
+      await page.route(
+        (url) => isApiPath(url, "/api/v1/decks"),
+        async (route) => {
+          if (route.request().method() === "POST") {
+            // Aborting, not fulfilling a 500: a hand-rolled body isn't the
+            // oRPC error shape, and the client would read it as a result.
+            await route.abort("failed");
+            return;
+          }
+          await route.continue();
+        },
+      );
 
       await advanceToPreviewWithPiltover(page);
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();
@@ -664,20 +582,23 @@ test.describe("deck import", () => {
       expect(saveRequestSeen).toBe(false);
     });
 
-    test("saveDeckCardsFn failure shows an error toast and keeps the user on import", async ({
+    test("card save failure shows an error toast and keeps the user on import", async ({
       page,
     }) => {
       userEmail = await createAndLogin(page);
 
-      // createDeckFn succeeds and only the save fails, leaving a half-imported
+      // The create succeeds and only the save fails, leaving a half-imported
       // deck row in the DB; this test covers only the UX-visible failure.
-      await page.route("**/_serverFn/**", async (route) => {
-        if (isServerFn("saveDeckCardsFn")(route.request().url())) {
-          await route.abort("failed");
-          return;
-        }
-        await route.continue();
-      });
+      await page.route(
+        (url) => isApiPath(url, "/api/v1/decks/{id}/cards"),
+        async (route) => {
+          if (route.request().method() === "PUT") {
+            await route.abort("failed");
+            return;
+          }
+          await route.continue();
+        },
+      );
 
       await advanceToPreviewWithPiltover(page);
       await page.getByRole("button", { name: /^Import \d+ cards?$/u }).click();

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authedRoute } from "./_base.js";
 
 export const createDeckFolderSchema = z.object({
+  id: z.uuid().optional(),
   name: z.string().min(1).max(100),
 });
 

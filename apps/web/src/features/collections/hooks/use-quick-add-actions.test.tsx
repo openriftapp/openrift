@@ -8,12 +8,12 @@ import { createStoreResetter } from "@/test/store-helpers";
 const disposeMutateAsync = vi.fn();
 const batchedAdd = vi.fn();
 vi.mock("@/features/collections/hooks/use-copies", () => ({
-  useBatchedAddCopies: () => ({ add: batchedAdd, isPending: false }),
+  useBatchedAddCopies: () => ({ add: batchedAdd }),
   useDisposeCopies: () => ({ mutateAsync: disposeMutateAsync, isPending: false }),
 }));
 
 let copies: CopyResponse[] = [];
-vi.mock("@/features/collections/lib/copies-collection", () => ({
+vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
   useCopiesCollection: () => ({ toArray: copies }),
 }));
 
@@ -79,7 +79,7 @@ describe("useQuickAddActions handleQuickAdd quantity", () => {
     let added = 0;
     batchedAdd.mockImplementation(() => {
       added += 1;
-      return { result: Promise.resolve({ id: `copy-${added}` }) };
+      return Promise.resolve({ id: `copy-${added}` });
     });
   });
 

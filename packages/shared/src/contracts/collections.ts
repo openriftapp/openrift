@@ -13,6 +13,7 @@ const collectionFieldRules = {
 };
 
 export const createCollectionSchema = z.object({
+  id: z.uuid().optional(),
   name: collectionFieldRules.name,
   description: z.string().max(1000).nullish(),
   availableForDeckbuilding: z.boolean().optional(),
@@ -112,7 +113,10 @@ export const collectionsContract = {
   create: authedRoute
     .route({ method: "POST", path: "/api/v1/collections", tags: [TAG], successStatus: 201 })
     .input(createCollectionSchema)
-    .errors({ NOT_FOUND: { message: "Group not found" } })
+    .errors({
+      NOT_FOUND: { message: "Group not found" },
+      CONFLICT: { message: "Collection id already belongs to someone else" },
+    })
     .output(collectionResponseSchema),
   reorder: authedRoute
     .route({ method: "POST", path: "/api/v1/collections/reorder", tags: [TAG], successStatus: 204 })

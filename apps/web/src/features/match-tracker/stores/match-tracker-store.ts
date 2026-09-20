@@ -1,8 +1,8 @@
+import { v7 as uuidv7 } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { TrackedLegend } from "@/features/match-tracker/lib/match-legends";
-import { randomUuid } from "@/lib/random-uuid";
 import { m } from "@/paraglide/messages.js";
 
 type GameStatus = "setup" | "playing" | "finished";
@@ -66,7 +66,7 @@ function defaultTeam(index: number): TeamId {
 
 function makePlayer(index: number): TrackedPlayer {
   return {
-    id: randomUuid(),
+    id: uuidv7(),
     name: m.tracker_default_player_name({ number: index + 1 }),
     points: 0,
     xp: 0,

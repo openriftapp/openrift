@@ -11,6 +11,11 @@ function stubMember(overrides: Partial<DeckSummaryResponse> & { id: string }): D
   return {
     name: `Deck ${overrides.id}`,
     descriptionSnippet: null,
+    description: null,
+    links: [],
+    oddsConfig: null,
+    isPublic: false,
+    shareToken: null,
     format: WellKnown.deckFormat.CONSTRUCTED,
     formatConfig: null,
     isPinned: false,

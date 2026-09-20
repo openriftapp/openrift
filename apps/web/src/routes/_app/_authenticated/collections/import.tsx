@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
+import { CollectionPending } from "@/features/collections/components/collection-pending";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/_authenticated/collections/import")({
-  ssr: "data-only",
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Import", noIndex: true }),
   loader: async ({ context }) => {
-    await context.queryClient.query({
-      ...collectionsQueryOptions(context.userId),
-      staleTime: "static",
-    });
+    const { getCollectionsCollection } =
+      await import("@/features/collections/lib/collections-collection");
+    await getCollectionsCollection(context.queryClient, context.userId).preload();
   },
+  pendingComponent: CollectionPending,
 });

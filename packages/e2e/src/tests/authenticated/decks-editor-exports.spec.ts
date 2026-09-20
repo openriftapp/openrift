@@ -1,6 +1,7 @@
 import type { APIRequestContext, Download, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { isApiPath } from "../../helpers/api-endpoint.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
 
 const ANNIE_CARD_ID = "019cfc3b-038a-7c0c-a76c-e0a5e2f46b18";
@@ -37,7 +38,7 @@ async function setDeckCardsViaApi(
 }
 
 // TanStack Start encodes each server fn id as base64url(JSON); decoding lets us
-// match a specific server fn (exportDeckFn, saveDeckCardsFn) without colliding.
+// match a specific server fn (exportDeckFn) without colliding.
 function isServerFn(url: string, fnName: string): boolean {
   const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
   const encoded = match?.groups?.encoded;
@@ -187,7 +188,7 @@ test.describe("deck editor exports", () => {
       await page.goto(`/decks/${deckId}`);
 
       await page.route(
-        (url) => isServerFn(url.toString(), "saveDeckCardsFn"),
+        (url) => isApiPath(url, "/api/v1/decks/{id}/cards"),
         (route) => route.abort(),
       );
 

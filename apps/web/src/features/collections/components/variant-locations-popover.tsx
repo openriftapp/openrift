@@ -1,7 +1,6 @@
 import type { CollectionResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
-import { useQuery } from "@tanstack/react-query";
 import {
   BookOpenIcon,
   ChevronDownIcon,
@@ -16,10 +15,9 @@ import { Button } from "@/components/ui/button";
 import { PickerList, PickerRow } from "@/components/ui/picker-list";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingVariantLabel } from "@/features/cards/components/printing-label";
-import { collectionsQueryOptions } from "@/features/collections/hooks/use-collections";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useOwnedCollectionsByVariants } from "@/features/collections/hooks/use-owned-count";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { formatCardId } from "@/lib/format";
 import { getFilterIconPath } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -106,8 +104,7 @@ export function VariantLocationsPopover({
   setAddCollectionTarget,
   viewCollectionId,
 }: VariantLocationsPopoverProps) {
-  const userId = useRequiredUserId();
-  const { data: collections } = useQuery(collectionsQueryOptions(userId));
+  const collections = useCollectionsList();
   const { data: breakdown } = useOwnedCollectionsByVariants(printings, true, viewCollectionId);
 
   const hasMixedRarities = new Set(printings.map((printing) => printing.rarity)).size > 1;

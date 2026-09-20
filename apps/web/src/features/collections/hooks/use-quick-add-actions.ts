@@ -7,13 +7,12 @@ import { toast } from "sonner";
 
 import type { CardRowClickModifiers } from "@/features/cards/stores/card-row-actions-store";
 import { useBatchedAddCopies, useDisposeCopies } from "@/features/collections/hooks/use-copies";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 import {
   decideRemoval,
   pickRemovalCopy,
 } from "@/features/collections/hooks/use-quick-add-actions-helpers";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
 import { summarizeBatchAdd } from "@/features/collections/lib/summarize-batch-add";
-import { isTempCopyId } from "@/features/collections/lib/temp-copy-id";
 import { useAddModeStore } from "@/features/collections/stores/add-mode-store";
 import type { VariantPopoverIntent } from "@/features/collections/stores/add-mode-store";
 
@@ -92,8 +91,7 @@ export function useQuickAddActions(
     pendingPrintingsRef.current.set(printing.id, printing);
     useAddModeStore.getState().incrementPending(printing);
     try {
-      const { result } = batchedAdd.add(printing.id, collectionId);
-      const real = await result;
+      const real = await batchedAdd.add(printing.id, collectionId);
       useAddModeStore.getState().recordAdd(printing, real.id);
     } catch {
       // Global onError toasts; swallow so it doesn't surface as an uncaught promise.
@@ -172,8 +170,7 @@ export function useQuickAddActions(
       return;
     }
     const copies = copiesCollection.toArray.filter(
-      (c) =>
-        c.printingId === printing.id && c.collectionId === fromCollectionId && !isTempCopyId(c.id),
+      (c) => c.printingId === printing.id && c.collectionId === fromCollectionId,
     );
     const candidate = pickRemovalCopy(copies);
     if (!candidate) {

@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -119,23 +120,6 @@ async function fetchCopies(request: APIRequestContext, collectionId: string): Pr
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { items: CopyEntry[] };
   return body.items.filter((item) => item.collectionId === collectionId);
-}
-
-// TanStack Start encodes the server fn id as base64url(JSON). Decoding lets us
-// target a specific server fn without matching unrelated ones.
-function isServerFn(constName: string) {
-  return (url: string) => {
-    const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-    const encoded = match?.groups?.encoded;
-    if (encoded === undefined) {
-      return false;
-    }
-    try {
-      return Buffer.from(encoded, "base64url").toString("utf-8").includes(constName);
-    } catch {
-      return false;
-    }
-  };
 }
 
 // Mirrors generateExportCSV in apps/web/src/lib/csv-export.ts.
@@ -635,8 +619,8 @@ test.describe("collections import/export", () => {
       const nameInput = page.getByLabel("Collection name");
       await nameInput.fill("Imported Stash");
 
-      const createPromise = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn("createCollectionFn")(request.url()),
+      const createPromise = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/collections"),
       );
       const addCopiesPromise = page.waitForRequest(
         (request) => request.method() === "POST" && request.url().endsWith("/api/v1/copies"),

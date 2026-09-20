@@ -14,7 +14,7 @@ vi.mock("@/features/collections/hooks/use-copies", () => ({
   useAddCopies: () => ({ mutateAsync: vi.fn() }),
   useDisposeCopies: () => ({ mutateAsync: vi.fn() }),
 }));
-vi.mock("@/features/collections/lib/copies-collection", () => ({
+vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
   useCopiesCollection: () => null,
 }));
 vi.mock("@/features/lists/hooks/use-lists", () => ({

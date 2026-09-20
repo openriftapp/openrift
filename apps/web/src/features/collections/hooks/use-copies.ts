@@ -1,56 +1,31 @@
 import { copiesContract } from "@openrift/shared/contracts/copies";
-import {
-  definedCopyMetadataFields,
-  normalizeCopyMetadataPatch,
-} from "@openrift/shared/copy-metadata";
 import type {
   CopyListMembershipsResponse,
   CopyMetadataPatch,
   CopyResponse,
 } from "@openrift/shared/types/api/collection";
 import { createTransaction, eq, useLiveQuery } from "@tanstack/react-db";
+import type { Transaction } from "@tanstack/react-db";
 import { useBatcher } from "@tanstack/react-pacer";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { v7 as uuidv7 } from "uuid";
 
-import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
-import { restartInFlightCopiesRefetch } from "@/features/collections/lib/copies-in-flight-refetch";
-import { isTempCopyId, TEMP_COPY_ID_PREFIX } from "@/features/collections/lib/temp-copy-id";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
+import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
+import {
+  groupIdForCollection,
+  persistCopyMutations,
+  trackPendingInserts,
+  updateCopyMetadata,
+  waitForInsert,
+} from "@/features/collections/lib/copies-write";
 import { trackEvent } from "@/lib/analytics";
 import { useUserId } from "@/lib/auth-session";
-import { randomUuid } from "@/lib/random-uuid";
-import type { CollectionsResponse } from "@/lib/server-fns/api-types";
+import { reportMutationError } from "@/lib/query-client";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { withTimeout } from "@/lib/with-timeout";
 import { m } from "@/paraglide/messages.js";
-
-const BATCH_SIZE = 500;
-
-const stillAddingError = () => new Error(m.collections_copies_still_adding());
-
-/**
- * Resolves a collection's owning group from the cached collections list, so
- * optimistic copy rows carry the same `groupId` the server feed would assign.
- * Returns null for personal collections and when the collection isn't cached yet.
- */
-function groupIdForCollection(
-  queryClient: QueryClient,
-  userId: string,
-  collectionId: string,
-): string | null {
-  const cached = queryClient.getQueryData<CollectionsResponse>(collectionsKeys.all(userId));
-  return cached?.items.find((col) => col.id === collectionId)?.groupId ?? null;
-}
-
-function chunks<T>(array: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size));
-  }
-  return result;
-}
 
 export function useCopies(collectionId?: string): {
   data: CopyResponse[];
@@ -96,63 +71,32 @@ export function useCopyListMemberships(
   });
 }
 
-/** A created copy as returned by POST /copies — CopyResponse minus groupId
- *  (derived client-side from the cached collections list). */
-type AddCopyResult = Omit<CopyResponse, "groupId">;
-
-/** Metadata defaults for optimistic rows created before the server responds. */
-const EMPTY_COPY_METADATA = {
-  condition: null,
-  grader: null,
-  grade: null,
-  notesPublic: null,
-  notesPrivate: null,
-  isAltered: false,
-  links: [],
-} satisfies Partial<CopyResponse>;
-
-// fetch throws a TypeError for offline/DNS/CORS failures; an abort throws
-// DOMException("AbortError") instead and must propagate untouched.
-function rethrowAsNetworkError(error: unknown): never {
-  if (error instanceof TypeError) {
-    // oxlint-disable-next-line unicorn/prefer-type-error -- this is a network failure, not a type check
-    throw new Error(m.collections_copies_network_error());
-  }
-  throw error;
+interface AddCopyInput extends CopyMetadataPatch {
+  id?: string;
+  printingId: string;
+  collectionId: string;
 }
 
-async function addCopiesApi(
-  body: {
-    batchId?: string;
-    copies: { id?: string; printingId: string; collectionId?: string }[];
-  },
-  signal: AbortSignal,
-): Promise<AddCopyResult[]> {
-  try {
-    const { items } = await browserApiOrpcClient(copiesContract).add(body, { signal });
-    return items;
-  } catch (error) {
-    rethrowAsNetworkError(error);
-  }
-}
-
-async function moveCopiesApi(
-  body: { copyIds: string[]; toCollectionId: string },
-  signal: AbortSignal,
-): Promise<void> {
-  try {
-    await browserApiOrpcClient(copiesContract).move(body, { signal });
-  } catch (error) {
-    rethrowAsNetworkError(error);
-  }
-}
-
-async function disposeCopiesApi(body: { copyIds: string[] }, signal: AbortSignal): Promise<void> {
-  try {
-    await browserApiOrpcClient(copiesContract).dispose(body, { signal });
-  } catch (error) {
-    rethrowAsNetworkError(error);
-  }
+function optimisticCopy(
+  queryClient: QueryClient,
+  userId: string,
+  input: AddCopyInput,
+): CopyResponse {
+  return {
+    id: input.id ?? uuidv7(),
+    printingId: input.printingId,
+    collectionId: input.collectionId,
+    groupId: groupIdForCollection(queryClient, userId, input.collectionId),
+    condition: input.condition ?? null,
+    grader: input.grader ?? null,
+    grade: input.grade ?? null,
+    notesPublic: input.notesPublic ?? null,
+    notesPrivate: input.notesPrivate ?? null,
+    isAltered: input.isAltered ?? false,
+    links: input.links ?? [],
+    onLoan: false,
+    reserved: false,
+  };
 }
 
 export function useAddCopies() {
@@ -161,60 +105,35 @@ export function useAddCopies() {
   const copiesCollection = useCopiesCollection();
 
   return useMutation({
-    // Default networkMode "online" pauses the mutation while offline, leaving
-    // the optimistic temp row stuck with no feedback.
+    // Default networkMode "online" pauses the mutation while offline with no feedback.
     networkMode: "always",
-    mutationFn: async (body: {
+    mutationFn: async ({
+      batchId,
+      copies,
+    }: {
       batchId?: string;
-      copies: { id?: string; printingId: string; collectionId?: string }[];
-      tempIds?: string[];
-      clientIds?: string[];
-    }): Promise<AddCopyResult[]> => {
-      if (!userId) {
+      copies: AddCopyInput[];
+    }): Promise<CopyResponse[]> => {
+      if (!userId || !copiesCollection) {
         throw new Error(m.collections_copies_signed_out());
       }
-      const controller = new AbortController();
-      const tempIds = body.tempIds ?? [];
-      const rollbackIds = [...tempIds, ...(body.clientIds ?? [])];
-      const hasRollback = rollbackIds.length > 0;
-      try {
-        const apiResult = await withTimeout(
-          addCopiesApi({ batchId: body.batchId, copies: body.copies }, controller.signal),
-          {
-            label: m.collections_copies_timeout_add(),
-            abortController: controller,
-          },
+      const collection = copiesCollection;
+      const rows = copies.map((input) => optimisticCopy(queryClient, userId, input));
+      const fresh = rows.filter((row) => !collection.has(row.id));
+      if (fresh.length > 0) {
+        const transaction = collection.insert(
+          fresh,
+          batchId === undefined ? undefined : { metadata: { batchId } },
         );
-        const realRows: CopyResponse[] = apiResult.map((item) => ({
-          ...item,
-          groupId: groupIdForCollection(queryClient, userId, item.collectionId),
-        }));
-        if (copiesCollection) {
-          // A refetch that lands mid-add can already have dropped the placeholder.
-          copiesCollection.utils.writeBatch(() => {
-            copiesCollection.utils.writeDelete(tempIds.filter((id) => copiesCollection.has(id)));
-            copiesCollection.utils.writeUpsert(realRows);
-          });
-          restartInFlightCopiesRefetch(queryClient, userId);
-        }
-        void queryClient.invalidateQueries({
-          queryKey: copiesKeys.all(userId),
-          refetchType: "none",
-        });
-        void queryClient.invalidateQueries({
-          queryKey: collectionsKeys.all(userId),
-        });
-        trackEvent("collection-add", { count: apiResult.length });
-        return apiResult;
-      } catch (error) {
-        if (hasRollback && copiesCollection) {
-          copiesCollection.utils.writeDelete(rollbackIds.filter((id) => copiesCollection.has(id)));
-        }
-        // A lost response may still have created the rows, so resync rather
-        // than trust the rollback.
-        void queryClient.invalidateQueries({ queryKey: copiesKeys.all(userId) });
-        throw error;
+        trackPendingInserts(
+          collection,
+          fresh.map((row) => row.id),
+          transaction,
+        );
       }
+      const added = await Promise.all(rows.map((row) => waitForInsert(collection, row)));
+      trackEvent("collection-add", { count: added.length });
+      return added;
     },
   });
 }
@@ -234,67 +153,23 @@ export function useMoveCopies() {
       toCollectionId: string;
     }) => {
       if (!userId || !copiesCollection) {
-        return;
-      }
-      // Temp ids aren't valid uuids, so the move API would 400; treat as a no-op.
-      const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
-      if (realCopyIds.length === 0) {
-        throw stillAddingError();
+        throw new Error(m.collections_copies_signed_out());
       }
       const collection = copiesCollection;
-      // groupId must travel with collectionId: the invalidation below is
-      // refetchType "none", so nothing re-reads the feed to recompute it.
-      const toGroupId = groupIdForCollection(queryClient, userId, toCollectionId);
-      const tx = createTransaction<CopyResponse>({
-        mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((mutation) => String(mutation.key));
-          for (const batch of chunks(ids, BATCH_SIZE)) {
-            const controller = new AbortController();
-            await withTimeout(
-              moveCopiesApi({ copyIds: batch, toCollectionId }, controller.signal),
-              {
-                label: m.collections_copies_timeout_move(),
-                abortController: controller,
-              },
-            );
-            // Confirm each chunk immediately so a later chunk's failure only rolls
-            // back the not-yet-committed remainder.
-            collection.utils.writeUpdate(
-              batch.map((id) => ({ id, collectionId: toCollectionId, groupId: toGroupId })),
-            );
-            restartInFlightCopiesRefetch(queryClient, userId);
-          }
-          void queryClient.invalidateQueries({
-            queryKey: copiesKeys.all(userId),
-            refetchType: "none",
-          });
-          void queryClient.invalidateQueries({
-            queryKey: collectionsKeys.all(userId),
-          });
-        },
-      });
-      tx.mutate(() => {
-        for (const id of realCopyIds) {
-          collection.update(id, (draft) => {
-            draft.collectionId = toCollectionId;
-            draft.groupId = toGroupId;
-          });
+      const present = copyIds.filter((id) => collection.has(id));
+      if (present.length === 0) {
+        return;
+      }
+      const groupId = groupIdForCollection(queryClient, userId, toCollectionId);
+      const transaction = collection.update(present, (drafts) => {
+        for (const draft of drafts) {
+          draft.collectionId = toCollectionId;
+          draft.groupId = groupId;
         }
       });
-      await tx.isPersisted.promise;
+      await transaction.isPersisted.promise;
     },
   });
-}
-
-async function updateCopiesApi(
-  body: { copyIds: string[]; patch: CopyMetadataPatch },
-  signal: AbortSignal,
-): Promise<void> {
-  try {
-    await browserApiOrpcClient(copiesContract).update(body, { signal });
-  } catch (error) {
-    rethrowAsNetworkError(error);
-  }
 }
 
 /**
@@ -303,49 +178,41 @@ async function updateCopiesApi(
  */
 export function useUpdateCopies() {
   const userId = useUserId();
-  const queryClient = useQueryClient();
   const copiesCollection = useCopiesCollection();
 
   return useMutation({
     networkMode: "always",
     mutationFn: async ({ copyIds, patch }: { copyIds: string[]; patch: CopyMetadataPatch }) => {
       if (!userId || !copiesCollection) {
+        throw new Error(m.collections_copies_signed_out());
+      }
+      const collection = copiesCollection;
+      const present = copyIds.filter((id) => collection.has(id));
+      if (present.length === 0) {
         return;
       }
-      const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
-      if (realCopyIds.length === 0) {
-        throw stillAddingError();
+      await updateCopyMetadata(collection, present, patch).isPersisted.promise;
+    },
+  });
+}
+
+export function useDisposeCopies() {
+  const userId = useUserId();
+  const copiesCollection = useCopiesCollection();
+
+  return useMutation({
+    networkMode: "always",
+    mutationFn: async ({ copyIds }: { copyIds: string[] }) => {
+      if (!userId || !copiesCollection) {
+        throw new Error(m.collections_copies_signed_out());
       }
-      const applied = definedCopyMetadataFields(normalizeCopyMetadataPatch(patch));
       const collection = copiesCollection;
-      const tx = createTransaction<CopyResponse>({
-        mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((mutation) => String(mutation.key));
-          for (const batch of chunks(ids, BATCH_SIZE)) {
-            const controller = new AbortController();
-            await withTimeout(updateCopiesApi({ copyIds: batch, patch }, controller.signal), {
-              label: m.collections_copies_timeout_update(),
-              abortController: controller,
-            });
-            // Confirm each chunk immediately so a later chunk's failure only rolls
-            // back the not-yet-committed remainder.
-            collection.utils.writeUpdate(batch.map((id) => ({ id, ...applied })));
-            restartInFlightCopiesRefetch(queryClient, userId);
-          }
-          void queryClient.invalidateQueries({
-            queryKey: copiesKeys.all(userId),
-            refetchType: "none",
-          });
-        },
-      });
-      tx.mutate(() => {
-        for (const id of realCopyIds) {
-          collection.update(id, (draft) => {
-            Object.assign(draft, applied);
-          });
-        }
-      });
-      await tx.isPersisted.promise;
+      const present = copyIds.filter((id) => collection.has(id));
+      if (present.length === 0) {
+        return;
+      }
+      await collection.delete(present).isPersisted.promise;
+      trackEvent("collection-remove", { count: present.length });
     },
   });
 }
@@ -354,12 +221,6 @@ const BATCH_DELAY = 300;
 
 interface PendingAdd {
   printingId: string;
-  collectionId: string;
-  rowId: string;
-  copyId?: string;
-  batchId?: string;
-  resolve: (result: AddCopyResult) => void;
-  reject: (error: unknown) => void;
 }
 
 interface BatchedAddCallbacks {
@@ -367,17 +228,29 @@ interface BatchedAddCallbacks {
   onBatchError?: (printingIds: string[], error: unknown) => void;
 }
 
+async function commitBatch(
+  transaction: Transaction<CopyResponse>,
+  printingIds: string[],
+  queryClient: QueryClient,
+  callbacks: BatchedAddCallbacks | undefined,
+): Promise<void> {
+  try {
+    await transaction.commit();
+  } catch (error) {
+    reportMutationError(error instanceof Error ? error : new Error(String(error)), queryClient);
+    callbacks?.onBatchError?.(printingIds, error);
+    return;
+  }
+  trackEvent("collection-add", { count: printingIds.length });
+  callbacks?.onBatchSuccess?.(printingIds);
+}
+
 /**
- * Batches rapid add-copy calls into a single POST request and applies
- * optimistic inserts into the copies collection so owned-count reflects the
- * new rows immediately.
- *
- * Caller must pass a concrete collectionId — the inbox-default path doesn't
- * support optimistic because the inbox id isn't known from the add call.
+ * Inserts each add into the copies collection at once, so owned counts update
+ * immediately, and sends rapid adds as one request.
  */
 export function useBatchedAddCopies(callbacks?: BatchedAddCallbacks) {
   const copiesCollection = useCopiesCollection();
-  const addCopies = useAddCopies();
   const queryClient = useQueryClient();
   const userId = useUserId();
   // useBatcher captures its handler once; ref keeps callbacks current without
@@ -386,49 +259,24 @@ export function useBatchedAddCopies(callbacks?: BatchedAddCallbacks) {
   useEffect(() => {
     callbacksRef.current = callbacks;
   });
+  const openTransactionRef = useRef<Transaction<CopyResponse> | null>(null);
 
   const batcher = useBatcher<PendingAdd>(
     (pending) => {
-      const printingIds = pending.map((entry) => entry.printingId);
-      const batchIds = new Set(pending.map((entry) => entry.batchId));
-      const shared = batchIds.size === 1 ? [...batchIds][0] : undefined;
-      addCopies.mutate(
-        {
-          batchId: shared,
-          copies: pending.map((entry) => ({
-            id: entry.copyId,
-            printingId: entry.printingId,
-            collectionId: entry.collectionId,
-          })),
-          tempIds: pending
-            .filter((entry) => entry.copyId === undefined)
-            .map((entry) => entry.rowId),
-          clientIds: pending
-            .filter((entry) => entry.copyId !== undefined)
-            .map((entry) => entry.rowId),
-        },
-        {
-          onSuccess: (data) => {
-            for (const [i, entry] of pending.entries()) {
-              const result = data[i];
-              if (result) {
-                entry.resolve(result);
-              } else {
-                entry.reject(new Error("Add copies returned fewer results than requested"));
-              }
-            }
-            callbacksRef.current?.onBatchSuccess?.(printingIds);
-          },
-          onError: (error) => {
-            for (const entry of pending) {
-              entry.reject(error);
-            }
-            callbacksRef.current?.onBatchError?.(printingIds, error);
-          },
-        },
-      );
+      const transaction = openTransactionRef.current;
+      openTransactionRef.current = null;
+      if (transaction) {
+        void commitBatch(
+          transaction,
+          pending.map((entry) => entry.printingId),
+          queryClient,
+          callbacksRef.current,
+        );
+      }
     },
-    { wait: BATCH_DELAY },
+    // Without this the default cancel strands the open transaction: its adds never
+    // persist, never roll back, and every caller's promise hangs.
+    { wait: BATCH_DELAY, onUnmount: (open) => open.flush() },
   );
 
   const add = (
@@ -436,80 +284,32 @@ export function useBatchedAddCopies(callbacks?: BatchedAddCallbacks) {
     collectionId: string,
     copyId?: string,
     batchId?: string,
-  ): { rowId: string; result: Promise<AddCopyResult> } => {
-    const rowId = copyId ?? `${TEMP_COPY_ID_PREFIX}${randomUuid()}`;
-    if (copiesCollection) {
-      const groupId = userId ? groupIdForCollection(queryClient, userId, collectionId) : null;
-      copiesCollection.utils.writeUpsert([
-        {
-          id: rowId,
-          printingId,
-          collectionId,
-          groupId,
-          ...EMPTY_COPY_METADATA,
-          onLoan: false,
-          reserved: false,
-        },
-      ]);
+  ): Promise<CopyResponse> => {
+    if (!copiesCollection || !userId) {
+      const error = new Error(m.collections_copies_signed_out());
+      reportMutationError(error, queryClient);
+      return Promise.reject(error);
     }
-    // oxlint-disable-next-line promise/avoid-new -- deferred pattern needed to batch individual calls into one POST
-    const result = new Promise<AddCopyResult>((resolve, reject) => {
-      batcher.addItem({ printingId, collectionId, rowId, copyId, batchId, resolve, reject });
+    const collection = copiesCollection;
+    const row = optimisticCopy(queryClient, userId, { id: copyId, printingId, collectionId });
+    if (collection.has(row.id)) {
+      return waitForInsert(collection, row);
+    }
+    const transaction =
+      openTransactionRef.current ??
+      createTransaction<CopyResponse>({
+        autoCommit: false,
+        mutationFn: ({ transaction: batch }) =>
+          persistCopyMutations(collection, batch.mutations, { queryClient, userId }),
+      });
+    openTransactionRef.current = transaction;
+    transaction.mutate(() => {
+      collection.insert(row, batchId === undefined ? undefined : { metadata: { batchId } });
     });
-    return { rowId, result };
+    trackPendingInserts(collection, [row.id], transaction);
+    batcher.addItem({ printingId });
+    return waitForInsert(collection, row);
   };
 
-  return { add, isPending: addCopies.isPending };
-}
-
-export function useDisposeCopies() {
-  const userId = useUserId();
-  const queryClient = useQueryClient();
-  const copiesCollection = useCopiesCollection();
-
-  return useMutation({
-    networkMode: "always",
-    mutationFn: async ({ copyIds }: { copyIds: string[] }) => {
-      if (!userId || !copiesCollection) {
-        return;
-      }
-      // Temp rows are left alone, not deleted: deleting risks a swap-after-delete
-      // race where the add later re-inserts a row the user thought they removed.
-      const realCopyIds = copyIds.filter((id) => !isTempCopyId(id));
-      if (realCopyIds.length === 0) {
-        throw stillAddingError();
-      }
-      const collection = copiesCollection;
-      const tx = createTransaction<CopyResponse>({
-        mutationFn: async ({ transaction }) => {
-          const ids = transaction.mutations.map((mutation) => String(mutation.key));
-          for (const batch of chunks(ids, BATCH_SIZE)) {
-            const controller = new AbortController();
-            await withTimeout(disposeCopiesApi({ copyIds: batch }, controller.signal), {
-              label: m.collections_copies_timeout_dispose(),
-              abortController: controller,
-            });
-            // Confirm each chunk immediately so a later chunk's failure only rolls
-            // back the not-yet-committed remainder.
-            collection.utils.writeDelete(batch);
-            restartInFlightCopiesRefetch(queryClient, userId);
-          }
-          void queryClient.invalidateQueries({
-            queryKey: copiesKeys.all(userId),
-            refetchType: "none",
-          });
-          void queryClient.invalidateQueries({
-            queryKey: collectionsKeys.all(userId),
-          });
-        },
-      });
-      tx.mutate(() => {
-        for (const id of realCopyIds) {
-          collection.delete(id);
-        }
-      });
-      await tx.isPersisted.promise;
-      trackEvent("collection-remove", { count: realCopyIds.length });
-    },
-  });
+  return { add };
 }

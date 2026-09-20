@@ -12,6 +12,10 @@ const mockRepo = {
   listForUser: vi.fn(() => Promise.resolve([] as object[])),
   allCardsForUser: vi.fn(() => Promise.resolve([] as object[])),
   create: vi.fn(() => Promise.resolve({} as object)),
+  createUnlessIdTaken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
+  allDeckCardsForUser: vi.fn(() => Promise.resolve([] as object[])),
+  deckIdsTouchedSince: vi.fn(() => Promise.resolve([] as string[])),
+  currentSafeXid: vi.fn(() => Promise.resolve("5000")),
   getByIdForUser: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   update: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteByIdForUser: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
@@ -349,13 +353,99 @@ describe("GET /api/v1/decks", () => {
   });
 });
 
+describe("GET /api/v1/deck-cards", () => {
+  it("returns every deck's cards with their deck id", async () => {
+    const card = {
+      deckId: dbDeck.id,
+      cardId: "a0000000-0001-4000-a000-000000000031",
+      zone: "main",
+      quantity: 2,
+      preferredPrintingId: null,
+    };
+    mockRepo.allDeckCardsForUser.mockResolvedValue([card]);
+
+    const res = await app.request("/api/v1/deck-cards");
+
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.items).toEqual([card]);
+    expect(json.syncedXid).toBe("5000");
+    expect(mockRepo.allDeckCardsForUser).toHaveBeenCalledWith(USER_ID, undefined, {
+      limit: 10_000,
+    });
+  });
+
+  it("bounds the watermark window at the last finished transaction", async () => {
+    mockRepo.allDeckCardsForUser.mockResolvedValue([]);
+
+    await app.request("/api/v1/deck-cards?since=1000");
+
+    expect(mockRepo.allDeckCardsForUser).toHaveBeenCalledWith(
+      USER_ID,
+      { sinceXid: "1000", safeXid: "5000" },
+      { limit: 10_000 },
+    );
+  });
+
+  it("hands back a cursor and withholds the watermark while a page is full", async () => {
+    const rows = [1, 2, 3].map((index) => ({
+      id: `a0000000-0001-4000-a000-00000000004${index}`,
+      deckId: dbDeck.id,
+      cardId: `a0000000-0001-4000-a000-00000000003${index}`,
+      zone: "main",
+      quantity: 1,
+      preferredPrintingId: null,
+    }));
+    mockRepo.allDeckCardsForUser.mockResolvedValue(rows);
+
+    const res = await app.request("/api/v1/deck-cards?limit=2");
+
+    const json = await readJson(res);
+    expect(json.items).toHaveLength(2);
+    expect(json.syncedXid).toBeUndefined();
+    expect(json.nextCursor).toBe("5000_a0000000-0001-4000-a000-000000000042");
+  });
+
+  it("names the touched decks so an emptied one can be recognised", async () => {
+    mockRepo.allDeckCardsForUser.mockResolvedValue([]);
+    mockRepo.deckIdsTouchedSince.mockResolvedValue([DECK_ID]);
+
+    const res = await app.request("/api/v1/deck-cards?since=1000");
+
+    const json = await readJson(res);
+    expect(json.items).toEqual([]);
+    expect(json.touchedDeckIds).toEqual([DECK_ID]);
+  });
+
+  it("reads the touched deck ids only after the rows have arrived", async () => {
+    let releaseRows: (rows: object[]) => void = () => {};
+    mockRepo.allDeckCardsForUser.mockReturnValue(
+      // oxlint-disable-next-line promise/avoid-new -- held open by hand to observe the order
+      new Promise<object[]>((resolve) => {
+        releaseRows = resolve;
+      }),
+    );
+    mockRepo.deckIdsTouchedSince.mockResolvedValue([DECK_ID]);
+
+    const pending = app.request("/api/v1/deck-cards?since=1000");
+    await Promise.resolve();
+    expect(mockRepo.deckIdsTouchedSince).not.toHaveBeenCalled();
+
+    releaseRows([]);
+    const json = await readJson(await pending);
+    expect(mockRepo.deckIdsTouchedSince).toHaveBeenCalledOnce();
+    expect(json.touchedDeckIds).toEqual([DECK_ID]);
+  });
+});
+
 describe("POST /api/v1/decks", () => {
   beforeEach(() => {
-    mockRepo.create.mockReset();
+    mockRepo.createUnlessIdTaken.mockReset();
+    mockRepo.getByIdForUser.mockReset();
   });
 
   it("returns 201 with created deck", async () => {
-    mockRepo.create.mockResolvedValue(dbDeck);
+    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     const res = await app.request("/api/v1/decks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -367,7 +457,7 @@ describe("POST /api/v1/decks", () => {
   });
 
   it("creates with all optional fields", async () => {
-    mockRepo.create.mockResolvedValue(dbDeck);
+    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     const res = await app.request("/api/v1/decks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -382,7 +472,7 @@ describe("POST /api/v1/decks", () => {
   });
 
   it("passes outbound links through to the repository", async () => {
-    mockRepo.create.mockResolvedValue(dbDeck);
+    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     const res = await app.request("/api/v1/decks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -393,13 +483,13 @@ describe("POST /api/v1/decks", () => {
       }),
     });
     expect(res.status).toBe(201);
-    expect(mockRepo.create).toHaveBeenCalledWith(
+    expect(mockRepo.createUnlessIdTaken).toHaveBeenCalledWith(
       expect.objectContaining({ links: [{ url: "https://riftdecks.com/deck/42" }] }),
     );
   });
 
   it("rejects a link on a host that is not allowlisted", async () => {
-    mockRepo.create.mockResolvedValue(dbDeck);
+    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     const res = await app.request("/api/v1/decks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -410,7 +500,34 @@ describe("POST /api/v1/decks", () => {
       }),
     });
     expect(res.status).toBe(400);
-    expect(mockRepo.create).not.toHaveBeenCalled();
+    expect(mockRepo.createUnlessIdTaken).not.toHaveBeenCalled();
+  });
+
+  it("returns the caller's existing deck when a create is replayed with its id", async () => {
+    mockRepo.createUnlessIdTaken.mockResolvedValue(undefined);
+    mockRepo.getByIdForUser.mockResolvedValue(dbDeck);
+    const res = await app.request("/api/v1/decks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: dbDeck.id, name: "Fury Aggro", format: "constructed" }),
+    });
+    expect(res.status).toBe(201);
+    expect(await readJson(res)).toMatchObject({ id: dbDeck.id });
+  });
+
+  it("returns 409 when the id belongs to a deck the caller cannot see", async () => {
+    mockRepo.createUnlessIdTaken.mockResolvedValue(undefined);
+    mockRepo.getByIdForUser.mockResolvedValue(undefined);
+    const res = await app.request("/api/v1/decks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "a0000000-0001-4000-a000-000000000099",
+        name: "Fury Aggro",
+        format: "constructed",
+      }),
+    });
+    expect(res.status).toBe(409);
   });
 });
 
@@ -656,17 +773,17 @@ describe("GET /api/v1/decks — wanted filter false", () => {
 
 describe("POST /api/v1/decks — argument passing", () => {
   beforeEach(() => {
-    mockRepo.create.mockReset();
+    mockRepo.createUnlessIdTaken.mockReset();
   });
 
   it("passes defaults for optional fields", async () => {
-    mockRepo.create.mockResolvedValue(dbDeck);
+    mockRepo.createUnlessIdTaken.mockResolvedValue(dbDeck);
     await app.request("/api/v1/decks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Simple", format: "freeform" }),
     });
-    expect(mockRepo.create).toHaveBeenCalledWith({
+    expect(mockRepo.createUnlessIdTaken).toHaveBeenCalledWith({
       userId: USER_ID,
       name: "Simple",
       description: null,

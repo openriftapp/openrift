@@ -341,6 +341,9 @@ export const copyResponseSchema = z.object({
 export const copyListResponseSchema = z.object({
   items: z.array(copyResponseSchema),
   nextCursor: z.string().nullable(),
+  deletedIds: z.array(z.uuid()).optional(),
+  nextDeltaCursor: z.string().nullish(),
+  syncedXid: z.string().optional(),
 });
 
 // Stays a concrete object (not z.record) so TanStack's server-fn type inference

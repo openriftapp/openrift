@@ -55,12 +55,12 @@ import { useDeckEditorDialogs } from "@/features/decks/hooks/use-deck-editor-dia
 import { useDeckItems } from "@/features/decks/hooks/use-deck-items";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
 import { requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
 import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
@@ -122,7 +122,7 @@ function DeckEditorContent({
   const userId = useUserId();
   // The draft cache is keyed under a "local" sentinel scope so a browser-local
   // deck works logged out; a server deck keys under its userId.
-  const isLocal = isLocalDeckId(deckId);
+  const isLocal = useIsLocalDeck(deckId);
   const scope = isLocal ? "local" : (userId ?? "");
   const { data } = useDeckDetail(deckId);
   const { cardsById, allPrintings } = useCards();

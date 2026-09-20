@@ -30,7 +30,7 @@ import type { DeckEditorDialogState } from "@/features/decks/hooks/use-deck-edit
 import { useDeleteDeck } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { deleteLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
 
@@ -57,7 +57,6 @@ export function DeckEditorDialogs({
 }: DeckEditorDialogsProps) {
   const navigate = useNavigate();
   const deleteDeck = useDeleteDeck();
-  const deleteLocalDeck = useLocalDecksStore((state) => state.deleteDeck);
   const { getPreferredFrontImage } = usePreferredPrinting();
   const quickAddOpen = useCommandPaletteStore((state) => state.quickAddOpen);
   const setQuickAddOpen = useCommandPaletteStore((state) => state.setQuickAddOpen);

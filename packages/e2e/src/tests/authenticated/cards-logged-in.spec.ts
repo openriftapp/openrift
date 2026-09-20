@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { isApiPath } from "../../helpers/api-endpoint.js";
 import { typeSearch, waitForCatalogLoaded } from "../../helpers/catalog.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
@@ -118,27 +119,14 @@ async function openQuickAddPalette(page: Page, shortcut: "Control+k" | "Meta+k")
   return paletteInput;
 }
 
-// The id in /_serverFn/{id} is base64url(JSON) referencing the file + variable
-// name, so decoding it targets a specific fn out of the bundle.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
-  }
-}
-
 // The Ctrl+K handler in card-browser.tsx is gated on `inboxId`, so pressing
 // the shortcut before collections loads silently drops the event.
 function waitForCollectionsLoaded(page: Page) {
-  return page.waitForResponse((res) => isServerFn(res.url(), "fetchCollections") && res.ok(), {
-    timeout: 15_000,
-  });
+  return page.waitForResponse(
+    (res) =>
+      isApiPath(res.url(), "/api/v1/collections") && res.request().method() === "GET" && res.ok(),
+    { timeout: 15_000 },
+  );
 }
 
 test.describe("cards /cards (logged in)", () => {

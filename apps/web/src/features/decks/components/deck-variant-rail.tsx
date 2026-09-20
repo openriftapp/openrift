@@ -1,8 +1,8 @@
 import { ZONE_LABELS } from "@openrift/shared/deck-zones";
 import { formatDay } from "@openrift/shared/format-date";
-import type { DeckCardResponse, DeckDetailResponse } from "@openrift/shared/types/api/deck";
+import type { DeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
-import { useQueries } from "@tanstack/react-query";
+import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, GitBranchIcon, GitCompareArrowsIcon, PlusIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -14,13 +14,13 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { useDecks } from "@/features/decks/hooks/use-decks";
+import { useDeckCardsCollection } from "@/features/decks/hooks/use-decks-collections";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
+import { deckCardsByDeck } from "@/features/decks/lib/deck-card-rows";
 import type { DeckDiff, DeckDiffEntry } from "@/features/decks/lib/deck-diff";
 import { deckDiffCardsFrom, diffDecks } from "@/features/decks/lib/deck-diff";
 import type { RailEdge, RailLayout, RailNode } from "@/features/decks/lib/deck-variant-rail";
 import { buildRailLayout } from "@/features/decks/lib/deck-variant-rail";
-import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
-import { useRequiredUserId } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -123,10 +123,6 @@ function edgeCounts(
   }
   const diff = diffDecks(deckDiffCardsFrom(from, cardsById), deckDiffCardsFrom(to, cardsById));
   return { addCount: diff.addCount, cutCount: diff.cutCount };
-}
-
-function selectDeckCards(detail: DeckDetailResponse): DeckCardResponse[] {
-  return detail.cards;
 }
 
 function RailPopoverFooter({ children }: { children: ReactNode }) {
@@ -397,7 +393,6 @@ function RailDot({ isCurrent }: { isCurrent: boolean }) {
 }
 
 function VariantRailBody({ deckId }: { deckId: string }) {
-  const userId = useRequiredUserId();
   const { cardsById } = useCards();
   const { data: items } = useDecks();
 
@@ -415,21 +410,15 @@ function VariantRailBody({ deckId }: { deckId: string }) {
       ? { nodes: [], edges: [], overflowCount: 0 }
       : buildRailLayout(members, deckId, MAX_RAIL_NODES);
 
-  // Must subscribe, not fetch once: the open deck's cache entry is rewritten after every autosave.
-  const railResults = useQueries({
-    queries: layout.nodes.map((node) => ({
-      ...deckDetailQueryOptions(userId, node.id),
-      select: selectDeckCards,
-    })),
+  const railDeckIds = layout.nodes.map((node) => node.id);
+  const cardsCollection = useDeckCardsCollection();
+  const { data: cardRows } = useLiveQuery({
+    query: (q) =>
+      cardsCollection && railDeckIds.length > 0
+        ? q.from({ card: cardsCollection }).where(({ card }) => inArray(card.deckId, railDeckIds))
+        : null,
   });
-
-  const cardsByDeck: Record<string, DeckCardResponse[]> = {};
-  for (const [index, node] of layout.nodes.entries()) {
-    const cards = railResults[index]?.data;
-    if (cards) {
-      cardsByDeck[node.id] = cards;
-    }
-  }
+  const cardsByDeck = deckCardsByDeck(cardRows, railDeckIds);
 
   const openDeckName = current?.deck.name ?? m.decks_dialog_rail_this_deck();
 
@@ -608,7 +597,8 @@ function VariantRailBody({ deckId }: { deckId: string }) {
 
 // Never renders for a browser-local deck: local decks have no family.
 export function DeckVariantRail({ deckId }: { deckId: string }) {
-  if (isLocalDeckId(deckId)) {
+  const isLocal = useIsLocalDeck(deckId);
+  if (isLocal) {
     return null;
   }
   // Fallback must be null: the rail must not hold up the deck page while loading.

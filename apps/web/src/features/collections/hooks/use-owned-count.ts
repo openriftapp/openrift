@@ -4,11 +4,9 @@ import type {
 } from "@openrift/shared/types/api/collection";
 import type { Finish } from "@openrift/shared/types/enums";
 import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 
-import { collectionsQueryOptions } from "@/features/collections/hooks/use-collections";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
-import { useUserId } from "@/lib/auth-session";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 
 function aggregateTotals(copies: readonly CopyResponse[]): Record<string, number> {
   const totals: Record<string, number> = {};
@@ -250,12 +248,8 @@ export function useDeckBuildingCounts(
 ): {
   data: DeckBuildingCounts | undefined;
 } {
-  const userId = useUserId();
   const copiesCollection = useCopiesCollection();
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: enabled && Boolean(userId),
-  });
+  const collections = useCollectionsList();
 
   const { data: copies } = useLiveQuery({
     query: (q) => (enabled && copiesCollection ? q.from({ copy: copiesCollection }) : null),
@@ -299,12 +293,8 @@ export function useOwnedCollections(
   printingId: string,
   enabled: boolean,
 ): { data: CopyCollectionBreakdownEntry[] | undefined } {
-  const userId = useUserId();
   const copiesCollection = useCopiesCollection();
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: enabled && Boolean(userId),
-  });
+  const collections = useCollectionsList();
 
   const { data: copies } = useLiveQuery({
     query: (q) =>
@@ -382,12 +372,8 @@ export function useOwnedCollectionsByVariants(
   enabled: boolean,
   viewCollectionId?: string,
 ): { data: VariantCollectionBreakdownEntry[] | undefined } {
-  const userId = useUserId();
   const copiesCollection = useCopiesCollection();
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: enabled && Boolean(userId),
-  });
+  const collections = useCollectionsList();
 
   const { data: copies } = useLiveQuery({
     query: (q) => (enabled && copiesCollection ? q.from({ copy: copiesCollection }) : null),

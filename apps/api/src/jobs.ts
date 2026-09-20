@@ -16,6 +16,7 @@ import {
   isFingerprintSweepNoop,
   sweepImageFingerprints,
 } from "./modules/catalog/services/images/fingerprint-sweep.js";
+import { COPY_DELETION_RETENTION_MS } from "./modules/collections/lib/copy-deletion-retention.js";
 import {
   extractDigestWatermark,
   isTradeMatchDigestNoop,
@@ -81,6 +82,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
   const jrLog = log.child({ service: "job-runs-cleanup" });
   const suLog = log.child({ service: "submission-upload-sweep" });
   const ifLog = log.child({ service: "image-fingerprint-sweep" });
+  const cdLog = log.child({ service: "copy-deletions-sweep" });
   const cmcLog = log.child({ service: "check-matching-candidates" });
   const cteLog = log.child({ service: "card-trades-expire" });
   const tdLog = log.child({ service: "trade-match-digest" });
@@ -212,6 +214,21 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       execute: () => sweepSubmissionUploads(defaultIo, repos, { now: new Date() }),
       summarize: (result) => result,
       classifyNoop: (result) => result.deleted === 0,
+    }),
+    defineJob({
+      kind: "copy_deletions.sweep",
+      title: "Copy tombstone sweep",
+      description:
+        "Drops copy deletion tombstones past the sync window. A client whose watermark is older takes a full read instead.",
+      suggestedSchedule: "0 4 * * *",
+      log: cdLog,
+      execute: async () => {
+        const cutoff = new Date(Date.now() - COPY_DELETION_RETENTION_MS);
+        const deleted = await repos.copies.purgeDeletionsOlderThan(cutoff);
+        return { deleted, cutoff: cutoff.toISOString() };
+      },
+      summarize: (summary) => summary,
+      classifyNoop: (summary) => summary.deleted === 0,
     }),
     defineJob({
       kind: "images.fingerprint",

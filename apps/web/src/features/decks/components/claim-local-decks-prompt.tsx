@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { DialogForm } from "@/components/ui/dialog-form";
 import { useCreateDeck, useSaveDeckCards, useUpdateDeck } from "@/features/decks/hooks/use-decks";
+import { useLocalDecks } from "@/features/decks/hooks/use-local-decks";
 import { decksKeys } from "@/features/decks/lib/decks-query-keys";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { clearImportedLocalDecks } from "@/features/decks/lib/local-decks-collection";
 import { useDeckFormatList } from "@/hooks/use-enums";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useUserId } from "@/lib/auth-session";
@@ -25,8 +26,7 @@ import { m } from "@/paraglide/messages.js";
 export function ClaimLocalDecksPrompt() {
   const userId = useUserId();
   const hydrated = useHydrated();
-  const decks = useLocalDecksStore((state) => state.decks);
-  const clearImported = useLocalDecksStore((state) => state.clearImported);
+  const decks = useLocalDecks();
   const createDeck = useCreateDeck();
   const saveDeckCards = useSaveDeckCards();
   const updateDeck = useUpdateDeck();
@@ -36,7 +36,7 @@ export function ClaimLocalDecksPrompt() {
   const [deselected, setDeselected] = useState<Record<string, boolean>>({});
   const [importing, setImporting] = useState(false);
 
-  const list = Object.values(decks);
+  const list = decks;
   const open = hydrated && Boolean(userId) && list.length > 0 && !dismissed;
   if (!open) {
     return null;
@@ -55,6 +55,7 @@ export function ClaimLocalDecksPrompt() {
       const description = deck.description || undefined;
       try {
         const created = await createDeck.mutateAsync({
+          id: deck.id,
           name: deck.name,
           description,
           format: deck.format,
@@ -74,7 +75,7 @@ export function ClaimLocalDecksPrompt() {
     if (userId) {
       await queryClient.invalidateQueries({ queryKey: decksKeys.all(userId) });
     }
-    clearImported(importedIds);
+    clearImportedLocalDecks(importedIds);
     setImporting(false);
     if (importedIds.length > 0) {
       toast.success(m.decks_dialog_claim_imported({ count: importedIds.length }));

@@ -33,12 +33,12 @@ const disposeMutateAsync = vi.fn();
 const batchedAdd = vi.fn();
 let copies: CopyResponse[] = [];
 vi.mock("@/features/collections/hooks/use-copies", () => ({
-  useBatchedAddCopies: () => ({ add: batchedAdd, isPending: false }),
+  useBatchedAddCopies: () => ({ add: batchedAdd }),
   useDisposeCopies: () => ({ mutateAsync: disposeMutateAsync, isPending: false }),
   useMoveCopies: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useCopies: () => ({ data: copies, isReady: true }),
 }));
-vi.mock("@/features/collections/lib/copies-collection", () => ({
+vi.mock("@/features/collections/hooks/use-copies-collection", () => ({
   useCopiesCollection: () => ({ toArray: copies }),
 }));
 

@@ -4,6 +4,8 @@ import type {
 } from "@openrift/shared/contracts/deck-folders";
 import type {
   deckCardResponseSchema,
+  deckCardWithDeckResponseSchema,
+  deckCardsListResponseSchema,
   deckCloneResponseSchema,
   deckDetailResponseSchema,
   deckExportResponseSchema,
@@ -49,6 +51,10 @@ export type DeckLink = z.infer<typeof deckLinkSchema>;
 export type DeckResponse = z.infer<typeof deckResponseSchema>;
 
 export type DeckCardResponse = z.infer<typeof deckCardResponseSchema>;
+
+export type DeckCardWithDeckResponse = z.infer<typeof deckCardWithDeckResponseSchema>;
+
+export type DeckCardsListResponse = z.infer<typeof deckCardsListResponseSchema>;
 
 export type DeckDetailResponse = z.infer<typeof deckDetailResponseSchema>;
 

@@ -57,3 +57,10 @@ export function cleanupWhenIdle(collection: AnyCollection): void {
     void collection.cleanup();
   });
 }
+
+/** A direct write needs a sync session, which an idle or collected store only has once sync starts. */
+export function startSyncIfNeeded(collection: AnyCollection): void {
+  if (collection.status === "idle" || collection.status === "cleaned-up") {
+    collection.startSyncImmediate();
+  }
+}

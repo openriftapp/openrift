@@ -47,6 +47,16 @@ describe.skipIf(!ctx)("deckFoldersRepo", () => {
   const db = ctx!.db;
   const repo = deckFoldersRepo(db);
 
+  it("creates a folder with the id the caller supplies and skips a replay of it", async () => {
+    const id = crypto.randomUUID();
+
+    const created = await repo.createUnlessIdTaken(userId, "Client Folder", id);
+    const replay = await repo.createUnlessIdTaken(userId, "Replayed Folder", id);
+
+    expect(created?.id).toBe(id);
+    expect(replay).toBeUndefined();
+  });
+
   it("creates folders at the end of the user's order", async () => {
     const first = await repo.create(userId, "DF Standard");
     const second = await repo.create(userId, "DF Jank");

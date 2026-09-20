@@ -2,37 +2,37 @@ import { describe, expect, it } from "vitest";
 
 import { resolveReplaceTarget } from "./deck-import-replace";
 
-const LOCAL_ID = "local:123e4567-e89b-42d3-a456-426614174000";
-const SERVER_ID = "123e4567-e89b-42d3-a456-426614174000";
+const DECK_ID = "123e4567-e89b-42d3-a456-426614174000";
+const inLocalStore = () => true;
+const notInLocalStore = () => false;
 
 describe("resolveReplaceTarget", () => {
   it("returns none without a replace id", () => {
-    expect(resolveReplaceTarget(undefined, true, () => true)).toEqual({ mode: "none" });
+    expect(resolveReplaceTarget(undefined, true, inLocalStore)).toEqual({ mode: "none" });
   });
 
   it("targets a local deck even with a session (regression: went to the server and 404ed)", () => {
-    expect(resolveReplaceTarget(LOCAL_ID, true, () => true)).toEqual({
+    expect(resolveReplaceTarget(DECK_ID, true, inLocalStore)).toEqual({
       mode: "local",
-      deckId: LOCAL_ID,
+      deckId: DECK_ID,
     });
   });
 
   it("targets a local deck without a session (regression: silently created a new deck)", () => {
-    expect(resolveReplaceTarget(LOCAL_ID, false, () => true)).toEqual({
+    expect(resolveReplaceTarget(DECK_ID, false, inLocalStore)).toEqual({
       mode: "local",
-      deckId: LOCAL_ID,
+      deckId: DECK_ID,
     });
   });
 
-  it("degrades a stale local id to plain import", () => {
-    expect(resolveReplaceTarget(LOCAL_ID, true, () => false)).toEqual({ mode: "none" });
-  });
-
-  it("targets a server deck only with a session", () => {
-    expect(resolveReplaceTarget(SERVER_ID, true, () => true)).toEqual({
+  it("targets the server for an id the local store doesn't hold", () => {
+    expect(resolveReplaceTarget(DECK_ID, true, notInLocalStore)).toEqual({
       mode: "server",
-      deckId: SERVER_ID,
+      deckId: DECK_ID,
     });
-    expect(resolveReplaceTarget(SERVER_ID, false, () => true)).toEqual({ mode: "none" });
+  });
+
+  it("degrades to plain import when the id is in neither place", () => {
+    expect(resolveReplaceTarget(DECK_ID, false, notInLocalStore)).toEqual({ mode: "none" });
   });
 });

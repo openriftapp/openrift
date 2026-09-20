@@ -6,9 +6,9 @@ import { cardLinkVariants } from "@/components/ui/card-link";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import { useHomeCollection } from "@/features/collections/hooks/use-home-collection";
 import { resolveFormatTagSummary } from "@/features/collections/lib/format-tag-config";
+import { useIsLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckFamilyEntry } from "@/features/decks/lib/deck-family";
 import { deckBoxPart } from "@/features/decks/lib/deck-meta";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useCustomTagList } from "@/hooks/use-enums";
 import { getDomainGradientStyle } from "@/lib/domain";
@@ -46,7 +46,7 @@ export function DeckListRow({
     requiredProgress,
     requiredTotal,
   } = item;
-  const isLocal = isLocalDeckId(deck.id);
+  const isLocal = useIsLocalDeck(deck.id);
   const { getPreferredPrinting } = usePreferredPrinting();
   const { all: customTags } = useCustomTagList();
 

@@ -1,5 +1,4 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
@@ -28,7 +27,7 @@ import { useSiblingOverrideStore } from "@/features/cards/stores/sibling-overrid
 import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
 import { QuickAddPalette } from "@/features/collections/components/quick-add-palette";
 import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
-import { collectionsQueryOptions } from "@/features/collections/hooks/use-collections";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
 import { useRowActionHandlers } from "@/features/collections/hooks/use-row-action-handlers";
@@ -41,7 +40,7 @@ import { useChannelRegistry } from "@/hooks/use-enums";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSeedLanguagesFromPrefs } from "@/hooks/use-seed-languages-from-prefs";
-import { useSession, useUserId } from "@/lib/auth-session";
+import { useSession } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { m } from "@/paraglide/messages.js";
 import { useCommandPaletteStore } from "@/stores/command-palette-store";
@@ -87,7 +86,6 @@ export function CardBrowser() {
   const channels = useChannelRegistry();
   const display = useCardThumbnailDisplay();
   const { data: session } = useSession();
-  const userId = useUserId();
   const isLoggedIn = Boolean(session?.user);
   const { data: ownedCountByPrinting } = useOwnedCount(isLoggedIn);
   // One membership feed for the whole grid: per-cell subscriptions would
@@ -95,12 +93,7 @@ export function CardBrowser() {
   const wish = useWishEntries(isLoggedIn);
   const [wishTarget, setWishTarget] = useState<Printing | null>(null);
 
-  // Login-gated query, not useCollections (which requires a user), so
-  // logged-out visitors adding to the Inbox don't trip a subscription.
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: isLoggedIn,
-  });
+  const collections = useCollectionsList();
   const inbox = collections?.find((collection) => collection.isInbox);
   const inboxId = inbox?.id;
   // No viewCollectionId: the catalog isn't scoped to one collection, so `-`

@@ -55,6 +55,8 @@ import type {
   CollectionSidebarPrefsTable,
   CollectionsTable,
   CopiesTable,
+  CopyDeletionSweepTable,
+  CopyDeletionsTable,
 } from "./tables/collections.js";
 import type {
   DeckCardsTable,
@@ -214,6 +216,8 @@ export interface Database {
 
   collections: CollectionsTable;
   copies: CopiesTable;
+  copyDeletions: CopyDeletionsTable;
+  copyDeletionSweep: CopyDeletionSweepTable;
   collectionDeckbuildingPrefs: CollectionDeckbuildingPrefsTable;
   collectionSidebarPrefs: CollectionSidebarPrefsTable;
   collectionEvents: CollectionEventsTable;

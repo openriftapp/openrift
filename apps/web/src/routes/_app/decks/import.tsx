@@ -1,8 +1,7 @@
 import { isAllowedLinkUrl } from "@openrift/shared/link-hosts";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { deckDetailQueryOptions } from "@/features/decks/lib/decks-queries";
-import { isLocalDeckId } from "@/features/decks/lib/local-deck";
+import { DeckPending } from "@/features/decks/components/deck-pending";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
@@ -16,7 +15,7 @@ interface DeckImportSearch {
 }
 
 export const Route = createFileRoute("/_app/decks/import")({
-  ssr: "data-only",
+  ssr: false,
   validateSearch: (search: Record<string, unknown>): DeckImportSearch => {
     const result: DeckImportSearch = {};
     const replaceDeckId = search.replaceDeckId;
@@ -46,21 +45,29 @@ export const Route = createFileRoute("/_app/decks/import")({
   },
   loaderDeps: ({ search }) => ({ replaceDeckId: search.replaceDeckId }),
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Import Deck", noIndex: true }),
-  // Replace mode only prefetches server deck detail: a `local:` target lives
-  // in browser storage, and asking the server about it would 404.
+  // Replace mode only preloads the server stores: a browser-local target lives
+  // in the local store, and asking the server about it would 404.
   loader: async ({ context, deps }) => {
-    await context.queryClient.query({ ...initQueryOptions, staleTime: "static" });
-    if (deps.replaceDeckId && !isLocalDeckId(deps.replaceDeckId)) {
+    const { isLocalDeck, preloadLocalDecks } =
+      await import("@/features/decks/lib/local-decks-collection");
+    await Promise.all([
+      context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
+      preloadLocalDecks(),
+    ]);
+    if (deps.replaceDeckId && !isLocalDeck(deps.replaceDeckId)) {
       const session = await context.queryClient.query({
         ...sessionQueryOptions(),
         staleTime: "static",
       });
       if (session?.user) {
-        await context.queryClient.query({
-          ...deckDetailQueryOptions(session.user.id, deps.replaceDeckId),
-          staleTime: "static",
-        });
+        const { getDeckCardsCollection, getDecksCollection } =
+          await import("@/features/decks/lib/decks-collection");
+        await Promise.all([
+          getDecksCollection(context.queryClient, session.user.id).preload(),
+          getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+        ]);
       }
     }
   },
+  pendingComponent: DeckPending,
 });

@@ -1,7 +1,6 @@
 import { MAX_COPIES_PER_ADD } from "@openrift/shared/contracts/copies";
 import type { Printing } from "@openrift/shared/types/catalog";
-
-import { randomUuid } from "@/lib/random-uuid";
+import { v7 as uuidv7 } from "uuid";
 
 export interface ScanAddJob {
   id: string;
@@ -19,7 +18,7 @@ export function addJobsFor(rows: readonly { printing: Printing; count: number }[
   const jobs: ScanAddJob[] = [];
   for (const row of rows) {
     for (let i = 0; i < row.count; i++) {
-      jobs.push({ id: randomUuid(), printingId: row.printing.id });
+      jobs.push({ id: uuidv7(), printingId: row.printing.id });
     }
   }
   return jobs;
@@ -39,7 +38,7 @@ export function reconcileJobs(
   for (const row of rows) {
     const ids = available.get(row.printing.id) ?? [];
     for (let i = 0; i < row.count; i++) {
-      jobs.push({ id: ids[i] ?? randomUuid(), printingId: row.printing.id });
+      jobs.push({ id: ids[i] ?? uuidv7(), printingId: row.printing.id });
     }
   }
   return jobs;

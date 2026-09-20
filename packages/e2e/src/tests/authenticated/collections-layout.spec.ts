@@ -3,22 +3,6 @@ import type { Route } from "@playwright/test";
 import { expect, test } from "../../fixtures/test.js";
 import { API_BASE_URL } from "../../helpers/constants.js";
 
-// TanStack Start encodes the server fn id as base64url(JSON) containing the
-// source file + export; decode to target only the collections fetch.
-function isCollectionsServerFn(url: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    const decoded = Buffer.from(encoded, "base64url").toString("utf-8");
-    return decoded.includes("fetchCollections");
-  } catch {
-    return false;
-  }
-}
-
 // Matches any heading in the NOT_FOUND_HEADINGS pool (apps/web/src/components/error-message.tsx).
 const NOT_FOUND_HEADING_PATTERN = new RegExp(
   [
@@ -199,15 +183,7 @@ test.describe("collections layout", () => {
           contentType: "application/json",
           body: JSON.stringify({ error: "collections unavailable" }),
         });
-      // Client navigations hit /api/v1/collections directly; SSR uses _serverFn.
       await page.route("**/api/v1/collections*", failCollections);
-      await page.route("**/_serverFn/**", async (route) => {
-        if (isCollectionsServerFn(route.request().url())) {
-          await failCollections(route);
-          return;
-        }
-        await route.continue();
-      });
 
       await page.goto("/support");
       await expect(page).toHaveURL(/\/support/u);

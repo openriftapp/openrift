@@ -30,9 +30,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCards } from "@/features/cards/hooks/use-cards";
+import { useLocalDeck } from "@/features/decks/hooks/use-local-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
-import { useLocalDecksStore } from "@/features/decks/stores/local-decks-store";
+import { deleteLocalDeck, duplicateLocalDeck } from "@/features/decks/lib/local-decks-collection";
 import { m } from "@/paraglide/messages.js";
 
 import { DeckExportDialog } from "./deck-export-dialog";
@@ -46,9 +47,7 @@ import { DeckShareDialog } from "./deck-share-dialog";
  */
 export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
   const { deck } = item;
-  const localDeck = useLocalDecksStore((state) => state.decks[deck.id]);
-  const duplicateDeck = useLocalDecksStore((state) => state.duplicateDeck);
-  const deleteDeck = useLocalDecksStore((state) => state.deleteDeck);
+  const localDeck = useLocalDeck(deck.id);
   const { cardsById } = useCards();
 
   const [renameOpen, setRenameOpen] = useState(false);
@@ -64,14 +63,14 @@ export function LocalDeckActionsMenu({ item }: { item: DeckListItemResponse }) {
     : [];
 
   const handleDuplicate = () => {
-    const newId = duplicateDeck(deck.id);
+    const newId = duplicateLocalDeck(deck.id);
     if (newId) {
       toast.success(m.decks_menu_duplicated({ name: deck.name }));
     }
   };
 
   const handleDelete = () => {
-    deleteDeck(deck.id);
+    deleteLocalDeck(deck.id);
     setDeleteOpen(false);
   };
 

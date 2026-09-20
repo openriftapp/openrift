@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "../../fixtures/test.js";
+import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
@@ -74,22 +75,6 @@ async function deckExists(deckId: string): Promise<boolean> {
     return rows.length > 0;
   } finally {
     await sql.end();
-  }
-}
-
-// TanStack Start encodes each server fn id as base64url(JSON) with the source
-// file + export name; decoding the segment lets us target a specific server fn
-// without colliding with others that fire during the same route transition.
-function isServerFn(url: string, fnName: string): boolean {
-  const match = /\/_serverFn\/(?<encoded>[^/?#]+)/u.exec(url);
-  const encoded = match?.groups?.encoded;
-  if (encoded === undefined) {
-    return false;
-  }
-  try {
-    return Buffer.from(encoded, "base64url").toString("utf-8").includes(fnName);
-  } catch {
-    return false;
   }
 }
 
@@ -243,8 +228,8 @@ test.describe("decks list", () => {
       await page.getByRole("button", { name: "New Deck" }).click();
       const dialog = page.getByRole("dialog");
 
-      const createRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "createDeckFn"),
+      const createRequest = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
       await dialog.getByRole("button", { name: "Create" }).click();
       await createRequest;
@@ -260,8 +245,8 @@ test.describe("decks list", () => {
       await page.getByRole("button", { name: "New Deck" }).click();
       let createDialog = page.getByRole("dialog");
       await createDialog.getByLabel("Name").fill("Constructed Starter");
-      const firstRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "createDeckFn"),
+      const firstRequest = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
       await createDialog.getByRole("button", { name: "Create" }).click();
       await firstRequest;
@@ -274,8 +259,8 @@ test.describe("decks list", () => {
       await createDialog.getByLabel("Format").click();
       await page.getByRole("option", { name: "Freeform" }).click();
 
-      const secondRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "createDeckFn"),
+      const secondRequest = page.waitForRequest((request) =>
+        isApiCall(request, "POST", "/api/v1/decks"),
       );
       await createDialog.getByRole("button", { name: "Create" }).click();
       await secondRequest;
@@ -401,8 +386,8 @@ test.describe("decks list", () => {
       const input = dialog.getByRole("textbox");
       await input.fill(nextName);
 
-      const updateRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "updateDeckFn"),
+      const updateRequest = page.waitForRequest((request) =>
+        isApiCall(request, "PATCH", "/api/v1/decks/{id}"),
       );
       await dialog.getByRole("button", { name: "Save" }).click();
       await updateRequest;
@@ -471,8 +456,8 @@ test.describe("decks list", () => {
       await page.getByRole("menuitem", { name: "Delete" }).click();
 
       const alert = page.getByRole("alertdialog");
-      const deleteRequest = page.waitForRequest(
-        (request) => request.method() === "POST" && isServerFn(request.url(), "deleteDeckFn"),
+      const deleteRequest = page.waitForRequest((request) =>
+        isApiCall(request, "DELETE", "/api/v1/decks/{id}"),
       );
       await alert.getByRole("button", { name: "Delete" }).click();
       await deleteRequest;

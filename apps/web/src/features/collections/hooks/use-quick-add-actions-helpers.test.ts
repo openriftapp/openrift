@@ -174,22 +174,6 @@ describe("decideRemoval", () => {
     });
   });
 
-  it("excludes optimistic temp rows when picking the newest", () => {
-    const copies = [
-      copy("01900000-0000-7000-8000-000000000001", "pr-1", "col-1"),
-      copy("temp-99999999-0000-0000-0000-000000000099", "pr-1", "col-1"),
-    ];
-    expect(decideRemoval(copies, "pr-1")).toEqual({
-      kind: "dispose",
-      copyId: "01900000-0000-7000-8000-000000000001",
-    });
-  });
-
-  it("returns 'none' when only a temp row matches the printing", () => {
-    const copies = [copy("temp-99999999-0000-0000-0000-000000000099", "pr-1", "col-1")];
-    expect(decideRemoval(copies, "pr-1")).toEqual({ kind: "none" });
-  });
-
   it("ignores group-collection copies when unscoped, disposing the personal one", () => {
     const copies = [
       copy("01900000-0000-7000-8000-000000000010", "pr-1", "col-personal"),
@@ -211,17 +195,6 @@ describe("decideRemoval", () => {
     expect(decideRemoval(copies, "pr-1", "col-group")).toEqual({
       kind: "dispose",
       copyId: "01900000-0000-7000-8000-000000000020",
-    });
-  });
-
-  it("does not open the picker on a multi-collection spread that's only real on one side", () => {
-    const copies = [
-      copy("01900000-0000-7000-8000-000000000010", "pr-1", "col-A"),
-      copy("temp-22222222-0000-0000-0000-000000000022", "pr-1", "col-B"),
-    ];
-    expect(decideRemoval(copies, "pr-1")).toEqual({
-      kind: "dispose",
-      copyId: "01900000-0000-7000-8000-000000000010",
     });
   });
 });

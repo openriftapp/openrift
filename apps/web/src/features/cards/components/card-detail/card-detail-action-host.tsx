@@ -1,11 +1,10 @@
 import type { Printing } from "@openrift/shared/types/catalog";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { AnnotatedDisposeDialog } from "@/features/collections/components/annotated-dispose-dialog";
 import { VariantLocationsPopoverHost } from "@/features/collections/components/variant-locations-popover-host";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useQuickAddActions } from "@/features/collections/hooks/use-quick-add-actions";
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
 import { useWishEntries } from "@/features/groups/hooks/use-wish-entries";
 import { WishlistPickerHost } from "@/features/lists/components/wishlist-picker-host";
 import { useUserId } from "@/lib/auth-session";
@@ -24,11 +23,8 @@ export function useCardDetailActionHost({
 }) {
   const userId = useUserId();
   const active = enabled && userId !== null;
-  const { data: collections } = useQuery({
-    ...collectionsQueryOptions(userId ?? ""),
-    enabled: active,
-  });
-  const inbox = collections?.find((collection) => collection.isInbox);
+  const collections = useCollectionsList();
+  const inbox = active ? collections?.find((collection) => collection.isInbox) : undefined;
   const {
     handleQuickAdd,
     handleAddToCollection,

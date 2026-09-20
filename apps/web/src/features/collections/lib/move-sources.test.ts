@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { TEMP_COPY_ID_PREFIX } from "@/features/collections/lib/temp-copy-id";
 import { stubCopy } from "@/test/factories";
 
 import { buildMoveSources, groupMovableCopies, movableCountsByPrinting } from "./move-sources";
@@ -22,10 +21,9 @@ describe("groupMovableCopies", () => {
     expect(grouped.get("p2")?.map((c) => c.id)).toEqual(["c3"]);
   });
 
-  it("drops trade-reserved copies and optimistic temp rows", () => {
+  it("drops trade-reserved copies", () => {
     const copies = [
       stubCopy({ id: "c1", printingId: "p1", collectionId: INBOX, reserved: true }),
-      stubCopy({ id: `${TEMP_COPY_ID_PREFIX}abc`, printingId: "p1", collectionId: INBOX }),
       stubCopy({ id: "c3", printingId: "p1", collectionId: INBOX }),
     ];
     const grouped = groupMovableCopies(copies, { excludeCollectionId: TARGET });

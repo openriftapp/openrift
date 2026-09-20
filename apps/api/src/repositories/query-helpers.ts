@@ -99,6 +99,9 @@ export async function listOwnedByUser<TRow>(
   return rows as TRow[];
 }
 
+/** A row stamped at or below this transaction id is committed or gone. */
+export const safeXidExpression = sql<string>`pg_snapshot_xmin(pg_current_snapshot())::text`;
+
 /**
  * Caller's ORDER BY must be `<timeColumn> desc, <idColumn> <idDirection>`.
  * Needs both a `date_trunc('milliseconds', ...)` comparison (the column keeps µs precision a JS `Date` cannot) and a redundant bare-column bound (`date_trunc` is only STABLE, so it alone is not sargable).

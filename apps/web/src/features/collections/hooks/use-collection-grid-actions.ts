@@ -10,8 +10,8 @@ import {
   useDisposeCopies,
   useMoveCopies,
 } from "@/features/collections/hooks/use-copies";
+import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 import { copyIdsShareOneCard } from "@/features/collections/lib/collection-grid-items";
-import { useCopiesCollection } from "@/features/collections/lib/copies-collection";
 import type { StackedEntry } from "@/features/collections/lib/stacked-entry";
 import { useCollectionOverlayStore } from "@/features/collections/stores/collection-overlay-store";
 import type { useWishEntries } from "@/features/groups/hooks/use-wish-entries";

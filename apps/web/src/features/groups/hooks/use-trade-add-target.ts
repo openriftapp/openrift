@@ -1,10 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-
-import { collectionsQueryOptions } from "@/features/collections/lib/collections-query";
+import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import type { ResolvedTradeAddTarget } from "@/features/groups/lib/trade-add-target";
 import { resolveTradeAddTarget } from "@/features/groups/lib/trade-add-target";
 import { useTradeAddTargetStore } from "@/features/groups/stores/trade-add-target-store";
-import { useRequiredUserId } from "@/lib/auth-session";
 
 /**
  * Where the Trades page's one-press add files incoming copies: the collection
@@ -14,8 +11,7 @@ import { useRequiredUserId } from "@/lib/auth-session";
  * @returns The resolved target and its button label.
  */
 export function useTradeAddTarget(): ResolvedTradeAddTarget {
-  const userId = useRequiredUserId();
   const remembered = useTradeAddTargetStore((state) => state.target);
-  const { data: collections } = useQuery(collectionsQueryOptions(userId));
+  const collections = useCollectionsList();
   return resolveTradeAddTarget(remembered, collections);
 }

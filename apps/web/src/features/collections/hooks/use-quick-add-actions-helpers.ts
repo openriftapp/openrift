@@ -1,8 +1,6 @@
 import { copyHasMetadata } from "@openrift/shared/copy-metadata";
 import type { CopyResponse } from "@openrift/shared/types/api/collection";
 
-import { isTempCopyId } from "@/features/collections/lib/temp-copy-id";
-
 // Copy ids are uuidv7, so lexicographic id ordering matches creation order.
 export function pickNewestCopy(copies: readonly CopyResponse[]): CopyResponse | undefined {
   if (copies.length === 0) {
@@ -34,11 +32,6 @@ export function decideRemoval(
 ): RemovalDecision {
   const filtered = allCopies.filter((c) => {
     if (c.printingId !== printingId) {
-      return false;
-    }
-    // Optimistic temp rows aren't real copies; dispose would 400 on the API or
-    // race the in-flight add.
-    if (isTempCopyId(c.id)) {
       return false;
     }
     if (viewCollectionId) {

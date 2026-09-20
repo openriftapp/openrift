@@ -38,11 +38,22 @@ export const deckFoldersRouter = {
     // creates of the same name give one folder and one 409.
     let row;
     try {
-      row = await context.repos.deckFolders.create(context.userId, name);
+      row =
+        input.id === undefined
+          ? await context.repos.deckFolders.create(context.userId, name)
+          : await context.repos.deckFolders.createUnlessIdTaken(context.userId, name, input.id);
     } catch (error) {
       rethrowFolderError(error);
     }
-    return toDeckFolder(row);
+    if (row) {
+      return toDeckFolder(row);
+    }
+    const folders = await context.repos.deckFolders.listForUser(context.userId);
+    const existing = folders.find((folder) => folder.id === input.id);
+    if (!existing) {
+      throw new AppError(409, ERROR_CODES.CONFLICT, "Folder id already belongs to someone else");
+    }
+    return toDeckFolder(existing);
   }),
 
   update: os.update.handler(async ({ input, context }): Promise<DeckFolderResponse> => {

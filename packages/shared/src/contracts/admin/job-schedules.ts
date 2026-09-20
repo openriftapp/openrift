@@ -17,6 +17,7 @@ export const SCHEDULED_JOB_KINDS = [
   "discord.flush_printing_events",
   "job_runs.cleanup",
   "submission_uploads.sweep",
+  "copy_deletions.sweep",
   "images.fingerprint",
   "candidates.check_matching",
   "card_trades.expire_pending",

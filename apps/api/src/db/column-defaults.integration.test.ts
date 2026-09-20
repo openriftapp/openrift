@@ -53,9 +53,14 @@ function splitTypeArgs(args: string): string[] {
   return parts;
 }
 
-/** `CreatedAt` / `UpdatedAt` are the file's local aliases for insert-optional columns. */
+/** `CreatedAt` / `UpdatedAt` / `UpdatedXid` are the file's local aliases for insert-optional columns. */
 function isInsertOptional(type: string): boolean {
-  if (type === "CreatedAt" || type === "UpdatedAt" || type.startsWith("Generated<")) {
+  if (
+    type === "CreatedAt" ||
+    type === "UpdatedAt" ||
+    type === "UpdatedXid" ||
+    type.startsWith("Generated<")
+  ) {
     return true;
   }
   if (!type.startsWith("ColumnType<")) {
@@ -189,6 +194,7 @@ describe.skipIf(!ctx)("columns with a database default", () => {
     // cannot come from `isInsertOptional` quietly answering true for everything.
     expect(isInsertOptional("Generated<boolean>")).toBe(true);
     expect(isInsertOptional("CreatedAt")).toBe(true);
+    expect(isInsertOptional("UpdatedXid")).toBe(true);
     expect(isInsertOptional("ColumnType<CopyLink[],CopyLink[]|undefined,CopyLink[]>")).toBe(true);
     expect(isInsertOptional("boolean")).toBe(false);
     expect(isInsertOptional("string|undefined")).toBe(false);

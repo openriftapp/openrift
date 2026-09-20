@@ -171,6 +171,23 @@ export function collectionsRepo(db: Kysely<Database>) {
       return db.insertInto("collections").values(values).returningAll().executeTakeFirstOrThrow();
     },
 
+    createUnlessIdTaken(values: {
+      id?: string;
+      userId: string | null;
+      groupId: string | null;
+      name: string;
+      description: string | null;
+      isInbox: boolean;
+      sortOrder: number;
+    }): Promise<Selectable<CollectionsTable> | undefined> {
+      return db
+        .insertInto("collections")
+        .values(values)
+        .onConflict((oc) => oc.column("id").doNothing())
+        .returningAll()
+        .executeTakeFirst();
+    },
+
     async nextPersonalSortOrder(userId: string): Promise<number> {
       const row = await db
         .selectFrom("collections")

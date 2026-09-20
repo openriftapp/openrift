@@ -107,6 +107,25 @@ export function decksCoreRepo(db: Kysely<Database>) {
         .executeTakeFirstOrThrow();
     },
 
+    async createUnlessIdTaken(values: {
+      id?: string;
+      userId: string;
+      name: string;
+      description: string | null;
+      format: DeckFormat;
+      formatConfig: DeckFormatConfig | null;
+      isPublic: boolean;
+      links?: DeckLink[];
+    }): Promise<Selectable<DecksTable> | undefined> {
+      const { links, ...rest } = values;
+      return await db
+        .insertInto("decks")
+        .values({ ...rest, links: links ?? [] })
+        .onConflict((oc) => oc.column("id").doNothing())
+        .returningAll()
+        .executeTakeFirst();
+    },
+
     async update(
       id: string,
       userId: string,

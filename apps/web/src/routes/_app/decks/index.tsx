@@ -2,14 +2,14 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
+import { DeckPending } from "@/features/decks/components/deck-pending";
 import { deckListSearchSchema } from "@/features/decks/lib/deck-list-search";
-import { decksQueryOptions } from "@/features/decks/lib/decks-queries";
 import { sessionQueryOptions } from "@/lib/auth-session";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
 
 export const Route = createFileRoute("/_app/decks/")({
-  ssr: "data-only",
+  ssr: false,
   validateSearch: deckListSearchSchema,
   beforeLoad: ({ search, location }) => {
     const cleaned = cleanedSearchForRedirect(deckListSearchSchema, search, location.searchStr);
@@ -19,16 +19,23 @@ export const Route = createFileRoute("/_app/decks/")({
   },
   head: () => seoHead({ siteUrl: getSiteUrl(), title: "Decks", noIndex: true }),
   loader: async ({ context }) => {
-    const session = await context.queryClient.query({
-      ...sessionQueryOptions(),
-      staleTime: "static",
-    });
-    if (session?.user) {
-      await context.queryClient.query({
-        ...decksQueryOptions(session.user.id),
+    const { preloadLocalDecks } = await import("@/features/decks/lib/local-decks-collection");
+    const [session] = await Promise.all([
+      context.queryClient.query({
+        ...sessionQueryOptions(),
         staleTime: "static",
-      });
+      }),
+      preloadLocalDecks(),
+    ]);
+    if (session?.user) {
+      const { getDeckCardsCollection, getDecksCollection } =
+        await import("@/features/decks/lib/decks-collection");
+      await Promise.all([
+        getDecksCollection(context.queryClient, session.user.id).preload(),
+        getDeckCardsCollection(context.queryClient, session.user.id).preload(),
+      ]);
     }
   },
+  pendingComponent: DeckPending,
   errorComponent: RouteErrorFallback,
 });
