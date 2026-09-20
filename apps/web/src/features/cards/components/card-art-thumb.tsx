@@ -113,7 +113,9 @@ export function CardArtThumb({
     <span
       data-slot="card-art-thumb"
       className={cn(
-        "relative inline-block shrink-0 overflow-hidden align-top",
+        // WebKit gives an aspect-ratio-sized box a `min-width: auto` of the
+        // image's intrinsic width, inflating every flex ancestor.
+        "relative inline-block min-w-0 shrink-0 overflow-hidden align-top",
         FRAME_CLASS[shape],
         foil && "ring-border-accent/60 ring-1",
         className,

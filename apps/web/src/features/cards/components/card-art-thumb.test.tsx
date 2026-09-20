@@ -17,6 +17,12 @@ describe("CardArtThumb", () => {
     expect(img?.className).toContain("object-cover");
   });
 
+  it("floors the frame's min-width so a flex ancestor is not sized by the art", () => {
+    const { container } = render(<CardArtThumb shape="strip" src="/x-120w.webp" />);
+
+    expect(container.querySelector("span")?.className).toContain("min-w-0");
+  });
+
   it("rings the frame and washes the art when the printing is a foil", () => {
     const { container } = render(<CardArtThumb src="/x.webp" foil />);
 
