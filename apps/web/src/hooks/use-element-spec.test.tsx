@@ -1,13 +1,7 @@
-import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { ElementSpec } from "./use-element-spec";
-import {
-  formatSpecLine,
-  isTransparentColor,
-  readElementSpec,
-  useElementSpec,
-} from "./use-element-spec";
+import { formatSpecLine, isTransparentColor, readElementSpec } from "./use-element-spec";
 
 function makeSpec(overrides: Partial<ElementSpec>): ElementSpec {
   return {
@@ -96,34 +90,5 @@ describe("readElementSpec", () => {
     document.body.append(element);
     expect(readElementSpec(element).hasText).toBe(false);
     element.remove();
-  });
-});
-
-function Probe() {
-  const { ref, spec } = useElementSpec<HTMLDivElement>();
-  return (
-    <div ref={ref} data-testid="wrapper" data-measured={spec === null ? "no" : "yes"}>
-      <span>sample</span>
-    </div>
-  );
-}
-
-function EmptyProbe() {
-  const { ref, spec } = useElementSpec<HTMLDivElement>();
-  return <div ref={ref} data-testid="empty" data-measured={spec === null ? "no" : "yes"} />;
-}
-
-describe("useElementSpec", () => {
-  it("measures the first element child after mount", async () => {
-    const { getByTestId } = render(<Probe />);
-    await waitFor(() => {
-      expect(getByTestId("wrapper").dataset.measured).toBe("yes");
-    });
-  });
-
-  it("stays null when the wrapper has no element child", () => {
-    // render() flushes mount effects via act; measure() has already run.
-    const { getByTestId } = render(<EmptyProbe />);
-    expect(getByTestId("empty").dataset.measured).toBe("no");
   });
 });

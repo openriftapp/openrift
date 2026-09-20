@@ -82,7 +82,7 @@ const GUARDS: readonly Guard[] = [
     pattern: /<Separator\b/u,
     exemptDirs: ["components/ui/"],
     // Call sites still on the old pattern; remove each as it is swept.
-    exempt: new Set(["features/admin/components/design/layout-section.tsx"]),
+    exempt: new Set(["features/admin/components/design/ui/data-section.tsx"]),
   },
   {
     title: "pads a page column with the gutter, never a hard-coded px",

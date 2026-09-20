@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from "react";
-
 /** Rendered geometry and paint facts read from a live DOM element. */
 export interface ElementSpec {
   width: number;
@@ -88,29 +86,4 @@ export function formatSpecLine(spec: ElementSpec): string {
     }
   }
   return parts.join(" · ");
-}
-
-/**
- * Attach `ref` to a plain wrapper around the component under inspection;
- * `spec` stays null until the client measures its first element child.
- */
-export function useElementSpec<T extends HTMLElement = HTMLDivElement>(): {
-  ref: React.RefObject<T | null>;
-  spec: ElementSpec | null;
-} {
-  const ref = useRef<T | null>(null);
-  const [spec, setSpec] = useState<ElementSpec | null>(null);
-
-  useEffect(() => {
-    const measure = () => {
-      const target = ref.current?.firstElementChild;
-      if (target) {
-        setSpec(readElementSpec(target));
-      }
-    };
-    measure();
-    return observeThemeChanges(measure);
-  }, []);
-
-  return { ref, spec };
 }
