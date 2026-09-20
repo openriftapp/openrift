@@ -143,10 +143,10 @@ describe("/cards/$cardSlug SSR head", () => {
     );
   });
 
-  it("makes the printing's own path canonical", () => {
+  it("canonicalises a printing path to the bare card URL", () => {
     const meta = runHead("ja-ogn-202-normal-standard", "path");
-    expect(meta.find((entry) => entry.property === "og:url")?.content).toContain(
-      "/cards/inferna/ja-ogn-202-normal-standard",
+    expect(meta.find((entry) => entry.property === "og:url")?.content).toBe(
+      "http://localhost:5173/cards/inferna",
     );
   });
 

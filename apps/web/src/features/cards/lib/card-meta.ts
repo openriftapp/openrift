@@ -65,8 +65,8 @@ export function resolveCardMetaPrinting<T extends CatalogPrintingResponse>(
   return linked ?? pickCardMetaPrinting(printings, languageOrder);
 }
 
-// Strips rules-text markup so emoji shortcodes (`:rb_energy_2:`) and
-// `[keyword:foo]` macros don't leak into unfurls.
+// Strips rules-text markup so emoji shortcodes (`:rb_energy_2:`), `[keyword:foo]`
+// macros and markdown emphasis don't leak into unfurls.
 export function buildCardMetaDescription(
   card: CardDetailResponse["card"],
   printing: CatalogPrintingResponse | undefined,
@@ -90,9 +90,12 @@ export function buildCardMetaDescription(
 
   const rulesText = printing?.printedRulesText;
   if (rulesText) {
+    // Emphasis markers come off after the shortcodes: `:rb_energy_2:` carries
+    // underscores of its own and would stop matching otherwise.
     const cleaned = rulesText
       .replaceAll(/\[.*?\]/gu, "")
       .replaceAll(/:[a-z0-9_]+:/giu, "")
+      .replaceAll(/[*_]/gu, "")
       .replaceAll(/\s+/gu, " ")
       .trim();
     if (cleaned.length > 0) {

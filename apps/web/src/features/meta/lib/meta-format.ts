@@ -183,11 +183,23 @@ function emptyStatusFor(event: MetaCountedEvent, today: string): string {
   return m.meta_event_no_results();
 }
 
+export function metaEventHasArchivedResults(
+  event: Pick<MetaCountedEvent, "playerRowCount" | "deckCount">,
+): boolean {
+  return event.playerRowCount > 0 || event.deckCount > 0;
+}
+
+/** Event names repeat across the archive, so the SEO title carries venue and date to keep pages apart. */
+export function metaEventSeoTitle(event: {
+  name: string;
+  location: string | null;
+  eventDate: string;
+}): string {
+  return [event.name, event.location, event.eventDate].filter(Boolean).join(", ");
+}
+
 export function metaEventEmptyStatus(event: MetaCountedEvent, today = todayUtc()): string | null {
-  if (event.playerRowCount > 0 || event.deckCount > 0) {
-    return null;
-  }
-  return emptyStatusFor(event, today);
+  return metaEventHasArchivedResults(event) ? null : emptyStatusFor(event, today);
 }
 
 export function metaEventFieldSize(

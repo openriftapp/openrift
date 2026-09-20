@@ -105,6 +105,34 @@ describe("buildCardMetaDescription", () => {
     expect(result).toContain("this to a unit.");
   });
 
+  it("strips markdown emphasis markers from rules text", () => {
+    const result = buildCardMetaDescription(
+      baseCard,
+      makePrinting("Kill a gear. _(Send it to base.)_"),
+      labels,
+    );
+    expect(result).not.toContain("_");
+    expect(result).toContain("Kill a gear. (Send it to base.)");
+  });
+
+  it("strips emphasis without breaking the glyph shortcodes it wraps", () => {
+    const result = buildCardMetaDescription(
+      baseCard,
+      makePrinting("_Pay :rb_energy_2: first._"),
+      labels,
+    );
+    expect(result).toContain("Pay first.");
+  });
+
+  it("strips the bullet markers on a multi-line effect list", () => {
+    const result = buildCardMetaDescription(
+      baseCard,
+      makePrinting("Choose one:\n*Draw a card.\n*Ready a rune."),
+      labels,
+    );
+    expect(result).toContain("Choose one: Draw a card. Ready a rune.");
+  });
+
   it("collapses runs of whitespace left behind by stripping", () => {
     const result = buildCardMetaDescription(
       baseCard,

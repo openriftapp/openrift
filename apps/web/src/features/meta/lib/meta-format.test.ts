@@ -10,6 +10,8 @@ import {
   joinNames,
   metaEventCounts,
   metaEventEmptyStatus,
+  metaEventHasArchivedResults,
+  metaEventSeoTitle,
   metaPlayerClaimChips,
   metaShownLabel,
   recordSortValue,
@@ -368,5 +370,49 @@ describe("formatRank", () => {
     expect(formatRank(1, false)).toBe("1er");
     expect(formatRank(2, false)).toBe("2e");
     expect(formatRank(8, true)).toBe("Top 8");
+  });
+});
+
+describe("metaEventHasArchivedResults", () => {
+  it("counts an event with standings rows but no decklists", () => {
+    expect(metaEventHasArchivedResults({ playerRowCount: 64, deckCount: 0 })).toBe(true);
+  });
+
+  it("counts an event with decklists but no standings rows", () => {
+    expect(metaEventHasArchivedResults({ playerRowCount: 0, deckCount: 3 })).toBe(true);
+  });
+
+  it("rejects an event with neither", () => {
+    expect(metaEventHasArchivedResults({ playerRowCount: 0, deckCount: 0 })).toBe(false);
+  });
+});
+
+describe("metaEventSeoTitle", () => {
+  it("keeps same-named events on different dates apart", () => {
+    const first = metaEventSeoTitle({
+      name: "Summoner Skirmish",
+      location: "Piltover Game Hall",
+      eventDate: "2026-03-21",
+    });
+    const second = metaEventSeoTitle({
+      name: "Summoner Skirmish",
+      location: "Piltover Game Hall",
+      eventDate: "2026-04-25",
+    });
+
+    expect(first).toBe("Summoner Skirmish, Piltover Game Hall, 2026-03-21");
+    expect(first).not.toBe(second);
+  });
+
+  it("drops the venue when the event has none", () => {
+    expect(
+      metaEventSeoTitle({ name: "Summoner Skirmish", location: null, eventDate: "2026-03-21" }),
+    ).toBe("Summoner Skirmish, 2026-03-21");
+  });
+
+  it("drops an empty venue string rather than printing a stray comma", () => {
+    expect(
+      metaEventSeoTitle({ name: "Summoner Skirmish", location: "", eventDate: "2026-03-21" }),
+    ).toBe("Summoner Skirmish, 2026-03-21");
   });
 });

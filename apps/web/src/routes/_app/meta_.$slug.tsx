@@ -3,6 +3,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
+import { metaEventHasArchivedResults, metaEventSeoTitle } from "@/features/meta/lib/meta-format";
 import { metaEventQueryOptions, metaStandingsQueryOptions } from "@/features/meta/lib/meta-queries";
 import {
   metaStandingsSearchSchema,
@@ -29,9 +30,13 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
     if (!event) {
       return seoHead({ siteUrl, title: "Event", path, unlisted: true });
     }
+    const title = metaEventSeoTitle(event);
+    if (!metaEventHasArchivedResults(event)) {
+      return seoHead({ siteUrl, title, path, unlisted: true });
+    }
     const description = `${event.name} on ${event.eventDate}: standings for ${event.playerRowCount} Riftbound ${event.format} ${event.playerRowCount === 1 ? "player" : "players"}, with ${event.deckCount} archived ${event.deckCount === 1 ? "decklist" : "decklists"}.`;
     return {
-      ...seoHead({ siteUrl, title: event.name, description, path }),
+      ...seoHead({ siteUrl, title, description, path }),
       scripts: [
         breadcrumbJsonLd(siteUrl, [
           { name: "Meta Archive", path: "/meta" },

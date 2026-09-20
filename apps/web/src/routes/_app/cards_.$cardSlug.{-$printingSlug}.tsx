@@ -4,7 +4,7 @@ import type { CardDetailResponse } from "@openrift/shared/types/api/catalog";
 import type { PricesResponse } from "@openrift/shared/types/api/pricing";
 import { ALL_MARKETPLACES, MARKETPLACE_CURRENCY } from "@openrift/shared/types/pricing";
 import { legendDisplayName } from "@openrift/shared/utils";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
@@ -71,9 +71,9 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
       },
       loaded.marketplaceOffers,
     );
-    const cardPath = metaPrinting?.slug
-      ? `/cards/${data.card.slug}/${metaPrinting.slug}`
-      : `/cards/${data.card.slug}`;
+    // Every printing variant canonicalises to the bare card URL: that is the one
+    // the sitemap submits and the one other pages link to.
+    const cardPath = `/cards/${data.card.slug}`;
     const cardName = legendDisplayName(data.card);
     const titleSuffix =
       loaded.marketplaceOffers.length > 0 ? "Riftbound Card Price & Data" : "Riftbound Card";
@@ -125,6 +125,18 @@ export const Route = createFileRoute("/_app/cards_/$cardSlug/{-$printingSlug}")(
         throw notFound();
       }
       throw error;
+    }
+    // Printings get renumbered, and the old slug must 301 rather than render the
+    // language-preferred fallback: a 200 keeps the dead URL in search indexes.
+    if (
+      params.printingSlug !== undefined &&
+      !data.printings.some((printing) => printing.slug === params.printingSlug)
+    ) {
+      throw redirect({
+        to: "/cards/$cardSlug/{-$printingSlug}",
+        params: { cardSlug: params.cardSlug, printingSlug: undefined },
+        statusCode: 301,
+      });
     }
     const languageRows = (init.enums.languages ?? []) as { slug: string; sortOrder: number }[];
     const languageOrder = effectiveLanguageOrder([], languageRows);

@@ -1,3 +1,5 @@
+import type { AnyRedirect } from "@tanstack/react-router";
+import { isRedirect } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/features/cards/lib/card-detail-queries", () => ({
@@ -21,7 +23,7 @@ const PRICES = {
 
 const CARD_DETAIL = {
   card: { id: "card-1", slug: "inferna", name: "Inferna", types: ["unit"] },
-  printings: [{ id: "p-en", setId: "set-1" }],
+  printings: [{ id: "p-en", setId: "set-1", slug: "en-ogn-202-normal-standard" }],
   sets: [],
   products: [],
 };
@@ -51,11 +53,14 @@ function ensuredKeys(context: ReturnType<typeof makeContext>): string[] {
 
 type LoaderFn = (ctx: {
   context: ReturnType<typeof makeContext>;
-  params: { cardSlug: string };
+  params: { cardSlug: string; printingSlug?: string };
 }) => Promise<{ marketplaceOffers: { seller: string; offerCount: number }[] }>;
 
-const runLoader = (context: ReturnType<typeof makeContext>) =>
-  (Route.options.loader as unknown as LoaderFn)({ context, params: { cardSlug: "inferna" } });
+const runLoader = (context: ReturnType<typeof makeContext>, printingSlug?: string) =>
+  (Route.options.loader as unknown as LoaderFn)({
+    context,
+    params: { cardSlug: "inferna", printingSlug },
+  });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -127,5 +132,27 @@ describe("/cards/$cardSlug loader — prices stay out of the SSR payload", () =>
 
       expect(fetchPricesForSeo).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("/cards/$cardSlug loader — stale printing slugs", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", undefined);
+  });
+
+  it("redirects a printing slug the card no longer has to the bare card URL", async () => {
+    const thrown = await runLoader(makeContext(), "en-unl-085-foil-standard").catch(
+      (error: unknown) => error,
+    );
+
+    expect(isRedirect(thrown)).toBe(true);
+    expect((thrown as AnyRedirect).options).toMatchObject({
+      params: { cardSlug: "inferna", printingSlug: undefined },
+      statusCode: 301,
+    });
+  });
+
+  it("renders a printing slug the card still has", async () => {
+    await expect(runLoader(makeContext(), "en-ogn-202-normal-standard")).resolves.toBeDefined();
   });
 });

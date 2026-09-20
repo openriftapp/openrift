@@ -135,7 +135,8 @@ export function metaArchiveRepo(db: Kysely<Database>) {
 
     /**
      * `updatedAt` drives the `<lastmod>` the sitemap generator emits. Store
-     * night events are excluded while the archive ramps up.
+     * night events are excluded while the archive ramps up, and so are events
+     * with no standings row: their pages are `noindex`.
      */
     async sitemapEntries(): Promise<{
       events: { slug: string; updatedAt: string }[];
@@ -145,10 +146,17 @@ export function metaArchiveRepo(db: Kysely<Database>) {
     }> {
       const [events, decks, legends, players] = await Promise.all([
         db
-          .selectFrom("metaEvents")
-          .select(["slug", "updatedAt"])
-          .where("tier", "in", SITEMAP_TIERS)
-          .orderBy("eventDate", "desc")
+          .selectFrom("metaEvents as e")
+          .select(["e.slug", "e.updatedAt"])
+          .where("e.tier", "in", SITEMAP_TIERS)
+          .where(({ exists, selectFrom }) =>
+            exists(
+              selectFrom("metaEventPlayers as p")
+                .select("p.id")
+                .whereRef("p.metaEventId", "=", "e.id"),
+            ),
+          )
+          .orderBy("e.eventDate", "desc")
           .execute(),
         db
           .selectFrom("metaEventPlayers as p")

@@ -6,6 +6,8 @@
 
 - fix(Decks): **Card rows line up on iPhone** — in Safari the list view pushed the quantity and name out of line and cut names short, worst on battlefields.
 - fix(App): **Clearer bordered buttons and toggles** — segmented pickers and outlined buttons, such as the printing desk's front/back switch, now stand out from their rest state in both themes.
+- fix(Meta): **Event pages in search results** — events with no standings are kept out of search, and the rest carry their venue and date in the title so same-named events tell apart.
+- fix(Cards): **Card links in search and previews** — every printing of a card now points search engines at one page, links to renumbered printings redirect there, and share previews no longer show stray markdown.
 - fix(Cards): **Steadier printing prices** — the printing picker now falls back through your marketplace order and names the source when it's not your favourite, instead of a separate request per row that could time out and show nothing.
 
 ## 2026-09-19

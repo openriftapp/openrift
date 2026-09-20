@@ -147,3 +147,53 @@ describe("/meta/$slug loader", () => {
     expect(isRedirect(await thrownBy(runLoader({}, { meta: false }).loaded))).toBe(true);
   });
 });
+
+type HeadFn = (ctx: { loaderData: unknown; params: { slug: string } }) => {
+  meta: Record<string, string>[];
+  links?: Record<string, string>[];
+};
+
+function runHead(overrides: Parameters<typeof metaEvent>[0] = {}) {
+  const head = Route.options.head as unknown as HeadFn;
+  return head({ loaderData: metaEvent(overrides), params: { slug: SLUG } });
+}
+
+function robots(head: ReturnType<HeadFn>): string | undefined {
+  return head.meta.find((entry) => entry.name === "robots")?.content;
+}
+
+function title(head: ReturnType<HeadFn>): string | undefined {
+  return head.meta.find((entry) => entry.title !== undefined)?.title;
+}
+
+describe("/meta/$slug head", () => {
+  it("noindexes an event with no standings and no decklists", () => {
+    expect(robots(runHead({ playerRowCount: 0, deckCount: 0 }))).toBe("noindex, nofollow");
+  });
+
+  it("indexes an event once it has standings", () => {
+    expect(robots(runHead({ playerRowCount: 64 }))).toBeUndefined();
+  });
+
+  it("indexes an event that has only decklists", () => {
+    expect(robots(runHead({ deckCount: 3 }))).toBeUndefined();
+  });
+
+  it("carries venue and date in the title, so same-named events do not collide", () => {
+    expect(title(runHead({ playerRowCount: 64, location: "Piltover Game Hall" }))).toBe(
+      "Summoner Skirmish, Piltover Game Hall, 2026-08-01 - OpenRift",
+    );
+  });
+
+  it("keeps the same title on an event it noindexes", () => {
+    expect(title(runHead({ location: "Piltover Game Hall" }))).toBe(
+      "Summoner Skirmish, Piltover Game Hall, 2026-08-01 - OpenRift",
+    );
+  });
+
+  it("still self-canonicalises", () => {
+    const link = runHead({ playerRowCount: 64 }).links?.find((entry) => entry.rel === "canonical");
+
+    expect(link?.href).toBe(`http://localhost:5173/meta/${SLUG}`);
+  });
+});

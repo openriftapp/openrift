@@ -2684,6 +2684,19 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(decks.some((entry) => entry.slug === tokenOf(skippedDeck))).toBe(false);
     });
 
+    it("skips an event with no standings row, whose page is noindex", async () => {
+      const empty = await seedEvent(repo, "mta-sitemap-empty");
+      const filled = await seedEvent(repo, "mta-sitemap-filled");
+      await repo.updateEvent(empty, { tier: "competitive" });
+      await repo.updateEvent(filled, { tier: "competitive" });
+      await seedListedPlayer(repo, filled, { playerName: "MTA Filled", rank: 1 });
+
+      const { events } = await repo.sitemapEntries();
+
+      expect(events.some((entry) => entry.slug === "mta-sitemap-empty")).toBe(false);
+      expect(events.some((entry) => entry.slug === "mta-sitemap-filled")).toBe(true);
+    });
+
     it("lists every legend with an archive page, and the players of listed events", async () => {
       const listed = await seedEvent(repo, "mta-sitemap-players", {
         eventDate: "2027-07-01",
