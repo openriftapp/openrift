@@ -14,7 +14,7 @@ import {
   PageTopBarHeightContext,
   useMeasuredHeight,
 } from "@/components/layout/page-top-bar";
-import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import {
   BrowserToolbar,
   CardBrowserFilterProvider,
@@ -277,16 +277,16 @@ function PromosBrowser() {
                 groupByValue={grouping}
                 extras={
                   isLoggedIn ? (
-                    <Button
+                    <Toggle
                       variant="control"
-                      size="icon"
-                      onClick={togglePromoOwned}
+                      pressed={showOwned}
+                      onPressedChange={togglePromoOwned}
                       aria-label={showOwned ? m.promos_hide_owned() : m.promos_show_owned()}
-                      aria-pressed={showOwned}
                       title={showOwned ? m.promos_hide_owned() : m.promos_show_owned()}
                     >
                       <PackageIcon className="size-4" />
-                    </Button>
+                      <span className="hidden sm:inline">{m.cards_grid_owned_count_label()}</span>
+                    </Toggle>
                   ) : null
                 }
               />

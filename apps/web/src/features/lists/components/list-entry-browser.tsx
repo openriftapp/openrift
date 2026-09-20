@@ -253,6 +253,7 @@ export function ListEntryBrowser({
         aria-label={showLibrary ? m.lists_entry_hide_library() : m.lists_entry_show_library()}
       >
         <LibraryBigIcon className="size-4" />
+        <span className="hidden sm:inline">{m.collections_grid_library()}</span>
       </Toggle>
     );
 

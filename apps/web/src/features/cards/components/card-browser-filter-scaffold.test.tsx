@@ -26,7 +26,7 @@ vi.mock("@/features/cards/components/compact-filter-bar", () => ({
 }));
 vi.mock("@/features/cards/components/options-bar", () => ({
   DesktopOptionsBar: () => <div>desktop-options-stub</div>,
-  DetailPaneToggle: () => <div>detail-pane-toggle-stub</div>,
+  DisplayOptionsPopover: () => <div>display-options-popover-stub</div>,
   MobileFilterContent: () => <div>mobile-filter-content-stub</div>,
   MobileOptionsContent: () => <div>mobile-options-content-stub</div>,
   MobileOptionsDrawer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

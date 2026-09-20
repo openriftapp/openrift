@@ -325,6 +325,7 @@ export function CardBrowser() {
       }
     >
       <PackageIcon className="size-4" />
+      <span className="hidden sm:inline">{m.cards_grid_owned_count_label()}</span>
     </Toggle>
   ) : null;
 

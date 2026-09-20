@@ -12,7 +12,6 @@ import { Pressable } from "@/components/ui/pressable";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterChipSections } from "@/features/cards/components/filter-chip-sections";
-import { FilterCustomizeControl } from "@/features/cards/components/filter-customize-control";
 import { FlagBadge } from "@/features/cards/components/filter-flag-badge";
 import { FilterMoreMenu } from "@/features/cards/components/filter-more-menu";
 import { FilterRangeSections } from "@/features/cards/components/filter-range-sections";
@@ -429,7 +428,7 @@ export function CompactFilterBar({
   className,
 }: CompactFilterBarProps) {
   const { labels } = useEnumOrders();
-  const { filterState, hasActiveFilters } = useFilterValues();
+  const { filterState, hasClearableFilters } = useFilterValues();
   const { cycleArrayFilter, toggleStandard, clearAllFilters } = useFilterActions();
   const visibleDimensions = useVisibleFilterDimensions({
     availableFilters,
@@ -650,20 +649,17 @@ export function CompactFilterBar({
           topLevelUnits={topLevelUnits}
         />
 
-        <div className="ml-auto flex items-center">
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={clearAllFilters}
-              aria-label={m.cards_clear_all_filters()}
-            >
-              <XIcon className="size-4" />
-            </Button>
-          )}
-          <FilterCustomizeControl className="text-muted-foreground" />
-        </div>
+        {hasClearableFilters && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-foreground ml-auto"
+            onClick={clearAllFilters}
+            aria-label={m.cards_clear_all_filters()}
+          >
+            <XIcon className="size-4" />
+          </Button>
+        )}
       </div>
     </TooltipProvider>
   );

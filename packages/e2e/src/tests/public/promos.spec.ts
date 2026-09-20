@@ -166,6 +166,7 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
 
+      await page.getByRole("button", { name: "Display options" }).click();
       const gridButton = page.getByRole("button", { name: "Grid view" });
       const tableButton = page.getByRole("button", { name: "Table view" });
 
@@ -213,11 +214,13 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
 
+      await page.getByRole("button", { name: "Display options" }).click();
       const tableButton = page.getByRole("button", { name: "Table view" });
       await expect(async () => {
         await tableButton.click();
         await expect(page.getByRole("row").first()).toBeVisible({ timeout: 2000 });
       }).toPass({ timeout: 15_000 });
+      await page.keyboard.press("Escape");
 
       const firstRow = page.getByRole("row").first();
       await expect(firstRow).toBeVisible();

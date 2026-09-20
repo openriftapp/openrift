@@ -7,6 +7,7 @@ import { CardBrowserLayout } from "@/features/cards/components/card-browser-layo
 import { CompactFilterBar } from "@/features/cards/components/compact-filter-bar";
 import {
   DesktopOptionsBar,
+  DisplayOptionsPopover,
   MobileFilterContent,
   MobileOptionsContent,
   MobileOptionsDrawer,
@@ -75,6 +76,7 @@ export function FirstRowPreview() {
           <div className={cn("flex items-start gap-3", hasActiveFilters ? "mb-2" : "mb-3")}>
             <SearchBar totalCards={counts.totalCards} filteredCount={counts.filteredCount} />
             <DesktopOptionsBar className="hidden sm:flex" />
+            <DisplayOptionsPopover className="hidden sm:inline-flex" />
             <MobileOptionsDrawer className="sm:hidden">
               <MobileOptionsContent />
               <MobileFilterContent

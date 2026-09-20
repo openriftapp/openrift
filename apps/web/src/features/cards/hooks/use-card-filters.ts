@@ -199,10 +199,10 @@ export function useFilterValues() {
   const groupBy = filterState.groupBy as GroupByField;
   const groupDir = filterState.groupDir as SortDirection;
 
-  const hasActiveFilters =
+  // Language survives clearAllFilters, so it counts as active but not clearable.
+  const hasClearableFilters =
     filterState.search !== "" ||
     filterState.sets.length > 0 ||
-    filterState.languages.length > 0 ||
     filterState.rarities.length > 0 ||
     filterState.types.length > 0 ||
     filterState.superTypes.length > 0 ||
@@ -241,7 +241,6 @@ export function useFilterValues() {
     // trim the grid while the active-filter indicators stay off.
     filterState.standard !== null ||
     filterState.setsEx.length > 0 ||
-    filterState.languagesEx.length > 0 ||
     filterState.raritiesEx.length > 0 ||
     filterState.typesEx.length > 0 ||
     filterState.superTypesEx.length > 0 ||
@@ -253,6 +252,8 @@ export function useFilterValues() {
     filterState.customTagsEx.length > 0 ||
     filterState.keywordsEx.length > 0 ||
     filterState.tagsEx.length > 0;
+  const hasActiveFilters =
+    hasClearableFilters || filterState.languages.length > 0 || filterState.languagesEx.length > 0;
 
   return {
     filters,
@@ -263,6 +264,7 @@ export function useFilterValues() {
     groupBy,
     groupDir,
     hasActiveFilters,
+    hasClearableFilters,
     filterState,
     searchScope,
   };

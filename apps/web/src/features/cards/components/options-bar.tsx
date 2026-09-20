@@ -25,6 +25,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -44,7 +45,7 @@ import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
 
-import { FilterCustomizeControl } from "./filter-customize-control";
+import { FilterCustomizeControl, FilterPlacementSection } from "./filter-customize-control";
 import { FilterPanelContent } from "./filter-panel-content";
 
 function sortOptionsList(): { value: SortOption; label: string }[] {
@@ -81,7 +82,13 @@ function groupByOptionsForView(view: "cards" | "printings" | "copies") {
  * view-controls cluster on surfaces with a detail pane but no toolbar
  * (the deck overview and the public deck share).
  */
-export function DetailPaneToggle({ className }: { className?: string }) {
+export function DetailPaneToggle({
+  className,
+  compact,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   const paneDocked = useDisplayStore((state) => state.paneDocked);
   const setPaneDocked = useDisplayStore((state) => state.setPaneDocked);
   const closeDetail = useSelectionStore((state) => state.closeDetail);
@@ -103,13 +110,15 @@ export function DetailPaneToggle({ className }: { className?: string }) {
   return (
     <Toggle
       variant="control"
+      size={compact ? "sm" : "default"}
       pressed={paneDocked}
       onPressedChange={handlePressedChange}
-      className={className}
+      className={cn(compact && "gap-1.5 text-xs", className)}
       title={label}
       aria-label={label}
     >
-      <PanelRightIcon className="size-4" />
+      <PanelRightIcon className={compact ? undefined : "size-4"} />
+      {compact && m.cards_detail_pane_label()}
     </Toggle>
   );
 }
@@ -287,15 +296,12 @@ export function DesktopOptionsBar({
   className,
   showCopies,
   hideViewToggle,
-  hideDisplayModeToggle,
   groupByOptions,
   groupByValue,
 }: {
   className?: string;
   showCopies?: boolean;
   hideViewToggle?: boolean;
-  /** Drop the grid/table toggle on a surface that renders no table (the pickers). */
-  hideDisplayModeToggle?: boolean;
   /** `value` is `string`: surface-specific keys like "card" aren't in the shared `GroupByField`. */
   groupByOptions?: { value: string; label: string }[];
   groupByValue?: string;
@@ -311,8 +317,6 @@ export function DesktopOptionsBar({
     groupDir,
     setGroupBy,
     setGroupDir,
-    columnProps,
-    displayMode,
   } = useOptionsBarState();
 
   const options = groupByOptions ?? groupByOptionsForView(view);
@@ -336,9 +340,49 @@ export function DesktopOptionsBar({
       {!hideViewToggle && (
         <ViewModeToggle view={view} onViewChange={setView} showCopies={showCopies} />
       )}
-      {!hideDisplayModeToggle && <DisplayModeToggle />}
-      {(hideDisplayModeToggle || displayMode === "grid") && <ColumnControls {...columnProps} />}
     </div>
+  );
+}
+
+export function DisplayOptionsPopover({
+  className,
+  hideDisplayModeToggle,
+}: {
+  className?: string;
+  /** Drop the grid/table toggle on a surface that renders no table (the pickers). */
+  hideDisplayModeToggle?: boolean;
+}) {
+  const { columnProps, displayMode } = useOptionsBarState();
+  return (
+    <Popover>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              render={<Button variant="control" size="icon" className={className} />}
+              aria-label={m.cards_display_options()}
+            />
+          }
+        >
+          <SlidersHorizontalIcon className="size-4" />
+        </TooltipTrigger>
+        <TooltipContent>{m.cards_display_options()}</TooltipContent>
+      </Tooltip>
+      <PopoverContent align="end" className="w-auto gap-3 p-3">
+        <LabelledRow label={m.cards_display_layout_label()}>
+          <div className="flex items-center gap-2">
+            {!hideDisplayModeToggle && <DisplayModeToggle compact />}
+            <DetailPaneToggle compact />
+          </div>
+        </LabelledRow>
+        {(hideDisplayModeToggle || displayMode === "grid") && (
+          <LabelledRow label={m.cards_columns()}>
+            <ColumnControls compact {...columnProps} />
+          </LabelledRow>
+        )}
+        <FilterPlacementSection />
+      </PopoverContent>
+    </Popover>
   );
 }
 

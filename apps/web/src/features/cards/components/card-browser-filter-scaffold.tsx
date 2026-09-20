@@ -7,7 +7,7 @@ import { ActiveFilters } from "@/features/cards/components/active-filters";
 import { CompactFilterBar } from "@/features/cards/components/compact-filter-bar";
 import {
   DesktopOptionsBar,
-  DetailPaneToggle,
+  DisplayOptionsPopover,
   MobileFilterContent,
   MobileOptionsContent,
   MobileOptionsDrawer,
@@ -147,13 +147,17 @@ export function BrowserToolbar({
             className="hidden sm:flex"
             showCopies={showCopies}
             hideViewToggle={hideViewToggle}
-            hideDisplayModeToggle={hideDisplayModeToggle}
             groupByOptions={groupByOptions}
             groupByValue={groupByValue}
           />
         )}
         {extras}
-        <DetailPaneToggle />
+        {smUp && (
+          <DisplayOptionsPopover
+            className="hidden sm:inline-flex"
+            hideDisplayModeToggle={hideDisplayModeToggle}
+          />
+        )}
         <MobileOptionsDrawer doneLabel={mobileDoneLabel} className="sm:hidden">
           <MobileOptionsContent
             showCopies={showCopies}

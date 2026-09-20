@@ -2,7 +2,6 @@ import type { Printing } from "@openrift/shared/types/catalog";
 import type { GroupByField } from "@openrift/shared/types/search";
 import { HeartIcon, LibraryBigIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { BrowserToolbar } from "@/features/cards/components/card-browser-filter-scaffold";
 import { defaultGroupByOptions } from "@/features/cards/components/options-bar";
@@ -62,18 +61,18 @@ export function CollectionGridToolbar({
     ) : null;
 
   const showLibraryButton = addTarget ? (
-    <Button
+    <Toggle
       variant="control"
-      size="icon"
-      onClick={onToggleLibrary}
+      pressed={showLibrary}
+      onPressedChange={onToggleLibrary}
       title={showLibrary ? m.collections_grid_hide_library() : m.collections_grid_show_library()}
       aria-label={
         showLibrary ? m.collections_grid_hide_library() : m.collections_grid_show_library()
       }
-      aria-pressed={showLibrary}
     >
       <LibraryBigIcon className="size-4" />
-    </Button>
+      <span className="hidden sm:inline">{m.collections_grid_library()}</span>
+    </Toggle>
   ) : null;
 
   // In cards+set / cards+rarity, a card splits into one tile per section, so

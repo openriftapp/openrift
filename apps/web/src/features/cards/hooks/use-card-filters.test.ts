@@ -89,6 +89,19 @@ describe("useCardFilters", () => {
     expect(result.current.hasActiveFilters).toBe(true);
   });
 
+  it("treats a language-only filter as active but not clearable", () => {
+    mockSearch = { languages: ["de"] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    expect(result.current.hasActiveFilters).toBe(true);
+    expect(result.current.hasClearableFilters).toBe(false);
+  });
+
+  it("reports clearable filters alongside a language filter", () => {
+    mockSearch = { languages: ["de"], rarities: ["rare"] };
+    const { result } = renderHook(() => useCardFilters(), { wrapper });
+    expect(result.current.hasClearableFilters).toBe(true);
+  });
+
   it("setSearch calls navigate with search value", () => {
     const { result } = renderHook(() => useCardFilters(), { wrapper });
 

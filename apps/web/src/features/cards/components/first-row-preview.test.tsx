@@ -27,6 +27,7 @@ vi.mock("@/features/cards/components/search-bar", () => ({
 }));
 vi.mock("@/features/cards/components/options-bar", () => ({
   DesktopOptionsBar: () => <div data-testid="desktop-options-bar" />,
+  DisplayOptionsPopover: () => <div data-testid="display-options-popover" />,
   MobileFilterContent: () => null,
   MobileOptionsContent: () => null,
   MobileOptionsDrawer: () => <div data-testid="mobile-options-drawer" />,
