@@ -40,17 +40,12 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageLabels: () => ({ EN: "English", JA: "Japanese", DE: "German" }),
 }));
 
-const { priceGetMock, priceHistoryMock } = vi.hoisted(() => ({
-  priceGetMock: vi.fn((): number | null | undefined => null),
-  priceHistoryMock: vi.fn(() => ({ data: undefined })),
+const { priceGetMock } = vi.hoisted(() => ({
+  priceGetMock: vi.fn((_printingId: string, _marketplace: string): number | undefined => undefined),
 }));
 
 vi.mock("@/features/cards/hooks/use-prices", () => ({
   usePrices: () => ({ get: priceGetMock }),
-}));
-
-vi.mock("@/features/cards/hooks/use-price-history", () => ({
-  usePriceHistory: priceHistoryMock,
 }));
 
 const { ownedMock } = vi.hoisted(() => ({
@@ -81,8 +76,7 @@ import { PrintingPicker } from "./printing-picker";
 describe("PrintingPicker", () => {
   beforeEach(() => {
     priceGetMock.mockReset();
-    priceGetMock.mockReturnValue(null);
-    priceHistoryMock.mockClear();
+    priceGetMock.mockReturnValue(undefined);
     ownedMock.mockClear();
     ownedMock.mockReturnValue({ data: undefined });
   });
@@ -106,22 +100,38 @@ describe("PrintingPicker", () => {
     expect(row?.tagName).not.toBe("BUTTON");
   });
 
-  it("skips the price-history fetch when an inline price exists", () => {
-    priceGetMock.mockReturnValue(4.2);
+  it("prices a row from the favourite marketplace, unlabelled", () => {
+    priceGetMock.mockImplementation((_id, marketplace) =>
+      marketplace === "cardtrader" ? 4.2 : 9.9,
+    );
     const printing = stubPrinting();
 
     render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
 
-    expect(priceHistoryMock).toHaveBeenCalledWith(null, "30d");
+    expect(screen.getByText(/4[.,]20/u)).toBeInTheDocument();
+    expect(screen.queryByText("CardTrader")).not.toBeInTheDocument();
   });
 
-  it("fetches the price history as a fallback when no inline price exists", () => {
-    priceGetMock.mockReturnValue(undefined);
+  it("falls back to the next marketplace in order and names it", () => {
+    priceGetMock.mockImplementation((_id, marketplace) =>
+      marketplace === "tcgplayer" ? 4.2 : undefined,
+    );
     const printing = stubPrinting();
 
     render(<PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />);
 
-    expect(priceHistoryMock).toHaveBeenCalledWith(printing.id, "30d");
+    expect(screen.getByText("TCGplayer")).toBeInTheDocument();
+    expect(screen.getByText(/4[.,]20/u)).toBeInTheDocument();
+  });
+
+  it("shows no price when no marketplace has one", () => {
+    const printing = stubPrinting();
+
+    const { container } = render(
+      <PrintingPicker current={printing} printings={[printing]} onSelect={() => {}} />,
+    );
+
+    expect(container.textContent).not.toMatch(/\d[.,]\d\d/u);
   });
 
   it("counts what the given collection holds, with the wider total beside it", () => {

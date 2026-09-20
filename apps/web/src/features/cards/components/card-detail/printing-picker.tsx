@@ -1,4 +1,4 @@
-import { snapshotHeadline } from "@openrift/shared/types/api/pricing";
+import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
@@ -6,7 +6,6 @@ import { useState } from "react";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingLanguageTabs } from "@/features/cards/components/printing-language-tabs";
 import { PrintingRowContent } from "@/features/cards/components/printing-row";
-import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { useOwnedCountsForPrintings } from "@/features/collections/hooks/use-owned-count";
 import { useLanguageList } from "@/hooks/use-enums";
@@ -132,29 +131,26 @@ function PrintingList({
 }
 
 function PrintingPrices({ printing }: { printing: Printing }) {
-  const favorite = useDisplayStore((s) => s.marketplaceOrder[0]);
+  const marketplaceOrder = useDisplayStore((s) => s.marketplaceOrder);
   const prices = usePrices();
-  const inline = prices.get(printing.id, favorite) ?? null;
-  // 30-day history is only a fallback; querying it unconditionally fans out into
-  // an N+1 of price-history calls across one row per printing.
-  const { data: history } = usePriceHistory(inline === null ? printing.id : null, "30d");
 
-  let value: number | null = inline;
-  if (value === null) {
-    const snapshots = history?.[favorite]?.snapshots;
-    if (snapshots?.length) {
-      // oxlint-disable-next-line no-non-null-assertion -- length check above
-      value = snapshotHeadline(snapshots.at(-1)!);
-    }
-  }
+  const marketplace = marketplaceOrder.find(
+    (candidate) => prices.get(printing.id, candidate) !== undefined,
+  );
+  const value = marketplace === undefined ? undefined : prices.get(printing.id, marketplace);
 
-  if (value === null) {
+  if (marketplace === undefined || value === undefined) {
     return null;
   }
 
   return (
-    <span className={cn("shrink-0 text-xs font-semibold", priceColorClass(value))}>
-      {formatterForMarketplace(favorite)(value)}
+    <span className="flex shrink-0 items-baseline gap-1">
+      {marketplace === marketplaceOrder[0] ? null : (
+        <span className="text-muted-foreground text-xs">{marketplaceLabel(marketplace)}</span>
+      )}
+      <span className={cn("text-xs font-semibold", priceColorClass(value))}>
+        {formatterForMarketplace(marketplace)(value)}
+      </span>
     </span>
   );
 }
