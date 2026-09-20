@@ -40,7 +40,7 @@ export function MetaResultChip({
     <span
       data-slot="meta-result-chip"
       className={cn(
-        "inline-flex h-5 items-center gap-1.5 rounded-4xl px-2 text-xs font-semibold whitespace-nowrap tabular-nums",
+        "inline-flex h-5 items-center gap-1.5 rounded-full px-2 text-xs font-semibold whitespace-nowrap tabular-nums",
         OUTCOME_CLASS[outcome],
         className,
       )}

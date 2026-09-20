@@ -1,5 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { imageUrl } from "@openrift/shared/image-url";
+import { formatPrintingVariantLabel } from "@openrift/shared/printing-label";
 import type { StandardArtFallback } from "@openrift/shared/standard";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Domain, Rarity } from "@openrift/shared/types/enums";
@@ -13,7 +14,6 @@ import { Pressable } from "@/components/ui/pressable";
 import { CardMetaLabel } from "@/features/cards/components/card-meta-label";
 import { CardPlaceholderImage } from "@/features/cards/components/card-placeholder-image";
 import { FallbackArtBadges } from "@/features/cards/components/fallback-art-badges";
-import { FinishIcon } from "@/features/cards/components/finish-icon";
 import { FoilOverlay } from "@/features/cards/components/foil-overlay";
 import { SuggestImageNotice } from "@/features/cards/components/suggest-image-notice";
 import type { CardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
@@ -21,7 +21,7 @@ import { useCardTilt } from "@/features/cards/hooks/use-card-tilt";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getDomainGradientStyle } from "@/lib/domain";
-import { priceColorClass } from "@/lib/format";
+import { formatCardId, priceColorClass } from "@/lib/format";
 import { LANDSCAPE_ROTATION_STYLE, needsCssRotation } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -46,11 +46,53 @@ const TILT_STYLE = {
 } as const;
 
 export const AFTER_BORDER =
-  "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border after:border-[var(--border-opaque)]";
+  "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border-card-edge after:border";
 
 const SHELL_INNER_CLASS = cn("relative", AFTER_BORDER, "hover:ring-primary/60 hover:ring-2");
 
 const MAX_CLOSED_STACK_EDGES = 5;
+
+const RIBBON_TONE = {
+  banned: "bg-destructive text-white",
+  caution: "bg-warning text-warning-foreground",
+} as const;
+
+/** The one diagonal corner label a card may carry: banned, ban incoming, or unreleased. */
+function CornerRibbon({
+  tone,
+  title,
+  children,
+}: {
+  tone: keyof typeof RIBBON_TONE;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="@container pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[inherit]"
+      title={title}
+    >
+      <div
+        className={cn(
+          "absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none",
+          RIBBON_TONE[tone],
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PrintingSpine({ label }: { label: string }) {
+  return (
+    <div className="@container pointer-events-none absolute inset-0 z-20 flex items-center justify-end overflow-hidden">
+      <span className="rotate-180 px-[1.5cqi] py-[3cqi] text-[5cqi] font-semibold tracking-wide text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.9)] [writing-mode:vertical-rl]">
+        {label}
+      </span>
+    </div>
+  );
+}
 
 function TiltImageShell({ children }: { children: ReactNode }) {
   const { containerRef, innerRef } = useCardTilt({ mode: "pointer", enabled: true });
@@ -69,10 +111,8 @@ function TiltImageShell({ children }: { children: ReactNode }) {
 
 function PlainImageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative">
-      <div className={SHELL_INNER_CLASS} style={{ borderRadius: CARD_BORDER_RADIUS }}>
-        {children}
-      </div>
+    <div className={SHELL_INNER_CLASS} style={{ borderRadius: CARD_BORDER_RADIUS }}>
+      {children}
     </div>
   );
 }
@@ -97,7 +137,6 @@ function CardArtImage({
   fetchPriority,
   fade,
   onError,
-  spacerClassName,
 }: {
   thumbnailUrl: string;
   srcSet?: string;
@@ -109,7 +148,6 @@ function CardArtImage({
   /** Off for priority images: they're already SSR-painted, so a transparent start flashes on hydration. */
   fade?: boolean;
   onError?: () => void;
-  spacerClassName?: string;
 }) {
   // Covers cached/instant results: the browser can fire load/error before React
   // attaches listeners. A broken image has `complete` set with naturalWidth 0.
@@ -123,45 +161,42 @@ function CardArtImage({
     }
   };
   const imgClass = fade ? FADE_IN_CLASS : undefined;
-  return (
-    <>
-      <div className={cn("aspect-card", spacerClassName)} />
-      {rotated ? (
-        <div className="absolute top-1/2 left-1/2 overflow-hidden" style={LANDSCAPE_ROTATION_STYLE}>
-          <img
-            key={thumbnailUrl}
-            ref={coverCachedResult}
-            src={thumbnailUrl}
-            srcSet={srcSet}
-            sizes={sizes}
-            alt={alt}
-            width={CARD_HEIGHT}
-            height={CARD_WIDTH}
-            loading={loading}
-            fetchPriority={fetchPriority}
-            className={cn("size-full object-cover", imgClass)}
-            onLoad={(event) => markLoaded(event.currentTarget)}
-            onError={onError}
-          />
-        </div>
-      ) : (
-        <img
-          key={thumbnailUrl}
-          ref={coverCachedResult}
-          src={thumbnailUrl}
-          srcSet={srcSet}
-          sizes={sizes}
-          alt={alt}
-          width={CARD_WIDTH}
-          height={CARD_HEIGHT}
-          loading={loading}
-          fetchPriority={fetchPriority}
-          className={cn("absolute inset-0 w-full object-cover", imgClass)}
-          onLoad={(event) => markLoaded(event.currentTarget)}
-          onError={onError}
-        />
-      )}
-    </>
+  return rotated ? (
+    <div className="absolute top-1/2 left-1/2 overflow-hidden" style={LANDSCAPE_ROTATION_STYLE}>
+      <img
+        key={thumbnailUrl}
+        ref={coverCachedResult}
+        src={thumbnailUrl}
+        srcSet={srcSet}
+        sizes={sizes}
+        alt={alt}
+        width={CARD_HEIGHT}
+        height={CARD_WIDTH}
+        loading={loading}
+        decoding="async"
+        fetchPriority={fetchPriority}
+        className={cn("size-full object-cover", imgClass)}
+        onLoad={(event) => markLoaded(event.currentTarget)}
+        onError={onError}
+      />
+    </div>
+  ) : (
+    <img
+      key={thumbnailUrl}
+      ref={coverCachedResult}
+      src={thumbnailUrl}
+      srcSet={srcSet}
+      sizes={sizes}
+      alt={alt}
+      width={CARD_WIDTH}
+      height={CARD_HEIGHT}
+      loading={loading}
+      decoding="async"
+      fetchPriority={fetchPriority}
+      className={cn("size-full object-cover", imgClass)}
+      onLoad={(event) => markLoaded(event.currentTarget)}
+      onError={onError}
+    />
   );
 }
 
@@ -179,7 +214,6 @@ function CardImageContent({
   card,
   showFoil,
   fallbackArt,
-  spacerClassName,
 }: {
   thumbnailUrl: string | null;
   srcSet: string | undefined;
@@ -208,7 +242,6 @@ function CardImageContent({
   showFoil: boolean;
   /** Substitute artwork tried before the drawn placeholder; overlay marks what the borrowed art doesn't depict. */
   fallbackArt: { imageId: string; overlay: ReactNode } | null;
-  spacerClassName: string;
 }) {
   const [failedUrls, setFailedUrls] = useState<readonly string[]>([]);
   const markFailed = (url: string) =>
@@ -257,7 +290,6 @@ function CardImageContent({
           fetchPriority={priority ? "high" : undefined}
           fade={!priority}
           onError={() => markFailed(artUrl)}
-          spacerClassName={spacerClassName}
         />
       ) : shownFallback ? (
         <>
@@ -271,7 +303,6 @@ function CardImageContent({
             fetchPriority={priority ? "high" : undefined}
             fade={!priority}
             onError={() => markFailed(shownFallback.url)}
-            spacerClassName={spacerClassName}
           />
           {shownFallback.overlay}
         </>
@@ -308,7 +339,7 @@ interface CardThumbnailProps {
   onClick: (printing: Printing, event?: ReactMouseEvent) => void;
   onSiblingClick?: (printing: Printing) => void;
   showImages?: boolean;
-  isSelected?: boolean;
+  selected?: boolean;
   isFlashing?: boolean;
   siblings?: Printing[];
   priceRange?: { min: number; max: number };
@@ -320,12 +351,10 @@ interface CardThumbnailProps {
   display: CardThumbnailDisplay;
   aboveCard?: ReactNode;
   dimmed?: boolean;
-  highlighted?: boolean;
   dragData?: Record<string, unknown>;
   /** Required when dragData is set. */
   dragId?: string;
-  showBanOverlay?: boolean;
-  hideBanIndicators?: boolean;
+  banDisplay?: "label" | "overlay" | "none";
   belowLabel?: ReactNode;
   imageOverlay?: ReactNode;
 }
@@ -376,7 +405,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   onClick,
   onSiblingClick,
   showImages,
-  isSelected,
+  selected,
   isFlashing,
   siblings,
   priceRange,
@@ -387,11 +416,9 @@ export const CardThumbnail = memo(function CardThumbnail({
   display,
   aboveCard,
   dimmed,
-  highlighted,
   dragData,
   dragId,
-  showBanOverlay,
-  hideBanIndicators,
+  banDisplay = "label",
   belowLabel,
   imageOverlay,
 }: CardThumbnailProps) {
@@ -417,9 +444,15 @@ export const CardThumbnail = memo(function CardThumbnail({
     finishLabels,
     sizeLabels,
     rarityLabels,
+    artVariantLabels,
     prices,
     favoriteMarketplace,
   } = display;
+  const variantLabels = {
+    artVariants: artVariantLabels,
+    finishes: finishLabels,
+    cardSizes: sizeLabels,
+  };
   const favoritePrice = prices.get(printing.id, favoriteMarketplace);
   const isFoilCard = printing.finish === WellKnown.finish.FOIL;
   const finishTitle = finishLabels[printing.finish] ?? printing.finish;
@@ -447,67 +480,55 @@ export const CardThumbnail = memo(function CardThumbnail({
 
   // Base-list bans apply to all constructed play; mode-scoped bans (e.g. 2v2-only)
   // leave the card legal elsewhere, so only base bans get the full "unusable" treatment.
-  const activeBans = hideBanIndicators ? [] : printing.card.bans;
+  const activeBans = banDisplay === "none" ? [] : printing.card.bans;
   const baseBans = activeBans.filter((ban) => isBaseBanFormat(ban.formatId));
   const modeBans = activeBans.filter((ban) => !isBaseBanFormat(ban.formatId));
 
-  const banDim = showBanOverlay && baseBans.length > 0 && (
+  const banDim = banDisplay === "overlay" && baseBans.length > 0 && (
     <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] bg-black/70" />
   );
 
-  // Riot TCG community license requires previewed/unreleased cards to be labeled;
-  // `setReleased` is per printing language, covering a set out elsewhere but not here.
-  const previewOverlay = !printing.setReleased && (
-    <div
-      className="@container pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[inherit]"
-      title={m.cards_thumb_not_released()}
-    >
-      <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
-        {m.cards_thumb_preview_ribbon()}
-      </div>
-    </div>
-  );
-
-  // z-40, above the z-30 Preview ribbon: a previewed-and-banned card stays visibly banned.
   const soleModeBan = baseBans.length === 0 && modeBans.length === 1 ? modeBans[0] : undefined;
   const banLines = activeBans.map((ban) =>
     m.cards_thumb_banned_since({ format: ban.formatName, date: ban.bannedAt }),
   );
-  const banRibbon = activeBans.length > 0 && (
-    <div
-      className="@container pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]"
-      title={
-        baseBans.length > 0
-          ? banLines.join("\n")
-          : [...banLines, m.cards_thumb_legal_elsewhere()].join("\n")
-      }
-    >
-      <div className="bg-destructive absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider text-white uppercase shadow-md select-none">
+  const upcomingBans = banDisplay === "none" ? [] : printing.card.upcomingBans;
+  // Preview outranks an upcoming ban: the card is still legal, and the Riot TCG
+  // community license requires previewed/unreleased cards to be labeled.
+  // `setReleased` is per printing language, covering a set out elsewhere but not here.
+  const ribbon =
+    activeBans.length > 0 ? (
+      <CornerRibbon
+        tone="banned"
+        title={
+          baseBans.length > 0
+            ? banLines.join("\n")
+            : [...banLines, m.cards_thumb_legal_elsewhere()].join("\n")
+        }
+      >
         {soleModeBan
           ? m.cards_thumb_format_ban({ format: soleModeBan.formatName })
           : m.cards_thumb_banned()}
-      </div>
-    </div>
-  );
+      </CornerRibbon>
+    ) : printing.setReleased ? (
+      upcomingBans.length > 0 && (
+        <CornerRibbon
+          tone="caution"
+          title={upcomingBans
+            .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
+            .join("\n")}
+        >
+          {m.cards_thumb_ban_upcoming()}
+        </CornerRibbon>
+      )
+    ) : (
+      <CornerRibbon tone="caution" title={m.cards_thumb_not_released()}>
+        {m.cards_thumb_preview_ribbon()}
+      </CornerRibbon>
+    );
 
-  // Preview outranks it: the card is still legal, and the license's preview label must stay visible.
-  const upcomingBans = hideBanIndicators ? [] : printing.card.upcomingBans;
-  const upcomingOnly = activeBans.length === 0 && upcomingBans.length > 0 && printing.setReleased;
-  const upcomingBanRibbon = upcomingOnly && (
-    <div
-      className="@container pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]"
-      title={upcomingBans
-        .map((ban) => m.cards_thumb_banned_from({ format: ban.formatName, date: ban.bannedAt }))
-        .join("\n")}
-    >
-      <div className="bg-warning text-warning-foreground absolute top-[18cqi] -right-[22cqi] w-[90cqi] rotate-[45deg] py-[1.5cqi] text-center text-[6cqi] font-black tracking-wider uppercase shadow-md select-none">
-        {m.cards_thumb_ban_upcoming()}
-      </div>
-    </div>
-  );
-
-  const imageSection = (
-    <div className={cn("relative", otherPrintings.length > 0 && "group-hover:z-20")}>
+  const imageStack = (
+    <>
       {otherPrintings.map((sibling, i) => {
         const depth = otherPrintings.length - i;
         const hiddenWhenClosed = depth > MAX_CLOSED_STACK_EDGES;
@@ -545,8 +566,11 @@ export const CardThumbnail = memo(function CardThumbnail({
                   "rotate 200ms ease-out, translate 200ms ease-out, scale 150ms ease-out, opacity 200ms ease-out",
               }}
             >
-              <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
-                {showSiblingFaces ? (
+              <div
+                className="aspect-card relative overflow-hidden bg-black"
+                style={{ borderRadius: CARD_BORDER_RADIUS }}
+              >
+                {showSiblingFaces && (
                   <CardImageContent
                     thumbnailUrl={siblingImageId === null ? null : imageUrl(siblingImageId, "400w")}
                     srcSet={siblingImageId === null ? undefined : cardSrcSet(siblingImageId)}
@@ -564,10 +588,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                       sibling,
                       showImages ? display.getFallbackArt(sibling) : null,
                     )}
-                    spacerClassName="bg-black"
                   />
-                ) : (
-                  <div className="aspect-card bg-black" />
                 )}
                 {showSiblingFaces && (
                   // z-[1]: above the face, below the ::after border (z-10) and finish icon (z-20).
@@ -581,11 +602,11 @@ export const CardThumbnail = memo(function CardThumbnail({
                   />
                 )}
                 {sibling.finish === WellKnown.finish.FOIL && gridFoil && <FoilOverlay active dim />}
-                <FinishIcon
-                  finish={sibling.finish}
-                  className="absolute top-1.5 right-1.5 z-20 drop-shadow"
-                  iconClassName="size-4"
-                />
+                {showSiblingFaces && (
+                  <PrintingSpine
+                    label={`${formatCardId(sibling)} · ${formatPrintingVariantLabel(sibling, siblings, variantLabels)}`}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -593,36 +614,44 @@ export const CardThumbnail = memo(function CardThumbnail({
       })}
       <ImageShell>
         <Pressable
-          className={cn("block w-full", dimmed && "opacity-50")}
+          className={cn(
+            "bg-muted aspect-card relative block w-full overflow-hidden",
+            dimmed && "opacity-50",
+          )}
+          style={{ borderRadius: CARD_BORDER_RADIUS }}
           onClick={(event) => onClick(printing, event)}
         >
-          <div className="relative overflow-hidden" style={{ borderRadius: "inherit" }}>
-            <CardImageContent
-              thumbnailUrl={thumbnailUrl}
-              srcSet={srcSet}
-              sizes={cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride}
-              alt={card.name}
-              priority={Boolean(priority)}
-              rotated={rotated}
-              rarity={printing.rarity}
-              publicCode={printing.publicCode}
-              artist={printing.artist}
-              promoLabel={promoMarkerLabel(printing)}
-              card={card}
-              showFoil={isFoilCard && gridFoil}
-              fallbackArt={fallbackArt}
-              spacerClassName="bg-muted"
-            />
-          </div>
+          <CardImageContent
+            thumbnailUrl={thumbnailUrl}
+            srcSet={srcSet}
+            sizes={cardWidth ? `${Math.round(cardWidth - 12)}px` : sizesOverride}
+            alt={card.name}
+            priority={Boolean(priority)}
+            rotated={rotated}
+            rarity={printing.rarity}
+            publicCode={printing.publicCode}
+            artist={printing.artist}
+            promoLabel={promoMarkerLabel(printing)}
+            card={card}
+            showFoil={isFoilCard && gridFoil}
+            fallbackArt={fallbackArt}
+          />
         </Pressable>
         {banDim}
-        {previewOverlay}
-        {banRibbon}
-        {upcomingBanRibbon}
+        {ribbon}
         {imageOverlay}
       </ImageShell>
-    </div>
+    </>
   );
+
+  // The sibling layers are absolute against this box; without them the shell is
+  // already the card box and the wrapper is dead weight.
+  const imageSection =
+    otherPrintings.length > 0 ? (
+      <div className="relative group-hover:z-20">{imageStack}</div>
+    ) : (
+      imageStack
+    );
 
   const priceNode =
     favoritePrice === undefined ? undefined : (
@@ -654,22 +683,21 @@ export const CardThumbnail = memo(function CardThumbnail({
 
   const labelSection = (
     // ⚠ mt-2.5 is mirrored as LABEL_WRAPPER_MT in card-grid.tsx — update both together
-    <div className="relative z-10 mt-2.5">
-      <CardMetaLabel
-        shortCode={printing.shortCode}
-        name={card.name}
-        rarity={printing.rarity}
-        rarityTitle={rarityTitle}
-        finish={printing.finish}
-        finishTitle={finishTitle}
-        oversized={isOversized}
-        sizeLabel={sizeLabel}
-        bans={showBanOverlay || hideBanIndicators ? undefined : printing.card.bans}
-        hasRulesDeviation={printing.card.errata !== null}
-        printingComment={printing.comment}
-        price={priceNode}
-      />
-    </div>
+    <CardMetaLabel
+      className="relative z-10 mt-2.5"
+      shortCode={printing.shortCode}
+      name={card.name}
+      rarity={printing.rarity}
+      rarityTitle={rarityTitle}
+      finish={printing.finish}
+      finishTitle={finishTitle}
+      oversized={isOversized}
+      sizeLabel={sizeLabel}
+      bans={banDisplay === "label" ? printing.card.bans : undefined}
+      hasRulesDeviation={printing.card.errata !== null}
+      printingComment={printing.comment}
+      price={priceNode}
+    />
   );
 
   const flashOverlay = isFlashing && (
@@ -702,8 +730,6 @@ export const CardThumbnail = memo(function CardThumbnail({
         }
       : undefined;
 
-  // Only the image area is Pressable, so interactive `aboveCard` strips don't nest in a button.
-  const selected = isSelected === true || highlighted === true;
   // Must be a separate layer with negative inset: the wrapper's background
   // would confine the glow to the cell padding instead.
   const selectionGlow = selected && (
@@ -714,7 +740,7 @@ export const CardThumbnail = memo(function CardThumbnail({
   );
   const wrapperClassName = cn(
     // ⚠ p-0.75 is mirrored as BUTTON_PAD in card-grid-constants.ts — update both together
-    "group relative z-0 w-full rounded-lg p-0.75 text-left transition-all hover:z-10",
+    "group relative z-0 w-full rounded-lg p-0.75 text-left hover:z-10",
     otherPrintings.length > 0 && "hover:[--fan:1]",
     // Without this, equal-z siblings paint in DOM order: the glow shows over the
     // left neighbour but under the right one.
@@ -724,13 +750,18 @@ export const CardThumbnail = memo(function CardThumbnail({
     <>
       {selectionGlow}
       {flashOverlay}
+      {/* Outside the Pressable: interactive `aboveCard` strips must not nest in a button. */}
       {aboveCard}
-      <div className="relative">
-        {imageSection}
-        {/* Sibling of the image (not inside it) so the unowned opacity-50 dim
-            on imageSection never greys the notice out. */}
-        <SuggestImageNotice printing={printing} />
-      </div>
+      {printing.images.length > 0 ? (
+        imageSection
+      ) : (
+        <div className="relative">
+          {imageSection}
+          {/* Sibling of the image (not inside it) so the unowned opacity-50 dim
+              on imageSection never greys the notice out. */}
+          <SuggestImageNotice printing={printing} />
+        </div>
+      )}
       {labelSection}
       {belowLabel}
     </>

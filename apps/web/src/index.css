@@ -132,7 +132,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   /* Gold for marks drawn on card art. Art is dark under every scheme and
      palette, so this one does not follow them. */
   --gilt: oklch(0.78 0.11 82);
-  --border-opaque: oklch(0.82 0.03 75);
+  --card-edge: oklch(0.82 0.03 75);
   --input: oklch(0.82 0.03 75);
   --ring: oklch(0.55 0.1 75);
   --chart-1: oklch(0.55 0.1 75);
@@ -201,7 +201,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --violet-soft: oklch(0.72 0.15 300 / 0.2);
   --border: oklch(0.37 0.02 260);
   --border-accent: oklch(0.55 0.08 80);
-  --border-opaque: oklch(0.32 0.05 75);
+  --card-edge: oklch(0.32 0.05 75);
   --input: oklch(0.4 0.02 260);
   --ring: oklch(0.74 0.09 80);
   --chart-1: oklch(0.74 0.09 80);
@@ -264,7 +264,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --violet-soft: oklch(0.5 0.16 300 / 0.14);
   --border: oklch(0.922 0 0);
   --border-accent: oklch(0.55 0.08 80);
-  --border-opaque: oklch(0.922 0 0);
+  --card-edge: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.85 0.13 181);
@@ -330,7 +330,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --violet-soft: oklch(0.72 0.15 300 / 0.2);
   --border: oklch(1 0 0 / 10%);
   --border-accent: oklch(0.55 0.08 80);
-  --border-opaque: oklch(0.23 0 0);
+  --card-edge: oklch(0.23 0 0);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.85 0.13 181);
@@ -408,6 +408,7 @@ html.hide-scrollbar::-webkit-scrollbar {
   --color-violet-foreground: var(--violet-foreground);
   --color-border: var(--border);
   --color-border-accent: var(--border-accent);
+  --color-card-edge: var(--card-edge);
   --color-gilt: var(--gilt);
   --color-input: var(--input);
   --color-ring: var(--ring);

@@ -26,8 +26,7 @@ export interface CardCellProps {
 
   dimmed?: boolean;
   highlighted?: boolean;
-  showBanOverlay?: boolean;
-  hideBanIndicators?: boolean;
+  banDisplay?: "label" | "overlay" | "none";
 
   dragData?: Record<string, unknown>;
   dragId?: string;
@@ -51,8 +50,7 @@ export function CardCell({
   imageOverlay,
   dimmed,
   highlighted,
-  showBanOverlay,
-  hideBanIndicators,
+  banDisplay,
   dragData,
   dragId,
   wrap,
@@ -64,7 +62,7 @@ export function CardCell({
       onClick={onClick}
       onSiblingClick={onSiblingClick}
       showImages={showImages}
-      isSelected={ctx.isSelected}
+      selected={ctx.isSelected === true || highlighted === true}
       isFlashing={ctx.isFlashing}
       cardWidth={ctx.cardWidth}
       priority={ctx.priority}
@@ -73,9 +71,7 @@ export function CardCell({
       siblings={siblings}
       priceRange={priceRange}
       dimmed={dimmed}
-      highlighted={highlighted}
-      showBanOverlay={showBanOverlay}
-      hideBanIndicators={hideBanIndicators}
+      banDisplay={banDisplay}
       belowLabel={belowLabel}
       imageOverlay={imageOverlay}
       dragData={dragData}

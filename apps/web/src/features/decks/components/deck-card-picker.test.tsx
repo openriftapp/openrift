@@ -37,7 +37,9 @@ vi.mock("@/features/cards/components/card-search-dropdown", () => ({
 // The thumbnail and the stat glyphs pull the catalog and the domain art; they
 // stand in as markers, so a row can be checked for carrying them at all.
 vi.mock("@/features/cards/components/printing-option-content", () => ({
-  CardThumbnail: ({ cardId }: { cardId: string }) => <span data-testid="thumb">{cardId}</span>,
+  PreferredPrintingThumbnail: ({ cardId }: { cardId: string }) => (
+    <span data-testid="thumb">{cardId}</span>
+  ),
 }));
 vi.mock("@/features/decks/components/deck-card-row", () => ({
   PowerPips: ({ power }: { power: number | null }) => <span data-testid="pips">{power}</span>,

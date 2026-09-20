@@ -63,7 +63,7 @@ Text entry sits on the same rest fill, so `Input`, `Textarea`, `InputGroup`, `Se
 
 `--radius` is `0.375rem` (sharpened from the shadcn default `0.625rem`) — every rounded control derives from it. Don't hand-tune radii per component; if something looks off, the token is the discussion, not the call site.
 
-The mapping: `rounded-lg` (6px) for every boxed control and surface (button, input, select, card, popover, dialog, tile), `rounded-md` (4px) for things nested inside one (menu items, tab triggers, table cells, inline code, thumbnails in a row), `rounded-sm` (2px) for kbd and hairline chips, `rounded-4xl` for pills (badge, count pill), `rounded-full` for dots and avatars. Bare `rounded` is Tailwind's 0.25rem and does not follow the token; the guard test rejects it, write `rounded-md`. Arbitrary values (`rounded-[4px]`) are for container-query units only.
+The mapping: `rounded-lg` (6px) for every boxed control and surface (button, input, select, card, popover, dialog, tile), `rounded-md` (4px) for things nested inside one (menu items, tab triggers, table cells, inline code, thumbnails in a row), `rounded-sm` (2px) for kbd and hairline chips, `rounded-xl` (10px) for card art, `rounded-full` for pills (badge, count pill), dots and avatars, and `rounded-none` where a filled button swaps its radius for `btn-corner-cut`. The larger Tailwind steps (`rounded-2xl` and up) are not part of the vocabulary. Bare `rounded` is Tailwind's 0.25rem and does not follow the token; the guard test rejects it, write `rounded-md`. Arbitrary values (`rounded-[4px]`) are for container-query units only.
 
 ## Control rows
 

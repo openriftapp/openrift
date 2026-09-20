@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DemoGroup,
   DemoRow,
@@ -39,13 +41,9 @@ const STATUS_COLOR_PAIRS = [
   { token: "--destructive-soft", fg: "var(--destructive)" },
 ] as const;
 
-const LINE_COLOR_TOKENS = [
-  "--border",
-  "--border-accent",
-  "--border-opaque",
-  "--input",
-  "--ring",
-] as const;
+const LINE_COLOR_TOKENS = ["--border", "--border-accent", "--input", "--ring"] as const;
+
+const CARD_ART_TOKENS = ["--card-edge", "--gilt"] as const;
 
 const CHART_COLOR_TOKENS = [
   "--chart-1",
@@ -59,19 +57,18 @@ const TOKEN_NAMES = [
   ...COLOR_PAIRS.map((pair) => pair.token),
   ...STATUS_COLOR_PAIRS.map((pair) => pair.token),
   ...LINE_COLOR_TOKENS,
+  ...CARD_ART_TOKENS,
   ...CHART_COLOR_TOKENS,
 ];
 
 // Literal class names so Tailwind's scanner generates them.
-const RADIUS_CLASSES = [
-  "rounded-sm",
-  "rounded-md",
-  "rounded-lg",
-  "rounded-xl",
-  "rounded-2xl",
-  "rounded-3xl",
-  "rounded-4xl",
-  "rounded-full",
+const RADIUS_ROLES = [
+  { cls: "rounded-none", note: "corner-cut fills" },
+  { cls: "rounded-sm", note: "small marks" },
+  { cls: "rounded-md", note: "compact controls" },
+  { cls: "rounded-lg", note: "default controls, surfaces" },
+  { cls: "rounded-xl", note: "card art" },
+  { cls: "rounded-full", note: "pills, avatars" },
 ] as const;
 
 const HEIGHT_TIERS = [
@@ -91,7 +88,15 @@ const GROUPS = {
 
 export const DESIGN_TOKENS_GROUPS: readonly DesignGroup[] = Object.values(GROUPS);
 
-function ColorTokenTile({ token, fg, value }: { token: string; fg?: string; value?: string }) {
+function TokenTile({
+  token,
+  value,
+  children,
+}: {
+  token: string;
+  value?: string;
+  children: ReactNode;
+}) {
   const { copy } = useCopyToClipboard();
 
   async function handleCopy() {
@@ -103,21 +108,46 @@ function ColorTokenTile({ token, fg, value }: { token: string; fg?: string; valu
   }
 
   return (
-    <Pressable
-      className="group flex min-w-0 flex-col gap-1 text-left"
-      onClick={() => void handleCopy()}
-    >
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Pressable
+            className="flex min-w-0 flex-col gap-1 text-left"
+            onClick={() => void handleCopy()}
+          />
+        }
+      >
+        {children}
+        <span className="truncate font-mono text-xs">{token.slice(2)}</span>
+      </TooltipTrigger>
+      <TooltipContent className="font-mono">{value ?? "…"}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ColorTokenTile({ token, fg, value }: { token: string; fg?: string; value?: string }) {
+  return (
+    <TokenTile token={token} value={value}>
       <span
-        className="border-border-opaque flex h-12 items-center justify-center rounded-md border text-sm"
+        className="border-border flex h-12 items-center justify-center rounded-md border text-sm"
         style={{ backgroundColor: `var(${token})`, color: fg }}
       >
         {fg ? "Aa" : null}
       </span>
-      <span className="truncate font-mono text-xs">{token.slice(2)}</span>
-      <span className="text-muted-foreground text-2xs truncate font-mono" title={value}>
-        {value ?? "…"}
-      </span>
-    </Pressable>
+    </TokenTile>
+  );
+}
+
+function LineTokenTile({ token, value, ring }: { token: string; value?: string; ring?: boolean }) {
+  return (
+    <TokenTile token={token} value={value}>
+      <span
+        className="flex h-12 rounded-md"
+        style={
+          ring ? { boxShadow: `0 0 0 2px var(${token})` } : { border: `1px solid var(${token})` }
+        }
+      />
+    </TokenTile>
   );
 }
 
@@ -159,11 +189,22 @@ export function TokensSection() {
         <DemoRow label="Lines & focus">
           <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-5">
             {LINE_COLOR_TOKENS.map((token) => (
-              <ColorTokenTile key={token} token={token} value={values[token]} />
+              <LineTokenTile
+                key={token}
+                token={token}
+                value={values[token]}
+                ring={token === "--ring"}
+              />
             ))}
           </div>
         </DemoRow>
-        <DemoRow label="Charts" hint="Named in a ChartContainer config as var(--chart-N).">
+        <DemoRow label="Card art" hint="Edges and marks drawn on top of card images.">
+          <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-5">
+            <LineTokenTile token="--card-edge" value={values["--card-edge"]} />
+            <ColorTokenTile token="--gilt" value={values["--gilt"]} />
+          </div>
+        </DemoRow>
+        <DemoRow label="Charts">
           <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-5">
             {CHART_COLOR_TOKENS.map((token) => (
               <ColorTokenTile key={token} token={token} value={values[token]} />
@@ -173,11 +214,11 @@ export function TokensSection() {
       </DemoGroup>
       <DemoGroup {...GROUPS.radius}>
         <SwatchRow
-          label="Radius scale"
-          hint="rounded-lg is the default control radius. The other steps derive from --radius, 0.375rem."
+          label="Radius roles"
+          hint="Each step has one job, derived from --radius, 0.375rem. Tailwind's larger steps are not part of the vocabulary."
         >
-          {RADIUS_CLASSES.map((cls) => (
-            <Swatch key={cls} label={cls}>
+          {RADIUS_ROLES.map(({ cls, note }) => (
+            <Swatch key={cls} label={`${cls} · ${note}`}>
               <div className={cn("bg-muted border-border-accent size-12 border", cls)} />
             </Swatch>
           ))}
@@ -201,7 +242,7 @@ export function TokensSection() {
         >
           {HEIGHT_TIERS.map(({ cls, note }) => (
             <Swatch key={cls} label={`${cls} · ${note}`}>
-              <div className={cn("bg-muted border-border-opaque w-14 rounded-md border", cls)} />
+              <div className={cn("bg-muted border-border w-14 rounded-md border", cls)} />
             </Swatch>
           ))}
         </SwatchRow>

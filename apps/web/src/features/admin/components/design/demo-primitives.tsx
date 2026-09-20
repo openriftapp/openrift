@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useShowSpecs } from "@/features/admin/components/design/design-specs";
 import type { ElementSpec } from "@/hooks/use-element-spec";
 import {
@@ -33,7 +34,7 @@ export function DemoSection({
     <section id={id} className="scroll-mt-(--sticky-top)">
       <div className="mb-6 flex flex-col gap-1">
         <Heading level={2}>{title}</Heading>
-        {note && <p className="text-muted-foreground max-w-prose text-sm">{note}</p>}
+        {note && <p className="text-muted-foreground text-sm">{note}</p>}
         {docs && <p className="text-muted-foreground text-2xs font-mono">→ {docs}</p>}
       </div>
       <div className="flex flex-col gap-8">{children}</div>
@@ -56,7 +57,7 @@ export function DemoGroup({
     <div id={id} className="scroll-mt-(--sticky-top)">
       <div className="mb-4 flex flex-col gap-1">
         <Heading level={3}>{title}</Heading>
-        {hint && <p className="text-muted-foreground max-w-prose text-xs">{hint}</p>}
+        {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
       </div>
       <div className="flex flex-col gap-6">{children}</div>
     </div>
@@ -78,7 +79,7 @@ export function DemoRow({
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
         <SectionHeading as="span">{label}</SectionHeading>
-        {hint && <p className="text-muted-foreground max-w-prose text-xs">{hint}</p>}
+        {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
       </div>
       <div className={cn("flex flex-wrap items-center gap-2", className)}>{children}</div>
     </div>
@@ -178,11 +179,17 @@ export function Swatch({
 
 function ColorChip({ value, label }: { value: string; label: string }) {
   return (
-    <span
-      title={label}
-      className="border-border-opaque inline-block size-3 shrink-0 rounded-sm border"
-      style={{ backgroundColor: value }}
-    />
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className="border-border inline-block size-3 shrink-0 rounded-sm border"
+            style={{ backgroundColor: value }}
+          />
+        }
+      />
+      <TooltipContent className="font-mono">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -301,18 +308,13 @@ export function SurfaceReadout({ surface }: { surface: Surface | null }) {
 function ReadoutValue({ label, value }: { label: string; value: string }) {
   return (
     <span className="flex shrink-0 items-center gap-1.5">
-      <span
-        className="border-border-opaque inline-block size-3 shrink-0 rounded-sm border"
-        style={{ backgroundColor: value }}
-      />
-      <span className="text-muted-foreground text-2xs font-mono whitespace-nowrap">
-        {label} {value}
-      </span>
+      <ColorChip value={value} label={`${label} ${value}`} />
+      <span className="text-muted-foreground text-2xs font-mono whitespace-nowrap">{label}</span>
     </span>
   );
 }
 
-function MeasuredFillLine({ target }: { target: HTMLElement | null }) {
+function useMeasuredFill(target: HTMLElement | null): string {
   const [background, setBackground] = useState("");
 
   useEffect(() => {
@@ -324,23 +326,32 @@ function MeasuredFillLine({ target }: { target: HTMLElement | null }) {
     return observeThemeChanges(measure);
   }, [target]);
 
-  return <p className="text-muted-foreground text-2xs font-mono">{background || "measuring…"}</p>;
+  return background;
 }
 
 export function FillSwatch({ label, className }: { label: string; className: string }) {
   const showSpecs = useShowSpecs();
   const [target, setTarget] = useState<HTMLDivElement | null>(null);
+  const background = useMeasuredFill(target);
+
+  const swatch = (
+    <div
+      ref={showSpecs ? setTarget : undefined}
+      className={cn("border-border size-10 rounded-lg border", className)}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div
-        ref={showSpecs ? setTarget : undefined}
-        className={cn("border-border-opaque size-10 rounded-lg border", className)}
-      />
-      <div className="space-y-0.5">
-        <p className="font-mono text-xs">{label}</p>
-        {showSpecs && <MeasuredFillLine target={target} />}
-      </div>
+      {showSpecs ? (
+        <Tooltip>
+          <TooltipTrigger render={swatch} />
+          <TooltipContent className="font-mono">{background || "measuring…"}</TooltipContent>
+        </Tooltip>
+      ) : (
+        swatch
+      )}
+      <p className="font-mono text-xs">{label}</p>
     </div>
   );
 }

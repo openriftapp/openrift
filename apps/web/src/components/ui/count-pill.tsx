@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 // against grid constants) can use countPillVariants directly.
 
 const countPillVariants = cva(
-  "inline-flex h-5 items-center gap-1 rounded-4xl px-2 py-0.5 text-xs font-medium tabular-nums transition-colors",
+  "inline-flex h-5 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums transition-colors",
   {
     variants: {
       variant: {

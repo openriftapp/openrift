@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
-import { CardThumbnail } from "@/features/cards/components/printing-option-content";
+import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
 import type { HoverHandler } from "@/features/cards/lib/card-row-interactions";
@@ -92,7 +92,7 @@ function usePickerResults(
       id: card.id,
       label: card.name,
       detail,
-      leading: <CardThumbnail cardId={card.id} className="h-8" />,
+      leading: <PreferredPrintingThumbnail cardId={card.id} className="h-8" />,
       adornment: <CardStats cardId={card.id} />,
     };
   });
@@ -123,7 +123,7 @@ export function CardChip({
       onMouseEnter={() => onHoverCard?.(cardId)}
       onMouseLeave={() => onHoverCard?.(null)}
     >
-      <CardThumbnail cardId={cardId} className="h-5" />
+      <PreferredPrintingThumbnail cardId={cardId} className="h-5" />
       <span className="min-w-0 truncate">
         {printing ? legendDisplayName(printing.card) : m.decks_editor_unknown_card()}
       </span>

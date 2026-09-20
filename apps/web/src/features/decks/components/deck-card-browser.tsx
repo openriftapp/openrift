@@ -593,8 +593,7 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
         priceRange={priceRangeByCardId?.get(cardId)}
         dimmed={ownedCount === 0 && deckQty === 0}
         highlighted={deckQty > 0}
-        showBanOverlay
-        hideBanIndicators={isCustomRegion}
+        banDisplay={isCustomRegion ? "none" : "overlay"}
         dragData={{
           type: "browser-card",
           card: {

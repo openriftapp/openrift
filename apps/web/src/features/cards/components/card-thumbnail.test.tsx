@@ -50,6 +50,7 @@ const baseDisplay: CardThumbnailDisplay = {
   finishLabels: {},
   sizeLabels: {},
   rarityLabels: {},
+  artVariantLabels: {},
   prices: EMPTY_PRICE_LOOKUP,
   favoriteMarketplace: "cardtrader",
   compactFmt: String,
@@ -72,8 +73,10 @@ function hoverTile(container: HTMLElement) {
   fireEvent.mouseOver(tile);
 }
 
+// A closed sibling layer is its bare black clipper: the face mounts inside it on hover.
 function queryStandin(container: HTMLElement) {
-  return container.querySelector(".aspect-card.bg-black");
+  const layers = [...container.querySelectorAll(".aspect-card.bg-black")];
+  return layers.find((layer) => layer.childElementCount === 0) ?? null;
 }
 
 function queryFanCover(container: HTMLElement) {
@@ -101,6 +104,29 @@ describe("CardThumbnail siblings", () => {
     hoverTile(container);
     const srcs = [...container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
     expect(srcs).toContain("/media/cards/aa/RB1-001-foil-image-id-aa-400w.webp");
+  });
+
+  it("spines each fanned sibling with its code and what sets it apart", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const sibling = stubPrinting({
+      card: { slug: "RB1-001" },
+      shortCode: "RB1-001F",
+      finish: WellKnown.finish.FOIL,
+      images: [{ face: "front", imageId: "RB1-001-foil-image-id-aa" }],
+    });
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={[front, sibling]}
+        display={{ ...baseDisplay, coarsePointer: false, finishLabels: { foil: "Foil" } }}
+      />,
+    );
+    expect(container.textContent).not.toContain("RB1-001F");
+
+    hoverTile(container);
+    expect(container.textContent).toContain("RB1-001F · Foil");
   });
 
   it("clears the pending fan timer when unmounted mid-hover", () => {

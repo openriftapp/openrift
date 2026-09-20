@@ -39,7 +39,7 @@ export function Swap({
 // Mirrors AFTER_BORDER (a 1px inset ::after, never a border on the <img>);
 // not imported because card-thumbnail.tsx pulls in the whole thumbnail stack.
 const CARD_EDGE =
-  "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border after:border-[var(--border-opaque)]";
+  "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border-card-edge after:border";
 
 export function MiniCardArt({ url, className }: { url: string; className?: string }) {
   return (

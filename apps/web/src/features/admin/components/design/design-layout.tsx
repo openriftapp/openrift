@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 
 import { usePageTopBarHeight } from "@/components/layout/page-top-bar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AdminFilterSwitch } from "@/features/admin/components/admin-filters";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import {
@@ -68,18 +69,20 @@ export function DesignLayout() {
 
   return (
     <DesignSpecsProvider>
-      <div
-        className={cn(PAGE_WIDTH.full, "flex flex-col gap-6 pb-16")}
-        style={
-          {
-            "--sticky-top": `calc(var(--header-height) + ${topBarHeight}px + 1rem)`,
-          } as CSSProperties
-        }
-      >
-        <AdminPageTopBar title="Design" actions={<SpecsSwitch />} />
-        <DesignTabs />
-        <Outlet />
-      </div>
+      <TooltipProvider>
+        <div
+          className={cn(PAGE_WIDTH.full, "flex flex-col gap-6 pb-16")}
+          style={
+            {
+              "--sticky-top": `calc(var(--header-height) + ${topBarHeight}px + 1rem)`,
+            } as CSSProperties
+          }
+        >
+          <AdminPageTopBar title="Design" actions={<SpecsSwitch />} />
+          <DesignTabs />
+          <Outlet />
+        </div>
+      </TooltipProvider>
     </DesignSpecsProvider>
   );
 }

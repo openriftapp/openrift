@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
-import { CardThumbnail } from "@/features/cards/components/printing-option-content";
+import { PreferredPrintingThumbnail } from "@/features/cards/components/printing-option-content";
 import { useCardSearch } from "@/features/cards/hooks/use-card-search";
 import {
   ImportRowRawFields,
@@ -269,7 +269,7 @@ function CardSearch({
     id: row.id,
     label: row.name,
     sublabel: row.card.shortCode,
-    leading: <CardThumbnail cardId={row.id} className="h-8" />,
+    leading: <PreferredPrintingThumbnail cardId={row.id} className="h-8" />,
     card: row.card,
   }));
 

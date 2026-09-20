@@ -27,7 +27,13 @@ export function PrintingThumbnail({
   );
 }
 
-export function CardThumbnail({ cardId, className }: { cardId: string; className?: string }) {
+export function PreferredPrintingThumbnail({
+  cardId,
+  className,
+}: {
+  cardId: string;
+  className?: string;
+}) {
   const { getPreferredPrinting } = usePreferredPrinting();
   const printing = getPreferredPrinting(cardId);
   if (!printing) {
@@ -37,5 +43,5 @@ export function CardThumbnail({ cardId, className }: { cardId: string; className
 }
 
 export function cardSearchLeading(cardId: string): ReactNode {
-  return <CardThumbnail cardId={cardId} className="h-8" />;
+  return <PreferredPrintingThumbnail cardId={cardId} className="h-8" />;
 }

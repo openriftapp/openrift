@@ -53,7 +53,7 @@ export function SuggestionChip({
         onAssign(productExternalId, printing.printingId);
       }}
       className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-4xl border px-2 py-0.5 text-xs font-medium disabled:opacity-50",
+        "inline-flex h-5 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium disabled:opacity-50",
         isStrong &&
           "border-success/30 bg-success-soft text-success hover:bg-success/20 border-solid",
         !isStrong &&
