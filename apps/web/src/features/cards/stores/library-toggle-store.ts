@@ -5,11 +5,9 @@ import { create } from "zustand";
 /** The collection grid and the list page each remember their "show whole library" toggle separately. */
 export type LibraryToggleScope = "collection" | "list";
 
-// An empty collection flips the toggle on during render (see the auto-library
-// one-shot in CollectionGrid), and writing to an external store from render
-// isn't safe, so each surface keeps live state locally and mirrors it here to
-// survive the remount when switching collections or lists. Not persisted:
-// a fresh page load starts in the entries-only view.
+// Each surface keeps live state locally and mirrors it here to survive the
+// remount when switching collections or lists. Not persisted: a fresh page
+// load starts in the entries-only view.
 interface LibraryToggleState {
   showLibrary: Record<LibraryToggleScope, boolean>;
   setShowLibrary: (scope: LibraryToggleScope, showLibrary: boolean) => void;

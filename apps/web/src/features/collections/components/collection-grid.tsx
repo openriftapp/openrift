@@ -189,22 +189,6 @@ export function CollectionGrid({
         : null,
   });
 
-  // Render-phase (not effect) so an empty collection never paints before
-  // flipping into library mode, and one-shot per collection so a later
-  // manual toggle sticks.
-  const [autoLibraryApplied, setAutoLibraryApplied] = useState(false);
-  const [autoLibraryScope, setAutoLibraryScope] = useState(collectionId);
-  if (autoLibraryScope !== collectionId) {
-    setAutoLibraryScope(collectionId);
-    setAutoLibraryApplied(false);
-  }
-  if (!autoLibraryApplied && copiesReady && addTarget) {
-    setAutoLibraryApplied(true);
-    if (stacks.length === 0) {
-      setShowLibrary(true);
-    }
-  }
-
   const introDismissed = useOnboardingStore((state) => state.collectionIntroDismissed);
   const dismissIntro = useOnboardingStore((state) => state.dismissCollectionIntro);
   const showIntroBanner = !introDismissed;

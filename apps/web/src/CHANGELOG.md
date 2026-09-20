@@ -4,6 +4,7 @@
 
 ### Other
 
+- fix(Collection): **Empty collections stay empty, not the library** — opening a collection with nothing in it no longer switches you into browsing the whole library; use the library button when you want it.
 - fix(Cards): **The More filter menu stays open** — at some window widths opening it shrank the domain and rarity filters to icons, which moved the button out from under the pointer and closed the menu again.
 
 ## 2026-09-20
