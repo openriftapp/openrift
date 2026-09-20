@@ -55,6 +55,7 @@ export function toDeskImages(
       rotation: row.rotation,
       face: row.face,
       credit: row.credit,
+      quad: row.quad,
       canDelete: deletableIds.has(row.printingImageId),
     }));
 }

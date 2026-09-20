@@ -1,3 +1,4 @@
+import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
 import type { ReleasePrecision } from "@openrift/shared/set-release";
 import type { CardFace } from "@openrift/shared/types/enums";
 import type { Kysely, Selectable, Updateable } from "kysely";
@@ -46,6 +47,7 @@ export interface DeskImageRow {
   rotation: number;
   face: CardFace;
   credit: string | null;
+  quad: ImageQuad | null;
 }
 
 export interface DeskCardRow {
@@ -196,11 +198,12 @@ export function printingDeskRepo(db: Kysely<Database>) {
           "imgf.rotation",
           "pi.face",
           "imgf.credit",
+          "imgf.quad",
         ])
         .where("pi.printingId", "=", printingId)
         .orderBy("pi.face")
-        .orderBy("pi.isActive", "desc")
         .orderBy("pi.createdAt")
+        .orderBy("pi.id")
         .execute();
     },
 

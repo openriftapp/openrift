@@ -120,6 +120,7 @@ function image(over: Partial<DeskImage> = {}): DeskImage {
     rotation: 0,
     face: "front",
     credit: null,
+    quad: null,
     canDelete: true,
     ...over,
   };
@@ -149,6 +150,31 @@ describe("PrintingDeskPrintingPage images", () => {
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
     expect(activate).toHaveBeenCalledWith({ imageId: "pi-1", active: false });
+  });
+
+  it("offers corner picking on an image whose corners are unset", () => {
+    state.canEdit = true;
+    state.images = [image()];
+    render(<PrintingDeskPrintingPage printingId="p-1" />);
+
+    expect(screen.getByRole("button", { name: "Straighten" })).toBeInTheDocument();
+  });
+
+  it("says the corners are set once the image carries a quad", () => {
+    state.canEdit = true;
+    state.images = [
+      image({
+        quad: [
+          { x: 10, y: 12 },
+          { x: 200, y: 12 },
+          { x: 200, y: 280 },
+          { x: 10, y: 280 },
+        ],
+      }),
+    ];
+    render(<PrintingDeskPrintingPage printingId="p-1" />);
+
+    expect(screen.getByRole("button", { name: "Straighten (corners set)" })).toBeInTheDocument();
   });
 
   it("offers no Clear button while no image is active", () => {

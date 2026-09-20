@@ -85,6 +85,7 @@ describe("toDeskImages", () => {
     rotation: 0,
     face: "front",
     credit: null,
+    quad: null,
     ...over,
   });
 
@@ -103,6 +104,7 @@ describe("toDeskImages", () => {
         rotation: 90,
         face: "back",
         credit: "gamesnight",
+        quad: null,
         canDelete: true,
       },
     ]);

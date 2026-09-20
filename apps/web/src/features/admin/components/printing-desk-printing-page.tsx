@@ -7,6 +7,7 @@ import { getOrientation } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
+  CropIcon,
   ExternalLinkIcon,
   LinkIcon,
   LoaderIcon,
@@ -41,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
+import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import {
   useActivatePrintingImage,
   useDeletePrintingImage,
@@ -59,7 +61,7 @@ import {
   useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { deskImageBust, deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { sourceBrand } from "@/features/admin/lib/source-brand";
@@ -75,6 +77,7 @@ import { useMarkers } from "@/hooks/use-markers";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
 import { useSession } from "@/lib/auth-session";
 import { errorText } from "@/lib/error-text";
+import { cn } from "@/lib/utils";
 
 const DESK_IMAGE_SCOPE = [
   adminKeys.printingDesk.all,
@@ -391,6 +394,7 @@ function DeskImageRow({
   const setFace = useSetDeskImageFace();
   const rowRef = useRef<HTMLDivElement>(null);
   const { hovering, hoverProps } = useMouseHover();
+  const [straightening, setStraightening] = useState(false);
 
   const storedCredit = image.credit ?? "";
   // The row keeps rendering while a save is in flight, so the stored value is
@@ -402,7 +406,8 @@ function DeskImageRow({
     setCredit(storedCredit);
   }
 
-  const fullUrl = deskImageSrc(image.url, "full");
+  const bust = deskImageBust(image);
+  const fullUrl = deskImageSrc(image.url, "full", bust);
 
   function rotate(by: 90 | 270) {
     const next = ((image.rotation + by) % 360) as Rotation;
@@ -423,15 +428,15 @@ function DeskImageRow({
     <div ref={rowRef} {...hoverProps} className="rounded-lg border p-2">
       <div className="flex flex-wrap items-center gap-3">
         <CardArtThumb
-          src={deskImageSrc(image.url, "240w")}
+          src={deskImageSrc(image.url, "240w", bust)}
           landscape={landscape}
           alt={cardName}
           loading="lazy"
           className="h-14"
         />
-        {hovering && (
+        {hovering && !straightening && (
           <ImageHoverPreview
-            thumbnailUrl={deskImageSrc(image.url, "400w")}
+            thumbnailUrl={deskImageSrc(image.url, "400w", bust)}
             fullUrl={fullUrl}
             landscape={landscape}
             anchorRef={rowRef}
@@ -483,6 +488,14 @@ function DeskImageRow({
           >
             <RotateCwIcon />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={image.quad === null ? "Straighten" : "Straighten (corners set)"}
+            onClick={() => setStraightening(true)}
+          >
+            <CropIcon className={cn(image.quad !== null && "text-success")} />
+          </Button>
           {fullUrl !== null && (
             <Button
               variant="ghost"
@@ -517,6 +530,14 @@ function DeskImageRow({
           )}
         </span>
       </div>
+
+      <StraightenImageDialog
+        imageId={image.printingImageId}
+        quad={image.quad}
+        invalidates={DESK_IMAGE_SCOPE}
+        open={straightening}
+        onOpenChange={setStraightening}
+      />
     </div>
   );
 }

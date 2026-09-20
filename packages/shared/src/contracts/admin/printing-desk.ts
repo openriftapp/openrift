@@ -3,6 +3,7 @@ import { isoDate, isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { imageQuadSchema } from "./card-images.js";
 
 const TAG = "Admin - Printing Desk";
 
@@ -78,6 +79,7 @@ export const deskImageSchema = z.object({
   rotation: z.number(),
   face: z.enum(["front", "back"]),
   credit: z.string().nullable(),
+  quad: imageQuadSchema.nullable(),
   canDelete: z.boolean(),
 });
 

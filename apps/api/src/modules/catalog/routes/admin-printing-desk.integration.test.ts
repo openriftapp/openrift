@@ -164,6 +164,20 @@ async function seedImage(db: NonNullable<typeof adminCtx>["db"], printingId: str
   return { imageId: image.id, imageFileId: file.id };
 }
 
+async function seedInactiveImage(db: NonNullable<typeof adminCtx>["db"], printingId: string) {
+  const file = await db
+    .insertInto("imageFiles")
+    .values({ rehostedUrl: `/media/cards/pdk/${printingId.slice(-6)}-extra` })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const image = await db
+    .insertInto("printingImages")
+    .values({ printingId, face: "front", imageFileId: file.id, isActive: false })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return { imageId: image.id, imageFileId: file.id };
+}
+
 describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
   // oxlint-disable-next-line typescript/no-non-null-assertion -- guarded by skipIf
   const { app, db } = adminCtx!;
@@ -576,6 +590,28 @@ describe.skipIf(!adminCtx)("Admin printing-desk routes (integration)", () => {
         adminReq("DELETE", `/printings/${createdPrintingId}/citations/${grantCitationId}`),
       );
       expect(res.status).toBe(204);
+    });
+  });
+
+  describe("image order", () => {
+    let firstImageId = "";
+    let secondImageId = "";
+
+    beforeAll(async () => {
+      ({ imageId: firstImageId } = await seedInactiveImage(db, basePrintingId));
+      ({ imageId: secondImageId } = await seedInactiveImage(db, basePrintingId));
+    });
+
+    it("keeps the upload order when another image becomes active", async () => {
+      const res = await app.fetch(
+        adminReq("POST", `/cards/printing-images/${secondImageId}/activate`, { active: true }),
+      );
+      expect(res.status).toBe(204);
+
+      const get = await app.fetch(adminReq("GET", `/printing-desk/printings/${basePrintingId}`));
+      const json = await readJson(get);
+      const ids = json.images.map((image: { printingImageId: string }) => image.printingImageId);
+      expect(ids.indexOf(firstImageId)).toBeLessThan(ids.indexOf(secondImageId));
     });
   });
 
