@@ -21,7 +21,6 @@ export function FlatSectionsSection() {
       id="flat-sections"
       title="Flat sections & lists"
       note="A box means an entity, a popup or a destructive boundary. Everything else is typography and spacing. SettingsSection is the settings or form section (title, description, fields); SettingsGroup stacks siblings by spacing under a labelled ornament rule, no hairlines. RowList is the flat list under a SectionHeading, rows separated by spacing; RowListLink gives a row the hover wash; variant divided adds hairlines for tall multi-line rows only. Callout inset is the borderless note inside another surface. DefinitionList is the flat label/value list, pairs on one baseline."
-      docs="docs/design-language.md → When not to box"
     >
       <DemoRow label="SettingsGroup + SettingsSection" className="block">
         <div className="max-w-xl">

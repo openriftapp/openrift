@@ -13,7 +13,6 @@ export function OrnamentsSection() {
       id="ornaments"
       title="Ornaments"
       note="The card-border motif, taken from the edge of the printed card text box: a hairline with a diamond gem, a bracket base with stepped caps and a medallion, and corner brackets for hairline frames. Gold goes only where the gold hairline already goes (marketing headings, the landing page, the footer, the card-grid set headers), never on Card edges, inputs, tables or menus. Silver is for the black stage ground only."
-      docs="docs/design-language.md → Accents"
     >
       <DemoRow label="Under a left-aligned heading" hint="fades both ends (default), w-40">
         <div className="flex w-full flex-col gap-4">

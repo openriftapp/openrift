@@ -19,7 +19,6 @@ export function MetaArchiveSection() {
       id="meta-archive"
       title="Meta archive"
       note="The archive's shared identity pieces. Every /meta surface composes these rather than rolling its own: one tier badge, one identity unit, one scope bar."
-      docs="components/meta/"
     >
       <SwatchRow
         label="MetaTierBadge"

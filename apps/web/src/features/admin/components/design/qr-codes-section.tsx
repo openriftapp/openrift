@@ -13,7 +13,6 @@ export function QrCodesSection() {
       id="qr-codes"
       title="Copy rows & QR codes"
       note="Two related families. CopyField is the plain read-only-value-plus-Copy row; ShareLinkRow is the share-link form of it, which adds the QR. Every QR on screen goes through QrCode, which carries the white plate and error-correction level M, both of which the underlying library gets wrong for this app. Toggle the theme: the plate is what keeps the code scannable in dark mode."
-      docs="components/ui/copy-field.tsx · components/ui/qr-code.tsx · components/share/share-link-row.tsx"
     >
       <DemoRow
         label="CopyField"

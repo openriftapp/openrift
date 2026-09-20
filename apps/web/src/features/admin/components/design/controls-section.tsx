@@ -187,7 +187,6 @@ export function ControlsSection() {
       id="controls"
       title="Controls"
       note="Every variant, size and state of the interactive primitives in one place. Hover or focus a sample to read its settled colors — hover and focus are the two states no attribute can force."
-      docs="docs/design-language.md"
     >
       <div ref={rootRef} className="flex flex-col gap-8">
         <SurfaceReadout surface={surface} />

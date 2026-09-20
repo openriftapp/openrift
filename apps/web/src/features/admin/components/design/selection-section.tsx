@@ -58,7 +58,6 @@ export function SelectionSection() {
       id="selection"
       title="Selection"
       note="The signet is the picked mark for select mode: a struck disc with a rim, its echo and a check, sized against the card it sits on. SelectionMark centres it on the image (collection and list grids); SelectionRowMark is the control-sized version for a table row, which tints as well. Both are checkboxes, so the role and the label are unchanged. The mark carries the state on its own: no frame, no ring, nothing behind the tile. SelectionStamp is the same disc without the control, for a state the whole tile already toggles: the deck check uses it in success green over a dimmed card. The selection bar itself is FloatingActionBar, which is fixed to the viewport and so has no demo here."
-      docs="components/ui/selection-mark.tsx"
     >
       <DemoRow
         label="On a card"

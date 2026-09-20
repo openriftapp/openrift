@@ -9,13 +9,11 @@ export function DemoSection({
   id,
   title,
   note,
-  docs,
   children,
 }: {
   id: string;
   title: string;
   note?: string;
-  docs?: string;
   children: ReactNode;
 }) {
   return (
@@ -23,7 +21,6 @@ export function DemoSection({
       <div className="mb-6 flex flex-col gap-1">
         <Heading level={2}>{title}</Heading>
         {note && <p className="text-muted-foreground max-w-prose text-sm">{note}</p>}
-        {docs && <p className="text-muted-foreground text-2xs font-mono">→ {docs}</p>}
       </div>
       <div className="flex flex-col gap-8">{children}</div>
     </section>

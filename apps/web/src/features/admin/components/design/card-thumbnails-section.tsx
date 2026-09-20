@@ -20,7 +20,6 @@ export function CardThumbnailsSection() {
       id="card-thumbnails"
       title="Card thumbnails"
       note="CardArtThumb is the lightweight, image-only card frame for lists, tooltips, and stats — three shapes off one prop. shape=card is the portrait card frame, for where the thumb stands in for the card object (covers, tier tiles, stats, floating previews). shape=strip is the wide crop that leads a list row. shape=square is the avatar-sized crop of the art's top, for where a card stands in for a legend beside a name. Size any of them with a width or height utility; the other axis follows. The full grid tile (foil, pricing, sibling fan-out) is CardThumbnail; the whole row lead is CardMiniRow."
-      docs="components/cards/card-art-thumb.tsx"
     >
       <DemoRow
         label="Shapes"

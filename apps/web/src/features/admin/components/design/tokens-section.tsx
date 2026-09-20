@@ -144,8 +144,7 @@ export function TokensSection() {
     <DemoSection
       id="tokens"
       title="Tokens"
-      note="The theme vocabulary everything below is built from. Values are read live from the rendered page: toggle theme or palette in the header and they follow. The sidebar-* variables mirror the core set for the app chrome and are omitted here."
-      docs="apps/web/src/index.css · docs/design-language.md · docs/typography.md"
+      note="The theme vocabulary everything below is built from."
     >
       <DemoRow
         label="Color pairs"

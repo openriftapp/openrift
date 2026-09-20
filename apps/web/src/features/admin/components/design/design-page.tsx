@@ -1,8 +1,10 @@
+import { Fragment } from "react";
 import type { ComponentType, CSSProperties } from "react";
 
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { PageDescription, usePageTopBarHeight } from "@/components/layout/page-top-bar";
+import { OrnamentRule } from "@/components/ui/ornament";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { PAGE_WIDTH, cn } from "@/lib/utils";
 
@@ -81,15 +83,19 @@ export function DesignPage() {
       <PageToc items={TOC_ITEMS} />
       <div className="flex min-w-0 flex-1 flex-col gap-10">
         <div className="flex items-start gap-3">
-          <PageDescription>
-            Check both themes with the header toggle. Spec captions are measured live from the
-            rendered DOM.
+          <PageDescription className="max-w-prose text-sm">
+            The components live in <code>apps/web/src/components/</code>, the tokens in{" "}
+            <code>apps/web/src/index.css</code>. The rules behind them are in{" "}
+            <code>docs/design-language.md</code> and <code>docs/typography.md</code>.
           </PageDescription>
           <PageTocMobileTrigger items={TOC_ITEMS} className="ml-auto shrink-0" />
         </div>
 
-        {SECTIONS.map((section) => (
-          <section.Component key={section.id} />
+        {SECTIONS.map((section, index) => (
+          <Fragment key={section.id}>
+            {index > 0 && <OrnamentRule fade="tips" className="w-full" />}
+            <section.Component />
+          </Fragment>
         ))}
       </div>
     </div>
