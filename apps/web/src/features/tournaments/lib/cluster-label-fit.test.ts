@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 
-import { clusterLabelsFit } from "./cluster-label-fit";
+import { clusterLabelsFit, occupiesRowWidth } from "./cluster-label-fit";
 
 describe("clusterLabelsFit", () => {
   it("fits when the summed widths plus gaps and buffer stay inside the container", () => {
@@ -79,5 +80,24 @@ describe("clusterLabelsFit", () => {
         buffer: 8,
       }),
     ).toBe(false);
+  });
+});
+
+describe("occupiesRowWidth", () => {
+  const child = (style: string) => {
+    const element = document.createElement("span");
+    element.setAttribute("style", style);
+    document.body.append(element);
+    return element;
+  };
+
+  it("counts an ordinary flex child", () => {
+    expect(occupiesRowWidth(child(""))).toBe(true);
+    expect(occupiesRowWidth(child("position: relative"))).toBe(true);
+  });
+
+  it("skips the focus guards and hidden inputs a popup parks next to its trigger", () => {
+    expect(occupiesRowWidth(child("position: fixed; width: 1px; height: 1px"))).toBe(false);
+    expect(occupiesRowWidth(child("position: absolute"))).toBe(false);
   });
 });

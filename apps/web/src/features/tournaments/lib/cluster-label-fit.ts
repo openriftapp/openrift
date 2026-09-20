@@ -22,3 +22,11 @@ export function clusterLabelsFit({
     widths.reduce((total, width) => total + width, 0) + gap * (widths.length - 1) + buffer;
   return required <= containerWidth;
 }
+
+// Base UI parks focus guards and hidden inputs next to their trigger while a
+// popup is open. They are position:fixed, so they occupy neither width nor a
+// flex gap, and counting them collapses the labels the moment a menu opens.
+export function occupiesRowWidth(element: Element): boolean {
+  const position = element.ownerDocument.defaultView?.getComputedStyle(element).position;
+  return position !== "absolute" && position !== "fixed";
+}

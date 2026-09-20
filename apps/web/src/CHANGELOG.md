@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-21
+
+### Other
+
+- fix(Cards): **The More filter menu stays open** — at some window widths opening it shrank the domain and rarity filters to icons, which moved the button out from under the pointer and closed the menu again.
+
 ## 2026-09-20
 
 ### Other

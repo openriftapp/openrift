@@ -26,7 +26,7 @@ import {
   useVisibleFilterDimensions,
 } from "@/features/cards/hooks/use-filter-dimensions";
 import { filterDimension, ownedBuckets } from "@/features/cards/lib/filter-dimensions";
-import { clusterLabelsFit } from "@/features/tournaments/lib/cluster-label-fit";
+import { clusterLabelsFit, occupiesRowWidth } from "@/features/tournaments/lib/cluster-label-fit";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatDomainFilterLabel } from "@/lib/domain";
 import { getFilterIconPath } from "@/lib/icons";
@@ -188,7 +188,8 @@ export function useClusterLabelsFit() {
     const isInFlowChild = (child: Element): child is HTMLElement =>
       child instanceof HTMLElement &&
       child.dataset.labelFitCluster === undefined &&
-      child.dataset.labelFitMeasure === undefined;
+      child.dataset.labelFitMeasure === undefined &&
+      occupiesRowWidth(child);
 
     const readBarBox = () => {
       containerWidth = bar.clientWidth;
