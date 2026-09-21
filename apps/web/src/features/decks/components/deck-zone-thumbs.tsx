@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
+import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget, HoverHandler } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
@@ -95,7 +95,7 @@ function ThumbEditControls({
               variant="ghost"
               size="icon-xs"
               className={cn(
-                "bg-background/80 hover:bg-background absolute top-1 right-1 size-5 rounded-md",
+                "bg-background/80 hover:bg-background absolute top-1 right-1 z-40 size-5 rounded-md",
                 reveal,
               )}
               aria-label={
@@ -261,6 +261,7 @@ export function ZoneThumb({
           onError={() => setFailedUrl(thumbnail)}
         />
       )}
+      {card.banned && <CornerRibbon tone="banned">{m.cards_thumb_banned()}</CornerRibbon>}
       {hasCustomPrinting && (
         <span
           title={m.decks_editor_pinned_printing()}

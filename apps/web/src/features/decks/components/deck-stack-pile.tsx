@@ -3,7 +3,7 @@ import type { DeckZone } from "@openrift/shared/types/enums";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { useState } from "react";
 
-import { AFTER_BORDER } from "@/features/cards/components/card-thumbnail";
+import { AFTER_BORDER, CornerRibbon } from "@/features/cards/components/card-thumbnail";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import type { CardOpenTarget } from "@/features/cards/lib/card-row-interactions";
 import { DeckCardPrintingMenu } from "@/features/decks/components/deck-card-printing-menu";
@@ -24,6 +24,7 @@ import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { m } from "@/paraglide/messages.js";
 import { useSelectionStore } from "@/stores/selection-store";
 
 function StackStrip({
@@ -129,6 +130,9 @@ function StackStrip({
           style={{ height: cardHeight, bottom: expanded ? "0px" : imageBottomOffset }}
           className="absolute left-0 w-full object-cover transition-[bottom] duration-200 ease-out motion-reduce:transition-none"
         />
+        {card.banned && (expanded || variant === "top") && (
+          <CornerRibbon tone="banned">{m.cards_thumb_banned()}</CornerRibbon>
+        )}
         {card.quantity > 1 && (copyIndex === null || copyIndex === undefined) && (
           <span
             className={cn(

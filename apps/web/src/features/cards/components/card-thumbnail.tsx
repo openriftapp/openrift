@@ -58,13 +58,13 @@ const RIBBON_TONE = {
 } as const;
 
 /** The one diagonal corner label a card may carry: banned, ban incoming, or unreleased. */
-function CornerRibbon({
+export function CornerRibbon({
   tone,
   title,
   children,
 }: {
   tone: keyof typeof RIBBON_TONE;
-  title: string;
+  title?: string;
   children: ReactNode;
 }) {
   return (
