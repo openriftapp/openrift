@@ -1,4 +1,5 @@
 import type { BoardDocument } from "@openrift/shared/board-state";
+import { upgradeBoardDocument } from "@openrift/shared/board-state";
 import type { Kysely, Selectable } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
@@ -26,48 +27,57 @@ export interface BoardStateValues {
   document: BoardDocument;
 }
 
+function upgraded<T extends { document: BoardDocument }>(row: T): T {
+  const document = upgradeBoardDocument(row.document);
+  return document === null ? row : { ...row, document };
+}
+
 /** Owner-scoped methods filter on `userId`; the share-token and featured reads are the unscoped ones. */
 export function boardStatesRepo(db: Kysely<Database>) {
   return {
-    listForUser(userId: string): Promise<BoardState[]> {
-      return db
+    async listForUser(userId: string): Promise<BoardState[]> {
+      const rows = await db
         .selectFrom("boardStates")
         .selectAll()
         .where("userId", "=", userId)
         .orderBy("updatedAt", "desc")
         .execute();
+      return rows.map((row) => upgraded(row));
     },
 
-    getByIdForUser(id: string, userId: string): Promise<BoardState | undefined> {
-      return db
+    async getByIdForUser(id: string, userId: string): Promise<BoardState | undefined> {
+      const row = await db
         .selectFrom("boardStates")
         .selectAll()
         .where("id", "=", id)
         .where("userId", "=", userId)
         .executeTakeFirst();
+      return row === undefined ? undefined : upgraded(row);
     },
 
-    create(userId: string, values: BoardStateValues): Promise<BoardState> {
-      return db
+    async create(userId: string, values: BoardStateValues): Promise<BoardState> {
+      const row = await db
         .insertInto("boardStates")
         .values({ userId, ...values })
         .returningAll()
         .executeTakeFirstOrThrow();
+      return upgraded(row);
     },
 
     /** `undefined` fields are left alone; the caller passes at least one field. */
-    update(
+    async update(
       id: string,
       userId: string,
       values: Partial<BoardStateValues>,
     ): Promise<BoardState | undefined> {
-      return db
+      const row = await db
         .updateTable("boardStates")
         .set(values)
         .where("id", "=", id)
         .where("userId", "=", userId)
         .returningAll()
         .executeTakeFirst();
+      return row === undefined ? undefined : upgraded(row);
     },
 
     async remove(id: string, userId: string): Promise<boolean> {
@@ -97,21 +107,27 @@ export function boardStatesRepo(db: Kysely<Database>) {
 
     async findByShareToken(shareToken: string): Promise<SharedBoardState | undefined> {
       const found = await findByShareToken(db, "boardStates", shareToken);
-      return found ? { boardState: found.row, ownerName: found.ownerName } : undefined;
+      return found ? { boardState: upgraded(found.row), ownerName: found.ownerName } : undefined;
     },
 
-    getById(id: string): Promise<BoardState | undefined> {
-      return db.selectFrom("boardStates").selectAll().where("id", "=", id).executeTakeFirst();
+    async getById(id: string): Promise<BoardState | undefined> {
+      const row = await db
+        .selectFrom("boardStates")
+        .selectAll()
+        .where("id", "=", id)
+        .executeTakeFirst();
+      return row === undefined ? undefined : upgraded(row);
     },
 
-    listAllWithOwner(): Promise<BoardStateWithOwner[]> {
-      return db
+    async listAllWithOwner(): Promise<BoardStateWithOwner[]> {
+      const rows = await db
         .selectFrom("boardStates as b")
         .innerJoin("users as u", "u.id", "b.userId")
         .selectAll("b")
         .select("u.name as ownerName")
         .orderBy("b.updatedAt", "desc")
         .execute();
+      return rows.map((row) => upgraded(row));
     },
 
     async setFeatured(id: string, featured: boolean): Promise<BoardStateWithOwner | undefined> {
@@ -129,11 +145,11 @@ export function boardStatesRepo(db: Kysely<Database>) {
         .select("name")
         .where("id", "=", row.userId)
         .executeTakeFirst();
-      return { ...row, ownerName: owner?.name ?? null };
+      return { ...upgraded(row), ownerName: owner?.name ?? null };
     },
 
-    listFeatured(): Promise<BoardState[]> {
-      return db
+    async listFeatured(): Promise<BoardState[]> {
+      const rows = await db
         .selectFrom("boardStates")
         .selectAll()
         .where("isFeatured", "=", true)
@@ -141,6 +157,7 @@ export function boardStatesRepo(db: Kysely<Database>) {
         .where("shareToken", "is not", null)
         .orderBy("updatedAt", "desc")
         .execute();
+      return rows.map((row) => upgraded(row));
     },
   };
 }

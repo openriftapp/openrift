@@ -28,7 +28,13 @@ export function useRecomputeKeywords() {
 
 const updateKeywordStyleFn = createServerFn({ method: "POST" })
   .validator(
-    (input: { name: string; color: string; darkText: boolean; costKeyword: boolean }) => input,
+    (input: {
+      name: string;
+      color: string;
+      darkText: boolean;
+      costKeyword: boolean;
+      cardModifier: boolean;
+    }) => input,
   )
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -43,6 +49,7 @@ export function useUpdateKeywordStyle() {
       color: string;
       darkText: boolean;
       costKeyword: boolean;
+      cardModifier: boolean;
     }) => updateKeywordStyleFn({ data: params }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.keywordStats });
@@ -53,7 +60,13 @@ export function useUpdateKeywordStyle() {
 
 const createKeywordStyleFn = createServerFn({ method: "POST" })
   .validator(
-    (input: { name: string; color: string; darkText: boolean; costKeyword: boolean }) => input,
+    (input: {
+      name: string;
+      color: string;
+      darkText: boolean;
+      costKeyword: boolean;
+      cardModifier: boolean;
+    }) => input,
   )
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -68,6 +81,7 @@ export function useCreateKeywordStyle() {
       color: string;
       darkText: boolean;
       costKeyword: boolean;
+      cardModifier: boolean;
     }) => createKeywordStyleFn({ data: params }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.keywordStats });

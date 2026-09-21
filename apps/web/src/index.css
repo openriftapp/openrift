@@ -133,6 +133,9 @@ html.hide-scrollbar::-webkit-scrollbar {
      palette, so this one does not follow them. */
   --gilt: oklch(0.78 0.11 82);
   --card-edge: oklch(0.82 0.03 75);
+  /* The table surface keeps one look under every scheme. */
+  --board-felt: oklch(0.32 0.04 195);
+  --board-felt-edge: oklch(0.22 0.03 195);
   --input: oklch(0.82 0.03 75);
   --ring: oklch(0.55 0.1 75);
   --chart-1: oklch(0.55 0.1 75);
@@ -409,6 +412,8 @@ html.hide-scrollbar::-webkit-scrollbar {
   --color-border: var(--border);
   --color-border-accent: var(--border-accent);
   --color-card-edge: var(--card-edge);
+  --color-board-felt: var(--board-felt);
+  --color-board-felt-edge: var(--board-felt-edge);
   --color-gilt: var(--gilt);
   --color-input: var(--input);
   --color-ring: var(--ring);

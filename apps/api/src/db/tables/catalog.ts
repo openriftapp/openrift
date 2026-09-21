@@ -231,6 +231,7 @@ export interface KeywordsTable {
   darkText: Generated<boolean>;
   isWellKnown: Generated<boolean>;
   costKeyword: ColumnType<boolean, boolean | undefined, boolean>;
+  cardModifier: ColumnType<boolean, boolean | undefined, boolean>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

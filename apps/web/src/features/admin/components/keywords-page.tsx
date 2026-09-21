@@ -55,6 +55,7 @@ interface KeywordRow {
   color: string | null;
   darkText: boolean;
   costKeyword: boolean;
+  cardModifier: boolean;
   translations: { language: string; label: string }[];
 }
 
@@ -63,6 +64,7 @@ interface KeywordDraft {
   color: string;
   darkText: boolean;
   costKeyword: boolean;
+  cardModifier: boolean;
 }
 
 interface TranslationRow {
@@ -118,6 +120,7 @@ function DarkTextCell({ row }: AdminCellSlotProps<KeywordRow>) {
           color,
           darkText: checked,
           costKeyword: row.costKeyword,
+          cardModifier: row.cardModifier,
         })
       }
     />
@@ -219,6 +222,7 @@ function CostKeywordCell({ row }: AdminCellSlotProps<KeywordRow>) {
           color: row.color ?? FALLBACK_KEYWORD_COLOR,
           darkText: row.darkText,
           costKeyword: checked,
+          cardModifier: row.cardModifier,
         })
       }
     />
@@ -233,6 +237,39 @@ function CostKeywordInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>
     <Checkbox
       checked={draft.costKeyword}
       onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, costKeyword: checked }))}
+    />
+  );
+}
+
+function CardModifierCell({ row }: AdminCellSlotProps<KeywordRow>) {
+  const updateStyle = useUpdateKeywordStyle();
+  if (!row) {
+    return null;
+  }
+  return (
+    <Checkbox
+      checked={row.cardModifier}
+      onCheckedChange={(checked) =>
+        updateStyle.mutate({
+          name: row.keyword,
+          color: row.color ?? FALLBACK_KEYWORD_COLOR,
+          darkText: row.darkText,
+          costKeyword: row.costKeyword,
+          cardModifier: checked,
+        })
+      }
+    />
+  );
+}
+
+function CardModifierInput({ draft, setDraft }: AdminDraftSlotProps<KeywordDraft>) {
+  if (!draft || !setDraft) {
+    return null;
+  }
+  return (
+    <Checkbox
+      checked={draft.cardModifier}
+      onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, cardModifier: checked }))}
     />
   );
 }
@@ -271,6 +308,13 @@ const columns: AdminColumnDef<KeywordRow, KeywordDraft>[] = [
     addCell: <CostKeywordInput />,
   },
   {
+    header: "Card modifier",
+    align: "center",
+    cell: <CardModifierCell />,
+    editCell: <CardModifierInput />,
+    addCell: <CardModifierInput />,
+  },
+  {
     header: "Translations",
     cell: <TranslationsCell />,
   },
@@ -300,6 +344,7 @@ export function KeywordsPage() {
         color: style?.color ?? null,
         darkText: style?.darkText ?? false,
         costKeyword: style?.costKeyword ?? false,
+        cardModifier: style?.cardModifier ?? false,
         translations: translationsByKeyword.get(c.keyword) ?? [],
       };
     }),
@@ -311,6 +356,7 @@ export function KeywordsPage() {
         color: s.color,
         darkText: s.darkText,
         costKeyword: s.costKeyword,
+        cardModifier: s.cardModifier,
         translations: translationsByKeyword.get(s.name) ?? [],
       })),
   ];
@@ -399,13 +445,20 @@ export function KeywordsPage() {
           </PageDescription>
         }
         add={{
-          emptyDraft: { keyword: "", color: "#6366f1", darkText: false, costKeyword: false },
+          emptyDraft: {
+            keyword: "",
+            color: "#6366f1",
+            darkText: false,
+            costKeyword: false,
+            cardModifier: false,
+          },
           onSave: (draft) =>
             createStyle.mutateAsync({
               name: draft.keyword.trim(),
               color: draft.color,
               darkText: draft.darkText,
               costKeyword: draft.costKeyword,
+              cardModifier: draft.cardModifier,
             }),
           validate: (draft) => {
             const name = draft.keyword.trim();
@@ -425,6 +478,7 @@ export function KeywordsPage() {
             color: row.color ?? "#707070",
             darkText: row.darkText,
             costKeyword: row.costKeyword,
+            cardModifier: row.cardModifier,
           }),
           onSave: (draft) =>
             updateStyle.mutateAsync({
@@ -432,6 +486,7 @@ export function KeywordsPage() {
               color: draft.color,
               darkText: draft.darkText,
               costKeyword: draft.costKeyword,
+              cardModifier: draft.cardModifier,
             }),
         }}
         delete={{

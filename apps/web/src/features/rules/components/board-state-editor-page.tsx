@@ -2,7 +2,7 @@ import { boardDocumentSchema, emptyBoardDocument } from "@openrift/shared/board-
 import type { BoardStateResponse } from "@openrift/shared/types/api/board-state";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Trash2Icon } from "lucide-react";
+import { EyeIcon, PencilIcon, Trash2Icon, UndoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
@@ -15,11 +15,11 @@ import {
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoardEditorHeader } from "@/features/rules/components/board-editor-header";
+import { BoardEditorPreview } from "@/features/rules/components/board-editor-preview";
+import { BoardEditorRulesPopover } from "@/features/rules/components/board-editor-rules-popover";
 import type { EditorMeta } from "@/features/rules/components/board-state-editor-workspace";
-import {
-  BoardWorkspace,
-  SetupPane,
-} from "@/features/rules/components/board-state-editor-workspace";
+import { BoardWorkspace } from "@/features/rules/components/board-state-editor-workspace";
 import {
   useCreateBoardState,
   useDeleteBoardState,
@@ -270,21 +270,58 @@ function EditorLayout({
   onMeta: (meta: EditorMeta) => void;
   actions: ReactNode;
 }) {
+  const [preview, setPreview] = useState(false);
+  const undo = useBoardEditorStore((state) => state.undo);
+  const canUndo = useBoardEditorStore((state) => state.history.length > 0);
+  const firstStepPieces = useBoardEditorStore((state) => state.document.steps[0]?.pieces ?? []);
   return (
     <>
       <PageTopBarSticky width="full">
         <PageTopBar>
           <PageTopBarTitle>{meta.title || m.board_states_untitled()}</PageTopBarTitle>
-          <PageTopBarActions>{actions}</PageTopBarActions>
+          <PageTopBarActions>
+            <PageTopBarButton disabled={!canUndo} onClick={undo}>
+              <UndoIcon />
+              {m.board_states_editor_undo()}
+            </PageTopBarButton>
+            <PageTopBarButton onClick={() => setPreview(!preview)}>
+              {preview ? <PencilIcon /> : <EyeIcon />}
+              {preview ? m.board_states_editor_preview_exit() : m.board_states_editor_preview()}
+            </PageTopBarButton>
+            <BoardEditorRulesPopover
+              coreRulesVersion={meta.coreRulesVersion}
+              tournamentRulesVersion={meta.tournamentRulesVersion}
+              onChange={(pins) => onMeta({ ...meta, ...pins })}
+            />
+            {actions}
+          </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
       <div className={cn(PAGE_WIDTH.full, PAGE_PADDING_NO_TOP, "flex flex-col gap-3 pt-3 pb-8")}>
         {error ? <p className="text-destructive">{error}</p> : null}
         {notice ? <p className="text-muted-foreground">{notice}</p> : null}
         <p className="text-muted-foreground lg:hidden">{m.board_states_editor_desktop_only()}</p>
-        <div className="hidden gap-4 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_18rem]">
-          <SetupPane meta={meta} onMeta={onMeta} />
-          <BoardWorkspace />
+        <div className="hidden flex-col gap-4 lg:flex">
+          <BoardEditorHeader
+            title={meta.title}
+            answer={meta.answer}
+            pieces={firstStepPieces}
+            onTitle={(title) => onMeta({ ...meta, title })}
+            onAnswer={(answer) => onMeta({ ...meta, answer })}
+          />
+          {preview ? (
+            <BoardEditorPreview
+              answer={meta.answer}
+              pins={{
+                coreRulesVersion: meta.coreRulesVersion,
+                tournamentRulesVersion: meta.tournamentRulesVersion,
+              }}
+            />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
+              <BoardWorkspace />
+            </div>
+          )}
         </div>
       </div>
     </>

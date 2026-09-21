@@ -55,6 +55,7 @@ export const initRouter = {
         color: row.color,
         darkText: row.darkText,
         costKeyword: row.costKeyword,
+        cardModifier: row.cardModifier,
       };
     }
 

@@ -30,6 +30,28 @@ describe("splitCaption", () => {
     ]);
   });
 
+  it("splits card references out of the text", () => {
+    expect(splitCaption("Give [[card:p1]] a rune.")).toEqual([
+      { type: "text", text: "Give " },
+      { type: "card", pieceId: "p1" },
+      { type: "text", text: " a rune." },
+    ]);
+  });
+
+  it("mixes rule and card references", () => {
+    expect(splitCaption("[[card:a1]] see [[t:118]]")).toEqual([
+      { type: "card", pieceId: "a1" },
+      { type: "text", text: " see " },
+      { type: "rule", ref: { kind: "tournament", ruleNumber: "118" } },
+    ]);
+  });
+
+  it("leaves a malformed card reference as text", () => {
+    expect(splitCaption("[[card:]] [[card:P1]]")).toEqual([
+      { type: "text", text: "[[card:]] [[card:P1]]" },
+    ]);
+  });
+
   it("returns nothing for an empty caption", () => {
     expect(splitCaption("")).toEqual([]);
   });

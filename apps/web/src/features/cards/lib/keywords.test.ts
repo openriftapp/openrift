@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { buildTranslationReverseMap, getKeywordStyle } from "./keywords";
 
 const MOCK_STYLES: KeywordsResponse["items"] = {
-  Accelerate: { color: "#24705f", darkText: false, costKeyword: false },
-  Shield: { color: "#cd346f", darkText: false, costKeyword: false },
-  Deathknell: { color: "#95b229", darkText: true, costKeyword: false },
-  Deflect: { color: "#95b229", darkText: true, costKeyword: false },
-  Ganking: { color: "#95b229", darkText: true, costKeyword: false },
-  Temporary: { color: "#95b229", darkText: true, costKeyword: false },
+  Accelerate: { color: "#24705f", darkText: false, costKeyword: false, cardModifier: false },
+  Shield: { color: "#cd346f", darkText: false, costKeyword: false, cardModifier: false },
+  Deathknell: { color: "#95b229", darkText: true, costKeyword: false, cardModifier: false },
+  Deflect: { color: "#95b229", darkText: true, costKeyword: false, cardModifier: false },
+  Ganking: { color: "#95b229", darkText: true, costKeyword: false, cardModifier: false },
+  Temporary: { color: "#95b229", darkText: true, costKeyword: false, cardModifier: false },
 };
 
 const TRANSLATED_STYLES: KeywordsResponse["items"] = {

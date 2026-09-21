@@ -6,6 +6,7 @@ export const keywordEntrySchema = z.object({
   color: z.string().meta({ examples: ["#24705f"] }),
   darkText: z.boolean().meta({ examples: [false] }),
   costKeyword: z.boolean().meta({ examples: [false] }),
+  cardModifier: z.boolean().meta({ examples: [false] }),
   translations: z
     .record(z.string(), z.string())
     .optional()

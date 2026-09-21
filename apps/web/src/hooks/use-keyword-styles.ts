@@ -8,6 +8,14 @@ export function useKeywordStyles(): KeywordsResponse["items"] {
   return data.keywords as KeywordsResponse["items"];
 }
 
+export function useCardModifierKeywords(): { name: string; color: string; darkText: boolean }[] {
+  const keywordStyles = useKeywordStyles();
+  return Object.entries(keywordStyles)
+    .filter(([, entry]) => entry.cardModifier)
+    .map(([name, entry]) => ({ name, color: entry.color, darkText: entry.darkText }))
+    .toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
 export function useCostKeywords(): string[] {
   const keywordStyles = useKeywordStyles();
   return Object.entries(keywordStyles)

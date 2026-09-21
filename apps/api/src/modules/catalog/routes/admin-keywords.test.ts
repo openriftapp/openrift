@@ -48,7 +48,13 @@ describe("GET /keyword-stats", () => {
   it("returns counts, styles, and translations", async () => {
     mockKeywords.getKeywordCounts.mockResolvedValue([{ keyword: "Accelerate", count: 4 }]);
     mockKeywords.listAll.mockResolvedValue([
-      { name: "Accelerate", color: "#24705f", darkText: false, costKeyword: false },
+      {
+        name: "Accelerate",
+        color: "#24705f",
+        darkText: false,
+        costKeyword: false,
+        cardModifier: false,
+      },
     ]);
     mockKeywords.listAllTranslations.mockResolvedValue([
       { keywordName: "Accelerate", language: "de", label: "Beschleunigen" },
@@ -59,7 +65,13 @@ describe("GET /keyword-stats", () => {
     const json = await readJson(res);
     expect(json.counts).toEqual([{ keyword: "Accelerate", count: 4 }]);
     expect(json.styles).toEqual([
-      { name: "Accelerate", color: "#24705f", darkText: false, costKeyword: false },
+      {
+        name: "Accelerate",
+        color: "#24705f",
+        darkText: false,
+        costKeyword: false,
+        cardModifier: false,
+      },
     ]);
     expect(json.translations).toEqual([
       { keywordName: "Accelerate", language: "de", label: "Beschleunigen" },
@@ -83,6 +95,7 @@ describe("POST /keywords (createStyle)", () => {
         color: "#24705f",
         darkText: false,
         costKeyword: false,
+        cardModifier: false,
       }),
     });
     expect(res.status).toBe(204);
@@ -91,6 +104,7 @@ describe("POST /keywords (createStyle)", () => {
       color: "#24705f",
       darkText: false,
       costKeyword: false,
+      cardModifier: false,
     });
   });
 });
@@ -106,7 +120,12 @@ describe("PUT /keywords/:name (updateStyle)", () => {
     const res = await app.request("/api/admin/v1/keywords/Accelerate", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ color: "#112233", darkText: true, costKeyword: true }),
+      body: JSON.stringify({
+        color: "#112233",
+        darkText: true,
+        costKeyword: true,
+        cardModifier: true,
+      }),
     });
     expect(res.status).toBe(204);
     expect(mockKeywords.upsertStyle).toHaveBeenCalledWith({
@@ -114,6 +133,7 @@ describe("PUT /keywords/:name (updateStyle)", () => {
       color: "#112233",
       darkText: true,
       costKeyword: true,
+      cardModifier: true,
     });
   });
 });

@@ -24,12 +24,14 @@ describe.skipIf(!ctx)("keywordsRepo (integration)", () => {
       color: "#123456",
       darkText: false,
       costKeyword: true,
+      cardModifier: false,
     });
     await repo.upsertStyle({
       name: "KW-PlainFlag",
       color: "#123456",
       darkText: false,
       costKeyword: false,
+      cardModifier: false,
     });
     try {
       const costKeywords = await repo.listCostKeywords();
@@ -41,11 +43,46 @@ describe.skipIf(!ctx)("keywordsRepo (integration)", () => {
         color: "#123456",
         darkText: false,
         costKeyword: false,
+        cardModifier: false,
       });
       expect(await repo.listCostKeywords()).not.toContain("KW-CostFlag");
     } finally {
       await repo.deleteStyle("KW-CostFlag");
       await repo.deleteStyle("KW-PlainFlag");
+    }
+  });
+
+  it("listCardModifierKeywords returns only keywords flagged as card modifiers", async () => {
+    await repo.upsertStyle({
+      name: "KW-ModifierFlag",
+      color: "#123456",
+      darkText: false,
+      costKeyword: false,
+      cardModifier: true,
+    });
+    await repo.upsertStyle({
+      name: "KW-NotModifierFlag",
+      color: "#123456",
+      darkText: false,
+      costKeyword: false,
+      cardModifier: false,
+    });
+    try {
+      const modifiers = await repo.listCardModifierKeywords();
+      expect(modifiers).toContain("KW-ModifierFlag");
+      expect(modifiers).not.toContain("KW-NotModifierFlag");
+
+      await repo.upsertStyle({
+        name: "KW-ModifierFlag",
+        color: "#123456",
+        darkText: false,
+        costKeyword: false,
+        cardModifier: false,
+      });
+      expect(await repo.listCardModifierKeywords()).not.toContain("KW-ModifierFlag");
+    } finally {
+      await repo.deleteStyle("KW-ModifierFlag");
+      await repo.deleteStyle("KW-NotModifierFlag");
     }
   });
 
@@ -57,6 +94,7 @@ describe.skipIf(!ctx)("keywordsRepo (integration)", () => {
       color: "#abcdef",
       darkText: true,
       costKeyword: false,
+      cardModifier: false,
     });
     try {
       const during = await db

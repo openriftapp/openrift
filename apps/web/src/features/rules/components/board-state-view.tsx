@@ -1,7 +1,5 @@
-import type { RuleRef, RuleRefKind } from "@openrift/shared/board-state";
 import { extractRuleRefs } from "@openrift/shared/board-state";
 import type { PublicBoardStateResponse } from "@openrift/shared/types/api/board-state";
-import { Link } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -13,75 +11,14 @@ import {
 } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  BoardCaptionText,
+  RuleChip,
+  RulesPinBadges,
+} from "@/features/rules/components/board-caption-text";
 import { BoardView } from "@/features/rules/components/board-view";
-import { splitCaption } from "@/features/rules/lib/board-caption";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-export interface RulesPins {
-  coreRulesVersion: string | null;
-  tournamentRulesVersion: string | null;
-}
-
-function rulesKindLabel(kind: RuleRefKind): string {
-  return kind === "core"
-    ? m.board_states_rules_kind_core()
-    : m.board_states_rules_kind_tournament();
-}
-
-function pinFor(pins: RulesPins, kind: RuleRefKind): string | null {
-  return kind === "core" ? pins.coreRulesVersion : pins.tournamentRulesVersion;
-}
-
-export function RulesPinBadges({ pins }: { pins: RulesPins }) {
-  return (
-    <>
-      {(["core", "tournament"] as const).map((kind) => {
-        const version = pinFor(pins, kind);
-        return version === null ? null : (
-          <Badge key={kind} variant="secondary" className="font-mono">
-            {m.board_states_rules_badge({ kind: rulesKindLabel(kind), version })}
-          </Badge>
-        );
-      })}
-    </>
-  );
-}
-
-function RuleChip({ reference, pins }: { reference: RuleRef; pins: RulesPins }) {
-  const version = pinFor(pins, reference.kind);
-  const label = `§ ${reference.kind === "tournament" ? "T " : ""}${reference.ruleNumber}`;
-  if (version === null) {
-    return <span className="bg-muted rounded-md px-1.5 font-mono text-sm">{label}</span>;
-  }
-  return (
-    <Link
-      to="/rules/$kind/$version"
-      params={{ kind: reference.kind, version }}
-      hash={`rule-${reference.ruleNumber}`}
-      className="bg-muted hover:bg-muted/70 inline-flex items-center rounded-md px-1.5 font-mono text-sm no-underline"
-      title={m.board_states_open_rules({ version })}
-    >
-      {label}
-    </Link>
-  );
-}
-
-function BoardCaption({ text, pins }: { text: string; pins: RulesPins }) {
-  return (
-    <p className="whitespace-pre-line">
-      {splitCaption(text).map((segment, index) =>
-        segment.type === "rule" ? (
-          // oxlint-disable-next-line react/no-array-index-key -- segments are positional
-          <RuleChip key={index} reference={segment.ref} pins={pins} />
-        ) : (
-          // oxlint-disable-next-line react/no-array-index-key -- segments are positional
-          <span key={index}>{segment.text}</span>
-        ),
-      )}
-    </p>
-  );
-}
 
 export function BoardStateView({
   boardState,
@@ -93,6 +30,7 @@ export function BoardStateView({
   actions?: React.ReactNode;
 }) {
   const [activeStep, setActiveStep] = useState(0);
+  const [highlightedPieceId, setHighlightedPieceId] = useState<string | null>(null);
   const { document } = boardState;
   const total = document.steps.length;
   const step = document.steps[Math.min(activeStep, total - 1)];
@@ -122,7 +60,12 @@ export function BoardStateView({
             <span className="text-muted-foreground text-xs uppercase">
               {m.board_states_answer()}
             </span>
-            <BoardCaption text={boardState.answer} pins={boardState} />
+            <BoardCaptionText
+              text={boardState.answer}
+              pins={boardState}
+              pieces={document.steps[0]?.pieces ?? []}
+              onHoverPiece={setHighlightedPieceId}
+            />
           </div>
         ) : null}
 
@@ -155,8 +98,15 @@ export function BoardStateView({
                 </div>
               </div>
             )}
-            <BoardView document={document} step={step} />
-            {step.caption ? <BoardCaption text={step.caption} pins={boardState} /> : null}
+            <BoardView document={document} step={step} highlightedPieceId={highlightedPieceId} />
+            {step.caption ? (
+              <BoardCaptionText
+                text={step.caption}
+                pins={boardState}
+                pieces={step.pieces}
+                onHoverPiece={setHighlightedPieceId}
+              />
+            ) : null}
           </div>
         ) : null}
 

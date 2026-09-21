@@ -5,10 +5,11 @@ import { describe, expect, it } from "vitest";
 import { defaultIo } from "../../../io.js";
 import {
   measurePieceHeight,
+  pieceNumerals,
   pieceText,
   piecesIn,
   renderBoardStateImage,
-  seatRows,
+  seatSlots,
   seatsFor,
 } from "./board-state-image.js";
 
@@ -22,9 +23,9 @@ function piece(overrides: Partial<BoardPiece> = {}): BoardPiece {
     kind: "unit",
     card: null,
     exhausted: false,
-    stunned: false,
+    keywords: [],
     damage: 0,
-    buff: 0,
+    might: 0,
     highlight: false,
     ...overrides,
   };
@@ -41,6 +42,7 @@ const allZones = {
   runes: true,
   hand: true,
   trash: true,
+  deck: true,
   chain: true,
 };
 
@@ -58,23 +60,42 @@ describe("seatsFor", () => {
   });
 });
 
-describe("seatRows", () => {
-  it("orders the near row next to the battlefields on both sides", () => {
+describe("seatSlots", () => {
+  const key = (slot: { kind: string; zone?: string; stack?: string }) =>
+    slot.zone ?? slot.stack ?? slot.kind;
+
+  it("runs the top seat's row in the opposite direction", () => {
     const document = doc({ zones: allZones });
-    expect(seatRows(document, "bottom").map((row) => row[0]?.kind)).toEqual(["legend", "runes"]);
-    expect(seatRows(document, "top").map((row) => row[0]?.kind)).toEqual(["runes", "legend"]);
+    expect(seatSlots(document).map((slot) => key(slot))).toEqual([
+      "runeDeck",
+      "runes",
+      "champion",
+      "legend",
+      "base",
+      "deck",
+      "trash",
+    ]);
   });
 
-  it("keeps a hidden zone's slot and collapses a row with nothing visible", () => {
+  it("drops hidden zones and both decks, and never seats the hand", () => {
     const document = doc({
-      zones: { ...allZones, runes: false, hand: false, trash: false, champion: false },
+      zones: { ...allZones, runes: false, trash: false, champion: false, deck: false },
     });
-    expect(seatRows(document, "bottom")).toEqual([
-      [
-        { kind: "legend", visible: true },
-        { kind: "champion", visible: false },
-        { kind: "base", visible: true },
-      ],
+    expect(seatSlots(document).map((slot) => key(slot))).toEqual(["legend", "base"]);
+  });
+});
+
+describe("pieceNumerals", () => {
+  it("numbers only the pieces that share a name", () => {
+    const card = { cardId: "00000000-0000-4000-8000-000000000001", name: "Ashe" };
+    const numerals = pieceNumerals([
+      piece({ id: "p1", card }),
+      piece({ id: "p2", card: { ...card, name: "Vi" } }),
+      piece({ id: "p3", card }),
+    ]);
+    expect([...numerals]).toEqual([
+      ["p1", 1],
+      ["p3", 2],
     ]);
   });
 });
@@ -135,10 +156,17 @@ describe("renderBoardStateImage", () => {
           caption: "",
           pieces: [
             piece({ id: "p1", card, zone: { kind: "battlefield", index: 0 }, damage: 2 }),
-            piece({ id: "p2", owner: "B", zone: { kind: "battlefield", index: 0 }, stunned: true }),
+            piece({
+              id: "p2",
+              owner: "B",
+              zone: { kind: "battlefield", index: 0 },
+              keywords: ["Stun", "Accelerate 2"],
+              might: -2,
+            }),
             piece({ id: "p3", owner: "D", zone: { kind: "hand" }, exhausted: true }),
+            piece({ id: "p4", card, zone: { kind: "base" }, might: 3 }),
           ],
-          chain: [{ owner: "C", text: "Casts a spell", card: null }],
+          chain: [{ owner: "C", card }],
           arrows: [],
         },
       ],

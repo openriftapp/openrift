@@ -1,16 +1,20 @@
 import type { BoardPiece, BoardStep } from "@openrift/shared/board-state";
 import { emptyBoardDocument } from "@openrift/shared/board-state";
+import type { Card } from "@openrift/shared/types/catalog";
 import { describe, expect, it } from "vitest";
 
 import {
   arrowZoneKey,
   nextPieceId,
   pieceKindForCardTypes,
+  pieceNumerals,
   piecesAt,
-  playerRows,
-  rowIsVisible,
   sameZone,
+  seatSlots,
   seatsFor,
+  slotKey,
+  zoneAcceptsMore,
+  zoneCardRule,
 } from "./board-layout";
 
 function piece(overrides: Partial<BoardPiece>): BoardPiece {
@@ -21,9 +25,9 @@ function piece(overrides: Partial<BoardPiece>): BoardPiece {
     kind: "unit",
     card: null,
     exhausted: false,
-    stunned: false,
+    keywords: [],
     damage: 0,
-    buff: 0,
+    might: 0,
     highlight: false,
     ...overrides,
   };
@@ -43,21 +47,37 @@ describe("seatsFor", () => {
   });
 });
 
-describe("playerRows", () => {
-  it("keeps every slot in place and marks hidden ones", () => {
-    const rows = playerRows({ ...emptyBoardDocument().zones, base: true, trash: true });
-    expect(rows.near.map((slot) => [slot.kind, slot.visible])).toEqual([
-      ["legend", false],
-      ["champion", false],
-      ["base", true],
+describe("seatSlots", () => {
+  it("orders the table from the rune deck out to the trash", () => {
+    const zones = { ...emptyBoardDocument().zones, deck: true, trash: true };
+    expect(seatSlots(zones).map((slot) => slotKey(slot))).toEqual([
+      "stack:runeDeck",
+      "zone:runes",
+      "zone:champion",
+      "zone:legend",
+      "zone:base",
+      "stack:deck",
+      "zone:trash",
     ]);
-    expect(rows.far.map((slot) => slot.visible)).toEqual([false, false, true]);
   });
 
-  it("reports a row with no visible zone as hidden", () => {
-    const rows = playerRows(emptyBoardDocument().zones);
-    expect(rowIsVisible(rows.near)).toBe(true);
-    expect(rowIsVisible(rows.far)).toBe(false);
+  it("drops every hidden zone, the base included", () => {
+    const zones = {
+      base: false,
+      legend: false,
+      champion: false,
+      runes: false,
+      hand: false,
+      trash: false,
+      deck: false,
+      chain: false,
+    };
+    expect(seatSlots(zones)).toEqual([]);
+  });
+
+  it("never places the hand in the seat row", () => {
+    const zones = { ...emptyBoardDocument().zones, hand: true };
+    expect(seatSlots(zones).map((slot) => slotKey(slot))).not.toContain("zone:hand");
   });
 });
 
@@ -124,5 +144,71 @@ describe("nextPieceId", () => {
   it("returns the lowest unused id", () => {
     expect(nextPieceId([])).toBe("p1");
     expect(nextPieceId([piece({ id: "p1" }), piece({ id: "p3" })])).toBe("p2");
+  });
+});
+
+describe("zoneCardRule", () => {
+  const rune: Pick<Card, "types" | "superTypes"> = { types: ["rune"], superTypes: [] };
+  const champion: Pick<Card, "types" | "superTypes"> = {
+    types: ["unit"],
+    superTypes: ["champion"],
+  };
+  const unit: Pick<Card, "types" | "superTypes"> = { types: ["unit"], superTypes: [] };
+
+  it("limits the rune zone to rune cards and generic runes", () => {
+    const rule = zoneCardRule({ kind: "runes" });
+    expect(rule?.cardFilter(rune)).toBe(true);
+    expect(rule?.cardFilter(unit)).toBe(false);
+    expect(rule?.kinds).toEqual(["rune"]);
+  });
+
+  it("limits the champion zone to champion units", () => {
+    const rule = zoneCardRule({ kind: "champion" });
+    expect(rule?.cardFilter(champion)).toBe(true);
+    expect(rule?.cardFilter(unit)).toBe(false);
+    expect(rule?.kinds).toEqual(["unit"]);
+  });
+
+  it("hides the add slot once a zone holds its usual complement", () => {
+    expect(zoneAcceptsMore({ kind: "legend" }, 0)).toBe(true);
+    expect(zoneAcceptsMore({ kind: "legend" }, 1)).toBe(false);
+    expect(zoneAcceptsMore({ kind: "runes" }, 11)).toBe(true);
+    expect(zoneAcceptsMore({ kind: "runes" }, 12)).toBe(false);
+    expect(zoneAcceptsMore({ kind: "base" }, 40)).toBe(true);
+  });
+
+  it("leaves open zones unrestricted", () => {
+    expect(zoneCardRule({ kind: "base" })).toBeNull();
+    expect(zoneCardRule({ kind: "battlefield", index: 0 })).toBeNull();
+  });
+});
+
+describe("pieceNumerals", () => {
+  const named = (id: string, name: string): BoardPiece =>
+    piece({ id, card: { cardId: "00000000-0000-7000-8000-000000000001", name } });
+
+  it("numbers only pieces that share a name, in piece order", () => {
+    const numerals = pieceNumerals([named("p1", "Ashe"), named("p2", "Vi"), named("p3", "Ashe")]);
+    expect([...numerals]).toEqual([
+      ["p1", 1],
+      ["p3", 2],
+    ]);
+  });
+
+  it("never numbers runes", () => {
+    const rune = (id: string) => piece({ id, kind: "rune", zone: { kind: "runes" } });
+    expect(pieceNumerals([rune("p1"), rune("p2")]).size).toBe(0);
+  });
+
+  it("treats generic pieces of the same kind as sharing a name", () => {
+    const numerals = pieceNumerals([
+      piece({ id: "p1" }),
+      piece({ id: "p2", kind: "gear" }),
+      piece({ id: "p3" }),
+    ]);
+    expect([...numerals]).toEqual([
+      ["p1", 1],
+      ["p3", 2],
+    ]);
   });
 });

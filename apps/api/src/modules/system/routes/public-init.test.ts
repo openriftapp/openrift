@@ -38,7 +38,13 @@ const mockEnumsRepo = {
 const mockKeywordsRepo = {
   listAll: vi.fn(() =>
     Promise.resolve(
-      [] as { name: string; color: string; darkText: boolean; costKeyword: boolean }[],
+      [] as {
+        name: string;
+        color: string;
+        darkText: boolean;
+        costKeyword: boolean;
+        cardModifier: boolean;
+      }[],
     ),
   ),
   listAllTranslations: vi.fn(() =>
@@ -127,20 +133,20 @@ describe("GET /api/v1/init", () => {
 
   it("returns keywords as name-keyed map", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false },
-      { name: "Burn", color: "#ff4400", darkText: true, costKeyword: true },
+      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
+      { name: "Burn", color: "#ff4400", darkText: true, costKeyword: true, cardModifier: false },
     ]);
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);
     expect(json.keywords).toEqual({
-      Shield: { color: "#4488ff", darkText: false, costKeyword: false },
-      Burn: { color: "#ff4400", darkText: true, costKeyword: true },
+      Shield: { color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
+      Burn: { color: "#ff4400", darkText: true, costKeyword: true, cardModifier: false },
     });
   });
 
   it("includes keyword translations when available", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false },
+      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
     ]);
     mockKeywordsRepo.listAllTranslations.mockResolvedValue([
       { keywordName: "Shield", language: "SC", label: "护盾" },
@@ -152,7 +158,7 @@ describe("GET /api/v1/init", () => {
 
   it("omits translations key when keyword has none", async () => {
     mockKeywordsRepo.listAll.mockResolvedValue([
-      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false },
+      { name: "Shield", color: "#4488ff", darkText: false, costKeyword: false, cardModifier: true },
     ]);
     const res = await app.request("/api/v1/init");
     const json = await readJson(res);

@@ -20,6 +20,7 @@ export const adminKeywordsRouter = {
       color: s.color,
       darkText: s.darkText,
       costKeyword: s.costKeyword,
+      cardModifier: s.cardModifier,
     }));
     return { counts, styles, translations };
   }),
@@ -29,8 +30,14 @@ export const adminKeywordsRouter = {
   }),
 
   updateStyle: os.updateStyle.handler(async ({ input, context }): Promise<void> => {
-    const { name, color, darkText, costKeyword } = input;
-    await context.repos.keywords.upsertStyle({ name, color, darkText, costKeyword });
+    const { name, color, darkText, costKeyword, cardModifier } = input;
+    await context.repos.keywords.upsertStyle({
+      name,
+      color,
+      darkText,
+      costKeyword,
+      cardModifier,
+    });
   }),
 
   removeStyle: os.removeStyle.handler(async ({ input, context }): Promise<void> => {

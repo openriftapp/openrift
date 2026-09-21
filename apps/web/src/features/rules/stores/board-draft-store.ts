@@ -1,5 +1,5 @@
 import type { BoardDocument } from "@openrift/shared/board-state";
-import { boardDocumentSchema } from "@openrift/shared/board-state";
+import { upgradeBoardDocument } from "@openrift/shared/board-state";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -26,8 +26,8 @@ export function parseBoardDraft(value: unknown): BoardDraft | null {
     return null;
   }
   const raw = value as Record<string, unknown>;
-  const document = boardDocumentSchema.safeParse(raw.document);
-  if (!document.success || typeof raw.title !== "string") {
+  const document = upgradeBoardDocument(raw.document);
+  if (document === null || typeof raw.title !== "string") {
     return null;
   }
   return {
@@ -35,7 +35,7 @@ export function parseBoardDraft(value: unknown): BoardDraft | null {
     answer: typeof raw.answer === "string" ? raw.answer : "",
     coreRulesVersion: stringOrNull(raw.coreRulesVersion),
     tournamentRulesVersion: stringOrNull(raw.tournamentRulesVersion),
-    document: document.data,
+    document,
   };
 }
 

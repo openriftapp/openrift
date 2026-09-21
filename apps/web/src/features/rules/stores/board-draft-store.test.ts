@@ -49,6 +49,50 @@ describe("parseBoardDraft", () => {
     expect(parseBoardDraft({ ...draft(), document: { schemaVersion: 99 } })).toBeNull();
   });
 
+  it("upgrades a stored v1 document", () => {
+    const v1 = {
+      schemaVersion: 1,
+      playerCount: 2,
+      battlefields: [{ card: null }],
+      zones: {
+        base: true,
+        legend: false,
+        champion: false,
+        runes: false,
+        hand: false,
+        trash: false,
+        chain: false,
+      },
+      steps: [
+        {
+          caption: "",
+          pieces: [
+            {
+              id: "p1",
+              owner: "A",
+              zone: { kind: "base" },
+              kind: "unit",
+              card: null,
+              exhausted: false,
+              stunned: true,
+              damage: 0,
+              buff: 2,
+              highlight: false,
+            },
+          ],
+          chain: [],
+          arrows: [],
+        },
+      ],
+    };
+    const parsed = parseBoardDraft({ ...draft(), document: v1 });
+    expect(parsed?.document.schemaVersion).toBe(2);
+    expect(parsed?.document.steps[0]?.pieces[0]).toMatchObject({
+      keywords: ["Stun"],
+      might: 2,
+    });
+  });
+
   it("drops non-objects and drafts without a title", () => {
     expect(parseBoardDraft(null)).toBeNull();
     expect(parseBoardDraft("draft")).toBeNull();

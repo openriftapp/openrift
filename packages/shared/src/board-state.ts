@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-export const BOARD_STATE_SCHEMA_VERSION = 1;
+export const BOARD_STATE_SCHEMA_VERSION = 2;
 export const BOARD_PLAYERS = ["A", "B", "C", "D"] as const;
 export const MAX_BATTLEFIELDS = 3;
 export const MAX_BOARD_STEPS = 20;
 export const MAX_STEP_PIECES = 60;
+export const MAX_PIECE_KEYWORDS = 6;
 
 export type BoardPlayer = (typeof BOARD_PLAYERS)[number];
 
@@ -47,9 +48,9 @@ const pieceSchema = z
     card: cardRefSchema.nullable(),
     label: z.string().max(40).optional(),
     exhausted: z.boolean(),
-    stunned: z.boolean(),
+    keywords: z.array(z.string().min(1).max(40)).max(MAX_PIECE_KEYWORDS),
     damage: z.number().int().min(0).max(99),
-    buff: z.number().int().min(0).max(99),
+    might: z.number().int().min(-99).max(99),
     highlight: z.boolean(),
   })
   .strict();
@@ -57,8 +58,7 @@ const pieceSchema = z
 const chainEntrySchema = z
   .object({
     owner: playerSchema,
-    text: z.string().min(1).max(200),
-    card: cardRefSchema.nullable(),
+    card: cardRefSchema,
   })
   .strict();
 
@@ -90,6 +90,7 @@ export const boardZoneVisibilitySchema = z
     runes: z.boolean(),
     hand: z.boolean(),
     trash: z.boolean(),
+    deck: z.boolean(),
     chain: z.boolean(),
   })
   .strict();
@@ -121,6 +122,9 @@ export const boardDocumentSchema = z
         if (piece.zone.kind === "battlefield" && piece.zone.index >= doc.battlefields.length) {
           ctx.addIssue({ code: "custom", path, message: "Battlefield does not exist." });
         }
+        if (new Set(piece.keywords).size !== piece.keywords.length) {
+          ctx.addIssue({ code: "custom", path, message: "Duplicate keyword." });
+        }
       }
       for (const [arrowIndex, arrow] of step.arrows.entries()) {
         const path = ["steps", stepIndex, "arrows", arrowIndex];
@@ -145,14 +149,15 @@ export function emptyBoardDocument(): BoardDocument {
   return {
     schemaVersion: BOARD_STATE_SCHEMA_VERSION,
     playerCount: 2,
-    battlefields: [{ card: null }],
+    battlefields: [{ card: null }, { card: null }],
     zones: {
       base: true,
-      legend: false,
-      champion: false,
-      runes: false,
+      legend: true,
+      champion: true,
+      runes: true,
       hand: false,
       trash: false,
+      deck: false,
       chain: false,
     },
     steps: [{ caption: "", pieces: [], chain: [], arrows: [] }],
@@ -175,6 +180,88 @@ export function ruleRefFromMatch(match: RegExpMatchArray): RuleRef | undefined {
     return undefined;
   }
   return { kind: match.groups?.tournament === undefined ? "core" : "tournament", ruleNumber };
+}
+
+/** `[[card:p1]]` names a piece in the current step. */
+export const CARD_REF_PATTERN = /\[\[card:(?<piece>[a-z0-9]{1,12})\]\]/gu;
+
+export const CAPTION_REF_PATTERN =
+  /\[\[(?:(?<tournament>t:)?(?<number>\d+(?:\.\d+)*)|card:(?<piece>[a-z0-9]{1,12}))\]\]/gu;
+
+export type CaptionRef = { kind: "rule"; ref: RuleRef } | { kind: "card"; pieceId: string };
+
+export function captionRefFromMatch(match: RegExpMatchArray): CaptionRef | undefined {
+  const pieceId = match.groups?.piece;
+  if (pieceId !== undefined) {
+    return { kind: "card", pieceId };
+  }
+  const ref = ruleRefFromMatch(match);
+  return ref === undefined ? undefined : { kind: "rule", ref };
+}
+
+export function extractCardRefs(text: string): string[] {
+  const seen = new Set<string>();
+  for (const match of text.matchAll(CARD_REF_PATTERN)) {
+    const pieceId = match.groups?.piece;
+    if (pieceId !== undefined) {
+      seen.add(pieceId);
+    }
+  }
+  return [...seen];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function upgradePiece(raw: unknown): unknown {
+  if (!isRecord(raw)) {
+    return raw;
+  }
+  const { stunned, buff, ...rest } = raw;
+  return {
+    ...rest,
+    keywords: stunned === true ? ["Stun"] : [],
+    might: typeof buff === "number" ? buff : 0,
+  };
+}
+
+function upgradeStep(raw: unknown): unknown {
+  if (!isRecord(raw)) {
+    return raw;
+  }
+  return {
+    ...raw,
+    pieces: Array.isArray(raw.pieces) ? raw.pieces.map((piece) => upgradePiece(piece)) : raw.pieces,
+    chain: Array.isArray(raw.chain)
+      ? raw.chain.flatMap((entry) => upgradeChainEntry(entry))
+      : raw.chain,
+  };
+}
+
+/** v1 chain entries were free text with an optional card; only the card survives. */
+function upgradeChainEntry(raw: unknown): unknown[] {
+  if (!isRecord(raw) || !isRecord(raw.card)) {
+    return [];
+  }
+  return [{ owner: raw.owner, card: raw.card }];
+}
+
+export function upgradeBoardDocument(raw: unknown): BoardDocument | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  let candidate: unknown = raw;
+  if (raw.schemaVersion === 1) {
+    candidate = {
+      ...raw,
+      schemaVersion: BOARD_STATE_SCHEMA_VERSION,
+      zones: isRecord(raw.zones) ? { ...raw.zones, deck: false } : raw.zones,
+      steps: Array.isArray(raw.steps) ? raw.steps.map((step) => upgradeStep(step)) : raw.steps,
+    };
+  }
+  const parsed = boardDocumentSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
 }
 
 /** Rule references in a caption, unique by kind and number, in order of first appearance. */

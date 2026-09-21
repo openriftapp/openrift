@@ -15,6 +15,7 @@ export function useCatalogCardSearch(
   query: string,
   filter?: (card: Card) => boolean,
   renderLeading?: (cardId: string) => ReactNode,
+  minQueryLength?: number,
 ): CardSearchResult[] {
   const { cardsById, printingsByCardId } = useCards();
 
@@ -34,7 +35,7 @@ export function useCatalogCardSearch(
     [cardsById, filter],
   );
 
-  const matches = useCardSearch(cards, query, printingsByCardId);
+  const matches = useCardSearch(cards, query, printingsByCardId, undefined, minQueryLength);
 
   return matches.map((card) => ({
     id: card.id,

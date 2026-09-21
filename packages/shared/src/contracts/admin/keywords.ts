@@ -17,6 +17,7 @@ const keywordStatsSchema = z.object({
       color: z.string(),
       darkText: z.boolean(),
       costKeyword: z.boolean(),
+      cardModifier: z.boolean(),
     }),
   ),
   translations: z.array(
@@ -51,6 +52,7 @@ export const adminKeywordsContract = {
         color: hexColor,
         darkText: z.boolean(),
         costKeyword: z.boolean(),
+        cardModifier: z.boolean(),
       }),
     ),
   updateStyle: authedRoute
@@ -60,6 +62,7 @@ export const adminKeywordsContract = {
         color: hexColor,
         darkText: z.boolean(),
         costKeyword: z.boolean(),
+        cardModifier: z.boolean(),
       }),
     ),
   removeStyle: authedRoute

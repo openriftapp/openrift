@@ -22,9 +22,12 @@ const TITLE_H = 44;
 const TITLE_SIZE = 32;
 const TITLE_MAX_CHARS = 52;
 const FOOTER_H = 24;
-const CHAIN_W = 220;
+const CHAIN_H = 40;
 const ZONE_LABEL_SIZE = 11;
 const PIECE_ASPECT = 0.715;
+const BATTLEFIELD_W = 150;
+const BATTLEFIELD_ASPECT = 1.4;
+const KEYWORD_COLOR = "#707070";
 
 /** Hex equivalents of the web board's oklch player colors; satori has no oklch. */
 const PLAYER_COLORS: Record<BoardPlayer, string> = {
@@ -34,8 +37,29 @@ const PLAYER_COLORS: Record<BoardPlayer, string> = {
   D: "#518046",
 };
 
-const NEAR_ROW: readonly PlayerZoneKind[] = ["legend", "champion", "base"];
-const FAR_ROW: readonly PlayerZoneKind[] = ["runes", "hand", "trash"];
+/** Hex equivalents of `--board-felt` and `--board-felt-edge`. */
+const FELT = "#143c3e";
+const FELT_EDGE = "#0c2729";
+const FELT_LINE = "rgba(255,255,255,0.35)";
+
+export type SeatSlot =
+  | { kind: "zone"; zone: PlayerZoneKind }
+  | { kind: "stack"; stack: "runeDeck" | "deck" };
+
+const SEAT_ORDER: readonly SeatSlot[] = [
+  { kind: "stack", stack: "runeDeck" },
+  { kind: "zone", zone: "runes" },
+  { kind: "zone", zone: "champion" },
+  { kind: "zone", zone: "legend" },
+  { kind: "zone", zone: "base" },
+  { kind: "stack", stack: "deck" },
+  { kind: "zone", zone: "trash" },
+];
+
+const SLOT_LABEL: Record<"runeDeck" | "deck", string> = {
+  runeDeck: "rune deck",
+  deck: "deck",
+};
 
 export interface BoardStateImageInput {
   title: string;
@@ -58,17 +82,10 @@ export function seatsFor(playerCount: number): BoardSeats {
   return { top: ["B"], bottom: ["A"] };
 }
 
-export interface ZoneSlot {
-  kind: PlayerZoneKind;
-  visible: boolean;
-}
-
-/** The near row faces the battlefields, so the top seat lists its rows far-first. */
-export function seatRows(document: BoardDocument, side: "top" | "bottom"): ZoneSlot[][] {
-  const slots = (row: readonly PlayerZoneKind[]) =>
-    row.map((kind) => ({ kind, visible: document.zones[kind] }));
-  const rows = [slots(NEAR_ROW), slots(FAR_ROW)].filter((row) => row.some((slot) => slot.visible));
-  return side === "top" ? rows.toReversed() : rows;
+export function seatSlots(document: BoardDocument): SeatSlot[] {
+  return SEAT_ORDER.filter((slot) =>
+    slot.kind === "stack" ? document.zones.deck : document.zones[slot.zone],
+  );
 }
 
 export function piecesIn(
@@ -89,17 +106,27 @@ export function pieceText(piece: BoardPiece, max: number): string {
   return elideTitle(piece.card?.name ?? piece.label ?? piece.kind, max);
 }
 
-/** Units: one per visible seat row, two for the battlefield row (one per half). */
+/** Numerals for pieces whose name is shared by another piece, 1-based in piece order. */
+export function pieceNumerals(pieces: readonly BoardPiece[]): Map<string, number> {
+  const groups = Map.groupBy(pieces, (piece) => piece.card?.name ?? `kind:${piece.kind}`);
+  const numerals = new Map<string, number>();
+  for (const group of groups.values()) {
+    if (group.length < 2) {
+      continue;
+    }
+    group.forEach((piece, index) => numerals.set(piece.id, index + 1));
+  }
+  return numerals;
+}
+
+/** Units: one seat row and one hand strip per side, two for the battlefield halves. */
 export function measurePieceHeight(document: BoardDocument, boardH: number): number {
-  const units =
-    seatRows(document, "top").length +
-    seatRows(document, "bottom").length +
-    (document.battlefields.length > 0 ? 2 : 0);
+  const units = 2 + (document.zones.hand ? 2 : 0) + (document.battlefields.length > 0 ? 2 : 0);
   const unitH = boardH / Math.max(1, units);
   return Math.max(24, Math.min(72, Math.floor(unitH - ZONE_LABEL_SIZE - 14)));
 }
 
-function upperLabel(text: string): Element {
+function upperLabel(text: string, color = "rgba(255,255,255,0.5)"): Element {
   return element(
     "div",
     {
@@ -107,14 +134,31 @@ function upperLabel(text: string): Element {
       fontSize: ZONE_LABEL_SIZE,
       fontWeight: 700,
       letterSpacing: 1,
-      color: COLORS.muted,
+      color,
       textTransform: "uppercase",
     },
     text,
   );
 }
 
-function pieceTile(piece: BoardPiece, pieceH: number): Element {
+function keywordBadge(keyword: string, fontSize: number): Element {
+  return element(
+    "div",
+    {
+      display: "flex",
+      backgroundColor: KEYWORD_COLOR,
+      color: "#ffffff",
+      fontSize,
+      fontWeight: 700,
+      paddingLeft: 2,
+      paddingRight: 2,
+      textTransform: "uppercase",
+    },
+    elideTitle(keyword, 12),
+  );
+}
+
+function pieceTile(piece: BoardPiece, pieceH: number, numeral: number | undefined): Element {
   const color = PLAYER_COLORS[piece.owner];
   const width = Math.round(piece.exhausted ? pieceH : pieceH * PIECE_ASPECT);
   const height = Math.round(piece.exhausted ? pieceH * PIECE_ASPECT : pieceH);
@@ -135,8 +179,18 @@ function pieceTile(piece: BoardPiece, pieceH: number): Element {
     },
     element(
       "div",
-      { display: "flex", flexDirection: "row", alignItems: "center", gap: 3 },
-      element("div", { display: "flex", fontSize, fontWeight: 700, color }, piece.owner),
+      { display: "flex", flexDirection: "row", alignItems: "flex-end", gap: 3 },
+      piece.might !== 0 &&
+        element(
+          "div",
+          {
+            display: "flex",
+            fontSize,
+            fontWeight: 700,
+            color: piece.might > 0 ? "#6cc39a" : COLORS.muted,
+          },
+          piece.might > 0 ? `+${piece.might}` : `−${Math.abs(piece.might)}`,
+        ),
       piece.damage > 0 &&
         element(
           "div",
@@ -157,69 +211,141 @@ function pieceTile(piece: BoardPiece, pieceH: number): Element {
       },
       pieceText(piece, Math.max(6, Math.floor((width / fontSize) * 2.5))),
     ),
-    piece.stunned && element("div", { display: "flex", fontSize, color: COLORS.gold }, "Stunned"),
+    piece.keywords.length > 0 &&
+      element(
+        "div",
+        { display: "flex", flexDirection: "row", gap: 2, overflow: "hidden" },
+        ...piece.keywords.slice(0, 2).map((keyword) => keywordBadge(keyword, fontSize)),
+      ),
+    element(
+      "div",
+      { display: "flex", flexDirection: "row", alignItems: "flex-end", gap: 3 },
+      numeral !== undefined &&
+        element(
+          "div",
+          { display: "flex", fontSize, fontWeight: 700, color: COLORS.gold },
+          String(numeral),
+        ),
+      element(
+        "div",
+        { display: "flex", marginLeft: "auto", fontSize, fontWeight: 700, color },
+        piece.owner,
+      ),
+    ),
   );
 }
 
-function pieceRow(pieces: readonly BoardPiece[], pieceH: number): Element {
+function pieceRow(
+  pieces: readonly BoardPiece[],
+  pieceH: number,
+  numerals: Map<string, number>,
+): Element {
   return element(
     "div",
     {
       display: "flex",
       flexDirection: "row",
       flexWrap: "wrap",
-      alignItems: "center",
+      alignItems: "flex-end",
       gap: 4,
       flexGrow: 1,
       overflow: "hidden",
     },
-    ...pieces.map((piece) => pieceTile(piece, pieceH)),
+    ...pieces.map((piece) => pieceTile(piece, pieceH, numerals.get(piece.id))),
   );
 }
 
-function zoneBox(slot: ZoneSlot, pieces: readonly BoardPiece[], pieceH: number): Element {
+function cardBack(pieceH: number, color: string): Element {
+  return element("div", {
+    display: "flex",
+    flexShrink: 0,
+    width: Math.round(pieceH * PIECE_ASPECT),
+    height: Math.round(pieceH),
+    borderRadius: 4,
+    backgroundColor: FELT_EDGE,
+    border: `1px solid ${color}`,
+  });
+}
+
+function seatSlotBox(
+  slot: SeatSlot,
+  player: BoardPlayer,
+  pieces: readonly BoardPiece[],
+  pieceH: number,
+  numerals: Map<string, number>,
+): Element {
+  const color = PLAYER_COLORS[player];
+  const isBase = slot.kind === "zone" && slot.zone === "base";
+  const label = slot.kind === "zone" ? slot.zone : SLOT_LABEL[slot.stack];
   return element(
     "div",
     {
       display: "flex",
       flexDirection: "column",
-      flexGrow: 1,
-      flexBasis: 0,
+      flexGrow: isBase ? 1 : 0,
+      flexShrink: 0,
       padding: 4,
       gap: 2,
       borderRadius: 6,
-      border: slot.visible ? `1px dashed ${COLORS.surfaceBorder}` : "1px solid transparent",
+      border: `1px dashed ${FELT_LINE}`,
       overflow: "hidden",
     },
-    slot.visible && upperLabel(slot.kind),
-    slot.visible && pieceRow(pieces, pieceH),
+    upperLabel(`${label} ${player}`),
+    slot.kind === "stack"
+      ? cardBack(pieceH, color)
+      : pieceRow(piecesIn(pieces, { kind: slot.zone }, [player]), pieceH, numerals),
   );
 }
 
 function seatBlock(
   pieces: readonly BoardPiece[],
   player: BoardPlayer,
-  rows: readonly ZoneSlot[][],
+  slots: readonly SeatSlot[],
   pieceH: number,
+  numerals: Map<string, number>,
 ): Element {
   return element(
     "div",
     {
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       flexGrow: 1,
       flexBasis: 0,
       gap: 4,
       paddingLeft: 6,
       borderLeft: `3px solid ${PLAYER_COLORS[player]}`,
+      overflow: "hidden",
     },
-    ...rows.map((row) =>
+    ...slots.map((slot) => seatSlotBox(slot, player, pieces, pieceH, numerals)),
+  );
+}
+
+function handStrip(
+  document: BoardDocument,
+  pieces: readonly BoardPiece[],
+  players: readonly BoardPlayer[],
+  pieceH: number,
+  numerals: Map<string, number>,
+): Child {
+  if (!document.zones.hand) {
+    return false;
+  }
+  return element(
+    "div",
+    { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
+    ...players.map((player) =>
       element(
         "div",
-        { display: "flex", flexDirection: "row", flexGrow: 1, flexBasis: 0, gap: 4 },
-        ...row.map((slot) =>
-          zoneBox(slot, piecesIn(pieces, { kind: slot.kind }, [player]), pieceH),
-        ),
+        {
+          display: "flex",
+          flexDirection: "column",
+          flexGrow: 1,
+          flexBasis: 0,
+          gap: 2,
+          overflow: "hidden",
+        },
+        upperLabel(`hand ${player}`),
+        pieceRow(piecesIn(pieces, { kind: "hand" }, [player]), pieceH, numerals),
       ),
     ),
   );
@@ -230,13 +356,36 @@ function battlefieldRow(
   pieces: readonly BoardPiece[],
   seats: BoardSeats,
   pieceH: number,
+  halfH: number,
+  numerals: Map<string, number>,
 ): Child {
   if (document.battlefields.length === 0) {
     return false;
   }
+  const frameH = Math.round(BATTLEFIELD_W / BATTLEFIELD_ASPECT);
+  const half = (players: readonly BoardPlayer[], zone: BoardZoneRef) =>
+    element(
+      "div",
+      { display: "flex", flexDirection: "row", height: halfH, flexShrink: 0, gap: 4 },
+      ...players.map((player) =>
+        element(
+          "div",
+          {
+            display: "flex",
+            flexDirection: "column",
+            flexGrow: 1,
+            flexBasis: 0,
+            paddingLeft: 4,
+            borderLeft: `2px solid ${PLAYER_COLORS[player]}`,
+            overflow: "hidden",
+          },
+          pieceRow(piecesIn(pieces, zone, [player]), pieceH, numerals),
+        ),
+      ),
+    );
   return element(
     "div",
-    { display: "flex", flexDirection: "row", flexGrow: 2, flexBasis: 0, gap: GAP },
+    { display: "flex", flexDirection: "row", flexShrink: 0, gap: GAP },
     ...document.battlefields.map((battlefield, index) => {
       const zone: BoardZoneRef = { kind: "battlefield", index };
       return element(
@@ -247,25 +396,44 @@ function battlefieldRow(
           flexGrow: 1,
           flexBasis: 0,
           padding: 6,
-          gap: 2,
+          gap: 4,
           borderRadius: 8,
-          backgroundColor: "rgba(255,255,255,0.035)",
-          border: `1px solid ${COLORS.gold}`,
+          backgroundColor: "rgba(0,0,0,0.25)",
+          border: "1px solid rgba(255,255,255,0.12)",
           overflow: "hidden",
         },
-        pieceRow(piecesIn(pieces, zone, seats.top), pieceH),
+        half(seats.top, zone),
         element(
           "div",
-          { display: "flex", fontSize: 13, fontWeight: 700, color: COLORS.gold },
-          elideTitle(battlefield.card?.name ?? `Battlefield ${index + 1}`, 34),
+          { display: "flex", flexDirection: "row", justifyContent: "center", flexShrink: 0 },
+          element(
+            "div",
+            {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: BATTLEFIELD_W,
+              height: frameH,
+              padding: 6,
+              borderRadius: 6,
+              backgroundColor: "rgba(0,0,0,0.4)",
+              border: `1px solid ${COLORS.gold}`,
+              fontSize: 13,
+              fontWeight: 700,
+              color: COLORS.gold,
+              textAlign: "center",
+              overflow: "hidden",
+            },
+            elideTitle(battlefield.card?.name ?? `Battlefield ${index + 1}`, 34),
+          ),
         ),
-        pieceRow(piecesIn(pieces, zone, seats.bottom), pieceH),
+        half(seats.bottom, zone),
       );
     }),
   );
 }
 
-function chainColumn(document: BoardDocument): Child {
+function chainRow(document: BoardDocument): Child {
   if (!document.zones.chain) {
     return false;
   }
@@ -274,13 +442,15 @@ function chainColumn(document: BoardDocument): Child {
     "div",
     {
       display: "flex",
-      flexDirection: "column",
-      width: CHAIN_W,
+      flexDirection: "row",
+      alignItems: "center",
+      height: CHAIN_H,
       flexShrink: 0,
       padding: 6,
-      gap: 4,
-      borderRadius: 6,
-      border: `1px dashed ${COLORS.surfaceBorder}`,
+      gap: 6,
+      borderRadius: 8,
+      backgroundColor: "rgba(0,0,0,0.25)",
+      border: "1px solid rgba(255,255,255,0.12)",
       overflow: "hidden",
     },
     upperLabel("chain"),
@@ -289,12 +459,34 @@ function chainColumn(document: BoardDocument): Child {
         "div",
         {
           display: "flex",
+          flexDirection: "row",
+          alignItems: "flex-end",
+          gap: 4,
+          padding: 4,
+          borderRadius: 4,
+          backgroundColor: "rgba(255,255,255,0.9)",
           fontSize: 12,
-          color: COLORS.text,
-          paddingLeft: 6,
-          borderLeft: `3px solid ${PLAYER_COLORS[entry.owner]}`,
+          color: "#111111",
+          overflow: "hidden",
         },
-        elideTitle(entry.card?.name ?? entry.text, 30),
+        element(
+          "div",
+          {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 14,
+            height: 14,
+            flexShrink: 0,
+            borderRadius: 7,
+            backgroundColor: PLAYER_COLORS[entry.owner],
+            color: "#ffffff",
+            fontSize: 10,
+            fontWeight: 700,
+          },
+          entry.owner,
+        ),
+        elideTitle(entry.card.name, 26),
       ),
     ),
   );
@@ -307,35 +499,54 @@ export function renderBoardStateImage(
 ): Promise<Buffer> {
   const { width, height } = SHARE_IMAGE_CANVAS.landscape;
   const { document } = input;
-  const pieces = document.steps[0]?.pieces ?? [];
+  const step = document.steps[0];
+  const pieces = step?.pieces ?? [];
+  const numerals = pieceNumerals(pieces);
   const seats = seatsFor(document.playerCount);
   const hasFooter = Boolean(input.siteHost);
-  const boardH = height - PAD * 2 - TITLE_H - GAP - (hasFooter ? FOOTER_H + GAP : 0);
+  const chainH = document.zones.chain ? CHAIN_H + GAP : 0;
+  const boardH = height - PAD * 2 - TITLE_H - GAP - chainH - (hasFooter ? FOOTER_H + GAP : 0);
   const pieceH = measurePieceHeight(document, boardH);
+  const rowH = pieceH + ZONE_LABEL_SIZE + 18;
+  const handH = document.zones.hand ? pieceH + ZONE_LABEL_SIZE + 6 : 0;
+  const frameH = Math.round(BATTLEFIELD_W / BATTLEFIELD_ASPECT);
+  const halfH = Math.max(
+    pieceH + 4,
+    Math.floor((boardH - 2 * rowH - 2 * handH - frameH - GAP * 6) / 2),
+  );
 
-  const half = (side: "top" | "bottom"): Child => {
-    const rows = seatRows(document, side);
-    return (
-      rows.length > 0 &&
+  const side = (which: "top" | "bottom"): Element => {
+    const slots = seatSlots(document);
+    const players = seats[which];
+    const rows: Child[] = [
       element(
         "div",
-        { display: "flex", flexDirection: "row", flexGrow: rows.length, flexBasis: 0, gap: GAP },
-        ...seats[side].map((player) => seatBlock(pieces, player, rows, pieceH)),
-      )
+        { display: "flex", flexDirection: "row", flexShrink: 0, height: rowH, gap: GAP },
+        ...players.map((player) => seatBlock(pieces, player, slots, pieceH, numerals)),
+      ),
+      handStrip(document, pieces, players, pieceH, numerals),
+    ];
+    return element(
+      "div",
+      { display: "flex", flexDirection: "column", flexShrink: 0, gap: 4 },
+      ...(which === "top" ? rows.toReversed() : rows),
     );
   };
 
   const board = element(
     "div",
-    { display: "flex", flexDirection: "row", height: boardH, gap: GAP, flexShrink: 0 },
-    element(
-      "div",
-      { display: "flex", flexDirection: "column", flexGrow: 1, gap: GAP },
-      half("top"),
-      battlefieldRow(document, pieces, seats, pieceH),
-      half("bottom"),
-    ),
-    chainColumn(document),
+    {
+      display: "flex",
+      flexDirection: "column",
+      height: boardH + chainH,
+      gap: GAP,
+      flexShrink: 0,
+      overflow: "hidden",
+    },
+    chainRow(document),
+    side("top"),
+    battlefieldRow(document, pieces, seats, pieceH, halfH, numerals),
+    side("bottom"),
   );
 
   const root = element(
@@ -346,9 +557,9 @@ export function renderBoardStateImage(
       width,
       height,
       padding: PAD,
-      backgroundColor: COLORS.background,
+      backgroundColor: FELT,
       backgroundImage:
-        "radial-gradient(80% 120% at 0% 0%, rgba(205,172,110,0.14) 0%, transparent 60%)",
+        "radial-gradient(80% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 65%)",
       color: COLORS.text,
       fontFamily: "Hanken Grotesk",
       overflow: "hidden",
@@ -379,7 +590,7 @@ export function renderBoardStateImage(
           flexShrink: 0,
           fontSize: 20,
           fontWeight: 600,
-          color: COLORS.muted,
+          color: "rgba(255,255,255,0.6)",
         },
         input.siteHost ?? "",
       ),

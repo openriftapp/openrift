@@ -78,6 +78,52 @@ describe("useBoardEditorStore", () => {
     });
   });
 
+  describe("piece keywords, might and damage", () => {
+    it("adds a piece with no keywords and no might modifier", () => {
+      const id = addUnit();
+      const piece = activeStep().pieces.find((entry) => entry.id === id)!;
+      expect(piece.keywords).toEqual([]);
+      expect(piece.might).toBe(0);
+    });
+
+    it("toggles a keyword on and off, preserving order", () => {
+      const id = addUnit();
+      store().toggleKeyword(id, "Stun");
+      store().toggleKeyword(id, "Shield");
+      expect(activeStep().pieces[0]!.keywords).toEqual(["Stun", "Shield"]);
+      store().toggleKeyword(id, "Stun");
+      expect(activeStep().pieces[0]!.keywords).toEqual(["Shield"]);
+    });
+
+    it("stops adding keywords at six", () => {
+      const id = addUnit();
+      for (const keyword of ["a", "b", "c", "d", "e", "f", "g"]) {
+        store().toggleKeyword(id, keyword);
+      }
+      expect(activeStep().pieces[0]!.keywords).toEqual(["a", "b", "c", "d", "e", "f"]);
+    });
+
+    it("clamps the might modifier to the allowed range", () => {
+      const id = addUnit();
+      store().adjustMight(id, -2);
+      expect(activeStep().pieces[0]!.might).toBe(-2);
+      store().adjustMight(id, -200);
+      expect(activeStep().pieces[0]!.might).toBe(-99);
+      store().adjustMight(id, 500);
+      expect(activeStep().pieces[0]!.might).toBe(99);
+    });
+
+    it("clamps damage at zero and ninety-nine", () => {
+      const id = addUnit();
+      store().adjustDamage(id, -1);
+      expect(activeStep().pieces[0]!.damage).toBe(0);
+      store().adjustDamage(id, 3);
+      expect(activeStep().pieces[0]!.damage).toBe(3);
+      store().adjustDamage(id, 200);
+      expect(activeStep().pieces[0]!.damage).toBe(99);
+    });
+  });
+
   describe("steps", () => {
     it("adds a step as a copy of the active one with an empty caption", () => {
       addUnit();
@@ -92,8 +138,8 @@ describe("useBoardEditorStore", () => {
     it("keeps copied steps independent", () => {
       const id = addUnit();
       store().addStep();
-      store().updatePiece(id, { stunned: true });
-      expect(store().document.steps[0]!.pieces[0]!.stunned).toBe(false);
+      store().updatePiece(id, { highlight: true });
+      expect(store().document.steps[0]!.pieces[0]!.highlight).toBe(false);
     });
 
     it("never removes the last step", () => {
@@ -135,7 +181,10 @@ describe("useBoardEditorStore", () => {
       store().setBattlefieldCount(1);
       addUnit("A");
       addUnit("D");
-      store().addChainEntry({ owner: "D", text: "Spell", card: null });
+      store().addChainEntry({
+        owner: "D",
+        card: { cardId: "00000000-0000-7000-8000-000000000001", name: "Spell" },
+      });
       store().setPlayerCount(2);
       expect(activeStep().pieces.map((piece) => piece.owner)).toEqual(["A"]);
       expect(activeStep().chain).toEqual([]);
@@ -167,6 +216,90 @@ describe("useBoardEditorStore", () => {
     });
   });
 
+  describe("history", () => {
+    it("undoes the last mutation", () => {
+      const id = addUnit();
+      store().updatePiece(id, { exhausted: true });
+      store().undo();
+      expect(activeStep().pieces[0]!.exhausted).toBe(false);
+      store().undo();
+      expect(activeStep().pieces).toHaveLength(0);
+    });
+
+    it("does nothing when there is nothing to undo", () => {
+      const before = store().document;
+      store().undo();
+      expect(store().document).toBe(before);
+    });
+
+    it("clamps the active step to the restored document", () => {
+      addUnit();
+      store().addStep();
+      expect(store().activeStep).toBe(1);
+      store().undo();
+      expect(store().activeStep).toBe(0);
+      expect(store().document.steps).toHaveLength(1);
+    });
+
+    it("keeps at most 50 snapshots", () => {
+      const id = addUnit();
+      for (let i = 0; i < 60; i++) {
+        store().adjustDamage(id, 1);
+      }
+      expect(store().history).toHaveLength(50);
+    });
+
+    it("collapses a run of caption keystrokes into one undo step", () => {
+      addUnit();
+      const before = store().history.length;
+      for (const caption of ["A", "Ab", "Abc"]) {
+        store().setCaption(caption);
+      }
+      expect(store().history).toHaveLength(before + 1);
+      store().undo();
+      expect(activeStep().caption).toBe("");
+    });
+
+    it("starts a new undo step when another edit interrupts the caption", () => {
+      store().setCaption("one");
+      store().setZoneVisible("trash", true);
+      store().setCaption("two");
+      store().undo();
+      expect(activeStep().caption).toBe("one");
+    });
+
+    it("keeps captions on different steps apart", () => {
+      store().setCaption("first");
+      store().addStep();
+      store().setCaption("second");
+      store().undo();
+      expect(activeStep().caption).toBe("");
+    });
+
+    it("load clears the history", () => {
+      addUnit();
+      store().load(emptyBoardDocument());
+      expect(store().history).toEqual([]);
+    });
+  });
+
+  it("duplicates a piece under a fresh id and selects the copy", () => {
+    const id = addUnit();
+    store().updatePiece(id, { keywords: ["Stun"], damage: 2 });
+    store().duplicatePiece(id);
+    const [original, copy] = activeStep().pieces;
+    expect(activeStep().pieces).toHaveLength(2);
+    expect(copy!.id).not.toBe(original!.id);
+    expect(copy!.keywords).toEqual(["Stun"]);
+    expect(copy!.damage).toBe(2);
+    expect(store().selectedPieceId).toBe(copy!.id);
+  });
+
+  it("ignores duplicating a missing piece", () => {
+    store().duplicatePiece("nope");
+    expect(activeStep().pieces).toHaveLength(0);
+  });
+
   it("keeps the document valid through a typical edit session", () => {
     store().setPlayerCount(4);
     store().setBattlefieldCount(3);
@@ -177,5 +310,38 @@ describe("useBoardEditorStore", () => {
     store().updatePiece(d, { exhausted: true });
     store().removeArrow(0);
     expect(boardDocumentSchema.safeParse(store().document).success).toBe(true);
+  });
+
+  describe("toggleSelectPiece", () => {
+    it("builds a shift-click selection whose last entry is the primary piece", () => {
+      const a = addUnit("A");
+      const b = addUnit("A");
+      store().selectPiece(a);
+      store().toggleSelectPiece(b);
+      expect(store().selectedPieceIds).toEqual([a, b]);
+      expect(store().selectedPieceId).toBe(b);
+      store().toggleSelectPiece(b);
+      expect(store().selectedPieceIds).toEqual([a]);
+      expect(store().selectedPieceId).toBe(a);
+    });
+
+    it("replaces the selection with a range and keeps the last id primary", () => {
+      const a = addUnit("A");
+      const b = addUnit("A");
+      const c = addUnit("A");
+      store().selectPieces([a, b, c]);
+      expect(store().selectedPieceIds).toEqual([a, b, c]);
+      expect(store().selectedPieceId).toBe(c);
+    });
+
+    it("drops a removed piece from the selection", () => {
+      const a = addUnit("A");
+      const b = addUnit("A");
+      store().selectPiece(a);
+      store().toggleSelectPiece(b);
+      store().removePiece(b);
+      expect(store().selectedPieceIds).toEqual([a]);
+      expect(store().selectedPieceId).toBe(a);
+    });
   });
 });

@@ -71,11 +71,22 @@ export function keywordsRepo(db: Kysely<Database>) {
       return rows.rows.map((row) => ({ keyword: row.keyword, count: Number(row.count) }));
     },
 
+    async listCardModifierKeywords(): Promise<string[]> {
+      const rows = await db
+        .selectFrom("keywords")
+        .select("name")
+        .where("cardModifier", "=", true)
+        .orderBy("name")
+        .execute();
+      return rows.map((row) => row.name);
+    },
+
     async upsertStyle(values: {
       name: string;
       color: string;
       darkText: boolean;
       costKeyword: boolean;
+      cardModifier: boolean;
     }): Promise<void> {
       await db
         .insertInto("keywords")
@@ -85,6 +96,7 @@ export function keywordsRepo(db: Kysely<Database>) {
             color: eb.ref("excluded.color"),
             darkText: eb.ref("excluded.darkText"),
             costKeyword: eb.ref("excluded.costKeyword"),
+            cardModifier: eb.ref("excluded.cardModifier"),
           })),
         )
         .execute();
@@ -95,6 +107,7 @@ export function keywordsRepo(db: Kysely<Database>) {
       color: string;
       darkText: boolean;
       costKeyword: boolean;
+      cardModifier: boolean;
     }): Promise<void> {
       await db
         .insertInto("keywords")
