@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -190,15 +190,6 @@ async function setupBlock(browser: Browser, blockLabel: string): Promise<BlockSt
   });
 }
 
-async function deleteUser(email: string): Promise<void> {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
-}
-
 // TanStack Start encodes the server fn id as base64url(JSON); decode to target
 // a specific server fn out of the bundle during a route transition.
 function isServerFn(url: string, fnName: string): boolean {
@@ -239,9 +230,7 @@ test.describe("collection activity", () => {
           page.getByRole("heading", { level: 1 }).or(page.getByText("No activity yet")).first(),
         ).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText("No activity yet")).toBeVisible();
-        await expect(
-          page.getByText(/Browse the catalog to start building your collection\./u),
-        ).toBeVisible();
+        await expect(page.getByText(/Browse the catalog to make the first entry\./u)).toBeVisible();
 
         // May resolve to role="link" or role="button" depending on how BaseUI
         // merges the render prop; accept either.

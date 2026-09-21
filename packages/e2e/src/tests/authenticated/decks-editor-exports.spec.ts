@@ -277,7 +277,7 @@ test.describe("deck editor exports", () => {
 
       // By label: the print dialog keeps every tab mounted, each with its own
       // page-size select.
-      await expect(dialog.getByLabel("Page Size", { exact: true })).toContainText("A4");
+      await expect(dialog.locator("#registration-page-size")).toContainText("A4");
 
       const downloadPromise = waitForOptionalDownload(page, 30_000);
       await dialog.getByRole("button", { name: "Download PDF" }).click();
@@ -340,7 +340,7 @@ test.describe("deck editor exports", () => {
       );
 
       const renderModeTrigger = dialog.getByLabel("Render mode");
-      const pageSizeTrigger = dialog.getByLabel("Page size", { exact: true });
+      const pageSizeTrigger = dialog.locator("#proxy-page-size");
       await expect(renderModeTrigger).toContainText("Card images");
       await expect(pageSizeTrigger).toContainText("A4");
 

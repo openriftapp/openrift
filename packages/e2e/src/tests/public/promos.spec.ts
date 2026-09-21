@@ -73,10 +73,28 @@ async function clientSideNavigateToPromos(page: Page) {
     await expect(dialog).toBeVisible({ timeout: 1500 });
   }).toPass({ timeout: 15_000 });
 
-  // Nav rows are SheetClose buttons, not links, so match by text.
+  // Promos sits under the "Explore" section, which starts collapsed. The row
+  // keeps role="button" even though it renders as a link, so match by text.
   const promosItem = dialog.getByText("Promos", { exact: true });
-  await expect(promosItem).toBeVisible();
+  await expect(async () => {
+    if (!(await promosItem.isVisible())) {
+      await dialog.getByText("Explore", { exact: true }).click();
+    }
+    await expect(promosItem).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 15_000 });
   await promosItem.click();
+}
+
+// The trigger only opens once React has attached, so retry until the
+// popover's grid/table toggle is actually on screen.
+async function openDisplayOptions(page: Page) {
+  const gridButton = page.getByRole("button", { name: "Grid view" });
+  await expect(async () => {
+    if (!(await gridButton.isVisible())) {
+      await page.getByRole("button", { name: "Display options" }).click();
+    }
+    await expect(gridButton).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 15_000 });
 }
 
 test.describe("promos", () => {
@@ -166,7 +184,7 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
 
-      await page.getByRole("button", { name: "Display options" }).click();
+      await openDisplayOptions(page);
       const gridButton = page.getByRole("button", { name: "Grid view" });
       const tableButton = page.getByRole("button", { name: "Table view" });
 
@@ -214,7 +232,7 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
 
-      await page.getByRole("button", { name: "Display options" }).click();
+      await openDisplayOptions(page);
       const tableButton = page.getByRole("button", { name: "Table view" });
       await expect(async () => {
         await tableButton.click();

@@ -7,7 +7,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The CPU-derived default overloads the Vite dev server and tests time out
+  // on slow on-demand compiles; two workers stay reliable locally.
+  workers: process.env.CI ? 1 : 2,
   reporter: "html",
 
   globalSetup: "./src/global-setup.ts",

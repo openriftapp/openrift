@@ -106,7 +106,7 @@ test.describe("collections layout", () => {
       { path: "/collections", title: "All Cards" },
       { path: "/collections/activity", title: "Activity" },
       { path: "/collections/stats", title: "Statistics" },
-      { path: "/collections/import", title: "Import / Export" },
+      { path: "/collections/import", title: "Import" },
     ];
 
     for (const { path, title } of cases) {
@@ -126,7 +126,7 @@ test.describe("collections layout", () => {
       { path: "/collections", titlePattern: /Collections/u },
       { path: "/collections/activity", titlePattern: /Collection Activity/u },
       { path: "/collections/stats", titlePattern: /Collection Statistics/u },
-      { path: "/collections/import", titlePattern: /Import \/ Export/u },
+      { path: "/collections/import", titlePattern: /Import/u },
       { path: "/collections/$$inbox$$", titlePattern: /Collection/u, dynamic: true },
     ];
 

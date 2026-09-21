@@ -101,6 +101,18 @@ async function fetchCardDetail(slug: string): Promise<CardDetailFixture> {
   return detail;
 }
 
+// The info panel is a definition list, so a "row" is a <dt> label plus the
+// <dd> that follows it.
+function infoRowTerm(page: Page, label: string) {
+  return page
+    .locator('[data-slot="definition-term"]')
+    .filter({ hasText: new RegExp(`^${label}$`, "u") });
+}
+
+function infoRow(page: Page, label: string) {
+  return infoRowTerm(page, label).locator("xpath=following-sibling::dd[1]");
+}
+
 // Mirrors apps/web/src/lib/card-meta.ts's buildCardPriceLine: keep this in
 // sync if that helper's formatting or marketplace-priority logic changes.
 function buildExpectedPriceLine(
@@ -113,8 +125,10 @@ function buildExpectedPriceLine(
       .filter((value): value is number => typeof value === "number" && value > 0);
     if (cents.length > 0) {
       const low = Math.min(...cents) / 100;
+      // Prices go through Intl with the page's locale (en), so EUR renders
+      // with a leading narrow symbol, not the German trailing one.
       const formatted = EUR_MARKETPLACES.has(marketplace)
-        ? `${low.toFixed(2).replace(".", ",")} €`
+        ? `€${low.toFixed(2)}`
         : `$${low.toFixed(2)}`;
       return `Prices from ${formatted} (${marketplaceLabel(marketplace)}).`;
     }
@@ -138,6 +152,7 @@ function buildExpectedDescription(detail: CardDetailFixture, priceLine: string |
     const cleaned = rules
       .replaceAll(/\[.*?\]/gu, "")
       .replaceAll(/:[a-z0-9_]+:/giu, "")
+      .replaceAll(/[*_]/gu, "")
       .replaceAll(/\s+/gu, " ")
       .trim();
     if (cleaned.length > 0) {
@@ -428,14 +443,10 @@ test.describe("card detail route — info panel", () => {
     }
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
-    // Scope to role=row; getByText("Promo") also matches a sibling printing's
-    // badge strip.
-    await expect(
-      page.getByRole("row").filter({ has: page.getByText("Promo", { exact: true }) }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("row").filter({ has: page.getByText("Art variant", { exact: true }) }),
-    ).toHaveCount(0);
+    // Scope to the info panel's terms; getByText("Promo") also matches a
+    // sibling printing's badge strip.
+    await expect(infoRowTerm(page, "Promo")).toHaveCount(0);
+    await expect(infoRowTerm(page, "Art variant")).toHaveCount(0);
 
     // No seed printing has a non-normal artVariant, so Art variant stays hidden.
     // Printings share a publicCode, so target by id.
@@ -453,10 +464,7 @@ test.describe("card detail route — info panel", () => {
 
     // Scope to this row; the marker label also appears in printing-button
     // badges and the price-history heading.
-    const promoRow = page
-      .getByRole("row")
-      .filter({ has: page.getByText("Promo", { exact: true }) })
-      .first();
+    const promoRow = infoRow(page, "Promo").first();
     await expect(promoRow).toBeVisible();
     await expect(promoRow).toContainText(promoMarker.label);
   });
@@ -610,7 +618,7 @@ test.describe("card detail route — printings list", () => {
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
     // The heading combines a LanguageChip with the label: text reads "EN English".
-    const headings = page.getByRole("heading", { level: 2 });
+    const headings = page.getByRole("heading", { level: 3 });
     await expect(headings.filter({ hasText: /English/u }).first()).toBeVisible();
   });
 
@@ -626,10 +634,7 @@ test.describe("card detail route — printings list", () => {
 
     // getByText("EN") also matches the "English" group heading; scope to the
     // info panel's Language row.
-    const languageRow = page
-      .getByRole("row")
-      .filter({ has: page.getByText("Language", { exact: true }) })
-      .first();
+    const languageRow = infoRow(page, "Language").first();
     await expect(languageRow).toContainText("English");
 
     const altButton = page.locator(`button[data-printing-id="${altLang.id}"]`);
@@ -668,10 +673,7 @@ test.describe("card detail route — printings list", () => {
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    const languageRow = page
-      .getByRole("row")
-      .filter({ has: page.getByText("Language", { exact: true }) })
-      .first();
+    const languageRow = infoRow(page, "Language").first();
     await expect(languageRow).toContainText("English");
   });
 });
@@ -685,14 +687,14 @@ test.describe("card detail route — price history", () => {
 
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    const heading = page.getByRole("heading", { name: /^Price History — /u });
+    const heading = page.getByRole("heading", { name: /^Price history · /u });
     await expect(heading).toBeVisible({ timeout: 10_000 });
   });
 
   test("the time-range button group hides ranges longer than the data span", async ({ page }) => {
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    await expect(page.getByRole("heading", { name: /^Price History — /u })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Price history · /u })).toBeVisible({
       timeout: 10_000,
     });
 
@@ -709,7 +711,7 @@ test.describe("card detail route — price history", () => {
   }) => {
     await page.goto(`/cards/${SEED_CARD_SLUG}`);
 
-    await expect(page.getByRole("heading", { name: /^Price History — /u })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Price history · /u })).toBeVisible({
       timeout: 10_000,
     });
 

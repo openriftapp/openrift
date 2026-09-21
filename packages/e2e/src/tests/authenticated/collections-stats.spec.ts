@@ -206,14 +206,15 @@ test.describe("collection stats", () => {
           timeout: 15_000,
         });
 
-        const heroCard = (title: string) =>
-          page.locator('[data-slot="card"]').filter({
-            has: page.locator('[data-slot="card-title"]', { hasText: title }),
-          });
+        const heroStat = (title: string) =>
+          page
+            .locator('[data-slot="hero-stat"]')
+            .filter({ hasText: title })
+            .locator('[data-slot="hero-stat-value"]');
 
-        await expect(heroCard("Unique Cards").locator("p.text-2xl")).toHaveText("2");
-        await expect(heroCard("Unique Printings").locator("p.text-2xl")).toHaveText("3");
-        await expect(heroCard("Total Copies").locator("p.text-2xl")).toHaveText("6");
+        await expect(heroStat("Unique Cards")).toHaveText("2");
+        await expect(heroStat("Unique Printings")).toHaveText("3");
+        await expect(heroStat("Total Copies")).toHaveText("6");
       });
     });
 
@@ -222,8 +223,11 @@ test.describe("collection stats", () => {
         const page = await context.newPage();
         await page.goto("/collections/stats");
 
+        // The label is a sibling of the link inside the stat, not its text.
         const valueLink = page
-          .locator('a[target="_blank"]', { hasText: "Estimated Value" })
+          .locator('[data-slot="hero-stat"]')
+          .filter({ hasText: "Estimated Value" })
+          .locator('a[target="_blank"]')
           .first();
         await expect(valueLink).toBeVisible({ timeout: 15_000 });
         await expect(valueLink).toHaveAttribute("rel", "noreferrer");
@@ -234,7 +238,7 @@ test.describe("collection stats", () => {
         );
 
         // Prices vary across the seed; only assert a non-empty numeric string.
-        const valueText = (await valueLink.locator("p.text-2xl").textContent()) ?? "";
+        const valueText = (await valueLink.textContent()) ?? "";
         expect(valueText.trim().length).toBeGreaterThan(0);
       });
     });
@@ -263,11 +267,9 @@ test.describe("collection stats", () => {
         await page.goto("/collections/stats");
 
         const totalCopies = page
-          .locator('[data-slot="card"]')
-          .filter({
-            has: page.locator('[data-slot="card-title"]', { hasText: "Total Copies" }),
-          })
-          .locator("p.text-2xl");
+          .locator('[data-slot="hero-stat"]')
+          .filter({ hasText: "Total Copies" })
+          .locator('[data-slot="hero-stat-value"]');
 
         // Default is "All collections": Annie (inbox) + Garen (second) = 2 copies.
         await expect(totalCopies).toHaveText("2", { timeout: 15_000 });
@@ -461,21 +463,15 @@ test.describe("collection stats", () => {
           timeout: 15_000,
         });
 
-        await expect(
-          page.locator('[data-slot="card-title"]', { hasText: /^Domain$/u }),
-        ).toBeVisible();
-        await expect(
-          page.locator('[data-slot="card-title"]', { hasText: /^Rarity$/u }),
-        ).toBeVisible();
-        await expect(
-          page.locator('[data-slot="card-title"]', { hasText: /^Type$/u }),
-        ).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Domain", level: 3 })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Rarity", level: 3 })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Type", level: 3 })).toBeVisible();
 
         // The same words label rarity filter chips higher up the page, so scope
-        // to the rarity chart card.
+        // to the rarity chart's own section.
         const rarityCard = page
-          .locator('[data-slot="card"]')
-          .filter({ has: page.locator('[data-slot="card-title"]', { hasText: /^Rarity$/u }) });
+          .locator("section")
+          .filter({ has: page.getByRole("heading", { name: "Rarity", level: 3 }) });
         await expect(rarityCard.getByText("Epic", { exact: true }).first()).toBeVisible();
         await expect(rarityCard.getByText("Rare", { exact: true }).first()).toBeVisible();
 
@@ -505,9 +501,9 @@ test.describe("collection stats", () => {
         const page = await context.newPage();
         await page.goto("/collections/stats");
 
-        await expect(
-          page.locator('[data-slot="card-title"]', { hasText: /Energy & Power/u }),
-        ).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByRole("heading", { name: "Energy & Power", level: 3 })).toBeVisible({
+          timeout: 15_000,
+        });
       });
     });
   });

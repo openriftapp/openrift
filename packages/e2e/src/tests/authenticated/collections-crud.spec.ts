@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -43,15 +43,6 @@ async function createAndLogin(page: Page): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 async function apiCreateCollection(page: Page, name: string): Promise<string> {
@@ -281,7 +272,7 @@ test.describe("collections CRUD", () => {
       await dialog.getByRole("button", { name: "Delete" }).click();
       await deleteRequest;
 
-      await expect(page).toHaveURL(/\/collections\/?$/u, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/collections(?:\?.*)?$/u, { timeout: 15_000 });
 
       await expect.poll(() => countCopiesInCollection(inboxId), { timeout: 10_000 }).toBe(2);
       expect(await countCopiesInCollection(collectionId)).toBe(0);

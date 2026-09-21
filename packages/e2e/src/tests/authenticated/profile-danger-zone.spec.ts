@@ -113,7 +113,7 @@ test.describe("profile danger zone", () => {
       const card = page.locator('[data-slot="card"]').filter({
         has: page.getByRole("button", { name: "Delete account", exact: true }),
       });
-      await expect(card).toHaveClass(/border-destructive/u);
+      await expect(card).toHaveClass(/ring-destructive/u);
     });
   });
 
@@ -337,7 +337,7 @@ test.describe("profile danger zone", () => {
       const confirmButton = dialog.getByRole("button", { name: /delete account|deleting/iu });
       await confirmButton.click();
 
-      await expect(confirmButton).toHaveText("Deleting...", { timeout: 5000 });
+      await expect(confirmButton).toHaveText("Deleting…", { timeout: 5000 });
       await expect(confirmButton).toBeDisabled();
       await expect(dialog).toBeVisible();
 

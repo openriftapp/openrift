@@ -102,7 +102,7 @@ test.describe("reset password", () => {
       await page.locator("#reset-email").fill("loading-state@test.com");
       await page.getByRole("button", { name: /send code/iu }).click();
 
-      const sending = page.getByRole("button", { name: "Sending..." });
+      const sending = page.getByRole("button", { name: "Sending…" });
       await expect(sending).toBeVisible();
       await expect(sending).toBeDisabled();
     });

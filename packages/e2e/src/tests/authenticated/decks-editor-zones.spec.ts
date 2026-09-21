@@ -6,7 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
 import { connectToDb } from "../../helpers/db.js";
-import { dndDrag, dndDragToPoint } from "../../helpers/dnd.js";
+import { dndDrag, dndDragToPoint, scrollIntoViewport } from "../../helpers/dnd.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -82,10 +82,20 @@ async function readDeckCards(
   }
 }
 
-// Sections are frameless: the label button sits in the header row, and the
-// header's parent is the wrapper owning the drop ref and ring highlight.
+const ZONE_SLUGS: Record<string, string> = {
+  "Main Deck": "main",
+  Sideboard: "sideboard",
+  Runes: "runes",
+  Battlefields: "battlefield",
+  "Chosen Champion": "champion",
+  Overflow: "overflow",
+  Legend: "legend",
+};
+
+// The wrapper owning the drop ref and the ring highlight. Its header sits
+// inside an OrnamentRule, so walking up from the label button is not stable.
 function zoneSection(page: Page, label: string): Locator {
-  return zoneLabelButton(page, label).locator("xpath=ancestor::div[2]");
+  return page.locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`).first();
 }
 
 function zoneLabelButton(page: Page, label: string): Locator {
@@ -98,8 +108,13 @@ function deckCardRow(section: Locator, cardName: string): Locator {
   return section.getByRole("button").filter({ hasText: cardName }).first();
 }
 
+// Non-draggable thumbnails also carry data-printing-id, so key off the
+// aria-roledescription dnd-kit only puts on the real drag wrapper.
 function browserCardTile(page: Page, cardName: string): Locator {
-  return page.getByRole("img", { name: cardName }).first();
+  return page
+    .locator("[data-printing-id][aria-roledescription]")
+    .filter({ has: page.getByRole("img", { name: cardName }) })
+    .first();
 }
 
 // The card browser renders a placeholder until a zone is active.
@@ -121,7 +136,7 @@ async function dndDragWithShift(page: Page, source: Locator, target: Locator) {
   // can hand back a null box; wait for each to be laid out before measuring.
   await expect(source).toBeVisible({ timeout: 15_000 });
   await expect(target).toBeVisible({ timeout: 15_000 });
-  await source.scrollIntoViewIfNeeded();
+  await scrollIntoViewport(page, source);
   const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
   if (!sourceBox || !targetBox) {
@@ -197,14 +212,7 @@ test.describe("deck editor zones + drag-drop", () => {
       await activateZone(page, "Sideboard");
       await searchBrowserFor(page, unit.name);
 
-      // The img's immediate div ancestor is only the inner tilt/image
-      // container; climb to the outer "group" div to find the Add button.
-      const tile = browserCardTile(page, unit.name);
-      const addButton = tile
-        .locator(
-          "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' group ')][1]",
-        )
-        .first()
+      const addButton = browserCardTile(page, unit.name)
         .getByRole("button", { name: "Add to deck" })
         .first();
       await addButton.click();
@@ -238,6 +246,7 @@ test.describe("deck editor zones + drag-drop", () => {
 
       const tile = browserCardTile(page, unit.name);
       const mainSection = zoneSection(page, "Main Deck");
+
       await dndDrag(page, tile, mainSection);
 
       await expect
@@ -532,6 +541,9 @@ test.describe("deck editor zones + drag-drop", () => {
       const tile = browserCardTile(page, unit.name);
       const mainSection = zoneSection(page, "Main Deck");
 
+      // page.mouse works in viewport coordinates, so the tile has to be on
+      // screen before its box is read.
+      await scrollIntoViewport(page, tile);
       const sourceBox = await tile.boundingBox();
       const targetBox = await mainSection.boundingBox();
       if (!sourceBox || !targetBox) {
@@ -545,6 +557,9 @@ test.describe("deck editor zones + drag-drop", () => {
       await page.mouse.move(startX, startY);
       await page.mouse.down();
       await page.mouse.move(startX + 20, startY, { steps: 5 });
+      // dnd-kit measures droppable rects when the drag starts; moving on before
+      // that lands leaves the collision detection with nothing to hit.
+      await page.waitForTimeout(100);
       await page.mouse.move(endX, endY, { steps: 20 });
 
       // ring-primary is the visible drop affordance; no role/aria alternative.

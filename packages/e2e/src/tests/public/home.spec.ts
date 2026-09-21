@@ -4,7 +4,9 @@ test.describe("landing page", () => {
   test("renders the homepage with title and navigation", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "OpenRift", level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /track your riftbound collection/iu, level: 1 }),
+    ).toBeVisible();
 
     await expect(page.getByRole("link", { name: /browse cards/iu }).first()).toBeVisible();
   });
@@ -46,7 +48,7 @@ test.describe("landing page", () => {
 
   test("shows the tagline", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/the Riftbound app for you and your playgroup/iu)).toBeVisible();
+    await expect(page.getByText(/match wishlists with your playgroup/iu)).toBeVisible();
   });
 
   test("shows the stats line with live card counts", async ({ page }) => {

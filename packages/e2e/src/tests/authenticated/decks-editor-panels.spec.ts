@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -49,15 +49,6 @@ async function createAndLogin(page: Page, label: string): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 async function apiCreateDeck(page: Page, name: string): Promise<string> {
@@ -142,8 +133,8 @@ test.describe("deck editor panels", () => {
       // DomainBar renders null at zero cards: no tooltip triggers.
       await expect(header.locator('[data-slot="tooltip-trigger"]')).toHaveCount(0);
 
-      await expect(page.getByRole("heading", { level: 4, name: "Energy" })).toBeHidden();
-      await expect(page.getByRole("heading", { level: 4, name: "Power" })).toBeHidden();
+      await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeHidden();
+      await expect(page.getByRole("heading", { level: 3, name: "Power" })).toBeHidden();
     });
 
     test("seeded single-domain deck shows count, domain bar tooltip, and chart body", async ({
@@ -164,12 +155,12 @@ test.describe("deck editor panels", () => {
       // BaseUI's TooltipContent has no role="tooltip"; match by text.
       await expect(page.getByText("Fury: 3", { exact: true })).toBeVisible();
 
-      await expect(page.getByRole("heading", { level: 4, name: "Energy" })).toBeVisible();
-      await expect(page.getByRole("heading", { level: 4, name: "Power" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 3, name: "Power" })).toBeVisible();
 
       await header.click();
-      await expect(page.getByRole("heading", { level: 4, name: "Energy" })).toBeHidden();
-      await expect(page.getByRole("heading", { level: 4, name: "Power" })).toBeHidden();
+      await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeHidden();
+      await expect(page.getByRole("heading", { level: 3, name: "Power" })).toBeHidden();
     });
 
     test("sidebar carries no ownership breakdown", async ({ page }) => {
@@ -243,8 +234,9 @@ test.describe("deck editor panels", () => {
       const valueChip = page.getByRole("button", { name: "Show value breakdown" });
       await expect(valueChip).toBeVisible({ timeout: 15_000 });
 
-      // Favorite marketplace varies by seed order: USD ($X.XX) or EUR (X,XX €).
-      const priceRegex = /(?:\$\d+\.\d{2})|(?:\d+[.,]\d{2}\s?€)/u;
+      // Favorite marketplace varies by seed order; prices go through Intl on
+      // the en locale, so both currencies lead with their symbol.
+      const priceRegex = /[$€]\d+[.,]\d{2}/u;
       await expect(valueChip.getByText(priceRegex)).toBeVisible();
 
       await valueChip.click();
@@ -368,10 +360,10 @@ test.describe("deck editor panels", () => {
       const stats = statsHeader(page);
       await expect(stats).toBeVisible();
 
-      await expect(page.getByRole("heading", { level: 4, name: "Energy" })).toBeHidden();
+      await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeHidden();
 
       await stats.click();
-      await expect(page.getByRole("heading", { level: 4, name: "Energy" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 3, name: "Energy" })).toBeVisible();
     });
   });
 });

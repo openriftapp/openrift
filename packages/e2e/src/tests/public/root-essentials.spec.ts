@@ -72,7 +72,7 @@ test.describe("root essentials", () => {
         "content",
         "width=device-width, initial-scale=1, viewport-fit=cover",
       );
-      await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#1d1538");
+      await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#0f1526");
       await expect(page.locator('meta[name="impact-site-verification"]')).toHaveAttribute(
         "content",
         "5a360cf2-9e98-4886-8c05-4e2e1a39ce0e",
@@ -93,7 +93,7 @@ test.describe("root essentials", () => {
     test("inlines a matchMedia/theme-preference script in the document", async ({ page }) => {
       await page.goto("/");
       const html = await page.content();
-      expect(html).toContain('pref="auto"');
+      expect(html).toContain("prefers-color-scheme:dark");
       expect(html).toContain("matchMedia");
     });
   });

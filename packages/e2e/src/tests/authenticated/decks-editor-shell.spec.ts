@@ -42,9 +42,9 @@ test.describe("deck editor shell", () => {
     }) => {
       const page = authenticatedPage;
       await page.goto(`/decks/${BOGUS_DECK_ID}`);
-      // RouteErrorFallback always renders a "Reshuffle" reload button; the
-      // heading/subtext copy is randomized per error seed.
-      await expect(page.getByRole("button", { name: "Reshuffle" })).toBeVisible({
+      // The loader throws notFound(), so NotFoundFallback renders; it always
+      // offers "Go home" while the heading/subtext copy is randomized.
+      await expect(page.getByRole("link", { name: "Go home" })).toBeVisible({
         timeout: 15_000,
       });
       expect(new URL(page.url()).pathname).toBe(`/decks/${BOGUS_DECK_ID}`);

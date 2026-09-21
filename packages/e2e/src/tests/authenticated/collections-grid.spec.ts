@@ -158,22 +158,26 @@ test.describe("collections grid", () => {
       }
     });
 
-    test("empty inbox opens in library mode, and hiding it shows the empty state", async ({
+    test("empty inbox opens on the empty state, and Browse library opens library mode", async ({
       browser,
     }) => {
       await withSignedInContext(state.user, browser, async (context) => {
         const page = await context.newPage();
         await page.goto("/collections");
 
-        const hideLibrary = page.getByRole("button", { name: "Hide library" });
-        await expect(hideLibrary).toBeVisible({ timeout: 15_000 });
-        await expect(page.getByText("Welcome to your collection")).toBeVisible();
-
-        await hideLibrary.click();
-        await expect(page.getByText("No cards yet")).toBeVisible();
+        await expect(page.getByText("No cards yet")).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText(/Browse the card catalog and add cards to/u)).toBeVisible();
         await expect(page.getByText("Annie, Fiery")).toBeHidden();
         await expect(page.getByText("Garen, Rugged")).toBeHidden();
+
+        await page.getByRole("button", { name: "Browse & add" }).click();
+        const hideLibrary = page.getByRole("button", { name: "Hide library" });
+        await expect(hideLibrary).toBeVisible();
+
+        // The toggle persists, and the rest of this serial block expects the
+        // library closed.
+        await hideLibrary.click();
+        await expect(page.getByText("No cards yet")).toBeVisible();
       });
     });
 
@@ -209,9 +213,6 @@ test.describe("collections grid", () => {
         await expect(page.getByText("Garen, Rugged")).toBeVisible();
 
         await page.goto(`/collections/${empty.id}`);
-        // The empty collection auto-opens the whole-library view, so hide it
-        // to see the collection's own (empty) grid.
-        await page.getByRole("button", { name: "Hide library" }).click();
         await expect(page.getByText("No cards yet")).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText("Annie, Fiery")).toBeHidden();
         await expect(page.getByText("Garen, Rugged")).toBeHidden();
@@ -225,7 +226,6 @@ test.describe("collections grid", () => {
         const empty = await createCollection(context, "Empty Box");
         const page = await context.newPage();
         await page.goto(`/collections/${empty.id}?languages=%5B%22EN%22%5D`);
-        await page.getByRole("button", { name: "Hide library" }).click();
 
         await expect(page.getByText("No cards yet")).toBeVisible({ timeout: 15_000 });
         await expect(page.getByText("Couldn't load cards")).toBeHidden();
@@ -527,10 +527,6 @@ test.describe("collections grid", () => {
       await withSignedInContext(state.user, browser, async (context) => {
         const page = await context.newPage();
         await page.goto("/collections");
-
-        // The link sits in the empty state, which an empty collection only
-        // reaches once the auto-opened library view is turned back off.
-        await page.getByRole("button", { name: "Hide library" }).click();
 
         const learnLink = page.getByRole("link", {
           name: /Learn about cards, printings & copies/u,

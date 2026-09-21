@@ -152,7 +152,7 @@ test.describe("card browser — options bar", () => {
 
     await expect(firstHeader).toHaveText("Legend");
 
-    // The flip button's title flips synchronously on click ("Ascending…" /
+    // The flip button's aria-label flips synchronously on click ("Ascending…" /
     // "Descending…"); guard on that, not the async header reorder, so a
     // detach-and-retry never toggles twice.
     const trigger = page.getByRole("button", { name: /·/u });
@@ -165,10 +165,12 @@ test.describe("card browser — options bar", () => {
         await trigger.click({ timeout: 2000 }).catch(() => {});
         await expect(flipButton).toBeAttached({ timeout: 1500 });
       }
-      if (!/Descending/u.test((await flipButton.getAttribute("title").catch(() => "")) ?? "")) {
+      if (
+        !/Descending/u.test((await flipButton.getAttribute("aria-label").catch(() => "")) ?? "")
+      ) {
         await flipButton.dispatchEvent("click").catch(() => {});
       }
-      await expect(flipButton).toHaveAttribute("title", /Descending/u, { timeout: 1500 });
+      await expect(flipButton).toHaveAttribute("aria-label", /Descending/u, { timeout: 1500 });
     }).toPass({ timeout: 25_000 });
     await page.keyboard.press("Escape");
 

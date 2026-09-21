@@ -119,7 +119,7 @@ test.describe("profile account & security", () => {
 
       await expect(page.getByText("Name updated.")).toBeVisible({ timeout: 10_000 });
       // Multiple card titles exist; the header card is first in document order.
-      await expect(page.locator('[data-slot="card-title"]').first()).toHaveText("Updated Name", {
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Updated Name", {
         timeout: 10_000,
       });
     });
@@ -497,7 +497,7 @@ test.describe("profile account & security", () => {
       await gotoProfileReady(page);
 
       // Scoped to avoid matching the footer's Discord link.
-      const card = page.locator('[data-slot="card"]', {
+      const card = page.locator('[data-slot="settings-section"]', {
         has: page.getByText("Connected Accounts"),
       });
       await expect(card).toBeVisible({ timeout: 15_000 });

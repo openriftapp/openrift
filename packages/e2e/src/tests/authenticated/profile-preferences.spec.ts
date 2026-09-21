@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 import { decodeServerFnData } from "../../helpers/server-fn.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -43,15 +43,6 @@ async function createAndLogin(page: Page): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 // The server fn id is base64url(JSON) of the source file + export name;
@@ -96,7 +87,7 @@ test.describe("profile preferences", () => {
   });
 
   test.describe("Display — theme", () => {
-    test("defaults to Auto with no reset button, Dark toggles html class and shows reset", async ({
+    test("defaults to Dark with no reset button, Light toggles html class and shows reset", async ({
       page,
     }) => {
       userEmail = await createAndLogin(page);
@@ -110,13 +101,16 @@ test.describe("profile preferences", () => {
       await expect(lightButton).toBeVisible();
       await expect(darkButton).toBeVisible();
 
+      // The picker shows the resolved theme, and the default preference is dark.
+      await expect(darkButton).toBeChecked();
       await expect(page.getByRole("button", { name: "Reset theme" })).toHaveCount(0);
 
-      await darkButton.click();
-      await expect(page.locator("html")).toHaveClass(/\bdark\b/u);
+      await lightButton.click();
+      await expect(page.locator("html")).not.toHaveClass(/\bdark\b/u);
       await expect(page.getByRole("button", { name: "Reset theme" })).toBeVisible();
 
       await page.getByRole("button", { name: "Reset theme" }).click();
+      await expect(page.locator("html")).toHaveClass(/\bdark\b/u);
       await expect(page.getByRole("button", { name: "Reset theme" })).toHaveCount(0);
     });
   });

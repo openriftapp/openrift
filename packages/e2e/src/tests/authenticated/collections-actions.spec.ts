@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -42,15 +42,6 @@ async function createAndLogin(page: Page): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 async function findInboxId(email: string): Promise<string> {

@@ -215,6 +215,8 @@ export function DeckZoneSection({
   return (
     <div
       ref={dropRef}
+      data-slot="deck-zone"
+      data-zone={zone}
       className={cn(
         "flex flex-col gap-1.5 rounded-md transition-all select-none",
         isOver && !dropDisabled && "ring-primary/60 ring-2 ring-offset-2",
@@ -285,6 +287,7 @@ export function DeckZoneSection({
           SINGLE_CARD_ZONES.has(zone)
         ) && (
           <span
+            data-slot="deck-zone-count"
             className={cn(
               "ml-auto text-xs tabular-nums",
               hasZoneViolations

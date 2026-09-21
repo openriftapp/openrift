@@ -60,12 +60,10 @@ test.describe("profile shell", () => {
 
       const { name, email } = TEST_USERS.regular;
 
-      // CardTitle/CardDescription render as <div>s with data-slot attributes,
-      // not headings; the header card is first in document order.
-      await expect(page.locator('[data-slot="card-title"]').first()).toHaveText(name, {
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(name, {
         timeout: 15_000,
       });
-      await expect(page.locator('[data-slot="card-description"]').first()).toHaveText(email);
+      await expect(page.getByText(email, { exact: true }).first()).toBeVisible();
 
       // Every date goes through formatDay, so there's no locale variant to allow for.
       await expect(page.getByText(/^Joined \d{4}-\d{2}-\d{2}$/u)).toBeVisible();
@@ -96,10 +94,10 @@ test.describe("profile shell", () => {
       await loginViaForm(page, email, password);
       await page.goto("/profile");
 
-      await expect(page.locator('[data-slot="card-title"]').first()).toHaveText(email, {
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(email, {
         timeout: 15_000,
       });
-      await expect(page.locator('[data-slot="card-description"]').first()).toHaveText(email);
+      await expect(page.getByText(email, { exact: true }).first()).toBeVisible();
     });
   });
 
@@ -124,10 +122,9 @@ test.describe("profile shell", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/profile");
 
-      await expect(page.locator('[data-slot="card-title"]').first()).toHaveText(
-        TEST_USERS.regular.name,
-        { timeout: 15_000 },
-      );
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(TEST_USERS.regular.name, {
+        timeout: 15_000,
+      });
 
       const nav = page.getByRole("navigation").filter({ hasText: "Preferences" });
       await expect(nav).toBeHidden();

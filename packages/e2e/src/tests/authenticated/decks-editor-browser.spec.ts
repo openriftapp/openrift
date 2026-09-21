@@ -6,7 +6,7 @@ import { expect, test } from "../../fixtures/test.js";
 import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 type Sql = ReturnType<typeof connectToDb>;
@@ -44,15 +44,6 @@ async function createAndLogin(page: Page): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 async function createDeckViaApi(
@@ -126,14 +117,27 @@ async function searchFor(page: Page, query: string) {
   }).toPass({ timeout: 15_000 });
 }
 
-// The zone's count is a sibling span, not part of the button's accessible name.
+const ZONE_SLUGS: Record<string, string> = {
+  "Main Deck": "main",
+  Sideboard: "sideboard",
+  Runes: "runes",
+  Battlefields: "battlefield",
+  "Chosen Champion": "champion",
+  Overflow: "overflow",
+  Legend: "legend",
+};
+
 function zoneLabelButton(page: Page, label: string): Locator {
   return page.getByRole("button", { name: `Edit ${label}`, exact: true }).first();
 }
 
 // "N" on zones with no target, "N/target" on the ones that have one.
 function zoneCount(page: Page, label: string): Locator {
-  return zoneLabelButton(page, label).locator("xpath=following-sibling::span[last()]");
+  return page
+    .locator(`[data-slot="deck-zone"][data-zone="${ZONE_SLUGS[label] ?? label}"]`)
+    .first()
+    .locator('[data-slot="deck-zone-count"]')
+    .first();
 }
 
 async function activateZone(page: Page, label: string) {

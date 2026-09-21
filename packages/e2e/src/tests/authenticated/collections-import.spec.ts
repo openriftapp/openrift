@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 import { isApiCall } from "../../helpers/api-endpoint.js";
 import type { E2eState } from "../../helpers/constants.js";
 import { API_BASE_URL, STATE_FILE, WEB_BASE_URL } from "../../helpers/constants.js";
-import { connectToDb } from "../../helpers/db.js";
+import { connectToDb, deleteUser } from "../../helpers/db.js";
 
 type Sql = ReturnType<typeof connectToDb>;
 
@@ -61,15 +61,6 @@ async function createAndLogin(page: Page): Promise<string> {
   }
   await signIn(page.request, email, password);
   return email;
-}
-
-async function deleteUser(email: string) {
-  const sql = loadDb();
-  try {
-    await sql`DELETE FROM users WHERE email = ${email}`;
-  } finally {
-    await sql.end();
-  }
 }
 
 async function fetchCollections(request: APIRequestContext): Promise<CollectionSummary[]> {
@@ -206,6 +197,17 @@ function buildOpenRiftCsv(
   return lines.join("\n");
 }
 
+// Export moved off /collections/import into a dialog behind the grid's
+// actions menu; it opens on a text format, so switch to the CSV one.
+async function openOpenRiftCsvExport(page: Page) {
+  await page.getByRole("button", { name: "Collection actions" }).click();
+  await page.getByRole("menuitem", { name: "Export…" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible({ timeout: 15_000 });
+  await dialog.locator("#export-format").click();
+  await page.getByRole("option", { name: "OpenRift CSV" }).click();
+}
+
 async function readDownload(page: Page, trigger: () => Promise<void>) {
   const downloadPromise = page.waitForEvent("download");
   await trigger();
@@ -226,17 +228,15 @@ test.describe("collections import/export", () => {
       }
     });
 
-    test("renders the top bar title and both export + import sections on the same step", async ({
-      page,
-    }) => {
+    test("renders the top bar title and the input step", async ({ page }) => {
       userEmail = await createAndLogin(page);
       await page.goto("/collections/import");
 
-      await expect(page.getByRole("heading", { name: "Import / Export" })).toBeVisible({
+      await expect(page.getByText("Import", { exact: true }).first()).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByRole("heading", { name: "Export Collection" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Upload file" })).toBeVisible();
     });
   });
 
@@ -254,7 +254,8 @@ test.describe("collections import/export", () => {
       userEmail = await createAndLogin(page);
       const inbox = await findInbox(page.request);
 
-      await page.goto("/collections/import");
+      await page.goto("/collections");
+      await openOpenRiftCsvExport(page);
       const exportButton = page.getByRole("button", { name: /^Export \d+ cop(?:y|ies)$/u });
       await expect(exportButton).toBeVisible({ timeout: 15_000 });
       await expect(exportButton).toHaveText(/Export 0 copies/u);
@@ -263,27 +264,24 @@ test.describe("collections import/export", () => {
       await seedCopies(page.request, ANNIE_FIERY_NORMAL, inbox.id, 5);
 
       await page.reload();
+      await openOpenRiftCsvExport(page);
       await expect(page.getByRole("button", { name: /^Export 5 copies$/u })).toBeEnabled({
         timeout: 15_000,
       });
     });
 
-    test("narrowing scope to Inbox updates the count and filename", async ({ page }) => {
+    test("exporting one collection uses its own filename and count", async ({ page }) => {
       userEmail = await createAndLogin(page);
       const inbox = await findInbox(page.request);
       const other = await createCollectionViaApi(page.request, "Shelf");
       await seedCopies(page.request, ANNIE_FIERY_NORMAL, inbox.id, 2);
       await seedCopies(page.request, GAREN_RUGGED_NORMAL, other.id, 3);
 
-      await page.goto("/collections/import");
-      await expect(page.getByRole("button", { name: /^Export 5 copies$/u })).toBeEnabled({
+      await page.goto(`/collections/${inbox.id}`);
+      await openOpenRiftCsvExport(page);
+      await expect(page.getByRole("button", { name: /^Export 2 copies$/u })).toBeEnabled({
         timeout: 15_000,
       });
-
-      const scopeTrigger = page.locator("#export-collection");
-      await scopeTrigger.click();
-      await page.getByRole("option", { name: "Inbox" }).click();
-      await expect(page.getByRole("button", { name: /^Export 2 copies$/u })).toBeEnabled();
 
       const { filename, csv } = await readDownload(page, async () => {
         await page.getByRole("button", { name: /^Export 2 copies$/u }).click();
@@ -306,7 +304,8 @@ test.describe("collections import/export", () => {
       await seedCopies(page.request, ANNIE_FIERY_NORMAL, inbox.id, 3);
       await seedCopies(page.request, GAREN_RUGGED_NORMAL, inbox.id, 1);
 
-      await page.goto("/collections/import");
+      await page.goto("/collections");
+      await openOpenRiftCsvExport(page);
       const exportButton = page.getByRole("button", { name: /^Export 4 copies$/u });
       await expect(exportButton).toBeEnabled({ timeout: 15_000 });
 
@@ -341,14 +340,14 @@ test.describe("collections import/export", () => {
       await expect(parseButton).toBeVisible({ timeout: 15_000 });
       await expect(parseButton).toBeDisabled();
 
-      await page.getByPlaceholder("Paste CSV data or a plain text list here...").fill("hello");
+      await page.getByPlaceholder("Paste CSV data or a plain text list here…").fill("hello");
       await expect(parseButton).toBeEnabled();
     });
 
     test("uploading a CSV file advances to the preview step", async ({ page }) => {
       userEmail = await createAndLogin(page);
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
 
@@ -373,17 +372,17 @@ test.describe("collections import/export", () => {
     }) => {
       userEmail = await createAndLogin(page);
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
 
       await page
-        .getByPlaceholder("Paste CSV data or a plain text list here...")
+        .getByPlaceholder("Paste CSV data or a plain text list here…")
         .fill("not a csv at all\njust text");
       await page.getByRole("button", { name: /^Parse$/u }).click();
 
       await expect(page.getByText(/Line 1: couldn.t read/u)).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Import Preview" })).toHaveCount(0);
     });
   });
@@ -405,7 +404,8 @@ test.describe("collections import/export", () => {
       await seedCopies(page.request, ANNIE_FIERY_NORMAL, inbox.id, 3);
       await seedCopies(page.request, ANNIE_STUBBORN_NORMAL, inbox.id, 2);
 
-      await page.goto("/collections/import");
+      await page.goto("/collections");
+      await openOpenRiftCsvExport(page);
       const exportButton = page.getByRole("button", { name: /^Export 5 copies$/u });
       await expect(exportButton).toBeEnabled({ timeout: 15_000 });
       const { csv } = await readDownload(page, async () => {
@@ -413,7 +413,11 @@ test.describe("collections import/export", () => {
       });
       expect(csv.split("\n")[0]).toBe(EXPORT_HEADER);
 
-      await page.getByPlaceholder("Paste CSV data or a plain text list here...").fill(csv);
+      await page.goto("/collections/import");
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
+        timeout: 15_000,
+      });
+      await page.getByPlaceholder("Paste CSV data or a plain text list here…").fill(csv);
       await page.getByRole("button", { name: /^Parse$/u }).click();
 
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
@@ -484,10 +488,10 @@ test.describe("collections import/export", () => {
       ]);
 
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
-      await page.getByPlaceholder("Paste CSV data or a plain text list here...").fill(csv);
+      await page.getByPlaceholder("Paste CSV data or a plain text list here…").fill(csv);
       await page.getByRole("button", { name: /^Parse$/u }).click();
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
         timeout: 15_000,
@@ -548,10 +552,10 @@ test.describe("collections import/export", () => {
       ]);
 
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
-      const textarea = page.getByPlaceholder("Paste CSV data or a plain text list here...");
+      const textarea = page.getByPlaceholder("Paste CSV data or a plain text list here…");
       await textarea.fill(csv);
       await page.getByRole("button", { name: /^Parse$/u }).click();
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
@@ -559,10 +563,10 @@ test.describe("collections import/export", () => {
       });
 
       await page.getByRole("button", { name: /^Back$/u }).click();
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible();
-      await expect(
-        page.getByPlaceholder("Paste CSV data or a plain text list here..."),
-      ).toHaveValue(csv);
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible();
+      await expect(page.getByPlaceholder("Paste CSV data or a plain text list here…")).toHaveValue(
+        csv,
+      );
     });
   });
 
@@ -581,10 +585,10 @@ test.describe("collections import/export", () => {
         { cardId: "OGS-007", cardName: "Garen, Rugged", rarity: "rare", quantity: 2 },
       ]);
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
-      await page.getByPlaceholder("Paste CSV data or a plain text list here...").fill(csv);
+      await page.getByPlaceholder("Paste CSV data or a plain text list here…").fill(csv);
       await page.getByRole("button", { name: /^Parse$/u }).click();
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
         timeout: 15_000,
@@ -669,10 +673,10 @@ test.describe("collections import/export", () => {
         { cardId: "OGS-007", cardName: "Garen, Rugged", rarity: "rare", quantity: 2 },
       ]);
       await page.goto("/collections/import");
-      await expect(page.getByRole("heading", { name: "Import Cards" })).toBeVisible({
+      await expect(page.getByRole("button", { name: /^Parse$/u })).toBeVisible({
         timeout: 15_000,
       });
-      await page.getByPlaceholder("Paste CSV data or a plain text list here...").fill(csv);
+      await page.getByPlaceholder("Paste CSV data or a plain text list here…").fill(csv);
       await page.getByRole("button", { name: /^Parse$/u }).click();
       await expect(page.getByRole("heading", { name: "Import Preview" })).toBeVisible({
         timeout: 15_000,

@@ -22,12 +22,17 @@ function HeroStat({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex min-w-36 flex-col gap-0.5">
+    <div data-slot="hero-stat" className="flex min-w-36 flex-col gap-0.5">
       <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
         <Icon className="size-4" />
         {label}
       </span>
-      <span className="font-heading text-3xl font-semibold tabular-nums">{value}</span>
+      <span
+        data-slot="hero-stat-value"
+        className="font-heading text-3xl font-semibold tabular-nums"
+      >
+        {value}
+      </span>
       {children}
     </div>
   );
