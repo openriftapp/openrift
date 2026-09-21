@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jimiDX8aT90Yvqbh3439p11tb6Ym4rhwjKQJQOYuYuM1qawnYi2GhRuyhAiHUZY
+\restrict f6btf3JlHsAzJqJQs7t101hjGmLHix1uBKczTwNkAkIUo2uagyueOVstGvplQmc
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -7353,6 +7353,13 @@ CREATE UNIQUE INDEX uq_users_share_token ON public.users USING btree (share_toke
 
 
 --
+-- Name: meta_event_players_player_key_stats; Type: STATISTICS; Schema: public; Owner: -
+--
+
+CREATE STATISTICS public.meta_event_players_player_key_stats ON regexp_replace(source_identity, '#\d+$'::text, ''::text) FROM public.meta_event_players;
+
+
+--
 -- Name: card_card_types card_card_types_sync; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -10058,5 +10065,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jimiDX8aT90Yvqbh3439p11tb6Ym4rhwjKQJQOYuYuM1qawnYi2GhRuyhAiHUZY
+\unrestrict f6btf3JlHsAzJqJQs7t101hjGmLHix1uBKczTwNkAkIUo2uagyueOVstGvplQmc
 

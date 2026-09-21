@@ -1662,6 +1662,23 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(capped.total).toBe(3);
     });
 
+    it("counts the matches and their events whether or not the page is full", async () => {
+      const first = await seedEvent(repo, "mta-deck-count-one", { eventDate: "2027-02-10" });
+      const second = await seedEvent(repo, "mta-deck-count-two", { eventDate: "2027-02-11" });
+      await seedListedPlayer(repo, first, { playerName: "MTA Count One", rank: 1 });
+      await seedListedPlayer(repo, first, { playerName: "MTA Count Two", rank: 2 });
+      await seedListedPlayer(repo, second, { playerName: "MTA Count Three", rank: 1 });
+      const window = { from: "2027-02-10", to: "2027-02-11" };
+
+      const short = await repo.allDeckSummaries({ ...window, limit: 5 });
+      const full = await repo.allDeckSummaries({ ...window, limit: 1 });
+      const later = await repo.allDeckSummaries({ ...window, limit: 5, offset: 2 });
+
+      expect(short).toMatchObject({ total: 3, eventCount: 2 });
+      expect(full).toMatchObject({ total: 3, eventCount: 2 });
+      expect(later).toMatchObject({ total: 3, eventCount: 2 });
+    });
+
     it("curates to the best finish per legend per event, and pages what is left", async () => {
       const first = await seedEvent(repo, "mta-deck-curated-one", { eventDate: "2027-03-05" });
       const second = await seedEvent(repo, "mta-deck-curated-two", { eventDate: "2027-03-06" });

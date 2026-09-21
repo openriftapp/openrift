@@ -11,6 +11,7 @@ import type { Kysely, SelectQueryBuilder, SqlBool } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { ttlCached } from "../../../lib/ttl-cached.js";
 import type { MetaScopeFacet, MetaScopeFilters } from "./meta-shared.js";
 import {
   META_ARCHIVE_USER_ID,
@@ -127,6 +128,8 @@ export interface MetaDeckFacetRows {
 }
 
 const DECK_PAGE_SIZE = 50;
+
+const ARCHIVE_TOTAL_TTL_MS = 10 * 60 * 1000;
 
 const FINISH_BOUNDS = [1, 4, 8, 16] as const;
 
@@ -315,6 +318,13 @@ export function metaDecksRepo(db: Kysely<Database>) {
     );
   }
 
+  const cachedArchiveTotal = ttlCached(ARCHIVE_TOTAL_TTL_MS, async () => {
+    const row = await deckQuery()
+      .select((eb) => eb.fn.countAll<string>().as("total"))
+      .executeTakeFirstOrThrow();
+    return Number(row.total);
+  });
+
   function curatedIds(filters: MetaDeckFilters, lifted?: MetaDeckFacet) {
     const legendKey = sql`coalesce(p.legend_card_id::text, 'deck:' || p.deck_id)`;
     return applyDeckFilters(deckQuery(), filters, lifted)
@@ -434,7 +444,8 @@ export function metaDecksRepo(db: Kysely<Database>) {
      *
      * `total` counts the whole match, so a capped request can still say how much
      * of what it found it is showing, `eventCount` the events that match spans.
-     * `archiveTotal` counts the same population with no filter at all.
+     * `archiveTotal` counts the same population with no filter at all, and can
+     * be up to ten minutes old.
      */
     async allDeckSummaries(filters: MetaDeckFilters = {}): Promise<{
       rows: MetaDeckSummaryRow[];
@@ -473,23 +484,29 @@ export function metaDecksRepo(db: Kysely<Database>) {
         ])
         .$narrowType<{ deckId: string; shareToken: string }>();
 
-      const [rows, countRow, archiveRow] = await Promise.all([
+      const [rows, archiveTotal] = await Promise.all([
         orderedDeckPage(rowQuery, filters).execute(),
-        narrowedDecks(filters)
-          .select((eb) => [
-            eb.fn.countAll<string>().as("total"),
-            sql<number>`count(distinct p.meta_event_id)::int`.as("eventCount"),
-          ])
-          .executeTakeFirstOrThrow(),
-        deckQuery()
-          .select((eb) => eb.fn.countAll<string>().as("total"))
-          .executeTakeFirstOrThrow(),
+        cachedArchiveTotal(),
       ]);
+      if ((filters.offset ?? 0) === 0 && rows.length < (filters.limit ?? DECK_PAGE_SIZE)) {
+        return {
+          rows,
+          total: rows.length,
+          eventCount: new Set(rows.map((row) => row.eventSlug)).size,
+          archiveTotal,
+        };
+      }
+      const countRow = await narrowedDecks(filters)
+        .select((eb) => [
+          eb.fn.countAll<string>().as("total"),
+          sql<number>`count(distinct p.meta_event_id)::int`.as("eventCount"),
+        ])
+        .executeTakeFirstOrThrow();
       return {
         rows,
         total: Number(countRow.total),
         eventCount: countRow.eventCount,
-        archiveTotal: Number(archiveRow.total),
+        archiveTotal,
       };
     },
 
