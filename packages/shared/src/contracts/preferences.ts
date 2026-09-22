@@ -96,6 +96,7 @@ export const updatePreferencesSchema = z.object({
     .nullable()
     .optional(),
   compactFilterView: z.boolean().nullable().optional(),
+  countExcludedCollections: z.boolean().nullable().optional(),
   emailNotifications: emailNotificationPreferenceSchema.nullable().optional(),
 });
 
@@ -118,6 +119,7 @@ export const userPreferencesResponseSchema = z.object({
   defaultCardView: z.enum(["cards", "printings"]).optional(),
   defaultCurrency: z.enum(["EUR", "USD"]).optional(),
   topLevelFilters: z.array(z.string()).optional(),
+  countExcludedCollections: z.boolean().optional(),
   emailNotifications: emailNotificationPreferenceSchema.optional(),
 });
 

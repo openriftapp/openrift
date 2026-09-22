@@ -8,6 +8,17 @@ import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useCollectionsList } from "@/features/collections/hooks/use-collections";
 import { useCopiesCollection } from "@/features/collections/hooks/use-copies-collection";
 
+export function sumCounts(
+  a: Readonly<Record<string, number>>,
+  b: Readonly<Record<string, number>>,
+): Record<string, number> {
+  const sum: Record<string, number> = { ...a };
+  for (const [key, count] of Object.entries(b)) {
+    sum[key] = (sum[key] ?? 0) + count;
+  }
+  return sum;
+}
+
 function aggregateTotals(copies: readonly CopyResponse[]): Record<string, number> {
   const totals: Record<string, number> = {};
   for (const copy of copies) {
@@ -240,6 +251,19 @@ export function aggregateDeckBuildingCounts(
     }
   }
   return { available, locked, lockedLoaned, lockedReserved, lockedExcluded };
+}
+
+export function countExcludedAsAvailable(counts: DeckBuildingCounts): DeckBuildingCounts {
+  const available = { ...counts.available };
+  for (const [printingId, count] of Object.entries(counts.lockedExcluded)) {
+    available[printingId] = (available[printingId] ?? 0) + count;
+  }
+  return {
+    ...counts,
+    available,
+    locked: sumCounts(counts.lockedLoaned, counts.lockedReserved),
+    lockedExcluded: {},
+  };
 }
 
 export function useDeckBuildingCounts(

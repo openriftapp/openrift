@@ -85,6 +85,28 @@ describe("sanitize-preferences — topLevelFilters", () => {
   });
 });
 
+describe("sanitize-preferences — countExcludedCollections", () => {
+  it("keeps a boolean from the server", () => {
+    expect(
+      sanitizeServerResponse({ countExcludedCollections: true }).countExcludedCollections,
+    ).toBe(true);
+  });
+
+  it("yields null for a non-boolean server value", () => {
+    expect(
+      sanitizeServerResponse({ countExcludedCollections: "yes" }).countExcludedCollections,
+    ).toBeNull();
+  });
+
+  it("reads it from the persisted overrides and defaults to null when absent", () => {
+    expect(
+      sanitizeOverrides({ overrides: { countExcludedCollections: true } }).overrides
+        .countExcludedCollections,
+    ).toBe(true);
+    expect(sanitizeOverrides({ overrides: {} }).overrides.countExcludedCollections).toBeNull();
+  });
+});
+
 describe("sanitize-preferences — languages", () => {
   describe("retired language codes", () => {
     it("rewrites a persisted ZH to SC", () => {

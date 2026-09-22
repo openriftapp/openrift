@@ -203,6 +203,7 @@ export interface ResolvedPreferences {
   defaultCardView: DefaultCardView;
   defaultCurrency: Currency;
   topLevelFilters: string[];
+  countExcludedCollections: boolean;
 }
 
 /**
@@ -220,6 +221,7 @@ export const DISPLAY_PREFERENCE_KEYS = [
   "defaultCardView",
   "defaultCurrency",
   "topLevelFilters",
+  "countExcludedCollections",
 ] as const satisfies readonly (keyof ResolvedPreferences)[];
 
 export type DisplayPreferenceKey = (typeof DISPLAY_PREFERENCE_KEYS)[number];
@@ -254,4 +256,5 @@ export const PREFERENCE_DEFAULTS: ResolvedPreferences = {
     "variant",
     "stats",
   ],
+  countExcludedCollections: false,
 };

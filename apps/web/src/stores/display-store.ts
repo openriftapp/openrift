@@ -58,6 +58,7 @@ interface DisplayState extends DisplayPreferences {
   setDefaultCardView: (value: DisplayPreferences["defaultCardView"]) => void;
   setDefaultCurrency: (value: DisplayPreferences["defaultCurrency"]) => void;
   setTopLevelFilters: (value: DisplayPreferences["topLevelFilters"]) => void;
+  setCountExcludedCollections: (value: DisplayPreferences["countExcludedCollections"]) => void;
 
   resetPreference: (key: DisplayPreferenceKey) => void;
 
@@ -144,6 +145,11 @@ export const useDisplayStore = create<DisplayState>()(
         set((state) => ({
           topLevelFilters: value,
           overrides: { ...state.overrides, topLevelFilters: value },
+        })),
+      setCountExcludedCollections: (value) =>
+        set((state) => ({
+          countExcludedCollections: value,
+          overrides: { ...state.overrides, countExcludedCollections: value },
         })),
 
       resetPreference: (key) =>

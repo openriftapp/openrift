@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
-import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
+import { useBuildableCount } from "@/features/meta/hooks/use-buildable-count";
 
 export interface MetaOwnedCards {
   ownedByPrinting: Readonly<Record<string, number>>;
@@ -19,7 +19,7 @@ export function MetaOwnedCardsBridge({
   onChange: (value: MetaOwnedCards | undefined) => void;
 }) {
   const { printingsByCardId } = useCards();
-  const { data: ownedByPrinting } = useOwnedCount(true);
+  const { data: ownedByPrinting } = useBuildableCount(true);
   useEffect(() => {
     onChange(ownedByPrinting === undefined ? undefined : { ownedByPrinting, printingsByCardId });
   }, [ownedByPrinting, printingsByCardId, onChange]);

@@ -68,6 +68,14 @@ describe("useDisplayStore", () => {
       expect(state.overrides.topLevelFilters).toEqual(["sets", "owned"]);
     });
 
+    it("setCountExcludedCollections updates both resolved value and override", () => {
+      useDisplayStore.getState().setCountExcludedCollections(true);
+
+      const state = useDisplayStore.getState();
+      expect(state.countExcludedCollections).toBe(true);
+      expect(state.overrides.countExcludedCollections).toBe(true);
+    });
+
     it("setFoilEffect updates both resolved value and override", () => {
       useDisplayStore.getState().setFoilEffect(false);
 
@@ -178,6 +186,7 @@ describe("useDisplayStore", () => {
         defaultCardView: null,
         defaultCurrency: null,
         topLevelFilters: null,
+        countExcludedCollections: null,
       });
       expect(state.showImages).toBe(PREFERENCE_DEFAULTS.showImages);
       expect(state.fancyFan).toBe(PREFERENCE_DEFAULTS.fancyFan);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-22
+
+### Highlights
+
+- feat(Meta): **Meta decks respect deck building** — "Buildable" and missing counts on events and the archive now leave out collections excluded from deck building, and a profile setting counts them again for meta and shared decks.
+
 ## 2026-09-21
 
 ### Other

@@ -2,7 +2,7 @@ import type { MetaDeckCardsQuery } from "@openrift/shared/types/api/meta";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
+import { useBuildableCount } from "@/features/meta/hooks/use-buildable-count";
 import { useMetaDeckCards } from "@/features/meta/hooks/use-meta";
 import type { MetaDeckCost } from "@/features/meta/lib/meta-deck-collection";
 import {
@@ -24,7 +24,7 @@ export function useMetaDeckCosts(
   const prices = usePrices();
   const marketplace = useDisplayStore((state) => state.marketplaceOrder[0]);
   const languageOrder = useEffectiveLanguageOrder();
-  const { data: ownedByPrinting } = useOwnedCount(options.withCollection);
+  const { data: ownedByPrinting } = useBuildableCount(options.withCollection);
 
   if (options.withCollection && ownedByPrinting === undefined) {
     return undefined;

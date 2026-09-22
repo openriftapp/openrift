@@ -88,6 +88,7 @@ function getPrefsSnapshot(): UserPreferencesResponse & {
     defaultCardView: overrides.defaultCardView,
     defaultCurrency: overrides.defaultCurrency,
     topLevelFilters: overrides.topLevelFilters,
+    countExcludedCollections: overrides.countExcludedCollections,
     // Retired fields, folded into topLevelFilters; always null to clear them.
     hiddenFilterSections: null,
     compactFilterView: null,

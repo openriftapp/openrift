@@ -15,8 +15,8 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
 vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsByCardId }),
 }));
-vi.mock("@/features/collections/hooks/use-owned-count", () => ({
-  useOwnedCount: (enabled: boolean) => {
+vi.mock("@/features/meta/hooks/use-buildable-count", () => ({
+  useBuildableCount: (enabled: boolean) => {
     requestedEnabled = enabled;
     return { data: enabled ? ownedByPrinting : undefined };
   },

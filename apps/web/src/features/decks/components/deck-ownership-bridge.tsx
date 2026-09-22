@@ -3,7 +3,10 @@ import { useEffect } from "react";
 
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePreferredPrinting } from "@/features/cards/hooks/use-preferred-printing";
-import { useDeckBuildingCounts } from "@/features/collections/hooks/use-owned-count";
+import {
+  countExcludedAsAvailable,
+  useDeckBuildingCounts,
+} from "@/features/collections/hooks/use-owned-count";
 import { useDeckOwnership } from "@/features/decks/hooks/use-deck-ownership";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { OwnershipBandSources } from "@/features/decks/lib/deck-ownership-band";
@@ -14,6 +17,7 @@ import {
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
 import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
+import { useDisplayStore } from "@/stores/display-store";
 
 interface DeckOwnershipBridgeProps {
   builderCards: DeckBuilderCard[];
@@ -36,7 +40,12 @@ export function DeckOwnershipBridge({
   const { allPrintings } = useCards();
   // No home-collection exemption here: the deck's home collection is owner-only
   // and never part of a shared deck's payload.
-  const { data: counts } = useDeckBuildingCounts(isLoggedIn);
+  const { data: deckBuildingCounts } = useDeckBuildingCounts(isLoggedIn);
+  const countExcluded = useDisplayStore((state) => state.countExcludedCollections);
+  const counts =
+    deckBuildingCounts && countExcluded
+      ? countExcludedAsAvailable(deckBuildingCounts)
+      : deckBuildingCounts;
   const { data: borrowedCounts } = useBorrowedCounts(isLoggedIn);
   // Cards from reserved trades are not in hand: advisory only, so the user
   // doesn't buy a copy that's already on its way.

@@ -7,8 +7,20 @@ import {
   aggregateDeckBuildingCounts,
   aggregateScopedCount,
   aggregateScopedTotals,
+  countExcludedAsAvailable,
+  sumCounts,
   tileOwnedCounts,
 } from "./use-owned-count";
+
+describe("sumCounts", () => {
+  it("adds the two maps key by key", () => {
+    expect(sumCounts({ garen: 1, jinx: 2 }, { garen: 2, annie: 1 })).toEqual({
+      garen: 3,
+      jinx: 2,
+      annie: 1,
+    });
+  });
+});
 
 function copy(printingId: string, collectionId: string, groupId: string | null): CopyResponse {
   return stubCopy({ id: `${collectionId}:${printingId}`, printingId, collectionId, groupId });
@@ -154,6 +166,48 @@ describe("aggregateDeckBuildingCounts", () => {
     expect(aggregateDeckBuildingCounts(copies, groupAvailability, "shared-box").available).toEqual({
       garen: 1,
     });
+  });
+});
+
+describe("countExcludedAsAvailable", () => {
+  const availability = new Map([
+    ["open-shelf", true],
+    ["red-box", false],
+  ]);
+
+  it("moves copies in excluded collections into the available stock", () => {
+    const copies = [copy("garen", "open-shelf", null), copy("garen", "red-box", null)];
+
+    const result = countExcludedAsAvailable(aggregateDeckBuildingCounts(copies, availability));
+
+    expect(result.available).toEqual({ garen: 2 });
+    expect(result.locked).toEqual({});
+    expect(result.lockedExcluded).toEqual({});
+  });
+
+  it("keeps loaned and reserved copies locked", () => {
+    const copies = [
+      stubCopy({ printingId: "garen", collectionId: "red-box", groupId: null, onLoan: true }),
+      stubCopy({ printingId: "garen", collectionId: "red-box", groupId: null, reserved: true }),
+      copy("garen", "red-box", null),
+    ];
+
+    const result = countExcludedAsAvailable(aggregateDeckBuildingCounts(copies, availability));
+
+    expect(result.available).toEqual({ garen: 1 });
+    expect(result.locked).toEqual({ garen: 2 });
+    expect(result.lockedLoaned).toEqual({ garen: 1 });
+    expect(result.lockedReserved).toEqual({ garen: 1 });
+  });
+
+  it("leaves group copies the viewer has not opted into out", () => {
+    const copies = [copy("garen", "shared-box", "group-1")];
+
+    const result = countExcludedAsAvailable(
+      aggregateDeckBuildingCounts(copies, new Map([["shared-box", false]])),
+    );
+
+    expect(result.available).toEqual({});
   });
 });
 

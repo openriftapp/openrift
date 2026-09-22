@@ -42,6 +42,8 @@ export function DisplaySection() {
   const setFrostedBars = useDisplayStore((s) => s.setFrostedBars);
   const defaultCardView = useDisplayStore((s) => s.defaultCardView);
   const setDefaultCardView = useDisplayStore((s) => s.setDefaultCardView);
+  const countExcludedCollections = useDisplayStore((s) => s.countExcludedCollections);
+  const setCountExcludedCollections = useDisplayStore((s) => s.setCountExcludedCollections);
   const overrides = useDisplayStore((s) => s.overrides);
   const resetPreference = useDisplayStore((s) => s.resetPreference);
   const themePreference = useThemeStore((s) => s.preference);
@@ -95,6 +97,24 @@ export function DisplaySection() {
           <ResetButton
             onClick={() => resetPreference("defaultCardView")}
             label={m.profile_display_default_card_view_reset()}
+          />
+        )}
+      </SettingsRow>
+
+      <SettingsRow
+        label={m.profile_display_count_excluded()}
+        htmlFor="pref-count-excluded"
+        description={m.profile_display_count_excluded_description()}
+      >
+        <Switch
+          id="pref-count-excluded"
+          checked={countExcludedCollections}
+          onCheckedChange={(checked: boolean) => setCountExcludedCollections(checked)}
+        />
+        {overrides.countExcludedCollections !== null && (
+          <ResetButton
+            onClick={() => resetPreference("countExcludedCollections")}
+            label={m.profile_display_count_excluded_reset()}
           />
         )}
       </SettingsRow>

@@ -133,6 +133,10 @@ export function sanitizeServerResponse(data: unknown): Partial<DisplayOverrides>
   if ("topLevelFilters" in record) {
     result.topLevelFilters = sanitizeFilterKeyList(record.topLevelFilters);
   }
+  if ("countExcludedCollections" in record) {
+    result.countExcludedCollections =
+      typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null;
+  }
   return result;
 }
 
@@ -275,6 +279,8 @@ function sanitizeOverrideFields(record: Record<string, unknown>): DisplayOverrid
     defaultCardView: safeDefaultCardView,
     defaultCurrency: safeDefaultCurrency,
     topLevelFilters: safeTopLevelFilters,
+    countExcludedCollections:
+      typeof record.countExcludedCollections === "boolean" ? record.countExcludedCollections : null,
   };
 }
 
