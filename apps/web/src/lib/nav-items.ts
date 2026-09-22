@@ -24,6 +24,7 @@ export interface NavItemConfig {
   keepSearch?: boolean;
   lockedKey?: LockedFeatureKey;
   badge?: keyof NavBadgeCounts;
+  promoteWhenBadged?: boolean;
   flag?: "glossary" | "meta" | "board-states";
   platform?: "mobile" | "desktop";
 }

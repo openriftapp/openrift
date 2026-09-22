@@ -169,6 +169,7 @@ export function moreNavSections(): NavSectionConfig[] {
           icon: HandshakeIcon,
           lockedKey: "trades",
           badge: "trades",
+          promoteWhenBadged: true,
           description: m.nav_trades_description(),
         },
         {
@@ -251,15 +252,33 @@ export function navItemVisible(
   return true;
 }
 
+function isPromoted(item: NavItemConfig, badges?: NavBadgeCounts): boolean {
+  return Boolean(item.promoteWhenBadged && item.badge && badges && badges[item.badge] > 0);
+}
+
+export function visiblePrimaryItems(opts: {
+  flags: NavFlags;
+  mobile: boolean;
+  badges?: NavBadgeCounts;
+}): NavItemConfig[] {
+  const promoted = moreNavSections()
+    .flatMap((section) => section.items)
+    .filter((item) => isPromoted(item, opts.badges));
+  return [...primaryNavItems(), ...promoted].filter((item) => navItemVisible(item, opts));
+}
+
 // Drops sections left with no visible items, so an all-desktop section
 // leaves no empty heading behind in the mobile sheet.
 export function visibleMoreSections(opts: {
   flags: NavFlags;
   mobile: boolean;
+  badges?: NavBadgeCounts;
 }): { label: string; items: NavItemConfig[] }[] {
   const sections = moreNavSections().map((section) => ({
     label: section.label,
-    items: section.items.filter((item) => navItemVisible(item, opts)),
+    items: section.items.filter(
+      (item) => navItemVisible(item, opts) && !isPromoted(item, opts.badges),
+    ),
   }));
   return sections.filter((section) => section.items.length > 0);
 }

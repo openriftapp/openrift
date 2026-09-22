@@ -6,6 +6,10 @@
 
 - feat(Meta): **Meta decks respect deck building** — "Buildable" and missing counts on events and the archive now leave out collections excluded from deck building, and a profile setting counts them again for meta and shared decks.
 
+### Other
+
+- feat(Trades): **Trades in the main menu when active** — while a trade is waiting on you, Trades moves out of the More menu into the top bar and the top of the mobile menu, bubble included.
+
 ## 2026-09-21
 
 ### Other

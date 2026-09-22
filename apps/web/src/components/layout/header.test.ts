@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { signInRedirectFor } from "./header";
-import { navItemVisible, primaryNavItems, visibleMoreSections } from "./nav-items";
+import {
+  navItemVisible,
+  primaryNavItems,
+  visibleMoreSections,
+  visiblePrimaryItems,
+} from "./nav-items";
 
 const flagsOn = { glossary: true, meta: true, "board-states": true };
 const flagsOff = { glossary: false, meta: false, "board-states": false };
@@ -70,6 +75,38 @@ describe("visibleMoreSections", () => {
         ?.items.map((i) => i.to);
     expect(organize(false)).toContain("/scan");
     expect(organize(true)).not.toContain("/scan");
+  });
+});
+
+describe("visiblePrimaryItems", () => {
+  const noBadges = { groups: 0, trades: 0, loans: 0 };
+  const organize = (mobile: boolean, badges: typeof noBadges) =>
+    visibleMoreSections({ flags: flagsOn, mobile, badges })
+      .find((s) => s.label === "Organize")
+      ?.items.map((i) => i.to);
+
+  it("keeps Trades in More while it has no badge", () => {
+    for (const mobile of [false, true]) {
+      const primary = visiblePrimaryItems({ flags: flagsOn, mobile, badges: noBadges });
+      expect(primary.map((i) => i.to)).not.toContain("/trades");
+      expect(organize(mobile, noBadges)).toContain("/trades");
+    }
+  });
+
+  it("moves Trades into the main menu while it has a badge", () => {
+    const badges = { ...noBadges, trades: 2 };
+    for (const mobile of [false, true]) {
+      const primary = visiblePrimaryItems({ flags: flagsOn, mobile, badges });
+      expect(primary.at(-1)?.to).toBe("/trades");
+      expect(organize(mobile, badges)).not.toContain("/trades");
+    }
+  });
+
+  it("leaves Lending in More when only Lending has a badge", () => {
+    const badges = { ...noBadges, loans: 3 };
+    const primary = visiblePrimaryItems({ flags: flagsOn, mobile: false, badges });
+    expect(primary.map((i) => i.to)).not.toContain("/loans");
+    expect(organize(false, badges)).toContain("/loans");
   });
 });
 

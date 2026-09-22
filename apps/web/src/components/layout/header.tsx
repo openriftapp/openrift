@@ -28,10 +28,9 @@ import latestMilestone from "virtual:latest-milestone";
 import type { NavFlags } from "@/components/layout/nav-items";
 import {
   badgeAriaLabel,
-  navItemVisible,
-  primaryNavItems,
   SignInRequiredDialog,
   visibleMoreSections,
+  visiblePrimaryItems,
 } from "@/components/layout/nav-items";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -246,18 +245,16 @@ function DesktopNav({
   return (
     <NavigationMenu>
       <NavigationMenuList className="gap-1">
-        {primaryNavItems()
-          .filter((item) => navItemVisible(item, { flags, mobile: false }))
-          .map((item) => (
-            <NavigationMenuItem key={item.to}>
-              <DesktopPrimaryItem
-                item={item}
-                isLoggedIn={isLoggedIn}
-                badges={badges}
-                onLockedClick={onLockedClick}
-              />
-            </NavigationMenuItem>
-          ))}
+        {visiblePrimaryItems({ flags, mobile: false, badges }).map((item) => (
+          <NavigationMenuItem key={item.to}>
+            <DesktopPrimaryItem
+              item={item}
+              isLoggedIn={isLoggedIn}
+              badges={badges}
+              onLockedClick={onLockedClick}
+            />
+          </NavigationMenuItem>
+        ))}
         <NavigationMenuItem>
           <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground focus:text-foreground data-popup-open:text-foreground">
             {m.layout_header_more()}
@@ -266,7 +263,7 @@ function DesktopNav({
             {/* CSS columns pack the sections side by side; break-inside-avoid
                 keeps each section whole so a group never splits mid-column. */}
             <div className="w-[34rem] columns-2 gap-2 p-2">
-              {visibleMoreSections({ flags, mobile: false }).map((section) => (
+              {visibleMoreSections({ flags, mobile: false, badges }).map((section) => (
                 <section key={section.label} className="mb-3 break-inside-avoid last:mb-0">
                   <div className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
                     {section.label}
@@ -603,18 +600,16 @@ function MobileNav({
           </SheetTitle>
         </SheetHeader>
         <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2">
-          {primaryNavItems()
-            .filter((item) => navItemVisible(item, { flags, mobile: true }))
-            .map((item) => (
-              <MobileNavItem
-                key={item.to}
-                item={item}
-                isLoggedIn={isLoggedIn}
-                badges={badges}
-                onLockedClick={onLockedClick}
-              />
-            ))}
-          {visibleMoreSections({ flags, mobile: true }).map((section) => (
+          {visiblePrimaryItems({ flags, mobile: true, badges }).map((item) => (
+            <MobileNavItem
+              key={item.to}
+              item={item}
+              isLoggedIn={isLoggedIn}
+              badges={badges}
+              onLockedClick={onLockedClick}
+            />
+          ))}
+          {visibleMoreSections({ flags, mobile: true, badges }).map((section) => (
             <MobileNavSection
               key={section.label}
               section={section}
