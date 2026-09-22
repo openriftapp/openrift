@@ -54,11 +54,13 @@ describe.skipIf(!ctx)("Init route (integration)", () => {
       color: "#4488ff",
       darkText: false,
       costKeyword: false,
+      cardModifier: false,
     });
     expect(json.keywords["INIT-Burn"]).toEqual({
       color: "#ff4400",
       darkText: true,
       costKeyword: false,
+      cardModifier: false,
     });
   });
 
