@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict f6btf3JlHsAzJqJQs7t101hjGmLHix1uBKczTwNkAkIUo2uagyueOVstGvplQmc
+\restrict ji2oMnge2AR5Bfvt9wxag3jR3qRme1zaOxZBmrymWw2DYUHb1nMDOkaC8E3FVmo
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2136,6 +2136,7 @@ CREATE TABLE public.keywords (
     updated_at timestamp with time zone DEFAULT now() CONSTRAINT keyword_styles_updated_at_not_null NOT NULL,
     is_well_known boolean DEFAULT false NOT NULL,
     cost_keyword boolean DEFAULT false NOT NULL,
+    card_modifier boolean DEFAULT false NOT NULL,
     CONSTRAINT keywords_color_check CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
     CONSTRAINT keywords_name_check CHECK ((name <> ''::text))
 );
@@ -10065,5 +10066,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict f6btf3JlHsAzJqJQs7t101hjGmLHix1uBKczTwNkAkIUo2uagyueOVstGvplQmc
+\unrestrict ji2oMnge2AR5Bfvt9wxag3jR3qRme1zaOxZBmrymWw2DYUHb1nMDOkaC8E3FVmo
 

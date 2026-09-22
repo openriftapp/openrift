@@ -21,7 +21,7 @@ function rulesKindLabel(kind: RuleRefKind): string {
     : m.board_states_rules_kind_tournament();
 }
 
-export function pinFor(pins: RulesPins, kind: RuleRefKind): string | null {
+function pinFor(pins: RulesPins, kind: RuleRefKind): string | null {
   return kind === "core" ? pins.coreRulesVersion : pins.tournamentRulesVersion;
 }
 
