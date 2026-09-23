@@ -50,7 +50,7 @@
         "hono": "4.13.8",
         "hono-rate-limiter": "0.5.4",
         "kysely": "0.29.6",
-        "kysely-postgres-js": "5.0.0",
+        "kysely-postgres-js": "4.0.0",
         "nodemailer": "10.0.10",
         "onnxruntime-node": "1.30.0",
         "postgres": "3.4.9",
@@ -2231,7 +2231,7 @@
 
     "kysely": ["kysely@0.29.6", "", {}, "sha512-hHaB8C/rfzDDtr/t8YZwxAuPJTT0zHyaPoVzcXwDYhYNAgH/4sIfVhi/XLLIY+bL/FqaIJnjATDbi8ObSELmxg=="],
 
-    "kysely-postgres-js": ["kysely-postgres-js@5.0.0", "", { "peerDependencies": { "kysely": ">= 0.29.0 < 1", "postgres": "^3.4.0" }, "optionalPeers": ["postgres"] }, "sha512-KD3Lzhzua5KlHFrtQdkxYH5tOpiJTz0e1OhJjEcJAmce7lfpXzZA07ZJYj1QQV1gKBoYnBBqM/621St6/X0YUA=="],
+    "kysely-postgres-js": ["kysely-postgres-js@4.0.0", "", { "peerDependencies": { "kysely": ">= 0.29.0 < 1", "postgres": "^3.4.0" }, "optionalPeers": ["postgres"] }, "sha512-zIGYZ1TMduPZJAyeRMo9OodZYPxK4RI8OIKO8XShHiv5gzaY+KxmZnKcnYRvbfdmUH0kv+ZTlYrBZ5Uk+lI1QA=="],
 
     "latest-version": ["latest-version@9.0.0", "", { "dependencies": { "package-json": "^10.0.0" } }, "sha512-7W0vV3rqv5tokqkBAFV1LbR7HPOWzXQDpDgEuib/aJ1jsZZx6x3c2mBI+TJhJzOhkGeaLbCKEHXEXLfirtG2JA=="],
 
