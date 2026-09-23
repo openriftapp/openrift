@@ -75,7 +75,7 @@ export const ko: EmailMessages = {
   coalescedRequestLead: (senderHtml, total) =>
     `${senderHtml}님이 교환 요청 ${num("ko", total)}건을 보냈습니다. 참고로 교환 요청은 보낸 지 7일이 지나면 만료됩니다.`,
 
-  statusHeading: "교환 업데이트",
+  statusHeading: "교환 진행 상황",
   statusOutcomeHeading: (event) =>
     ({ reserved: "수락됨", declined: "거절됨", cancelled: "취소됨" })[event],
   statusPhrase: (actorHtml, cardHtml, event) => {
@@ -139,17 +139,17 @@ export const ko: EmailMessages = {
   acceptedCardSubject: (cardName) => `${cardName}에 대한 제출이 채택되었습니다`,
   acceptedCardLead: (cardHtml) =>
     `${cardHtml}에 대한 제출이 검토를 거쳐 채택되었습니다. 이제 OpenRift 카드 데이터에 반영되어 있습니다.`,
-  acceptedDecklistSubject: (eventName) => `${eventName} 덱 리스트가 채택되었습니다`,
+  acceptedDecklistSubject: (eventName) => `${eventName} 덱 목록이 채택되었습니다`,
   acceptedDecklistLead: (playerHtml, eventHtml) =>
-    `${eventHtml}의 ${playerHtml} 덱 리스트가 검토를 거쳐 채택되었습니다. 이제 메타 아카이브에 수록되어 있습니다.`,
+    `${eventHtml}의 ${playerHtml} 덱 목록이 검토를 거쳐 채택되었습니다. 이제 메타 아카이브에 수록되어 있습니다.`,
   acceptedEventSubject: (eventName) => `${eventName} 수정 사항이 반영되었습니다`,
   acceptedEventLead: (eventHtml) =>
-    `${eventHtml}에 대한 수정 사항이 검토를 거쳐 반영되었습니다. 이제 대회 페이지에 표시됩니다.`,
+    `${eventHtml}에 대한 수정 사항이 검토를 거쳐 반영되었습니다. 이제 이벤트 페이지에 표시됩니다.`,
   acceptedThanks:
     "OpenRift의 데이터는 한 사람이 관리하기 때문에, 이런 제출이 빈 곳을 채워 줍니다. 감사합니다!",
   viewCardButton: (cardName) => `${cardName} 보기`,
-  viewDecklistButton: "덱 리스트 보기",
-  viewEventButton: "대회 보기",
+  viewDecklistButton: "덱 목록 보기",
+  viewEventButton: "이벤트 보기",
   viewSubmissionsButton: "내 제출 보기",
   submissionsLinkLabel: "제출 페이지",
   submissionsNote: (linkHtml) => `제출하신 모든 내용과 처리 상태는 ${linkHtml}에서 볼 수 있습니다.`,

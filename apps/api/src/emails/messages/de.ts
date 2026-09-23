@@ -13,10 +13,10 @@ export const de: EmailMessages = {
     ({
       groupJoinRequests: "Gruppen-Beitrittsanfragen",
       groupApprovals: "Willkommens-E-Mails für Gruppen",
-      submissionAccepted: "Dankes-E-Mails für angenommene Einreichungen",
+      submissionAccepted: "Dankes-E-Mails für angenommene Beiträge",
       tradeRequests: "E-Mails zu Tauschanfragen",
       tradeStatus: "E-Mails zum Tauschstatus",
-      tradeMatches: "Täglicher Treffer-Überblick",
+      tradeMatches: "Tägliche Treffer-Übersicht",
     })[channel],
 
   joinRequestSubject: (groupName) => `Beitrittsanfrage für ${groupName}`,
@@ -146,22 +146,22 @@ export const de: EmailMessages = {
 
   footerContribution: "Du erhältst diese E-Mail, weil du bei OpenRift etwas eingereicht hast.",
   acceptedHeading: "Danke für deine Hilfe",
-  acceptedCardSubject: (cardName) => `Deine Einreichung zu ${cardName} wurde angenommen`,
+  acceptedCardSubject: (cardName) => `Dein Beitrag zu ${cardName} wurde angenommen`,
   acceptedCardLead: (cardHtml) =>
-    `Deine Einreichung zu ${cardHtml} wurde geprüft und angenommen. Sie ist jetzt Teil der Kartendaten auf OpenRift.`,
+    `Dein Beitrag zu ${cardHtml} wurde geprüft und angenommen. Er ist jetzt Teil der Kartendaten auf OpenRift.`,
   acceptedDecklistSubject: (eventName) => `Deine Deckliste für ${eventName} wurde angenommen`,
   acceptedDecklistLead: (playerHtml, eventHtml) =>
     `Die Deckliste, die du für ${playerHtml} bei ${eventHtml} geschickt hast, wurde geprüft und angenommen. Sie ist jetzt im Meta-Archiv.`,
   acceptedEventSubject: (eventName) => `Deine Korrektur zu ${eventName} wurde übernommen`,
   acceptedEventLead: (eventHtml) =>
-    `Deine Korrektur zu ${eventHtml} wurde geprüft und übernommen. Die Turnierseite zeigt sie jetzt an.`,
+    `Deine Korrektur zu ${eventHtml} wurde geprüft und übernommen. Die Event-Seite zeigt sie jetzt an.`,
   acceptedThanks:
-    "Die Daten von OpenRift pflegt eine einzelne Person, darum schließen Einreichungen wie deine die Lücken. Danke!",
+    "Die Daten von OpenRift pflegt eine einzelne Person, darum schließen Beiträge wie deine die Lücken. Danke!",
   viewCardButton: (cardName) => `${cardName} ansehen`,
   viewDecklistButton: "Deckliste ansehen",
-  viewEventButton: "Turnier ansehen",
-  viewSubmissionsButton: "Deine Einreichungen ansehen",
-  submissionsLinkLabel: "Seite mit deinen Einreichungen",
+  viewEventButton: "Event ansehen",
+  viewSubmissionsButton: "Deine Beiträge ansehen",
+  submissionsLinkLabel: "Seite mit deinen Beiträgen",
   submissionsNote: (linkHtml) =>
     `Alles, was du eingereicht hast, und den jeweiligen Stand findest du auf der ${linkHtml}.`,
 };

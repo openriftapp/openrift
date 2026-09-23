@@ -5,13 +5,13 @@ export const zhHant: EmailMessages = {
   htmlLang: "zh-Hant",
   greeting: (nameHtml) => (nameHtml ? `${nameHtml} 您好：` : "您好："),
   footerTrading: "您會收到這封郵件，是因為您在 OpenRift 上的交換活動。",
-  footerGroupOwner: "您會收到這封郵件，是因為您在 OpenRift 上管理著一個小組。",
-  footerGroupJoin: "您會收到這封郵件，是因為您申請加入 OpenRift 上的某個小組。",
+  footerGroupOwner: "您會收到這封郵件，是因為您在 OpenRift 上管理著一個社團。",
+  footerGroupJoin: "您會收到這封郵件，是因為您申請加入 OpenRift 上的某個社團。",
   unsubscribeWord: "取消訂閱",
   unsubscribeLabel: (channel) =>
     ({
-      groupJoinRequests: "小組加入申請",
-      groupApprovals: "小組歡迎郵件",
+      groupJoinRequests: "社團加入申請",
+      groupApprovals: "社團歡迎郵件",
       submissionAccepted: "提交採用感謝郵件",
       tradeRequests: "交換請求郵件",
       tradeStatus: "交換狀態郵件",
@@ -22,7 +22,7 @@ export const zhHant: EmailMessages = {
   joinRequestHeading: "新的加入申請",
   someone: "有人",
   joinRequestLead: (requesterHtml, groupHtml) =>
-    `${requesterHtml} 申請加入 ${groupHtml}。在管理員核准之前，該使用者不會進入小組。`,
+    `${requesterHtml} 申請加入 ${groupHtml}。在管理員核准之前，該使用者不會進入社團。`,
   reviewRequestButton: "查看申請",
 
   approvedSubject: (groupName) => `歡迎加入：${groupName}`,
@@ -31,15 +31,15 @@ export const zhHant: EmailMessages = {
   approvedBenefitsIntro: "您現在可以：",
   approvedBenefits: [
     "瀏覽其他成員分享的所有收藏、願望清單與交換清單。",
-    "交換配對：您願望清單上的卡牌，小組裡正好有人多出來。",
-    "即時關注小組的交換與動態。",
+    "交換配對：您願望清單上的卡牌，社團裡正好有人多出來。",
+    "即時關注社團的交換與動態。",
   ],
   managePageLinkLabel: "管理頁面",
   approvedVisibilityNote: (linkHtml) =>
-    `您的內容目前還不會顯示。請在${linkHtml}上選擇小組可以看到哪些清單與收藏。`,
+    `您的內容目前還不會顯示。請在${linkHtml}上選擇社團可以看到哪些清單與收藏。`,
   openGroupButton: (groupName) => `開啟 ${groupName}`,
 
-  aGroupMember: "某位小組成員",
+  aGroupMember: "某位社團成員",
   aMember: "某位成員",
   aCard: "一張卡牌",
   quantityLabel: (quantity, cardName) =>
@@ -121,11 +121,11 @@ export const zhHant: EmailMessages = {
   digestHeading: "新的交換配對",
   digestSubject: (total) =>
     total === 1
-      ? "您的交換小組裡有 1 個新配對"
-      : `您的交換小組裡有 ${num("zh-Hant", total)} 個新配對`,
+      ? "您的交換社團裡有 1 個新配對"
+      : `您的交換社團裡有 ${num("zh-Hant", total)} 個新配對`,
   digestSingleLead: (counterpartyHtml, cardHtml) =>
     `${counterpartyHtml} 現在有您願望清單上的 ${cardHtml}。`,
-  digestLead: "您所在小組的成員現在有您願望清單上的卡牌：",
+  digestLead: "您所在社團的成員現在有您願望清單上的卡牌：",
   counterpartyHasHeading: (labelHtml) => `${labelHtml} 擁有`,
 
   otpSubject: (type) =>
@@ -145,7 +145,7 @@ export const zhHant: EmailMessages = {
     `您對 ${cardHtml} 的提交已經審核並採用，現在已成為 OpenRift 卡牌資料的一部分。`,
   acceptedDecklistSubject: (eventName) => `您為 ${eventName} 提交的牌組清單已被採用`,
   acceptedDecklistLead: (playerHtml, eventHtml) =>
-    `您為 ${eventHtml} 中 ${playerHtml} 提交的牌組清單已經審核並採用，現已收錄進環境存檔。`,
+    `您為 ${eventHtml} 中 ${playerHtml} 提交的牌組清單已經審核並採用，現已收錄進 Meta 檔案。`,
   acceptedEventSubject: (eventName) => `您對 ${eventName} 的更正已套用`,
   acceptedEventLead: (eventHtml) =>
     `您對 ${eventHtml} 的更正已經審核並套用，賽事頁面現在已顯示更新。`,
@@ -153,7 +153,7 @@ export const zhHant: EmailMessages = {
   viewCardButton: (cardName) => `查看 ${cardName}`,
   viewDecklistButton: "查看牌組清單",
   viewEventButton: "查看賽事",
-  viewSubmissionsButton: "查看您的提交",
-  submissionsLinkLabel: "提交頁面",
-  submissionsNote: (linkHtml) => `您提交的所有內容及其狀態都在您的${linkHtml}上。`,
+  viewSubmissionsButton: "查看您的投稿",
+  submissionsLinkLabel: "投稿頁面",
+  submissionsNote: (linkHtml) => `您送出的所有內容及其狀態都在您的${linkHtml}上。`,
 };

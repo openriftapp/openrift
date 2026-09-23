@@ -9,6 +9,7 @@
 ### Other
 
 - fix(App): **Old tabs recover after a deploy** — a tab left open across a release now reloads itself instead of failing silently the next time it talks to the server.
+- fix(Account): **Official card terms in Korean and Chinese** — the 한국어, 简体中文 and 繁體中文 interfaces now use the words from Riot's printed cards and rules in each language, such as 힘 and 평정, 特性 and 赛事, 能量 and 流派.
 - fix(Trades): **Gone cards leave the trade list** — when a card you asked for or offered was already taken, the group's lists and matches now refresh so it disappears, next to the message saying so.
 
 ## 2026-09-22

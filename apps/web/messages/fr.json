@@ -153,7 +153,7 @@
   "profile_groups_approvals_description": "Quand un admin approuve votre demande, avec ce que le groupe vous apporte et un lien pour choisir ce que vous partagez.",
   "profile_contributions_title": "Contributions",
   "profile_contributions_description": "E-mails à propos des données de cartes et des decklists que vous nous envoyez.",
-  "profile_contributions_accepted_label": "Soumissions acceptées",
+  "profile_contributions_accepted_label": "Contributions acceptées",
   "profile_contributions_accepted_description": "Un remerciement quand une correction, une nouvelle carte, une photo ou une decklist que vous avez envoyée est acceptée, avec un lien vers l’endroit où elle apparaît.",
   "profile_notifications_title": "Notifications par e-mail",
   "profile_notifications_description": "Uniquement sur votre activité d'échange. Chaque e-mail permet de se désabonner en un clic.",

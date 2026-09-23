@@ -23,13 +23,13 @@ export const fr: EmailMessages = {
   joinRequestHeading: "Nouvelle demande d'adhésion",
   someone: "Quelqu'un",
   joinRequestLead: (requesterHtml, groupHtml) =>
-    `${requesterHtml} a demandé à rejoindre ${groupHtml}. La personne reste en dehors du groupe jusqu'à l'approbation d'un administrateur.`,
+    `${requesterHtml} a demandé à rejoindre ${groupHtml}. La personne reste en dehors du groupe jusqu'à l'approbation d'un admin.`,
   reviewRequestButton: "Examiner la demande",
 
   approvedSubject: (groupName) => `Vous êtes membre : ${groupName}`,
   approvedHeading: "Vous êtes membre",
   approvedLead: (groupHtml) =>
-    `Un administrateur a approuvé votre demande : vous êtes maintenant membre de ${groupHtml}.`,
+    `Un admin a approuvé votre demande : vous êtes maintenant membre de ${groupHtml}.`,
   approvedBenefitsIntro: "Ce que cela vous apporte :",
   approvedBenefits: [
     "Parcourez toutes les collections, listes de souhaits et listes d'échange que les autres membres partagent.",
@@ -82,7 +82,7 @@ export const fr: EmailMessages = {
   coalescedRequestLead: (senderHtml, total) =>
     `${senderHtml} vous a envoyé ${num("fr", total)} demandes d'échange. À noter : les demandes d'échange expirent 7 jours après leur envoi.`,
 
-  statusHeading: "Mises à jour des échanges",
+  statusHeading: "Suivi des échanges",
   statusOutcomeHeading: (event) =>
     ({ reserved: "Accepté", declined: "Refusé", cancelled: "Annulé" })[event],
   statusPhrase: (actorHtml, cardHtml, event) => {
@@ -146,24 +146,24 @@ export const fr: EmailMessages = {
     "Ce code expire dans 5 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.",
 
   footerContribution:
-    "Vous recevez cet e-mail parce que vous avez envoyé une soumission à OpenRift.",
+    "Vous recevez cet e-mail parce que vous avez envoyé une contribution à OpenRift.",
   acceptedHeading: "Merci pour votre aide",
-  acceptedCardSubject: (cardName) => `Votre soumission pour ${cardName} a été acceptée`,
+  acceptedCardSubject: (cardName) => `Votre contribution pour ${cardName} a été acceptée`,
   acceptedCardLead: (cardHtml) =>
-    `Votre soumission pour ${cardHtml} a été examinée et acceptée. Elle fait désormais partie des données de cartes d’OpenRift.`,
+    `Votre contribution pour ${cardHtml} a été examinée et acceptée. Elle fait désormais partie des données de cartes d’OpenRift.`,
   acceptedDecklistSubject: (eventName) => `Votre decklist pour ${eventName} a été acceptée`,
   acceptedDecklistLead: (playerHtml, eventHtml) =>
-    `La decklist que vous avez envoyée pour ${playerHtml} à ${eventHtml} a été examinée et acceptée. Elle figure désormais dans les archives méta.`,
+    `La decklist que vous avez envoyée pour ${playerHtml} à ${eventHtml} a été examinée et acceptée. Elle figure désormais dans l'archive méta.`,
   acceptedEventSubject: (eventName) => `Votre correction de ${eventName} a été appliquée`,
   acceptedEventLead: (eventHtml) =>
     `Votre correction de ${eventHtml} a été examinée et appliquée. La page de l’événement l’affiche désormais.`,
   acceptedThanks:
-    "Les données d’OpenRift sont tenues par une seule personne : des soumissions comme la vôtre comblent les manques. Merci !",
+    "Les données d’OpenRift sont tenues par une seule personne : des contributions comme la vôtre comblent les manques. Merci !",
   viewCardButton: (cardName) => `Voir ${cardName}`,
   viewDecklistButton: "Voir la decklist",
   viewEventButton: "Voir l’événement",
-  viewSubmissionsButton: "Voir vos soumissions",
-  submissionsLinkLabel: "page de vos soumissions",
+  viewSubmissionsButton: "Voir vos contributions",
+  submissionsLinkLabel: "page de vos contributions",
   submissionsNote: (linkHtml) =>
     `Tout ce que vous avez envoyé et son statut se trouvent sur la ${linkHtml}.`,
 };

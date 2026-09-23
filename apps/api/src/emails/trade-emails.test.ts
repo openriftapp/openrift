@@ -462,7 +462,7 @@ describe("localized trade emails", () => {
     expect(subject).toBe("Garen a accepté 1 et refusé 1 de vos échanges");
     expect(html).toContain(">Accepté</p>");
     expect(html).toContain(">Refusé</p>");
-    expect(html).toContain("Mises à jour des échanges");
+    expect(html).toContain("Suivi des échanges");
   });
 
   it("translates the digest subject and its count wording", () => {
@@ -492,7 +492,7 @@ describe("localized trade emails", () => {
 
     expect(german.subject).toBe("2 neue Treffer in deinen Tauschgruppen");
     expect(german.html).toContain(">Garen hat</p>");
-    expect(german.html).toContain("Täglicher Treffer-Überblick");
+    expect(german.html).toContain("Tägliche Treffer-Übersicht");
     expect(french.subject).toBe("2 nouvelles correspondances dans vos groupes d'échange");
     expect(french.html).toContain(">Garen possède</p>");
   });

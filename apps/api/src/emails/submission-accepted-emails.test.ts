@@ -94,7 +94,7 @@ describe("buildSubmissionAcceptedEmail", () => {
   it("renders in the recipient's language", () => {
     const { subject, html } = buildSubmissionAcceptedEmail({ ...CARD, locale: "de" });
 
-    expect(subject).toBe("Deine Einreichung zu Jinx, Loose Cannon wurde angenommen");
+    expect(subject).toBe("Dein Beitrag zu Jinx, Loose Cannon wurde angenommen");
     expect(html).toContain('lang="de"');
     expect(html).toContain("Jinx, Loose Cannon ansehen");
   });

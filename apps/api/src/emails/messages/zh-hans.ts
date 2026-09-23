@@ -131,7 +131,7 @@ export const zhHans: EmailMessages = {
   otpSubject: (type) =>
     ({
       "sign-in": "你的登录验证码",
-      "email-verification": "验证你的邮箱地址",
+      "email-verification": "验证你的邮箱",
       "forget-password": "重置你的密码",
       "change-email": "确认更改邮箱地址",
     })[type] ?? "你的验证码",
@@ -143,15 +143,15 @@ export const zhHans: EmailMessages = {
   acceptedCardSubject: (cardName) => `你对 ${cardName} 的提交已被采纳`,
   acceptedCardLead: (cardHtml) =>
     `你对 ${cardHtml} 的提交已经审核并采纳，现在已成为 OpenRift 卡牌数据的一部分。`,
-  acceptedDecklistSubject: (eventName) => `你为 ${eventName} 提交的卡组列表已被采纳`,
+  acceptedDecklistSubject: (eventName) => `你为 ${eventName} 提交的卡组表已被采纳`,
   acceptedDecklistLead: (playerHtml, eventHtml) =>
-    `你为 ${eventHtml} 中 ${playerHtml} 提交的卡组列表已经审核并采纳，现已收录进环境存档。`,
+    `你为 ${eventHtml} 中 ${playerHtml} 提交的卡组表已经审核并采纳，现已收录进 Meta 档案。`,
   acceptedEventSubject: (eventName) => `你对 ${eventName} 的更正已应用`,
   acceptedEventLead: (eventHtml) =>
     `你对 ${eventHtml} 的更正已经审核并应用，赛事页面现在已显示更新。`,
   acceptedThanks: "OpenRift 的数据由一个人维护，像你这样的提交帮忙补上了空缺。谢谢！",
   viewCardButton: (cardName) => `查看 ${cardName}`,
-  viewDecklistButton: "查看卡组列表",
+  viewDecklistButton: "查看卡组表",
   viewEventButton: "查看赛事",
   viewSubmissionsButton: "查看你的提交",
   submissionsLinkLabel: "提交页面",
