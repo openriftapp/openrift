@@ -54,5 +54,7 @@ metrics_generator:
 
 overrides:
   defaults:
+    compaction:
+      block_retention: 168h
     metrics_generator:
       processors: [span-metrics, service-graphs]

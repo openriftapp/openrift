@@ -141,6 +141,26 @@ docker compose down              # Keeps data (bind-mounted in ./data/)
 docker compose down -v           # Same as above — bind mounts are NOT deleted by -v
 ```
 
+## Disk usage
+
+The VPS root disk is 40 GB. A 30 GB Hetzner volume (ext4, mounted at `/mnt/HC_Volume_<id>`) holds the monitoring data and the preview instance, bind-mounted back to their original paths through `/etc/fstab`:
+
+```
+/mnt/HC_Volume_<id>/monitoring-data  /home/openrift/openrift/monitoring/data  none  bind,nofail,x-systemd.requires-mounts-for=/mnt/HC_Volume_<id>  0 0
+/mnt/HC_Volume_<id>/openrift-preview /home/openrift/openrift-preview          none  bind,nofail,x-systemd.requires-mounts-for=/mnt/HC_Volume_<id>  0 0
+```
+
+Compose files and paths are unchanged. Prod Postgres and prod media stay on the root disk. If the volume is missing at boot, the empty root-owned mount points stop the containers from writing to the root disk.
+
+Prometheus holds the history for free space (`node_filesystem_avail_bytes`, graphed on the Infrastructure dashboard), the telemetry stores (`telemetry_disk_usage_bytes`, on the Telemetry pipeline dashboard), the prod database (`pg_database_size_bytes`) and its tables (`pg_stat_user_tables_table_size_bytes`, `pg_stat_user_tables_index_size_bytes`). For everything else (Docker images, container logs, the preview database, journald), `scripts/disk-report.sh` prints a breakdown on the VPS:
+
+```bash
+scp scripts/disk-report.sh openrift@VPS:~/openrift/disk-report.sh
+sudo bash /home/openrift/openrift/disk-report.sh
+```
+
+Run it as root. As openrift it skips the container logs and system sections and limits the directory listing to `$HOME`.
+
 ## Known issues
 
 ### postgres.js queries hang after a dropped connection
@@ -273,7 +293,7 @@ Docker stores container logs under `/var/lib/docker/containers/<id>/<id>-json.lo
 
 This caps each container's log at 5 × 20 MB (100 MB total per container). Existing containers need to be recreated (`docker compose up -d --force-recreate`) to pick up the new settings.
 
-**Host nginx logs** (`/var/log/nginx/`) are rotated automatically by the system's logrotate (installed with nginx, typically daily with 14-day retention).
+**Host nginx logs** (`/var/log/nginx/`) are rotated daily by the system's logrotate. `/etc/logrotate.d/nginx` on the VPS is set to `rotate 7` (Ubuntu's default is 14) to save disk.
 
 ### Health checks
 
