@@ -161,6 +161,22 @@ describe("extractBracketedTerms", () => {
     ]);
   });
 
+  it("keeps a multi-word keyword whole", () => {
+    expect(extractBracketedTerms("[죽음의 종소리]")).toEqual(["죽음의 종소리"]);
+  });
+
+  it("strips a spaced numeric param from a Korean keyword", () => {
+    expect(extractBracketedTerms("[맹공 2]")).toEqual(["맹공"]);
+  });
+
+  it("keeps a multi-word keyword whole when a glyph follows its param", () => {
+    expect(extractBracketedTerms("[Spell  Shield 2 :rb_rune_fire:]")).toEqual(["Spell Shield"]);
+  });
+
+  it("strips a leading shape marker from a CJK keyword", () => {
+    expect(extractBracketedTerms("[>绝念]")).toEqual(["绝念"]);
+  });
+
   it("skips shape markers attached to a keyword", () => {
     expect(extractBracketedTerms("[Level 3][>]")).toEqual(["Level"]);
     expect(extractBracketedTerms("[>>][Reaction]")).toEqual(["Reaction"]);
@@ -191,6 +207,10 @@ describe("extractKeywords", () => {
 
   it("strips resource glyphs", () => {
     expect(extractKeywords("[Equip :rb_rune_mind:]")).toEqual(["Equip"]);
+  });
+
+  it("keeps a multi-word keyword whole", () => {
+    expect(extractKeywords("[Spell Shield 2]")).toEqual(["Spell Shield"]);
   });
 
   it("extracts multiple unique keywords", () => {

@@ -14,7 +14,7 @@ function bracketLabels(text: string): string[] {
         continue;
       }
       if (token.type === "keyword") {
-        const label = token.name.split(/\s+/u).find(Boolean);
+        const label = token.name.replaceAll(/\s+/gu, " ").replace(/ \d+$/u, "");
         if (label) {
           labels.push(label);
         }
@@ -33,7 +33,7 @@ function isTermLike(label: string): boolean {
 
 /**
  * CJK writes a keyword's parameters flush against it with no space, so
- * `bracketLabels`'s whitespace split can't separate them: 坚守2 → 坚守,
+ * `bracketLabels`'s trailing-number strip can't separate them: 坚守2 → 坚守,
  * 装配蓝色 → 装配. A label that shrinks below two characters was a color word
  * in its own right (`[蓝色]`), so it's kept as-is.
  */
@@ -42,6 +42,7 @@ function stripCjkParameters(label: string): string {
     return label;
   }
   const cleaned = label
+    .replace(/^>+/u, "")
     .replace(/(?:蓝色|红色|绿色|橙色|紫色|白色|黑色)+$/u, "")
     .replace(/[A-Za-z\d>]+$/u, "");
   return cleaned.length >= 2 ? cleaned : label;
