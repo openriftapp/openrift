@@ -11,9 +11,10 @@ import { readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const TYPED_EXTENSIONS = new Set([
-  // `mjs` is not in nginx's mime.types; it's mapped by nginx/web.conf.
+  // `mjs` and `webmanifest` are not in nginx's mime.types; nginx/web.conf maps them.
   "js",
   "mjs",
+  "webmanifest",
   "css",
   "wasm",
   "bin",
