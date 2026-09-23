@@ -26,15 +26,16 @@ describe("cardmarketLanguageName", () => {
 });
 
 describe("printingLanguageForCardmarket", () => {
-  it("maps the four printed languages", () => {
+  it("maps the printed languages", () => {
     expect(printingLanguageForCardmarket(1)).toBe("EN");
     expect(printingLanguageForCardmarket(2)).toBe("FR");
     expect(printingLanguageForCardmarket(6)).toBe("SC");
     expect(printingLanguageForCardmarket(10)).toBe("KR");
+    expect(printingLanguageForCardmarket(11)).toBe("TC");
   });
 
   it("returns undefined for languages Riftbound is not printed in", () => {
-    for (const idLanguage of [3, 4, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17]) {
+    for (const idLanguage of [3, 4, 5, 7, 8, 9, 12, 13, 14, 15, 16, 17]) {
       expect(printingLanguageForCardmarket(idLanguage)).toBeUndefined();
     }
   });

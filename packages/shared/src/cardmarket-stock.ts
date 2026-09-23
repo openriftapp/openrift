@@ -46,13 +46,14 @@ const LANGUAGE_NAMES: Record<number, string> = {
   17: "Thai",
 };
 
-// `languages.code` for the four Riftbound is printed in. An article in any of
-// Cardmarket's other languages cannot be a real card.
+// `languages.code` for the languages Riftbound is printed in. An article in any
+// of Cardmarket's other languages cannot be a real card.
 const PRINTING_LANGUAGES: Record<number, string> = {
   1: "EN",
   2: "FR",
   6: "SC",
   10: "KR",
+  11: "TC",
 };
 
 const CONDITION_SLUGS: Record<number, string> = {

@@ -63,6 +63,14 @@ describe("cardmarketLangParam", () => {
     expect(cardmarketLangParam("ZH-TW")).toBe("&language=11");
   });
 
+  it("maps TC (our stored code) to traditional Chinese (11)", () => {
+    expect(cardmarketLangParam("TC")).toBe("&language=11");
+  });
+
+  it("maps KR (our stored code) to Korean (10)", () => {
+    expect(cardmarketLangParam("KR")).toBe("&language=10");
+  });
+
   it("is case-insensitive", () => {
     expect(cardmarketLangParam("en")).toBe("&language=1");
     expect(cardmarketLangParam("sc")).toBe("&language=6");

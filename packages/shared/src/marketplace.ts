@@ -13,7 +13,7 @@ export function cardtraderAffiliateUrl(url: string): string {
   return `${url}${separator}share_code=${CT_SHARE_CODE}`;
 }
 
-// Numeric language ids from Cardmarket's own docs. ZH-TW is unused by the catalog but kept for fidelity to their list.
+// Numeric language ids from Cardmarket's own docs.
 const CARDMARKET_LANGUAGE_CODES: Record<string, number> = {
   EN: 1,
   FR: 2,
@@ -27,7 +27,9 @@ const CARDMARKET_LANGUAGE_CODES: Record<string, number> = {
   PT: 8,
   RU: 9,
   KO: 10,
+  KR: 10,
   "ZH-TW": 11,
+  TC: 11,
 };
 
 // Cardmarket is the only marketplace with a language query param: TCGplayer keys language into the productId, CardTrader into the listing.

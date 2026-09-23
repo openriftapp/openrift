@@ -14,14 +14,14 @@ describe("marketplaceCarriesLanguage", () => {
   });
 
   it("rejects every non-English language on TCGplayer", () => {
-    for (const language of ["SC", "FR", "KR"]) {
+    for (const language of ["SC", "TC", "FR", "KR"]) {
       expect(marketplaceCarriesLanguage("tcgplayer", language)).toBe(false);
     }
   });
 
   it("leaves Cardmarket and CardTrader unrestricted", () => {
     for (const marketplace of ["cardmarket", "cardtrader"] as const) {
-      for (const language of ["SC", "FR", "KR"]) {
+      for (const language of ["SC", "TC", "FR", "KR"]) {
         expect(marketplaceCarriesLanguage(marketplace, language)).toBe(true);
       }
     }
