@@ -39,7 +39,10 @@ const SINGLE_CARD_ZONES = new Set<DeckZone>([
   WellKnown.deckZone.LEGEND,
   WellKnown.deckZone.CHAMPION,
 ]);
-const UNIQUE_ONLY_ZONES = new Set<DeckZone>([WellKnown.deckZone.BATTLEFIELD]);
+const UNIQUE_ONLY_ZONES = new Set<DeckZone>([
+  WellKnown.deckZone.BATTLEFIELD,
+  WellKnown.deckZone.LEGEND_OPTIONS,
+]);
 const DRAG_ZONES = new Set<DeckZone>([
   WellKnown.deckZone.MAIN,
   WellKnown.deckZone.SIDEBOARD,
@@ -120,7 +123,7 @@ export function DeckZoneSection({
   const totalQuantity = cards.reduce((sum, card) => sum + card.quantity, 0);
   const maxCardQuantity = cards.reduce((max, card) => Math.max(max, card.quantity), 0);
   // Freeform has no per-zone target — hide the "x/N" denominator entirely.
-  const expected = isFreeform ? undefined : zoneExpected(zone, format);
+  const expected = isFreeform ? undefined : zoneExpected(zone, format, allCards);
   const zoneViolations = violations.filter(
     (violation) => violation.zone === zone && !violation.cardId,
   );

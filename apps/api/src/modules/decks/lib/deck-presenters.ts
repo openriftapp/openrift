@@ -151,6 +151,7 @@ export function toPublicDeckCard(
     tags: string[];
     keywords: string[];
     maxCopiesOverride: number | null;
+    additionalLegendCount: number | null;
     energy: number | null;
     might: number | null;
     power: number | null;
@@ -176,6 +177,7 @@ export function toPublicDeckCard(
     tags: cardMeta.tags,
     keywords: cardMeta.keywords,
     maxCopiesOverride: cardMeta.maxCopiesOverride,
+    additionalLegendCount: cardMeta.additionalLegendCount,
     banned,
     energy: cardMeta.energy,
     might: cardMeta.might,

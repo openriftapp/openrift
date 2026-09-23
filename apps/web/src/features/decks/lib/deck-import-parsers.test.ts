@@ -279,6 +279,7 @@ function publicDeckCard(overrides: Partial<PublicDeckCardResponse>): PublicDeckC
     tags: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     banned: false,
     energy: null,
     might: null,

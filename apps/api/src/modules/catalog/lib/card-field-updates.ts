@@ -31,6 +31,9 @@ export function cardUpdateFor(
     case "maxCopiesOverride": {
       return { maxCopiesOverride: finalValue as number | null };
     }
+    case "additionalLegendCount": {
+      return { additionalLegendCount: finalValue as number | null };
+    }
     case "comment": {
       return { comment: finalValue as string | null };
     }

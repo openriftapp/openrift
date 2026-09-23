@@ -33,6 +33,11 @@ export function encodeTTS(cards: DeckCodecCard[]): EncodeResult {
     if (card.zone === WellKnown.deckZone.OVERFLOW) {
       continue;
     }
+    // The decoder recovers zones from fixed positions, which extra legends would shift.
+    if (card.zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+      warnings.push(`Skipped "${card.cardName}": TTS exports can't carry Legend Options`);
+      continue;
+    }
 
     if (!card.shortCode) {
       warnings.push(`Skipped card ${card.cardId}: no canonical printing found`);
@@ -99,6 +104,7 @@ const TTS_SLOT_LABELS: Record<SourceSlot, string> = {
   mainDeck: "Main Deck",
   chosenChampion: "Chosen Champion",
   sideboard: "Sideboard",
+  legendOptions: "Legend Options",
 };
 
 /**

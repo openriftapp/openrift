@@ -104,6 +104,17 @@ describe("piltoverCodec.encode", () => {
     ]);
   });
 
+  it("passes legend options as additional legends, outside the main deck", () => {
+    piltoverCodec.encode([
+      card({ zone: "legend", cardType: "legend" }),
+      card({ shortCode: "OGN-280", zone: "legend-options", cardType: "legend" }),
+      card({ shortCode: "OGN-288", zone: "legend-options", cardType: "legend" }),
+    ]);
+
+    expect(encodedMainDeck()).toEqual([{ cardCode: "OGN-007", count: 1 }]);
+    expect(mockGetCodeFromDeck.mock.calls[0]![3]).toEqual(["OGN-280", "OGN-288"]);
+  });
+
   it("does not warn at exactly the caps", () => {
     const { warnings } = piltoverCodec.encode([
       card({ zone: "main", quantity: 12 }),

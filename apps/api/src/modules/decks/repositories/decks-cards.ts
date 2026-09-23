@@ -23,7 +23,10 @@ type DeckCardDetailRow = Pick<
   Selectable<DeckCardsTable>,
   "id" | "deckId" | "cardId" | "zone" | "quantity" | "preferredPrintingId"
 > &
-  Pick<Selectable<CardsTable>, "energy" | "might" | "power" | "maxCopiesOverride"> & {
+  Pick<
+    Selectable<CardsTable>,
+    "energy" | "might" | "power" | "maxCopiesOverride" | "additionalLegendCount"
+  > & {
     cardName: string;
     cardType: CardType;
     cardTypes: CardType[];
@@ -68,6 +71,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "c.might",
           "c.power",
           "c.maxCopiesOverride",
+          "c.additionalLegendCount",
           "mca.domains",
           "mca.superTypes",
           sql<string | null>`(
@@ -178,6 +182,7 @@ export function decksCardsRepo(db: Kysely<Database>) {
           "c.might",
           "c.power",
           "c.maxCopiesOverride",
+          "c.additionalLegendCount",
           sql<string | null>`null`.as("imageUrl"),
         ])
         .where("d.userId", "=", userId)

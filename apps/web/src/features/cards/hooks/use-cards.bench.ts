@@ -68,6 +68,7 @@ function buildFixture(): Printing[] {
       tags: [],
       mightBonus: null,
       maxCopiesOverride: null,
+      additionalLegendCount: null,
       errata: null,
       bans: [],
       upcomingBans: [],

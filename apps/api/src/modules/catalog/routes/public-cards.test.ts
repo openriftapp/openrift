@@ -65,6 +65,7 @@ const dbCard = {
   tags: [],
   mightBonus: null,
   maxCopiesOverride: null,
+  additionalLegendCount: null,
 };
 
 const dbPrinting = {

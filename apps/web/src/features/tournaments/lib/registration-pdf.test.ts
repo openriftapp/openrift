@@ -481,6 +481,52 @@ describe("generateRegistrationPdf", () => {
       );
     });
 
+    it("lists legend options after the starting legend in the legend block", async () => {
+      const doc = await render({
+        cards: [
+          zoneCard("Caitlyn, Sheriff", WellKnown.deckZone.LEGEND),
+          zoneCard("Vi, Enforcer", WellKnown.deckZone.LEGEND_OPTIONS),
+          zoneCard("Jinx, Loose Cannon", WellKnown.deckZone.LEGEND_OPTIONS),
+          zoneCard("Ekko, Time Winder", WellKnown.deckZone.LEGEND_OPTIONS),
+        ],
+      });
+      const left = onlyText(doc, "Legend:").x;
+      const names = nameOnlyRowNames(
+        doc,
+        left,
+        onlyText(doc, "Legend:").y,
+        onlyText(doc, "Battlefields:").y,
+      );
+      expect(names).toEqual([
+        "Caitlyn, Sheriff",
+        "Ekko, Time Winder",
+        "Jinx, Loose Cannon",
+        "Vi, Enforcer",
+      ]);
+      expect(textsOf(doc, "(1 card, then 3 legend options)")).toHaveLength(1);
+    });
+
+    it.each(["a4", "letter"] as const)(
+      "keeps the sideboard above the footer with legend options on %s",
+      async (pageSize) => {
+        const options = ["A", "B", "C"].map((name) =>
+          zoneCard(name, WellKnown.deckZone.LEGEND_OPTIONS),
+        );
+        const doc = await render({ cards: options, pageSize });
+        const right = onlyText(doc, "Sideboard:").x;
+        const footer = doc.rects.find((rect) => rect.height === 22 && rect.lineWidth === 0.4)!;
+        const lastSideboardLine = doc.lines
+          .filter(
+            (line) =>
+              line.lineWidth === 0.15 &&
+              line.x1 === right &&
+              line.y1 > onlyText(doc, "Sideboard:").y,
+          )
+          .at(-1)!;
+        expect(lastSideboardLine.y1).toBeLessThan(footer.y);
+      },
+    );
+
     it("always prints exactly three battlefield lines, filled or not", async () => {
       const doc = await render({
         cards: [zoneCard("Market Row", WellKnown.deckZone.BATTLEFIELD)],

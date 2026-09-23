@@ -65,6 +65,7 @@ export const WellKnown = {
     MAIN: "main",
     SIDEBOARD: "sideboard",
     LEGEND: "legend",
+    LEGEND_OPTIONS: "legend-options",
     CHAMPION: "champion",
     RUNES: "runes",
     BATTLEFIELD: "battlefield",

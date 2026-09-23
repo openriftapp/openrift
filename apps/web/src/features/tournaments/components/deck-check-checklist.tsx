@@ -117,6 +117,7 @@ export function CardChecklist({
   const flowZones = (
     [
       WellKnown.deckZone.LEGEND,
+      WellKnown.deckZone.LEGEND_OPTIONS,
       WellKnown.deckZone.CHAMPION,
       WellKnown.deckZone.BATTLEFIELD,
     ] as const

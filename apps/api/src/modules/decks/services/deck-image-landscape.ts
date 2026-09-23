@@ -24,6 +24,7 @@ import {
   domainIconElements,
   glyphUri,
   legendGlowBackground,
+  legendOptionTileSize,
   packGrid,
   runeCountsByDomain,
   splitDeckZones,
@@ -47,7 +48,7 @@ export async function renderLandscapeDeckImage(
   const canvas = LANDSCAPE;
   const { width: canvasW, height: canvasH } = canvas;
   const zones = splitDeckZones(input.cards);
-  const { legend, runes, runeCards, battlefields, sideboard, gridCards } = zones;
+  const { legend, legendOptions, runes, runeCards, battlefields, sideboard, gridCards } = zones;
   const { mainCardCount, sideboardCount } = zones;
 
   const hasLeftPanel = legend !== null;
@@ -61,6 +62,12 @@ export async function renderLandscapeDeckImage(
   // Legend fills the panel width (small inset), centred over the full height.
   const legendW = LANDSCAPE_LEFT_W - 14;
   const legendH = Math.round(legendW / CARD_ASPECT);
+  const legendOption = legendOptionTileSize(
+    hasLeftPanel ? legendOptions.length : 0,
+    legendW,
+    bodyH - legendH - GAP - SECTION_HEADER_H,
+  );
+  const hasLegendOptions = legendOption.tileH > 0;
 
   // The band tiles grow to fill whatever vertical space the main grid leaves —
   // a shallow deck yields a short grid and larger sections — capped by a max
@@ -134,6 +141,7 @@ export async function renderLandscapeDeckImage(
   // Resolve every raster source up front (art is the dominant cost).
   const [
     legendUri,
+    legendOptionUris,
     backdropUri,
     gridUris,
     battlefieldUris,
@@ -143,6 +151,11 @@ export async function renderLandscapeDeckImage(
     qrUri,
   ] = await Promise.all([
     legend ? tileArtDataUri(io, legend.imageId, legendW, legendH, scale) : Promise.resolve(null),
+    Promise.all(
+      (hasLegendOptions ? legendOptions : []).map((card) =>
+        tileArtDataUri(io, card.imageId, legendOption.tileW, legendOption.tileH, scale),
+      ),
+    ),
     deckBackdropUri(io, input.coverImageId ?? legend?.imageId, canvasW, canvasH, scale),
     grid
       ? Promise.all(
@@ -279,6 +292,23 @@ export async function renderLandscapeDeckImage(
         justifyContent: "flex-start",
       },
       legend && cardTile(legend, legendUri, legendW, legendH),
+      hasLegendOptions &&
+        element(
+          "div",
+          { display: "flex", flexDirection: "column", width: legendW },
+          deckSection(
+            "LEGEND OPTIONS",
+            legendOptions.map((card, index) =>
+              cardTile(
+                card,
+                legendOptionUris[index] ?? null,
+                legendOption.tileW,
+                legendOption.tileH,
+              ),
+            ),
+            GAP,
+          ),
+        ),
     );
 
   const mainGrid =

@@ -249,6 +249,44 @@ describe("addCardAction", () => {
     expect(cards[0]!.quantity).toBe(1);
   });
 
+  describe("legend options", () => {
+    const neeko = () =>
+      stubDeckBuilderCard({ cardId: "neeko", zone: "main", additionalLegendCount: 3 });
+    const legend = (cardId: string) => stubDeckBuilderCard({ cardId, cardType: "legend" });
+    const optionsOf = () => cardsOf(collection).filter((c) => c.zone === "legend-options");
+
+    it("adds legends up to the number the deck grants", () => {
+      collection = createDraftCollection([neeko()]);
+      for (const cardId of ["a", "b", "c", "d"]) {
+        addCardAction(collection, legend(cardId), "legend-options", 2, EMPTY_RUNES, "constructed");
+      }
+      expect(optionsOf().map((c) => [c.cardId, c.quantity])).toEqual([
+        ["a", 1],
+        ["b", 1],
+        ["c", 1],
+      ]);
+    });
+
+    it("adds nothing when no card grants extra legends", () => {
+      addCardAction(collection, legend("a"), "legend-options", 1, EMPTY_RUNES, "constructed");
+      expect(optionsOf()).toEqual([]);
+    });
+
+    it("does not add the same legend twice", () => {
+      collection = createDraftCollection([neeko()]);
+      addCardAction(collection, legend("a"), "legend-options", 1, EMPTY_RUNES, "constructed");
+      addCardAction(collection, legend("a"), "legend-options", 1, EMPTY_RUNES, "constructed");
+      expect(optionsOf()).toHaveLength(1);
+    });
+
+    it("rejects a non-legend", () => {
+      collection = createDraftCollection([neeko()]);
+      const unit = stubDeckBuilderCard({ cardId: "unit", cardType: "unit" });
+      addCardAction(collection, unit, "legend-options", 1, EMPTY_RUNES, "constructed");
+      expect(optionsOf()).toEqual([]);
+    });
+  });
+
   it("does not exceed 12 runes when no opposite-domain rune exists to swap", () => {
     const legend = stubDeckBuilderCard({
       cardId: "legend-1",

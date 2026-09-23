@@ -42,7 +42,8 @@ export function deckZoneFilterPreset(
   const excludeTokens = [WellKnown.superType.TOKEN];
 
   switch (zone) {
-    case WellKnown.deckZone.LEGEND: {
+    case WellKnown.deckZone.LEGEND:
+    case WellKnown.deckZone.LEGEND_OPTIONS: {
       return {
         arrayFilters: {
           types: [WellKnown.cardType.LEGEND],

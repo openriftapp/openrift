@@ -11,10 +11,14 @@ import {
   copyLimitFor,
   formatHasSideboard,
   legendExactlyOne,
+  legendOptionsAllLegends,
+  legendOptionsCount,
+  legendOptionsDistinctNames,
   mainDeckCopyLimit,
   mainDeckExactly,
   noBannedCards,
   noTokenCards,
+  requiredLegendOptions,
   runesAllTypeRune,
   runesExactlyTwelve,
   runesMatchLegendDomains,
@@ -41,6 +45,7 @@ function makeCard(overrides: Partial<DeckCard> = {}): DeckCard {
     customTagSlugs: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     banned: false,
     ...overrides,
   };
@@ -133,6 +138,131 @@ describe("legendExactlyOne", () => {
     const violations = legendExactlyOne(makeState([makeLegend({ cardType: "unit" })]));
     expect(violations).toHaveLength(1);
     expect(violations[0]!.code).toBe("LEGEND_WRONG_TYPE");
+  });
+});
+
+function makeNeeko(overrides: Partial<DeckCard> = {}): DeckCard {
+  return makeCard({
+    cardId: "neeko",
+    cardName: "Neeko, Blending In",
+    domains: ["neutral"],
+    additionalLegendCount: 3,
+    ...overrides,
+  });
+}
+
+function makeLegendOption(cardName: string, overrides: Partial<DeckCard> = {}): DeckCard {
+  return makeLegend({
+    cardId: `option-${cardName}`,
+    zone: "legend-options",
+    cardName,
+    ...overrides,
+  });
+}
+
+describe("requiredLegendOptions", () => {
+  it("is zero without a granting card", () => {
+    expect(requiredLegendOptions([makeCard()])).toBe(0);
+  });
+
+  it("counts a granting card in the main deck or champion zone", () => {
+    expect(requiredLegendOptions([makeNeeko()])).toBe(3);
+    expect(requiredLegendOptions([makeNeeko({ zone: "champion" })])).toBe(3);
+  });
+
+  it("ignores a granting card in the sideboard or overflow", () => {
+    expect(requiredLegendOptions([makeNeeko({ zone: "sideboard" })])).toBe(0);
+    expect(requiredLegendOptions([makeNeeko({ zone: "overflow" })])).toBe(0);
+  });
+
+  it("takes the highest value when several cards grant legends", () => {
+    expect(
+      requiredLegendOptions([
+        makeNeeko({ additionalLegendCount: 2 }),
+        makeNeeko({ cardId: "other", additionalLegendCount: 3 }),
+      ]),
+    ).toBe(3);
+  });
+});
+
+describe("legendOptionsCount", () => {
+  it("passes with no granting card and an empty zone", () => {
+    expect(legendOptionsCount(makeState([makeLegend(), makeCard()]))).toEqual([]);
+  });
+
+  it("passes when the zone holds exactly the granted number", () => {
+    const cards = [
+      makeNeeko(),
+      makeLegendOption("A"),
+      makeLegendOption("B"),
+      makeLegendOption("C"),
+    ];
+    expect(legendOptionsCount(makeState(cards))).toEqual([]);
+  });
+
+  it("flags a filled zone without a granting card", () => {
+    const violations = legendOptionsCount(makeState([makeLegendOption("A")]));
+    expect(violations.map((violation) => violation.code)).toEqual(["LEGEND_OPTIONS_NOT_ALLOWED"]);
+  });
+
+  it("flags a filled zone when the granting card sits in the sideboard", () => {
+    const cards = [makeNeeko({ zone: "sideboard" }), makeLegendOption("A")];
+    expect(legendOptionsCount(makeState(cards)).map((violation) => violation.code)).toEqual([
+      "LEGEND_OPTIONS_NOT_ALLOWED",
+    ]);
+  });
+
+  it("flags too few legend options", () => {
+    const violations = legendOptionsCount(makeState([makeNeeko(), makeLegendOption("A")]));
+    expect(violations.map((violation) => violation.code)).toEqual(["LEGEND_OPTIONS_TOO_FEW"]);
+    expect(violations[0]!.message).toContain("1/3");
+  });
+
+  it("flags too many legend options", () => {
+    const cards = [makeNeeko(), ...["A", "B", "C", "D"].map((name) => makeLegendOption(name))];
+    expect(legendOptionsCount(makeState(cards)).map((violation) => violation.code)).toEqual([
+      "LEGEND_OPTIONS_TOO_MANY",
+    ]);
+  });
+});
+
+describe("legendOptionsAllLegends", () => {
+  it("flags a non-legend in the zone", () => {
+    const violations = legendOptionsAllLegends(
+      makeState([makeCard({ cardId: "unit-1", zone: "legend-options" })]),
+    );
+    expect(violations.map((violation) => violation.code)).toEqual(["LEGEND_OPTION_WRONG_TYPE"]);
+    expect(violations[0]!.cardId).toBe("unit-1");
+  });
+
+  it("passes legends", () => {
+    expect(legendOptionsAllLegends(makeState([makeLegendOption("A")]))).toEqual([]);
+  });
+});
+
+describe("legendOptionsDistinctNames", () => {
+  it("passes when every legend has a different name", () => {
+    const cards = [makeLegend(), makeLegendOption("A"), makeLegendOption("B")];
+    expect(legendOptionsDistinctNames(makeState(cards))).toEqual([]);
+  });
+
+  it("flags an option that shares the starting legend's name", () => {
+    const cards = [makeLegend(), makeLegendOption("Fire Lord")];
+    const violations = legendOptionsDistinctNames(makeState(cards));
+    expect(violations.map((violation) => violation.code)).toEqual(["LEGEND_OPTION_DUPLICATE_NAME"]);
+  });
+
+  it("flags two options with the same name", () => {
+    const cards = [makeLegendOption("A"), makeLegendOption("A", { cardId: "option-A-alt" })];
+    const violations = legendOptionsDistinctNames(makeState(cards));
+    expect(violations.map((violation) => violation.cardId)).toEqual(["option-A-alt"]);
+  });
+
+  it("flags several copies of one option", () => {
+    const violations = legendOptionsDistinctNames(
+      makeState([makeLegendOption("A", { quantity: 2 })]),
+    );
+    expect(violations.map((violation) => violation.code)).toEqual(["LEGEND_OPTION_DUPLICATE_NAME"]);
   });
 });
 
@@ -929,6 +1059,18 @@ describe("validateDeck", () => {
     const cards = [...makeConstructedShell(), ...mainCards];
     const violations = validateDeck(makeState(cards));
     expect(violations).toEqual([]);
+  });
+
+  it("returns no violations for a valid deck with legend options", () => {
+    const mainCards = [
+      ...Array.from({ length: 12 }, (_, index) =>
+        makeCard({ cardId: `main-${index}`, quantity: 3 }),
+      ),
+      makeNeeko({ quantity: 3 }),
+    ];
+    const options = ["A", "B", "C"].map((name) => makeLegendOption(name));
+    const cards = [...makeConstructedShell(), ...mainCards, ...options];
+    expect(validateDeck(makeState(cards))).toEqual([]);
   });
 
   it("blames only the champion zone when a full main deck has no champion", () => {

@@ -15,6 +15,7 @@ export interface DeckCard {
   customTagSlugs: readonly string[];
   keywords: string[];
   maxCopiesOverride: number | null;
+  additionalLegendCount: number | null;
   banned: boolean;
 }
 
@@ -100,6 +101,100 @@ export const legendExactlyOne: DeckRule = (state) => {
   }
 
   return [];
+};
+
+/** The sideboard is not part of the deck during a game, so a copy there grants nothing. */
+export function requiredLegendOptions(
+  cards: readonly {
+    zone: DeckZone;
+    quantity: number;
+    additionalLegendCount?: number | null;
+  }[],
+): number {
+  let required = 0;
+  for (const card of cards) {
+    if (
+      card.quantity > 0 &&
+      (card.zone === WellKnown.deckZone.MAIN || card.zone === WellKnown.deckZone.CHAMPION)
+    ) {
+      required = Math.max(required, card.additionalLegendCount ?? 0);
+    }
+  }
+  return required;
+}
+
+export const legendOptionsCount: DeckRule = (state) => {
+  const required = requiredLegendOptions(state.cards);
+  const count = totalQuantity(cardsInZone(state.cards, WellKnown.deckZone.LEGEND_OPTIONS));
+  const zone = WellKnown.deckZone.LEGEND_OPTIONS;
+
+  if (required === 0 && count > 0) {
+    return [
+      {
+        zone,
+        code: "LEGEND_OPTIONS_NOT_ALLOWED",
+        message: "Legend Options need a card in the deck that lets you choose extra legends",
+      },
+    ];
+  }
+  if (count < required) {
+    return [
+      {
+        zone,
+        code: "LEGEND_OPTIONS_TOO_FEW",
+        message: `${count}/${required} Legend Options — need ${required - count} more`,
+      },
+    ];
+  }
+  if (count > required) {
+    return [
+      {
+        zone,
+        code: "LEGEND_OPTIONS_TOO_MANY",
+        message: `${count}/${required} Legend Options — remove ${count - required}`,
+      },
+    ];
+  }
+
+  return [];
+};
+
+export const legendOptionsAllLegends: DeckRule = (state) => {
+  const violations: DeckViolation[] = [];
+
+  for (const card of cardsInZone(state.cards, WellKnown.deckZone.LEGEND_OPTIONS)) {
+    if (!card.cardTypes.includes(WellKnown.cardType.LEGEND)) {
+      violations.push({
+        zone: WellKnown.deckZone.LEGEND_OPTIONS,
+        code: "LEGEND_OPTION_WRONG_TYPE",
+        message: `${card.cardName} is not a Legend card`,
+        cardId: card.cardId,
+      });
+    }
+  }
+
+  return violations;
+};
+
+export const legendOptionsDistinctNames: DeckRule = (state) => {
+  const takenNames = new Set(
+    cardsInZone(state.cards, WellKnown.deckZone.LEGEND).map((card) => card.cardName),
+  );
+  const violations: DeckViolation[] = [];
+
+  for (const card of cardsInZone(state.cards, WellKnown.deckZone.LEGEND_OPTIONS)) {
+    if (card.quantity > 1 || takenNames.has(card.cardName)) {
+      violations.push({
+        zone: WellKnown.deckZone.LEGEND_OPTIONS,
+        code: "LEGEND_OPTION_DUPLICATE_NAME",
+        message: `${card.cardName} is already one of your legends`,
+        cardId: card.cardId,
+      });
+    }
+    takenNames.add(card.cardName);
+  }
+
+  return violations;
 };
 
 export const championExactlyOne: DeckRule = (state) => {
@@ -739,6 +834,9 @@ const CONSTRUCTED_RULES: DeckRule[] = [
   noBannedCards,
   noTokenCards,
   legendExactlyOne,
+  legendOptionsCount,
+  legendOptionsAllLegends,
+  legendOptionsDistinctNames,
   championExactlyOne,
   championSharesTagWithLegend,
   runesExactlyTwelve,
@@ -765,6 +863,9 @@ const REGION_LOCKED_RULES: DeckRule[] = [
   noBannedCards,
   noTokenCards,
   legendExactlyOne,
+  legendOptionsCount,
+  legendOptionsAllLegends,
+  legendOptionsDistinctNames,
   championExactlyOne,
   championSharesTagWithLegend,
   runesExactlyTwelve,

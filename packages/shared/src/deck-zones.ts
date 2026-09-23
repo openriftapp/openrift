@@ -1,4 +1,4 @@
-import { formatHasSideboard } from "./deck-rules.js";
+import { formatHasSideboard, requiredLegendOptions } from "./deck-rules.js";
 import type { DeckFormat, DeckZone } from "./types/enums.js";
 import { WellKnown } from "./well-known.js";
 
@@ -8,6 +8,7 @@ import { WellKnown } from "./well-known.js";
  */
 export const ZONE_LABELS: Record<DeckZone, string> = {
   legend: "Legend",
+  "legend-options": "Legend Options",
   champion: "Chosen Champion",
   runes: "Runes",
   battlefield: "Battlefields",
@@ -29,14 +30,48 @@ export const ZONE_EXPECTED: Partial<Record<DeckZone, number>> = {
   main: 39,
 };
 
-export function zoneExpected(zone: DeckZone, format: DeckFormat): number | undefined {
+interface ZoneCard {
+  zone: DeckZone;
+  quantity: number;
+  additionalLegendCount?: number | null;
+}
+
+/** Legend Options has a target only when `cards` is given and a card in it grants extra legends. */
+export function zoneExpected(
+  zone: DeckZone,
+  format: DeckFormat,
+  cards?: readonly ZoneCard[],
+): number | undefined {
   if (zone === WellKnown.deckZone.BATTLEFIELD && format === WellKnown.deckFormat.CUSTOM_REGION) {
     return 1;
+  }
+  if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+    const required = cards ? requiredLegendOptions(cards) : 0;
+    return required > 0 ? required : undefined;
   }
   if (zone === WellKnown.deckZone.SIDEBOARD && !formatHasSideboard(format)) {
     return undefined;
   }
   return ZONE_EXPECTED[zone];
+}
+
+/**
+ * An empty sideboard hides without a sideboard format, empty Legend Options without a granting
+ * card; either stays shown while it holds cards, so its violation surfaces and they can move out.
+ */
+export function isZoneShown(
+  zone: DeckZone,
+  format: DeckFormat,
+  cards: readonly ZoneCard[],
+): boolean {
+  const holdsCards = () => cards.some((card) => card.zone === zone && card.quantity > 0);
+  if (zone === WellKnown.deckZone.SIDEBOARD) {
+    return formatHasSideboard(format) || holdsCards();
+  }
+  if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+    return requiredLegendOptions(cards) > 0 || holdsCards();
+  }
+  return true;
 }
 
 export function isCountedZone(zone: string): boolean {

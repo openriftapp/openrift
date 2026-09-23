@@ -88,6 +88,7 @@ export const ACCEPT_CARD_FIELDS = [
   "mightBonus",
   "tags",
   "maxCopiesOverride",
+  "additionalLegendCount",
   "comment",
 ] as const;
 

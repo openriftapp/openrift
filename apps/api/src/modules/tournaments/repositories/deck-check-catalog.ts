@@ -65,6 +65,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
           tags: string[];
           keywords: string[];
           maxCopiesOverride: number | null;
+          additionalLegendCount: number | null;
         }
       >
     > {
@@ -84,6 +85,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
           "c.tags",
           "c.keywords",
           "c.maxCopiesOverride",
+          "c.additionalLegendCount",
         ])
         .where("c.id", "in", cardIds)
         .execute();
@@ -100,6 +102,7 @@ export function deckCheckCatalogRepo(db: Kysely<Database>) {
             tags: row.tags ?? [],
             keywords: row.keywords ?? [],
             maxCopiesOverride: row.maxCopiesOverride,
+            additionalLegendCount: row.additionalLegendCount,
           },
         ]),
       );

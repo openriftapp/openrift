@@ -56,6 +56,7 @@ export type DeckZone =
   | "main"
   | "sideboard"
   | "legend"
+  | "legend-options"
   | "champion"
   | "runes"
   | "battlefield"

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { DeckImageCard } from "./deck-image-parts.js";
-import { deckMetaLabel, packGrid, runeCountsByDomain, splitDeckZones } from "./deck-image-parts.js";
+import {
+  deckMetaLabel,
+  legendOptionTileSize,
+  packGrid,
+  runeCountsByDomain,
+  splitDeckZones,
+} from "./deck-image-parts.js";
 
 /** Portrait card aspect, mirrored from share-image-core. */
 const CARD_ASPECT = 0.715;
@@ -17,6 +23,19 @@ function card(
 }
 
 describe("splitDeckZones", () => {
+  it("keeps legend options apart from the starting legend and the grid", () => {
+    const zones = splitDeckZones([
+      card("Scorn of the Moon", "legend"),
+      card("Vi", "legend-options"),
+      card("Ekko", "legend-options"),
+      card("Gust", "main", 3, 1),
+    ]);
+    expect(zones.legend?.cardName).toBe("Scorn of the Moon");
+    expect(zones.legendOptions.map((entry) => entry.cardName)).toEqual(["Ekko", "Vi"]);
+    expect(zones.gridCards.map((entry) => entry.cardName)).toEqual(["Gust"]);
+    expect(zones.mainCardCount).toBe(3);
+  });
+
   it("groups a deck into the bands a layout draws", () => {
     const zones = splitDeckZones([
       card("Scorn of the Moon", "legend"),
@@ -170,5 +189,22 @@ describe("packGrid", () => {
   it("leaves a tile already under the cap alone", () => {
     const capped = packGrid(15, 1024, 980, CARD_ASPECT, { maxTileW: 300 });
     expect(capped.tileW).toBeLessThan(300);
+  });
+});
+
+describe("legendOptionTileSize", () => {
+  it("fits the row to the given width", () => {
+    const { tileW, tileH } = legendOptionTileSize(3, 236, 500);
+    expect(tileW * 3 + 2 * 10).toBeLessThanOrEqual(236);
+    expect(tileH).toBe(Math.floor((236 - 20) / 3 / CARD_ASPECT));
+  });
+
+  it("caps the tile height", () => {
+    expect(legendOptionTileSize(1, 300, 120).tileH).toBe(120);
+  });
+
+  it("draws nothing without options or without room", () => {
+    expect(legendOptionTileSize(0, 300, 120)).toEqual({ tileW: 0, tileH: 0 });
+    expect(legendOptionTileSize(3, 300, 0)).toEqual({ tileW: 0, tileH: 0 });
   });
 });

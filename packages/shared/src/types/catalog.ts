@@ -106,6 +106,7 @@ export interface Card {
   mightBonus: number | null;
   /** `null` = normal rules, `0` = unlimited (see `UNLIMITED_COPIES`), positive = cap at that value. */
   maxCopiesOverride: number | null;
+  additionalLegendCount: number | null;
   errata: CardErrata | null;
   bans: CardBan[];
   upcomingBans: CardBan[];

@@ -15,6 +15,7 @@ const ZONE_ORDER: DeckZone[] = [
   WellKnown.deckZone.CHAMPION,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.MAIN,
   WellKnown.deckZone.SIDEBOARD,
   WellKnown.deckZone.OVERFLOW,

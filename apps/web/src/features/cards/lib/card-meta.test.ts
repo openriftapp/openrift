@@ -28,6 +28,7 @@ const baseCard: CardDetailResponse["card"] = {
   power: 0,
   mightBonus: null,
   maxCopiesOverride: null,
+  additionalLegendCount: null,
   keywords: [],
   tags: [],
   errata: null,

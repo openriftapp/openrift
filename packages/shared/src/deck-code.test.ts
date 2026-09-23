@@ -115,6 +115,21 @@ describe("parsePiltoverDeckCode", () => {
     expect(entries[1]?.sourceSlot).toBe("sideboard");
   });
 
+  it("puts additional legends in the legend options zone, in order", () => {
+    mockGetDeckFromCode.mockReturnValue({
+      mainDeck: [{ cardCode: "OGN-001", count: 1 }],
+      sideboard: [],
+      additionalLegends: ["OGN-280", "OGN-288", "OGN-292"],
+    });
+
+    const { entries } = parsePiltoverDeckCode("FAKECODE");
+    const options = entries.filter((entry) => entry.sourceSlot === "legendOptions");
+
+    expect(options.map((entry) => entry.shortCode)).toEqual(["OGN-280", "OGN-288", "OGN-292"]);
+    expect(options.every((entry) => entry.explicitZone === "legend-options")).toBe(true);
+    expect(options.every((entry) => entry.quantity === 1)).toBe(true);
+  });
+
   it("retries a failing code uppercased", () => {
     mockValidCode("FAKECODE");
     const { entries, warnings } = parsePiltoverDeckCode("fakecode");

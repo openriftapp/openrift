@@ -61,6 +61,7 @@ export const publicDeckCardResponseSchema = z.object({
   tags: z.array(z.string()),
   keywords: z.array(z.string()),
   maxCopiesOverride: z.number().nullable(),
+  additionalLegendCount: z.number().nullable(),
   banned: z.boolean(),
   energy: z.number().nullable(),
   might: z.number().nullable(),

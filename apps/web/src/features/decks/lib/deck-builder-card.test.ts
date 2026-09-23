@@ -4,6 +4,8 @@ import type { CardType, DeckZone, SuperType } from "@openrift/shared/types/enums
 import { WellKnown } from "@openrift/shared/well-known";
 import { describe, expect, it } from "vitest";
 
+import { stubDeckBuilderCard } from "@/test/factories";
+
 import {
   buildDeckQuantityByCell,
   buildMoveRows,
@@ -44,6 +46,7 @@ describe("isCardBanned", () => {
 describe("isCardAllowedInZone", () => {
   const ALL_ZONES: DeckZone[] = [
     "legend",
+    "legend-options",
     "champion",
     "runes",
     "battlefield",
@@ -67,9 +70,10 @@ describe("isCardAllowedInZone", () => {
     expect(isCardAllowedInZone(tokenBattlefield, "battlefield")).toBe(false);
   });
 
-  it("allows Legend cards in the legend zone and overflow, nowhere else", () => {
+  it("allows Legend cards in the legend zones and overflow, nowhere else", () => {
     const legend = { cardTypes: ["legend"] as CardType[], superTypes: [] as SuperType[] };
     expect(isCardAllowedInZone(legend, "legend")).toBe(true);
+    expect(isCardAllowedInZone(legend, "legend-options")).toBe(true);
     expect(isCardAllowedInZone(legend, "overflow")).toBe(true);
     expect(isCardAllowedInZone(legend, "main")).toBe(false);
     expect(isCardAllowedInZone(legend, "sideboard")).toBe(false);
@@ -82,6 +86,7 @@ describe("isCardAllowedInZone", () => {
     const champion = { cardTypes: ["unit"] as CardType[], superTypes: ["champion"] as SuperType[] };
     expect(isCardAllowedInZone(champion, "champion")).toBe(true);
     expect(isCardAllowedInZone(champion, "main")).toBe(true);
+    expect(isCardAllowedInZone(champion, "legend-options")).toBe(false);
 
     const legendChampion = {
       cardTypes: ["legend"] as CardType[],
@@ -139,6 +144,44 @@ describe("isCardAllowedInZone", () => {
 
 describe("isDeckZoneFullForDrag", () => {
   const cardId = "card-1";
+
+  describe("legend options", () => {
+    const neeko = {
+      cardId: "neeko",
+      zone: "main" as DeckZone,
+      quantity: 1,
+      additionalLegendCount: 3,
+    };
+    const option = (id: string) => ({
+      cardId: id,
+      zone: "legend-options" as DeckZone,
+      quantity: 1,
+    });
+    const dropLegend = (allCards: Parameters<typeof isDeckZoneFullForDrag>[0]["allCards"]) =>
+      isDeckZoneFullForDrag({
+        zone: "legend-options",
+        draggedCard: { cardId, maxCopiesOverride: null },
+        fromZone: null,
+        allCards,
+        format: "constructed",
+      });
+
+    it("accepts a legend while the deck grants open slots", () => {
+      expect(dropLegend([neeko, option("a")])).toBe(false);
+    });
+
+    it("rejects a legend once every granted slot is filled", () => {
+      expect(dropLegend([neeko, option("a"), option("b"), option("c")])).toBe(true);
+    });
+
+    it("rejects a legend that is already an option", () => {
+      expect(dropLegend([neeko, option(cardId)])).toBe(true);
+    });
+
+    it("rejects every legend when no card grants extra legends", () => {
+      expect(dropLegend([])).toBe(true);
+    });
+  });
 
   it("allows dropping back into the source zone when at the 3-copy cap", () => {
     const allCards = [{ cardId, zone: "main" as DeckZone, quantity: 3 }];
@@ -496,7 +539,7 @@ describe("getAllowedMoveTargets", () => {
       superTypes: ["champion"] as SuperType[],
       zone: "main" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual([
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual([
       "champion",
       "sideboard",
       "overflow",
@@ -509,7 +552,7 @@ describe("getAllowedMoveTargets", () => {
       superTypes: [] as SuperType[],
       zone: "sideboard" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual(["main", "overflow"]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["main", "overflow"]);
   });
 
   it("offers only overflow for a Legend in legend (its sole other home)", () => {
@@ -518,7 +561,7 @@ describe("getAllowedMoveTargets", () => {
       superTypes: [] as SuperType[],
       zone: "legend" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual(["overflow"]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["overflow"]);
   });
 
   it("offers only overflow for a Rune in runes", () => {
@@ -527,7 +570,7 @@ describe("getAllowedMoveTargets", () => {
       superTypes: [] as SuperType[],
       zone: "runes" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual(["overflow"]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["overflow"]);
   });
 
   it("offers only overflow for a Battlefield card in battlefield", () => {
@@ -536,7 +579,7 @@ describe("getAllowedMoveTargets", () => {
       superTypes: [] as SuperType[],
       zone: "battlefield" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual(["overflow"]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["overflow"]);
   });
 
   it("lets a Champion move out of the champion zone into main/sideboard/overflow", () => {
@@ -545,7 +588,11 @@ describe("getAllowedMoveTargets", () => {
       superTypes: ["champion"] as SuperType[],
       zone: "champion" as DeckZone,
     };
-    expect(getAllowedMoveTargets(card, "constructed")).toEqual(["main", "sideboard", "overflow"]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual([
+      "main",
+      "sideboard",
+      "overflow",
+    ]);
   });
 
   it("drops sideboard as a target in custom-region but keeps it as a source", () => {
@@ -554,10 +601,33 @@ describe("getAllowedMoveTargets", () => {
       superTypes: [] as SuperType[],
       zone: "main" as DeckZone,
     };
-    expect(getAllowedMoveTargets(mainCard, "custom-region")).toEqual(["overflow"]);
+    expect(getAllowedMoveTargets(mainCard, "custom-region", [])).toEqual(["overflow"]);
 
     const strandedCard = { ...mainCard, zone: "sideboard" as DeckZone };
-    expect(getAllowedMoveTargets(strandedCard, "custom-region")).toEqual(["main", "overflow"]);
+    expect(getAllowedMoveTargets(strandedCard, "custom-region", [])).toEqual(["main", "overflow"]);
+  });
+
+  it("offers legend options for a Legend only when the deck grants extra legends", () => {
+    const card = {
+      cardTypes: ["legend"] as CardType[],
+      superTypes: [] as SuperType[],
+      zone: "legend" as DeckZone,
+    };
+    const neeko = stubDeckBuilderCard({ additionalLegendCount: 3 });
+    expect(getAllowedMoveTargets(card, "constructed", [neeko])).toEqual([
+      "legend-options",
+      "overflow",
+    ]);
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["overflow"]);
+  });
+
+  it("lets a stray legend option move back to the legend zone", () => {
+    const card = {
+      cardTypes: ["legend"] as CardType[],
+      superTypes: [] as SuperType[],
+      zone: "legend-options" as DeckZone,
+    };
+    expect(getAllowedMoveTargets(card, "constructed", [])).toEqual(["legend", "overflow"]);
   });
 });
 

@@ -44,6 +44,7 @@ import { m } from "@/paraglide/messages.js";
 // Excludes Overflow: cards parked there don't travel with the deck.
 const BOX_ZONE_ORDER: readonly DeckZone[] = [
   WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.CHAMPION,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,

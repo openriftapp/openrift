@@ -124,6 +124,7 @@ const cardMeta = {
   power: null,
   mightBonus: null,
   maxCopiesOverride: null,
+  additionalLegendCount: null,
   keywords: [],
   tags: [],
   domains: ["fury"],

@@ -14,7 +14,7 @@ import {
   usePrintingChoiceHover,
 } from "@/features/cards/components/printing-choice-menu";
 import { usePrintingChoices } from "@/features/cards/hooks/use-printing-choices";
-import { useDeckBuilderActions } from "@/features/decks/hooks/use-deck-builder";
+import { useDeckBuilderActions, useDeckCards } from "@/features/decks/hooks/use-deck-builder";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildMoveRows, getAllowedMoveTargets } from "@/features/decks/lib/deck-builder-card";
@@ -42,7 +42,8 @@ export function DeckCardPrintingMenu({ deckId, card, children }: DeckCardPrintin
   const { hoveredId, popupRef, hoverProps, reset } = usePrintingChoiceHover();
 
   const { data: deckDetail } = useDeckDetail(deckId);
-  const moveTargets = getAllowedMoveTargets(card, deckDetail.deck.format);
+  const deckCards = useDeckCards(deckId);
+  const moveTargets = getAllowedMoveTargets(card, deckDetail.deck.format, deckCards);
   const splitRowsShown = isMobile && card.quantity > 1;
   const moveRows = buildMoveRows(moveTargets, card.quantity, isMobile);
 

@@ -48,6 +48,7 @@ import {
   canAddRune,
   catalogCardToDeckBuilderCard,
   cellPreferredPrintingId,
+  isDeckZoneFullForDrag,
   RUNE_TARGET,
 } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
@@ -531,6 +532,15 @@ function DeckCardBrowserInner({ deckId }: { deckId: string }) {
         deckCards.filter((card) => card.zone === WellKnown.deckZone.BATTLEFIELD).length >=
         battlefieldCap;
       return alreadyInZone || zoneFull;
+    }
+    if (activeZone === WellKnown.deckZone.LEGEND_OPTIONS) {
+      return isDeckZoneFullForDrag({
+        zone: activeZone,
+        draggedCard: { cardId, maxCopiesOverride: item.printing.card.maxCopiesOverride },
+        fromZone: null,
+        allCards: deckCards,
+        format: deckDetail.deck.format,
+      });
     }
     if (activeZone === WellKnown.deckZone.RUNES) {
       return !canAddRune(catalogCardToDeckBuilderCard(cardId, item.printing.card), deckCards);

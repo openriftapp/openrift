@@ -48,7 +48,7 @@ export function DeckMobileDock({ deckId, zone }: { deckId: string; zone: DeckZon
   const count = cards
     .filter((card) => card.zone === zone)
     .reduce((sum, card) => sum + card.quantity, 0);
-  const expected = zoneExpected(zone, data.deck.format);
+  const expected = zoneExpected(zone, data.deck.format, cards);
   const change = previous ? lastChange(previous, cards) : null;
 
   return (

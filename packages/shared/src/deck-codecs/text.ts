@@ -13,6 +13,11 @@ const TEXT_ZONE_SECTIONS: readonly {
   aliases: readonly string[];
 }[] = [
   { zone: WellKnown.deckZone.LEGEND, header: "Legend", aliases: [] },
+  {
+    zone: WellKnown.deckZone.LEGEND_OPTIONS,
+    header: "LegendOptions",
+    aliases: ["legend options", "additional legends"],
+  },
   { zone: WellKnown.deckZone.CHAMPION, header: "Champion", aliases: [] },
   {
     zone: WellKnown.deckZone.MAIN,

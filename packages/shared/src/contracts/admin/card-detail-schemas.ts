@@ -32,6 +32,7 @@ export const adminCardResponseSchema = z.object({
   errata: cardErrataSchema.nullable(),
   tags: z.array(z.string()),
   maxCopiesOverride: z.number().nullable(),
+  additionalLegendCount: z.number().nullable(),
   comment: z.string().nullable(),
 });
 

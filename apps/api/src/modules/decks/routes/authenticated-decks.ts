@@ -246,6 +246,7 @@ export const decksRouter = {
           customTagSlugs: [],
           keywords: card.keywords,
           maxCopiesOverride: card.maxCopiesOverride,
+          additionalLegendCount: card.additionalLegendCount,
           banned: bannedCardIds.has(card.cardId),
         })),
       );

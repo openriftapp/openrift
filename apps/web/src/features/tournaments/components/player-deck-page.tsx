@@ -252,6 +252,7 @@ function PlayerCardGrid({ cards }: { cards: DeckCheckEntryCardResponse[] }) {
   const zones = (
     [
       WellKnown.deckZone.LEGEND,
+      WellKnown.deckZone.LEGEND_OPTIONS,
       WellKnown.deckZone.CHAMPION,
       WellKnown.deckZone.BATTLEFIELD,
       WellKnown.deckZone.MAIN,

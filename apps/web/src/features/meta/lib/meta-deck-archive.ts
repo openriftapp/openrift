@@ -31,6 +31,7 @@ export function unknownZoneCounts(
 function zoneNouns(): Record<DeckZone, string> {
   return {
     legend: m.meta_zone_noun_legend(),
+    "legend-options": m.meta_zone_noun_legend_options(),
     champion: m.meta_zone_noun_champion(),
     runes: m.meta_zone_noun_runes(),
     battlefield: m.meta_zone_noun_battlefield(),

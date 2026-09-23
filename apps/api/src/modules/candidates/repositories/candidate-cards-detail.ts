@@ -38,6 +38,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           | "keywords"
           | "tags"
           | "maxCopiesOverride"
+          | "additionalLegendCount"
           | "comment"
         > & { domains: string[]; superTypes: string[]; types: string[] })
       | undefined
@@ -58,6 +59,7 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
           "cards.keywords",
           "cards.tags",
           "cards.maxCopiesOverride",
+          "cards.additionalLegendCount",
           "cards.comment",
           "mca.domains",
           "mca.superTypes",

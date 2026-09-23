@@ -50,6 +50,19 @@ describe("computeZoneSuggestions", () => {
     ]);
   });
 
+  it("leaves a Legend in legend options alone and moves anything else out of it", () => {
+    const suggestions = computeZoneSuggestions(
+      [
+        line({ id: "a", resolvedCardId: "legend-card", zone: "legend-options" }),
+        line({ id: "b", resolvedCardId: "unit-card", zone: "legend-options" }),
+      ],
+      details,
+    );
+    expect(suggestions.map((suggestion) => [suggestion.cardId, suggestion.suggestedZone])).toEqual([
+      ["b", "main"],
+    ]);
+  });
+
   it("catches a type-locked card mis-zoned into any wrong zone, not just main", () => {
     const suggestions = computeZoneSuggestions(
       [line({ id: "a", resolvedCardId: "rune-card", zone: "sideboard" })],

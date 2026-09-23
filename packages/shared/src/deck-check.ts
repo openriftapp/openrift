@@ -13,6 +13,8 @@ export interface DeckCheckCardLine {
 const SECTION_ZONE_MAP: Record<string, DeckZone> = {
   legend: WellKnown.deckZone.LEGEND,
   legends: WellKnown.deckZone.LEGEND,
+  legendoptions: WellKnown.deckZone.LEGEND_OPTIONS,
+  additionallegends: WellKnown.deckZone.LEGEND_OPTIONS,
   champion: WellKnown.deckZone.CHAMPION,
   champions: WellKnown.deckZone.CHAMPION,
   chosenchampion: WellKnown.deckZone.CHAMPION,

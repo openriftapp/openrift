@@ -164,7 +164,7 @@ export async function renderVerticalDeckImage(
   const canvas = VERTICAL;
   const { width: canvasW, height: canvasH } = canvas;
   const zones = splitDeckZones(input.cards);
-  const { legend, runeCards, battlefields, sideboard, gridCards } = zones;
+  const { legend, legendOptions, runeCards, battlefields, sideboard, gridCards } = zones;
 
   const innerW = canvasW - canvas.pad * 2;
   const typeH = titleTypeHeight(input, canvas);
@@ -184,12 +184,21 @@ export async function renderVerticalDeckImage(
   const identityRightW = innerW - legendW - BODY_GAP;
 
   const bandBf = hasIdentityBand && bfCount > 0;
+  const bandOptions = hasIdentityBand && legendOptions.length > 0;
   const bandRunes = hasIdentityBand && runeCount > 0;
-  const bandHeaders =
-    (bandBf ? SECTION_HEADER_H : 0) +
-    (bandRunes ? SECTION_HEADER_H : 0) +
-    (bandBf && bandRunes ? GAP : 0);
+  const bandSectionCount = [bandBf, bandOptions, bandRunes].filter(Boolean).length;
+  const bandHeaders = bandSectionCount * SECTION_HEADER_H + Math.max(0, bandSectionCount - 1) * GAP;
   const bandAvailH = Math.max(0, legendH - bandHeaders);
+  const bandOptionH = bandOptions
+    ? Math.floor(
+        Math.min(
+          fitRowTileH(legendOptions.length, identityRightW, CARD_ASPECT, Number.POSITIVE_INFINITY),
+          bandAvailH / 3,
+        ),
+      )
+    : 0;
+  const bandOptionW = Math.floor(bandOptionH * CARD_ASPECT);
+  const bfRuneAvailH = bandAvailH - bandOptionH;
   const bandBfWidthCap = bandBf
     ? fitRowTileH(bfCount, identityRightW, BATTLEFIELD_ASPECT, Number.POSITIVE_INFINITY)
     : 0;
@@ -199,11 +208,11 @@ export async function renderVerticalDeckImage(
   // Split the band's height between the two sections, then hand whatever the
   // second one didn't need back to the first, so a two-rune deck does not leave
   // the battlefields short.
-  const bandBfFirstPass = bandBf ? Math.min(bandBfWidthCap, bandAvailH * 0.45) : 0;
+  const bandBfFirstPass = bandBf ? Math.min(bandBfWidthCap, bfRuneAvailH * 0.45) : 0;
   const bandRuneH = bandRunes
-    ? Math.floor(Math.min(bandRuneWidthCap, bandAvailH - bandBfFirstPass))
+    ? Math.floor(Math.min(bandRuneWidthCap, bfRuneAvailH - bandBfFirstPass))
     : 0;
-  const bandBfH = bandBf ? Math.floor(Math.min(bandBfWidthCap, bandAvailH - bandRuneH)) : 0;
+  const bandBfH = bandBf ? Math.floor(Math.min(bandBfWidthCap, bfRuneAvailH - bandRuneH)) : 0;
 
   const lowerBf = !hasIdentityBand && bfCount > 0;
   const lowerRunes = !hasIdentityBand && runeCount > 0;
@@ -248,6 +257,7 @@ export async function renderVerticalDeckImage(
   // Resolve every raster source up front (art is the dominant cost).
   const [
     legendUri,
+    legendOptionUris,
     backdropUri,
     gridUris,
     battlefieldUris,
@@ -257,6 +267,11 @@ export async function renderVerticalDeckImage(
     qrUri,
   ] = await Promise.all([
     legend ? tileArtDataUri(io, legend.imageId, legendW, legendH, scale) : Promise.resolve(null),
+    Promise.all(
+      (bandOptions ? legendOptions : []).map((card) =>
+        tileArtDataUri(io, card.imageId, bandOptionW, bandOptionH, scale),
+      ),
+    ),
     deckBackdropUri(io, input.coverImageId ?? legend?.imageId, canvasW, canvasH, scale),
     grid
       ? Promise.all(
@@ -303,12 +318,19 @@ export async function renderVerticalDeckImage(
         {
           display: "flex",
           flexDirection: "column",
-          // The two sections rarely add up to the legend's height; space-between pins the first to the hero's top edge and the last to its bottom.
+          // The sections rarely add up to the legend's height; space-between pins the first to the hero's top edge and the last to its bottom.
           justifyContent: "space-between",
           width: identityRightW,
           height: legendH,
         },
         bandBf && deckSection("BATTLEFIELDS", battlefieldTiles),
+        bandOptions &&
+          deckSection(
+            "LEGEND OPTIONS",
+            legendOptions.map((card, index) =>
+              cardTile(card, legendOptionUris[index] ?? null, bandOptionW, bandOptionH),
+            ),
+          ),
         bandRunes && deckSection("RUNES", runeTiles),
       ),
     );
@@ -322,7 +344,7 @@ export async function renderVerticalDeckImage(
         flexDirection: "row",
         flexWrap: "wrap",
         alignContent: "flex-start",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         width: grid.cols * grid.tileW + (grid.cols - 1) * GAP,
         gap: GAP,
       },
@@ -331,14 +353,14 @@ export async function renderVerticalDeckImage(
       ),
     );
 
-  // Centered so a deck too small to fill the grid area sits between its bands, not pinned under the identity band with a gap beneath.
+  // Vertically centered so a deck too small to fill the grid area sits between its bands, not pinned under the identity band with a gap beneath.
   const gridBlock = element(
     "div",
     {
       display: "flex",
       flexDirection: "column",
       flexGrow: 1,
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       marginTop: GAP,
     },
@@ -347,6 +369,7 @@ export async function renderVerticalDeckImage(
         "div",
         {
           display: "flex",
+          alignSelf: "center",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 34,

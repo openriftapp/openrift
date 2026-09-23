@@ -30,6 +30,8 @@ describe("mapSectionToZone", () => {
     expect(mapSectionToZone("rune")).toBe("runes");
     expect(mapSectionToZone("Side")).toBe("sideboard");
     expect(mapSectionToZone("Battlefields")).toBe("battlefield");
+    expect(mapSectionToZone("Legend Options")).toBe("legend-options");
+    expect(mapSectionToZone("Additional Legends")).toBe("legend-options");
   });
 
   it("returns null for unknown sections", () => {

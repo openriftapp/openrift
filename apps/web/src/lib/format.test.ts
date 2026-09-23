@@ -77,6 +77,7 @@ function stub(overrides: Partial<Printing> = {}): Printing {
       tags: [],
       mightBonus: 0,
       maxCopiesOverride: null,
+      additionalLegendCount: null,
       errata: null,
       bans: [],
       upcomingBans: [],

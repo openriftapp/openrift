@@ -1,3 +1,4 @@
+import { requiredLegendOptions } from "@openrift/shared/deck-rules";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -43,8 +44,8 @@ interface AddTarget {
   expected?: number;
 }
 
-// Legend cards in constructed get the single replace action; everything else lists
-// its real zone options with live fullness checks, so Enter is always safe.
+// Legends in constructed get the replace action, plus Legend Options when granted;
+// everything else lists its zones with live fullness checks, so Enter is always safe.
 export function buildTargets(
   builderCard: DeckBuilderCard,
   deckCards: DeckBuilderCard[],
@@ -54,51 +55,55 @@ export function buildTargets(
   const isLegend = builderCard.cardTypes.includes(WellKnown.cardType.LEGEND);
   const hasLegend = deckCards.some((card) => card.zone === WellKnown.deckZone.LEGEND);
 
+  const addTargets = (zones: readonly DeckZone[]): AddTarget[] =>
+    zones
+      .filter((zone) => isCardAllowedInZone(builderCard, zone))
+      .map((zone) => {
+        const full = isDeckZoneFullForDrag({
+          zone,
+          draggedCard: builderCard,
+          fromZone: null,
+          allCards: deckCards,
+          format,
+        });
+        const runeMismatch =
+          zone === WellKnown.deckZone.RUNES && !freeform && !canAddRune(builderCard, deckCards);
+        return {
+          zone,
+          label: ZONE_LABELS[zone],
+          kind: "add" as const,
+          disabled: full || runeMismatch,
+          count: deckCards
+            .filter((card) => card.cardId === builderCard.cardId && card.zone === zone)
+            .reduce((sum, card) => sum + card.quantity, 0),
+          expected: zoneExpected(zone, format, deckCards),
+        };
+      });
+
   if (isLegend && !freeform) {
-    return [
-      {
-        zone: WellKnown.deckZone.LEGEND,
-        label: hasLegend ? m.decks_editor_switch_legend() : m.decks_editor_set_as_legend(),
-        kind: "legend",
-        disabled: false,
-        count: 0,
-      },
-    ];
+    const legendTarget: AddTarget = {
+      zone: WellKnown.deckZone.LEGEND,
+      label: hasLegend ? m.decks_editor_switch_legend() : m.decks_editor_set_as_legend(),
+      kind: "legend",
+      disabled: false,
+      count: 0,
+    };
+    return requiredLegendOptions(deckCards) > 0
+      ? [legendTarget, ...addTargets([WellKnown.deckZone.LEGEND_OPTIONS])]
+      : [legendTarget];
   }
 
-  const zoneCandidates: DeckZone[] = builderCard.cardTypes.includes(WellKnown.cardType.RUNE)
-    ? [WellKnown.deckZone.RUNES]
-    : builderCard.cardTypes.includes(WellKnown.cardType.BATTLEFIELD)
-      ? [WellKnown.deckZone.BATTLEFIELD]
-      : isLegend
-        ? [WellKnown.deckZone.LEGEND]
-        : builderCard.superTypes.includes(WellKnown.superType.CHAMPION)
-          ? [WellKnown.deckZone.CHAMPION, WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD]
-          : [WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD];
-
-  return zoneCandidates
-    .filter((zone) => isCardAllowedInZone(builderCard, zone))
-    .map((zone) => {
-      const full = isDeckZoneFullForDrag({
-        zone,
-        draggedCard: builderCard,
-        fromZone: null,
-        allCards: deckCards,
-        format,
-      });
-      const runeMismatch =
-        zone === WellKnown.deckZone.RUNES && !freeform && !canAddRune(builderCard, deckCards);
-      return {
-        zone,
-        label: ZONE_LABELS[zone],
-        kind: "add" as const,
-        disabled: full || runeMismatch,
-        count: deckCards
-          .filter((card) => card.cardId === builderCard.cardId && card.zone === zone)
-          .reduce((sum, card) => sum + card.quantity, 0),
-        expected: zoneExpected(zone, format),
-      };
-    });
+  return addTargets(
+    builderCard.cardTypes.includes(WellKnown.cardType.RUNE)
+      ? [WellKnown.deckZone.RUNES]
+      : builderCard.cardTypes.includes(WellKnown.cardType.BATTLEFIELD)
+        ? [WellKnown.deckZone.BATTLEFIELD]
+        : isLegend
+          ? [WellKnown.deckZone.LEGEND]
+          : builderCard.superTypes.includes(WellKnown.superType.CHAMPION)
+            ? [WellKnown.deckZone.CHAMPION, WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD]
+            : [WellKnown.deckZone.MAIN, WellKnown.deckZone.SIDEBOARD],
+  );
 }
 
 interface DeckQuickAddProps {

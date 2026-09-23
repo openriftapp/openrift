@@ -88,6 +88,16 @@ export function parsePiltoverDeckCode(code: string): DeckCodeParseResult {
     });
   }
 
+  for (const cardCode of decoded.additionalLegends ?? []) {
+    entries.push({
+      shortCode: cardCode,
+      quantity: 1,
+      sourceSlot: "legendOptions",
+      explicitZone: WellKnown.deckZone.LEGEND_OPTIONS,
+      rawFields: { "Source Code": cardCode, Slot: "Legend Options" },
+    });
+  }
+
   return { entries, warnings };
 }
 

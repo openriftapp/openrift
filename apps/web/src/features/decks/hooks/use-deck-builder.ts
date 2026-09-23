@@ -1,5 +1,5 @@
 import type { DeckViolation } from "@openrift/shared/deck-rules";
-import { copyLimitFor, validateDeck } from "@openrift/shared/deck-rules";
+import { copyLimitFor, requiredLegendOptions, validateDeck } from "@openrift/shared/deck-rules";
 import type { DeckFormatConfig } from "@openrift/shared/types/api/deck";
 import type { DeckFormat, DeckZone, Domain } from "@openrift/shared/types/enums";
 import { WellKnown } from "@openrift/shared/well-known";
@@ -195,6 +195,24 @@ export function addCardAction(
     // Custom-region allows exactly one battlefield, constructed three.
     const battlefieldCap = format === WellKnown.deckFormat.CUSTOM_REGION ? 1 : 3;
     if (zoneCards.length >= battlefieldCap) {
+      return;
+    }
+    collection.insert({ ...card, zone, quantity: 1, preferredPrintingId });
+    return;
+  }
+
+  if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+    if (freeform) {
+      incrementOrInsert(collection, card, zone, preferredPrintingId, count ?? 1);
+      return;
+    }
+    const cards = allCards(collection);
+    const options = cards.filter((entry) => entry.zone === WellKnown.deckZone.LEGEND_OPTIONS);
+    const held = options.reduce((sum, entry) => sum + entry.quantity, 0);
+    if (
+      options.some((entry) => entry.cardId === card.cardId) ||
+      held >= requiredLegendOptions(cards)
+    ) {
       return;
     }
     collection.insert({ ...card, zone, quantity: 1, preferredPrintingId });

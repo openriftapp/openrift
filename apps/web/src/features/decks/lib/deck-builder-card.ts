@@ -1,5 +1,9 @@
 import type { DeckCard } from "@openrift/shared/deck-rules";
-import { copyLimitFor, formatHasSideboard } from "@openrift/shared/deck-rules";
+import {
+  copyLimitFor,
+  formatHasSideboard,
+  requiredLegendOptions,
+} from "@openrift/shared/deck-rules";
 import type { DeckCardResponse, PublicDeckCardResponse } from "@openrift/shared/types/api/deck";
 import type { Card } from "@openrift/shared/types/catalog";
 import type {
@@ -42,6 +46,7 @@ export interface DeckBuilderCard {
   tags: string[];
   keywords: string[];
   maxCopiesOverride: number | null;
+  additionalLegendCount: number | null;
   banned: boolean;
   energy: number | null;
   might: number | null;
@@ -71,6 +76,7 @@ export function toBuilderCardFromPublic(card: PublicDeckCardResponse): DeckBuild
     tags: card.tags,
     keywords: card.keywords,
     maxCopiesOverride: card.maxCopiesOverride,
+    additionalLegendCount: card.additionalLegendCount,
     banned: card.banned,
     energy: card.energy,
     might: card.might,
@@ -95,6 +101,7 @@ export function toRuleEngineCard(
     customTagSlugs: customTagAssignments[card.cardId] ?? [],
     keywords: card.keywords,
     maxCopiesOverride: card.maxCopiesOverride,
+    additionalLegendCount: card.additionalLegendCount,
     banned: card.banned,
   };
 }
@@ -109,6 +116,7 @@ export function getDeckCardKey(card: {
 
 const MOVE_TARGET_ORDER: readonly DeckZone[] = [
   WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.CHAMPION,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,
@@ -118,8 +126,8 @@ const MOVE_TARGET_ORDER: readonly DeckZone[] = [
 ];
 
 /**
- * Formats without a sideboard drop it as a target; it stays a valid source
- * so stray sideboard cards can still be moved out.
+ * Sideboard-less formats and decks without a legend-granting card drop those zones
+ * as targets; both stay valid sources so stray cards can still be moved out.
  */
 export function getAllowedMoveTargets(
   card: {
@@ -128,12 +136,14 @@ export function getAllowedMoveTargets(
     zone: DeckZone;
   },
   format: DeckFormat,
+  deckCards: readonly DeckBuilderCard[],
 ): DeckZone[] {
   return MOVE_TARGET_ORDER.filter(
     (zone) =>
       zone !== card.zone &&
       isCardAllowedInZone(card, zone) &&
-      (zone !== WellKnown.deckZone.SIDEBOARD || formatHasSideboard(format)),
+      (zone !== WellKnown.deckZone.SIDEBOARD || formatHasSideboard(format)) &&
+      (zone !== WellKnown.deckZone.LEGEND_OPTIONS || requiredLegendOptions(deckCards) > 0),
   );
 }
 
@@ -171,7 +181,8 @@ export function isCardAllowedInZone(
     return false;
   }
   switch (zone) {
-    case WellKnown.deckZone.LEGEND: {
+    case WellKnown.deckZone.LEGEND:
+    case WellKnown.deckZone.LEGEND_OPTIONS: {
       return card.cardTypes.includes(WellKnown.cardType.LEGEND);
     }
     case WellKnown.deckZone.CHAMPION: {
@@ -214,7 +225,12 @@ export function isDeckZoneFullForDrag(args: {
   zone: DeckZone;
   draggedCard: { cardId: string; maxCopiesOverride: number | null };
   fromZone: DeckZone | null;
-  allCards: readonly { cardId: string; zone: DeckZone; quantity: number }[];
+  allCards: readonly {
+    cardId: string;
+    zone: DeckZone;
+    quantity: number;
+    additionalLegendCount?: number | null;
+  }[];
   format: DeckFormat;
 }): boolean {
   const { zone, draggedCard, fromZone, allCards, format } = args;
@@ -251,6 +267,16 @@ export function isDeckZoneFullForDrag(args: {
     }
     return allCards.some(
       (card) => card.cardId === draggedCardId && card.zone === WellKnown.deckZone.BATTLEFIELD,
+    );
+  }
+  if (zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+    const options = allCards.filter((card) => card.zone === WellKnown.deckZone.LEGEND_OPTIONS);
+    if (options.some((card) => card.cardId === draggedCardId)) {
+      return true;
+    }
+    const held = options.reduce((sum, card) => sum + card.quantity, 0);
+    return (
+      fromZone !== WellKnown.deckZone.LEGEND_OPTIONS && held >= requiredLegendOptions(allCards)
     );
   }
   if (zone === WellKnown.deckZone.RUNES) {
@@ -311,6 +337,7 @@ export function catalogCardToDeckBuilderCard(cardId: string, card: Card): DeckBu
     tags: card.tags,
     keywords: card.keywords,
     maxCopiesOverride: card.maxCopiesOverride,
+    additionalLegendCount: card.additionalLegendCount,
     banned: isCardBanned(card),
     energy: card.energy,
     might: card.might,
@@ -339,6 +366,7 @@ export function toDeckBuilderCard(
     tags: card.tags ?? EMPTY_ARRAY,
     keywords: card.keywords ?? EMPTY_ARRAY,
     maxCopiesOverride: card.maxCopiesOverride ?? null,
+    additionalLegendCount: card.additionalLegendCount ?? null,
     banned: isCardBanned(card),
     energy: card.energy,
     might: card.might,

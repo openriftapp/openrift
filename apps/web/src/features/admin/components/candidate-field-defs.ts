@@ -68,6 +68,7 @@ export function buildCandidateCardFields(
     { key: "mightBonus", label: "Might Bonus", type: "number" },
     { key: "tags", label: "Tags", array: true },
     { key: "maxCopiesOverride", label: "Max Copies Override", type: "number" },
+    { key: "additionalLegendCount", label: "Additional Legends", type: "number" },
     { key: "comment", label: "Comment" },
     { key: "extraData", label: "Extra Data", readOnly: true, collapsible: true },
   ];

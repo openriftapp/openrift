@@ -49,7 +49,12 @@ import { sortDeckOverviewList } from "@/features/decks/lib/deck-overview-list-so
 import type { CardOwnership, DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
 import type { StatsFocus } from "@/features/decks/lib/deck-stats-focus";
 import { cardMatchesStatsFocus } from "@/features/decks/lib/deck-stats-focus";
-import { ZONE_LABELS, zoneEmptyHint, zoneExpected } from "@/features/decks/lib/deck-zone-labels";
+import {
+  isZoneShown,
+  ZONE_LABELS,
+  zoneEmptyHint,
+  zoneExpected,
+} from "@/features/decks/lib/deck-zone-labels";
 import { useBorrowedLenders } from "@/features/groups/hooks/use-loans";
 import { borrowedReasonText } from "@/features/groups/lib/loan-derivation";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -93,6 +98,7 @@ export function deckOverviewSortOptions(): SortGroupOption<DeckOverviewSort>[] {
 // Mirrors the sidebar and thumbnail dashboard's zone order.
 const ZONE_ORDER: readonly DeckZone[] = [
   WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.CHAMPION,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,
@@ -206,10 +212,7 @@ export function DeckOverviewList({
     if (!editing) {
       return false;
     }
-    if (zone === WellKnown.deckZone.SIDEBOARD) {
-      return formatHasSideboard(format);
-    }
-    return zone !== WellKnown.deckZone.OVERFLOW;
+    return zone !== WellKnown.deckZone.OVERFLOW && isZoneShown(zone, format, cards);
   };
 
   const zones = ZONE_ORDER.map((zone) => ({
@@ -219,7 +222,7 @@ export function DeckOverviewList({
 
   const renderZone = ({ zone, cards: zoneCards }: (typeof zones)[number]) => {
     const quantity = zoneCards.reduce((sum, card) => sum + card.quantity, 0);
-    const expected = zoneExpected(zone, format);
+    const expected = zoneExpected(zone, format, cards);
     const showExpected =
       expected !== undefined &&
       (zone !== WellKnown.deckZone.SIDEBOARD || formatHasSideboard(format));

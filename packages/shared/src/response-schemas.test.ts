@@ -35,6 +35,7 @@ const validCard = {
   tags: [],
   mightBonus: null,
   maxCopiesOverride: null,
+  additionalLegendCount: null,
   errata: null,
   bans: [],
 };

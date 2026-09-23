@@ -7,6 +7,7 @@ import { m } from "@/paraglide/messages.js";
 export {
   REQUIRED_ZONES,
   ZONE_LABELS,
+  isZoneShown,
   requiredZoneProgress,
   zoneExpected,
   zoneLabel,
@@ -16,6 +17,7 @@ export {
 export function zoneEmptyHints(): Record<DeckZone, string> {
   return {
     legend: m.decks_zone_empty_legend(),
+    "legend-options": m.decks_zone_empty_legend_options(),
     champion: m.decks_zone_empty_champion(),
     runes: m.decks_zone_empty_runes(),
     battlefield: m.decks_zone_empty_battlefield(),
@@ -35,6 +37,7 @@ export function zoneEmptyHint(zone: DeckZone, format: DeckFormat): string {
 export function zoneEmptyReadOnlyLabel(zone: DeckZone): string {
   const labels: Record<DeckZone, string> = {
     legend: m.decks_zone_readonly_legend(),
+    "legend-options": m.decks_zone_readonly_legend_options(),
     champion: m.decks_zone_readonly_champion(),
     runes: m.decks_zone_readonly_runes(),
     battlefield: m.decks_zone_readonly_battlefield(),

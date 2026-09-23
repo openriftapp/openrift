@@ -75,12 +75,13 @@ INSERT INTO deck_formats (slug, label, sort_order, is_well_known) VALUES
 
 INSERT INTO deck_zones (slug, label, sort_order, is_well_known) VALUES
   ('legend', 'Legend', 0, TRUE),
-  ('champion', 'Champion', 1, TRUE),
-  ('main', 'Main', 2, TRUE),
-  ('battlefield', 'Battlefield', 3, TRUE),
-  ('runes', 'Runes', 4, TRUE),
-  ('sideboard', 'Sideboard', 5, TRUE),
-  ('overflow', 'Overflow', 6, TRUE)
+  ('legend-options', 'Legend Options', 1, TRUE),
+  ('champion', 'Champion', 2, TRUE),
+  ('main', 'Main', 3, TRUE),
+  ('battlefield', 'Battlefield', 4, TRUE),
+  ('runes', 'Runes', 5, TRUE),
+  ('sideboard', 'Sideboard', 6, TRUE),
+  ('overflow', 'Overflow', 7, TRUE)
   ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order, is_well_known = EXCLUDED.is_well_known;
 
 INSERT INTO keywords (name, color, dark_text, is_well_known) VALUES

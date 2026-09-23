@@ -42,7 +42,7 @@
         "@orpc/openapi": "1.15.0",
         "@orpc/server": "1.15.0",
         "@orpc/zod": "1.15.0",
-        "@piltoverarchive/riftbound-deck-codes": "1.4.0",
+        "@piltoverarchive/riftbound-deck-codes": "1.5.0",
         "@resvg/resvg-js": "2.6.2",
         "@sentry/bun": "10.74.0",
         "better-auth": "1.7.4",
@@ -96,7 +96,7 @@
       "dependencies": {
         "@fontsource/chakra-petch": "5.3.0",
         "@openrift/shared": "workspace:*",
-        "@piltoverarchive/riftbound-deck-codes": "1.4.0",
+        "@piltoverarchive/riftbound-deck-codes": "1.5.0",
       },
       "devDependencies": {
         "@vitest/coverage-v8": "5.0.0",
@@ -132,7 +132,7 @@
         "@orpc/client": "1.15.0",
         "@orpc/contract": "1.15.0",
         "@orpc/openapi-client": "1.15.0",
-        "@piltoverarchive/riftbound-deck-codes": "1.4.0",
+        "@piltoverarchive/riftbound-deck-codes": "1.5.0",
         "@sentry/tanstackstart-react": "10.74.0",
         "@tailwindcss/vite": "4.3.3",
         "@tanstack/query-db-collection": "1.2.13",
@@ -210,7 +210,7 @@
       "name": "e2e",
       "devDependencies": {
         "@openrift/shared": "workspace:*",
-        "@piltoverarchive/riftbound-deck-codes": "1.4.0",
+        "@piltoverarchive/riftbound-deck-codes": "1.5.0",
         "@playwright/test": "1.63.0",
         "postgres": "3.4.9",
       },
@@ -227,7 +227,7 @@
         "@opentelemetry/sdk-trace-node": "2.11.0",
         "@opentelemetry/semantic-conventions": "1.43.0",
         "@orpc/contract": "1.15.0",
-        "@piltoverarchive/riftbound-deck-codes": "1.4.0",
+        "@piltoverarchive/riftbound-deck-codes": "1.5.0",
         "pino": "10.3.1",
         "qrcode": "1.5.4",
         "zod": "4.6.5",
@@ -859,7 +859,7 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.82.0", "", { "os": "win32", "cpu": "x64" }, "sha512-VTVoRIWJTb+wvUX8EYoPArfFH02whuR10goFXE/LHRRX33ajRrFgqbcONXZMiF4C5rnattfkm87HqYn8jb8hmQ=="],
 
-    "@piltoverarchive/riftbound-deck-codes": ["@piltoverarchive/riftbound-deck-codes@1.4.0", "", {}, "sha512-f3fphTANbyiohgrFhitgYcBsLpMFjGCVA7Ai0l+gWCyZMi7eC/IIJ580Xfyp4+XVioqn11OIkBzFZX9/TIg5Fw=="],
+    "@piltoverarchive/riftbound-deck-codes": ["@piltoverarchive/riftbound-deck-codes@1.5.0", "", {}, "sha512-vgW7X/ybQSavKKTCATm8lTbD6D3RZV3nzqQDoNW7TRGR27qv+QEqr5pYnoGVcD7DbenSdTHs55KPb8caFDBQcg=="],
 
     "@pinojs/redact": ["@pinojs/redact@0.4.0", "", {}, "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="],
 

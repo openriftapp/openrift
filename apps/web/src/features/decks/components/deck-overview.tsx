@@ -1,5 +1,5 @@
 import type { DeckOddsConfig } from "@openrift/shared/contracts/decks";
-import { formatHasSideboard, validateDeck } from "@openrift/shared/deck-rules";
+import { validateDeck } from "@openrift/shared/deck-rules";
 import { imageUrl } from "@openrift/shared/image-url";
 import { setIndexById } from "@openrift/shared/set-order";
 import type { DeckFormatConfig, DeckLink } from "@openrift/shared/types/api/deck";
@@ -75,6 +75,7 @@ import {
   statsFocusOpeningChance,
 } from "@/features/decks/lib/deck-stats-focus";
 import {
+  isZoneShown,
   requiredZoneProgress,
   ZONE_LABELS,
   zoneEmptyHint,
@@ -400,7 +401,7 @@ export function DeckOverview({
       label={ZONE_LABELS[zone]}
       cards={cards.filter((card) => card.zone === zone)}
       allCards={cards}
-      expected={zoneExpected(zone, deck.format)}
+      expected={zoneExpected(zone, deck.format, cards)}
       emptyHint={zoneEmptyHint(zone, deck.format)}
       unknownCount={unknownZoneCounts?.get(zone) ?? 0}
       format={deck.format}
@@ -657,11 +658,10 @@ export function DeckOverview({
                     : "contents"
                 }
               >
+                {isZoneShown(WellKnown.deckZone.LEGEND_OPTIONS, deck.format, cards) &&
+                  renderZone(WellKnown.deckZone.LEGEND_OPTIONS)}
                 {renderZone(WellKnown.deckZone.MAIN)}
-                {/* A non-empty sideboard stays visible with its violation even in
-                    formats without one, so the cards can be moved out. */}
-                {(formatHasSideboard(deck.format) ||
-                  cards.some((card) => card.zone === WellKnown.deckZone.SIDEBOARD)) &&
+                {isZoneShown(WellKnown.deckZone.SIDEBOARD, deck.format, cards) &&
                   renderZone(WellKnown.deckZone.SIDEBOARD)}
                 {cards.some((card) => card.zone === WellKnown.deckZone.OVERFLOW) &&
                   renderZone(WellKnown.deckZone.OVERFLOW)}

@@ -78,6 +78,7 @@ function buildFixture() {
       tags: [],
       mightBonus: null,
       maxCopiesOverride: null,
+      additionalLegendCount: null,
       errata: null,
       bans: [],
       upcomingBans: [],

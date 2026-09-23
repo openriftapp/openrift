@@ -1,9 +1,7 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
-import { formatHasSideboard } from "@openrift/shared/deck-rules";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckZone } from "@openrift/shared/types/enums";
 import { getOrientation } from "@openrift/shared/utils";
-import { WellKnown } from "@openrift/shared/well-known";
 import { useQueryClient } from "@tanstack/react-query";
 import { CornerLeftUpIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -60,7 +58,7 @@ import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { toDeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import { buildRunesByDomain } from "@/features/decks/lib/deck-runes-by-domain";
 import { deckZoneFilterPreset } from "@/features/decks/lib/deck-zone-filters";
-import { requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
+import { isZoneShown, requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useIncomingTradeCounts } from "@/features/groups/hooks/use-card-trades";
 import { useBorrowedCounts } from "@/features/groups/hooks/use-loans";
@@ -237,15 +235,14 @@ function DeckEditorContent({
     useSelectionStore.getState().closeDetail();
   });
 
-  // A hidden empty sideboard must not keep the browser targeting an unrendered zone.
-  const sideboardHidden =
-    !formatHasSideboard(data.deck.format) &&
-    !deckCards.some((card) => card.zone === WellKnown.deckZone.SIDEBOARD);
+  // A hidden zone must not keep the browser targeting an unrendered section.
+  const activeZoneHidden =
+    activeZone !== null && !isZoneShown(activeZone, data.deck.format, deckCards);
   useEffect(() => {
-    if (activeZone === WellKnown.deckZone.SIDEBOARD && sideboardHidden) {
+    if (activeZoneHidden) {
       setActiveZone(null);
     }
-  }, [activeZone, sideboardHidden, setActiveZone]);
+  }, [activeZoneHidden, setActiveZone]);
 
   const handleOverviewCardClick = (card: CardOpenTarget) => {
     const printing = getPreferredPrinting(card.cardId, card.preferredPrintingId);

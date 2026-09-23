@@ -62,6 +62,7 @@ const CARD_COLUMNS = [
   "cards.keywords",
   "cards.tags",
   "cards.maxCopiesOverride",
+  "cards.additionalLegendCount",
   "cards.comment",
   "mca.domains",
   "mca.superTypes",

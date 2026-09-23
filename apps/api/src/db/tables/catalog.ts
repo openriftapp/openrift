@@ -48,6 +48,7 @@ export interface CardsTable {
   keywords: Generated<string[]>;
   tags: Generated<string[]>;
   maxCopiesOverride: number | null;
+  additionalLegendCount: number | null;
   comment: string | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;

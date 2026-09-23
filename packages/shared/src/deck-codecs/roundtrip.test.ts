@@ -31,9 +31,14 @@ function shortCode(index: number): string {
 }
 
 function completeDeck(
-  options: { mainCount?: number; battlefields?: number; sideboard?: number } = {},
+  options: {
+    mainCount?: number;
+    battlefields?: number;
+    sideboard?: number;
+    legendOptions?: number;
+  } = {},
 ): DeckCodecCard[] {
-  const { mainCount = 39, battlefields = 3, sideboard = 0 } = options;
+  const { mainCount = 39, battlefields = 3, sideboard = 0, legendOptions = 0 } = options;
   const cards: DeckCodecCard[] = [];
   let code = 0;
   const push = (zone: DeckZone, cardType: string, count: number): void => {
@@ -43,6 +48,7 @@ function completeDeck(
     }
   };
   push(WellKnown.deckZone.LEGEND, WellKnown.cardType.LEGEND, 1);
+  push(WellKnown.deckZone.LEGEND_OPTIONS, WellKnown.cardType.LEGEND, legendOptions);
   push(WellKnown.deckZone.CHAMPION, "unit", 1);
   push(WellKnown.deckZone.MAIN, "unit", mainCount);
   push(WellKnown.deckZone.BATTLEFIELD, WellKnown.cardType.BATTLEFIELD, battlefields);
@@ -123,6 +129,14 @@ describe("text format round trip", () => {
     expect(code).toContain("Sideboard:");
   });
 
+  it("restores legend options under their own header", () => {
+    const cards = completeDeck({ legendOptions: 3 });
+    const { code } = encodeText(cards);
+
+    expect(code).toContain("LegendOptions:");
+    expect(resolveZones(cards, "text", code)).toEqual(expectedZones(cards));
+  });
+
   it("carries multi-copy quantities back", () => {
     const cards = [card({ shortCode: "OGN-500", cardName: "Fireball", zone: "main", quantity: 3 })];
     const { code } = encodeText(cards);
@@ -137,6 +151,17 @@ describe("TTS format round trip", () => {
     const { code } = encodeTTS(cards);
 
     expect(resolveZones(cards, "tts", code)).toEqual(expectedZones(cards));
+  });
+
+  it("skips legend options with a warning and keeps the other zones intact", () => {
+    const cards = completeDeck({ sideboard: 4, legendOptions: 3 });
+    const { code, warnings } = encodeTTS(cards);
+    const withoutOptions = cards.filter(
+      (entry) => entry.zone !== WellKnown.deckZone.LEGEND_OPTIONS,
+    );
+
+    expect(warnings).toHaveLength(3);
+    expect(resolveZones(withoutOptions, "tts", code)).toEqual(expectedZones(withoutOptions));
   });
 
   it("restores a complete constructed deck with no sideboard", () => {
@@ -201,6 +226,13 @@ describe("TTS format round trip", () => {
 });
 
 describe("Piltover deck code round trip", () => {
+  it("restores legend options apart from the starting legend", () => {
+    const cards = completeDeck({ sideboard: 2, legendOptions: 3 });
+    const { code } = piltoverCodec.encode(cards);
+
+    expect(resolveZones(cards, "piltover", code)).toEqual(expectedZones(cards));
+  });
+
   it("restores zones and quantities for a complete deck with a sideboard", () => {
     const cards = completeDeck({ sideboard: 3 });
     const { code, warnings } = piltoverCodec.encode(cards);

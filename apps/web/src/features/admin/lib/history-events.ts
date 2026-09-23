@@ -84,6 +84,7 @@ const FIELD_LABELS: Record<string, string> = {
   ...PRINTING_FIELD_LABELS,
   comment: "Comment",
   maxCopiesOverride: "Max copies override",
+  additionalLegendCount: "Additional legends",
 };
 
 function changedFields(event: AdminAuditEventResponse): string[] {

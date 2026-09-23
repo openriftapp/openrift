@@ -65,6 +65,7 @@ const dbCard = {
   power: 6,
   mightBonus: 1,
   maxCopiesOverride: null,
+  additionalLegendCount: null,
   keywords: ["Shield"],
   tags: ["Dragon"],
 };
@@ -176,6 +177,7 @@ describe("GET /api/v1/catalog", () => {
           power: null,
           mightBonus: null,
           maxCopiesOverride: null,
+          additionalLegendCount: null,
           superTypes: [],
           keywords: [],
           tags: [],

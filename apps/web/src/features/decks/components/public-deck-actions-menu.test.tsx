@@ -87,6 +87,7 @@ function publicCard(overrides: Partial<PublicDeckCardResponse> = {}): PublicDeck
     tags: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     banned: false,
     energy: 2,
     might: 3,

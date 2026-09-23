@@ -1,4 +1,3 @@
-import { formatHasSideboard } from "@openrift/shared/deck-rules";
 import { imageUrl } from "@openrift/shared/image-url";
 import type { DeckFormat, DeckZone } from "@openrift/shared/types/enums";
 import { legendDisplayName } from "@openrift/shared/utils";
@@ -19,7 +18,7 @@ import { useDeckStats } from "@/features/decks/hooks/use-deck-stats";
 import { useDeckDetail } from "@/features/decks/hooks/use-decks";
 import type { DeckBuilderCard } from "@/features/decks/lib/deck-builder-card";
 import type { DeckOwnershipData } from "@/features/decks/lib/deck-ownership-types";
-import { requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
+import { isZoneShown, requiredZoneProgress } from "@/features/decks/lib/deck-zone-labels";
 import { useDeckBuilderUiStore } from "@/features/decks/stores/deck-builder-ui-store";
 import { useDomainColors } from "@/hooks/use-domain-colors";
 import { useZoneOrder } from "@/hooks/use-enums";
@@ -185,14 +184,7 @@ export function DeckZonePanel({
   );
   const activeZone = useDeckBuilderUiStore((state) => state.activeZone);
 
-  // A non-empty sideboard (format switch, imported list) stays visible with
-  // its violation so the cards can still be moved out.
-  const visibleZones = zoneOrder.filter(
-    (zone) =>
-      zone !== WellKnown.deckZone.SIDEBOARD ||
-      formatHasSideboard(deckDetail.deck.format) ||
-      cards.some((card) => card.zone === WellKnown.deckZone.SIDEBOARD),
-  );
+  const visibleZones = zoneOrder.filter((zone) => isZoneShown(zone, deckDetail.deck.format, cards));
 
   const [shiftHeld, setShiftHeld] = useState(false);
   useEffect(() => {

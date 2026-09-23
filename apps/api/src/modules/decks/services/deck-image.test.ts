@@ -55,6 +55,19 @@ describe("renderDeckImage", () => {
     expect(meta.height).toBe(630);
   });
 
+  it("renders legend options under the legend", async () => {
+    const cards = [
+      ...constructedDeck,
+      card("Vi", "legend-options"),
+      card("Ekko", "legend-options"),
+      card("Jinx", "legend-options"),
+    ];
+    const png = await renderDeckImage(defaultIo, { ...baseInput, cards });
+    const meta = await defaultIo.sharp(png).metadata();
+    expect(meta.width).toBe(1200);
+    expect(meta.height).toBe(630);
+  });
+
   it("renders a freeform deck with no Legend (left panel collapses)", async () => {
     const cards = [card("Lightning Strike", "main", 3, 2), card("Fireball", "main", 2, 4)];
     const png = await renderDeckImage(defaultIo, { ...baseInput, formatLabel: "Freeform", cards });
@@ -182,6 +195,19 @@ describe("renderDeckImage (vertical)", () => {
       "vertical",
     );
     expect(png.subarray(0, 8)).toEqual(PNG_MAGIC);
+    const meta = await defaultIo.sharp(png).metadata();
+    expect(meta.width).toBe(1080);
+    expect(meta.height).toBe(1920);
+  });
+
+  it("renders legend options under the legend in the identity band", async () => {
+    const cards = [
+      ...constructedDeck,
+      card("Vi", "legend-options"),
+      card("Ekko", "legend-options"),
+      card("Jinx", "legend-options"),
+    ];
+    const png = await renderDeckImage(defaultIo, { ...baseInput, cards }, 1, "vertical");
     const meta = await defaultIo.sharp(png).metadata();
     expect(meta.width).toBe(1080);
     expect(meta.height).toBe(1920);

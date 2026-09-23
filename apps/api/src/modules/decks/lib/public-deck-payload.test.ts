@@ -56,6 +56,7 @@ function cardRow(id: string, tokenCardIds: string[] = []) {
     tags: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     mightBonus: null,
     energy: 3,
     might: 2,

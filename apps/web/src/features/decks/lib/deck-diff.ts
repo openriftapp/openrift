@@ -33,6 +33,7 @@ export interface DeckDiff {
 
 export const ZONE_DIFF_ORDER: readonly DeckZone[] = [
   WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.CHAMPION,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,

@@ -171,6 +171,7 @@ export function stubDeckBuilderCard(overrides: Partial<DeckBuilderCard> = {}): D
     tags: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     banned: false,
     energy: 1,
     might: 1,
@@ -299,6 +300,7 @@ export function makeAdminCard(overrides: Partial<AdminCardResponse> = {}): Admin
     errata: null,
     tags: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     comment: null,
     ...overrides,
   };

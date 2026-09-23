@@ -440,18 +440,26 @@ export async function generateRegistrationPdf(
   let rightY = cardAreaTop + padding;
 
   const legendCards = cardsForZone(cards, WellKnown.deckZone.LEGEND);
+  const legendOptionCards = cardsForZone(cards, WellKnown.deckZone.LEGEND_OPTIONS);
   const battlefieldCards = cardsForZone(cards, WellKnown.deckZone.BATTLEFIELD);
   const championCards = cardsForZone(cards, WellKnown.deckZone.CHAMPION);
   const mainCards = cardsForZone(cards, WellKnown.deckZone.MAIN);
   const runeCards = cardsForZone(cards, WellKnown.deckZone.RUNES);
   const sideboardCards = cardsForZone(cards, WellKnown.deckZone.SIDEBOARD);
 
-  leftY = drawSectionLabel(doc, "Legend", innerLeft, leftY, "(1 card)");
+  // A separate Legend Options block pushes the Letter sheet's sideboard into
+  // the footer, so the options share the legend block after the starting legend.
+  const legendSubtitle =
+    legendOptionCards.length > 0
+      ? `(1 card, then ${legendOptionCards.length} legend options)`
+      : "(1 card)";
+  const legendBlockCards = [...legendCards, ...legendOptionCards];
+  leftY = drawSectionLabel(doc, "Legend", innerLeft, leftY, legendSubtitle);
   leftY = drawNameOnlyHeader(doc, innerLeft, leftY);
   leftY = drawNameOnlyRows(
     doc,
-    legendCards,
-    Math.max(legendCards.length, 1),
+    legendBlockCards,
+    Math.max(legendBlockCards.length, 1),
     innerLeft,
     leftY,
     colWidth,

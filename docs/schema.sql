@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ji2oMnge2AR5Bfvt9wxag3jR3qRme1zaOxZBmrymWw2DYUHb1nMDOkaC8E3FVmo
+\restrict wTy4QRERfc9dz01V3XhgmNcN2tSuTFmFKgTuK6DfTSI4io6PibiDmodP4972Nhe
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1335,6 +1335,8 @@ CREATE TABLE public.cards (
     norm_name text NOT NULL,
     comment text,
     max_copies_override smallint,
+    additional_legend_count smallint,
+    CONSTRAINT cards_additional_legend_count_check CHECK ((additional_legend_count > 0)),
     CONSTRAINT cards_max_copies_override_check CHECK ((max_copies_override >= 0)),
     CONSTRAINT chk_cards_energy_non_negative CHECK ((energy >= 0)),
     CONSTRAINT chk_cards_might_bonus_non_negative CHECK ((might_bonus >= 0)),
@@ -10066,5 +10068,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ji2oMnge2AR5Bfvt9wxag3jR3qRme1zaOxZBmrymWw2DYUHb1nMDOkaC8E3FVmo
+\unrestrict wTy4QRERfc9dz01V3XhgmNcN2tSuTFmFKgTuK6DfTSI4io6PibiDmodP4972Nhe
 

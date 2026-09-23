@@ -57,6 +57,7 @@ export const piltoverCodec: DeckCodec = {
     // with any existing main-zone copies into a single entry.
     const mainDeckMap = new Map<string, CountedCard>();
     const sideboard: PiltoverCard[] = [];
+    const additionalLegends: string[] = [];
     let chosenChampion: string | undefined;
 
     const addToMainDeck = (card: DeckCodecCard, count: number): void => {
@@ -86,6 +87,13 @@ export const piltoverCodec: DeckCodec = {
         continue;
       }
 
+      if (card.zone === WellKnown.deckZone.LEGEND_OPTIONS) {
+        for (let index = 0; index < card.quantity; index++) {
+          additionalLegends.push(card.shortCode);
+        }
+        continue;
+      }
+
       if (card.zone === WellKnown.deckZone.SIDEBOARD) {
         sideboard.push({
           cardCode: card.shortCode,
@@ -107,7 +115,7 @@ export const piltoverCodec: DeckCodec = {
       count: clampCount(entry, MAIN_DECK_COUNT_CAP, "in the main deck", warnings),
     }));
 
-    const code = getCodeFromDeck(mainDeck, sideboard, chosenChampion);
+    const code = getCodeFromDeck(mainDeck, sideboard, chosenChampion, additionalLegends);
     return { code, warnings };
   },
 };

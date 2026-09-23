@@ -263,6 +263,7 @@ describe("toPublicDeckCard", () => {
     tags: [],
     keywords: [],
     maxCopiesOverride: null,
+    additionalLegendCount: null,
     energy: 2,
     might: 3,
     power: null,

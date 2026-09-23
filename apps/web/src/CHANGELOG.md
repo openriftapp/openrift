@@ -8,6 +8,7 @@
 
 ### Other
 
+- feat(Decks): **Legend Options for Neeko** — a deck with a card that lets you choose extra legends gets a Legend Options zone for them, and deck codes, text lists, share images and registration sheets carry them.
 - feat(Rules): **Bigger board editor cards** — battlefield and zone cards are twice the size and now match, and picking a card shows your last two matching picks and sorts runes by domain.
 - fix(Rules): **Editor toolbar no longer drags the card** — clicking an icon in a selected card's toolbar dragged the card underneath instead of the button.
 - fix(Cards): **Traditional Chinese and Korean on Cardmarket** — Cardmarket links for Traditional Chinese and Korean printings now open filtered to that language, and Traditional Chinese offers picked with the browser extension or synchronized from your Cardmarket stock now match their printings.

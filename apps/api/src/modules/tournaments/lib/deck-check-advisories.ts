@@ -39,6 +39,7 @@ interface CardDetail {
 /** The only zones {@link computeZoneSuggestions} checks a card's type against. */
 const TYPE_LOCKED_ZONES = new Set<string>([
   WellKnown.deckZone.LEGEND,
+  WellKnown.deckZone.LEGEND_OPTIONS,
   WellKnown.deckZone.RUNES,
   WellKnown.deckZone.BATTLEFIELD,
 ]);
@@ -68,7 +69,11 @@ export function computeZoneSuggestions(
       detail.superTypes as SuperType[],
       "mainDeck",
     );
-    if (suggestedZone === card.zone) {
+    if (
+      suggestedZone === card.zone ||
+      (suggestedZone === WellKnown.deckZone.LEGEND &&
+        card.zone === WellKnown.deckZone.LEGEND_OPTIONS)
+    ) {
       continue;
     }
     if (!TYPE_LOCKED_ZONES.has(suggestedZone) && !TYPE_LOCKED_ZONES.has(card.zone)) {
@@ -172,6 +177,7 @@ export async function buildEntryAdvisories(
           customTagSlugs: [],
           keywords: detail.keywords,
           maxCopiesOverride: detail.maxCopiesOverride,
+          additionalLegendCount: detail.additionalLegendCount,
           // Always false: the banned-card violation is emitted above already,
           // and CARD_BANNED from the rule engine would double it.
           banned: false,

@@ -4,6 +4,7 @@ import { WellKnown } from "@openrift/shared/well-known";
 import type { Io } from "../../../io.js";
 import type { Child, Element } from "../../system/services/share-image-core.js";
 import {
+  CARD_ASPECT,
   COLORS,
   blurredArtBackdropDataUri,
   element,
@@ -36,7 +37,7 @@ export interface DeckImageCard {
   imageId: string | null;
   energy: number | null;
   domains: readonly string[];
-  /** Deck zone slug (legend / champion / main / runes / battlefield / sideboard / overflow). */
+  /** Deck zone slug (legend / legend-options / champion / main / runes / battlefield / sideboard / overflow). */
   zone: string;
 }
 
@@ -83,6 +84,7 @@ function byEnergyThenName(left: DeckImageCard, right: DeckImageCard): number {
 
 export interface DeckZones {
   legend: DeckImageCard | null;
+  legendOptions: DeckImageCard[];
   /** Distinct rune cards, most copies first. */
   runeCards: DeckImageCard[];
   /** The raw rune rows, for the per-domain glyph summary. */
@@ -99,6 +101,9 @@ export interface DeckZones {
 export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
   const zone = WellKnown.deckZone;
   const legend = cards.find((card) => card.zone === zone.LEGEND) ?? null;
+  const legendOptions = cards
+    .filter((card) => card.zone === zone.LEGEND_OPTIONS)
+    .sort((left, right) => left.cardName.localeCompare(right.cardName));
   const runes = cards.filter((card) => card.zone === zone.RUNES);
   const battlefields = cards
     .filter((card) => card.zone === zone.BATTLEFIELD)
@@ -121,6 +126,7 @@ export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
 
   return {
     legend,
+    legendOptions,
     runeCards,
     runes,
     battlefields,
@@ -129,6 +135,18 @@ export function splitDeckZones(cards: readonly DeckImageCard[]): DeckZones {
     mainCardCount,
     sideboardCount: sideboard.reduce((sum, card) => sum + card.quantity, 0),
   };
+}
+
+export function legendOptionTileSize(
+  count: number,
+  rowW: number,
+  maxH: number,
+): { tileW: number; tileH: number } {
+  if (count === 0 || maxH <= 0) {
+    return { tileW: 0, tileH: 0 };
+  }
+  const tileH = Math.floor(Math.min(maxH, (rowW - (count - 1) * GAP) / count / CARD_ASPECT));
+  return { tileW: Math.floor(tileH * CARD_ASPECT), tileH };
 }
 
 /** The "Constructed · 30 + 2 cards" metadata line. */
