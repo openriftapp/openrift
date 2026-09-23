@@ -375,16 +375,14 @@ describe("GET /api/v1/deck-cards", () => {
     });
   });
 
-  it("bounds the watermark window at the last finished transaction", async () => {
+  it("reads from the client's watermark", async () => {
     mockRepo.allDeckCardsForUser.mockResolvedValue([]);
 
     await app.request("/api/v1/deck-cards?since=1000");
 
-    expect(mockRepo.allDeckCardsForUser).toHaveBeenCalledWith(
-      USER_ID,
-      { sinceXid: "1000", safeXid: "5000" },
-      { limit: 10_000 },
-    );
+    expect(mockRepo.allDeckCardsForUser).toHaveBeenCalledWith(USER_ID, "1000", {
+      limit: 10_000,
+    });
   });
 
   it("hands back a cursor and withholds the watermark while a page is full", async () => {
@@ -417,23 +415,23 @@ describe("GET /api/v1/deck-cards", () => {
     expect(json.touchedDeckIds).toEqual([DECK_ID]);
   });
 
-  it("reads the touched deck ids only after the rows have arrived", async () => {
-    let releaseRows: (rows: object[]) => void = () => {};
-    mockRepo.allDeckCardsForUser.mockReturnValue(
+  it("reads the touched deck ids before the rows", async () => {
+    let releaseIds: (ids: string[]) => void = () => {};
+    mockRepo.deckIdsTouchedSince.mockReturnValue(
       // oxlint-disable-next-line promise/avoid-new -- held open by hand to observe the order
-      new Promise<object[]>((resolve) => {
-        releaseRows = resolve;
+      new Promise<string[]>((resolve) => {
+        releaseIds = resolve;
       }),
     );
-    mockRepo.deckIdsTouchedSince.mockResolvedValue([DECK_ID]);
+    mockRepo.allDeckCardsForUser.mockResolvedValue([]);
 
     const pending = app.request("/api/v1/deck-cards?since=1000");
     await Promise.resolve();
-    expect(mockRepo.deckIdsTouchedSince).not.toHaveBeenCalled();
+    expect(mockRepo.allDeckCardsForUser).not.toHaveBeenCalled();
 
-    releaseRows([]);
+    releaseIds([DECK_ID]);
     const json = await readJson(await pending);
-    expect(mockRepo.deckIdsTouchedSince).toHaveBeenCalledOnce();
+    expect(mockRepo.allDeckCardsForUser).toHaveBeenCalledOnce();
     expect(json.touchedDeckIds).toEqual([DECK_ID]);
   });
 });

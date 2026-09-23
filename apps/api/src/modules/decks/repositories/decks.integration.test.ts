@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { CARD_FURY_UNIT } from "../../../test/fixtures/constants.js";
@@ -276,11 +277,50 @@ describe.skipIf(!ctx)("decksRepo (integration)", () => {
 
     await db.updateTable("deckCards").set({ quantity: 2 }).where("deckId", "=", deckId).execute();
 
-    const touched = await repo.deckIdsTouchedSince(userId, {
-      sinceXid: before,
-      safeXid: await repo.currentSafeXid(),
-    });
+    const touched = await repo.deckIdsTouchedSince(userId, before);
     expect(touched).toContain(deckId);
+  });
+
+  it("returns a deck committed while an older transaction is still open", async () => {
+    const sinceXid = await repo.currentSafeXid();
+    const holding = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const older = db.transaction().execute(async (trx) => {
+      await sql`SELECT pg_current_xact_id()`.execute(trx);
+      holding.resolve();
+      await release.promise;
+    });
+
+    try {
+      await holding.promise;
+      const deck = await repo.create({
+        userId,
+        name: "Committed Behind The Watermark",
+        description: null,
+        format: "constructed",
+        formatConfig: null,
+        isPublic: false,
+      });
+      createdDeckIds.push(deck.id);
+      await repo.replaceCards(deck.id, [
+        { cardId: seedCardId, zone: "main", quantity: 3, preferredPrintingId: null },
+      ]);
+      const { xid } = await db
+        .selectFrom("decks")
+        .select(sql<string>`updated_xid::text`.as("xid"))
+        .where("id", "=", deck.id)
+        .executeTakeFirstOrThrow();
+      expect(BigInt(await repo.currentSafeXid())).toBeLessThanOrEqual(BigInt(xid));
+
+      const touched = await repo.deckIdsTouchedSince(userId, sinceXid);
+      const rows = await repo.allDeckCardsForUser(userId, sinceXid);
+
+      expect(touched).toContain(deck.id);
+      expect(rows.filter((row) => row.deckId === deck.id)).toHaveLength(1);
+    } finally {
+      release.resolve();
+      await older;
+    }
   });
 
   it("deletes a deck and returns numDeletedRows = 1", async () => {

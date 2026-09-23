@@ -8,11 +8,6 @@ import type { CardsTable } from "../../../db/tables/catalog.js";
 import type { DeckCardsTable } from "../../../db/tables/decks.js";
 import { safeXidExpression } from "../../../repositories/query-helpers.js";
 
-export interface DeckXidWindow {
-  sinceXid: string;
-  safeXid: string;
-}
-
 /** Slim deck card row — card metadata is resolved client-side from the catalog. */
 type DeckCardRow = Pick<
   Selectable<DeckCardsTable>,
@@ -104,10 +99,10 @@ export function decksCardsRepo(db: Kysely<Database>) {
       return row.xid;
     },
 
-    /** The window filters by the deck, not the card: a touched deck returns all of its cards, so removals show as absence. */
+    /** The watermark filters by the deck, not the card: a touched deck returns all of its cards, so removals show as absence. */
     allDeckCardsForUser(
       userId: string,
-      window?: DeckXidWindow,
+      sinceXid?: string,
       page?: { limit: number; after?: string },
     ): Promise<
       {
@@ -132,10 +127,8 @@ export function decksCardsRepo(db: Kysely<Database>) {
         ])
         .where("d.userId", "=", userId)
         .orderBy("dc.id");
-      if (window !== undefined) {
-        query = query
-          .where(sql<boolean>`d.updated_xid >= ${window.sinceXid}::xid8`)
-          .where(sql<boolean>`d.updated_xid < ${window.safeXid}::xid8`);
+      if (sinceXid !== undefined) {
+        query = query.where(sql<boolean>`d.updated_xid >= ${sinceXid}::xid8`);
       }
       if (page !== undefined) {
         query = query.limit(page.limit + 1);
@@ -147,13 +140,12 @@ export function decksCardsRepo(db: Kysely<Database>) {
     },
 
     /** Includes a deck whose cards are now all gone, which contributes no rows of its own. */
-    async deckIdsTouchedSince(userId: string, window: DeckXidWindow): Promise<string[]> {
+    async deckIdsTouchedSince(userId: string, sinceXid: string): Promise<string[]> {
       const rows = await db
         .selectFrom("decks as d")
         .select("d.id")
         .where("d.userId", "=", userId)
-        .where(sql<boolean>`d.updated_xid >= ${window.sinceXid}::xid8`)
-        .where(sql<boolean>`d.updated_xid < ${window.safeXid}::xid8`)
+        .where(sql<boolean>`d.updated_xid >= ${sinceXid}::xid8`)
         .execute();
       return rows.map((row) => row.id);
     },

@@ -276,22 +276,19 @@ export const decksRouter = {
       cursor !== undefined && BigInt(cursor.safeXid) < BigInt(currentSafeXid)
         ? cursor.safeXid
         : currentSafeXid;
-    const window =
-      input.since === undefined || BigInt(input.since) > BigInt(safeXid)
-        ? undefined
-        : { sinceXid: input.since, safeXid };
+    const sinceXid =
+      input.since === undefined || BigInt(input.since) > BigInt(safeXid) ? undefined : input.since;
     const limit = clampDeckCardsLimit(input.limit);
-    // Rows before ids: a deck re-stamped between the two reads leaves the window,
-    // and a touched deck without its rows would be emptied by the reader.
-    const rows = await context.repos.decks.allDeckCardsForUser(context.userId, window, {
+    // Ids before rows: a deck stamped between the reads still brings its rows, where a touched
+    // id without them would empty the deck. The reader keeps the ids across pages.
+    const touchedDeckIds =
+      sinceXid === undefined || cursor !== undefined
+        ? undefined
+        : await context.repos.decks.deckIdsTouchedSince(context.userId, sinceXid);
+    const rows = await context.repos.decks.allDeckCardsForUser(context.userId, sinceXid, {
       limit,
       ...(cursor === undefined ? {} : { after: cursor.id }),
     });
-    // Deck ids only, and the reader keeps them across pages, so they ship once.
-    const touchedDeckIds =
-      window === undefined || cursor !== undefined
-        ? undefined
-        : await context.repos.decks.deckIdsTouchedSince(context.userId, window);
     const page = rows.slice(0, limit);
     const drained = rows.length <= limit;
     const last = page.at(-1);
