@@ -12,6 +12,7 @@ interface UserWithCounts {
   deckCount: number;
   collectionCount: number;
   listCount: number;
+  groups: { id: string; name: string }[];
   createdAt: Date;
   lastActiveAt: Date | null;
 }
@@ -28,7 +29,7 @@ export function usersRepo(db: Kysely<Database>) {
     },
 
     async listWithCounts(): Promise<UserWithCounts[]> {
-      const rows = await db
+      const usersQuery = db
         .selectFrom("users as u")
         .select((eb) => [
           "u.id",
@@ -70,6 +71,14 @@ export function usersRepo(db: Kysely<Database>) {
         ])
         .orderBy("u.createdAt", "desc")
         .execute();
+      const membershipsQuery = db
+        .selectFrom("friendGroupMembers as gm")
+        .innerJoin("friendGroups as g", "g.id", "gm.groupId")
+        .select(["gm.userId", "g.id", "g.name"])
+        .orderBy("g.name")
+        .execute();
+      const [rows, memberships] = await Promise.all([usersQuery, membershipsQuery]);
+      const groupsByUser = Map.groupBy(memberships, (m) => m.userId);
 
       return rows.map((r) => ({
         id: r.id,
@@ -81,6 +90,7 @@ export function usersRepo(db: Kysely<Database>) {
         deckCount: r.deckCount ?? 0,
         collectionCount: r.collectionCount ?? 0,
         listCount: r.listCount ?? 0,
+        groups: (groupsByUser.get(r.id) ?? []).map((m) => ({ id: m.id, name: m.name })),
         createdAt: r.createdAt,
         lastActiveAt: r.lastActiveAt,
       }));

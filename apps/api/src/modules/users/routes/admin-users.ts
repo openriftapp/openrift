@@ -22,6 +22,7 @@ export const adminUsersRouter = {
         deckCount: r.deckCount,
         collectionCount: r.collectionCount,
         listCount: r.listCount,
+        groups: r.groups,
         createdAt: r.createdAt.toISOString(),
         lastActiveAt: r.lastActiveAt ? r.lastActiveAt.toISOString() : null,
       })),

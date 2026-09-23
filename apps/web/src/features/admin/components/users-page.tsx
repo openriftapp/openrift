@@ -146,6 +146,24 @@ function ListCountCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   return <span className="tabular-nums">{row.listCount.toLocaleString()}</span>;
 }
 
+function GroupsCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
+  if (!row) {
+    return null;
+  }
+  if (row.groups.length === 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {row.groups.map((group) => (
+        <Badge key={group.id} variant="secondary">
+          {group.name}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function JoinedCell({ row }: AdminCellSlotProps<AdminUserResponse>) {
   if (!row) {
     return null;
@@ -214,6 +232,11 @@ const columns: AdminColumnDef<AdminUserResponse>[] = [
     width: "w-20",
     sortValue: (user) => user.listCount,
     cell: <ListCountCell />,
+  },
+  {
+    header: "Groups",
+    sortValue: (user) => user.groups.length,
+    cell: <GroupsCell />,
   },
   {
     header: "Joined",

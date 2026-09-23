@@ -23,7 +23,7 @@ describe("GET /api/admin/v1/users", () => {
     vi.resetAllMocks();
   });
 
-  it("returns users with aggregate counts and ISO-string dates", async () => {
+  it("returns users with aggregate counts, groups and ISO-string dates", async () => {
     mockUsersRepo.listWithCounts.mockResolvedValue([
       {
         id: "V07rIX7hwiXgRxHwxo1HtV1ybv8Z7iyK",
@@ -35,6 +35,7 @@ describe("GET /api/admin/v1/users", () => {
         deckCount: 5,
         collectionCount: 3,
         listCount: 4,
+        groups: [{ id: "019b0000-0000-7000-8000-000000000001", name: "Piltover Traders" }],
         createdAt: new Date("2026-03-11T18:04:22.059Z"),
         lastActiveAt: new Date("2026-04-22T09:13:51.412Z"),
       },
@@ -55,6 +56,7 @@ describe("GET /api/admin/v1/users", () => {
           deckCount: 5,
           collectionCount: 3,
           listCount: 4,
+          groups: [{ id: "019b0000-0000-7000-8000-000000000001", name: "Piltover Traders" }],
           createdAt: "2026-03-11T18:04:22.059Z",
           lastActiveAt: "2026-04-22T09:13:51.412Z",
         },
@@ -74,6 +76,7 @@ describe("GET /api/admin/v1/users", () => {
         deckCount: 0,
         collectionCount: 0,
         listCount: 0,
+        groups: [],
         createdAt: new Date("2026-01-01T00:00:00.000Z"),
         lastActiveAt: null,
       },

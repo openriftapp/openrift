@@ -15,6 +15,7 @@ export const adminUserSchema = z.object({
   deckCount: z.number(),
   collectionCount: z.number(),
   listCount: z.number(),
+  groups: z.array(z.object({ id: z.string(), name: z.string() })),
   createdAt: isoDateTime,
   lastActiveAt: isoDateTime.nullable(),
 });
