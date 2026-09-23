@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "OpenRift",
+  "short_name": "OpenRift",
+  "description": "Riftbound card collection browser",
+  "start_url": "/cards",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1526",
+  "theme_color": "#0f1526",
+  "icons": [
+    { "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

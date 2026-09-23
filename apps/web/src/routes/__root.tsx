@@ -134,6 +134,7 @@ export const Route = createRootRouteWithContext<{
         { rel: "icon", type: "image/png", sizes: "64x64", href: "/favicon-64x64.png" },
         { rel: "icon", type: "image/webp", href: "/logo.webp" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon-180x180.png" },
+        { rel: "manifest", href: "/manifest.webmanifest" },
         // crossOrigin is required: browser font requests always go in CORS mode,
         // so without it the preload doesn't match the later CSS-driven request.
         {

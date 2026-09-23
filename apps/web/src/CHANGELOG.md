@@ -2,6 +2,10 @@
 
 ## 2026-09-23
 
+### Highlights
+
+- feat(App): **OpenRift on your home screen** — a new Get the app page recognises your phone and browser and shows the steps for adding OpenRift to your home screen, where it opens full screen like an app. Find it in the menu or under Help.
+
 ### Other
 
 - fix(App): **Old tabs recover after a deploy** — a tab left open across a release now reloads itself instead of failing silently the next time it talks to the server.

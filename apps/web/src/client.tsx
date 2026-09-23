@@ -11,6 +11,7 @@ import { bufferHydrationError } from "./lib/hydration-error-buffer";
 import type { HydrationErrorPhase } from "./lib/hydration-error-buffer";
 import { initStaleBundleWatcher, initVisibilityVersionCheck } from "./lib/stale-bundle";
 import { initChunkErrorReloader, reloadIfUncaughtBareThrow } from "./lib/stale-bundle-reload";
+import { initInstallPromptCapture } from "./stores/install-store";
 
 if (import.meta.env.DEV && import.meta.env.VITE_DEVTOOLS) {
   const { scan } = await import("react-scan");
@@ -48,6 +49,7 @@ function reportHydrationError(
 initStaleBundleWatcher();
 initChunkErrorReloader();
 initVisibilityVersionCheck();
+initInstallPromptCapture();
 
 hydrateRoot(
   document,

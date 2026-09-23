@@ -16,6 +16,7 @@ import {
   PencilLineIcon,
   SearchIcon,
   ShieldIcon,
+  SmartphoneIcon,
   SparklesIcon,
   SunIcon,
   UserIcon,
@@ -79,6 +80,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { sessionQueryOptions, useSession } from "@/lib/auth-session";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { useGravatarHash } from "@/lib/gravatar";
+import { isStandaloneDisplay } from "@/lib/install-platform";
 import type { LockedFeatureKey, NavBadgeCounts, NavItemConfig } from "@/lib/nav-items";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import { STICKY_SURFACE } from "@/lib/sticky-surface";
@@ -584,6 +586,7 @@ function MobileNav({
   badges: NavBadgeCounts;
   onLockedClick: (key: LockedFeatureKey) => void;
 }) {
+  const hydrated = useHydrated();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left">
@@ -618,6 +621,16 @@ function MobileNav({
               onLockedClick={onLockedClick}
             />
           ))}
+          {hydrated && !isStandaloneDisplay() && (
+            <SheetClose
+              nativeButton={false}
+              render={<Link to="/install" />}
+              className={cn(MOBILE_NAV_ITEM_CLASS, "mt-2")}
+            >
+              <SmartphoneIcon className="text-primary size-5" />
+              {m.nav_get_app()}
+            </SheetClose>
+          )}
         </nav>
         <SheetFooter className="px-5 pt-6">
           <a
@@ -740,6 +753,14 @@ function HelpPopover() {
           label={m.layout_header_whats_new()}
           description={m.layout_header_whats_new_description()}
         />
+        {hydrated && !isStandaloneDisplay() && (
+          <InternalPopoverRow
+            to="/install"
+            icon={<SmartphoneIcon className="size-4 shrink-0" />}
+            label={m.nav_get_app()}
+            description={m.nav_get_app_description()}
+          />
+        )}
         <ExternalPopoverRow
           href={SOCIAL_LINKS.githubNewIssue}
           icon={<SimpleIconGlyph path={siGithub.path} />}
