@@ -90,10 +90,10 @@ export function DeckBoxTab({
   onHoverCard,
 }: DeckBoxTabProps) {
   // Preference for this pull run only; not persisted.
-  const [pinnedCopyIds, setPinnedCopyIds] = useState<ReadonlySet<string>>(new Set());
+  const [slotCopyIds, setSlotCopyIds] = useState<ReadonlyMap<string, string>>(new Map());
   // Remembered only for this tab session; lost on reload the move dialog asks instead.
   const [originById, setOriginById] = useState<ReadonlyMap<string, string>>(new Map());
-  const plan = useDeckBox(deckId, cards, homeCollectionId, pinnedCopyIds);
+  const plan = useDeckBox(deckId, cards, homeCollectionId, slotCopyIds);
   const moveCopies = useMoveCopies();
   const { data: collections } = useCollections();
   const inboxId = collections.find((collection) => collection.isInbox)?.id;
@@ -151,11 +151,16 @@ export function DeckBoxTab({
     );
   };
 
-  const swap = (fromCopyId: string, toCopyId: string) => {
-    const next = new Set(pinnedCopyIds);
-    next.delete(fromCopyId);
-    next.add(toCopyId);
-    setPinnedCopyIds(next);
+  // Freezes every row of the card, so acting on one row never reshuffles its siblings.
+  const hold = (target: DeckBoxSlot, copyId: string) => {
+    const next = new Map(slotCopyIds);
+    for (const slot of plan.slots) {
+      if (slot.cardId === target.cardId && slot.copy && slot.state !== "blocked") {
+        next.set(slot.key, slot.copy.copyId);
+      }
+    }
+    next.set(target.key, copyId);
+    setSlotCopyIds(next);
   };
 
   const complete = plan.neededTotal > 0 && plan.inBoxTotal === plan.neededTotal;
@@ -171,9 +176,19 @@ export function DeckBoxTab({
         labels={labels}
         siblings={siblings}
         disabled={moveCopies.isPending}
-        onTick={() => slot.copy && putIn(slot.copy)}
-        onTakeOut={() => slot.copy && takeOut([slot.copy.copyId], false)}
-        onSwap={swap}
+        onTick={() => {
+          if (slot.copy) {
+            hold(slot, slot.copy.copyId);
+            putIn(slot.copy);
+          }
+        }}
+        onTakeOut={() => {
+          if (slot.copy) {
+            hold(slot, slot.copy.copyId);
+            takeOut([slot.copy.copyId], false);
+          }
+        }}
+        onSwap={(copyId) => hold(slot, copyId)}
         onHoverCard={onHoverCard}
         onOpen={
           onCardClick
@@ -377,7 +392,7 @@ function SlotRow({
   disabled: boolean;
   onTick: () => void;
   onTakeOut: () => void;
-  onSwap: (fromCopyId: string, toCopyId: string) => void;
+  onSwap: (copyId: string) => void;
   onHoverCard?: HoverHandler;
   onOpen?: () => void;
 }) {
@@ -406,7 +421,7 @@ function SlotRow({
             labels={labels}
             siblings={siblings}
             mode="keep"
-            onSwap={(copyId) => slot.copy && onSwap(slot.copy.copyId, copyId)}
+            onSwap={onSwap}
           />
         }
       />
@@ -437,7 +452,7 @@ function SlotRow({
             slot={slot}
             labels={labels}
             siblings={siblings}
-            onSwap={(copyId) => slot.copy && onSwap(slot.copy.copyId, copyId)}
+            onSwap={onSwap}
           />
         }
       />

@@ -65,17 +65,23 @@ export interface DeckBoxPlan {
   siblingPrintingsByCardId: ReadonlyMap<string, VariantLabelPrinting[]>;
 }
 
+export interface DeckBoxCollection {
+  id: string;
+  name: string;
+  availableForDeckbuilding: boolean;
+}
+
 export interface DeckBoxInput {
   cards: readonly DeckBuilderCard[];
   copies: readonly CopyResponse[];
   homeCollectionId: string;
   printingsByCardId: ReadonlyMap<string, Printing[]>;
   printingsById: Readonly<Record<string, Printing>>;
-  collectionNameById: ReadonlyMap<string, string>;
+  collections: readonly DeckBoxCollection[];
   otherDeckNeeds?: ReadonlyMap<string, number>;
   languageOrder: readonly string[];
   conditionOrder: readonly string[];
-  pinnedCopyIds?: ReadonlySet<string>;
+  slotCopyIds?: ReadonlyMap<string, string>;
 }
 
 const FINISH_ORDER: readonly string[] = [
@@ -88,9 +94,15 @@ const FINISH_ORDER: readonly string[] = [
 function candidateComparator(
   pinnedPrintingId: string | null,
   printingById: ReadonlyMap<string, Printing>,
+  collectionOrderById: ReadonlyMap<string, { index: number; excluded: boolean }>,
   languageOrder: readonly string[],
   conditionOrder: readonly string[],
 ): (a: CopyResponse, b: CopyResponse) => number {
+  const collectionOrder = (collectionId: string) =>
+    collectionOrderById.get(collectionId) ?? {
+      index: collectionOrderById.size,
+      excluded: false,
+    };
   const neutralCondition = (conditionOrder.length - 1) / 2;
   const conditionScore = (condition: string | null): number => {
     if (condition === null) {
@@ -111,10 +123,20 @@ function candidateComparator(
   };
 
   return (a, b) => {
+    const collectionA = collectionOrder(a.collectionId);
+    const collectionB = collectionOrder(b.collectionId);
+    const excluded = Number(collectionA.excluded) - Number(collectionB.excluded);
+    if (excluded !== 0) {
+      return excluded;
+    }
     const pinned =
       Number(b.printingId === pinnedPrintingId) - Number(a.printingId === pinnedPrintingId);
     if (pinned !== 0) {
       return pinned;
+    }
+    const collection = collectionA.index - collectionB.index;
+    if (collection !== 0) {
+      return collection;
     }
     const language = languageScore(a.printingId) - languageScore(b.printingId);
     if (language !== 0) {
@@ -231,12 +253,22 @@ export function computeDeckBoxPlan({
   homeCollectionId,
   printingsByCardId,
   printingsById,
-  collectionNameById,
+  collections,
   otherDeckNeeds,
   languageOrder,
   conditionOrder,
-  pinnedCopyIds,
+  slotCopyIds,
 }: DeckBoxInput): DeckBoxPlan {
+  const pinnedCopyIds = new Set(slotCopyIds?.values());
+  const collectionNameById = new Map(
+    collections.map((collection) => [collection.id, collection.name]),
+  );
+  const collectionOrderById = new Map(
+    collections.map((collection, index) => [
+      collection.id,
+      { index, excluded: !collection.availableForDeckbuilding },
+    ]),
+  );
   const printingById = new Map<string, Printing>();
   const needsByCard = new Map<string, { card: DeckBoxCard; needed: number }>();
   const pinnedByCard = new Map<string, string | null>();
@@ -331,6 +363,7 @@ export function computeDeckBoxPlan({
     const comparator = candidateComparator(
       pinnedByCard.get(cardId) ?? null,
       printingById,
+      collectionOrderById,
       languageOrder,
       conditionOrder,
     );
@@ -419,24 +452,42 @@ export function computeDeckBoxPlan({
     }
   }
 
-  const slots: DeckBoxSlot[] = [];
-  const usedByCard = new Map<string, number>();
+  const emptySlots: Omit<DeckBoxSlot, keyof SlotFill>[] = [];
   for (const card of cards) {
     if (!isCountedZone(card.zone)) {
       continue;
     }
-    const fills = fillsByCard.get(card.cardId) ?? [];
     const cardKey = getDeckCardKey(card);
-    let used = usedByCard.get(card.cardId) ?? 0;
     for (let index = 0; index < card.quantity; index++) {
-      const fill = fills[used];
-      used += 1;
+      emptySlots.push({ key: `${cardKey}:${index}`, cardId: card.cardId, cardKey });
+    }
+  }
+
+  const fillBySlotKey = new Map<string, SlotFill>();
+  for (const [cardId, cardSlots] of Map.groupBy(emptySlots, (slot) => slot.cardId)) {
+    const remaining = [...(fillsByCard.get(cardId) ?? [])];
+    const unplaced = cardSlots.filter((slot) => {
+      const copyId = slotCopyIds?.get(slot.key);
+      const index =
+        copyId === undefined ? -1 : remaining.findIndex((fill) => fill.copy?.copyId === copyId);
+      const [fill] = index === -1 ? [] : remaining.splice(index, 1);
+      if (!fill) {
+        return true;
+      }
+      fillBySlotKey.set(slot.key, fill);
+      return false;
+    });
+    for (const [index, slot] of unplaced.entries()) {
+      const fill = remaining[index];
       if (fill) {
-        slots.push({ key: `${cardKey}:${index}`, cardId: card.cardId, cardKey, ...fill });
+        fillBySlotKey.set(slot.key, fill);
       }
     }
-    usedByCard.set(card.cardId, used);
   }
+  const slots: DeckBoxSlot[] = emptySlots.flatMap((slot) => {
+    const fill = fillBySlotKey.get(slot.key);
+    return fill ? [{ ...slot, ...fill }] : [];
+  });
 
   const extras: DeckBoxExtra[] = [];
   let extraCount = 0;
@@ -451,6 +502,7 @@ export function computeDeckBoxPlan({
       candidateComparator(
         pinnedByCard.get(cardId) ?? null,
         printingById,
+        collectionOrderById,
         languageOrder,
         conditionOrder,
       ),

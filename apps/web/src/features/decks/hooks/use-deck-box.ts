@@ -17,7 +17,7 @@ export function useDeckBox(
   deckId: string,
   cards: readonly DeckBuilderCard[],
   homeCollectionId: string | null | undefined,
-  pinnedCopyIds?: ReadonlySet<string>,
+  slotCopyIds?: ReadonlyMap<string, string>,
 ): DeckBoxPlan | undefined {
   const userId = useUserId();
   const enabled = Boolean(userId) && Boolean(homeCollectionId);
@@ -69,10 +69,10 @@ export function useDeckBox(
     homeCollectionId,
     printingsByCardId,
     printingsById,
-    collectionNameById: new Map(collections.map((collection) => [collection.id, collection.name])),
+    collections,
     otherDeckNeeds,
     languageOrder,
     conditionOrder: conditions.map((condition) => condition.slug),
-    pinnedCopyIds,
+    slotCopyIds,
   });
 }

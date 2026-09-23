@@ -3,8 +3,14 @@ import type { CopyResponse } from "@openrift/shared/types/api/collection";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { DeckBoxCopy, DeckBoxInput, DeckBoxPlan } from "@/features/decks/lib/deck-box";
+import type {
+  DeckBoxCollection,
+  DeckBoxCopy,
+  DeckBoxInput,
+  DeckBoxPlan,
+} from "@/features/decks/lib/deck-box";
 import { computeDeckBoxPlan } from "@/features/decks/lib/deck-box";
+import { getDeckCardKey } from "@/features/decks/lib/deck-builder-card";
 import { resetIdCounter, stubCopy, stubDeckBuilderCard, stubPrinting } from "@/test/factories";
 
 const BOX = "box-collection";
@@ -13,11 +19,11 @@ const SHOEBOX = "shoebox-collection";
 
 const CONDITIONS = ["mint", "near-mint", "excellent", "good", "light-played", "played", "poor"];
 
-const COLLECTION_NAMES = new Map([
-  [BOX, "Deckbox 1"],
-  [BINDER, "Binder A"],
-  [SHOEBOX, "Shoebox"],
-]);
+const COLLECTIONS: DeckBoxCollection[] = [
+  { id: BOX, name: "Deckbox 1", availableForDeckbuilding: true },
+  { id: BINDER, name: "Binder A", availableForDeckbuilding: true },
+  { id: SHOEBOX, name: "Shoebox", availableForDeckbuilding: true },
+];
 
 beforeEach(() => {
   resetIdCounter();
@@ -31,7 +37,7 @@ function inputFor({
   cardName = "Fire Dragon",
   preferredPrintingId = null,
   zone = "main",
-  pinnedCopyIds,
+  picks = {},
   otherDeckNeeds,
 }: {
   printings: Printing[];
@@ -41,28 +47,29 @@ function inputFor({
   cardName?: string;
   preferredPrintingId?: string | null;
   zone?: string;
-  pinnedCopyIds?: ReadonlySet<string>;
+  picks?: Record<number, string>;
   otherDeckNeeds?: ReadonlyMap<string, number>;
 }): DeckBoxInput {
+  const card = stubDeckBuilderCard({
+    cardId,
+    cardName,
+    quantity,
+    preferredPrintingId,
+    zone: zone as never,
+  });
   return {
-    cards: [
-      stubDeckBuilderCard({
-        cardId,
-        cardName,
-        quantity,
-        preferredPrintingId,
-        zone: zone as never,
-      }),
-    ],
+    cards: [card],
     copies,
     homeCollectionId: BOX,
     printingsByCardId: new Map([[cardId, printings]]),
     printingsById: Object.fromEntries(printings.map((printing) => [printing.id, printing])),
-    collectionNameById: COLLECTION_NAMES,
+    collections: COLLECTIONS,
     otherDeckNeeds,
     languageOrder: ["EN", "DE"],
     conditionOrder: CONDITIONS,
-    pinnedCopyIds,
+    slotCopyIds: new Map(
+      Object.entries(picks).map(([index, copyId]) => [`${getDeckCardKey(card)}:${index}`, copyId]),
+    ),
   };
 }
 
@@ -271,7 +278,7 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [worn, mint],
-        pinnedCopyIds: new Set([mint.id]),
+        picks: { 0: mint.id },
       }),
     );
     expect(plan.slots[0]?.copy?.copyId).toBe(mint.id);
@@ -284,7 +291,7 @@ describe("computeDeckBoxPlan", () => {
       inputFor({
         printings: [printing],
         copies: [worn],
-        pinnedCopyIds: new Set(["a-copy-that-moved-away"]),
+        picks: { 0: "a-copy-that-moved-away" },
       }),
     );
     expect(plan.slots[0]?.copy?.copyId).toBe(worn.id);
@@ -378,7 +385,7 @@ describe("computeDeckBoxPlan", () => {
         quantity: 2,
         printings: [printing],
         copies: [worn, good, mint],
-        pinnedCopyIds: new Set([mint.id]),
+        picks: { 1: mint.id },
       }),
     );
     expect(plan.slots.map((slot) => slot.copy?.copyId)).toEqual([worn.id, mint.id]);
@@ -395,7 +402,7 @@ describe("computeDeckBoxPlan", () => {
         quantity: 3,
         printings: [printing],
         copies: [worn, good, mint, boxed],
-        pinnedCopyIds: new Set([mint.id]),
+        picks: { 2: mint.id },
       }),
     );
     expect(plan.slots.map((slot) => slot.state)).toEqual(["in-box", "available", "available"]);
@@ -424,7 +431,7 @@ describe("computeDeckBoxPlan", () => {
       homeCollectionId: BOX,
       printingsByCardId: new Map(),
       printingsById: {},
-      collectionNameById: COLLECTION_NAMES,
+      collections: COLLECTIONS,
       languageOrder: ["EN"],
       conditionOrder: CONDITIONS,
     });
@@ -437,6 +444,97 @@ describe("computeDeckBoxPlan", () => {
       extraCount: 0,
       siblingPrintingsByCardId: new Map(),
     });
+  });
+});
+
+describe("computeDeckBoxPlan rows", () => {
+  it("keeps a ticked copy in the row that was ticked", () => {
+    const printing = stubPrinting({ cardId: "card-1" });
+    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const good = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "good" });
+    const ticked = stubCopy({ printingId: printing.id, collectionId: BOX, condition: "mint" });
+    const plan = computeDeckBoxPlan(
+      inputFor({
+        quantity: 3,
+        printings: [printing],
+        copies: [worn, good, ticked],
+        picks: { 0: worn.id, 1: good.id, 2: ticked.id },
+      }),
+    );
+    expect(plan.slots.map((slot) => slot.copy?.copyId)).toEqual([worn.id, good.id, ticked.id]);
+    expect(plan.slots.map((slot) => slot.state)).toEqual(["available", "available", "in-box"]);
+  });
+
+  it("keeps an unticked copy in its row", () => {
+    const printing = stubPrinting({ cardId: "card-1" });
+    const unticked = stubCopy({ printingId: printing.id, collectionId: BINDER });
+    const kept = stubCopy({ printingId: printing.id, collectionId: BOX });
+    const plan = computeDeckBoxPlan(
+      inputFor({
+        quantity: 2,
+        printings: [printing],
+        copies: [unticked, kept],
+        picks: { 0: unticked.id, 1: kept.id },
+      }),
+    );
+    expect(plan.slots.map((slot) => slot.state)).toEqual(["available", "in-box"]);
+  });
+
+  it("swaps only the row a copy was picked for", () => {
+    const printing = stubPrinting({ cardId: "card-1" });
+    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const good = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "good" });
+    const mint = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "mint" });
+    const plan = computeDeckBoxPlan(
+      inputFor({
+        quantity: 2,
+        printings: [printing],
+        copies: [worn, good, mint],
+        picks: { 0: mint.id, 1: good.id },
+      }),
+    );
+    expect(plan.slots.map((slot) => slot.copy?.copyId)).toEqual([mint.id, good.id]);
+  });
+});
+
+describe("computeDeckBoxPlan collections", () => {
+  it("takes copies from collections in sidebar order", () => {
+    const printing = stubPrinting({ cardId: "card-1" });
+    const worn = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const plan = computeDeckBoxPlan({
+      ...inputFor({ printings: [printing], copies: [worn, mint] }),
+      collections: [COLLECTIONS[0], COLLECTIONS[2], COLLECTIONS[1]].filter((c) => c !== undefined),
+    });
+    expect(plan.slots[0]?.copy?.copyId).toBe(mint.id);
+  });
+
+  it("offers copies from collections kept out of deckbuilding last", () => {
+    const printing = stubPrinting({ cardId: "card-1" });
+    const traded = stubCopy({ printingId: printing.id, collectionId: BINDER, condition: "played" });
+    const mint = stubCopy({ printingId: printing.id, collectionId: SHOEBOX, condition: "mint" });
+    const plan = computeDeckBoxPlan({
+      ...inputFor({ printings: [printing], copies: [traded, mint] }),
+      collections: COLLECTIONS.map((collection) =>
+        collection.id === BINDER ? { ...collection, availableForDeckbuilding: false } : collection,
+      ),
+    });
+    expect(plan.slots[0]?.copy?.copyId).toBe(mint.id);
+    expect(plan.slots[0]?.alternatives.map((entry) => entry.copy.copyId)).toEqual([traded.id]);
+  });
+
+  it("still prefers the deck's pinned printing over an earlier collection", () => {
+    const plain = stubPrinting({ cardId: "card-1" });
+    const pinned = stubPrinting({ cardId: "card-1", shortCode: "OGS-005b" });
+    const wanted = stubCopy({ printingId: pinned.id, collectionId: SHOEBOX });
+    const plan = computeDeckBoxPlan(
+      inputFor({
+        printings: [plain, pinned],
+        preferredPrintingId: pinned.id,
+        copies: [stubCopy({ printingId: plain.id, collectionId: BINDER }), wanted],
+      }),
+    );
+    expect(plan.slots[0]?.copy?.copyId).toBe(wanted.id);
   });
 });
 
@@ -541,7 +639,7 @@ describe("computeDeckBoxPlan settled slots", () => {
       inputFor({
         printings: [plain, foil],
         copies: [kept, shiny],
-        pinnedCopyIds: new Set([shiny.id]),
+        picks: { 0: shiny.id },
       }),
     );
     expect(plan.slots[0]?.copy?.copyId).toBe(shiny.id);
