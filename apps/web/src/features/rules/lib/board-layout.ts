@@ -128,9 +128,24 @@ export function zoneCardRule(zone: BoardZoneRef): ZoneCardRule | null {
 }
 
 /** The zone's own add slot hides once the zone holds its usual complement. */
-export function zoneAcceptsMore(zone: BoardZoneRef, count: number): boolean {
+export function zoneAcceptsMore(zone: BoardZoneRef, count: number, extraCapacity = 0): boolean {
   const rule = zoneCardRule(zone);
-  return rule === null || count < rule.capacity;
+  return rule === null || count < rule.capacity + extraCapacity;
+}
+
+/** Each granting card adds one legend to the Legend Zone while it is on the board. */
+export function grantedLegendSlots(
+  pieces: readonly BoardPiece[],
+  owner: BoardPlayer,
+  grantsLegends: (cardId: string) => boolean,
+): number {
+  return pieces.filter(
+    (piece) =>
+      piece.owner === owner &&
+      (piece.zone.kind === "base" || piece.zone.kind === "battlefield") &&
+      piece.card !== null &&
+      grantsLegends(piece.card.cardId),
+  ).length;
 }
 
 export function nextPieceId(pieces: readonly BoardPiece[]): string {

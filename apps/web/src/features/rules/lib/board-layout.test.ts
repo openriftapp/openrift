@@ -11,6 +11,7 @@ import {
   piecesAt,
   sameZone,
   seatSlots,
+  grantedLegendSlots,
   seatsFor,
   slotKey,
   zoneAcceptsMore,
@@ -186,9 +187,39 @@ describe("zoneCardRule", () => {
     expect(zoneAcceptsMore({ kind: "base" }, 40)).toBe(true);
   });
 
+  it("widens the legend zone by the granted slots", () => {
+    expect(zoneAcceptsMore({ kind: "legend" }, 1, 1)).toBe(true);
+    expect(zoneAcceptsMore({ kind: "legend" }, 2, 1)).toBe(false);
+  });
+
   it("leaves open zones unrestricted", () => {
     expect(zoneCardRule({ kind: "base" })).toBeNull();
     expect(zoneCardRule({ kind: "hand" })).toBeNull();
+  });
+});
+
+describe("grantedLegendSlots", () => {
+  const NEEKO = "00000000-0000-7000-8000-00000000000a";
+  const neeko = (overrides: Partial<BoardPiece>) =>
+    piece({ card: { cardId: NEEKO, name: "Neeko" }, ...overrides });
+  const grants = (cardId: string) => cardId === NEEKO;
+
+  it("counts each granting card the player has on the base or a battlefield", () => {
+    const pieces = [
+      neeko({ id: "p1" }),
+      neeko({ id: "p2", zone: { kind: "battlefield", index: 1 } }),
+      piece({ id: "p3" }),
+    ];
+    expect(grantedLegendSlots(pieces, "A", grants)).toBe(2);
+  });
+
+  it("ignores granting cards off the board or owned by another player", () => {
+    const pieces = [
+      neeko({ id: "p1", zone: { kind: "hand" } }),
+      neeko({ id: "p2", zone: { kind: "trash" } }),
+      neeko({ id: "p3", owner: "B" }),
+    ];
+    expect(grantedLegendSlots(pieces, "A", grants)).toBe(0);
   });
 });
 

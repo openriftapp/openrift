@@ -9,6 +9,7 @@ import type {
   BoardZoneRef,
   PlayerZoneKind,
 } from "@openrift/shared/board-state";
+import { BOARD_PLAYERS } from "@openrift/shared/board-state";
 import { imageUrl } from "@openrift/shared/image-url";
 import { DropletIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -29,6 +30,7 @@ import {
   seatSlots,
   seatsFor,
   slotKey,
+  grantedLegendSlots,
   zoneAcceptsMore,
 } from "@/features/rules/lib/board-layout";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -126,6 +128,7 @@ interface BoardArt {
   chainImages: Map<number, string>;
   battlefieldImages: Map<number, string>;
   keywords: Map<string, KeywordBadge>;
+  grantedLegendSlots: Map<BoardPlayer, number>;
 }
 
 const PLAIN_ART: BoardArt = {
@@ -133,6 +136,7 @@ const PLAIN_ART: BoardArt = {
   chainImages: new Map(),
   battlefieldImages: new Map(),
   keywords: new Map(),
+  grantedLegendSlots: new Map(),
 };
 
 interface BoardViewProps extends BoardInteraction {
@@ -209,7 +213,26 @@ function BoardTableWithArt(props: BoardViewProps) {
       });
     }
   }
-  return <BoardTable {...props} art={{ pieceImages, chainImages, battlefieldImages, keywords }} />;
+  const grantsLegends = (cardId: string) =>
+    (catalog.cardsById[cardId]?.additionalLegendCount ?? 0) > 0;
+  const grantedLegendSlotsByPlayer = new Map(
+    BOARD_PLAYERS.map((player) => [
+      player,
+      grantedLegendSlots(props.step.pieces, player, grantsLegends),
+    ]),
+  );
+  return (
+    <BoardTable
+      {...props}
+      art={{
+        pieceImages,
+        chainImages,
+        battlefieldImages,
+        keywords,
+        grantedLegendSlots: grantedLegendSlotsByPlayer,
+      }}
+    />
+  );
 }
 
 interface BoardTableProps extends BoardViewProps {
@@ -531,7 +554,11 @@ function PlayerZone({
         mirrored={mirrored}
         context={context}
         trailing={
-          zoneAcceptsMore(zone, piecesAt(context.step, zone, owner).length)
+          zoneAcceptsMore(
+            zone,
+            piecesAt(context.step, zone, owner).length,
+            kind === "legend" ? (context.art.grantedLegendSlots.get(owner) ?? 0) : 0,
+          )
             ? context.interaction.renderZoneAdd?.(zone, owner)
             : undefined
         }
