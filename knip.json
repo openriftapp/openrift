@@ -25,7 +25,8 @@
         "src/start.ts",
         "src/instrument.server.mjs",
         "src/tracing.server.ts",
-        "src/components/error-fallback.tsx"
+        "src/components/error-fallback.tsx",
+        "nitro/*.ts"
       ],
       "ignore": ["src/components/ui/**", "public/sw.js", "src/test/paraglide-en.js"],
       "ignoreDependencies": ["@tanstack/router-plugin", "flag-icons"]

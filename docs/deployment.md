@@ -82,6 +82,14 @@ The gate **fails open**: after `API_WAIT_TIMEOUT` it starts anyway rather than p
 
 `web`'s healthcheck carries `start_period: 150s` to cover the wait plus SSR boot; without it a slow API would get the container marked unhealthy while the gate is doing its job.
 
+### Shutdown
+
+Every container exits on its own within its stop timeout, so a deploy never waits for Docker to kill one.
+
+- **api** stops its job timers, stops accepting connections, gives in-flight requests 5 s, then closes the render workers and the database pool, flushes Sentry and traces, and exits. A deadline exits it after 8 s whatever is still pending. A job cut short stays `running` until the next start marks it failed. The service runs with `init: true`: as PID 1, Bun ignores any signal it has no handler for, which includes SIGTERM during the startup migrations.
+- **web** closes through srvx, which waits up to 5 s for in-flight requests but never exits the process. The Nitro plugin `apps/web/nitro/exit-on-close.ts` flushes Sentry and traces on Nitro's `close` hook and exits.
+- **proxy** caps nginx's graceful stop at 5 s with `worker_shutdown_timeout`, set on the image's command line.
+
 ## Environment Variables
 
 ### Other Configuration

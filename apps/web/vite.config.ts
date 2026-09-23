@@ -266,6 +266,7 @@ export default defineConfig(({ mode, command }) => {
       command === "build" &&
         nitro({
           preset: "bun",
+          plugins: ["./nitro/exit-on-close.ts"],
           // Opt-in via `bun run start:lh`; prod is already compressed by Cloudflare/nginx.
           compressPublicAssets: process.env.COMPRESS ? { gzip: true, brotli: true } : false,
         }),

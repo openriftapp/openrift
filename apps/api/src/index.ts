@@ -3,6 +3,7 @@
 // oxlint-disable-next-line import/no-unassigned-import -- side-effect import is the canonical OTel SDK bootstrap pattern
 import "./tracing.js";
 import { createLogger } from "@openrift/shared/logger";
+import { shutdownTracing } from "@openrift/shared/otel-node";
 import { trace } from "@opentelemetry/api";
 import * as Sentry from "@sentry/bun";
 
@@ -14,11 +15,12 @@ import { migrate } from "./db/migrate.js";
 import { createRepos } from "./deps.js";
 import { createEmailSender } from "./email.js";
 import { createJobDefinitions } from "./jobs.js";
+import { gracefulShutdown } from "./lib/graceful-shutdown.js";
 import { isDroppableTransientRejection } from "./lib/transient-network-error.js";
 import { wellKnownRepo } from "./modules/catalog/repositories/well-known.js";
 import { validateWellKnownSlugs } from "./modules/catalog/services/validate-well-known.js";
 import { createJobScheduler } from "./modules/system/services/job-scheduler.js";
-import { configureRenderPool } from "./modules/system/services/render-pool.js";
+import { configureRenderPool, shutdownRenderPool } from "./modules/system/services/render-pool.js";
 
 const env = process.env as Record<string, string | undefined>;
 // In containers, the deploy SHA is written to /app/.build-id by the Dockerfile.
@@ -118,7 +120,41 @@ const app = createApp({ db, auth, config, log, sendEmail, scheduler });
 
 // Bun's default idleTimeout (10s) cuts slow admin requests mid-request.
 // Anything long-running still belongs in runJobAsync.
-Bun.serve({ fetch: app.fetch, port: config.port, idleTimeout: 120 });
+const server = Bun.serve({ fetch: app.fetch, port: config.port, idleTimeout: 120 });
 log.info(`API server listening on http://localhost:${config.port}`);
+
+// Both fit inside Docker's default 10s stop timeout. Jobs cut short are marked
+// failed by sweepOrphaned on the next start.
+const SHUTDOWN_DRAIN_MS = 5000;
+const SHUTDOWN_DEADLINE_MS = 8000;
+
+const shutdown = gracefulShutdown({
+  steps: [
+    { name: "scheduler", run: () => scheduler.stop() },
+    {
+      name: "server",
+      run: async () => {
+        const drained = await Promise.race([
+          server.stop().then(() => true),
+          Bun.sleep(SHUTDOWN_DRAIN_MS).then(() => false),
+        ]);
+        if (!drained) {
+          log.warn({ drainMs: SHUTDOWN_DRAIN_MS }, "Closing requests still in flight");
+          await server.stop(true);
+        }
+      },
+    },
+    { name: "render pool", run: () => shutdownRenderPool() },
+    { name: "database", run: () => db.destroy() },
+    { name: "sentry", run: () => Sentry.flush(2000) },
+    { name: "tracing", run: () => shutdownTracing() },
+  ],
+  deadlineMs: SHUTDOWN_DEADLINE_MS,
+  log,
+  exit: (code) => process.exit(code),
+});
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => void shutdown(signal));
+}
 
 export { app };

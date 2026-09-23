@@ -127,3 +127,6 @@ COPY --from=build /app/apps/web/.output/public /srv/static
 # @maintenance location in web.conf.
 COPY nginx/maintenance.html /srv/static/maintenance.html
 EXPOSE 8080
+# Graceful stop (SIGQUIT) otherwise waits on in-flight requests with no limit;
+# 5s keeps it inside Docker's 10s stop timeout.
+CMD ["nginx", "-g", "daemon off; worker_shutdown_timeout 5s;"]

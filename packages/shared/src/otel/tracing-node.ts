@@ -13,13 +13,15 @@ import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 
+let provider: NodeTracerProvider | undefined;
+
 export function startTracing(serviceName: string): NodeTracerProvider | undefined {
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   if (!endpoint) {
     return undefined;
   }
 
-  const provider = new NodeTracerProvider({
+  provider = new NodeTracerProvider({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? serviceName,
       [ATTR_SERVICE_VERSION]: process.env.BUILD_ID ?? "dev",
@@ -35,19 +37,20 @@ export function startTracing(serviceName: string): NodeTracerProvider | undefine
   });
   provider.register({ contextManager: new AsyncLocalStorageContextManager().enable() });
 
-  // Re-raising after removing the listener restores default signal handling; otherwise the process
-  // stays alive holding its port, since registering SIGINT/SIGTERM suppresses the runtime's default.
-  const shutdown = async (signal: NodeJS.Signals) => {
-    try {
-      await provider.shutdown();
-    } catch {
-      // best-effort
-    }
-    process.removeAllListeners(signal);
-    process.kill(process.pid, signal);
-  };
-  process.on("SIGTERM", () => void shutdown("SIGTERM"));
-  process.on("SIGINT", () => void shutdown("SIGINT"));
-
   return provider;
+}
+
+export async function shutdownTracing(timeoutMs = 2000): Promise<void> {
+  if (!provider) {
+    return;
+  }
+  const { promise: timedOut, resolve } = Promise.withResolvers<void>();
+  const timer = setTimeout(resolve, timeoutMs);
+  try {
+    await Promise.race([provider.shutdown(), timedOut]);
+  } catch {
+    // best-effort
+  } finally {
+    clearTimeout(timer);
+  }
 }

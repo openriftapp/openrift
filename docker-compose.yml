@@ -40,6 +40,9 @@ services:
   api:
     image: ghcr.io/openriftapp/openrift-api:${IMAGE_TAG:-latest}
     user: "${UID:-1000}:${GID:-1000}"
+    # As PID 1, bun ignores any signal it has no handler for, so a stop during
+    # startup migrations would wait out the whole stop timeout.
+    init: true
     depends_on:
       db:
         condition: service_healthy
