@@ -12,7 +12,7 @@ import type { ErrorInfo } from "react";
 import { getAppDiagnostics } from "./app-diagnostics";
 import { COMMIT_HASH, PROD } from "./env";
 import { drainHydrationErrors } from "./hydration-error-buffer";
-import { CHUNK_LOAD_ERROR_PATTERN } from "./stale-bundle-reload";
+import { CHUNK_LOAD_ERROR_PATTERN, STALE_SERVER_FN_ERROR_PATTERN } from "./stale-bundle-reload";
 
 type TanstackRouter = Parameters<typeof tanstackRouterBrowserTracingIntegration>[0];
 
@@ -93,6 +93,7 @@ export function initClientSentry(router: TanstackRouter): void {
       "Failed to fetch",
       "NetworkError when attempting to fetch resource",
       CHUNK_LOAD_ERROR_PATTERN,
+      STALE_SERVER_FN_ERROR_PATTERN,
       INJECTED_SCRIPT_PATTERN,
     ],
     // Own-origin tunnel so Firefox ETP / ad-blockers (which list

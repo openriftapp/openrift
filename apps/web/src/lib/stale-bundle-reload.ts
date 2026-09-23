@@ -128,8 +128,8 @@ export const CHUNK_LOAD_ERROR_PATTERN =
   /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk \d+ failed/u;
 
 // TanStack Start's getServerFnById throws these two messages when a server
-// function's hashed ID isn't in the deployed server's manifest; the message
-// survives the seroval boundary and reaches the client as `error.message`.
+// function's hashed ID isn't in the deployed server's manifest;
+// middleware/stale-server-fn.ts relays the message to the client as `error.message`.
 export const STALE_SERVER_FN_ERROR_PATTERN =
   /Server function (?:info not found|module not resolved)/u;
 

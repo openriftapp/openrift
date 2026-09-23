@@ -6,6 +6,7 @@ import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
 
 import { buildIdMiddleware } from "./middleware/build-id";
 import { otelRequestMiddleware } from "./middleware/otel-request";
+import { staleServerFnMiddleware } from "./middleware/stale-server-fn";
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
@@ -21,6 +22,7 @@ export const startInstance = createStart(() => ({
     sentryGlobalRequestMiddleware,
     otelRequestMiddleware,
     buildIdMiddleware,
+    staleServerFnMiddleware,
     csrfMiddleware,
   ],
   functionMiddleware: [sentryGlobalFunctionMiddleware],

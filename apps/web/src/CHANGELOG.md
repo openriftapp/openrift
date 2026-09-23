@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-23
+
+### Other
+
+- fix(App): **Old tabs recover after a deploy** — a tab left open across a release now reloads itself instead of failing silently the next time it talks to the server.
+
 ## 2026-09-22
 
 ### Highlights
