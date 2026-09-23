@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { defaultSerovalPlugins, makeSerovalPlugin } from "@tanstack/router-core";
+import { defaultSerovalPlugins, makeSerovalPlugin } from "@tanstack/router-core/ssr/client";
 import { fromCrossJSON, toCrossJSONAsync } from "seroval";
 import { describe, expect, it } from "vitest";
 

@@ -59,11 +59,11 @@ beforeEach(() => {
     createObjectURL: () => "blob:card",
     revokeObjectURL: (url: string) => revoked.push(url),
   });
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
-    function recordClick(this: HTMLAnchorElement) {
-      clicked.push({ href: this.href, download: this.download });
-    },
-  );
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function recordClick(
+    this: HTMLAnchorElement,
+  ) {
+    clicked.push({ href: this.href, download: this.download });
+  });
   removeClipboard();
 });
 

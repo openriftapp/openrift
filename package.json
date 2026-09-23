@@ -45,38 +45,38 @@
     "test:e2e:ui": "turbo run test:e2e:ui",
     "test:e2e:debug": "turbo run test:e2e:debug",
     "check": "bun run build && bun run lint && bun run test && bun run test:integration && bun run knip",
-    "knip": "knip",
+    "knip": "6.38.0",
     "postinstall": "test -n \"$CI\" || test -n \"$DOCKER_CONTAINER\" || env | grep -q ^DEPENDABOT || lefthook install"
   },
   "dependencies": {
     "@tanstack/react-pacer": "0.23.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.2.2",
-    "@commitlint/config-conventional": "21.2.2",
-    "@commitlint/types": "21.2.0",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@commitlint/types": "21.2.3",
     "@tanstack/devtools-vite": "0.8.5",
-    "@tanstack/react-devtools": "0.10.12",
+    "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-pacer-devtools": "0.14.0",
-    "@tanstack/react-query-devtools": "5.102.8",
+    "@tanstack/react-query-devtools": "5.103.2",
     "@techstark/opencv-js": "5.0.0-release.1",
-    "knip": "6.35.1",
+    "knip": "6.38.0",
     "lcov-result-merger": "6.0.0",
-    "lefthook": "2.1.12",
-    "onnxruntime-node": "1.29.0",
-    "oxfmt": "0.67.0",
-    "oxlint": "1.82.0",
-    "oxlint-tsgolint": "7.0.2001",
+    "lefthook": "2.1.14",
+    "onnxruntime-node": "1.30.0",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
+    "oxlint-tsgolint": "7.0.2002",
     "sharp": "0.35.4",
     "syncpack": "15.3.3",
-    "turbo": "2.10.12"
+    "turbo": "2.11.3"
   },
   "overrides": {
     "@hono/node-server": "2.1.1",
-    "@tanstack/query-core": "5.102.8",
-    "hono": "4.13.7",
-    "html2canvas": "npm:html2canvas-pro@2.4.3",
-    "kysely": "0.29.5"
+    "@tanstack/query-core": "5.103.2",
+    "hono": "4.13.8",
+    "html2canvas": "npm:html2canvas-pro@2.4.5",
+    "kysely": "0.29.6"
   },
   "packageManager": "bun@1.4.2",
   "//overrides": {
@@ -84,7 +84,7 @@
     "@tanstack/query-core": "Dedupe: query-db-collection and router-ssr-query peer-resolve an older query-core; TS treats identical-but-different-path type copies as distinct, collapsing createCollection generics to Record<string, unknown>.",
     "hono, @hono/node-server": "shadcn's MCP SDK brings its own hono stack. The pins dedupe it onto the version apps/api uses and keep node-server off the 1.19.x line, whose serve-static path traversal on Windows is unpatched before 1.19.15.",
     "html2canvas": "Redirect jspdf's optional html2canvas dep to html2canvas-pro (the version we already use directly). Keep this pin in step with html2canvas-pro in apps/web: dependabot does not treat an npm: alias as the same package, so a mismatch silently ships both versions as separate chunks. Enforced by scripts/check-override-pins.ts.",
-    "kysely": "Dedupe: better-auth pins kysely 0.29.2 while the api uses 0.29.5; two kysely copies fork @better-auth/core into two identical-but-different-path type copies, breaking the api build."
+    "kysely": "0.29.6"
   },
   "trustedDependencies": [
     "@swc/core",

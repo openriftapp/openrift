@@ -1,6 +1,7 @@
 // oxlint-disable-next-line import/no-unassigned-import -- import-protection marker
 import "@tanstack/react-start/client-only";
 import { parseAppEnv } from "@openrift/shared/app-env";
+import { SENTRY_DATA_COLLECTION } from "@openrift/shared/sentry-data-collection";
 import {
   captureException,
   init,
@@ -84,6 +85,7 @@ export function initClientSentry(router: TanstackRouter): void {
     integrations: [tanstackRouterBrowserTracingIntegration(router)],
     tracesSampleRate: 0.1,
     attachStacktrace: true,
+    dataCollection: SENTRY_DATA_COLLECTION,
     beforeSend: enrichEvent,
     // Each is already handled elsewhere or external; Sentry's global handlers
     // fire before those handlers do, so they're filtered here too.
@@ -99,9 +101,9 @@ export function initClientSentry(router: TanstackRouter): void {
     // Own-origin tunnel so Firefox ETP / ad-blockers (which list
     // *.ingest.sentry.io) don't drop envelopes; the API forwards them.
     tunnel: "/api/v1/sentry-tunnel",
-    // Shared openrift-ssr project also receives server-side events; the tag
-    // distinguishes them in the issue list and for alert rules.
-    initialScope: { tags: { service: "web-client" } },
+    // Shared openrift-ssr project also receives server-side events. Tags reach
+    // only errors, attributes only spans, so both carry the service.
+    initialScope: { tags: { service: "web-client" }, attributes: { service: "web-client" } },
   });
 
   // client.tsx buffers hydration errors that fire before this init runs;

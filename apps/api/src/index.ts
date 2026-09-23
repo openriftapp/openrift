@@ -4,7 +4,7 @@
 import "./tracing.js";
 import { createLogger } from "@openrift/shared/logger";
 import { shutdownTracing } from "@openrift/shared/otel-node";
-import { trace } from "@opentelemetry/api";
+import { SENTRY_DATA_COLLECTION } from "@openrift/shared/sentry-data-collection";
 import * as Sentry from "@sentry/bun";
 
 import { createApp } from "./app.js";
@@ -43,13 +43,13 @@ if (config.sentryDsn) {
   Sentry.init({
     dsn: config.sentryDsn,
     environment: config.appEnv,
-    // skipOpenTelemetrySetup keeps Sentry from registering a competing
-    // TracerProvider; our own OTel SDK (./tracing.ts) owns tracing to Tempo.
-    tracesSampleRate: 0,
-    skipOpenTelemetrySetup: true,
-    // Sentry's Bun.serve wrapper starts spans through the global OTel tracer
-    // despite tracesSampleRate 0: raw-URL INTERNAL spans with all headers in Tempo.
-    integrations: (defaults) => defaults.filter((i) => i.name !== "BunServer"),
+    dataCollection: SENTRY_DATA_COLLECTION,
+    // Our own OTel SDK (./tracing.ts) owns tracing; Sentry events take the
+    // trace id of the active OTel span so an issue pivots to its Tempo trace.
+    integrations: (defaults) => [
+      ...defaults.filter((i) => i.name !== "BunServer"),
+      Sentry.openTelemetryIntegration(),
+    ],
     // postgres.js rejects a background reconnect promise nobody awaits, so a
     // transient DB blip surfaces here with no stacktrace; drop only that.
     beforeSend: (event, hint) => {
@@ -62,25 +62,6 @@ if (config.sentryDsn) {
       );
       return null;
     },
-  });
-
-  Sentry.addEventProcessor((event) => {
-    const span = trace.getActiveSpan();
-    if (!span) {
-      return event;
-    }
-    const ctx = span.spanContext();
-    if (ctx.traceId === "00000000000000000000000000000000") {
-      return event;
-    }
-    event.contexts ??= {};
-    event.contexts.trace = {
-      trace_id: ctx.traceId,
-      span_id: ctx.spanId,
-      ...event.contexts.trace,
-    };
-    event.tags = { otel_trace_id: ctx.traceId, ...event.tags };
-    return event;
   });
 }
 

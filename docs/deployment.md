@@ -552,10 +552,10 @@ An optional Prometheus + Grafana monitoring stack lives in `monitoring/`. It run
 
   apps ──/metrics──▶ Prometheus              (metrics, with exemplars)
 
-  apps ──errors────▶ Sentry                  (with trace_id tag and context)
+  apps ──errors────▶ Sentry                  (trace id = OTel trace id)
 ```
 
-Alloy is the single entrypoint for app telemetry: apps export OTLP to `http://alloy:4318` (Docker) or `http://localhost:4318` (host dev). Alloy forwards traces to Tempo and tails Docker container stdout, parsing pino JSON to lift `trace_id`, `service`, and `level` for Loki. In Grafana, a span in Tempo links to its log lines in Loki; a Sentry issue carries the `trace_id` tag for the same pivot.
+Alloy is the single entrypoint for app telemetry: apps export OTLP to `http://alloy:4318` (Docker) or `http://localhost:4318` (host dev). Alloy forwards traces to Tempo and tails Docker container stdout, parsing pino JSON to lift `trace_id`, `service`, and `level` for Loki. In Grafana, a span in Tempo links to its log lines in Loki; a Sentry event carries the OTel trace id as its own trace id (`openTelemetryIntegration`), so the same pivot is a `trace:<id>` search in Sentry.
 
 ### Setup
 

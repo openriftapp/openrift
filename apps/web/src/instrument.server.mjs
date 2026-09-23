@@ -5,7 +5,7 @@
 // env, not site_settings, because init runs before the DB is reachable.
 
 import { parseAppEnv } from "@openrift/shared/app-env";
-import { trace } from "@opentelemetry/api";
+import { SENTRY_DATA_COLLECTION } from "@openrift/shared/sentry-data-collection";
 import * as Sentry from "@sentry/tanstackstart-react";
 
 import { dropExpectedClientErrors, fingerprintApiFaults } from "./lib/sentry-server-filter";
@@ -18,7 +18,10 @@ if (dsn && appEnv !== "development") {
     dsn,
     environment: appEnv,
     release: process.env.COMMIT_HASH,
-    tracesSampleRate: 0.1,
+    dataCollection: SENTRY_DATA_COLLECTION,
+    // Our own OTel SDK (tracing.server.ts) owns tracing; Sentry events take the
+    // trace id of the active OTel span so an issue pivots to its Tempo trace.
+    integrations: [Sentry.openTelemetryIntegration()],
     // Message-matched: these carry no HTTP status, so they can't be dropped
     // structurally like the API's 4xx (handled in beforeSend below).
     ignoreErrors: [
@@ -34,26 +37,5 @@ if (dsn && appEnv !== "development") {
       return fingerprintApiFaults(kept, hint);
     },
     initialScope: { tags: { service: "web-ssr" } },
-  });
-
-  // Attaches the active OTel trace_id/span_id so a Sentry issue can be
-  // pivoted to its Tempo trace in Grafana.
-  Sentry.addEventProcessor((event) => {
-    const span = trace.getActiveSpan();
-    if (!span) {
-      return event;
-    }
-    const ctx = span.spanContext();
-    if (ctx.traceId === "00000000000000000000000000000000") {
-      return event;
-    }
-    event.contexts ??= {};
-    event.contexts.trace = {
-      trace_id: ctx.traceId,
-      span_id: ctx.spanId,
-      ...event.contexts.trace,
-    };
-    event.tags = { otel_trace_id: ctx.traceId, ...event.tags };
-    return event;
   });
 }
