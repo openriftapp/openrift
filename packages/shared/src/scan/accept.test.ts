@@ -184,6 +184,19 @@ describe("observeWinner", () => {
     expect(observeWinner(state, 202, 6.8, winner("a", "artA"), "A", options)?.artKey).toBe("artA");
   });
 
+  it("under the re-lock gate a different card locking in between re-arms the first", () => {
+    const state: AcceptState = new Map();
+    const options = { ...OPTIONS, relockOnlyAfterRearm: true };
+    const hold = (art: string, frames: number[]) =>
+      frames.map((frame) =>
+        observeWinner(state, frame, frame / 30, winner(art, art), art, options),
+      );
+    expect(hold("artA", [0, 1, 2]).at(-1)?.artKey).toBe("artA");
+    expect(hold("artB", [5, 6, 7]).at(-1)?.artKey).toBe("artB");
+    expect(hold("artA", [10, 11, 12]).at(-1)?.artKey).toBe("artA");
+    expect(hold("artA", [13, 14, 15, 16, 17])).toEqual([null, null, null, null, null]);
+  });
+
   it("measures lock latency from the run that locked, not the first sighting", () => {
     const state: AcceptState = new Map();
     observeWinner(state, 0, 0, winner("a", "artA"), "A", OPTIONS);

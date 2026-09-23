@@ -152,6 +152,9 @@ export function observeWinner(
     track.lockedThisRun = true;
     track.lockedAt = seconds;
     track.framesToLock = frame - track.runStartFrame;
+    if (options.relockOnlyAfterRearm) {
+      rearmLockedTracks(state, track);
+    }
     return track;
   }
   return null;
@@ -159,9 +162,9 @@ export function observeWinner(
 
 // Unlocked tracks are left alone: their gap tolerance exists so mid-aim blur
 // does not restart the lock clock, and this must not undo that.
-export function rearmLockedTracks(state: AcceptState): void {
+export function rearmLockedTracks(state: AcceptState, except?: ArtTrack): void {
   for (const track of state.values()) {
-    if (track.lockedAt !== null) {
+    if (track.lockedAt !== null && track !== except) {
       track.runLength = 0;
       track.runWeight = 0;
       track.lockedThisRun = false;

@@ -18,6 +18,7 @@
 - fix(Cards): **Printing labels stay in the fan** — the codes on a card's other printings were drawn oversized and showed through cards you don't own, and now appear only while the fan is open.
 - fix(Decks): **Box tab ticks the row you clicked** — ticking, unticking or picking another copy in a deck's Box tab changed a different row of the same card, and suggested copies now come from your collections in sidebar order, with collections excluded from deck building last.
 - fix(Trades): **Gone cards leave the trade list** — when a card you asked for or offered was already taken, the group's lists and matches now refresh so it disappears, next to the message saying so.
+- fix(Collection): **Scanner counts repeat cards again** — scanning a card already on the list after a different card showed its preview but never added it, and opened the identify sheet instead.
 
 ## 2026-09-22
 
