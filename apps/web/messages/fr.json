@@ -9206,7 +9206,8 @@
   "install_android_other_step_menu": "Ouvrez le menu de votre navigateur",
   "install_android_other_step_add": "Touchez {#b}Ajouter à l'écran d'accueil{/b} ou {#b2}Installer{/b2}",
   "install_android_other_step_confirm": "Confirmez",
-  "install_android_elsewhere_hint": "Ouvert depuis Discord ou une autre app ? Touchez {#menu}Menu{/menu} dans cette app et choisissez d'abord Ouvrir dans Chrome.",
+  "install_android_elsewhere_hint": "Vous voyez {#close}Fermer{/close} en haut à gauche ? Une autre app a alors ouvert cette page dans son propre lecteur. Touchez {#menu}Menu{/menu} en haut à droite et choisissez d'abord Ouvrir dans {browser}.",
+  "install_android_elsewhere_hint_generic": "Vous voyez {#close}Fermer{/close} en haut à gauche ? Une autre app a alors ouvert cette page dans son propre lecteur. Touchez {#menu}Menu{/menu} en haut à droite et ouvrez d'abord la page dans votre navigateur.",
   "install_arrow_start": "Commencez ici",
   "install_in_app_heading_ios": "Ouvrez d'abord cette page dans Safari",
   "install_in_app_heading_android": "Ouvrez d'abord cette page dans votre navigateur",
@@ -9233,5 +9234,7 @@
   "install_toast_body": "Ouvrez-le depuis votre écran d'accueil quand vous voulez.",
   "install_nudge_text": "{#b}Utilisez OpenRift comme une app.{/b} Ajoutez-le à votre écran d'accueil.",
   "install_nudge_link": "Me montrer comment",
-  "install_nudge_dismiss": "Fermer"
+  "install_nudge_dismiss": "Fermer",
+  "marketing_landing_install": "Pas besoin de magasin d'applications : {#link}ajoutez OpenRift à votre écran d'accueil{/link}.",
+  "marketing_hero_install": "Vous le voulez sur votre téléphone ? {#link}Ajoutez OpenRift à votre écran d'accueil{/link}."
 }

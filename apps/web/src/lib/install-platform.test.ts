@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { detectInstallPlatform, installNudgeVisible, openInBrowserUrl } from "./install-platform";
+import {
+  detectInstallPlatform,
+  installNudgeVisible,
+  openInBrowserUrl,
+  startHerePlacement,
+} from "./install-platform";
 
 const UA = {
   iphoneSafari26:
@@ -99,6 +104,21 @@ describe("openInBrowserUrl", () => {
     expect(openInBrowserUrl("android", "https://example.test/install?from=menu")).toBe(
       "intent://example.test/install?from=menu#Intent;scheme=https;end",
     );
+  });
+});
+
+describe("startHerePlacement", () => {
+  it("points at Safari's toolbar button by version and device", () => {
+    expect(startHerePlacement(detectInstallPlatform(UA.iphoneSafari26))).toBe("bottom-right");
+    expect(startHerePlacement(detectInstallPlatform(UA.iphoneSafari18))).toBe("bottom-center");
+    expect(startHerePlacement(detectInstallPlatform(UA.ipadDesktopMode, 5))).toBe("top-right");
+  });
+
+  it("shows no arrow where the button position is unknown", () => {
+    expect(startHerePlacement(detectInstallPlatform(UA.androidChrome))).toBeNull();
+    expect(startHerePlacement(detectInstallPlatform(UA.androidSamsung))).toBeNull();
+    expect(startHerePlacement(detectInstallPlatform(UA.iphoneChrome))).toBeNull();
+    expect(startHerePlacement(detectInstallPlatform(UA.windowsChrome))).toBeNull();
   });
 });
 

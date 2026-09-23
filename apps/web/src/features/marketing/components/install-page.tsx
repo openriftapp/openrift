@@ -12,6 +12,7 @@ import {
   ShareIcon,
   SmartphoneIcon,
   SquarePlusIcon,
+  XIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -28,6 +29,7 @@ import {
   detectInstallPlatform,
   isStandaloneDisplay,
   openInBrowserUrl,
+  startHerePlacement,
 } from "@/lib/install-platform";
 import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -70,6 +72,11 @@ function markupFor(menuIcon: LucideIcon) {
     ),
     b: ({ children }: { children?: ReactNode }) => (
       <strong className="font-semibold">{children}</strong>
+    ),
+    close: ({ children }: { children?: ReactNode }) => (
+      <Glyph icon={XIcon} iconOnly>
+        {children}
+      </Glyph>
     ),
     b2: ({ children }: { children?: ReactNode }) => (
       <strong className="font-semibold">{children}</strong>
@@ -222,11 +229,30 @@ function AndroidGuide({ guide }: { guide: InstallGuide }) {
           </div>
         </>
       )}
+      {!hasPrompt && <ViewerHint guide={guide} />}
       <AndroidSteps guide={guide} />
-      <p className="text-muted-foreground">
-        <ParaglideMessage message={m.install_android_elsewhere_hint} markup={CHROME_MARKUP} />
-      </p>
     </div>
+  );
+}
+
+function ViewerHint({ guide }: { guide: InstallGuide }) {
+  return (
+    <Callout>
+      <p className="leading-7">
+        {guide === "android-other" ? (
+          <ParaglideMessage
+            message={m.install_android_elsewhere_hint_generic}
+            markup={CHROME_MARKUP}
+          />
+        ) : (
+          <ParaglideMessage
+            message={m.install_android_elsewhere_hint}
+            inputs={{ browser: guide === "android-samsung" ? "Samsung Internet" : "Chrome" }}
+            markup={CHROME_MARKUP}
+          />
+        )}
+      </p>
+    </Callout>
   );
 }
 
@@ -273,14 +299,11 @@ function InAppGuide({ platform }: { platform: InstallPlatform }) {
 }
 
 function StartHereArrow({
-  platform,
-  hasPrompt,
+  placement,
 }: {
-  platform: InstallPlatform;
-  hasPrompt: boolean;
+  placement: NonNullable<ReturnType<typeof startHerePlacement>>;
 }) {
-  const { guide, ipad } = platform;
-  if (ipad || (guide === "android-chrome" && !hasPrompt)) {
+  if (placement === "top-right") {
     return (
       <ArrowUpIcon
         aria-hidden="true"
@@ -288,10 +311,7 @@ function StartHereArrow({
       />
     );
   }
-  const bottomRight = guide === "ios-safari" || guide === "android-samsung";
-  if (!bottomRight && guide !== "ios-safari-legacy") {
-    return null;
-  }
+  const bottomRight = placement === "bottom-right";
   return (
     <div
       aria-hidden="true"
@@ -357,9 +377,9 @@ function PhoneView({
   onChoose: (device: PhoneDevice) => void;
 }) {
   const [switching, setSwitching] = useState(false);
-  const hasPrompt = useInstallStore((state) => state.promptEvent !== null);
   const device = chosen ?? (platform.os === "ios" ? "iphone" : "android");
   const inApp = chosen === null && platform.guide === "in-app";
+  const arrow = chosen === null ? startHerePlacement(platform) : null;
   let heading = m.install_heading_phone();
   if (inApp) {
     heading =
@@ -381,7 +401,7 @@ function PhoneView({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn("flex flex-col gap-5", arrow?.startsWith("bottom") && "pb-24")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="bg-card text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm">
           <SmartphoneIcon className="size-4" aria-hidden="true" />
@@ -399,7 +419,7 @@ function PhoneView({
         {!inApp && <p className="text-muted-foreground">{m.install_intro()}</p>}
       </div>
       {guide}
-      {chosen === null && !inApp && <StartHereArrow platform={platform} hasPrompt={hasPrompt} />}
+      {arrow && <StartHereArrow placement={arrow} />}
     </div>
   );
 }

@@ -9208,7 +9208,8 @@
   "install_android_other_step_menu": "Open your browser's menu",
   "install_android_other_step_add": "Tap {#b}Add to home screen{/b} or {#b2}Install{/b2}",
   "install_android_other_step_confirm": "Confirm",
-  "install_android_elsewhere_hint": "Opened this from Discord or another app? Tap {#menu}Menu{/menu} there and choose Open in Chrome first.",
+  "install_android_elsewhere_hint": "Do you see {#close}Close{/close} at the top left? Then another app opened this page in its own viewer. Tap {#menu}Menu{/menu} at the top right and choose Open in {browser} first.",
+  "install_android_elsewhere_hint_generic": "Do you see {#close}Close{/close} at the top left? Then another app opened this page in its own viewer. Tap {#menu}Menu{/menu} at the top right and open the page in your browser first.",
   "install_arrow_start": "Start here",
   "install_in_app_heading_ios": "Open this page in Safari first",
   "install_in_app_heading_android": "Open this page in your browser first",
@@ -9235,5 +9236,7 @@
   "install_toast_body": "Open it from your home screen any time.",
   "install_nudge_text": "{#b}Use OpenRift like an app.{/b} Add it to your home screen.",
   "install_nudge_link": "Show me how",
-  "install_nudge_dismiss": "Dismiss"
+  "install_nudge_dismiss": "Dismiss",
+  "marketing_landing_install": "No app store needed: {#link}put OpenRift on your home screen{/link}.",
+  "marketing_hero_install": "Want it on your phone? {#link}Add OpenRift to your home screen{/link}."
 }

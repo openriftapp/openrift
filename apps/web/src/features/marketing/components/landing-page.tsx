@@ -1,11 +1,13 @@
+import { ParaglideMessage } from "@inlang/paraglide-js-react";
 import { imageUrl } from "@openrift/shared/image-url";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
+import { TextLink } from "@/components/ui/text-link";
 import { landingSummaryQueryOptions } from "@/features/marketing/lib/landing-summary-query";
 import { landingThumbnailCards } from "@/features/marketing/lib/landing-thumbnails";
 import { useCountUp } from "@/hooks/use-count-up";
@@ -116,6 +118,16 @@ export function LandingPage() {
               {m.marketing_landing_subhead()}
             </p>
             <HeroCtas />
+            <p className="text-muted-foreground">
+              <ParaglideMessage
+                message={m.marketing_landing_install}
+                markup={{
+                  link: ({ children }) => (
+                    <TextLink render={<Link to="/install" />}>{children}</TextLink>
+                  ),
+                }}
+              />
+            </p>
             {data && (
               <HeroStats
                 cardCount={animatedCards}

@@ -9208,7 +9208,8 @@
   "install_android_other_step_menu": "브라우저 메뉴를 여세요",
   "install_android_other_step_add": "{#b}홈 화면에 추가{/b} 또는 {#b2}설치{/b2}를 누르세요",
   "install_android_other_step_confirm": "확인하세요",
-  "install_android_elsewhere_hint": "Discord나 다른 앱에서 열었나요? 먼저 그 앱에서 {#menu}메뉴{/menu}를 누르고 Chrome에서 열기를 선택하세요.",
+  "install_android_elsewhere_hint": "왼쪽 위에 {#close}닫기{/close}가 보이나요? 그렇다면 다른 앱이 자체 뷰어에서 이 페이지를 연 거예요. 먼저 오른쪽 위의 {#menu}메뉴{/menu}를 누르고 {browser}에서 열기를 선택하세요.",
+  "install_android_elsewhere_hint_generic": "왼쪽 위에 {#close}닫기{/close}가 보이나요? 그렇다면 다른 앱이 자체 뷰어에서 이 페이지를 연 거예요. 먼저 오른쪽 위의 {#menu}메뉴{/menu}를 누르고 브라우저에서 이 페이지를 여세요.",
   "install_arrow_start": "여기서 시작",
   "install_in_app_heading_ios": "먼저 Safari에서 이 페이지를 여세요",
   "install_in_app_heading_android": "먼저 브라우저에서 이 페이지를 여세요",
@@ -9235,5 +9236,7 @@
   "install_toast_body": "언제든 홈 화면에서 열 수 있어요.",
   "install_nudge_text": "{#b}OpenRift를 앱처럼 사용하세요.{/b} 홈 화면에 추가해 보세요.",
   "install_nudge_link": "방법 보기",
-  "install_nudge_dismiss": "닫기"
+  "install_nudge_dismiss": "닫기",
+  "marketing_landing_install": "앱 스토어가 필요 없어요. {#link}OpenRift를 홈 화면에 추가하세요{/link}.",
+  "marketing_hero_install": "휴대폰에서 쓰고 싶나요? {#link}OpenRift를 홈 화면에 추가하세요{/link}."
 }

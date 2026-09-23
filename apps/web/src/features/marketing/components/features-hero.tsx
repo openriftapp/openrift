@@ -1,4 +1,5 @@
 import { ParaglideMessage } from "@inlang/paraglide-js-react";
+import { Link } from "@tanstack/react-router";
 
 import { Heading } from "@/components/heading";
 import { TextLink } from "@/components/ui/text-link";
@@ -136,22 +137,36 @@ export function FeaturesHero({
                 </li>
               ))}
             </ul>
-            <p className="text-muted-foreground max-w-prose">
-              <ParaglideMessage
-                message={m.marketing_hero_switch}
-                markup={{
-                  link: ({ children }) => (
-                    <TextLink
-                      className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
-                      href="#import"
-                      onClick={smoothAnchorClick}
-                    >
-                      {children}
-                    </TextLink>
-                  ),
-                }}
-              />
-            </p>
+            <div className="text-muted-foreground flex max-w-prose flex-col gap-1">
+              <p>
+                <ParaglideMessage
+                  message={m.marketing_hero_switch}
+                  markup={{
+                    link: ({ children }) => (
+                      <TextLink
+                        className="focus-visible:ring-ring font-medium focus-visible:ring-2 focus-visible:outline-none"
+                        href="#import"
+                        onClick={smoothAnchorClick}
+                      >
+                        {children}
+                      </TextLink>
+                    ),
+                  }}
+                />
+              </p>
+              <p>
+                <ParaglideMessage
+                  message={m.marketing_hero_install}
+                  markup={{
+                    link: ({ children }) => (
+                      <TextLink className="font-medium" render={<Link to="/install" />}>
+                        {children}
+                      </TextLink>
+                    ),
+                  }}
+                />
+              </p>
+            </div>
           </div>
           <CardFlourish urls={thumbnailUrls} />
         </div>

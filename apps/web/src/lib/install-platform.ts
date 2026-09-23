@@ -84,6 +84,20 @@ export function openInBrowserUrl(os: "ios" | "android", url: string): string {
   return `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=${parsed.protocol.replace(":", "")};end`;
 }
 
+// Android browsers let users move the toolbar, and in-app viewers (Custom Tabs)
+// share the browser's user agent, so only iOS Safari has a known button spot.
+export function startHerePlacement(
+  platform: InstallPlatform,
+): "top-right" | "bottom-right" | "bottom-center" | null {
+  if (platform.guide !== "ios-safari" && platform.guide !== "ios-safari-legacy") {
+    return null;
+  }
+  if (platform.ipad) {
+    return "top-right";
+  }
+  return platform.guide === "ios-safari" ? "bottom-right" : "bottom-center";
+}
+
 const NUDGE_MIN_VISIT_DAYS = 3;
 
 export function installNudgeVisible(opts: {

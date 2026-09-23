@@ -9208,7 +9208,8 @@
   "install_android_other_step_menu": "開啟瀏覽器選單",
   "install_android_other_step_add": "點一下{#b}加到主畫面{/b}或{#b2}安裝{/b2}",
   "install_android_other_step_confirm": "確認",
-  "install_android_elsewhere_hint": "是從 Discord 或其他 App 開啟的嗎？請先在那裡點一下{#menu}選單{/menu}，選擇在 Chrome 中開啟。",
+  "install_android_elsewhere_hint": "左上角有{#close}關閉{/close}嗎？那表示其他 App 在自己的內建瀏覽器中開啟了此頁面。請先點一下右上角的{#menu}選單{/menu}，選擇在 {browser} 中開啟。",
+  "install_android_elsewhere_hint_generic": "左上角有{#close}關閉{/close}嗎？那表示其他 App 在自己的內建瀏覽器中開啟了此頁面。請先點一下右上角的{#menu}選單{/menu}，在瀏覽器中開啟此頁面。",
   "install_arrow_start": "從這裡開始",
   "install_in_app_heading_ios": "請先在 Safari 中開啟此頁面",
   "install_in_app_heading_android": "請先在瀏覽器中開啟此頁面",
@@ -9235,5 +9236,7 @@
   "install_toast_body": "隨時從主畫面開啟它。",
   "install_nudge_text": "{#b}像 App 一樣使用 OpenRift。{/b}把它加入主畫面。",
   "install_nudge_link": "查看方法",
-  "install_nudge_dismiss": "關閉"
+  "install_nudge_dismiss": "關閉",
+  "marketing_landing_install": "不需要應用程式商店：{#link}把 OpenRift 加入主畫面{/link}。",
+  "marketing_hero_install": "想在手機上使用嗎？{#link}把 OpenRift 加入主畫面{/link}。"
 }

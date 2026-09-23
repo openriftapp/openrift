@@ -621,18 +621,18 @@ function MobileNav({
               onLockedClick={onLockedClick}
             />
           ))}
+        </nav>
+        <SheetFooter className="px-5 pt-6">
           {hydrated && !isStandaloneDisplay() && (
             <SheetClose
               nativeButton={false}
               render={<Link to="/install" />}
-              className={cn(MOBILE_NAV_ITEM_CLASS, "mt-2")}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm"
             >
-              <SmartphoneIcon className="text-primary size-5" />
+              <SmartphoneIcon className="text-primary size-4" />
               {m.nav_get_app()}
             </SheetClose>
           )}
-        </nav>
-        <SheetFooter className="px-5 pt-6">
           <a
             href={SOCIAL_LINKS.discordInvite}
             target="_blank"

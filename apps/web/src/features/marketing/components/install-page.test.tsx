@@ -12,6 +12,8 @@ const IPHONE_SAFARI_26 =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1";
 const ANDROID_CHROME =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
+const ANDROID_SAMSUNG =
+  "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/28.0 Chrome/130.0.0.0 Mobile Safari/537.36";
 const IPHONE_INSTAGRAM =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 390.0.0.0.0";
 const WINDOWS_CHROME =
@@ -68,6 +70,14 @@ describe("InstallPage", () => {
 
     expect(screen.queryByRole("button", { name: "Install OpenRift" })).toBeNull();
     expect(screen.getByText("Add to home screen")).toBeInTheDocument();
+  });
+
+  it("warns Samsung users about in-app viewers and points no arrow", () => {
+    useUserAgent(ANDROID_SAMSUNG);
+    render(<InstallPage />);
+
+    expect(screen.getByText(/choose Open in Samsung Internet first/u)).toBeInTheDocument();
+    expect(screen.queryByText("Start here")).toBeNull();
   });
 
   it("sends in-app browsers to Safari first", () => {
