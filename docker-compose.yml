@@ -103,6 +103,9 @@ services:
       # browser receives it inlined into the SSR shell). The api service
       # also reads this via env_file to derive its tunnel forwarding target.
       SENTRY_DSN_SSR: "${SENTRY_DSN_SSR-}"
+      # Unset leaves SSR tracing off. The name is explicit because .env names the api.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT-}"
+      OTEL_SERVICE_NAME: "openrift-web"
     logging:
       driver: json-file
       options:
