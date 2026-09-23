@@ -11,6 +11,7 @@
 - fix(Cards): **Traditional Chinese and Korean on Cardmarket** — Cardmarket links for Traditional Chinese and Korean printings now open filtered to that language, and Traditional Chinese offers picked with the browser extension or synchronized from your Cardmarket stock now match their printings.
 - fix(App): **Old tabs recover after a deploy** — a tab left open across a release now reloads itself instead of failing silently the next time it talks to the server.
 - fix(Account): **Official card terms in Korean and Chinese** — the 한국어, 简体中文 and 繁體中文 interfaces now use the words from Riot's printed cards and rules in each language, such as 힘 and 평정, 特性 and 赛事, 能量 and 流派.
+- fix(Cards): **Printing labels stay in the fan** — the codes on a card's other printings were drawn oversized and showed through cards you don't own, and now appear only while the fan is open.
 - fix(Trades): **Gone cards leave the trade list** — when a card you asked for or offered was already taken, the group's lists and matches now refresh so it disappears, next to the message saying so.
 
 ## 2026-09-22

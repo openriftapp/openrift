@@ -86,8 +86,12 @@ export function CornerRibbon({
 
 function PrintingSpine({ label }: { label: string }) {
   return (
-    <div className="@container pointer-events-none absolute inset-0 z-20 flex items-center justify-end overflow-hidden">
-      <span className="rotate-180 px-[1.5cqi] py-[3cqi] text-[5cqi] font-semibold tracking-wide text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.9)] [writing-mode:vertical-rl]">
+    <div
+      className="@container pointer-events-none absolute inset-0 z-20 flex items-start justify-end overflow-hidden"
+      style={{ opacity: "var(--fan, 0)", transition: "opacity 200ms ease-out" }}
+    >
+      {/* cqw: on a vertical span, cqi resolves against the container's block axis. */}
+      <span className="rotate-180 p-[3cqw] text-[4cqw] leading-none font-semibold tracking-wide text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.9)] [writing-mode:vertical-rl]">
         {label}
       </span>
     </div>
@@ -591,7 +595,7 @@ export const CardThumbnail = memo(function CardThumbnail({
                   />
                 )}
                 {showSiblingFaces && (
-                  // z-[1]: above the face, below the ::after border (z-10) and finish icon (z-20).
+                  // z-[1]: above the face, below the ::after border (z-10) and spine (z-20).
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 z-[1] bg-black"

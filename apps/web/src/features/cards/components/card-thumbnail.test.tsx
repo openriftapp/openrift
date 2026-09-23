@@ -174,6 +174,25 @@ describe("CardThumbnail siblings", () => {
     expect(cover?.getAttribute("style")).toContain("--fan");
   });
 
+  it("hides sibling spines while the fan is closed", () => {
+    const front = makePrintingWithImage("RB1-001");
+    const sibling = makePrintingWithImage("RB1-001-foil");
+    const { container } = render(
+      <CardThumbnail
+        printing={front}
+        onClick={() => {}}
+        showImages
+        siblings={[front, sibling]}
+        display={{ ...baseDisplay, coarsePointer: false }}
+      />,
+    );
+
+    hoverTile(container);
+    const spine = container.querySelector(".z-20.justify-end");
+    expect(spine).not.toBeNull();
+    expect(spine?.getAttribute("style")).toContain("opacity: var(--fan, 0)");
+  });
+
   it("shows at most five stacked edges while the fan is closed", () => {
     const front = makePrintingWithImage("RB1-001");
     const siblings = [
