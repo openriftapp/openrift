@@ -1,9 +1,8 @@
 import type { ErrorCode } from "@openrift/shared/error-codes";
 
 /**
- * Thrown by {@link fetchApi} on a non-ok response. Properties are own fields
- * (not inherited) so they survive the seroval serialization that drops the
- * prototype when a thrown error crosses a server-function boundary; check via
+ * Thrown by {@link fetchApi} on a non-ok response. The prototype does not
+ * survive a server-function boundary (see `status-error-adapter.ts`); check via
  * {@link isApiError}, never `instanceof`.
  */
 export class ApiError extends Error {
@@ -25,7 +24,7 @@ export class ApiError extends Error {
   }
 }
 
-/** ApiError's shape after crossing a server-function boundary (prototype dropped). */
+/** ApiError's shape after crossing a server-function boundary (prototype and `details` dropped). */
 export interface ApiErrorShape extends Error {
   status?: number;
   code?: ErrorCode;

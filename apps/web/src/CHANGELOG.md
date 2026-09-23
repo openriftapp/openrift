@@ -9,6 +9,7 @@
 ### Other
 
 - fix(App): **Old tabs recover after a deploy** — a tab left open across a release now reloads itself instead of failing silently the next time it talks to the server.
+- fix(Trades): **Gone cards leave the trade list** — when a card you asked for or offered was already taken, the group's lists and matches now refresh so it disappears, next to the message saying so.
 
 ## 2026-09-22
 

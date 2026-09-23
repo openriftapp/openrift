@@ -1,7 +1,39 @@
 import type { CardTradeLiveAnnotation } from "@openrift/shared/types/api/card-trade";
-import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook } from "@testing-library/react";
+import { createElement } from "react";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { aggregateIncomingTradeCounts } from "./use-card-trades";
+import { aggregateIncomingTradeCounts, useCreateTrade } from "./use-card-trades";
+
+const { serverFnCall, captureHandledError } = vi.hoisted(() => ({
+  serverFnCall: vi.fn<() => Promise<unknown>>(),
+  captureHandledError: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  createServerFn: () => {
+    const chain = {
+      handler: () => serverFnCall,
+      middleware: () => chain,
+      validator: () => chain,
+    };
+    return chain;
+  },
+}));
+
+vi.mock("@/lib/server-fns/middleware", () => ({ withCookies: () => {} }));
+vi.mock("@/lib/auth-session", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  useRequiredUserId: () => "user-1",
+}));
+vi.mock("@/lib/report-error", () => ({ captureHandledError }));
+vi.mock("@/lib/toast", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  toastError: vi.fn(),
+}));
 
 function annotation(overrides: Partial<CardTradeLiveAnnotation> = {}): CardTradeLiveAnnotation {
   return {
@@ -56,5 +88,58 @@ describe("aggregateIncomingTradeCounts", () => {
     ]);
 
     expect(counts).toEqual({ a: 2, b: 1 });
+  });
+});
+
+describe("useCreateTrade", () => {
+  const variables = {
+    groupSlug: "summoner-skirmish",
+    counterpartyUserId: "user-2",
+    role: "receiver" as const,
+    printingId: "printing-1",
+    quantity: 1,
+  };
+
+  function renderCreateTrade() {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client }, children);
+    const { result } = renderHook(() => useCreateTrade(), { wrapper });
+    const invalidatedKeys = () => invalidate.mock.calls.map((call) => call[0]?.queryKey);
+    return { result, invalidatedKeys };
+  }
+
+  beforeEach(() => {
+    serverFnCall.mockReset();
+    captureHandledError.mockReset();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("refetches the group and trades without reporting a conflict", async () => {
+    serverFnCall.mockRejectedValue(
+      Object.assign(new Error("That card is no longer available to trade"), { status: 409 }),
+    );
+    const { result, invalidatedKeys } = renderCreateTrade();
+
+    await act(async () => {
+      await result.current.mutateAsync(variables).catch(() => {});
+    });
+
+    expect(invalidatedKeys()).toContainEqual(["friend-groups", "user-1", "summoner-skirmish"]);
+    expect(invalidatedKeys()).toContainEqual(["trades", "user-1"]);
+    expect(captureHandledError).not.toHaveBeenCalled();
+  });
+
+  it("reports a server failure and leaves the queries alone", async () => {
+    serverFnCall.mockRejectedValue(Object.assign(new Error("Boom"), { status: 500 }));
+    const { result, invalidatedKeys } = renderCreateTrade();
+
+    await act(async () => {
+      await result.current.mutateAsync(variables).catch(() => {});
+    });
+
+    expect(invalidatedKeys()).toEqual([]);
+    expect(captureHandledError).toHaveBeenCalledOnce();
   });
 });

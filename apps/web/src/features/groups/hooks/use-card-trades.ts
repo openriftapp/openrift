@@ -5,7 +5,7 @@ import type {
   CardTradeResponse,
   CardTradeRole,
 } from "@openrift/shared/types/api/card-trade";
-import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { copiesKeys } from "@/features/collections/lib/collections-query-keys";
@@ -18,6 +18,8 @@ import { badgesKeys, friendGroupsKeys, tradesKeys } from "@/features/groups/lib/
 import { runTradeSettlement } from "@/features/groups/lib/trade-settlement-request";
 import { listsKeys } from "@/features/lists/lib/lists-query-keys";
 import { useRequiredUserId, useUserId } from "@/lib/auth-session";
+import { reportMutationError } from "@/lib/query-client";
+import { errorStatus } from "@/lib/server-fns/api-error";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
@@ -217,6 +219,7 @@ function tradeInvalidationKeys(userId: string, groupSlug?: string): (readonly un
 
 export function useCreateTrade() {
   const userId = useRequiredUserId();
+  const queryClient = useQueryClient();
   return useMutationWithInvalidation<
     CardTradeResponse,
     {
@@ -229,6 +232,18 @@ export function useCreateTrade() {
   >({
     mutationFn: (data) => createTradeFn({ data }),
     invalidates: (variables) => tradeInvalidationKeys(userId, variables.groupSlug),
+    onError: (error, variables) => {
+      if (errorStatus(error) === 409) {
+        const keys = [
+          ...tradeInvalidationKeys(userId),
+          friendGroupsKeys.detail(userId, variables.groupSlug),
+        ];
+        for (const queryKey of keys) {
+          void queryClient.invalidateQueries({ queryKey: [...queryKey] });
+        }
+      }
+      reportMutationError(error, queryClient);
+    },
   });
 }
 

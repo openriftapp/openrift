@@ -4,6 +4,7 @@ import {
 } from "@sentry/tanstackstart-react";
 import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
 
+import { statusErrorAdapter } from "./lib/server-fns/status-error-adapter";
 import { buildIdMiddleware } from "./middleware/build-id";
 import { otelRequestMiddleware } from "./middleware/otel-request";
 import { staleServerFnMiddleware } from "./middleware/stale-server-fn";
@@ -26,4 +27,5 @@ export const startInstance = createStart(() => ({
     csrfMiddleware,
   ],
   functionMiddleware: [sentryGlobalFunctionMiddleware],
+  serializationAdapters: [statusErrorAdapter],
 }));
