@@ -31,6 +31,12 @@ describe("stampBuildId", () => {
     }).not.toThrow();
   });
 
+  it("ignores a missing response", () => {
+    expect(() => {
+      stampBuildId(undefined);
+    }).not.toThrow();
+  });
+
   it("leaves a cacheable response unstamped", () => {
     const response = responseWith("public, max-age=3600");
     stampBuildId(response);

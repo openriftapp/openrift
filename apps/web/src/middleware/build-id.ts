@@ -3,8 +3,10 @@ import { createMiddleware } from "@tanstack/react-start";
 
 import { COMMIT_HASH } from "@/lib/env";
 
-export function stampBuildId(response: Response): void {
-  if (!isBuildIdSafe(response.headers.get("Cache-Control"))) {
+// A server-function GET without the x-tsr-serverFn header (crawlers replaying
+// /_serverFn URLs) resolves to the handler's raw result, so there is no response.
+export function stampBuildId(response?: Response): void {
+  if (!response || !isBuildIdSafe(response.headers.get("Cache-Control"))) {
     return;
   }
   try {
