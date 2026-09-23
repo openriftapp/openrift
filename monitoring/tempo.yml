@@ -2,6 +2,10 @@ server:
   http_listen_port: 3200
   log_level: warn
 
+# GOMEMLIMIT = 0.8 × the container memory limit in docker-compose.yml.
+memory:
+  automemlimit_enabled: true
+
 distributor:
   # The API caps db.query.text at 2048 chars; the default 2048-byte limit
   # here truncates it again on multibyte text and logs a warning per span.
