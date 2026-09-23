@@ -1,6 +1,6 @@
 import type { Logger } from "@openrift/shared/logger";
 
-export interface ShutdownStep {
+interface ShutdownStep {
   name: string;
   run: () => unknown;
 }

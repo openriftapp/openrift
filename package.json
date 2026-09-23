@@ -45,7 +45,7 @@
     "test:e2e:ui": "turbo run test:e2e:ui",
     "test:e2e:debug": "turbo run test:e2e:debug",
     "check": "bun run build && bun run lint && bun run test && bun run test:integration && bun run knip",
-    "knip": "6.38.0",
+    "knip": "knip",
     "postinstall": "test -n \"$CI\" || test -n \"$DOCKER_CONTAINER\" || env | grep -q ^DEPENDABOT || lefthook install"
   },
   "dependencies": {
