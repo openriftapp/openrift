@@ -22,6 +22,7 @@ import { create } from "zustand";
 import { nextPieceId } from "@/features/rules/lib/board-layout";
 
 const HISTORY_LIMIT = 50;
+const RECENT_LIMIT = 8;
 
 interface BoardEditorState {
   document: BoardDocument;
@@ -33,6 +34,8 @@ interface BoardEditorState {
   history: BoardDocument[];
   /** Consecutive edits sharing a tag collapse into one undo step. */
   historyTag: string | null;
+  /** Newest first; outside the document and the undo history. */
+  recentCardIds: string[];
 
   undo: () => void;
   load: (document: BoardDocument) => void;
@@ -127,6 +130,7 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
   dirty: false,
   history: [],
   historyTag: null,
+  recentCardIds: [],
 
   undo: () =>
     set((state) => {
@@ -299,6 +303,13 @@ export const useBoardEditorStore = create<BoardEditorState>()((set, get) => ({
       ...withStep(state, (current) => ({ ...current, pieces: [...current.pieces, piece] })),
       selectedPieceId: id,
       selectedPieceIds: [id],
+      recentCardIds:
+        card === null
+          ? state.recentCardIds
+          : [card.cardId, ...state.recentCardIds.filter((recent) => recent !== card.cardId)].slice(
+              0,
+              RECENT_LIMIT,
+            ),
     }));
     return id;
   },

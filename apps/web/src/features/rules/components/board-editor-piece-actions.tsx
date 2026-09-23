@@ -11,6 +11,7 @@ import {
   Trash2Icon,
   UsersIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { pieceName } from "@/features/rules/components/board-view";
 import type { BoardPieceActions } from "@/features/rules/hooks/use-board-editor-piece-actions";
 import { useCardModifierKeywords } from "@/hooks/use-keyword-styles";
@@ -49,14 +51,9 @@ function KeywordSwatch({
   onToggle: () => void;
 }) {
   return (
-    <Toggle
-      size="sm"
-      pressed={pressed}
-      onPressedChange={onToggle}
-      className="relative overflow-hidden px-2.5"
-    >
+    <Toggle size="sm" pressed={pressed} onPressedChange={onToggle} className="relative px-2.5">
       <span
-        className="absolute inset-0 -skew-x-[15deg]"
+        className="absolute inset-x-1 inset-y-0 -skew-x-[15deg]"
         style={{ backgroundColor: color, opacity: pressed ? 1 : 0.35 }}
       />
       <span
@@ -143,6 +140,29 @@ export function pieceMarks(piece: BoardPiece): PieceMarks {
   return { turn: true, keywords: true, stats: true };
 }
 
+function ToolbarIconButton({
+  label,
+  variant = "ghost",
+  onClick,
+  children,
+}: {
+  label: string;
+  variant?: "ghost" | "default";
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<Button size="icon" variant={variant} aria-label={label} onClick={onClick} />}
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** Rendered by `BoardView` through `renderPieceOverlay`; the popover anchors to the token and dodges the viewport edges. */
 export function BoardEditorPieceToolbar({
   piece,
@@ -190,31 +210,38 @@ export function BoardEditorPieceToolbar({
             aria-label={pieceName(piece)}
             className="flex items-center gap-0.5"
             onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
             onKeyDown={(event) => event.stopPropagation()}
           >
             {marks.turn && (
-              <Button
-                size="icon"
+              <ToolbarIconButton
+                label={m.board_states_state_exhausted()}
                 variant={piece.exhausted ? "default" : "ghost"}
-                aria-label={m.board_states_state_exhausted()}
                 onClick={() => actions.toggleExhaust()}
               >
                 <RotateCwIcon />
-              </Button>
+              </ToolbarIconButton>
             )}
             {marks.keywords && (
               <Popover open={keywordOpen} onOpenChange={onKeywordOpenChange}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label={m.board_states_editor_keyword()}
-                    />
-                  }
-                >
-                  <TagIcon />
-                </PopoverTrigger>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <PopoverTrigger
+                        render={
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={m.board_states_editor_keyword()}
+                          />
+                        }
+                      />
+                    }
+                  >
+                    <TagIcon />
+                  </TooltipTrigger>
+                  <TooltipContent>{m.board_states_editor_keyword()}</TooltipContent>
+                </Tooltip>
                 <PopoverContent className="w-72">
                   <KeywordPanel piece={piece} actions={actions} />
                 </PopoverContent>
@@ -223,77 +250,62 @@ export function BoardEditorPieceToolbar({
             {marks.stats && (
               <>
                 <span className="bg-border mx-0.5 h-5 w-px" />
-                <Button
-                  size="icon"
+                <ToolbarIconButton
+                  label={m.board_states_editor_damage_down()}
                   variant="ghost"
-                  aria-label={m.board_states_editor_damage_down()}
                   onClick={() => actions.adjustDamage(-1)}
                 >
                   <MinusIcon />
-                </Button>
+                </ToolbarIconButton>
                 <span className="min-w-5 text-center text-sm tabular-nums">{piece.damage}</span>
-                <Button
-                  size="icon"
+                <ToolbarIconButton
+                  label={m.board_states_editor_damage_up()}
                   variant="ghost"
-                  aria-label={m.board_states_editor_damage_up()}
                   onClick={() => actions.adjustDamage(1)}
                 >
                   <PlusIcon />
-                </Button>
+                </ToolbarIconButton>
                 <span className="bg-border mx-0.5 h-5 w-px" />
                 <MightGlyph />
-                <Button
-                  size="icon"
+                <ToolbarIconButton
+                  label={m.board_states_editor_might_down()}
                   variant="ghost"
-                  aria-label={m.board_states_editor_might_down()}
                   onClick={() => actions.adjustMight(-1)}
                 >
                   <MinusIcon />
-                </Button>
+                </ToolbarIconButton>
                 <span className="min-w-5 text-center text-sm tabular-nums">{piece.might}</span>
-                <Button
-                  size="icon"
+                <ToolbarIconButton
+                  label={m.board_states_editor_might_up()}
                   variant="ghost"
-                  aria-label={m.board_states_editor_might_up()}
                   onClick={() => actions.adjustMight(1)}
                 >
                   <PlusIcon />
-                </Button>
+                </ToolbarIconButton>
                 <span className="bg-border mx-0.5 h-5 w-px" />
               </>
             )}
-            <Button
-              size="icon"
+            <ToolbarIconButton
+              label={m.board_states_editor_arrow_move()}
               variant="ghost"
-              aria-label={m.board_states_editor_arrow_move()}
               onClick={() => onArrow("move")}
             >
               <MoveRightIcon />
-            </Button>
-            <Button
-              size="icon"
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              label={m.board_states_editor_arrow_target()}
               variant="ghost"
-              aria-label={m.board_states_editor_arrow_target()}
               onClick={() => onArrow("target")}
             >
               <CrosshairIcon />
-            </Button>
-            <Button
-              size="icon"
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              label={m.board_states_editor_remove_piece()}
               variant="ghost"
-              aria-label={m.board_states_editor_change_owner()}
-              onClick={() => actions.nextOwner()}
-            >
-              <UsersIcon />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={m.board_states_editor_remove_piece()}
               onClick={() => actions.remove()}
             >
               <Trash2Icon />
-            </Button>
+            </ToolbarIconButton>
           </div>
         </PopoverContent>
       </Popover>

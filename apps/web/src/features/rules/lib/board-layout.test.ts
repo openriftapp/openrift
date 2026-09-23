@@ -169,6 +169,15 @@ describe("zoneCardRule", () => {
     expect(rule?.kinds).toEqual(["unit"]);
   });
 
+  it("limits battlefield seats to units without capping them", () => {
+    const rule = zoneCardRule({ kind: "battlefield", index: 0 });
+    expect(rule?.cardFilter(unit)).toBe(true);
+    expect(rule?.cardFilter(champion)).toBe(true);
+    expect(rule?.cardFilter(rune)).toBe(false);
+    expect(rule?.kinds).toEqual(["unit", "token"]);
+    expect(zoneAcceptsMore({ kind: "battlefield", index: 0 }, 40)).toBe(true);
+  });
+
   it("hides the add slot once a zone holds its usual complement", () => {
     expect(zoneAcceptsMore({ kind: "legend" }, 0)).toBe(true);
     expect(zoneAcceptsMore({ kind: "legend" }, 1)).toBe(false);
@@ -179,7 +188,7 @@ describe("zoneCardRule", () => {
 
   it("leaves open zones unrestricted", () => {
     expect(zoneCardRule({ kind: "base" })).toBeNull();
-    expect(zoneCardRule({ kind: "battlefield", index: 0 })).toBeNull();
+    expect(zoneCardRule({ kind: "hand" })).toBeNull();
   });
 });
 

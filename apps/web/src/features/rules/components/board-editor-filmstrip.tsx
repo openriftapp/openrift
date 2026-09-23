@@ -10,7 +10,7 @@ import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store"
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const THUMB_WIDTH_REM = 72;
+const THUMB_WIDTH_REM = 144;
 
 /** Scales the full-size board so it sits inside the thumbnail box, centred, like a contained image. */
 function useContainScale(
@@ -142,7 +142,7 @@ export function BoardEditorFilmstrip() {
           {m.board_states_editor_remove_step()}
         </Button>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="-m-1 flex gap-2 overflow-x-auto p-1">
         {Array.from({ length: count }, (_, index) => (
           <StepThumb
             // oxlint-disable-next-line react/no-array-index-key -- steps are positional

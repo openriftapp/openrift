@@ -114,6 +114,13 @@ export function zoneCardRule(zone: BoardZoneRef): ZoneCardRule | null {
         capacity: 1,
       };
     }
+    case "battlefield": {
+      return {
+        cardFilter: (card) => card.types.includes("unit"),
+        kinds: ["unit", "token"],
+        capacity: Number.POSITIVE_INFINITY,
+      };
+    }
     default: {
       return null;
     }

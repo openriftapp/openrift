@@ -54,11 +54,13 @@ import { useBoardEditorShortcuts } from "@/features/rules/hooks/use-board-editor
 import type { NewPieceDragData } from "@/features/rules/lib/board-editor-drag";
 import { pieceKindForCardTypes, sameZone, zoneCardRule } from "@/features/rules/lib/board-layout";
 import { useBoardEditorStore } from "@/features/rules/stores/board-editor-store";
+import { useEnumOrders } from "@/hooks/use-enums";
 import { asDragData } from "@/lib/dnd-data";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const DRAG_ACTIVATION = { distance: 8 };
+const RECENT_PICKS = 2;
 
 const PIECE_KIND_LABEL: Record<PieceKind, () => string> = {
   unit: m.board_states_piece_unit,
@@ -78,6 +80,7 @@ const ZONE_FILTERS: Partial<Record<BoardZoneRef["kind"], (card: Card) => boolean
   runes: zoneCardRule({ kind: "runes" })?.cardFilter,
   legend: zoneCardRule({ kind: "legend" })?.cardFilter,
   champion: zoneCardRule({ kind: "champion" })?.cardFilter,
+  battlefield: zoneCardRule({ kind: "battlefield", index: 0 })?.cardFilter,
 };
 
 function toCardRef(cardId: string, card: Card): BoardCardRef {
@@ -181,23 +184,41 @@ function ZoneAddPanel({
     (piece) => sameZone(piece.zone, zone) && piece.owner === owner,
   );
   const rule = zoneCardRule(zone);
-  const { candidates, cardsById } = useCardCandidates(ZONE_FILTERS[zone.kind]);
+  const filter = ZONE_FILTERS[zone.kind];
+  const { candidates, cardsById } = useCardCandidates(filter);
   const catalog = useCards();
+  const { orders } = useEnumOrders();
+  const recentCardIds = useBoardEditorStore((state) => state.recentCardIds);
   const place = (kind: PieceKind, card: BoardCardRef | null) => {
     addPiece({ owner, zone, kind, card });
     onDone();
   };
+  const recent = recentCardIds
+    .flatMap((cardId) => {
+      const card = cardsById[cardId];
+      return card && (filter === undefined || filter(card)) ? [{ cardId, card }] : [];
+    })
+    .slice(0, RECENT_PICKS);
   if (zone.kind === "runes") {
+    const domainRank = (cardId: string) => {
+      const rank = orders.domains.indexOf(cardsById[cardId]?.domains[0] ?? "");
+      return rank === -1 ? orders.domains.length : rank;
+    };
     const tiles = [
-      ...candidates.map(({ cardId, cardName }) => {
-        const card = cardsById[cardId];
-        return {
-          key: cardId,
-          name: cardName,
-          image: card ? cardImage({ cardId, name: cardName }, catalog) : undefined,
-          card: card ? toCardRef(cardId, card) : null,
-        };
-      }),
+      ...candidates
+        .toSorted(
+          (a, b) =>
+            domainRank(a.cardId) - domainRank(b.cardId) || a.cardName.localeCompare(b.cardName),
+        )
+        .map(({ cardId, cardName }) => {
+          const card = cardsById[cardId];
+          return {
+            key: cardId,
+            name: cardName,
+            image: card ? cardImage({ cardId, name: cardName }, catalog) : undefined,
+            card: card ? toCardRef(cardId, card) : null,
+          };
+        }),
       { key: "generic", name: PIECE_KIND_LABEL.rune(), image: undefined, card: null },
     ];
     return (
@@ -232,6 +253,34 @@ function ZoneAddPanel({
   return (
     <>
       <span className="text-sm font-semibold">{label}</span>
+      {recent.length > 0 && (
+        <div className="flex gap-2">
+          {recent.map(({ cardId, card }) => {
+            const name = legendDisplayName(card);
+            const image = cardImage({ cardId, name }, catalog);
+            return (
+              <Pressable
+                key={cardId}
+                className={cn(
+                  CARD_SLOT_CLASS,
+                  "overflow-hidden",
+                  image !== undefined && "border-solid",
+                )}
+                style={CARD_CORNER_STYLE}
+                aria-label={name}
+                title={name}
+                onClick={() => place(pieceKindForCardTypes(card.types), toCardRef(cardId, card))}
+              >
+                {image === undefined ? (
+                  <span className="font-card p-1 text-center text-xs leading-tight">{name}</span>
+                ) : (
+                  <img src={image} alt="" className="size-full object-cover" />
+                )}
+              </Pressable>
+            );
+          })}
+        </div>
+      )}
       <CardPicker
         candidates={candidates}
         listAllWhenEmpty={false}
@@ -277,14 +326,14 @@ function RuneTile({
         onClick={onAdd}
       >
         {image === undefined ? (
-          <span className="font-card text-2xs p-0.5 text-center leading-tight">{name}</span>
+          <span className="font-card p-1 text-center text-xs leading-tight">{name}</span>
         ) : (
           <img src={image} alt="" className="size-full object-cover" />
         )}
       </Pressable>
       {count > 0 && (
         <>
-          <span className="pointer-events-none absolute top-[2.45rem] left-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-sm font-bold text-white ring-2 ring-white/80 sm:top-[2.45rem]">
+          <span className="pointer-events-none absolute top-[3.85rem] left-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-sm font-bold text-white ring-2 ring-white/80 sm:top-[4.9rem]">
             {count}
           </span>
           <ChipRemoveButton

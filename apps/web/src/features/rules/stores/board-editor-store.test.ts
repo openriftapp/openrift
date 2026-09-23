@@ -55,6 +55,21 @@ describe("useBoardEditorStore", () => {
       expect(store().dirty).toBe(true);
     });
 
+    it("remembers picked cards newest first without duplicates", () => {
+      const place = (cardId: string) =>
+        store().addPiece({
+          owner: "A",
+          zone: { kind: "base" },
+          kind: "unit",
+          card: { cardId, name: cardId },
+        });
+      place("c1");
+      place("c2");
+      place("c1");
+      addUnit();
+      expect(store().recentCardIds).toEqual(["c1", "c2"]);
+    });
+
     it("moves a piece to another zone and owner", () => {
       const id = addUnit();
       store().movePiece(id, { kind: "base" }, "B");

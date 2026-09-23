@@ -61,8 +61,8 @@ const STACK_LABEL = {
 } as const;
 
 /** Card frame, upright and on its side; the outer box keeps the rotated footprint. */
-const CARD_UPRIGHT = "h-[3.85rem] w-11 sm:h-[4.9rem] sm:w-14";
-const CARD_TURNED = "h-11 w-[3.85rem] sm:h-14 sm:w-[4.9rem]";
+const CARD_UPRIGHT = "h-[7.7rem] w-22 sm:h-[9.8rem] sm:w-28";
+const CARD_TURNED = "h-22 w-[7.7rem] sm:h-28 sm:w-[9.8rem]";
 /** The card browser's corner radius, so every mini card rounds in scale with its size. */
 export const CARD_CORNER_STYLE = { borderRadius: CARD_BORDER_RADIUS } as const;
 /** The same radius on a card lying sideways (battlefields). */
@@ -356,7 +356,7 @@ function DeckStack({
           src="/logo.svg"
           alt=""
           aria-hidden
-          className="absolute inset-0 m-auto size-5 opacity-40 brightness-0 invert"
+          className="absolute inset-0 m-auto size-10 opacity-40 brightness-0 invert"
         />
       </div>
     </div>
@@ -426,7 +426,7 @@ export function CardGhost({
       }}
     >
       {image === undefined ? (
-        <span className="font-card text-2xs text-card-foreground flex size-full items-center justify-center p-0.5 text-center leading-tight">
+        <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
           {name}
         </span>
       ) : (
@@ -518,10 +518,10 @@ function PlayerZone({
       mirrored={mirrored}
       fill={kind === "base"}
       className={cn(
-        "min-h-[4.5rem] border border-dashed sm:min-h-[5.6rem]",
-        kind === "base" && "min-w-40",
-        kind === "runes" && "min-w-[6.5rem] sm:min-w-[8rem]",
-        kind !== "base" && kind !== "runes" && "w-auto min-w-[3.6rem] sm:min-w-[4.4rem]",
+        "min-h-[9rem] border border-dashed sm:min-h-[11.2rem]",
+        kind === "base" && "min-w-80",
+        kind === "runes" && "min-w-[13rem] sm:min-w-[16rem]",
+        kind !== "base" && kind !== "runes" && "w-auto min-w-[7.2rem] sm:min-w-[8.8rem]",
       )}
       style={{ borderColor: zoneEdge(owner) }}
     >
@@ -559,7 +559,7 @@ function HandStrip({
       interaction={context.interaction}
       mirrored={mirrored}
       fill
-      className="min-h-[4rem] items-center border border-dashed"
+      className="min-h-[8rem] items-center border border-dashed"
       style={{ borderColor: zoneEdge(owner) }}
     >
       <ZoneLabel text={ZONE_LABEL.hand()} mirrored={mirrored} />
@@ -567,7 +567,7 @@ function HandStrip({
         {pieces.map((piece, index) => (
           <span
             key={piece.id}
-            className={cn("shrink-0", index > 0 && "-ml-2 sm:-ml-3")}
+            className={cn("shrink-0", index > 0 && "-ml-4 sm:-ml-6")}
             style={{ rotate: `${(index - (pieces.length - 1) / 2) * 5}deg` }}
           >
             <Piece piece={piece} mirrored={mirrored} context={context} />
@@ -629,7 +629,7 @@ function BattlefieldColumn({
   const image = context.art.battlefieldImages.get(index);
   const half = (players: BoardPlayer[]) => (
     <div
-      className="grid h-24 gap-1.5 sm:h-28"
+      className="grid h-[9rem] gap-1.5 sm:h-[11.2rem]"
       style={{ gridTemplateColumns: `repeat(${Math.max(1, players.length)}, minmax(0, 1fr))` }}
     >
       {players.map((player) => (
@@ -678,13 +678,16 @@ export function BattlefieldCardFrame({
 }) {
   return (
     <span
-      className="border-card-edge relative flex aspect-[1.4] w-[9.5rem] min-w-0 items-center justify-center overflow-hidden border bg-white/90 px-2 text-center shadow-md"
+      className={cn(
+        "border-card-edge relative flex min-w-0 items-center justify-center overflow-hidden border bg-white/90 px-2 text-center shadow-md",
+        CARD_TURNED,
+      )}
       style={LANDSCAPE_CORNER_STYLE}
     >
       {image === undefined ? (
         <span
           className={cn(
-            "font-card text-xs leading-tight font-semibold",
+            "font-card leading-tight font-semibold",
             cardName === null ? "text-black/50" : "text-black",
           )}
         >
@@ -699,7 +702,7 @@ export function BattlefieldCardFrame({
 
 /** Pulls a stacked card over the previous one so the same strip of it stays visible, upright or turned. */
 function overlapMargin(previousTurned: boolean): string {
-  return previousTurned ? "-ml-[2.95rem] sm:-ml-[3.8rem]" : "-ml-[1.85rem] sm:-ml-[2.4rem]";
+  return previousTurned ? "-ml-[5.9rem] sm:-ml-[7.6rem]" : "-ml-[3.7rem] sm:-ml-[4.8rem]";
 }
 
 function PieceRow({
@@ -821,8 +824,8 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
   const glow = piece.highlight || spotlit;
   const numeral = context.numerals.get(piece.id);
   const image = context.art.pieceImages.get(piece.id);
-  // Chips, badges and the owner letter are the author's marks, not print on the
-  // card, so they stay upright however the card itself is turned.
+  // Chips and badges are the author's marks, not print on the card, so they
+  // stay upright however the card itself is turned.
   const marksRotation = (piece.exhausted ? 90 : 0) + (mirrored === true ? 180 : 0);
   const handle = interaction.arrowHandle === true && selected;
   const overlay = interaction.renderPieceOverlay?.(piece);
@@ -844,7 +847,7 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
     >
       <span className="absolute inset-0 min-w-0 overflow-hidden rounded-[inherit]">
         {image === undefined ? (
-          <span className="font-card text-2xs text-card-foreground flex size-full items-center justify-center p-0.5 text-center leading-tight">
+          <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
             {pieceName(piece)}
           </span>
         ) : (
@@ -855,17 +858,6 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
         className="pointer-events-none absolute inset-0"
         style={marksRotation === 0 ? undefined : { rotate: `${marksRotation}deg` }}
       >
-        {piece.zone.kind === "battlefield" && (
-          <span
-            className="text-2xs absolute right-0.5 bottom-0 font-semibold"
-            style={{
-              color: PLAYER_COLOR[piece.owner],
-              textShadow: "0 1px 2px rgb(0 0 0 / 0.85)",
-            }}
-          >
-            {piece.owner}
-          </span>
-        )}
         {piece.might !== 0 && (
           <span
             className={cn(
@@ -881,7 +873,11 @@ function PieceToken({ piece, mirrored, context }: PieceProps) {
               aria-hidden
               className="size-2 brightness-0 invert"
             />
-            {piece.might > 0 ? `+${piece.might}` : `−${Math.abs(piece.might)}`}
+            {piece.card === null && piece.might > 0
+              ? piece.might
+              : piece.might > 0
+                ? `+${piece.might}`
+                : `−${Math.abs(piece.might)}`}
           </span>
         )}
         {piece.damage > 0 && (
@@ -993,7 +989,7 @@ function ChainRow({ context }: { context: BoardContext }) {
             {art.chainImages.has(index) ? (
               <img src={art.chainImages.get(index)} alt="" className="size-full object-cover" />
             ) : (
-              <span className="font-card text-2xs text-card-foreground flex size-full items-center justify-center p-0.5 text-center leading-tight">
+              <span className="font-card text-card-foreground flex size-full items-center justify-center p-1 text-center text-xs leading-tight">
                 {entry.card.name}
               </span>
             )}

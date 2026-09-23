@@ -73,12 +73,6 @@ export function BoardEditorSetupStrip() {
         <PopoverTrigger render={<Button variant="outline" />}>
           <SlidersHorizontalIcon />
           {m.board_states_editor_table_setup()}
-          <span className="text-muted-foreground font-normal">
-            {m.board_states_editor_table_summary({
-              players: playerCount,
-              battlefields: battlefieldCount,
-            })}
-          </span>
         </PopoverTrigger>
         <PopoverContent align="start" className="flex w-80 flex-col gap-4">
           <CountGroup
