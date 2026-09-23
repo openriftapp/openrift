@@ -18,6 +18,7 @@ export const WellKnown = {
   },
   domain: {
     COLORLESS: "colorless",
+    NEUTRAL: "neutral",
   },
   superType: {
     BASIC: "basic",

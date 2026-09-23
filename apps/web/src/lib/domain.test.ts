@@ -9,7 +9,16 @@ import {
   getPipGlyphTint,
 } from "./domain";
 
-const DOMAIN_OPTIONS = ["fury", "calm", "mind", "body", "chaos", "order", "colorless"] as const;
+const DOMAIN_OPTIONS = [
+  "fury",
+  "calm",
+  "mind",
+  "body",
+  "chaos",
+  "order",
+  "neutral",
+  "colorless",
+] as const;
 
 describe("getDomainGradientStyle", () => {
   it("returns a solid background color for a single domain", () => {
@@ -110,6 +119,18 @@ describe("computeDomainDisabled", () => {
     const disabled = computeDomainDisabled(["colorless"], DOMAIN_OPTIONS);
     expect(disabled.has("fury")).toBe(true);
     expect(disabled.has("colorless")).toBe(false);
+  });
+
+  it("disables neutral once a real domain is picked", () => {
+    const disabled = computeDomainDisabled(["fury"], DOMAIN_OPTIONS);
+    expect(disabled.has("neutral")).toBe(true);
+  });
+
+  it("disables every other domain when neutral is selected", () => {
+    const disabled = computeDomainDisabled(["neutral"], DOMAIN_OPTIONS);
+    expect(disabled.has("fury")).toBe(true);
+    expect(disabled.has("colorless")).toBe(true);
+    expect(disabled.has("neutral")).toBe(false);
   });
 });
 

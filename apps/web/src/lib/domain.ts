@@ -72,22 +72,26 @@ export function formatDomainFilterLabel(value: string, labels?: Record<string, s
 
 const MAX_DOMAINS = 2;
 
+function isExclusiveDomain(slug: string): boolean {
+  return slug === WellKnown.domain.COLORLESS || slug === WellKnown.domain.NEUTRAL;
+}
+
 export function computeDomainDisabled(
   selected: string[],
   options: readonly string[],
 ): ReadonlySet<string> {
   const disabled = new Set<string>();
-  const hasColorless = selected.includes(WellKnown.domain.COLORLESS);
+  const hasExclusive = selected.some((slug) => isExclusiveDomain(slug));
   const atMax = selected.length >= MAX_DOMAINS;
   for (const slug of options) {
     if (selected.includes(slug)) {
       continue;
     }
-    if (hasColorless) {
+    if (hasExclusive) {
       disabled.add(slug);
       continue;
     }
-    if (slug === WellKnown.domain.COLORLESS) {
+    if (isExclusiveDomain(slug)) {
       if (selected.length > 0) {
         disabled.add(slug);
       }

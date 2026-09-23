@@ -9,5 +9,6 @@ export const DEFAULT_DOMAIN_COLORS: Record<string, string> = {
   body: "#E2710C",
   chaos: "#6B4891",
   order: "#CDA902",
+  neutral: "#78716C",
   colorless: "#737373",
 } satisfies Record<Domain, string>;

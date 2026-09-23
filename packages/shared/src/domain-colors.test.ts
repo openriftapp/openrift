@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_DOMAIN_COLORS, DOMAIN_COLOR_FALLBACK } from "./domain-colors.js";
 
 describe("DEFAULT_DOMAIN_COLORS", () => {
-  it("covers the six domains plus colorless", () => {
+  it("covers the six domains plus neutral and colorless", () => {
     expect(Object.keys(DEFAULT_DOMAIN_COLORS).toSorted()).toEqual([
       "body",
       "calm",
@@ -11,6 +11,7 @@ describe("DEFAULT_DOMAIN_COLORS", () => {
       "colorless",
       "fury",
       "mind",
+      "neutral",
       "order",
     ]);
   });

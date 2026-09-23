@@ -24,8 +24,10 @@ export function deckZoneFilterPreset(
 ): DeckZoneFilterPreset {
   const legend = cards.find((card) => card.zone === WellKnown.deckZone.LEGEND);
   const legendDomains: string[] = legend?.domains ?? [];
-  const domainsWithColorless =
-    legendDomains.length > 0 ? [...legendDomains, WellKnown.domain.COLORLESS] : [];
+  const mainDeckDomains =
+    legendDomains.length > 0
+      ? [...legendDomains, WellKnown.domain.NEUTRAL, WellKnown.domain.COLORLESS]
+      : [];
   // Tag-locked formats re-apply their tag selection on every zone change,
   // resetting any chips the user un-toggled within the previous zone.
   const formatTagSlugs = Array.isArray(formatConfig?.tagSlugs) ? formatConfig.tagSlugs : [];
@@ -33,7 +35,7 @@ export function deckZoneFilterPreset(
   // legal across every zone; skip the legend-domain prefilter.
   const isCustomRegion = format === WellKnown.deckFormat.CUSTOM_REGION;
   const runesDomainFilter = isCustomRegion ? [] : legendDomains;
-  const mainDomainFilter = isCustomRegion ? [] : domainsWithColorless;
+  const mainDomainFilter = isCustomRegion ? [] : mainDeckDomains;
 
   // Every token is colorless today, so excluding tokens keeps them from
   // leaking into the main/sideboard browser through the colorless bucket.

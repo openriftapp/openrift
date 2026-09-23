@@ -450,13 +450,14 @@ describe("groupDecks", () => {
     expect(byLabel["Calm / Mind"]!.items.map((item) => item.deck.id)).toEqual(["c"]);
   });
 
-  it("falls back to deck distribution when no legend domains are known, excluding Colorless", () => {
+  it("falls back to deck distribution when no legend domains are known, excluding Neutral and Colorless", () => {
     const items = [
       makeItem({
         id: "a",
         legendDomains: null,
         domains: [
           { domain: "fury", count: 10 },
+          { domain: "neutral", count: 2 },
           { domain: "colorless", count: 6 },
         ],
       }),

@@ -296,7 +296,11 @@ const mainDeckDomainMatch: DeckRule = (state) => {
     return [];
   }
 
-  const allowedDomains = new Set([...legend.domains, WellKnown.domain.COLORLESS]);
+  const allowedDomains = new Set([
+    ...legend.domains,
+    WellKnown.domain.NEUTRAL,
+    WellKnown.domain.COLORLESS,
+  ]);
   const violations: DeckViolation[] = [];
 
   for (const card of [

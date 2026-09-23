@@ -974,6 +974,18 @@ describe("validateDeck", () => {
     expect(domainMismatches[0]!.cardId).toBe("off-domain-1");
   });
 
+  it("allows neutral and colorless cards alongside the legend's domains", () => {
+    const mainCards = [
+      ...Array.from({ length: 12 }, (_, index) =>
+        makeCard({ cardId: `main-${index}`, quantity: 3 }),
+      ),
+      makeCard({ cardId: "neutral-1", cardName: "Neeko", domains: ["neutral"], quantity: 2 }),
+      makeCard({ cardId: "colorless-1", cardName: "Recruit", domains: ["colorless"] }),
+    ];
+    const violations = validateDeck(makeState([...makeConstructedShell(), ...mainCards]));
+    expect(violations.filter((violation) => violation.code === "DOMAIN_MISMATCH")).toEqual([]);
+  });
+
   it("applies the main-deck copy limit to copies split across printing rows", () => {
     const mainCards = [
       ...Array.from({ length: 12 }, (_, index) =>

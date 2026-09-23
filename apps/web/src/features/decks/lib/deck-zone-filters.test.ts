@@ -40,11 +40,16 @@ describe("deckZoneFilterPreset", () => {
     expect(preset.search).toBe("");
   });
 
-  it("adds colorless to the legend domains outside the rune zone", () => {
+  it("adds neutral and colorless to the legend domains outside the rune zone", () => {
     const main = deckZoneFilterPreset(WellKnown.deckZone.MAIN, [legend], "constructed", null);
     const runes = deckZoneFilterPreset(WellKnown.deckZone.RUNES, [legend], "constructed", null);
 
-    expect(main.arrayFilters.domains).toEqual(["fury", "calm", WellKnown.domain.COLORLESS]);
+    expect(main.arrayFilters.domains).toEqual([
+      "fury",
+      "calm",
+      WellKnown.domain.NEUTRAL,
+      WellKnown.domain.COLORLESS,
+    ]);
     expect(runes.arrayFilters.domains).toEqual(["fury", "calm"]);
   });
 

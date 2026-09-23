@@ -10,7 +10,8 @@ INSERT INTO domains (slug, label, sort_order, is_well_known, color) VALUES
   ('body', 'Body', 3, FALSE, '#E56C00'),
   ('chaos', 'Chaos', 4, FALSE, '#6D4290'),
   ('order', 'Order', 5, FALSE, '#D2AF00'),
-  ('colorless', 'Colorless', 6, TRUE, '#A1A1A1')
+  ('neutral', 'Neutral', 6, TRUE, '#78716C'),
+  ('colorless', 'Colorless', 7, TRUE, '#A1A1A1')
   ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label, sort_order = EXCLUDED.sort_order, is_well_known = EXCLUDED.is_well_known, color = EXCLUDED.color;
 
 INSERT INTO rarities (slug, label, sort_order, is_well_known, color) VALUES

@@ -221,7 +221,9 @@ function domainComboOf(item: DeckListItemWithNames): Domain[] {
     item.legendDomains && item.legendDomains.length > 0
       ? item.legendDomains
       : item.domainDistribution.map((entry) => entry.domain);
-  const real = source.filter((domain) => domain !== WellKnown.domain.COLORLESS);
+  const real = source.filter(
+    (domain) => domain !== WellKnown.domain.COLORLESS && domain !== WellKnown.domain.NEUTRAL,
+  );
   return [...new Set(real)].sort((left, right) =>
     left.localeCompare(right, undefined, { sensitivity: "base" }),
   );
