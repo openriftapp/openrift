@@ -24,12 +24,16 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_card_sizes_protect_well_known
       BEFORE UPDATE OR DELETE ON card_sizes
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     INSERT INTO card_sizes (slug, label, sort_order, is_well_known) VALUES
       ('standard',  'Standard',  0, TRUE),
       ('oversized', 'Oversized', 1, TRUE)
@@ -38,8 +42,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   // ── 2. Column on printings (existing rows backfill to 'standard') ───────────
   await sql`
     ALTER TABLE printings
-      ADD COLUMN size TEXT NOT NULL DEFAULT 'standard';
+      ADD COLUMN size TEXT NOT NULL DEFAULT 'standard'
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
       ADD CONSTRAINT fk_printings_size FOREIGN KEY (size) REFERENCES card_sizes(slug)
   `.execute(db);
@@ -114,10 +120,8 @@ export async function down(db: Kysely<unknown>): Promise<void> {
       DEFERRABLE INITIALLY DEFERRED
   `.execute(db);
 
-  await sql`
-    ALTER TABLE printings DROP CONSTRAINT fk_printings_size;
-    ALTER TABLE printings DROP COLUMN size
-  `.execute(db);
+  await sql`ALTER TABLE printings DROP CONSTRAINT fk_printings_size`.execute(db);
+  await sql`ALTER TABLE printings DROP COLUMN size`.execute(db);
 
   await sql`DROP TABLE card_sizes`.execute(db);
 

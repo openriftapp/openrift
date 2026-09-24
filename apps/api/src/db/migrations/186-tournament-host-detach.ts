@@ -27,13 +27,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ADD CONSTRAINT chk_tournaments_host CHECK (
         ((host_type = 'user') AND (host_org_id IS NULL))
         OR ((host_type = 'organization') AND (host_user_id IS NULL))
-      );
+      )
+  `.execute(db);
 
+  await sql`
     ALTER TABLE tournaments
       DROP CONSTRAINT tournaments_host_user_fkey,
       ADD CONSTRAINT tournaments_host_user_fkey
-        FOREIGN KEY (host_user_id) REFERENCES users(id) ON DELETE SET NULL;
+        FOREIGN KEY (host_user_id) REFERENCES users(id) ON DELETE SET NULL
+  `.execute(db);
 
+  await sql`
     ALTER TABLE tournaments
       DROP CONSTRAINT tournaments_host_org_fkey,
       ADD CONSTRAINT tournaments_host_org_fkey
@@ -51,20 +55,26 @@ export async function down(db: Kysely<unknown>): Promise<void> {
   await sql`
     DELETE FROM tournaments
       WHERE (host_type = 'user' AND host_user_id IS NULL)
-         OR (host_type = 'organization' AND host_org_id IS NULL);
+         OR (host_type = 'organization' AND host_org_id IS NULL)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE tournaments
       DROP CONSTRAINT chk_tournaments_host,
       ADD CONSTRAINT chk_tournaments_host CHECK (
         ((host_type = 'user') AND (host_user_id IS NOT NULL) AND (host_org_id IS NULL))
         OR ((host_type = 'organization') AND (host_org_id IS NOT NULL) AND (host_user_id IS NULL))
-      );
+      )
+  `.execute(db);
 
+  await sql`
     ALTER TABLE tournaments
       DROP CONSTRAINT tournaments_host_user_fkey,
       ADD CONSTRAINT tournaments_host_user_fkey
-        FOREIGN KEY (host_user_id) REFERENCES users(id) ON DELETE CASCADE;
+        FOREIGN KEY (host_user_id) REFERENCES users(id) ON DELETE CASCADE
+  `.execute(db);
 
+  await sql`
     ALTER TABLE tournaments
       DROP CONSTRAINT tournaments_host_org_fkey,
       ADD CONSTRAINT tournaments_host_org_fkey

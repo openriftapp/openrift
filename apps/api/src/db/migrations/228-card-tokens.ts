@@ -24,10 +24,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       source        TEXT NOT NULL DEFAULT 'derived'
         CONSTRAINT chk_card_tokens_source CHECK (source IN ('derived', 'manual')),
       PRIMARY KEY (card_id, token_card_id)
-    );
-
-    CREATE INDEX idx_card_tokens_token_card_id ON card_tokens (token_card_id)
+    )
   `.execute(db);
+
+  await sql`CREATE INDEX idx_card_tokens_token_card_id ON card_tokens (token_card_id)`.execute(db);
 
   // Materialized views can't be altered; recreate with the token aggregate.
   await sql`DROP MATERIALIZED VIEW mv_card_aggregates`.execute(db);

@@ -19,8 +19,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE graders (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
@@ -37,8 +39,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ('good',         'Good',         3, TRUE),
       ('light-played', 'Light Played', 4, TRUE),
       ('played',       'Played',       5, TRUE),
-      ('poor',         'Poor',         6, TRUE);
+      ('poor',         'Poor',         6, TRUE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO graders (slug, label, sort_order, is_well_known) VALUES
       ('psa', 'PSA', 0, TRUE),
       ('bgs', 'BGS', 1, TRUE),
@@ -50,8 +54,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     CREATE TRIGGER trg_conditions_protect_well_known
       BEFORE UPDATE OR DELETE ON conditions
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_graders_protect_well_known
       BEFORE UPDATE OR DELETE ON graders
       FOR EACH ROW EXECUTE FUNCTION protect_well_known()
@@ -90,10 +96,8 @@ export async function down(db: Kysely<unknown>): Promise<void> {
       DROP COLUMN links
   `.execute(db);
 
-  await sql`
-    DROP TRIGGER trg_conditions_protect_well_known ON conditions;
-    DROP TRIGGER trg_graders_protect_well_known ON graders;
-    DROP TABLE conditions;
-    DROP TABLE graders
-  `.execute(db);
+  await sql`DROP TRIGGER trg_conditions_protect_well_known ON conditions`.execute(db);
+  await sql`DROP TRIGGER trg_graders_protect_well_known ON graders`.execute(db);
+  await sql`DROP TABLE conditions`.execute(db);
+  await sql`DROP TABLE graders`.execute(db);
 }

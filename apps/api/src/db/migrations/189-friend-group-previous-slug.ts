@@ -19,8 +19,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ADD COLUMN previous_slug text,
       ADD CONSTRAINT chk_friend_groups_previous_slug CHECK (
         previous_slug IS NULL OR previous_slug ~ '^[a-z0-9][a-z0-9-]{2,29}$'
-      );
+      )
+  `.execute(db);
 
+  await sql`
     CREATE INDEX idx_friend_groups_previous_slug
       ON friend_groups (previous_slug)
       WHERE previous_slug IS NOT NULL
@@ -29,8 +31,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
 /** @returns Resolves once the column and its index are dropped. */
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`
-    DROP INDEX IF EXISTS idx_friend_groups_previous_slug;
-    ALTER TABLE friend_groups DROP COLUMN IF EXISTS previous_slug
-  `.execute(db);
+  await sql`DROP INDEX IF EXISTS idx_friend_groups_previous_slug`.execute(db);
+  await sql`ALTER TABLE friend_groups DROP COLUMN IF EXISTS previous_slug`.execute(db);
 }

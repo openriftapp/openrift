@@ -25,8 +25,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ADD COLUMN submitted_by_user_id TEXT
         REFERENCES users(id) ON DELETE SET NULL,
       ADD COLUMN submission_note TEXT
-        CHECK (submission_note <> '');
+        CHECK (submission_note <> '')
+  `.execute(db);
 
+  await sql`
     CREATE INDEX idx_candidate_cards_submitted_by_user_id
       ON candidate_cards (submitted_by_user_id)
       WHERE submitted_by_user_id IS NOT NULL
@@ -37,9 +39,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
  * @returns Resolves once the submitter columns are removed.
  */
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`
-    DROP INDEX IF EXISTS idx_candidate_cards_submitted_by_user_id;
+  await sql`DROP INDEX IF EXISTS idx_candidate_cards_submitted_by_user_id`.execute(db);
 
+  await sql`
     ALTER TABLE candidate_cards
       DROP COLUMN submission_note,
       DROP COLUMN submitted_by_user_id

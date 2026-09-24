@@ -8,10 +8,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`ALTER TABLE keyword_styles RENAME TO keywords`.execute(db);
 
   await sql`
-    ALTER TABLE keywords RENAME CONSTRAINT keyword_styles_color_check TO keywords_color_check;
-    ALTER TABLE keywords RENAME CONSTRAINT keyword_styles_name_check TO keywords_name_check;
-    ALTER INDEX keyword_styles_pkey RENAME TO keywords_pkey;
-    ALTER TRIGGER keyword_styles_set_updated_at ON keywords RENAME TO keywords_set_updated_at;
+    ALTER TABLE keywords RENAME CONSTRAINT keyword_styles_color_check TO keywords_color_check
+  `.execute(db);
+
+  await sql`
+    ALTER TABLE keywords RENAME CONSTRAINT keyword_styles_name_check TO keywords_name_check
+  `.execute(db);
+
+  await sql`ALTER INDEX keyword_styles_pkey RENAME TO keywords_pkey`.execute(db);
+
+  await sql`
+    ALTER TRIGGER keyword_styles_set_updated_at ON keywords RENAME TO keywords_set_updated_at
   `.execute(db);
 
   await sql`
@@ -37,29 +44,36 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       END IF;
       RETURN COALESCE(NEW, OLD);
     END;
-    $$ LANGUAGE plpgsql;
+    $$ LANGUAGE plpgsql
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_keywords_protect_well_known
       BEFORE UPDATE OR DELETE ON keywords
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known_keyword();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known_keyword()
   `.execute(db);
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
   await sql`ALTER TABLE keywords DISABLE TRIGGER trg_keywords_protect_well_known`.execute(db);
 
-  await sql`
-    DROP TRIGGER trg_keywords_protect_well_known ON keywords;
-    DROP FUNCTION protect_well_known_keyword();
-  `.execute(db);
+  await sql`DROP TRIGGER trg_keywords_protect_well_known ON keywords`.execute(db);
+  await sql`DROP FUNCTION protect_well_known_keyword()`.execute(db);
 
   await sql`ALTER TABLE keywords DROP COLUMN is_well_known`.execute(db);
 
   await sql`
-    ALTER TRIGGER keywords_set_updated_at ON keywords RENAME TO keyword_styles_set_updated_at;
-    ALTER INDEX keywords_pkey RENAME TO keyword_styles_pkey;
-    ALTER TABLE keywords RENAME CONSTRAINT keywords_name_check TO keyword_styles_name_check;
-    ALTER TABLE keywords RENAME CONSTRAINT keywords_color_check TO keyword_styles_color_check;
+    ALTER TRIGGER keywords_set_updated_at ON keywords RENAME TO keyword_styles_set_updated_at
+  `.execute(db);
+
+  await sql`ALTER INDEX keywords_pkey RENAME TO keyword_styles_pkey`.execute(db);
+
+  await sql`
+    ALTER TABLE keywords RENAME CONSTRAINT keywords_name_check TO keyword_styles_name_check
+  `.execute(db);
+
+  await sql`
+    ALTER TABLE keywords RENAME CONSTRAINT keywords_color_check TO keyword_styles_color_check
   `.execute(db);
 
   await sql`ALTER TABLE keywords RENAME TO keyword_styles`.execute(db);

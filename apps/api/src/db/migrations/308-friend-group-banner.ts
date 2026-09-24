@@ -21,8 +21,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ),
       ADD CONSTRAINT chk_friend_groups_banner_position CHECK (
         banner_position BETWEEN 0 AND 100
-      );
+      )
+  `.execute(db);
 
+  await sql`
     CREATE INDEX idx_friend_groups_banner_uploaded_at
       ON friend_groups (banner_uploaded_at DESC)
       WHERE banner_url IS NOT NULL
@@ -31,8 +33,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
 /** @returns Resolves once the columns and index are dropped. */
 export async function down(db: Kysely<unknown>): Promise<void> {
+  await sql`DROP INDEX IF EXISTS idx_friend_groups_banner_uploaded_at`.execute(db);
+
   await sql`
-    DROP INDEX IF EXISTS idx_friend_groups_banner_uploaded_at;
     ALTER TABLE friend_groups
       DROP COLUMN IF EXISTS banner_uploaded_at,
       DROP COLUMN IF EXISTS banner_uploaded_by,

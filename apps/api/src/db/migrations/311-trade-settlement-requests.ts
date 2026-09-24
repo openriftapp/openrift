@@ -10,11 +10,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       fingerprint text NOT NULL,
       settled_trade_id uuid NOT NULL REFERENCES card_trades(id) ON DELETE CASCADE,
       PRIMARY KEY (trade_id, user_id, request_id)
-    );
+    )
+  `.execute(db);
+
+  await sql`
     CREATE INDEX idx_card_trade_settlement_requests_user
-      ON card_trade_settlement_requests(user_id);
+      ON card_trade_settlement_requests(user_id)
+  `.execute(db);
+
+  await sql`
     CREATE INDEX idx_card_trade_settlement_requests_settled_trade
-      ON card_trade_settlement_requests(settled_trade_id);
+      ON card_trade_settlement_requests(settled_trade_id)
   `.execute(db);
 }
 

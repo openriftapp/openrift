@@ -10,50 +10,64 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE rarities (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE domains (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE super_types (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE finishes (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE art_variants (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE deck_formats (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
       sort_order  SMALLINT NOT NULL,
       is_well_known BOOLEAN NOT NULL DEFAULT FALSE
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE deck_zones (
       slug        TEXT PRIMARY KEY,
       label       TEXT NOT NULL,
@@ -72,15 +86,19 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ('Spell',       'Spell',       3, FALSE),
       ('Gear',        'Gear',        4, FALSE),
       ('Battlefield', 'Battlefield', 5, TRUE),
-      ('Other',       'Other',       6, FALSE);
+      ('Other',       'Other',       6, FALSE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO rarities (slug, label, sort_order, is_well_known) VALUES
       ('Common',   'Common',   0, FALSE),
       ('Uncommon', 'Uncommon', 1, FALSE),
       ('Rare',     'Rare',     2, FALSE),
       ('Epic',     'Epic',     3, FALSE),
-      ('Showcase', 'Showcase', 4, FALSE);
+      ('Showcase', 'Showcase', 4, FALSE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO domains (slug, label, sort_order, is_well_known) VALUES
       ('Fury',      'Fury',      0, FALSE),
       ('Calm',      'Calm',      1, FALSE),
@@ -88,27 +106,37 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ('Body',      'Body',      3, FALSE),
       ('Chaos',     'Chaos',     4, FALSE),
       ('Order',     'Order',     5, FALSE),
-      ('Colorless', 'Colorless', 6, TRUE);
+      ('Colorless', 'Colorless', 6, TRUE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO super_types (slug, label, sort_order, is_well_known) VALUES
       ('Basic',     'Basic',     0, FALSE),
       ('Champion',  'Champion',  1, TRUE),
       ('Signature', 'Signature', 2, TRUE),
-      ('Token',     'Token',     3, FALSE);
+      ('Token',     'Token',     3, FALSE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO finishes (slug, label, sort_order, is_well_known) VALUES
       ('normal', 'Normal', 0, TRUE),
-      ('foil',   'Foil',   1, TRUE);
+      ('foil',   'Foil',   1, TRUE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO art_variants (slug, label, sort_order, is_well_known) VALUES
       ('normal',       'Normal',       0, TRUE),
       ('altart',       'Alt Art',      1, TRUE),
-      ('overnumbered', 'Overnumbered', 2, TRUE);
+      ('overnumbered', 'Overnumbered', 2, TRUE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO deck_formats (slug, label, sort_order, is_well_known) VALUES
       ('standard', 'Standard', 0, TRUE),
-      ('freeform', 'Freeform', 1, TRUE);
+      ('freeform', 'Freeform', 1, TRUE)
+  `.execute(db);
 
+  await sql`
     INSERT INTO deck_zones (slug, label, sort_order, is_well_known) VALUES
       ('main',        'Main',        0, TRUE),
       ('sideboard',   'Sideboard',   1, TRUE),
@@ -128,8 +156,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       ordinal      SMALLINT NOT NULL CHECK (ordinal >= 0),
       PRIMARY KEY (card_id, domain_slug),
       UNIQUE (card_id, ordinal)
-    );
+    )
+  `.execute(db);
 
+  await sql`
     CREATE TABLE card_super_types (
       card_id         UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
       super_type_slug TEXT NOT NULL REFERENCES super_types(slug),
@@ -142,8 +172,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     INSERT INTO card_domains (card_id, domain_slug, ordinal)
     SELECT id, val, ord::smallint - 1
-    FROM cards, unnest(domains) WITH ORDINALITY AS t(val, ord);
+    FROM cards, unnest(domains) WITH ORDINALITY AS t(val, ord)
+  `.execute(db);
 
+  await sql`
     INSERT INTO card_super_types (card_id, super_type_slug)
     SELECT DISTINCT id, val
     FROM cards, unnest(super_types) WITH ORDINALITY AS t(val, ord)
@@ -153,23 +185,35 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await sql`
     ALTER TABLE cards
-      ADD CONSTRAINT fk_cards_type FOREIGN KEY (type) REFERENCES card_types(slug);
+      ADD CONSTRAINT fk_cards_type FOREIGN KEY (type) REFERENCES card_types(slug)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
-      ADD CONSTRAINT fk_printings_rarity FOREIGN KEY (rarity) REFERENCES rarities(slug);
+      ADD CONSTRAINT fk_printings_rarity FOREIGN KEY (rarity) REFERENCES rarities(slug)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
-      ADD CONSTRAINT fk_printings_finish FOREIGN KEY (finish) REFERENCES finishes(slug);
+      ADD CONSTRAINT fk_printings_finish FOREIGN KEY (finish) REFERENCES finishes(slug)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
-      ADD CONSTRAINT fk_printings_art_variant FOREIGN KEY (art_variant) REFERENCES art_variants(slug);
+      ADD CONSTRAINT fk_printings_art_variant FOREIGN KEY (art_variant) REFERENCES art_variants(slug)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE decks
-      DROP CONSTRAINT decks_format_fkey;
+      DROP CONSTRAINT decks_format_fkey
+  `.execute(db);
 
+  await sql`
     ALTER TABLE decks
-      ADD CONSTRAINT fk_decks_format FOREIGN KEY (format) REFERENCES deck_formats(slug);
+      ADD CONSTRAINT fk_decks_format FOREIGN KEY (format) REFERENCES deck_formats(slug)
+  `.execute(db);
 
+  await sql`
     ALTER TABLE deck_cards
       ADD CONSTRAINT fk_deck_cards_zone FOREIGN KEY (zone) REFERENCES deck_zones(slug)
   `.execute(db);
@@ -181,13 +225,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       DROP CONSTRAINT chk_cards_type,
       DROP CONSTRAINT chk_cards_domains_values,
       DROP CONSTRAINT chk_cards_domains_not_empty,
-      DROP CONSTRAINT chk_cards_super_types_values;
+      DROP CONSTRAINT chk_cards_super_types_values
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
       DROP CONSTRAINT chk_printings_rarity,
       DROP CONSTRAINT chk_printings_finish,
-      DROP CONSTRAINT chk_printings_art_variant;
+      DROP CONSTRAINT chk_printings_art_variant
+  `.execute(db);
 
+  await sql`
     ALTER TABLE deck_cards
       DROP CONSTRAINT chk_deck_cards_zone
   `.execute(db);
@@ -218,36 +266,52 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       END IF;
       RETURN COALESCE(NEW, OLD);
     END;
-    $$ LANGUAGE plpgsql;
+    $$ LANGUAGE plpgsql
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_card_types_protect_well_known
       BEFORE UPDATE OR DELETE ON card_types
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_rarities_protect_well_known
       BEFORE UPDATE OR DELETE ON rarities
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_domains_protect_well_known
       BEFORE UPDATE OR DELETE ON domains
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_super_types_protect_well_known
       BEFORE UPDATE OR DELETE ON super_types
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_finishes_protect_well_known
       BEFORE UPDATE OR DELETE ON finishes
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_art_variants_protect_well_known
       BEFORE UPDATE OR DELETE ON art_variants
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_deck_formats_protect_well_known
       BEFORE UPDATE OR DELETE ON deck_formats
-      FOR EACH ROW EXECUTE FUNCTION protect_well_known();
+      FOR EACH ROW EXECUTE FUNCTION protect_well_known()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_deck_zones_protect_well_known
       BEFORE UPDATE OR DELETE ON deck_zones
       FOR EACH ROW EXECUTE FUNCTION protect_well_known()
@@ -273,7 +337,10 @@ export async function down(db: Kysely<unknown>): Promise<void> {
     UPDATE cards SET domains = (
       SELECT COALESCE(array_agg(cd.domain_slug ORDER BY cd.ordinal), '{}')
       FROM card_domains cd WHERE cd.card_id = cards.id
-    );
+    )
+  `.execute(db);
+
+  await sql`
     UPDATE cards SET super_types = (
       SELECT COALESCE(array_agg(cst.super_type_slug), '{}')
       FROM card_super_types cst WHERE cst.card_id = cards.id
@@ -286,57 +353,57 @@ export async function down(db: Kysely<unknown>): Promise<void> {
       ADD CONSTRAINT chk_cards_type CHECK (type = ANY(ARRAY['Legend','Unit','Rune','Spell','Gear','Battlefield','Other'])),
       ADD CONSTRAINT chk_cards_domains_values CHECK (domains <@ ARRAY['Fury','Calm','Mind','Body','Chaos','Order','Colorless']::text[]),
       ADD CONSTRAINT chk_cards_domains_not_empty CHECK (array_length(domains, 1) > 0),
-      ADD CONSTRAINT chk_cards_super_types_values CHECK (super_types <@ ARRAY['Basic','Champion','Signature','Token']::text[]);
+      ADD CONSTRAINT chk_cards_super_types_values CHECK (super_types <@ ARRAY['Basic','Champion','Signature','Token']::text[])
+  `.execute(db);
 
+  await sql`
     ALTER TABLE printings
       ADD CONSTRAINT chk_printings_rarity CHECK (rarity = ANY(ARRAY['Common','Uncommon','Rare','Epic','Showcase'])),
       ADD CONSTRAINT chk_printings_finish CHECK (finish = ANY(ARRAY['normal','foil'])),
-      ADD CONSTRAINT chk_printings_art_variant CHECK (art_variant = ANY(ARRAY['normal','altart','overnumbered']));
+      ADD CONSTRAINT chk_printings_art_variant CHECK (art_variant = ANY(ARRAY['normal','altart','overnumbered']))
+  `.execute(db);
 
+  await sql`
     ALTER TABLE deck_cards
       ADD CONSTRAINT chk_deck_cards_zone CHECK (zone = ANY(ARRAY['main','sideboard','legend','champion','runes','battlefield','overflow']))
   `.execute(db);
 
   // Drop FKs
+  await sql`ALTER TABLE cards DROP CONSTRAINT fk_cards_type`.execute(db);
+  await sql`ALTER TABLE printings DROP CONSTRAINT fk_printings_rarity`.execute(db);
+  await sql`ALTER TABLE printings DROP CONSTRAINT fk_printings_finish`.execute(db);
+  await sql`ALTER TABLE printings DROP CONSTRAINT fk_printings_art_variant`.execute(db);
+  await sql`ALTER TABLE decks DROP CONSTRAINT fk_decks_format`.execute(db);
+
   await sql`
-    ALTER TABLE cards DROP CONSTRAINT fk_cards_type;
-    ALTER TABLE printings DROP CONSTRAINT fk_printings_rarity;
-    ALTER TABLE printings DROP CONSTRAINT fk_printings_finish;
-    ALTER TABLE printings DROP CONSTRAINT fk_printings_art_variant;
-    ALTER TABLE decks DROP CONSTRAINT fk_decks_format;
     ALTER TABLE decks
-      ADD CONSTRAINT decks_format_fkey FOREIGN KEY (format) REFERENCES formats(id);
-    ALTER TABLE deck_cards DROP CONSTRAINT fk_deck_cards_zone
+      ADD CONSTRAINT decks_format_fkey FOREIGN KEY (format) REFERENCES formats(id)
   `.execute(db);
+
+  await sql`ALTER TABLE deck_cards DROP CONSTRAINT fk_deck_cards_zone`.execute(db);
 
   // Drop triggers and function
-  await sql`
-    DROP TRIGGER trg_card_types_protect_well_known ON card_types;
-    DROP TRIGGER trg_rarities_protect_well_known ON rarities;
-    DROP TRIGGER trg_domains_protect_well_known ON domains;
-    DROP TRIGGER trg_super_types_protect_well_known ON super_types;
-    DROP TRIGGER trg_finishes_protect_well_known ON finishes;
-    DROP TRIGGER trg_art_variants_protect_well_known ON art_variants;
-    DROP TRIGGER trg_deck_formats_protect_well_known ON deck_formats;
-    DROP TRIGGER trg_deck_zones_protect_well_known ON deck_zones;
-    DROP FUNCTION protect_well_known
-  `.execute(db);
+  await sql`DROP TRIGGER trg_card_types_protect_well_known ON card_types`.execute(db);
+  await sql`DROP TRIGGER trg_rarities_protect_well_known ON rarities`.execute(db);
+  await sql`DROP TRIGGER trg_domains_protect_well_known ON domains`.execute(db);
+  await sql`DROP TRIGGER trg_super_types_protect_well_known ON super_types`.execute(db);
+  await sql`DROP TRIGGER trg_finishes_protect_well_known ON finishes`.execute(db);
+  await sql`DROP TRIGGER trg_art_variants_protect_well_known ON art_variants`.execute(db);
+  await sql`DROP TRIGGER trg_deck_formats_protect_well_known ON deck_formats`.execute(db);
+  await sql`DROP TRIGGER trg_deck_zones_protect_well_known ON deck_zones`.execute(db);
+  await sql`DROP FUNCTION protect_well_known`.execute(db);
 
   // Drop junction tables
-  await sql`
-    DROP TABLE card_super_types;
-    DROP TABLE card_domains
-  `.execute(db);
+  await sql`DROP TABLE card_super_types`.execute(db);
+  await sql`DROP TABLE card_domains`.execute(db);
 
   // Drop reference tables
-  await sql`
-    DROP TABLE deck_zones;
-    DROP TABLE deck_formats;
-    DROP TABLE art_variants;
-    DROP TABLE finishes;
-    DROP TABLE super_types;
-    DROP TABLE domains;
-    DROP TABLE rarities;
-    DROP TABLE card_types
-  `.execute(db);
+  await sql`DROP TABLE deck_zones`.execute(db);
+  await sql`DROP TABLE deck_formats`.execute(db);
+  await sql`DROP TABLE art_variants`.execute(db);
+  await sql`DROP TABLE finishes`.execute(db);
+  await sql`DROP TABLE super_types`.execute(db);
+  await sql`DROP TABLE domains`.execute(db);
+  await sql`DROP TABLE rarities`.execute(db);
+  await sql`DROP TABLE card_types`.execute(db);
 }

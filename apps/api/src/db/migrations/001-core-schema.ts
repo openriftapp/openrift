@@ -1152,84 +1152,177 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     CREATE TRIGGER keyword_styles_set_updated_at
       BEFORE UPDATE ON keyword_styles
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER site_settings_set_updated_at
       BEFORE UPDATE ON site_settings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_candidate_cards_norm_name
       BEFORE INSERT OR UPDATE OF name ON candidate_cards
-      FOR EACH ROW EXECUTE FUNCTION candidate_cards_set_norm_name();
+      FOR EACH ROW EXECUTE FUNCTION candidate_cards_set_norm_name()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_cards_norm_name
       BEFORE INSERT OR UPDATE OF name ON cards
-      FOR EACH ROW EXECUTE FUNCTION cards_set_norm_name();
+      FOR EACH ROW EXECUTE FUNCTION cards_set_norm_name()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_prevent_nonempty_collection_delete
       BEFORE DELETE ON collections
-      FOR EACH ROW EXECUTE FUNCTION prevent_nonempty_collection_delete();
+      FOR EACH ROW EXECUTE FUNCTION prevent_nonempty_collection_delete()
+  `.execute(db);
 
+  await sql`
     CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON accounts
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON acquisition_sources
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON admins
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_printings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON collections
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON copies
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON deck_cards
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON decks
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON feature_flags
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON languages
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_groups
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_ignored_products
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_products
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_staging
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printing_images
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON promo_types
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON provider_settings
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sessions
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sets
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_list_items
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_lists
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON users
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON verifications
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_list_items
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_lists
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
 
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON acquisition_sources
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON admins
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_cards
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON candidate_printings
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON cards
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON collections
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON copies
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON deck_cards
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON decks
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON feature_flags
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON languages
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_groups
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_ignored_products
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_products
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON marketplace_staging
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printing_images
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON printings
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON promo_types
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON provider_settings
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sessions
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON sets
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_list_items
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON trade_lists
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON users
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON verifications
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_list_items
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
+    CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON wish_lists
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+  `.execute(db);
+
+  await sql`
     CREATE TRIGGER user_preferences_set_updated_at
       BEFORE UPDATE ON user_preferences
-      FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at()
   `.execute(db);
 
   // ── 6. Foreign keys ──────────────────────────────────────────────────────
@@ -1548,16 +1641,22 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     INSERT INTO formats (id, name) VALUES
       ('standard', 'Standard'),
-      ('freeform', 'Freeform');
+      ('freeform', 'Freeform')
+  `.execute(db);
 
+  await sql`
     INSERT INTO languages (code, name, sort_order) VALUES
       ('EN', 'English', 1),
       ('FR', 'French', 2),
-      ('ZH', 'Chinese', 3);
+      ('ZH', 'Chinese', 3)
+  `.execute(db);
 
+  await sql`
     INSERT INTO promo_types (slug, label) VALUES
-      ('promo', 'Promo');
+      ('promo', 'Promo')
+  `.execute(db);
 
+  await sql`
     INSERT INTO keyword_styles (name, color, dark_text) VALUES
       ('Accelerate',    '#24705f', false),
       ('Action',        '#24705f', false),
@@ -1589,53 +1688,50 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-  await sql`
-    DROP TABLE IF EXISTS wish_lists CASCADE;
-    DROP TABLE IF EXISTS wish_list_items CASCADE;
-    DROP TABLE IF EXISTS verifications CASCADE;
-    DROP TABLE IF EXISTS users CASCADE;
-    DROP TABLE IF EXISTS user_preferences CASCADE;
-    DROP TABLE IF EXISTS user_feature_flags CASCADE;
-    DROP TABLE IF EXISTS trade_lists CASCADE;
-    DROP TABLE IF EXISTS trade_list_items CASCADE;
-    DROP TABLE IF EXISTS site_settings CASCADE;
-    DROP TABLE IF EXISTS sets CASCADE;
-    DROP TABLE IF EXISTS sessions CASCADE;
-    DROP TABLE IF EXISTS provider_settings CASCADE;
-    DROP TABLE IF EXISTS promo_types CASCADE;
-    DROP TABLE IF EXISTS printings CASCADE;
-    DROP TABLE IF EXISTS printing_link_overrides CASCADE;
-    DROP TABLE IF EXISTS printing_images CASCADE;
-    DROP TABLE IF EXISTS marketplace_staging_card_overrides CASCADE;
-    DROP TABLE IF EXISTS marketplace_staging CASCADE;
-    DROP TABLE IF EXISTS marketplace_snapshots CASCADE;
-    DROP TABLE IF EXISTS marketplace_products CASCADE;
-    DROP TABLE IF EXISTS marketplace_ignored_products CASCADE;
-    DROP TABLE IF EXISTS marketplace_groups CASCADE;
-    DROP TABLE IF EXISTS languages CASCADE;
-    DROP TABLE IF EXISTS keyword_styles CASCADE;
-    DROP TABLE IF EXISTS ignored_candidate_printings CASCADE;
-    DROP TABLE IF EXISTS ignored_candidate_cards CASCADE;
-    DROP TABLE IF EXISTS formats CASCADE;
-    DROP TABLE IF EXISTS feature_flags CASCADE;
-    DROP TABLE IF EXISTS decks CASCADE;
-    DROP TABLE IF EXISTS deck_cards CASCADE;
-    DROP TABLE IF EXISTS copies CASCADE;
-    DROP TABLE IF EXISTS collections CASCADE;
-    DROP TABLE IF EXISTS collection_events CASCADE;
-    DROP TABLE IF EXISTS cards CASCADE;
-    DROP TABLE IF EXISTS card_name_aliases CASCADE;
-    DROP TABLE IF EXISTS card_bans CASCADE;
-    DROP TABLE IF EXISTS candidate_printings CASCADE;
-    DROP TABLE IF EXISTS candidate_cards CASCADE;
-    DROP TABLE IF EXISTS admins CASCADE;
-    DROP TABLE IF EXISTS acquisition_sources CASCADE;
-    DROP TABLE IF EXISTS accounts CASCADE;
-
-    DROP FUNCTION IF EXISTS candidate_cards_set_norm_name CASCADE;
-    DROP FUNCTION IF EXISTS card_name_aliases_set_norm_name CASCADE;
-    DROP FUNCTION IF EXISTS cards_set_norm_name CASCADE;
-    DROP FUNCTION IF EXISTS prevent_nonempty_collection_delete CASCADE;
-    DROP FUNCTION IF EXISTS set_updated_at CASCADE;
-  `.execute(db);
+  await sql`DROP TABLE IF EXISTS wish_lists CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS wish_list_items CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS verifications CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS users CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS user_preferences CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS user_feature_flags CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS trade_lists CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS trade_list_items CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS site_settings CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS sets CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS sessions CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS provider_settings CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS promo_types CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS printings CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS printing_link_overrides CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS printing_images CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_staging_card_overrides CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_staging CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_snapshots CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_products CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_ignored_products CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS marketplace_groups CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS languages CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS keyword_styles CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS ignored_candidate_printings CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS ignored_candidate_cards CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS formats CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS feature_flags CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS decks CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS deck_cards CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS copies CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS collections CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS collection_events CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS cards CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS card_name_aliases CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS card_bans CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS candidate_printings CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS candidate_cards CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS admins CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS acquisition_sources CASCADE`.execute(db);
+  await sql`DROP TABLE IF EXISTS accounts CASCADE`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS candidate_cards_set_norm_name CASCADE`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS card_name_aliases_set_norm_name CASCADE`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS cards_set_norm_name CASCADE`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS prevent_nonempty_collection_delete CASCADE`.execute(db);
+  await sql`DROP FUNCTION IF EXISTS set_updated_at CASCADE`.execute(db);
 }

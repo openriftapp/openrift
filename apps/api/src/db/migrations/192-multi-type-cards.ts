@@ -18,10 +18,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       position  SMALLINT NOT NULL CHECK (position >= 0),
       PRIMARY KEY (card_id, type_slug),
       UNIQUE (card_id, position)
-    );
-
-    CREATE INDEX idx_card_card_types_type_slug ON card_card_types (type_slug)
+    )
   `.execute(db);
+
+  await sql`CREATE INDEX idx_card_card_types_type_slug ON card_card_types (type_slug)`.execute(db);
 
   await sql`
     INSERT INTO card_card_types (card_id, type_slug, position)

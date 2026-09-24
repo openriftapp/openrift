@@ -20,8 +20,10 @@ import { sql } from "kysely";
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`
     ALTER TABLE keywords
-      ADD COLUMN cost_keyword boolean NOT NULL DEFAULT false;
+      ADD COLUMN cost_keyword boolean NOT NULL DEFAULT false
+  `.execute(db);
 
+  await sql`
     INSERT INTO keywords (name, color, cost_keyword)
     VALUES ('Equip', '#6a6a6a', true), ('Repeat', '#6a6a6a', true), ('Empower', '#6a6a6a', true)
     ON CONFLICT (name) DO UPDATE SET cost_keyword = true
