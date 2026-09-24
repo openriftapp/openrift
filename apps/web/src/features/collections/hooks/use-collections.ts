@@ -1,5 +1,6 @@
 import { collectionsContract } from "@openrift/shared/contracts/collections";
 import type {
+  CollectionPurpose,
   CollectionResponse,
   ResetCollectionsResponse,
 } from "@openrift/shared/types/api/collection";
@@ -105,6 +106,7 @@ interface CreateCollectionInput {
   description?: string | null;
   availableForDeckbuilding?: boolean;
   groupSlug?: string;
+  purpose?: CollectionPurpose;
 }
 
 function optimisticCollection(
@@ -143,6 +145,7 @@ function optimisticCollection(
     groupName: group?.name ?? null,
     viewerCanAdmin: true,
     homeDecks: [],
+    purpose: isGroupCollection ? null : (input.purpose ?? null),
   };
 }
 

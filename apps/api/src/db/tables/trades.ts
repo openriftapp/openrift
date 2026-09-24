@@ -31,6 +31,15 @@ export interface CardTradesTable {
   closedEmailSentAt: Date | null;
 }
 
+export interface TradeSuggestionDismissalsTable {
+  id: Generated<string>;
+  userId: string;
+  counterpartyUserId: string;
+  printingId: string;
+  direction: "incoming" | "outgoing";
+  createdAt: CreatedAt;
+}
+
 export interface CardTradeCopiesTable {
   tradeId: string;
   copyId: string;

@@ -20,6 +20,7 @@ describe("toCollection", () => {
       shareToken: "tok-abc",
       createdAt: NOW,
       updatedAt: LATER,
+      purpose: null,
     });
     expect(result).toEqual({
       id: "col-1",
@@ -41,6 +42,7 @@ describe("toCollection", () => {
       viewerCanAdmin: true,
       sidebarHidden: false,
       homeDecks: [],
+      purpose: null,
     });
   });
 
@@ -58,6 +60,7 @@ describe("toCollection", () => {
       shareToken: null,
       createdAt: NOW,
       updatedAt: LATER,
+      purpose: null,
     };
     expect(
       toCollection(row, undefined, [{ id: "deck-1", name: "Sunfire Aggro" }]).homeDecks,
@@ -79,6 +82,7 @@ describe("toCollection", () => {
       shareToken: null,
       createdAt: NOW,
       updatedAt: LATER,
+      purpose: null,
     };
     expect(toCollection({ ...row, sidebarHidden: true }).sidebarHidden).toBe(true);
     expect(toCollection(row).sidebarHidden).toBe(false);
@@ -98,6 +102,7 @@ describe("toCollection", () => {
       shareToken: null,
       createdAt: NOW,
       updatedAt: LATER,
+      purpose: null,
     });
     expect("userId" in result).toBe(false);
   });
@@ -116,6 +121,7 @@ describe("toCollection", () => {
       shareToken: null,
       createdAt: NOW,
       updatedAt: LATER,
+      purpose: null,
       groupSlug: "friday-night",
       groupName: "Friday Night",
       viewerCanAdmin: false,

@@ -34,6 +34,7 @@ const mockListsRepo = {
   updateEntry: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   deleteEntry: vi.fn(() => Promise.resolve({ numDeletedRows: 0n })),
   reorder: vi.fn(() => Promise.resolve()),
+  decrementEntryQuantity: vi.fn(() => Promise.resolve(undefined as number | undefined)),
 };
 
 const mockCopiesRepo = {
@@ -874,5 +875,37 @@ describe("POST /api/v1/lists/reorder", () => {
       body: JSON.stringify({ intent: "trade", orderedIds: [] }),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/v1/lists/entries/decrement", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lowers each entry by its own amount for the viewer", async () => {
+    const res = await app.request("/api/v1/lists/entries/decrement", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        entries: [
+          { entryId: ENTRY_ID, by: 2 },
+          { entryId: LIST_ID, by: 1 },
+        ],
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockListsRepo.decrementEntryQuantity).toHaveBeenNthCalledWith(1, ENTRY_ID, USER_ID, 2);
+    expect(mockListsRepo.decrementEntryQuantity).toHaveBeenNthCalledWith(2, LIST_ID, USER_ID, 1);
+  });
+
+  it("rejects a non-positive amount", async () => {
+    const res = await app.request("/api/v1/lists/entries/decrement", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ entries: [{ entryId: ENTRY_ID, by: 0 }] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockListsRepo.decrementEntryQuantity).not.toHaveBeenCalled();
   });
 });

@@ -12,12 +12,15 @@ const collectionFieldRules = {
   name: z.string().min(1).max(200),
 };
 
+export const collectionPurposeSchema = z.enum(["marketplace_orders"]);
+
 export const createCollectionSchema = z.object({
   id: z.uuid().optional(),
   name: collectionFieldRules.name,
   description: z.string().max(1000).nullish(),
   availableForDeckbuilding: z.boolean().optional(),
   groupSlug: z.string().optional(),
+  purpose: collectionPurposeSchema.optional(),
 });
 
 export const updateCollectionSchema = z.object({
@@ -70,6 +73,7 @@ export const collectionResponseSchema = z.object({
   groupName: z.string().nullable(),
   viewerCanAdmin: z.boolean(),
   homeDecks: z.array(z.object({ id: z.string(), name: z.string() })),
+  purpose: collectionPurposeSchema.nullable(),
 });
 
 export const collectionListResponseSchema = z.object({ items: z.array(collectionResponseSchema) });

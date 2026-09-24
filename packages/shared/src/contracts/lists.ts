@@ -153,6 +153,13 @@ export const bulkDeleteListEntriesSchema = z.object({
   entryIds: z.array(z.uuid()).min(1).max(500),
 });
 
+export const decrementListEntriesSchema = z.object({
+  entries: z
+    .array(z.object({ entryId: z.uuid(), by: z.number().int().positive() }))
+    .min(1)
+    .max(500),
+});
+
 const listResponseShape = {
   id: z.string(),
   name: z.string(),
@@ -300,6 +307,14 @@ export const listsContract = {
     })
     .errors({ NOT_FOUND: { message: "List not found" } })
     .input(withParams(idParamSchema, bulkDeleteListEntriesSchema)),
+  decrementEntries: authedRoute
+    .route({
+      method: "POST",
+      path: "/api/v1/lists/entries/decrement",
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .input(decrementListEntriesSchema),
   getShare: authedRoute
     .route({ method: "GET", path: "/api/v1/lists/{id}/share", tags: [TAG] })
     .input(idParamSchema)

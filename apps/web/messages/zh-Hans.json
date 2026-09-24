@@ -4258,12 +4258,10 @@
   "trades_none_in_your_collections": "你自己的收藏中没有。",
   "trades_available_count": "{count} 张可用",
   "trades_index_description": "你正在交换的对象和可以交换的对象，覆盖你的所有小组。",
-  "trades_empty_title": "还没有交换",
   "trades_empty_description": "交换从小组开始：在小组里分享一份心愿单或交换清单，与其他成员的匹配就会出现。",
   "trades_go_to_groups": "前往小组",
   "trades_section_your_move": "该你行动",
   "trades_section_waiting": "等待对方",
-  "trades_section_could_trade": "可以交换",
   "trades_section_suggestions": "推荐",
   "trades_traded_before": [
     {
@@ -9240,5 +9238,176 @@
   "install_nudge_link": "查看方法",
   "install_nudge_dismiss": "关闭",
   "marketing_landing_install": "无需应用商店：{#link}把 OpenRift 添加到主屏幕{/link}。",
-  "marketing_hero_install": "想在手机上使用？{#link}把 OpenRift 添加到主屏幕{/link}。"
+  "marketing_hero_install": "想在手机上使用？{#link}把 OpenRift 添加到主屏幕{/link}。",
+  "trades_market_heading": "可交换的卡",
+  "trades_market_tab_get": "你可以换到",
+  "trades_market_tab_give": "别人想要你的",
+  "trades_market_tab_swap": "双向交换",
+  "trades_market_tab_buy": "小组里没有",
+  "trades_market_search_placeholder": "搜索卡牌",
+  "trades_market_group_filter": "小组",
+  "trades_market_all_groups": "所有小组",
+  "trades_market_one_has": "{name} 有",
+  "trades_market_one_wants": "{name} 想要",
+  "trades_market_many_have": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 人有",
+        "countPlural=*": "{count} 人有"
+      }
+    }
+  ],
+  "trades_market_many_want": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 人想要",
+        "countPlural=*": "{count} 人想要"
+      }
+    }
+  ],
+  "trades_market_swap_badge": "可互换",
+  "trades_market_want_count": "你想要 {count} 张",
+  "trades_market_empty_get": "目前你的小组里没有人有你心愿单上的卡。",
+  "trades_market_empty_give": "目前你的小组里没有人想要你交换清单上的卡。",
+  "trades_market_empty_swap": "目前没有双向交换。当有人拥有你想要的卡、同时也想要你的卡时，就会出现在这里。",
+  "trades_market_empty_buy": "你心愿单上、小组里没人有的卡会显示在这里。",
+  "trades_market_cardtrader_estimate": "CardTrader 估价 {price}",
+  "trades_market_on_wishlists": "在你的心愿单上：{lists}",
+  "trades_market_on_tradelists": "在你的交换清单上：{lists}",
+  "trades_market_sources": "谁有",
+  "trades_market_wanted_by": "谁想要",
+  "trades_market_swap_wants_yours": "{name} 也想要你的卡。",
+  "trades_market_swap_has_yours": "{name} 也有你想要的卡。",
+  "trades_market_open_sheet": "与 {name} 的交换页",
+  "trades_market_no_source": "你的小组里没有人把这张卡放在交换清单上。",
+  "trades_market_or_buy": "或者在交易平台购买。",
+  "trades_market_buy_it": "在交易平台购买。",
+  "trades_market_add_to_cart": "加入购物车",
+  "trades_market_in_cart": "已在购物车",
+  "trades_market_view_cart": "查看购物车",
+  "trades_buy_title": "购买缺少的卡",
+  "trades_buy_cart_button": "购买缺少的卡",
+  "trades_buy_cart_button_count": "购物车（{count}）",
+  "trades_buy_description": "选出心愿单上想买的卡，一次性发送到一个交易平台。",
+  "trades_buy_filter_none": "小组里没人有",
+  "trades_buy_filter_friends": "小组里有",
+  "trades_buy_filter_all": "所有想要的卡",
+  "trades_buy_filter_empty": "没有符合此筛选的卡。",
+  "trades_buy_add_shown": "全部加入购物车",
+  "trades_buy_remove_shown": "全部移出购物车",
+  "trades_buy_add": "将 {name} 加入购物车",
+  "trades_buy_remove": "将 {name} 移出购物车",
+  "trades_buy_source_friends": "小组里有",
+  "trades_buy_source_none": "小组里没有",
+  "trades_buy_empty_title": "你的心愿单是空的",
+  "trades_buy_empty_description": "把卡加入心愿单后，你还缺的卡会显示在这里。",
+  "trades_buy_empty_cta": "前往收藏",
+  "trades_buy_ordered_waiting": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{collection} 中有 {count} 张卡在路上。",
+        "countPlural=*": "{collection} 中有 {count} 张卡在路上。"
+      }
+    }
+  ],
+  "trades_buy_open_collection": "打开收藏",
+  "trades_buy_cart_title": "购物车",
+  "trades_buy_cart_empty": "勾选卡牌即可加入购物车。",
+  "trades_buy_estimate_label": "CardTrader 估价",
+  "trades_buy_unpriced": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张卡没有价格，未计入。",
+        "countPlural=*": "{count} 张卡没有价格，未计入。"
+      }
+    }
+  ],
+  "trades_buy_market_label": "交易平台",
+  "trades_buy_market_cardtrader": "CardTrader",
+  "trades_buy_market_cardmarket": "Cardmarket",
+  "trades_buy_market_tcgplayer": "TCGplayer",
+  "trades_buy_how_cardtrader": "复制清单，然后打开新的心愿单",
+  "trades_buy_how_cardmarket": "复制清单，然后打开你的 Wants",
+  "trades_buy_how_tcgplayer": "把这些版本直接放进你的购物车",
+  "trades_buy_cta_cardtrader": "复制清单并打开 CardTrader",
+  "trades_buy_cta_cardmarket": "复制清单并打开 Cardmarket",
+  "trades_buy_cta_tcgplayer": "加入 TCGplayer 购物车",
+  "trades_buy_note_cardtrader": "把清单粘贴到新的心愿单里。CardTrader 会跳过无法匹配的行。",
+  "trades_buy_note_cardmarket": "把清单粘贴到 Wants 清单的“Add decklist”中，然后使用 Shopping Wizard。",
+  "trades_buy_copy_again": "再次复制",
+  "trades_buy_list_copied": "清单已复制",
+  "trades_buy_copy_failed": "无法复制清单",
+  "trades_buy_tcgplayer_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 张卡未在 TCGplayer 上架，已略过。",
+        "countPlural=*": "{count} 张卡未在 TCGplayer 上架，已略过。"
+      }
+    }
+  ],
+  "trades_buy_extension_title": "与 CardTrader Zero 比价",
+  "trades_buy_extension_body": "安装 OpenRift 浏览器扩展后，Shopping Wizard 的结果会显示哪些卡在 CardTrader Zero 上更便宜（含运费）。",
+  "trades_buy_extension_link": "了解扩展",
+  "trades_buy_ordered_title": "已经下单了？",
+  "trades_buy_ordered_body": "把这些卡加入 {collection}，并从心愿单中移除。该收藏不计入卡组构筑，所以卡到之前卡组里仍显示为缺少。",
+  "trades_buy_ordered_cta": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "将 {count} 张卡标为已下单",
+        "countPlural=*": "将 {count} 张卡标为已下单"
+      }
+    }
+  ],
+  "trades_buy_ordered_collection_name": "已下单（交易平台）",
+  "trades_buy_filed_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "已将 {count} 张卡加入 {collection}",
+        "countPlural=*": "已将 {count} 张卡加入 {collection}"
+      }
+    }
+  ],
+  "trades_buy_filed_body": "卡到了之后，把它们移到对应的收藏里。",
+  "trades_market_no_match": "没有符合搜索的卡。",
+  "trades_market_people_filter": "成员",
+  "trades_market_everyone": "所有人",
+  "trades_market_hide_person": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "隐藏与 {name} 的 {count} 条建议",
+        "countPlural=*": "隐藏与 {name} 的 {count} 条建议"
+      }
+    }
+  ],
+  "trades_market_hidden": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 条已隐藏的建议",
+        "countPlural=*": "{count} 条已隐藏的建议"
+      }
+    }
+  ],
+  "trades_market_hidden_incoming": "来自 {name} 的 {card}",
+  "trades_market_hidden_outgoing": "给 {name} 的 {card}",
+  "trades_market_show_again": "重新显示",
+  "trades_market_hide_one": "不再建议与 {name} 交换",
+  "trades_buy_printing": "{name} 的版本"
 }

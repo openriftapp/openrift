@@ -55,6 +55,7 @@ export function toCollection(
     viewerCanAdmin: row.viewerCanAdmin ?? row.userId !== null,
     // Unresolved deck boxes present as no decks, not an unconfirmed claim.
     homeDecks: homeDecks ? [...homeDecks] : [],
+    purpose: row.purpose,
   };
 }
 

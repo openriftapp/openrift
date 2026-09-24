@@ -24,6 +24,7 @@ function col(overrides: Partial<CollectionResponse> = {}): CollectionResponse {
     groupName: null,
     viewerCanAdmin: true,
     homeDecks: [],
+    purpose: null,
     ...overrides,
   };
 }

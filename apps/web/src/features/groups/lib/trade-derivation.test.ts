@@ -57,6 +57,7 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
     expiresAt: null,
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
+    viewerWishEntryId: null,
     actionNeeded: null,
     ...overrides,
   };

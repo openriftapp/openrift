@@ -91,6 +91,7 @@ export const cardTradeResponseSchema = z.object({
   viewerSyncAppliedAt: z.string().nullable(),
   counterpartySyncAppliedAt: z.string().nullable(),
   actionNeeded: z.enum(["accept-or-decline", "cancel", "settle"]).nullable(),
+  viewerWishEntryId: z.string().nullable(),
 });
 
 export const cardTradeListResponseSchema = z.object({ items: z.array(cardTradeResponseSchema) });
@@ -152,6 +153,16 @@ export const cardTradeSheetParamsSchema = z.object({ userId: z.string().min(1) }
 
 const TAG = "CardTrades";
 
+export const tradeSuggestionDismissalSchema = z.object({
+  counterpartyUserId: z.string().min(1),
+  printingId: z.uuid(),
+  direction: z.enum(["incoming", "outgoing"]),
+});
+
+export const tradeSuggestionDismissalListResponseSchema = z.object({
+  items: z.array(tradeSuggestionDismissalSchema),
+});
+
 export const cardTradesContract = {
   create: authedRoute
     .route({ method: "POST", path: "/api/v1/trades", tags: [TAG], successStatus: 201 })
@@ -169,6 +180,21 @@ export const cardTradesContract = {
   liveByPrinting: authedRoute
     .route({ method: "GET", path: "/api/v1/trades/live-by-printing", tags: [TAG] })
     .output(cardTradeLiveByPrintingResponseSchema),
+  dismissals: authedRoute
+    .route({ method: "GET", path: "/api/v1/trades/dismissals", tags: [TAG] })
+    .output(tradeSuggestionDismissalListResponseSchema),
+  dismiss: authedRoute
+    .route({ method: "POST", path: "/api/v1/trades/dismissals", tags: [TAG], successStatus: 204 })
+    .input(tradeSuggestionDismissalSchema)
+    .errors({ BAD_REQUEST: { message: "Unknown member or printing" } }),
+  restoreDismissal: authedRoute
+    .route({
+      method: "POST",
+      path: "/api/v1/trades/dismissals/restore",
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .input(tradeSuggestionDismissalSchema),
   // NOT_FOUND covers both an unknown user and no shared group; keep them indistinguishable.
   withUser: authedRoute
     .route({ method: "GET", path: "/api/v1/trades/with/{userId}", tags: [TAG] })

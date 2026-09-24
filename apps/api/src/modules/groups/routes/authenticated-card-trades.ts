@@ -6,10 +6,12 @@ import type {
   CardTradeLiveByPrintingResponse,
   CardTradeResponse,
   CardTradeSheetResponse,
+  TradeSuggestionDismissalListResponse,
 } from "@openrift/shared/types/api/card-trade";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
+import { isForeignKeyViolation } from "../../../lib/pg-errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import {
@@ -55,6 +57,30 @@ export const cardTradesRouter = {
       return toCardTradeLiveByPrinting(rows);
     },
   ),
+
+  dismissals: os.dismissals.handler(
+    async ({ context }): Promise<TradeSuggestionDismissalListResponse> => {
+      const { tradeSuggestionDismissals } = context.repos;
+      return { items: await tradeSuggestionDismissals.listForUser(context.userId) };
+    },
+  ),
+
+  dismiss: os.dismiss.handler(async ({ input, context }): Promise<void> => {
+    const { tradeSuggestionDismissals } = context.repos;
+    try {
+      await tradeSuggestionDismissals.add(context.userId, input);
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Unknown member or printing");
+      }
+      throw error;
+    }
+  }),
+
+  restoreDismissal: os.restoreDismissal.handler(async ({ input, context }): Promise<void> => {
+    const { tradeSuggestionDismissals } = context.repos;
+    await tradeSuggestionDismissals.remove(context.userId, input);
+  }),
 
   withUser: os.withUser.handler(async ({ input, context }): Promise<CardTradeSheetResponse> => {
     const viewerId = context.userId;

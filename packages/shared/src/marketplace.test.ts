@@ -6,6 +6,7 @@ import {
   cardtraderAffiliateUrl,
   MARKETPLACE_LINKS,
   marketplaceLabel,
+  tcgplayerMassEntryUrl,
 } from "./marketplace.js";
 
 describe("affiliateUrl", () => {
@@ -19,6 +20,24 @@ describe("affiliateUrl", () => {
     expect(affiliateUrl("https://example.com/search?q=fire&page=1")).toContain(
       "u=https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dfire%26page%3D1",
     );
+  });
+});
+
+describe("tcgplayerMassEntryUrl", () => {
+  it("prefills Mass Entry with quantity-product entries for the Riftbound product line", () => {
+    const url = new URL(
+      tcgplayerMassEntryUrl([
+        { productId: 652_993, quantity: 1 },
+        { productId: 652_801, quantity: 2 },
+      ]),
+    );
+    expect(url.origin).toBe("https://partner.tcgplayer.com");
+    const target = new URL(url.searchParams.get("u") ?? "");
+    expect(target.pathname).toBe("/massentry");
+    expect(target.searchParams.get("productline")).toBe(
+      "Riftbound League of Legends Trading Card Game",
+    );
+    expect(target.searchParams.get("c")).toBe("1-652993||2-652801");
   });
 });
 

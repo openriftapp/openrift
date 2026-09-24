@@ -39,6 +39,7 @@ function trade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
     expiresAt: null,
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
+    viewerWishEntryId: null,
     actionNeeded: null,
     ...overrides,
   };

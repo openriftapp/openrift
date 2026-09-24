@@ -1,35 +1,38 @@
 import { Link } from "@tanstack/react-router";
-import { BellIcon, CheckIcon, ChevronRightIcon, HandshakeIcon, SparklesIcon } from "lucide-react";
+import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
+import { Suspense } from "react";
 
-import { EmptyState } from "@/components/empty-state";
 import {
   PageDescription,
   PageTopBar,
+  PageTopBarActions,
+  PageTopBarButton,
   PageTopBarSticky,
   PageTopBarTitle,
 } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconChip } from "@/components/ui/icon-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumbStack } from "@/features/cards/components/card-art-thumb-stack";
+import { CardDetailOverlayProvider } from "@/features/cards/components/card-detail-opener";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
+import { TradeMarket } from "@/features/groups/components/trade-market";
 import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
-import {
-  useFriendGroupMatchPanels,
-  useFriendGroupsList,
-} from "@/features/groups/hooks/use-friend-groups";
+import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
+import { cartFor } from "@/features/groups/lib/buy-cart";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
 import { needsYouLine } from "@/features/groups/lib/trade-hub";
-import type { TradesIndexMatchGroup, TradesIndexPerson } from "@/features/groups/lib/trades-index";
+import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
+import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
+import { useRequiredUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
-
-import { TradeSuggestionRows } from "./trade-hub";
 
 function artPrintingIds(person: TradesIndexPerson): string[] {
   if (person.needsYou.length > 0) {
@@ -75,7 +78,6 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
       ) : null}
       {action === null ? null : <p className="text-foreground text-sm font-medium">{action}</p>}
       {art.length > 0 ? <CardArtThumbStack items={art} max={5} thumbClassName="w-8" /> : null}
-      <TradeSuggestionRows couldGet={person.couldGet} wouldWant={person.wouldWant} />
       {waiting > 0 ? (
         <p className="text-muted-foreground text-sm">
           {m.trades_waiting_on_them({ count: waiting })}
@@ -92,7 +94,7 @@ function PersonCard({ person, showGroups }: { person: TradesIndexPerson; showGro
 
 function PeopleGrid({ people, showGroups }: { people: TradesIndexPerson[]; showGroups: boolean }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {people.map((person) => (
         <PersonCard key={person.userId} person={person} showGroups={showGroups} />
       ))}
@@ -100,58 +102,48 @@ function PeopleGrid({ people, showGroups }: { people: TradesIndexPerson[]; showG
   );
 }
 
-function useTradesIndexMatchGroups(): { groups: TradesIndexMatchGroup[]; pending: boolean } {
-  // Matching is expensive; it's queried per group here, so the trade sections
-  // paint first and each group's possibilities arrive when it answers.
-  const { data } = useFriendGroupsList(true);
-  const groupsBySlug = new Map((data?.items ?? []).map((group) => [group.slug, group]));
-  const panels = useFriendGroupMatchPanels([...groupsBySlug.keys()]);
-  const groups = panels.flatMap((panel) => {
-    const group = groupsBySlug.get(panel.slug);
-    return group === undefined
-      ? []
-      : [
-          {
-            groupId: group.id,
-            groupName: group.name,
-            incoming: panel.incoming,
-            outgoing: panel.outgoing,
-          },
-        ];
-  });
-  return { groups, pending: data === undefined || panels.length < groupsBySlug.size };
+function NoGroupsCallout() {
+  return (
+    <Callout className="flex flex-wrap items-center gap-3">
+      <IconChip icon={UsersIcon} tone="info" size="sm" shape="round" />
+      <p className="text-muted-foreground min-w-0 flex-1">{m.trades_empty_description()}</p>
+      <Button size="sm" variant="outline" render={<Link to="/groups" />}>
+        {m.trades_go_to_groups()}
+      </Button>
+    </Callout>
+  );
 }
 
 export function TradesIndexPage() {
+  const userId = useRequiredUserId();
   const { data } = useUserTrades();
-  const matches = useTradesIndexMatchGroups();
-  const index = buildTradesIndex(data?.items ?? [], matches.groups);
+  const { data: groupsData } = useFriendGroupsList(true);
+  const cartCount = useBuyCartStore((state) => cartFor(state.carts, userId).items.length);
+  const index = buildTradesIndex(data?.items ?? []);
   const showGroups = index.groupCount > 1;
-  const live = index.yourMove.length + index.waiting.length + index.couldTrade.length;
-  // Held back until the matches land, so someone who has only possibilities
-  // never sees the empty state flash first.
-  const empty = data !== undefined && !matches.pending && live + index.past.length === 0;
+  const live = index.yourMove.length + index.waiting.length;
+  const noGroups = groupsData !== undefined && groupsData.items.length === 0;
 
   return (
-    <>
-      <PageTopBarSticky width="capped">
+    <CardDetailOverlayProvider>
+      <PageTopBarSticky width="full">
         <PageTopBar>
           <PageTopBarTitle>{m.trades_title()}</PageTopBarTitle>
+          <PageTopBarActions>
+            <PageTopBarButton render={<Link to="/trades/buy" />}>
+              <ShoppingCartIcon />
+              {cartCount > 0
+                ? m.trades_buy_cart_button_count({ count: cartCount })
+                : m.trades_buy_cart_button()}
+            </PageTopBarButton>
+          </PageTopBarActions>
         </PageTopBar>
       </PageTopBarSticky>
 
-      <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
+      <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         <PageDescription>{m.trades_index_description()}</PageDescription>
 
-        {empty ? (
-          <EmptyState
-            icon={HandshakeIcon}
-            title={m.trades_empty_title()}
-            description={m.trades_empty_description()}
-          >
-            <Button render={<Link to="/groups" />}>{m.trades_go_to_groups()}</Button>
-          </EmptyState>
-        ) : null}
+        {noGroups ? <NoGroupsCallout /> : null}
 
         {index.yourMove.length > 0 ? (
           <section className="flex flex-col gap-3">
@@ -171,14 +163,9 @@ export function TradesIndexPage() {
           </section>
         ) : null}
 
-        {index.couldTrade.length > 0 ? (
-          <section className="flex flex-col gap-3">
-            <SectionHeading icon={SparklesIcon} tone="success" count={index.couldTrade.length}>
-              {m.trades_section_could_trade()}
-            </SectionHeading>
-            <PeopleGrid people={index.couldTrade} showGroups={showGroups} />
-          </section>
-        ) : null}
+        <Suspense fallback={null}>
+          <TradeMarket />
+        </Suspense>
 
         {index.past.length > 0 ? (
           <Collapsible defaultOpen={live === 0} className="flex flex-col gap-3">
@@ -195,6 +182,6 @@ export function TradesIndexPage() {
           </Collapsible>
         ) : null}
       </div>
-    </>
+    </CardDetailOverlayProvider>
   );
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-24
+
+### Milestone
+
+- feat(Trades): arrow-right-left **Trades Hub and Buy Cart** — Every card your groups could give you or want from you in one place, and a cart that sends the rest to CardTrader, Cardmarket or TCGplayer.
+
 ## 2026-09-23
 
 ### Highlights

@@ -2,6 +2,7 @@ import { cardTradesContract } from "@openrift/shared/contracts/card-trades";
 import type {
   CardTradeSheetResponse,
   CardTradeStatus,
+  TradeSuggestionDismissalListResponse,
 } from "@openrift/shared/types/api/card-trade";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -30,6 +31,19 @@ const fetchTradeSheet = createServerFn({ method: "GET" })
   .handler(({ context, data: memberId }): Promise<CardTradeSheetResponse> =>
     apiOrpcClient(cardTradesContract, context.cookie).withUser({ userId: memberId }),
   );
+
+const fetchTradeDismissals = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<TradeSuggestionDismissalListResponse> =>
+    apiOrpcClient(cardTradesContract, context.cookie).dismissals(),
+  );
+
+export function tradeDismissalsQueryOptions(userId: string) {
+  return queryOptions({
+    queryKey: tradesKeys.dismissals(userId),
+    queryFn: () => fetchTradeDismissals(),
+  });
+}
 
 export function userTradesQueryOptions(userId: string) {
   return queryOptions({

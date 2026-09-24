@@ -38,6 +38,7 @@ function stubCollection(overrides: Partial<CollectionResponse>): CollectionRespo
     groupName: null,
     viewerCanAdmin: true,
     homeDecks: [],
+    purpose: null,
     ...overrides,
   };
 }

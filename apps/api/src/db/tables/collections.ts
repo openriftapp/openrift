@@ -1,4 +1,4 @@
-import type { CopyLink } from "@openrift/shared/types/api/collection";
+import type { CollectionPurpose, CopyLink } from "@openrift/shared/types/api/collection";
 import type { ActivityAction } from "@openrift/shared/types/enums";
 import type { ColumnType, Generated } from "kysely";
 
@@ -14,6 +14,11 @@ export interface CollectionsTable {
   sortOrder: Generated<number>;
   isPublic: Generated<boolean>;
   shareToken: string | null;
+  purpose: ColumnType<
+    CollectionPurpose | null,
+    CollectionPurpose | null | undefined,
+    CollectionPurpose | null
+  >;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

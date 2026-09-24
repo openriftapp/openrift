@@ -47,6 +47,21 @@ export const CARDTRADER_WISHLIST_URL = cardtraderAffiliateUrl(
   "https://www.cardtrader.com/wishlists/new",
 );
 
+const TCGPLAYER_MASS_ENTRY_PRODUCT_LINE = "Riftbound League of Legends Trading Card Game";
+
+export interface MassEntryLine {
+  productId: number;
+  quantity: number;
+}
+
+/** Mass Entry reads `c` as `qty-productId` entries joined by `||`; it only selects the game by the product line's internal name. */
+export function tcgplayerMassEntryUrl(lines: readonly MassEntryLine[]): string {
+  const entries = lines.map((line) => `${line.quantity}-${line.productId}`).join("||");
+  return affiliateUrl(
+    `https://www.tcgplayer.com/massentry?productline=${encodeURIComponent(TCGPLAYER_MASS_ENTRY_PRODUCT_LINE)}&c=${entries}`,
+  );
+}
+
 interface MarketplaceLinks {
   label: string;
   searchUrl: (query: string) => string;

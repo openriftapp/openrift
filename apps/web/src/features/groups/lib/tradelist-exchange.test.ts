@@ -254,6 +254,7 @@ describe("pendingRequestsByPrinting", () => {
       expiresAt: null,
       viewerSyncAppliedAt: null,
       counterpartySyncAppliedAt: null,
+      viewerWishEntryId: null,
       actionNeeded: null,
       ...overrides,
     };

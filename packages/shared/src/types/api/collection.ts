@@ -1,6 +1,7 @@
 import type {
   clearCollectionResponseSchema,
   collectionListResponseSchema,
+  collectionPurposeSchema,
   collectionResponseSchema,
   collectionShareResponseSchema,
   resetCollectionsResponseSchema,
@@ -19,6 +20,8 @@ import type { copyLinkSchema, copyListResponseSchema } from "@openrift/shared/re
 import type { z } from "zod";
 
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
+
+export type CollectionPurpose = z.infer<typeof collectionPurposeSchema>;
 
 export type CollectionListResponse = z.infer<typeof collectionListResponseSchema>;
 

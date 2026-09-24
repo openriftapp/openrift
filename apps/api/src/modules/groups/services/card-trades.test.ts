@@ -45,6 +45,7 @@ const DTO_ROW: CardTradeDtoRow = {
   status: "pending",
   giverSyncAppliedAt: null,
   receiverSyncAppliedAt: null,
+  receiverWishEntryId: null,
   createdAt: new Date("2026-03-17T00:00:00.000Z"),
   updatedAt: new Date("2026-03-17T00:00:00.000Z"),
   acceptedAt: null,

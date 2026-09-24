@@ -1,6 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { isUniqueViolation, isUniqueViolationOn, raisedExceptionMessage } from "./pg-errors.js";
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+  isUniqueViolationOn,
+  raisedExceptionMessage,
+} from "./pg-errors.js";
+
+describe("isForeignKeyViolation", () => {
+  it("is true for a Postgres 23503 error", () => {
+    expect(isForeignKeyViolation({ code: "23503" })).toBe(true);
+  });
+
+  it("is false for other SQLSTATEs and non-objects", () => {
+    expect(isForeignKeyViolation({ code: "23505" })).toBe(false);
+    expect(isForeignKeyViolation(null)).toBe(false);
+  });
+});
 
 describe("isUniqueViolation", () => {
   it("is true for a Postgres 23505 error", () => {

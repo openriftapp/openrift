@@ -25,6 +25,12 @@ const mockFriendGroupMatchesRepo = {
   othersWantYourHaves: vi.fn(() => Promise.resolve([] as object[])),
 };
 
+const mockDismissalsRepo = {
+  listForUser: vi.fn(() => Promise.resolve([] as object[])),
+  add: vi.fn(() => Promise.resolve()),
+  remove: vi.fn(() => Promise.resolve()),
+};
+
 const mockCreateTrade = vi.fn(() => Promise.resolve({} as object));
 const mockAcceptTrade = vi.fn(() => Promise.resolve({} as object));
 const mockListTradeCopyOptions = vi.fn(() => Promise.resolve({} as object));
@@ -44,6 +50,7 @@ app.use("*", async (c, next) => {
     cardTrades: mockCardTradesRepo,
     friendGroups: mockFriendGroupsRepo,
     friendGroupMatches: mockFriendGroupMatchesRepo,
+    tradeSuggestionDismissals: mockDismissalsRepo,
   } as never);
   c.set("services", {
     createTrade: mockCreateTrade,
@@ -97,6 +104,7 @@ const tradeResponse = {
   viewerSyncAppliedAt: null,
   counterpartySyncAppliedAt: null,
   actionNeeded: null,
+  viewerWishEntryId: null,
 };
 
 const tradeRow = {
@@ -114,6 +122,7 @@ const tradeRow = {
   status: "pending" as const,
   giverSyncAppliedAt: null,
   receiverSyncAppliedAt: null,
+  receiverWishEntryId: null,
   createdAt: new Date("2026-03-17T00:00:00.000Z"),
   updatedAt: new Date("2026-03-17T00:00:00.000Z"),
   acceptedAt: null,
@@ -631,5 +640,65 @@ describe("POST /api/v1/trades/:id/sync/skip", () => {
       body: JSON.stringify({ requestId: TRADE_ID, quantity: 0 }),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("trade suggestion dismissals", () => {
+  const dismissal = {
+    counterpartyUserId: COUNTERPARTY_ID,
+    printingId: PRINTING_ID,
+    direction: "outgoing",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lists the viewer's dismissals", async () => {
+    mockDismissalsRepo.listForUser.mockResolvedValueOnce([dismissal]);
+    const res = await app.request("/api/v1/trades/dismissals");
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ items: [dismissal] });
+    expect(mockDismissalsRepo.listForUser).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it("dismisses a suggestion for the viewer", async () => {
+    const res = await app.request("/api/v1/trades/dismissals", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(dismissal),
+    });
+    expect(res.status).toBe(204);
+    expect(mockDismissalsRepo.add).toHaveBeenCalledWith(USER_ID, dismissal);
+  });
+
+  it("answers 400 when the member or printing does not exist", async () => {
+    mockDismissalsRepo.add.mockRejectedValueOnce(Object.assign(new Error("fk"), { code: "23503" }));
+    const res = await app.request("/api/v1/trades/dismissals", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(dismissal),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an unknown direction", async () => {
+    const res = await app.request("/api/v1/trades/dismissals", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...dismissal, direction: "sideways" }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockDismissalsRepo.add).not.toHaveBeenCalled();
+  });
+
+  it("restores a dismissed suggestion", async () => {
+    const res = await app.request("/api/v1/trades/dismissals/restore", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(dismissal),
+    });
+    expect(res.status).toBe(204);
+    expect(mockDismissalsRepo.remove).toHaveBeenCalledWith(USER_ID, dismissal);
   });
 });

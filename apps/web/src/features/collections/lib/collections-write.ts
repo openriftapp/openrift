@@ -45,6 +45,7 @@ async function persistCreate(row: CollectionResponse): Promise<void> {
     description: row.description,
     availableForDeckbuilding: row.availableForDeckbuilding,
     ...(row.groupSlug === null ? {} : { groupSlug: row.groupSlug }),
+    ...(row.purpose === null ? {} : { purpose: row.purpose }),
   });
 }
 

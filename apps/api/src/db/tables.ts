@@ -180,6 +180,7 @@ import type {
   CardTradeCopiesTable,
   CardTradesTable,
   CardTradeSettlementRequestsTable,
+  TradeSuggestionDismissalsTable,
 } from "./tables/trades.js";
 import type {
   MvCardAggregatesView,
@@ -311,6 +312,7 @@ export interface Database {
   cardTrades: CardTradesTable;
   cardTradeCopies: CardTradeCopiesTable;
   cardTradeSettlementRequests: CardTradeSettlementRequestsTable;
+  tradeSuggestionDismissals: TradeSuggestionDismissalsTable;
 
   loans: LoansTable;
   loanCopies: LoanCopiesTable;

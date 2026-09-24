@@ -323,6 +323,14 @@ export const listsRouter = {
     await lists.deleteEntriesByIds(input.entryIds, listId, userId);
   }),
 
+  // Relative: a concurrent decrement (a trade settling at the same moment) can't clobber this one.
+  decrementEntries: os.decrementEntries.handler(async ({ input, context }): Promise<void> => {
+    const { lists } = context.repos;
+    for (const entry of input.entries) {
+      await lists.decrementEntryQuantity(entry.entryId, context.userId, entry.by);
+    }
+  }),
+
   share: os.share.handler(async ({ input, context }): Promise<ListShareResponse> => {
     const { lists } = context.repos;
     const userId = context.userId;

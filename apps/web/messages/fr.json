@@ -4258,12 +4258,10 @@
   "trades_none_in_your_collections": "Aucun dans vos propres collections.",
   "trades_available_count": "{count} disponibles",
   "trades_index_description": "Avec qui vous échangez et avec qui vous pourriez échanger, dans tous vos groupes.",
-  "trades_empty_title": "Pas encore d'échanges",
   "trades_empty_description": "Les échanges commencent dans un groupe : partagez-y une liste de souhaits ou d'échange et les correspondances avec d'autres membres apparaissent.",
   "trades_go_to_groups": "Aller aux groupes",
   "trades_section_your_move": "À vous de jouer",
   "trades_section_waiting": "En attente de leur côté",
-  "trades_section_could_trade": "Échanges possibles",
   "trades_section_suggestions": "Suggestions",
   "trades_traded_before": [
     {
@@ -9238,5 +9236,176 @@
   "install_nudge_link": "Me montrer comment",
   "install_nudge_dismiss": "Fermer",
   "marketing_landing_install": "Pas besoin de magasin d'applications : {#link}ajoutez OpenRift à votre écran d'accueil{/link}.",
-  "marketing_hero_install": "Vous le voulez sur votre téléphone ? {#link}Ajoutez OpenRift à votre écran d'accueil{/link}."
+  "marketing_hero_install": "Vous le voulez sur votre téléphone ? {#link}Ajoutez OpenRift à votre écran d'accueil{/link}.",
+  "trades_market_heading": "Cartes à échanger",
+  "trades_market_tab_get": "Vous pourriez obtenir",
+  "trades_market_tab_give": "Demandées par d'autres",
+  "trades_market_tab_swap": "Échanges réciproques",
+  "trades_market_tab_buy": "Absentes de vos groupes",
+  "trades_market_search_placeholder": "Rechercher des cartes",
+  "trades_market_group_filter": "Groupe",
+  "trades_market_all_groups": "Tous les groupes",
+  "trades_market_one_has": "{name} l'a",
+  "trades_market_one_wants": "{name} la cherche",
+  "trades_market_many_have": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} personne l'a",
+        "countPlural=*": "{count} personnes l'ont"
+      }
+    }
+  ],
+  "trades_market_many_want": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} personne la cherche",
+        "countPlural=*": "{count} personnes la cherchent"
+      }
+    }
+  ],
+  "trades_market_swap_badge": "Échange",
+  "trades_market_want_count": "Vous en cherchez {count}",
+  "trades_market_empty_get": "Personne dans vos groupes n'a de carte de vos listes de souhaits pour l'instant.",
+  "trades_market_empty_give": "Personne dans vos groupes ne cherche de carte de vos listes d'échange pour l'instant.",
+  "trades_market_empty_swap": "Aucun échange réciproque pour l'instant. Ils apparaissent quand quelqu'un a une carte que vous cherchez et en cherche une des vôtres.",
+  "trades_market_empty_buy": "Les cartes de vos listes de souhaits qu'aucun membre de vos groupes ne possède apparaissent ici.",
+  "trades_market_cardtrader_estimate": "CardTrader env. {price}",
+  "trades_market_on_wishlists": "Sur votre liste de souhaits : {lists}",
+  "trades_market_on_tradelists": "Sur votre liste d'échange : {lists}",
+  "trades_market_sources": "Qui l'a",
+  "trades_market_wanted_by": "Qui la cherche",
+  "trades_market_swap_wants_yours": "{name} cherche aussi des cartes chez vous.",
+  "trades_market_swap_has_yours": "{name} a aussi des cartes que vous cherchez.",
+  "trades_market_open_sheet": "Feuille d'échange avec {name}",
+  "trades_market_no_source": "Personne dans vos groupes n'a cette carte sur une liste d'échange.",
+  "trades_market_or_buy": "Ou achetez-la sur une place de marché.",
+  "trades_market_buy_it": "Achetez-la sur une place de marché.",
+  "trades_market_add_to_cart": "Ajouter au panier",
+  "trades_market_in_cart": "Dans le panier",
+  "trades_market_view_cart": "Voir le panier",
+  "trades_buy_title": "Acheter les cartes manquantes",
+  "trades_buy_cart_button": "Acheter les cartes manquantes",
+  "trades_buy_cart_button_count": "Panier ({count})",
+  "trades_buy_description": "Choisissez les cartes de vos listes de souhaits à acheter, puis envoyez-les d'un coup sur une place de marché.",
+  "trades_buy_filter_none": "Absentes de vos groupes",
+  "trades_buy_filter_friends": "Dans vos groupes",
+  "trades_buy_filter_all": "Toutes les cartes recherchées",
+  "trades_buy_filter_empty": "Aucune carte ne correspond à ce filtre.",
+  "trades_buy_add_shown": "Tout ajouter au panier",
+  "trades_buy_remove_shown": "Tout retirer du panier",
+  "trades_buy_add": "Ajouter {name} au panier",
+  "trades_buy_remove": "Retirer {name} du panier",
+  "trades_buy_source_friends": "Disponible dans vos groupes",
+  "trades_buy_source_none": "Absente de vos groupes",
+  "trades_buy_empty_title": "Vos listes de souhaits sont vides",
+  "trades_buy_empty_description": "Ajoutez des cartes à une liste de souhaits et celles qui vous manquent encore apparaîtront ici.",
+  "trades_buy_empty_cta": "Aller aux collections",
+  "trades_buy_ordered_waiting": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte dans {collection} est en route.",
+        "countPlural=*": "{count} cartes dans {collection} sont en route."
+      }
+    }
+  ],
+  "trades_buy_open_collection": "Ouvrir la collection",
+  "trades_buy_cart_title": "Panier",
+  "trades_buy_cart_empty": "Cochez des cartes pour les ajouter au panier.",
+  "trades_buy_estimate_label": "CardTrader env.",
+  "trades_buy_unpriced": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte n'a pas de prix et n'est pas comptée.",
+        "countPlural=*": "{count} cartes n'ont pas de prix et ne sont pas comptées."
+      }
+    }
+  ],
+  "trades_buy_market_label": "Place de marché",
+  "trades_buy_market_cardtrader": "CardTrader",
+  "trades_buy_market_cardmarket": "Cardmarket",
+  "trades_buy_market_tcgplayer": "TCGplayer",
+  "trades_buy_how_cardtrader": "Copie la liste, puis ouvre une nouvelle liste de souhaits",
+  "trades_buy_how_cardmarket": "Copie la liste, puis ouvre vos Wants",
+  "trades_buy_how_tcgplayer": "Met exactement ces impressions dans votre panier",
+  "trades_buy_cta_cardtrader": "Copier la liste et ouvrir CardTrader",
+  "trades_buy_cta_cardmarket": "Copier la liste et ouvrir Cardmarket",
+  "trades_buy_cta_tcgplayer": "Ajouter au panier TCGplayer",
+  "trades_buy_note_cardtrader": "Collez la liste dans la nouvelle liste de souhaits. CardTrader ignore les lignes qu'il ne reconnaît pas.",
+  "trades_buy_note_cardmarket": "Collez la liste dans « Add decklist » d'une liste de Wants, puis utilisez le Shopping Wizard.",
+  "trades_buy_copy_again": "Copier à nouveau",
+  "trades_buy_list_copied": "Liste copiée",
+  "trades_buy_copy_failed": "Impossible de copier la liste",
+  "trades_buy_tcgplayer_unlisted": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte n'est pas proposée sur TCGplayer et a été laissée de côté.",
+        "countPlural=*": "{count} cartes ne sont pas proposées sur TCGplayer et ont été laissées de côté."
+      }
+    }
+  ],
+  "trades_buy_extension_title": "Comparer avec CardTrader Zero",
+  "trades_buy_extension_body": "Avec l'extension de navigateur OpenRift, le résultat du Shopping Wizard indique quelles cartes sont moins chères sur CardTrader Zero, frais de port compris.",
+  "trades_buy_extension_link": "À propos de l'extension",
+  "trades_buy_ordered_title": "Commandées ?",
+  "trades_buy_ordered_body": "Ajoutez les cartes à {collection} et retirez-les de vos listes de souhaits. Cette collection ne compte pas pour la construction de decks, donc vos decks les affichent comme manquantes jusqu'à leur arrivée.",
+  "trades_buy_ordered_cta": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Marquer {count} carte comme commandée",
+        "countPlural=*": "Marquer {count} cartes comme commandées"
+      }
+    }
+  ],
+  "trades_buy_ordered_collection_name": "Commandées (marketplace)",
+  "trades_buy_filed_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} carte ajoutée à {collection}",
+        "countPlural=*": "{count} cartes ajoutées à {collection}"
+      }
+    }
+  ],
+  "trades_buy_filed_body": "Déplacez-les dans leur collection à leur arrivée.",
+  "trades_market_no_match": "Aucune carte ne correspond à votre recherche.",
+  "trades_market_people_filter": "Personnes",
+  "trades_market_everyone": "Tout le monde",
+  "trades_market_hide_person": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Masquer {count} suggestion avec {name}",
+        "countPlural=*": "Masquer {count} suggestions avec {name}"
+      }
+    }
+  ],
+  "trades_market_hidden": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} suggestion masquée",
+        "countPlural=*": "{count} suggestions masquées"
+      }
+    }
+  ],
+  "trades_market_hidden_incoming": "{card} de {name}",
+  "trades_market_hidden_outgoing": "{card} pour {name}",
+  "trades_market_show_again": "Afficher à nouveau",
+  "trades_market_hide_one": "Ne plus proposer avec {name}",
+  "trades_buy_printing": "Impression de {name}"
 }

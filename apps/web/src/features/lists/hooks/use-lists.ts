@@ -395,6 +395,21 @@ export function useRemoveListEntry() {
   });
 }
 
+const decrementListEntriesFn = createServerFn({ method: "POST" })
+  .validator((input: { entries: { entryId: string; by: number }[] }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(listsContract, context.cookie).decrementEntries(data);
+  });
+
+export function useDecrementListEntries() {
+  const userId = useRequiredUserId();
+  return useMutationWithInvalidation<unknown, { entries: { entryId: string; by: number }[] }>({
+    mutationFn: (vars) => decrementListEntriesFn({ data: vars }),
+    invalidates: [listsKeys.all(userId)],
+  });
+}
+
 const bulkRemoveListEntriesFn = createServerFn({ method: "POST" })
   .validator((input: { listId: string; entryIds: string[] }) => input)
   .middleware([withCookies])

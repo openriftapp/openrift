@@ -57,6 +57,7 @@ export const tradesKeys = {
   // Deliberately under the `["trades", userId]` prefix so every trade
   // mutation refreshes the open sheet.
   sheet: (userId: string, memberId: string) => ["trades", userId, "sheet", memberId] as const,
+  dismissals: (userId: string) => ["trades", userId, "dismissals"] as const,
 } as const;
 
 export const loansKeys = {

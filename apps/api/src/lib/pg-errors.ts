@@ -13,6 +13,16 @@ export function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+/** True if the error is a Postgres foreign-key violation (SQLSTATE 23503). */
+export function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23503"
+  );
+}
+
 /**
  * True if the violation is on the named constraint specifically. Use over
  * {@link isUniqueViolation} when a block can raise 23505 from more than one index.

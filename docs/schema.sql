@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wTy4QRERfc9dz01V3XhgmNcN2tSuTFmFKgTuK6DfTSI4io6PibiDmodP4972Nhe
+\restrict GqhzfNKk0VHxYIiPyjDyBfA6cVYntSb6wnP4pAddNNOwCdwsJmoAaNMYZ9jptzJ
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1406,9 +1406,12 @@ CREATE TABLE public.collections (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     is_public boolean DEFAULT false NOT NULL,
     group_id uuid,
+    purpose text,
     CONSTRAINT chk_collections_name_not_empty CHECK ((name <> ''::text)),
     CONSTRAINT chk_collections_no_group_inbox CHECK (((group_id IS NULL) OR (is_inbox = false))),
-    CONSTRAINT chk_collections_ownership CHECK (((((user_id IS NOT NULL))::integer + ((group_id IS NOT NULL))::integer) = 1))
+    CONSTRAINT chk_collections_ownership CHECK (((((user_id IS NOT NULL))::integer + ((group_id IS NOT NULL))::integer) = 1)),
+    CONSTRAINT chk_collections_purpose_personal CHECK (((purpose IS NULL) OR (group_id IS NULL))),
+    CONSTRAINT collections_purpose_check CHECK ((purpose = 'marketplace_orders'::text))
 );
 
 
@@ -3893,6 +3896,21 @@ CREATE TABLE public.tournaments (
 
 
 --
+-- Name: trade_suggestion_dismissals; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.trade_suggestion_dismissals (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    user_id text NOT NULL,
+    counterparty_user_id text NOT NULL,
+    printing_id uuid NOT NULL,
+    direction text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT trade_suggestion_dismissals_direction_check CHECK ((direction = ANY (ARRAY['incoming'::text, 'outgoing'::text])))
+);
+
+
+--
 -- Name: user_contact_methods; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5593,6 +5611,14 @@ ALTER TABLE ONLY public.tournaments
 
 
 --
+-- Name: trade_suggestion_dismissals trade_suggestion_dismissals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: card_trade_copies uq_card_trade_copies_copy; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5774,6 +5800,14 @@ ALTER TABLE ONLY public.printings
 
 ALTER TABLE ONLY public.tournament_teams
     ADD CONSTRAINT uq_tournament_teams_id_tournament UNIQUE (id, tournament_id);
+
+
+--
+-- Name: trade_suggestion_dismissals uq_trade_suggestion_dismissals; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT uq_trade_suggestion_dismissals UNIQUE (user_id, counterparty_user_id, printing_id, direction);
 
 
 --
@@ -7122,6 +7156,13 @@ CREATE UNIQUE INDEX uq_card_trades_live ON public.card_trades USING btree (group
 --
 
 CREATE UNIQUE INDEX uq_collections_user_inbox ON public.collections USING btree (user_id) WHERE (is_inbox = true);
+
+
+--
+-- Name: uq_collections_user_purpose; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_collections_user_purpose ON public.collections USING btree (user_id, purpose) WHERE (purpose IS NOT NULL);
 
 
 --
@@ -9937,6 +9978,30 @@ ALTER TABLE ONLY public.tournaments
 
 
 --
+-- Name: trade_suggestion_dismissals trade_suggestion_dismissals_counterparty_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_counterparty_user_id_fkey FOREIGN KEY (counterparty_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: trade_suggestion_dismissals trade_suggestion_dismissals_printing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_printing_id_fkey FOREIGN KEY (printing_id) REFERENCES public.printings(id) ON DELETE CASCADE;
+
+
+--
+-- Name: trade_suggestion_dismissals trade_suggestion_dismissals_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trade_suggestion_dismissals
+    ADD CONSTRAINT trade_suggestion_dismissals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: user_contact_methods user_contact_methods_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10068,5 +10133,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wTy4QRERfc9dz01V3XhgmNcN2tSuTFmFKgTuK6DfTSI4io6PibiDmodP4972Nhe
+\unrestrict GqhzfNKk0VHxYIiPyjDyBfA6cVYntSb6wnP4pAddNNOwCdwsJmoAaNMYZ9jptzJ
 

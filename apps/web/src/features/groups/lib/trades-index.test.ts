@@ -1,7 +1,6 @@
 import type { CardTradeResponse } from "@openrift/shared/types/api/card-trade";
 import { describe, expect, it } from "vitest";
 
-import type { TradesIndexMatch, TradesIndexMatchGroup } from "./trades-index";
 import { buildTradesIndex } from "./trades-index";
 
 function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeResponse {
@@ -31,6 +30,7 @@ function stubTrade(overrides: Partial<CardTradeResponse> = {}): CardTradeRespons
     expiresAt: null,
     viewerSyncAppliedAt: null,
     counterpartySyncAppliedAt: null,
+    viewerWishEntryId: null,
     actionNeeded: null,
     ...overrides,
   };
@@ -40,37 +40,11 @@ function withPerson(userId: string | null, name: string | null): Partial<CardTra
   return { counterparty: { userId, name, image: null, gravatarHash: "h", contactMethods: [] } };
 }
 
-function stubMatch(overrides: Partial<TradesIndexMatch> = {}): TradesIndexMatch {
-  return {
-    counterpartyUserId: "user-2",
-    counterpartyName: "Robin",
-    counterpartyImage: null,
-    counterpartyGravatarHash: "hash",
-    counterpartyListId: "list-1",
-    buyEntryId: "buy-1",
-    buyEntryKind: "printing",
-    cardId: "card-1",
-    printingId: "printing-1",
-    ...overrides,
-  };
-}
-
-function stubMatchGroup(overrides: Partial<TradesIndexMatchGroup> = {}): TradesIndexMatchGroup {
-  return {
-    groupId: "group-1",
-    groupName: "Summoner Skirmish",
-    incoming: [],
-    outgoing: [],
-    ...overrides,
-  };
-}
-
 describe("buildTradesIndex", () => {
   it("returns empty sections for no trades", () => {
     expect(buildTradesIndex([])).toEqual({
       yourMove: [],
       waiting: [],
-      couldTrade: [],
       past: [],
       groupCount: 0,
     });
@@ -83,7 +57,6 @@ describe("buildTradesIndex", () => {
     ]);
     expect(index.yourMove.map((person) => person.userId)).toEqual(["user-2"]);
     expect(index.waiting).toEqual([]);
-    expect(index.couldTrade).toEqual([]);
     expect(index.past).toEqual([]);
     expect(index.yourMove[0]?.needsYou.map((trade) => trade.id)).toEqual(["a"]);
     expect(index.yourMove[0]?.doneCount).toBe(1);
@@ -157,74 +130,6 @@ describe("buildTradesIndex", () => {
     ]);
     expect(index.waiting[0]?.groupNames).toEqual(["Arcane League", "Summoner Skirmish"]);
     expect(index.groupCount).toBe(2);
-  });
-
-  it("files someone the viewer only has matches with under could trade", () => {
-    const index = buildTradesIndex(
-      [],
-      [stubMatchGroup({ incoming: [stubMatch()], outgoing: [stubMatch({ printingId: "p-2" })] })],
-    );
-    expect(index.couldTrade.map((person) => person.userId)).toEqual(["user-2"]);
-    expect(index.couldTrade[0]?.suggestions).toBe(2);
-    expect(index.couldTrade[0]?.couldGet).toEqual({ count: 1, printingIds: ["printing-1"] });
-    expect(index.couldTrade[0]?.wouldWant).toEqual({ count: 1, printingIds: ["p-2"] });
-    expect(index.couldTrade[0]?.groupNames).toEqual(["Summoner Skirmish"]);
-    expect(index.couldTrade[0]?.lastActivityAt).toBeNull();
-    expect(index.groupCount).toBe(1);
-  });
-
-  it("counts a card reachable through two groups once", () => {
-    const index = buildTradesIndex(
-      [],
-      [
-        stubMatchGroup({ incoming: [stubMatch()] }),
-        stubMatchGroup({
-          groupId: "group-2",
-          groupName: "Arcane League",
-          incoming: [stubMatch()],
-        }),
-      ],
-    );
-    expect(index.couldTrade[0]?.suggestions).toBe(1);
-    expect(index.couldTrade[0]?.couldGet.count).toBe(1);
-    expect(index.couldTrade[0]?.groupNames).toEqual(["Arcane League", "Summoner Skirmish"]);
-    expect(index.groupCount).toBe(2);
-  });
-
-  it("drops matches a live trade already covers", () => {
-    const index = buildTradesIndex(
-      [stubTrade({ status: "pending", printingId: "printing-1" })],
-      [stubMatchGroup({ incoming: [stubMatch()] })],
-    );
-    expect(index.couldTrade).toEqual([]);
-    expect(index.waiting[0]?.suggestions).toBe(0);
-  });
-
-  it("moves a past counterparty to could trade when a match remains", () => {
-    const index = buildTradesIndex(
-      [stubTrade({ status: "completed" })],
-      [stubMatchGroup({ incoming: [stubMatch({ printingId: "printing-2" })] })],
-    );
-    expect(index.past).toEqual([]);
-    expect(index.couldTrade.map((person) => person.userId)).toEqual(["user-2"]);
-    expect(index.couldTrade[0]?.doneCount).toBe(1);
-  });
-
-  it("orders could trade by suggestion count, then by name", () => {
-    const index = buildTradesIndex(
-      [],
-      [
-        stubMatchGroup({
-          incoming: [
-            stubMatch({ counterpartyUserId: "user-3", counterpartyName: "Ash" }),
-            stubMatch({ counterpartyUserId: "user-4", counterpartyName: "Zed" }),
-            stubMatch({ printingId: "p-2" }),
-            stubMatch(),
-          ],
-        }),
-      ],
-    );
-    expect(index.couldTrade.map((person) => person.userId)).toEqual(["user-2", "user-3", "user-4"]);
   });
 
   it("leaves out trades whose counterparty account is gone", () => {

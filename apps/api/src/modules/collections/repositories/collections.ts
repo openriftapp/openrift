@@ -1,3 +1,4 @@
+import type { CollectionPurpose } from "@openrift/shared/types/api/collection";
 import type { FriendGroupRole } from "@openrift/shared/types/api/friend-group";
 import type { Kysely, Selectable, Updateable } from "kysely";
 import { sql } from "kysely";
@@ -95,6 +96,16 @@ export function collectionsRepo(db: Kysely<Database>) {
         .execute();
     },
 
+    async idForPurpose(userId: string, purpose: CollectionPurpose): Promise<string | undefined> {
+      const row = await db
+        .selectFrom("collections")
+        .select("id")
+        .where("userId", "=", userId)
+        .where("purpose", "=", purpose)
+        .executeTakeFirst();
+      return row?.id;
+    },
+
     getByIdForUser(id: string, userId: string): Promise<Selectable<CollectionsTable> | undefined> {
       return db
         .selectFrom("collections")
@@ -179,6 +190,7 @@ export function collectionsRepo(db: Kysely<Database>) {
       description: string | null;
       isInbox: boolean;
       sortOrder: number;
+      purpose?: CollectionPurpose | null;
     }): Promise<Selectable<CollectionsTable> | undefined> {
       return db
         .insertInto("collections")

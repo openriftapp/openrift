@@ -110,6 +110,20 @@ export const collectionsRouter = {
     // Group collections stay alphabetical (`sort_order: 0` falls through to
     // name ordering in `listAccessibleForUser`). Personal collections get
     // appended to the user's list via max+1.
+    const purpose = groupId ? null : (input.purpose ?? null);
+    if (purpose !== null) {
+      const existingId = await collections.idForPurpose(userId, purpose);
+      if (existingId !== undefined) {
+        const accessible = await collections.listAccessibleForUser(userId);
+        const [existing] = await presentCollections(
+          context.repos,
+          userId,
+          accessible.filter((collection) => collection.id === existingId),
+        );
+        assertFound(existing, "Collection not found");
+        return existing;
+      }
+    }
     const sortOrder = groupId ? 0 : await collections.nextPersonalSortOrder(userId);
     const row = await collections.createUnlessIdTaken({
       id: input.id,
@@ -119,6 +133,7 @@ export const collectionsRouter = {
       description: input.description ?? null,
       isInbox: false,
       sortOrder,
+      purpose,
     });
     if (!row) {
       const accessible = await collections.listAccessibleForUser(userId);

@@ -9,6 +9,7 @@ import { friendGroupMatchesRepo } from "./repositories/friend-group-matches.js";
 import { friendGroupShopsRepo } from "./repositories/friend-group-shops.js";
 import { friendGroupsRepo } from "./repositories/friend-groups.js";
 import { loansRepo } from "./repositories/loans.js";
+import { tradeSuggestionDismissalsRepo } from "./repositories/trade-suggestion-dismissals.js";
 import { userSharesRepo } from "./repositories/user-shares.js";
 import {
   acceptTrade,
@@ -46,6 +47,7 @@ export interface GroupsRepos {
   friendGroupMatches: ReturnType<typeof friendGroupMatchesRepo>;
   friendGroupShops: ReturnType<typeof friendGroupShopsRepo>;
   loans: ReturnType<typeof loansRepo>;
+  tradeSuggestionDismissals: ReturnType<typeof tradeSuggestionDismissalsRepo>;
   userShares: ReturnType<typeof userSharesRepo>;
 }
 
@@ -81,6 +83,7 @@ export function createGroupsRepos(db: Kysely<Database>, providers: ListRuleProvi
     friendGroupMatches: friendGroupMatchesRepo(db, providers),
     friendGroupShops: friendGroupShopsRepo(db),
     loans: loansRepo(db),
+    tradeSuggestionDismissals: tradeSuggestionDismissalsRepo(db),
     userShares: userSharesRepo(db),
   };
 }

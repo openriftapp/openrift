@@ -31,6 +31,7 @@ export interface CardTradeDtoRow {
   status: CardTradeStatus;
   giverSyncAppliedAt: Date | null;
   receiverSyncAppliedAt: Date | null;
+  receiverWishEntryId: string | null;
   createdAt: Date;
   updatedAt: Date;
   acceptedAt: Date | null;
@@ -97,6 +98,7 @@ export function tradeDtoBaseQuery(db: Kysely<Database>) {
       "t.lastActorUserId",
       "t.giverSyncAppliedAt",
       "t.receiverSyncAppliedAt",
+      "t.receiverWishEntryId",
       "t.createdAt",
       "t.updatedAt",
       "t.acceptedAt",

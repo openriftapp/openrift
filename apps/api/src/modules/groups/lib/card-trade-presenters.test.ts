@@ -491,6 +491,7 @@ function tradeRow(overrides: Partial<CardTradeDtoRow> = {}): CardTradeDtoRow {
     status: "pending",
     giverSyncAppliedAt: null,
     receiverSyncAppliedAt: null,
+    receiverWishEntryId: "wish-entry-1",
     createdAt: new Date("2026-03-17T10:00:00.000Z"),
     updatedAt: new Date("2026-03-18T11:30:00.000Z"),
     acceptedAt: null,
@@ -579,6 +580,12 @@ describe("toCardTradeResponse", () => {
     const receiverView = toCardTradeResponse(row, OTHER_ID);
     expect(receiverView.viewerSyncAppliedAt).toBeNull();
     expect(receiverView.counterpartySyncAppliedAt).toBe("2026-03-19T10:00:00.000Z");
+  });
+
+  it("shows the wish entry the trade lowers only to the receiver", () => {
+    const row = tradeRow();
+    expect(toCardTradeResponse(row, OTHER_ID).viewerWishEntryId).toBe("wish-entry-1");
+    expect(toCardTradeResponse(row, VIEWER_ID).viewerWishEntryId).toBeNull();
   });
 
   it("asks the pending initiator to cancel and the other party to answer", () => {

@@ -11,6 +11,8 @@ import type {
   cardTradeSheetGroupSchema,
   cardTradeSheetMatchRowSchema,
   cardTradeSheetResponseSchema,
+  tradeSuggestionDismissalListResponseSchema,
+  tradeSuggestionDismissalSchema,
 } from "@openrift/shared/contracts/card-trades";
 import type { z } from "zod";
 
@@ -28,6 +30,12 @@ export type CardTradeCounterparty = z.infer<typeof cardTradeCounterpartySchema>;
 
 /** Card name/image are resolved client-side from the loaded catalog by `printingId`/`cardId`. */
 export type CardTradeResponse = z.infer<typeof cardTradeResponseSchema>;
+
+export type TradeSuggestionDismissal = z.infer<typeof tradeSuggestionDismissalSchema>;
+
+export type TradeSuggestionDismissalListResponse = z.infer<
+  typeof tradeSuggestionDismissalListResponseSchema
+>;
 
 export type CardTradeListResponse = z.infer<typeof cardTradeListResponseSchema>;
 

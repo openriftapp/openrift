@@ -26,6 +26,7 @@ const mockCollectionsRepo = {
   setShareToken: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   setShareTokenById: vi.fn(() => Promise.resolve(undefined as object | undefined)),
   nextPersonalSortOrder: vi.fn(() => Promise.resolve(0)),
+  idForPurpose: vi.fn(() => Promise.resolve(undefined as string | undefined)),
   reorderPersonal: vi.fn(() => Promise.resolve()),
 };
 
@@ -104,6 +105,7 @@ const dbCollection = {
   sortOrder: 0,
   isPublic: false,
   shareToken: null,
+  purpose: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -126,6 +128,7 @@ const dbSharedCollection = {
   sortOrder: 0,
   isPublic: false,
   shareToken: null,
+  purpose: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -231,7 +234,50 @@ describe("POST /api/v1/collections", () => {
       description: null,
       isInbox: false,
       sortOrder: 0,
+      purpose: null,
     });
+  });
+
+  it("creates the marketplace orders collection with its purpose", async () => {
+    mockCollectionsRepo.idForPurpose.mockResolvedValueOnce(undefined);
+    mockCollectionsRepo.createUnlessIdTaken.mockResolvedValue({
+      ...dbCollection,
+      purpose: "marketplace_orders",
+    });
+    const res = await app.request("/api/v1/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ordered (Marketplace)", purpose: "marketplace_orders" }),
+    });
+    expect(res.status).toBe(201);
+    const json = await readJson(res);
+    expect(json.purpose).toBe("marketplace_orders");
+    expect(mockCollectionsRepo.createUnlessIdTaken).toHaveBeenCalledWith(
+      expect.objectContaining({ purpose: "marketplace_orders" }),
+    );
+  });
+
+  it("returns the existing collection when one already has that purpose", async () => {
+    mockCollectionsRepo.idForPurpose.mockResolvedValueOnce(dbCollection.id);
+    mockCollectionsRepo.listAccessibleForUser.mockResolvedValueOnce([
+      {
+        ...dbCollection,
+        purpose: "marketplace_orders",
+        groupSlug: null,
+        groupName: null,
+        viewerCanAdmin: true,
+        copyCount: 3,
+      },
+    ]);
+    const res = await app.request("/api/v1/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ordered (Marketplace)", purpose: "marketplace_orders" }),
+    });
+    const json = await readJson(res);
+    expect(json.id).toBe(dbCollection.id);
+    expect(json.copyCount).toBe(3);
+    expect(mockCollectionsRepo.createUnlessIdTaken).not.toHaveBeenCalled();
   });
 
   it("creates a shared collection when groupSlug is provided and the user is a member", async () => {

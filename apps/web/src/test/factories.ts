@@ -80,6 +80,7 @@ export function stubCollection(overrides: Partial<CollectionResponse> = {}): Col
     groupName: null,
     viewerCanAdmin: true,
     homeDecks: [],
+    purpose: null,
     ...overrides,
   };
 }
