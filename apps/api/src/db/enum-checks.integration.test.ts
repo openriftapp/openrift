@@ -8,7 +8,11 @@ import {
   cardSubmissionReasonSchema,
   cardSubmissionStatusSchema,
 } from "@openrift/shared/contracts/card-submissions";
-import { CARD_TRADE_STATUSES, cardTradeSideSchema } from "@openrift/shared/contracts/card-trades";
+import {
+  CARD_TRADE_STATUSES,
+  cardTradeSideSchema,
+  tradeSuggestionDirectionSchema,
+} from "@openrift/shared/contracts/card-trades";
 import { activityActionSchema } from "@openrift/shared/contracts/collection-events";
 import { deckCheckClaimSourceSchema } from "@openrift/shared/contracts/deck-check";
 import { deckMatchupSwapDirectionSchema } from "@openrift/shared/contracts/decks";
@@ -134,6 +138,7 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   rules_kind_check: RULE_KINDS,
   rules_rule_type_check: RULE_TYPES,
   site_settings_scope_check: scopeEnum.options,
+  trade_suggestion_dismissals_direction_check: tradeSuggestionDirectionSchema.options,
   chk_tournament_participants_claim_source: deckCheckClaimSourceSchema.options,
   chk_tournament_participants_status: tournamentParticipantStatusSchema.options,
   chk_topdeck_decklists_fetch_status: META_SOURCE_FETCH_STATUSES,

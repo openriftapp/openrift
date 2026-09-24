@@ -46,7 +46,7 @@ function footerLine(card: TradeHubCard<FriendGroupMemberResponse>): string | nul
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-export function TradeSuggestionRows({
+function TradeSuggestionRows({
   couldGet,
   wouldWant,
 }: {

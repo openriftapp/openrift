@@ -19,6 +19,7 @@ const cardTradeStatusSchema = z.enum(CARD_TRADE_STATUSES);
 
 // Also the `card_trades.initiator` vocabulary.
 export const cardTradeSideSchema = z.enum(["giver", "receiver"]);
+export const tradeSuggestionDirectionSchema = z.enum(["incoming", "outgoing"]);
 
 export const createCardTradeSchema = z.object({
   groupSlug: friendGroupSlugSchema,
@@ -156,7 +157,7 @@ const TAG = "CardTrades";
 export const tradeSuggestionDismissalSchema = z.object({
   counterpartyUserId: z.string().min(1),
   printingId: z.uuid(),
-  direction: z.enum(["incoming", "outgoing"]),
+  direction: tradeSuggestionDirectionSchema,
 });
 
 export const tradeSuggestionDismissalListResponseSchema = z.object({

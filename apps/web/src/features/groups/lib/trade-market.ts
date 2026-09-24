@@ -15,7 +15,7 @@ export interface TradeMarketGroup {
   outgoing: readonly FriendGroupMatchRow[];
 }
 
-export type TradeMarketRow = FriendGroupMatchRow & { groupSlug: string };
+type TradeMarketRow = FriendGroupMatchRow & { groupSlug: string };
 
 export interface TradeMarketSource {
   userId: string;
