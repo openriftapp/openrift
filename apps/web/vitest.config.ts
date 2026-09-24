@@ -2,6 +2,7 @@
 import path from "node:path";
 
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
+import { tanstackRouterGenerator } from "@tanstack/router-plugin/vite";
 import type { Plugin } from "vite";
 import { configDefaults, defineConfig } from "vitest/config";
 
@@ -28,10 +29,11 @@ const stripParaglideJsdoc: Plugin = {
 };
 
 export default defineConfig({
-  // src/paraglide is generated and gitignored, so tests compile it themselves
-  // instead of depending on a prior build.
+  // src/paraglide and routeTree.gen.ts are generated and gitignored, so tests
+  // generate them themselves instead of depending on a prior build.
   plugins: [
     paraglideVitePlugin({ project: "./project.inlang" }),
+    tanstackRouterGenerator(),
     stripParaglideJsdoc,
     latestMilestonePlugin(),
   ],
