@@ -15,6 +15,8 @@ import { routeTree } from "@/routeTree.gen";
 const tracer = trace.getTracer("openrift-web/http");
 
 const SERVER_FN_PREFIX = "/_serverFn/";
+// Production builds address server functions by a SHA-256 id instead of the dev payload.
+const HASHED_SERVER_FN = /^\/_serverFn\/[0-9a-f]{64}$/u;
 
 interface ServerFnIdentity {
   name: string;
@@ -55,6 +57,9 @@ const createMatcher = () =>
 // Tempo turns http.route and the span name into metric labels, so both carry
 // the route template; the concrete path stays on url.path.
 const routeTemplate = (pathname: string): string => {
+  if (HASHED_SERVER_FN.test(pathname)) {
+    return pathname;
+  }
   matcher ??= createMatcher();
   const [, rawParams, route] = matcher.getMatchedRoutes(pathname);
   if (!route || rawParams["**"] !== undefined) {

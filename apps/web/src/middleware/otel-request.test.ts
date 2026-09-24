@@ -79,6 +79,19 @@ describe("otelRequestMiddleware (web)", () => {
     expect(span?.attributes["http.route"]).toBe("<unmatched>");
   });
 
+  it("keeps a production server function id and drops a malformed one", async () => {
+    const hashed = `/_serverFn/${"c0846484".repeat(8)}`;
+    for (const path of [hashed, "/_serverFn/not-a-real-id"]) {
+      await handler({
+        request: new Request(`https://example.com${path}`),
+        next: async () => undefined,
+      } as never);
+    }
+
+    const routes = exporter.getFinishedSpans().map((s) => s.attributes["http.route"]);
+    expect(routes).toEqual([hashed, "<unmatched>"]);
+  });
+
   it("maps the site root to its index route", async () => {
     await handler({
       request: new Request("https://example.com/"),
