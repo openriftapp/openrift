@@ -5,9 +5,12 @@ import {
   ATTR_HTTP_ROUTE,
   ATTR_URL_PATH,
 } from "@opentelemetry/semantic-conventions";
+import { QueryClient } from "@tanstack/react-query";
+import { createRouter } from "@tanstack/react-router";
 import { createMiddleware } from "@tanstack/react-start";
 
 import { contextWithClientIp } from "@/lib/server-fns/client-ip-context";
+import { routeTree } from "@/routeTree.gen";
 
 const tracer = trace.getTracer("openrift-web/http");
 
@@ -44,6 +47,22 @@ const decodeServerFn = (path: string): ServerFnIdentity | undefined => {
   }
 };
 
+let matcher: ReturnType<typeof createMatcher> | undefined;
+
+const createMatcher = () =>
+  createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+
+// Tempo turns http.route and the span name into metric labels, so both carry
+// the route template; the concrete path stays on url.path.
+const routeTemplate = (pathname: string): string => {
+  matcher ??= createMatcher();
+  const [, rawParams, route] = matcher.getMatchedRoutes(pathname);
+  if (!route || rawParams["**"] !== undefined) {
+    return "<unmatched>";
+  }
+  return route.fullPath;
+};
+
 // Opens an `http.server` span per request and activates it in the OTel
 // context so outbound API calls made from `next()` inherit it as their parent.
 export const otelRequestMiddleware = createMiddleware().server(({ next, request }) => {
@@ -51,8 +70,8 @@ export const otelRequestMiddleware = createMiddleware().server(({ next, request 
   const parentCtx = propagation.extract(ROOT_CONTEXT, headersToRecord(request.headers));
 
   const serverFn = decodeServerFn(url.pathname);
-  const spanName = serverFn ? `serverFn:${serverFn.name}` : `${request.method} ${url.pathname}`;
-  const route = serverFn ? `${SERVER_FN_PREFIX}${serverFn.name}` : url.pathname;
+  const route = serverFn ? `${SERVER_FN_PREFIX}${serverFn.name}` : routeTemplate(url.pathname);
+  const spanName = serverFn ? `serverFn:${serverFn.name}` : `${request.method} ${route}`;
 
   const attributes: Record<string, string> = {
     [ATTR_HTTP_REQUEST_METHOD]: request.method,

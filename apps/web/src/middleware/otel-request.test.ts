@@ -40,19 +40,52 @@ afterEach(() => {
 const handler = otelRequestMiddleware.options.server!;
 
 describe("otelRequestMiddleware (web)", () => {
-  it("opens an http.server span named after method + path", async () => {
+  it("names the span after the matched route template and keeps the concrete path", async () => {
     await handler({
-      request: new Request("https://example.com/cards/abc"),
+      request: new Request("https://example.com/meta/players/u159141"),
       next: async () => undefined,
     } as never);
 
     const spans = exporter.getFinishedSpans();
     expect(spans).toHaveLength(1);
-    expect(spans[0]?.name).toBe("GET /cards/abc");
+    expect(spans[0]?.name).toBe("GET /meta/players/$key");
     expect(spans[0]?.attributes).toMatchObject({
       "http.request.method": "GET",
-      "url.path": "/cards/abc",
+      "http.route": "/meta/players/$key",
+      "url.path": "/meta/players/u159141",
     });
+  });
+
+  it("collapses distinct paths of one route into a single http.route", async () => {
+    for (const path of ["/meta/players/u1", "/meta/players/pn%E9%98%BF%E4%BF%AE%E7%BD%97"]) {
+      await handler({
+        request: new Request(`https://example.com${path}`),
+        next: async () => undefined,
+      } as never);
+    }
+
+    const routes = new Set(exporter.getFinishedSpans().map((s) => s.attributes["http.route"]));
+    expect([...routes]).toEqual(["/meta/players/$key"]);
+  });
+
+  it("labels paths that match no route as <unmatched>", async () => {
+    await handler({
+      request: new Request("https://example.com/wp-login.php/does/not/exist"),
+      next: async () => undefined,
+    } as never);
+
+    const span = exporter.getFinishedSpans()[0];
+    expect(span?.name).toBe("GET <unmatched>");
+    expect(span?.attributes["http.route"]).toBe("<unmatched>");
+  });
+
+  it("maps the site root to its index route", async () => {
+    await handler({
+      request: new Request("https://example.com/"),
+      next: async () => undefined,
+    } as never);
+
+    expect(exporter.getFinishedSpans()[0]?.attributes["http.route"]).toBe("/");
   });
 
   it("links the span to an incoming W3C traceparent", async () => {
