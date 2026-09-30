@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-30
+
+### Other
+
+- fix(Trades): **Battlefields sideways in the Trades Hub** — battlefields in the card market, the buy page and the buy cart showed their art cropped and upright. They now turn like everywhere else, and the market and buy page cards look and behave like the card browser, including foil, tilt and your preferred marketplace's price.
+
 ## 2026-09-24
 
 ### Milestone

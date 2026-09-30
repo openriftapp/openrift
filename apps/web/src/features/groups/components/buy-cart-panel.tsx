@@ -5,7 +5,7 @@ import {
   tcgplayerMassEntryUrl,
 } from "@openrift/shared/marketplace";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { legendDisplayName } from "@openrift/shared/utils";
+import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, PuzzleIcon, ShoppingCartIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -129,7 +129,12 @@ function CartRow({
   const name = printing === undefined ? "" : legendDisplayName(printing.card);
   return (
     <li className="flex items-center gap-3 border-b py-2 last:border-b-0">
-      <CardArtThumb imageId={frontImageId(printing)} alt="" className="w-7 shrink-0 rounded-sm" />
+      <CardArtThumb
+        imageId={frontImageId(printing)}
+        alt=""
+        landscape={printing !== undefined && getOrientation(printing.card.types) === "landscape"}
+        className="w-7 shrink-0 rounded-sm"
+      />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate">
           {item.quantity > 1 ? `${item.quantity}× ` : ""}

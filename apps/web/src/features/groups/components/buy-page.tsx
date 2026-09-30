@@ -1,4 +1,3 @@
-import type { Printing } from "@openrift/shared/types/catalog";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
@@ -13,10 +12,10 @@ import { IconChip } from "@/components/ui/icon-chip";
 import { SelectionMark } from "@/components/ui/selection-mark";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
+import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
+import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
-import { frontImageId } from "@/features/cards/lib/card-meta";
 import { useCopies } from "@/features/collections/hooks/use-copies";
 import { BuyCartPanel } from "@/features/groups/components/buy-cart-panel";
 import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
@@ -29,65 +28,15 @@ import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/lib/auth-session";
-import { formatterForMarketplace } from "@/lib/format";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+import { useDisplayStore } from "@/stores/display-store";
 
 type BuyFilter = "none" | "friends" | "all";
 
-function BuyTile({
-  printing,
-  price,
-  source,
-  quantity,
-  inCart,
-  onToggle,
-}: {
-  printing: Printing;
-  price: string | null;
-  source: string;
-  quantity: number;
-  inCart: boolean;
-  onToggle: () => void;
-}) {
-  const name = legendDisplayName(printing.card);
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div
-        className={cn(
-          "ring-offset-background relative min-w-0 rounded-lg ring-offset-2",
-          inCart && "ring-primary ring-2",
-        )}
-      >
-        <CardArtThumb
-          imageId={frontImageId(printing)}
-          alt={name}
-          loading="lazy"
-          rarity={printing.rarity}
-          domains={printing.card.domains}
-          className="w-full rounded-lg"
-        />
-        {price === null ? null : (
-          <span className="bg-background/85 text-foreground absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums">
-            {price}
-          </span>
-        )}
-        <SelectionMark
-          label={inCart ? m.trades_buy_remove({ name }) : m.trades_buy_add({ name })}
-          checked={inCart}
-          onCheckedChange={onToggle}
-        />
-      </div>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate font-medium">
-          {quantity > 1 ? `${quantity}× ` : ""}
-          {name}
-        </span>
-        <span className="text-muted-foreground truncate text-sm">{source}</span>
-      </div>
-    </div>
-  );
-}
+// Must mirror the grid's breakpoints; the cart panel takes 22rem from lg up.
+const GRID_SIZES =
+  "(min-width: 1280px) calc((100vw - 22rem) / 5), (min-width: 1024px) calc((100vw - 22rem) / 4), (min-width: 768px) calc(100vw / 4), (min-width: 640px) calc(100vw / 3), 50vw";
 
 function OrderedCallout({ collectionId, name }: { collectionId: string; name: string }) {
   const { data: copies } = useCopies(collectionId);
@@ -111,7 +60,8 @@ export function BuyPage() {
   const userId = useRequiredUserId();
   const { printingsById, printingsByCardId } = useCards();
   const prices = usePrices();
-  const formatPrice = formatterForMarketplace("cardtrader");
+  const display = useCardThumbnailDisplay();
+  const showImages = useDisplayStore((s) => s.showImages);
   const { market } = useTradeMarket();
   const { wanted, ready } = useWantedCards(true);
   const { orderedCollection } = useMarkOrdered();
@@ -125,7 +75,7 @@ export function BuyPage() {
   const shownPrintingId = (item: WantedCard): string | undefined =>
     item.printingId ?? printingsByCardId.get(item.cardId)?.[0]?.id;
   const priceValue = (printingId: string | undefined) =>
-    printingId === undefined ? undefined : prices.get(printingId, "cardtrader");
+    printingId === undefined ? undefined : prices.get(printingId, display.favoriteMarketplace);
   const nameOf = (item: WantedCard): string => {
     const printingId = shownPrintingId(item);
     const printing = printingId === undefined ? undefined : printingsById[printingId];
@@ -246,18 +196,36 @@ export function BuyPage() {
                 if (printing === undefined) {
                   return null;
                 }
-                const price = priceValue(printing.id);
+                const name = legendDisplayName(printing.card);
+                const inCart = cartKeys.has(item.key);
                 return (
-                  <BuyTile
+                  <CardThumbnail
                     key={item.key}
                     printing={printing}
-                    price={price === undefined ? null : formatPrice(price)}
-                    source={
-                      friendsHave(item) ? m.trades_buy_source_friends() : m.trades_buy_source_none()
+                    showImages={showImages}
+                    display={display}
+                    sizes={GRID_SIZES}
+                    view="printings"
+                    selected={inCart}
+                    onClick={() => toggle(item)}
+                    imageOverlay={
+                      <SelectionMark
+                        label={inCart ? m.trades_buy_remove({ name }) : m.trades_buy_add({ name })}
+                        checked={inCart}
+                        onCheckedChange={() => toggle(item)}
+                      />
                     }
-                    quantity={item.quantity}
-                    inCart={cartKeys.has(item.key)}
-                    onToggle={() => toggle(item)}
+                    belowLabel={
+                      <span className="text-muted-foreground mt-1 block truncate px-1.5 text-sm">
+                        {item.quantity > 1
+                          ? m.trades_market_want_count({ count: item.quantity })
+                          : null}
+                        {item.quantity > 1 ? " · " : null}
+                        {friendsHave(item)
+                          ? m.trades_buy_source_friends()
+                          : m.trades_buy_source_none()}
+                      </span>
+                    }
                   />
                 );
               })}

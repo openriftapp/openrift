@@ -14,8 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
+import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
+import { SourceAvatars } from "@/features/groups/components/source-avatars";
 import {
   HiddenSuggestions,
   PeopleFilter,
@@ -23,7 +26,6 @@ import {
 } from "@/features/groups/components/trade-market-filters";
 import type { TradeMarketSelection } from "@/features/groups/components/trade-market-sheet";
 import { TradeMarketSheet } from "@/features/groups/components/trade-market-sheet";
-import { SourceAvatars, TradeMarketTile } from "@/features/groups/components/trade-market-tile";
 import { useTradeMarket } from "@/features/groups/hooks/use-trade-market";
 import { useWantedCards } from "@/features/groups/hooks/use-wanted-cards";
 import { cartFor, cartItemForWanted } from "@/features/groups/lib/buy-cart";
@@ -39,13 +41,19 @@ import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { formatterForMarketplace } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
+import { useDisplayStore } from "@/stores/display-store";
 
 type MarketTab = "get" | "give" | "swap" | "buy";
 
 const ALL_GROUPS = "all";
 const GRID =
   "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7";
+// Must mirror GRID's breakpoints.
+const GRID_SIZES =
+  "(min-width: 1280px) calc(100vw / 7), (min-width: 1024px) calc(100vw / 6), (min-width: 768px) calc(100vw / 4), (min-width: 640px) calc(100vw / 3), 50vw";
+const BADGE_POSITION = "pointer-events-none absolute bottom-1.5 left-1.5 z-30";
 
 function whoLine(card: TradeMarketCard): string {
   const [first] = card.sources;
@@ -78,10 +86,11 @@ export function TradeMarket() {
   const userId = useRequiredUserId();
   const { printingsById, printingsByCardId } = useCards();
   const prices = usePrices();
+  const display = useCardThumbnailDisplay();
+  const showImages = useDisplayStore((s) => s.showImages);
   const formatPrice = formatterForMarketplace("cardtrader");
-  const priceValue = (printingId: string) => prices.get(printingId, "cardtrader");
   const priceOf = (printingId: string): string | null => {
-    const value = priceValue(printingId);
+    const value = prices.get(printingId, "cardtrader");
     return value === undefined ? null : formatPrice(value);
   };
   const nameOf = (printingId: string): string => {
@@ -140,7 +149,9 @@ export function TradeMarket() {
       items.filter((item) => matchesQuery(printingOf(item))),
       (item) => {
         const printingId = printingOf(item);
-        return printingId === undefined ? undefined : priceValue(printingId);
+        return printingId === undefined
+          ? undefined
+          : prices.get(printingId, display.favoriteMarketplace);
       },
       (item) => {
         const printingId = printingOf(item);
@@ -242,21 +253,26 @@ export function TradeMarket() {
                   }
                   const inCart = cartKeys.has(item.key);
                   return (
-                    <TradeMarketTile
+                    <CardThumbnail
                       key={item.key}
                       printing={printing}
-                      price={priceOf(printing.id)}
-                      badge={
+                      showImages={showImages}
+                      display={display}
+                      sizes={GRID_SIZES}
+                      view="printings"
+                      imageOverlay={
                         inCart ? (
-                          <Badge variant="secondary">{m.trades_market_in_cart()}</Badge>
+                          <Badge variant="secondary" className={BADGE_POSITION}>
+                            {m.trades_market_in_cart()}
+                          </Badge>
                         ) : undefined
                       }
                       selected={selection?.kind === "wanted" && selection.wanted.key === item.key}
-                      onSelect={() =>
+                      onClick={() =>
                         setSelection({ kind: "wanted", wanted: item, printingId: printing.id })
                       }
-                      footer={
-                        <span className="text-muted-foreground text-sm">
+                      belowLabel={
+                        <span className="text-muted-foreground mt-1 block px-1.5 text-sm">
                           {m.trades_market_want_count({ count: item.quantity })}
                         </span>
                       }
@@ -275,13 +291,18 @@ export function TradeMarket() {
                   return null;
                 }
                 return (
-                  <TradeMarketTile
+                  <CardThumbnail
                     key={`${card.direction}:${card.printingId}`}
                     printing={printing}
-                    price={priceOf(card.printingId)}
-                    badge={
+                    showImages={showImages}
+                    display={display}
+                    sizes={GRID_SIZES}
+                    view="printings"
+                    imageOverlay={
                       tab !== "swap" && card.swapUserIds.length > 0 ? (
-                        <Badge className="bg-success text-success-foreground gap-1">
+                        <Badge
+                          className={cn("bg-success text-success-foreground gap-1", BADGE_POSITION)}
+                        >
                           <ArrowLeftRightIcon />
                           {m.trades_market_swap_badge()}
                         </Badge>
@@ -292,9 +313,9 @@ export function TradeMarket() {
                       selection.card.printingId === card.printingId &&
                       selection.card.direction === card.direction
                     }
-                    onSelect={() => setSelection({ kind: "market", card })}
-                    footer={
-                      <span className="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
+                    onClick={() => setSelection({ kind: "market", card })}
+                    belowLabel={
+                      <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-2 px-1.5 text-sm">
                         <SourceAvatars sources={card.sources} />
                         <span className="truncate">{whoLine(card)}</span>
                       </span>

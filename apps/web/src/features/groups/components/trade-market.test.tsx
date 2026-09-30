@@ -10,7 +10,12 @@ import { stubPrinting } from "@/test/factories";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const jinx = stubPrinting({ id: "p-jinx", cardId: "c-jinx", card: { name: "Jinx, Rebel" } });
-const star = stubPrinting({ id: "p-star", cardId: "c-star", card: { name: "Falling Star" } });
+const star = stubPrinting({
+  id: "p-star",
+  cardId: "c-star",
+  card: { name: "Grove of the God-Willow", types: ["battlefield"] },
+  images: [{ face: "front", imageId: "grove-image-id-aa" }],
+});
 const leona = stubPrinting({ id: "p-leona", cardId: "c-leona", card: { name: "Leona, Zealot" } });
 
 function stubRow(overrides: Partial<FriendGroupMatchRow> = {}): FriendGroupMatchRow {
@@ -102,7 +107,27 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
 vi.mock("@/features/cards/hooks/use-prices", () => ({
   usePrices: () => ({ get: () => undefined }),
 }));
-vi.mock("@/features/cards/components/card-art-thumb", () => ({ CardArtThumb: () => null }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
+vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
+vi.mock("@/features/cards/hooks/use-card-thumbnail-display", () => ({
+  useCardThumbnailDisplay: () => ({
+    fancyFan: false,
+    gridFoil: false,
+    cardTilt: false,
+    coarsePointer: false,
+    domainColors: {},
+    finishLabels: {},
+    sizeLabels: {},
+    rarityLabels: {},
+    artVariantLabels: {},
+    prices: { get: () => undefined },
+    favoriteMarketplace: "cardtrader",
+    compactFmt: String,
+    getFallbackArt: () => null,
+  }),
+}));
 vi.mock("@/features/groups/hooks/use-trade-dismissals", () => ({
   useDismissSuggestions: () => ({ mutate: () => {}, isPending: false }),
   useRestoreSuggestion: () => ({ mutate: () => {}, isPending: false }),
@@ -131,6 +156,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetStore();
+  vi.restoreAllMocks();
 });
 
 describe("TradeMarket", () => {
@@ -151,9 +177,17 @@ describe("TradeMarket", () => {
   it("lists wanted cards no group member has on the last tab", () => {
     render(<TradeMarket />);
     fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
-    expect(screen.getByText("Falling Star")).toBeTruthy();
+    expect(screen.getAllByText("Grove of the God-Willow").length).toBeGreaterThan(0);
     expect(screen.queryByText("Jinx, Rebel")).toBeNull();
     expect(screen.getByText("You want 2")).toBeTruthy();
+  });
+
+  it("rotates battlefield art into the portrait frame", () => {
+    vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(880);
+    render(<TradeMarket />);
+    fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
+    const art = screen.getByRole("img", { name: "Grove of the God-Willow" });
+    expect(art.parentElement?.style.transform).toContain("rotate(-90deg)");
   });
 
   it("opens the sheet for the picked card", () => {

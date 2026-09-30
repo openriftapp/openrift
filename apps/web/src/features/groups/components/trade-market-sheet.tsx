@@ -1,6 +1,6 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
-import { legendDisplayName } from "@openrift/shared/utils";
+import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeftRightIcon, CheckIcon, EyeOffIcon, ShoppingCartIcon } from "lucide-react";
 
@@ -55,6 +55,7 @@ function SheetCardHeader({
         alt={name}
         rarity={printing.rarity}
         domains={printing.card.domains}
+        landscape={getOrientation(printing.card.types) === "landscape"}
         className="w-24 shrink-0 rounded-md"
       />
       <div className="flex min-w-0 flex-col gap-1">
