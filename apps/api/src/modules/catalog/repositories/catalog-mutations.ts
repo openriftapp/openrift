@@ -409,7 +409,7 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         tags?: string[];
       },
       normalizedName: string,
-    ): Promise<void> {
+    ): Promise<string> {
       const [primaryType] = cardFields.types;
       if (primaryType === undefined) {
         throw new Error("A card must have at least one type");
@@ -468,6 +468,8 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
         .values({ normName: normalizedName, cardId: cardUuid })
         .onConflict((oc) => oc.column("normName").doUpdateSet({ cardId: cardUuid }))
         .execute();
+
+      return cardUuid;
     },
 
     /**

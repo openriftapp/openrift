@@ -51,14 +51,15 @@ export async function acceptFavoriteNewCard(
   const cardSlug = slugifyName(primaryCandidate.name);
 
   const existing = await mut.getCardIdBySlug(cardSlug);
-  // oxlint-disable-next-line unicorn/prefer-ternary -- both branches are async with different logic
+  let cardId: string;
   if (existing) {
+    cardId = existing.id;
     await transact(async (trxRepos) => {
       await trxRepos.catalogMutations.createNameAliases(normalizedName, existing.id);
     });
   } else {
-    await transact(async (trxRepos) => {
-      await trxRepos.catalogMutations.acceptNewCardFromSources(
+    cardId = await transact((trxRepos) =>
+      trxRepos.catalogMutations.acceptNewCardFromSources(
         {
           id: cardSlug,
           name: primaryCandidate.name,
@@ -72,8 +73,8 @@ export async function acceptFavoriteNewCard(
           tags: primaryCandidate.tags ?? [],
         },
         normalizedName,
-      );
-    });
+      ),
+    );
   }
 
   const favCandidateIds = favoriteCandidates.map((cc) => cc.id);
@@ -111,7 +112,7 @@ export async function acceptFavoriteNewCard(
       await acceptPrinting(
         transact,
         repos,
-        cardSlug,
+        cardId,
         {
           shortCode: first.shortCode,
           setId: first.setId,

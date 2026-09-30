@@ -79,7 +79,7 @@ function createMockRepos(
 
   const catalogMutations = {
     getCardIdBySlug: vi.fn(async () => existingCard),
-    acceptNewCardFromSources: vi.fn(async () => {}),
+    acceptNewCardFromSources: vi.fn(async () => "new-card-uuid"),
     createNameAliases: vi.fn(async () => {}),
   };
 
@@ -151,6 +151,25 @@ describe("acceptFavoriteNewCard", () => {
 
     expect(catalogMutations.createNameAliases).toHaveBeenCalledWith("flame-striker", "card-uuid-1");
     expect(catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
+  });
+
+  it("passes the created card's id to acceptPrinting", async () => {
+    const { repos, catalogMutations } = createMockRepos();
+    catalogMutations.acceptNewCardFromSources.mockResolvedValue("new-card-uuid");
+    const transact = mockTransact(repos);
+
+    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
+
+    expect(vi.mocked(acceptPrinting).mock.calls[0]![2]).toBe("new-card-uuid");
+  });
+
+  it("passes the existing card's id to acceptPrinting", async () => {
+    const { repos } = createMockRepos({ existingCard: { id: "card-uuid-1" } });
+    const transact = mockTransact(repos);
+
+    await acceptFavoriteNewCard(transact, {} as Io, repos, "flame-striker", FAVORITE_PROVIDERS);
+
+    expect(vi.mocked(acceptPrinting).mock.calls[0]![2]).toBe("card-uuid-1");
   });
 
   it("derives slug from card name regardless of shortCode variant suffix", async () => {

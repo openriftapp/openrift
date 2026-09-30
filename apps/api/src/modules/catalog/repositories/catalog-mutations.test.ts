@@ -139,7 +139,7 @@ describe("catalogMutationsRepo", () => {
         },
         "newcard",
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe("c-new");
   });
 
   it("acceptNewCardFromSources writes an empty keyword set", async () => {
@@ -149,7 +149,7 @@ describe("catalogMutationsRepo", () => {
         { id: "OGS-DUP", name: "Keyword Card", types: ["spell"], domains: ["fury"] },
         "keywordcard",
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe("c-new");
   });
 
   it("createNameAliases upserts an alias", async () => {
