@@ -107,7 +107,7 @@ describe("PersonActions", () => {
     if (robogirl === undefined) {
       throw new Error("missing person");
     }
-    render(<PersonActions market={market} person={robogirl} />);
+    render(<PersonActions cards={market.outgoing} person={robogirl} />);
     fireEvent.click(screen.getByRole("button", { name: "Hide 2 suggestions with Robogirl" }));
     expect(dismiss).toHaveBeenCalledWith([
       { direction: "outgoing", counterpartyUserId: "user-robogirl", printingId: "p-1" },

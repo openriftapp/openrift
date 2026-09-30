@@ -182,7 +182,10 @@ export interface TradeMarketPerson extends TradeMarketSource {
   cardCount: number;
 }
 
-export function marketPeople(market: TradeMarket): TradeMarketPerson[] {
+export function marketPeople(
+  market: TradeMarket,
+  counted?: readonly TradeMarketCard[],
+): TradeMarketPerson[] {
   const byUser = new Map<string, TradeMarketPerson>();
   for (const card of [...market.incoming, ...market.outgoing]) {
     for (const source of card.sources) {
@@ -194,13 +197,27 @@ export function marketPeople(market: TradeMarket): TradeMarketPerson[] {
       }
     }
   }
-  return [...byUser.values()].toSorted(
+  const people = [...byUser.values()].toSorted(
     (a, b) => b.cardCount - a.cardCount || (a.name ?? "").localeCompare(b.name ?? ""),
   );
+  if (counted === undefined) {
+    return people;
+  }
+  return people
+    .map((person) => ({
+      ...person,
+      cardCount: counted.filter((card) =>
+        card.sources.some((source) => source.userId === person.userId),
+      ).length,
+    }))
+    .filter((person) => person.cardCount > 0);
 }
 
-export function marketDismissals(market: TradeMarket, userId: string): TradeSuggestionDismissal[] {
-  return [...market.incoming, ...market.outgoing].flatMap((card) =>
+export function marketDismissals(
+  cards: readonly TradeMarketCard[],
+  userId: string,
+): TradeSuggestionDismissal[] {
+  return cards.flatMap((card) =>
     card.sources.some((source) => source.userId === userId)
       ? [{ direction: card.direction, counterpartyUserId: userId, printingId: card.printingId }]
       : [],

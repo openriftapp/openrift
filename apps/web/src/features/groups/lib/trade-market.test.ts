@@ -208,6 +208,12 @@ describe("people", () => {
     ]);
   });
 
+  it("counts only the given cards per person and drops people with none", () => {
+    expect(
+      marketPeople(market, market.outgoing).map((person) => [person.userId, person.cardCount]),
+    ).toEqual([["user-3", 1]]);
+  });
+
   it("narrows cards to one person", () => {
     expect(filterMarketByPerson(market.incoming, "user-3")).toEqual([]);
     expect(filterMarketByPerson(market.outgoing, "user-3")).toHaveLength(1);
@@ -215,7 +221,7 @@ describe("people", () => {
   });
 
   it("builds a dismissal for each of one person's suggestions", () => {
-    expect(marketDismissals(market, "user-2")).toEqual([
+    expect(marketDismissals([...market.incoming, ...market.outgoing], "user-2")).toEqual([
       { direction: "incoming", counterpartyUserId: "user-2", printingId: "printing-1" },
       { direction: "incoming", counterpartyUserId: "user-2", printingId: "printing-2" },
     ]);

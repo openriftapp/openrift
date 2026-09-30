@@ -293,9 +293,9 @@ function MatchRow({
     <li
       ref={rowRef}
       {...hoverProps}
-      className="group hover:bg-muted/50 flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-3"
+      className="group hover:bg-muted/50 flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors @lg:flex-row @lg:items-center @lg:gap-3"
     >
-      <div className="flex min-w-0 items-center gap-3 sm:contents">
+      <div className="flex min-w-0 items-center gap-3 @lg:contents">
         <TradeDirectionIcon incoming={incoming} />
 
         <CardArtThumb
@@ -328,10 +328,10 @@ function MatchRow({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 sm:contents">
-        <div className="flex min-w-0 items-center gap-2 sm:contents">
+      <div className="flex items-center justify-between gap-2 @lg:contents">
+        <div className="flex min-w-0 items-center gap-2 @lg:contents">
           {hasCounterpartyPref ? (
-            <div className="shrink-0 text-right sm:min-w-32 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <div className="shrink-0 text-right @lg:min-w-32 @lg:opacity-0 @lg:transition-opacity @lg:group-hover:opacity-100">
               <MatchPreferenceCell
                 label={priceLabel}
                 pref={counterpartyPref}
@@ -479,8 +479,8 @@ function MatchTradeRowGroup({
 
   return (
     <CardList className="gap-2">
-      <li className="hover:bg-muted/50 relative flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors sm:flex-row sm:items-center sm:gap-3">
-        <div className="flex min-w-0 items-center gap-3 sm:contents">
+      <li className="hover:bg-muted/50 relative flex flex-col gap-2 rounded-md px-2 py-1.5 transition-colors @lg:flex-row @lg:items-center @lg:gap-3">
+        <div className="flex min-w-0 items-center gap-3 @lg:contents">
           <TradeDirectionIcon incoming={incoming} />
 
           <CardArtThumb
@@ -533,13 +533,13 @@ function MatchTradeRowGroup({
             aria-label={
               expanded ? `Collapse ${group.cardName} variants` : `Expand ${group.cardName} variants`
             }
-            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors before:absolute before:inset-0 before:content-[''] sm:order-last"
+            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors before:absolute before:inset-0 before:content-[''] @lg:order-last"
             chevronClassName="text-inherit"
           />
         </div>
 
         {headerStatus ? (
-          <div className="flex flex-wrap items-center gap-2 sm:contents">
+          <div className="flex flex-wrap items-center gap-2 @lg:contents">
             <TradeStatusBadge status={headerStatus} className="min-w-0 shrink" />
           </div>
         ) : null}
@@ -678,7 +678,7 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
   const infosByPrinting = marketplaceInfo?.infos ?? {};
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="@container flex flex-col gap-2">
       <BulkRequestRow groups={groups} />
       {groups.map((group) => (
         <MatchGroupItem

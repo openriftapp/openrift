@@ -126,17 +126,21 @@ export function TradeMarket() {
   const wantedForCard = (card: TradeMarketCard): WantedCard | undefined =>
     wanted.find((item) => wantedMatchesPrinting(item, card.cardId, card.printingId));
 
-  const people = marketPeople(market);
+  const incomingInGroup = filterMarketByGroup(market.incoming, groupSlug);
+  const outgoingInGroup = filterMarketByGroup(market.outgoing, groupSlug);
+  const isSwap = (card: TradeMarketCard) => card.swapUserIds.length > 0;
+  const people = marketPeople(
+    market,
+    tab === "give"
+      ? outgoingInGroup
+      : tab === "swap"
+        ? incomingInGroup.filter((card) => isSwap(card))
+        : incomingInGroup,
+  );
   const person = people.find((entry) => entry.userId === personId);
-  const incoming = filterMarketByPerson(
-    filterMarketByGroup(market.incoming, groupSlug),
-    person?.userId ?? null,
-  );
-  const outgoing = filterMarketByPerson(
-    filterMarketByGroup(market.outgoing, groupSlug),
-    person?.userId ?? null,
-  );
-  const swaps = incoming.filter((card) => card.swapUserIds.length > 0);
+  const incoming = filterMarketByPerson(incomingInGroup, person?.userId ?? null);
+  const outgoing = filterMarketByPerson(outgoingInGroup, person?.userId ?? null);
+  const swaps = incoming.filter((card) => isSwap(card));
   const buyable = wanted.filter(
     (item) =>
       !market.incoming.some((card) => wantedMatchesPrinting(item, card.cardId, card.printingId)),
@@ -236,7 +240,7 @@ export function TradeMarket() {
           />
         )}
         {tab === "buy" || person === undefined ? null : (
-          <PersonActions market={market} person={person} />
+          <PersonActions cards={marketCards} person={person} />
         )}
 
         <TabsContent value={tab}>

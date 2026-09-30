@@ -14,7 +14,7 @@ import {
   useRestoreSuggestion,
 } from "@/features/groups/hooks/use-trade-dismissals";
 import type {
-  TradeMarket,
+  TradeMarketCard,
   TradeMarketGroup,
   TradeMarketPerson,
 } from "@/features/groups/lib/trade-market";
@@ -64,15 +64,15 @@ export function PeopleFilter({
 }
 
 export function PersonActions({
-  market,
+  cards,
   person,
 }: {
-  market: TradeMarket;
+  cards: readonly TradeMarketCard[];
   person: TradeMarketPerson;
 }) {
   const dismiss = useDismissSuggestions();
   const name = person.name ?? m.trades_member_fallback();
-  const dismissals = marketDismissals(market, person.userId);
+  const dismissals = marketDismissals(cards, person.userId);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button
