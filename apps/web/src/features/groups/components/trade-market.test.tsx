@@ -164,7 +164,6 @@ describe("TradeMarket", () => {
     render(<TradeMarket />);
     expect(screen.getByRole("tab", { name: /You could get\s*1/u })).toBeTruthy();
     expect(screen.getByRole("tab", { name: /Wanted from you\s*1/u })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /Two-way swaps\s*1/u })).toBeTruthy();
     expect(screen.getByRole("tab", { name: /Not in your groups\s*1/u })).toBeTruthy();
   });
 

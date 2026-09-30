@@ -31,7 +31,6 @@ export interface TradeMarketCard {
   cardId: string;
   sources: TradeMarketSource[];
   rows: TradeMarketRow[];
-  swapUserIds: string[];
 }
 
 export interface TradeMarket {
@@ -91,34 +90,14 @@ function collect(
   return byPrinting;
 }
 
-function sourceUserIds(cards: Map<string, MutableCard>): Set<string> {
-  const ids = new Set<string>();
-  for (const card of cards.values()) {
-    for (const userId of card.sources.keys()) {
-      ids.add(userId);
-    }
-  }
-  return ids;
-}
-
-function finish(
-  cards: Map<string, MutableCard>,
-  direction: MatchDirection,
-  otherSide: Set<string>,
-): TradeMarketCard[] {
-  return [...cards.values()].map((card) => {
-    const sources = [...card.sources.values()];
-    return {
-      direction,
-      printingId: card.printingId,
-      cardId: card.cardId,
-      sources,
-      rows: card.rows,
-      swapUserIds: sources
-        .filter((source) => otherSide.has(source.userId))
-        .map((source) => source.userId),
-    };
-  });
+function finish(cards: Map<string, MutableCard>, direction: MatchDirection): TradeMarketCard[] {
+  return [...cards.values()].map((card) => ({
+    direction,
+    printingId: card.printingId,
+    cardId: card.cardId,
+    sources: [...card.sources.values()],
+    rows: card.rows,
+  }));
 }
 
 /** One entry per printing and direction, pooled across groups; live trades already cover their rows. */
@@ -130,8 +109,8 @@ export function buildTradeMarket(
   const incoming = collect(groups, trades, "incoming", dismissed);
   const outgoing = collect(groups, trades, "outgoing", dismissed);
   return {
-    incoming: finish(incoming, "incoming", sourceUserIds(outgoing)),
-    outgoing: finish(outgoing, "outgoing", sourceUserIds(incoming)),
+    incoming: finish(incoming, "incoming"),
+    outgoing: finish(outgoing, "outgoing"),
   };
 }
 
@@ -148,7 +127,6 @@ function narrowCard(
     ...card,
     rows,
     sources: card.sources.filter((source) => userIds.has(source.userId)),
-    swapUserIds: card.swapUserIds.filter((userId) => userIds.has(userId)),
   };
 }
 

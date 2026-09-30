@@ -1,13 +1,5 @@
 # Changelog
 
-## 2026-09-30
-
-### Other
-
-- fix(Trades): **Battlefields sideways in the Trades Hub** — battlefields in the card market, the buy page and the buy cart showed their art cropped and upright. They now turn like everywhere else, and the market and buy page cards look and behave like the card browser, including foil, tilt and your preferred marketplace's price.
-- fix(Trades): **Readable offers in the card panel** — the people who have a card, listed in the panel that opens from the Trades Hub, were squeezed into one line with the price cut off. They now stack like on a phone.
-- fix(Trades): **Person filter matches the tab** — the count next to each person and the "Hide suggestions" button counted cards from every tab. Both now count only the cards on the tab you're looking at.
-
 ## 2026-09-24
 
 ### Milestone

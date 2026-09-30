@@ -128,20 +128,6 @@ describe("buildTradeMarket", () => {
     expect(market.incoming.map((card) => card.printingId)).toEqual(["printing-1", "printing-2"]);
   });
 
-  it("marks sources who also want something from the viewer as swap partners", () => {
-    const market = buildTradeMarket(
-      [
-        stubGroup({
-          incoming: [stubRow(), stubRow({ counterpartyUserId: "user-3" })],
-          outgoing: [stubRow({ printingId: "printing-9", cardId: "card-9" })],
-        }),
-      ],
-      [],
-    );
-    expect(market.incoming[0]?.swapUserIds).toEqual(["user-2"]);
-    expect(market.outgoing[0]?.swapUserIds).toEqual(["user-2"]);
-  });
-
   it("drops rows a live trade already covers", () => {
     const market = buildTradeMarket([stubGroup({ incoming: [stubRow()] })], [stubLiveTrade()]);
     expect(market.incoming).toEqual([]);
@@ -245,11 +231,10 @@ describe("filterMarketByGroup", () => {
     expect(filterMarketByGroup(market.incoming, null)).toHaveLength(1);
   });
 
-  it("narrows rows, sources and swap partners to one group", () => {
+  it("narrows rows and sources to one group", () => {
     const [card] = filterMarketByGroup(market.incoming, "piltover-league");
     expect(card?.rows).toHaveLength(1);
     expect(card?.sources.map((source) => source.userId)).toEqual(["user-3"]);
-    expect(card?.swapUserIds).toEqual([]);
   });
 
   it("drops cards the group has no rows for", () => {

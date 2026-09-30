@@ -2,10 +2,9 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeftRightIcon, CheckIcon, EyeOffIcon, ShoppingCartIcon } from "lucide-react";
+import { CheckIcon, EyeOffIcon, ShoppingCartIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Callout } from "@/components/ui/callout";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Sheet,
@@ -107,44 +106,6 @@ function DismissSources({ card, onClose }: { card: TradeMarketCard; onClose: () 
             <EyeOffIcon />
             {m.trades_market_hide_one({ name })}
           </Button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SwapHints({ card }: { card: TradeMarketCard }) {
-  if (card.swapUserIds.length === 0) {
-    return null;
-  }
-  const partners = card.sources.filter((source) => card.swapUserIds.includes(source.userId));
-  return (
-    <div className="flex flex-col gap-2">
-      {partners.map((partner) => {
-        const name = partner.name ?? m.trades_member_fallback();
-        return (
-          <Callout key={partner.userId} className="flex flex-col gap-3">
-            <p className="flex items-center gap-2 font-medium">
-              <ArrowLeftRightIcon className="text-success size-4 shrink-0" />
-              {card.direction === "incoming"
-                ? m.trades_market_swap_wants_yours({ name })
-                : m.trades_market_swap_has_yours({ name })}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="self-start"
-              render={
-                <Link
-                  to="/trades/$userId"
-                  params={{ userId: partner.userId }}
-                  search={{ from: undefined }}
-                />
-              }
-            >
-              {m.trades_market_open_sheet({ name })}
-            </Button>
-          </Callout>
         );
       })}
     </div>
@@ -262,7 +223,6 @@ export function TradeMarketSheet({
                 </section>
               )}
               {card === null ? null : <DismissSources card={card} onClose={onClose} />}
-              {card === null ? null : <SwapHints card={card} />}
               {wanted === undefined ? null : (
                 <BuyRow
                   wanted={wanted}
