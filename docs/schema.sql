@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TxeibSYNI5HGb80eZyxD7WIKKHXX5bYcJoHTu1aa3rm3lbxVMHINRFS3CsENb1h
+\restrict fUGtsOXRYcXnBTteBCMc5jt9eg2s1kekyEQS2RewieQKqVEZyK8NMUYyUAVJwbf
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -2338,7 +2338,7 @@ CREATE TABLE public.marketplace_groups (
     id uuid DEFAULT uuidv7() NOT NULL,
     group_kind public.marketplace_group_kind DEFAULT 'basic'::public.marketplace_group_kind NOT NULL,
     set_id uuid,
-    CONSTRAINT chk_marketplace_groups_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text])))
+    CONSTRAINT chk_marketplace_groups_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text])))
 );
 
 
@@ -2352,7 +2352,7 @@ CREATE TABLE public.marketplace_ignored_products (
     product_name text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT chk_marketplace_ignored_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text])))
+    CONSTRAINT chk_marketplace_ignored_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text])))
 );
 
 
@@ -2438,7 +2438,7 @@ CREATE TABLE public.marketplace_products (
     language text,
     norm_name text DEFAULT ''::text NOT NULL,
     CONSTRAINT chk_marketplace_products_external_id_positive CHECK ((external_id > 0)),
-    CONSTRAINT chk_marketplace_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text]))),
+    CONSTRAINT chk_marketplace_products_marketplace CHECK ((marketplace = ANY (ARRAY['tcgplayer'::text, 'cardmarket'::text, 'cardtrader'::text, 'cardnexus'::text]))),
     CONSTRAINT chk_marketplace_products_product_name_not_empty CHECK ((product_name <> ''::text))
 );
 
@@ -10174,5 +10174,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TxeibSYNI5HGb80eZyxD7WIKKHXX5bYcJoHTu1aa3rm3lbxVMHINRFS3CsENb1h
+\unrestrict fUGtsOXRYcXnBTteBCMc5jt9eg2s1kekyEQS2RewieQKqVEZyK8NMUYyUAVJwbf
 
