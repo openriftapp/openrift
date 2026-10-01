@@ -103,7 +103,8 @@ describe("BuyCartPanel", () => {
   it("sends TCGplayer the listed printings and names the ones it can't take", () => {
     useBuyCartStore.getState().setMarketplace("tcgplayer");
     renderPanel();
-    const link = screen.getByRole("link", { name: "Add to TCGplayer cart" });
+    const link = screen.getByRole("link", { name: "Add 1 card to TCGplayer cart" });
+    expect(screen.getByText("Opens TCGplayer with the cards already in your cart.")).toBeTruthy();
     const target = new URL(new URL(link.getAttribute("href") ?? "").searchParams.get("u") ?? "");
     expect(target.searchParams.get("c")).toBe("1-652993");
     expect(screen.getByText("1 card isn't listed on TCGplayer and was left out.")).toBeTruthy();

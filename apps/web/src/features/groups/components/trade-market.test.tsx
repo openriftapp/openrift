@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { dismissalKeys } from "@/features/groups/lib/trade-dismissals";
+import type { TradeMarketGroup } from "@/features/groups/lib/trade-market";
 import { buildTradeMarket } from "@/features/groups/lib/trade-market";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
@@ -51,17 +53,14 @@ function stubRow(overrides: Partial<FriendGroupMatchRow> = {}): FriendGroupMatch
   };
 }
 
-const market = buildTradeMarket(
-  [
-    {
-      slug: "summoner-skirmish",
-      name: "Summoner Skirmish",
-      incoming: [stubRow()],
-      outgoing: [stubRow({ printingId: "p-leona", cardId: "c-leona", cardName: "Leona, Zealot" })],
-    },
-  ],
-  [],
-);
+const group: TradeMarketGroup = {
+  slug: "summoner-skirmish",
+  name: "Summoner Skirmish",
+  incoming: [stubRow()],
+  outgoing: [stubRow({ printingId: "p-leona", cardId: "c-leona", cardName: "Leona, Zealot" })],
+};
+const market = buildTradeMarket([group], []);
+let currentMarket = market;
 
 function wantedCard(overrides: Partial<WantedCard>): WantedCard {
   return {
@@ -85,7 +84,7 @@ const wanted = [
 vi.mock("@/lib/auth-session", () => ({ useRequiredUserId: () => "user-1" }));
 vi.mock("@/features/groups/hooks/use-trade-market", () => ({
   useTradeMarket: () => ({
-    market,
+    market: currentMarket,
     groups: [{ slug: "summoner-skirmish", name: "Summoner Skirmish" }],
     marketGroups: [],
     dismissals: [],
@@ -137,12 +136,19 @@ vi.mock("@/features/groups/components/trade-market-sheet", () => ({
   TradeMarketSheet: ({
     selection,
   }: {
-    selection: { kind: string; card?: { printingId: string }; printingId?: string } | null;
+    selection: {
+      kind: string;
+      card?: { printingId: string; sources: unknown[] };
+      printingId?: string;
+    } | null;
   }): ReactNode =>
     selection === null ? null : (
-      <div>
-        sheet:{selection.kind === "market" ? selection.card?.printingId : selection.printingId}
-      </div>
+      <>
+        <div>
+          sheet:{selection.kind === "market" ? selection.card?.printingId : selection.printingId}
+        </div>
+        {selection.card === undefined ? null : <div>sources:{selection.card.sources.length}</div>}
+      </>
     ),
 }));
 
@@ -155,6 +161,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  currentMarket = market;
   resetStore();
   vi.restoreAllMocks();
 });
@@ -181,6 +188,17 @@ describe("TradeMarket", () => {
     expect(screen.getByText("You want 2")).toBeTruthy();
   });
 
+  it("adds every card no group member has to the cart in one go", () => {
+    render(<TradeMarket />);
+    fireEvent.click(screen.getByRole("tab", { name: /Not in your groups/u }));
+    expect(screen.getByText("2 cards no one in your groups has")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add all 2 to cart" }));
+    expect(useBuyCartStore.getState().carts["user-1"]?.items.map((item) => item.key)).toEqual([
+      "printing:p-star",
+    ]);
+    expect(screen.getByText("View cart")).toBeTruthy();
+  });
+
   it("rotates battlefield art into the portrait frame", () => {
     vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(880);
     render(<TradeMarket />);
@@ -193,6 +211,29 @@ describe("TradeMarket", () => {
     render(<TradeMarket />);
     fireEvent.click(screen.getByRole("button", { name: /Jinx, Rebel/u }));
     expect(screen.getByText("sheet:p-jinx")).toBeTruthy();
+  });
+
+  it("keeps the open sheet in step with hidden suggestions", () => {
+    const kofi = stubRow({
+      counterpartyUserId: "user-kofi",
+      counterpartyName: "Kofi",
+      copyId: "copy-2",
+    });
+    const groups = [{ ...group, incoming: [stubRow(), kofi] }];
+    currentMarket = buildTradeMarket(groups, []);
+    const { rerender } = render(<TradeMarket />);
+    fireEvent.click(screen.getByRole("button", { name: /Jinx, Rebel/u }));
+    expect(screen.getByText("sources:2")).toBeTruthy();
+
+    currentMarket = buildTradeMarket(
+      groups,
+      [],
+      dismissalKeys([
+        { direction: "incoming", counterpartyUserId: "user-kofi", printingId: "p-jinx" },
+      ]),
+    );
+    rerender(<TradeMarket />);
+    expect(screen.getByText("sources:1")).toBeTruthy();
   });
 
   it("narrows the grid by the search", () => {

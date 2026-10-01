@@ -45,6 +45,11 @@ export interface CardTradeCopiesTable {
   copyId: string;
 }
 
+export interface CardTradeRequestedCopiesTable {
+  tradeId: string;
+  copyId: string;
+}
+
 export interface CardTradeSettlementRequestsTable {
   tradeId: string;
   userId: string;

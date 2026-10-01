@@ -178,6 +178,7 @@ import type {
 } from "./tables/tournaments.js";
 import type {
   CardTradeCopiesTable,
+  CardTradeRequestedCopiesTable,
   CardTradesTable,
   CardTradeSettlementRequestsTable,
   TradeSuggestionDismissalsTable,
@@ -311,6 +312,7 @@ export interface Database {
 
   cardTrades: CardTradesTable;
   cardTradeCopies: CardTradeCopiesTable;
+  cardTradeRequestedCopies: CardTradeRequestedCopiesTable;
   cardTradeSettlementRequests: CardTradeSettlementRequestsTable;
   tradeSuggestionDismissals: TradeSuggestionDismissalsTable;
 

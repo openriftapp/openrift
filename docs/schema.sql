@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GqhzfNKk0VHxYIiPyjDyBfA6cVYntSb6wnP4pAddNNOwCdwsJmoAaNMYZ9jptzJ
+\restrict TxeibSYNI5HGb80eZyxD7WIKKHXX5bYcJoHTu1aa3rm3lbxVMHINRFS3CsENb1h
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1217,6 +1217,16 @@ CREATE TABLE public.card_tokens (
 --
 
 CREATE TABLE public.card_trade_copies (
+    trade_id uuid NOT NULL,
+    copy_id uuid NOT NULL
+);
+
+
+--
+-- Name: card_trade_requested_copies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.card_trade_requested_copies (
     trade_id uuid NOT NULL,
     copy_id uuid NOT NULL
 );
@@ -4411,6 +4421,14 @@ ALTER TABLE ONLY public.card_trade_copies
 
 
 --
+-- Name: card_trade_requested_copies card_trade_requested_copies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_pkey PRIMARY KEY (trade_id, copy_id);
+
+
+--
 -- Name: card_trade_settlement_requests card_trade_settlement_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6106,6 +6124,13 @@ CREATE INDEX idx_card_submissions_user_status ON public.card_submissions USING b
 --
 
 CREATE INDEX idx_card_tokens_token_card_id ON public.card_tokens USING btree (token_card_id);
+
+
+--
+-- Name: idx_card_trade_requested_copies_copy; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_card_trade_requested_copies_copy ON public.card_trade_requested_copies USING btree (copy_id);
 
 
 --
@@ -8362,6 +8387,22 @@ ALTER TABLE ONLY public.card_trade_copies
 
 
 --
+-- Name: card_trade_requested_copies card_trade_requested_copies_copy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_copy_id_fkey FOREIGN KEY (copy_id) REFERENCES public.copies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: card_trade_requested_copies card_trade_requested_copies_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_trade_requested_copies
+    ADD CONSTRAINT card_trade_requested_copies_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.card_trades(id) ON DELETE CASCADE;
+
+
+--
 -- Name: card_trade_settlement_requests card_trade_settlement_requests_settled_trade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10133,5 +10174,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GqhzfNKk0VHxYIiPyjDyBfA6cVYntSb6wnP4pAddNNOwCdwsJmoAaNMYZ9jptzJ
+\unrestrict TxeibSYNI5HGb80eZyxD7WIKKHXX5bYcJoHTu1aa3rm3lbxVMHINRFS3CsENb1h
 

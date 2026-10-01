@@ -1,9 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import {
-  PageDescription,
   PageTopBar,
   PageTopBarActions,
   PageTopBarButton,
@@ -26,7 +26,7 @@ import { useUserTrades } from "@/features/groups/hooks/use-card-trades";
 import { useFriendGroupsList } from "@/features/groups/hooks/use-friend-groups";
 import { cartFor } from "@/features/groups/lib/buy-cart";
 import { distinctPrintingIds } from "@/features/groups/lib/friend-group-activity";
-import { needsYouLine } from "@/features/groups/lib/trade-hub";
+import { needsYouLine, nextMoveLabel } from "@/features/groups/lib/trade-hub";
 import type { TradesIndexPerson } from "@/features/groups/lib/trades-index";
 import { buildTradesIndex } from "@/features/groups/lib/trades-index";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
@@ -102,6 +102,53 @@ function PeopleGrid({ people, showGroups }: { people: TradesIndexPerson[]; showG
   );
 }
 
+function YourMoveRow({ person }: { person: TradesIndexPerson }) {
+  const { cardsById } = useCards();
+  const action = needsYouLine(person.needsYou);
+  const cardNames = [
+    ...new Set(
+      person.needsYou.flatMap((trade) => {
+        const card = cardsById[trade.cardId];
+        return card === undefined ? [] : [legendDisplayName(card)];
+      }),
+    ),
+  ].join(", ");
+  return (
+    <div className="bg-card border-primary/45 flex w-72 shrink-0 items-start gap-3 rounded-lg border p-3 sm:w-auto">
+      <UserAvatar
+        image={person.image}
+        name={person.name}
+        gravatarHash={person.gravatarHash}
+        size="sm"
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {person.name ?? m.trades_member_fallback()}
+          </span>
+          <Button
+            size="sm"
+            className="shrink-0"
+            render={
+              <Link
+                to="/trades/$userId"
+                params={{ userId: person.userId }}
+                search={{ from: undefined }}
+              />
+            }
+          >
+            {nextMoveLabel(person.needsYou[0])}
+          </Button>
+        </div>
+        {action === null ? null : <span className="truncate text-sm">{action}</span>}
+        {cardNames === "" ? null : (
+          <span className="text-muted-foreground truncate text-sm">{cardNames}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NoGroupsCallout() {
   return (
     <Callout className="flex flex-wrap items-center gap-3">
@@ -141,8 +188,6 @@ export function TradesIndexPage() {
       </PageTopBarSticky>
 
       <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
-        <PageDescription>{m.trades_index_description()}</PageDescription>
-
         {noGroups ? <NoGroupsCallout /> : null}
 
         {index.yourMove.length > 0 ? (
@@ -150,22 +195,32 @@ export function TradesIndexPage() {
             <SectionHeading icon={BellIcon} tone="gold" count={index.yourMove.length}>
               {m.trades_section_your_move()}
             </SectionHeading>
-            <PeopleGrid people={index.yourMove} showGroups={showGroups} />
-          </section>
-        ) : null}
-
-        {index.waiting.length > 0 ? (
-          <section className="flex flex-col gap-3">
-            <SectionHeading count={index.waiting.length}>
-              {m.trades_section_waiting()}
-            </SectionHeading>
-            <PeopleGrid people={index.waiting} showGroups={showGroups} />
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+              {index.yourMove.map((person) => (
+                <YourMoveRow key={person.userId} person={person} />
+              ))}
+            </div>
           </section>
         ) : null}
 
         <Suspense fallback={null}>
           <TradeMarket />
         </Suspense>
+
+        {index.waiting.length > 0 ? (
+          <Collapsible defaultOpen={index.yourMove.length === 0} className="flex flex-col gap-3">
+            <SectionHeading as="h3">
+              <CollapsibleTrigger className="group hover:text-foreground flex w-full items-center gap-2.5 text-left transition-colors">
+                {m.trades_section_waiting()}
+                <span className="text-muted-foreground tabular-nums">{index.waiting.length}</span>
+                <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-[panel-open]:rotate-90" />
+              </CollapsibleTrigger>
+            </SectionHeading>
+            <CollapsibleContent>
+              <PeopleGrid people={index.waiting} showGroups={showGroups} />
+            </CollapsibleContent>
+          </Collapsible>
+        ) : null}
 
         {index.past.length > 0 ? (
           <Collapsible defaultOpen={live === 0} className="flex flex-col gap-3">

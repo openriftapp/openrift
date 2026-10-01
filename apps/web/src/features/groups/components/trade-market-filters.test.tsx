@@ -8,6 +8,7 @@ import { stubPrinting } from "@/test/factories";
 
 const dismiss = vi.hoisted(() => vi.fn());
 const restore = vi.hoisted(() => vi.fn());
+const mobile = vi.hoisted(() => ({ value: false }));
 
 const printing = stubPrinting({ id: "p-1", cardId: "c-1", card: { name: "Jinx, Rebel" } });
 
@@ -19,6 +20,7 @@ vi.mock("@/features/cards/hooks/use-cards", () => ({
   useCards: () => ({ printingsById: { "p-1": printing } }),
 }));
 vi.mock("@/components/user-avatar", () => ({ UserAvatar: () => null }));
+vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => mobile.value }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, className }: { to: string; children?: ReactNode; className?: string }) => (
     <a href={to} className={className}>
@@ -73,6 +75,7 @@ const groups = [
 const market = buildTradeMarket(groups, []);
 
 afterEach(() => {
+  mobile.value = false;
   vi.clearAllMocks();
 });
 
@@ -102,6 +105,13 @@ describe("PeopleFilter", () => {
 });
 
 describe("PersonActions", () => {
+  it("collapses into one dropdown on a phone", () => {
+    mobile.value = true;
+    render(<PeopleFilter people={marketPeople(market)} personId={null} onPersonChange={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /Robogirl/u })).toBeNull();
+    expect(screen.getByRole("combobox", { name: "People" }).textContent).toContain("Everyone");
+  });
+
   it("hides every current suggestion with the person at once", () => {
     const robogirl = marketPeople(market).find((person) => person.userId === "user-robogirl");
     if (robogirl === undefined) {

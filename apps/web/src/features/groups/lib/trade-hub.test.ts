@@ -9,6 +9,7 @@ import {
   isQuietTradeHubCard,
   needsYouCounts,
   needsYouLine,
+  nextMoveLabel,
   elsewhereSuggestionsLine,
   sortNeedsYou,
 } from "./trade-hub";
@@ -113,6 +114,22 @@ describe("needsYouLine", () => {
     expect(needsYouLine([stubTrade({ actionNeeded: "accept-or-decline" })], NOW)).toBe(
       "1 to answer",
     );
+  });
+});
+
+describe("nextMoveLabel", () => {
+  it("asks to answer a pending request", () => {
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "accept-or-decline" }))).toBe("Answer");
+  });
+
+  it("asks the giver to hand over and the receiver to confirm when settling", () => {
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "giver" }))).toBe("Hand over");
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "settle", role: "receiver" }))).toBe("Confirm");
+  });
+
+  it("falls back to opening the sheet", () => {
+    expect(nextMoveLabel(stubTrade({ actionNeeded: "cancel" }))).toBe("Open");
+    expect(nextMoveLabel(undefined)).toBe("Open");
   });
 });
 

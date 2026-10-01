@@ -3504,6 +3504,8 @@
   "trade_pref_price_tcg_lowest": "市集價（TCGplayer）",
   "trade_pref_price_ct_zero": "市集價（CardTrader）",
   "trade_pref_price_fixed": "固定價",
+  "trades_pref_price_at": "{marketplace} {price}",
+  "trades_pref_marketplace_price": "{marketplace} 價格",
   "trade_pref_type_cards": "卡牌",
   "trade_pref_type_money": "現金",
   "trade_pref_type_both": "卡牌或現金",
@@ -4257,10 +4259,13 @@
   "trades_total_count": "共 {count} 張",
   "trades_none_in_your_collections": "你自己的收藏中沒有這張卡。",
   "trades_available_count": "{count} 張可用",
-  "trades_index_description": "你在所有社團中正在交換的對象，以及可能的交換對象。",
   "trades_empty_description": "交換從社團開始：在社團中分享願望清單或交換清單，與其他成員的配對就會出現。",
   "trades_go_to_groups": "前往社團",
   "trades_section_your_move": "輪到你了",
+  "trades_your_move_answer": "回覆",
+  "trades_your_move_hand_over": "交付",
+  "trades_your_move_confirm": "確認",
+  "trades_your_move_open": "開啟",
   "trades_section_waiting": "等待對方",
   "trades_section_suggestions": "建議",
   "trades_traded_before": [
@@ -4438,6 +4443,48 @@
   "trades_request_description": "向對方索取 {card}。對方會收到通知，接受後就會為你保留。",
   "trades_offer_description": "提供 {card}。對方會收到通知，接受後就會保留你的卡牌。",
   "trades_how_many": "幾張？",
+  "trades_request_pick_up_to": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "最多選 {count} 張",
+        "countPlural=*": "最多選 {count} 張"
+      }
+    }
+  ],
+  "trades_request_giver_decides": "對方可以接受或拒絕你選的這幾張。",
+  "trades_request_raises_wish": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "你的願望清單會改為 {count} 張。",
+        "countPlural=*": "你的願望清單會改為 {count} 張。"
+      }
+    }
+  ],
+  "trades_requested_copy_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "對方要的是這張",
+        "countPlural=*": "對方要的是這幾張"
+      }
+    }
+  ],
+  "trades_requested_copy_description": [
+    {
+      "declarations": ["input card", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "對方指定要這張 {card}。接受即可預留，或者拒絕請求。",
+        "countPlural=*": "對方指定要這 {count} 張 {card}。接受即可預留，或者拒絕請求。"
+      }
+    }
+  ],
+  "trades_copy_requested": "已請求",
   "trades_offer_counts": "他們想要 {want} 張，你有 {have} 張",
   "trades_request_counts": "你想要 {want} 張 · 有 {available} 張可用",
   "trades_loading_lists": "正在載入你的清單…",
@@ -9239,7 +9286,6 @@
   "install_nudge_dismiss": "關閉",
   "marketing_landing_install": "不需要應用程式商店：{#link}把 OpenRift 加入主畫面{/link}。",
   "marketing_hero_install": "想在手機上使用嗎？{#link}把 OpenRift 加入主畫面{/link}。",
-  "trades_market_heading": "可交換的卡牌",
   "trades_market_tab_get": "你可以換到",
   "trades_market_tab_give": "別人想要你的",
   "trades_market_tab_buy": "社團裡沒有",
@@ -9268,6 +9314,7 @@
       }
     }
   ],
+  "trades_market_two_have": "{first} 和 {second} 有",
   "trades_market_want_count": "你想要 {count} 張",
   "trades_market_empty_get": "目前你的社團裡沒有人有你願望清單上的卡牌。",
   "trades_market_empty_give": "目前你的社團裡沒有人想要你交換清單上的卡牌。",
@@ -9275,8 +9322,46 @@
   "trades_market_cardtrader_estimate": "CardTrader 估價 {price}",
   "trades_market_on_wishlists": "在你的願望清單上：{lists}",
   "trades_market_on_tradelists": "在你的交換清單上：{lists}",
-  "trades_market_sources": "誰有",
-  "trades_market_wanted_by": "誰想要",
+  "trades_market_sources": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 個來源",
+        "countPlural=*": "{count} 個來源"
+      }
+    }
+  ],
+  "trades_market_wanted_by": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 人想要",
+        "countPlural=*": "{count} 人想要"
+      }
+    }
+  ],
+  "trades_market_person_available": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張可用",
+        "countPlural=*": "{count} 張可用"
+      }
+    }
+  ],
+  "trades_market_person_wants": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "想要 {count} 張",
+        "countPlural=*": "想要 {count} 張"
+      }
+    }
+  ],
   "trades_market_open_sheet": "與 {name} 的交換頁",
   "trades_market_no_source": "你的社團裡沒有人把這張卡牌放在交換清單上。",
   "trades_market_or_buy": "或者在交易平台購買。",
@@ -9284,6 +9369,29 @@
   "trades_market_add_to_cart": "加入購物車",
   "trades_market_in_cart": "已在購物車",
   "trades_market_view_cart": "查看購物車",
+  "trades_market_buy_banner_title": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} 張社團裡沒人有的卡牌",
+        "countPlural=*": "{count} 張社團裡沒人有的卡牌"
+      }
+    }
+  ],
+  "trades_market_buy_banner_add": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "將 {count} 張加入購物車",
+        "countPlural=*": "全部 {count} 張加入購物車"
+      }
+    }
+  ],
+  "trades_price_vs_estimate_above": "比 CardTrader 估價高 {amount}",
+  "trades_price_vs_estimate_below": "比 CardTrader 估價低 {amount}",
+  "trades_price_vs_estimate_match": "與 CardTrader 估價一致",
   "trades_buy_title": "購買缺少的卡牌",
   "trades_buy_cart_button": "購買缺少的卡牌",
   "trades_buy_cart_button_count": "購物車（{count}）",
@@ -9296,7 +9404,6 @@
   "trades_buy_remove_shown": "全部移出購物車",
   "trades_buy_add": "將 {name} 加入購物車",
   "trades_buy_remove": "將 {name} 移出購物車",
-  "trades_buy_source_friends": "社團裡有",
   "trades_buy_source_none": "社團裡沒有",
   "trades_buy_empty_title": "你的願望清單是空的",
   "trades_buy_empty_description": "把卡牌加入願望清單後，你還缺的卡牌會顯示在這裡。",
@@ -9334,9 +9441,19 @@
   "trades_buy_how_tcgplayer": "把這些版本直接放進你的購物車",
   "trades_buy_cta_cardtrader": "複製清單並開啟 CardTrader",
   "trades_buy_cta_cardmarket": "複製清單並開啟 Cardmarket",
-  "trades_buy_cta_tcgplayer": "加入 TCGplayer 購物車",
+  "trades_buy_cta_tcgplayer": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "將 {count} 張加入 TCGplayer 購物車",
+        "countPlural=*": "將 {count} 張加入 TCGplayer 購物車"
+      }
+    }
+  ],
   "trades_buy_note_cardtrader": "把清單貼到新的願望清單裡。CardTrader 會略過無法配對的行。",
   "trades_buy_note_cardmarket": "把清單貼到 Wants 清單的「Add decklist」中，然後使用 Shopping Wizard。",
+  "trades_buy_note_tcgplayer": "開啟 TCGplayer 時卡牌已在你的購物車中。",
   "trades_buy_copy_again": "再次複製",
   "trades_buy_list_copied": "清單已複製",
   "trades_buy_copy_failed": "無法複製清單",
@@ -9354,7 +9471,7 @@
   "trades_buy_extension_body": "安裝 OpenRift 瀏覽器擴充功能後，Shopping Wizard 的結果會顯示哪些卡牌在 CardTrader Zero 上更便宜（含運費）。",
   "trades_buy_extension_link": "了解擴充功能",
   "trades_buy_ordered_title": "已經下單了？",
-  "trades_buy_ordered_body": "把這些卡牌加入 {collection}，並從願望清單中移除。該收藏不計入牌組組建，所以卡牌到之前牌組裡仍顯示為缺少。",
+  "trades_buy_ordered_body": "這些卡牌會放進 {collection}，並從你的願望清單移除。到貨並移入其他收藏之前，牌組裡仍顯示為缺少。",
   "trades_buy_ordered_cta": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

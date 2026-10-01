@@ -40,6 +40,26 @@ export function cardTradeCopiesRepo(db: Kysely<Database>) {
       return rows.map((row) => row.copyId);
     },
 
+    async setRequestedCopies(tradeId: string, copyIds: readonly string[]): Promise<void> {
+      await db.deleteFrom("cardTradeRequestedCopies").where("tradeId", "=", tradeId).execute();
+      if (copyIds.length === 0) {
+        return;
+      }
+      await db
+        .insertInto("cardTradeRequestedCopies")
+        .values(copyIds.map((copyId) => ({ tradeId, copyId })))
+        .execute();
+    },
+
+    async listRequestedCopyIds(tradeId: string): Promise<string[]> {
+      const rows = await db
+        .selectFrom("cardTradeRequestedCopies")
+        .select("copyId")
+        .where("tradeId", "=", tradeId)
+        .execute();
+      return rows.map((row) => row.copyId);
+    },
+
     async deleteCopiesForTrade(tradeId: string): Promise<void> {
       await db.deleteFrom("cardTradeCopies").where("tradeId", "=", tradeId).execute();
     },

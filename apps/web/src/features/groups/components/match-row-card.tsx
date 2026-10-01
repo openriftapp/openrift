@@ -6,11 +6,14 @@ import type { MarketplaceInfo } from "@openrift/shared/types/api/pricing";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
+import { EyeOffIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CardList } from "@/components/ui/card-list";
+import { CountPill } from "@/components/ui/count-pill";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
+import { UserAvatar } from "@/components/user-avatar";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetailNameButton } from "@/features/cards/components/card-detail-opener";
 import { PrintingHoverPreview } from "@/features/cards/components/printing-hover-preview";
@@ -19,12 +22,17 @@ import { useMarketplaceInfo } from "@/features/cards/hooks/use-marketplace-info"
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import type { CatalogPosition } from "@/features/cards/lib/catalog-position";
 import { compareCatalogPosition } from "@/features/cards/lib/catalog-position";
-import { MatchPreferenceCell } from "@/features/groups/components/match-preference-cell";
+import { conditionShortCode } from "@/features/collections/lib/condition-codes";
+import {
+  MatchPreferenceCell,
+  MatchPreferenceText,
+} from "@/features/groups/components/match-preference-cell";
 import {
   useCreateTrade,
   useDeclineTrade,
   useUserTrades,
 } from "@/features/groups/hooks/use-card-trades";
+import { fixedPriceVsEstimate } from "@/features/groups/lib/price-vs-estimate";
 import type { MatchCopyDetail, MatchDirection } from "@/features/groups/lib/trade-derivation";
 import {
   describeCounterpartySource,
@@ -32,17 +40,23 @@ import {
   matchCopyConditionLabel,
   matchSuggestionKey,
   maxTradeQuantity,
+  groupMatchCopyConditions,
   summarizeMatchCopies,
 } from "@/features/groups/lib/trade-derivation";
 import { useMatchVariantsFoldStore } from "@/features/match-tracker/stores/match-variants-fold-store";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
-import { compactFormatterForMarketplace, priceColorClass } from "@/lib/format";
+import {
+  compactFormatterForMarketplace,
+  formatterForMarketplace,
+  priceColorClass,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
 import { AvailableCopiesPopover } from "./available-copies-popover";
+import type { RequestableCopy } from "./request-trade-dialog";
 import { RequestTradeDialog } from "./request-trade-dialog";
 import { TradeCopyPickerDialog, useTradeAcceptFlow } from "./trade-copy-picker-dialog";
 import {
@@ -129,7 +143,9 @@ function MatchRowTradeAction({
         availableCount={match.availableCount}
         demandQuantity={match.buyQuantity}
         pending={createTrade.isPending}
-        onConfirm={(quantity) => {
+        copies={incoming ? match.copies : undefined}
+        canExceedWish={incoming && match.buyEntryId !== null}
+        onConfirm={(quantity, copyIds) => {
           createTrade.mutate(
             {
               groupSlug,
@@ -137,6 +153,7 @@ function MatchRowTradeAction({
               role,
               printingId: match.printingId,
               quantity,
+              copyIds,
             },
             { onSuccess: () => setOpen(false) },
           );
@@ -160,7 +177,7 @@ interface ResolvedMatchRow extends FriendGroupMatchRow {
 
 export interface AggregatedMatch extends ResolvedMatchRow {
   availableCount: number;
-  copies: MatchCopyDetail[];
+  copies: RequestableCopy[];
 }
 
 interface DirectedMatch extends AggregatedMatch {
@@ -243,6 +260,36 @@ function MatchCopyMetadataLine({ match }: { match: AggregatedMatch }) {
   );
 }
 
+function MatchCopyNotesLine({ copies }: { copies: readonly MatchCopyDetail[] }) {
+  const { notes } = summarizeMatchCopies(copies, () => null);
+  if (notes.length === 0) {
+    return null;
+  }
+  const text = notes.map((note) => `“${note}”`).join(" · ");
+  return (
+    <span className="text-muted-foreground truncate text-xs" title={text}>
+      {text}
+    </span>
+  );
+}
+
+function MatchCopyConditionPills({ copies }: { copies: readonly MatchCopyDetail[] }) {
+  const { labels } = useEnumOrders();
+  const groups = groupMatchCopyConditions(copies, (copy) => {
+    const full = matchCopyConditionLabel(copy, labels);
+    if (full === null) {
+      return null;
+    }
+    return { full, short: copy.condition === null ? full : conditionShortCode(copy.condition) };
+  });
+  return groups.map((group) => (
+    <CountPill key={group.full} title={group.full}>
+      {group.short}
+      {group.count > 1 ? ` ×${group.count}` : null}
+    </CountPill>
+  ));
+}
+
 function MatchSourceLine({
   direction,
   listNames,
@@ -264,6 +311,43 @@ function MatchSourceLine({
   return (
     <span className="text-muted-foreground truncate text-xs" title={text}>
       {text}
+    </span>
+  );
+}
+
+function PriceVsEstimateLine({
+  match,
+  pref,
+}: {
+  match: DirectedMatch;
+  pref: DirectedMatch["sellPref"];
+}) {
+  const prices = usePrices();
+  const note = fixedPriceVsEstimate(
+    pref,
+    prices.get(match.printingId, "cardtrader"),
+    match.direction,
+  );
+  if (note === null) {
+    return null;
+  }
+  const amount = formatterForMarketplace("cardtrader")(note.difference);
+  return (
+    <span
+      className={cn(
+        "text-xs font-medium",
+        note.kind === "match"
+          ? "text-muted-foreground"
+          : note.favorable
+            ? "text-success"
+            : "text-warning",
+      )}
+    >
+      {note.kind === "match"
+        ? m.trades_price_vs_estimate_match()
+        : note.kind === "above"
+          ? m.trades_price_vs_estimate_above({ amount })
+          : m.trades_price_vs_estimate_below({ amount })}
     </span>
   );
 }
@@ -325,6 +409,7 @@ function MatchRow({
             listNames={[match.viewerListName]}
             counterpartyListNames={[match.counterpartyListName]}
           />
+          <PriceVsEstimateLine match={match} pref={counterpartyPref} />
         </div>
       </div>
 
@@ -356,7 +441,8 @@ function aggregateMatches(rows: ResolvedMatchRow[]): AggregatedMatch[] {
   const aggregated = new Map<string, AggregatedMatch>();
   for (const row of rows) {
     const key = `${row.groupSlug}\0${row.buyEntryId}\0${row.counterpartyListId}\0${row.printingId}`;
-    const copy: MatchCopyDetail = {
+    const copy: RequestableCopy = {
+      copyId: row.copyId,
       condition: row.condition,
       grader: row.grader,
       grade: row.grade,
@@ -636,13 +722,13 @@ function BulkRequestRow({ groups }: { groups: MatchTradeGroup[] }) {
   );
 }
 
-export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
-  const { cardsById, printingsById, sets } = useCards();
-  const { labels } = useEnumOrders();
+function useLiveTradeByKey(
+  rows: readonly MatchTradeListRow[],
+  groupSlug: string,
+): Map<string, CardTradeResponse> {
   const { data: userTrades } = useUserTrades();
-
   const listGroupSlugs = new Set<string>([groupSlug]);
-  for (const row of [...incoming, ...outgoing]) {
+  for (const row of rows) {
     if (row.groupSlug !== undefined) {
       listGroupSlugs.add(row.groupSlug);
     }
@@ -662,6 +748,114 @@ export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeList
       liveTradeByKey.set(liveTradeKey(tradeGroupSlug, counterpartyUserId, trade.printingId), trade);
     }
   }
+  return liveTradeByKey;
+}
+
+function MatchPersonRow({
+  match,
+  marketplaceInfos,
+  liveTrade,
+  onHide,
+  hidePending,
+}: {
+  match: DirectedMatch;
+  marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null;
+  liveTrade?: CardTradeResponse;
+  onHide?: () => void;
+  hidePending?: boolean;
+}) {
+  const name = match.counterpartyName ?? m.trades_member_fallback();
+  const incoming = match.direction === "incoming";
+  const pref = incoming ? match.sellPref : match.buyPref;
+  return (
+    <li className="flex items-start gap-3 border-b py-3 last:border-b-0">
+      <UserAvatar
+        image={match.counterpartyImage}
+        name={match.counterpartyName}
+        gravatarHash={match.counterpartyGravatarHash}
+        size="sm"
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate font-medium">{name}</span>
+        <span className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm">
+          {incoming
+            ? m.trades_market_person_available({ count: match.availableCount })
+            : m.trades_market_person_wants({ count: match.buyQuantity })}
+          {incoming ? <MatchCopyConditionPills copies={match.copies} /> : null}
+        </span>
+        {incoming ? <MatchCopyNotesLine copies={match.copies} /> : null}
+        <MatchPreferenceText
+          pref={pref}
+          printingId={match.printingId}
+          marketplaceInfos={marketplaceInfos}
+          searchQuery={match.cardName}
+        />
+        <PriceVsEstimateLine match={match} pref={pref} />
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        {onHide === undefined ? null : (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            aria-label={m.trades_market_hide_one({ name })}
+            title={m.trades_market_hide_one({ name })}
+            disabled={hidePending}
+            onClick={onHide}
+          >
+            <EyeOffIcon />
+          </Button>
+        )}
+        <MatchRowTradeAction match={match} liveTrade={liveTrade} />
+      </div>
+    </li>
+  );
+}
+
+export function MatchPersonList({
+  rows,
+  direction,
+  groupSlug,
+  onHide,
+  hidePending,
+}: {
+  rows: MatchTradeListRow[];
+  direction: MatchDirection;
+  groupSlug: string;
+  onHide?: (counterpartyUserId: string) => void;
+  hidePending?: boolean;
+}) {
+  const { cardsById, printingsById, sets } = useCards();
+  const { labels } = useEnumOrders();
+  const liveTradeByKey = useLiveTradeByKey(rows, groupSlug);
+  const printingIds = [...new Set(rows.map((row) => row.printingId))];
+  const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);
+  const matches = aggregateMatches(
+    resolveMatchRows(rows, cardsById, printingsById, sets, labels, groupSlug),
+  ).map((match): DirectedMatch => ({ ...match, direction }));
+
+  return (
+    <ul className="flex flex-col">
+      {matches.map((match) => (
+        <MatchPersonRow
+          key={`${match.groupSlug}:${match.buyEntryId}:${match.counterpartyListId}:${match.printingId}`}
+          match={match}
+          marketplaceInfos={marketplaceInfo?.infos[match.printingId] ?? null}
+          liveTrade={liveTradeByKey.get(
+            liveTradeKey(match.groupSlug, match.counterpartyUserId, match.printingId),
+          )}
+          onHide={onHide === undefined ? undefined : () => onHide(match.counterpartyUserId)}
+          hidePending={hidePending}
+        />
+      ))}
+    </ul>
+  );
+}
+
+export function MatchTradeList({ incoming, outgoing, groupSlug }: MatchTradeListProps) {
+  const { cardsById, printingsById, sets } = useCards();
+  const { labels } = useEnumOrders();
+  const liveTradeByKey = useLiveTradeByKey([...incoming, ...outgoing], groupSlug);
 
   const printingIds = [...new Set([...incoming, ...outgoing].map((row) => row.printingId))];
   const { data: marketplaceInfo } = useMarketplaceInfo(printingIds);

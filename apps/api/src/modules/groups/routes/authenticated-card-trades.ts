@@ -38,6 +38,7 @@ export const cardTradesRouter = {
       role: input.role,
       printingId: input.printingId,
       quantity: input.quantity,
+      copyIds: input.copyIds,
     });
   }),
 

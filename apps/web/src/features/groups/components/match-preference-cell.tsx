@@ -6,7 +6,9 @@ import type {
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import { TextLink } from "@/components/ui/text-link";
+import { usePrices } from "@/features/cards/hooks/use-prices";
 import { MARKETPLACE_META } from "@/features/cards/lib/marketplace-meta";
+import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 
 import {
@@ -50,10 +52,52 @@ export function MatchPreferenceCell({
   );
 }
 
+function marketplacePriceText(
+  pref: TradePricePref,
+  cardtraderPrice: number | undefined,
+): string | undefined {
+  if (pref === "absolute") {
+    return undefined;
+  }
+  const marketplace = pricePrefShortLabel(pref);
+  if (pref === "ct_zero" && cardtraderPrice !== undefined) {
+    return m.trades_pref_price_at({
+      price: formatterForMarketplace("cardtrader")(cardtraderPrice),
+      marketplace,
+    });
+  }
+  return m.trades_pref_marketplace_price({ marketplace });
+}
+
+export function MatchPreferenceText({
+  pref,
+  printingId,
+  marketplaceInfos,
+  searchQuery,
+}: Omit<MatchPreferenceCellProps, "label"> & { printingId: string }) {
+  const prices = usePrices();
+  const linkText =
+    pref.pricePref === null
+      ? undefined
+      : marketplacePriceText(pref.pricePref, prices.get(printingId, "cardtrader"));
+  const priceNode = renderPrice(pref, marketplaceInfos, searchQuery, linkText);
+  const typeNode = pref.tradeType ? tradeTypeLabel(pref.tradeType) : null;
+  if (priceNode === null && typeNode === null) {
+    return null;
+  }
+  return (
+    <span className="text-sm">
+      {priceNode ?? m.trades_not_set()}
+      {typeNode ? <span className="text-muted-foreground"> · {typeNode}</span> : null}
+    </span>
+  );
+}
+
 function renderPrice(
   pref: EffectiveTradePreference,
   marketplaceInfos: Record<Marketplace, MarketplaceInfo> | null,
   searchQuery: string,
+  linkText?: string,
 ) {
   if (pref.pricePref === null) {
     return null;
@@ -77,7 +121,7 @@ function renderPrice(
       rel="noreferrer"
       onClick={(event) => event.stopPropagation()}
     >
-      {pricePrefShortLabel(pref.pricePref)}
+      {linkText ?? pricePrefShortLabel(pref.pricePref)}
     </TextLink>
   );
 }

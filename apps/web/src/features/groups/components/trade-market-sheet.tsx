@@ -2,7 +2,7 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
-import { CheckIcon, EyeOffIcon, ShoppingCartIcon } from "lucide-react";
+import { CheckIcon, ShoppingCartIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -17,7 +17,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useCards } from "@/features/cards/hooks/use-cards";
 import { frontImageId } from "@/features/cards/lib/card-meta";
-import { MatchTradeList } from "@/features/groups/components/match-row-card";
+import { MatchPersonList } from "@/features/groups/components/match-row-card";
 import { useDismissSuggestions } from "@/features/groups/hooks/use-trade-dismissals";
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
@@ -55,7 +55,8 @@ function SheetCardHeader({
         rarity={printing.rarity}
         domains={printing.card.domains}
         landscape={getOrientation(printing.card.types) === "landscape"}
-        className="w-24 shrink-0 rounded-md"
+        variant="240w"
+        className="w-24 shrink-0 self-start rounded-md"
       />
       <div className="flex min-w-0 flex-col gap-1">
         <SheetTitle className="text-lg">{name}</SheetTitle>
@@ -74,41 +75,6 @@ function SheetCardHeader({
         {listLine === null ? null : <p className="text-muted-foreground text-sm">{listLine}</p>}
       </div>
     </SheetHeader>
-  );
-}
-
-function DismissSources({ card, onClose }: { card: TradeMarketCard; onClose: () => void }) {
-  const dismiss = useDismissSuggestions();
-  return (
-    <div className="flex flex-col gap-1">
-      {card.sources.map((source) => {
-        const name = source.name ?? m.trades_member_fallback();
-        return (
-          <Button
-            key={source.userId}
-            size="sm"
-            variant="ghost"
-            className="text-muted-foreground self-start"
-            disabled={dismiss.isPending}
-            onClick={() => {
-              dismiss.mutate([
-                {
-                  direction: card.direction,
-                  counterpartyUserId: source.userId,
-                  printingId: card.printingId,
-                },
-              ]);
-              if (card.sources.length === 1) {
-                onClose();
-              }
-            }}
-          >
-            <EyeOffIcon />
-            {m.trades_market_hide_one({ name })}
-          </Button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -159,6 +125,7 @@ export function TradeMarketSheet({
   priceOf: (printingId: string) => string | null;
 }) {
   const isMobile = useIsMobile();
+  const dismiss = useDismissSuggestions();
   const { printingsById } = useCards();
 
   const printingId =
@@ -210,19 +177,31 @@ export function TradeMarketSheet({
                 <p>{m.trades_market_no_source()}</p>
               ) : (
                 <section className="flex flex-col gap-3">
-                  <SectionHeading as="h3" count={card.sources.length}>
+                  <SectionHeading as="h3">
                     {card.direction === "incoming"
-                      ? m.trades_market_sources()
-                      : m.trades_market_wanted_by()}
+                      ? m.trades_market_sources({ count: card.sources.length })
+                      : m.trades_market_wanted_by({ count: card.sources.length })}
                   </SectionHeading>
-                  <MatchTradeList
-                    incoming={card.direction === "incoming" ? card.rows : []}
-                    outgoing={card.direction === "outgoing" ? card.rows : []}
+                  <MatchPersonList
+                    rows={card.rows}
+                    direction={card.direction}
                     groupSlug={card.rows[0]?.groupSlug ?? ""}
+                    onHide={(counterpartyUserId) => {
+                      dismiss.mutate([
+                        {
+                          direction: card.direction,
+                          counterpartyUserId,
+                          printingId: card.printingId,
+                        },
+                      ]);
+                      if (card.sources.length === 1) {
+                        onClose();
+                      }
+                    }}
+                    hidePending={dismiss.isPending}
                   />
                 </section>
               )}
-              {card === null ? null : <DismissSources card={card} onClose={onClose} />}
               {wanted === undefined ? null : (
                 <BuyRow
                   wanted={wanted}

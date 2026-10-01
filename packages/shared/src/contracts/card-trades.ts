@@ -27,6 +27,7 @@ export const createCardTradeSchema = z.object({
   role: cardTradeSideSchema,
   printingId: z.uuid(),
   quantity: z.number().int().min(1),
+  copyIds: z.array(z.uuid()).min(1).max(100).optional(),
 });
 
 export const cardTradesQuerySchema = z.object({
@@ -102,6 +103,7 @@ export const cardTradeCopyOptionSchema = z.object({
   collectionId: z.string(),
   collectionName: z.string(),
   pinned: z.boolean(),
+  requested: z.boolean(),
   ...copyMetadataResponseShape,
   notesPrivate: z.string().nullable(),
   hasRecordedDetails: z.boolean(),

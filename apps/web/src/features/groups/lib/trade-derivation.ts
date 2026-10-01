@@ -215,6 +215,32 @@ export function matchCopyConditionLabel(
   return null;
 }
 
+export interface CopyConditionGroup {
+  short: string;
+  full: string;
+  count: number;
+}
+
+export function groupMatchCopyConditions(
+  copies: readonly MatchCopyDetail[],
+  labelOf: (copy: MatchCopyDetail) => { short: string; full: string } | null,
+): CopyConditionGroup[] {
+  const groups = new Map<string, CopyConditionGroup>();
+  for (const copy of copies) {
+    const label = labelOf(copy);
+    if (label === null) {
+      continue;
+    }
+    const existing = groups.get(label.full);
+    if (existing === undefined) {
+      groups.set(label.full, { ...label, count: 1 });
+    } else {
+      existing.count += 1;
+    }
+  }
+  return [...groups.values()];
+}
+
 export function summarizeMatchCopies(
   copies: readonly MatchCopyDetail[],
   labelOf: (copy: MatchCopyDetail) => string | null,

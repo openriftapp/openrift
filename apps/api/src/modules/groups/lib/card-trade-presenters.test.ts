@@ -205,6 +205,7 @@ describe("toCardTradeCopyOption", () => {
       collectionId: "col-7",
       collectionName: "Piltover Binder",
       pinned: true,
+      requested: false,
       condition: "lightly-played",
       grader: "bgs",
       grade: 9.5,
@@ -264,6 +265,17 @@ describe("toCardTradeCopyOptions", () => {
       copies: [copy({ id: "a" }), copy({ id: "b" })],
     });
     expect(result.copies.every((row) => !row.pinned)).toBe(true);
+  });
+
+  it("offers only the requested copies, flagged, so the giver confirms what was asked", () => {
+    const result = toCardTradeCopyOptions({
+      tradeId: "trade-1",
+      quantity: 1,
+      copies: [copy({ id: "plain" }), copy({ id: "played", condition: "played" })],
+      requestedCopyIds: ["played"],
+    });
+    expect(result.copies.map((row) => [row.id, row.requested])).toEqual([["played", true]]);
+    expect(result.choiceMatters).toBe(true);
   });
 
   it("floats the pinned copies above the alternatives", () => {

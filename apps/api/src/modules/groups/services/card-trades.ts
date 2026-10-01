@@ -38,6 +38,7 @@ export interface CreateTradeInput {
   role: CardTradeRole;
   printingId: string;
   quantity: number;
+  copyIds?: string[];
 }
 
 function callerRole(trade: CardTrade, userId: string): CardTradeRole | null {
@@ -126,12 +127,50 @@ async function claimReceiverSyncSide(repos: Repos, tradeId: string): Promise<voi
   }
 }
 
+async function assertRequestableCopies(
+  repos: Repos,
+  input: {
+    groupId: string;
+    giverUserId: string;
+    printingId: string;
+    quantity: number;
+    role: CardTradeRole;
+    copyIds: readonly string[];
+  },
+): Promise<void> {
+  if (input.role !== "receiver") {
+    throw new AppError(403, ERROR_CODES.FORBIDDEN, "Only a request can ask for specific copies");
+  }
+  const unique = new Set(input.copyIds);
+  if (unique.size !== input.copyIds.length) {
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, "Choose each copy only once");
+  }
+  if (unique.size !== input.quantity) {
+    const noun = input.quantity === 1 ? "copy" : "copies";
+    throw new AppError(400, ERROR_CODES.BAD_REQUEST, `Choose exactly ${input.quantity} ${noun}`);
+  }
+  const { unreservedCopyIds } = await repos.friendGroupMatches.giverPrintingSupply({
+    groupId: input.groupId,
+    giverUserId: input.giverUserId,
+    printingId: input.printingId,
+  });
+  const available = new Set(unreservedCopyIds);
+  if (input.copyIds.some((id) => !available.has(id))) {
+    throw new AppError(
+      409,
+      ERROR_CODES.CONFLICT,
+      "One of those copies is no longer available to trade",
+    );
+  }
+}
+
 export async function createTrade(
   repos: Repos,
   input: CreateTradeInput,
   emailDeps?: TradeEmailDeps,
 ): Promise<CardTradeResponse> {
-  const { callerUserId, groupSlug, counterpartyUserId, role, printingId, quantity } = input;
+  const { callerUserId, groupSlug, counterpartyUserId, role, printingId, quantity, copyIds } =
+    input;
 
   if (counterpartyUserId === callerUserId) {
     throw new AppError(400, ERROR_CODES.BAD_REQUEST, "You cannot trade with yourself");
@@ -189,7 +228,8 @@ export async function createTrade(
   await assertSupplyAvailable(repos, group.id, giverUserId, printingId, quantity);
   // Never trade more than the wanting side wants — over-trading would
   // over-credit copies and drive the wishlist negative on sync.
-  if (quantity > demandQuantity) {
+  const raisesWish = role === "receiver" && receiverWishEntryId !== null;
+  if (quantity > demandQuantity && !raisesWish) {
     throw new AppError(
       400,
       ERROR_CODES.BAD_REQUEST,
@@ -197,6 +237,17 @@ export async function createTrade(
         ? `They only want ${demandQuantity} of this card`
         : `You only want ${demandQuantity} of this card`,
     );
+  }
+
+  if (copyIds !== undefined) {
+    await assertRequestableCopies(repos, {
+      groupId: group.id,
+      giverUserId,
+      printingId,
+      quantity,
+      role,
+      copyIds,
+    });
   }
 
   const expiresAt = new Date(Date.now() + PENDING_TTL_HOURS * 60 * 60 * 1000);
@@ -222,6 +273,13 @@ export async function createTrade(
     throw error;
   }
 
+  if (copyIds !== undefined) {
+    await repos.cardTrades.setRequestedCopies(created.id, copyIds);
+  }
+  if (role === "receiver" && receiverWishEntryId !== null && quantity > demandQuantity) {
+    await repos.lists.raiseEntryQuantityTo(receiverWishEntryId, receiverUserId, quantity);
+  }
+
   // Best-effort (the helper swallows its own errors) so a mail failure can
   // never fail the trade — the bell stays the source of truth.
   if (emailDeps !== undefined) {
@@ -240,8 +298,23 @@ async function resolvePinnedCopyIds(
   trade: LiveCardTrade,
   role: CardTradeRole,
   availableCopyIds: string[],
+  requestedCopyIds: readonly string[],
   chosenCopyIds?: string[],
 ): Promise<string[]> {
+  if (requestedCopyIds.length > 0) {
+    const requested = new Set(requestedCopyIds);
+    if (
+      chosenCopyIds !== undefined &&
+      (chosenCopyIds.length !== requested.size || chosenCopyIds.some((id) => !requested.has(id)))
+    ) {
+      throw new AppError(
+        409,
+        ERROR_CODES.CONFLICT,
+        "This request names its copies: accept or decline them",
+      );
+    }
+    return [...requestedCopyIds];
+  }
   if (chosenCopyIds === undefined) {
     if (availableCopyIds.length === trade.quantity) {
       return availableCopyIds;
@@ -320,7 +393,13 @@ export async function listTradeCopyOptions(
       printingId: trade.printingId,
     });
     const copies = await repos.copies.listMetadataByIds(unreservedCopyIds);
-    return toCardTradeCopyOptions({ tradeId: trade.id, quantity: trade.quantity, copies });
+    const requestedCopyIds = await repos.cardTrades.listRequestedCopyIds(trade.id);
+    return toCardTradeCopyOptions({
+      tradeId: trade.id,
+      quantity: trade.quantity,
+      copies,
+      requestedCopyIds,
+    });
   }
 
   assertGiverUnsettled(trade);
@@ -381,11 +460,17 @@ export function acceptTrade(
       throw tooFewAvailable(availableCopyIds.length);
     }
 
+    const requestedCopyIds = await trxRepos.cardTrades.listRequestedCopyIds(tradeId);
+    if (requestedCopyIds.some((id) => !availableCopyIds.includes(id))) {
+      await trxRepos.cardTrades.markAutoCancelled(tradeId);
+      return reloadDto(trxRepos, tradeId, byUserId);
+    }
     const pinnedCopyIds = await resolvePinnedCopyIds(
       trxRepos,
       trade,
       role,
       availableCopyIds,
+      requestedCopyIds,
       chosenCopyIds,
     );
     try {
@@ -501,6 +586,9 @@ export function setTradeQuantity(
     const updated = await trxRepos.cardTrades.setPendingQuantity(tradeId, byUserId, quantity);
     if (updated === 0) {
       throw new AppError(409, ERROR_CODES.CONFLICT, "This request can no longer be changed");
+    }
+    if (quantity !== trade.quantity) {
+      await trxRepos.cardTrades.setRequestedCopies(tradeId, []);
     }
     return reloadDto(trxRepos, tradeId, byUserId);
   });

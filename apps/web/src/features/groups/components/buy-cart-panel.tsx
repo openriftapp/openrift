@@ -183,12 +183,15 @@ function HandoffButton({
       items,
       (printingId) => marketplaceInfo?.infos[printingId]?.tcgplayer.productId,
     );
+    const sendCount = massEntry.reduce((sum, line) => sum + line.quantity, 0);
     if (marketplaceInfo === undefined || massEntry.length === 0) {
       return (
         <>
           <Button className="w-full" disabled>
             <ShoppingCartIcon />
-            {m.trades_buy_cta_tcgplayer()}
+            {m.trades_buy_cta_tcgplayer({
+              count: items.reduce((sum, item) => sum + item.quantity, 0),
+            })}
           </Button>
           {marketplaceInfo === undefined ? null : (
             <p className="text-muted-foreground text-sm">
@@ -206,8 +209,9 @@ function HandoffButton({
           className={className}
         >
           <ShoppingCartIcon />
-          {m.trades_buy_cta_tcgplayer()}
+          {m.trades_buy_cta_tcgplayer({ count: sendCount })}
         </MarketplaceLink>
+        <p className="text-muted-foreground text-sm">{m.trades_buy_note_tcgplayer()}</p>
         {unlisted.length > 0 ? (
           <p className="text-muted-foreground text-sm">
             {m.trades_buy_tcgplayer_unlisted({ count: unlisted.length })}

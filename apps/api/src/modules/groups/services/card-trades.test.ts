@@ -275,6 +275,7 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
   });
   const create = vi.fn(async () => ({ id: "trade-new" }) as unknown as LiveCardTrade);
   const setPendingQuantity = vi.fn(async () => 1);
+  const setRequestedCopies = vi.fn(async () => undefined);
   const repos = {
     friendGroups: {
       getBySlugOrPrevious: vi.fn(async () => GROUP),
@@ -290,6 +291,7 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
       listPendingForGiverPrinting,
       create,
       setPendingQuantity,
+      setRequestedCopies,
       getById: vi.fn(async () => OFFER),
       getDtoRowByIdForUser: vi.fn(async () => ({ ...DTO_ROW, id: "trade-new" })),
     },
@@ -297,10 +299,22 @@ function supplyRepos(supplyByGroup: Record<string, string[]>, pending: Pending[]
       raiseEntryQuantityTo: vi.fn(async () => undefined),
     },
   } as unknown as Repos;
-  return { repos, listPendingForGiverPrinting, giverPrintingSupply, create, setPendingQuantity };
+  return {
+    repos,
+    listPendingForGiverPrinting,
+    giverPrintingSupply,
+    create,
+    setPendingQuantity,
+    setRequestedCopies,
+  };
 }
 
-function runCreate(repos: Repos, role: "giver" | "receiver", quantity: number): Promise<unknown> {
+function runCreate(
+  repos: Repos,
+  role: "giver" | "receiver",
+  quantity: number,
+  copyIds?: string[],
+): Promise<unknown> {
   return createTrade(repos, {
     callerUserId: role === "giver" ? "giver-1" : "receiver-1",
     groupSlug: GROUP.slug,
@@ -308,6 +322,7 @@ function runCreate(repos: Repos, role: "giver" | "receiver", quantity: number): 
     role,
     printingId: MATCH_ROW.printingId,
     quantity,
+    copyIds,
   }).catch((error: unknown) => error);
 }
 
@@ -380,6 +395,98 @@ describe("createTrade supply accounting", () => {
   });
 });
 
+describe("createTrade beyond the wished quantity", () => {
+  const FOUR = { [GROUP.id]: ["copy-1", "copy-2", "copy-3", "copy-4"] };
+
+  it("raises the requester's wish entry to the requested count", async () => {
+    const { repos, create } = supplyRepos(FOUR);
+
+    await runCreate(repos, "receiver", 4);
+
+    expect(create).toHaveBeenCalled();
+    expect(repos.lists.raiseEntryQuantityTo).toHaveBeenCalledWith("wish-1", "receiver-1", 4);
+  });
+
+  it("leaves the wish entry alone within the wished count", async () => {
+    const { repos } = supplyRepos(FOUR);
+
+    await runCreate(repos, "receiver", 2);
+
+    expect(repos.lists.raiseEntryQuantityTo).not.toHaveBeenCalled();
+  });
+
+  it("still refuses an offer beyond what the other side wants", async () => {
+    const { repos, create } = supplyRepos(FOUR);
+
+    const result = await runCreate(repos, "giver", 4);
+
+    expect((result as AppError).status).toBe(400);
+    expect((result as AppError).message).toBe("They only want 3 of this card");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a request beyond a rule-only wish, which has no entry to raise", async () => {
+    const { repos, create } = supplyRepos(FOUR);
+    vi.mocked(repos.friendGroupMatches.othersHaveYourWants).mockResolvedValueOnce([
+      { ...MATCH_ROW, buyEntryId: null },
+    ] as never);
+
+    const result = await runCreate(repos, "receiver", 4);
+
+    expect((result as AppError).status).toBe(400);
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("createTrade with requested copies", () => {
+  it("stores the copies the requester asked for", async () => {
+    const { repos, create, setRequestedCopies } = supplyRepos({
+      [GROUP.id]: ["copy-nm", "copy-lp"],
+    });
+
+    await runCreate(repos, "receiver", 1, ["copy-lp"]);
+
+    expect(create).toHaveBeenCalled();
+    expect(setRequestedCopies).toHaveBeenCalledWith("trade-new", ["copy-lp"]);
+  });
+
+  it("stores nothing for a plain request", async () => {
+    const { repos, setRequestedCopies } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+
+    await runCreate(repos, "receiver", 1);
+
+    expect(setRequestedCopies).not.toHaveBeenCalled();
+  });
+
+  it("403s when the giver names copies on an offer", async () => {
+    const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+
+    const result = await runCreate(repos, "giver", 1, ["copy-1"]);
+
+    expect((result as AppError).status).toBe(403);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("400s when the copies don't match the quantity", async () => {
+    const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1", "copy-2"] });
+
+    const result = await runCreate(repos, "receiver", 2, ["copy-1"]);
+
+    expect((result as AppError).status).toBe(400);
+    expect((result as AppError).message).toBe("Choose exactly 2 copies");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("409s on a copy outside the giver's shared supply", async () => {
+    const { repos, create } = supplyRepos({ [GROUP.id]: ["copy-1"] });
+
+    const result = await runCreate(repos, "receiver", 1, ["hidden-copy"]);
+
+    expect((result as AppError).status).toBe(409);
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
 describe("setTradeQuantity supply accounting", () => {
   it("excludes the resized offer from its own claim", async () => {
     const { repos, listPendingForGiverPrinting, setPendingQuantity } = supplyRepos(
@@ -391,6 +498,17 @@ describe("setTradeQuantity supply accounting", () => {
 
     expect(listPendingForGiverPrinting).toHaveBeenCalledWith("giver-1", "printing-1");
     expect(setPendingQuantity).toHaveBeenCalledWith(OFFER.id, OFFER.giverUserId, 3);
+  });
+
+  it("drops the requested copies once the count changes", async () => {
+    const { repos, setRequestedCopies } = supplyRepos(
+      { [GROUP.id]: ["copy-1", "copy-2", "copy-3"] },
+      [{ id: OFFER.id, groupId: GROUP.id, quantity: OFFER.quantity, initiator: "giver" }],
+    );
+
+    await setTradeQuantity(mockTransact(repos), OFFER.id, OFFER.giverUserId, 2);
+
+    expect(setRequestedCopies).toHaveBeenCalledWith(OFFER.id, []);
   });
 
   it("still refuses a resize past the supply another pending offer holds", async () => {
@@ -440,9 +558,14 @@ function candidate(id: string, overrides: Record<string, unknown> = {}) {
  * Every candidate survives the lock and the loan re-check, so the only thing
  * left to decide is which ids get pinned.
  */
-function acceptRepos(trade: LiveCardTrade, candidates: ReturnType<typeof candidate>[]) {
+function acceptRepos(
+  trade: LiveCardTrade,
+  candidates: ReturnType<typeof candidate>[],
+  requestedCopyIds: string[] = [],
+) {
   const pinCopies = vi.fn(async () => undefined);
   const markReserved = vi.fn(async () => 1);
+  const markAutoCancelled = vi.fn(async () => 1);
   const listMetadataByIds = vi.fn(async (ids: readonly string[]) =>
     candidates.filter((row) => ids.includes(row.id)),
   );
@@ -451,6 +574,8 @@ function acceptRepos(trade: LiveCardTrade, candidates: ReturnType<typeof candida
       getById: vi.fn(async () => trade),
       pinCopies,
       markReserved,
+      markAutoCancelled,
+      listRequestedCopyIds: vi.fn(async () => requestedCopyIds),
       listPendingForGiverPrinting: vi.fn(async () => []),
       getDtoRowByIdForUser: vi.fn(async () => ({ ...DTO_ROW, id: trade.id })),
     },
@@ -468,7 +593,7 @@ function acceptRepos(trade: LiveCardTrade, candidates: ReturnType<typeof candida
       filterLoanedCopyIds: vi.fn(async () => []),
     },
   } as unknown as Repos;
-  return { repos, pinCopies, markReserved, listMetadataByIds };
+  return { repos, pinCopies, markReserved, markAutoCancelled, listMetadataByIds };
 }
 
 function runAccept(repos: Repos, trade: LiveCardTrade, copyIds?: string[]): Promise<unknown> {
@@ -510,6 +635,59 @@ describe("acceptTrade default copy choice", () => {
     await runAccept(repos, TRADE);
 
     expect(pinCopies).toHaveBeenCalledWith(TRADE.id, ["copy-plain"]);
+  });
+});
+
+describe("acceptTrade with requested copies", () => {
+  it("pins the copy the requester asked for over the plainest one", async () => {
+    const { repos, pinCopies } = acceptRepos(
+      REQUEST,
+      [candidate("copy-nm"), candidate("copy-lp", { condition: "light-played" })],
+      ["copy-lp"],
+    );
+
+    await runAccept(repos, REQUEST);
+
+    expect(pinCopies).toHaveBeenCalledWith(REQUEST.id, ["copy-lp"]);
+  });
+
+  it("closes the request instead of substituting when the requested copy is gone", async () => {
+    const { repos, pinCopies, markReserved, markAutoCancelled } = acceptRepos(
+      REQUEST,
+      [candidate("copy-graded", { grader: "psa", grade: 10 }), candidate("copy-plain")],
+      ["copy-traded-away"],
+    );
+
+    await runAccept(repos, REQUEST);
+
+    expect(pinCopies).not.toHaveBeenCalled();
+    expect(markReserved).not.toHaveBeenCalled();
+    expect(markAutoCancelled).toHaveBeenCalledWith(REQUEST.id);
+  });
+
+  it("409s when the giver picks a different copy than the one requested", async () => {
+    const { repos, pinCopies } = acceptRepos(
+      REQUEST,
+      [candidate("copy-nm"), candidate("copy-lp", { condition: "light-played" })],
+      ["copy-lp"],
+    );
+
+    const result = await runAccept(repos, REQUEST, ["copy-nm"]);
+
+    expect((result as AppError).status).toBe(409);
+    expect(pinCopies).not.toHaveBeenCalled();
+  });
+
+  it("accepts the giver confirming exactly the requested copy", async () => {
+    const { repos, pinCopies } = acceptRepos(
+      REQUEST,
+      [candidate("copy-nm"), candidate("copy-lp", { condition: "light-played" })],
+      ["copy-lp"],
+    );
+
+    await runAccept(repos, REQUEST, ["copy-lp"]);
+
+    expect(pinCopies).toHaveBeenCalledWith(REQUEST.id, ["copy-lp"]);
   });
 });
 
@@ -590,6 +768,18 @@ describe("listTradeCopyOptions", () => {
     expect(result.quantity).toBe(1);
     expect(result.choiceMatters).toBe(true);
     expect(result.copies.map((row) => row.id)).toEqual(["copy-plain", "copy-graded"]);
+  });
+
+  it("lists only the requested copy, flagged", async () => {
+    const { repos } = acceptRepos(
+      REQUEST,
+      [candidate("copy-plain"), candidate("copy-lp", { condition: "light-played" })],
+      ["copy-lp"],
+    );
+
+    const result = await listTradeCopyOptions(repos, REQUEST.id, REQUEST.giverUserId);
+
+    expect(result.copies.map((row) => [row.id, row.requested])).toEqual([["copy-lp", true]]);
   });
 
   it("does not prompt when the candidates are identical and unrecorded", async () => {

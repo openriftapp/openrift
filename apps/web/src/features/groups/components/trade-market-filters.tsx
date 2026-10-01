@@ -6,6 +6,13 @@ import { ChevronRightIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UserAvatar } from "@/components/user-avatar";
 import { useCards } from "@/features/cards/hooks/use-cards";
@@ -19,6 +26,7 @@ import type {
   TradeMarketPerson,
 } from "@/features/groups/lib/trade-market";
 import { marketDismissals } from "@/features/groups/lib/trade-market";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { m } from "@/paraglide/messages.js";
 
 const ALL_PEOPLE = "all";
@@ -32,8 +40,38 @@ export function PeopleFilter({
   personId: string | null;
   onPersonChange: (personId: string | null) => void;
 }) {
+  const isMobile = useIsMobile();
   if (people.length < 2) {
     return null;
+  }
+  if (isMobile) {
+    const items = [
+      { value: ALL_PEOPLE, label: m.trades_market_everyone() },
+      ...people.map((person) => ({
+        value: person.userId,
+        label: `${person.name ?? m.trades_member_fallback()} · ${person.cardCount}`,
+      })),
+    ];
+    return (
+      <Select
+        items={items}
+        value={personId ?? ALL_PEOPLE}
+        onValueChange={(value) =>
+          onPersonChange(value === null || value === ALL_PEOPLE ? null : value)
+        }
+      >
+        <SelectTrigger className="w-full" aria-label={m.trades_market_people_filter()}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   }
   return (
     <ToggleGroup

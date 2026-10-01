@@ -7,6 +7,8 @@ import type { FriendGroupMatchRow } from "@openrift/shared/types/api/friend-grou
 import type { MatchDirection } from "./trade-derivation";
 import { withoutLiveTradeMatches } from "./trade-derivation";
 import { dismissalKey } from "./trade-dismissals";
+import type { WantedCard } from "./wanted-cards";
+import { wantedMatchesPrinting } from "./wanted-cards";
 
 export interface TradeMarketGroup {
   slug: string;
@@ -221,4 +223,22 @@ export function sortByValue<T>(
     }
     return nameOf(a).localeCompare(nameOf(b));
   });
+}
+
+export function wantedSources(
+  wanted: Pick<WantedCard, "kind" | "cardId" | "printingId">,
+  incoming: readonly TradeMarketCard[],
+): TradeMarketSource[] {
+  const byUser = new Map<string, TradeMarketSource>();
+  for (const card of incoming) {
+    if (!wantedMatchesPrinting(wanted, card.cardId, card.printingId)) {
+      continue;
+    }
+    for (const source of card.sources) {
+      if (!byUser.has(source.userId)) {
+        byUser.set(source.userId, source);
+      }
+    }
+  }
+  return [...byUser.values()];
 }

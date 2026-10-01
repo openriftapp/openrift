@@ -23,9 +23,9 @@ import { useTradeMarket } from "@/features/groups/hooks/use-trade-market";
 import { useWantedCards } from "@/features/groups/hooks/use-wanted-cards";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import { cartFor, cartItemForWanted } from "@/features/groups/lib/buy-cart";
-import { sortByValue } from "@/features/groups/lib/trade-market";
+import type { TradeMarketSource } from "@/features/groups/lib/trade-market";
+import { sortByValue, wantedSources } from "@/features/groups/lib/trade-market";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
-import { wantedMatchesPrinting } from "@/features/groups/lib/wanted-cards";
 import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useRequiredUserId } from "@/lib/auth-session";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
@@ -37,6 +37,21 @@ type BuyFilter = "none" | "friends" | "all";
 // Must mirror the grid's breakpoints; the cart panel takes 22rem from lg up.
 const GRID_SIZES =
   "(min-width: 1280px) calc((100vw - 22rem) / 5), (min-width: 1024px) calc((100vw - 22rem) / 4), (min-width: 768px) calc(100vw / 4), (min-width: 640px) calc(100vw / 3), 50vw";
+
+function haveLine(sources: readonly TradeMarketSource[]): string {
+  const [first, second] = sources;
+  if (first === undefined) {
+    return m.trades_buy_source_none();
+  }
+  const name = (source: TradeMarketSource) => source.name ?? m.trades_member_fallback();
+  if (second === undefined) {
+    return m.trades_market_one_has({ name: name(first) });
+  }
+  if (sources.length === 2) {
+    return m.trades_market_two_have({ first: name(first), second: name(second) });
+  }
+  return m.trades_market_many_have({ count: sources.length });
+}
 
 function OrderedCallout({ collectionId, name }: { collectionId: string; name: string }) {
   const { data: copies } = useCopies(collectionId);
@@ -81,8 +96,10 @@ export function BuyPage() {
     const printing = printingId === undefined ? undefined : printingsById[printingId];
     return printing === undefined ? "" : legendDisplayName(printing.card);
   };
-  const friendsHave = (item: WantedCard) =>
-    market.incoming.some((card) => wantedMatchesPrinting(item, card.cardId, card.printingId));
+  const sourcesByKey = new Map(
+    wanted.map((item) => [item.key, wantedSources(item, market.incoming)]),
+  );
+  const friendsHave = (item: WantedCard) => (sourcesByKey.get(item.key)?.length ?? 0) > 0;
 
   const noSource = wanted.filter((item) => !friendsHave(item));
   const withSource = wanted.filter((item) => friendsHave(item));
@@ -198,6 +215,12 @@ export function BuyPage() {
                 }
                 const name = legendDisplayName(printing.card);
                 const inCart = cartKeys.has(item.key);
+                const belowParts = [
+                  ...(item.quantity > 1
+                    ? [m.trades_market_want_count({ count: item.quantity })]
+                    : []),
+                  ...(filter === "none" ? [] : [haveLine(sourcesByKey.get(item.key) ?? [])]),
+                ];
                 return (
                   <CardThumbnail
                     key={item.key}
@@ -216,15 +239,11 @@ export function BuyPage() {
                       />
                     }
                     belowLabel={
-                      <span className="text-muted-foreground mt-1 block truncate px-1.5 text-sm">
-                        {item.quantity > 1
-                          ? m.trades_market_want_count({ count: item.quantity })
-                          : null}
-                        {item.quantity > 1 ? " · " : null}
-                        {friendsHave(item)
-                          ? m.trades_buy_source_friends()
-                          : m.trades_buy_source_none()}
-                      </span>
+                      belowParts.length === 0 ? undefined : (
+                        <span className="text-muted-foreground mt-1 block truncate px-1.5 text-sm">
+                          {belowParts.join(" · ")}
+                        </span>
+                      )
                     }
                   />
                 );

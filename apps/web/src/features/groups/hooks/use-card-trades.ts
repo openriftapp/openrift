@@ -43,6 +43,7 @@ const createTradeFn = createServerFn({ method: "POST" })
       role: CardTradeRole;
       printingId: string;
       quantity: number;
+      copyIds?: string[];
     }) => input,
   )
   .middleware([withCookies])
@@ -228,6 +229,7 @@ export function useCreateTrade() {
       role: CardTradeRole;
       printingId: string;
       quantity: number;
+      copyIds?: string[];
     }
   >({
     mutationFn: (data) => createTradeFn({ data }),

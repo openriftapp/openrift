@@ -11,6 +11,7 @@ import {
   marketDismissals,
   marketPeople,
   sortByValue,
+  wantedSources,
 } from "./trade-market";
 
 function stubRow(overrides: Partial<FriendGroupMatchRow> = {}): FriendGroupMatchRow {
@@ -258,5 +259,49 @@ describe("sortByValue", () => {
         (item) => item.name,
       ).map((item) => item.name),
     ).toEqual(["Jinx", "Ahri", "Viktor", "Annie", "Sett"]);
+  });
+});
+
+describe("wantedSources", () => {
+  const market = buildTradeMarket(
+    [
+      stubGroup({
+        incoming: [
+          stubRow(),
+          stubRow({ printingId: "printing-2", copyId: "copy-2" }),
+          stubRow({
+            counterpartyUserId: "user-3",
+            counterpartyName: "Kai",
+            printingId: "printing-2",
+            copyId: "copy-3",
+          }),
+          stubRow({ cardId: "card-2", printingId: "printing-3", copyId: "copy-4" }),
+        ],
+      }),
+    ],
+    [],
+  );
+
+  it("collects each person once across every printing of a card wish", () => {
+    expect(
+      wantedSources({ kind: "card", cardId: "card-1", printingId: null }, market.incoming).map(
+        (source) => source.name,
+      ),
+    ).toEqual(["Robin", "Kai"]);
+  });
+
+  it("only counts the exact printing for a printing wish", () => {
+    expect(
+      wantedSources(
+        { kind: "printing", cardId: "card-1", printingId: "printing-1" },
+        market.incoming,
+      ).map((source) => source.name),
+    ).toEqual(["Robin"]);
+  });
+
+  it("returns no one when nobody has the card", () => {
+    expect(
+      wantedSources({ kind: "card", cardId: "card-9", printingId: null }, market.incoming),
+    ).toEqual([]);
   });
 });

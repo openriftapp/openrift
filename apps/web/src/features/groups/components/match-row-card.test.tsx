@@ -85,7 +85,7 @@ function makeMatch(): AggregatedMatch {
     domains: ["fury"],
     printing: null,
     availableCount: 1,
-    copies: [{ condition: null, grader: null, grade: null, notesPublic: null }],
+    copies: [{ copyId: "copy-1", condition: null, grader: null, grade: null, notesPublic: null }],
   };
 }
 

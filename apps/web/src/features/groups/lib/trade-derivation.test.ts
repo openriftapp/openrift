@@ -17,6 +17,7 @@ import {
   matchCopyConditionLabel,
   matchSuggestionKey,
   maxTradeQuantity,
+  groupMatchCopyConditions,
   summarizeMatchCopies,
   sumTradeValues,
   tradeGroupKey,
@@ -821,5 +822,38 @@ describe("collapseTradeAnnotations", () => {
     expect(collapseTradeAnnotations(map.get("printing-2") ?? [])).toEqual(
       annotation({ printingId: "printing-2", role: "receiver", phase: "offered", quantity: 6 }),
     );
+  });
+});
+
+describe("groupMatchCopyConditions", () => {
+  const copy = (overrides: Partial<MatchCopyDetail> = {}): MatchCopyDetail => ({
+    condition: null,
+    grader: null,
+    grade: null,
+    notesPublic: null,
+    ...overrides,
+  });
+  const labelOf = (detail: MatchCopyDetail) =>
+    detail.condition === null
+      ? null
+      : { short: detail.condition.toUpperCase(), full: detail.condition };
+
+  it("counts copies per condition in first-seen order", () => {
+    expect(
+      groupMatchCopyConditions(
+        [copy({ condition: "nm" }), copy({ condition: "lp" }), copy({ condition: "nm" })],
+        labelOf,
+      ),
+    ).toEqual([
+      { short: "NM", full: "nm", count: 2 },
+      { short: "LP", full: "lp", count: 1 },
+    ]);
+  });
+
+  it("leaves out unrecorded copies", () => {
+    expect(groupMatchCopyConditions([copy(), copy({ condition: "nm" })], labelOf)).toEqual([
+      { short: "NM", full: "nm", count: 1 },
+    ]);
+    expect(groupMatchCopyConditions([copy()], labelOf)).toEqual([]);
   });
 });

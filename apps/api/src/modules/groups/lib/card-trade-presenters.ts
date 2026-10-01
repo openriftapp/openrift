@@ -116,12 +116,17 @@ export function cardTradeChoiceMatters(
   return keys.size > 1;
 }
 
-export function toCardTradeCopyOption(copy: TradeCopyRow, pinned: boolean): CardTradeCopyOption {
+export function toCardTradeCopyOption(
+  copy: TradeCopyRow,
+  pinned: boolean,
+  requested = false,
+): CardTradeCopyOption {
   return {
     id: copy.id,
     collectionId: copy.collectionId,
     collectionName: copy.collectionName,
     pinned,
+    requested,
     condition: copy.condition,
     grader: copy.grader,
     grade: copy.grade,
@@ -151,9 +156,21 @@ export function toCardTradeCopyOptions(input: {
   quantity: number;
   copies: readonly TradeCopyRow[];
   pinnedCopyIds?: readonly string[];
+  requestedCopyIds?: readonly string[];
 }): CardTradeCopyOptionsResponse {
   const settling = input.pinnedCopyIds !== undefined;
   const pinned = new Set(input.pinnedCopyIds);
+  const requested = new Set(input.requestedCopyIds);
+  if (requested.size > 0) {
+    return {
+      tradeId: input.tradeId,
+      quantity: input.quantity,
+      choiceMatters: true,
+      copies: sortCopiesForPinning(input.copies)
+        .filter((copy) => requested.has(copy.id))
+        .map((copy) => toCardTradeCopyOption(copy, false, true)),
+    };
+  }
   const byPinWeight = sortCopiesForPinning(input.copies);
   const ordered = [
     ...byPinWeight.filter((copy) => pinned.has(copy.id)),
@@ -163,7 +180,9 @@ export function toCardTradeCopyOptions(input: {
     tradeId: input.tradeId,
     quantity: input.quantity,
     choiceMatters: cardTradeChoiceMatters(ordered, input.quantity, settling),
-    copies: ordered.map((copy) => toCardTradeCopyOption(copy, pinned.has(copy.id))),
+    copies: ordered.map((copy) =>
+      toCardTradeCopyOption(copy, pinned.has(copy.id), requested.has(copy.id)),
+    ),
   };
 }
 

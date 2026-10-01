@@ -1,11 +1,13 @@
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { legendDisplayName } from "@openrift/shared/utils";
-import { SearchIcon, StoreIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { SearchIcon, ShoppingCartIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { SectionHeading } from "@/components/ui/section-heading";
 import {
   Select,
   SelectContent,
@@ -28,7 +30,8 @@ import type { TradeMarketSelection } from "@/features/groups/components/trade-ma
 import { TradeMarketSheet } from "@/features/groups/components/trade-market-sheet";
 import { useTradeMarket } from "@/features/groups/hooks/use-trade-market";
 import { useWantedCards } from "@/features/groups/hooks/use-wanted-cards";
-import { cartFor, cartItemForWanted } from "@/features/groups/lib/buy-cart";
+import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
+import { cartFor, cartItemForWanted, cartTotal } from "@/features/groups/lib/buy-cart";
 import type { TradeMarketCard } from "@/features/groups/lib/trade-market";
 import {
   filterMarketByGroup,
@@ -80,6 +83,44 @@ function EmptyTab({ tab, searching }: { tab: MarketTab; searching: boolean }) {
   return <p className="text-muted-foreground py-6">{text}</p>;
 }
 
+type MarketPick =
+  | { kind: "market"; direction: TradeMarketCard["direction"]; printingId: string }
+  | Extract<TradeMarketSelection, { kind: "wanted" }>;
+
+function BuyAllCallout({
+  items,
+  allInCart,
+  estimate,
+  onAddAll,
+}: {
+  items: readonly BuyCartItem[];
+  allInCart: boolean;
+  estimate: string;
+  onAddAll: () => void;
+}) {
+  const count = items.reduce((sum, item) => sum + item.quantity, 0);
+  return (
+    <Callout className="mb-5 flex flex-wrap items-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="font-medium">{m.trades_market_buy_banner_title({ count })}</p>
+        <p className="text-muted-foreground text-sm">
+          {m.trades_market_cardtrader_estimate({ price: estimate })}
+        </p>
+      </div>
+      {allInCart ? (
+        <Button size="sm" variant="outline" render={<Link to="/trades/buy" />}>
+          {m.trades_market_view_cart()}
+        </Button>
+      ) : (
+        <Button size="sm" onClick={onAddAll}>
+          <ShoppingCartIcon />
+          {m.trades_market_buy_banner_add({ count })}
+        </Button>
+      )}
+    </Callout>
+  );
+}
+
 export function TradeMarket() {
   const userId = useRequiredUserId();
   const { printingsById, printingsByCardId } = useCards();
@@ -101,8 +142,8 @@ export function TradeMarket() {
   const [groupSlug, setGroupSlug] = useState<string | null>(null);
   const [personId, setPersonId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [selection, setSelection] = useState<TradeMarketSelection | null>(null);
-  const { wanted, ready: wantedReady } = useWantedCards(tab === "buy" || selection !== null);
+  const [picked, setPicked] = useState<MarketPick | null>(null);
+  const { wanted, ready: wantedReady } = useWantedCards(tab === "buy" || picked !== null);
 
   const cartItems = useBuyCartStore((state) => cartFor(state.carts, userId).items);
   const addItems = useBuyCartStore((state) => state.addItems);
@@ -154,6 +195,26 @@ export function TradeMarket() {
 
   const marketCards = byValue(tab === "give" ? outgoing : incoming, (card) => card.printingId);
   const buyCards = byValue(buyable, shownPrintingId);
+  const buyItems = buyCards.flatMap((item): BuyCartItem[] => {
+    const cartItem = cartItemForWanted(item, shownPrintingId(item));
+    return cartItem === null ? [] : [cartItem];
+  });
+  const buyEstimate = cartTotal(buyItems, (printingId) => prices.get(printingId, "cardtrader"));
+
+  const pickedCard =
+    picked?.kind === "market"
+      ? (picked.direction === "incoming" ? incoming : outgoing).find(
+          (card) => card.printingId === picked.printingId,
+        )
+      : undefined;
+  const selection: TradeMarketSelection | null =
+    picked === null
+      ? null
+      : picked.kind === "wanted"
+        ? picked
+        : pickedCard === undefined
+          ? null
+          : { kind: "market", card: pickedCard };
 
   const tabs: { value: MarketTab; label: string; count: number | null }[] = [
     { value: "get", label: m.trades_market_tab_get(), count: incoming.length },
@@ -167,20 +228,19 @@ export function TradeMarket() {
 
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeading icon={StoreIcon} tone="success">
-        {m.trades_market_heading()}
-      </SectionHeading>
       <Tabs className="gap-4" value={tab} onValueChange={(value) => setTab(value as MarketTab)}>
-        <TabsList variant="line" className="h-auto flex-wrap justify-start">
-          {tabs.map((entry) => (
-            <TabsTrigger key={entry.value} value={entry.value} className="flex-none">
-              {entry.label}
-              {entry.count === null ? null : (
-                <span className="text-muted-foreground tabular-nums">{entry.count}</span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="no-scrollbar overflow-x-auto pb-px shadow-[inset_0_-1px_0_var(--color-border)]">
+          <TabsList variant="line" className="justify-start">
+            {tabs.map((entry) => (
+              <TabsTrigger key={entry.value} value={entry.value} className="flex-none">
+                {entry.label}
+                {entry.count === null ? null : (
+                  <span className="text-muted-foreground tabular-nums">{entry.count}</span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <InputGroup className="w-full sm:w-64">
@@ -233,42 +293,53 @@ export function TradeMarket() {
             wantedReady && buyCards.length === 0 ? (
               <EmptyTab tab={tab} searching={query.trim().length > 0} />
             ) : (
-              <div className={GRID}>
-                {buyCards.map((item) => {
-                  const printingId = shownPrintingId(item);
-                  const printing = printingId === undefined ? undefined : printingsById[printingId];
-                  if (printing === undefined) {
-                    return null;
-                  }
-                  const inCart = cartKeys.has(item.key);
-                  return (
-                    <CardThumbnail
-                      key={item.key}
-                      printing={printing}
-                      showImages={showImages}
-                      display={display}
-                      sizes={GRID_SIZES}
-                      view="printings"
-                      imageOverlay={
-                        inCart ? (
-                          <Badge variant="secondary" className={BADGE_POSITION}>
-                            {m.trades_market_in_cart()}
-                          </Badge>
-                        ) : undefined
-                      }
-                      selected={selection?.kind === "wanted" && selection.wanted.key === item.key}
-                      onClick={() =>
-                        setSelection({ kind: "wanted", wanted: item, printingId: printing.id })
-                      }
-                      belowLabel={
-                        <span className="text-muted-foreground mt-1 block px-1.5 text-sm">
-                          {m.trades_market_want_count({ count: item.quantity })}
-                        </span>
-                      }
-                    />
-                  );
-                })}
-              </div>
+              <>
+                {buyItems.length === 0 ? null : (
+                  <BuyAllCallout
+                    items={buyItems}
+                    allInCart={buyItems.every((item) => cartKeys.has(item.key))}
+                    estimate={formatPrice(buyEstimate.total)}
+                    onAddAll={() => addItems(userId, buyItems)}
+                  />
+                )}
+                <div className={GRID}>
+                  {buyCards.map((item) => {
+                    const printingId = shownPrintingId(item);
+                    const printing =
+                      printingId === undefined ? undefined : printingsById[printingId];
+                    if (printing === undefined) {
+                      return null;
+                    }
+                    const inCart = cartKeys.has(item.key);
+                    return (
+                      <CardThumbnail
+                        key={item.key}
+                        printing={printing}
+                        showImages={showImages}
+                        display={display}
+                        sizes={GRID_SIZES}
+                        view="printings"
+                        imageOverlay={
+                          inCart ? (
+                            <Badge variant="secondary" className={BADGE_POSITION}>
+                              {m.trades_market_in_cart()}
+                            </Badge>
+                          ) : undefined
+                        }
+                        selected={picked?.kind === "wanted" && picked.wanted.key === item.key}
+                        onClick={() =>
+                          setPicked({ kind: "wanted", wanted: item, printingId: printing.id })
+                        }
+                        belowLabel={
+                          <span className="text-muted-foreground mt-1 block px-1.5 text-sm">
+                            {m.trades_market_want_count({ count: item.quantity })}
+                          </span>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </>
             )
           ) : marketCards.length === 0 ? (
             <EmptyTab tab={tab} searching={query.trim().length > 0} />
@@ -288,11 +359,17 @@ export function TradeMarket() {
                     sizes={GRID_SIZES}
                     view="printings"
                     selected={
-                      selection?.kind === "market" &&
-                      selection.card.printingId === card.printingId &&
-                      selection.card.direction === card.direction
+                      picked?.kind === "market" &&
+                      picked.printingId === card.printingId &&
+                      picked.direction === card.direction
                     }
-                    onClick={() => setSelection({ kind: "market", card })}
+                    onClick={() =>
+                      setPicked({
+                        kind: "market",
+                        direction: card.direction,
+                        printingId: card.printingId,
+                      })
+                    }
                     belowLabel={
                       <span className="text-muted-foreground mt-1 flex min-w-0 items-center gap-2 px-1.5 text-sm">
                         <SourceAvatars sources={card.sources} />
@@ -311,7 +388,7 @@ export function TradeMarket() {
 
       <TradeMarketSheet
         selection={selection}
-        onClose={() => setSelection(null)}
+        onClose={() => setPicked(null)}
         wantedForCard={wantedForCard}
         cartKeys={cartKeys}
         onToggleCart={toggleCart}

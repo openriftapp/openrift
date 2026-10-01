@@ -443,6 +443,7 @@ describe("GET /api/v1/trades/:id/copy-options", () => {
           collectionId: "a0000000-0001-4000-a000-000000000050",
           collectionName: "Trade Binder",
           pinned: false,
+          requested: false,
           condition: null,
           grader: null,
           grade: null,

@@ -189,9 +189,11 @@ function CopyPickerBody({
   options,
   quantity,
   pending,
+  locked = false,
   onConfirm,
   onCancel,
 }: {
+  locked?: boolean;
   title: string;
   description: string;
   confirmLabel: string;
@@ -230,7 +232,7 @@ function CopyPickerBody({
               <Checkbox
                 id={checkboxId}
                 checked={selectedIds.has(copy.id)}
-                disabled={pending}
+                disabled={pending || locked}
                 onCheckedChange={(checked) => {
                   setSelectedIds((prev) => {
                     const next = new Set(prev);
@@ -249,6 +251,9 @@ function CopyPickerBody({
               >
                 <span className="max-w-48 truncate text-sm font-medium">{copy.collectionName}</span>
                 <CopyOptionSummary copy={copy} />
+                {copy.requested ? (
+                  <Badge variant="outline">{m.trades_copy_requested()}</Badge>
+                ) : null}
               </label>
             </li>
           );
@@ -275,6 +280,10 @@ function CopyPickerBody({
 export function TradeCopyPickerDialog({ flow }: { flow: TradeAcceptFlow }) {
   const choice = flow.choice;
   const quantity = choice?.options.quantity ?? 1;
+  const locked =
+    choice !== null &&
+    choice.options.copies.length > 0 &&
+    choice.options.copies.every((copy) => copy.requested);
   return (
     <Dialog
       open={choice !== null}
@@ -287,14 +296,26 @@ export function TradeCopyPickerDialog({ flow }: { flow: TradeAcceptFlow }) {
       <DialogContent className="sm:max-w-lg">
         {choice === null ? null : (
           <CopyPickerBody
+            locked={locked}
             title={
-              quantity === 1 ? m.trades_which_copy() : m.trades_which_n_copies({ count: quantity })
+              locked
+                ? m.trades_requested_copy_title({ count: quantity })
+                : quantity === 1
+                  ? m.trades_which_copy()
+                  : m.trades_which_n_copies({ count: quantity })
             }
-            description={m.trades_accept_copy_description({
-              available: choice.options.copies.length,
-              card: choice.target.cardName,
-              count: quantity,
-            })}
+            description={
+              locked
+                ? m.trades_requested_copy_description({
+                    card: choice.target.cardName,
+                    count: quantity,
+                  })
+                : m.trades_accept_copy_description({
+                    available: choice.options.copies.length,
+                    card: choice.target.cardName,
+                    count: quantity,
+                  })
+            }
             confirmLabel={m.trades_accept()}
             options={choice.options}
             quantity={quantity}

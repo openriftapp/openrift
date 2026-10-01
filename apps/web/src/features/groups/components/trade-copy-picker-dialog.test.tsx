@@ -56,6 +56,7 @@ function makeCopy(id: string, overrides: Partial<CardTradeCopyOption> = {}): Car
     collectionId: `col-${id}`,
     collectionName: `Binder ${id}`,
     pinned: false,
+    requested: false,
     condition: null,
     grader: null,
     grade: null,
@@ -145,6 +146,30 @@ describe("TradeCopyPickerDialog", () => {
     expect(checkboxes[1]).toBeChecked();
     expect(checkboxes[2]).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Accept" })).toBeEnabled();
+  });
+
+  it("shows a request's named copies locked, to accept as asked", async () => {
+    currentOptions = {
+      tradeId: "trade-1",
+      quantity: 1,
+      choiceMatters: true,
+      copies: [{ ...GRADED, requested: true }],
+    };
+    renderFlow();
+    const user = await startAccept();
+
+    await screen.findByRole("dialog");
+    expect(screen.getByText("They asked for this copy")).toBeInTheDocument();
+    const [checkbox] = screen.getAllByRole("checkbox");
+    expect(checkbox).toBeChecked();
+    expect(checkbox).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("Requested")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+    expect(acceptMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ copyIds: ["copy-graded"] }),
+      expect.anything(),
+    );
   });
 
   it("blocks confirm until exactly the trade's quantity is picked", async () => {
