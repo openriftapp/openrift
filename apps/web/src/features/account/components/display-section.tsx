@@ -15,6 +15,13 @@ import { SettingsRow } from "@/components/layout/settings-row";
 import { SettingsSection } from "@/components/layout/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { TextLink } from "@/components/ui/text-link";
 import { applyDisplayLocale } from "@/features/account/hooks/use-preferences-sync";
@@ -62,6 +69,7 @@ export function DisplaySection() {
 
       <SettingsRow
         label={m.locale_switcher_label()}
+        htmlFor="pref-display-locale"
         description={
           <ParaglideMessage
             message={m.profile_display_locale_beta_note}
@@ -74,7 +82,6 @@ export function DisplaySection() {
             }}
           />
         }
-        className="max-sm:flex-col max-sm:gap-2"
       >
         <DisplayLocalePicker />
       </SettingsRow>
@@ -220,12 +227,29 @@ function DisplayLocalePicker() {
     }
   };
 
+  const options = displayLocaleOptions();
+
   return (
-    <SegmentedRadio
+    <Select
+      items={options}
       value={active}
-      onValueChange={(next) => void change(next)}
-      options={displayLocaleOptions()}
-    />
+      onValueChange={(next) => {
+        if (DISPLAY_LOCALES.includes(next as DisplayLocale)) {
+          void change(next as DisplayLocale);
+        }
+      }}
+    >
+      <SelectTrigger id="pref-display-locale" className="w-44">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((item) => (
+          <SelectItem key={item.value} value={item.value} lang={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

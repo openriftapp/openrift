@@ -8,6 +8,10 @@
 - feat(Trades): **Tidier trades hub** — Your move shows one row per person with a button for the next step, the card grid follows right after, a card's panel lists each person with their copies and terms, fixed prices show how far they sit from the CardTrader estimate, and the buy page names who in your groups has each card.
 - feat(Trades): **Ask for a specific copy** — when someone has copies in different conditions, a request lets you pick the one you want, and they can only accept that copy or decline.
 
+### Other
+
+- fix(Account): **Language setting fits again** — the language picker in Preferences is now a dropdown, and its note no longer breaks into one word per line.
+
 ## 2026-09-24
 
 ### Milestone
