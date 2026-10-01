@@ -128,6 +128,7 @@ interface PrintingReviewCardProps {
   defaultExpanded: boolean;
   /** Card-review grant holders only accept fields; triage and delete stay full-admin. */
   isAdmin: boolean;
+  landscape?: boolean;
   /** Driven by the printings header, so every row folds the same way. */
   agreedFieldsFolded: boolean;
   onAgreedFieldsFoldedChange: (folded: boolean) => void;
@@ -153,6 +154,7 @@ export function PrintingReviewCard({
   invalidates,
   defaultExpanded,
   isAdmin,
+  landscape = false,
   agreedFieldsFolded,
   onAgreedFieldsFoldedChange,
 }: PrintingReviewCardProps) {
@@ -233,8 +235,9 @@ export function PrintingReviewCard({
           <PrintingImageBox
             url={thumbnailUrl}
             alt={printingLabel}
-            className="w-8 shrink-0"
+            className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
             iconClassName="size-3"
+            landscape={landscape}
           />
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
@@ -380,6 +383,7 @@ export function PrintingReviewCard({
                     url={row.imageUrl}
                     sourceLabel={sourceLabels[row.candidateCardId ?? ""] ?? "Source"}
                     isUsed={ownImageUrls.has(row.imageUrl)}
+                    landscape={landscape}
                   />
                 );
               }}

@@ -3,7 +3,6 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Input } from "@/components/ui/input";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,21 +59,23 @@ function fromEditText(change: AttentionChange, text: string): unknown {
   return text;
 }
 
-function Thumb({ url, label }: { url: string | null; label: string }) {
+function Thumb({
+  url,
+  label,
+  landscape,
+}: {
+  url: string | null;
+  label: string;
+  landscape: boolean;
+}) {
   return (
     <span className="flex flex-col items-center gap-1">
-      <span className="bg-muted/30 flex h-24 w-16 items-center justify-center overflow-hidden rounded-md border">
-        {url ? (
-          <ImgWithFallback
-            src={url}
-            alt={label}
-            className="size-full object-contain"
-            fallback={<span className="text-muted-foreground text-2xs">Failed</span>}
-          />
-        ) : (
-          <span className="text-muted-foreground text-2xs">None</span>
-        )}
-      </span>
+      <PrintingImageBox
+        url={url}
+        alt={label}
+        landscape={landscape}
+        className={landscape ? "w-24" : "w-16"}
+      />
       <span className="text-muted-foreground text-2xs">{label}</span>
     </span>
   );
@@ -95,11 +96,13 @@ function TextComparison({
   current,
   proposed,
   imageUrl,
+  landscape,
 }: {
   field: string;
   current: unknown;
   proposed: unknown;
   imageUrl: string | null;
+  landscape: boolean;
 }) {
   const segments =
     typeof current === "string" && typeof proposed === "string" && current !== ""
@@ -123,8 +126,12 @@ function TextComparison({
         </span>
       ))}
       {imageUrl !== null && (
-        <ImageZoom url={imageUrl} alt="Printed card" className="w-24 self-start">
-          <PrintingImageBox url={imageUrl} alt="Printed card" />
+        <ImageZoom
+          url={imageUrl}
+          alt="Printed card"
+          className={cn("self-start", landscape ? "w-32" : "w-24")}
+        >
+          <PrintingImageBox url={imageUrl} alt="Printed card" landscape={landscape} />
         </ImageZoom>
       )}
     </span>
@@ -134,6 +141,7 @@ function TextComparison({
 interface ChangeRowProps {
   change: AttentionChange;
   imageUrl: string | null;
+  landscape: boolean;
   isTicked: boolean;
   editedValue: unknown;
   isEditing: boolean;
@@ -146,6 +154,7 @@ interface ChangeRowProps {
 function ChangeRow({
   change,
   imageUrl,
+  landscape,
   isTicked,
   editedValue,
   isEditing,
@@ -184,10 +193,15 @@ function ChangeRow({
         <div className="min-w-0 flex-1 text-sm">
           {change.kind === "image" ? (
             <span className="flex items-end gap-4">
-              <Thumb url={typeof change.current === "string" ? change.current : null} label="Now" />
+              <Thumb
+                url={typeof change.current === "string" ? change.current : null}
+                label="Now"
+                landscape={landscape}
+              />
               <Thumb
                 url={typeof change.proposed === "string" ? change.proposed : null}
                 label="Proposed"
+                landscape={landscape}
               />
             </span>
           ) : change.kind === "text" ? (
@@ -196,6 +210,7 @@ function ChangeRow({
               current={change.current}
               proposed={effective}
               imageUrl={imageUrl}
+              landscape={landscape}
             />
           ) : (
             <span>
@@ -266,6 +281,7 @@ interface AttentionChangeListProps {
   ticked?: ReadonlySet<string>;
   edits?: ReadonlyMap<string, unknown>;
   readOnly?: boolean;
+  landscape?: boolean;
   onToggle?: (key: string) => void;
   onEdit?: (key: string, value: unknown) => void;
   printingTargets?: readonly PrintingTarget[];
@@ -281,6 +297,7 @@ export function AttentionChangeList({
   ticked = EMPTY_TICKED,
   edits = EMPTY_EDITS,
   readOnly = false,
+  landscape = false,
   onToggle,
   onEdit,
   printingTargets = [],
@@ -376,6 +393,7 @@ export function AttentionChangeList({
                     key={change.key}
                     change={change}
                     imageUrl={group.imageUrl}
+                    landscape={landscape}
                     isTicked={ticked.has(change.key)}
                     editedValue={edits.get(change.key)}
                     isEditing={editing.has(change.key)}

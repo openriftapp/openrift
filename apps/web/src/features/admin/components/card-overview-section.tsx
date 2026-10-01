@@ -3,8 +3,10 @@ import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
+import { getOrientation } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
-import { CheckCheckIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CheckCheckIcon, PencilIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
 import { LanguageChip } from "@/components/language-chip";
@@ -17,17 +19,18 @@ import type {
   CandidateCardFieldKey,
   FieldDef,
 } from "@/features/admin/components/candidate-field-defs";
-import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingLanguageHeader } from "@/features/admin/components/printing-language-header";
 import {
   useCheckAllCandidatePrintings,
   useCheckCandidateCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
+import type { CardReviewNavSearch } from "@/features/admin/hooks/use-card-review-navigation";
 import { usePrintingsByLanguage } from "@/features/admin/hooks/use-printings-by-language";
 import { hasValue } from "@/features/admin/lib/candidate-cell-values";
 import { firstPrintingSetLabel } from "@/features/admin/lib/card-overview";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import type { OverviewSourceGroup } from "@/features/admin/lib/source-groups";
+import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { useMarkers } from "@/hooks/use-markers";
 import { getFilterIconPath } from "@/lib/icons";
@@ -54,11 +57,13 @@ function PrintingTile({
   printing,
   detail,
   labels,
+  landscape,
   onOpen,
 }: {
   printing: AdminPrintingResponse;
   detail: AdminCardDetailResponse;
   labels: TileLabels;
+  landscape: boolean;
   onOpen: (printingId: string) => void;
 }) {
   const image = detail.printingImages.find(
@@ -72,9 +77,12 @@ function PrintingTile({
       title={`Open ${printing.shortCode} in Printings`}
       onClick={() => onOpen(printing.id)}
     >
-      <PrintingImageBox
-        url={image === undefined ? null : printingImageDisplayUrl(image)}
+      <CardArtThumb
+        src={image === undefined ? null : printingImageDisplayUrl(image)}
         alt={printing.shortCode}
+        landscape={landscape}
+        rarity={printing.rarity}
+        className="w-full"
       />
       <span className="flex items-center gap-1.5 text-sm">
         <LanguageChip code={printing.language} />
@@ -104,6 +112,8 @@ export function CardOverviewSection({
   attentionCount,
   invalidates,
   isAdmin,
+  cardSlug,
+  listSearch,
   onOpenPrinting,
   onOpenAttention,
 }: {
@@ -114,6 +124,8 @@ export function CardOverviewSection({
   attentionCount: number;
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
+  cardSlug: string;
+  listSearch: CardReviewNavSearch;
   onOpenPrinting: (printingId: string) => void;
   onOpenAttention: () => void;
 }) {
@@ -130,6 +142,7 @@ export function CardOverviewSection({
 
   const filled = cardFields.filter((field) => !field.readOnly && hasValue(card[field.key]));
   const byLanguage = usePrintingsByLanguage(detail.printings);
+  const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   function checkGroup(group: OverviewSourceGroup) {
     for (const candidateCardId of group.candidateCardIds) {
       checkSource.mutate(candidateCardId);
@@ -144,20 +157,37 @@ export function CardOverviewSection({
       <div className="min-w-0 space-y-6">
         <section className="space-y-2">
           <Heading level={3}>Facts</Heading>
-          <dl className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-sm">
+          <dl className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-start gap-x-6 gap-y-1.5 text-sm">
             <div className="contents">
               <dt className="text-muted-foreground">Card ID</dt>
-              <dd className="font-mono">{detail.card?.slug ?? detail.expectedCardId}</dd>
+              <dd className="col-span-2 font-mono">{detail.card?.slug ?? detail.expectedCardId}</dd>
             </div>
             <div className="contents">
               <dt className="text-muted-foreground">First set</dt>
-              <dd>{firstPrintingSetLabel(detail.printings) ?? "—"}</dd>
+              <dd className="col-span-2">{firstPrintingSetLabel(detail.printings) ?? "—"}</dd>
             </div>
             {filled.map((field) => (
               <div key={field.key} className="contents">
                 <dt className="text-muted-foreground">{field.label}</dt>
                 <dd className="break-words whitespace-pre-wrap">
                   {renderLabeledValue(field, card[field.key])}
+                </dd>
+                <dd>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Edit ${field.label}`}
+                    className="-my-1"
+                    render={
+                      <Link
+                        to="/admin/cards/$cardSlug"
+                        params={{ cardSlug }}
+                        search={{ ...listSearch, section: "printings", focusField: field.key }}
+                      />
+                    }
+                  >
+                    <PencilIcon />
+                  </Button>
                 </dd>
               </div>
             ))}
@@ -174,13 +204,14 @@ export function CardOverviewSection({
             byLanguage.map(([language, printings]) => (
               <div key={language} className="flex flex-col gap-2">
                 <PrintingLanguageHeader code={language} />
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(8rem,8rem))] items-start gap-2">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),24rem))] items-start gap-2">
                   {printings.map((printing) => (
                     <PrintingTile
                       key={printing.id}
                       printing={printing}
                       detail={detail}
                       labels={tileLabels}
+                      landscape={landscape}
                       onOpen={onOpenPrinting}
                     />
                   ))}

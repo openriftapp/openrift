@@ -10,6 +10,7 @@ import type {
 import { BanIcon, CheckCheckIcon, CopyCheckIcon, MessageSquareIcon } from "lucide-react";
 import { useState } from "react";
 
+import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import type {
@@ -111,6 +112,7 @@ interface CardFieldsSectionProps {
   isCheckingAllSources: boolean;
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
+  focusField?: string;
 }
 
 export function CardFieldsSection({
@@ -122,6 +124,7 @@ export function CardFieldsSection({
   isCheckingAllSources,
   invalidates,
   isAdmin,
+  focusField,
 }: CardFieldsSectionProps) {
   const acceptCardField = useAcceptCardField(invalidates);
   const checkCandidateCard = useCheckCandidateCard(invalidates);
@@ -140,6 +143,7 @@ export function CardFieldsSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
+        <Heading level={2}>Card fields</Heading>
         {isAdmin && uncheckedCount > 0 && (
           <Button
             variant="outline"
@@ -160,6 +164,7 @@ export function CardFieldsSection({
         candidateRows={sources}
         submitters={submitters}
         providerSettings={providerSettings}
+        focusField={focusField}
         onCellClick={(field, value, candidateId) => {
           if (!isAcceptCardField(field)) {
             return;

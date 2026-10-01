@@ -5,6 +5,7 @@ import type {
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
+import { getOrientation } from "@openrift/shared/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
@@ -94,6 +95,7 @@ export function ExistingCardDetailPage({
   focusMarketplace,
   focusFinish,
   focusLanguage,
+  focusField,
   setSlug,
   listStatus,
   priceScope,
@@ -103,6 +105,7 @@ export function ExistingCardDetailPage({
   focusMarketplace?: AdminMarketplaceName;
   focusFinish?: string;
   focusLanguage?: string;
+  focusField?: string;
   setSlug?: string;
   listStatus?: AdminCardListStatus;
   priceScope?: string;
@@ -349,6 +352,7 @@ export function ExistingCardDetailPage({
     );
   }
   const canonicalName = card.name;
+  const landscape = getOrientation(card.types) === "landscape";
 
   const {
     labels: sourceLabels,
@@ -371,8 +375,10 @@ export function ExistingCardDetailPage({
 
   const sectionCounts: Partial<Record<CardSection, CardSectionCount>> = {
     attention: { waiting: attentionTotal },
-    fields: { waiting: sources.filter((source) => !source.checkedAt).length },
-    printings: { total: printings.length, waiting: ambiguousGroups.length },
+    printings: {
+      total: printings.length,
+      waiting: sources.filter((source) => !source.checkedAt).length + ambiguousGroups.length,
+    },
     marketplace: { waiting: unassignedProducts },
     bans: { total: (bansData?.length ?? 0) + (card.errata === null ? 0 : 1) },
   };
@@ -422,6 +428,8 @@ export function ExistingCardDetailPage({
               attentionCount={attentionTotal}
               invalidates={invalidateScope}
               isAdmin={isAdmin}
+              cardSlug={cardId}
+              listSearch={navSearch}
               onOpenPrinting={revealPrinting}
               onOpenAttention={() => void goToSection("attention")}
             />
@@ -437,8 +445,8 @@ export function ExistingCardDetailPage({
                 detail={existingData}
                 cardSlug={cardId}
                 compareAction={
-                  <Button variant="ghost" onClick={() => void goToSection("fields")}>
-                    Card fields
+                  <Button variant="ghost" onClick={() => void goToSection("printings")}>
+                    Fields & printings
                   </Button>
                 }
                 onOpenNewPrinting={revealNewPrinting}
@@ -448,7 +456,11 @@ export function ExistingCardDetailPage({
               />
             ))}
 
-          {activeSection === "fields" && (
+          {activeSection === "marketplace" && (
+            <AdminCardMarketplaceSection cardId={identifier} onOpenPrinting={revealPrinting} />
+          )}
+
+          {activeSection === "printings" && (
             <CardFieldsSection
               card={card}
               sources={sources}
@@ -458,16 +470,16 @@ export function ExistingCardDetailPage({
               isCheckingAllSources={checkAllCardSources.isPending}
               invalidates={invalidateScope}
               isAdmin={isAdmin}
+              focusField={focusField}
             />
           )}
 
-          {activeSection === "marketplace" && (
-            <AdminCardMarketplaceSection cardId={identifier} onOpenPrinting={revealPrinting} />
-          )}
-
           {activeSection === "printings" && (
-            <section className="space-y-3">
+            <section className="space-y-3 pt-6">
               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+                <Heading level={2} className="mr-auto">
+                  Printings
+                </Heading>
                 <PrintingFilterBar
                   {...filters}
                   agreedFieldsFolded={agreedFieldsFolded}
@@ -519,6 +531,7 @@ export function ExistingCardDetailPage({
                           invalidates={invalidateScope}
                           defaultExpanded={printing.id === printings[0]?.id}
                           isAdmin={isAdmin}
+                          landscape={landscape}
                           agreedFieldsFolded={agreedFieldsFolded}
                           onAgreedFieldsFoldedChange={setAgreedFieldsFolded}
                         />
@@ -623,6 +636,7 @@ export function ExistingCardDetailPage({
                       costKeywords={costKeywords}
                       invalidates={invalidateScope}
                       isAdmin={isAdmin}
+                      landscape={landscape}
                     />
                   ))}
                 </div>
@@ -651,7 +665,13 @@ export function ExistingCardDetailPage({
                   void navigate({ to: "/admin/sources" });
                   return;
                 }
-                void goToSection(target.kind === "submissions" ? "attention" : target.kind);
+                void goToSection(
+                  target.kind === "submissions"
+                    ? "attention"
+                    : target.kind === "fields"
+                      ? "printings"
+                      : target.kind,
+                );
               }}
             />
           )}

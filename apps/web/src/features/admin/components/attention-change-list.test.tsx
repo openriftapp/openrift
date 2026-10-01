@@ -304,6 +304,35 @@ describe("AttentionChangeList", () => {
     );
   });
 
+  it("frames a battlefield's image change in landscape", () => {
+    renderList({
+      groups: [
+        {
+          ...linkedPrintingGroup,
+          changes: [
+            {
+              key: "printing:cp2:imageUrl",
+              field: "imageUrl",
+              label: "Image",
+              current: "https://cdn.test/old.png",
+              proposed: "https://cdn.test/new.png",
+              kind: "image",
+            },
+          ],
+        },
+      ],
+      readOnly: true,
+      landscape: true,
+    });
+
+    const frames = [...document.querySelectorAll("img")].map((img) => img.parentElement);
+    expect(frames).toHaveLength(2);
+    for (const frame of frames) {
+      expect(frame).toHaveClass("aspect-[88/63]");
+      expect(frame).not.toHaveClass("aspect-card");
+    }
+  });
+
   it("marks an edited row", () => {
     renderList({ edits: new Map([["card:c1:name", "Lux"]]) });
     expect(screen.getByText("You are editing the incoming value.")).toBeInTheDocument();

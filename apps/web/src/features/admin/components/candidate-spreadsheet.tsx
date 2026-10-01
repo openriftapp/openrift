@@ -1,6 +1,6 @@
 import type { ProviderSettingResponse } from "@openrift/shared/types/api/admin";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { CandidateActiveCell } from "@/features/admin/components/candidate-active-cell";
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
@@ -10,6 +10,7 @@ import { foldedFieldKeys } from "@/features/admin/components/card-detail-shared"
 import type { CandidateSpreadsheetRow } from "@/features/admin/lib/candidate-rows";
 import { favoriteProviderSet, sortCandidateRows } from "@/features/admin/lib/candidate-rows";
 import type { SourceSubmitter } from "@/features/admin/lib/candidate-submitter";
+import { cn } from "@/lib/utils";
 
 const CANDIDATE_COLUMN_WIDTH = 256;
 const FIXED_COLUMNS_WIDTH = 160 + 256;
@@ -41,6 +42,7 @@ interface CandidateSpreadsheetProps<
   activeColumnBadge?: React.ReactNode;
   agreedFieldsFolded?: boolean;
   onAgreedFieldsFoldedChange?: (folded: boolean) => void;
+  focusField?: string;
 }
 
 export function CandidateSpreadsheet<
@@ -70,12 +72,24 @@ export function CandidateSpreadsheet<
   activeColumnBadge,
   agreedFieldsFolded,
   onAgreedFieldsFoldedChange,
+  focusField,
 }: CandidateSpreadsheetProps<TKey, TRow>) {
   const favoriteProviders = favoriteProviderSet(providerSettings);
   const sortedRows = sortCandidateRows(candidateRows, providerLabels, providerSettings);
 
+  const foldedKeys = foldedFieldKeys(
+    fields,
+    sortedRows,
+    activeRow,
+    normalizeCandidate,
+    requiredKeys,
+  );
+  const firstFoldedKey = fields.find((field) => foldedKeys.has(field.key))?.key;
+
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const [localCollapsed, setLocalCollapsed] = useState(
+    () => focusField === undefined || !foldedKeys.has(focusField),
+  );
   const collapsed = agreedFieldsFolded ?? localCollapsed;
 
   function toggleCollapsed() {
@@ -86,14 +100,19 @@ export function CandidateSpreadsheet<
     setLocalCollapsed((c) => !c);
   }
 
-  const foldedKeys = foldedFieldKeys(
-    fields,
-    sortedRows,
-    activeRow,
-    normalizeCandidate,
-    requiredKeys,
-  );
-  const firstFoldedKey = fields.find((field) => foldedKeys.has(field.key))?.key;
+  const tableRef = useRef<HTMLTableElement>(null);
+  const scrolledToRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (focusField === undefined || scrolledToRef.current === focusField) {
+      return;
+    }
+    scrolledToRef.current = focusField;
+    requestAnimationFrame(() => {
+      tableRef.current
+        ?.querySelector(`[data-field-key="${focusField}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [focusField]);
 
   function foldToggleRow(key: string) {
     return (
@@ -125,6 +144,7 @@ export function CandidateSpreadsheet<
   return (
     <div className="w-fit max-w-full overflow-x-auto rounded-md border">
       <table
+        ref={tableRef}
         className="table-fixed text-sm"
         style={{ width: FIXED_COLUMNS_WIDTH + CANDIDATE_COLUMN_WIDTH * sortedRows.length }}
       >
@@ -152,7 +172,14 @@ export function CandidateSpreadsheet<
             const isRequired = requiredKeys?.includes(field.key) ?? false;
 
             const fieldRow = (
-              <tr key={field.key} className="border-b last:border-b-0">
+              <tr
+                key={field.key}
+                data-field-key={field.key}
+                className={cn(
+                  "border-b last:border-b-0",
+                  field.key === focusField && "outline-primary outline-2 -outline-offset-2",
+                )}
+              >
                 <td className="bg-background sticky left-0 z-10 px-3 py-1.5 font-medium">
                   {field.label}
                   {isRequired && <span className="text-destructive ml-0.5">*</span>}

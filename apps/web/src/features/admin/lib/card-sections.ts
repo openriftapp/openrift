@@ -1,7 +1,6 @@
 const CARD_SECTIONS = [
   "overview",
   "attention",
-  "fields",
   "printings",
   "marketplace",
   "bans",
@@ -15,8 +14,7 @@ export const DEFAULT_CARD_SECTION: CardSection = "overview";
 export const CARD_SECTION_LABELS: Record<CardSection, string> = {
   overview: "Overview",
   attention: "Attention",
-  fields: "Card fields",
-  printings: "Printings",
+  printings: "Fields & printings",
   marketplace: "Marketplace",
   bans: "Bans & errata",
   history: "History",

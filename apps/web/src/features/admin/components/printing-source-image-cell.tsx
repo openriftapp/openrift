@@ -9,17 +9,19 @@ export function PrintingSourceImageCell({
   url,
   sourceLabel,
   isUsed,
+  landscape,
 }: {
   candidatePrintingId: string;
   url: string;
   sourceLabel: string;
   isUsed: boolean;
+  landscape?: boolean;
 }) {
   const setSourceImage = useSetCandidatePrintingImage();
 
   return (
     <span className="block space-y-1">
-      <PrintingImageBox url={url} alt={`${sourceLabel} image`} href={url} />
+      <PrintingImageBox url={url} alt={`${sourceLabel} image`} href={url} landscape={landscape} />
       {isUsed ? (
         <span className="text-muted-foreground block text-xs">Already used</span>
       ) : (

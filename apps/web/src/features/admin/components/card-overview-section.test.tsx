@@ -20,6 +20,25 @@ vi.mock("@/hooks/use-enums", () => ({
   }),
 }));
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    to: _to,
+    params: _params,
+    search,
+    children,
+    ...props
+  }: {
+    to: string;
+    params: unknown;
+    search: Record<string, string>;
+    children?: React.ReactNode;
+  }) => (
+    <a href={`/admin/cards/fury-rune?${new URLSearchParams(search).toString()}`} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("@/hooks/use-markers", () => ({ useMarkers: () => ({ data: { markers: [] } }) }));
 
 vi.mock("@/hooks/use-languages", () => ({
@@ -55,6 +74,8 @@ function renderSection(overrides: Partial<React.ComponentProps<typeof CardOvervi
       attentionCount={0}
       invalidates={[]}
       isAdmin
+      cardSlug="fury-rune"
+      listSearch={{ set: "unl" }}
       onOpenPrinting={vi.fn()}
       onOpenAttention={vi.fn()}
       {...overrides}
@@ -74,6 +95,16 @@ describe("CardOverviewSection", () => {
     expect(screen.getByText("Name")).toBeInTheDocument();
     expect(screen.queryByText("Might")).not.toBeInTheDocument();
     expect(screen.queryByText("External ID")).not.toBeInTheDocument();
+  });
+
+  it("links each filled field to its row under fields and printings", () => {
+    renderSection();
+
+    expect(screen.getByRole("button", { name: "Edit Name" })).toHaveAttribute(
+      "href",
+      "/admin/cards/fury-rune?set=unl&section=printings&focusField=name",
+    );
+    expect(screen.queryByRole("button", { name: "Edit Might" })).toBeNull();
   });
 
   it("opens the printing a tile names", async () => {

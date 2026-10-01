@@ -139,6 +139,7 @@ export function NewPrintingGroupCard({
   costKeywords = [],
   invalidates,
   isAdmin,
+  landscape = false,
 }: {
   group: PrintingGroup & { groupKey: string };
   existingPrintings: AdminPrintingResponse[];
@@ -161,6 +162,7 @@ export function NewPrintingGroupCard({
   costKeywords?: readonly string[];
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
+  landscape?: boolean;
 }) {
   const { checkPrintingSource, uncheckPrintingSource, checkAllCandidatePrintings } =
     useCardDetailData(invalidates);
@@ -398,6 +400,7 @@ export function NewPrintingGroupCard({
                           ? activePrinting.imageUrl
                           : undefined
                       }
+                      landscape={landscape}
                     />
                   ) : null
                 }
@@ -409,7 +412,12 @@ export function NewPrintingGroupCard({
                   const chosen = activePrinting.imageUrl === url;
                   return (
                     <span className="block space-y-1">
-                      <PrintingImageBox url={url} alt="Source image" href={url} />
+                      <PrintingImageBox
+                        url={url}
+                        alt="Source image"
+                        href={url}
+                        landscape={landscape}
+                      />
                       {chosen ? (
                         <span className="text-muted-foreground block text-xs">Accepting this</span>
                       ) : (

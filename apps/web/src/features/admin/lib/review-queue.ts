@@ -104,7 +104,7 @@ export function summarizeReviewItem(item: ReviewQueueItem): string {
   return parts.join(" · ");
 }
 
-type CardReviewSection = "attention" | "printings" | "fields";
+type CardReviewSection = "attention" | "printings";
 
 export type ReviewItemTarget =
   | { kind: "card"; cardSlug: string; section: CardReviewSection }
@@ -121,8 +121,7 @@ export function reviewItemTarget(
   if (item.isContributor || trustedProviders.has(item.provider)) {
     return { kind: "card", cardSlug: item.cardSlug, section: "attention" };
   }
-  const section = item.uncheckedPrintings > 0 || item.newPrintings > 0 ? "printings" : "fields";
-  return { kind: "card", cardSlug: item.cardSlug, section };
+  return { kind: "card", cardSlug: item.cardSlug, section: "printings" };
 }
 
 /** A card with several items opens where its oldest one does, matching the inbox order. */

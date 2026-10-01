@@ -11,15 +11,18 @@ export function PrintingImageBox({
   href,
   className,
   iconClassName,
+  landscape = false,
 }: {
   url: string | null;
   alt: string;
   href?: string;
   className?: string;
   iconClassName?: string;
+  landscape?: boolean;
 }) {
   const boxClass = cn(
-    "bg-muted/30 aspect-card inline-flex w-full items-center justify-center overflow-hidden rounded-md border",
+    "bg-muted/30 inline-flex w-full items-center justify-center overflow-hidden rounded-md border",
+    landscape ? "aspect-[88/63]" : "aspect-card",
     className,
   );
   const placeholder = (

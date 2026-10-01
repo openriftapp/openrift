@@ -2,7 +2,7 @@ import { isAcceptCardField } from "@openrift/shared/contracts/admin/card-mutatio
 import { fixTypography } from "@openrift/shared/fix-typography";
 import type { CandidatePrintingResponse } from "@openrift/shared/types/api/admin";
 import type { EnumOrders } from "@openrift/shared/types/enums";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -538,5 +538,40 @@ describe("CandidateSpreadsheet agreed-fields fold", () => {
 
     expect(onAgreedFieldsFoldedChange).toHaveBeenCalledWith(true);
     expect(screen.getByText("Artist")).toBeTruthy();
+  });
+});
+
+describe("CandidateSpreadsheet focus field", () => {
+  const nameField: FieldDef = { key: "name", label: "Name" };
+  const flavorField: FieldDef = { key: "flavorText", label: "Flavor", collapsible: true };
+
+  it("unfolds the agreed rows and scrolls to the focused field", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    render(
+      <CandidateSpreadsheet
+        fields={[nameField, flavorField]}
+        activeRow={{ name: "Fury Rune", flavorText: "Burn bright." }}
+        candidateRows={[]}
+        focusField="flavorText"
+      />,
+    );
+
+    expect(screen.getByText("Flavor")).toBeInTheDocument();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toHaveAttribute("data-field-key", "flavorText");
+  });
+
+  it("keeps the agreed rows folded without a focused field", () => {
+    render(
+      <CandidateSpreadsheet
+        fields={[nameField, flavorField]}
+        activeRow={{ name: "Fury Rune", flavorText: "Burn bright." }}
+        candidateRows={[]}
+      />,
+    );
+
+    expect(screen.queryByText("Flavor")).toBeNull();
   });
 });

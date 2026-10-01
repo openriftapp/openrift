@@ -124,9 +124,9 @@ describe("reviewItemTarget", () => {
     expect(reviewItemTarget(fresh, trusted)).toMatchObject({ section: "printings" });
   });
 
-  it("opens card fields for an untrusted source with only card changes", () => {
+  it("opens fields and printings for an untrusted source with only card changes", () => {
     const item = makeReviewQueueItem({ isContributor: false, provider: "scraper" });
-    expect(reviewItemTarget(item, trusted)).toMatchObject({ section: "fields" });
+    expect(reviewItemTarget(item, trusted)).toMatchObject({ section: "printings" });
   });
 
   it("falls back to the draft page keyed by the normalized name", () => {

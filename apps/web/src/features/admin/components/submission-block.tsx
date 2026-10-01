@@ -4,6 +4,7 @@ import type {
 } from "@openrift/shared/contracts/admin/catalog-review";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
+import { getOrientation } from "@openrift/shared/utils";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { CheckIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -242,6 +243,7 @@ export function SubmissionBlock({
 
           <AttentionChangeList
             groups={submission.groups}
+            landscape={getOrientation(detail.card?.types ?? []) === "landscape"}
             ticked={ticked}
             edits={edits}
             onToggle={(key) =>

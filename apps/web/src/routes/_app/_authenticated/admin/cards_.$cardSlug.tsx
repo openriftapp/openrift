@@ -26,6 +26,7 @@ interface CardDetailSearch {
   focusMarketplace?: Marketplace;
   focusFinish?: string;
   focusLanguage?: string;
+  focusField?: string;
   set?: string;
   status?: AdminCardListStatus;
   priceScope?: string;
@@ -40,6 +41,8 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
     const result: CardDetailSearch = {};
     if (isCardSection(search.section)) {
       result.section = search.section;
+    } else if (search.section === "fields") {
+      result.section = "printings";
     }
     const focusMarketplace = marketplaceEnum.safeParse(search.focusMarketplace);
     if (focusMarketplace.success) {
@@ -50,6 +53,9 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
     }
     if (typeof search.focusLanguage === "string") {
       result.focusLanguage = search.focusLanguage;
+    }
+    if (typeof search.focusField === "string" && search.focusField.length > 0) {
+      result.focusField = search.focusField;
     }
     if (typeof search.set === "string" && search.set.length > 0) {
       result.set = search.set;

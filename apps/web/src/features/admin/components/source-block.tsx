@@ -2,14 +2,15 @@ import type {
   AdminCardDetailResponse,
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
+import { getOrientation } from "@openrift/shared/utils";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { AttentionChangeList } from "@/features/admin/components/attention-change-list";
 import { MissingFieldsDialog } from "@/features/admin/components/missing-fields-dialog";
+import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingTargetMenu } from "@/features/admin/components/printing-target-menu";
 import {
   useAcceptPrintingGroup,
@@ -40,19 +41,6 @@ import { printingBlockTitle } from "@/features/admin/lib/printing-summary";
 interface PendingAdd {
   candidate: CandidatePrintingResponse;
   missing: RequiredPrintingField[];
-}
-
-function CandidateThumb({ url, alt }: { url: string; alt: string }) {
-  return (
-    <span className="bg-muted/30 aspect-card inline-flex w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border">
-      <ImgWithFallback
-        src={url}
-        alt={alt}
-        className="size-full object-contain"
-        fallback={<span className="text-muted-foreground text-2xs">None</span>}
-      />
-    </span>
-  );
 }
 
 function summaryText(changedFields: number, newPrintings: number): string {
@@ -92,6 +80,7 @@ export function SourceBlock({
 
   const isPending = checkCard.isPending || checkPrintings.isPending;
   const cardId = detail.card?.id;
+  const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
   const isSingle = block.entries.length === 1;
   const candidateCardIds = new Set(block.candidateCardIds);
   const uncheckedPrintingIds = detail.candidatePrintings
@@ -154,7 +143,12 @@ export function SourceBlock({
     return (
       <>
         {entry.groups.length > 0 && (
-          <AttentionChangeList groups={entry.groups} readOnly onOpenPrinting={onOpenPrinting} />
+          <AttentionChangeList
+            groups={entry.groups}
+            readOnly
+            landscape={landscape}
+            onOpenPrinting={onOpenPrinting}
+          />
         )}
         {unlinked.length > 0 &&
           (renderUnlinked === undefined ? (
@@ -165,7 +159,13 @@ export function SourceBlock({
                   className="hover:bg-muted/50 flex items-center gap-3 rounded-md px-2 py-1.5"
                 >
                   {candidate.imageUrl !== null && (
-                    <CandidateThumb url={candidate.imageUrl} alt={candidate.shortCode} />
+                    <PrintingImageBox
+                      url={candidate.imageUrl}
+                      alt={candidate.shortCode}
+                      landscape={landscape}
+                      className={landscape ? "w-11 shrink-0" : "w-8 shrink-0"}
+                      iconClassName="size-3"
+                    />
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{candidate.shortCode}</span>
