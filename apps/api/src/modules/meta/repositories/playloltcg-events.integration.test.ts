@@ -26,6 +26,8 @@ const KEYS = {
   awaitingA: 990_012,
   awaitingB: 990_013,
   dismissedAfterAccept: 990_014,
+  pulledStarted: 990_015,
+  pulledUpcoming: 990_016,
 } as const;
 const ALL_KEYS = Object.values(KEYS);
 
@@ -275,6 +277,36 @@ describe.skipIf(!ctx)("playloltcgEventsRepo", () => {
     await repo().setRecheck(KEYS.queued, { nextCheckAt: null, checkStage: 5 });
     const drained = await repo().dueForRecheck(new Date("2027-01-01T00:00:00Z"), 50);
     expect(drained.map((entry) => entry.activityShopId)).not.toContain(KEYS.queued);
+  });
+
+  it("pulls a started event forward and leaves an upcoming one waiting", async () => {
+    const now = new Date("2026-08-25T00:00:00Z");
+    await repo().upsertBatch(
+      [
+        row({ activityShopId: KEYS.pulledStarted, contentHash: "h-pull-a" }),
+        row({
+          activityShopId: KEYS.pulledUpcoming,
+          startAt: "2026-09-01",
+          contentHash: "h-pull-b",
+        }),
+      ],
+      SEEN,
+    );
+    await repo().setRecheck(KEYS.pulledStarted, { nextCheckAt: null, checkStage: 1 });
+    await repo().setRecheck(KEYS.pulledUpcoming, {
+      nextCheckAt: new Date("2026-09-01T00:00:00Z"),
+      checkStage: 0,
+    });
+
+    const pulled = await repo().pullForwardRechecks([KEYS.pulledStarted, KEYS.pulledUpcoming], now);
+
+    const [started, upcoming] = await Promise.all([
+      repo().byKey(KEYS.pulledStarted),
+      repo().byKey(KEYS.pulledUpcoming),
+    ]);
+    expect(pulled).toBe(1);
+    expect(started?.nextCheckAt?.toISOString()).toBe(now.toISOString());
+    expect(upcoming?.nextCheckAt?.toISOString()).toBe("2026-09-01T00:00:00.000Z");
   });
 
   describe("ordering one page of the triage list", () => {

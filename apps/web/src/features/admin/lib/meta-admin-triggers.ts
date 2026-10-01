@@ -85,7 +85,8 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
     {
       trigger: "runRecheck",
       label: "Fetch results",
-      description: "Pulls standings and decklists for accepted events that are due.",
+      description:
+        "Re-reads the last three days of the listing, then pulls standings and decklists for due events, important ones first, for up to five minutes.",
       scheduleKey: "meta.uvsgames_recheck",
       stop: {
         job: "recheck",
@@ -123,7 +124,8 @@ export const TRIGGER_GROUPS: Record<MetaSource, TriggerEntry[]> = {
     {
       trigger: "runPlayloltcgRecheck",
       label: "Fetch results",
-      description: "Pulls standings and decklists for accepted events that are due.",
+      description:
+        "Re-reads the last three days of the listing, then pulls standings and decklists for due events, important ones first, for up to five minutes.",
       scheduleKey: "meta.playloltcg_recheck",
     },
   ],

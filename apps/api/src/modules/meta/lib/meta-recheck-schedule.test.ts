@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MetaRecheckState } from "./meta-recheck-schedule.js";
-import { lifecycleStatus, nextRecheck } from "./meta-recheck-schedule.js";
+import { firstRevisit, lifecycleStatus, nextRecheck } from "./meta-recheck-schedule.js";
 
 const NOW = new Date("2026-08-20T12:00:00Z");
 const HOUR_MS = 60 * 60 * 1000;
@@ -19,6 +19,7 @@ function state(overrides: Partial<MetaRecheckState> = {}): MetaRecheckState {
     playersPending: false,
     newRounds: false,
     watched: false,
+    important: true,
     ...overrides,
   };
 }
@@ -40,7 +41,9 @@ describe("nextRecheck", () => {
   });
 
   it("polls a live watched event every ten minutes instead", () => {
-    const decision = nextRecheck(state({ displayStatus: "inProgress", watched: true }));
+    const decision = nextRecheck(
+      state({ displayStatus: "inProgress", watched: true, important: true }),
+    );
 
     expect(decision.nextCheckAt?.getTime()).toBe(NOW.getTime() + 10 * 60 * 1000);
     expect(decision.checkStage).toBe(0);
@@ -131,6 +134,46 @@ describe("nextRecheck", () => {
   });
 });
 
+describe("nextRecheck for a local event", () => {
+  const local = (overrides: Partial<MetaRecheckState> = {}) =>
+    state({ important: false, ...overrides });
+
+  it("parks a running local event until it would go stale", () => {
+    const startAt = new Date("2026-08-20T09:00:00Z");
+    const decision = nextRecheck(local({ displayStatus: "inProgress", startAt }));
+
+    expect(decision.nextCheckAt?.getTime()).toBe(startAt.getTime() + 3 * DAY_MS);
+    expect(decision.checkStage).toBe(0);
+    expect(decision.deepFetch).toBe(false);
+  });
+
+  it("still pulls the results the first time a local event reads as complete", () => {
+    const decision = nextRecheck(local());
+
+    expect(decision.deepFetch).toBe(true);
+    expect(decision.checkStage).toBe(1);
+    expect(decision.nextCheckAt?.getTime()).toBe(NOW.getTime() + DAY_MS);
+  });
+
+  it("leaves the queue after its first revisit finds nothing owed", () => {
+    const decision = nextRecheck(local({ checkStage: 1, fetched: true }));
+
+    expect(decision.nextCheckAt).toBeNull();
+    expect(decision.checkStage).toBe(1);
+    expect(decision.deepFetch).toBe(false);
+  });
+
+  it("keeps climbing the ladder while a revisit still has decklists to fetch", () => {
+    const decision = nextRecheck(
+      local({ checkStage: 1, fetched: true, decklistStatus: "PUBLISHED" }),
+    );
+
+    expect(decision.deepFetch).toBe(true);
+    expect(decision.checkStage).toBe(2);
+    expect(decision.nextCheckAt?.getTime()).toBe(NOW.getTime() + 3 * DAY_MS);
+  });
+});
+
 describe("lifecycleStatus", () => {
   const started = new Date("2026-08-20T09:00:00Z");
 
@@ -157,5 +200,16 @@ describe("lifecycleStatus", () => {
   it("closes an event the source leaves running for days", () => {
     const startAt = new Date("2026-08-16T12:00:00Z");
     expect(lifecycleStatus({ now: NOW, displayStatus: "inProgress", startAt })).toBe("complete");
+  });
+});
+
+describe("firstRevisit", () => {
+  it("lands where a queued visit to a finished event would", () => {
+    const queued = nextRecheck(state());
+
+    expect(firstRevisit(NOW)).toEqual({
+      nextCheckAt: queued.nextCheckAt,
+      checkStage: queued.checkStage,
+    });
   });
 });

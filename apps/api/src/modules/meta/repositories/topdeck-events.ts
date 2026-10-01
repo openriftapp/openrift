@@ -397,6 +397,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
       missing: number;
       queued: number;
       dueRecheck: number;
+      oldestDueAt: Date | null;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
       lastSeenAt: Date | null;
@@ -424,6 +425,7 @@ export function topdeckEventsRepo(db: Kysely<Database>) {
         missing: Number(row.missing),
         queued: 0,
         dueRecheck: 0,
+        oldestDueAt: null,
         acceptedAwaitingResults: 0,
         acceptedMissing: Number(row.acceptedMissing),
         lastSeenAt: row.lastSeenAt,

@@ -386,6 +386,7 @@ function syncStatus(
       missing: 12,
       queued: 40,
       dueRecheck: 3,
+      oldestDueAt: null,
       acceptedAwaitingResults: 17,
       acceptedMissing: 0,
       lastSeenAt: "2026-08-29T09:00:00.000Z",
@@ -501,9 +502,41 @@ describe("metaSyncAlerts", () => {
     expect(alertIds(syncStatus({}, { runs }))).not.toContain("partial-crawls");
   });
 
-  it("raises rechecks only once they outgrow a single batch", () => {
-    expect(alertIds(syncStatus({ dueRecheck: 40 }))).not.toContain("due-rechecks");
-    expect(alertIds(syncStatus({ dueRecheck: 41 }))).toContain("due-rechecks");
+  it("raises rechecks only once the oldest due one has waited over two hours", () => {
+    const due = (at: string) => syncStatus({ dueRecheck: 500, oldestDueAt: at });
+    expect(alertIds(syncStatus({ dueRecheck: 500 }))).not.toContain("due-rechecks");
+    expect(alertIds(due("2026-08-29T10:00:00.000Z"))).not.toContain("due-rechecks");
+    expect(alertIds(due("2026-08-29T09:59:00.000Z"))).toContain("due-rechecks");
+  });
+
+  it("names the refusal when the newest results fetch backed off", () => {
+    const backedOff = {
+      ...partialRun("2026-08-29T11:40:00.000Z", {
+        backedOff: true,
+        errors: ["Event 5184 standings after rank 0: playloltcg code 500: 网络繁忙"],
+      }),
+      kind: "meta.playloltcg_recheck",
+    };
+    const alerts = metaSyncAlerts(syncStatus({}, { runs: [backedOff] }), 0, NOW);
+
+    expect(alerts.find((alert) => alert.id === "refusing-source")?.message).toContain(
+      "First refusal: Event 5184 standings after rank 0",
+    );
+  });
+
+  it("drops the refusal once a newer results fetch of the same kind ran through", () => {
+    const backedOff = {
+      ...partialRun("2026-08-29T11:40:00.000Z", { backedOff: true, errors: [] }),
+      kind: "meta.playloltcg_recheck",
+    };
+    const recovered = {
+      ...partialRun("2026-08-29T11:50:00.000Z", { backedOff: false, errors: [] }),
+      kind: "meta.playloltcg_recheck",
+    };
+
+    expect(alertIds(syncStatus({}, { runs: [recovered, backedOff] }))).not.toContain(
+      "refusing-source",
+    );
   });
 
   it("sends the events that vanished from the source to exactly those rows", () => {
@@ -516,7 +549,11 @@ describe("metaSyncAlerts", () => {
   });
 
   it("leaves the overdue rechecks on the unfiltered accepted rows", () => {
-    const alerts = metaSyncAlerts(syncStatus({ dueRecheck: 60 }), 0, NOW);
+    const alerts = metaSyncAlerts(
+      syncStatus({ dueRecheck: 60, oldestDueAt: "2026-08-23T12:00:00.000Z" }),
+      0,
+      NOW,
+    );
     expect(alerts.find((alert) => alert.id === "due-rechecks")?.target).toBe("catalogue-accepted");
   });
 

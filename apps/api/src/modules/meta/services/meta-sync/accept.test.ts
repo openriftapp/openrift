@@ -169,6 +169,15 @@ describe("acceptCatalogEvent", () => {
     expect(rechecks).toEqual([{ externalId: "365708", nextCheckAt: NOW, checkStage: 0 }]);
   });
 
+  it("arms the recheck of an upcoming event for its start time", async () => {
+    const { deps, rechecks } = fakeDeps();
+    const startAt = new Date(NOW.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+    await acceptCatalogEvent(deps, catalogRow({ displayStatus: "upcoming", startAt }));
+
+    expect(rechecks).toEqual([{ externalId: "365708", nextCheckAt: startAt, checkStage: 0 }]);
+  });
+
   it("takes the admin's hand-picked format over the source's own", async () => {
     const { deps } = fakeDeps();
 

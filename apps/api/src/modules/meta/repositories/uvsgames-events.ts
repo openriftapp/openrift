@@ -65,6 +65,10 @@ export interface UvsgamesListRow extends UvsgamesEventRow {
   checkStage: number;
 }
 
+export interface UvsgamesRecheckRow extends UvsgamesListRow {
+  important: boolean;
+}
+
 /** The counts are zero, never null, for a row nothing was fetched for yet. */
 export interface UvsgamesCoverageRow extends UvsgamesListRow {
   fetchedAt: Date | null;
@@ -566,21 +570,54 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
 
     // Filters on the queue's own column, not on triage: only the accept
     // path ever arms a row, but that's not what's being checked here.
-    async dueForRecheck(now: Date, limit: number): Promise<UvsgamesListRow[]> {
+    async dueForRecheck(now: Date, limit: number): Promise<UvsgamesRecheckRow[]> {
+      const important = sql<boolean>`(me.tier in ('premier', 'competitive') or coalesce(t.watched, false))`;
       const rows = await triagedQuery()
+        .leftJoin("uvsgamesEventTemplates as t", "t.templateId", "c.eventConfigurationTemplate")
         .selectAll("c")
         .select([
           triage.as("triage"),
           "src.metaEventId as metaEventId",
           "me.slug as metaEventSlug",
+          important.as("important"),
           ...joinedColumns,
         ])
         .where("ck.nextCheckAt", "is not", null)
         .where("ck.nextCheckAt", "<=", now)
+        .orderBy(sql`${important} desc`)
         .orderBy("ck.nextCheckAt", "asc")
         .limit(limit)
         .execute();
       return rows;
+    },
+
+    /** Re-arms started events, including ones that left the ladder. */
+    async pullForwardRechecks(externalIds: readonly string[], now: Date): Promise<number> {
+      let pulled = 0;
+      for (const batch of keyBatches(externalIds)) {
+        const result = await db
+          .updateTable("uvsgamesEventChecks as ck")
+          .set({ nextCheckAt: now })
+          .where("ck.externalId", "in", batch)
+          .where((eb) =>
+            eb.or([
+              eb("ck.nextCheckAt", "is", null),
+              eb(sql`date_trunc('milliseconds', ck.next_check_at)`, ">", now),
+            ]),
+          )
+          .where((eb) =>
+            eb.exists(
+              eb
+                .selectFrom("uvsgamesEvents as e")
+                .select("e.externalId")
+                .whereRef("e.externalId", "=", "ck.externalId")
+                .where("e.startAt", "<=", now),
+            ),
+          )
+          .executeTakeFirst();
+        pulled += Number(result.numUpdatedRows);
+      }
+      return pulled;
     },
 
     // The recheck ladder reads this timestamp; a cancelled event legitimately has no mirror rows.
@@ -730,6 +767,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
       decklistPublished: number;
       missing: number;
       dueRecheck: number;
+      oldestDueAt: Date | null;
       queued: number;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
@@ -745,6 +783,9 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
           sql<string>`count(*) filter (where c.missing_since is not null)`.as("missing"),
           sql<string>`count(*) filter (where ck.next_check_at is not null and ck.next_check_at <= now())`.as(
             "dueRecheck",
+          ),
+          sql<Date | null>`min(ck.next_check_at) filter (where ck.next_check_at <= now())`.as(
+            "oldestDueAt",
           ),
           sql<string>`count(*) filter (where ck.next_check_at is not null)`.as("queued"),
           sql<string>`count(*) filter (where (${accepted}) and (${notFetched}))`.as(
@@ -762,6 +803,7 @@ export function uvsgamesEventsRepo(db: Kysely<Database>) {
         decklistPublished: Number(row.decklistPublished),
         missing: Number(row.missing),
         dueRecheck: Number(row.dueRecheck),
+        oldestDueAt: row.oldestDueAt,
         queued: Number(row.queued),
         acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
         acceptedMissing: Number(row.acceptedMissing),

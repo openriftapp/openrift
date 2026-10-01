@@ -10,6 +10,7 @@
 
 ### Other
 
+- fix(Meta): **Chinese event results sync again** — standings and decklists from PlayLoLTCG events had stopped updating on September 23, and finished events from both sources now reach the archive sooner.
 - fix(Account): **Language setting fits again** — the language picker in Preferences is now a dropdown, and its note no longer breaks into one word per line.
 
 ## 2026-09-24

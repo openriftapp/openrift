@@ -64,7 +64,11 @@ export function SyncFunnel({
         source={source}
         label="Awaiting results"
         value={catalog.acceptedAwaitingResults}
-        detail={`${catalog.dueRecheck.toLocaleString()} rechecks due`}
+        detail={
+          catalog.oldestDueAt === null
+            ? `${catalog.dueRecheck.toLocaleString()} rechecks due`
+            : `${catalog.dueRecheck.toLocaleString()} rechecks due, oldest ${formatRelativeTime(catalog.oldestDueAt)}`
+        }
         target={{ tab: "catalogue", triage: "accepted", awaitingResults: true }}
       />
       <FunnelArrow />

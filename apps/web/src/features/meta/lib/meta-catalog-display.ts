@@ -222,7 +222,7 @@ const STALE_CRAWL_MS = 8 * 24 * 60 * 60 * 1000;
 
 const RECENT_FAILURE_MS = 24 * 60 * 60 * 1000;
 
-const DUE_RECHECK_LIMIT = 40;
+const RECHECK_LAG_LIMIT_MS = 2 * 60 * 60 * 1000;
 
 export interface OverlayProviderCounts {
   pendingReview: number;
@@ -311,10 +311,29 @@ export function metaSyncAlerts(
     });
   }
 
-  if (catalog.dueRecheck > DUE_RECHECK_LIMIT) {
+  const newestByKind = new Map<string, (typeof runs)[number]>();
+  for (const run of runs) {
+    const newest = newestByKind.get(run.kind);
+    if (newest === undefined || run.startedAt > newest.startedAt) {
+      newestByKind.set(run.kind, run);
+    }
+  }
+  const refused = [...newestByKind.values()].find((run) => run.result?.backedOff === true);
+  if (refused !== undefined) {
+    const errors: unknown = refused.result?.errors;
+    const reason: unknown = Array.isArray(errors) ? errors[0] : undefined;
+    alerts.push({
+      id: "refusing-source",
+      message: `The last results fetch stopped because the source refused several visits in a row, and the next runs pause for 30 minutes.${typeof reason === "string" ? ` First refusal: ${reason.slice(0, 200)}` : ""}`,
+      target: "runs",
+    });
+  }
+
+  const oldestDue = catalog.oldestDueAt === null ? null : new Date(catalog.oldestDueAt);
+  if (oldestDue !== null && now.getTime() - oldestDue.getTime() > RECHECK_LAG_LIMIT_MS) {
     alerts.push({
       id: "due-rechecks",
-      message: `${catalog.dueRecheck} accepted events are overdue a recheck, more than one batch clears.`,
+      message: `Rechecks are falling behind: ${catalog.dueRecheck.toLocaleString()} accepted events are due, and the oldest became due ${formatRelativeTime(oldestDue, { now })}.`,
       target: "catalogue-accepted",
     });
   }

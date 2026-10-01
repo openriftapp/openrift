@@ -4,6 +4,7 @@ import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText } from "./deps.js";
 import { gameTypeOf } from "./id-sweep.js";
+import { settleAfterManualFetch } from "./recheck.js";
 import { UvsHttpError } from "./uvsgames-client.js";
 
 export const ON_DEMAND_FETCH_COOLDOWN_MS = 10 * 60 * 1000;
@@ -52,7 +53,9 @@ export async function fetchUvsgamesEvent(
   if (row === undefined) {
     return { status: "failed", errors: ["The event could not be mirrored."] };
   }
+  const startedAt = clock(deps);
   const fetched = await deepFetchEvent(deps, row, undefined, detail);
+  await settleAfterManualFetch(deps, externalId, startedAt);
   const settled = (await deps.repos.uvsgamesEvents.byKey(externalId)) ?? row;
   return { status: "fetched", row: settled, errors: fetched.errors };
 }

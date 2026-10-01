@@ -15,9 +15,10 @@ import { PlayloltcgBlockedError, PlayloltcgRefusedError } from "./playloltcg-cli
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import { clock } from "./playloltcg-deps.js";
 
-const STANDINGS_PAGE_SIZE = 1000;
+// The source refuses a larger page with `code 500 网络繁忙` (network busy).
+const STANDINGS_PAGE_SIZE = 20;
 
-const MAX_STANDINGS_PAGES = 200;
+const MAX_STANDINGS_PAGES = 500;
 
 export interface PlayloltcgDeepFetchResult {
   activityShopId: number;

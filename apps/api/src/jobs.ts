@@ -44,10 +44,8 @@ import {
   isRecheckNoop,
   isTopdeckSyncNoop,
   playloltcgCoolingDown,
-  PLAYLOLTCG_RECHECK_BATCH_SIZE,
   processPlayloltcgRechecks,
   processRechecks,
-  RECHECK_BATCH_SIZE,
   syncCatalog,
   syncPlayloltcgCatalog,
   syncTopdeckCatalog,
@@ -61,6 +59,11 @@ import { defineJob } from "./modules/system/services/job-scheduler.js";
 import type { Config } from "./types.js";
 
 const JOB_RUNS_RETENTION_DAYS = 30;
+
+// The recheck crons tick every ten minutes; one tick an hour also reads the listing.
+function isFirstTickOfHour(now: Date): boolean {
+  return now.getUTCMinutes() < 10;
+}
 
 interface JobDefinitionDeps {
   config: Config;
@@ -346,10 +349,12 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     defineJob({
       kind: "meta.uvsgames_recheck",
       title: "UVS Games event recheck",
-      description: "Re-fetches queued UVS Games events until their results are published.",
+      description:
+        "Re-fetches queued UVS Games events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
       log: metaLog,
-      execute: (runId) => processRechecks(metaDeps(), RECHECK_BATCH_SIZE, runId),
+      execute: (runId) =>
+        processRechecks(metaDeps(), { runId, listing: isFirstTickOfHour(new Date()) }),
       summarize: (result) => result,
       classifyNoop: isRecheckNoop,
     }),
@@ -374,7 +379,8 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
     defineJob({
       kind: "meta.playloltcg_recheck",
       title: "PlayLoLTCG event recheck",
-      description: "Re-fetches queued PlayLoLTCG events until their results are published.",
+      description:
+        "Re-fetches queued PlayLoLTCG events until their results are published. Once an hour it also re-reads the last three days of the listing.",
       suggestedSchedule: "*/10 * * * *",
       log: metaLog,
       skipCronTick: async () => {
@@ -383,9 +389,12 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
           "meta.playloltcg_recheck",
           new Date(),
         );
-        return cooling ? "playloltcg recheck cooling down after a WAF block; skipping" : null;
+        return cooling
+          ? "playloltcg recheck cooling down after a WAF block or repeated refusals; skipping"
+          : null;
       },
-      execute: () => processPlayloltcgRechecks(playloltcgDeps(), PLAYLOLTCG_RECHECK_BATCH_SIZE),
+      execute: () =>
+        processPlayloltcgRechecks(playloltcgDeps(), { listing: isFirstTickOfHour(new Date()) }),
       summarize: (result) => result,
       classifyNoop: isPlayloltcgRecheckNoop,
     }),

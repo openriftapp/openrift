@@ -2,7 +2,7 @@ import { createLogger } from "@openrift/shared/logger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
-import type { PlayloltcgListRow } from "../../repositories/playloltcg-events.js";
+import type { PlayloltcgRecheckRow } from "../../repositories/playloltcg-events.js";
 import { autoAcceptPlayloltcgEvents } from "./playloltcg-accept.js";
 import type { PlayloltcgClient, PlayloltcgList } from "./playloltcg-client.js";
 import { MAX_PAGE_SIZE, PlayloltcgBlockedError } from "./playloltcg-client.js";
@@ -10,6 +10,7 @@ import { playloltcgDeepFetch, readPlayloltcgDetail } from "./playloltcg-deep-fet
 import type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
 import {
   backfillPlayloltcg,
+  fetchPlayloltcgEvent,
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
 } from "./playloltcg-sync.js";
@@ -67,7 +68,7 @@ interface RecheckWrite {
   checkStage: number;
 }
 
-function dueRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListRow {
+function dueRow(overrides: Partial<PlayloltcgRecheckRow> = {}): PlayloltcgRecheckRow {
   return {
     activityShopId: 109_991,
     shopId: null,
@@ -102,6 +103,7 @@ function dueRow(overrides: Partial<PlayloltcgListRow> = {}): PlayloltcgListRow {
     stagedLegendCount: 0,
     stagedDeckCount: 0,
     fetchedAt: null,
+    important: true,
     ...overrides,
   };
 }
@@ -110,15 +112,18 @@ function fakeDeps(options: {
   rows?: Record<string, unknown[]>;
   overflowing?: boolean;
   blockOn?: string;
-  due?: PlayloltcgListRow[];
+  due?: PlayloltcgRecheckRow[];
   outstandingDecks?: string[];
   priorResult?: unknown;
+  changed?: number[];
 }): {
   deps: PlayloltcgSyncDeps;
   windows: WindowRequest[];
   missing: MissingCall[];
   rechecks: RecheckWrite[];
+  pulled: number[][];
 } {
+  const pulled: number[][] = [];
   const windows: WindowRequest[] = [];
   const missing: MissingCall[] = [];
   const rechecks: RecheckWrite[] = [];
@@ -148,7 +153,12 @@ function fakeDeps(options: {
 
   const playloltcgEvents = {
     upsertShops: () => Promise.resolve(0),
-    upsertBatch: () => Promise.resolve({ inserted: [], changed: [], unchanged: [] }),
+    upsertBatch: () =>
+      Promise.resolve({ inserted: [], changed: options.changed ?? [], unchanged: [] }),
+    pullForwardRechecks: (ids: readonly number[]) => {
+      pulled.push([...ids]);
+      return Promise.resolve(ids.length);
+    },
     markMissing: (params: MissingCall) => {
       missing.push({ from: params.from, to: params.to });
       return Promise.resolve(3);
@@ -176,7 +186,7 @@ function fakeDeps(options: {
     log: createLogger("test"),
     now: () => NOW,
   };
-  return { deps, windows, missing, rechecks };
+  return { deps, windows, missing, rechecks, pulled };
 }
 
 beforeEach(() => {
@@ -383,29 +393,53 @@ describe("processPlayloltcgRechecks", () => {
     expect(result.decks).toBe(600);
   });
 
-  it("leaves the rest of the batch to the next run once the budget is spent", async () => {
-    vi.mocked(playloltcgDeepFetch).mockResolvedValueOnce({
-      activityShopId: 109_991,
-      requests: 601,
-      players: 900,
-      decks: 600,
-      deckRequests: 600,
-      decksRemaining: 0,
-      acceptedPlayers: 900,
-      skippedPlayers: 0,
-      shopId: null,
-      publishedResults: true,
-      complete: true,
-      errors: [],
-    });
+  it("starts no new visit once the run has spent its requests", async () => {
     const { deps } = fakeDeps({
       due: [dueRow(), dueRow({ activityShopId: 109_992 })],
+    });
+    vi.mocked(playloltcgDeepFetch).mockImplementationOnce((_deps, row) => {
+      (deps.client as { requests: number }).requests += 60;
+      return Promise.resolve({
+        activityShopId: row.activityShopId,
+        requests: 60,
+        players: 900,
+        decks: 40,
+        deckRequests: 40,
+        decksRemaining: 0,
+        acceptedPlayers: 900,
+        skippedPlayers: 0,
+        shopId: null,
+        publishedResults: true,
+        complete: true,
+        errors: [],
+      });
     });
 
     const result = await processPlayloltcgRechecks(deps);
 
-    expect(result.due).toBe(2);
-    expect(result.fetched).toBe(1);
+    expect(result).toMatchObject({ due: 1, fetched: 1, requests: 60 });
+  });
+
+  it("hands a visit what is left of the run's requests, but never fewer than 20 decks", async () => {
+    const fresh = fakeDeps({ due: [dueRow()] });
+    await processPlayloltcgRechecks(fresh.deps);
+    const freshBudget = vi.mocked(playloltcgDeepFetch).mock.calls[0]?.[3];
+
+    vi.mocked(playloltcgDeepFetch).mockClear();
+    const late = fakeDeps({
+      due: [
+        dueRow({ activityShopId: 109_990, checkStage: 1, fetchedAt: NOW }),
+        dueRow({ activityShopId: 109_991 }),
+      ],
+    });
+    vi.mocked(readPlayloltcgDetail).mockImplementationOnce(() => {
+      (late.deps.client as { requests: number }).requests += 50;
+      return Promise.resolve({ shopId: null, shopName: null, isPublishResult: true });
+    });
+    await processPlayloltcgRechecks(late.deps);
+
+    expect(freshBudget).toBe(60);
+    expect(vi.mocked(playloltcgDeepFetch).mock.calls[0]?.[3]).toBe(20);
   });
 
   it("reports the same cool-down instant the catalogue sync does", async () => {
@@ -417,5 +451,71 @@ describe("processPlayloltcgRechecks", () => {
 
     expect(recheck.blocked).toBe(true);
     expect(recheck.blockedUntil).toBe(sync.blockedUntil);
+  });
+
+  it("backs off once several visits in a row fail", async () => {
+    for (let index = 0; index < 5; index++) {
+      vi.mocked(readPlayloltcgDetail).mockResolvedValueOnce(null);
+    }
+    const due = Array.from({ length: 8 }, (_, index) =>
+      dueRow({ activityShopId: 200_000 + index }),
+    );
+    const { deps, rechecks } = fakeDeps({ due });
+
+    const result = await processPlayloltcgRechecks(deps);
+
+    expect(result.backedOff).toBe(true);
+    expect(result.blocked).toBe(false);
+    expect(result.blockedUntil).toBe(new Date(NOW.getTime() + 30 * 60 * 1000).toISOString());
+    expect(rechecks).toHaveLength(5);
+    expect(result.errors.at(-1)).toContain("5 visits in a row failed");
+  });
+
+  it("visits nothing once the time budget is spent", async () => {
+    const { deps, rechecks } = fakeDeps({ due: [dueRow()] });
+
+    const result = await processPlayloltcgRechecks(deps, { budgetMs: 0 });
+
+    expect(result.processed).toBe(0);
+    expect(rechecks).toEqual([]);
+  });
+
+  it("re-reads the last three days of the listing and re-arms the changed events", async () => {
+    const { deps, windows, pulled } = fakeDeps({ changed: [109_991, 109_992] });
+
+    const result = await processPlayloltcgRechecks(deps, { listing: true });
+
+    expect(windows).toEqual([{ startTime: "2026-08-27", endTime: "2026-08-30", pageNum: 1 }]);
+    expect(pulled).toEqual([[109_991, 109_992]]);
+    expect(result).toMatchObject({ pulledForward: 2 });
+  });
+
+  it("skips the listing unless asked", async () => {
+    const { deps, windows } = fakeDeps({});
+
+    const result = await processPlayloltcgRechecks(deps);
+
+    expect(windows).toEqual([]);
+    expect(result.listed).toBeNull();
+  });
+});
+
+describe("fetchPlayloltcgEvent", () => {
+  it("moves a queued event to its first revisit once its published results are in", async () => {
+    const { deps, rechecks } = fakeDeps({});
+
+    await fetchPlayloltcgEvent(deps, dueRow());
+
+    expect(rechecks).toEqual([
+      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + DAY_MS), checkStage: 1 },
+    ]);
+  });
+
+  it("leaves the queue alone for an event past its first visit", async () => {
+    const { deps, rechecks } = fakeDeps({});
+
+    await fetchPlayloltcgEvent(deps, dueRow({ checkStage: 2 }));
+
+    expect(rechecks).toEqual([]);
   });
 });

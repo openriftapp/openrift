@@ -70,6 +70,10 @@ export interface PlayloltcgListRow extends PlayloltcgEventRow {
   stagedDeckCount: number;
 }
 
+export interface PlayloltcgRecheckRow extends PlayloltcgListRow {
+  important: boolean;
+}
+
 export interface PlayloltcgTriageCounts {
   new: number;
   accepted: number;
@@ -402,13 +406,46 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       return { rows, total: Number(countRow.total) };
     },
 
-    async dueForRecheck(now: Date, limit: number): Promise<PlayloltcgListRow[]> {
+    async dueForRecheck(now: Date, limit: number): Promise<PlayloltcgRecheckRow[]> {
+      const important = sql<boolean>`coalesce(me.tier in ('premier', 'competitive'), false)`;
       return await listSelect()
+        .select(important.as("important"))
         .where("ck.nextCheckAt", "is not", null)
         .where("ck.nextCheckAt", "<=", now)
+        .orderBy(sql`${important} desc`)
         .orderBy("ck.nextCheckAt", "asc")
         .limit(limit)
         .execute();
+    },
+
+    /** Re-arms started events, including ones that left the ladder. */
+    async pullForwardRechecks(activityShopIds: readonly number[], now: Date): Promise<number> {
+      const today = now.toISOString().slice(0, 10);
+      let pulled = 0;
+      for (const batch of keyBatches(activityShopIds)) {
+        const result = await db
+          .updateTable("playloltcgEventChecks as ck")
+          .set({ nextCheckAt: now })
+          .where("ck.activityShopId", "in", batch)
+          .where((eb) =>
+            eb.or([
+              eb("ck.nextCheckAt", "is", null),
+              eb(sql`date_trunc('milliseconds', ck.next_check_at)`, ">", now),
+            ]),
+          )
+          .where((eb) =>
+            eb.exists(
+              eb
+                .selectFrom("playloltcgEvents as e")
+                .select("e.activityShopId")
+                .whereRef("e.activityShopId", "=", "ck.activityShopId")
+                .where("e.startAt", "<=", today),
+            ),
+          )
+          .executeTakeFirst();
+        pulled += Number(result.numUpdatedRows);
+      }
+      return pulled;
     },
 
     async setRecheck(
@@ -472,6 +509,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
       decklistPublished: number;
       missing: number;
       dueRecheck: number;
+      oldestDueAt: Date | null;
       queued: number;
       acceptedAwaitingResults: number;
       acceptedMissing: number;
@@ -503,6 +541,9 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
           sql<string>`count(*) filter (where ck.next_check_at is not null and ck.next_check_at <= now())`.as(
             "dueRecheck",
           ),
+          sql<Date | null>`min(ck.next_check_at) filter (where ck.next_check_at <= now())`.as(
+            "oldestDueAt",
+          ),
           sql<string>`count(*) filter (where ck.next_check_at is not null)`.as("queued"),
           sql<string>`count(*) filter (where (${accepted}) and fetched.activity_shop_id is null)`.as(
             "acceptedAwaitingResults",
@@ -519,6 +560,7 @@ export function playloltcgEventsRepo(db: Kysely<Database>) {
         decklistPublished: Number(row.decklistPublished),
         missing: Number(row.missing),
         dueRecheck: Number(row.dueRecheck),
+        oldestDueAt: row.oldestDueAt,
         queued: Number(row.queued),
         acceptedAwaitingResults: Number(row.acceptedAwaitingResults),
         acceptedMissing: Number(row.acceptedMissing),

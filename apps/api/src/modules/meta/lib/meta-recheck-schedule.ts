@@ -30,6 +30,7 @@ export interface MetaRecheckState extends MetaLifecycleState {
   playersPending: boolean;
   newRounds: boolean;
   watched: boolean;
+  important: boolean;
 }
 
 export interface MetaRecheckDecision {
@@ -57,8 +58,8 @@ export function lifecycleStatus(state: MetaLifecycleState): MetaEventStatus {
 }
 
 /**
- * Re-fetches a running event each time the source finishes a round, and a
- * completed one while its decklists or staged standings are unaccepted.
+ * Re-fetches a running important event each time the source finishes a round.
+ * A local event waits for the listing pass and leaves the ladder after one empty revisit.
  */
 export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
   const nowMs = state.now.getTime();
@@ -70,6 +71,13 @@ export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
       return { nextCheckAt: new Date(startMs), checkStage: 0, deepFetch: false };
     }
     if (!isStale(state)) {
+      if (!state.important) {
+        return {
+          nextCheckAt: new Date(startMs + STALE_EVENT_DAYS * DAY_MS),
+          checkStage: 0,
+          deepFetch: state.newRounds,
+        };
+      }
       const pollMs = state.watched ? WATCHED_EVENT_DAY_POLL_MS : EVENT_DAY_POLL_MS;
       return { nextCheckAt: new Date(nowMs + pollMs), checkStage: 0, deepFetch: state.newRounds };
     }
@@ -86,7 +94,8 @@ export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
       state.playersPending);
 
   const ladderDays = RECHECK_LADDER_DAYS[step];
-  if (ladderDays === undefined) {
+  const settledLocal = !state.important && step >= 1 && !deepFetch;
+  if (ladderDays === undefined || settledLocal) {
     return { nextCheckAt: null, checkStage: step, deepFetch };
   }
   return {
@@ -94,4 +103,8 @@ export function nextRecheck(state: MetaRecheckState): MetaRecheckDecision {
     checkStage: step + 1,
     deepFetch,
   };
+}
+
+export function firstRevisit(now: Date): { nextCheckAt: Date; checkStage: number } {
+  return { nextCheckAt: new Date(now.getTime() + RECHECK_LADDER_DAYS[0] * DAY_MS), checkStage: 1 };
 }

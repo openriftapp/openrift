@@ -42,13 +42,12 @@ import {
   autoAcceptCatalogBacklog,
   backfillCatalog,
   createMetaSyncDeps,
-  deepFetchEvent,
+  fetchEventNow,
   isCatalogSyncNoop,
   isIdSweepNoop,
   isRecheckNoop,
   META_JOB_KINDS,
   processRechecks,
-  RECHECK_BATCH_SIZE,
   sweepEventIds,
   syncCatalog,
   acceptPlayloltcgEvent,
@@ -58,7 +57,6 @@ import {
   fetchPlayloltcgEvent,
   isPlayloltcgRecheckNoop,
   isPlayloltcgSyncNoop,
-  PLAYLOLTCG_RECHECK_BATCH_SIZE,
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
   acceptTopdeckEvent,
@@ -383,6 +381,7 @@ export const adminMetaCatalogRouter = {
         missing: overview.missing,
         queued: overview.queued,
         dueRecheck: overview.dueRecheck,
+        oldestDueAt: overview.oldestDueAt?.toISOString() ?? null,
         acceptedAwaitingResults: overview.acceptedAwaitingResults,
         acceptedMissing: overview.acceptedMissing,
         lastSeenAt: overview.lastSeenAt?.toISOString() ?? null,
@@ -480,7 +479,7 @@ export const adminMetaCatalogRouter = {
       context,
       "meta.uvsgames_recheck",
       syncDeps,
-      (deps, runId) => processRechecks(deps, RECHECK_BATCH_SIZE, runId),
+      (deps, runId) => processRechecks(deps, { runId, listing: true }),
       isRecheckNoop,
     ),
   ),
@@ -530,7 +529,7 @@ export const adminMetaCatalogRouter = {
       context,
       "meta.playloltcg_recheck",
       playloltcgDeps,
-      (deps) => processPlayloltcgRechecks(deps, PLAYLOLTCG_RECHECK_BATCH_SIZE),
+      (deps) => processPlayloltcgRechecks(deps, { listing: true }),
       isPlayloltcgRecheckNoop,
     ),
   ),
@@ -764,7 +763,7 @@ export const adminMetaCatalogRouter = {
       );
     }
     return await startJob(context, "meta.uvsgames_event_fetch", syncDeps, (deps, runId) =>
-      deepFetchEvent(deps, row, runId),
+      fetchEventNow(deps, row, runId),
     );
   }),
 };

@@ -288,6 +288,7 @@ export const metaSyncStatusSchema = z.object({
     missing: z.number().int(),
     queued: z.number().int(),
     dueRecheck: z.number().int(),
+    oldestDueAt: isoDateTime.nullable(),
     acceptedAwaitingResults: z.number().int(),
     acceptedMissing: z.number().int(),
     lastSeenAt: isoDateTime.nullable(),

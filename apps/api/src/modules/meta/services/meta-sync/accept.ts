@@ -65,8 +65,9 @@ export async function acceptCatalogEvent(
     }),
     sourceCheckedAt: row.lastSeenAt,
   });
+  const now = clock(deps);
   await deps.repos.uvsgamesEvents.setRecheck(row.externalId, {
-    nextCheckAt: clock(deps),
+    nextCheckAt: row.startAt.getTime() > now.getTime() ? row.startAt : now,
     checkStage: 0,
   });
   return promoted;

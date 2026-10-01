@@ -1,0 +1,57 @@
+# Routed by the default notification policy. Needs the meta_recheck_queue
+# query from queries.yaml, so deploy that and restart postgres-exporter first.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: Meta archive
+    folder: OpenRift
+    interval: 5m
+    rules:
+      - uid: meta-recheck-lag
+        title: Meta rechecks falling behind
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: max by (provider) (meta_recheck_queue_oldest_due_age_seconds)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10800
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: "The {{ $labels.provider }} recheck queue's oldest due event has waited over 3 hours."
+          description: "Check the recheck runs on /admin/meta. Each run drains the queue for up to five minutes, every ten minutes."
+        isPaused: false

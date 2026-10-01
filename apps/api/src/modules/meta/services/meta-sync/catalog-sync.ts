@@ -16,6 +16,10 @@ import { MAX_PAGE_SIZE } from "./uvsgames-client.js";
 
 const SYNC_LOOKBACK_DAYS = 7;
 
+const RECENT_LISTING_DAYS = 3;
+
+const MAX_REQUESTS_PER_LISTING = 200;
+
 export const ARCHIVE_START = new Date("2025-01-01T00:00:00Z");
 
 const FUTURE_HORIZON_DAYS = 730;
@@ -450,6 +454,32 @@ export async function syncCatalog(
   await probeMissing(deps, ctx);
 
   return await finish(deps, ctx);
+}
+
+export interface RecentListingResult {
+  rows: number;
+  autoAccepted: number;
+  pulledForward: number;
+  errors: string[];
+}
+
+/** Re-arms the recheck of every event from the last few days whose listing row changed. */
+export async function refreshRecentListing(deps: MetaSyncDeps): Promise<RecentListingResult> {
+  const now = clock(deps);
+  const ctx = newContext(deps, { maxRequests: MAX_REQUESTS_PER_LISTING });
+  await crawlRange(deps, ctx, shift(now, -RECENT_LISTING_DAYS), now);
+  const touched = [...new Set(ctx.touched)];
+  const auto = await autoAcceptCatalogEvents(deps, touched);
+  for (const message of auto.errors) {
+    record(ctx, message);
+  }
+  const pulledForward = await deps.repos.uvsgamesEvents.pullForwardRechecks(touched, now);
+  return {
+    rows: ctx.result.rows,
+    autoAccepted: auto.accepted,
+    pulledForward,
+    errors: ctx.result.errors,
+  };
 }
 
 export interface BackfillOptions {

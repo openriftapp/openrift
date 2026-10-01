@@ -40,6 +40,9 @@ const EXTERNAL_IDS = [
   "mtc-dismissed-after-accept",
   "mtc-unlisted",
   "mtc-deleted",
+  "mtc-prio-local",
+  "mtc-prio-rq",
+  "mtc-pull-soon",
 ];
 
 const STORE_ID = 990_001;
@@ -970,6 +973,83 @@ describe.skipIf(!ctx)("uvsgamesEventsRepo", () => {
       expect(keys).toContain("mtc-queue-1");
       expect(keys).not.toContain("mtc-store-1");
       expect(due.find((entry) => entry.externalId === "mtc-queue-1")?.checkStage).toBe(2);
+    });
+
+    it("puts a premier event ahead of a local one that has waited longer", async () => {
+      await repo().upsertBatch(
+        [
+          row({ externalId: "mtc-prio-local", contentHash: "prio-local" }),
+          row({ externalId: "mtc-prio-rq", contentHash: "prio-rq" }),
+        ],
+        SEEN,
+      );
+      await seedAcceptedEvent("mtc-prio-local");
+      const premier = await seedAcceptedEvent("mtc-prio-rq");
+      await ctx!.db
+        .updateTable("metaEvents")
+        .set({ tier: "premier" })
+        .where("id", "=", premier)
+        .execute();
+      await repo().setRecheck("mtc-prio-local", {
+        nextCheckAt: new Date("2026-08-01T00:00:00Z"),
+        checkStage: 1,
+      });
+      await repo().setRecheck("mtc-prio-rq", {
+        nextCheckAt: new Date("2026-08-24T00:00:00Z"),
+        checkStage: 0,
+      });
+
+      const due = await repo().dueForRecheck(new Date("2026-08-25T00:00:00Z"), 100_000);
+      const keys = due.map((entry) => entry.externalId);
+
+      expect(keys.indexOf("mtc-prio-rq")).toBeLessThan(keys.indexOf("mtc-prio-local"));
+      expect(due.find((entry) => entry.externalId === "mtc-prio-rq")?.important).toBe(true);
+      expect(due.find((entry) => entry.externalId === "mtc-prio-local")?.important).toBe(false);
+    });
+
+    it("pulls started events forward, re-arming one that left the ladder", async () => {
+      const now = new Date("2026-08-25T00:00:00Z");
+      await repo().upsertBatch(
+        [
+          row({
+            externalId: "mtc-pull-soon",
+            startAt: new Date("2026-09-01T00:00:00Z"),
+            contentHash: "pull-soon",
+          }),
+        ],
+        SEEN,
+      );
+      await repo().setRecheck("mtc-prio-local", { nextCheckAt: null, checkStage: 1 });
+      await repo().setRecheck("mtc-prio-rq", {
+        nextCheckAt: new Date("2026-08-20T00:00:00Z"),
+        checkStage: 0,
+      });
+      await repo().setRecheck("mtc-pull-soon", {
+        nextCheckAt: new Date("2026-09-01T00:00:00Z"),
+        checkStage: 0,
+      });
+
+      const pulled = await repo().pullForwardRechecks(
+        ["mtc-prio-local", "mtc-prio-rq", "mtc-pull-soon"],
+        now,
+      );
+
+      const [local, premier, upcoming] = await Promise.all([
+        repo().byKey("mtc-prio-local"),
+        repo().byKey("mtc-prio-rq"),
+        repo().byKey("mtc-pull-soon"),
+      ]);
+      expect(pulled).toBe(1);
+      expect(local?.nextCheckAt?.toISOString()).toBe(now.toISOString());
+      expect(premier?.nextCheckAt?.toISOString()).toBe("2026-08-20T00:00:00.000Z");
+      expect(upcoming?.nextCheckAt?.toISOString()).toBe("2026-09-01T00:00:00.000Z");
+    });
+
+    it("reports when the longest-waiting due recheck became due", async () => {
+      const overview = await repo().syncOverview();
+
+      expect(overview.oldestDueAt).toBeInstanceOf(Date);
+      expect(overview.oldestDueAt!.getTime()).toBeLessThanOrEqual(Date.now());
     });
   });
 });

@@ -1,6 +1,7 @@
 import { PLAYLOLTCG_STATUS_FINISHED } from "../../../../lib/meta-providers.js";
 import {
   DECKLIST_PUBLISHED,
+  firstRevisit,
   lifecycleStatus,
   nextRecheck,
 } from "../../lib/meta-recheck-schedule.js";
@@ -11,6 +12,7 @@ import {
 } from "../../lib/playloltcg-catalog.js";
 import type {
   PlayloltcgListRow,
+  PlayloltcgRecheckRow,
   PlayloltcgUpsertInput,
 } from "../../repositories/playloltcg-events.js";
 import { runCancelRequested, writeRunHeartbeat } from "./crawl-checkpoint.js";
@@ -29,18 +31,27 @@ const SHOPS_PATH = "/xcx/shop/searchShop";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SYNC_LOOKBACK_DAYS = 7;
+const RECENT_LISTING_DAYS = 3;
 const FUTURE_HORIZON_DAYS = 730;
 const BACKFILL_CHUNK_DAYS = 14;
 const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 
 const COOLDOWN_HOURS = 6;
 const HOUR_MS = 60 * 60 * 1000;
+const BACKOFF_MS = 30 * 60 * 1000;
 
 const MAX_ERRORS = 50;
 
-export const PLAYLOLTCG_RECHECK_BATCH_SIZE = 30;
+export const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
 
-const PLAYLOLTCG_DECK_BUDGET = 600;
+// The WAF blocked the IP at 15-25k requests a day; this caps a day near 8.6k.
+export const PLAYLOLTCG_RUN_REQUESTS = 60;
+
+const MIN_DECKS_PER_VISIT = 20;
+
+const RECHECK_PAGE_SIZE = 50;
+
+const MAX_FAILED_VISITS_IN_A_ROW = 5;
 
 const DECK_CONTINUE_MS = 60 * 1000;
 
@@ -72,13 +83,27 @@ export interface PlayloltcgRecheckResult {
   players: number;
   decks: number;
   acceptedPlayers: number;
+  listed: number | null;
+  pulledForward: number;
+  backedOff: boolean;
   blocked: boolean;
   blockedUntil: string | null;
   errors: string[];
 }
 
+export interface PlayloltcgRecheckOptions {
+  /** Wall-clock milliseconds; the pass stops between two events once it is spent. */
+  budgetMs?: number;
+  listing?: boolean;
+}
+
 export function isPlayloltcgRecheckNoop(result: PlayloltcgRecheckResult): boolean {
-  return result.processed === 0 && !result.blocked && result.errors.length === 0;
+  return (
+    result.processed === 0 &&
+    result.pulledForward === 0 &&
+    !result.blocked &&
+    result.errors.length === 0
+  );
 }
 
 function day(date: Date): string {
@@ -270,10 +295,33 @@ function startInstant(startAt: string | null, fallback: Date): Date {
   return startAt === null ? fallback : new Date(`${startAt}T00:00:00Z`);
 }
 
+async function refreshRecentListing(
+  deps: PlayloltcgSyncDeps,
+  now: Date,
+  result: PlayloltcgRecheckResult,
+): Promise<void> {
+  const listing = emptyResult();
+  const touched: number[] = [];
+  await crawlWindow(deps, listing, shift(now, -RECENT_LISTING_DAYS), now, now, touched);
+  const unique = [...new Set(touched)];
+  const auto = await autoAcceptPlayloltcgEvents(deps, unique);
+  result.listed = listing.rows;
+  result.pulledForward = await deps.repos.playloltcgEvents.pullForwardRechecks(unique, now);
+  record(
+    result.errors,
+    [...listing.errors, ...auto.errors].map((message) => `Listing: ${message}`),
+  );
+}
+
+/** Five failed visits in a row end the run and pause the next ones for half an hour. */
 export async function processPlayloltcgRechecks(
   deps: PlayloltcgSyncDeps,
-  limit = PLAYLOLTCG_RECHECK_BATCH_SIZE,
+  options: PlayloltcgRecheckOptions = {},
 ): Promise<PlayloltcgRecheckResult> {
+  const { budgetMs = PLAYLOLTCG_RECHECK_BUDGET_MS } = options;
+  const deadline = performance.now() + budgetMs;
+  const before = deps.client.requests;
+  const spent = () => deps.client.requests - before;
   const now = clock(deps);
   const result: PlayloltcgRecheckResult = {
     due: 0,
@@ -283,19 +331,49 @@ export async function processPlayloltcgRechecks(
     players: 0,
     decks: 0,
     acceptedPlayers: 0,
+    listed: null,
+    pulledForward: 0,
+    backedOff: false,
     blocked: false,
     blockedUntil: null,
     errors: [],
   };
-  const due = await deps.repos.playloltcgEvents.dueForRecheck(now, limit);
-  result.due = due.length;
 
-  let deckBudget = PLAYLOLTCG_DECK_BUDGET;
+  let failedInARow = 0;
+  // A row a failed write left due must not be visited twice in one pass.
+  const visited = new Set<number>();
+  let stopped = false;
   try {
-    for (const row of due) {
-      deckBudget -= await visitContained(deps, row, now, result, deckBudget);
-      if (deckBudget <= 0) {
+    if (options.listing === true) {
+      await refreshRecentListing(deps, now, result);
+    }
+    while (!stopped && spent() < PLAYLOLTCG_RUN_REQUESTS && performance.now() < deadline) {
+      const due = await deps.repos.playloltcgEvents.dueForRecheck(clock(deps), RECHECK_PAGE_SIZE);
+      const fresh = due.filter((row) => !visited.has(row.activityShopId));
+      if (fresh.length === 0) {
         break;
+      }
+      for (const row of fresh) {
+        visited.add(row.activityShopId);
+        result.due++;
+        const deckBudget = Math.max(MIN_DECKS_PER_VISIT, PLAYLOLTCG_RUN_REQUESTS - spent());
+        const failed = await visitContained(deps, row, clock(deps), result, deckBudget);
+        failedInARow = failed ? failedInARow + 1 : 0;
+        if (failedInARow >= MAX_FAILED_VISITS_IN_A_ROW) {
+          result.backedOff = true;
+          result.blockedUntil = new Date(clock(deps).getTime() + BACKOFF_MS).toISOString();
+          record(result.errors, [
+            `Stopped after ${failedInARow} visits in a row failed; pausing for 30 minutes.`,
+          ]);
+        }
+        if (
+          result.backedOff ||
+          spent() >= PLAYLOLTCG_RUN_REQUESTS ||
+          performance.now() >= deadline
+        ) {
+          stopped = true;
+          break;
+        }
       }
     }
   } catch (error) {
@@ -306,18 +384,18 @@ export async function processPlayloltcgRechecks(
       throw error;
     }
   }
-  result.requests = deps.client.requests;
+  result.requests = spent();
   return result;
 }
 
 /** Catches everything but a block, so one event's failure can't end the pass and starve the rows behind it in the batch. */
 async function visitContained(
   deps: PlayloltcgSyncDeps,
-  row: PlayloltcgListRow,
+  row: PlayloltcgRecheckRow,
   now: Date,
   result: PlayloltcgRecheckResult,
   deckBudget: number,
-): Promise<number> {
+): Promise<boolean> {
   try {
     return await visitPlayloltcgEvent(deps, row, now, result, deckBudget);
   } catch (error) {
@@ -327,24 +405,23 @@ async function visitContained(
     deps.log.warn({ err: error, activityShopId: row.activityShopId }, "Recheck visit failed");
     result.errors.push(errorText(error, `Event ${row.activityShopId}`));
     await grace(deps, row.activityShopId, now, row.checkStage);
-    return 0;
+    return true;
   }
 }
 
-/** Returns the deck requests this visit spent, deducted by the caller from its remaining budget. */
 async function visitPlayloltcgEvent(
   deps: PlayloltcgSyncDeps,
-  row: PlayloltcgListRow,
+  row: PlayloltcgRecheckRow,
   now: Date,
   result: PlayloltcgRecheckResult,
   deckBudget: number,
-): Promise<number> {
+): Promise<boolean> {
   const detailErrors: string[] = [];
   const detail = await readPlayloltcgDetail(deps, row.activityShopId, detailErrors);
   record(result.errors, detailErrors);
   if (detail === null) {
     await grace(deps, row.activityShopId, now, row.checkStage);
-    return 0;
+    return true;
   }
   if (detail.shopId !== null) {
     await deps.repos.playloltcgEvents.linkShopFromDetail(row.activityShopId, {
@@ -369,6 +446,7 @@ async function visitPlayloltcgEvent(
     // The source publishes results only with the finished event.
     newRounds: false,
     watched: false,
+    important: row.important,
   });
   if (row.metaEventId !== null) {
     await deps.repos.meta.setEventLifecycle(row.metaEventId, {
@@ -385,7 +463,7 @@ async function visitPlayloltcgEvent(
   if (!decision.deepFetch) {
     await advance();
     result.processed++;
-    return 0;
+    return false;
   }
 
   const fetched = await playloltcgDeepFetch(deps, row, detail, deckBudget);
@@ -396,20 +474,16 @@ async function visitPlayloltcgEvent(
   record(result.errors, fetched.errors);
   if (!fetched.complete) {
     await grace(deps, row.activityShopId, now, row.checkStage);
-    return fetched.deckRequests;
+    return true;
   }
   await (fetched.decksRemaining > 0
     ? resumeSoon(deps, row.activityShopId, now, row.checkStage)
     : advance());
   result.processed++;
-  return fetched.deckRequests;
+  return false;
 }
 
-/**
- * A manual out-of-turn fetch for the catalogue's Fetch now. Skips the recheck
- * queue: advancing the ladder here would skip the real visit that catches a
- * late correction.
- */
+/** A manual fetch of published results counts as the event's first finished visit. */
 export async function fetchPlayloltcgEvent(
   deps: PlayloltcgSyncDeps,
   row: PlayloltcgListRow,
@@ -435,6 +509,14 @@ export async function fetchPlayloltcgEvent(
   // Unbounded: this runs as a tracked background job, and stopping partway
   // would answer "what does the source hold" with half of it.
   const result = await playloltcgDeepFetch(deps, row, detail, Number.POSITIVE_INFINITY);
+  if (
+    result.complete &&
+    result.publishedResults &&
+    row.nextCheckAt !== null &&
+    row.checkStage === 0
+  ) {
+    await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, firstRevisit(clock(deps)));
+  }
   return { ...result, errors: [...errors, ...result.errors] };
 }
 

@@ -83,6 +83,7 @@ const status: MetaSyncStatus = {
     missing: 12,
     queued: 40,
     dueRecheck: 3,
+    oldestDueAt: null,
     acceptedAwaitingResults: 17,
     acceptedMissing: 0,
     lastSeenAt: "2026-08-29T09:00:00.000Z",
@@ -493,7 +494,11 @@ describe("MetaAdminOverviewPage", () => {
   });
 
   it("lands the missing-event alert on the missing rows, not every accepted one", () => {
-    captured.status = statusWith({ acceptedMissing: 2, dueRecheck: 60 });
+    captured.status = statusWith({
+      acceptedMissing: 2,
+      dueRecheck: 60,
+      oldestDueAt: "2026-08-01T00:00:00.000Z",
+    });
     render(<MetaAdminOverviewPage />);
 
     expect(screen.getByRole("link", { name: "The missing events" })).toHaveAttribute(
@@ -504,6 +509,17 @@ describe("MetaAdminOverviewPage", () => {
       "data-search",
       JSON.stringify({ tab: "catalogue", triage: "accepted" }),
     );
+  });
+
+  it("raises rechecks that have fallen hours behind", () => {
+    captured.status = statusWith({ dueRecheck: 25_033, oldestDueAt: "2026-08-01T00:00:00.000Z" });
+    render(<MetaAdminOverviewPage />);
+
+    expect(
+      screen.getByText(
+        "Rechecks are falling behind: 25,033 accepted events are due, and the oldest became due 4w ago.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("raises a mirror that has stopped being crawled", () => {

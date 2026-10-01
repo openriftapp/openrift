@@ -2,10 +2,11 @@ import { createLogger } from "@openrift/shared/logger";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos, Transact } from "../../../../deps.js";
-import type { UvsgamesListRow } from "../../repositories/uvsgames-events.js";
+import type { UvsgamesRecheckRow } from "../../repositories/uvsgames-events.js";
+import { refreshRecentListing } from "./catalog-sync.js";
 import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
-import { isRecheckNoop, processRechecks, RECHECK_BATCH_SIZE } from "./recheck.js";
+import { fetchEventNow, isRecheckNoop, processRechecks } from "./recheck.js";
 import type { UvsClient } from "./uvsgames-client.js";
 
 vi.mock("./deep-fetch.js", () => ({
@@ -23,11 +24,17 @@ vi.mock("./deep-fetch.js", () => ({
   ),
 }));
 
+vi.mock("./catalog-sync.js", () => ({
+  refreshRecentListing: vi.fn(() =>
+    Promise.resolve({ rows: 0, autoAccepted: 0, pulledForward: 0, errors: [] }),
+  ),
+}));
+
 const NOW = new Date("2026-08-20T12:00:00Z");
 const HOUR_MS = 60 * 60 * 1000;
 const FETCHED_AT = new Date("2026-08-19T18:00:00Z");
 
-function dueRow(overrides: Partial<UvsgamesListRow> = {}): UvsgamesListRow {
+function dueRow(overrides: Partial<UvsgamesRecheckRow> = {}): UvsgamesRecheckRow {
   return {
     externalId: "4821",
     name: "MTC Regional",
@@ -55,6 +62,7 @@ function dueRow(overrides: Partial<UvsgamesListRow> = {}): UvsgamesListRow {
     triage: "accepted",
     metaEventId: "live-1",
     metaEventSlug: "mtc-regional",
+    important: true,
     ...overrides,
   };
 }
@@ -72,7 +80,8 @@ interface LifecycleWrite {
 }
 
 function fakeDeps(options: {
-  due: UvsgamesListRow[];
+  due: UvsgamesRecheckRow[];
+  byKey?: UvsgamesRecheckRow;
   detail: (externalId: string) => unknown;
   mirroredStandings?: Record<string, unknown>[];
   outstandingDecks?: string[];
@@ -100,7 +109,13 @@ function fakeDeps(options: {
   };
 
   const uvsgamesEvents = {
-    dueForRecheck: () => Promise.resolve(options.due),
+    dueForRecheck: (_now: Date, limit: number) =>
+      Promise.resolve(
+        options.due
+          .filter((row) => !writes.some((write) => write.externalId === row.externalId))
+          .slice(0, limit),
+      ),
+    byKey: () => Promise.resolve(options.byKey),
     watchedTemplates: () =>
       Promise.resolve(
         new Map<string, string | null>((options.watchedTemplates ?? []).map((id) => [id, null])),
@@ -189,6 +204,18 @@ describe("processRechecks", () => {
 
     expect(result.fetched).toBe(0);
     expect(writes[0]!.nextCheckAt?.getTime()).toBe(NOW.getTime() + HOUR_MS);
+  });
+
+  it("parks a running local event until the listing pulls it forward", async () => {
+    const { deps, writes } = fakeDeps({
+      due: [dueRow({ displayStatus: "inProgress", important: false })],
+      detail: () =>
+        detailRow({ display_status: "inProgress", start_datetime: "2026-08-20T09:00:00Z" }),
+    });
+
+    await processRechecks(deps);
+
+    expect(writes[0]!.nextCheckAt).toEqual(new Date("2026-08-23T09:00:00Z"));
   });
 
   it("polls a watched template every ten minutes while its event runs", async () => {
@@ -340,10 +367,10 @@ describe("processRechecks", () => {
       detail: () => detailRow(),
     });
 
-    await processRechecks(deps, RECHECK_BATCH_SIZE, "run-1");
+    await processRechecks(deps, { runId: "run-1" });
 
     expect(progress).toHaveLength(2);
-    expect(progress[0]).toMatchObject({ due: 2, processed: 1 });
+    expect(progress[0]).toMatchObject({ due: 1, processed: 1 });
     expect(progress[1]).toMatchObject({ due: 2, processed: 2 });
   });
 
@@ -354,7 +381,7 @@ describe("processRechecks", () => {
       stored: { cancelRequested: true },
     });
 
-    const result = await processRechecks(deps, RECHECK_BATCH_SIZE, "run-1");
+    const result = await processRechecks(deps, { runId: "run-1" });
 
     expect(result.cancelRequested).toBe(true);
     expect(result.processed).toBe(1);
@@ -369,7 +396,7 @@ describe("processRechecks", () => {
       stored: { cancelRequested: false },
     });
 
-    const result = await processRechecks(deps, RECHECK_BATCH_SIZE, "run-1");
+    const result = await processRechecks(deps, { runId: "run-1" });
 
     expect(result).toMatchObject({ processed: 2, cancelRequested: false });
   });
@@ -418,5 +445,107 @@ describe("processRechecks", () => {
     await processRechecks(deps);
 
     expect(progress).toEqual([]);
+  });
+
+  it("keeps paging through the queue until it is empty", async () => {
+    const due = Array.from({ length: 150 }, (_, index) =>
+      dueRow({ externalId: String(5000 + index) }),
+    );
+    const { deps, writes } = fakeDeps({ due, detail: () => detailRow() });
+
+    const result = await processRechecks(deps);
+
+    expect(result).toMatchObject({ due: 150, processed: 150 });
+    expect(new Set(writes.map((write) => write.externalId)).size).toBe(150);
+  });
+
+  it("visits a row once per pass even when its write leaves it due", async () => {
+    const { deps } = fakeDeps({ due: [dueRow()], detail: () => detailRow() });
+    deps.repos.uvsgamesEvents.setRecheck = () => Promise.resolve();
+
+    const result = await processRechecks(deps);
+
+    expect(result.processed).toBe(1);
+  });
+
+  it("visits nothing once the time budget is spent", async () => {
+    const { deps, writes } = fakeDeps({ due: [dueRow()], detail: () => detailRow() });
+
+    const result = await processRechecks(deps, { budgetMs: 0 });
+
+    expect(result.processed).toBe(0);
+    expect(writes).toEqual([]);
+  });
+
+  it("reads the recent listing first when asked, and reports what it re-armed", async () => {
+    vi.mocked(refreshRecentListing).mockResolvedValueOnce({
+      rows: 1200,
+      autoAccepted: 3,
+      pulledForward: 42,
+      errors: ["2026-08-19 page 2: HTTP 502"],
+    });
+    const { deps } = fakeDeps({ due: [], detail: () => detailRow() });
+
+    const result = await processRechecks(deps, { listing: true });
+
+    expect(result).toMatchObject({ listed: 1200, pulledForward: 42 });
+    expect(result.errors).toEqual(["Listing: 2026-08-19 page 2: HTTP 502"]);
+    expect(isRecheckNoop({ ...result, errors: [] })).toBe(false);
+  });
+
+  it("skips the listing unless asked", async () => {
+    vi.mocked(refreshRecentListing).mockClear();
+    const { deps } = fakeDeps({ due: [], detail: () => detailRow() });
+
+    const result = await processRechecks(deps);
+
+    expect(result.listed).toBeNull();
+    expect(vi.mocked(refreshRecentListing)).not.toHaveBeenCalled();
+  });
+});
+
+describe("fetchEventNow", () => {
+  const finished = (overrides: Partial<UvsgamesRecheckRow> = {}) =>
+    dueRow({ displayStatus: "complete", resultsFetchedAt: NOW, ...overrides });
+
+  it("moves a finished event to its first revisit once its results are in", async () => {
+    const { deps, writes } = fakeDeps({ due: [], detail: () => detailRow(), byKey: finished() });
+
+    await fetchEventNow(deps, finished());
+
+    expect(writes).toEqual([
+      { externalId: "4821", nextCheckAt: new Date(NOW.getTime() + 24 * HOUR_MS), checkStage: 1 },
+    ]);
+  });
+
+  it("leaves the queue alone when the fetch stored no results", async () => {
+    const { deps, writes } = fakeDeps({
+      due: [],
+      detail: () => detailRow(),
+      byKey: finished({ resultsFetchedAt: FETCHED_AT }),
+    });
+
+    await fetchEventNow(deps, finished());
+
+    expect(writes).toEqual([]);
+  });
+
+  it("leaves an event that is still running, or already past its first visit, alone", async () => {
+    const running = fakeDeps({
+      due: [],
+      detail: () => detailRow(),
+      byKey: finished({ displayStatus: "inProgress" }),
+    });
+    const revisited = fakeDeps({
+      due: [],
+      detail: () => detailRow(),
+      byKey: finished({ checkStage: 2 }),
+    });
+
+    await fetchEventNow(running.deps, finished());
+    await fetchEventNow(revisited.deps, finished());
+
+    expect(running.writes).toEqual([]);
+    expect(revisited.writes).toEqual([]);
   });
 });

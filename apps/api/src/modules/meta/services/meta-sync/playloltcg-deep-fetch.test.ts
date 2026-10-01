@@ -90,6 +90,11 @@ function fakeDeps(options: {
         if (options.standings instanceof Error) {
           return Promise.reject(options.standings);
         }
+        if (Number(body.pageSize) > 20) {
+          return Promise.reject(
+            new PlayloltcgRefusedError(`playloltcg code 500 for ${path}: 网络繁忙，请稍后再试`),
+          );
+        }
         const cursor = typeof body.startFinalRanking === "number" ? body.startFinalRanking : null;
         standingsCursors.push(cursor);
         const items = options.standings
@@ -273,11 +278,12 @@ describe("playloltcgDeepFetch", () => {
 
     expect(result.players).toBe(2400);
     expect(mirrored).toHaveLength(2400);
-    expect(standingsCursors).toEqual([null, 1000, 2000]);
+    expect(standingsCursors).toHaveLength(121);
+    expect(standingsCursors.slice(0, 3)).toEqual([null, 20, 40]);
   });
 
   it("spends one request on a field that fits in a page", async () => {
-    const rows = Array.from({ length: 41 }, (_, index) =>
+    const rows = Array.from({ length: 16 }, (_, index) =>
       standingsRow({ name: `选手${index}`, finalRanking: index + 1 }),
     );
     const { deps, standingsCursors } = fakeDeps({ standings: rows });

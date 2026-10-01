@@ -14,7 +14,7 @@ export { deepFetchEvent } from "./deep-fetch.js";
 export { isIdSweepNoop, MAX_PROBES_PER_SWEEP, sweepEventIds } from "./id-sweep.js";
 export type { IdSweepOptions, MetaIdSweepResult } from "./id-sweep.js";
 export type { MetaDeepFetchResult } from "./deep-fetch.js";
-export { isRecheckNoop, processRechecks, RECHECK_BATCH_SIZE } from "./recheck.js";
+export { fetchEventNow, isRecheckNoop, processRechecks } from "./recheck.js";
 export type { MetaRecheckResult } from "./recheck.js";
 export { createPlayloltcgSyncDeps } from "./playloltcg-deps.js";
 export type { PlayloltcgSyncDeps } from "./playloltcg-deps.js";
@@ -26,7 +26,6 @@ export {
   isPlayloltcgRecheckNoop,
   isPlayloltcgSyncNoop,
   playloltcgCoolingDown,
-  PLAYLOLTCG_RECHECK_BATCH_SIZE,
   processPlayloltcgRechecks,
   syncPlayloltcgCatalog,
 } from "./playloltcg-sync.js";

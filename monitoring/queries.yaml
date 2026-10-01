@@ -31,3 +31,27 @@ pg_stat_statements:
     - seconds_total:
         usage: "COUNTER"
         description: "Total execution time in seconds"
+
+meta_recheck_queue:
+  query: |
+    SELECT
+      'uvsgames' AS provider,
+      count(*) FILTER (WHERE next_check_at <= now()) AS due,
+      coalesce(extract(epoch FROM now() - min(next_check_at) FILTER (WHERE next_check_at <= now())), 0) AS oldest_due_age_seconds
+    FROM uvsgames_event_checks
+    UNION ALL
+    SELECT
+      'playloltcg' AS provider,
+      count(*) FILTER (WHERE next_check_at <= now()) AS due,
+      coalesce(extract(epoch FROM now() - min(next_check_at) FILTER (WHERE next_check_at <= now())), 0) AS oldest_due_age_seconds
+    FROM playloltcg_event_checks
+  metrics:
+    - provider:
+        usage: "LABEL"
+        description: "Meta archive source the recheck queue belongs to"
+    - due:
+        usage: "GAUGE"
+        description: "Accepted events whose recheck is due now"
+    - oldest_due_age_seconds:
+        usage: "GAUGE"
+        description: "Seconds the longest-waiting due recheck has been due, 0 when none is due"
