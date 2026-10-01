@@ -47,12 +47,11 @@ function TrackCollectionNudge({ cardSlug }: { cardSlug: string }) {
   return (
     <section className="flex flex-col gap-2">
       <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <p className="text-muted-foreground min-w-0 flex-1 text-sm">{m.card_detail_nudge_text()}</p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-muted-foreground text-sm">{m.card_detail_nudge_text()}</p>
         <Button
           variant="outline"
           size="sm"
-          className="self-start sm:self-auto"
           render={
             <Link to="/signup" search={{ redirect: `/cards/${cardSlug}`, email: undefined }} />
           }

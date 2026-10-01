@@ -13,6 +13,7 @@
 
 - feat(Rules): **Rules versions by set** — the Core Rules version picker names each version by its number and set next to its date, like 1.4 · Vendetta (2026-07-16).
 - feat(Rules): **Easier to follow rules** — nested rules sit on guide lines with their numbers, examples stand out in their own boxes and link the cards they mention, and New, Changed and other markers line up on the right.
+- fix(Cards): **Copies controls beside the count** — on a card page the heart, minus and plus buttons now sit on one line next to the owned-copies text.
 - fix(Rules): **Calmer rules page** — the search bar only gets its background once it sticks to the top, collapsed sections no longer sit on grey bars, and on wider screens the Contents, Collapse all and Changes buttons are labelled.
 - fix(Meta): **Chinese event results sync again** — standings and decklists from PlayLoLTCG events had stopped updating on September 23, and finished events from both sources now reach the archive sooner.
 - fix(Account): **Language setting fits again** — the language picker in Preferences is now a dropdown, and its note no longer breaks into one word per line.

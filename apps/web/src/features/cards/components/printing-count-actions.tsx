@@ -55,6 +55,7 @@ export function PrintingCountActions({
 
   return (
     <CardCountStrip
+      className="mb-0"
       count={ownedCount}
       totalCount={widerTotal}
       pillOverride={

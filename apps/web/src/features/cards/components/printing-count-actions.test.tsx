@@ -71,6 +71,12 @@ describe("PrintingCountActions", () => {
     expect(screen.queryByLabelText("Remove Chaos Rune")).not.toBeInTheDocument();
   });
 
+  it("drops the tile strip's bottom margin so it centers beside inline controls", () => {
+    const { container } = render(<PrintingCountActions printing={printingX} />);
+
+    expect(container.firstElementChild?.classList).not.toContain("mb-1");
+  });
+
   it("shows the plain pill rather than the popover at zero", () => {
     render(<PrintingCountActions printing={printingX} />);
 

@@ -29,6 +29,7 @@ interface CardCountStripProps {
   decrement?: StripButtonSlot;
   increment?: StripButtonSlot;
   extras?: ReactNode;
+  className?: string;
 }
 
 export function CardCountStrip({
@@ -42,6 +43,7 @@ export function CardCountStrip({
   decrement,
   increment,
   extras,
+  className,
 }: CardCountStripProps) {
   const isDim = dim ?? (count === 0 && !hasWiderTotal(count, totalCount));
 
@@ -75,6 +77,7 @@ export function CardCountStrip({
 
   return (
     <CardStrip
+      className={className}
       left={
         decrement && (
           <StripIconButton

@@ -31,6 +31,12 @@ describe("CardStrip", () => {
     const { container } = render(<CardStrip />);
     expect(container.firstElementChild?.className).toContain("h-5");
   });
+
+  it("lets a caller override the tile margin", () => {
+    const { container } = render(<CardStrip className="mb-0" />);
+    expect(container.firstElementChild?.classList).toContain("mb-0");
+    expect(container.firstElementChild?.classList).not.toContain("mb-1");
+  });
 });
 
 describe("StripIconButton", () => {

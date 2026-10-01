@@ -11,14 +11,16 @@ export function CardStrip({
   left,
   center,
   right,
+  className,
 }: {
   left?: ReactNode;
   center?: ReactNode;
   right?: ReactNode;
+  className?: string;
 }) {
   return (
     // h-5 + mb-1 = 24px is mirrored as ADD_STRIP_HEIGHT in card-grid-constants; update both together
-    <div className="relative z-30 mb-1 flex h-5 items-center">
+    <div className={cn("relative z-30 mb-1 flex h-5 items-center", className)}>
       <div className="flex flex-1 items-center justify-start gap-0.5">{left}</div>
       <div className="flex items-center gap-1">{center}</div>
       <div className="flex flex-1 items-center justify-end gap-0.5">{right}</div>

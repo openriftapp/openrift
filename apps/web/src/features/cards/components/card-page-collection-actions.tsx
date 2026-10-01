@@ -50,11 +50,9 @@ export function CardPageCollectionActions({
     <>
       <section className="flex flex-col gap-2">
         <SectionHeading icon={PackageIcon}>{m.card_detail_copies_title()}</SectionHeading>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <p className="text-muted-foreground min-w-0 flex-1 text-sm">
-            {ownedSummary(ownedCount, cardTotal)}
-          </p>
-          <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p className="text-muted-foreground text-sm">{ownedSummary(ownedCount, cardTotal)}</p>
+          <div className="flex shrink-0 items-center gap-2">
             <WishlistButton
               entries={wish.entriesForPrinting(printing.cardId, printing.id)}
               cardName={cardName}
