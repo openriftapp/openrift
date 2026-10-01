@@ -1,4 +1,5 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { formatPrintingLabel } from "@openrift/shared/utils";
 
 import type {
@@ -122,7 +123,7 @@ export function buildMarketplaceRows(
 export function collectEntries(group: UnifiedMappingGroup): TableEntry[] {
   const printingById = new Map(group.printings.map((p) => [p.printingId, p]));
   const entries: TableEntry[] = [];
-  for (const marketplace of ["tcgplayer", "cardmarket", "cardtrader"] as const) {
+  for (const marketplace of ALL_MARKETPLACES) {
     const { stagedProducts, assignedProducts, assignments = [] } = group[marketplace];
     const seen = new Set<string>();
     for (const product of [...stagedProducts, ...assignedProducts]) {

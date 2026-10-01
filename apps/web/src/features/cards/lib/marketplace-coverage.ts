@@ -1,6 +1,7 @@
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import type { UnifiedMappingGroupResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 
 import { m } from "@/paraglide/messages.js";
@@ -103,8 +104,6 @@ export function buildCoverageMapBySlug(
   }
   return result;
 }
-
-type Marketplace = "tcgplayer" | "cardmarket" | "cardtrader";
 
 /**
  * Language-agnostic marketplaces collapse to their name (`"cardmarket"`);

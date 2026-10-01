@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { marketplaceEnum } from "../types/pricing.js";
 import { authedRoute } from "./_base.js";
 
 const CSV_MAX_CHARS = 2000;
@@ -31,7 +32,7 @@ const csvBounded = z.string().min(1).max(CSV_MAX_CHARS);
 
 export const collectionValueHistoryQuerySchema = z.object({
   range: z.enum(["7d", "30d", "90d", "all"]).default("30d"),
-  marketplace: z.enum(["tcgplayer", "cardmarket", "cardtrader"]).default("tcgplayer"),
+  marketplace: marketplaceEnum.default("tcgplayer"),
   collectionIds: csvUuidList.optional(),
   sets: csvBounded.optional(),
   languages: csvBounded.optional(),

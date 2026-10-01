@@ -3,17 +3,13 @@ import { z } from "zod";
 import { WellKnown } from "../well-known.js";
 import type { Currency } from "./api/trade-preferences.js";
 
+export const ALL_MARKETPLACES = ["cardtrader", "tcgplayer", "cardmarket"] as const;
+
 // Lives here, not in schemas.ts, because schemas.ts imports from types/ and a
 // definition there would cycle.
-export const marketplaceEnum = z.enum(["tcgplayer", "cardmarket", "cardtrader"]);
+export const marketplaceEnum = z.enum(ALL_MARKETPLACES);
 
 export type Marketplace = z.infer<typeof marketplaceEnum>;
-
-export const ALL_MARKETPLACES: readonly [Marketplace, ...Marketplace[]] = [
-  "cardtrader",
-  "tcgplayer",
-  "cardmarket",
-];
 
 export const EUR_MARKETPLACES: ReadonlySet<Marketplace> = new Set(["cardmarket", "cardtrader"]);
 

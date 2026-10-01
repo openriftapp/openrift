@@ -1,5 +1,7 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 import type { StagedProductResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { formatCents } from "@openrift/shared/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangleIcon, BanIcon, EllipsisVerticalIcon, LinkIcon, XIcon } from "lucide-react";
@@ -51,8 +53,6 @@ import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search"
 import { ProductLink } from "./price-mappings-utils";
 import { CM_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
 
-const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
-type Marketplace = (typeof MARKETPLACES)[number];
 const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
   tcgplayer: TCG_CONFIG,
   cardmarket: CM_CONFIG,
@@ -75,7 +75,7 @@ function flattenUnmatched(data: {
   unmatchedProducts: Record<Marketplace, StagedProductResponse[]>;
 }): UnmatchedRow[] {
   const rows: UnmatchedRow[] = [];
-  for (const marketplace of MARKETPLACES) {
+  for (const marketplace of ALL_MARKETPLACES) {
     for (const product of data.unmatchedProducts[marketplace]) {
       rows.push({ marketplace, product });
     }
@@ -136,21 +136,14 @@ export function UnmatchedProductsPanel() {
   });
 
   // Matches the row order of the per-card marketplace table.
-  const sortedRows = (() => {
-    const marketplaceOrder: Record<Marketplace, number> = {
-      tcgplayer: 0,
-      cardmarket: 1,
-      cardtrader: 2,
-    };
-    return [...filtered].sort(
-      (a, b) =>
-        marketplaceOrder[a.marketplace] - marketplaceOrder[b.marketplace] ||
-        a.product.productName.localeCompare(b.product.productName) ||
-        b.product.finish.localeCompare(a.product.finish) ||
-        (a.product.language ?? "").localeCompare(b.product.language ?? "") ||
-        a.product.externalId - b.product.externalId,
-    );
-  })();
+  const sortedRows = [...filtered].sort(
+    (a, b) =>
+      ALL_MARKETPLACES.indexOf(a.marketplace) - ALL_MARKETPLACES.indexOf(b.marketplace) ||
+      a.product.productName.localeCompare(b.product.productName) ||
+      b.product.finish.localeCompare(a.product.finish) ||
+      (a.product.language ?? "").localeCompare(b.product.language ?? "") ||
+      a.product.externalId - b.product.externalId,
+  );
 
   const tcgAssign = useUnifiedAssignToCard("tcgplayer");
   const cmAssign = useUnifiedAssignToCard("cardmarket");

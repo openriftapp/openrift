@@ -1,6 +1,7 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayLocal, formatTimeLocal } from "@openrift/shared/format-date";
 import type { CollectionEventResponse } from "@openrift/shared/types/api/collection-event";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import {
@@ -278,7 +279,7 @@ function DaySummary({
   formatPrice,
 }: {
   events: CollectionEventResponse[];
-  marketplace: "tcgplayer" | "cardmarket" | "cardtrader";
+  marketplace: Marketplace;
   formatPrice: (v?: number | null) => string;
 }) {
   const prices = usePrices();

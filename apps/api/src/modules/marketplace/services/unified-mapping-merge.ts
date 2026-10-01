@@ -110,15 +110,11 @@ function dedupePrintingsByPrintingId<T extends { printingId: string }>(printings
   return result;
 }
 
-type MarketplaceSlot = "tcgplayer" | "cardmarket" | "cardtrader";
 type RawGroupPrinting = MappingOverviewResult["groups"][number]["printings"][number];
 type MergedPrinting = UnifiedMappingGroupResponse["printings"][number];
 type MergedGroup = Omit<UnifiedMappingGroupResponse, "primaryShortCode">;
 
-const EXTERNAL_ID_FIELD: Record<
-  MarketplaceSlot,
-  "tcgExternalId" | "cmExternalId" | "ctExternalId"
-> = {
+const EXTERNAL_ID_FIELD: Record<Marketplace, "tcgExternalId" | "cmExternalId" | "ctExternalId"> = {
   tcgplayer: "tcgExternalId",
   cardmarket: "cmExternalId",
   cardtrader: "ctExternalId",
@@ -128,7 +124,7 @@ function emptyMarketplaceSlot(): MergedGroup["tcgplayer"] {
   return { stagedProducts: [], assignedProducts: [], assignments: [] };
 }
 
-function toMergedPrinting(p: RawGroupPrinting, marketplace: MarketplaceSlot): MergedPrinting {
+function toMergedPrinting(p: RawGroupPrinting, marketplace: Marketplace): MergedPrinting {
   return {
     printingId: p.printingId,
     setId: p.setId,
@@ -151,7 +147,7 @@ function toMergedPrinting(p: RawGroupPrinting, marketplace: MarketplaceSlot): Me
 function mergeMarketplaceIntoMap(
   mergedMap: Map<string, MergedGroup>,
   result: MappingOverviewResult,
-  marketplace: MarketplaceSlot,
+  marketplace: Marketplace,
 ): void {
   const idField = EXTERNAL_ID_FIELD[marketplace];
   for (const group of result.groups) {

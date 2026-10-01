@@ -117,8 +117,8 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
     expect(await readJson(res)).toEqual({
       assignBucketsBySlug: {
         unforgiven: [
-          { marketplace: "cardmarket", language: null, unbound: 1, assignable: true },
           { marketplace: "cardtrader", language: "FR", unbound: 1, assignable: false },
+          { marketplace: "cardmarket", language: null, unbound: 1, assignable: true },
         ],
       },
       unmatchedCount: 3,

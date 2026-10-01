@@ -1,6 +1,7 @@
 import { formatDayTime } from "@openrift/shared/format-date";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
 import type { IgnoredProductResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { Undo2Icon } from "lucide-react";
 
 import { PageDescription } from "@/components/layout/page-top-bar";
@@ -104,12 +105,12 @@ function UnignoreAction({ row }: AdminCellSlotProps<IgnoredProductResponse>) {
           row.level === "product"
             ? {
                 level: "product",
-                marketplace: row.marketplace as "tcgplayer" | "cardmarket" | "cardtrader",
+                marketplace: row.marketplace as Marketplace,
                 externalId: row.externalId,
               }
             : {
                 level: "variant",
-                marketplace: row.marketplace as "tcgplayer" | "cardmarket" | "cardtrader",
+                marketplace: row.marketplace as Marketplace,
                 externalId: row.externalId,
                 finish: row.finish,
                 language: row.language,

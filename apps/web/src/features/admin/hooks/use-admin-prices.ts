@@ -1,5 +1,6 @@
 import { adminOperationsContract } from "@openrift/shared/contracts/admin/operations";
 import type { ClearPricesResponse, JobRunStartedResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -15,7 +16,7 @@ import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 const clearPricesFn = createServerFn({ method: "POST" })
   // The oRPC client enforces the route's marketplace enum; callers pass
   // clearActions[*].source, which is already one of these literals.
-  .validator((input: { marketplace: "cardmarket" | "cardtrader" | "tcgplayer" }) => input)
+  .validator((input: { marketplace: Marketplace }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<ClearPricesResponse> =>
     apiOrpcClient(adminOperationsContract, context.cookie).clearPrices({
@@ -23,7 +24,7 @@ const clearPricesFn = createServerFn({ method: "POST" })
     }),
   );
 
-export function useRefreshPrices(marketplace: "tcgplayer" | "cardmarket" | "cardtrader") {
+export function useRefreshPrices(marketplace: Marketplace) {
   const refreshAction = refreshActions[marketplace];
   return useMutation({
     mutationFn: (): Promise<JobRunStartedResponse> =>
@@ -42,7 +43,7 @@ export function useLatestJobRun(kind: string) {
   });
 }
 
-export function useClearPrices(marketplace: "tcgplayer" | "cardmarket" | "cardtrader") {
+export function useClearPrices(marketplace: Marketplace) {
   const clearAction = clearActions[marketplace];
   return useMutation({
     mutationFn: (): Promise<ClearPricesResponse> =>

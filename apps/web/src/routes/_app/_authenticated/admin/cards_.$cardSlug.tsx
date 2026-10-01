@@ -1,4 +1,6 @@
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
+import { marketplaceEnum } from "@openrift/shared/types/pricing";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
@@ -19,11 +21,9 @@ import { adminLanguagesQueryOptions } from "@/lib/languages-queries";
 import { adminMarkersQueryOptions } from "@/lib/markers-queries";
 import { adminSeoHead } from "@/lib/seo";
 
-const FOCUSABLE_MARKETPLACES = new Set(["tcgplayer", "cardmarket", "cardtrader"]);
-
 interface CardDetailSearch {
   section?: CardSection;
-  focusMarketplace?: "tcgplayer" | "cardmarket" | "cardtrader";
+  focusMarketplace?: Marketplace;
   focusFinish?: string;
   focusLanguage?: string;
   set?: string;
@@ -41,11 +41,9 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards_/$cardSlu
     if (isCardSection(search.section)) {
       result.section = search.section;
     }
-    if (
-      typeof search.focusMarketplace === "string" &&
-      FOCUSABLE_MARKETPLACES.has(search.focusMarketplace)
-    ) {
-      result.focusMarketplace = search.focusMarketplace as CardDetailSearch["focusMarketplace"];
+    const focusMarketplace = marketplaceEnum.safeParse(search.focusMarketplace);
+    if (focusMarketplace.success) {
+      result.focusMarketplace = focusMarketplace.data;
     }
     if (typeof search.focusFinish === "string") {
       result.focusFinish = search.focusFinish;

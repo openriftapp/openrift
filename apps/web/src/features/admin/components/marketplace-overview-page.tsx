@@ -1,6 +1,7 @@
 import { priceRefreshResponseSchema } from "@openrift/shared/contracts/admin/job-results";
 import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { CheckIcon, LoaderIcon, XIcon } from "lucide-react";
 
 import { SettingsSection } from "@/components/layout/settings-section";
@@ -91,7 +92,7 @@ function PriceSection({
   groups: number;
   mapped: number;
   staged: number;
-  marketplace: "tcgplayer" | "cardmarket" | "cardtrader";
+  marketplace: Marketplace;
   nextRun: string | null;
 }) {
   const refreshMutation = useRefreshPrices(marketplace);

@@ -1,5 +1,5 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
-import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
+import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 import { normalizeNameForIdentity } from "@openrift/shared/utils";
 import { marketplaceFinish, WellKnown } from "@openrift/shared/well-known";
 
@@ -319,7 +319,7 @@ export function computeProductSuggestions(
   group: UnifiedMappingGroup,
 ): Map<string, ProductSuggestion[]> {
   const out = new Map<string, ProductSuggestion[]>();
-  for (const marketplace of ["tcgplayer", "cardmarket", "cardtrader"] as const) {
+  for (const marketplace of ALL_MARKETPLACES) {
     const perPrinting = computeSuggestions(toMarketplaceGroup(group, marketplace), marketplace);
     for (const [printingId, { product, score }] of perPrinting) {
       const key = productSuggestionKey(

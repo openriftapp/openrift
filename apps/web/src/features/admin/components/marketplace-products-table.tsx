@@ -1,4 +1,5 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { WandSparklesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,6 @@ import {
 } from "./marketplace-product-entries";
 import type { ProductSuggestion } from "./suggest-mapping";
 import { productSuggestionKey } from "./suggest-mapping";
-
-const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
 
 function AcceptSuggestionsButton({
   mappings,
@@ -177,7 +176,7 @@ export function MarketplaceProductsTable({
 
   return (
     <div className="space-y-6">
-      {MARKETPLACES.map((marketplace) => {
+      {ALL_MARKETPLACES.map((marketplace) => {
         const rows = buildMarketplaceRows(entries, marketplace);
         if (rows.length === 0) {
           return null;

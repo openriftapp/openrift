@@ -3,6 +3,7 @@ import type {
   UnifiedMappingGroupResponse,
   UnifiedMappingsCardResponse,
 } from "@openrift/shared/types/api/admin";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WandSparklesIcon } from "lucide-react";
@@ -27,8 +28,6 @@ import type { MarketplaceHandlers } from "./marketplace-product-entries";
 import { collectStrongMappings, collectWeakMappings } from "./marketplace-product-entries";
 import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { computeProductSuggestions } from "./suggest-mapping";
-
-const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
 
 export function AdminCardMarketplaceSection({
   cardId,
@@ -156,7 +155,7 @@ export function AdminCardMarketplaceSection({
       strong.tcgplayer.length + strong.cardmarket.length + strong.cardtrader.length;
     acceptAllRef.current = () => {
       const target = totalStrong > 0 ? strong : weak;
-      for (const mp of MARKETPLACES) {
+      for (const mp of ALL_MARKETPLACES) {
         const mappings = target[mp];
         if (mappings.length > 0) {
           applyAssignments(mp)(mappings);
@@ -277,8 +276,8 @@ export function AdminCardMarketplaceSection({
   const suggestions = computeProductSuggestions(group);
   const strong = collectStrongMappings(group, suggestions);
   const weak = collectWeakMappings(group, suggestions);
-  const strongCount = MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
-  const weakCount = MARKETPLACES.reduce((sum, mp) => sum + weak[mp].length, 0);
+  const strongCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
+  const weakCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + weak[mp].length, 0);
   const offered = strongCount > 0 ? strongCount : weakCount;
 
   return (

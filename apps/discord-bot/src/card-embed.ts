@@ -4,6 +4,7 @@ import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { findStandardArtFallback } from "@openrift/shared/standard";
 import type { MarketplaceInfoResponse } from "@openrift/shared/types/api/pricing";
 import type { Marketplace } from "@openrift/shared/types/pricing";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { formatCents, legendDisplayName, truncateWithEllipsis } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 import type { APIEmbed, APIEmbedField } from "discord.js";
@@ -15,8 +16,6 @@ import type { TradelistHolderPrinting, TradelistHolders } from "./group-tradelis
 import { printingVariantParts } from "./printing-choice.js";
 
 export const EMBED_COLOR = 0x24_70_5f;
-
-const MARKETPLACE_ORDER: readonly Marketplace[] = ["tcgplayer", "cardmarket", "cardtrader"];
 
 /** Discord's per-field value cap. */
 export const FIELD_LIMIT = 1024;
@@ -262,7 +261,7 @@ export function buildCardEmbed(input: CardEmbedInput): APIEmbed {
   const { imageId, fallbackNote } = resolveEmbedArt(card, printing, snapshot);
   const priceMap = printing ? snapshot.prices[printing.id] : undefined;
 
-  const priceFields = MARKETPLACE_ORDER.flatMap((marketplace) => {
+  const priceFields = ALL_MARKETPLACES.flatMap((marketplace) => {
     const cents = priceMap?.[marketplace];
     if (cents === undefined) {
       return [];

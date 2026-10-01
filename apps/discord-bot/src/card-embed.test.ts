@@ -448,10 +448,11 @@ describe("buildCardEmbed", () => {
       },
       siteUrl: SITE,
     });
-    expect(embed.fields?.[0]?.value).toContain(
+    expect(embed.fields?.map((f) => f.name)).toEqual(["CardTrader", "TCGplayer"]);
+    expect(embed.fields?.[0]?.value).toContain("share_code=openrift");
+    expect(embed.fields?.[1]?.value).toContain(
       "partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F582391",
     );
-    expect(embed.fields?.[1]?.value).toContain("share_code=openrift");
   });
 
   it("falls back to marketplace search links when no product mapping exists", () => {

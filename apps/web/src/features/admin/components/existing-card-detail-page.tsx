@@ -4,6 +4,7 @@ import type {
   AdminMarketplaceName,
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
+import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
@@ -65,8 +66,6 @@ import {
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-
-const MARKETPLACES = ["tcgplayer", "cardmarket", "cardtrader"] as const;
 
 /** Stable placeholder so the filter hook can run before the detail lands. */
 const NO_PRINTINGS: AdminPrintingResponse[] = [];
@@ -234,7 +233,7 @@ export function ExistingCardDetailPage({
   const unassignedProducts =
     mappingGroup === null
       ? 0
-      : MARKETPLACES.reduce(
+      : ALL_MARKETPLACES.reduce(
           (total, marketplace) => total + mappingGroup[marketplace].stagedProducts.length,
           0,
         );

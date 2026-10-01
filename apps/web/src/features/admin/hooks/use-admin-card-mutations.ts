@@ -7,6 +7,7 @@ import type { JobRunView } from "@openrift/shared/contracts/admin/job-runs";
 import { adminJobRunsContract } from "@openrift/shared/contracts/admin/job-runs";
 import type { ScheduledJobKind } from "@openrift/shared/contracts/admin/job-schedules";
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
+import type { Marketplace } from "@openrift/shared/types/pricing";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -617,7 +618,7 @@ export function useDeleteProvider() {
 const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
-      marketplace: "tcgplayer" | "cardmarket" | "cardtrader";
+      marketplace: Marketplace;
       printingId: string;
       externalId: number;
       finish: string;
@@ -642,7 +643,7 @@ const defaultMarketplaceScope: Scope = [adminKeys.cards.all, adminKeys.unifiedMa
 export function useUnmapMarketplacePrinting(invalidates: Scope = defaultMarketplaceScope) {
   return useMutationWithInvalidation({
     mutationFn: (input: {
-      marketplace: "tcgplayer" | "cardmarket" | "cardtrader";
+      marketplace: Marketplace;
       printingId: string;
       externalId: number;
       finish: string;

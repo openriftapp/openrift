@@ -1,5 +1,6 @@
 import type { UnifiedMappingGroupResponse } from "./types/api/admin.js";
 import type { Marketplace } from "./types/pricing.js";
+import { ALL_MARKETPLACES } from "./types/pricing.js";
 import { WellKnown } from "./well-known.js";
 
 export interface PriceAssignBucket {
@@ -19,10 +20,9 @@ export function computePriceAssignBuckets(
   group: Pick<UnifiedMappingGroupResponse, "printings" | Marketplace>,
 ): PriceAssignBucket[] {
   const printingLanguages = new Set(group.printings.map((printing) => printing.language));
-  const marketplaces: Marketplace[] = ["tcgplayer", "cardmarket", "cardtrader"];
   const buckets: PriceAssignBucket[] = [];
 
-  for (const marketplace of marketplaces) {
+  for (const marketplace of ALL_MARKETPLACES) {
     const staged = group[marketplace].stagedProducts;
     if (staged.length === 0) {
       continue;
