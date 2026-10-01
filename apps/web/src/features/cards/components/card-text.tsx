@@ -47,6 +47,12 @@ export function CardText({
   );
 }
 
+export function CardTextTokens({ tokens }: { tokens: CardTextToken[] }) {
+  const styles = useKeywordStyles();
+  const reverseMap = useKeywordReverseMap();
+  return renderTokens(tokens, styles, undefined, false, reverseMap);
+}
+
 function renderTokens(
   tokens: CardTextToken[],
   styles: KeywordsResponse["items"],

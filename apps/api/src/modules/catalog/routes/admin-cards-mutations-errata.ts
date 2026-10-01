@@ -11,19 +11,13 @@ const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requ
 export const adminCardMutationsErrataRouter = {
   upsertErrata: os.upsertErrata.handler(async ({ input, context }): Promise<void> => {
     const { catalogMutations: mut, cardErrata } = context.repos;
-    const { cardId, correctedRulesText, correctedEffectText, source, sourceUrl, effectiveDate } =
-      input;
+    const { cardId, ...values } = input;
+    const { correctedRulesText, correctedEffectText } = values;
 
     const [errataBefore] = await cardErrata.getByCardIds([cardId]);
     const card = await mut.getCardById(cardId);
 
-    await cardErrata.upsert(cardId, {
-      correctedRulesText,
-      correctedEffectText,
-      source,
-      sourceUrl,
-      effectiveDate,
-    });
+    await cardErrata.upsert(cardId, values);
 
     const printingTexts = await mut.getPrintingTextsForCardId(cardId);
     const keywords = [
@@ -48,7 +42,7 @@ export const adminCardMutationsErrataRouter = {
       entityLabel: card?.name ?? null,
       cardSlug: card?.slug ?? null,
       oldValues: errataBefore ?? null,
-      newValues: { correctedRulesText, correctedEffectText, source, sourceUrl, effectiveDate },
+      newValues: values,
     });
   }),
 

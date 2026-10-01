@@ -62,11 +62,18 @@ export const printingFieldRules = {
 } satisfies Record<string, z.ZodType>;
 
 export const cardErrataFieldRules = {
+  announcementId: z.uuid().nullable(),
   correctedRulesText: z.string().min(1).nullable(),
   correctedEffectText: z.string().min(1).nullable(),
-  source: z.string().min(1),
+  source: z.string().min(1).nullable(),
   sourceUrl: z.string().min(1).nullable(),
   effectiveDate: z.string().nullable(),
+} satisfies Record<string, z.ZodType>;
+
+export const errataAnnouncementFieldRules = {
+  name: z.string().min(1),
+  publishedOn: z.iso.date(),
+  url: z.string().min(1),
 } satisfies Record<string, z.ZodType>;
 
 export const candidateCardFieldRules = {

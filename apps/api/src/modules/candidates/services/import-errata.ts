@@ -1,21 +1,18 @@
 import type {
+  ErrataAnnouncementInput,
   ErrataEntryRef,
   UploadErrataEntry,
   UploadErrataResponse,
 } from "@openrift/shared/contracts/admin/card-mutations";
 
-import type { Transact } from "../../../deps.js";
+import type { Repos, Transact } from "../../../deps.js";
+import type { CardErrataWrite } from "../../catalog/repositories/card-errata.js";
 import { deriveKeywords } from "../../catalog/repositories/keywords.js";
 
-interface ErrataFields {
-  correctedRulesText: string | null;
-  correctedEffectText: string | null;
-  source: string;
-  sourceUrl: string | null;
-  effectiveDate: string | null;
-}
+type ErrataFields = Omit<CardErrataWrite, "announcementId"> & { announcement: string | null };
 
 const ERRATA_FIELDS = [
+  "announcement",
   "correctedRulesText",
   "correctedEffectText",
   "source",
@@ -52,6 +49,48 @@ function matchesAllPrinted(
   );
 }
 
+/** A dry run creates nothing, so a new announcement has no id yet. */
+async function resolveAnnouncements(
+  errata: Pick<Repos["cardErrata"], "announcements" | "upsertAnnouncement">,
+  announcements: ErrataAnnouncementInput[],
+  dryRun: boolean,
+  result: UploadErrataResponse,
+): Promise<{ ids: Map<string, string>; names: Map<string, string> }> {
+  const existingRows = await errata.announcements();
+  const existingByName = new Map(existingRows.map((row) => [row.name, row]));
+  const names = new Map(existingRows.map((row) => [row.id, row.name]));
+  const ids = new Map<string, string>();
+  const incomingByName = new Map<string, ErrataAnnouncementInput>();
+  for (const announcement of announcements) {
+    const seen = incomingByName.get(announcement.name);
+    if (seen && (seen.publishedOn !== announcement.publishedOn || seen.url !== announcement.url)) {
+      result.errors.push(
+        `Announcement "${announcement.name}" is given with different dates or links`,
+      );
+    }
+    incomingByName.set(announcement.name, announcement);
+  }
+  for (const announcement of incomingByName.values()) {
+    const existing = existingByName.get(announcement.name);
+    if (existing) {
+      ids.set(announcement.name, existing.id);
+      const fields = (["publishedOn", "url"] as const)
+        .filter((field) => existing[field] !== announcement[field])
+        .map((field) => ({ field, from: existing[field], to: announcement[field] }));
+      if (fields.length === 0) {
+        continue;
+      }
+      result.changedAnnouncements.push({ name: announcement.name, fields });
+    } else {
+      result.newAnnouncements.push(announcement.name);
+    }
+    if (!dryRun) {
+      ids.set(announcement.name, await errata.upsertAnnouncement(announcement));
+    }
+  }
+  return { ids, names };
+}
+
 /**
  * Entries whose corrected text already matches every printing's printed text
  * are flagged and skipped on apply; the errata display already hides those.
@@ -72,6 +111,8 @@ export async function importErrata(
     newEntries: [],
     updatedEntries: [],
     skippedMatchesPrinted: [],
+    newAnnouncements: [],
+    changedAnnouncements: [],
   };
 
   if (entries.length === 0) {
@@ -93,6 +134,12 @@ export async function importErrata(
     ]);
 
     const errataByCardId = new Map(existingErrata.map((row) => [row.cardId, row]));
+    const { ids: announcementIds, names: announcementNames } = await resolveAnnouncements(
+      errata,
+      entries.flatMap((entry) => (entry.announcement ? [entry.announcement] : [])),
+      dryRun,
+      result,
+    );
     const printingsByCardId = new Map<
       string,
       { printedRulesText: string | null; printedEffectText: string | null }[]
@@ -106,10 +153,18 @@ export async function importErrata(
       printingsByCardId.set(row.cardId, list);
     }
 
+    const announcementNameSet = new Set([...announcementNames.values(), ...announcementIds.keys()]);
+
     for (const entry of entries) {
       const card = cardBySlug.get(entry.cardSlug);
       if (!card) {
         result.errors.push(`Unknown card slug: "${entry.cardSlug}"`);
+        continue;
+      }
+      if (entry.source !== null && announcementNameSet.has(entry.source)) {
+        result.errors.push(
+          `"${entry.cardSlug}": source "${entry.source}" is an announcement, pass it as "announcement" instead`,
+        );
         continue;
       }
 
@@ -123,6 +178,7 @@ export async function importErrata(
       }
 
       const incoming: ErrataFields = {
+        announcement: entry.announcement?.name ?? null,
         correctedRulesText: entry.correctedRulesText,
         correctedEffectText: entry.correctedEffectText,
         source: entry.source,
@@ -132,14 +188,16 @@ export async function importErrata(
 
       const existing = errataByCardId.get(card.id);
       if (existing) {
-        const existingFields: ErrataFields = {
-          correctedRulesText: existing.correctedRulesText,
-          correctedEffectText: existing.correctedEffectText,
-          source: existing.source,
-          sourceUrl: existing.sourceUrl,
-          effectiveDate: existing.effectiveDate,
-        };
-        const diffs = diffErrata(existingFields, incoming);
+        const diffs = diffErrata(
+          {
+            ...existing,
+            announcement:
+              existing.announcementId === null
+                ? null
+                : (announcementNames.get(existing.announcementId) ?? existing.announcementId),
+          },
+          incoming,
+        );
         if (diffs.length === 0) {
           result.unchangedCount++;
           continue;
@@ -155,7 +213,11 @@ export async function importErrata(
         continue;
       }
 
-      await errata.upsert(card.id, incoming);
+      const { announcement, ...fields } = incoming;
+      await errata.upsert(card.id, {
+        ...fields,
+        announcementId: announcement === null ? null : (announcementIds.get(announcement) ?? null),
+      });
       await mut.updateCardById(card.id, { keywords: deriveKeywords({ errata: entry, printings }) });
     }
   });

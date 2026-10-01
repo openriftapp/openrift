@@ -58,7 +58,7 @@ export function UserProfileHeader({
   const groupsLabel = groupsInCommonLabel(groupsInCommon.map((group) => group.name));
   return (
     <Card className="gap-0 py-0">
-      <div aria-hidden className="bg-muted/40 h-28 bg-[image:var(--hero-gradient)] sm:h-36" />
+      <div aria-hidden className="bg-muted/40 h-28 bg-[image:var(--hero-glow)] sm:h-36" />
       <div className="-mt-10 flex flex-col gap-4 px-4 pb-5 sm:-mt-11 sm:flex-row sm:items-end sm:px-6">
         <UserAvatar
           name={owner.displayName}

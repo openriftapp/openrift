@@ -35,6 +35,7 @@ import { adminSuperTypesRouter } from "../modules/catalog/routes/admin-super-typ
 import { adminTypographyReviewRouter } from "../modules/catalog/routes/admin-typography-review.js";
 import { cardsRouter } from "../modules/catalog/routes/public-cards.js";
 import { catalogRouter } from "../modules/catalog/routes/public-catalog.js";
+import { errataRouter } from "../modules/catalog/routes/public-errata.js";
 import { promosRouter } from "../modules/catalog/routes/public-promos.js";
 import { rulesRouter } from "../modules/catalog/routes/public-rules.js";
 import { setsRouter } from "../modules/catalog/routes/public-sets.js";
@@ -230,6 +231,7 @@ const apiRouter = {
   productsRouter,
   promosRouter,
   rulesRouter,
+  errataRouter,
   setsRouter,
   siteSettingsRouter,
   scanRouter,

@@ -20,6 +20,10 @@ export const setsKeys = {
   detail: (slug: string) => ["sets", slug] as const,
 } as const;
 
+export const errataKeys = {
+  all: ["errata"] as const,
+} as const;
+
 export const promosKeys = {
   all: ["promos"] as const,
   forLanguage: (language: string) => ["promos", language] as const,

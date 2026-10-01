@@ -2,6 +2,7 @@ import { isoDateTime } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { authedRoute } from "../_base.js";
+import { errataAnnouncementSchema } from "../errata.js";
 import {
   adminCardDetailResponseSchema,
   unmatchedCardDetailResponseSchema,
@@ -76,6 +77,9 @@ export const adminCardQueriesContract = {
   exportCandidates: authedRoute
     .route({ method: "GET", path: `${CARDS}/export`, tags: [TAG] })
     .output(candidateExportDocumentSchema),
+  errataAnnouncements: authedRoute
+    .route({ method: "GET", path: `${CARDS}/errata-announcements`, tags: [TAG] })
+    .output(z.array(errataAnnouncementSchema)),
   getCandidateCard: authedRoute
     .route({ method: "GET", path: `${CARDS}/{cardSlug}`, tags: [TAG] })
     .input(z.object({ cardSlug: z.string() }))

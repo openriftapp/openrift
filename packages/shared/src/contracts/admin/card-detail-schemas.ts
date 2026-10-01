@@ -10,6 +10,7 @@ import { z } from "zod";
 export const fallbackArtModeSchema = z.enum(["auto", "pinned", "none"]);
 
 export const cardErrataSchema = z.object({
+  announcementId: z.string().nullable(),
   correctedRulesText: z.string().nullable(),
   correctedEffectText: z.string().nullable(),
   source: z.string(),

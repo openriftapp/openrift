@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Callout } from "@/components/ui/callout";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
+import { TextLink } from "@/components/ui/text-link";
 import { PrintingCitationList } from "@/features/cards/components/card-detail/printing-citations";
 import { CardText } from "@/features/cards/components/card-text";
 import { useDomainColors } from "@/hooks/use-domain-colors";
@@ -140,6 +141,10 @@ function ErrataRow({ errata, printing }: { errata: CardErrata; printing: Printin
           ) : (
             <span>{sourceLabel}</span>
           )}
+          {" · "}
+          <TextLink variant="muted" render={<Link to="/errata" hash={printing.card.slug} />}>
+            {m.card_detail_errata_all()}
+          </TextLink>
         </AlertTitle>
         {hasRulesDiff && (
           <AlertDescription className="mt-1.5">

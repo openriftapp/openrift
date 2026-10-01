@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fUGtsOXRYcXnBTteBCMc5jt9eg2s1kekyEQS2RewieQKqVEZyK8NMUYyUAVJwbf
+\restrict Y9if7zJDr90zaQ4feyP7u2fzKOloo73Zm0pNgVuAZCnehNZX46CDPpUUqN19u65
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -1116,15 +1116,18 @@ CREATE TABLE public.card_errata (
     card_id uuid NOT NULL,
     corrected_rules_text text,
     corrected_effect_text text,
-    source text NOT NULL,
+    source text,
     source_url text,
     effective_date date,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    announcement_id uuid,
+    CONSTRAINT chk_card_errata_announced_has_no_note CHECK (((announcement_id IS NULL) OR ((source_url IS NULL) AND (effective_date IS NULL)))),
     CONSTRAINT chk_card_errata_has_text CHECK (((corrected_rules_text IS NOT NULL) OR (corrected_effect_text IS NOT NULL))),
     CONSTRAINT chk_card_errata_no_empty_corrected_effect_text CHECK ((corrected_effect_text <> ''::text)),
     CONSTRAINT chk_card_errata_no_empty_corrected_rules_text CHECK ((corrected_rules_text <> ''::text)),
     CONSTRAINT chk_card_errata_no_empty_source CHECK ((source <> ''::text)),
-    CONSTRAINT chk_card_errata_no_empty_source_url CHECK ((source_url <> ''::text))
+    CONSTRAINT chk_card_errata_no_empty_source_url CHECK ((source_url <> ''::text)),
+    CONSTRAINT chk_card_errata_origin CHECK (((announcement_id IS NULL) = (source IS NOT NULL)))
 );
 
 
@@ -1813,6 +1816,21 @@ CREATE TABLE public.domains (
     CONSTRAINT chk_domains_color CHECK ((color ~ '^#[0-9a-fA-F]{6}$'::text)),
     CONSTRAINT chk_domains_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT chk_domains_slug_not_empty CHECK ((slug <> ''::text))
+);
+
+
+--
+-- Name: errata_announcements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.errata_announcements (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    name text NOT NULL,
+    published_on date NOT NULL,
+    url text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT chk_errata_announcements_name_not_empty CHECK ((name <> ''::text)),
+    CONSTRAINT chk_errata_announcements_url_not_empty CHECK ((url <> ''::text))
 );
 
 
@@ -4725,6 +4743,22 @@ ALTER TABLE ONLY public.domains
 
 
 --
+-- Name: errata_announcements errata_announcements_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT errata_announcements_name_key UNIQUE (name);
+
+
+--
+-- Name: errata_announcements errata_announcements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.errata_announcements
+    ADD CONSTRAINT errata_announcements_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feature_flags feature_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6096,6 +6130,13 @@ CREATE INDEX idx_card_custom_tags_custom_tag_id ON public.card_custom_tags USING
 --
 
 CREATE INDEX idx_card_domains_domain_slug ON public.card_domains USING btree (domain_slug);
+
+
+--
+-- Name: idx_card_errata_announcement; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_card_errata_announcement ON public.card_errata USING btree (announcement_id);
 
 
 --
@@ -8291,6 +8332,14 @@ ALTER TABLE ONLY public.card_domains
 
 
 --
+-- Name: card_errata card_errata_announcement_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.card_errata
+    ADD CONSTRAINT card_errata_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.errata_announcements(id);
+
+
+--
 -- Name: card_errata card_errata_card_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10174,5 +10223,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fUGtsOXRYcXnBTteBCMc5jt9eg2s1kekyEQS2RewieQKqVEZyK8NMUYyUAVJwbf
+\unrestrict Y9if7zJDr90zaQ4feyP7u2fzKOloo73Zm0pNgVuAZCnehNZX46CDPpUUqN19u65
 

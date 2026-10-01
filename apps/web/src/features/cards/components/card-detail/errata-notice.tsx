@@ -1,4 +1,5 @@
 import { formatMonth } from "@openrift/shared/format-date";
+import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -9,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 interface ErrataNoticeProps {
+  cardSlug: string;
+  interactive?: boolean;
   printedText: string;
   lang?: string;
   source: string;
@@ -25,6 +28,8 @@ function formatSource(source: string, effectiveDate?: string | null): string {
 }
 
 export function ErrataNotice({
+  cardSlug,
+  interactive = true,
   printedText,
   lang,
   source,
@@ -55,6 +60,15 @@ export function ErrataNotice({
               sourceLabel
             )}
             )
+            {interactive && (
+              <>
+                {" "}
+                &middot;{" "}
+                <Link to="/errata" hash={cardSlug} className="hover:text-warning underline">
+                  {m.card_detail_errata_all()}
+                </Link>
+              </>
+            )}
           </span>
         </div>
         <CollapsibleTrigger className="text-muted-foreground/50 hover:text-warning flex cursor-pointer items-center gap-1 text-xs">

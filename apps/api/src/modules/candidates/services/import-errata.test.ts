@@ -19,6 +19,7 @@ interface CardRow {
 
 interface ErrataRow {
   cardId: string;
+  announcementId?: string | null;
   correctedRulesText: string | null;
   correctedEffectText: string | null;
   source: string;
@@ -32,14 +33,26 @@ interface PrintingTextRow {
   printedEffectText: string | null;
 }
 
+interface AnnouncementRow {
+  id: string;
+  name: string;
+  publishedOn: string;
+  url: string;
+}
+
 function createMockMut(overrides: {
   cards?: CardRow[];
   errata?: ErrataRow[];
   printingTexts?: PrintingTextRow[];
+  announcements?: AnnouncementRow[];
 }) {
   return {
     getCardsBySlugs: vi.fn().mockResolvedValue(overrides.cards ?? []),
-    getByCardIds: vi.fn().mockResolvedValue(overrides.errata ?? []),
+    getByCardIds: vi
+      .fn()
+      .mockResolvedValue((overrides.errata ?? []).map((row) => ({ announcementId: null, ...row }))),
+    announcements: vi.fn().mockResolvedValue(overrides.announcements ?? []),
+    upsertAnnouncement: vi.fn().mockResolvedValue("new-announcement-id"),
     getPrintingTextsByCardIds: vi.fn().mockResolvedValue(overrides.printingTexts ?? []),
     upsert: vi.fn().mockResolvedValue(undefined),
     updateCardById: vi.fn().mockResolvedValue(undefined),
@@ -114,6 +127,7 @@ describe("importErrata", () => {
     expect(result.newEntries).toEqual([{ cardSlug: "jinx-rebel", cardName: "Jinx, Rebel" }]);
     expect(mut.upsert).toHaveBeenCalledTimes(1);
     expect(mut.upsert).toHaveBeenCalledWith("card-1", {
+      announcementId: null,
       correctedRulesText: "Deal 4 damage.",
       correctedEffectText: null,
       source: "Riftbound Origins Errata",
@@ -289,6 +303,151 @@ describe("importErrata", () => {
 
     expect(mut.updateCardById).toHaveBeenCalledWith("card-1", {
       keywords: expect.any(Array),
+    });
+  });
+
+  describe("announcements", () => {
+    const ANNOUNCEMENT = {
+      name: "Vendetta Errata Updates",
+      publishedOn: "2026-07-23",
+      url: "https://example.com/vendetta",
+    };
+    const announcedEntry = () =>
+      makeEntry({ announcement: ANNOUNCEMENT, source: null, sourceUrl: null, effectiveDate: null });
+    const card = { id: "card-1", slug: "jinx-rebel", name: "Jinx, Rebel" };
+    const printingTexts = [
+      { cardId: "card-1", printedRulesText: "Deal 3 damage.", printedEffectText: null },
+    ];
+
+    it("creates a new announcement and links the entry to it on apply", async () => {
+      const mut = createMockMut({ cards: [card], printingTexts });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [announcedEntry()], dryRun: false });
+
+      expect(result.newAnnouncements).toEqual(["Vendetta Errata Updates"]);
+      expect(mut.upsertAnnouncement).toHaveBeenCalledWith(ANNOUNCEMENT);
+      expect(mut.upsert).toHaveBeenCalledWith(
+        "card-1",
+        expect.objectContaining({ announcementId: "new-announcement-id", source: null }),
+      );
+    });
+
+    it("reports a new announcement on a dry run without creating it", async () => {
+      const mut = createMockMut({ cards: [card], printingTexts });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [announcedEntry()], dryRun: true });
+
+      expect(result.newAnnouncements).toEqual(["Vendetta Errata Updates"]);
+      expect(result.newCount).toBe(1);
+      expect(mut.upsertAnnouncement).not.toHaveBeenCalled();
+      expect(mut.upsert).not.toHaveBeenCalled();
+    });
+
+    it("reports a changed date or link on an existing announcement", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        printingTexts,
+        announcements: [{ id: "a-1", ...ANNOUNCEMENT, url: "https://example.com/old" }],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [announcedEntry()], dryRun: true });
+
+      expect(result.changedAnnouncements).toEqual([
+        {
+          name: "Vendetta Errata Updates",
+          fields: [{ field: "url", from: "https://example.com/old", to: ANNOUNCEMENT.url }],
+        },
+      ]);
+    });
+
+    it("leaves an unchanged announcement alone and reuses its id", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        printingTexts,
+        announcements: [{ id: "a-1", ...ANNOUNCEMENT }],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [announcedEntry()], dryRun: false });
+
+      expect(result.newAnnouncements).toEqual([]);
+      expect(result.changedAnnouncements).toEqual([]);
+      expect(mut.upsertAnnouncement).not.toHaveBeenCalled();
+      expect(mut.upsert).toHaveBeenCalledWith(
+        "card-1",
+        expect.objectContaining({ announcementId: "a-1" }),
+      );
+    });
+
+    it("diffs a move from unannounced to an announcement by name", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        printingTexts,
+        announcements: [{ id: "a-1", ...ANNOUNCEMENT }],
+        errata: [
+          {
+            cardId: "card-1",
+            correctedRulesText: "Deal 4 damage.",
+            correctedEffectText: null,
+            source: "Riot card gallery",
+            sourceUrl: null,
+            effectiveDate: null,
+          },
+        ],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, { entries: [announcedEntry()], dryRun: true });
+
+      expect(result.updatedEntries[0]?.fields).toEqual([
+        { field: "announcement", from: null, to: "Vendetta Errata Updates" },
+        { field: "source", from: "Riot card gallery", to: null },
+      ]);
+    });
+
+    it("rejects an unannounced entry whose source names an existing announcement", async () => {
+      const mut = createMockMut({
+        cards: [card],
+        printingTexts,
+        announcements: [{ id: "a-1", ...ANNOUNCEMENT }],
+      });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, {
+        entries: [makeEntry({ source: "Vendetta Errata Updates" })],
+        dryRun: false,
+      });
+
+      expect(result.errors).toEqual([
+        '"jinx-rebel": source "Vendetta Errata Updates" is an announcement, pass it as "announcement" instead',
+      ]);
+      expect(mut.upsert).not.toHaveBeenCalled();
+    });
+
+    it("records an error when one announcement name carries two different links", async () => {
+      const mut = createMockMut({ cards: [card], printingTexts });
+      const transact = mockTransact(createMockRepos(mut));
+
+      const result = await importErrata(transact, {
+        entries: [
+          announcedEntry(),
+          makeEntry({
+            cardSlug: "jinx-rebel",
+            announcement: { ...ANNOUNCEMENT, url: "https://example.com/other" },
+            source: null,
+            sourceUrl: null,
+            effectiveDate: null,
+          }),
+        ],
+        dryRun: true,
+      });
+
+      expect(result.errors).toEqual([
+        'Announcement "Vendetta Errata Updates" is given with different dates or links',
+      ]);
     });
   });
 });

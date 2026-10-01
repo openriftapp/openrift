@@ -4,6 +4,7 @@ import { createMockDb } from "../../../test/mock-db.js";
 import { cardErrataRepo } from "./card-errata.js";
 
 const ERRATA = {
+  announcementId: null,
   correctedRulesText: "Deal 3 damage.",
   correctedEffectText: null,
   source: "riot-patch-notes",
@@ -17,6 +18,7 @@ describe("cardErrataRepo", () => {
     const db = createMockDb([]);
     await expect(
       cardErrataRepo(db).upsert("c-1", {
+        announcementId: null,
         correctedRulesText: "Deal 3 damage.",
         correctedEffectText: null,
         source: "riot-patch-notes",
@@ -30,6 +32,7 @@ describe("cardErrataRepo", () => {
     const db = createMockDb([]);
     await expect(
       cardErrataRepo(db).upsert("c-1", {
+        announcementId: null,
         correctedRulesText: null,
         correctedEffectText: "Draw a card.",
         source: "manual",
@@ -70,5 +73,30 @@ describe("cardErrataRepo", () => {
       },
     ) as never;
     expect(await cardErrataRepo(throwingDb).getByCardIds([])).toEqual([]);
+  });
+
+  it("announcements returns the announcement rows", async () => {
+    const rows = [
+      { id: "a-1", name: "Vendetta Errata Updates", publishedOn: "2026-07-23", url: "https://x" },
+    ];
+    const db = createMockDb(rows);
+    expect(await cardErrataRepo(db).announcements()).toEqual(rows);
+  });
+
+  it("upsertAnnouncement returns the announcement id", async () => {
+    const db = createMockDb([{ id: "a-1" }]);
+    expect(
+      await cardErrataRepo(db).upsertAnnouncement({
+        name: "Vendetta Errata Updates",
+        publishedOn: "2026-07-23",
+        url: "https://x",
+      }),
+    ).toBe("a-1");
+  });
+
+  it("listEntries returns one row per erratum", async () => {
+    const rows = [{ slug: "gold", announcementId: null, source: "UNL-T05" }];
+    const db = createMockDb(rows);
+    expect(await cardErrataRepo(db).listEntries()).toEqual(rows);
   });
 });

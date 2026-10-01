@@ -25,6 +25,7 @@ const STATIC_PAGES: StaticPage[] = [
   { path: "/sets", priority: "0.7", changefreq: "weekly" },
   { path: "/products", priority: "0.7", changefreq: "weekly" },
   { path: "/promos/EN", priority: "0.6", changefreq: "weekly" },
+  { path: "/errata", priority: "0.6", changefreq: "weekly" },
   { path: "/meta", priority: "0.6", changefreq: "weekly", featureFlag: "meta" },
   { path: "/meta/events", priority: "0.6", changefreq: "weekly", featureFlag: "meta" },
   { path: "/meta/decks", priority: "0.5", changefreq: "weekly", featureFlag: "meta" },

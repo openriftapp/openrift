@@ -53,6 +53,10 @@ const mockCatalogRepo = {
 const mockMetaRepo = {
   contextForDeck: vi.fn(),
 };
+const mockCardErrataRepo = {
+  announcements: vi.fn(),
+  listEntries: vi.fn(),
+};
 
 const app = new Hono<{ Variables: Variables }>()
   .use("*", async (c, next) => {
@@ -65,6 +69,7 @@ const app = new Hono<{ Variables: Variables }>()
       decks: mockDecksRepo,
       catalog: mockCatalogRepo,
       meta: mockMetaRepo,
+      cardErrata: mockCardErrataRepo,
     } as never);
     c.set("io", {} as never);
     c.set("config", { corsOrigin: "https://openrift.app,https://preview.openrift.app" } as never);
@@ -746,5 +751,46 @@ describe("POST /api/v1/decks/image", () => {
 
     expect(res.status).toBe(400);
     expect(renderMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/v1/errata/image.png", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function row(slug: string, name: string, announcementId: string | null, imageId: string | null) {
+    return { slug, name, types: ["unit"], tags: [], announcementId, imageId };
+  }
+
+  it("fans out the newest announcement's cards with images, in name order", async () => {
+    mockCardErrataRepo.announcements.mockResolvedValue([
+      { id: "a-new", name: "Vendetta Errata Updates", publishedOn: "2026-07-23", url: "x" },
+      { id: "a-old", name: "Origins Card Errata", publishedOn: "2025-10-21", url: "y" },
+    ]);
+    mockCardErrataRepo.listEntries.mockResolvedValue([
+      row("draven", "Draven, Vanquisher", "a-new", "img-draven"),
+      row("arise", "Arise", "a-old", "img-arise"),
+      row("astral", "Astral Heron", "a-new", "img-astral"),
+      row("fizz", "Fizz, Trickster", "a-new", null),
+      row("gold", "Gold", null, "img-gold"),
+    ]);
+
+    const res = await app.request("/api/v1/errata/image.png", {
+      headers: { "x-real-ip": "10.0.9.1" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+    const [job] = jobsOfKind("errata");
+    expect(job?.input).toEqual({
+      cards: [
+        { cardName: "Astral Heron", imageId: "img-astral" },
+        { cardName: "Draven, Vanquisher", imageId: "img-draven" },
+      ],
+      cardCount: 5,
+      updateCount: 2,
+      siteHost: "openrift.app",
+    });
   });
 });

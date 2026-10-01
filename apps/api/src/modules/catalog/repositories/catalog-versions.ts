@@ -19,8 +19,8 @@ const STORED_CATALOG_AGGREGATES = sql<string>`
       coalesce((SELECT count(*) FROM sets)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM sets)::text, '') || '|' ||
       coalesce((SELECT md5(string_agg(id::text || ':' || banned_at::text || ':' || coalesce(unbanned_at::text, '') || ':' || coalesce(reason, ''), ',' ORDER BY id)) FROM card_bans), '') || '|' ||
-      coalesce((SELECT count(*) FROM card_errata)::text, '') || ':' ||
-      coalesce((SELECT max(created_at) AT TIME ZONE 'UTC' FROM card_errata)::text, '') || '|' ||
+      coalesce((SELECT md5(string_agg(card_id::text || ':' || coalesce(announcement_id::text, '') || ':' || coalesce(corrected_rules_text, '') || ':' || coalesce(corrected_effect_text, '') || ':' || coalesce(source, '') || ':' || coalesce(source_url, '') || ':' || coalesce(effective_date::text, ''), ',' ORDER BY card_id)) FROM card_errata), '') || '|' ||
+      coalesce((SELECT md5(string_agg(id::text || ':' || name || ':' || published_on::text || ':' || url, ',' ORDER BY id)) FROM errata_announcements), '') || '|' ||
       coalesce((SELECT count(*) FROM markers)::text, '') || ':' ||
       coalesce((SELECT max(updated_at) AT TIME ZONE 'UTC' FROM markers)::text, '') || '|' ||
       coalesce((SELECT count(*) FROM printing_markers)::text, '') || '|' ||
@@ -46,7 +46,7 @@ async function hashedToken(db: Kysely<Database>, expression: RawBuilder<string>)
 export function catalogVersionsRepo(db: Kysely<Database>) {
   return {
     /**
-     * Domain/super-type/custom-tag junction tables and `card_bans` have no `updated_at`, and an in-place edit leaves `count(*)` unchanged, so they are content-hashed.
+     * Domain/super-type/custom-tag junction tables, `card_bans` and the errata tables have no `updated_at`, and an in-place edit leaves `count(*)` unchanged, so they are content-hashed.
      * Includes `current_date` for `setReleased`'s derived flag; {@link catalogResponseVersion} must not inherit it.
      */
     catalogContentVersion(): Promise<string> {

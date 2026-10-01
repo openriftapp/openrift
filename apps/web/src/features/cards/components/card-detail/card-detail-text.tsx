@@ -76,6 +76,8 @@ export function CardDetailText({
             {card.errata?.correctedRulesText &&
               card.errata.correctedRulesText !== printing.printedRulesText && (
                 <ErrataNotice
+                  cardSlug={card.slug}
+                  interactive={interactive}
                   lang={textLang}
                   printedText={printing.printedRulesText}
                   source={card.errata.source}
@@ -105,6 +107,8 @@ export function CardDetailText({
               printing.printedEffectText &&
               card.errata.correctedEffectText !== printing.printedEffectText && (
                 <ErrataNotice
+                  cardSlug={card.slug}
+                  interactive={interactive}
                   lang={textLang}
                   printedText={printing.printedEffectText}
                   source={card.errata.source}

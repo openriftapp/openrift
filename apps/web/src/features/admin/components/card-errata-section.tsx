@@ -1,5 +1,4 @@
 import { formatDay } from "@openrift/shared/format-date";
-import type { CardErrata } from "@openrift/shared/types/catalog";
 import { PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -10,7 +9,8 @@ import { CardList } from "@/components/ui/card-list";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminConfirmDialog } from "@/features/admin/components/admin-confirm-dialog";
 import { ErrataEditor } from "@/features/admin/components/errata-editor";
-import type { ErrataDraft } from "@/features/admin/lib/errata-draft";
+import { useErrataAnnouncements } from "@/features/admin/hooks/use-admin-card-queries";
+import type { AdminCardErrata, ErrataDraft } from "@/features/admin/lib/errata-draft";
 import {
   EMPTY_ERRATA_DRAFT,
   errataDraftFrom,
@@ -23,7 +23,7 @@ function ErrataRow({
   onEdit,
   onRemove,
 }: {
-  errata: CardErrata;
+  errata: AdminCardErrata;
   onEdit: () => void;
   onRemove: () => void;
 }) {
@@ -51,7 +51,14 @@ function ErrataRow({
               {errata.source}
             </TextLink>
           )}
-          {errata.effectiveDate !== null && <> &middot; since {formatDay(errata.effectiveDate)}</>}
+          {errata.effectiveDate !== null && (
+            <>
+              {" "}
+              &middot; {errata.announcementId === null ? "first seen" : "published"}{" "}
+              {formatDay(errata.effectiveDate)}
+            </>
+          )}
+          {errata.announcementId === null && <> &middot; unannounced</>}
         </p>
       </div>
       <Button variant="ghost" size="icon-sm" aria-label="Edit the errata" onClick={onEdit}>
@@ -69,9 +76,10 @@ export function CardErrataSection({
   errata,
 }: {
   cardId: string;
-  errata: CardErrata | null;
+  errata: AdminCardErrata | null;
 }) {
   const upsertErrata = useUpsertCardErrata();
+  const announcements = useErrataAnnouncements();
   const deleteErrata = useDeleteCardErrata();
 
   const [draft, setDraft] = useState<ErrataDraft>(EMPTY_ERRATA_DRAFT);
@@ -104,6 +112,7 @@ export function CardErrataSection({
       {editing ? (
         <ErrataEditor
           draft={draft}
+          announcements={announcements.data ?? []}
           isPending={upsertErrata.isPending}
           submitLabel={errata === null ? "Add" : "Save"}
           onChange={(next) => setDraft((current) => ({ ...current, ...next }))}

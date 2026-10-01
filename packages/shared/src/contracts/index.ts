@@ -76,6 +76,7 @@ export * from "./deck-check.js";
 export * from "./deck-folders.js";
 export * from "./decks.js";
 export * from "./discord-bot.js";
+export * from "./errata.js";
 export * from "./feature-flags.js";
 export * from "./friend-groups.js";
 export * from "./init.js";

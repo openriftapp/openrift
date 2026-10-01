@@ -23,6 +23,7 @@ import type {
   CardCustomTagsTable,
   CardDomainsTable,
   CardErrataTable,
+  ErrataAnnouncementsTable,
   CardNameAliasesTable,
   CardSuperTypesTable,
   CardTokensTable,
@@ -196,6 +197,7 @@ export interface Database {
   setReleases: SetReleasesTable;
   cards: CardsTable;
   cardErrata: CardErrataTable;
+  errataAnnouncements: ErrataAnnouncementsTable;
   printings: PrintingsTable;
 
   marketplaceGroups: MarketplaceGroupsTable;

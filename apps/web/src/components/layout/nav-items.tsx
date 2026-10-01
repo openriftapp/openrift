@@ -3,6 +3,7 @@ import {
   BookOpenIcon,
   BookTextIcon,
   CameraIcon,
+  FileDiffIcon,
   GavelIcon,
   GiftIcon,
   HandHeartIcon,
@@ -216,6 +217,12 @@ export function moreNavSections(): NavSectionConfig[] {
           to: "/products",
           icon: PackageIcon,
           description: m.nav_products_description(),
+        },
+        {
+          label: m.nav_errata(),
+          to: "/errata",
+          icon: FileDiffIcon,
+          description: m.nav_errata_description(),
         },
         {
           label: m.nav_pack_opener(),

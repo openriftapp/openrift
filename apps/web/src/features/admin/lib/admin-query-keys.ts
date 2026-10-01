@@ -10,6 +10,7 @@ export const adminKeys = {
   cards: {
     all: ["admin", "cards"] as const,
     list: ["admin", "cards", "list"] as const,
+    errataAnnouncements: ["admin", "cards", "errata-announcements"] as const,
     detail: (cardId: string) => ["admin", "cards", "detail", cardId] as const,
     unmatched: (name: string) => ["admin", "cards", "unmatched", name] as const,
     allCards: ["admin", "cards", "all-cards"] as const,

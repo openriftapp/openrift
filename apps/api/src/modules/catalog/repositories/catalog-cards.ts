@@ -43,8 +43,8 @@ type CatalogCardBanRow = Pick<
 
 type CatalogCardErrataRow = Pick<
   Selectable<CardErrataTable>,
-  "cardId" | "correctedRulesText" | "correctedEffectText" | "source" | "sourceUrl" | "effectiveDate"
->;
+  "cardId" | "correctedRulesText" | "correctedEffectText" | "sourceUrl" | "effectiveDate"
+> & { source: string };
 
 /**
  * Shared by every read that returns a {@link CatalogCardRow}, so a column
@@ -87,13 +87,14 @@ function selectCardBans(db: Kysely<Database>) {
 function selectCardErrata(db: Kysely<Database>) {
   return db
     .selectFrom("cardErrata")
+    .leftJoin("errataAnnouncements as ea", "ea.id", "cardErrata.announcementId")
     .select([
-      "cardId",
-      "correctedRulesText",
-      "correctedEffectText",
-      "source",
-      "sourceUrl",
-      "effectiveDate",
+      "cardErrata.cardId",
+      "cardErrata.correctedRulesText",
+      "cardErrata.correctedEffectText",
+      sql<string>`coalesce(ea.name, card_errata.source)`.as("source"),
+      sql<string | null>`coalesce(ea.url, card_errata.source_url)`.as("sourceUrl"),
+      sql<string | null>`coalesce(ea.published_on, card_errata.effective_date)`.as("effectiveDate"),
     ]);
 }
 
@@ -163,7 +164,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
       if (cardIds.length === 0) {
         return Promise.resolve([]);
       }
-      return selectCardErrata(db).where("cardId", "in", cardIds).execute();
+      return selectCardErrata(db).where("cardErrata.cardId", "in", cardIds).execute();
     },
 
     /**
@@ -285,7 +286,7 @@ export function catalogCardsRepo(db: Kysely<Database>) {
     },
 
     cardErrataByCardId(cardId: string): Promise<CatalogCardErrataRow | undefined> {
-      return selectCardErrata(db).where("cardId", "=", cardId).executeTakeFirst();
+      return selectCardErrata(db).where("cardErrata.cardId", "=", cardId).executeTakeFirst();
     },
 
     cardsByIds(ids: string[]): Promise<CatalogCardRow[]> {

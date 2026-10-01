@@ -641,6 +641,7 @@ async function buildDetailResponse(
           keywords: card.keywords,
           errata: errata
             ? {
+                announcementId: errata.announcementId,
                 correctedRulesText: errata.correctedRulesText,
                 correctedEffectText: errata.correctedEffectText,
                 source: errata.source,

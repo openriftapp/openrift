@@ -4,8 +4,13 @@ import {
   adminCardDetailQueryOptions,
   adminCardListQueryOptions,
   allCardsQueryOptions,
+  errataAnnouncementsQueryOptions,
   unmatchedCardDetailQueryOptions,
 } from "@/features/admin/lib/admin-card-queries";
+
+export function useErrataAnnouncements() {
+  return useQuery(errataAnnouncementsQueryOptions);
+}
 
 export function useAdminCardList() {
   return useSuspenseQuery(adminCardListQueryOptions);

@@ -10,6 +10,7 @@ const EXACT_PATHS = new Set([
   "/",
   "/cards",
   "/sets",
+  "/errata",
   "/rules",
   "/privacy-policy",
   "/promos",

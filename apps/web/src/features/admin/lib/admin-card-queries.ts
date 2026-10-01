@@ -1,4 +1,5 @@
 import { adminCardQueriesContract } from "@openrift/shared/contracts/admin/card-queries";
+import type { ErrataAnnouncement } from "@openrift/shared/contracts/errata";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -33,6 +34,18 @@ const fetchAllCards = createServerFn({ method: "GET" })
 export const allCardsQueryOptions = queryOptions({
   queryKey: adminKeys.cards.allCards,
   queryFn: () => fetchAllCards(),
+  staleTime: 5 * 60 * 1000,
+});
+
+const fetchErrataAnnouncements = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<ErrataAnnouncement[]> =>
+    apiOrpcClient(adminCardQueriesContract, context.cookie).errataAnnouncements(),
+  );
+
+export const errataAnnouncementsQueryOptions = queryOptions({
+  queryKey: adminKeys.cards.errataAnnouncements,
+  queryFn: () => fetchErrataAnnouncements(),
   staleTime: 5 * 60 * 1000,
 });
 

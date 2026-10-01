@@ -50,6 +50,11 @@ export const adminCardQueriesRouter = {
     return await buildExport(candidateCards);
   }),
 
+  errataAnnouncements: os.errataAnnouncements.handler(async ({ context }) => {
+    const { cardErrata } = context.repos;
+    return await cardErrata.announcements();
+  }),
+
   getCandidateCard: os.getCandidateCard.handler(async ({ input, context }) => {
     const { candidateCards, marketplaceMapping, providerSettings } = context.repos;
     const scope = await reviewableProviderScope(context.adminAccess, providerSettings);

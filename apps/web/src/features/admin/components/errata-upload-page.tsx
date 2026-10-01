@@ -211,8 +211,17 @@ const EXAMPLE_ERRATA_JSON = `[
     "cardSlug": "jinx-rebel",
     "correctedRulesText": "When this unit attacks, deal 2 damage to target unit.",
     "correctedEffectText": null,
-    "source": "Official rulings, 2026-03-15",
-    "sourceUrl": "https://example.com/rulings",
+    "announcement": {
+      "name": "Spiritforged Errata",
+      "publishedOn": "2026-01-14",
+      "url": "https://example.com/spiritforged-errata"
+    }
+  },
+  {
+    "cardSlug": "gold",
+    "correctedRulesText": "[Reaction][>] Kill this, :rb_exhaust:: [Add] :rb_rune_rainbow:.",
+    "source": "Riot card gallery",
+    "sourceUrl": "https://example.com/card-gallery",
     "effectiveDate": "2026-03-15"
   }
 ]`;
@@ -236,15 +245,22 @@ function FormatHelp() {
           <Code>correctedEffectText</Code> (string or <Code>null</Code>): corrected effect text.
         </li>
         <li>
-          <Code>source</Code> (string, required): short label describing where the correction comes
-          from.
+          <Code>announcement</Code> (object, optional): the official post the errata came with, as{" "}
+          <Code>name</Code>, <Code>publishedOn</Code> (<Code>YYYY-MM-DD</Code>) and <Code>url</Code>
+          . Announcements are matched by name and created on first use; the preview lists new ones
+          and any changed date or link.
         </li>
         <li>
-          <Code>sourceUrl</Code> (string or <Code>null</Code>, optional): link to the source.
+          <Code>source</Code> (string): only for unannounced errata, where the change was seen. Each
+          entry has either an <Code>announcement</Code> or a <Code>source</Code>.
+        </li>
+        <li>
+          <Code>sourceUrl</Code> (string or <Code>null</Code>, optional): link to where the change
+          was seen. Unannounced errata only.
         </li>
         <li>
           <Code>effectiveDate</Code> (string <Code>YYYY-MM-DD</Code> or <Code>null</Code>,
-          optional): date the errata took effect.
+          optional): when the change was first seen. Unannounced errata only.
         </li>
       </ul>
       <p>Example:</p>
@@ -273,6 +289,24 @@ function PreviewSummary({ data }: { data: UploadErrataResponse }) {
           ))}
           {data.errors.length > 10 && <li>...and {data.errors.length - 10} more</li>}
         </ul>
+      )}
+
+      {data.newAnnouncements.length > 0 && (
+        <EntryList
+          label={`New announcements (${data.newAnnouncements.length})`}
+          entries={data.newAnnouncements.map((name) => ({ cardSlug: name, cardName: name }))}
+        />
+      )}
+
+      {data.changedAnnouncements.length > 0 && (
+        <DiffList
+          label={`Changed announcements (${data.changedAnnouncements.length})`}
+          entries={data.changedAnnouncements.map((announcement) => ({
+            cardSlug: announcement.name,
+            cardName: announcement.name,
+            fields: announcement.fields,
+          }))}
+        />
       )}
 
       {data.newEntries.length > 0 && (

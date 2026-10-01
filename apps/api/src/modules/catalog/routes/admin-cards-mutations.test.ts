@@ -749,6 +749,60 @@ describe("POST /cards/:cardId/errata", () => {
   });
 });
 
+describe("POST /cards/:cardId/errata with an announcement", () => {
+  const ANNOUNCEMENT_ID = "019f2a10-5c1e-7d4f-9a62-1b3c4d5e6f70";
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("links the errata to the announcement and stores no source note", async () => {
+    mockCardErrata.upsert.mockResolvedValue(undefined);
+    mockMut.getPrintingTextsForCardId.mockResolvedValue([]);
+    mockMut.updateCardById.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        announcementId: ANNOUNCEMENT_ID,
+        correctedRulesText: "Deal 4 damage.",
+        correctedEffectText: null,
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockCardErrata.upsert).toHaveBeenCalledWith(
+      CARD_ID2,
+      expect.objectContaining({ announcementId: ANNOUNCEMENT_ID, source: null }),
+    );
+  });
+
+  it("rejects an announcement combined with a source note", async () => {
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        announcementId: ANNOUNCEMENT_ID,
+        correctedRulesText: "Deal 4 damage.",
+        correctedEffectText: null,
+        source: "official",
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockCardErrata.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects errata with neither an announcement nor a source", async () => {
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/errata`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correctedRulesText: "Deal 4 damage.", correctedEffectText: null }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockCardErrata.upsert).not.toHaveBeenCalled();
+  });
+});
+
 describe("DELETE /cards/:cardId/errata", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -785,6 +839,8 @@ describe("POST /cards/errata/upload", () => {
       newEntries: [{ cardSlug: "jinx-rebel", cardName: "Jinx, Rebel" }],
       updatedEntries: [],
       skippedMatchesPrinted: [],
+      newAnnouncements: [],
+      changedAnnouncements: [],
     };
     mockImportErrata.mockResolvedValue(summary);
 

@@ -27,6 +27,10 @@ export function listShareImageUrl(siteUrl: string, shareToken: string, version: 
   return `${siteUrl}${API_BASE}/lists/share/${shareToken}/image.png?v=${version}`;
 }
 
+export function errataShareImageUrl(siteUrl: string, version: number): string {
+  return `${siteUrl}${API_BASE}/errata/image.png?v=${version}`;
+}
+
 export type ShareImageOptions = Pick<ShareImageQuery, "size" | "aspect" | "qr">;
 
 export interface ShareImageRenderChoice {

@@ -54,12 +54,22 @@ export interface CardsTable {
   updatedAt: UpdatedAt;
 }
 
+export interface ErrataAnnouncementsTable {
+  id: Generated<string>;
+  name: string;
+  /** `date` column, returned as `"YYYY-MM-DD"` text. */
+  publishedOn: ColumnType<string, string | Date, string | Date>;
+  url: string;
+  createdAt: CreatedAt;
+}
+
 export interface CardErrataTable {
   id: Generated<string>;
   cardId: string;
+  announcementId: string | null;
   correctedRulesText: string | null;
   correctedEffectText: string | null;
-  source: string;
+  source: string | null;
   sourceUrl: string | null;
   /** `date` column: the driver returns it as `"YYYY-MM-DD"` text, not a `Date` (OID 1082 override in `db/connect.ts`). */
   effectiveDate: ColumnType<string | null, string | Date | null | undefined, string | Date | null>;

@@ -1,6 +1,7 @@
 import {
   cardErrataFieldRules,
   cardFieldRules,
+  errataAnnouncementFieldRules,
   candidateCardFieldRules,
   candidatePrintingFieldRules,
   printingFieldRules,
@@ -23,17 +24,40 @@ const providerParam = z.object({ provider: z.string() });
 
 const updatedCountOutput = z.object({ updated: z.number() });
 
+export const errataAnnouncementInputSchema = z.object(errataAnnouncementFieldRules);
+
+export type ErrataAnnouncementInput = z.infer<typeof errataAnnouncementInputSchema>;
+
+const ERRATA_ORIGIN_MESSAGE =
+  "Provide either an announcement, or a source without one (sourceUrl and effectiveDate only go with a source)";
+
+function hasOneErrataOrigin(entry: {
+  announced: boolean;
+  source: string | null;
+  sourceUrl: string | null;
+  effectiveDate: string | null;
+}): boolean {
+  if (entry.announced) {
+    return entry.source === null && entry.sourceUrl === null && entry.effectiveDate === null;
+  }
+  return entry.source !== null;
+}
+
 export const uploadErrataEntrySchema = z
   .object({
     cardSlug: cardFieldRules.slug,
     correctedRulesText: cardErrataFieldRules.correctedRulesText.optional().default(null),
     correctedEffectText: cardErrataFieldRules.correctedEffectText.optional().default(null),
-    source: cardErrataFieldRules.source,
+    announcement: errataAnnouncementInputSchema.nullable().optional().default(null),
+    source: cardErrataFieldRules.source.optional().default(null),
     sourceUrl: cardErrataFieldRules.sourceUrl.optional().default(null),
     effectiveDate: cardErrataFieldRules.effectiveDate.optional().default(null),
   })
   .refine((entry) => entry.correctedRulesText !== null || entry.correctedEffectText !== null, {
     message: "At least one of correctedRulesText or correctedEffectText must be provided",
+  })
+  .refine((entry) => hasOneErrataOrigin({ ...entry, announced: entry.announcement !== null }), {
+    message: ERRATA_ORIGIN_MESSAGE,
   });
 
 export type UploadErrataEntry = z.infer<typeof uploadErrataEntrySchema>;
@@ -60,6 +84,13 @@ export const uploadErrataResponseSchema = z.object({
   newEntries: z.array(entryRefSchema),
   updatedEntries: z.array(entryDiffSchema),
   skippedMatchesPrinted: z.array(entryRefSchema),
+  newAnnouncements: z.array(z.string()),
+  changedAnnouncements: z.array(
+    z.object({
+      name: z.string(),
+      fields: z.array(z.object({ field: z.string(), from: z.string(), to: z.string() })),
+    }),
+  ),
 });
 export type UploadErrataResponse = z.infer<typeof uploadErrataResponseSchema>;
 
@@ -511,13 +542,19 @@ export const adminCardMutationsContract = {
   upsertErrata: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/errata`, tags: [TAG], successStatus: 204 })
     .input(
-      cardIdParam.extend({
-        correctedRulesText: cardErrataFieldRules.correctedRulesText,
-        correctedEffectText: cardErrataFieldRules.correctedEffectText,
-        source: cardErrataFieldRules.source,
-        sourceUrl: cardErrataFieldRules.sourceUrl.optional().default(null),
-        effectiveDate: cardErrataFieldRules.effectiveDate.optional().default(null),
-      }),
+      cardIdParam
+        .extend({
+          announcementId: cardErrataFieldRules.announcementId.optional().default(null),
+          correctedRulesText: cardErrataFieldRules.correctedRulesText,
+          correctedEffectText: cardErrataFieldRules.correctedEffectText,
+          source: cardErrataFieldRules.source.optional().default(null),
+          sourceUrl: cardErrataFieldRules.sourceUrl.optional().default(null),
+          effectiveDate: cardErrataFieldRules.effectiveDate.optional().default(null),
+        })
+        .refine(
+          (input) => hasOneErrataOrigin({ ...input, announced: input.announcementId !== null }),
+          { message: ERRATA_ORIGIN_MESSAGE },
+        ),
     ),
   deleteErrata: authedRoute
     .route({ method: "DELETE", path: `${CARDS}/{cardId}/errata`, tags: [TAG], successStatus: 204 })

@@ -3,7 +3,8 @@ import type { UploadErrataResponse } from "@openrift/shared/contracts/admin/card
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import type { ErrataInput } from "@/features/admin/lib/errata-draft";
+import { catalogKeys, errataKeys } from "@/features/cards/lib/cards-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -15,9 +16,10 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       cardId: string;
+      announcementId: string | null;
       correctedRulesText: string | null;
       correctedEffectText: string | null;
-      source: string;
+      source: string | null;
       sourceUrl?: string | null;
       effectiveDate?: string | null;
     }) => input,
@@ -26,6 +28,7 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardMutationsContract, context.cookie).upsertErrata({
       cardId: data.cardId,
+      announcementId: data.announcementId,
       correctedRulesText: data.correctedRulesText,
       correctedEffectText: data.correctedEffectText,
       source: data.source,
@@ -36,26 +39,10 @@ const upsertCardErrataFn = createServerFn({ method: "POST" })
 
 export function useUpsertCardErrata() {
   return useMutationWithInvalidation({
-    mutationFn: async ({
-      cardId,
-      correctedRulesText,
-      correctedEffectText,
-      source,
-      sourceUrl,
-      effectiveDate,
-    }: {
-      cardId: string;
-      correctedRulesText: string | null;
-      correctedEffectText: string | null;
-      source: string;
-      sourceUrl?: string | null;
-      effectiveDate?: string | null;
-    }) => {
-      await upsertCardErrataFn({
-        data: { cardId, correctedRulesText, correctedEffectText, source, sourceUrl, effectiveDate },
-      });
+    mutationFn: async (input: ErrataInput) => {
+      await upsertCardErrataFn({ data: input });
     },
-    invalidates: [adminKeys.cards.all, catalogKeys.all],
+    invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });
 }
 
@@ -73,7 +60,7 @@ export function useDeleteCardErrata() {
     mutationFn: async ({ cardId }: { cardId: string }) => {
       await deleteCardErrataFn({ data: { cardId } });
     },
-    invalidates: [adminKeys.cards.all, catalogKeys.all],
+    invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });
 }
 
@@ -81,7 +68,8 @@ export interface BulkErrataEntry {
   cardSlug: string;
   correctedRulesText?: string | null;
   correctedEffectText?: string | null;
-  source: string;
+  announcement?: { name: string; publishedOn: string; url: string } | null;
+  source?: string | null;
   sourceUrl?: string | null;
   effectiveDate?: string | null;
 }
@@ -96,6 +84,6 @@ const uploadErrataFn = createServerFn({ method: "POST" })
 export function useUploadErrata() {
   return useMutationWithInvalidation({
     mutationFn: (payload: BulkErrataUploadBody) => uploadErrataFn({ data: payload }),
-    invalidates: [adminKeys.cards.all, catalogKeys.all],
+    invalidates: [adminKeys.cards.all, catalogKeys.all, errataKeys.all],
   });
 }
