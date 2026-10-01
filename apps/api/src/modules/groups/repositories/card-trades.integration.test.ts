@@ -366,11 +366,22 @@ describe.skipIf(!ctx)("cardTradesRepo (integration)", () => {
     expect(await availableForReceiver(second.group.id)).toBe(1);
   });
 
-  it("rejects trading more than the wanting side wants", async () => {
-    // Giver has 2 shared copies but the receiver only wishes 1.
+  it("raises the receiver's wish when a request asks for more than it", async () => {
+    const { group, wishEntryId } = await setupMatch(2, 1);
+    const trade = await request(group, 2);
+    expect(trade.status).toBe("pending");
+    const wish = await db
+      .selectFrom("listEntries")
+      .select("quantity")
+      .where("id", "=", wishEntryId)
+      .executeTakeFirstOrThrow();
+    expect(wish.quantity).toBe(2);
+  });
+
+  it("rejects an offer of more than the receiver wishes", async () => {
     const { group } = await setupMatch(2, 1);
-    await expect(request(group, 2)).rejects.toMatchObject({ status: 400 });
-    const trade = await request(group, 1);
+    await expect(offer(group, RECEIVER_ID, 2)).rejects.toMatchObject({ status: 400 });
+    const trade = await offer(group, RECEIVER_ID, 1);
     expect(trade.status).toBe("pending");
   });
 
