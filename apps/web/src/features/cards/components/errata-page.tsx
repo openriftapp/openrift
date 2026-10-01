@@ -65,11 +65,11 @@ function GroupNav({ groups }: { groups: ErrataGroup[] }) {
             <a
               href={`#${group.id}`}
               className={cn(
-                "hover:bg-muted flex items-baseline justify-between gap-3 rounded-md px-2.5 py-1.5 whitespace-nowrap",
+                "hover:bg-muted flex items-baseline justify-between gap-3 rounded-md px-2.5 py-1.5 whitespace-nowrap lg:whitespace-normal",
                 group.entries.length === 0 && "opacity-50",
               )}
             >
-              <span className="flex flex-col">
+              <span className="flex min-w-0 flex-col">
                 <span className="text-sm font-medium">{groupShortTitle(group)}</span>
                 <span className="text-muted-foreground text-xs">
                   {group.announcement === null
@@ -77,7 +77,7 @@ function GroupNav({ groups }: { groups: ErrataGroup[] }) {
                     : formatMonthYear(group.announcement.publishedOn, DATE_WORDS)}
                 </span>
               </span>
-              <span className="text-muted-foreground text-xs tabular-nums">
+              <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                 {group.entries.length}
               </span>
             </a>
