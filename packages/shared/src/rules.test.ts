@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTermAnchors, compareRuleNumbers, formatRuleNumber } from "./rules.js";
+import {
+  buildTermAnchors,
+  compareRuleNumbers,
+  formatRuleNumber,
+  ruleNumberDepth,
+} from "./rules.js";
+
+describe("ruleNumberDepth", () => {
+  it("counts the segments after the top-level number", () => {
+    expect(ruleNumberDepth("103")).toBe(0);
+    expect(ruleNumberDepth("103.1")).toBe(1);
+    expect(ruleNumberDepth("103.1.b")).toBe(2);
+    expect(ruleNumberDepth("103.1.b.1")).toBe(3);
+  });
+
+  it("caps at three levels", () => {
+    expect(ruleNumberDepth("103.1.b.1.x")).toBe(3);
+  });
+});
 
 function makeRule(overrides: {
   ruleNumber: string;

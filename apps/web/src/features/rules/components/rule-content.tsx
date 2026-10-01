@@ -1,28 +1,19 @@
 import { formatRuleNumber } from "@openrift/shared/rules";
+import type { HastNode } from "@openrift/shared/rules-markdown";
 import { Link } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
-import type { Components } from "react-markdown";
-import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
-import { Heading } from "@/components/heading";
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
-import type { HastNode, MdNode } from "@/features/rules/lib/rules-markdown";
-import {
-  diffRuleMarkdown,
-  preprocessRuleMarkdown,
-  rehypeHighlightPenalties,
-  remarkLinkifyRuleReferences,
-} from "@/features/rules/lib/rules-markdown";
+import { diffRuleMarkdown } from "@/features/rules/lib/rules-markdown";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { copyTextToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-// Re-exported from @openrift/shared: the Discord bot's /rule command uses these too.
-export { buildTermAnchors, formatRuleNumber } from "@openrift/shared/rules";
+export { formatRuleNumber } from "@openrift/shared/rules";
 
 export async function copyRuleLink(ruleNumber: string): Promise<void> {
   const url = `${globalThis.location.origin}${globalThis.location.pathname}#rule-${ruleNumber}`;
@@ -33,58 +24,6 @@ export async function copyRuleLink(ruleNumber: string): Promise<void> {
     toast.error(m.rules_copy_link_error());
   }
 }
-
-const TERM_TRAILING_PUNCT_REGEX = /[.,:;]+$/u;
-// Strip a possessive 's (straight or curly apostrophe) so "*Card's*" resolves
-// to the "Card" anchor.
-const TERM_POSSESSIVE_REGEX = /['‘’]s$/u;
-
-interface TermLinkContext {
-  anchors: ReadonlyMap<string, string>;
-  currentRuleNumber?: string;
-}
-
-function visitEmphasisForTerms(node: MdNode, context: TermLinkContext): void {
-  if (!node.children) {
-    return;
-  }
-  for (const [index, child] of node.children.entries()) {
-    if (child.type === "link") {
-      continue;
-    }
-    if (child.type === "emphasis" && child.children?.length === 1) {
-      const inner = child.children[0];
-      if (inner?.type === "text" && typeof inner.value === "string") {
-        const stripped = inner.value
-          .trim()
-          .replace(TERM_TRAILING_PUNCT_REGEX, "")
-          .replace(TERM_POSSESSIVE_REGEX, "");
-        const target = context.anchors.get(stripped.toLowerCase());
-        if (target && target !== context.currentRuleNumber) {
-          node.children[index] = {
-            type: "link",
-            url: `#rule-${target}`,
-            children: [child],
-          };
-          continue;
-        }
-      }
-    }
-    visitEmphasisForTerms(child, context);
-  }
-}
-
-function makeRemarkLinkifyTerms(context: TermLinkContext) {
-  return () => (tree: MdNode) => {
-    if (context.anchors.size === 0) {
-      return;
-    }
-    visitEmphasisForTerms(tree, context);
-  };
-}
-
-// Stable empty-map reference for callers that don't supply term anchors.
-export const EMPTY_TERM_ANCHORS: ReadonlyMap<string, string> = new Map();
 
 // Tournament penalty labels — matched as literal `[Label]` strings inside rule
 // bodies and styled on the status tokens by severity.
@@ -97,7 +36,7 @@ const PENALTY_STYLES: Record<string, string> = {
   Disqualification: "bg-destructive text-destructive-foreground",
 };
 
-function handleSamePageAnchorClick(event: MouseEvent<HTMLAnchorElement>, href: string): void {
+function handleSamePageAnchorClick(event: MouseEvent<Element>, href: string): void {
   if (event.defaultPrevented || event.button !== 0) {
     return;
   }
@@ -127,10 +66,50 @@ function handleSamePageAnchorClick(event: MouseEvent<HTMLAnchorElement>, href: s
   }
 }
 
+export function handleRuleHtmlClick(
+  event: MouseEvent<HTMLElement>,
+  navigate: (href: string) => void,
+): void {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+  const anchor = event.target.closest("a[href]");
+  if (anchor === null || anchor.closest(".rule-html") === null) {
+    return;
+  }
+  const href = anchor.getAttribute("href") ?? "";
+  if (href.startsWith("#")) {
+    handleSamePageAnchorClick(event, href);
+    return;
+  }
+  if (!href.startsWith("/") || event.defaultPrevented || event.button !== 0) {
+    return;
+  }
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  event.preventDefault();
+  navigate(href);
+}
+
 function RuleMarkdownAnchor({ href, children }: { href?: string; children?: ReactNode }) {
   if (typeof href === "string" && href.startsWith("#")) {
     return (
       <TextLink href={href} onClick={(event) => handleSamePageAnchorClick(event, href)}>
+        {children}
+      </TextLink>
+    );
+  }
+  if (typeof href === "string" && href.startsWith("/cards/")) {
+    return (
+      <TextLink
+        render={
+          <Link
+            to="/cards/$cardSlug/{-$printingSlug}"
+            params={{ cardSlug: href.slice("/cards/".length) }}
+          />
+        }
+      >
         {children}
       </TextLink>
     );
@@ -181,109 +160,14 @@ function RuleMarkdownSpan({
   return <span>{children}</span>;
 }
 
-const MARKDOWN_COMPONENTS: Components = {
-  a: ({ href, children }) => <RuleMarkdownAnchor href={href}>{children}</RuleMarkdownAnchor>,
-  span: ({ children, ...props }) => (
-    <RuleMarkdownSpan
-      penalty={(props as { "data-penalty"?: string })["data-penalty"]}
-      diff={(props as { "data-diff"?: string })["data-diff"]}
-    >
-      {children}
-    </RuleMarkdownSpan>
-  ),
-};
-
-const ALLOWED_MARKDOWN_ELEMENTS = ["em", "strong", "code", "a", "br", "span"];
-
-// Stable references — re-creating these arrays each render busts ReactMarkdown's
-// memoization, forcing a full remark/rehype reparse for every rule on every keystroke.
-const REMARK_PLUGINS = [remarkLinkifyRuleReferences];
-const REHYPE_PLUGINS = [rehypeHighlightPenalties];
-
-// Renders a rule's body as a constrained markdown subset, with rule-number
-// references and (given `termAnchors`) italicized game terms auto-linked.
-export function RuleContent({
-  content,
-  termAnchors,
-  ruleNumber,
-}: {
-  content: string;
-  termAnchors?: ReadonlyMap<string, string>;
-  ruleNumber?: string;
-}) {
-  const processed = preprocessRuleMarkdown(content);
-  // termAnchors non-empty: append the term linkifier so it can skip self-links.
-  // The compiler memoizes this array, keeping ReactMarkdown's parse cache warm.
-  const remarkPlugins =
-    termAnchors && termAnchors.size > 0
-      ? [
-          remarkLinkifyRuleReferences,
-          makeRemarkLinkifyTerms({ anchors: termAnchors, currentRuleNumber: ruleNumber }),
-        ]
-      : REMARK_PLUGINS;
-  return (
-    <ReactMarkdown
-      remarkPlugins={remarkPlugins}
-      rehypePlugins={REHYPE_PLUGINS}
-      components={MARKDOWN_COMPONENTS}
-      allowedElements={ALLOWED_MARKDOWN_ELEMENTS}
-      unwrapDisallowed
-      skipHtml
-    >
-      {processed}
-    </ReactMarkdown>
-  );
-}
-
-const VERSION_COMMENT_MARKDOWN_ELEMENTS = [
-  "p",
-  "em",
-  "strong",
-  "code",
-  "a",
-  "br",
-  "ul",
-  "ol",
-  "li",
-  "h2",
-  "h3",
-  "h4",
-  "blockquote",
-  "hr",
-];
-
-const VERSION_COMMENT_COMPONENTS: Components = {
-  a: ({ href, children }) => (
-    <TextLink href={href} target="_blank" rel="noreferrer">
-      {children}
-    </TextLink>
-  ),
-  ul: ({ children }) => <ul className="my-2 ml-6 list-disc">{children}</ul>,
-  ol: ({ children }) => <ol className="my-2 ml-6 list-decimal">{children}</ol>,
-  h2: ({ children }) => <Heading className="mt-3">{children}</Heading>,
-  h3: ({ children }) => (
-    <Heading level={3} className="mt-3">
-      {children}
-    </Heading>
-  ),
-  blockquote: ({ children }) => (
-    <blockquote className="border-border text-muted-foreground my-2 border-l-2 pl-3">
-      {children}
-    </blockquote>
-  ),
-};
-
-export function VersionComments({ markdown }: { markdown: string }) {
+export function VersionComments({ html }: { html: string }) {
   return (
     <Callout className="mb-4">
-      <ReactMarkdown
-        components={VERSION_COMMENT_COMPONENTS}
-        allowedElements={VERSION_COMMENT_MARKDOWN_ELEMENTS}
-        unwrapDisallowed
-        skipHtml
-      >
-        {markdown}
-      </ReactMarkdown>
+      <div
+        className="rule-comments"
+        // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </Callout>
   );
 }

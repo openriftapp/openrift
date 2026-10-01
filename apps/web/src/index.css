@@ -1646,6 +1646,70 @@ html.hide-scrollbar::-webkit-scrollbar {
   }
 }
 
+@utility rule-guides {
+  --rule-guide-step: 1rem;
+  padding-left: calc(var(--rule-depth) * var(--rule-guide-step));
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0 calc(var(--rule-guide-step) / 2),
+    var(--color-border) calc(var(--rule-guide-step) / 2) calc(var(--rule-guide-step) / 2 + 1px),
+    transparent calc(var(--rule-guide-step) / 2 + 1px) var(--rule-guide-step)
+  );
+  background-size: calc(var(--rule-depth) * var(--rule-guide-step)) 100%;
+  background-repeat: no-repeat;
+
+  @variant sm {
+    --rule-guide-step: 1.5rem;
+  }
+}
+
+@utility rule-html {
+  & a {
+    @apply text-primary underline-offset-4 hover:underline;
+  }
+  & [data-penalty] {
+    @apply rounded-md px-1.5 py-0.5 text-sm font-semibold;
+  }
+  & [data-penalty="Warning"],
+  & [data-penalty="Warnings"],
+  & [data-penalty="Game Loss"] {
+    @apply bg-warning-soft text-warning;
+  }
+  & [data-penalty="No Penalty"] {
+    @apply bg-muted text-muted-foreground;
+  }
+  & [data-penalty="Match Loss"] {
+    @apply bg-destructive-soft text-destructive;
+  }
+  & [data-penalty="Disqualification"] {
+    @apply bg-destructive text-destructive-foreground;
+  }
+  & .rule-example {
+    @apply bg-muted my-2 rounded-md px-3 py-2;
+  }
+}
+
+@utility rule-comments {
+  & a {
+    @apply text-primary underline-offset-4 hover:underline;
+  }
+  & ul {
+    @apply my-2 ml-6 list-disc;
+  }
+  & ol {
+    @apply my-2 ml-6 list-decimal;
+  }
+  & h2 {
+    @apply font-heading mt-3 text-lg font-semibold;
+  }
+  & h3 {
+    @apply mt-3 text-base font-medium;
+  }
+  & blockquote {
+    @apply border-border text-muted-foreground my-2 border-l-2 pl-3;
+  }
+}
+
 /* The scanning page goes full-bleed on phones once the camera is running: the
    viewfinder takes the whole viewport and its own chrome floats over the
    picture. The app header would otherwise sit on top of the camera image (it is

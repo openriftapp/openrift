@@ -41,12 +41,14 @@ export function ExpandCollapseAllButton({ foldGroupKeys }: { foldGroupKeys: stri
             type="button"
             variant="outline"
             size="icon"
+            className="@2xl:w-auto @2xl:gap-1.5 @2xl:px-2.5"
             onClick={handleClick}
             aria-label={label}
           />
         }
       >
         {allCollapsed ? <ChevronsUpDownIcon /> : <ChevronsDownUpIcon />}
+        <span className="hidden @2xl:inline">{label}</span>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -73,12 +75,14 @@ export function ShowChangesToggle({
       <TooltipTrigger render={<span className="inline-flex" />}>
         <Toggle
           variant="outline"
+          className="@2xl:gap-1.5"
           pressed={isOn}
           disabled={!hasPreviousVersion}
           onPressedChange={(next) => setShow(kind, next)}
           aria-label={m.rules_show_changes()}
         >
           <FileClockIcon />
+          <span className="hidden @2xl:inline">{m.rules_show_changes_short()}</span>
         </Toggle>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>

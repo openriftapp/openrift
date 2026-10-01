@@ -58,9 +58,42 @@ describe("applyPageCacheControl", () => {
     expect(setDetail.headers.get("Cache-Control")).toBe(PUBLIC);
   });
 
-  it("caches versioned ruleset documents via prefix match", () => {
+  it("lets the edge keep a dated ruleset document for a day", () => {
     const versioned = applyPageCacheControl(getRequest("/rules/core/2026-07-16"), htmlResponse());
-    expect(versioned.headers.get("Cache-Control")).toBe(PUBLIC);
+    expect(versioned.headers.get("Cache-Control")).toBe(
+      "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400",
+    );
+  });
+
+  it("keeps the short public TTL on a dated ruleset with a search query, which no purge reaches", () => {
+    const searched = applyPageCacheControl(
+      getRequest("/rules/core/2026-07-16?q=might"),
+      htmlResponse(),
+    );
+    expect(searched.headers.get("Cache-Control")).toBe(PUBLIC);
+  });
+
+  it("keeps the short public TTL on undated rules paths", () => {
+    const undated = applyPageCacheControl(getRequest("/rules/core/draft"), htmlResponse());
+    expect(undated.headers.get("Cache-Control")).toBe(PUBLIC);
+  });
+
+  it("caches the redirect from a rules kind to its latest version for anonymous visitors", () => {
+    const redirect = () =>
+      new Response(null, { status: 307, headers: { Location: "/rules/core/2026-07-16" } });
+    const anonymous = applyPageCacheControl(getRequest("/rules/core"), redirect());
+    const signedIn = applyPageCacheControl(
+      getRequest("/rules/core", { cookie: "better-auth.session_token=abc" }),
+      redirect(),
+    );
+    expect(anonymous.headers.get("Cache-Control")).toBe(PUBLIC);
+    expect(anonymous.headers.get("Location")).toBe("/rules/core/2026-07-16");
+    expect(signedIn.headers.get("Cache-Control")).toBeNull();
+  });
+
+  it("leaves other redirects alone", () => {
+    const response = new Response(null, { status: 307, headers: { Location: "/login" } });
+    expect(applyPageCacheControl(getRequest("/collections"), response)).toBe(response);
   });
 
   it("caches the products index and product detail pages", () => {

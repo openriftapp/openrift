@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { registerRouterForTest } from "../../../test/mount-router.js";
 import { readJson } from "../../../test/read-json.js";
@@ -115,15 +115,23 @@ const mockRulesRepo = {
   createVersion: vi.fn(),
   insertRules: vi.fn(),
   deleteVersion: vi.fn(),
-  updateComments: vi.fn(),
+  updateDetails: vi.fn(),
 };
 
 const mockTransact = vi.fn(async (cb: (txRepos: { rules: typeof mockRulesRepo }) => unknown) =>
   cb({ rules: mockRulesRepo }),
 );
 
+const mockFetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>();
+const testConfig: {
+  appBaseUrl: string;
+  cloudflare?: { apiToken: string; zoneId: string };
+} = { appBaseUrl: "https://openrift.example" };
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
+  c.set("config", testConfig as never);
+  c.set("io", { fetch: mockFetch } as never);
   c.set("repos", { rules: mockRulesRepo } as never);
   c.set("transact", mockTransact as never);
   c.set("user", { id: "a0000000-0001-4000-a000-000000000001" } as never);
@@ -148,6 +156,8 @@ describe("POST /api/admin/v1/rules/import", () => {
         kind: "core",
         version: "1.0",
         comments: "Initial import",
+        label: "Origins",
+        documentVersion: "1.1",
         content: ["001. # Title", "002. A rule."].join("\n"),
       }),
     });
@@ -167,6 +177,8 @@ describe("POST /api/admin/v1/rules/import", () => {
       kind: "core",
       version: "1.0",
       comments: "Initial import",
+      label: "Origins",
+      documentVersion: "1.1",
     });
     expect(mockRulesRepo.insertRules).toHaveBeenCalledOnce();
   });
@@ -269,52 +281,144 @@ describe("PATCH /api/admin/v1/rules/:kind/versions/:version", () => {
     vi.resetAllMocks();
   });
 
-  it("updates the version comments", async () => {
-    mockRulesRepo.updateComments.mockResolvedValue({
-      kind: "core",
-      version: "1.0",
-      comments: "Updated note",
-    });
+  it("updates the version comments, label and document version", async () => {
+    const details = { comments: "Updated note", label: "Vendetta", documentVersion: "1.4" };
+    mockRulesRepo.updateDetails.mockResolvedValue({ kind: "core", version: "1.0", ...details });
 
     const res = await app.request("/api/admin/v1/rules/core/versions/1.0", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comments: "Updated note" }),
+      body: JSON.stringify(details),
     });
 
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json).toEqual({ kind: "core", version: "1.0", comments: "Updated note" });
-    expect(mockRulesRepo.updateComments).toHaveBeenCalledWith("core", "1.0", "Updated note");
+    expect(json).toEqual({ kind: "core", version: "1.0", ...details });
+    expect(mockRulesRepo.updateDetails).toHaveBeenCalledWith("core", "1.0", details);
   });
 
-  it("clears the comments when null is passed", async () => {
-    mockRulesRepo.updateComments.mockResolvedValue({
+  it("clears the details when null is passed", async () => {
+    const details = { comments: null, label: null, documentVersion: null };
+    mockRulesRepo.updateDetails.mockResolvedValue({
       kind: "tournament",
       version: "1.0",
-      comments: null,
+      ...details,
     });
 
     const res = await app.request("/api/admin/v1/rules/tournament/versions/1.0", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comments: null }),
+      body: JSON.stringify(details),
     });
 
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    expect(json).toEqual({ kind: "tournament", version: "1.0", comments: null });
+    expect(json).toEqual({ kind: "tournament", version: "1.0", ...details });
+  });
+
+  it("rejects an empty label", async () => {
+    const res = await app.request("/api/admin/v1/rules/core/versions/1.0", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comments: null, label: "", documentVersion: null }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockRulesRepo.updateDetails).not.toHaveBeenCalled();
   });
 
   it("404s when the version does not exist", async () => {
-    mockRulesRepo.updateComments.mockResolvedValue(null);
+    mockRulesRepo.updateDetails.mockResolvedValue(null);
 
     const res = await app.request("/api/admin/v1/rules/core/versions/9.9", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comments: "x" }),
+      body: JSON.stringify({ comments: "x", label: null, documentVersion: null }),
     });
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe("rules page purge", () => {
+  const purgedFiles = () =>
+    mockFetch.mock.calls.flatMap(([, init]) => JSON.parse(init?.body as string).files as string[]);
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb({ rules: mockRulesRepo }));
+    testConfig.cloudflare = { apiToken: "token", zoneId: "zone" };
+    mockFetch.mockResolvedValue(new Response("{}", { status: 200 }));
+  });
+
+  afterEach(() => {
+    delete testConfig.cloudflare;
+  });
+
+  it("purges the rules index, the kind redirect and every version page after an import", async () => {
+    mockRulesRepo.getVersion.mockResolvedValue(null);
+    mockRulesRepo.listVersions
+      .mockResolvedValueOnce([{ version: "2026-03-30" }])
+      .mockResolvedValue([{ version: "2026-03-30" }, { version: "2026-07-16" }]);
+    mockRulesRepo.listLatest.mockResolvedValue([]);
+
+    const res = await app.request("/api/admin/v1/rules/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "core", version: "2026-07-16", content: "001. A rule." }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://api.cloudflare.com/client/v4/zones/zone/purge_cache",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(purgedFiles()).toEqual([
+      "https://openrift.example/rules",
+      "https://openrift.example/rules/core",
+      "https://openrift.example/rules/core/2026-03-30",
+      "https://openrift.example/rules/core/2026-07-16",
+    ]);
+  });
+
+  it("also purges the page of a deleted version", async () => {
+    mockRulesRepo.getVersion.mockResolvedValue({ kind: "tournament", version: "2026-04-29" });
+    mockRulesRepo.listVersions.mockResolvedValue([{ version: "2026-03-30" }]);
+
+    const res = await app.request("/api/admin/v1/rules/tournament/versions/2026-04-29", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+    expect(purgedFiles()).toContain("https://openrift.example/rules/tournament/2026-04-29");
+  });
+
+  it("still succeeds when the purge fails", async () => {
+    mockFetch.mockResolvedValue(new Response("nope", { status: 500 }));
+    const details = { comments: null, label: "Vendetta", documentVersion: "1.4" };
+    mockRulesRepo.updateDetails.mockResolvedValue({
+      kind: "core",
+      version: "2026-07-16",
+      ...details,
+    });
+    mockRulesRepo.listVersions.mockResolvedValue([{ version: "2026-07-16" }]);
+
+    const res = await app.request("/api/admin/v1/rules/core/versions/2026-07-16", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(details),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("skips the purge without Cloudflare credentials", async () => {
+    delete testConfig.cloudflare;
+    mockRulesRepo.getVersion.mockResolvedValue({ kind: "core", version: "2026-07-16" });
+
+    await app.request("/api/admin/v1/rules/core/versions/2026-07-16", { method: "DELETE" });
+
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

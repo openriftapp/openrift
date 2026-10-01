@@ -26,6 +26,12 @@ export const ruleResponseSchema = z.object({
   changeType: ruleChangeTypeSchema,
 });
 
+export const rulePageEntrySchema = ruleResponseSchema.omit({ content: true }).extend({
+  contentHtml: z.string().meta({
+    examples: ['A player loses the game. See <a href="#rule-540">rule 540</a>.'],
+  }),
+});
+
 export const ruleVersionResponseSchema = z.object({
   kind: ruleKindSchema,
   version: z.string().meta({ examples: ["1.2.0"] }),
@@ -33,6 +39,18 @@ export const ruleVersionResponseSchema = z.object({
     .string()
     .nullable()
     .meta({ examples: ["First public release."] }),
+  commentsHtml: z
+    .string()
+    .nullable()
+    .meta({ examples: ["<p>First public release.</p>"] }),
+  label: z
+    .string()
+    .nullable()
+    .meta({ examples: ["Vendetta"] }),
+  documentVersion: z
+    .string()
+    .nullable()
+    .meta({ examples: ["1.4"] }),
   importedAt: z.string().meta({ examples: ["2026-02-16T08:30:00Z"] }),
 });
 
@@ -49,6 +67,19 @@ export const rulesListResponseSchema = z.object({
   changes: ruleChangesResponseSchema.optional(),
 });
 
+export const rulesPageResponseSchema = z.object({
+  kind: ruleKindSchema,
+  version: z.string(),
+  rules: z.array(rulePageEntrySchema),
+});
+
+export const ruleSourceResponseSchema = z.object({
+  added: z.array(z.string()),
+  current: z.record(z.string(), z.string()),
+  modifiedPrev: z.record(z.string(), z.string()),
+  removed: z.array(rulePageEntrySchema.extend({ content: z.string() })),
+});
+
 export const ruleVersionsListResponseSchema = z.object({
   versions: z.array(ruleVersionResponseSchema),
 });
@@ -59,6 +90,16 @@ export const rulesContract = {
     .meta({ auth: "public", cache: "long", etag: true })
     .input(z.object({ kind: ruleKindSchema, version: z.string().optional() }))
     .output(rulesListResponseSchema),
+  page: oc
+    .route({ method: "GET", path: "/api/v1/rules/page", tags: ["Rules"] })
+    .meta({ auth: "public", cache: "long", etag: true })
+    .input(z.object({ kind: ruleKindSchema, version: z.string() }))
+    .output(rulesPageResponseSchema),
+  source: oc
+    .route({ method: "GET", path: "/api/v1/rules/source", tags: ["Rules"] })
+    .meta({ auth: "public", cache: "long", etag: true })
+    .input(z.object({ kind: ruleKindSchema, version: z.string() }))
+    .output(ruleSourceResponseSchema),
   versions: oc
     .route({ method: "GET", path: "/api/v1/rules/versions", tags: ["Rules"] })
     .meta({ auth: "public", cache: "long", etag: true })

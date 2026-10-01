@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Y9if7zJDr90zaQ4feyP7u2fzKOloo73Zm0pNgVuAZCnehNZX46CDPpUUqN19u65
+\restrict AxDNZTq6ZdglQ4y83sWVlB3aLgpk8iBb1eIH0Vjt2586ySj1rpv376jx67WJXPV
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3495,6 +3495,10 @@ CREATE TABLE public.rule_versions (
     imported_at timestamp with time zone DEFAULT now() NOT NULL,
     kind text NOT NULL,
     comments text,
+    label text,
+    document_version text,
+    CONSTRAINT chk_rule_versions_document_version_not_empty CHECK ((document_version <> ''::text)),
+    CONSTRAINT chk_rule_versions_label_not_empty CHECK ((label <> ''::text)),
     CONSTRAINT rule_versions_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text])))
 );
 
@@ -10223,5 +10227,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Y9if7zJDr90zaQ4feyP7u2fzKOloo73Zm0pNgVuAZCnehNZX46CDPpUUqN19u65
+\unrestrict AxDNZTq6ZdglQ4y83sWVlB3aLgpk8iBb1eIH0Vjt2586ySj1rpv376jx67WJXPV
 

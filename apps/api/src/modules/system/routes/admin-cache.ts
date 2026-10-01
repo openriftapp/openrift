@@ -6,6 +6,7 @@ import { implement } from "@orpc/server";
 import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { requestCloudflarePurge } from "../services/cloudflare-purge.js";
 
 const log = createLogger("admin-cache");
 
@@ -30,18 +31,7 @@ export const adminCacheRouter = {
       );
     }
 
-    const { apiToken, zoneId } = config.cloudflare;
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zoneId)}/purge_cache`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ purge_everything: true }),
-      },
-    );
+    const res = await requestCloudflarePurge(config.cloudflare, fetch, { purge_everything: true });
 
     if (!res.ok) {
       // Log the upstream body server-side for diagnostics; don't splice it into

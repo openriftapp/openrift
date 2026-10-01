@@ -1,7 +1,8 @@
+import type { HastNode } from "@openrift/shared/rules-markdown";
+import { preprocessRuleMarkdown } from "@openrift/shared/rules-markdown";
 import { describe, expect, it } from "vitest";
 
-import type { HastNode } from "./rules-markdown";
-import { diffRuleMarkdown, hasVisibleRuleChanges, preprocessRuleMarkdown } from "./rules-markdown";
+import { diffRuleMarkdown, hasVisibleRuleChanges } from "./rules-markdown";
 
 function collectText(nodes: HastNode[]): string {
   let out = "";

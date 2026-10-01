@@ -37,6 +37,17 @@ describe("PageTocMobileTrigger", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("is icon-only without a label class", () => {
+    render(<PageTocMobileTrigger items={ITEMS} />);
+    expect(screen.queryByText("Contents")).not.toBeInTheDocument();
+  });
+
+  it("renders a visible label with the given classes", () => {
+    render(<PageTocMobileTrigger items={ITEMS} labelClassName="hidden @2xl:inline" />);
+    expect(screen.getByText("Contents")).toHaveClass("hidden", "@2xl:inline");
+    expect(screen.getByRole("button", { name: "Open contents" })).toBeInTheDocument();
+  });
+
   it("opens the drawer and shows all items", async () => {
     const user = userEvent.setup();
     render(<PageTocMobileTrigger items={ITEMS} />);

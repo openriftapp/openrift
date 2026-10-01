@@ -1,4 +1,4 @@
-import type { RuleKind, RuleResponse } from "@openrift/shared/types/api/rules";
+import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import {
-  PAGE_TOP_BAR_STICKY_BASE,
+  PAGE_TOP_BAR_GEOMETRY,
   PageTopBar,
   PageTopBarActions,
   PageTopBarSticky,
@@ -26,6 +26,8 @@ import {
 import { useRuleVersions, useRulesAtVersion } from "@/features/rules/hooks/use-rules";
 import { featuredBoardStatesQueryOptions } from "@/features/rules/lib/board-states-queries";
 import { buildRuleExamplesMap } from "@/features/rules/lib/rule-examples";
+import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
+import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
 import {
   buildChangeKindMap,
   computeAncestorsByRule,
@@ -38,8 +40,11 @@ import {
   EMPTY_STRING_SET,
   mergeTombstones,
   parseSearchTerms,
+  withSourceContent,
 } from "@/features/rules/lib/rules-changes";
+import type { RuleEntry } from "@/features/rules/lib/rules-changes";
 import { ruleKindTitle } from "@/features/rules/lib/rules-kinds";
+import { rulesSourceQueryOptions } from "@/features/rules/lib/rules-queries";
 import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
 import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
@@ -47,16 +52,13 @@ import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store"
 import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useIsStuck } from "@/hooks/use-is-stuck";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import {
-  buildTermAnchors,
-  EMPTY_TERM_ANCHORS,
-  formatRuleNumber,
-  VersionComments,
-} from "./rule-content";
+import { formatRuleNumber, handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
 import {
@@ -66,12 +68,12 @@ import {
   ShowChangesToggle,
 } from "./rules-toolbar";
 
-function buildRulesTocItems(rules: RuleResponse[]): PageTocItem[] {
+function buildRulesTocItems(rules: RuleEntry[]): PageTocItem[] {
   return rules
     .filter((rule) => rule.ruleType === "title" || rule.ruleType === "subtitle")
     .map((rule) => ({
       id: `rule-${rule.ruleNumber}`,
-      label: `${formatRuleNumber(rule.ruleNumber)} ${rule.content}`,
+      label: `${formatRuleNumber(rule.ruleNumber)} ${ruleHtmlToText(rule.contentHtml)}`,
       level: rule.ruleType === "subtitle" ? 1 : 0,
     }));
 }
@@ -132,6 +134,8 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   // the bar's measured height on top of the global header height.
   const [topBarEl, setTopBarEl] = useState<HTMLDivElement | null>(null);
   const topBarHeight = useMeasuredHeight(topBarEl);
+  const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
+  const isToolbarStuck = useIsStuck(toolbarEl);
   const { data: rulesData } = useRulesAtVersion(kind, version);
   const { data: versionsData } = useRuleVersions(kind);
   const debouncedSearchQuery = useRulesSearchStore((state) => state.query);
@@ -159,18 +163,26 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   }, [featuredBoardStates, kind, version, setExamplesByRule]);
 
   const versions = versionsData.versions;
-  const comments = versions.find((v) => v.version === version)?.comments ?? null;
+  const commentsHtml = versions.find((v) => v.version === version)?.commentsHtml ?? null;
   const previousVersion = getPreviousVersion(versions, version);
+  const versionLabels = ruleVersionLabels(versions);
+  const versionItems = versions
+    .toReversed()
+    .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
 
-  const baseRules = rulesData.rules;
-  const changes = rulesData.changes;
   const searchTerms = parseSearchTerms(debouncedSearchQuery);
   const isSearching = searchTerms.length > 0 && debouncedSearchQuery.trim().length >= 2;
-  const isEmpty = baseRules.length === 0;
+  const isEmpty = rulesData.rules.length === 0;
 
   const showChangesPref = useRulesShowChangesStore((state) => state.byKind[kind]);
-  const showChanges =
-    showChangesPref && previousVersion !== null && changes !== undefined && !isSearching;
+  const wantsChanges = showChangesPref && previousVersion !== null && !isSearching;
+  const { data: changes } = useQuery({
+    ...rulesSourceQueryOptions(kind, version),
+    enabled: isHydrated && wantsChanges,
+  });
+  const showChanges = wantsChanges && changes !== undefined;
+  const baseRules: RuleEntry[] =
+    showChanges && changes ? withSourceContent(rulesData.rules, changes.current) : rulesData.rules;
 
   const moves = showChanges && changes ? detectMoves(baseRules, changes, version) : null;
   const movedTombstones = moves?.fromRemovedSet ?? EMPTY_STRING_SET;
@@ -204,7 +216,6 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   const foldGroups = computeFoldGroups(rules);
   const ancestorsByRule = computeAncestorsByRule(rules, foldGroups);
   const foldGroupKeys = [...foldGroups.keys()];
-  const termAnchors = rules.length > 0 ? buildTermAnchors(rules) : EMPTY_TERM_ANCHORS;
   const searchResult = isSearching ? computeSearchResult(rules, searchTerms) : null;
   const noSearchResults =
     isSearching && searchResult !== null && searchResult.visibleIndices.length === 0;
@@ -222,6 +233,7 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
           <PageTopBarActions>
             {versions.length > 1 ? (
               <Select
+                items={versionItems}
                 value={version}
                 onValueChange={(nextVersion) => {
                   if (typeof nextVersion !== "string" || nextVersion === version) {
@@ -233,19 +245,19 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                   });
                 }}
               >
-                <SelectTrigger className="text-muted-foreground font-mono">
-                  v<SelectValue />
+                <SelectTrigger className="text-muted-foreground">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {versions.toReversed().map((entry) => (
-                    <SelectItem key={entry.version} value={entry.version}>
-                      v{entry.version}
+                  {versionItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
-              <span className="text-muted-foreground font-mono text-sm">v{version}</span>
+              <span className="text-muted-foreground text-sm">{versionLabels.get(version)}</span>
             )}
           </PageTopBarActions>
         </PageTopBar>
@@ -260,20 +272,26 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
         ) : (
           <div className="flex gap-6">
             <PageToc items={tocItems} />
-            <div className="min-w-0 flex-1">
+            {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
+            <div
+              className="min-w-0 flex-1"
+              onClick={(event) => handleRuleHtmlClick(event, (href) => void navigate({ href }))}
+            >
               <div
+                ref={setToolbarEl}
                 className={cn(
-                  // Base, not PAGE_TOP_BAR_STICKY: this tier lives in the ToC's
-                  // content column, so its surface must not bleed 100vw.
-                  PAGE_TOP_BAR_STICKY_BASE,
-                  // mx-safe-neg cancels the container gutter so the blur band
-                  // reaches the physical edge; the bar's own px-safe re-insets controls.
-                  "px-safe mx-safe-neg z-20 mb-4 flex flex-wrap items-center gap-3",
+                  PAGE_TOP_BAR_GEOMETRY,
+                  isToolbarStuck && STICKY_SURFACE,
+                  "pr-safe mr-safe-neg max-lg:px-safe max-lg:mx-safe-neg @container z-20 mb-4 flex flex-wrap items-center gap-3",
                 )}
-                // -1px matches PAGE_TOP_BAR_STICKY_BASE's own offset, keeping this tier flush.
+                // -1px matches PAGE_TOP_BAR_GEOMETRY's own offset, keeping this tier flush.
                 style={{ top: `calc(var(--header-height) + ${topBarHeight - 1}px)` }}
               >
-                <PageTocMobileTrigger items={tocItems} />
+                <PageTocMobileTrigger
+                  items={tocItems}
+                  className="@2xl:w-auto @2xl:gap-1.5 @2xl:px-2.5"
+                  labelClassName="hidden @2xl:inline"
+                />
                 <RulesSearchBar trailing={ruleCountLabel} />
                 {foldGroupKeys.length > 0 && !isSearching && (
                   <ExpandCollapseAllButton foldGroupKeys={foldGroupKeys} />
@@ -282,10 +300,10 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                   <ShowChangesToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
                 )}
               </div>
-              {comments && !isSearching && <VersionComments markdown={comments} />}
+              {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
               {showChanges && previousVersion && changes && moves && (
                 <ChangesSummary
-                  previousVersion={previousVersion}
+                  previousVersionLabel={versionLabels.get(previousVersion) ?? previousVersion}
                   changes={changes}
                   moves={moves}
                   silentChanges={silentChanges}
@@ -305,7 +323,6 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                     rule={rule}
                     ancestors={ancestorsByRule.get(rule.ruleNumber) ?? EMPTY_ANCESTORS}
                     hasChildren={foldGroups.has(rule.ruleNumber)}
-                    termAnchors={termAnchors}
                     changeKind={changeKindByRule?.get(rule.ruleNumber)}
                     previousContent={
                       showChanges && changes && !moves?.displacedSet.has(rule.ruleNumber)
@@ -332,7 +349,6 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                       ancestors={EMPTY_ANCESTORS}
                       hasChildren={false}
                       isContext={isContext}
-                      termAnchors={termAnchors}
                     />
                   );
                 })

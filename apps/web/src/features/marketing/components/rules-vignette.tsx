@@ -10,8 +10,8 @@ const QUERY = "deck";
 
 const INDENT = {
   0: "",
-  1: "pl-3 sm:pl-6",
-  2: "pl-6 sm:pl-12",
+  1: "pl-2 sm:pl-3",
+  2: "pl-4 sm:pl-6",
 } as const;
 
 function Term({ children }: { children: ReactNode }) {

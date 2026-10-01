@@ -1,11 +1,15 @@
 import { adminRulesContract } from "@openrift/shared/contracts/admin/rules";
 import { ERROR_CODES } from "@openrift/shared/error-codes";
+import { createLogger } from "@openrift/shared/logger";
 import type { RuleChangeType, RuleKind, RuleType } from "@openrift/shared/types/api/rules";
 import { implement } from "@orpc/server";
 
 import { AppError } from "../../../errors.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
+import { purgeCloudflarePaths } from "../../system/services/cloudflare-purge.js";
+
+const log = createLogger("admin-rules");
 
 const os = implement(adminRulesContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -81,6 +85,36 @@ export function parseRulesText(text: string): ParsedRule[] {
   }
 
   return rules;
+}
+
+/**
+ * Every version page lists all versions, so any change purges them all from the
+ * edge, which keeps them for a day. Best effort: a failure is only logged.
+ */
+async function purgeRulesPages(
+  context: ApiContext,
+  kind: RuleKind,
+  extraVersion?: string,
+): Promise<void> {
+  const { cloudflare, appBaseUrl } = context.config;
+  if (!cloudflare || !appBaseUrl) {
+    return;
+  }
+  try {
+    const versions = await context.repos.rules.listVersions(kind);
+    const paths = [
+      "/rules",
+      `/rules/${kind}`,
+      ...versions.map((entry) => `/rules/${kind}/${entry.version}`),
+      ...(extraVersion === undefined ? [] : [`/rules/${kind}/${extraVersion}`]),
+    ];
+    const failures = await purgeCloudflarePaths(cloudflare, context.io.fetch, appBaseUrl, paths);
+    if (failures.length > 0) {
+      log.warn({ kind, failures }, "Cloudflare purge of rules pages failed");
+    }
+  } catch (error) {
+    log.warn({ kind, err: error }, "Cloudflare purge of rules pages failed");
+  }
 }
 
 /**
@@ -202,12 +236,16 @@ export const adminRulesRouter = {
         kind: body.kind,
         version: body.version,
         comments: body.comments ?? null,
+        label: body.label ?? null,
+        documentVersion: body.documentVersion ?? null,
       });
 
       if (rulesWithChanges.length > 0) {
         await txRepos.rules.insertRules(rulesWithChanges);
       }
     });
+
+    await purgeRulesPages(context, body.kind);
 
     return {
       kind: body.kind,
@@ -233,13 +271,14 @@ export const adminRulesRouter = {
     }
 
     await repo.deleteVersion(kind, version);
+    await purgeRulesPages(context, kind, version);
   }),
 
   updateVersion: os.updateVersion.handler(async ({ input, context }) => {
     const { rules: repo } = context.repos;
-    const { kind, version, comments } = input;
+    const { kind, version, comments, label, documentVersion } = input;
 
-    const updated = await repo.updateComments(kind, version, comments);
+    const updated = await repo.updateDetails(kind, version, { comments, label, documentVersion });
     if (!updated) {
       throw new AppError(
         404,
@@ -248,10 +287,14 @@ export const adminRulesRouter = {
       );
     }
 
+    await purgeRulesPages(context, kind);
+
     return {
       kind: updated.kind as RuleKind,
       version: updated.version,
       comments: updated.comments,
+      label: updated.label,
+      documentVersion: updated.documentVersion,
     };
   }),
 };

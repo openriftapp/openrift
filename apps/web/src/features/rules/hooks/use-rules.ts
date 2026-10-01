@@ -13,6 +13,20 @@ import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { useMutationWithInvalidation } from "@/lib/use-mutation-with-invalidation";
 
+interface RuleVersionDetails {
+  comments: string | null;
+  label: string | null;
+  documentVersion: string | null;
+}
+
+type ImportRulesInput = {
+  kind: RuleKind;
+  version: string;
+  content: string;
+} & Partial<RuleVersionDetails>;
+
+type UpdateRuleVersionInput = { kind: RuleKind; version: string } & RuleVersionDetails;
+
 export function useRulesAtVersion(kind: RuleKind, version: string) {
   return useSuspenseQuery(rulesAtVersionQueryOptions(kind, version));
 }
@@ -22,16 +36,15 @@ export function useRuleVersions(kind?: RuleKind) {
 }
 
 const importRulesFn = createServerFn({ method: "POST" })
-  .validator(
-    (input: { kind: RuleKind; version: string; comments?: string | null; content: string }) =>
-      input,
-  )
+  .validator((input: ImportRulesInput) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     const result = await apiOrpcClient(adminRulesContract, context.cookie).import({
       kind: data.kind,
       version: data.version,
       comments: data.comments,
+      label: data.label,
+      documentVersion: data.documentVersion,
       content: data.content,
     });
     await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules"] });
@@ -41,12 +54,7 @@ const importRulesFn = createServerFn({ method: "POST" })
 
 export function useImportRules() {
   return useMutationWithInvalidation({
-    mutationFn: (vars: {
-      kind: RuleKind;
-      version: string;
-      comments?: string | null;
-      content: string;
-    }) => importRulesFn({ data: vars }),
+    mutationFn: (vars: ImportRulesInput) => importRulesFn({ data: vars }),
     invalidates: [["rules"], adminKeys.rules.versions],
   });
 }
@@ -70,23 +78,24 @@ export function useDeleteRuleVersion() {
   });
 }
 
-const updateRuleVersionCommentsFn = createServerFn({ method: "POST" })
-  .validator((input: { kind: RuleKind; version: string; comments: string | null }) => input)
+const updateRuleVersionFn = createServerFn({ method: "POST" })
+  .validator((input: UpdateRuleVersionInput) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     const result = await apiOrpcClient(adminRulesContract, context.cookie).updateVersion({
       kind: data.kind,
       version: data.version,
       comments: data.comments,
+      label: data.label,
+      documentVersion: data.documentVersion,
     });
     await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules-versions"] });
     return result;
   });
 
-export function useUpdateRuleVersionComments() {
+export function useUpdateRuleVersion() {
   return useMutationWithInvalidation({
-    mutationFn: (vars: { kind: RuleKind; version: string; comments: string | null }) =>
-      updateRuleVersionCommentsFn({ data: vars }),
+    mutationFn: (vars: UpdateRuleVersionInput) => updateRuleVersionFn({ data: vars }),
     invalidates: [["rules"], adminKeys.rules.versions],
   });
 }

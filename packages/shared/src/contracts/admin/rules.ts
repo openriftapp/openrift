@@ -10,6 +10,12 @@ const RULES = "/api/admin/v1/rules";
 
 const versionParamSchema = z.object({ kind: ruleKindSchema, version: z.string() });
 
+const versionDetailsSchema = z.object({
+  comments: z.string().nullable(),
+  label: z.string().min(1).nullable(),
+  documentVersion: z.string().min(1).nullable(),
+});
+
 export const adminRulesContract = {
   import: authedRoute
     .route({ method: "POST", path: `${RULES}/import`, tags: [TAG], successStatus: 201 })
@@ -22,6 +28,8 @@ export const adminRulesContract = {
         kind: ruleKindSchema,
         version: z.string().min(1),
         comments: z.string().nullable().optional(),
+        label: z.string().min(1).nullable().optional(),
+        documentVersion: z.string().min(1).nullable().optional(),
         content: z.string().min(1),
       }),
     )
@@ -47,10 +55,8 @@ export const adminRulesContract = {
   updateVersion: authedRoute
     .route({ method: "PATCH", path: `${RULES}/{kind}/versions/{version}`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Rules version not found" } })
-    .input(withParams(versionParamSchema, { comments: z.string().nullable() }))
-    .output(
-      z.object({ kind: ruleKindSchema, version: z.string(), comments: z.string().nullable() }),
-    ),
+    .input(withParams(versionParamSchema, versionDetailsSchema.shape))
+    .output(versionParamSchema.extend(versionDetailsSchema.shape)),
 };
 
 export type AdminRulesContract = typeof adminRulesContract;

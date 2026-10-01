@@ -55,7 +55,7 @@ export function useMeasuredHeight(el: HTMLElement | null) {
 
 // -1px + -mt-px: at fractional browser zoom the header and bar blur layers
 // snap to the device-pixel grid independently, rounding a flush edge into a visible seam.
-const PAGE_TOP_BAR_GEOMETRY =
+export const PAGE_TOP_BAR_GEOMETRY =
   "sticky top-[calc(var(--header-height)_-_1px)] z-30 -mt-px pt-3 pb-2 sm:pb-3";
 
 // No gutter here: tailwind-merge can't cancel px-safe (cn("px-safe", "px-0")

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ruleVersionLabels } from "@/features/rules/lib/rule-version-label";
 import { ruleVersionsQueryOptions } from "@/features/rules/lib/rules-queries";
 import { m } from "@/paraglide/messages.js";
 
@@ -30,6 +31,10 @@ function RulesPinField({
 }) {
   const versions = useQuery(ruleVersionsQueryOptions(kind)).data?.versions ?? [];
   const latest = versions.at(-1)?.version ?? null;
+  const versionLabels = ruleVersionLabels(versions);
+  const versionItems = versions
+    .toReversed()
+    .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="flex items-center justify-between gap-2">
@@ -42,6 +47,7 @@ function RulesPinField({
       </Label>
       {value === null ? null : (
         <Select
+          items={versionItems}
           value={value}
           onValueChange={(next) => {
             if (typeof next === "string") {
@@ -49,13 +55,13 @@ function RulesPinField({
             }
           }}
         >
-          <SelectTrigger className="font-mono">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {versions.toReversed().map((entry) => (
-              <SelectItem key={entry.version} value={entry.version}>
-                {entry.version}
+            {versionItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
               </SelectItem>
             ))}
           </SelectContent>

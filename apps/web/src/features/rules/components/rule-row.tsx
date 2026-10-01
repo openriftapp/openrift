@@ -1,34 +1,39 @@
-import type { RuleResponse } from "@openrift/shared/types/api/rules";
+import { ruleNumberDepth } from "@openrift/shared/rules";
 
 import { Badge } from "@/components/ui/badge";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import { Pressable } from "@/components/ui/pressable";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RuleExamplesList, RuleExamplesMarker } from "@/features/rules/components/rule-examples";
-import type { ChangeKind } from "@/features/rules/lib/rules-changes";
+import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
+import type { ChangeKind, RuleEntry } from "@/features/rules/lib/rules-changes";
 import { changeKindBadge } from "@/features/rules/lib/rules-changes";
 import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-import { copyRuleLink, formatRuleNumber, InlineDiff, RuleContent } from "./rule-content";
+import { copyRuleLink, formatRuleNumber, InlineDiff } from "./rule-content";
+
+const GUIDE_DEPTH_CLASS: Record<number, string> = {
+  1: "rule-guides [--rule-depth:1]",
+  2: "rule-guides [--rule-depth:2]",
+  3: "rule-guides [--rule-depth:3]",
+};
 
 export function RuleRow({
   rule,
   ancestors,
   hasChildren,
   isContext,
-  termAnchors,
   changeKind,
   previousContent,
   relatedRuleNumber,
 }: {
-  rule: RuleResponse;
+  rule: RuleEntry;
   ancestors: readonly string[];
   hasChildren: boolean;
   isContext?: boolean;
-  termAnchors: ReadonlyMap<string, string>;
   changeKind?: ChangeKind;
   previousContent?: string;
   relatedRuleNumber?: string;
@@ -47,15 +52,6 @@ export function RuleRow({
 
   const isTitle = rule.ruleType === "title";
   const isSubtitle = rule.ruleType === "subtitle";
-  const contentIndentClass =
-    rule.depth === 0
-      ? ""
-      : rule.depth === 1
-        ? "pl-3 sm:pl-6"
-        : rule.depth === 2
-          ? "pl-6 sm:pl-12"
-          : "pl-9 sm:pl-18";
-
   const isRemoved = changeKind === "removed";
   const isChanged = changeKind === "changed";
   const badge = changeKind ? changeKindBadge(changeKind) : null;
@@ -66,12 +62,12 @@ export function RuleRow({
       <div
         id={`rule-${rule.ruleNumber}`}
         className={cn(
-          "flex scroll-mt-14 items-baseline py-2 text-sm",
+          "group/rule relative flex scroll-mt-14 items-baseline py-2 text-sm",
+          GUIDE_DEPTH_CLASS[ruleNumberDepth(rule.ruleNumber)],
           isTitle && "border-border mt-6 border-b first:mt-0",
           isSubtitle && "mt-4",
           isContext && "opacity-60",
           isRemoved && "line-through decoration-from-font opacity-60",
-          isFolded && hasChildren && "bg-muted/50",
         )}
       >
         <Pressable
@@ -88,90 +84,93 @@ export function RuleRow({
         >
           <span>{formatRuleNumber(rule.ruleNumber)}</span>
         </Pressable>
-        <span
+        <div
           className={cn(
             "min-w-0 flex-1",
-            contentIndentClass,
             isTitle && "text-base font-bold",
             isSubtitle && "font-semibold",
           )}
         >
-          {badge ? (
-            isChanged && previousContent !== undefined ? (
-              <Badge
-                render={
-                  // oxlint-disable-next-line react/forbid-elements -- bare render slot; Badge owns all styling
-                  <button
-                    type="button"
-                    onClick={() => toggleDiff(rule.ruleNumber)}
-                    aria-expanded={isDiffExpanded}
-                    aria-label={
-                      isDiffExpanded
-                        ? m.rules_diff_hide_aria({ rule: formatRuleNumber(rule.ruleNumber) })
-                        : m.rules_diff_show_aria({ rule: formatRuleNumber(rule.ruleNumber) })
-                    }
-                  />
-                }
-                className={cn(
-                  "mr-2 cursor-pointer align-baseline no-underline hover:opacity-80",
-                  badge.className,
-                )}
-              >
-                {badge.label}
-              </Badge>
-            ) : (changeKind === "moved" || changeKind === "replaced") &&
-              relatedRuleNumber !== undefined ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Badge
-                        className={cn(
-                          "mr-2 cursor-help align-baseline no-underline",
-                          badge.className,
-                        )}
-                      >
-                        {badge.label}
-                      </Badge>
-                    }
-                  />
-                  <TooltipContent>
-                    {changeKind === "moved"
-                      ? m.rules_moved_from({ rule: formatRuleNumber(relatedRuleNumber) })
-                      : m.rules_moved_to({ rule: formatRuleNumber(relatedRuleNumber) })}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <Badge className={cn("mr-2 align-baseline no-underline", badge.className)}>
-                {badge.label}
-              </Badge>
-            )
-          ) : null}
-          {hasChildren ? (
-            <span className="float-right ml-3 flex size-4 shrink-0 items-start">
-              <ExpandToggle
-                expanded={!isFolded}
-                onClick={() => toggle(rule.ruleNumber)}
-                aria-label={isFolded ? m.rules_expand_group() : m.rules_collapse_group()}
-                className="text-muted-foreground hover:text-foreground size-4 justify-center gap-0 rounded-md no-underline"
-                chevronClassName="size-3 text-inherit"
-              />
-            </span>
-          ) : null}
-          {showInlineDiff ? (
+          {showInlineDiff && rule.content !== undefined ? (
             <InlineDiff oldText={previousContent} newText={rule.content} />
           ) : isTitle || isSubtitle ? (
-            rule.content
+            ruleHtmlToText(rule.contentHtml)
           ) : (
-            <RuleContent
-              content={rule.content}
-              termAnchors={termAnchors}
-              ruleNumber={rule.ruleNumber}
+            <div
+              className="rule-html"
+              // oxlint-disable-next-line react/no-danger -- server-rendered through the allowlist serializer in @openrift/shared/rules-html
+              dangerouslySetInnerHTML={{ __html: rule.contentHtml }}
             />
           )}
           {!isTitle && !isSubtitle && <RuleExamplesMarker ruleNumber={rule.ruleNumber} />}
-        </span>
+        </div>
+        {badge ? (
+          isChanged && previousContent !== undefined ? (
+            <Badge
+              render={
+                // oxlint-disable-next-line react/forbid-elements -- bare render slot; Badge owns all styling
+                <button
+                  type="button"
+                  onClick={() => toggleDiff(rule.ruleNumber)}
+                  aria-expanded={isDiffExpanded}
+                  aria-label={
+                    isDiffExpanded
+                      ? m.rules_diff_hide_aria({ rule: formatRuleNumber(rule.ruleNumber) })
+                      : m.rules_diff_show_aria({ rule: formatRuleNumber(rule.ruleNumber) })
+                  }
+                />
+              }
+              className={cn(
+                "ml-3 shrink-0 cursor-pointer no-underline hover:opacity-80",
+                badge.className,
+              )}
+            >
+              {badge.label}
+            </Badge>
+          ) : (changeKind === "moved" || changeKind === "replaced") &&
+            relatedRuleNumber !== undefined ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge
+                      className={cn("ml-3 shrink-0 cursor-help no-underline", badge.className)}
+                    >
+                      {badge.label}
+                    </Badge>
+                  }
+                />
+                <TooltipContent>
+                  {changeKind === "moved"
+                    ? m.rules_moved_from({ rule: formatRuleNumber(relatedRuleNumber) })
+                    : m.rules_moved_to({ rule: formatRuleNumber(relatedRuleNumber) })}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Badge className={cn("ml-3 shrink-0 no-underline", badge.className)}>
+              {badge.label}
+            </Badge>
+          )
+        ) : null}
+        {hasChildren ? (
+          <span
+            className={cn(
+              "ml-3 flex size-4 shrink-0 self-start sm:absolute sm:-right-5 sm:mt-0 sm:ml-0",
+              isTitle ? "mt-1 sm:top-3" : "mt-0.5 sm:top-2.5",
+              !isFolded &&
+                "transition-opacity sm:pointer-fine:opacity-0 sm:pointer-fine:group-hover/rule:opacity-100 sm:pointer-fine:focus-within:opacity-100",
+            )}
+          >
+            <ExpandToggle
+              expanded={!isFolded}
+              onClick={() => toggle(rule.ruleNumber)}
+              aria-label={isFolded ? m.rules_expand_group() : m.rules_collapse_group()}
+              className="text-muted-foreground hover:text-foreground size-4 justify-center gap-0 rounded-md no-underline"
+              chevronClassName="size-3 text-inherit"
+            />
+          </span>
+        ) : null}
       </div>
       {!isTitle && !isSubtitle && <RuleExamplesList ruleNumber={rule.ruleNumber} />}
     </div>

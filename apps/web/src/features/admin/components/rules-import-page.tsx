@@ -11,6 +11,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,7 +26,7 @@ import {
   useDeleteRuleVersion,
   useImportRules,
   useRuleVersions,
-  useUpdateRuleVersionComments,
+  useUpdateRuleVersion,
 } from "@/features/rules/hooks/use-rules";
 
 const KIND_LABELS: Record<RuleKind, string> = {
@@ -46,6 +47,8 @@ export function RulesImportPage() {
   const [kind, setKind] = useState<RuleKind>("core");
   const [version, setVersion] = useState("");
   const [comments, setComments] = useState("");
+  const [label, setLabel] = useState("");
+  const [documentVersion, setDocumentVersion] = useState("");
   const [content, setContent] = useState("");
   const [result, setResult] = useState<{
     kind: RuleKind;
@@ -62,6 +65,8 @@ export function RulesImportPage() {
       kind,
       version: version.trim(),
       comments: comments.trim() || null,
+      label: label.trim() || null,
+      documentVersion: documentVersion.trim() || null,
       content,
     };
     try {
@@ -137,6 +142,27 @@ export function RulesImportPage() {
             onChange={setVersion}
             onClear={() => setVersion("")}
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="document-version">Number (optional)</Label>
+            <Input
+              id="document-version"
+              value={documentVersion}
+              onChange={(e) => setDocumentVersion(e.target.value)}
+              placeholder="1.4"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="label">Name (optional)</Label>
+            <Input
+              id="label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Vendetta"
+            />
+          </div>
         </div>
 
         <div className="grid gap-1.5">
@@ -216,6 +242,14 @@ export function RulesImportPage() {
   );
 }
 
+function draftFrom(entry: RuleVersionResponse) {
+  return {
+    comments: entry.comments ?? "",
+    label: entry.label ?? "",
+    documentVersion: entry.documentVersion ?? "",
+  };
+}
+
 function VersionRow({
   entry,
   onDelete,
@@ -225,21 +259,23 @@ function VersionRow({
   onDelete: (kind: RuleKind, version: string) => void;
   isDeleting: boolean;
 }) {
-  const updateMutation = useUpdateRuleVersionComments();
+  const updateMutation = useUpdateRuleVersion();
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(entry.comments ?? "");
+  const [draft, setDraft] = useState(() => draftFrom(entry));
+  const name = [entry.documentVersion, entry.label].filter(Boolean).join(" · ");
 
   function startEdit() {
-    setDraft(entry.comments ?? "");
+    setDraft(draftFrom(entry));
     setIsEditing(true);
   }
 
   async function save() {
-    const trimmed = draft.trim();
     const payload = {
       kind: entry.kind,
       version: entry.version,
-      comments: trimmed.length > 0 ? trimmed : null,
+      comments: draft.comments.trim() || null,
+      label: draft.label.trim() || null,
+      documentVersion: draft.documentVersion.trim() || null,
     };
     try {
       await updateMutation.mutateAsync(payload);
@@ -250,7 +286,7 @@ function VersionRow({
   }
 
   function cancel() {
-    setDraft(entry.comments ?? "");
+    setDraft(draftFrom(entry));
     setIsEditing(false);
   }
 
@@ -259,6 +295,7 @@ function VersionRow({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <span className="font-mono font-semibold">{entry.version}</span>
+          {name && <span className="ml-2 font-semibold">{name}</span>}
           {!isEditing && entry.comments && (
             <span className="text-muted-foreground ml-2 line-clamp-1">{entry.comments}</span>
           )}
@@ -276,7 +313,7 @@ function VersionRow({
           ) : (
             <>
               <Button variant="outline" onClick={startEdit}>
-                Edit comments
+                Edit
               </Button>
               <Button
                 variant="destructive"
@@ -290,13 +327,32 @@ function VersionRow({
         </div>
       </div>
       {isEditing && (
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Notes about this version, source links, change summary..."
-          rows={4}
-          disabled={updateMutation.isPending}
-        />
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              aria-label="Number"
+              value={draft.documentVersion}
+              onChange={(e) => setDraft({ ...draft, documentVersion: e.target.value })}
+              placeholder="Number, e.g. 1.4"
+              disabled={updateMutation.isPending}
+            />
+            <Input
+              aria-label="Name"
+              value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+              placeholder="Name, e.g. Vendetta"
+              disabled={updateMutation.isPending}
+            />
+          </div>
+          <Textarea
+            aria-label="Comments"
+            value={draft.comments}
+            onChange={(e) => setDraft({ ...draft, comments: e.target.value })}
+            placeholder="Notes about this version, source links, change summary..."
+            rows={4}
+            disabled={updateMutation.isPending}
+          />
+        </>
       )}
     </div>
   );

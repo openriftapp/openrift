@@ -34,125 +34,19 @@ vi.mock("@tanstack/react-router", () => ({
   createLink: (Component: unknown) => Component,
 }));
 
-const { RuleContent, InlineDiff, buildTermAnchors } = await import("./rule-content");
+const { InlineDiff, handleRuleHtmlClick } = await import("./rule-content");
 
-function makeRule(overrides: {
-  ruleNumber: string;
-  content: string;
-  ruleType: "title" | "subtitle" | "text";
-  depth?: number;
-}) {
-  return {
-    id: overrides.ruleNumber,
-    kind: "core" as const,
-    version: "test",
-    ruleNumber: overrides.ruleNumber,
-    content: overrides.content,
-    ruleType: overrides.ruleType,
-    depth: overrides.depth ?? 0,
-    sortOrder: 0,
-    changeType: "added" as const,
-  };
+function RuleHtml({ html, navigate }: { html: string; navigate?: (href: string) => void }) {
+  return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- mirrors the rules page delegation
+    <div onClick={(event) => handleRuleHtmlClick(event, navigate ?? vi.fn())}>
+      {/* oxlint-disable-next-line react/no-danger -- test fixture */}
+      <div className="rule-html" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
 }
 
-describe("RuleContent", () => {
-  it("renders italic markdown", () => {
-    const { container } = render(<RuleContent content="*Card* refers to a Main Deck card." />);
-    expect(container.querySelector("em")).toHaveTextContent("Card");
-  });
-
-  it("turns each newline in the source into a hard line break", () => {
-    const { container } = render(<RuleContent content={"first line\nsecond line"} />);
-    expect(container.querySelectorAll("br").length).toBeGreaterThanOrEqual(1);
-    expect(container.textContent).toContain("first line");
-    expect(container.textContent).toContain("second line");
-  });
-
-  it("links a `rule N` reference to the same-page anchor", () => {
-    render(<RuleContent content="See *rule 540* for more information." />);
-    const link = screen.getByRole("link", { name: "rule 540" });
-    expect(link).toHaveAttribute("href", "#rule-540");
-  });
-
-  it("links a multi-segment rule reference and stops before a sentence-ending dot", () => {
-    render(<RuleContent content="Continue until *rule 540.4.b.* is accomplished." />);
-    const link = screen.getByRole("link", { name: "rule 540.4.b" });
-    expect(link).toHaveAttribute("href", "#rule-540.4.b");
-  });
-
-  it("links a bare numeric tournament reference", () => {
-    render(<RuleContent content="See 603.7 for more information." />);
-    const link = screen.getByRole("link", { name: "603.7" });
-    expect(link).toHaveAttribute("href", "#rule-603.7");
-  });
-
-  it("links a `CR N` reference across to the core rules page via the router", () => {
-    render(<RuleContent content="Then proceed to *CR 116. Setup Process*." />);
-    const link = screen.getByRole("link", { name: "CR 116" });
-    expect(link).toHaveAttribute("href", "/rules/core#rule-116");
-    expect(link).toHaveAttribute("data-testid", "router-link");
-  });
-
-  it("does not link a low single-digit decimal that is not a rule number", () => {
-    render(<RuleContent content="The ratio is 1.5x." />);
-    expect(screen.queryByRole("link")).toBeNull();
-  });
-
-  it("links an italicized term to its subtitle anchor", () => {
-    const anchors = new Map([["combat", "454"]]);
-    render(
-      <RuleContent content="Resolve during *Combat* now." termAnchors={anchors} ruleNumber="500" />,
-    );
-    const link = screen.getByRole("link", { name: "Combat" });
-    expect(link).toHaveAttribute("href", "#rule-454");
-  });
-
-  it("strips a trailing dot from an italicized term when looking up its anchor", () => {
-    const anchors = new Map([["combat", "454"]]);
-    const { container } = render(
-      <RuleContent content="Resolve during *Combat.*" termAnchors={anchors} ruleNumber="500" />,
-    );
-    const link = container.querySelector("a");
-    expect(link).toHaveAttribute("href", "#rule-454");
-  });
-
-  it("matches a singular italic against a plural anchor", () => {
-    const anchors = buildTermAnchors([
-      makeRule({ ruleNumber: "168", ruleType: "subtitle", content: "Battlefields" }),
-    ]);
-    render(
-      <RuleContent
-        content="At the *Battlefield* you control."
-        termAnchors={anchors}
-        ruleNumber="500"
-      />,
-    );
-    const link = screen.getByRole("link", { name: "Battlefield" });
-    expect(link).toHaveAttribute("href", "#rule-168");
-  });
-
-  it("does not self-link the term to the rule that defines it", () => {
-    const anchors = new Map([["accelerate", "805"]]);
-    render(<RuleContent content="*Accelerate*" termAnchors={anchors} ruleNumber="805" />);
-    expect(screen.queryByRole("link")).toBeNull();
-  });
-
-  it("does not link an italic term that is not in the anchor map", () => {
-    const anchors = new Map([["combat", "454"]]);
-    render(<RuleContent content="*Hand-shaking* is friendly." termAnchors={anchors} />);
-    expect(screen.queryByRole("link")).toBeNull();
-  });
-
-  it("does not double-link an italicized rule reference", () => {
-    const anchors = new Map([["rule", "999"]]);
-    render(
-      <RuleContent content="See *rule 540* for more." termAnchors={anchors} ruleNumber="100" />,
-    );
-    const link = screen.getByRole("link", { name: "rule 540" });
-    expect(link).toHaveAttribute("href", "#rule-540");
-    expect(screen.queryAllByRole("link")).toHaveLength(1);
-  });
-});
+const RULE_540_LINK = 'See <a href="#rule-540">rule 540</a> for details.';
 
 describe("InlineDiff", () => {
   it("marks a replaced word and keeps the rest plain", () => {
@@ -208,7 +102,7 @@ describe("same-page anchor click handler", () => {
 
   it("clears the search when the target rule is not in the DOM", () => {
     useRulesSearchStore.getState().setQuery("trigger");
-    render(<RuleContent content="See *rule 540* for details." />);
+    render(<RuleHtml html={RULE_540_LINK} />);
 
     const link = screen.getByRole("link", { name: "rule 540" });
     fireEvent.click(link);
@@ -223,7 +117,7 @@ describe("same-page anchor click handler", () => {
     target.id = "rule-540";
     document.body.append(target);
 
-    render(<RuleContent content="See *rule 540* for details." />);
+    render(<RuleHtml html={RULE_540_LINK} />);
     const link = screen.getByRole("link", { name: "rule 540" });
     fireEvent.click(link);
 
@@ -245,7 +139,7 @@ describe("same-page anchor click handler", () => {
     const replaceSpy = vi.spyOn(globalThis.history, "replaceState");
     useRulesSearchStore.getState().setQuery("trigger");
 
-    render(<RuleContent content="See *rule 540* for details." />);
+    render(<RuleHtml html={RULE_540_LINK} />);
     fireEvent.click(screen.getByRole("link", { name: "rule 540" }));
 
     expect(pushSpy).toHaveBeenCalledWith(null, "", "#rule-540");
@@ -255,5 +149,55 @@ describe("same-page anchor click handler", () => {
     pushSpy.mockRestore();
     replaceSpy.mockRestore();
     document.querySelector("#rule-540")?.remove();
+  });
+});
+
+describe("delegated rule link clicks", () => {
+  it("routes a site link through the router", () => {
+    const navigate = vi.fn();
+    render(<RuleHtml html='Plays <a href="/cards/flash">Flash</a>.' navigate={navigate} />);
+
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    screen.getByRole("link", { name: "Flash" }).dispatchEvent(event);
+
+    expect(navigate).toHaveBeenCalledWith("/cards/flash");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("leaves a modified click to the browser", () => {
+    const navigate = vi.fn();
+    render(<RuleHtml html='Plays <a href="/cards/flash">Flash</a>.' navigate={navigate} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Flash" }), { ctrlKey: true });
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("leaves an external link to the browser", () => {
+    const navigate = vi.fn();
+    render(
+      <RuleHtml
+        html='<a href="https://example.com" target="_blank" rel="noreferrer">PDF</a>'
+        navigate={navigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "PDF" }));
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("ignores links outside the rule HTML", () => {
+    const navigate = vi.fn();
+    render(
+      // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- test fixture
+      <div onClick={(event) => handleRuleHtmlClick(event, navigate)}>
+        <a href="/cards/flash">Flash</a>
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "Flash" }));
+
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

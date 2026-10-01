@@ -275,6 +275,8 @@ export interface RuleVersionsTable {
   kind: RuleKind;
   version: string;
   comments: string | null;
+  label: string | null;
+  documentVersion: string | null;
   importedAt: ColumnType<Date, Date | undefined, Date>;
 }
 

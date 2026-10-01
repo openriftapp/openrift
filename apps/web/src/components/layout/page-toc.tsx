@@ -129,9 +129,11 @@ export function PageToc({ items, className }: { items: PageTocItem[]; className?
 export function PageTocMobileTrigger({
   items,
   className,
+  labelClassName,
 }: {
   items: PageTocItem[];
   className?: string;
+  labelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -153,6 +155,9 @@ export function PageTocMobileTrigger({
         }
       >
         <ListIcon />
+        {labelClassName === undefined ? null : (
+          <span className={labelClassName}>{m.layout_toc_title()}</span>
+        )}
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>

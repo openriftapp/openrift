@@ -1,4 +1,3 @@
-import type { RuleChangesResponse, RuleResponse } from "@openrift/shared/types/api/rules";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,12 +9,17 @@ import {
   detectSilentChanges,
   mergeTombstones,
   parseSearchTerms,
+  withSourceContent,
 } from "./rules-changes";
+import type { RuleChanges, RuleEntry } from "./rules-changes";
 
 const VERSION = "2.0";
 const PREVIOUS_VERSION = "1.0";
 
-function rule(overrides: Partial<RuleResponse> & { ruleNumber: string }): RuleResponse {
+function rule(
+  overrides: Partial<RuleEntry> & { ruleNumber: string },
+): RuleEntry & { content: string } {
+  const content = overrides.content ?? `content of ${overrides.ruleNumber}`;
   return {
     id: `id-${overrides.ruleNumber}`,
     kind: "core",
@@ -23,13 +27,14 @@ function rule(overrides: Partial<RuleResponse> & { ruleNumber: string }): RuleRe
     sortOrder: 0,
     depth: 0,
     ruleType: "text",
-    content: `content of ${overrides.ruleNumber}`,
+    contentHtml: content,
     changeType: "added",
     ...overrides,
+    content,
   };
 }
 
-function changes(overrides: Partial<RuleChangesResponse> = {}): RuleChangesResponse {
+function changes(overrides: Partial<RuleChanges> = {}): RuleChanges {
   return { added: [], modifiedPrev: {}, removed: [], ...overrides };
 }
 
@@ -644,5 +649,25 @@ describe("computeSearchResult", () => {
     const result = computeSearchResult(rules, ["player"]);
 
     expect(result.visibleIndices).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("withSourceContent", () => {
+  it("adds markdown only to the rules that have it, keeping the others as they are", () => {
+    const changed = rule({ ruleNumber: "100.1" });
+    const untouched = { ...rule({ ruleNumber: "100.2" }), content: undefined };
+    const [first, second] = withSourceContent([changed, untouched], { "100.1": "New *text*." });
+    expect(first?.content).toBe("New *text*.");
+    expect(second).toBe(untouched);
+  });
+});
+
+describe("computeSearchResult on rendered HTML", () => {
+  it("matches the visible text, not the markup", () => {
+    const rules = [
+      rule({ ruleNumber: "100", contentHtml: 'See <a href="#rule-540">rule 540</a> &amp; more.' }),
+    ];
+    expect(computeSearchResult(rules, ["rule", "540", "&"]).matchSet).toEqual(new Set([0]));
+    expect(computeSearchResult(rules, ["href"]).matchSet).toEqual(new Set());
   });
 });

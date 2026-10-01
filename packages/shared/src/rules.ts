@@ -2,6 +2,10 @@ export function formatRuleNumber(ruleNumber: string): string {
   return ruleNumber.replace(/\.$/u, "");
 }
 
+export function ruleNumberDepth(ruleNumber: string): number {
+  return Math.min(ruleNumber.split(".").length - 1, 3);
+}
+
 // Tail is bounded (optional .digit segments, one optional .letter, final optional .digit)
 // so "rule 540.4.b. Continue" matches "540.4.b", not "540.4.b.C…".
 export const RULE_REFERENCE_REGEX =

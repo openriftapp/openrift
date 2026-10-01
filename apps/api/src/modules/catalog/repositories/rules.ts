@@ -95,6 +95,11 @@ export function rulesRepo(db: Kysely<Database>) {
 
       return {
         added: changeRows.filter((r) => r.changeType === "added").map((r) => r.ruleNumber),
+        current: Object.fromEntries(
+          changeRows
+            .filter((r) => r.changeType !== "removed")
+            .map((r) => [r.ruleNumber, r.content]),
+        ),
         modifiedPrev: Object.fromEntries(
           changeRows
             .filter((r) => r.changeType === "modified")
@@ -106,6 +111,10 @@ export function rulesRepo(db: Kysely<Database>) {
       };
     },
 
+    listCardNames() {
+      return db.selectFrom("cards").select(["name", "slug"]).execute();
+    },
+
     listVersions(kind?: RuleKind) {
       let query = db.selectFrom("ruleVersions").selectAll();
       if (kind) {
@@ -114,13 +123,21 @@ export function rulesRepo(db: Kysely<Database>) {
       return query.orderBy("version", "asc").execute();
     },
 
-    createVersion(values: { kind: RuleKind; version: string; comments?: string | null }) {
+    createVersion(values: {
+      kind: RuleKind;
+      version: string;
+      comments?: string | null;
+      label?: string | null;
+      documentVersion?: string | null;
+    }) {
       return db
         .insertInto("ruleVersions")
         .values({
           kind: values.kind,
           version: values.version,
           comments: values.comments ?? null,
+          label: values.label ?? null,
+          documentVersion: values.documentVersion ?? null,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -158,10 +175,14 @@ export function rulesRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    updateComments(kind: RuleKind, version: string, comments: string | null) {
+    updateDetails(
+      kind: RuleKind,
+      version: string,
+      details: { comments: string | null; label: string | null; documentVersion: string | null },
+    ) {
       return db
         .updateTable("ruleVersions")
-        .set({ comments })
+        .set(details)
         .where("kind", "=", kind)
         .where("version", "=", version)
         .returningAll()

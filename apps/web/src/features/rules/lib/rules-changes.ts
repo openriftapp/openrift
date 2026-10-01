@@ -1,10 +1,25 @@
 import { compareRuleNumbers, RULE_REFERENCE_REGEX } from "@openrift/shared/rules";
-import type { RuleChangesResponse, RuleResponse } from "@openrift/shared/types/api/rules";
+import type { RulePageEntry, RuleSourceResponse } from "@openrift/shared/types/api/rules";
 
+import { ruleSearchText } from "@/features/rules/lib/rule-text";
 import { hasVisibleRuleChanges } from "@/features/rules/lib/rules-markdown";
 import { m } from "@/paraglide/messages.js";
 
 export type ChangeKind = "new" | "changed" | "moved" | "replaced" | "removed";
+
+export type RuleEntry = RulePageEntry & { content?: string };
+
+export type RuleChanges = Pick<RuleSourceResponse, "added" | "modifiedPrev" | "removed">;
+
+export function withSourceContent(
+  rules: readonly RulePageEntry[],
+  current: Readonly<Record<string, string>>,
+): RuleEntry[] {
+  return rules.map((rule) => {
+    const content = current[rule.ruleNumber];
+    return content === undefined ? rule : { ...rule, content };
+  });
+}
 
 const CHANGE_KIND_CLASS: Record<ChangeKind, string> = {
   new: "bg-success-soft text-success",
@@ -55,8 +70,8 @@ function normalizeForMoveDetection(text: string): string {
  * rule's previous content matching another rule's current content (renumber-shift).
  */
 export function detectMoves(
-  rules: readonly RuleResponse[],
-  changes: RuleChangesResponse,
+  rules: readonly RuleEntry[],
+  changes: RuleChanges,
   version: string,
 ): RuleMoves {
   const addedSet = new Set(changes.added);
@@ -70,7 +85,7 @@ export function detectMoves(
     if (!isAdded && !isModifiedNow) {
       continue;
     }
-    const norm = normalizeForMoveDetection(rule.content);
+    const norm = normalizeForMoveDetection(rule.content ?? "");
     if (!norm) {
       continue;
     }
@@ -137,8 +152,8 @@ export function detectMoves(
  * link-only edits). Moved or displaced rules are excluded; they carry their own badge.
  */
 export function detectSilentChanges(
-  rules: readonly RuleResponse[],
-  changes: RuleChangesResponse,
+  rules: readonly RuleEntry[],
+  changes: RuleChanges,
   version: string,
   newToOld: ReadonlyMap<string, string>,
   displacedSet: ReadonlySet<string>,
@@ -152,7 +167,11 @@ export function detectSilentChanges(
       continue;
     }
     const previousContent = changes.modifiedPrev[rule.ruleNumber];
-    if (previousContent !== undefined && !hasVisibleRuleChanges(previousContent, rule.content)) {
+    if (
+      previousContent !== undefined &&
+      rule.content !== undefined &&
+      !hasVisibleRuleChanges(previousContent, rule.content)
+    ) {
       silent.add(rule.ruleNumber);
     }
   }
@@ -160,8 +179,8 @@ export function detectSilentChanges(
 }
 
 export function buildChangeKindMap(
-  rules: readonly RuleResponse[],
-  changes: RuleChangesResponse,
+  rules: readonly RuleEntry[],
+  changes: RuleChanges,
   version: string,
   newToOld: ReadonlyMap<string, string>,
   displacedSet: ReadonlySet<string>,
@@ -197,10 +216,10 @@ export function buildChangeKindMap(
  * in by rule_number (natural order) to land in their canonical document position.
  */
 export function mergeTombstones(
-  rules: readonly RuleResponse[],
-  tombstones: readonly RuleResponse[],
+  rules: readonly RuleEntry[],
+  tombstones: readonly RuleEntry[],
   movedTombstones: ReadonlySet<string>,
-): RuleResponse[] {
+): RuleEntry[] {
   const visibleTombstones = tombstones.filter((t) => !movedTombstones.has(t.ruleNumber));
   return [...rules, ...visibleTombstones].toSorted((a, b) =>
     compareRuleNumbers(a.ruleNumber, b.ruleNumber),
@@ -208,9 +227,9 @@ export function mergeTombstones(
 }
 
 function scanWhile(
-  rules: readonly RuleResponse[],
+  rules: readonly RuleEntry[],
   start: number,
-  keepGoing: (rule: RuleResponse) => boolean,
+  keepGoing: (rule: RuleEntry) => boolean,
 ): number {
   let index = start;
   for (;;) {
@@ -222,7 +241,7 @@ function scanWhile(
   }
 }
 
-export function computeFoldGroups(rules: RuleResponse[]): Map<string, [number, number]> {
+export function computeFoldGroups(rules: RuleEntry[]): Map<string, [number, number]> {
   const groups = new Map<string, [number, number]>();
   for (const [index, rule] of rules.entries()) {
     const start = index + 1;
@@ -247,7 +266,7 @@ export function computeFoldGroups(rules: RuleResponse[]): Map<string, [number, n
 }
 
 export function computeAncestorsByRule(
-  rules: RuleResponse[],
+  rules: RuleEntry[],
   groups: Map<string, [number, number]>,
 ): Map<string, string[]> {
   const ancestorsByRule = new Map<string, string[]>();
@@ -275,17 +294,17 @@ export function parseSearchTerms(query: string): string[] {
   return query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
 }
 
-function ruleMatches(rule: RuleResponse, terms: string[]): boolean {
+function ruleMatches(rule: RuleEntry, terms: string[]): boolean {
   if (terms.length === 0) {
     return false;
   }
-  const content = rule.content.toLowerCase();
-  return terms.every((term) => content.includes(term));
+  const text = ruleSearchText(rule);
+  return terms.every((term) => text.includes(term));
 }
 
 function findAncestorIndices(
-  rules: RuleResponse[],
-  match: RuleResponse,
+  rules: RuleEntry[],
+  match: RuleEntry,
   matchIndex: number,
   rulesByNumber: Map<string, number>,
 ): number[] {
@@ -319,7 +338,7 @@ export interface SearchResult {
   ancestorSet: Set<number>;
 }
 
-export function computeSearchResult(rules: RuleResponse[], terms: string[]): SearchResult {
+export function computeSearchResult(rules: RuleEntry[], terms: string[]): SearchResult {
   const matchSet = new Set<number>();
   const ancestorSet = new Set<number>();
   if (terms.length === 0) {

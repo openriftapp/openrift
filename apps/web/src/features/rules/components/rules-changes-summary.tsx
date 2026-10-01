@@ -1,16 +1,14 @@
-import type { RuleChangesResponse } from "@openrift/shared/types/api/rules";
-
-import type { RuleMoves } from "@/features/rules/lib/rules-changes";
+import type { RuleChanges, RuleMoves } from "@/features/rules/lib/rules-changes";
 import { m } from "@/paraglide/messages.js";
 
 export function ChangesSummary({
-  previousVersion,
+  previousVersionLabel,
   changes,
   moves,
   silentChanges,
 }: {
-  previousVersion: string;
-  changes: RuleChangesResponse;
+  previousVersionLabel: string;
+  changes: RuleChanges;
   moves: RuleMoves;
   silentChanges: ReadonlySet<string>;
 }) {
@@ -37,7 +35,7 @@ export function ChangesSummary({
   return (
     <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
       <span className="text-muted-foreground">
-        {m.rules_changes_summary_from({ version: previousVersion })}
+        {m.rules_changes_summary_from({ version: previousVersionLabel })}
       </span>
       <span className="text-success">
         <span className="font-semibold">{newCount}</span> {m.rules_changes_summary_new()}
