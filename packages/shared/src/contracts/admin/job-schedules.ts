@@ -13,6 +13,7 @@ export const SCHEDULED_JOB_KINDS = [
   "tcgplayer.refresh",
   "cardmarket.refresh",
   "cardtrader.refresh",
+  "cardnexus.refresh",
   "discord.post_changelog",
   "discord.flush_printing_events",
   "job_runs.cleanup",

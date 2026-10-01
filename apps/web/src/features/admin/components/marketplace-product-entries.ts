@@ -9,7 +9,7 @@ import type {
   UnifiedMappingPrinting,
 } from "@/features/admin/lib/price-mappings-types";
 
-import { CM_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
+import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
 import type { ProductSuggestion } from "./suggest-mapping";
 import { productSuggestionKey, STRONG_MATCH_THRESHOLD } from "./suggest-mapping";
 
@@ -24,6 +24,7 @@ export const MARKETPLACE_CONFIGS: Record<AdminMarketplaceName, SourceMappingConf
   tcgplayer: TCG_CONFIG,
   cardmarket: CM_CONFIG,
   cardtrader: CT_CONFIG,
+  cardnexus: CN_CONFIG,
 };
 
 const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000;
@@ -205,6 +206,7 @@ export function collectStrongMappings(
     tcgplayer: [],
     cardmarket: [],
     cardtrader: [],
+    cardnexus: [],
   };
   for (const entry of collectEntries(group)) {
     if (entry.isAssigned) {
@@ -239,6 +241,7 @@ export function collectWeakMappings(
     tcgplayer: [],
     cardmarket: [],
     cardtrader: [],
+    cardnexus: [],
   };
   for (const entry of collectEntries(group)) {
     if (entry.isAssigned) {

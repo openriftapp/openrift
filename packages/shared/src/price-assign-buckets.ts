@@ -1,11 +1,11 @@
 import type { UnifiedMappingGroupResponse } from "./types/api/admin.js";
 import type { Marketplace } from "./types/pricing.js";
-import { ALL_MARKETPLACES } from "./types/pricing.js";
+import { ALL_MARKETPLACES, LANGUAGE_KEYED_MARKETPLACES } from "./types/pricing.js";
 import { WellKnown } from "./well-known.js";
 
 export interface PriceAssignBucket {
   marketplace: Marketplace;
-  /** Null for Cardmarket/TCGplayer (assumed EN); a language code for CardTrader. */
+  /** Null for Cardmarket/TCGplayer (assumed EN); a language code for CardTrader and CardNexus. */
   language: string | null;
   unbound: number;
   /** Whether a matching-language printing exists on this card. */
@@ -29,7 +29,7 @@ export function computePriceAssignBuckets(
     }
     const countByLanguage = new Map<string | null, number>();
     for (const product of staged) {
-      const language = marketplace === "cardtrader" ? product.language : null;
+      const language = LANGUAGE_KEYED_MARKETPLACES.has(marketplace) ? product.language : null;
       countByLanguage.set(language, (countByLanguage.get(language) ?? 0) + 1);
     }
     for (const [language, unbound] of countByLanguage) {

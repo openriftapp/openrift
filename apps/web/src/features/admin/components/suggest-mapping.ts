@@ -1,5 +1,9 @@
 import type { AdminMarketplaceName } from "@openrift/shared/types/api/admin";
-import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
+import {
+  ALL_MARKETPLACES,
+  LANGUAGE_KEYED_MARKETPLACES,
+  marketplaceCarriesLanguage,
+} from "@openrift/shared/types/pricing";
 import { normalizeNameForIdentity } from "@openrift/shared/utils";
 import { marketplaceFinish, WellKnown } from "@openrift/shared/well-known";
 
@@ -153,8 +157,8 @@ function computeSuggestions(
   group: MappingGroup,
   marketplace: AdminMarketplaceName,
 ): Map<string, Suggestion> {
-  // Only CardTrader puts language in the SKU, so only there must it match the printing's.
-  const enforceLanguage = marketplace === "cardtrader";
+  // Only language-keyed marketplaces put language in the SKU, so only there must it match the printing's.
+  const enforceLanguage = LANGUAGE_KEYED_MARKETPLACES.has(marketplace);
   const crossLanguageEvidence = group.crossLanguageEvidence ?? new Map();
   const unmapped = group.printings.filter(
     (p) => p.externalId === null && marketplaceCarriesLanguage(marketplace, p.language),
@@ -408,7 +412,7 @@ function computeWeakProductSuggestions(
 }
 
 /**
- * On CardTrader, an EN SKU's assignment to a short_code is evidence its SC
+ * On a language-keyed marketplace, an EN SKU's assignment to a short_code is evidence its SC
  * sibling SKU should resolve to the same short_code.
  */
 function buildCrossLanguageEvidence(
@@ -459,15 +463,21 @@ function toMarketplaceGroup(
     setId: group.setId,
     setName: group.setName,
     printings: group.printings.map(
-      ({ tcgExternalId: _tcg, cmExternalId: _cm, ctExternalId: _ct, ...printing }) => ({
+      ({
+        tcgExternalId: _tcg,
+        cmExternalId: _cm,
+        ctExternalId: _ct,
+        cnExternalId: _cn,
+        ...printing
+      }) => ({
         ...printing,
         externalId: assignmentByPrinting.get(printing.printingId) ?? null,
       }),
     ),
     stagedProducts: mkData.stagedProducts,
     assignedProducts: mkData.assignedProducts,
-    // Only CardTrader has per-language SKUs to inherit cross-language evidence from.
-    crossLanguageEvidence:
-      marketplace === "cardtrader" ? buildCrossLanguageEvidence(group, marketplace) : undefined,
+    crossLanguageEvidence: LANGUAGE_KEYED_MARKETPLACES.has(marketplace)
+      ? buildCrossLanguageEvidence(group, marketplace)
+      : undefined,
   };
 }

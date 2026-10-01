@@ -20,6 +20,7 @@ import {
 } from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
+import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatPublicCode, formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -72,10 +73,7 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     ? range
     : ("all" as TimeRange);
 
-  const dateMap = new Map<
-    string,
-    { tcgplayer?: number; cardmarket?: number; cardtrader?: number }
-  >();
+  const dateMap = new Map<string, Partial<Record<Marketplace, number>>>();
   if (rangeData) {
     for (const mp of ALL_MARKETPLACES) {
       const mpData = rangeData[mp];
@@ -97,9 +95,8 @@ export function PriceHistorySection({ printing }: { printing: Printing }) {
     ? ALL_MARKETPLACES.filter((mp) => rangeData[mp]?.available)
     : [];
 
-  // Must match PriceHistoryChart's normalization (market for TCG/CM, zeroLow for CardTrader).
   const plottedValues = (rangeData?.[source]?.snapshots ?? []).reduce<number[]>((values, s) => {
-    const value = "market" in s ? s.market : s.zeroLow;
+    const { value } = priceHistoryPoint(s);
     if (value !== null) {
       values.push(value);
     }

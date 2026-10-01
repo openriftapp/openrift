@@ -445,6 +445,7 @@ describe("buildCardEmbed", () => {
         tcgplayer: { available: true, productId: 582_391 },
         cardmarket: { available: false, productId: null },
         cardtrader: { available: true, productId: 99 },
+        cardnexus: { available: false, productId: null },
       },
       siteUrl: SITE,
     });

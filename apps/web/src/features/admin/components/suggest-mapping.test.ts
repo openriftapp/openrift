@@ -26,6 +26,7 @@ function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappi
     tcgExternalId: null,
     cmExternalId: null,
     ctExternalId: null,
+    cnExternalId: null,
     ...overrides,
   };
 }
@@ -102,6 +103,7 @@ function group(
       assignedProducts: ct.assigned ?? [],
       assignments: ct.assignments,
     },
+    cardnexus: { stagedProducts: [], assignedProducts: [], assignments: [] },
   };
 }
 

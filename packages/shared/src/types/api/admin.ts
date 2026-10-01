@@ -210,15 +210,15 @@ export type ClearPricesResponse = z.infer<typeof clearPricesResponseSchema>;
 
 export type SiblingVariantDriftResponse = z.infer<typeof siblingVariantDriftResponseSchema>;
 
-/** Carries the merged per-marketplace external IDs (`tcgExternalId` / `cmExternalId` / `ctExternalId`). */
+/** Carries the merged per-marketplace external IDs (`tcgExternalId` / `cmExternalId` / `ctExternalId` / `cnExternalId`). */
 export type UnifiedMappingPrintingResponse = z.infer<
   typeof unifiedMappingGroupResponseSchema
 >["printings"][number];
 
-/** Same fields as {@link UnifiedMappingPrintingResponse}, with the three external IDs collapsed to one `externalId`. */
+/** Same fields as {@link UnifiedMappingPrintingResponse}, with the per-marketplace external IDs collapsed to one `externalId`. */
 export type MappingPrintingResponse = Omit<
   UnifiedMappingPrintingResponse,
-  "tcgExternalId" | "cmExternalId" | "ctExternalId"
+  "tcgExternalId" | "cmExternalId" | "ctExternalId" | "cnExternalId"
 > & { externalId: number | null };
 
 /** `language` / `groupSetSlug` are `null` when the marketplace doesn't expose that dimension. */

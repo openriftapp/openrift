@@ -25,6 +25,12 @@ const refreshCardtraderPricesFn = createServerFn({ method: "POST" })
     apiOrpcClient(adminOperationsContract, context.cookie).refreshCardtrader(),
   );
 
+const refreshCardnexusPricesFn = createServerFn({ method: "POST" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<JobRunStartedResponse> =>
+    apiOrpcClient(adminOperationsContract, context.cookie).refreshCardnexus(),
+  );
+
 export const getLatestJobRunFn = createServerFn({ method: "GET" })
   .validator((input: { kind: string }) => input)
   .middleware([withCookies])
@@ -54,6 +60,13 @@ export const refreshActions = {
     post: refreshCardtraderPricesFn,
     jobKind: "cardtrader.refresh" as const,
   },
+  cardnexus: {
+    key: "cardnexus",
+    title: "Refresh CardNexus Prices",
+    description: "Fetch latest prices from CardNexus",
+    post: refreshCardnexusPricesFn,
+    jobKind: "cardnexus.refresh" as const,
+  },
 } as const;
 
 export const clearActions = {
@@ -74,5 +87,11 @@ export const clearActions = {
     source: "cardtrader" as const,
     title: "Clear CardTrader Prices",
     description: "Delete all CardTrader price sources, snapshots, and staging data",
+  },
+  cardnexus: {
+    key: "clear-cardnexus",
+    source: "cardnexus" as const,
+    title: "Clear CardNexus Prices",
+    description: "Delete all CardNexus price sources, snapshots, and staging data",
   },
 } as const;

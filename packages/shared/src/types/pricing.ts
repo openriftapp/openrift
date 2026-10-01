@@ -3,7 +3,7 @@ import { z } from "zod";
 import { WellKnown } from "../well-known.js";
 import type { Currency } from "./api/trade-preferences.js";
 
-export const ALL_MARKETPLACES = ["cardtrader", "tcgplayer", "cardmarket"] as const;
+export const ALL_MARKETPLACES = ["cardtrader", "tcgplayer", "cardmarket", "cardnexus"] as const;
 
 // Lives here, not in schemas.ts, because schemas.ts imports from types/ and a
 // definition there would cycle.
@@ -11,13 +11,18 @@ export const marketplaceEnum = z.enum(ALL_MARKETPLACES);
 
 export type Marketplace = z.infer<typeof marketplaceEnum>;
 
-export const EUR_MARKETPLACES: ReadonlySet<Marketplace> = new Set(["cardmarket", "cardtrader"]);
+export const EUR_MARKETPLACES: ReadonlySet<Marketplace> = new Set([
+  "cardmarket",
+  "cardtrader",
+  "cardnexus",
+]);
 
 // Prices on the wire are integer cents with no currency of their own.
 export const MARKETPLACE_CURRENCY: Record<Marketplace, Currency> = {
   tcgplayer: "USD",
   cardmarket: "EUR",
   cardtrader: "EUR",
+  cardnexus: "EUR",
 };
 
 // TCGplayer is a US storefront carrying English stock only; its price guide is
@@ -26,7 +31,13 @@ export const MARKETPLACE_PRINTING_LANGUAGES: Record<Marketplace, ReadonlySet<str
   tcgplayer: new Set([WellKnown.language.EN]),
   cardmarket: null,
   cardtrader: null,
+  cardnexus: null,
 };
+
+export const LANGUAGE_KEYED_MARKETPLACES: ReadonlySet<Marketplace> = new Set([
+  "cardtrader",
+  "cardnexus",
+]);
 
 export function marketplaceCarriesLanguage(marketplace: Marketplace, language: string): boolean {
   const carried = MARKETPLACE_PRINTING_LANGUAGES[marketplace];

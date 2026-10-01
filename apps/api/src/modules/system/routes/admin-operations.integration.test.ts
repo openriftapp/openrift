@@ -59,6 +59,7 @@ const MARKETPLACE_ORDINAL: Record<Marketplace, number> = {
   tcgplayer: 1,
   cardmarket: 2,
   cardtrader: 3,
+  cardnexus: 4,
 };
 
 /** Groups this file created; the clear endpoint leaves groups behind, so afterAll removes them. */

@@ -32,6 +32,7 @@ function group(
     tcg?: StagedProductResponse[];
     cm?: StagedProductResponse[];
     ct?: StagedProductResponse[];
+    cn?: StagedProductResponse[];
   },
   cardSlug = "fireball",
 ): UnifiedMappingGroupResponse {
@@ -46,6 +47,7 @@ function group(
     tcgplayer: marketplace(staged.tcg),
     cardmarket: marketplace(staged.cm),
     cardtrader: marketplace(staged.ct),
+    cardnexus: marketplace(staged.cn),
   } as unknown as UnifiedMappingGroupResponse;
 }
 
@@ -94,6 +96,12 @@ describe("computePriceAssignBuckets", () => {
     expect(
       computePriceAssignBuckets(group(["FR"], { ct: [stagedProduct({ language: "FR" })] })),
     ).toEqual([{ marketplace: "cardtrader", language: "FR", unbound: 1, assignable: true }]);
+  });
+
+  it("splits CardNexus entries per language", () => {
+    expect(
+      computePriceAssignBuckets(group(["EN"], { cn: [stagedProduct({ language: "SC" })] })),
+    ).toEqual([{ marketplace: "cardnexus", language: "SC", unbound: 1, assignable: false }]);
   });
 });
 

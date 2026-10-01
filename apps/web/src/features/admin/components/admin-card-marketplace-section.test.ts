@@ -28,6 +28,7 @@ function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappi
     tcgExternalId: null,
     cmExternalId: null,
     ctExternalId: null,
+    cnExternalId: null,
     ...overrides,
   };
 }
@@ -80,6 +81,7 @@ function group(
     tcgplayer: { stagedProducts: tcg.staged, assignedProducts: tcg.assigned, assignments: [] },
     cardmarket: { stagedProducts: cm.staged, assignedProducts: cm.assigned, assignments: [] },
     cardtrader: { stagedProducts: ct.staged, assignedProducts: ct.assigned, assignments: [] },
+    cardnexus: { stagedProducts: [], assignedProducts: [], assignments: [] },
   };
 }
 

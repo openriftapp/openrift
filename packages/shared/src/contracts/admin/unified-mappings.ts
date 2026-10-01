@@ -118,6 +118,10 @@ const unifiedMappingPrintingResponseSchema = z.object({
     .number()
     .nullable()
     .meta({ examples: [null] }),
+  cnExternalId: z
+    .number()
+    .nullable()
+    .meta({ examples: [151_160] }),
 });
 
 const assignableCardResponseSchema = z.object({
@@ -156,6 +160,7 @@ export const unifiedMappingGroupResponseSchema = z.object({
   tcgplayer: unifiedMappingMarketplaceSchema,
   cardmarket: unifiedMappingMarketplaceSchema,
   cardtrader: unifiedMappingMarketplaceSchema,
+  cardnexus: unifiedMappingMarketplaceSchema,
 });
 
 export const unifiedMappingsResponseSchema = z.object({
@@ -164,6 +169,7 @@ export const unifiedMappingsResponseSchema = z.object({
     tcgplayer: z.array(stagedProductResponseSchema),
     cardmarket: z.array(stagedProductResponseSchema),
     cardtrader: z.array(stagedProductResponseSchema),
+    cardnexus: z.array(stagedProductResponseSchema),
   }),
   allCards: z.array(assignableCardResponseSchema),
 });

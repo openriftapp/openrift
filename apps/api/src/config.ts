@@ -42,6 +42,7 @@ export function createConfig(env: Record<string, string | undefined>) {
     buildId: env.BUILD_ID ?? "",
 
     cardtraderApiToken: env.CARDTRADER_API_TOKEN ?? "",
+    cardnexusApiKey: env.CARDNEXUS_API_KEY ?? "",
 
     cloudflare:
       env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ZONE_ID

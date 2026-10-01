@@ -88,7 +88,7 @@ function PriceSection({
   marketplace,
   nextRun,
 }: {
-  label: "TCGplayer" | "Cardmarket" | "CardTrader";
+  label: "TCGplayer" | "Cardmarket" | "CardTrader" | "CardNexus";
   groups: number;
   mapped: number;
   staged: number;
@@ -233,12 +233,15 @@ export function MarketplaceOverviewPage() {
   const tcgGroups = allGroups.filter((g) => g.marketplace === "tcgplayer");
   const cmGroups = allGroups.filter((g) => g.marketplace === "cardmarket");
   const ctGroups = allGroups.filter((g) => g.marketplace === "cardtrader");
+  const cnGroups = allGroups.filter((g) => g.marketplace === "cardnexus");
   const tcgAssigned = tcgGroups.reduce((sum, g) => sum + g.assignedCount, 0);
   const tcgStaged = tcgGroups.reduce((sum, g) => sum + g.stagedCount, 0);
   const cmAssigned = cmGroups.reduce((sum, g) => sum + g.assignedCount, 0);
   const cmStaged = cmGroups.reduce((sum, g) => sum + g.stagedCount, 0);
   const ctAssigned = ctGroups.reduce((sum, g) => sum + g.assignedCount, 0);
   const ctStaged = ctGroups.reduce((sum, g) => sum + g.stagedCount, 0);
+  const cnAssigned = cnGroups.reduce((sum, g) => sum + g.assignedCount, 0);
+  const cnStaged = cnGroups.reduce((sum, g) => sum + g.stagedCount, 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -266,6 +269,14 @@ export function MarketplaceOverviewPage() {
         staged={ctStaged}
         marketplace="cardtrader"
         nextRun={nextRunByKind.get("cardtrader.refresh") ?? null}
+      />
+      <PriceSection
+        label="CardNexus"
+        groups={cnGroups.length}
+        mapped={cnAssigned}
+        staged={cnStaged}
+        marketplace="cardnexus"
+        nextRun={nextRunByKind.get("cardnexus.refresh") ?? null}
       />
       <SiblingVariantSection />
     </div>

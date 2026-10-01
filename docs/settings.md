@@ -48,6 +48,7 @@ Scheduling for these jobs lives in the `/admin/jobs` page (see [Scheduled Jobs](
 
 | Variable                   | Default                              | Description                                                                                         |
 | -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `CARDNEXUS_API_KEY`        |                                      | CardNexus API key, no scopes needed. Required for the CardNexus price refresh job to be enabled.    |
 | `CARDTRADER_API_TOKEN`     |                                      | CardTrader API token. Required for the CardTrader price refresh job to be enabled.                  |
 | `CHANGELOG_PATH`           | `apps/web/src/CHANGELOG.md`          | Path to the changelog file read by the changelog Discord post job.                                  |
 | `META_SYNC_BASE_URL`       | `https://api.riftbound.uvsgames.com` | Base URL of the uvsgames API the meta sync reads. Override to point at a recorded fixture server.   |

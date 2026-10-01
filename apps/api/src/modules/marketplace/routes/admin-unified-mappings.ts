@@ -17,12 +17,9 @@ export const adminUnifiedMappingsRouter = {
   list: os.list.handler(async ({ context }) => {
     const repos = context.repos;
     const { getMappingOverview } = context.services;
-    const { tcgplayer, cardmarket, cardtrader } = createMarketplaceConfigs(repos);
     return await buildUnifiedMappingsResponse(
       repos,
-      tcgplayer,
-      cardmarket,
-      cardtrader,
+      createMarketplaceConfigs(repos),
       getMappingOverview,
     );
   }),
@@ -30,31 +27,25 @@ export const adminUnifiedMappingsRouter = {
   summary: os.summary.handler(async ({ context }) => {
     const repos = context.repos;
     const { getMappingOverview } = context.services;
-    const { tcgplayer, cardmarket, cardtrader } = createMarketplaceConfigs(repos);
     const { groups, unmatchedProducts } = await buildUnifiedMappingsResponse(
       repos,
-      tcgplayer,
-      cardmarket,
-      cardtrader,
+      createMarketplaceConfigs(repos),
       getMappingOverview,
     );
     return {
       assignBucketsBySlug: buildPriceAssignBucketsBySlug(groups),
-      unmatchedCount:
-        unmatchedProducts.tcgplayer.length +
-        unmatchedProducts.cardmarket.length +
-        unmatchedProducts.cardtrader.length,
+      unmatchedCount: Object.values(unmatchedProducts).reduce(
+        (sum, products) => sum + products.length,
+        0,
+      ),
     };
   }),
 
   card: os.card.handler(async ({ input, context }) => {
     const repos = context.repos;
-    const { tcgplayer, cardmarket, cardtrader } = createMarketplaceConfigs(repos);
     return await buildUnifiedMappingsCardResponse(
       repos,
-      tcgplayer,
-      cardmarket,
-      cardtrader,
+      createMarketplaceConfigs(repos),
       input.cardId,
     );
   }),

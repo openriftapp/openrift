@@ -94,6 +94,14 @@ export const MARKETPLACE_LINKS: Record<Marketplace, MarketplaceLinks> = {
     productUrl: (id) => cardtraderAffiliateUrl(`https://www.cardtrader.com/en/cards/${id}`),
     isAffiliate: true,
   },
+  cardnexus: {
+    label: "CardNexus",
+    searchUrl: (query) =>
+      `https://cardnexus.com/en/search?q=${encodeURIComponent(query)}&game=riftbound`,
+    // CardNexus redirects any set and name slug to the canonical page as long as the path ends in the product id.
+    productUrl: (id) => `https://cardnexus.com/en/explore/riftbound/set/card/card-${id}`,
+    isAffiliate: false,
+  },
 };
 
 export function marketplaceLabel(name: string): string {

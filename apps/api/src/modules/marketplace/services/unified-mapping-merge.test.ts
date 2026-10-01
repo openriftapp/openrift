@@ -5,7 +5,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import type { MarketplaceConfig } from "../lib/marketplace-configs.js";
+import type { MarketplaceConfig, MarketplaceConfigs } from "../lib/marketplace-configs.js";
 import type { GetMappingOverview } from "./unified-mapping-merge.js";
 import {
   buildUnifiedMappingsCardResponse,
@@ -55,6 +55,15 @@ function makeConfig(marketplace: string): MarketplaceConfig {
   return { marketplace } as MarketplaceConfig;
 }
 
+function makeConfigs(make: (marketplace: string) => MarketplaceConfig): MarketplaceConfigs {
+  return {
+    tcgplayer: make("tcgplayer"),
+    cardmarket: make("cardmarket"),
+    cardtrader: make("cardtrader"),
+    cardnexus: make("cardnexus"),
+  };
+}
+
 describe("buildUnifiedMappingsResponse", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -68,9 +77,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -79,6 +86,7 @@ describe("buildUnifiedMappingsResponse", () => {
       tcgplayer: [],
       cardmarket: [],
       cardtrader: [],
+      cardnexus: [],
     });
   });
 
@@ -96,9 +104,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -132,9 +138,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -165,9 +169,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -201,9 +203,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -228,15 +228,9 @@ describe("buildUnifiedMappingsResponse", () => {
     } as unknown as Repos;
     const getMappingOverview = vi.fn<GetMappingOverview>(async () => makeMappingResult());
 
-    await buildUnifiedMappingsResponse(
-      repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
-      getMappingOverview,
-    );
+    await buildUnifiedMappingsResponse(repos, makeConfigs(makeConfig), getMappingOverview);
 
-    expect(getMappingOverview).toHaveBeenCalledTimes(3);
+    expect(getMappingOverview).toHaveBeenCalledTimes(4);
     for (const call of getMappingOverview.mock.calls) {
       const options = call[2] as { allCardsForMatching?: { cardId: string; cardName: string }[] };
       expect(options.allCardsForMatching).toEqual(
@@ -264,9 +258,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -340,9 +332,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -419,9 +409,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -478,9 +466,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -510,9 +496,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -539,9 +523,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -582,9 +564,7 @@ describe("buildUnifiedMappingsResponse", () => {
 
     const result = await buildUnifiedMappingsResponse(
       repos,
-      makeConfig("tcgplayer"),
-      makeConfig("cardmarket"),
-      makeConfig("cardtrader"),
+      makeConfigs(makeConfig),
       getMappingOverview,
     );
 
@@ -642,9 +622,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "missing-card",
     );
 
@@ -664,16 +642,15 @@ describe("buildUnifiedMappingsCardResponse", () => {
       },
     } as unknown as Repos;
 
-    await buildUnifiedMappingsCardResponse(
-      repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
-      "card-xyz",
-    );
+    await buildUnifiedMappingsCardResponse(repos, makeConfigs(makeScopedCardConfig), "card-xyz");
 
     expect(unifiedMock).toHaveBeenCalledWith("card-xyz");
-    expect(stagingMock).toHaveBeenCalledWith("card-xyz", ["tcgplayer", "cardmarket", "cardtrader"]);
+    expect(stagingMock).toHaveBeenCalledWith("card-xyz", [
+      "tcgplayer",
+      "cardmarket",
+      "cardtrader",
+      "cardnexus",
+    ]);
   });
 
   it("returns the single merged group plus allCards when the card has data", async () => {
@@ -731,9 +708,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "card-1",
     );
 
@@ -833,9 +808,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "blast-cone",
     );
 
@@ -913,9 +886,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "blast-cone",
     );
 
@@ -984,9 +955,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "blast-cone",
     );
 
@@ -1084,9 +1053,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      config,
+      { ...makeConfigs(makeScopedCardConfig), cardtrader: config },
       "allay-eager-admirer",
     );
 
@@ -1172,9 +1139,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
 
     const result = await buildUnifiedMappingsCardResponse(
       repos,
-      makeScopedCardConfig("tcgplayer"),
-      makeScopedCardConfig("cardmarket"),
-      makeScopedCardConfig("cardtrader"),
+      makeConfigs(makeScopedCardConfig),
       "ashe-focused",
     );
 

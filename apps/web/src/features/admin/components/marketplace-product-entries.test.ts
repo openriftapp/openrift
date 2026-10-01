@@ -34,6 +34,7 @@ function printing(overrides: Partial<UnifiedMappingPrinting> = {}): UnifiedMappi
     tcgExternalId: null,
     cmExternalId: null,
     ctExternalId: null,
+    cnExternalId: null,
     ...overrides,
   };
 }
@@ -109,6 +110,7 @@ function group(
       assignedProducts: ct.assigned,
       assignments: ct.assignments,
     },
+    cardnexus: { stagedProducts: [], assignedProducts: [], assignments: [] },
   };
 }
 
@@ -344,7 +346,7 @@ describe("collectEntries", () => {
 describe("collectStrongMappings", () => {
   it("returns empty arrays for every marketplace when no suggestions are provided", () => {
     const result = collectStrongMappings(group([printing()]), undefined);
-    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [] });
+    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] });
   });
 
   it("filters out suggestions whose score is below the strong-match threshold", () => {
@@ -432,7 +434,7 @@ describe("collectStrongMappings", () => {
 describe("collectWeakMappings", () => {
   it("returns empty arrays for every marketplace when no suggestions are provided", () => {
     const result = collectWeakMappings(group([printing()]), undefined);
-    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [] });
+    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] });
   });
 
   it("includes weak suggestions for unassigned products and ignores non-weak ones", () => {

@@ -116,7 +116,7 @@ export function makePricesResponse(
 ): PricesResponse {
   return {
     prices,
-    currencies: { tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR" },
+    currencies: { tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR", cardnexus: "EUR" },
     stale,
   };
 }

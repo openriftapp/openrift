@@ -52,6 +52,14 @@ export const adminOperationsContract = {
       successStatus: 202,
     })
     .output(jobStartedResponseSchema),
+  refreshCardnexus: authedRoute
+    .route({
+      method: "POST",
+      path: `${BASE}/refresh-cardnexus-prices`,
+      tags: [TAG],
+      successStatus: 202,
+    })
+    .output(jobStartedResponseSchema),
   refreshMatviews: authedRoute
     .route({
       method: "POST",

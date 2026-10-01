@@ -25,3 +25,10 @@ export const CT_CONFIG: SourceMappingConfig = {
   // CardTrader handles language filtering at the listing level, not via product URL.
   productUrl: MARKETPLACE_LINKS.cardtrader.productUrl,
 };
+
+export const CN_CONFIG: SourceMappingConfig = {
+  source: "cardnexus",
+  displayName: MARKETPLACE_LINKS.cardnexus.label,
+  shortName: "CN",
+  productUrl: MARKETPLACE_LINKS.cardnexus.productUrl,
+};

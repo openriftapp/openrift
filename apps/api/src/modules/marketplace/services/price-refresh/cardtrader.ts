@@ -1,11 +1,12 @@
 import type { Logger } from "@openrift/shared/logger";
 import type { PriceRefreshResponse } from "@openrift/shared/types/api/admin";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 import { WellKnown } from "@openrift/shared/well-known";
 
 import type { Repos } from "../../../../deps.js";
 import type { Fetch } from "../../../../io.js";
 import type { LoadedIgnoredKeys } from "../../repositories/price-refresh.js";
+import type { CrossRefCandidate } from "./cross-ref-match.js";
+import { autoMatchByCrossReference } from "./cross-ref-match.js";
 import { logFetchSummary, logUpsertCounts } from "./log.js";
 import type { GroupRow, PriceUpsertConfig, StagingRow } from "./types.js";
 import { loadIgnoredKeys, upsertMarketplaceGroups, upsertPriceData } from "./upsert.js";
@@ -265,191 +266,21 @@ function buildCardtraderGroups(expansions: CtExpansion[]): GroupRow[] {
   }));
 }
 
-/**
- * Build a lookup from "printing identity without language" to a map of
- * `language → printingId`, so that given an English printing we can find its
- * sibling printing in any other language that shares the same card, set,
- * short code, finish, art variant, signed status, and promo type.
- */
-function buildSiblingLookup(
-  printings: {
-    id: string;
-    cardId: string;
-    setId: string;
-    shortCode: string;
-    finish: string;
-    artVariant: string;
-    isSigned: boolean;
-    isOvernumbered: boolean;
-    language: string;
-    markerSlugs: string[];
-  }[],
-): Map<string, Map<string, string>> {
-  const byIdentity = new Map<string, Map<string, string>>();
-  for (const p of printings) {
-    const slugKey = [...p.markerSlugs].sort().join(",");
-    const identity = `${p.cardId}|${p.setId}|${p.shortCode}|${p.finish}|${p.artVariant}|${p.isSigned}|${p.isOvernumbered}|${slugKey}`;
-    let byLang = byIdentity.get(identity);
-    if (!byLang) {
-      byLang = new Map<string, string>();
-      byIdentity.set(identity, byLang);
-    }
-    if (!byLang.has(p.language)) {
-      byLang.set(p.language, p.id);
-    }
-  }
-  return byIdentity;
-}
-
-/**
- * Auto-match CardTrader blueprints to existing printings by looking up their
- * TCGPlayer and Cardmarket cross-references in `marketplace_product_variants`
- * and then propagating the cardtrader-observed `(finish, language)` tuples
- * through to sibling printings.
- *
- * TCG and Cardmarket only carry English printings, so a direct cross-reference
- * from a cardtrader blueprint lands on an English printing. If the cardtrader
- * blueprint also has prices in Chinese (or any other language), we look up the
- * sibling printing in our catalog — same card, short code, finish, art variant,
- * signed status, and promo type, but with the requested language — and create
- * a variant pointing at the sibling.
- */
-async function autoMatchBlueprints(
-  repos: Repos,
+function crossRefCandidates(
   blueprints: CtBlueprint[],
   prices: Map<string, CtPrice>,
-  log: Logger,
-): Promise<number> {
-  const existingSources = await repos.priceRefresh.existingSourcesByMarketplaces([
-    "tcgplayer",
-    "cardmarket",
-  ]);
-
-  const allPrintings = await repos.priceRefresh.allPrintingsForPriceMatch();
-  const siblingByIdentity = buildSiblingLookup(allPrintings);
-  const identityByPrintingId = new Map<string, string>();
-  for (const p of allPrintings) {
-    const slugKey = [...p.markerSlugs].sort().join(",");
-    const identity = `${p.cardId}|${p.setId}|${p.shortCode}|${p.finish}|${p.artVariant}|${p.isSigned}|${p.isOvernumbered}|${slugKey}`;
-    identityByPrintingId.set(p.id, identity);
-  }
-
-  // Only the `printingId` and `finish` matter for sibling resolution — the
-  // cross-ref's own `language` is irrelevant because the target language is
-  // picked from the cardtrader blueprint's own prices.
-  interface CrossRefEntry {
-    printingId: string;
-    finish: string;
-  }
-
-  const tcgLookup = new Map<number, CrossRefEntry[]>();
-  const cmLookup = new Map<number, CrossRefEntry[]>();
-
-  for (const src of existingSources) {
-    const entry: CrossRefEntry = {
-      printingId: src.printingId,
-      finish: src.finish,
-    };
-    const lookup = src.marketplace === "tcgplayer" ? tcgLookup : cmLookup;
-    const list = lookup.get(src.externalId) ?? [];
-    list.push(entry);
-    lookup.set(src.externalId, list);
-  }
-
+): CrossRefCandidate[] {
   const pricesByBlueprint = Map.groupBy([...prices.values()], (p) => p.blueprintId);
-
-  // Build a per-variant skip set from existing cardtrader variants. Skipping at
-  // the (externalId, finish, language) level is what lets a new language (e.g.
-  // SC) land on a blueprint whose EN variant already exists — gating on the
-  // blueprint alone would leave the new-language row permanently orphaned.
-  const existingCtSources = await repos.priceRefresh.existingSourcesByMarketplaces(["cardtrader"]);
-  const existingCtVariantKeys = new Set(
-    existingCtSources.map((s) => `${s.externalId}::${s.finish}::${s.language ?? ""}`),
-  );
-
-  const toInsert: {
-    marketplace: Marketplace;
-    externalId: number;
-    groupId: number;
-    productName: string;
-    printingId: string;
-    finish: string;
-    language: string | null;
-  }[] = [];
-
-  // Deduplicate (bp.id, finish, language) across iterations in case the same
-  // combo is emitted twice via different cross-refs.
-  const emitted = new Set<string>();
-
-  for (const bp of blueprints) {
-    if (bp.category_id !== CT_SINGLES_CATEGORY) {
-      continue;
-    }
-
-    let crossRefVariants: CrossRefEntry[] | undefined;
-    if (bp.tcg_player_id !== null) {
-      crossRefVariants = tcgLookup.get(bp.tcg_player_id);
-    }
-    if (!crossRefVariants) {
-      for (const cmId of bp.card_market_ids) {
-        crossRefVariants = cmLookup.get(cmId);
-        if (crossRefVariants) {
-          break;
-        }
-      }
-    }
-
-    if (!crossRefVariants) {
-      continue;
-    }
-
-    const identityByFinish = new Map<string, string>();
-    for (const variant of crossRefVariants) {
-      const identity = identityByPrintingId.get(variant.printingId);
-      if (identity && !identityByFinish.has(variant.finish)) {
-        identityByFinish.set(variant.finish, identity);
-      }
-    }
-
-    const observed = pricesByBlueprint.get(bp.id) ?? [];
-    for (const price of observed) {
-      const identity = identityByFinish.get(price.finish);
-      if (!identity) {
-        continue;
-      }
-      const sibling = siblingByIdentity.get(identity)?.get(price.language);
-      if (!sibling) {
-        continue;
-      }
-      const emitKey = `${bp.id}::${price.finish}::${price.language}`;
-      if (emitted.has(emitKey) || existingCtVariantKeys.has(emitKey)) {
-        continue;
-      }
-      emitted.add(emitKey);
-      toInsert.push({
-        marketplace: "cardtrader",
-        externalId: bp.id,
-        groupId: bp.expansion_id,
-        productName: bp.name,
-        printingId: sibling,
-        finish: price.finish,
-        language: price.language,
-      });
-    }
-  }
-
-  if (toInsert.length === 0) {
-    return 0;
-  }
-
-  const BATCH_SIZE = 200;
-  for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-    const batch = toInsert.slice(i, i + BATCH_SIZE);
-    await repos.priceRefresh.batchInsertProductVariants(batch);
-  }
-
-  log.info(`Auto-matched ${toInsert.length} CardTrader variants to existing printings`);
-  return toInsert.length;
+  return blueprints
+    .filter((bp) => bp.category_id === CT_SINGLES_CATEGORY)
+    .map((bp) => ({
+      externalId: bp.id,
+      groupId: bp.expansion_id,
+      productName: bp.name,
+      tcgplayerIds: bp.tcg_player_id === null ? [] : [bp.tcg_player_id],
+      cardmarketIds: bp.card_market_ids,
+      observed: pricesByBlueprint.get(bp.id) ?? [],
+    }));
 }
 
 export async function refreshCardtraderPrices(
@@ -469,7 +300,7 @@ export async function refreshCardtraderPrices(
   await upsertMarketplaceGroups(repos.priceRefresh, "cardtrader", groupRows);
 
   // Auto-match before transform so newly matched products get snapshots.
-  await autoMatchBlueprints(repos, blueprints, prices, log);
+  await autoMatchByCrossReference(repos, "cardtrader", crossRefCandidates(blueprints, prices), log);
 
   const allStaging = buildCardtraderStaging(fetchResult, ignoredKeys);
 

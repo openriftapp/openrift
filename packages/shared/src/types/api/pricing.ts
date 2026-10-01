@@ -1,5 +1,6 @@
 import type {
   cardmarketSnapshotSchema,
+  cardnexusSnapshotSchema,
   cardtraderSnapshotSchema,
   marketplaceInfoResponseSchema,
   marketplaceInfoSchema,
@@ -35,17 +36,26 @@ export type CardmarketSnapshot = z.infer<typeof cardmarketSnapshotSchema>;
  */
 export type CardtraderSnapshot = z.infer<typeof cardtraderSnapshotSchema>;
 
+export type CardnexusSnapshot = z.infer<typeof cardnexusSnapshotSchema>;
+
 export type MarketplaceInfo = z.infer<typeof marketplaceInfoSchema>;
 
 export type PriceHistoryResponse = z.infer<typeof priceHistoryResponseSchema>;
 
 export type MarketplaceInfoResponse = z.infer<typeof marketplaceInfoResponseSchema>;
 
-export type AnySnapshot = TcgplayerSnapshot | CardmarketSnapshot | CardtraderSnapshot;
+export type AnySnapshot =
+  | TcgplayerSnapshot
+  | CardmarketSnapshot
+  | CardtraderSnapshot
+  | CardnexusSnapshot;
 
 export function snapshotHeadline(snap: AnySnapshot): number {
   if ("market" in snap) {
     return snap.market;
   }
-  return (snap.zeroLow ?? snap.low) as number;
+  if ("zeroLow" in snap) {
+    return (snap.zeroLow ?? snap.low) as number;
+  }
+  return snap.low as number;
 }

@@ -13,7 +13,11 @@ import type { Marketplace } from "@openrift/shared/types/pricing";
 import { normalizeNameForIdentity } from "@openrift/shared/utils";
 
 import type { Repos } from "../../../deps.js";
-import type { MarketplaceConfig, StagingRow } from "../lib/marketplace-configs.js";
+import type {
+  MarketplaceConfig,
+  MarketplaceConfigs,
+  StagingRow,
+} from "../lib/marketplace-configs.js";
 import { buildStagedRowMapping } from "./marketplace-mapping-shared.js";
 import { buildCardIndex, buildResponseGroups } from "./marketplace-mapping.js";
 
@@ -114,11 +118,16 @@ type RawGroupPrinting = MappingOverviewResult["groups"][number]["printings"][num
 type MergedPrinting = UnifiedMappingGroupResponse["printings"][number];
 type MergedGroup = Omit<UnifiedMappingGroupResponse, "primaryShortCode">;
 
-const EXTERNAL_ID_FIELD: Record<Marketplace, "tcgExternalId" | "cmExternalId" | "ctExternalId"> = {
+type ExternalIdField = "tcgExternalId" | "cmExternalId" | "ctExternalId" | "cnExternalId";
+
+const EXTERNAL_ID_FIELD: Record<Marketplace, ExternalIdField> = {
   tcgplayer: "tcgExternalId",
   cardmarket: "cmExternalId",
   cardtrader: "ctExternalId",
+  cardnexus: "cnExternalId",
 };
+
+const MERGE_ORDER: readonly Marketplace[] = ["tcgplayer", "cardmarket", "cardtrader", "cardnexus"];
 
 function emptyMarketplaceSlot(): MergedGroup["tcgplayer"] {
   return { stagedProducts: [], assignedProducts: [], assignments: [] };
@@ -141,6 +150,7 @@ function toMergedPrinting(p: RawGroupPrinting, marketplace: Marketplace): Merged
     tcgExternalId: marketplace === "tcgplayer" ? p.externalId : null,
     cmExternalId: marketplace === "cardmarket" ? p.externalId : null,
     ctExternalId: marketplace === "cardtrader" ? p.externalId : null,
+    cnExternalId: marketplace === "cardnexus" ? p.externalId : null,
   };
 }
 
@@ -183,24 +193,36 @@ function mergeMarketplaceIntoMap(
         setId: group.setId,
         setName: group.setName,
         printings: printings.map((p) => toMergedPrinting(p, marketplace)),
-        tcgplayer: marketplace === "tcgplayer" ? marketplaceData : emptyMarketplaceSlot(),
-        cardmarket: marketplace === "cardmarket" ? marketplaceData : emptyMarketplaceSlot(),
-        cardtrader: marketplace === "cardtrader" ? marketplaceData : emptyMarketplaceSlot(),
+        tcgplayer: emptyMarketplaceSlot(),
+        cardmarket: emptyMarketplaceSlot(),
+        cardtrader: emptyMarketplaceSlot(),
+        cardnexus: emptyMarketplaceSlot(),
+        [marketplace]: marketplaceData,
       });
     }
   }
 }
 
 function mergeOverviewsByCard(
-  tcgResult: MappingOverviewResult,
-  cmResult: MappingOverviewResult,
-  ctResult: MappingOverviewResult,
+  results: Record<Marketplace, MappingOverviewResult>,
 ): Map<string, MergedGroup> {
   const mergedMap = new Map<string, MergedGroup>();
-  mergeMarketplaceIntoMap(mergedMap, tcgResult, "tcgplayer");
-  mergeMarketplaceIntoMap(mergedMap, cmResult, "cardmarket");
-  mergeMarketplaceIntoMap(mergedMap, ctResult, "cardtrader");
+  for (const marketplace of MERGE_ORDER) {
+    mergeMarketplaceIntoMap(mergedMap, results[marketplace], marketplace);
+  }
   return mergedMap;
+}
+
+async function overviewsByMarketplace(
+  overviewFor: (config: MarketplaceConfig) => Promise<MappingOverviewResult>,
+  configs: MarketplaceConfigs,
+): Promise<Record<Marketplace, MappingOverviewResult>> {
+  const results = await Promise.all(
+    MERGE_ORDER.map((marketplace) => overviewFor(configs[marketplace])),
+  );
+  return Object.fromEntries(
+    MERGE_ORDER.map((marketplace, i) => [marketplace, results[i]]),
+  ) as Record<Marketplace, MappingOverviewResult>;
 }
 
 function withPrimaryShortCode(mergedMap: Map<string, MergedGroup>): UnifiedMappingGroupResponse[] {
@@ -215,9 +237,7 @@ function withPrimaryShortCode(mergedMap: Map<string, MergedGroup>): UnifiedMappi
 
 export async function buildUnifiedMappingsResponse(
   repos: Repos,
-  tcgplayerConfig: MarketplaceConfig,
-  cardmarketConfig: MarketplaceConfig,
-  cardtraderConfig: MarketplaceConfig,
+  configs: MarketplaceConfigs,
   getMappingOverview: GetMappingOverview,
 ): Promise<UnifiedMappingsResponse> {
   const unifiedRows = await repos.marketplaceMapping.allCardsWithPrintingsUnified();
@@ -232,36 +252,31 @@ export async function buildUnifiedMappingsResponse(
     seenCardIds.add(row.cardId);
     allCardsForMatching.push({ cardId: row.cardId, cardName: row.cardName });
   }
-  const [tcgResult, cmResult, ctResult] = await Promise.all([
-    getMappingOverview(repos, tcgplayerConfig, {
-      matchedCards: deriveCardsForMarketplace(unifiedRows, tcgplayerConfig.marketplace),
-      allCardsForMatching,
-    }),
-    getMappingOverview(repos, cardmarketConfig, {
-      matchedCards: deriveCardsForMarketplace(unifiedRows, cardmarketConfig.marketplace),
-      allCardsForMatching,
-    }),
-    getMappingOverview(repos, cardtraderConfig, {
-      matchedCards: deriveCardsForMarketplace(unifiedRows, cardtraderConfig.marketplace),
-      allCardsForMatching,
-    }),
-  ]);
+  const results = await overviewsByMarketplace(
+    (config) =>
+      getMappingOverview(repos, config, {
+        matchedCards: deriveCardsForMarketplace(unifiedRows, config.marketplace),
+        allCardsForMatching,
+      }),
+    configs,
+  );
 
-  const mergedMap = mergeOverviewsByCard(tcgResult, cmResult, ctResult);
+  const mergedMap = mergeOverviewsByCard(results);
   const groups = withPrimaryShortCode(mergedMap);
   groups.sort((a, b) => a.primaryShortCode.localeCompare(b.primaryShortCode));
 
   // allCards only needs to be sent once (same card pool for all)
-  const allCards = [tcgResult.allCards, cmResult.allCards, ctResult.allCards].reduce(
+  const allCards = MERGE_ORDER.map((marketplace) => results[marketplace].allCards).reduce(
     (best, curr) => (curr.length >= best.length ? curr : best),
   );
 
   return {
     groups,
     unmatchedProducts: {
-      tcgplayer: tcgResult.unmatchedProducts,
-      cardmarket: cmResult.unmatchedProducts,
-      cardtrader: ctResult.unmatchedProducts,
+      tcgplayer: results.tcgplayer.unmatchedProducts,
+      cardmarket: results.cardmarket.unmatchedProducts,
+      cardtrader: results.cardtrader.unmatchedProducts,
+      cardnexus: results.cardnexus.unmatchedProducts,
     },
     allCards,
   };
@@ -280,13 +295,10 @@ export async function buildUnifiedMappingsResponse(
  */
 export async function buildUnifiedMappingsCardResponse(
   repos: Repos,
-  tcgplayerConfig: MarketplaceConfig,
-  cardmarketConfig: MarketplaceConfig,
-  cardtraderConfig: MarketplaceConfig,
+  configs: MarketplaceConfigs,
   cardIdentifier: string,
 ): Promise<UnifiedMappingsCardResponse> {
-  const configs = [tcgplayerConfig, cardmarketConfig, cardtraderConfig];
-  const marketplaces = configs.map((c) => c.marketplace);
+  const marketplaces = [...MERGE_ORDER];
 
   const [unifiedRows, allCards, allAliases, stagedRaw] = await Promise.all([
     repos.marketplaceMapping.allCardsWithPrintingsUnified(cardIdentifier),
@@ -411,12 +423,7 @@ export async function buildUnifiedMappingsCardResponse(
     return { groups, unmatchedProducts: [], allCards: [] } satisfies MappingOverviewResult;
   };
 
-  const [tcgResult, cmResult, ctResult] = await Promise.all([
-    overviewFor(tcgplayerConfig),
-    overviewFor(cardmarketConfig),
-    overviewFor(cardtraderConfig),
-  ]);
-  const mergedMap = mergeOverviewsByCard(tcgResult, cmResult, ctResult);
+  const mergedMap = mergeOverviewsByCard(await overviewsByMarketplace(overviewFor, configs));
   const withPrimary = withPrimaryShortCode(mergedMap);
   const group = withPrimary[0] ?? null;
 

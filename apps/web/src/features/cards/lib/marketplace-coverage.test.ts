@@ -35,6 +35,7 @@ function printing(
     tcgExternalId: null,
     cmExternalId: null,
     ctExternalId: null,
+    cnExternalId: null,
     ...overrides,
   };
 }
@@ -136,6 +137,7 @@ function group(
       assignedProducts: ctAssigned ?? derivedAssigned((p) => p.ctExternalId),
       assignments: ctAssignments,
     },
+    cardnexus: { stagedProducts: [], assignedProducts: [], assignments: [] },
     ...rest,
   };
 }

@@ -41,7 +41,7 @@ function daysBetween(from: string, to: string): number {
 export const pricesRouter = {
   /**
    * `GET /prices` — latest market price per marketplace for every printing.
-   * Returned as `{ [printingId]: { tcgplayer?, cardmarket?, cardtrader? } }`
+   * Returned as `{ [printingId]: { tcgplayer?, cardmarket?, cardtrader?, cardnexus? } }`
    * with integer-cents amounts; the web converts at the display boundary.
    */
   prices: os.prices.handler(async ({ context }): Promise<PricesResponse> => {
@@ -89,6 +89,7 @@ export const pricesRouter = {
           tcgplayer: emptyMarketplaceInfo(),
           cardmarket: emptyMarketplaceInfo(),
           cardtrader: emptyMarketplaceInfo(),
+          cardnexus: emptyMarketplaceInfo(),
         };
       }
       for (const row of rows) {
@@ -108,7 +109,7 @@ export const pricesRouter = {
 
   /**
    * `GET /prices/:printingId/history` — price history for a single printing.
-   * Returns snapshots for TCGPlayer (USD), Cardmarket (EUR), and CardTrader
+   * Returns snapshots for TCGPlayer (USD), Cardmarket, CardTrader and CardNexus
    * (EUR) when available; `range` (`7d`/`30d`/`90d`/`all`) controls the window.
    * An unknown printing / source returns `available: false` (not a 404).
    */
@@ -144,17 +145,25 @@ export const pricesRouter = {
           currency: MARKETPLACE_CURRENCY.cardtrader,
           snapshots: [],
         },
+        cardnexus: {
+          available: false,
+          productId: null,
+          currency: MARKETPLACE_CURRENCY.cardnexus,
+          snapshots: [],
+        },
       };
     }
 
     const tcgSource = sources.find((s) => s.marketplace === ("tcgplayer" satisfies Marketplace));
     const cmSource = sources.find((s) => s.marketplace === ("cardmarket" satisfies Marketplace));
     const ctSource = sources.find((s) => s.marketplace === ("cardtrader" satisfies Marketplace));
+    const cnSource = sources.find((s) => s.marketplace === ("cardnexus" satisfies Marketplace));
 
-    const [tcgRows, cmRows, ctRows] = await Promise.all([
+    const [tcgRows, cmRows, ctRows, cnRows] = await Promise.all([
       tcgSource ? marketplace.snapshots(tcgSource.variantId, cutoff) : [],
       cmSource ? marketplace.snapshots(cmSource.variantId, cutoff) : [],
       ctSource ? marketplace.snapshots(ctSource.variantId, cutoff) : [],
+      cnSource ? marketplace.snapshots(cnSource.variantId, cutoff) : [],
     ]);
 
     const tcgSnapshots: PriceHistoryResponse["tcgplayer"]["snapshots"] = [];
@@ -194,6 +203,14 @@ export const pricesRouter = {
       });
     }
 
+    const cnSnapshots: PriceHistoryResponse["cardnexus"]["snapshots"] = [];
+    for (const r of cnRows) {
+      if (r.lowCents === null) {
+        continue;
+      }
+      cnSnapshots.push({ date: formatDay(r.recordedAt), low: r.lowCents });
+    }
+
     return {
       tcgplayer: {
         available: Boolean(tcgSource),
@@ -212,6 +229,12 @@ export const pricesRouter = {
         productId: ctSource?.externalId ?? null,
         currency: MARKETPLACE_CURRENCY.cardtrader,
         snapshots: ctSnapshots,
+      },
+      cardnexus: {
+        available: Boolean(cnSource),
+        productId: cnSource?.externalId ?? null,
+        currency: MARKETPLACE_CURRENCY.cardnexus,
+        snapshots: cnSnapshots,
       },
     };
   }),

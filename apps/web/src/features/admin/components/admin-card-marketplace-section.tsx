@@ -84,12 +84,12 @@ export function AdminCardMarketplaceSection({
           queryClient.setQueryData(cardKey, next);
         }
       }
-      const save =
-        marketplace === "tcgplayer"
-          ? tcgSaveMapping
-          : marketplace === "cardmarket"
-            ? cmSaveMapping
-            : ctSaveMapping;
+      const save = {
+        tcgplayer: tcgSaveMapping,
+        cardmarket: cmSaveMapping,
+        cardtrader: ctSaveMapping,
+        cardnexus: cnSaveMapping,
+      }[marketplace];
       save.mutate(
         { mappings },
         {
@@ -116,18 +116,23 @@ export function AdminCardMarketplaceSection({
   const tcgIgnoreVariant = useUnifiedIgnoreVariants("tcgplayer");
   const cmIgnoreVariant = useUnifiedIgnoreVariants("cardmarket");
   const ctIgnoreVariant = useUnifiedIgnoreVariants("cardtrader");
+  const cnIgnoreVariant = useUnifiedIgnoreVariants("cardnexus");
   const tcgIgnoreProduct = useUnifiedIgnoreProducts("tcgplayer");
   const cmIgnoreProduct = useUnifiedIgnoreProducts("cardmarket");
   const ctIgnoreProduct = useUnifiedIgnoreProducts("cardtrader");
+  const cnIgnoreProduct = useUnifiedIgnoreProducts("cardnexus");
   const tcgAssignToCard = useUnifiedAssignToCard("tcgplayer");
   const cmAssignToCard = useUnifiedAssignToCard("cardmarket");
   const ctAssignToCard = useUnifiedAssignToCard("cardtrader");
+  const cnAssignToCard = useUnifiedAssignToCard("cardnexus");
   const tcgUnassign = useUnifiedUnassignFromCard("tcgplayer");
   const cmUnassign = useUnifiedUnassignFromCard("cardmarket");
   const ctUnassign = useUnifiedUnassignFromCard("cardtrader");
+  const cnUnassign = useUnifiedUnassignFromCard("cardnexus");
   const tcgSaveMapping = useUnifiedSaveMappings("tcgplayer");
   const cmSaveMapping = useUnifiedSaveMappings("cardmarket");
   const ctSaveMapping = useUnifiedSaveMappings("cardtrader");
+  const cnSaveMapping = useUnifiedSaveMappings("cardnexus");
   const unmapPrinting = useUnmapMarketplacePrinting([
     adminKeys.cards.detail(cardId),
     adminKeys.unifiedMappings.all,
@@ -135,7 +140,11 @@ export function AdminCardMarketplaceSection({
 
   // oxlint-disable-next-line no-empty-function -- default no-op until the effect below installs the real handler
   const acceptAllRef = useRef<() => void>(() => {});
-  const isSaving = tcgSaveMapping.isPending || cmSaveMapping.isPending || ctSaveMapping.isPending;
+  const isSaving =
+    tcgSaveMapping.isPending ||
+    cmSaveMapping.isPending ||
+    ctSaveMapping.isPending ||
+    cnSaveMapping.isPending;
   useHotkey("Mod+Enter", () => acceptAllRef.current(), { enabled: !isSaving });
   // Install the latest accept-all closure every render so the hotkey fires
   // against the current data/handlers without needing a stale dep list.
@@ -151,8 +160,7 @@ export function AdminCardMarketplaceSection({
     const weak = collectWeakMappings(group, suggestions);
     // Strong wins when both are present, so Ctrl+Enter never accepts a
     // low-confidence match while a strong one is still on the page.
-    const totalStrong =
-      strong.tcgplayer.length + strong.cardmarket.length + strong.cardtrader.length;
+    const totalStrong = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
     acceptAllRef.current = () => {
       const target = totalStrong > 0 ? strong : weak;
       for (const mp of ALL_MARKETPLACES) {
@@ -180,97 +188,69 @@ export function AdminCardMarketplaceSection({
     );
   }
 
+  const handlersFor = (
+    marketplace: AdminMarketplaceName,
+    m: {
+      ignoreVariant: typeof tcgIgnoreVariant;
+      ignoreProduct: typeof tcgIgnoreProduct;
+      assignToCard: typeof tcgAssignToCard;
+      unassign: typeof tcgUnassign;
+      saveMapping: typeof tcgSaveMapping;
+    },
+  ): MarketplaceHandlers => ({
+    onIgnoreVariant: (eid, fin, lang) =>
+      m.ignoreVariant.mutate([{ externalId: eid, finish: fin, language: lang }], mutateOpts),
+    onIgnoreProduct: (eid) => m.ignoreProduct.mutate([{ externalId: eid }], mutateOpts),
+    onAssignToCard: (eid, fin, lang, cid) =>
+      m.assignToCard.mutate(
+        { externalId: eid, finish: fin, language: lang, cardId: cid },
+        mutateOpts,
+      ),
+    onAssignToPrinting: assignToPrinting(marketplace),
+    onBatchAssignToPrintings: applyAssignments(marketplace),
+    onUnassign: (eid, fin, lang) =>
+      m.unassign.mutate({ externalId: eid, finish: fin, language: lang }, mutateOpts),
+    onUnmapPrinting: (pid, eid, fin, lang) =>
+      unmapPrinting.mutate(
+        { marketplace, printingId: pid, externalId: eid, finish: fin, language: lang },
+        mutateOpts,
+      ),
+    isIgnoring: m.ignoreVariant.isPending || m.ignoreProduct.isPending,
+    isAssigning: m.assignToCard.isPending,
+    isAssigningToPrinting: m.saveMapping.isPending,
+    isUnassigning: m.unassign.isPending,
+    isUnmappingPrinting: unmapPrinting.isPending,
+  });
+
   const handlers: Record<AdminMarketplaceName, MarketplaceHandlers> = {
-    tcgplayer: {
-      onIgnoreVariant: (eid, fin, lang) =>
-        tcgIgnoreVariant.mutate([{ externalId: eid, finish: fin, language: lang }], mutateOpts),
-      onIgnoreProduct: (eid) => tcgIgnoreProduct.mutate([{ externalId: eid }], mutateOpts),
-      onAssignToCard: (eid, fin, lang, cid) =>
-        tcgAssignToCard.mutate(
-          { externalId: eid, finish: fin, language: lang, cardId: cid },
-          mutateOpts,
-        ),
-      onAssignToPrinting: assignToPrinting("tcgplayer"),
-      onBatchAssignToPrintings: applyAssignments("tcgplayer"),
-      onUnassign: (eid, fin, lang) =>
-        tcgUnassign.mutate({ externalId: eid, finish: fin, language: lang }, mutateOpts),
-      onUnmapPrinting: (pid, eid, fin, lang) =>
-        unmapPrinting.mutate(
-          {
-            marketplace: "tcgplayer",
-            printingId: pid,
-            externalId: eid,
-            finish: fin,
-            language: lang,
-          },
-          mutateOpts,
-        ),
-      isIgnoring: tcgIgnoreVariant.isPending || tcgIgnoreProduct.isPending,
-      isAssigning: tcgAssignToCard.isPending,
-      isAssigningToPrinting: tcgSaveMapping.isPending,
-      isUnassigning: tcgUnassign.isPending,
-      isUnmappingPrinting: unmapPrinting.isPending,
-    },
-    cardmarket: {
-      onIgnoreVariant: (eid, fin, lang) =>
-        cmIgnoreVariant.mutate([{ externalId: eid, finish: fin, language: lang }], mutateOpts),
-      onIgnoreProduct: (eid) => cmIgnoreProduct.mutate([{ externalId: eid }], mutateOpts),
-      onAssignToCard: (eid, fin, lang, cid) =>
-        cmAssignToCard.mutate(
-          { externalId: eid, finish: fin, language: lang, cardId: cid },
-          mutateOpts,
-        ),
-      onAssignToPrinting: assignToPrinting("cardmarket"),
-      onBatchAssignToPrintings: applyAssignments("cardmarket"),
-      onUnassign: (eid, fin, lang) =>
-        cmUnassign.mutate({ externalId: eid, finish: fin, language: lang }, mutateOpts),
-      onUnmapPrinting: (pid, eid, fin, lang) =>
-        unmapPrinting.mutate(
-          {
-            marketplace: "cardmarket",
-            printingId: pid,
-            externalId: eid,
-            finish: fin,
-            language: lang,
-          },
-          mutateOpts,
-        ),
-      isIgnoring: cmIgnoreVariant.isPending || cmIgnoreProduct.isPending,
-      isAssigning: cmAssignToCard.isPending,
-      isAssigningToPrinting: cmSaveMapping.isPending,
-      isUnassigning: cmUnassign.isPending,
-      isUnmappingPrinting: unmapPrinting.isPending,
-    },
-    cardtrader: {
-      onIgnoreVariant: (eid, fin, lang) =>
-        ctIgnoreVariant.mutate([{ externalId: eid, finish: fin, language: lang }], mutateOpts),
-      onIgnoreProduct: (eid) => ctIgnoreProduct.mutate([{ externalId: eid }], mutateOpts),
-      onAssignToCard: (eid, fin, lang, cid) =>
-        ctAssignToCard.mutate(
-          { externalId: eid, finish: fin, language: lang, cardId: cid },
-          mutateOpts,
-        ),
-      onAssignToPrinting: assignToPrinting("cardtrader"),
-      onBatchAssignToPrintings: applyAssignments("cardtrader"),
-      onUnassign: (eid, fin, lang) =>
-        ctUnassign.mutate({ externalId: eid, finish: fin, language: lang }, mutateOpts),
-      onUnmapPrinting: (pid, eid, fin, lang) =>
-        unmapPrinting.mutate(
-          {
-            marketplace: "cardtrader",
-            printingId: pid,
-            externalId: eid,
-            finish: fin,
-            language: lang,
-          },
-          mutateOpts,
-        ),
-      isIgnoring: ctIgnoreVariant.isPending || ctIgnoreProduct.isPending,
-      isAssigning: ctAssignToCard.isPending,
-      isAssigningToPrinting: ctSaveMapping.isPending,
-      isUnassigning: ctUnassign.isPending,
-      isUnmappingPrinting: unmapPrinting.isPending,
-    },
+    tcgplayer: handlersFor("tcgplayer", {
+      ignoreVariant: tcgIgnoreVariant,
+      ignoreProduct: tcgIgnoreProduct,
+      assignToCard: tcgAssignToCard,
+      unassign: tcgUnassign,
+      saveMapping: tcgSaveMapping,
+    }),
+    cardmarket: handlersFor("cardmarket", {
+      ignoreVariant: cmIgnoreVariant,
+      ignoreProduct: cmIgnoreProduct,
+      assignToCard: cmAssignToCard,
+      unassign: cmUnassign,
+      saveMapping: cmSaveMapping,
+    }),
+    cardtrader: handlersFor("cardtrader", {
+      ignoreVariant: ctIgnoreVariant,
+      ignoreProduct: ctIgnoreProduct,
+      assignToCard: ctAssignToCard,
+      unassign: ctUnassign,
+      saveMapping: ctSaveMapping,
+    }),
+    cardnexus: handlersFor("cardnexus", {
+      ignoreVariant: cnIgnoreVariant,
+      ignoreProduct: cnIgnoreProduct,
+      assignToCard: cnAssignToCard,
+      unassign: cnUnassign,
+      saveMapping: cnSaveMapping,
+    }),
   };
 
   const suggestions = computeProductSuggestions(group);

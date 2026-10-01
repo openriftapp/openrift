@@ -53,6 +53,13 @@ export function usePriceHistory(printingId: string | null, range: TimeRange = "3
           low: centsToMajor(s.low),
         })),
       },
+      cardnexus: {
+        ...data.cardnexus,
+        snapshots: data.cardnexus.snapshots.map((s) => ({
+          date: s.date,
+          low: centsToMajor(s.low),
+        })),
+      },
     }),
     enabled: Boolean(printingId),
     staleTime: 60 * 60 * 1000, // 1 hour

@@ -5,6 +5,7 @@ import { implement } from "@orpc/server";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { refreshCardmarketPrices } from "../../marketplace/services/price-refresh/cardmarket.js";
+import { refreshCardnexusPrices } from "../../marketplace/services/price-refresh/cardnexus.js";
 import { refreshCardtraderPrices } from "../../marketplace/services/price-refresh/cardtrader.js";
 import { refreshTcgplayerPrices } from "../../marketplace/services/price-refresh/tcgplayer.js";
 import { runJobAsync } from "../services/run-job.js";
@@ -58,6 +59,19 @@ export const adminOperationsRouter = {
       "cardtrader.refresh",
       "admin",
       () => refreshCardtraderPrices(fetchFn, repos, log, ctToken),
+      { summarize: (result) => result },
+    );
+  }),
+
+  refreshCardnexus: os.refreshCardnexus.handler(async ({ context }) => {
+    const repos = context.repos;
+    const fetchFn = context.io.fetch;
+    const apiKey = context.config.cardnexusApiKey;
+    return await runJobAsync(
+      { repos, log },
+      "cardnexus.refresh",
+      "admin",
+      () => refreshCardnexusPrices(fetchFn, repos, log, apiKey),
       { summarize: (result) => result },
     );
   }),

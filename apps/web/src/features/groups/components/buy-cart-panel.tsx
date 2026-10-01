@@ -4,7 +4,6 @@ import {
   CARDTRADER_WISHLIST_URL,
   tcgplayerMassEntryUrl,
 } from "@openrift/shared/marketplace";
-import type { Marketplace } from "@openrift/shared/types/pricing";
 import { getOrientation, legendDisplayName } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
 import { CheckIcon, PuzzleIcon, ShoppingCartIcon, XIcon } from "lucide-react";
@@ -32,7 +31,8 @@ import { useMarkOrdered } from "@/features/groups/hooks/use-mark-ordered";
 import type { BuyCartItem } from "@/features/groups/lib/buy-cart";
 import { cartCardLines, cartTotal, massEntryLines } from "@/features/groups/lib/buy-cart";
 import type { WantedCard } from "@/features/groups/lib/wanted-cards";
-import { useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
+import type { BuyCartMarketplace } from "@/features/groups/stores/buy-cart-store";
+import { BUY_CART_MARKETPLACES, useBuyCartStore } from "@/features/groups/stores/buy-cart-store";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCardmarketWants, formatCardtraderWishlist } from "@/lib/export-text";
@@ -40,9 +40,7 @@ import { formatterForMarketplace } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
-const MARKETPLACE_ORDER: readonly Marketplace[] = ["cardtrader", "cardmarket", "tcgplayer"];
-
-function marketplaceName(marketplace: Marketplace): string {
+function marketplaceName(marketplace: BuyCartMarketplace): string {
   return {
     cardtrader: m.trades_buy_market_cardtrader(),
     cardmarket: m.trades_buy_market_cardmarket(),
@@ -50,7 +48,7 @@ function marketplaceName(marketplace: Marketplace): string {
   }[marketplace];
 }
 
-function marketplaceHow(marketplace: Marketplace): string {
+function marketplaceHow(marketplace: BuyCartMarketplace): string {
   return {
     cardtrader: m.trades_buy_how_cardtrader(),
     cardmarket: m.trades_buy_how_cardmarket(),
@@ -167,7 +165,7 @@ function HandoffButton({
   items,
   nameOf,
 }: {
-  marketplace: Marketplace;
+  marketplace: BuyCartMarketplace;
   items: readonly BuyCartItem[];
   nameOf: (item: BuyCartItem) => string;
 }) {
@@ -390,10 +388,10 @@ export function BuyCartPanel({
 
           <RadioGroup
             value={marketplace}
-            onValueChange={(value) => setMarketplace(value as Marketplace)}
+            onValueChange={(value) => setMarketplace(value as BuyCartMarketplace)}
             aria-label={m.trades_buy_market_label()}
           >
-            {MARKETPLACE_ORDER.map((entry) => (
+            {BUY_CART_MARKETPLACES.map((entry) => (
               // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the radio control is nested inside the label
               <label
                 key={entry}

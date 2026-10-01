@@ -4,7 +4,7 @@ import { z } from "zod";
 import { TIME_RANGE_DAYS } from "../types/pricing.js";
 import type { TimeRange } from "../types/pricing.js";
 
-// Integer cents in each marketplace's own currency (tcgplayer=USD, cardmarket/cardtrader=EUR, see MARKETPLACE_CURRENCY).
+// Integer cents in each marketplace's own currency (tcgplayer=USD, the rest EUR, see MARKETPLACE_CURRENCY).
 const marketplacePriceMapSchema = z.object({
   tcgplayer: z
     .number()
@@ -21,6 +21,11 @@ const marketplacePriceMapSchema = z.object({
     .int()
     .optional()
     .meta({ examples: [390], description: "Integer cents (EUR)" }),
+  cardnexus: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [370], description: "Integer cents (EUR)" }),
 });
 
 const marketplaceCurrenciesSchema = z
@@ -28,8 +33,11 @@ const marketplaceCurrenciesSchema = z
     tcgplayer: z.enum(["EUR", "USD"]),
     cardmarket: z.enum(["EUR", "USD"]),
     cardtrader: z.enum(["EUR", "USD"]),
+    cardnexus: z.enum(["EUR", "USD"]),
   })
-  .meta({ examples: [{ tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR" }] });
+  .meta({
+    examples: [{ tcgplayer: "USD", cardmarket: "EUR", cardtrader: "EUR", cardnexus: "EUR" }],
+  });
 
 const staleAgeMapSchema = z.object({
   tcgplayer: z
@@ -47,6 +55,11 @@ const staleAgeMapSchema = z.object({
     .int()
     .optional()
     .meta({ examples: [29], description: "Days since seen" }),
+  cardnexus: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [29], description: "Days since seen" }),
 });
 
 export const pricesResponseSchema = z.object({
@@ -57,6 +70,7 @@ export const pricesResponseSchema = z.object({
           tcgplayer: 452,
           cardmarket: 380,
           cardtrader: 390,
+          cardnexus: 370,
         },
       },
     ],
@@ -105,6 +119,20 @@ export const cardtraderSnapshotSchema = z.object({
     .int()
     .nullable()
     .meta({ examples: [390], description: "Integer cents (EUR)" }),
+  cardnexus: z
+    .number()
+    .int()
+    .optional()
+    .meta({ examples: [370], description: "Integer cents (EUR)" }),
+});
+
+export const cardnexusSnapshotSchema = z.object({
+  date: z.string().meta({ examples: ["2026-04-01"], description: "Date-only (YYYY-MM-DD), EUR" }),
+  low: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ examples: [370], description: "Integer cents (EUR)" }),
 });
 
 export const marketplaceInfoSchema = z.object({
@@ -130,6 +158,10 @@ export const priceHistoryResponseSchema = z.object({
     currency: currencyFieldSchema,
     snapshots: z.array(cardtraderSnapshotSchema),
   }),
+  cardnexus: marketplaceInfoSchema.extend({
+    currency: currencyFieldSchema,
+    snapshots: z.array(cardnexusSnapshotSchema),
+  }),
 });
 
 export const marketplaceInfoResponseSchema = z.object({
@@ -140,6 +172,7 @@ export const marketplaceInfoResponseSchema = z.object({
         tcgplayer: marketplaceInfoSchema,
         cardmarket: marketplaceInfoSchema,
         cardtrader: marketplaceInfoSchema,
+        cardnexus: marketplaceInfoSchema,
       }),
     )
     .meta({
@@ -149,6 +182,7 @@ export const marketplaceInfoResponseSchema = z.object({
             tcgplayer: { available: true, productId: 582_391 },
             cardmarket: { available: true, productId: 748_215 },
             cardtrader: { available: false, productId: null },
+            cardnexus: { available: true, productId: 151_160 },
           },
         },
       ],

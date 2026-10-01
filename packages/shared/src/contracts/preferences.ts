@@ -2,6 +2,7 @@ import { currencySchema, marketplaceEnum } from "@openrift/shared/schemas";
 import { z } from "zod";
 
 import { DISPLAY_LOCALES, TRADE_REQUEST_EMAIL_CADENCES } from "../types/api/preferences.js";
+import { ALL_MARKETPLACES } from "../types/pricing.js";
 import { authedRoute } from "./_base.js";
 
 const themeEnum = z.enum(["light", "dark", "auto"]);
@@ -71,7 +72,7 @@ export const updatePreferencesSchema = z.object({
   marketplaceOrder: z
     .array(marketplaceEnum)
     .min(1)
-    .max(3)
+    .max(ALL_MARKETPLACES.length)
     .refine((arr) => new Set(arr).size === arr.length, { message: "Duplicate marketplaces" })
     .nullable()
     .optional(),

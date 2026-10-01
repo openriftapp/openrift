@@ -48,6 +48,7 @@ const PRICE_MARKETPLACE_OPTIONS: { value: Marketplace; label: string }[] = [
   { value: "cardtrader", label: "CardTrader (EUR)" },
   { value: "tcgplayer", label: "TCGplayer (USD)" },
   { value: "cardmarket", label: "Cardmarket (EUR)" },
+  { value: "cardnexus", label: "CardNexus (EUR)" },
 ];
 
 export function FilterRow({

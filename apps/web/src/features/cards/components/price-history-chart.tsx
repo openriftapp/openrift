@@ -18,6 +18,7 @@ import {
 } from "@/features/cards/components/price-history-chart-constants";
 import { PriceTrend } from "@/features/cards/components/price-trend";
 import { usePriceHistory } from "@/features/cards/hooks/use-price-history";
+import { priceHistoryPoint } from "@/features/cards/lib/price-history-points";
 import { formatterForMarketplace } from "@/lib/format";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
@@ -47,7 +48,11 @@ function PriceHistoryTooltipContent({
     return null;
   }
   const headlineLabel =
-    source === "cardtrader" ? m.card_detail_chart_zero() : m.card_detail_chart_market();
+    source === "cardtrader"
+      ? m.card_detail_chart_zero()
+      : source === "cardnexus"
+        ? m.card_detail_chart_low()
+        : m.card_detail_chart_market();
   return (
     <div className="border-border/50 bg-background rounded-lg border px-2.5 py-1.5 text-xs shadow-md">
       <p className="mb-1 font-medium">{formatDay(snap.date)}</p>
@@ -133,14 +138,8 @@ export function PriceHistoryChart({
 
   const currencyFormatter = formatterForMarketplace(source);
   const sourceData = data?.[source];
-  // CardTrader returns null for days before zero_low_cents existed; don't
-  // fall back to the overall low here or those snapshots plot a false drop.
   const rawSnapshots: AnySnapshot[] = sourceData?.snapshots ?? [];
-  const snapshots = rawSnapshots.map((s) => ({
-    date: s.date,
-    value: "market" in s ? s.market : s.zeroLow,
-    low: s.low,
-  }));
+  const snapshots = rawSnapshots.map((s) => priceHistoryPoint(s));
 
   const hasLow = snapshots.some((s) => s.low !== null);
   const plottedValues = snapshots.reduce<number[]>((values, s) => {

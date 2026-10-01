@@ -7,6 +7,7 @@ const MARKETPLACE_ICONS: Record<Marketplace, { src: string; className: string }>
   tcgplayer: { src: "/images/external/tcgplayer-38x28.webp", className: "invert dark:invert-0" },
   cardmarket: { src: "/images/external/cardmarket-20x28.webp", className: "invert dark:invert-0" },
   cardtrader: { src: "/images/external/cardtrader-20x28.webp", className: "invert dark:invert-0" },
+  cardnexus: { src: "/images/external/cardnexus-28x28.webp", className: "invert dark:invert-0" },
 };
 
 // Defaults to decorative (alt=""); pass `alt` only where the icon is the sole identification.

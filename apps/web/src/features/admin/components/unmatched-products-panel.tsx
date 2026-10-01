@@ -51,12 +51,13 @@ import { CardSearchDropdown } from "@/features/cards/components/card-search-drop
 import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
 
 import { ProductLink } from "./price-mappings-utils";
-import { CM_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
+import { CM_CONFIG, CN_CONFIG, CT_CONFIG, TCG_CONFIG } from "./source-configs";
 
 const CONFIG_BY_MARKETPLACE: Record<Marketplace, SourceMappingConfig> = {
   tcgplayer: TCG_CONFIG,
   cardmarket: CM_CONFIG,
   cardtrader: CT_CONFIG,
+  cardnexus: CN_CONFIG,
 };
 
 const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000;
@@ -148,12 +149,15 @@ export function UnmatchedProductsPanel() {
   const tcgAssign = useUnifiedAssignToCard("tcgplayer");
   const cmAssign = useUnifiedAssignToCard("cardmarket");
   const ctAssign = useUnifiedAssignToCard("cardtrader");
+  const cnAssign = useUnifiedAssignToCard("cardnexus");
   const tcgIgnoreVariant = useUnifiedIgnoreVariants("tcgplayer");
   const cmIgnoreVariant = useUnifiedIgnoreVariants("cardmarket");
   const ctIgnoreVariant = useUnifiedIgnoreVariants("cardtrader");
+  const cnIgnoreVariant = useUnifiedIgnoreVariants("cardnexus");
   const tcgIgnoreProduct = useUnifiedIgnoreProducts("tcgplayer");
   const cmIgnoreProduct = useUnifiedIgnoreProducts("cardmarket");
   const ctIgnoreProduct = useUnifiedIgnoreProducts("cardtrader");
+  const cnIgnoreProduct = useUnifiedIgnoreProducts("cardnexus");
 
   function mutationsFor(marketplace: Marketplace) {
     switch (marketplace) {
@@ -169,6 +173,9 @@ export function UnmatchedProductsPanel() {
       }
       case "cardtrader": {
         return { assign: ctAssign, ignoreVariant: ctIgnoreVariant, ignoreProduct: ctIgnoreProduct };
+      }
+      case "cardnexus": {
+        return { assign: cnAssign, ignoreVariant: cnIgnoreVariant, ignoreProduct: cnIgnoreProduct };
       }
     }
   }
@@ -452,6 +459,7 @@ function FilterBar({
     { value: "tcgplayer", label: "TCGplayer" },
     { value: "cardmarket", label: "Cardmarket" },
     { value: "cardtrader", label: "CardTrader" },
+    { value: "cardnexus", label: "CardNexus" },
   ];
   const finishItems = [
     { value: "all", label: "All finishes" },

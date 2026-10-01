@@ -6,6 +6,7 @@ import type {
   CandidateCardSummaryResponse,
   CandidatePrintingGroupResponse,
 } from "@openrift/shared/types/api/admin";
+import { marketplaceEnum } from "@openrift/shared/types/pricing";
 import { formatPrintingLabel, mostCommonValue, slugifyName } from "@openrift/shared/utils";
 import { WellKnown } from "@openrift/shared/well-known";
 
@@ -29,10 +30,8 @@ const FINISH_MISMATCH_COST = 100;
 const EXTRA_MARKER_COST = 1;
 
 function toMarketplaceName(marketplace: string): AdminMarketplaceName | null {
-  if (marketplace === "tcgplayer" || marketplace === "cardmarket" || marketplace === "cardtrader") {
-    return marketplace;
-  }
-  return null;
+  const parsed = marketplaceEnum.safeParse(marketplace);
+  return parsed.success ? parsed.data : null;
 }
 
 function deriveExpectedCardId(displayName: string, currentSlug?: string): string {

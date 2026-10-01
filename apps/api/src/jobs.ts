@@ -31,6 +31,7 @@ import {
   isTradeStatusFlushNoop,
 } from "./modules/groups/services/trade-status-notifications.js";
 import { refreshCardmarketPrices } from "./modules/marketplace/services/price-refresh/cardmarket.js";
+import { refreshCardnexusPrices } from "./modules/marketplace/services/price-refresh/cardnexus.js";
 import { refreshCardtraderPrices } from "./modules/marketplace/services/price-refresh/cardtrader.js";
 import { refreshTcgplayerPrices } from "./modules/marketplace/services/price-refresh/tcgplayer.js";
 import {
@@ -77,6 +78,7 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
   const tcgLog = log.child({ service: "tcgplayer" });
   const cmLog = log.child({ service: "cardmarket" });
   const ctLog = log.child({ service: "cardtrader" });
+  const cnLog = log.child({ service: "cardnexus" });
   const clLog = log.child({ service: "changelog" });
   const peLog = log.child({ service: "printing-events" });
   const jrLog = log.child({ service: "job-runs-cleanup" });
@@ -147,6 +149,16 @@ export function createJobDefinitions(deps: JobDefinitionDeps): AnyJobDefinition[
       log: ctLog,
       execute: () =>
         refreshCardtraderPrices(globalThis.fetch, repos, ctLog, config.cardtraderApiToken),
+      summarize: (result) => result,
+    }),
+    defineJob({
+      kind: "cardnexus.refresh",
+      title: "CardNexus price refresh",
+      description: "Fetches the current CardNexus prices for every mapped printing.",
+      suggestedSchedule: "45 6 * * *",
+      unavailableReason: config.cardnexusApiKey ? undefined : "CARDNEXUS_API_KEY is not set.",
+      log: cnLog,
+      execute: () => refreshCardnexusPrices(globalThis.fetch, repos, cnLog, config.cardnexusApiKey),
       summarize: (result) => result,
     }),
     defineJob({

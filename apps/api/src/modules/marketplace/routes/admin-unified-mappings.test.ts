@@ -51,7 +51,7 @@ describe("GET /api/admin/v1/marketplace-mappings", () => {
   it("returns 200 with unified mappings response", async () => {
     const mockResponse = {
       groups: [],
-      unmatchedProducts: { tcgplayer: [], cardmarket: [], cardtrader: [] },
+      unmatchedProducts: { tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] },
       allCards: [],
     };
     mockBuildUnifiedMappings.mockResolvedValue(mockResponse);
@@ -63,15 +63,16 @@ describe("GET /api/admin/v1/marketplace-mappings", () => {
     expect(mockBuildUnifiedMappings).toHaveBeenCalledTimes(1);
   });
 
-  it("passes all three marketplace configs", async () => {
+  it("passes a config for every marketplace", async () => {
     mockBuildUnifiedMappings.mockResolvedValue({} as any);
 
     await app.request("/api/admin/v1/marketplace-mappings");
 
-    const lastCallArgs = mockBuildUnifiedMappings.mock.calls[0];
-    expect(lastCallArgs![1]).toHaveProperty("marketplace", "tcgplayer");
-    expect(lastCallArgs![2]).toHaveProperty("marketplace", "cardmarket");
-    expect(lastCallArgs![3]).toHaveProperty("marketplace", "cardtrader");
+    const configs = mockBuildUnifiedMappings.mock.calls[0]![1];
+    expect(configs.tcgplayer).toHaveProperty("marketplace", "tcgplayer");
+    expect(configs.cardmarket).toHaveProperty("marketplace", "cardmarket");
+    expect(configs.cardtrader).toHaveProperty("marketplace", "cardtrader");
+    expect(configs.cardnexus).toHaveProperty("marketplace", "cardnexus");
   });
 });
 
@@ -94,6 +95,7 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
           tcgplayer: marketplace([]),
           cardmarket: marketplace([{ language: null }]),
           cardtrader: marketplace([{ language: "FR" }]),
+          cardnexus: marketplace([]),
         },
         {
           cardSlug: "blast-cone",
@@ -101,12 +103,14 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
           tcgplayer: marketplace([]),
           cardmarket: marketplace([]),
           cardtrader: marketplace([]),
+          cardnexus: marketplace([]),
         },
       ],
       unmatchedProducts: {
         tcgplayer: [{}],
         cardmarket: [],
         cardtrader: [{}, {}],
+        cardnexus: [{}],
       },
       allCards: [],
     } as any);
@@ -121,7 +125,7 @@ describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
           { marketplace: "cardmarket", language: null, unbound: 1, assignable: true },
         ],
       },
-      unmatchedCount: 3,
+      unmatchedCount: 4,
     });
   });
 });
