@@ -131,7 +131,23 @@ describe.skipIf(!ctx)("catalogResponseVersion (integration)", () => {
           WHERE ctid = (SELECT ctid FROM card_bans WHERE unbanned_at IS NULL LIMIT 1)`,
       ],
     },
-    { table: "card_errata", why: "card.errata", statements: [touch("card_errata", "created_at")] },
+    {
+      table: "card_errata",
+      why: "card.errata",
+      statements: [
+        `UPDATE card_errata SET corrected_rules_text = coalesce(corrected_rules_text, '') || ' (probe)'
+          WHERE ctid = (SELECT ctid FROM card_errata LIMIT 1)`,
+      ],
+    },
+    {
+      table: "errata_announcements",
+      why: "card.errata source",
+      statements: [
+        `INSERT INTO errata_announcements (id, name, published_on, url)
+         VALUES ('a0000000-0042-4000-a000-0000000000e1', 'Probe announcement', '2026-01-01',
+                 'https://example.test/probe-errata')`,
+      ],
+    },
     { table: "copies", why: "totalCopies", statements: [dropOne("copies")] },
     { table: "card_domains", why: "card.domains", statements: [dropOne("card_domains")] },
     {

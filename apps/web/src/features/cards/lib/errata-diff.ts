@@ -1,7 +1,7 @@
 import type { CardTextToken } from "@openrift/shared/card-text";
 import { tokenizeCardText } from "@openrift/shared/card-text";
 
-export type ErrataDiffStatus = "same" | "added" | "removed";
+type ErrataDiffStatus = "same" | "added" | "removed";
 
 export interface ErrataDiffSegment {
   status: ErrataDiffStatus;
