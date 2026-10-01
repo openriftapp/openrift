@@ -75,6 +75,57 @@ describe("GET /api/admin/v1/marketplace-mappings", () => {
   });
 });
 
+describe("GET /api/admin/v1/marketplace-mappings/summary", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns per-slug assign buckets and the unmatched count", async () => {
+    const marketplace = (stagedProducts: { language: string | null }[]) => ({
+      stagedProducts,
+      assignedProducts: [],
+      assignments: [],
+    });
+    mockBuildUnifiedMappings.mockResolvedValue({
+      groups: [
+        {
+          cardSlug: "unforgiven",
+          printings: [{ language: "EN" }],
+          tcgplayer: marketplace([]),
+          cardmarket: marketplace([{ language: null }]),
+          cardtrader: marketplace([{ language: "FR" }]),
+        },
+        {
+          cardSlug: "blast-cone",
+          printings: [{ language: "EN" }],
+          tcgplayer: marketplace([]),
+          cardmarket: marketplace([]),
+          cardtrader: marketplace([]),
+        },
+      ],
+      unmatchedProducts: {
+        tcgplayer: [{}],
+        cardmarket: [],
+        cardtrader: [{}, {}],
+      },
+      allCards: [],
+    } as any);
+
+    const res = await app.request("/api/admin/v1/marketplace-mappings/summary");
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({
+      assignBucketsBySlug: {
+        unforgiven: [
+          { marketplace: "cardmarket", language: null, unbound: 1, assignable: true },
+          { marketplace: "cardtrader", language: "FR", unbound: 1, assignable: false },
+        ],
+      },
+      unmatchedCount: 3,
+    });
+  });
+});
+
 describe("POST /api/admin/v1/marketplace-mappings", () => {
   beforeEach(() => {
     vi.resetAllMocks();

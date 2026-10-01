@@ -27,7 +27,6 @@ const mocks = vi.hoisted(() => ({
   cardListEnabled: { current: false },
   reviewItems: [] as ReviewQueueItem[],
   reviewQueueEnabled: { current: false },
-  mappingGroups: [] as unknown[],
   bucketsBySlug: new Map<string, unknown[]>(),
 }));
 
@@ -74,14 +73,9 @@ vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-unified-mappings", () => ({
-  useUnifiedMappingsWhen: (enabled: boolean) => ({
-    data: enabled ? { groups: mocks.mappingGroups } : undefined,
+  useUnifiedMappingsSummaryWhen: (enabled: boolean) => ({
+    data: enabled ? { assignBucketsBySlug: mocks.bucketsBySlug, unmatchedCount: 0 } : undefined,
   }),
-}));
-
-vi.mock("@/features/cards/lib/marketplace-coverage", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  buildPriceAssignBucketsBySlug: () => mocks.bucketsBySlug,
 }));
 
 vi.mock("@/features/admin/hooks/use-catalog-review", () => ({

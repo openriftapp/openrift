@@ -7,7 +7,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
-import { unifiedMappingsQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import {
+  unifiedMappingsQueryOptions,
+  unifiedMappingsSummaryQueryOptions,
+} from "@/features/admin/lib/unified-mappings-queries";
+import type { UnifiedMappingsSummaryResponse } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import type { ContractInput } from "@/lib/server-fns/orpc-client";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -20,8 +24,15 @@ export function useUnifiedMappings() {
  * The marketplace endpoint 403s for card-review grant holders, so the query
  * only runs when `enabled` (full admin).
  */
-export function useUnifiedMappingsWhen(enabled: boolean) {
-  return useQuery({ ...unifiedMappingsQueryOptions(), enabled });
+function selectSummary(summary: UnifiedMappingsSummaryResponse) {
+  return {
+    assignBucketsBySlug: new Map(Object.entries(summary.assignBucketsBySlug)),
+    unmatchedCount: summary.unmatchedCount,
+  };
+}
+
+export function useUnifiedMappingsSummaryWhen(enabled: boolean) {
+  return useQuery({ ...unifiedMappingsSummaryQueryOptions(), enabled, select: selectSummary });
 }
 
 function useUnifiedMutation<TInput, TResult>(

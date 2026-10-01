@@ -806,7 +806,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
             avg7Cents: null,
             avg30Cents: null,
             recordedAt: new Date("2026-04-01T00:00:00Z"),
-            isOverride: false,
+            overrideCardId: null,
           },
           {
             marketplace: "tcgplayer",
@@ -825,7 +825,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
             avg7Cents: null,
             avg30Cents: null,
             recordedAt: new Date("2026-04-01T00:00:00Z"),
-            isOverride: false,
+            overrideCardId: null,
           },
         ]),
       },
@@ -905,7 +905,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
             avg7Cents: null,
             avg30Cents: null,
             recordedAt: new Date("2026-04-01T00:00:00Z"),
-            isOverride: true,
+            overrideCardId: "card-blast-cone",
           },
         ]),
       },
@@ -922,6 +922,76 @@ describe("buildUnifiedMappingsCardResponse", () => {
     const staged = result.group?.tcgplayer.stagedProducts ?? [];
     expect(staged.map((p) => p.externalId)).toContain(42);
     expect(staged[0]?.isOverride).toBe(true);
+  });
+
+  it("drops name-matched rows that an override moved to another card", async () => {
+    const stagedRow = (externalId: number, overrideCardId: string | null) => ({
+      marketplace: "cardtrader",
+      externalId,
+      productName: "Blast Cone",
+      finish: "normal",
+      language: "EN",
+      groupId: 10,
+      groupName: "Origins",
+      marketCents: 100,
+      lowCents: 50,
+      midCents: null,
+      highCents: null,
+      trendCents: null,
+      avg1Cents: null,
+      avg7Cents: null,
+      avg30Cents: null,
+      recordedAt: new Date("2026-04-01T00:00:00Z"),
+      overrideCardId,
+    });
+    const repos = {
+      marketplaceMapping: {
+        allCardsWithPrintingsUnified: vi.fn().mockResolvedValue([
+          {
+            cardId: "card-blast-cone",
+            cardSlug: "blast-cone",
+            cardName: "Blast Cone",
+            superTypes: [],
+            domains: ["Fire"],
+            energy: 2,
+            might: null,
+            printingId: "p-bc",
+            setId: "set-1",
+            shortCode: "OGN-001",
+            rarity: "common",
+            setName: "Origins",
+            artVariant: "normal",
+            isSigned: false,
+            markerSlugs: [],
+            finish: "normal",
+            language: "EN",
+            imageUrl: null,
+            variantMarketplace: null,
+            externalId: null,
+            sourceGroupId: null,
+            sourceLanguage: null,
+          },
+        ]),
+        assignableCards: vi.fn().mockResolvedValue([]),
+        allCardAliases: vi
+          .fn()
+          .mockResolvedValue([{ cardId: "card-blast-cone", normName: "blastcone" }]),
+        stagingForCardAcrossMarketplaces: vi
+          .fn()
+          .mockResolvedValue([stagedRow(1, null), stagedRow(2, "card-other")]),
+      },
+    } as unknown as Repos;
+
+    const result = await buildUnifiedMappingsCardResponse(
+      repos,
+      makeScopedCardConfig("tcgplayer"),
+      makeScopedCardConfig("cardmarket"),
+      makeScopedCardConfig("cardtrader"),
+      "blast-cone",
+    );
+
+    const staged = result.group?.cardtrader.stagedProducts ?? [];
+    expect(staged.map((p) => p.externalId)).toEqual([1]);
   });
 
   it("resolves assigned-product groupName from the unified row when no staging exists", async () => {
@@ -1094,7 +1164,7 @@ describe("buildUnifiedMappingsCardResponse", () => {
             avg7Cents: null,
             avg30Cents: null,
             recordedAt: new Date("2026-05-06T00:42:33Z"),
-            isOverride: false,
+            overrideCardId: null,
           },
         ]),
       },

@@ -20,7 +20,7 @@ import {
 } from "@/features/admin/hooks/use-admin-card-queries";
 import { useReviewQueueWhen } from "@/features/admin/hooks/use-catalog-review";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
-import { useUnifiedMappingsWhen } from "@/features/admin/hooks/use-unified-mappings";
+import { useUnifiedMappingsSummaryWhen } from "@/features/admin/hooks/use-unified-mappings";
 import { selectAdminCardPrevNext } from "@/features/admin/lib/admin-card-nav";
 import type { PrevNextSlugs } from "@/features/admin/lib/admin-card-nav";
 import { buildPrintingGroups } from "@/features/admin/lib/candidate-printing-groups";
@@ -31,7 +31,6 @@ import type { CardSection } from "@/features/admin/lib/card-sections";
 import { reviewSectionsBySlug } from "@/features/admin/lib/review-queue";
 import {
   ALL_ASSIGNABLE_SCOPE,
-  buildPriceAssignBucketsBySlug,
   unlinkedProductCount,
 } from "@/features/cards/lib/marketplace-coverage";
 
@@ -154,13 +153,11 @@ export function useCardReviewNavigation({
   const priceFilterActive = listStatus === "prices-to-assign";
   const attentionFilterActive =
     listStatus !== undefined && listStatus !== "review" && !priceFilterActive;
-  const { data: unifiedMappings } = useUnifiedMappingsWhen(
+  const { data: mappingsSummary } = useUnifiedMappingsSummaryWhen(
     isAdmin && (priceFilterActive || listStatus === "attention"),
   );
   const activePriceScope = priceFilterActive ? (priceScope ?? ALL_ASSIGNABLE_SCOPE) : null;
-  const assignBucketsBySlug = unifiedMappings
-    ? buildPriceAssignBucketsBySlug(unifiedMappings.groups)
-    : null;
+  const assignBucketsBySlug = mappingsSummary?.assignBucketsBySlug ?? null;
 
   // Same idea over the list corpus: stays subscribed, so resolving a card's
   // last issue drops it once the list is invalidated.

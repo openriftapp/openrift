@@ -1,7 +1,7 @@
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import type { UnifiedMappingGroupResponse } from "@openrift/shared/types/api/admin";
 import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
-import { WellKnown } from "@openrift/shared/well-known";
 
 import { m } from "@/paraglide/messages.js";
 
@@ -106,19 +106,6 @@ export function buildCoverageMapBySlug(
 
 type Marketplace = "tcgplayer" | "cardmarket" | "cardtrader";
 
-export interface PriceAssignBucket {
-  marketplace: Marketplace;
-  /** Null for Cardmarket/TCGplayer (assumed EN); a language code for CardTrader. */
-  language: string | null;
-  unbound: number;
-  /** Whether a matching-language printing exists on this card. */
-  assignable: boolean;
-}
-
-function targetLanguage(language: string | null): string {
-  return language ?? WellKnown.language.EN;
-}
-
 /**
  * Language-agnostic marketplaces collapse to their name (`"cardmarket"`);
  * CardTrader carries its language (`"cardtrader:FR"`).
@@ -141,34 +128,6 @@ export function scopeLabel(scope: string): string {
   return language ? `${base} · ${language}` : base;
 }
 
-export function computePriceAssignBuckets(group: UnifiedMappingGroupResponse): PriceAssignBucket[] {
-  const printingLanguages = new Set(group.printings.map((printing) => printing.language));
-  const marketplaces: Marketplace[] = ["tcgplayer", "cardmarket", "cardtrader"];
-  const buckets: PriceAssignBucket[] = [];
-
-  for (const marketplace of marketplaces) {
-    const staged = group[marketplace].stagedProducts;
-    if (staged.length === 0) {
-      continue;
-    }
-    const countByLanguage = new Map<string | null, number>();
-    for (const product of staged) {
-      const language = marketplace === "cardtrader" ? product.language : null;
-      countByLanguage.set(language, (countByLanguage.get(language) ?? 0) + 1);
-    }
-    for (const [language, unbound] of countByLanguage) {
-      buckets.push({
-        marketplace,
-        language,
-        unbound,
-        assignable: printingLanguages.has(targetLanguage(language)),
-      });
-    }
-  }
-
-  return buckets;
-}
-
 /**
  * The umbrella {@link ALL_ASSIGNABLE_SCOPE} counts only assignable buckets, so
  * entries for a language with no printing stay excluded by default.
@@ -184,16 +143,6 @@ export function bucketsMatchScope(
     return buckets.some((bucket) => bucket.unbound > 0 && bucket.assignable);
   }
   return buckets.some((bucket) => bucketScopeKey(bucket) === scope && bucket.unbound > 0);
-}
-
-export function buildPriceAssignBucketsBySlug(
-  groups: UnifiedMappingGroupResponse[],
-): Map<string, PriceAssignBucket[]> {
-  const result = new Map<string, PriceAssignBucket[]>();
-  for (const group of groups) {
-    result.set(group.cardSlug, computePriceAssignBuckets(group));
-  }
-  return result;
 }
 
 export function unlinkedProductCount(

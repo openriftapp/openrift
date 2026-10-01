@@ -175,6 +175,22 @@ export const unifiedMappingsCardResponseSchema = z.object({
   allCards: z.array(assignableCardResponseSchema),
 });
 
+const priceAssignBucketSchema = z.object({
+  marketplace: marketplaceEnum,
+  language: z
+    .string()
+    .nullable()
+    .meta({ examples: ["FR"] }),
+  unbound: z.number().meta({ examples: [2] }),
+  assignable: z.boolean().meta({ examples: [true] }),
+});
+
+export const unifiedMappingsSummaryResponseSchema = z.object({
+  /** Keyed by card slug; cards without unassigned products are absent. */
+  assignBucketsBySlug: z.record(z.string(), z.array(priceAssignBucketSchema)),
+  unmatchedCount: z.number().meta({ examples: [14] }),
+});
+
 const TAG = "Admin - Mappings";
 
 const MM = "/api/admin/v1/marketplace-mappings";
@@ -202,6 +218,9 @@ export const adminUnifiedMappingsContract = {
   list: authedRoute
     .route({ method: "GET", path: MM, tags: [TAG] })
     .output(unifiedMappingsResponseSchema),
+  summary: authedRoute
+    .route({ method: "GET", path: `${MM}/summary`, tags: [TAG] })
+    .output(unifiedMappingsSummaryResponseSchema),
   card: authedRoute
     .route({ method: "GET", path: `${MM}/card/{cardId}`, tags: [TAG] })
     .input(z.object({ cardId: z.string() }))
@@ -234,3 +253,4 @@ export const adminUnifiedMappingsContract = {
 export type AdminUnifiedMappingsContract = typeof adminUnifiedMappingsContract;
 export type UnifiedMappingsResponse = z.infer<typeof unifiedMappingsResponseSchema>;
 export type UnifiedMappingsCardResponse = z.infer<typeof unifiedMappingsCardResponseSchema>;
+export type UnifiedMappingsSummaryResponse = z.infer<typeof unifiedMappingsSummaryResponseSchema>;

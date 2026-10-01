@@ -1,4 +1,5 @@
 import { adminUnifiedMappingsContract } from "@openrift/shared/contracts/admin/unified-mappings";
+import { buildPriceAssignBucketsBySlug } from "@openrift/shared/price-assign-buckets";
 import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
@@ -24,6 +25,26 @@ export const adminUnifiedMappingsRouter = {
       cardtrader,
       getMappingOverview,
     );
+  }),
+
+  summary: os.summary.handler(async ({ context }) => {
+    const repos = context.repos;
+    const { getMappingOverview } = context.services;
+    const { tcgplayer, cardmarket, cardtrader } = createMarketplaceConfigs(repos);
+    const { groups, unmatchedProducts } = await buildUnifiedMappingsResponse(
+      repos,
+      tcgplayer,
+      cardmarket,
+      cardtrader,
+      getMappingOverview,
+    );
+    return {
+      assignBucketsBySlug: buildPriceAssignBucketsBySlug(groups),
+      unmatchedCount:
+        unmatchedProducts.tcgplayer.length +
+        unmatchedProducts.cardmarket.length +
+        unmatchedProducts.cardtrader.length,
+    };
   }),
 
   card: os.card.handler(async ({ input, context }) => {

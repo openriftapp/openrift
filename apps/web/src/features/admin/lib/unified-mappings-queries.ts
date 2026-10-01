@@ -6,6 +6,7 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import type {
   UnifiedMappingsCardResponse,
   UnifiedMappingsResponse,
+  UnifiedMappingsSummaryResponse,
 } from "@/lib/server-fns/api-types";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
@@ -20,6 +21,19 @@ export function unifiedMappingsQueryOptions() {
   return queryOptions({
     queryKey: adminKeys.unifiedMappings.list,
     queryFn: () => fetchUnifiedMappings(),
+  });
+}
+
+const fetchUnifiedMappingsSummary = createServerFn({ method: "GET" })
+  .middleware([withCookies])
+  .handler(({ context }): Promise<UnifiedMappingsSummaryResponse> =>
+    apiOrpcClient(adminUnifiedMappingsContract, context.cookie).summary(),
+  );
+
+export function unifiedMappingsSummaryQueryOptions() {
+  return queryOptions({
+    queryKey: adminKeys.unifiedMappings.summary,
+    queryFn: () => fetchUnifiedMappingsSummary(),
   });
 }
 

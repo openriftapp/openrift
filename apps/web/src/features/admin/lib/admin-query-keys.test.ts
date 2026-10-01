@@ -138,6 +138,7 @@ describe("adminKeys.unifiedMappings", () => {
 
   it("list", () => {
     expect(adminKeys.unifiedMappings.list).toEqual(["admin", "unified-mappings", "list"]);
+    expect(adminKeys.unifiedMappings.summary).toEqual(["admin", "unified-mappings", "summary"]);
   });
 
   it("byCard", () => {

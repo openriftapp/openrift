@@ -10,7 +10,7 @@ import {
 import { adminAccessQueryOptions } from "@/features/admin/lib/admin-queries";
 import { CARD_ISSUES } from "@/features/admin/lib/card-attention";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
-import { unifiedMappingsQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { unifiedMappingsSummaryQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { adminSeoHead } from "@/lib/seo";
 
@@ -42,7 +42,12 @@ export const Route = createFileRoute("/_app/_authenticated/admin/cards")({
       context.queryClient.query({ ...providerSettingsQueryOptions, staleTime: "static" }),
       context.queryClient.query({ ...allCardsQueryOptions, staleTime: "static" }),
       ...(access.isAdmin
-        ? [context.queryClient.query({ ...unifiedMappingsQueryOptions(), staleTime: "static" })]
+        ? [
+            context.queryClient.query({
+              ...unifiedMappingsSummaryQueryOptions(),
+              staleTime: "static",
+            }),
+          ]
         : []),
       context.queryClient.query({ ...setsQueryOptions, staleTime: "static" }),
     ]);

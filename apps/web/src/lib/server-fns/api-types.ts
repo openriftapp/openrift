@@ -39,6 +39,7 @@ export type { AdminSetsResponse } from "@openrift/shared/contracts/admin/catalog
 export type {
   UnifiedMappingsCardResponse,
   UnifiedMappingsResponse,
+  UnifiedMappingsSummaryResponse,
 } from "@openrift/shared/contracts/admin/unified-mappings";
 
 export type { MarketplaceGroup } from "@openrift/shared/contracts/admin/marketplace-groups";

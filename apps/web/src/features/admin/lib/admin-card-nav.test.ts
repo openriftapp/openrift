@@ -1,7 +1,7 @@
+import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import { describe, expect, it } from "vitest";
 
 import { ALL_ASSIGNABLE_SCOPE } from "@/features/cards/lib/marketplace-coverage";
-import type { PriceAssignBucket } from "@/features/cards/lib/marketplace-coverage";
 
 import { selectAdminCardPrevNext, selectPrevNextSlug } from "./admin-card-nav";
 

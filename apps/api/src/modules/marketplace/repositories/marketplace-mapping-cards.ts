@@ -207,8 +207,8 @@ export function marketplaceMappingCardsRepo(db: Db) {
      * caller doesn't need a separate lookup. Ignored products (level 2) and
      * ignored variants (level 3) are filtered out. Each (marketplace,
      * external_id, finish, language) tuple is deduplicated to its most-recent
-     * staging snapshot. `isOverride` is true when a manual override points at
-     * this card for the given tuple.
+     * staging snapshot. `overrideCardId` is the card a manual override points
+     * the tuple at, which may be another card for a name-matched row.
      *
      * Relies on the GIN trigram index on marketplace_products.norm_name to
      * keep the LIKE filters index-backed.
@@ -237,7 +237,7 @@ export function marketplaceMappingCardsRepo(db: Db) {
         avg7Cents: number | null;
         avg30Cents: number | null;
         recordedAt: Date;
-        isOverride: boolean;
+        overrideCardId: string | null;
       }>`
         WITH target_card AS (
           SELECT id FROM cards WHERE id::text = ${cardIdentifier} OR slug = ${cardIdentifier} LIMIT 1
@@ -334,12 +334,9 @@ export function marketplaceMappingCardsRepo(db: Db) {
           m.avg7_cents as "avg7Cents",
           m.avg30_cents as "avg30Cents",
           m.recorded_at as "recordedAt",
-          EXISTS (
-            SELECT 1 FROM marketplace_product_card_overrides ov, target_card tc
-            WHERE ov.marketplace_product_id = m.id
-              AND ov.card_id = tc.id
-          ) as "isOverride"
+          ov.card_id as "overrideCardId"
         FROM matched m
+        LEFT JOIN marketplace_product_card_overrides ov ON ov.marketplace_product_id = m.id
         LEFT JOIN marketplace_groups g
           ON g.marketplace = m.marketplace AND g.group_id = m.group_id
         LEFT JOIN sets gs ON gs.id = g.set_id

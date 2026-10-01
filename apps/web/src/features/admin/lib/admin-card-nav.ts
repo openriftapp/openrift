@@ -1,5 +1,6 @@
+import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
+
 import { bucketsMatchScope } from "@/features/cards/lib/marketplace-coverage";
-import type { PriceAssignBucket } from "@/features/cards/lib/marketplace-coverage";
 
 export interface PrevNextSlugs {
   prev: string | null;

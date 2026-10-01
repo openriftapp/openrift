@@ -309,8 +309,8 @@ export async function buildUnifiedMappingsCardResponse(
   // Aliases are checked longest-first so a shorter alias can't shadow a longer one belonging to another card.
   const aliasesByLength = allAliases.toSorted((a, b) => b.normName.length - a.normName.length);
   const stagedForThisCard = stagedRaw.filter((row) => {
-    if (row.isOverride) {
-      return true;
+    if (row.overrideCardId !== null) {
+      return row.overrideCardId === thisCardId;
     }
     const normProduct = normalizeNameForIdentity(row.productName);
     for (const { normName, cardId } of aliasesByLength) {
@@ -375,7 +375,7 @@ export async function buildUnifiedMappingsCardResponse(
       }
     }
     for (const r of rows) {
-      if (r.isOverride) {
+      if (r.overrideCardId === thisCardId) {
         overrideMap.set(`${r.externalId}::${r.finish}::${r.language}`, { cardId: thisCardId });
       }
       if (r.groupName !== null) {

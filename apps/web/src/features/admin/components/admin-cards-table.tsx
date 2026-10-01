@@ -1,5 +1,6 @@
 import { matchesCardQuery } from "@openrift/shared/card-search";
 import { formatRelativeTime } from "@openrift/shared/format-date";
+import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
 import { formatShortCodesArray } from "@openrift/shared/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +50,6 @@ import {
   scopeLabel,
   unlinkedProductCount,
 } from "@/features/cards/lib/marketplace-coverage";
-import type { PriceAssignBucket } from "@/features/cards/lib/marketplace-coverage";
 
 const cardsRouteApi = getRouteApi("/_app/_authenticated/admin/cards");
 

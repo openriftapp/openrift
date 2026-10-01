@@ -1,3 +1,4 @@
+import type { PriceAssignBucket } from "@openrift/shared/price-assign-buckets";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 
@@ -6,12 +7,13 @@ import { AdminCardsTable, ALL_SETS } from "@/features/admin/components/admin-car
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useAdminCardList } from "@/features/admin/hooks/use-admin-card-queries";
-import { useUnifiedMappingsWhen } from "@/features/admin/hooks/use-unified-mappings";
+import { useUnifiedMappingsSummaryWhen } from "@/features/admin/hooks/use-unified-mappings";
 import { filterCardsBySet } from "@/features/admin/lib/admin-cards-search";
 import { useSets } from "@/features/cards/hooks/use-sets";
-import { buildPriceAssignBucketsBySlug } from "@/features/cards/lib/marketplace-coverage";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/cards");
+
+const EMPTY_BUCKETS = new Map<string, PriceAssignBucket[]>();
 
 export function AdminCardListPage() {
   const { data } = useAdminCardList();
@@ -19,7 +21,7 @@ export function AdminCardListPage() {
   // card-review grant holders share this page with full admins; only card
   // creation, marketplace data, and unmatched products are admin-only.
   const isAdmin = access?.isAdmin === true;
-  const { data: unified } = useUnifiedMappingsWhen(isAdmin);
+  const { data: summary } = useUnifiedMappingsSummaryWhen(isAdmin);
   const { data: setsData } = useSets();
   const setSlug = routeApi.useSearch({ select: (s) => s.set });
 
@@ -36,11 +38,7 @@ export function AdminCardListPage() {
   // Each row carries the set slugs of both accepted and candidate printings,
   // so the set filter narrows drafts as well as live cards.
   const cards = filterCardsBySet(data, setSlug);
-  const unmatchedCount = unified
-    ? unified.unmatchedProducts.tcgplayer.length +
-      unified.unmatchedProducts.cardmarket.length +
-      unified.unmatchedProducts.cardtrader.length
-    : 0;
+  const unmatchedCount = summary?.unmatchedCount ?? 0;
 
   return (
     <>
@@ -64,7 +62,7 @@ export function AdminCardListPage() {
 
       <AdminCardsTable
         data={cards}
-        assignBucketsBySlug={buildPriceAssignBucketsBySlug(unified?.groups ?? [])}
+        assignBucketsBySlug={summary?.assignBucketsBySlug ?? EMPTY_BUCKETS}
         setOptions={setOptions}
         isAdmin={isAdmin}
       />
