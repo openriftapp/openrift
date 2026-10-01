@@ -42,10 +42,10 @@ const BACKOFF_MS = 30 * 60 * 1000;
 
 const MAX_ERRORS = 50;
 
-export const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
+const PLAYLOLTCG_RECHECK_BUDGET_MS = 5 * 60 * 1000;
 
 // The WAF blocked the IP at 15-25k requests a day; this caps a day near 8.6k.
-export const PLAYLOLTCG_RUN_REQUESTS = 60;
+const PLAYLOLTCG_RUN_REQUESTS = 60;
 
 const MIN_DECKS_PER_VISIT = 20;
 

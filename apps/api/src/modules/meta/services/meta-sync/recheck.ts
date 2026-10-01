@@ -10,7 +10,7 @@ import { deepFetchEvent } from "./deep-fetch.js";
 import type { MetaSyncDeps } from "./deps.js";
 import { clock, errorText } from "./deps.js";
 
-export const RECHECK_BUDGET_MS = 5 * 60 * 1000;
+const RECHECK_BUDGET_MS = 5 * 60 * 1000;
 
 const RECHECK_PAGE_SIZE = 100;
 
