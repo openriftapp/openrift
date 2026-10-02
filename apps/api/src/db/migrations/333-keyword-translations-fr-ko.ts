@@ -54,7 +54,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   for (const [keyword, language, label] of LABELS) {
     await sql`
       INSERT INTO keyword_translations (keyword_name, language, label)
-      SELECT name, ${language}, ${label} FROM keywords WHERE name = ${keyword}
+      SELECT name, ${language}, ${label} FROM keywords
+      WHERE name = ${keyword} AND EXISTS (SELECT 1 FROM languages WHERE code = ${language})
       ON CONFLICT (keyword_name, language) DO NOTHING
     `.execute(db);
   }
