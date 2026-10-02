@@ -159,7 +159,7 @@ describe("renderRuleHtml keywords", () => {
 
   it("turns a bracketed keyword into a badge in its color", () => {
     expect(render("[E]: [Reaction] — Add [1].", { keywords })).toBe(
-      '[E]: <span data-keyword="Reaction" style="--keyword-color:#24705f">Reaction</span> — Add [1].',
+      '<span data-glyph="exhaust">[E]</span>: <span data-keyword="Reaction" style="--keyword-color:#24705f">Reaction</span> — Add <span data-glyph="energy">1</span>.',
     );
   });
 
@@ -197,6 +197,45 @@ describe("renderRuleHtml keywords", () => {
   it("drops a badge whose color is not a hex color", () => {
     const bad = new Map([["reaction", { name: "Reaction", color: "red;x:y", darkText: false }]]);
     expect(render("[Reaction]", { keywords: bad })).toBe("Reaction");
+  });
+});
+
+describe("renderRuleHtml glyphs", () => {
+  it("turns symbol abbreviations into glyphs and numbers into energy", () => {
+    expect(render("A unit has 5 [M]. Cost: [12][A][R][G][B][O][P].")).toBe(
+      'A unit has 5 <span data-glyph="might">[M]</span>. Cost: <span data-glyph="energy">12</span><span data-glyph="rune-rainbow">[A]</span><span data-glyph="rune-fury">[R]</span><span data-glyph="rune-calm">[G]</span><span data-glyph="rune-mind">[B]</span><span data-glyph="rune-body">[O]</span><span data-glyph="rune-chaos">[P]</span>.',
+    );
+  });
+
+  it("reads the older [T] and [S] abbreviations as exhaust and might", () => {
+    expect(render("[T] [S]")).toBe(
+      '<span data-glyph="exhaust">[T]</span> <span data-glyph="might">[S]</span>',
+    );
+  });
+
+  it("leaves [C], variables and placeholders as text", () => {
+    expect(render("[C] [N] [Text] [do X] [123]")).toBe("[C] [N] [Text] [do X] [123]");
+  });
+
+  it("reads [Y] as Order unless the rule uses it as a variable", () => {
+    expect(render("I cost [Y] less.")).toBe(
+      'I cost <span data-glyph="rune-order">[Y]</span> less.',
+    );
+    expect(render("Formatted as Create [X] at [Y].")).toBe("Formatted as Create [X] at [Y].");
+    expect(render("[Y] is the replacing object.")).toBe("[Y] is the replacing object.");
+  });
+
+  it("applies the [Y] variable check across a rule's examples", () => {
+    expect(render("Replace [X] with [Y].\n  *Example:* [Y] wins.")).not.toContain("data-glyph");
+  });
+
+  it("keeps glyphs out of keyword badges and penalties", () => {
+    const keywords = new Map([
+      ["reaction", { name: "Reaction", color: "#24705f", darkText: false }],
+    ]);
+    expect(render("[Reaction][>] [E]", { keywords })).toBe(
+      '<span data-keyword="Reaction" style="--keyword-color:#24705f" data-keyword-point="right">Reaction</span> <span data-glyph="exhaust">[E]</span>',
+    );
   });
 });
 

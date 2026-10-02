@@ -9,7 +9,10 @@ import {
   preprocessRuleMarkdown,
   rehypeHighlightPenalties,
   rehypeKeywordBadges,
+  rehypeRuleGlyphs,
   remarkLinkifyRuleReferences,
+  RULE_GLYPHS,
+  ruleUsesYVariable,
 } from "./rules-markdown.js";
 import type { RuleLanguage } from "./types/api/rules.js";
 
@@ -30,6 +33,7 @@ export interface RuleHtmlOptions {
 const FORMATTING_TAGS = new Set(["em", "strong", "code"]);
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/iu;
 const KEYWORD_POINTS = new Set(["left", "right", "both"]);
+const GLYPH_NAMES: ReadonlySet<string> = new Set([...Object.values(RULE_GLYPHS), "energy"]);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const CARD_HREF_PREFIX = "/cards/";
 
@@ -127,11 +131,15 @@ function serialize(node: HastNode, blockTags: ReadonlySet<string>): string {
           : "";
       return `<span data-keyword="${escapeHtml(keyword)}" style="--keyword-color:${color}"${dark}${pointAttribute}>${inner}</span>`;
     }
+    const glyph = node.properties?.["data-glyph"];
+    if (typeof glyph === "string" && GLYPH_NAMES.has(glyph)) {
+      return `<span data-glyph="${glyph}">${inner}</span>`;
+    }
   }
   return inner;
 }
 
-function renderInline(source: string, options: RuleHtmlOptions): string {
+function renderInline(source: string, options: RuleHtmlOptions, yIsVariable: boolean): string {
   const tree = fromMarkdown(preprocessRuleMarkdown(source, options.language)) as unknown as MdNode;
   remarkLinkifyRuleReferences(options.language)(tree);
   makeRemarkLinkifyTerms({ anchors: options.termAnchors, currentRuleNumber: options.ruleNumber })()(
@@ -140,6 +148,7 @@ function renderInline(source: string, options: RuleHtmlOptions): string {
   const hast = toHast(tree as Parameters<typeof toHast>[0]) as unknown as HastNode;
   rehypeHighlightPenalties()(hast);
   rehypeKeywordBadges(options.keywords ?? NO_KEYWORDS)(hast);
+  rehypeRuleGlyphs(yIsVariable)(hast);
   if (options.cardMentions?.imagesBySlug) {
     addCardImages(hast, options.cardMentions.imagesBySlug);
   }
@@ -153,13 +162,14 @@ export function renderCommentHtml(markdown: string): string {
 
 export function renderRuleHtml(content: string, options: RuleHtmlOptions): string {
   const sections = splitRuleSections(content, options.language);
+  const yIsVariable = ruleUsesYVariable(content);
   if (!sections.some((section) => section.kind === "example")) {
-    return renderInline(content, options);
+    return renderInline(content, options, yIsVariable);
   }
   return sections
     .map((section) => {
       if (section.kind === "text") {
-        return `<div>${renderInline(section.content, options)}</div>`;
+        return `<div>${renderInline(section.content, options, yIsVariable)}</div>`;
       }
       const linked = options.cardMentions
         ? linkCardMentions(
@@ -168,7 +178,7 @@ export function renderRuleHtml(content: string, options: RuleHtmlOptions): strin
             options.cardMentions.slugsByName,
           )
         : section.content;
-      return `<div class="rule-example">${renderInline(linked, options)}</div>`;
+      return `<div class="rule-example">${renderInline(linked, options, yIsVariable)}</div>`;
     })
     .join("");
 }

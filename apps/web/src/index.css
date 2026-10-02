@@ -1712,6 +1712,44 @@ html.hide-scrollbar::-webkit-scrollbar {
       0.3em 50%
     );
   }
+  & [data-glyph] {
+    @apply inline-block size-[1em] overflow-hidden bg-contain bg-center bg-no-repeat align-[-0.125em] whitespace-nowrap text-transparent;
+  }
+  & [data-glyph="might"],
+  & [data-glyph="exhaust"] {
+    @apply bg-foreground;
+    mask: var(--glyph-url) center / contain no-repeat;
+  }
+  & [data-glyph="might"] {
+    --glyph-url: url("/images/glyphs/might.svg");
+  }
+  & [data-glyph="exhaust"] {
+    --glyph-url: url("/images/glyphs/exhaust.svg");
+  }
+  & [data-glyph="rune-rainbow"] {
+    background-image: url("/images/glyphs/rune-rainbow.svg");
+  }
+  & [data-glyph="rune-fury"] {
+    background-image: url("/images/glyphs/rune-fury.svg");
+  }
+  & [data-glyph="rune-calm"] {
+    background-image: url("/images/glyphs/rune-calm.svg");
+  }
+  & [data-glyph="rune-mind"] {
+    background-image: url("/images/glyphs/rune-mind.svg");
+  }
+  & [data-glyph="rune-body"] {
+    background-image: url("/images/glyphs/rune-body.svg");
+  }
+  & [data-glyph="rune-chaos"] {
+    background-image: url("/images/glyphs/rune-chaos.svg");
+  }
+  & [data-glyph="rune-order"] {
+    background-image: url("/images/glyphs/rune-order.svg");
+  }
+  & [data-glyph="energy"] {
+    @apply bg-foreground text-background size-[1.45em] rounded-full text-center align-[-0.179em] text-[0.7em] leading-[1.45em] font-bold not-italic;
+  }
 }
 
 @utility rule-comments {

@@ -249,6 +249,81 @@ export const rehypeKeywordBadges =
     }
   };
 
+export const RULE_GLYPHS: Readonly<Record<string, string>> = {
+  E: "exhaust",
+  T: "exhaust",
+  M: "might",
+  S: "might",
+  A: "rune-rainbow",
+  R: "rune-fury",
+  G: "rune-calm",
+  B: "rune-mind",
+  O: "rune-body",
+  P: "rune-chaos",
+  Y: "rune-order",
+};
+
+const GLYPH_REGEX = /\[(?:(?<energy>\d{1,2})|(?<letter>[ETMSARGBOPY]))\]/gu;
+
+function splitTextOnGlyphs(text: string, yIsVariable: boolean): HastNode[] | null {
+  const result: HastNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(GLYPH_REGEX)) {
+    const energy = match.groups?.energy;
+    const letter = match.groups?.letter;
+    if (letter === "Y" && yIsVariable) {
+      continue;
+    }
+    if (match.index > last) {
+      result.push({ type: "text", value: text.slice(last, match.index) });
+    }
+    result.push({
+      type: "element",
+      tagName: "span",
+      properties: { "data-glyph": energy === undefined ? RULE_GLYPHS[letter ?? ""] : "energy" },
+      children: [{ type: "text", value: energy ?? match[0] }],
+    });
+    last = match.index + match[0].length;
+  }
+  if (result.length === 0) {
+    return null;
+  }
+  if (last < text.length) {
+    result.push({ type: "text", value: text.slice(last) });
+  }
+  return result;
+}
+
+function visitHastForGlyphs(node: HastNode, yIsVariable: boolean): void {
+  if (
+    node.properties?.["data-penalty"] !== undefined ||
+    node.properties?.["data-keyword"] !== undefined ||
+    !node.children
+  ) {
+    return;
+  }
+  const rebuilt: HastNode[] = [];
+  for (const child of node.children) {
+    if (child.type === "text" && typeof child.value === "string") {
+      rebuilt.push(...(splitTextOnGlyphs(child.value, yIsVariable) ?? [child]));
+      continue;
+    }
+    visitHastForGlyphs(child, yIsVariable);
+    rebuilt.push(child);
+  }
+  node.children = rebuilt;
+}
+
+// [Y] is both the Order abbreviation and the variable paired with [X] ("Replace [X] with [Y]");
+// a rule that mentions [X] or opens with [Y] is using the variable.
+export function ruleUsesYVariable(source: string): boolean {
+  return source.includes("[X]") || source.trimStart().startsWith("[Y]");
+}
+
+export const rehypeRuleGlyphs = (yIsVariable: boolean) => (tree: HastNode) => {
+  visitHastForGlyphs(tree, yIsVariable);
+};
+
 /** Wraps `[Warning]`-style penalty labels in `<span data-penalty>` elements. */
 export const rehypeHighlightPenalties = () => (tree: HastNode) => {
   visitHastTextNodes(tree);

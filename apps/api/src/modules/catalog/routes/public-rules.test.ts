@@ -177,7 +177,7 @@ describe("GET /api/v1/rules/page", () => {
 
     expect(mockRulesRepo.listKeywordLabels).toHaveBeenCalledWith("fr");
     expect(json.rules[0].contentHtml).toBe(
-      '<span data-keyword="Reaction" style="--keyword-color:#24705f">Réaction</span> — Ajoutez [1].',
+      '<span data-keyword="Reaction" style="--keyword-color:#24705f">Réaction</span> — Ajoutez <span data-glyph="energy">1</span>.',
     );
   });
 
