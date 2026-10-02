@@ -23,7 +23,12 @@ import {
 } from "@openrift/shared/contracts/friend-groups";
 import { LOAN_STATUSES } from "@openrift/shared/contracts/loans";
 import { organizationRoleSchema } from "@openrift/shared/contracts/organizations";
-import { RULE_CHANGE_TYPES, RULE_KINDS, RULE_TYPES } from "@openrift/shared/contracts/rules";
+import {
+  RULE_CHANGE_TYPES,
+  RULE_KINDS,
+  RULE_LANGUAGES,
+  RULE_TYPES,
+} from "@openrift/shared/contracts/rules";
 import {
   scoringSchemeSchema,
   tournamentDeckPhaseSchema,
@@ -134,8 +139,10 @@ const ENUM_CHECKS: Record<string, readonly string[]> = {
   chk_printing_images_face: cardFaceSchema.options,
   chk_printings_fallback_art_mode: fallbackArtModeSchema.options,
   rule_versions_kind_check: RULE_KINDS,
+  rule_versions_language_check: RULE_LANGUAGES,
   rules_change_type_check: RULE_CHANGE_TYPES,
   rules_kind_check: RULE_KINDS,
+  rules_language_check: RULE_LANGUAGES,
   rules_rule_type_check: RULE_TYPES,
   site_settings_scope_check: scopeEnum.options,
   trade_suggestion_dismissals_direction_check: tradeSuggestionDirectionSchema.options,

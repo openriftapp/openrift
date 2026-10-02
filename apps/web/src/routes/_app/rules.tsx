@@ -4,12 +4,12 @@ import { rulesSearchSchema } from "@/features/rules/lib/rules-search-schema";
 
 export const Route = createFileRoute("/_app/rules")({
   validateSearch: rulesSearchSchema,
-  loaderDeps: ({ search }) => ({ q: search.q }),
+  loaderDeps: ({ search }) => ({ q: search.q, lang: search.lang }),
   loader: ({ location, deps }) => {
     throw redirect({
       to: "/rules/$kind",
       params: { kind: "core" },
-      search: deps.q === undefined ? {} : { q: deps.q },
+      search: deps,
       hash: location.hash || undefined,
       replace: true,
     });

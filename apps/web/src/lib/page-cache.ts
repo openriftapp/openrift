@@ -9,6 +9,7 @@ const RULES_VERSION_CACHE_CONTROL =
   "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400";
 const RULES_VERSION_PATH_REGEX = /^\/rules\/(?:core|tournament)\/\d{4}-\d{2}-\d{2}$/u;
 const RULES_KIND_PATH_REGEX = /^\/rules\/(?:core|tournament)$/u;
+const RULES_LANGUAGE_SEARCH_REGEX = /^(?:\?lang=[A-Za-z-]+)?$/u;
 const REDIRECT_STATUSES = new Set([301, 302, 307, 308]);
 
 // Keep in sync with deploy.sh.example's purge_cloudflare_cache() prefix list.
@@ -97,7 +98,10 @@ function withCacheControl(response: Response, cacheControl: string): Response {
  */
 export function applyPageCacheControl(request: Request, response: Response): Response {
   const { pathname, search } = new URL(request.url);
-  if (REDIRECT_STATUSES.has(response.status) && RULES_KIND_PATH_REGEX.test(pathname)) {
+  if (
+    REDIRECT_STATUSES.has(response.status) &&
+    (RULES_KIND_PATH_REGEX.test(pathname) || RULES_VERSION_PATH_REGEX.test(pathname))
+  ) {
     return isAnonymousCacheable(request, response)
       ? withCacheControl(response, PUBLIC_PAGE_CACHE_CONTROL)
       : response;
@@ -117,7 +121,7 @@ export function applyPageCacheControl(request: Request, response: Response): Res
   }
   return withCacheControl(
     response,
-    RULES_VERSION_PATH_REGEX.test(pathname) && search === ""
+    RULES_VERSION_PATH_REGEX.test(pathname) && RULES_LANGUAGE_SEARCH_REGEX.test(search)
       ? RULES_VERSION_CACHE_CONTROL
       : PUBLIC_PAGE_CACHE_CONTROL,
   );

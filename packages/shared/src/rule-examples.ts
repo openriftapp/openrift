@@ -1,18 +1,27 @@
+import type { RuleLanguage } from "./types/api/rules.js";
+
 export interface RuleSection {
   kind: "text" | "example";
   content: string;
 }
 
-const EXAMPLE_LINE_REGEX = /^\s*\*?Examples?:/u;
-const SEE_ALSO_LINE_REGEX = /^\s*\*?See\b/u;
+const SECTION_MARKERS: Partial<Record<RuleLanguage, { example: RegExp; seeAlso: RegExp }>> = {
+  en: { example: /^\s*\*?Examples?:/u, seeAlso: /^\s*\*?See\b/u },
+  fr: { example: /^\s*\*?Exemples?\*?\s*:/u, seeAlso: /^\s*\*?Voir\b/u },
+  ko: { example: /^\s*\*?예시\*?\s*:/u, seeAlso: /참조하세요\.?\*?\s*$/u },
+};
 
-export function splitRuleSections(content: string): RuleSection[] {
+export function splitRuleSections(content: string, language: RuleLanguage = "en"): RuleSection[] {
+  const markers = SECTION_MARKERS[language];
+  if (markers === undefined) {
+    return content.trim() === "" ? [] : [{ kind: "text", content: content.trim() }];
+  }
   const groups: { kind: RuleSection["kind"]; lines: string[] }[] = [];
   for (const line of content.split("\n")) {
     const last = groups.at(-1);
-    const startsExample = EXAMPLE_LINE_REGEX.test(line);
+    const startsExample = markers.example.test(line);
     const kind: RuleSection["kind"] =
-      startsExample || (last?.kind === "example" && !SEE_ALSO_LINE_REGEX.test(line))
+      startsExample || (last?.kind === "example" && !markers.seeAlso.test(line))
         ? "example"
         : "text";
     if (last === undefined || startsExample || kind !== last.kind) {
@@ -26,8 +35,8 @@ export function splitRuleSections(content: string): RuleSection[] {
     .filter((section) => section.content !== "");
 }
 
-export function ruleExampleText(content: string): string {
-  return splitRuleSections(content)
+export function ruleExampleText(content: string, language: RuleLanguage = "en"): string {
+  return splitRuleSections(content, language)
     .filter((section) => section.kind === "example")
     .map((section) => section.content)
     .join("\n");
@@ -37,13 +46,66 @@ function escapeRegex(value: string): string {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 }
 
-export function cardMentionPattern(names: Iterable<string>): RegExp | null {
+// Korean attaches particles to a name ("말괄량이에는"); any other Hangul after it means a longer word.
+const KOREAN_PARTICLES = [
+  "이라는",
+  "이라고",
+  "이라면",
+  "에서는",
+  "에게는",
+  "으로는",
+  "으로써",
+  "까지",
+  "부터",
+  "처럼",
+  "보다",
+  "에서",
+  "에게",
+  "한테",
+  "으로",
+  "이나",
+  "이며",
+  "이고",
+  "이란",
+  "라는",
+  "라고",
+  "에는",
+  "에도",
+  "와의",
+  "과의",
+  "로의",
+  "은",
+  "는",
+  "이",
+  "가",
+  "을",
+  "를",
+  "의",
+  "에",
+  "와",
+  "과",
+  "로",
+  "도",
+  "만",
+  "나",
+  "란",
+].join("|");
+
+const MENTION_END: Partial<Record<RuleLanguage, string>> = {
+  ko: String.raw`(?=(?:${KOREAN_PARTICLES})*(?![\p{L}\p{N}]))`,
+};
+
+export function cardMentionPattern(
+  names: Iterable<string>,
+  language: RuleLanguage = "en",
+): RegExp | null {
   const sorted = [...new Set(names)].filter(Boolean).toSorted((a, b) => b.length - a.length);
   if (sorted.length === 0) {
     return null;
   }
+  const end = MENTION_END[language] ?? String.raw`(?![\p{L}\p{N}])`;
   return new RegExp(
-    String.raw`(?<![\p{L}\p{N}])(?:${sorted.map((name) => escapeRegex(name)).join("|")})(?![\p{L}\p{N}])`,
+    String.raw`(?<![\p{L}\p{N}])(?:${sorted.map((name) => escapeRegex(name)).join("|")})${end}`,
     "gu",
   );
 }

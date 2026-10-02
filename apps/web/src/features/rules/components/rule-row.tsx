@@ -62,7 +62,7 @@ export function RuleRow({
       <div
         id={`rule-${rule.ruleNumber}`}
         className={cn(
-          "group/rule relative flex scroll-mt-14 items-baseline py-2 text-sm",
+          "group/rule relative flex scroll-mt-(--rules-anchor-offset) items-baseline py-2 text-sm",
           GUIDE_DEPTH_CLASS[ruleNumberDepth(rule.ruleNumber)],
           isTitle && "border-border mt-6 border-b first:mt-0",
           isSubtitle && "mt-4",
@@ -92,7 +92,7 @@ export function RuleRow({
           )}
         >
           {showInlineDiff && rule.content !== undefined ? (
-            <InlineDiff oldText={previousContent} newText={rule.content} />
+            <InlineDiff oldText={previousContent} newText={rule.content} language={rule.language} />
           ) : isTitle || isSubtitle ? (
             ruleHtmlToText(rule.contentHtml)
           ) : (

@@ -1,6 +1,8 @@
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
+import { ruleKindSchema, ruleLanguageSchema } from "./rules.js";
+
 export const sitemapEntrySchema = z.object({
   slug: z.string().meta({ examples: ["jinx-rebel"] }),
   updatedAt: z.string().meta({ examples: ["2026-04-01T12:00:00.000Z"] }),
@@ -14,6 +16,14 @@ export const sitemapDataResponseSchema = z.object({
   metaDecks: z.array(sitemapEntrySchema),
   metaLegends: z.array(sitemapEntrySchema),
   metaPlayers: z.array(sitemapEntrySchema),
+  rules: z.array(
+    z.object({
+      kind: ruleKindSchema,
+      language: ruleLanguageSchema,
+      version: z.string(),
+      updatedAt: z.string(),
+    }),
+  ),
 });
 
 export const sitemapContract = {

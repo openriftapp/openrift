@@ -1,4 +1,4 @@
-import { RULE_REFERENCE_REGEX } from "@openrift/shared/rules";
+import { RULE_REFERENCE_REGEX, ruleReferenceFromMatch } from "@openrift/shared/rules";
 import type { RuleKind } from "@openrift/shared/types/api/rules";
 import { truncateWithEllipsis } from "@openrift/shared/utils";
 import type { APIEmbed } from "discord.js";
@@ -13,21 +13,29 @@ const KIND_LABEL: Record<RuleKind, string> = { core: "Core Rules", tournament: "
 const BODY_LIMIT = 3200;
 const DESCRIPTION_LIMIT = 4000;
 
-function ruleUrl(siteUrl: string, entry: IndexedRule): string {
-  return `${siteUrl}/rules/${entry.kind}#rule-${entry.rule.ruleNumber}`;
+export type RulePageUrls = Record<RuleKind, string>;
+
+export function rulePageUrls(siteUrl: string, versions: Record<RuleKind, string>): RulePageUrls {
+  const page = (kind: RuleKind) => `${siteUrl}/rules/${kind}/${versions[kind]}?lang=en`;
+  return { core: page("core"), tournament: page("tournament") };
 }
 
-export function linkifyRuleReferences(content: string, kind: RuleKind, siteUrl: string): string {
+export function linkifyRuleReferences(
+  content: string,
+  kind: RuleKind,
+  pages: RulePageUrls,
+): string {
   // Fresh regex instance: the shared one is global/stateful across callers.
   const regex = new RegExp(RULE_REFERENCE_REGEX.source, "gu");
-  return content.replace(
-    regex,
-    (match, keyword: string | undefined, dotted: string | undefined, bare: string | undefined) => {
-      const number = dotted ?? bare;
-      const targetKind = keyword === "CR" ? "core" : kind;
-      return `[${match}](${siteUrl}/rules/${targetKind}#rule-${number})`;
-    },
-  );
+  return content.replaceAll(regex, (...args: unknown[]) => {
+    const match = args[0] as string;
+    const reference = ruleReferenceFromMatch(args.at(-1) as Record<string, string | undefined>);
+    if (reference === null) {
+      return match;
+    }
+    const targetKind = reference.inCoreRules ? "core" : kind;
+    return `[${match}](${pages[targetKind]}#rule-${reference.ruleNumber})`;
+  });
 }
 
 export function ruleBreadcrumb(index: RuleIndex, entry: IndexedRule): string | undefined {
@@ -82,7 +90,7 @@ function sectionRules(index: RuleIndex, entry: IndexedRule): IndexedRule[] {
 function subRuleLines(
   rules: IndexedRule[],
   base: IndexedRule,
-  siteUrl: string,
+  pages: RulePageUrls,
   budget: number,
 ): string[] {
   const basePrefix = `${base.numberLower}.`;
@@ -97,7 +105,7 @@ function subRuleLines(
       ? segments - baseSegments - 1
       : segments - 1;
     const indent = "  ".repeat(Math.max(0, depth));
-    const content = linkifyRuleReferences(rule.rule.content, rule.kind, siteUrl).replaceAll(
+    const content = linkifyRuleReferences(rule.rule.content, rule.kind, pages).replaceAll(
       "\n",
       `\n${indent}  `,
     );
@@ -124,6 +132,7 @@ export interface RuleEmbedInput {
 export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
   const { entry, index, siteUrl } = input;
   const isHeading = entry.rule.ruleType !== "text";
+  const pages = rulePageUrls(siteUrl, index.versions);
 
   const parts: string[] = [];
   const breadcrumb = ruleBreadcrumb(index, entry);
@@ -133,7 +142,7 @@ export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
   if (!isHeading) {
     parts.push(
       truncateWithEllipsis(
-        linkifyRuleReferences(entry.rule.content, entry.kind, siteUrl),
+        linkifyRuleReferences(entry.rule.content, entry.kind, pages),
         BODY_LIMIT,
       ),
     );
@@ -142,7 +151,7 @@ export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
   const related = isHeading && children.length === 0 ? sectionRules(index, entry) : children;
   if (related.length > 0) {
     const budget = DESCRIPTION_LIMIT - parts.join("\n\n").length - 2;
-    const lines = subRuleLines(related, entry, siteUrl, budget);
+    const lines = subRuleLines(related, entry, pages, budget);
     if (lines.length > 0) {
       parts.push(lines.join("\n"));
     }
@@ -151,7 +160,7 @@ export function buildRuleEmbed(input: RuleEmbedInput): APIEmbed {
   const citation = `${entry.prefix} ${entry.number}`;
   return {
     title: truncateWithEllipsis(isHeading ? `${citation} — ${entry.plain}` : citation, 256),
-    url: ruleUrl(siteUrl, entry),
+    url: `${pages[entry.kind]}#rule-${entry.rule.ruleNumber}`,
     description: parts.join("\n\n"),
     color: EMBED_COLOR,
     footer: { text: `${KIND_LABEL[entry.kind]} · ${index.versions[entry.kind]}` },

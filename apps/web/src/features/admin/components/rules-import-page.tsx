@@ -1,4 +1,5 @@
-import type { RuleKind, RuleVersionResponse } from "@openrift/shared/types/api/rules";
+import { RULE_LANGUAGES } from "@openrift/shared/rules";
+import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
@@ -23,11 +24,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import {
+  useAdminRuleVersions,
   useDeleteRuleVersion,
   useImportRules,
-  useRuleVersions,
   useUpdateRuleVersion,
 } from "@/features/rules/hooks/use-rules";
+import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
+
+interface AdminRuleVersion {
+  kind: RuleKind;
+  language: RuleLanguage;
+  version: string;
+  comments: string | null;
+  label: string | null;
+  documentVersion: string | null;
+}
 
 const KIND_LABELS: Record<RuleKind, string> = {
   core: "Core",
@@ -39,12 +50,22 @@ const KIND_ITEMS: { value: RuleKind; label: string }[] = [
   { value: "tournament", label: "Tournament" },
 ];
 
+const LANGUAGE_ITEMS = RULE_LANGUAGES.map((value) => ({
+  value,
+  label: DISPLAY_LOCALE_LABELS[value],
+}));
+
+function isRuleLanguageItem(value: unknown): value is RuleLanguage {
+  return LANGUAGE_ITEMS.some((item) => item.value === value);
+}
+
 export function RulesImportPage() {
-  const { data: versionsData } = useRuleVersions();
+  const { data: versionsData } = useAdminRuleVersions();
   const importMutation = useImportRules();
   const deleteMutation = useDeleteRuleVersion();
 
   const [kind, setKind] = useState<RuleKind>("core");
+  const [language, setLanguage] = useState<RuleLanguage>("en");
   const [version, setVersion] = useState("");
   const [comments, setComments] = useState("");
   const [label, setLabel] = useState("");
@@ -52,6 +73,7 @@ export function RulesImportPage() {
   const [content, setContent] = useState("");
   const [result, setResult] = useState<{
     kind: RuleKind;
+    language: RuleLanguage;
     version: string;
     rulesCount: number;
     added: number;
@@ -63,6 +85,7 @@ export function RulesImportPage() {
     setResult(null);
     const payload = {
       kind,
+      language,
       version: version.trim(),
       comments: comments.trim() || null,
       label: label.trim() || null,
@@ -78,9 +101,13 @@ export function RulesImportPage() {
     }
   }
 
-  async function handleDelete(targetKind: RuleKind, versionToDelete: string) {
+  async function handleDelete(entry: AdminRuleVersion) {
     try {
-      await deleteMutation.mutateAsync({ kind: targetKind, version: versionToDelete });
+      await deleteMutation.mutateAsync({
+        kind: entry.kind,
+        language: entry.language,
+        version: entry.version,
+      });
     } catch {
       /* Reported by the global mutation error toast. */
     }
@@ -88,7 +115,7 @@ export function RulesImportPage() {
 
   const canImport = version.trim() && content.trim() && !importMutation.isPending;
 
-  const versionsByKind = new Map<RuleKind, RuleVersionResponse[]>([
+  const versionsByKind = new Map<RuleKind, AdminRuleVersion[]>([
     ["core", []],
     ["tournament", []],
   ]);
@@ -133,6 +160,36 @@ export function RulesImportPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label htmlFor="language">Language</Label>
+          <Select
+            items={LANGUAGE_ITEMS}
+            value={language}
+            onValueChange={(value) => {
+              if (isRuleLanguageItem(value)) {
+                setLanguage(value);
+              }
+            }}
+          >
+            <SelectTrigger id="language">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGE_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {language !== "en" && (
+            <p className="text-muted-foreground text-sm">
+              Translations need the English version of the same date. Leave number, name and
+              comments empty to use the English ones.
+            </p>
+          )}
         </div>
 
         <div className="grid gap-1.5">
@@ -197,7 +254,7 @@ export function RulesImportPage() {
         {result && (
           <div className="bg-muted rounded-md p-3 text-sm">
             <p className="font-semibold">
-              Imported {KIND_LABELS[result.kind]} v{result.version}
+              {`Imported ${KIND_LABELS[result.kind]} v${result.version} (${DISPLAY_LOCALE_LABELS[result.language]})`}
             </p>
             <p>
               {result.rulesCount} rules total: {result.added} added, {result.modified} modified,{" "}
@@ -226,11 +283,9 @@ export function RulesImportPage() {
             <div className="space-y-2">
               {entries.map((entry) => (
                 <VersionRow
-                  key={`${entry.kind}-${entry.version}`}
+                  key={`${entry.kind}-${entry.language}-${entry.version}`}
                   entry={entry}
-                  onDelete={(deleteKind, deleteVersion) =>
-                    void handleDelete(deleteKind, deleteVersion)
-                  }
+                  onDelete={() => void handleDelete(entry)}
                   isDeleting={deleteMutation.isPending}
                 />
               ))}
@@ -242,7 +297,7 @@ export function RulesImportPage() {
   );
 }
 
-function draftFrom(entry: RuleVersionResponse) {
+function draftFrom(entry: AdminRuleVersion) {
   return {
     comments: entry.comments ?? "",
     label: entry.label ?? "",
@@ -255,8 +310,8 @@ function VersionRow({
   onDelete,
   isDeleting,
 }: {
-  entry: RuleVersionResponse;
-  onDelete: (kind: RuleKind, version: string) => void;
+  entry: AdminRuleVersion;
+  onDelete: () => void;
   isDeleting: boolean;
 }) {
   const updateMutation = useUpdateRuleVersion();
@@ -272,6 +327,7 @@ function VersionRow({
   async function save() {
     const payload = {
       kind: entry.kind,
+      language: entry.language,
       version: entry.version,
       comments: draft.comments.trim() || null,
       label: draft.label.trim() || null,
@@ -295,6 +351,9 @@ function VersionRow({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <span className="font-mono font-semibold">{entry.version}</span>
+          <span className="text-muted-foreground ml-2">
+            {DISPLAY_LOCALE_LABELS[entry.language]}
+          </span>
           {name && <span className="ml-2 font-semibold">{name}</span>}
           {!isEditing && entry.comments && (
             <span className="text-muted-foreground ml-2 line-clamp-1">{entry.comments}</span>
@@ -315,11 +374,7 @@ function VersionRow({
               <Button variant="outline" onClick={startEdit}>
                 Edit
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => onDelete(entry.kind, entry.version)}
-                disabled={isDeleting}
-              >
+              <Button variant="destructive" onClick={onDelete} disabled={isDeleting}>
                 Delete
               </Button>
             </>

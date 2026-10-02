@@ -1,9 +1,10 @@
 import { adminRulesContract } from "@openrift/shared/contracts/admin/rules";
-import type { RuleKind } from "@openrift/shared/types/api/rules";
+import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import { adminRuleVersionsQueryOptions } from "@/features/rules/lib/admin-rule-versions-queries";
 import {
   ruleVersionsQueryOptions,
   rulesAtVersionQueryOptions,
@@ -19,20 +20,26 @@ interface RuleVersionDetails {
   documentVersion: string | null;
 }
 
-type ImportRulesInput = {
+interface RuleVersionKey {
   kind: RuleKind;
+  language: RuleLanguage;
   version: string;
-  content: string;
-} & Partial<RuleVersionDetails>;
-
-type UpdateRuleVersionInput = { kind: RuleKind; version: string } & RuleVersionDetails;
-
-export function useRulesAtVersion(kind: RuleKind, version: string) {
-  return useSuspenseQuery(rulesAtVersionQueryOptions(kind, version));
 }
 
-export function useRuleVersions(kind?: RuleKind) {
-  return useSuspenseQuery(ruleVersionsQueryOptions(kind));
+type ImportRulesInput = RuleVersionKey & { content: string } & Partial<RuleVersionDetails>;
+
+type UpdateRuleVersionInput = RuleVersionKey & RuleVersionDetails;
+
+export function useRulesAtVersion(kind: RuleKind, language: RuleLanguage, version: string) {
+  return useSuspenseQuery(rulesAtVersionQueryOptions(kind, language, version));
+}
+
+export function useRuleVersions(kind: RuleKind, language: RuleLanguage) {
+  return useSuspenseQuery(ruleVersionsQueryOptions(kind, language));
+}
+
+export function useAdminRuleVersions() {
+  return useSuspenseQuery(adminRuleVersionsQueryOptions());
 }
 
 const importRulesFn = createServerFn({ method: "POST" })
@@ -41,6 +48,7 @@ const importRulesFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const result = await apiOrpcClient(adminRulesContract, context.cookie).import({
       kind: data.kind,
+      language: data.language,
       version: data.version,
       comments: data.comments,
       label: data.label,
@@ -60,11 +68,12 @@ export function useImportRules() {
 }
 
 const deleteRuleVersionFn = createServerFn({ method: "POST" })
-  .validator((input: { kind: RuleKind; version: string }) => input)
+  .validator((input: RuleVersionKey) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminRulesContract, context.cookie).removeVersion({
       kind: data.kind,
+      language: data.language,
       version: data.version,
     });
     await serverCache.invalidateQueries({ queryKey: ["server-cache", "rules"] });
@@ -73,7 +82,7 @@ const deleteRuleVersionFn = createServerFn({ method: "POST" })
 
 export function useDeleteRuleVersion() {
   return useMutationWithInvalidation({
-    mutationFn: (vars: { kind: RuleKind; version: string }) => deleteRuleVersionFn({ data: vars }),
+    mutationFn: (vars: RuleVersionKey) => deleteRuleVersionFn({ data: vars }),
     invalidates: [["rules"], adminKeys.rules.versions],
   });
 }
@@ -84,6 +93,7 @@ const updateRuleVersionFn = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const result = await apiOrpcClient(adminRulesContract, context.cookie).updateVersion({
       kind: data.kind,
+      language: data.language,
       version: data.version,
       comments: data.comments,
       label: data.label,

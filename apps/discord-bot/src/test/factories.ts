@@ -125,6 +125,7 @@ export function makeRule(overrides: Partial<RuleResponse> & { ruleNumber: string
   return {
     id: overrides.ruleNumber,
     kind: "core",
+    language: "en",
     version: "2026-07-16",
     sortOrder: 0,
     depth: overrides.ruleNumber.split(".").length - 1,
@@ -140,9 +141,10 @@ export function makeRulesSnapshot(
   tournament: RuleResponse[] = [],
 ): RulesSnapshot {
   return {
-    core: { kind: "core", version: "2026-07-16", rules: core },
+    core: { kind: "core", language: "en", version: "2026-07-16", rules: core },
     tournament: {
       kind: "tournament",
+      language: "en",
       version: "2026-05-01",
       rules: tournament.map((rule) => ({ ...rule, kind: "tournament" as const })),
     },

@@ -1,8 +1,9 @@
-import type { RuleKind } from "@openrift/shared/types/api/rules";
+import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
@@ -58,12 +59,14 @@ import { STICKY_SURFACE } from "@/lib/sticky-surface";
 import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
+import { useRuleCardPreview } from "./rule-card-preview";
 import { formatRuleNumber, handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
 import {
   ExpandCollapseAllButton,
   KindTabs,
+  RulesLanguageSelect,
   RulesSearchBar,
   ShowChangesToggle,
 } from "./rules-toolbar";
@@ -93,11 +96,19 @@ function getPreviousVersion(
   return versions[index - 1]?.version ?? null;
 }
 
-export function RulesPage({ kind, version }: { kind: RuleKind; version: string | null }) {
+export function RulesPage({
+  kind,
+  language = "en",
+  version,
+}: {
+  kind: RuleKind;
+  language?: RuleLanguage;
+  version: string | null;
+}) {
   if (version === null) {
     return <RulesEmpty kind={kind} />;
   }
-  return <RulesContent kind={kind} version={version} />;
+  return <RulesContent kind={kind} language={language} version={version} />;
 }
 
 function NoRulesYet() {
@@ -128,7 +139,15 @@ function RulesEmpty({ kind }: { kind: RuleKind }) {
   );
 }
 
-function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
+function RulesContent({
+  kind,
+  language,
+  version,
+}: {
+  kind: RuleKind;
+  language: RuleLanguage;
+  version: string;
+}) {
   const navigate = useNavigate();
   // The search toolbar sticks below the title bar, so its offset must include
   // the bar's measured height on top of the global header height.
@@ -136,8 +155,13 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   const topBarHeight = useMeasuredHeight(topBarEl);
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const isToolbarStuck = useIsStuck(toolbarEl);
-  const { data: rulesData } = useRulesAtVersion(kind, version);
-  const { data: versionsData } = useRuleVersions(kind);
+  const toolbarHeight = useMeasuredHeight(toolbarEl);
+  // html's scroll-padding already clears the header; anchor jumps also clear both sticky bars.
+  const anchorOffset =
+    topBarHeight > 0 && toolbarHeight > 0 ? `${topBarHeight + toolbarHeight}px` : undefined;
+  const { data: rulesData } = useRulesAtVersion(kind, language, version);
+  const { data: versionsData } = useRuleVersions(kind, language);
+  const { data: englishVersionsData } = useRuleVersions(kind, "en");
   const debouncedSearchQuery = useRulesSearchStore((state) => state.query);
 
   // Reset fold state when navigating between rules documents — the store is
@@ -145,13 +169,14 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   const expandAll = useRulesFoldStore((state) => state.expandAll);
   const resetSearch = useRulesSearchStore((state) => state.reset);
   const resetDiffExpands = useRulesDiffExpandStore((state) => state.reset);
-  useScopeEffect(`${kind} ${version}`, () => {
+  useScopeEffect(`${kind} ${language} ${version}`, () => {
     expandAll();
     resetSearch();
     resetDiffExpands();
   });
 
   const isHydrated = useHydrated();
+  const cardPreview = useRuleCardPreview();
   const boardStatesEnabled = useFeatureEnabled("board-states");
   const { data: featuredBoardStates } = useQuery({
     ...featuredBoardStatesQueryOptions(),
@@ -163,9 +188,12 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   }, [featuredBoardStates, kind, version, setExamplesByRule]);
 
   const versions = versionsData.versions;
-  const commentsHtml = versions.find((v) => v.version === version)?.commentsHtml ?? null;
-  const previousVersion = getPreviousVersion(versions, version);
-  const versionLabels = ruleVersionLabels(versions);
+  const currentVersion = versions.find((v) => v.version === version);
+  const commentsHtml = currentVersion?.commentsHtml ?? null;
+  const previousVersion =
+    getPreviousVersion(versions, version) ??
+    (language === "en" ? null : getPreviousVersion(englishVersionsData.versions, version));
+  const versionLabels = ruleVersionLabels([...englishVersionsData.versions, ...versions]);
   const versionItems = versions
     .toReversed()
     .map((entry) => ({ value: entry.version, label: versionLabels.get(entry.version) }));
@@ -177,7 +205,7 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
   const showChangesPref = useRulesShowChangesStore((state) => state.byKind[kind]);
   const wantsChanges = showChangesPref && previousVersion !== null && !isSearching;
   const { data: changes } = useQuery({
-    ...rulesSourceQueryOptions(kind, version),
+    ...rulesSourceQueryOptions(kind, language, version),
     enabled: isHydrated && wantsChanges,
   });
   const showChanges = wantsChanges && changes !== undefined;
@@ -231,6 +259,12 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
         <PageTopBar>
           <PageTopBarTitle>{ruleKindTitle(kind)}</PageTopBarTitle>
           <PageTopBarActions>
+            <RulesLanguageSelect
+              kind={kind}
+              language={language}
+              languages={versionsData.languages}
+              versionLanguages={currentVersion?.languages ?? [language]}
+            />
             {versions.length > 1 ? (
               <Select
                 items={versionItems}
@@ -242,6 +276,7 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
                   void navigate({
                     to: "/rules/$kind/$version",
                     params: { kind, version: nextVersion },
+                    search: { lang: language },
                   });
                 }}
               >
@@ -270,13 +305,24 @@ function RulesContent({ kind, version }: { kind: RuleKind; version: string }) {
         {isEmpty ? (
           <NoRulesYet />
         ) : (
-          <div className="flex gap-6">
+          <div
+            className="flex gap-6"
+            style={
+              anchorOffset === undefined
+                ? undefined
+                : ({ "--rules-anchor-offset": anchorOffset } as CSSProperties)
+            }
+          >
             <PageToc items={tocItems} />
             {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- delegated link handling */}
             <div
               className="min-w-0 flex-1"
+              lang={language}
               onClick={(event) => handleRuleHtmlClick(event, (href) => void navigate({ href }))}
+              onPointerOver={cardPreview.handlePointerOver}
+              onPointerOut={cardPreview.handlePointerOut}
             >
+              {cardPreview.preview}
               <div
                 ref={setToolbarEl}
                 className={cn(

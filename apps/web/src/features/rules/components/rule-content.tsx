@@ -1,5 +1,6 @@
-import { formatRuleNumber } from "@openrift/shared/rules";
+import { formatRuleNumber, isRuleLanguage } from "@openrift/shared/rules";
 import type { HastNode } from "@openrift/shared/rules-markdown";
+import type { RuleLanguage } from "@openrift/shared/types/api/rules";
 import { Link } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
@@ -16,7 +17,9 @@ import { m } from "@/paraglide/messages.js";
 export { formatRuleNumber } from "@openrift/shared/rules";
 
 export async function copyRuleLink(ruleNumber: string): Promise<void> {
-  const url = `${globalThis.location.origin}${globalThis.location.pathname}#rule-${ruleNumber}`;
+  const lang = new URLSearchParams(globalThis.location.search).get("lang");
+  const search = lang === null ? "" : `?lang=${encodeURIComponent(lang)}`;
+  const url = `${globalThis.location.origin}${globalThis.location.pathname}${search}#rule-${ruleNumber}`;
   try {
     await copyTextToClipboard(url);
     toast.success(m.rules_copy_link_success({ rule: formatRuleNumber(ruleNumber) }));
@@ -92,6 +95,8 @@ export function handleRuleHtmlClick(
   navigate(href);
 }
 
+const CORE_RULE_HREF_REGEX = /^\/rules\/core(?:\?lang=(?<lang>[A-Za-z-]+))?#(?<hash>.+)$/u;
+
 function RuleMarkdownAnchor({ href, children }: { href?: string; children?: ReactNode }) {
   if (typeof href === "string" && href.startsWith("#")) {
     return (
@@ -114,10 +119,19 @@ function RuleMarkdownAnchor({ href, children }: { href?: string; children?: Reac
       </TextLink>
     );
   }
-  if (typeof href === "string" && href.startsWith("/rules/core#")) {
-    const hash = href.slice("/rules/core#".length);
+  const coreRule = typeof href === "string" ? CORE_RULE_HREF_REGEX.exec(href)?.groups : undefined;
+  if (coreRule?.hash !== undefined) {
     return (
-      <TextLink render={<Link to="/rules/$kind" params={{ kind: "core" }} hash={hash} />}>
+      <TextLink
+        render={
+          <Link
+            to="/rules/$kind"
+            params={{ kind: "core" }}
+            search={isRuleLanguage(coreRule.lang) ? { lang: coreRule.lang } : {}}
+            hash={coreRule.hash}
+          />
+        }
+      >
         {children}
       </TextLink>
     );
@@ -217,7 +231,15 @@ function renderDiffNode(node: HastNode, key: number): ReactNode {
 
 // Both texts are parsed through the full markdown pipeline and diffed
 // structurally, so emphasis, links and penalty badges survive the diff.
-export function InlineDiff({ oldText, newText }: { oldText: string; newText: string }) {
-  const nodes = diffRuleMarkdown(oldText, newText);
+export function InlineDiff({
+  oldText,
+  newText,
+  language,
+}: {
+  oldText: string;
+  newText: string;
+  language?: RuleLanguage;
+}) {
+  const nodes = diffRuleMarkdown(oldText, newText, language);
   return <>{nodes.map((node, index) => renderDiffNode(node, index))}</>;
 }

@@ -1,10 +1,18 @@
-import type { RuleKind } from "@openrift/shared/types/api/rules";
+import { isRuleLanguage } from "@openrift/shared/rules";
+import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronsDownUpIcon, ChevronsUpDownIcon, FileClockIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,6 +21,7 @@ import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
+import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { m } from "@/paraglide/messages.js";
 
 // Keep as its own component: inlining the `foldedRules.size` selector here
@@ -87,6 +96,51 @@ export function ShowChangesToggle({
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
+  );
+}
+
+export function RulesLanguageSelect({
+  kind,
+  language,
+  languages,
+  versionLanguages,
+}: {
+  kind: RuleKind;
+  language: RuleLanguage;
+  languages: readonly RuleLanguage[];
+  versionLanguages: readonly RuleLanguage[];
+}) {
+  const navigate = useNavigate();
+  if (languages.length < 2) {
+    return null;
+  }
+  const items = languages.map((value) => ({ value, label: DISPLAY_LOCALE_LABELS[value] }));
+  return (
+    <Select
+      items={items}
+      value={language}
+      onValueChange={(next) => {
+        if (!isRuleLanguage(next) || next === language) {
+          return;
+        }
+        if (versionLanguages.includes(next)) {
+          void navigate({ to: ".", search: (prev) => ({ ...prev, lang: next }) });
+        } else {
+          void navigate({ to: "/rules/$kind", params: { kind }, search: { lang: next } });
+        }
+      }}
+    >
+      <SelectTrigger className="text-muted-foreground" aria-label={m.rules_language_label()}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value} lang={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

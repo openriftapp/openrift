@@ -1,9 +1,11 @@
 import type { HastNode, MdNode } from "@openrift/shared/rules-markdown";
 import {
   PENALTY_REGEX,
+  penaltyKey,
   preprocessRuleMarkdown,
   remarkLinkifyRuleReferences,
 } from "@openrift/shared/rules-markdown";
+import type { RuleLanguage } from "@openrift/shared/types/api/rules";
 import { fromMarkdown } from "mdast-util-from-markdown";
 
 // Diffing raw markdown source is unsafe: interleaving the emphasis markers of
@@ -65,7 +67,7 @@ function flattenText(text: string, frames: InlineFrame[], state: FlattenState): 
     state.tokens.push({
       text: match[0],
       pre: state.pendingWs,
-      frames: [...frames, { tag: "penalty", penalty: match[1] }],
+      frames: [...frames, { tag: "penalty", penalty: penaltyKey(match[1] ?? "") }],
     });
     state.pendingWs = [];
     last = match.index + match[0].length;
@@ -285,9 +287,9 @@ function buildMergedTree(entries: DiffEntry[]): HastNode[] {
   return root.children ?? [];
 }
 
-function parseRuleMarkdown(source: string): MdNode {
-  const tree = fromMarkdown(preprocessRuleMarkdown(source)) as unknown as MdNode;
-  remarkLinkifyRuleReferences()(tree);
+function parseRuleMarkdown(source: string, language?: RuleLanguage): MdNode {
+  const tree = fromMarkdown(preprocessRuleMarkdown(source, language)) as unknown as MdNode;
+  remarkLinkifyRuleReferences(language)(tree);
   return tree;
 }
 
@@ -296,12 +298,16 @@ function parseRuleMarkdown(source: string): MdNode {
  * HAST-like tree. Both versions run through the full parse pipeline first,
  * so formatting can't be mangled by the diff.
  */
-export function diffRuleMarkdown(oldSource: string, newSource: string): HastNode[] {
-  const newTokens = flattenTree(parseRuleMarkdown(newSource));
+export function diffRuleMarkdown(
+  oldSource: string,
+  newSource: string,
+  language?: RuleLanguage,
+): HastNode[] {
+  const newTokens = flattenTree(parseRuleMarkdown(newSource, language));
   if (oldSource === newSource) {
     return buildMergedTree(newTokens.map((token) => ({ type: "equal", token })));
   }
-  const oldTokens = flattenTree(parseRuleMarkdown(oldSource));
+  const oldTokens = flattenTree(parseRuleMarkdown(oldSource, language));
   return buildMergedTree(diffTokens(oldTokens, newTokens));
 }
 

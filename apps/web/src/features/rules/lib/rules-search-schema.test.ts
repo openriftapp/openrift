@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rulesSearchSchema } from "./rules-search-schema";
+import { defaultRuleLanguage, rulesSearchSchema } from "./rules-search-schema";
 
 describe("rulesSearchSchema", () => {
   it("keeps a query", () => {
@@ -16,5 +16,30 @@ describe("rulesSearchSchema", () => {
 
   it("ignores params it does not own", () => {
     expect(rulesSearchSchema({ q: "might", other: "x" })).toEqual({ q: "might" });
+  });
+
+  it("keeps a rules language", () => {
+    expect(rulesSearchSchema({ lang: "fr" })).toEqual({ lang: "fr" });
+    expect(rulesSearchSchema({ q: "might", lang: "zh-Hans" })).toEqual({
+      q: "might",
+      lang: "zh-Hans",
+    });
+  });
+
+  it("drops a language that has no rules documents", () => {
+    expect(rulesSearchSchema({ lang: "de" })).toEqual({});
+    expect(rulesSearchSchema({ lang: "FR" })).toEqual({});
+    expect(rulesSearchSchema({ lang: 1 })).toEqual({});
+  });
+});
+
+describe("defaultRuleLanguage", () => {
+  it("uses the UI locale when its rules exist", () => {
+    expect(defaultRuleLanguage(["en", "fr", "ko"], "ko")).toBe("ko");
+  });
+
+  it("falls back to English when the UI locale has no rules", () => {
+    expect(defaultRuleLanguage(["en", "fr"], "ko")).toBe("en");
+    expect(defaultRuleLanguage(["en", "fr", "ko"], "de")).toBe("en");
   });
 });

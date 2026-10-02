@@ -28,6 +28,7 @@ interface SeoOptions {
   oembed?: boolean;
   noIndex?: boolean;
   unlisted?: boolean;
+  alternates?: readonly { hrefLang: string; path: string }[];
 }
 
 export function seoHead(options: SeoOptions) {
@@ -81,6 +82,13 @@ export function seoHead(options: SeoOptions) {
       type: "application/json+oembed",
       href: `${siteUrl}/api/v1/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`,
       title: fullTitle,
+    });
+  }
+  for (const alternate of options.alternates ?? []) {
+    links.push({
+      rel: "alternate",
+      hrefLang: alternate.hrefLang,
+      href: `${siteUrl}${alternate.path}`,
     });
   }
 

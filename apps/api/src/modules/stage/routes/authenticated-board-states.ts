@@ -22,7 +22,7 @@ async function rulesVersionExists(
   kind: RuleKind,
   version: string,
 ): Promise<boolean> {
-  const versions = await context.repos.rules.listVersions(kind);
+  const versions = await context.repos.rules.listVersions("en", kind);
   return versions.some((row) => row.version === version);
 }
 

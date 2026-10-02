@@ -7,6 +7,7 @@ describe("rulesRepo", () => {
   describe("insertRules", () => {
     const rule = {
       kind: "core" as const,
+      language: "en" as const,
       version: "1.0",
       ruleNumber: "100.1",
       sortOrder: 1,

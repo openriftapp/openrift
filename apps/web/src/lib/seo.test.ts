@@ -184,6 +184,26 @@ describe("seoHead", () => {
     expect(links.some((link) => link.type === "application/json+oembed")).toBe(false);
   });
 
+  it("lists translations as hreflang alternates", () => {
+    const { links } = seoHead({
+      siteUrl,
+      title: "Core Rules",
+      path: "/rules/core/2026-07-16?lang=fr",
+      alternates: [
+        { hrefLang: "en", path: "/rules/core/2026-07-16?lang=en" },
+        { hrefLang: "fr", path: "/rules/core/2026-07-16?lang=fr" },
+      ],
+    });
+    expect(links).toContainEqual({
+      rel: "canonical",
+      href: `${siteUrl}/rules/core/2026-07-16?lang=fr`,
+    });
+    expect(links.filter((link) => link.hrefLang !== undefined)).toEqual([
+      { rel: "alternate", hrefLang: "en", href: `${siteUrl}/rules/core/2026-07-16?lang=en` },
+      { rel: "alternate", hrefLang: "fr", href: `${siteUrl}/rules/core/2026-07-16?lang=fr` },
+    ]);
+  });
+
   it("does not emit a robots meta by default", () => {
     const { meta } = seoHead({ siteUrl, title: "Cards", path: "/cards" });
     expect(meta.some((tag) => tag.name === "robots")).toBe(false);

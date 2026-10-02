@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict AxDNZTq6ZdglQ4y83sWVlB3aLgpk8iBb1eIH0Vjt2586ySj1rpv376jx67WJXPV
+\restrict 7ocx4L4EsR7MerQFHJ4Te6tcK2cwEeZRJfqlvk2Fm5iUIfQbT7w8hJql5yQXWyx
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -3497,9 +3497,11 @@ CREATE TABLE public.rule_versions (
     comments text,
     label text,
     document_version text,
+    language text NOT NULL,
     CONSTRAINT chk_rule_versions_document_version_not_empty CHECK ((document_version <> ''::text)),
     CONSTRAINT chk_rule_versions_label_not_empty CHECK ((label <> ''::text)),
-    CONSTRAINT rule_versions_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text])))
+    CONSTRAINT rule_versions_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
+    CONSTRAINT rule_versions_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text])))
 );
 
 
@@ -3518,9 +3520,11 @@ CREATE TABLE public.rules (
     change_type text DEFAULT 'added'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     kind text NOT NULL,
-    CONSTRAINT rules_change_type_check CHECK ((change_type = ANY (ARRAY['added'::text, 'modified'::text, 'removed'::text]))),
+    language text NOT NULL,
+    CONSTRAINT rules_change_type_check CHECK ((change_type = ANY (ARRAY['added'::text, 'modified'::text, 'removed'::text, 'unchanged'::text]))),
     CONSTRAINT rules_depth_check CHECK (((depth >= 0) AND (depth <= 3))),
     CONSTRAINT rules_kind_check CHECK ((kind = ANY (ARRAY['core'::text, 'tournament'::text]))),
+    CONSTRAINT rules_language_check CHECK ((language = ANY (ARRAY['en'::text, 'fr'::text, 'ko'::text, 'zh-Hans'::text]))),
     CONSTRAINT rules_rule_number_check CHECK ((rule_number <> ''::text)),
     CONSTRAINT rules_rule_type_check CHECK ((rule_type = ANY (ARRAY['title'::text, 'subtitle'::text, 'text'::text])))
 );
@@ -5431,15 +5435,15 @@ ALTER TABLE ONLY public.rarities
 --
 
 ALTER TABLE ONLY public.rule_versions
-    ADD CONSTRAINT rule_versions_pkey PRIMARY KEY (kind, version);
+    ADD CONSTRAINT rule_versions_pkey PRIMARY KEY (kind, language, version);
 
 
 --
--- Name: rules rules_kind_version_rule_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: rules rules_kind_language_version_rule_number_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rules
-    ADD CONSTRAINT rules_kind_version_rule_number_key UNIQUE (kind, version, rule_number);
+    ADD CONSTRAINT rules_kind_language_version_rule_number_key UNIQUE (kind, language, version, rule_number);
 
 
 --
@@ -6984,10 +6988,10 @@ CREATE INDEX idx_products_set ON public.products USING btree (set_id);
 
 
 --
--- Name: idx_rules_kind_version_sort; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_rules_kind_language_version_sort; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_rules_kind_version_sort ON public.rules USING btree (kind, version, sort_order);
+CREATE INDEX idx_rules_kind_language_version_sort ON public.rules USING btree (kind, language, version, sort_order);
 
 
 --
@@ -9856,11 +9860,11 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: rules rules_kind_version_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: rules rules_kind_language_version_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.rules
-    ADD CONSTRAINT rules_kind_version_fkey FOREIGN KEY (kind, version) REFERENCES public.rule_versions(kind, version) ON DELETE CASCADE;
+    ADD CONSTRAINT rules_kind_language_version_fkey FOREIGN KEY (kind, language, version) REFERENCES public.rule_versions(kind, language, version) ON DELETE CASCADE;
 
 
 --
@@ -10227,5 +10231,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict AxDNZTq6ZdglQ4y83sWVlB3aLgpk8iBb1eIH0Vjt2586ySj1rpv376jx67WJXPV
+\unrestrict 7ocx4L4EsR7MerQFHJ4Te6tcK2cwEeZRJfqlvk2Fm5iUIfQbT7w8hJql5yQXWyx
 

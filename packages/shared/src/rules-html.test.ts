@@ -44,7 +44,9 @@ describe("renderRuleHtml links", () => {
 
   it("links a bare tournament reference and a `CR N` reference", () => {
     expect(render("See 603.7.")).toContain('<a href="#rule-603.7">603.7</a>');
-    expect(render("Proceed to CR 116.")).toContain('<a href="/rules/core#rule-116">CR 116</a>');
+    expect(render("Proceed to CR 116.")).toContain(
+      '<a href="/rules/core?lang=en#rule-116">CR 116</a>',
+    );
   });
 
   it("does not link a low decimal that is not a rule number", () => {
@@ -79,6 +81,125 @@ describe("renderRuleHtml links", () => {
   });
 });
 
+describe("renderRuleHtml in French and Korean", () => {
+  it("links a French `règle N` reference", () => {
+    expect(render("Voir règle 197. Emplacements.", { language: "fr" })).toContain(
+      '<a href="#rule-197">règle 197</a>',
+    );
+  });
+
+  it("links a Korean article reference without a word boundary", () => {
+    expect(render("자세한 내용은 규칙 제355.6조 위치를 참조하세요.", { language: "ko" })).toContain(
+      '<a href="#rule-355.6">규칙 제355.6조</a>',
+    );
+  });
+
+  it("sends a Korean Core Rules reference to the Korean core rules", () => {
+    expect(render("핵심 규칙 제110조 게임 준비 절차", { language: "ko" })).toContain(
+      '<a href="/rules/core?lang=ko#rule-110">핵심 규칙 제110조</a>',
+    );
+  });
+
+  it("sends a French Core Rules section to the French core rules", () => {
+    expect(
+      render("Voir la section 110. des *Règles de base « Mise en place ».*", { language: "fr" }),
+    ).toBe(
+      'Voir la section <a href="/rules/core?lang=fr#rule-110">110</a>. des <em>Règles de base « Mise en place ».</em>',
+    );
+    expect(render("consultez la section *469.1.a. des Règles de base.*", { language: "fr" })).toBe(
+      'consultez la section <em><a href="/rules/core?lang=fr#rule-469.1.a">469.1.a</a>. des Règles de base.</em>',
+    );
+    expect(
+      render("comme défini par le point 484.8.e. des Règles de base.", { language: "fr" }),
+    ).toBe(
+      'comme défini par le point <a href="/rules/core?lang=fr#rule-484.8.e">484.8.e</a>. des Règles de base.',
+    );
+  });
+
+  it("links a French term written with its article", () => {
+    expect(
+      render("Sur *le plateau*.", { language: "fr", termAnchors: new Map([["plateau", "107"]]) }),
+    ).toBe('Sur <a href="#rule-107"><em>le plateau</em></a>.');
+  });
+
+  it("does not link an ordinal that is not an article", () => {
+    expect(render("제1원칙", { language: "ko" })).toBe("제1원칙");
+  });
+
+  it("styles localized penalties by their English severity", () => {
+    expect(render("[*Perte de partie*]", { language: "fr" })).toBe(
+      '<span data-penalty="Game Loss">[Perte de partie]</span>',
+    );
+    expect(render("[경고]", { language: "ko" })).toBe('<span data-penalty="Warning">[경고]</span>');
+  });
+
+  it("puts French and Korean examples in their own block", () => {
+    expect(render("Texte.\n*Exemple :* Une carte.\n*Voir règle 119.*", { language: "fr" })).toBe(
+      '<div>Texte.</div><div class="rule-example"><em>Exemple :</em> Une carte.</div><div><em>Voir <a href="#rule-119">règle 119</a>.</em></div>',
+    );
+    expect(
+      render("본문.\n예시: 카드.\n자세한 내용은 규칙 제119조를 참조하세요.", { language: "ko" }),
+    ).toBe(
+      '<div>본문.</div><div class="rule-example">예시: 카드.</div><div>자세한 내용은 <a href="#rule-119">규칙 제119조</a>를 참조하세요.</div>',
+    );
+  });
+
+  it("does not split Simplified Chinese, which has no known example marker yet", () => {
+    expect(render("Example: x", { language: "zh-Hans" })).toBe("Example: x");
+  });
+});
+
+describe("renderRuleHtml keywords", () => {
+  const keywords = new Map([
+    ["reaction", { name: "Reaction", color: "#24705f", darkText: false }],
+    ["réaction", { name: "Reaction", color: "#24705f", darkText: false }],
+    ["deathknell", { name: "Deathknell", color: "#95b229", darkText: true }],
+    ["shield", { name: "Shield", color: "#cd346f", darkText: false }],
+  ]);
+
+  it("turns a bracketed keyword into a badge in its color", () => {
+    expect(render("[E]: [Reaction] — Add [1].", { keywords })).toBe(
+      '[E]: <span data-keyword="Reaction" style="--keyword-color:#24705f">Reaction</span> — Add [1].',
+    );
+  });
+
+  it("matches a translated label and a keyword with an amount", () => {
+    expect(render("[Réaction] et [Shield 2]", { keywords })).toBe(
+      '<span data-keyword="Reaction" style="--keyword-color:#24705f">Réaction</span> et <span data-keyword="Shield" style="--keyword-color:#cd346f">Shield 2</span>',
+    );
+  });
+
+  it("points a badge right for [>] and left for [>>], dropping the markers", () => {
+    expect(render("[Reaction][>] Kill this.", { keywords })).toBe(
+      '<span data-keyword="Reaction" style="--keyword-color:#24705f" data-keyword-point="right">Reaction</span> Kill this.',
+    );
+    expect(render("x [>>][Shield][>] y", { keywords })).toBe(
+      'x <span data-keyword="Shield" style="--keyword-color:#cd346f" data-keyword-point="both">Shield</span> y',
+    );
+  });
+
+  it("leaves a [>] that follows no keyword as text", () => {
+    expect(render("comes after the [>].", { keywords })).toBe("comes after the [&gt;].");
+  });
+
+  it("marks a keyword that needs dark text", () => {
+    expect(render("[Deathknell]", { keywords })).toBe(
+      '<span data-keyword="Deathknell" style="--keyword-color:#95b229" data-keyword-dark>Deathknell</span>',
+    );
+  });
+
+  it("leaves placeholders and penalties alone", () => {
+    expect(render("[Text] and [Warning]", { keywords })).toBe(
+      '[Text] and <span data-penalty="Warning">[Warning]</span>',
+    );
+  });
+
+  it("drops a badge whose color is not a hex color", () => {
+    const bad = new Map([["reaction", { name: "Reaction", color: "red;x:y", darkText: false }]]);
+    expect(render("[Reaction]", { keywords: bad })).toBe("Reaction");
+  });
+});
+
 describe("renderRuleHtml examples", () => {
   it("leaves a rule without examples inline", () => {
     expect(render("Just text.")).toBe("Just text.");
@@ -99,6 +220,27 @@ describe("renderRuleHtml examples", () => {
     ).toBe(
       '<div>Units can move.</div><div class="rule-example"><em>Example:</em> A player plays <a href="/cards/flash">Flash</a> to make a “Gold token”.</div>',
     );
+  });
+
+  it("tags a card link with its image for the hover preview", () => {
+    const pattern = cardMentionPattern(["Flash", "Ezreal"])!;
+    const html = render("Rule.\n*Example:* Flash and Ezreal.", {
+      cardMentions: {
+        pattern,
+        slugsByName: new Map([
+          ["Flash", "flash"],
+          ["Ezreal", "ezreal"],
+        ]),
+        imagesBySlug: new Map([
+          ["flash", { imageId: "019a0000-0000-7000-8000-000000000001", landscape: false }],
+          ["ezreal", { imageId: "not-a-uuid", landscape: true }],
+        ]),
+      },
+    });
+    expect(html).toContain(
+      '<a href="/cards/flash" data-card-image="019a0000-0000-7000-8000-000000000001">Flash</a>',
+    );
+    expect(html).toContain('<a href="/cards/ezreal">Ezreal</a>');
   });
 
   it("does not link cards in the rule text outside examples", () => {

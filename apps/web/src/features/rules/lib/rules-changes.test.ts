@@ -23,6 +23,7 @@ function rule(
   return {
     id: `id-${overrides.ruleNumber}`,
     kind: "core",
+    language: "en",
     version: VERSION,
     sortOrder: 0,
     depth: 0,
@@ -35,7 +36,7 @@ function rule(
 }
 
 function changes(overrides: Partial<RuleChanges> = {}): RuleChanges {
-  return { added: [], modifiedPrev: {}, removed: [], ...overrides };
+  return { added: [], modified: [], modifiedPrev: {}, removed: [], ...overrides };
 }
 
 describe("detectMoves", () => {

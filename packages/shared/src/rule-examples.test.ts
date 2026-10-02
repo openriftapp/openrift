@@ -87,11 +87,44 @@ describe("ruleExampleText", () => {
   it("is empty for a rule without examples", () => {
     expect(ruleExampleText("Rule text.")).toBe("");
   });
+
+  it("reads French example and See markers, including a space before the colon", () => {
+    expect(
+      ruleExampleText("Texte.\n*Exemple :* Un.\n*Voir règle 1.*\nExemples : Deux.", "fr"),
+    ).toBe("*Exemple :* Un.\nExemples : Deux.");
+  });
+
+  it("ends a Korean example at a line that refers the reader elsewhere", () => {
+    expect(
+      ruleExampleText("본문.\n예시: 하나.\n자세한 내용은 규칙 제1조를 참조하세요.", "ko"),
+    ).toBe("예시: 하나.");
+  });
+
+  it("leaves Korean and French e.g. lines in the rule text", () => {
+    expect(ruleExampleText("본문.\n예: 하나.", "ko")).toBe("");
+    expect(ruleExampleText("Texte.\n*Par exemple,* un.", "fr")).toBe("");
+  });
 });
 
 describe("cardMentionPattern", () => {
   it("is null without names", () => {
     expect(cardMentionPattern([])).toBeNull();
+  });
+
+  it("matches a Korean name followed by a particle", () => {
+    const pattern = cardMentionPattern(["난폭한 말괄량이", "점멸"], "ko");
+    expect("난폭한 말괄량이에는 점멸을 쓴다".match(pattern!)).toEqual(["난폭한 말괄량이", "점멸"]);
+  });
+
+  it("does not match a Korean name inside a longer word", () => {
+    const pattern = cardMentionPattern(["점멸"], "ko");
+    expect("점멸하다".match(pattern!)).toBeNull();
+    expect("'점멸'을 쓴다".match(pattern!)).toEqual(["점멸"]);
+  });
+
+  it("does not let an English name run into a longer word", () => {
+    const pattern = cardMentionPattern(["Flash"], "ko");
+    expect("Flashy".match(pattern!)).toBeNull();
   });
 
   it("prefers the longest name and matches whole words only", () => {

@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRuleEmbed, linkifyRuleReferences, ruleBreadcrumb } from "./rule-embed.js";
+import {
+  buildRuleEmbed,
+  linkifyRuleReferences,
+  ruleBreadcrumb,
+  rulePageUrls,
+} from "./rule-embed.js";
 import { buildRuleIndex, findRule } from "./rule-search.js";
 import { makeRule, makeRulesSnapshot } from "./test/factories.js";
 
 const SITE_URL = "https://example.test";
+const PAGES = rulePageUrls(SITE_URL, { core: "2026-07-16", tournament: "2026-05-01" });
+const CORE = `${SITE_URL}/rules/core/2026-07-16?lang=en`;
+const TOURNAMENT = `${SITE_URL}/rules/tournament/2026-05-01?lang=en`;
 
 function makeIndex() {
   return buildRuleIndex(
@@ -25,20 +33,20 @@ function makeIndex() {
 
 describe("linkifyRuleReferences", () => {
   it("links `rule N` references within the rule's own kind", () => {
-    expect(linkifyRuleReferences("See rule 179. Tokens.", "core", SITE_URL)).toBe(
-      `See [rule 179](${SITE_URL}/rules/core#rule-179). Tokens.`,
+    expect(linkifyRuleReferences("See rule 179. Tokens.", "core", PAGES)).toBe(
+      `See [rule 179](${CORE}#rule-179). Tokens.`,
     );
   });
 
   it("links bare dotted numbers", () => {
-    expect(linkifyRuleReferences("As stated in 540.4.b, continue.", "core", SITE_URL)).toBe(
-      `As stated in [540.4.b](${SITE_URL}/rules/core#rule-540.4.b), continue.`,
+    expect(linkifyRuleReferences("As stated in 540.4.b, continue.", "core", PAGES)).toBe(
+      `As stated in [540.4.b](${CORE}#rule-540.4.b), continue.`,
     );
   });
 
   it("always sends CR references to the core rules, even from tournament rules", () => {
-    expect(linkifyRuleReferences("Judges apply CR 120 here.", "tournament", SITE_URL)).toBe(
-      `Judges apply [CR 120](${SITE_URL}/rules/core#rule-120) here.`,
+    expect(linkifyRuleReferences("Judges apply CR 120 here.", "tournament", PAGES)).toBe(
+      `Judges apply [CR 120](${CORE}#rule-120) here.`,
     );
   });
 });
@@ -84,11 +92,11 @@ describe("buildRuleEmbed", () => {
     const index = makeIndex();
     const embed = buildRuleEmbed({ entry: findRule(index, "CR 120")!, index, siteUrl: SITE_URL });
     expect(embed.title).toBe("CR 120");
-    expect(embed.url).toBe(`${SITE_URL}/rules/core#rule-120`);
+    expect(embed.url).toBe(`${CORE}#rule-120`);
     expect(embed.description).toContain("A *Game Object* is anything in the game.");
     expect(embed.description).toContain("- **120.1** Cards are Game Objects.");
     expect(embed.description).toContain(
-      `\n  - **120.1.a** Tokens too. See [rule 179](${SITE_URL}/rules/core#rule-179). Tokens.`,
+      `\n  - **120.1.a** Tokens too. See [rule 179](${CORE}#rule-179). Tokens.`,
     );
     expect(embed.description).toContain("\n- **120.2** Runes are Game Objects.");
     expect(embed.footer?.text).toBe("Core Rules · 2026-07-16");
@@ -161,7 +169,7 @@ describe("buildRuleEmbed", () => {
     const index = makeIndex();
     const embed = buildRuleEmbed({ entry: findRule(index, "TR 204")!, index, siteUrl: SITE_URL });
     expect(embed.title).toBe("TR 204");
-    expect(embed.url).toBe(`${SITE_URL}/rules/tournament#rule-204`);
+    expect(embed.url).toBe(`${TOURNAMENT}#rule-204`);
     expect(embed.footer?.text).toBe("Tournament Rules · 2026-05-01");
   });
 

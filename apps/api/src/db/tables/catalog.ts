@@ -1,5 +1,10 @@
 import type { ImageQuad } from "@openrift/shared/contracts/admin/card-images";
-import type { RuleChangeType, RuleKind, RuleType } from "@openrift/shared/types/api/rules";
+import type {
+  RuleChangeType,
+  RuleKind,
+  RuleLanguage,
+  RuleType,
+} from "@openrift/shared/types/api/rules";
 import type {
   ArtVariant,
   CardFace,
@@ -273,6 +278,7 @@ export interface CardBansTable {
 
 export interface RuleVersionsTable {
   kind: RuleKind;
+  language: RuleLanguage;
   version: string;
   comments: string | null;
   label: string | null;
@@ -283,6 +289,7 @@ export interface RuleVersionsTable {
 export interface RulesTable {
   id: Generated<string>;
   kind: RuleKind;
+  language: RuleLanguage;
   version: string;
   ruleNumber: string;
   sortOrder: number;

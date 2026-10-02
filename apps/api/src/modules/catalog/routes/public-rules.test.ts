@@ -8,8 +8,15 @@ import { rulesRouter } from "./public-rules";
 
 const mockRulesRepo = {
   listLatest: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
-  listAtVersion: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
+  listKeywordLabels: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
+  listCardImages: vi.fn((_slugs: string[], _language: string) =>
+    Promise.resolve([] as Record<string, unknown>[]),
+  ),
+  listAtVersion: vi.fn((_kind: string, _language: string, _version?: string) =>
+    Promise.resolve([] as Record<string, unknown>[]),
+  ),
   listVersions: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
+  listAllVersions: vi.fn(() => Promise.resolve([] as Record<string, unknown>[])),
   listCardNames: vi.fn(() => Promise.resolve([] as { name: string; slug: string }[])),
   listChangesAtVersion: vi.fn(
     () =>
@@ -17,6 +24,7 @@ const mockRulesRepo = {
         | {
             added: string[];
             current: Record<string, string>;
+            modified: string[];
             modifiedPrev: Record<string, string>;
             removed: Record<string, unknown>[];
           }
@@ -39,6 +47,7 @@ registerRouterForTest(app, rulesRouter);
 const dbRule = {
   id: "r0000000-0001-4000-a000-000000000001",
   kind: "core",
+  language: "en",
   version: "1.2.0",
   ruleNumber: "3.4.1",
   sortOrder: 120,
@@ -50,6 +59,7 @@ const dbRule = {
 
 const dbVersion = {
   kind: "core",
+  language: "en",
   version: "1.2.0",
   comments: "First public release.",
   label: "Origins",
@@ -63,6 +73,7 @@ describe("GET /api/v1/rules", () => {
     mockRulesRepo.listLatest.mockResolvedValue([]);
     mockRulesRepo.listAtVersion.mockResolvedValue([]);
     mockRulesRepo.listVersions.mockResolvedValue([]);
+    mockRulesRepo.listAllVersions.mockResolvedValue([]);
     mockRulesRepo.listChangesAtVersion.mockResolvedValue(undefined);
     mockRulesRepo.listCardNames.mockResolvedValue([]);
   });
@@ -84,7 +95,7 @@ describe("GET /api/v1/rules", () => {
       changeType: "added",
     });
     expect(json.changes).toBeUndefined();
-    expect(mockRulesRepo.listLatest).toHaveBeenCalledWith("core");
+    expect(mockRulesRepo.listLatest).toHaveBeenCalledWith("core", "en");
     expect(mockRulesRepo.listAtVersion).not.toHaveBeenCalled();
   });
 
@@ -94,6 +105,7 @@ describe("GET /api/v1/rules", () => {
     mockRulesRepo.listChangesAtVersion.mockResolvedValue({
       added: ["3.4.1"],
       current: { "3.4.1": dbRule.content },
+      modified: ["3.4.2"],
       modifiedPrev: { "3.4.2": "old text" },
       removed: [{ ...dbRule, id: "r0000000-0001-4000-a000-000000000002", changeType: "removed" }],
     });
@@ -106,7 +118,7 @@ describe("GET /api/v1/rules", () => {
     expect(json.changes.added).toEqual(["3.4.1"]);
     expect(json.changes.modifiedPrev).toEqual({ "3.4.2": "old text" });
     expect(json.changes.removed).toHaveLength(1);
-    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "1.2.0");
+    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "en", "1.2.0");
     expect(mockRulesRepo.listLatest).not.toHaveBeenCalled();
   });
 
@@ -122,6 +134,19 @@ describe("GET /api/v1/rules", () => {
     expect(json.rules).toEqual([]);
   });
 
+  it("passes the requested language to the repository", async () => {
+    mockRulesRepo.listAtVersion.mockResolvedValue([{ ...dbRule, language: "fr" }]);
+    mockRulesRepo.listVersions.mockResolvedValue([{ ...dbVersion, language: "fr" }]);
+
+    const res = await app.request("/api/v1/rules?kind=core&version=1.2.0&language=fr");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.language).toBe("fr");
+    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "fr", "1.2.0");
+    expect(mockRulesRepo.listChangesAtVersion).toHaveBeenCalledWith("core", "fr", "1.2.0");
+    expect(mockRulesRepo.listVersions).toHaveBeenCalledWith("fr", "core");
+  });
+
   it("rejects an invalid kind with a 400", async () => {
     const res = await app.request("/api/v1/rules?kind=nonsense");
     expect(res.status).toBe(400);
@@ -133,6 +158,27 @@ describe("GET /api/v1/rules/page", () => {
     vi.resetAllMocks();
     mockRulesRepo.listAtVersion.mockResolvedValue([]);
     mockRulesRepo.listCardNames.mockResolvedValue([]);
+    mockRulesRepo.listKeywordLabels.mockResolvedValue([]);
+    mockRulesRepo.listCardImages.mockResolvedValue([]);
+  });
+
+  it("badges the keywords of the requested language", async () => {
+    mockRulesRepo.listAtVersion.mockResolvedValue([
+      { ...dbRule, language: "fr", content: "[Réaction] — Ajoutez [1]." },
+    ]);
+    mockRulesRepo.listKeywordLabels.mockResolvedValue([
+      { label: "Reaction", name: "Reaction", color: "#24705f", darkText: false },
+      { label: "Réaction", name: "Reaction", color: "#24705f", darkText: false },
+    ]);
+
+    const json = await readJson(
+      await app.request("/api/v1/rules/page?kind=core&version=1.2.0&language=fr"),
+    );
+
+    expect(mockRulesRepo.listKeywordLabels).toHaveBeenCalledWith("fr");
+    expect(json.rules[0].contentHtml).toBe(
+      '<span data-keyword="Reaction" style="--keyword-color:#24705f">Réaction</span> — Ajoutez [1].',
+    );
   });
 
   it("renders each text rule to HTML, linking cards only inside examples", async () => {
@@ -159,7 +205,70 @@ describe("GET /api/v1/rules/page", () => {
     );
     expect(json.rules[1].contentHtml).toBe("Gold is a token.");
     expect(json.rules[0]).not.toHaveProperty("content");
-    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "1.2.0");
+    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "en", "1.2.0");
+  });
+
+  it("loads that language's card names for a translation", async () => {
+    mockRulesRepo.listAtVersion.mockResolvedValue([
+      {
+        ...dbRule,
+        language: "fr",
+        id: "r0000000-0001-4000-a000-000000000004",
+        ruleNumber: "3.5",
+        content: "Voir 3.4.\n*Exemple :* Flamme joue Eclair.",
+      },
+    ]);
+    mockRulesRepo.listCardNames.mockResolvedValue([{ name: "Eclair", slug: "flash" }]);
+    mockRulesRepo.listCardImages.mockResolvedValue([
+      { slug: "flash", imageId: "019a0000-0000-7000-8000-000000000001", types: ["spell"] },
+    ]);
+
+    const res = await app.request("/api/v1/rules/page?kind=core&version=1.2.0&language=fr");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.language).toBe("fr");
+    expect(mockRulesRepo.listAtVersion).toHaveBeenCalledWith("core", "fr", "1.2.0");
+    expect(mockRulesRepo.listCardNames).toHaveBeenCalledWith("fr");
+    expect(mockRulesRepo.listCardImages).toHaveBeenCalledWith(["flash"], "fr");
+    expect(json.rules[0].contentHtml).toContain(
+      '<a href="/cards/flash" data-card-image="019a0000-0000-7000-8000-000000000001">Eclair</a>',
+    );
+  });
+
+  it("links French terms through the English anchors and Korean terms not at all", async () => {
+    const rows = (language: string, heading: string, body: string) => [
+      { ...dbRule, language, ruleNumber: "700", depth: 0, content: heading },
+      {
+        ...dbRule,
+        language,
+        id: "r0000000-0001-4000-a000-000000000005",
+        ruleNumber: "701.1",
+        depth: 1,
+        content: body,
+      },
+    ];
+    const english = rows("en", "Shields", "A *Shield* blocks damage.");
+    mockRulesRepo.listAtVersion.mockImplementation((_kind: string, language: string) =>
+      Promise.resolve(
+        language === "en"
+          ? english
+          : language === "fr"
+            ? rows("fr", "Boucliers", "Un *bouclier* bloque les dégâts.")
+            : rows("ko", "방패", "*방패*는 피해를 막습니다."),
+      ),
+    );
+
+    const en = await readJson(await app.request("/api/v1/rules/page?kind=core&version=1.2.0"));
+    const fr = await readJson(
+      await app.request("/api/v1/rules/page?kind=core&version=1.2.0&language=fr"),
+    );
+    const ko = await readJson(
+      await app.request("/api/v1/rules/page?kind=core&version=1.2.0&language=ko"),
+    );
+
+    expect(en.rules[1].contentHtml).toContain('<a href="#rule-700">');
+    expect(fr.rules[1].contentHtml).toContain('<a href="#rule-700"><em>bouclier</em></a>');
+    expect(ko.rules[1].contentHtml).not.toContain("<a ");
   });
 
   it("escapes titles and subtitles as plain text", async () => {
@@ -196,6 +305,7 @@ describe("GET /api/v1/rules/source", () => {
     mockRulesRepo.listChangesAtVersion.mockResolvedValue({
       added: ["3.4.1"],
       current: { "3.4.1": "New *rule*.", "3.4.2": "Changed rule." },
+      modified: ["3.4.2"],
       modifiedPrev: { "3.4.2": "Old rule." },
       removed: [{ ...dbRule, ruleNumber: "3.4.9", content: "Gone *rule*.", changeType: "removed" }],
     });
@@ -204,6 +314,7 @@ describe("GET /api/v1/rules/source", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.added).toEqual(["3.4.1"]);
+    expect(json.modified).toEqual(["3.4.2"]);
     expect(json.current).toEqual({ "3.4.1": "New *rule*.", "3.4.2": "Changed rule." });
     expect(json.modifiedPrev).toEqual({ "3.4.2": "Old rule." });
     expect(json.removed[0]).toMatchObject({
@@ -212,25 +323,28 @@ describe("GET /api/v1/rules/source", () => {
       contentHtml: "Gone <em>rule</em>.",
       changeType: "removed",
     });
-    expect(mockRulesRepo.listChangesAtVersion).toHaveBeenCalledWith("core", "1.2.0");
+    expect(mockRulesRepo.listChangesAtVersion).toHaveBeenCalledWith("core", "en", "1.2.0");
   });
 });
 
 describe("GET /api/v1/rules/versions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockRulesRepo.listVersions.mockResolvedValue([]);
+    mockRulesRepo.listAllVersions.mockResolvedValue([]);
   });
 
   it("returns the list of versions for a kind", async () => {
-    mockRulesRepo.listVersions.mockResolvedValue([dbVersion]);
+    mockRulesRepo.listAllVersions.mockResolvedValue([dbVersion]);
 
     const res = await app.request("/api/v1/rules/versions?kind=core");
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.versions).toHaveLength(1);
+    expect(json.languages).toEqual(["en"]);
     expect(json.versions[0]).toEqual({
       kind: "core",
+      language: "en",
+      languages: ["en"],
       version: "1.2.0",
       comments: "First public release.",
       commentsHtml: "<p>First public release.</p>",
@@ -240,8 +354,47 @@ describe("GET /api/v1/rules/versions", () => {
     });
   });
 
+  it("inherits label, document version and comments from English and lists the languages per version", async () => {
+    mockRulesRepo.listAllVersions.mockResolvedValue([
+      dbVersion,
+      { ...dbVersion, language: "fr", label: null, documentVersion: null, comments: null },
+      { ...dbVersion, version: "1.3.0", label: "Later", documentVersion: "1.2" },
+    ]);
+
+    const res = await app.request("/api/v1/rules/versions?kind=core&language=fr");
+    expect(res.status).toBe(200);
+    const json = await readJson(res);
+    expect(json.versions).toHaveLength(1);
+    expect(json.versions[0]).toMatchObject({
+      language: "fr",
+      version: "1.2.0",
+      comments: "First public release.",
+      commentsHtml: "<p>First public release.</p>",
+      label: "Origins",
+      documentVersion: "1.1",
+      languages: ["en", "fr"],
+    });
+    expect(json.languages).toEqual(["en", "fr"]);
+    expect(mockRulesRepo.listAllVersions).toHaveBeenCalledWith("core");
+  });
+
+  it("keeps a translation's own label over the English one", async () => {
+    mockRulesRepo.listAllVersions.mockResolvedValue([
+      dbVersion,
+      { ...dbVersion, language: "ko", label: "기원", documentVersion: "2.0", comments: "첫 공개." },
+    ]);
+
+    const res = await app.request("/api/v1/rules/versions?kind=core&language=ko");
+    const json = await readJson(res);
+    expect(json.versions[0]).toMatchObject({
+      label: "기원",
+      documentVersion: "2.0",
+      comments: "첫 공개.",
+    });
+  });
+
   it("returns an empty list when there are no versions", async () => {
-    mockRulesRepo.listVersions.mockResolvedValue([]);
+    mockRulesRepo.listAllVersions.mockResolvedValue([]);
 
     const res = await app.request("/api/v1/rules/versions?kind=tournament");
     expect(res.status).toBe(200);
@@ -278,6 +431,7 @@ describe("rules route registration", () => {
     mockRulesRepo.listChangesAtVersion.mockResolvedValue({
       added: [],
       current: {},
+      modified: [],
       modifiedPrev: {},
       removed: [],
     });

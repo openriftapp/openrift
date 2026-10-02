@@ -14,7 +14,11 @@ const domTests = ["src/**/*.test.tsx", "src/**/use-*.test.ts", "src/**/hooks/**/
 
 // The only tests that assert translated output; everything else reads
 // English straight out of `messages/en.js`.
-const localeTests = ["src/features/meta/lib/meta-format.test.ts", "src/lib/date-words.test.ts"];
+const localeTests = [
+  "src/features/meta/lib/meta-format.test.ts",
+  "src/features/rules/lib/rules-kinds.test.ts",
+  "src/lib/date-words.test.ts",
+];
 
 const englishMessages = path.resolve(import.meta.dirname, "./src/test/paraglide-en.js");
 const allMessages = path.resolve(import.meta.dirname, "./src/paraglide/messages.js");

@@ -18,10 +18,7 @@ export function ChangesSummary({
   const movedFromModified = movesCount - movedFromAdded;
   const newCount = changes.added.length - movedFromAdded;
   const changedCount =
-    Object.keys(changes.modifiedPrev).length -
-    movedFromModified -
-    replacedCount -
-    silentChanges.size;
+    changes.modified.length - movedFromModified - replacedCount - silentChanges.size;
   const removedCount = changes.removed.length - moves.fromRemovedSet.size;
   if (
     newCount === 0 &&

@@ -25,32 +25,62 @@ vi.mock("@/lib/server-cache", async () => {
   return { serverCache: new QC({ defaultOptions: { queries: { retry: false } } }) };
 });
 
-const { rulesAtVersionQueryOptions, ruleVersionsQueryOptions } = await import("./rules-queries");
+const { rulesAtVersionQueryOptions, rulesSourceQueryOptions, ruleVersionsQueryOptions } =
+  await import("./rules-queries");
 
 describe("rulesAtVersionQueryOptions", () => {
-  it("scopes the query key by kind and version", () => {
-    const core = rulesAtVersionQueryOptions("core", "1.0.0");
-    const tournament = rulesAtVersionQueryOptions("tournament", "1.0.0");
-    const olderCore = rulesAtVersionQueryOptions("core", "0.9.0");
+  it("scopes the query key by kind, language and version", () => {
+    expect(rulesAtVersionQueryOptions("core", "en", "1.0.0").queryKey).toEqual([
+      "rules",
+      "core",
+      "en",
+      "1.0.0",
+    ]);
+    expect(rulesAtVersionQueryOptions("tournament", "en", "1.0.0").queryKey).toEqual([
+      "rules",
+      "tournament",
+      "en",
+      "1.0.0",
+    ]);
+    expect(rulesAtVersionQueryOptions("core", "fr", "1.0.0").queryKey).toEqual([
+      "rules",
+      "core",
+      "fr",
+      "1.0.0",
+    ]);
+  });
+});
 
-    expect(core.queryKey).toEqual(["rules", "core", "1.0.0"]);
-    expect(tournament.queryKey).toEqual(["rules", "tournament", "1.0.0"]);
-    expect(olderCore.queryKey).toEqual(["rules", "core", "0.9.0"]);
+describe("rulesSourceQueryOptions", () => {
+  it("scopes the query key by language", () => {
+    expect(rulesSourceQueryOptions("core", "ko", "1.0.0").queryKey).toEqual([
+      "rules",
+      "core",
+      "ko",
+      "1.0.0",
+      "source",
+    ]);
   });
 });
 
 describe("ruleVersionsQueryOptions", () => {
-  it("scopes the query key by kind when provided", () => {
-    expect(ruleVersionsQueryOptions("core").queryKey).toEqual(["rules", "core", "versions"]);
-    expect(ruleVersionsQueryOptions("tournament").queryKey).toEqual([
+  it("scopes the query key by kind and language", () => {
+    expect(ruleVersionsQueryOptions("core", "fr").queryKey).toEqual([
+      "rules",
+      "core",
+      "fr",
+      "versions",
+    ]);
+    expect(ruleVersionsQueryOptions("tournament", "en").queryKey).toEqual([
       "rules",
       "tournament",
+      "en",
       "versions",
     ]);
   });
 
-  it("returns a distinct key when kind is omitted", () => {
-    expect(ruleVersionsQueryOptions().queryKey).toEqual(["rules", "versions", "all"]);
+  it("defaults to English", () => {
+    expect(ruleVersionsQueryOptions("core").queryKey).toEqual(["rules", "core", "en", "versions"]);
   });
 });
 
@@ -65,19 +95,17 @@ describe("query cache isolation", () => {
     client.clear();
   });
 
-  it("treats core and tournament caches as independent", () => {
-    client.setQueryData(rulesAtVersionQueryOptions("core", "1.0.0").queryKey, {
-      kind: "core",
-      version: "1.0.0",
-      rules: [],
-    });
+  it("treats kinds and languages as independent caches", () => {
+    const page = { kind: "core" as const, language: "en" as const, version: "1.0.0", rules: [] };
+    client.setQueryData(rulesAtVersionQueryOptions("core", "en", "1.0.0").queryKey, page);
     expect(
-      client.getQueryData(rulesAtVersionQueryOptions("tournament", "1.0.0").queryKey),
+      client.getQueryData(rulesAtVersionQueryOptions("tournament", "en", "1.0.0").queryKey),
     ).toBeUndefined();
-    expect(client.getQueryData(rulesAtVersionQueryOptions("core", "1.0.0").queryKey)).toEqual({
-      kind: "core",
-      version: "1.0.0",
-      rules: [],
-    });
+    expect(
+      client.getQueryData(rulesAtVersionQueryOptions("core", "fr", "1.0.0").queryKey),
+    ).toBeUndefined();
+    expect(client.getQueryData(rulesAtVersionQueryOptions("core", "en", "1.0.0").queryKey)).toEqual(
+      page,
+    );
   });
 });

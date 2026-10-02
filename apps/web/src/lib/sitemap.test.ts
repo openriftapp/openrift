@@ -40,6 +40,20 @@ function input(overrides: Partial<SitemapInput> = {}): SitemapInput {
       metaDecks: [{ slug: "aB3dE5gH7jK9", updatedAt: "2026-08-27T10:00:00.000Z" }],
       metaLegends: [{ slug: "kennen-heart-of-the-tempest", updatedAt: "2026-08-28T10:00:00.000Z" }],
       metaPlayers: [{ slug: "u364017", updatedAt: "2026-08-29T10:00:00.000Z" }],
+      rules: [
+        {
+          kind: "core",
+          language: "en",
+          version: "2026-07-16",
+          updatedAt: "2026-07-17T10:00:00.000Z",
+        },
+        {
+          kind: "core",
+          language: "fr",
+          version: "2026-07-16",
+          updatedAt: "2026-10-02T10:00:00.000Z",
+        },
+      ],
     },
     ...overrides,
   };
@@ -107,6 +121,15 @@ describe("sitemapSectionFiles", () => {
     const paths = file!.map((url) => url.path);
     expect(paths).not.toContain("/meta");
     expect(paths).not.toContain("/developers");
+  });
+
+  it("lists each language's latest rules version with its lang param", () => {
+    const [file] = sitemapSectionFiles("site", input());
+    const rules = file!.filter((url) => url.path === "/rules/core/2026-07-16");
+    expect(rules.map((url) => [url.search, url.lastmod])).toEqual([
+      ["lang=en", "2026-07-17"],
+      ["lang=fr", "2026-10-02"],
+    ]);
   });
 });
 

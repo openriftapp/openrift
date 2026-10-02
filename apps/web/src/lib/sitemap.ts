@@ -90,6 +90,15 @@ function siteUrls({ deployDate, data, flags, helpArticles }: SitemapInput): Site
       priority: "0.5",
     });
   }
+  for (const entry of data.rules) {
+    urls.push({
+      path: `/rules/${entry.kind}/${entry.version}`,
+      search: `lang=${entry.language}`,
+      lastmod: entry.updatedAt.slice(0, 10),
+      changefreq: "monthly",
+      priority: "0.5",
+    });
+  }
   for (const entry of data.cards) {
     urls.push({
       path: `/cards/${entry.slug}`,

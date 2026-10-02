@@ -23,7 +23,9 @@ const mockBoardStatesRepo = {
 };
 
 const mockRulesRepo = {
-  listVersions: vi.fn(() => Promise.resolve([{ kind: "core", version: "2026-07-16" }])),
+  listVersions: vi.fn((_language?: string, _kind?: string) =>
+    Promise.resolve([{ kind: "core", version: "2026-07-16" }]),
+  ),
 };
 
 const USER_ID = "a0000000-0001-4000-a000-000000000001";
@@ -138,12 +140,12 @@ describe("POST /board-states", () => {
     });
 
     expect(status).toBe(400);
-    expect(mockRulesRepo.listVersions).toHaveBeenCalledWith("tournament");
+    expect(mockRulesRepo.listVersions).toHaveBeenCalledWith("en", "tournament");
     expect(mockBoardStatesRepo.create).not.toHaveBeenCalled();
   });
 
   it("accepts a board state pinned to both rules versions", async () => {
-    mockRulesRepo.listVersions.mockImplementation((kind?: string) =>
+    mockRulesRepo.listVersions.mockImplementation((_language?: string, kind?: string) =>
       Promise.resolve([{ kind: kind ?? "core", version: "2026-07-16" }]),
     );
 
@@ -218,7 +220,7 @@ describe("PATCH /board-states/{id}", () => {
     });
 
     expect(status).toBe(400);
-    expect(mockRulesRepo.listVersions).toHaveBeenCalledWith("core");
+    expect(mockRulesRepo.listVersions).toHaveBeenCalledWith("en", "core");
     expect(mockBoardStatesRepo.update).not.toHaveBeenCalled();
   });
 

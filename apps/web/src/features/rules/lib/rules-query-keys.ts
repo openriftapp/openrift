@@ -1,8 +1,10 @@
 export const rulesKeys = {
   all: (kind: string) => ["rules", kind] as const,
-  versions: (kind: string) => ["rules", kind, "versions"] as const,
-  byVersion: (kind: string, version: string) => ["rules", kind, version] as const,
-  source: (kind: string, version: string) => ["rules", kind, version, "source"] as const,
+  versions: (kind: string, language: string) => ["rules", kind, language, "versions"] as const,
+  byVersion: (kind: string, language: string, version: string) =>
+    ["rules", kind, language, version] as const,
+  source: (kind: string, language: string, version: string) =>
+    ["rules", kind, language, version, "source"] as const,
 } as const;
 
 export const boardStatesKeys = {

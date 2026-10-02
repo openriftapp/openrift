@@ -2,6 +2,7 @@ import type {
   ruleChangeTypeSchema,
   ruleChangesResponseSchema,
   ruleKindSchema,
+  ruleLanguageSchema,
   ruleResponseSchema,
   ruleTypeSchema,
   ruleVersionResponseSchema,
@@ -14,6 +15,8 @@ import type {
 import type { z } from "zod";
 
 export type RuleKind = z.infer<typeof ruleKindSchema>;
+
+export type RuleLanguage = z.infer<typeof ruleLanguageSchema>;
 
 export type RuleType = z.infer<typeof ruleTypeSchema>;
 

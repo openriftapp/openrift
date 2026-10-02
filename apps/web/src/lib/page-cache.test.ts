@@ -65,6 +65,27 @@ describe("applyPageCacheControl", () => {
     );
   });
 
+  it("lets the edge keep a dated ruleset document in a chosen language for a day", () => {
+    const translated = applyPageCacheControl(
+      getRequest("/rules/core/2026-07-16?lang=fr"),
+      htmlResponse(),
+    );
+    expect(translated.headers.get("Cache-Control")).toBe(
+      "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400",
+    );
+  });
+
+  it("caches the redirect from a dated ruleset to its language for anonymous visitors", () => {
+    const redirected = applyPageCacheControl(
+      getRequest("/rules/core/2026-07-16"),
+      new Response(null, {
+        status: 307,
+        headers: { Location: "/rules/core/2026-07-16?lang=en" },
+      }),
+    );
+    expect(redirected.headers.get("Cache-Control")).toBe(PUBLIC);
+  });
+
   it("keeps the short public TTL on a dated ruleset with a search query, which no purge reaches", () => {
     const searched = applyPageCacheControl(
       getRequest("/rules/core/2026-07-16?q=might"),

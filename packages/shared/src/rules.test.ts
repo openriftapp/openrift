@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTermAnchors,
+  buildTranslatedTermAnchors,
   compareRuleNumbers,
   formatRuleNumber,
+  isRuleLanguage,
+  RULE_REFERENCE_REGEX,
   ruleNumberDepth,
+  ruleReferenceFromMatch,
+  sortRuleLanguages,
 } from "./rules.js";
 
 describe("ruleNumberDepth", () => {
@@ -178,5 +183,84 @@ describe("buildTermAnchors", () => {
     expect(anchors.get("chain")).toBe("325");
     expect(anchors.get("showdowns")).toBe("325");
     expect(anchors.get("showdown")).toBe("325");
+  });
+});
+
+describe("ruleReferenceFromMatch", () => {
+  const references = (text: string) =>
+    [...text.matchAll(new RegExp(RULE_REFERENCE_REGEX.source, "gu"))].map((match) =>
+      ruleReferenceFromMatch(match.groups),
+    );
+
+  it("reads English, French and Korean references", () => {
+    expect(references("See rule 540.4.b. and CR 116")).toEqual([
+      { ruleNumber: "540.4.b", inCoreRules: false },
+      { ruleNumber: "116", inCoreRules: true },
+    ]);
+    expect(references("Voir règles 197 et 603.7")).toEqual([
+      { ruleNumber: "197", inCoreRules: false },
+      { ruleNumber: "603.7", inCoreRules: false },
+    ]);
+    expect(references("규칙 제349조, 핵심 규칙 제128조, 제355.6조")).toEqual([
+      { ruleNumber: "349", inCoreRules: false },
+      { ruleNumber: "128", inCoreRules: true },
+      { ruleNumber: "355.6", inCoreRules: false },
+    ]);
+  });
+});
+
+describe("rule languages", () => {
+  it("accepts only languages with rules documents", () => {
+    expect(isRuleLanguage("ko")).toBe(true);
+    expect(isRuleLanguage("de")).toBe(false);
+    expect(isRuleLanguage(undefined)).toBe(false);
+  });
+
+  it("sorts languages English first and drops duplicates", () => {
+    expect(sortRuleLanguages(["ko", "en", "fr", "ko"])).toEqual(["en", "fr", "ko"]);
+  });
+});
+
+describe("buildTranslatedTermAnchors", () => {
+  const english = new Map([
+    ["the board", "107"],
+    ["board", "107"],
+    ["priority", "311"],
+    ["focus", "311"],
+    ["triggered abilities", "382"],
+  ]);
+  const french = [
+    { ruleNumber: "107", content: "*Le plateau*" },
+    { ruleNumber: "311", content: "Priorité et focalisation" },
+    { ruleNumber: "382", content: "Compétences déclenchées" },
+  ];
+
+  it("names French terms by the rule numbers of the English ones", () => {
+    const anchors = buildTranslatedTermAnchors(english, french, "fr");
+    expect(anchors.get("plateau")).toBe("107");
+    expect(anchors.get("priorité")).toBe("311");
+    expect(anchors.get("focalisation")).toBe("311");
+  });
+
+  it("adds singular and plural forms of every word", () => {
+    const anchors = buildTranslatedTermAnchors(english, french, "fr");
+    expect(anchors.get("compétences déclenchées")).toBe("382");
+    expect(anchors.get("compétence déclenchée")).toBe("382");
+    expect(anchors.get("plateaus")).toBe("107");
+  });
+
+  it("skips a rule whose text is more than a heading", () => {
+    const anchors = buildTranslatedTermAnchors(
+      new Map([["chain", "108.1"]]),
+      [{ ruleNumber: "108.1", content: "Chaîne\nLa chaîne est une zone." }],
+      "fr",
+    );
+    expect(anchors.size).toBe(0);
+  });
+
+  it("builds nothing for Korean, which sets no emphasis to link", () => {
+    expect(
+      buildTranslatedTermAnchors(english, [{ ruleNumber: "107", content: "보드" }], "ko").size,
+    ).toBe(0);
   });
 });

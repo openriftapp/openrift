@@ -470,6 +470,7 @@ html.hide-scrollbar::-webkit-scrollbar {
      does not resolve through getComputedStyle on an unregistered property). */
   --header-height: calc(57px + env(safe-area-inset-top, 0px));
   --sticky-top: calc(var(--header-height) + 1rem);
+  --rules-anchor-offset: 7rem;
   --breakpoint-wide: 107.5rem;
   --container-max-wide: 107.5rem;
   --breakpoint-xwide: 135rem;
@@ -1686,6 +1687,30 @@ html.hide-scrollbar::-webkit-scrollbar {
   }
   & .rule-example {
     @apply bg-muted my-2 rounded-md px-3 py-2;
+  }
+  & [data-keyword] {
+    @apply inline-flex items-center pr-2.5 pl-2 align-baseline text-[0.8em] font-semibold tracking-tight text-white uppercase italic;
+    background-color: var(--keyword-color);
+    clip-path: polygon(0.3em 0%, 100% 0%, calc(100% - 0.3em) 100%, 0% 100%);
+  }
+  & [data-keyword-dark] {
+    @apply text-black;
+  }
+  & [data-keyword-point="right"] {
+    clip-path: polygon(0.3em 0%, calc(100% - 0.3em) 0%, 100% 50%, calc(100% - 0.3em) 100%, 0% 100%);
+  }
+  & [data-keyword-point="left"] {
+    clip-path: polygon(0% 0%, 100% 0%, calc(100% - 0.3em) 100%, 0% 100%, 0.3em 50%);
+  }
+  & [data-keyword-point="both"] {
+    clip-path: polygon(
+      0% 0%,
+      calc(100% - 0.3em) 0%,
+      100% 50%,
+      calc(100% - 0.3em) 100%,
+      0% 100%,
+      0.3em 50%
+    );
   }
 }
 

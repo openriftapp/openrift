@@ -10,13 +10,17 @@ const os = implement(sitemapContract).$context<ApiContext>().use(requireUser);
 
 export const sitemapRouter = {
   get: os.get.handler(async ({ context }): Promise<SitemapDataResponse> => {
-    const { catalog, products, meta } = context.repos;
-    const [cards, sets, productEntries, metaEntries] = await Promise.all([
+    const { catalog, products, meta, rules } = context.repos;
+    const [cards, sets, productEntries, metaEntries, ruleVersions] = await Promise.all([
       catalog.allCardSitemapEntries(),
       catalog.allSetSitemapEntries(),
       products.allSitemapEntries(),
       meta.sitemapEntries(),
+      rules.listAllVersions(),
     ]);
+    const latestRules = new Map(
+      ruleVersions.map((row) => [`${row.kind} ${row.language}`, row] as const),
+    );
     return {
       cards,
       sets,
@@ -30,6 +34,12 @@ export const sitemapRouter = {
         updatedAt: row.updatedAt.toISOString(),
       })),
       metaPlayers: metaEntries.players,
+      rules: [...latestRules.values()].map((row) => ({
+        kind: row.kind,
+        language: row.language,
+        version: row.version,
+        updatedAt: row.importedAt.toISOString(),
+      })),
     };
   }),
 };

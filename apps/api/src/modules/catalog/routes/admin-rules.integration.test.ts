@@ -120,7 +120,7 @@ describe.skipIf(!adminCtx)("Admin rules routes (integration)", () => {
     });
   });
 
-  describe("DELETE /admin/rules/{kind}/versions/{version}", () => {
+  describe("DELETE /admin/rules/{kind}/{language}/versions/{version}", () => {
     it("deletes only the specified kind", async () => {
       await app.fetch(
         adminReq("POST", "/rules/import", {
@@ -131,7 +131,7 @@ describe.skipIf(!adminCtx)("Admin rules routes (integration)", () => {
       );
 
       const res = await app.fetch(
-        adminReq("DELETE", `/rules/tournament/versions/${TOURNAMENT_VERSION}`),
+        adminReq("DELETE", `/rules/tournament/en/versions/${TOURNAMENT_VERSION}`),
       );
       expect(res.status).toBe(204);
 
@@ -145,7 +145,9 @@ describe.skipIf(!adminCtx)("Admin rules routes (integration)", () => {
     });
 
     it("returns 404 when (kind, version) doesn't exist", async () => {
-      const res = await app.fetch(adminReq("DELETE", "/rules/core/versions/ar-int-does-not-exist"));
+      const res = await app.fetch(
+        adminReq("DELETE", "/rules/core/en/versions/ar-int-does-not-exist"),
+      );
       expect(res.status).toBe(404);
     });
   });

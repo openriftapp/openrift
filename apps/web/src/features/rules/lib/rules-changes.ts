@@ -9,7 +9,10 @@ export type ChangeKind = "new" | "changed" | "moved" | "replaced" | "removed";
 
 export type RuleEntry = RulePageEntry & { content?: string };
 
-export type RuleChanges = Pick<RuleSourceResponse, "added" | "modifiedPrev" | "removed">;
+export type RuleChanges = Pick<
+  RuleSourceResponse,
+  "added" | "modified" | "modifiedPrev" | "removed"
+>;
 
 export function withSourceContent(
   rules: readonly RulePageEntry[],

@@ -26,12 +26,17 @@ const mockMetaRepo = {
   ),
 };
 
+const mockRulesRepo = {
+  listAllVersions: vi.fn(() => Promise.resolve([] as object[])),
+};
+
 const app = new Hono<{ Variables: Variables }>();
 app.use("*", async (c, next) => {
   c.set("repos", {
     catalog: mockCatalogRepo,
     products: mockProductsRepo,
     meta: mockMetaRepo,
+    rules: mockRulesRepo,
     // oxlint-disable-next-line no-explicit-any -- test mock doesn't match full Repos type
   } as any);
   await next();
@@ -69,6 +74,11 @@ describe("GET /api/v1/sitemap-data", () => {
       ],
       players: [{ slug: "u347713", updatedAt: "2026-01-04T12:00:00.000Z" }],
     });
+    mockRulesRepo.listAllVersions.mockResolvedValue([
+      { kind: "core", language: "en", version: "2026-03-30", importedAt: new Date("2026-03-31") },
+      { kind: "core", language: "en", version: "2026-07-16", importedAt: new Date("2026-07-17") },
+      { kind: "core", language: "fr", version: "2026-07-16", importedAt: new Date("2026-10-02") },
+    ]);
 
     const res = await app.request("/api/v1/sitemap-data");
     expect(res.status).toBe(200);
@@ -88,6 +98,20 @@ describe("GET /api/v1/sitemap-data", () => {
       { slug: "kennen-heart-of-the-tempest", updatedAt: "2026-01-03T12:00:00.000Z" },
     ]);
     expect(json.metaPlayers).toEqual([{ slug: "u347713", updatedAt: "2026-01-04T12:00:00.000Z" }]);
+    expect(json.rules).toEqual([
+      {
+        kind: "core",
+        language: "en",
+        version: "2026-07-16",
+        updatedAt: "2026-07-17T00:00:00.000Z",
+      },
+      {
+        kind: "core",
+        language: "fr",
+        version: "2026-07-16",
+        updatedAt: "2026-10-02T00:00:00.000Z",
+      },
+    ]);
     expect(mockCatalogRepo.allCardSitemapEntries).toHaveBeenCalledTimes(1);
     expect(mockCatalogRepo.allSetSitemapEntries).toHaveBeenCalledTimes(1);
     expect(mockProductsRepo.allSitemapEntries).toHaveBeenCalledTimes(1);
@@ -103,6 +127,7 @@ describe("GET /api/v1/sitemap-data", () => {
       legends: [],
       players: [],
     });
+    mockRulesRepo.listAllVersions.mockResolvedValue([]);
 
     const res = await app.request("/api/v1/sitemap-data");
     expect(res.status).toBe(200);
@@ -114,5 +139,6 @@ describe("GET /api/v1/sitemap-data", () => {
     expect(json.metaDecks).toEqual([]);
     expect(json.metaLegends).toEqual([]);
     expect(json.metaPlayers).toEqual([]);
+    expect(json.rules).toEqual([]);
   });
 });
