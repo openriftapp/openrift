@@ -33,11 +33,7 @@ export function SectionDivider({
         </div>
       </OrnamentRule>
       {description && (
-        <MarkdownText
-          text={description}
-          links="any"
-          className="text-muted-foreground max-w-2xl text-sm"
-        />
+        <MarkdownText text={description} links="any" className="text-muted-foreground text-sm" />
       )}
     </div>
   );

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-03
+
+### Other
+
+- fix(Cards): **Clearer promo pages** — the page is titled Riftbound Promos, each language gets its own page title, and the language list shows printing counts that no longer wrap in Chinese.
+
 ## 2026-10-02
 
 ### Highlights

@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/promos")({
   head: () =>
     seoHead({
       siteUrl: getSiteUrl(),
-      title: "Promo Cards",
+      title: "Riftbound Promo Cards",
       description: PROMOS_DESCRIPTION,
       path: "/promos",
     }),

@@ -14,8 +14,9 @@ interface JsonLdItem {
   url: string;
 }
 
-const PROMOS_DESCRIPTION =
-  "Browse all promotional card printings for the Riftbound trading card game, grouped by promo type.";
+function promosDescription(languageName: string): string {
+  return `Browse all ${languageName} promotional card printings for the Riftbound trading card game, grouped by promo type.`;
+}
 
 export const Route = createFileRoute("/_app/promos_/$language")({
   validateSearch: filterSearchSchema,
@@ -46,23 +47,25 @@ export const Route = createFileRoute("/_app/promos_/$language")({
   head: ({ params, loaderData }) => {
     const siteUrl = getSiteUrl();
     const path = `/promos/${params.language}`;
+    // beforeLoad throws a redirect, which narrows loaderData to never here.
+    const data = loaderData as { items: JsonLdItem[]; languageName: string } | undefined;
+    const items = data?.items ?? [];
+    const languageName = data?.languageName ?? params.language;
+    const description = promosDescription(languageName);
     const head = seoHead({
       siteUrl,
-      title: "Promo Cards",
-      description: PROMOS_DESCRIPTION,
+      title: `Riftbound Promo Cards in ${languageName}`,
+      description,
       path,
     });
-
-    // beforeLoad throws a redirect, which narrows loaderData to never here.
-    const items = (loaderData as { items: JsonLdItem[] } | undefined)?.items ?? [];
 
     return {
       ...head,
       scripts: [
         collectionPageJsonLd({
           siteUrl,
-          name: "Riftbound Promo Cards",
-          description: PROMOS_DESCRIPTION,
+          name: `Riftbound Promo Cards in ${languageName}`,
+          description,
           path,
           items,
         }),
@@ -70,9 +73,9 @@ export const Route = createFileRoute("/_app/promos_/$language")({
     };
   },
   loader: async ({ params, context }) => {
-    // Only the JSON-LD item list is returned — the loaderData return value is
+    // Only the JSON-LD items and language name are returned: the loaderData return value is
     // serialized on top of the dehydrated queries, doubling the payload.
-    const [data] = await Promise.all([
+    const [data, init] = await Promise.all([
       context.queryClient.query({
         ...publicPromoListQueryOptions(params.language),
         staleTime: "static",
@@ -96,7 +99,9 @@ export const Route = createFileRoute("/_app/promos_/$language")({
       }
       items.push({ name: legendDisplayName(card), url: `/cards/${card.slug}` });
     }
-    return { items };
+    const languageName =
+      init.enums.languages?.find((row) => row.slug === params.language)?.label ?? params.language;
+    return { items, languageName };
   },
   errorComponent: RouteErrorFallback,
 });

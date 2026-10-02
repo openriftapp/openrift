@@ -106,7 +106,7 @@ test.describe("promos", () => {
       await page.goto("/promos");
 
       await expect(page).toHaveURL(/\/promos\/EN$/u, { timeout: 15_000 });
-      await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
       await expect(
         page.getByText(/Cards you can.t pull from booster packs, grouped by where/u),
       ).toBeVisible();
@@ -132,7 +132,7 @@ test.describe("promos", () => {
       test.skip(enPrintings.length === 0, "seed has no EN promo printings");
 
       await page.goto("/promos");
-      await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
 
       if (data.languageCounts.length > 1) {
         const panel = page.getByRole("navigation", { name: "Promo printings by language" });
@@ -186,7 +186,7 @@ test.describe("promos", () => {
   test.describe("view mode", () => {
     test("defaults to grid view and toggles to table view", async ({ page }) => {
       await page.goto("/promos");
-      await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
 
       await openDisplayOptions(page);
       const gridButton = page.getByRole("button", { name: "Grid view" });
@@ -215,7 +215,7 @@ test.describe("promos", () => {
   test.describe("selection", () => {
     test("clicking a grid card opens the card detail", async ({ page }) => {
       await page.goto("/promos");
-      await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
 
       // Anchor on a seeded card's art, not "the first tile": filter chips are
       // also <img>-bearing buttons, and imageless cards overlay a "suggest image" link.
@@ -234,7 +234,7 @@ test.describe("promos", () => {
 
     test("clicking a table row opens the card detail", async ({ page }) => {
       await page.goto("/promos");
-      await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Riftbound Promos" })).toBeVisible();
 
       await openDisplayOptions(page);
       const tableButton = page.getByRole("button", { name: "Table view" });

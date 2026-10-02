@@ -104,7 +104,7 @@ function CompactBranchGrid({
   return (
     <>
       {legend.length > 0 && (
-        <DefinitionList className="mb-3 max-w-2xl">
+        <DefinitionList className="mb-3">
           {legend.map((child) => (
             <Fragment key={child.channel.id}>
               <DefinitionTerm>{child.channel.label}</DefinitionTerm>

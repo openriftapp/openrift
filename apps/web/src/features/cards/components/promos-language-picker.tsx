@@ -48,13 +48,11 @@ export function PromosLanguagePanel({
               active && "bg-muted",
             )}
           >
-            <span className="font-semibold">
+            <span className="min-w-0 font-semibold">
               {languageLabelMap.get(count.language) ?? count.language}
             </span>
-            <span className="text-muted-foreground text-sm tabular-nums">
+            <span className="text-muted-foreground shrink-0 text-sm whitespace-nowrap tabular-nums">
               {m.common_printings({ count: count.printingCount })}
-              {" · "}
-              {m.common_cards({ count: count.cardCount })}
             </span>
           </Link>
         );
