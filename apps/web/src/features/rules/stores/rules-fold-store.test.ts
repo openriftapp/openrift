@@ -47,24 +47,6 @@ describe("useRulesFoldStore", () => {
     });
   });
 
-  describe("collapseAll", () => {
-    it("replaces foldedRules with the provided rule numbers", () => {
-      useRulesFoldStore.getState().toggle("103");
-      useRulesFoldStore.getState().collapseAll(["200", "201"]);
-      const folded = useRulesFoldStore.getState().foldedRules;
-      expect(folded.has("103")).toBe(false);
-      expect(folded.has("200")).toBe(true);
-      expect(folded.has("201")).toBe(true);
-      expect(folded.size).toBe(2);
-    });
-
-    it("accepts an empty iterable", () => {
-      useRulesFoldStore.getState().toggle("103");
-      useRulesFoldStore.getState().collapseAll([]);
-      expect(useRulesFoldStore.getState().foldedRules.size).toBe(0);
-    });
-  });
-
   describe("expandAll", () => {
     it("clears foldedRules", () => {
       useRulesFoldStore.getState().toggle("103");

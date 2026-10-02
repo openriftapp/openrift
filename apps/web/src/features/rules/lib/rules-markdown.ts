@@ -311,6 +311,16 @@ export function diffRuleMarkdown(
   return buildMergedTree(diffTokens(oldTokens, newTokens));
 }
 
+export function diffRuleSide(nodes: HastNode[], side: "old" | "new"): HastNode[] {
+  const dropped = side === "old" ? "added" : "removed";
+  return nodes.flatMap((node) => {
+    if (node.properties?.["data-diff"] === dropped) {
+      return [];
+    }
+    return node.children ? [{ ...node, children: diffRuleSide(node.children, side) }] : [node];
+  });
+}
+
 /**
  * Whether `diffRuleMarkdown` would render any add/remove marks for this pair.
  * Bodies differing only in whitespace, emphasis, or link markup are silent.

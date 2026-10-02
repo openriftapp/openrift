@@ -2,7 +2,7 @@ import type { HastNode } from "@openrift/shared/rules-markdown";
 import { preprocessRuleMarkdown } from "@openrift/shared/rules-markdown";
 import { describe, expect, it } from "vitest";
 
-import { diffRuleMarkdown, hasVisibleRuleChanges } from "./rules-markdown";
+import { diffRuleMarkdown, diffRuleSide, hasVisibleRuleChanges } from "./rules-markdown";
 
 function collectText(nodes: HastNode[]): string {
   let out = "";
@@ -173,6 +173,26 @@ describe("diffRuleMarkdown", () => {
     expect(withoutRemoved(nodes).split(/\s+/u).filter(Boolean)).toEqual(
       newText.split(/\s+/u).filter(Boolean),
     );
+  });
+});
+
+describe("diffRuleSide", () => {
+  it("keeps the removed words on the old side", () => {
+    const nodes = diffRuleSide(diffRuleMarkdown("the cat sat", "the dog sat"), "old");
+    expect(diffSpans(nodes)).toEqual([["removed", "cat"]]);
+    expect(collectText(nodes).replaceAll(/\s+/gu, " ")).toBe("the cat sat");
+  });
+
+  it("keeps the added words on the new side", () => {
+    const nodes = diffRuleSide(diffRuleMarkdown("the cat sat", "the dog sat"), "new");
+    expect(diffSpans(nodes)).toEqual([["added", "dog"]]);
+    expect(collectText(nodes).replaceAll(/\s+/gu, " ")).toBe("the dog sat");
+  });
+
+  it("keeps formatting around a change", () => {
+    const nodes = diffRuleSide(diffRuleMarkdown("a *bold* cat", "a *bold* dog"), "new");
+    expect(findElements(nodes, "em").length).toBe(1);
+    expect(collectText(nodes).replaceAll(/\s+/gu, " ")).toBe("a bold dog");
   });
 });
 

@@ -5,9 +5,11 @@
 ### Highlights
 
 - feat(Rules): **Rules in French and Korean** — the current Core and Tournament Rules can be read in French and Korean, chosen from a language menu next to the version.
+- feat(Rules): **Rule changes inline or side by side** — Changes shows every reworded rule at once, either marked up in the text or as before and after next to each other.
 
 ### Other
 
+- feat(Rules): **New rules page header** — the rules open with the version, its languages and its publish date, and search, language and version share one bar that stays at the top.
 - feat(Rules): **Keyword badges in the rules** — keywords written in brackets, like [Reaction], now show as the same coloured badges as on cards, in every language.
 - feat(Rules): **Card previews in rule examples** — hovering a card named in an example shows its image, from a printing in the rules' language when there is one.
 - fix(App): **Official French and Korean game terms** — French and Korean screens now use Riot's own words, like puissance for Might and arbitre for judge, and the How to play guide names the turn phases correctly.

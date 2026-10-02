@@ -1,4 +1,5 @@
 import { ruleNumberDepth } from "@openrift/shared/rules";
+import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
@@ -8,7 +9,6 @@ import { RuleExamplesList, RuleExamplesMarker } from "@/features/rules/component
 import { ruleHtmlToText } from "@/features/rules/lib/rule-text";
 import type { ChangeKind, RuleEntry } from "@/features/rules/lib/rules-changes";
 import { changeKindBadge } from "@/features/rules/lib/rules-changes";
-import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
@@ -29,6 +29,9 @@ export function RuleRow({
   changeKind,
   previousContent,
   relatedRuleNumber,
+  changesView,
+  previousVersionLabel,
+  versionLabel,
 }: {
   rule: RuleEntry;
   ancestors: readonly string[];
@@ -37,6 +40,9 @@ export function RuleRow({
   changeKind?: ChangeKind;
   previousContent?: string;
   relatedRuleNumber?: string;
+  changesView?: "inline" | "side";
+  previousVersionLabel?: string;
+  versionLabel?: string;
 }) {
   // Fold state is subscribed per-row, not by the parent, so its `.map()`
   // result stays cached across fold toggles.
@@ -45,17 +51,19 @@ export function RuleRow({
     ancestors.some((ancestor) => state.foldedRules.has(ancestor)),
   );
   const toggle = useRulesFoldStore((state) => state.toggle);
-  const isDiffExpanded = useRulesDiffExpandStore((state) =>
-    state.expandedRules.has(rule.ruleNumber),
-  );
-  const toggleDiff = useRulesDiffExpandStore((state) => state.toggle);
 
   const isTitle = rule.ruleType === "title";
   const isSubtitle = rule.ruleType === "subtitle";
   const isRemoved = changeKind === "removed";
   const isChanged = changeKind === "changed";
   const badge = changeKind ? changeKindBadge(changeKind) : null;
-  const showInlineDiff = isChanged && isDiffExpanded && previousContent !== undefined;
+  const diff =
+    isChanged &&
+    changesView !== undefined &&
+    previousContent !== undefined &&
+    rule.content !== undefined
+      ? { oldText: previousContent, newText: rule.content }
+      : null;
 
   return (
     <div className={cn(isHidden && "hidden")}>
@@ -91,8 +99,17 @@ export function RuleRow({
             isSubtitle && "font-semibold",
           )}
         >
-          {showInlineDiff && rule.content !== undefined ? (
-            <InlineDiff oldText={previousContent} newText={rule.content} language={rule.language} />
+          {diff && changesView === "side" ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+              <DiffPane title={previousVersionLabel} tone="old">
+                <InlineDiff {...diff} language={rule.language} side="old" />
+              </DiffPane>
+              <DiffPane title={versionLabel} tone="new">
+                <InlineDiff {...diff} language={rule.language} side="new" />
+              </DiffPane>
+            </div>
+          ) : diff ? (
+            <InlineDiff {...diff} language={rule.language} />
           ) : isTitle || isSubtitle ? (
             ruleHtmlToText(rule.contentHtml)
           ) : (
@@ -105,30 +122,8 @@ export function RuleRow({
           {!isTitle && !isSubtitle && <RuleExamplesMarker ruleNumber={rule.ruleNumber} />}
         </div>
         {badge ? (
-          isChanged && previousContent !== undefined ? (
-            <Badge
-              render={
-                // oxlint-disable-next-line react/forbid-elements -- bare render slot; Badge owns all styling
-                <button
-                  type="button"
-                  onClick={() => toggleDiff(rule.ruleNumber)}
-                  aria-expanded={isDiffExpanded}
-                  aria-label={
-                    isDiffExpanded
-                      ? m.rules_diff_hide_aria({ rule: formatRuleNumber(rule.ruleNumber) })
-                      : m.rules_diff_show_aria({ rule: formatRuleNumber(rule.ruleNumber) })
-                  }
-                />
-              }
-              className={cn(
-                "ml-3 shrink-0 cursor-pointer no-underline hover:opacity-80",
-                badge.className,
-              )}
-            >
-              {badge.label}
-            </Badge>
-          ) : (changeKind === "moved" || changeKind === "replaced") &&
-            relatedRuleNumber !== undefined ? (
+          (changeKind === "moved" || changeKind === "replaced") &&
+          relatedRuleNumber !== undefined ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger
@@ -173,6 +168,37 @@ export function RuleRow({
         ) : null}
       </div>
       {!isTitle && !isSubtitle && <RuleExamplesList ruleNumber={rule.ruleNumber} />}
+    </div>
+  );
+}
+
+function DiffPane({
+  title,
+  tone,
+  children,
+}: {
+  title?: string;
+  tone: "old" | "new";
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1 rounded-lg px-3 py-2",
+        tone === "old" ? "bg-muted/60" : "bg-card ring-success/40 ring-1",
+      )}
+    >
+      {title && (
+        <p
+          className={cn(
+            "text-xs font-semibold tracking-wide uppercase",
+            tone === "old" ? "text-muted-foreground" : "text-success",
+          )}
+        >
+          {title}
+        </p>
+      )}
+      <div>{children}</div>
     </div>
   );
 }

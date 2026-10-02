@@ -2,10 +2,9 @@ import { isRuleLanguage } from "@openrift/shared/rules";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { ChevronsDownUpIcon, ChevronsUpDownIcon, FileClockIcon } from "lucide-react";
+import { FileClockIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,87 +13,61 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SearchInput } from "@/features/cards/components/search-input";
-import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
+import {
+  isRulesChangesView,
+  useRulesChangesViewStore,
+} from "@/features/rules/stores/rules-changes-view-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
-import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { m } from "@/paraglide/messages.js";
 
-// Keep as its own component: inlining the `foldedRules.size` selector here
-// would re-render the whole RulesContent tree on every fold toggle.
-export function ExpandCollapseAllButton({ foldGroupKeys }: { foldGroupKeys: string[] }) {
-  const allCollapsed = useRulesFoldStore(
-    (state) => foldGroupKeys.length > 0 && state.foldedRules.size >= foldGroupKeys.length,
-  );
-  const collapseAll = useRulesFoldStore((state) => state.collapseAll);
-  const expandAll = useRulesFoldStore((state) => state.expandAll);
-
-  const label = allCollapsed ? m.rules_expand_all() : m.rules_collapse_all();
-  const handleClick = () => {
-    if (allCollapsed) {
-      expandAll();
-    } else {
-      collapseAll(foldGroupKeys);
-    }
-  };
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="@2xl:w-auto @2xl:gap-1.5 @2xl:px-2.5"
-            onClick={handleClick}
-            aria-label={label}
-          />
-        }
-      >
-        {allCollapsed ? <ChevronsUpDownIcon /> : <ChevronsDownUpIcon />}
-        <span className="hidden @2xl:inline">{label}</span>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-export function ShowChangesToggle({
+export function ChangesViewToggle({
   kind,
   hasPreviousVersion,
 }: {
   kind: RuleKind;
   hasPreviousVersion: boolean;
 }) {
-  const checked = useRulesShowChangesStore((state) => state.byKind[kind]);
-  const setShow = useRulesShowChangesStore((state) => state.setShow);
+  const view = useRulesChangesViewStore((state) => state.byKind[kind]);
+  const setView = useRulesChangesViewStore((state) => state.setView);
 
-  const isOn = hasPreviousVersion && checked;
-  const label = hasPreviousVersion ? m.rules_show_changes() : m.rules_show_changes_unavailable();
+  const control = (
+    <div className="flex items-center gap-2">
+      <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
+        <FileClockIcon className="size-4" aria-hidden="true" />
+        {m.rules_show_changes_short()}
+      </span>
+      <ToggleGroup
+        variant="outline"
+        spacing={0}
+        aria-label={m.rules_show_changes()}
+        value={[hasPreviousVersion ? view : "off"]}
+        disabled={!hasPreviousVersion}
+        onValueChange={([next]) => {
+          if (isRulesChangesView(next)) {
+            setView(kind, next);
+          }
+        }}
+      >
+        <ToggleGroupItem value="off">{m.rules_changes_off()}</ToggleGroupItem>
+        <ToggleGroupItem value="inline">{m.rules_changes_inline()}</ToggleGroupItem>
+        <ToggleGroupItem value="side">{m.rules_changes_side()}</ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+  );
 
+  if (hasPreviousVersion) {
+    return control;
+  }
   return (
     <Tooltip>
-      {/* A disabled toggle takes no pointer events: the tooltip trigger wraps
-          it in a span instead of attaching to the toggle. */}
-      <TooltipTrigger render={<span className="inline-flex" />}>
-        <Toggle
-          variant="outline"
-          className="@2xl:gap-1.5"
-          pressed={isOn}
-          disabled={!hasPreviousVersion}
-          onPressedChange={(next) => setShow(kind, next)}
-          aria-label={m.rules_show_changes()}
-        >
-          <FileClockIcon />
-          <span className="hidden @2xl:inline">{m.rules_show_changes_short()}</span>
-        </Toggle>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      {/* A disabled control takes no pointer events: the tooltip trigger wraps it. */}
+      <TooltipTrigger render={<span className="inline-flex" />}>{control}</TooltipTrigger>
+      <TooltipContent>{m.rules_show_changes_unavailable()}</TooltipContent>
     </Tooltip>
   );
 }

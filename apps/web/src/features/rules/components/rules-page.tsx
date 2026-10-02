@@ -1,21 +1,16 @@
+import { formatDay } from "@openrift/shared/format-date";
 import type { RuleKind, RuleLanguage } from "@openrift/shared/types/api/rules";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
+import { PAGE_HERO_EYEBROW_CLASS, PageHero } from "@/components/layout/page-hero";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
-import {
-  PAGE_TOP_BAR_GEOMETRY,
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarSticky,
-  PageTopBarTitle,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
+import { PAGE_TOP_BAR_GEOMETRY, useMeasuredHeight } from "@/components/layout/page-top-bar";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
@@ -44,13 +39,12 @@ import {
   withSourceContent,
 } from "@/features/rules/lib/rules-changes";
 import type { RuleEntry } from "@/features/rules/lib/rules-changes";
-import { ruleKindTitle } from "@/features/rules/lib/rules-kinds";
+import { ruleKindDescription, ruleKindTitle } from "@/features/rules/lib/rules-kinds";
 import { rulesSourceQueryOptions } from "@/features/rules/lib/rules-queries";
 import { useRuleExamplesStore } from "@/features/rules/stores/rule-examples-store";
-import { useRulesDiffExpandStore } from "@/features/rules/stores/rules-diff-expand-store";
+import { useRulesChangesViewStore } from "@/features/rules/stores/rules-changes-view-store";
 import { useRulesFoldStore } from "@/features/rules/stores/rules-fold-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
-import { useRulesShowChangesStore } from "@/features/rules/stores/rules-show-changes-store";
 import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsStuck } from "@/hooks/use-is-stuck";
@@ -63,13 +57,7 @@ import { useRuleCardPreview } from "./rule-card-preview";
 import { formatRuleNumber, handleRuleHtmlClick, VersionComments } from "./rule-content";
 import { RuleRow } from "./rule-row";
 import { ChangesSummary } from "./rules-changes-summary";
-import {
-  ExpandCollapseAllButton,
-  KindTabs,
-  RulesLanguageSelect,
-  RulesSearchBar,
-  ShowChangesToggle,
-} from "./rules-toolbar";
+import { ChangesViewToggle, KindTabs, RulesLanguageSelect, RulesSearchBar } from "./rules-toolbar";
 
 function buildRulesTocItems(rules: RuleEntry[]): PageTocItem[] {
   return rules
@@ -121,18 +109,30 @@ function NoRulesYet() {
   );
 }
 
+function RulesHero({ kind, children }: { kind: RuleKind; children?: ReactNode }) {
+  return (
+    <PageHero
+      eyebrow={
+        <>
+          <div className="mb-2">
+            <KindTabs kind={kind} />
+          </div>
+          <span className={PAGE_HERO_EYEBROW_CLASS}>{m.rules_hero_eyebrow()}</span>
+        </>
+      }
+      title={ruleKindTitle(kind)}
+      lead={ruleKindDescription(kind)}
+    >
+      {children}
+    </PageHero>
+  );
+}
+
 function RulesEmpty({ kind }: { kind: RuleKind }) {
   return (
     <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{ruleKindTitle(kind)}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <RulesHero kind={kind} />
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
-        <div className="mb-4">
-          <KindTabs kind={kind} />
-        </div>
         <NoRulesYet />
       </div>
     </>
@@ -149,16 +149,11 @@ function RulesContent({
   version: string;
 }) {
   const navigate = useNavigate();
-  // The search toolbar sticks below the title bar, so its offset must include
-  // the bar's measured height on top of the global header height.
-  const [topBarEl, setTopBarEl] = useState<HTMLDivElement | null>(null);
-  const topBarHeight = useMeasuredHeight(topBarEl);
   const [toolbarEl, setToolbarEl] = useState<HTMLDivElement | null>(null);
   const isToolbarStuck = useIsStuck(toolbarEl);
   const toolbarHeight = useMeasuredHeight(toolbarEl);
-  // html's scroll-padding already clears the header; anchor jumps also clear both sticky bars.
-  const anchorOffset =
-    topBarHeight > 0 && toolbarHeight > 0 ? `${topBarHeight + toolbarHeight}px` : undefined;
+  // html's scroll-padding already clears the header; anchor jumps also clear the sticky toolbar.
+  const anchorOffset = toolbarHeight > 0 ? `${toolbarHeight}px` : undefined;
   const { data: rulesData } = useRulesAtVersion(kind, language, version);
   const { data: versionsData } = useRuleVersions(kind, language);
   const { data: englishVersionsData } = useRuleVersions(kind, "en");
@@ -168,11 +163,9 @@ function RulesContent({
   // global, so without this it would leak across pages.
   const expandAll = useRulesFoldStore((state) => state.expandAll);
   const resetSearch = useRulesSearchStore((state) => state.reset);
-  const resetDiffExpands = useRulesDiffExpandStore((state) => state.reset);
   useScopeEffect(`${kind} ${language} ${version}`, () => {
     expandAll();
     resetSearch();
-    resetDiffExpands();
   });
 
   const isHydrated = useHydrated();
@@ -202,8 +195,8 @@ function RulesContent({
   const isSearching = searchTerms.length > 0 && debouncedSearchQuery.trim().length >= 2;
   const isEmpty = rulesData.rules.length === 0;
 
-  const showChangesPref = useRulesShowChangesStore((state) => state.byKind[kind]);
-  const wantsChanges = showChangesPref && previousVersion !== null && !isSearching;
+  const changesView = useRulesChangesViewStore((state) => state.byKind[kind]);
+  const wantsChanges = changesView !== "off" && previousVersion !== null && !isSearching;
   const { data: changes } = useQuery({
     ...rulesSourceQueryOptions(kind, language, version),
     enabled: isHydrated && wantsChanges,
@@ -243,7 +236,6 @@ function RulesContent({
 
   const foldGroups = computeFoldGroups(rules);
   const ancestorsByRule = computeAncestorsByRule(rules, foldGroups);
-  const foldGroupKeys = [...foldGroups.keys()];
   const searchResult = isSearching ? computeSearchResult(rules, searchTerms) : null;
   const noSearchResults =
     isSearching && searchResult !== null && searchResult.visibleIndices.length === 0;
@@ -253,53 +245,89 @@ function RulesContent({
       ? m.rules_count({ count: rules.length })
       : m.rules_count_filtered({ matched: searchResult.matchSet.size, count: rules.length });
 
+  const stats = [
+    ...(currentVersion?.documentVersion
+      ? [{ key: "version", value: currentVersion.documentVersion, label: m.rules_stat_version() }]
+      : []),
+    {
+      key: "languages",
+      value: (currentVersion?.languages ?? [language]).length,
+      label: m.rules_stat_languages(),
+    },
+    {
+      key: "published",
+      value: <time dateTime={version}>{formatDay(version)}</time>,
+      label: m.rules_stat_published(),
+    },
+  ];
+
   return (
     <>
-      <PageTopBarSticky width="capped" ref={setTopBarEl}>
-        <PageTopBar>
-          <PageTopBarTitle>{ruleKindTitle(kind)}</PageTopBarTitle>
-          <PageTopBarActions>
-            <RulesLanguageSelect
-              kind={kind}
-              language={language}
-              languages={versionsData.languages}
-              versionLanguages={currentVersion?.languages ?? [language]}
-            />
-            {versions.length > 1 ? (
-              <Select
-                items={versionItems}
-                value={version}
-                onValueChange={(nextVersion) => {
-                  if (typeof nextVersion !== "string" || nextVersion === version) {
-                    return;
-                  }
-                  void navigate({
-                    to: "/rules/$kind/$version",
-                    params: { kind, version: nextVersion },
-                    search: { lang: language },
-                  });
-                }}
-              >
-                <SelectTrigger className="text-muted-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {versionItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-muted-foreground text-sm">{versionLabels.get(version)}</span>
-            )}
-          </PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <RulesHero kind={kind}>
+        <dl className="mt-3 flex flex-wrap gap-x-9 gap-y-3">
+          {stats.map((stat) => (
+            <div key={stat.key} className="flex flex-col-reverse gap-0.5">
+              <dt className="text-muted-foreground text-sm">{stat.label}</dt>
+              <dd className="font-heading text-3xl leading-none font-bold tabular-nums">
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </RulesHero>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
-        <div className="mb-4">
-          <KindTabs kind={kind} />
+        <div
+          ref={setToolbarEl}
+          className={cn(
+            PAGE_TOP_BAR_GEOMETRY,
+            isToolbarStuck && STICKY_SURFACE,
+            "px-safe mx-safe-neg z-20 mb-4 flex flex-wrap items-center gap-2",
+          )}
+        >
+          <PageTocMobileTrigger
+            items={tocItems}
+            className="sm:w-auto sm:gap-1.5 sm:px-2.5"
+            labelClassName="hidden sm:inline"
+          />
+          <RulesSearchBar trailing={ruleCountLabel} />
+          <RulesLanguageSelect
+            kind={kind}
+            language={language}
+            languages={versionsData.languages}
+            versionLanguages={currentVersion?.languages ?? [language]}
+          />
+          {versions.length > 1 ? (
+            <Select
+              items={versionItems}
+              value={version}
+              onValueChange={(nextVersion) => {
+                if (typeof nextVersion !== "string" || nextVersion === version) {
+                  return;
+                }
+                void navigate({
+                  to: "/rules/$kind/$version",
+                  params: { kind, version: nextVersion },
+                  search: { lang: language },
+                });
+              }}
+            >
+              <SelectTrigger className="text-muted-foreground" aria-label={m.rules_version_label()}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {versionItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-muted-foreground text-sm">{versionLabels.get(version)}</span>
+          )}
+          {!isSearching && (
+            <ChangesViewToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
+          )}
         </div>
 
         {isEmpty ? (
@@ -310,7 +338,10 @@ function RulesContent({
             style={
               anchorOffset === undefined
                 ? undefined
-                : ({ "--rules-anchor-offset": anchorOffset } as CSSProperties)
+                : ({
+                    "--rules-anchor-offset": anchorOffset,
+                    "--sticky-top": `calc(var(--header-height) + ${anchorOffset} + 1rem)`,
+                  } as CSSProperties)
             }
           >
             <PageToc items={tocItems} />
@@ -323,29 +354,6 @@ function RulesContent({
               onPointerOut={cardPreview.handlePointerOut}
             >
               {cardPreview.preview}
-              <div
-                ref={setToolbarEl}
-                className={cn(
-                  PAGE_TOP_BAR_GEOMETRY,
-                  isToolbarStuck && STICKY_SURFACE,
-                  "pr-safe mr-safe-neg max-lg:px-safe max-lg:mx-safe-neg @container z-20 mb-4 flex flex-wrap items-center gap-3",
-                )}
-                // -1px matches PAGE_TOP_BAR_GEOMETRY's own offset, keeping this tier flush.
-                style={{ top: `calc(var(--header-height) + ${topBarHeight - 1}px)` }}
-              >
-                <PageTocMobileTrigger
-                  items={tocItems}
-                  className="@2xl:w-auto @2xl:gap-1.5 @2xl:px-2.5"
-                  labelClassName="hidden @2xl:inline"
-                />
-                <RulesSearchBar trailing={ruleCountLabel} />
-                {foldGroupKeys.length > 0 && !isSearching && (
-                  <ExpandCollapseAllButton foldGroupKeys={foldGroupKeys} />
-                )}
-                {!isSearching && (
-                  <ShowChangesToggle kind={kind} hasPreviousVersion={previousVersion !== null} />
-                )}
-              </div>
               {commentsHtml && !isSearching && <VersionComments html={commentsHtml} />}
               {showChanges && previousVersion && changes && moves && (
                 <ChangesSummary
@@ -378,6 +386,11 @@ function RulesContent({
                     relatedRuleNumber={
                       moves?.newToOld.get(rule.ruleNumber) ?? moves?.oldToNew.get(rule.ruleNumber)
                     }
+                    changesView={changesView === "off" || !showChanges ? undefined : changesView}
+                    previousVersionLabel={
+                      previousVersion === null ? undefined : versionLabels.get(previousVersion)
+                    }
+                    versionLabel={versionLabels.get(version)}
                   />
                 ))
               ) : (

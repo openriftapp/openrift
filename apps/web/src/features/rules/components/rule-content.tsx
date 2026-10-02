@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { Callout } from "@/components/ui/callout";
 import { TextLink } from "@/components/ui/text-link";
-import { diffRuleMarkdown } from "@/features/rules/lib/rules-markdown";
+import { diffRuleMarkdown, diffRuleSide } from "@/features/rules/lib/rules-markdown";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
 import { copyTextToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
@@ -235,11 +235,14 @@ export function InlineDiff({
   oldText,
   newText,
   language,
+  side,
 }: {
   oldText: string;
   newText: string;
   language?: RuleLanguage;
+  side?: "old" | "new";
 }) {
-  const nodes = diffRuleMarkdown(oldText, newText, language);
+  const merged = diffRuleMarkdown(oldText, newText, language);
+  const nodes = side === undefined ? merged : diffRuleSide(merged, side);
   return <>{nodes.map((node, index) => renderDiffNode(node, index))}</>;
 }
