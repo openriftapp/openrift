@@ -55,6 +55,7 @@ export interface DateWords {
   monthAbbreviation: (monthIndex: number) => string;
   weekdayName: (weekdayIndex: number) => string;
   monthYear: (month: string, year: number) => string;
+  dayMonthYear: (day: number, month: string, year: number) => string;
   weekdayDay: (weekday: string, day: number, month: string) => string;
   justNow: () => string;
   underAMinuteAhead: () => string;
@@ -81,6 +82,7 @@ export const ENGLISH_DATE_WORDS: DateWords = {
   monthAbbreviation: (index) => MONTH_ABBREVIATIONS[index] ?? "",
   weekdayName: (index) => WEEKDAY_NAMES[index] ?? "",
   monthYear: (month, year) => `${month} ${year}`,
+  dayMonthYear: (day, month, year) => `${day} ${month} ${year}`,
   weekdayDay: (weekday, day, month) => `${weekday}, ${day} ${month}`,
   justNow: () => "just now",
   underAMinuteAhead: () => "in <1m",
@@ -140,6 +142,22 @@ export function formatMonthYear(
     return "";
   }
   return words.monthYear(words.monthName(date.getUTCMonth()), date.getUTCFullYear());
+}
+
+/** `31 October 2025`, the UTC day spelled out. */
+export function formatDayMonthYear(
+  input: Date | string,
+  words: DateWords = ENGLISH_DATE_WORDS,
+): string {
+  const date = toDate(input);
+  if (date === null) {
+    return "";
+  }
+  return words.dayMonthYear(
+    date.getUTCDate(),
+    words.monthName(date.getUTCMonth()),
+    date.getUTCFullYear(),
+  );
 }
 
 /** UTC instant for admin/ops surfaces. */

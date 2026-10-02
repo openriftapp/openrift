@@ -120,6 +120,23 @@ export function metaArchiveRepo(db: Kysely<Database>) {
      * not an event sits at it. Deliberately unscoped: this is the archive's own
      * size, which a page prints beside a scoped number.
      */
+    async latestResultDate(): Promise<string | null> {
+      const row = await db
+        .selectFrom("metaEvents as e")
+        .select((eb) => eb.fn.max("e.eventDate").as("latest"))
+        .where("e.eventDate", "<=", sql<string>`current_date`)
+        .where((eb) =>
+          eb.exists(
+            eb
+              .selectFrom("metaEventPlayers as p")
+              .select("p.id")
+              .whereRef("p.metaEventId", "=", "e.id"),
+          ),
+        )
+        .executeTakeFirst();
+      return row?.latest ?? null;
+    },
+
     async eventTierCounts(): Promise<MetaEventTierCounts> {
       const rows = await db
         .selectFrom("metaEvents")

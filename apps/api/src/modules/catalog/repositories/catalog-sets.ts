@@ -35,10 +35,10 @@ function isPublicSet() {
 
 export function catalogSetsRepo(db: Kysely<Database>) {
   return {
-    async sets(): Promise<CatalogSetRow[]> {
+    async sets(): Promise<(CatalogSetRow & Pick<Selectable<SetsTable>, "printedTotal">)[]> {
       const rows = await db
         .selectFrom("sets")
-        .select(["id", "slug", "name", "setType", releasesJson()])
+        .select(["id", "slug", "name", "setType", "printedTotal", releasesJson()])
         .where(isPublicSet())
         .orderBy("sortOrder")
         .execute();

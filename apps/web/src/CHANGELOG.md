@@ -9,6 +9,7 @@
 
 ### Other
 
+- feat(App): **New page headers** — set and product pages show release dates, card counts and market value, and the meta archive dates its newest results.
 - feat(Rules): **New rules page header** — the rules open with the version, its languages and its publish date, and search, language and version share one bar that stays at the top.
 - feat(Rules): **Keyword badges and symbols in the rules** — keywords written in brackets, like [Reaction], now show as the same coloured badges as on cards, and abbreviations like [E], [M], [A] and [2] show as the Exhaust, Might, rune and energy symbols, in every language.
 - feat(Rules): **Card previews in rule examples** — hovering a card named in an example shows its image, from a printing in the rules' language when there is one.

@@ -83,6 +83,7 @@ const SET_LIST_RESPONSE: SetListResponse = {
       name: "Origins",
       releases: { EN: { releasedAt: "2025-01-01", precision: "day" } },
       setType: "main",
+      printedTotal: null,
       cardCount: 1,
       printingCount: 1,
       coverImageId: null,

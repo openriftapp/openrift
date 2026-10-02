@@ -130,16 +130,17 @@ test.describe("sets", () => {
   });
 
   test.describe("/sets/:setSlug", () => {
-    test("renders the heading, back link, and counts summary", async ({ page }) => {
+    test("renders the heading, a link back to the sets, and the counts", async ({ page }) => {
       await page.goto(`/sets/${knownSet.slug}`);
 
       await expect(page.getByRole("heading", { level: 1, name: knownSet.name })).toBeVisible();
 
-      const backLink = page.getByRole("link", { name: /back to sets/iu });
-      await expect(backLink).toBeVisible();
-      await expect(backLink).toHaveAttribute("href", "/sets");
+      const setsLink = page.getByRole("link", { name: "Card Sets", exact: true }).first();
+      await expect(setsLink).toBeVisible();
+      await expect(setsLink).toHaveAttribute("href", "/sets");
 
-      await expect(page.getByText(/\d+ cards?, \d+ printings?/u).first()).toBeVisible();
+      await expect(page.getByText("cards", { exact: true })).toBeVisible();
+      await expect(page.getByText("printings", { exact: true })).toBeVisible();
     });
 
     test("links into the card browser pre-filtered to this set", async ({ page }) => {

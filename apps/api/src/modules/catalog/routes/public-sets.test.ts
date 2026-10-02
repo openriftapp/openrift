@@ -105,7 +105,7 @@ describe("GET /api/v1/sets", () => {
   });
 
   it("returns 200 with sets, counts, and cover image ids merged in", async () => {
-    mockCatalogRepo.sets.mockResolvedValue([dbSet]);
+    mockCatalogRepo.sets.mockResolvedValue([{ ...dbSet, printedTotal: 298 }]);
     mockCatalogRepo.setCoverImageIds.mockResolvedValue(new Map([[SET_ID, "img-1"]]));
     mockCatalogRepo.setCountsAll.mockResolvedValue(
       new Map([[SET_ID, { cardCount: 312, printingCount: 468 }]]),
@@ -118,6 +118,7 @@ describe("GET /api/v1/sets", () => {
     expect(json.sets[0]).toMatchObject({
       id: SET_ID,
       slug: "OGN",
+      printedTotal: 298,
       cardCount: 312,
       printingCount: 468,
       coverImageId: "img-1",
@@ -133,6 +134,7 @@ describe("GET /api/v1/sets", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json.sets[0]).toMatchObject({
+      printedTotal: null,
       cardCount: 0,
       printingCount: 0,
       coverImageId: null,

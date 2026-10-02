@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Heading } from "@/components/heading";
+import { PageHero } from "@/components/layout/page-hero";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { QrCode } from "@/components/ui/qr-code";
@@ -31,7 +32,7 @@ import {
   openInBrowserUrl,
   startHerePlacement,
 } from "@/lib/install-platform";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { cn, PAGE_PADDING, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useInstallStore } from "@/stores/install-store";
 
@@ -424,22 +425,48 @@ function PhoneView({
   );
 }
 
+function QrCard({ pageUrl, className }: { pageUrl: string; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "bg-card flex flex-col items-center gap-3 rounded-lg border p-5 text-center",
+        className,
+      )}
+    >
+      <QrCode value={pageUrl} size={160} label={m.install_qr_label()} />
+      <p className="font-semibold">{m.install_qr_title()}</p>
+      <p className="text-muted-foreground">{m.install_qr_body()}</p>
+    </div>
+  );
+}
+
 function ComputerView() {
   const hasPrompt = useInstallStore((state) => state.promptEvent !== null);
   const promptInstall = useInstallStore((state) => state.promptInstall);
   const pageUrl = globalThis.location.href;
   return (
-    <div className="grid gap-10 md:grid-cols-2">
-      <div className="flex flex-col gap-5">
-        <Heading level={1}>{m.install_heading_desktop()}</Heading>
-        <p className="text-muted-foreground">{m.install_intro()}</p>
-        <div className="bg-card flex flex-col items-center gap-4 rounded-lg border p-5 sm:flex-row">
-          <QrCode value={pageUrl} size={144} label={m.install_qr_label()} />
-          <div className="flex flex-col gap-1">
-            <p className="font-semibold">{m.install_qr_title()}</p>
-            <p className="text-muted-foreground">{m.install_qr_body()}</p>
-          </div>
-        </div>
+    <>
+      <PageHero
+        title={m.install_heading_desktop()}
+        lead={m.install_intro()}
+        aside={<QrCard pageUrl={pageUrl} className="hidden w-72 shrink-0 md:flex" />}
+      />
+      <div
+        className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}
+      >
+        <QrCard pageUrl={pageUrl} className="md:hidden" />
+        <Tabs defaultValue="iphone" className="gap-4">
+          <TabsList aria-label={m.install_switch_label()}>
+            <TabsTrigger value="iphone">{m.install_device_iphone()}</TabsTrigger>
+            <TabsTrigger value="android">{m.install_device_android()}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="iphone" className="text-base">
+            <IosSteps guide="ios-safari" ipad={false} />
+          </TabsContent>
+          <TabsContent value="android" className="text-base">
+            <AndroidSteps guide="android-chrome" />
+          </TabsContent>
+        </Tabs>
         <p className="text-muted-foreground">
           {hasPrompt ? m.install_desktop_prompt() : m.install_desktop_no_prompt()}{" "}
           {hasPrompt && (
@@ -449,19 +476,7 @@ function ComputerView() {
           )}
         </p>
       </div>
-      <Tabs defaultValue="iphone" className="gap-4">
-        <TabsList aria-label={m.install_switch_label()}>
-          <TabsTrigger value="iphone">{m.install_device_iphone()}</TabsTrigger>
-          <TabsTrigger value="android">{m.install_device_android()}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="iphone" className="text-base">
-          <IosSteps guide="ios-safari" ipad={false} />
-        </TabsContent>
-        <TabsContent value="android" className="text-base">
-          <AndroidSteps guide="android-chrome" />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 }
 
@@ -488,16 +503,16 @@ export function InstallPage() {
   const [chosen, setChosen] = useState<PhoneDevice | null>(null);
   const platform = detectInstallPlatform(globalThis.navigator.userAgent, navigator.maxTouchPoints);
 
-  let content: ReactNode;
-  if (isStandaloneDisplay()) {
-    content = <InstalledView />;
-  } else if (platform.os === "desktop") {
-    content = <ComputerView />;
-  } else {
-    content = <PhoneView platform={platform} chosen={chosen} onChoose={setChosen} />;
+  if (!isStandaloneDisplay() && platform.os === "desktop") {
+    return <ComputerView />;
   }
-
   return (
-    <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING)}>{content}</div>
+    <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING)}>
+      {isStandaloneDisplay() ? (
+        <InstalledView />
+      ) : (
+        <PhoneView platform={platform} chosen={chosen} onChoose={setChosen} />
+      )}
+    </div>
   );
 }

@@ -9,6 +9,7 @@ const captured = vi.hoisted(() => ({
     totalPlayers: 0,
     decksWithMainDeck: 0,
     totalEvents: 0,
+    latestResultDate: null as string | null,
     eventsByTier: { premier: 0, competitive: 0, local: 0 },
   },
   activity: [] as MetaActivityItem[],
@@ -156,17 +157,6 @@ vi.mock("@/hooks/use-domain-colors", () => ({ useDomainColors: () => ({}) }));
 
 vi.mock("@/lib/auth-session", () => ({ useUserId: () => captured.userId }));
 
-vi.mock("@/components/layout/page-top-bar", () => ({
-  PageTopBar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  PageTopBarActions: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="page-actions">{children}</div>
-  ),
-  PageTopBarButton: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  PageTopBarPrimaryButton: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  PageTopBarSticky: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  PageTopBarTitle: ({ children }: { children?: React.ReactNode }) => <h1>{children}</h1>,
-}));
-
 // The scope bar pulls chrome these tests do not exercise; what matters here is
 // which facts the page puts on the screen.
 vi.mock("@/features/meta/components/meta-scope-bar", () => ({
@@ -240,6 +230,7 @@ beforeEach(() => {
     totalPlayers: 0,
     decksWithMainDeck: 0,
     totalEvents: 9,
+    latestResultDate: null,
     eventsByTier: { premier: 4, competitive: 3, local: 2 },
   };
   captured.activity = [activityItem()];
@@ -258,10 +249,6 @@ function archiveCount(label: string): string {
 
 function thumbCount(scope: HTMLElement): number {
   return scope.querySelectorAll('[data-slot="card-art-thumb"]').length;
-}
-
-function pageActions(): HTMLElement | null {
-  return screen.queryByTestId("page-actions");
 }
 
 describe("MetaFrontPage", () => {
@@ -424,6 +411,7 @@ describe("MetaFrontPage", () => {
       totalPlayers: 0,
       decksWithMainDeck: 0,
       totalEvents: 0,
+      latestResultDate: null,
       eventsByTier: { premier: 0, competitive: 0, local: 0 },
     };
 
@@ -475,9 +463,8 @@ describe("MetaFrontPage", () => {
   it("offers a signed-out visitor no action that would need an account", () => {
     render(<MetaFrontPage />);
 
-    const actions = pageActions() as HTMLElement;
-    expect(within(actions).queryByText("Send a decklist")).not.toBeInTheDocument();
-    expect(within(actions).queryByText("Your contributions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your contributions")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Send a decklist")).toHaveLength(1);
     expect(screen.getByText("Help complete the record")).toBeInTheDocument();
   });
 
@@ -488,14 +475,21 @@ describe("MetaFrontPage", () => {
     expect(screen.getByRole("link", { name: /Decklists/u })).toHaveAttribute("href", "/meta/decks");
   });
 
-  it("leaves the ask to the contribute band rather than the top bar", () => {
+  it("leaves the ask to the contribute band", () => {
     captured.userId = "user-1";
 
     render(<MetaFrontPage />);
 
-    expect(within(pageActions() as HTMLElement).queryByText("Send a decklist")).toBeNull();
     expect(screen.getByText("Help complete the record")).toBeInTheDocument();
-    expect(screen.getByText("Send a decklist")).toBeInTheDocument();
+    expect(screen.getAllByText("Send a decklist")).toHaveLength(1);
+  });
+
+  it("dates the newest results in the header", () => {
+    captured.counts = { ...captured.counts, latestResultDate: "2026-09-30" };
+
+    render(<MetaFrontPage />);
+
+    expect(screen.getByText(/Results through 30 September 2026/u)).toBeInTheDocument();
   });
 
   it("offers the ledger only once a signed-in visitor has sent something", () => {
@@ -503,9 +497,7 @@ describe("MetaFrontPage", () => {
 
     render(<MetaFrontPage />);
 
-    expect(
-      within(pageActions() as HTMLElement).queryByText("Your contributions"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Your contributions")).not.toBeInTheDocument();
   });
 
   it("offers the ledger to a contributor", () => {
@@ -514,9 +506,7 @@ describe("MetaFrontPage", () => {
 
     render(<MetaFrontPage />);
 
-    expect(
-      within(pageActions() as HTMLElement).getByText("Your contributions"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Your contributions")).toBeInTheDocument();
   });
 
   it("promises the whole archive's tier count, not the era it fetched", () => {

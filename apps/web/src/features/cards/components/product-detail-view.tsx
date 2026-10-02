@@ -1,18 +1,18 @@
 import type { ProductDetailResponse } from "@openrift/shared/contracts/products";
+import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
+import { Link } from "@tanstack/react-router";
 import { Suspense, useState } from "react";
 
 import {
-  PAGE_TOP_BAR_STICKY,
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarBack,
-  PageTopBarHeightContext,
-  PageTopBarPrimaryButton,
-  PageTopBarTitle,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
+  PAGE_HERO_EYEBROW_CLASS,
+  PageHero,
+  PageHeroCardFan,
+  PageHeroStats,
+} from "@/components/layout/page-hero";
+import type { PageHeroStat } from "@/components/layout/page-hero";
 import { MarkdownText } from "@/components/markdown-text";
+import { Button } from "@/components/ui/button";
 import {
   BrowserToolbar,
   CardBrowserFilterProvider,
@@ -32,7 +32,6 @@ import { useCards } from "@/features/cards/hooks/use-cards";
 import { usePrices } from "@/features/cards/hooks/use-prices";
 import { ADD_STRIP_HEIGHT } from "@/features/cards/lib/card-grid-constants";
 import { filterPrintingsByLanguages } from "@/features/cards/lib/filter-printings-by-languages";
-import { formatProductCounts } from "@/features/cards/lib/product-counts";
 import type { EnrichedProductDetail } from "@/features/cards/lib/products-queries";
 import type { FilterSearch } from "@/features/cards/lib/search-schemas";
 import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
@@ -45,6 +44,7 @@ import { useKeywordReverseMap } from "@/hooks/use-keyword-reverse-map";
 import { useSession } from "@/lib/auth-session";
 import type { CardRenderContext, CardViewerItem } from "@/lib/card-viewer-types";
 import { formatterForMarketplace } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 import { useSelectionStore } from "@/stores/selection-store";
@@ -85,61 +85,75 @@ interface ProductDetailViewProps {
 // Read-only card-browser surface over the product's fixed printing set. No
 // add strips; the top-bar "Add to collection" action is the one write path.
 export function ProductDetailView({ data, search }: ProductDetailViewProps) {
-  const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const topBarHeight = useMeasuredHeight(topBarSlot);
   const hydrated = useHydrated();
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
   const { product } = data;
+  const fanUrls = uniqueByCard(data.printings)
+    .flatMap((printing) =>
+      printing.images[0] ? [imageUrl(printing.images[0].imageId, "400w")] : [],
+    )
+    .slice(0, 3);
+  const baseStats: PageHeroStat[] = [
+    { key: "cards", label: m.hero_stat_cards(), value: product.cardTotal },
+    ...(product.printingCount === product.cardTotal
+      ? []
+      : [{ key: "unique", label: m.hero_stat_unique(), value: product.printingCount }]),
+  ];
 
   return (
     <FilterSearchProvider value={search}>
-      <PageTopBarHeightContext value={topBarHeight}>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div ref={setTopBarSlot} className={PAGE_TOP_BAR_STICKY}>
-            <PageTopBar>
-              <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-                <PageTopBarBack to="/products" aria-label={m.products_back_aria()} />
-                <PageTopBarTitle>{product.name}</PageTopBarTitle>
-                <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-                  {formatProductCounts(product.cardTotal, product.printingCount)}
-                  {hydrated && (
-                    <Suspense fallback={null}>
-                      <ProductValue contents={data.contents} />
-                    </Suspense>
-                  )}
-                </span>
-              </div>
-              {isLoggedIn && (
-                <PageTopBarActions>
-                  <PageTopBarPrimaryButton onClick={() => setAddOpen(true)}>
-                    {m.products_add_to_collection()}
-                  </PageTopBarPrimaryButton>
-                </PageTopBarActions>
-              )}
-            </PageTopBar>
-          </div>
-          <ProductAddDialog
-            open={addOpen}
-            onOpenChange={setAddOpen}
-            productSlug={product.slug}
-            productName={product.name}
-          />
-          <div className="flex min-w-0 flex-1 flex-col px-3 pb-3">
-            {product.description ? (
-              <MarkdownText text={product.description} className="text-muted-foreground py-3" />
-            ) : null}
-            <ProductDetailBody data={data} />
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PageHero
+          width="full"
+          eyebrow={
+            <Link to="/products" className={cn(PAGE_HERO_EYEBROW_CLASS, "hover:underline")}>
+              {m.products_title()}
+            </Link>
+          }
+          title={product.name}
+          compactTitle
+          aside={<PageHeroCardFan urls={fanUrls} />}
+        >
+          {hydrated ? (
+            <Suspense fallback={<PageHeroStats stats={baseStats} />}>
+              <ProductHeroStats baseStats={baseStats} contents={data.contents} />
+            </Suspense>
+          ) : (
+            <PageHeroStats stats={baseStats} />
+          )}
+          {isLoggedIn && (
+            <Button className="mt-3" onClick={() => setAddOpen(true)}>
+              {m.products_add_to_collection()}
+            </Button>
+          )}
+        </PageHero>
+        <ProductAddDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          productSlug={product.slug}
+          productName={product.name}
+        />
+        <div className="flex min-w-0 flex-1 flex-col px-3 pt-3 pb-3">
+          {product.description ? (
+            <MarkdownText text={product.description} className="text-muted-foreground py-3" />
+          ) : null}
+          <ProductDetailBody data={data} />
         </div>
-      </PageTopBarHeightContext>
+      </div>
     </FilterSearchProvider>
   );
 }
 
 // Printings without a price are counted separately; they do not count as free.
-function ProductValue({ contents }: { contents: ProductDetailResponse["contents"] }) {
+function ProductHeroStats({
+  baseStats,
+  contents,
+}: {
+  baseStats: PageHeroStat[];
+  contents: ProductDetailResponse["contents"];
+}) {
   const marketplaceOrder = useDisplayStore((state) => state.marketplaceOrder);
   const marketplace = marketplaceOrder[0];
   const prices = usePrices();
@@ -155,19 +169,23 @@ function ProductValue({ contents }: { contents: ProductDetailResponse["contents"
     }
   }
   if (total === 0) {
-    return null;
+    return <PageHeroStats stats={baseStats} />;
   }
   const formatValue = formatterForMarketplace(marketplace);
   return (
-    <>
-      {" · "}
-      {formatValue(total)}
-      {unpriced > 0 && (
-        <span className="text-muted-foreground/60 ml-1">
-          {m.products_unpriced({ count: unpriced })}
-        </span>
-      )}
-    </>
+    <PageHeroStats
+      stats={[
+        ...baseStats,
+        {
+          key: "value",
+          label:
+            unpriced > 0
+              ? `${m.hero_stat_value()} ${m.products_unpriced({ count: unpriced })}`
+              : m.hero_stat_value(),
+          value: formatValue(total),
+        },
+      ]}
+    />
   );
 }
 

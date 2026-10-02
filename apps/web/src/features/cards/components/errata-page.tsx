@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Heading } from "@/components/heading";
-import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
+import { PageHero, PageHeroCardFan, PageHeroStats } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { ExpandToggle } from "@/components/ui/expand-toggle";
 import {
@@ -240,16 +240,7 @@ export function ErrataPage() {
         lead={m.errata_description()}
         aside={<PageHeroCardFan urls={fanUrls.slice(0, 3)} />}
       >
-        <dl className="mt-3 flex flex-wrap gap-x-9 gap-y-3">
-          {stats.map((stat) => (
-            <div key={stat.key} className="flex flex-col-reverse gap-0.5">
-              <dt className="text-muted-foreground text-sm">{stat.label}</dt>
-              <dd className="font-heading text-3xl leading-none font-bold tabular-nums">
-                {stat.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <PageHeroStats stats={stats} />
       </PageHero>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-4 pt-6 pb-10")}>

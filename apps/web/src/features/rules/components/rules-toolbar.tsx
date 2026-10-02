@@ -21,6 +21,7 @@ import {
   useRulesChangesViewStore,
 } from "@/features/rules/stores/rules-changes-view-store";
 import { useRulesSearchStore } from "@/features/rules/stores/rules-search-store";
+import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { DISPLAY_LOCALE_LABELS } from "@/lib/display-locale";
 import { m } from "@/paraglide/messages.js";
@@ -117,24 +118,34 @@ export function RulesLanguageSelect({
   );
 }
 
-export function KindTabs({ kind }: { kind: RuleKind }) {
+export function KindTabs({ kind }: { kind: RuleKind | "glossary" }) {
   const navigate = useNavigate();
+  const glossaryEnabled = useFeatureEnabled("glossary");
   return (
     <Tabs
       value={kind}
       onValueChange={(value) => {
-        if (value !== "core" && value !== "tournament") {
-          return;
-        }
         if (value === kind) {
           return;
         }
-        void navigate({ to: "/rules/$kind", params: { kind: value }, search: (prev) => prev });
+        if (value === "glossary") {
+          void navigate({ to: "/glossary" });
+          return;
+        }
+        if (value !== "core" && value !== "tournament") {
+          return;
+        }
+        void navigate({
+          to: "/rules/$kind",
+          params: { kind: value },
+          search: kind === "glossary" ? {} : (prev) => prev,
+        });
       }}
     >
       <TabsList variant="line">
         <TabsTrigger value="core">{m.rules_tab_core()}</TabsTrigger>
         <TabsTrigger value="tournament">{m.rules_tab_tournament()}</TabsTrigger>
+        {glossaryEnabled && <TabsTrigger value="glossary">{m.nav_glossary()}</TabsTrigger>}
       </TabsList>
     </Tabs>
   );

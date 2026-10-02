@@ -1,22 +1,23 @@
+import { imageUrl } from "@openrift/shared/image-url";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { deduplicateByCard } from "@openrift/shared/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 
 import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarBack,
-  PageTopBarPrimaryButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+  PAGE_HERO_EYEBROW_CLASS,
+  PageHero,
+  PageHeroCardFan,
+  PageHeroStats,
+} from "@/components/layout/page-hero";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardThumbnail } from "@/features/cards/components/card-thumbnail";
 import { useCardThumbnailDisplay } from "@/features/cards/hooks/use-card-thumbnail-display";
 import { publicSetDetailQueryOptions } from "@/features/cards/lib/public-sets-queries";
+import { setReleaseSentence } from "@/features/cards/lib/set-hero-copy";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
-import { PAGE_PADDING } from "@/lib/utils";
+import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 import { useDisplayStore } from "@/stores/display-store";
 
@@ -42,6 +43,11 @@ function SetDetailPage() {
 
   const uniquePrintings = deduplicateByCard(data.printings, effectiveLanguageOrder);
   const printingsByCardId = Map.groupBy(data.printings, (printing) => printing.cardId);
+  const fanUrls = uniquePrintings
+    .flatMap((printing) =>
+      printing.images[0] ? [imageUrl(printing.images[0].imageId, "400w")] : [],
+    )
+    .slice(0, 3);
 
   const handleCardClick = (printing: Printing) => {
     void navigate({
@@ -52,26 +58,36 @@ function SetDetailPage() {
 
   return (
     <>
-      <PageTopBarSticky width="full">
-        <PageTopBar>
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:items-baseline">
-            <PageTopBarBack to="/sets" aria-label={m.sets_back_aria()} />
-            <PageTopBarTitle>{data.set.name}</PageTopBarTitle>
-            <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-              {m.common_cards({ count: uniquePrintings.length })}
-              {", "}
-              {m.common_printings({ count: data.printings.length })}
+      <PageHero
+        width="full"
+        eyebrow={
+          <span className={cn(PAGE_HERO_EYEBROW_CLASS, "flex items-center gap-1.5")}>
+            <Link to="/sets" className="hover:underline">
+              {m.sets_title()}
+            </Link>
+            <span aria-hidden="true" className="text-muted-foreground">
+              /
             </span>
-          </div>
-          <PageTopBarActions>
-            <PageTopBarPrimaryButton render={<Link to="/cards" search={{ sets: [setSlug] }} />}>
-              {m.sets_open_in_browser()}
-            </PageTopBarPrimaryButton>
-          </PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+            {data.set.slug} ·{" "}
+            {data.set.setType === "main" ? m.set_type_main_set() : m.set_type_supplemental_set()}
+          </span>
+        }
+        title={data.set.name}
+        lead={setReleaseSentence(data.set.releases) ?? undefined}
+        aside={<PageHeroCardFan urls={fanUrls} />}
+      >
+        <PageHeroStats
+          stats={[
+            { key: "cards", label: m.hero_stat_cards(), value: uniquePrintings.length },
+            { key: "printings", label: m.hero_stat_printings(), value: data.printings.length },
+          ]}
+        />
+        <Button className="mt-3" render={<Link to="/cards" search={{ sets: [setSlug] }} />}>
+          {m.sets_open_in_browser()}
+        </Button>
+      </PageHero>
 
-      <div className={PAGE_PADDING}>
+      <div className={cn("pt-3", PAGE_PADDING_NO_TOP)}>
         <div className={SET_GRID}>
           {uniquePrintings.map((printing) => (
             <CardThumbnail
@@ -94,12 +110,8 @@ function SetDetailPage() {
 function SetDetailPending() {
   return (
     <>
-      <PageTopBarSticky width="full">
-        <PageTopBar>
-          <Skeleton className="h-5 w-48" />
-        </PageTopBar>
-      </PageTopBarSticky>
-      <div className={PAGE_PADDING}>
+      <PageHero width="full" title={<Skeleton className="h-12 w-64" />} />
+      <div className={cn("pt-3", PAGE_PADDING_NO_TOP)}>
         <div className={SET_GRID}>
           {Array.from({ length: 20 }, (_, i) => (
             <div key={i} className="p-1.5">

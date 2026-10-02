@@ -16,13 +16,15 @@ export function PageHero({
   lead,
   aside,
   compactTitle = false,
+  width = "capped",
   children,
 }: {
-  eyebrow: ReactNode;
+  eyebrow?: ReactNode;
   title: ReactNode;
-  lead: ReactNode;
+  lead?: ReactNode;
   aside?: ReactNode;
   compactTitle?: boolean;
+  width?: keyof typeof PAGE_WIDTH;
   children?: ReactNode;
 }) {
   return (
@@ -34,7 +36,7 @@ export function PageHero({
       />
       <div
         className={cn(
-          PAGE_WIDTH.capped,
+          PAGE_WIDTH[width],
           "px-safe relative flex items-center gap-12 pt-10 pb-8 sm:pt-12 sm:pb-10",
         )}
       >
@@ -53,12 +55,35 @@ export function PageHero({
             {title}
           </h1>
           <OrnamentRule className="w-40" />
-          <p className="text-muted-foreground max-w-lg text-pretty">{lead}</p>
+          {lead !== undefined && (
+            <p className="text-muted-foreground max-w-lg text-pretty">{lead}</p>
+          )}
           {children}
         </div>
         {aside}
       </div>
     </section>
+  );
+}
+
+export interface PageHeroStat {
+  key: string;
+  label: string;
+  value: ReactNode;
+}
+
+export function PageHeroStats({ stats }: { stats: readonly PageHeroStat[] }) {
+  return (
+    <dl className="mt-3 flex flex-wrap gap-x-9 gap-y-3">
+      {stats.map((stat) => (
+        <div key={stat.key} className="flex flex-col-reverse gap-0.5">
+          <dt className="text-muted-foreground text-sm">{stat.label}</dt>
+          <dd className="font-heading text-3xl leading-none font-bold tabular-nums">
+            {stat.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

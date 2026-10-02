@@ -1,4 +1,4 @@
-import { dateLeafPartsUtc } from "@openrift/shared/format-date";
+import { dateLeafPartsUtc, formatDayMonthYear } from "@openrift/shared/format-date";
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
 import type { MetaEventTier } from "@openrift/shared/types/enums";
 import { Link, getRouteApi } from "@tanstack/react-router";
@@ -12,13 +12,7 @@ import {
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardLink } from "@/components/ui/card-link";
@@ -97,9 +91,9 @@ function ContributionsLink() {
     return null;
   }
   return (
-    <PageTopBarButton render={<Link to="/meta/submissions" />}>
+    <Button variant="outline" className="mt-2" render={<Link to="/meta/submissions" />}>
       {m.meta_submissions_title()}
-    </PageTopBarButton>
+    </Button>
   );
 }
 
@@ -283,12 +277,17 @@ export function MetaFrontPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.meta_front_title()}</PageTopBarTitle>
-          <PageTopBarActions>{userId !== null && <ContributionsLink />}</PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero
+        eyebrow={m.meta_front_eyebrow()}
+        title={m.meta_front_title()}
+        lead={
+          counts.latestResultDate
+            ? m.meta_front_lead({ date: formatDayMonthYear(counts.latestResultDate, DATE_WORDS) })
+            : undefined
+        }
+      >
+        {userId !== null && <ContributionsLink />}
+      </PageHero>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-8 pt-3 pb-10")}>
         {counts.totalEvents === 0 ? (

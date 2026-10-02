@@ -370,12 +370,14 @@ export const metaDeckDetailResponseSchema = publicDeckDetailResponseSchema.exten
 
 /**
  * `decksWithMainDeck` counts full and partial lists alike (a partial list's
- * main deck is complete). `totalEvents` and `eventsByTier` ignore the query's filters.
+ * main deck is complete). `totalEvents`, `latestResultDate` and `eventsByTier` ignore the
+ * query's filters.
  */
 export const metaCountsResponseSchema = z.object({
   totalPlayers: z.number().int().nonnegative(),
   decksWithMainDeck: z.number().int().nonnegative(),
   totalEvents: z.number().int().nonnegative(),
+  latestResultDate: isoDate.nullable(),
   eventsByTier: z.object({
     premier: z.number().int().nonnegative(),
     competitive: z.number().int().nonnegative(),

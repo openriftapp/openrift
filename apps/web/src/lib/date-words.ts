@@ -47,6 +47,7 @@ export const DATE_WORDS: DateWords = {
   monthAbbreviation: (index) => MONTH_ABBREVIATIONS[index]?.() ?? "",
   weekdayName: (index) => WEEKDAY_NAMES[index]?.() ?? "",
   monthYear: (month, year) => m.date_month_year({ month, year }),
+  dayMonthYear: (day, month, year) => m.date_day_month_year({ day, month, year }),
   weekdayDay: (weekday, day, month) => m.date_weekday_day({ weekday, day, month }),
   justNow: () => m.date_just_now(),
   underAMinuteAhead: () => m.date_under_a_minute_ahead(),

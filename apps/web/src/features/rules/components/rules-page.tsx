@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import { PAGE_HERO_EYEBROW_CLASS, PageHero } from "@/components/layout/page-hero";
+import { PAGE_HERO_EYEBROW_CLASS, PageHero, PageHeroStats } from "@/components/layout/page-hero";
 import { PageToc, PageTocMobileTrigger } from "@/components/layout/page-toc";
 import type { PageTocItem } from "@/components/layout/page-toc";
 import { PAGE_TOP_BAR_GEOMETRY, useMeasuredHeight } from "@/components/layout/page-top-bar";
@@ -264,16 +264,7 @@ function RulesContent({
   return (
     <>
       <RulesHero kind={kind}>
-        <dl className="mt-3 flex flex-wrap gap-x-9 gap-y-3">
-          {stats.map((stat) => (
-            <div key={stat.key} className="flex flex-col-reverse gap-0.5">
-              <dt className="text-muted-foreground text-sm">{stat.label}</dt>
-              <dd className="font-heading text-3xl leading-none font-bold tabular-nums">
-                {stat.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <PageHeroStats stats={stats} />
       </RulesHero>
       <div className={cn(PAGE_WIDTH.capped, "pt-3", PAGE_PADDING_NO_TOP)}>
         <div

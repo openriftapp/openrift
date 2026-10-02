@@ -30,6 +30,7 @@ export const setsRouter = {
       const setCounts = counts.get(set.id);
       return {
         ...set,
+        printedTotal: set.printedTotal ?? null,
         cardCount: setCounts?.cardCount ?? 0,
         printingCount: setCounts?.printingCount ?? 0,
         coverImageId: coverImageIds.get(set.id) ?? null,

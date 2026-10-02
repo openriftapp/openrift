@@ -8,6 +8,11 @@ import { oc } from "@orpc/contract";
 import { z } from "zod";
 
 export const setListEntrySchema = catalogSetResponseSchema.extend({
+  printedTotal: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ examples: [298] }),
   cardCount: z.number().meta({ examples: [312] }),
   printingCount: z.number().meta({ examples: [468] }),
   coverImageId: imageIdSchema.nullable(),

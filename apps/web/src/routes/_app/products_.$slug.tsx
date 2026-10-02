@@ -70,10 +70,11 @@ export const Route = createFileRoute("/_app/products_/$slug")({
 
 function ProductDetailPending() {
   return (
-    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full, "flex flex-col gap-4 py-4")}>
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-5 w-32" />
-      <Skeleton className="h-96 w-full" />
+    <div className={cn(PAGE_PADDING, PAGE_WIDTH.full, "flex flex-col gap-4 pt-12 pb-4")}>
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-10 w-80" />
+      <Skeleton className="mt-6 h-8 w-48" />
+      <Skeleton className="mt-6 h-96 w-full" />
     </div>
   );
 }

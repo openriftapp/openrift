@@ -40,6 +40,7 @@ const mockMeta = {
   bestFinishesForLegend: vi.fn(),
   legendRecordCounts: vi.fn(),
   eventTierCounts: vi.fn(),
+  latestResultDate: vi.fn(),
   finishesForPlayer: vi.fn(),
 };
 
@@ -230,6 +231,7 @@ beforeEach(() => {
   mockMeta.bestFinishesForLegend.mockResolvedValue([]);
   mockMeta.legendRecordCounts.mockResolvedValue({ wins: 0, finishes: 0, decklists: 0 });
   mockMeta.eventTierCounts.mockResolvedValue(NO_TIER_COUNTS);
+  mockMeta.latestResultDate.mockResolvedValue(null);
   mockMeta.finishesForPlayer.mockResolvedValue([]);
   mockCanonicalPrintings.resolvePrintingMetaForRows.mockResolvedValue([]);
 });
@@ -1767,5 +1769,16 @@ describe("GET /meta/counts", () => {
     expect(json.eventsByTier).toEqual({ premier: 4, competitive: 31, local: 912 });
     expect(json.totalEvents).toBe(947);
     expect(mockMeta.eventTierCounts).toHaveBeenCalledWith();
+  });
+
+  it("reports the newest event with standings", async () => {
+    mockMeta.playerCountInScope.mockResolvedValue(0);
+    mockMeta.deckCountInScope.mockResolvedValue(0);
+    mockMeta.latestResultDate.mockResolvedValue("2026-09-30");
+
+    const json = await readJson(await app.request("/api/v1/meta/counts?format=constructed"));
+
+    expect(json.latestResultDate).toBe("2026-09-30");
+    expect(mockMeta.latestResultDate).toHaveBeenCalledWith();
   });
 });

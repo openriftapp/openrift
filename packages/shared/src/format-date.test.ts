@@ -10,6 +10,7 @@ import {
   formatDayTime,
   formatDayTimeLocal,
   formatTimeLocal,
+  formatDayMonthYear,
   formatMonth,
   formatMonthYear,
   formatRelativeDay,
@@ -76,6 +77,17 @@ describe("formatMonthYear", () => {
 
   it("returns an empty string for unparseable input", () => {
     expect(formatMonthYear("nope")).toBe("");
+  });
+});
+
+describe("formatDayMonthYear", () => {
+  it("spells out the UTC day, month and year", () => {
+    expect(formatDayMonthYear("2025-10-31")).toBe("31 October 2025");
+    expect(formatDayMonthYear("2025-12-31T23:30:00.000Z")).toBe("31 December 2025");
+  });
+
+  it("returns an empty string for unparseable input", () => {
+    expect(formatDayMonthYear("nope")).toBe("");
   });
 });
 
@@ -314,5 +326,6 @@ describe("injected date words", () => {
     expect(formatRelativeTime(ago(3 * HOUR), { now: NOW, words: shouting })).toBe("3 HOURS BACK");
     expect(formatRelativeDay("2026-06-01", NOW, shouting)).toBe("LAST WEEK");
     expect(formatMonthYear("2026-03-01", shouting)).toBe("MONTH2 2026");
+    expect(formatDayMonthYear("2026-03-01", shouting)).toBe("1 MONTH2 2026");
   });
 });

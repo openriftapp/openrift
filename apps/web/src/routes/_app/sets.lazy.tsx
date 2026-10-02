@@ -7,12 +7,14 @@ import { Link, createLazyFileRoute } from "@tanstack/react-router";
 import { CalendarIcon, LayersIcon } from "lucide-react";
 
 import { Heading } from "@/components/heading";
+import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
 import { CardLink } from "@/components/ui/card-link";
 import { ImgWithFallback } from "@/components/ui/img-with-fallback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CARD_BORDER_RADIUS } from "@/features/cards/lib/card-grid-constants";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
-import { PAGE_PADDING } from "@/lib/utils";
+import { setsOverviewSentence } from "@/features/cards/lib/set-hero-copy";
+import { cn, PAGE_PADDING_NO_TOP } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 export const Route = createLazyFileRoute("/_app/sets")({
@@ -83,40 +85,51 @@ function SetsPage() {
 
   const mainSets = data.sets.filter((s) => s.setType === WellKnown.setType.MAIN);
   const supplementalSets = data.sets.filter((s) => s.setType !== WellKnown.setType.MAIN);
+  const coverUrls = mainSets
+    .flatMap((set) => (set.coverImageId ? [imageUrl(set.coverImageId, "400w")] : []))
+    .toReversed()
+    .slice(0, 3);
 
   return (
-    <div className={PAGE_PADDING}>
-      <Heading level={1} className="mb-6">
-        {m.sets_title()}
-      </Heading>
-      <div className={SET_GRID}>
-        {mainSets.map((set) => (
-          <HeroSetCard key={set.id} set={set} />
-        ))}
+    <>
+      <PageHero
+        width="full"
+        title={m.sets_title()}
+        lead={setsOverviewSentence(data.sets) ?? undefined}
+        aside={<PageHeroCardFan urls={coverUrls} />}
+      />
+      <div className={cn("pt-3", PAGE_PADDING_NO_TOP)}>
+        <div className={SET_GRID}>
+          {mainSets.map((set) => (
+            <HeroSetCard key={set.id} set={set} />
+          ))}
+        </div>
+        {supplementalSets.length > 0 && (
+          <>
+            <Heading className="mt-10 mb-6">{m.sets_supplemental()}</Heading>
+            <div className={SET_GRID}>
+              {supplementalSets.map((set) => (
+                <HeroSetCard key={set.id} set={set} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
-      {supplementalSets.length > 0 && (
-        <>
-          <Heading className="mt-10 mb-6">{m.sets_supplemental()}</Heading>
-          <div className={SET_GRID}>
-            {supplementalSets.map((set) => (
-              <HeroSetCard key={set.id} set={set} />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    </>
   );
 }
 
 function SetsPending() {
   return (
-    <div className={PAGE_PADDING}>
-      <Skeleton className="mb-6 h-8 w-32" />
-      <div className={SET_GRID}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <Skeleton key={i} className="h-36 rounded-lg" />
-        ))}
+    <>
+      <PageHero width="full" title={m.sets_title()} />
+      <div className={cn("pt-3", PAGE_PADDING_NO_TOP)}>
+        <div className={SET_GRID}>
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-36 rounded-lg" />
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

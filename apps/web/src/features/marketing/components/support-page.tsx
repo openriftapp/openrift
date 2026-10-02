@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { siDiscord, siGithub, siGithubsponsors, siKofi, siX } from "simple-icons";
 
 import { Heading } from "@/components/heading";
+import { PageHero } from "@/components/layout/page-hero";
 import { MarketplaceLink } from "@/components/marketplace-link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import { useEnumOrders } from "@/hooks/use-enums";
 import { getFilterIconPath } from "@/lib/icons";
 import { getSiteUrl } from "@/lib/site-config";
 import { SOCIAL_LINKS } from "@/lib/social-links";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/eikowagenknecht";
@@ -122,147 +123,144 @@ export function SupportPage() {
   const { labels } = useEnumOrders();
 
   return (
-    <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col", PAGE_PADDING)}>
-      <div className="mb-10">
-        <Heading level={1} className="mb-4">
-          {m.marketing_support_title()}
-        </Heading>
-        <div className="text-muted-foreground space-y-3 leading-relaxed">
-          <p>{m.marketing_support_intro_p1()}</p>
+    <>
+      <PageHero title={m.marketing_support_title()} lead={m.marketing_support_intro_p1()} />
+      <div className={cn(PAGE_WIDTH.capped, "flex flex-1 flex-col pt-3", PAGE_PADDING_NO_TOP)}>
+        <div className="text-muted-foreground mb-10 space-y-3 leading-relaxed">
           <p>{m.marketing_support_intro_p2()}</p>
           <p>{m.marketing_support_intro_p3()}</p>
         </div>
-      </div>
 
-      <section className="mb-10">
-        <Heading className="mb-1">{m.marketing_support_fuel_title()}</Heading>
-        <p className="text-muted-foreground mb-4">
-          {m.marketing_support_fuel_lead()}{" "}
-          <span className="italic">{m.marketing_support_fuel_lead_italic()}</span>
-        </p>
-        <div className="space-y-3">
-          {tiers().map((tier) => (
-            <TierCard
-              key={tier.rarity}
-              tier={tier}
-              label={enumLabel(labels.rarities, tier.rarity)}
+        <section className="mb-10">
+          <Heading className="mb-1">{m.marketing_support_fuel_title()}</Heading>
+          <p className="text-muted-foreground mb-4">
+            {m.marketing_support_fuel_lead()}{" "}
+            <span className="italic">{m.marketing_support_fuel_lead_italic()}</span>
+          </p>
+          <div className="space-y-3">
+            {tiers().map((tier) => (
+              <TierCard
+                key={tier.rarity}
+                tier={tier}
+                label={enumLabel(labels.rarities, tier.rarity)}
+              />
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={KOFI_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants(), "gap-2")}
+            >
+              <SimpleIcon icon={siKofi} className="size-4" />
+              {m.marketing_support_kofi()}
+            </a>
+            <a
+              href={GITHUB_SPONSORS_URL}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+            >
+              <SimpleIcon icon={siGithubsponsors} className="size-4" />
+              {m.marketing_support_sponsor()}
+            </a>
+          </div>
+          <p className="text-muted-foreground mt-2">{m.marketing_support_recurring_note()}</p>
+        </section>
+
+        <section className="mb-10">
+          <Heading className="mb-1">{m.marketing_support_widen_title()}</Heading>
+          <p className="text-muted-foreground mb-4">{m.marketing_support_widen_lead()}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ShareButton
+              label={m.marketing_support_star_github()}
+              icon={<SimpleIcon icon={siGithub} />}
+              href={SOCIAL_LINKS.githubRepo}
             />
-          ))}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
+            <ShareButton
+              label={m.marketing_support_share_x()}
+              icon={<SimpleIcon icon={siX} />}
+              href={`https://x.com/intent/tweet?text=${tweetText}`}
+            />
+            <CopyButton
+              label={m.marketing_support_share_copy()}
+              icon={<CopyIcon className="size-4" />}
+              text={shareText}
+            />
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <Heading className="mb-1">{m.marketing_support_shop_title()}</Heading>
+          <p className="text-muted-foreground">
+            <ParaglideMessage
+              message={m.marketing_support_shop}
+              markup={{
+                link: ({ children }) => (
+                  <TextLink
+                    render={
+                      <MarketplaceLink
+                        marketplace="tcgplayer"
+                        href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
+                      />
+                    }
+                  >
+                    {children}
+                  </TextLink>
+                ),
+                link2: ({ children }) => (
+                  <TextLink
+                    render={
+                      <MarketplaceLink
+                        marketplace="cardtrader"
+                        href="https://www.cardtrader.com/?share_code=openrift"
+                      />
+                    }
+                  >
+                    {children}
+                  </TextLink>
+                ),
+              }}
+            />
+          </p>
+        </section>
+
+        <section className="mb-10">
+          <Heading className="mb-1">{m.marketing_support_party_title()}</Heading>
+          <p className="text-muted-foreground mb-4">{m.marketing_support_party_lead()}</p>
           <a
-            href={KOFI_URL}
+            href={SOCIAL_LINKS.discordInvite}
             target="_blank"
             rel="noreferrer"
-            className={cn(buttonVariants(), "gap-2")}
+            className={cn(buttonVariants(), "gap-2 bg-[#5865F2] text-white [a]:hover:bg-[#4752C4]")}
           >
-            <SimpleIcon icon={siKofi} className="size-4" />
-            {m.marketing_support_kofi()}
+            <SimpleIcon icon={siDiscord} className="size-4" />
+            {m.marketing_support_join_discord()}
           </a>
-          <a
-            href={GITHUB_SPONSORS_URL}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
-          >
-            <SimpleIcon icon={siGithubsponsors} className="size-4" />
-            {m.marketing_support_sponsor()}
-          </a>
-        </div>
-        <p className="text-muted-foreground mt-2">{m.marketing_support_recurring_note()}</p>
-      </section>
+        </section>
 
-      <section className="mb-10">
-        <Heading className="mb-1">{m.marketing_support_widen_title()}</Heading>
-        <p className="text-muted-foreground mb-4">{m.marketing_support_widen_lead()}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ShareButton
-            label={m.marketing_support_star_github()}
-            icon={<SimpleIcon icon={siGithub} />}
-            href={SOCIAL_LINKS.githubRepo}
-          />
-          <ShareButton
-            label={m.marketing_support_share_x()}
-            icon={<SimpleIcon icon={siX} />}
-            href={`https://x.com/intent/tweet?text=${tweetText}`}
-          />
-          <CopyButton
-            label={m.marketing_support_share_copy()}
-            icon={<CopyIcon className="size-4" />}
-            text={shareText}
-          />
-        </div>
-      </section>
+        <section className="mb-10">
+          <Heading className="mb-1">{m.marketing_support_gear_title()}</Heading>
+          <div className="flex flex-col gap-2">
+            <p className="text-muted-foreground font-medium italic">
+              {m.marketing_support_gear_soon()}
+            </p>
+            <p className="text-muted-foreground">{m.marketing_support_gear_body()}</p>
+            <p className="text-muted-foreground italic">
+              <Suspense fallback={m.marketing_support_gear_mug()}>
+                <CardText text={m.marketing_support_gear_mug()} interactive={false} />
+              </Suspense>
+            </p>
+          </div>
+        </section>
 
-      <section className="mb-10">
-        <Heading className="mb-1">{m.marketing_support_shop_title()}</Heading>
-        <p className="text-muted-foreground">
-          <ParaglideMessage
-            message={m.marketing_support_shop}
-            markup={{
-              link: ({ children }) => (
-                <TextLink
-                  render={
-                    <MarketplaceLink
-                      marketplace="tcgplayer"
-                      href="https://partner.tcgplayer.com/openrift?u=https%3A%2F%2Fwww.tcgplayer.com%2F"
-                    />
-                  }
-                >
-                  {children}
-                </TextLink>
-              ),
-              link2: ({ children }) => (
-                <TextLink
-                  render={
-                    <MarketplaceLink
-                      marketplace="cardtrader"
-                      href="https://www.cardtrader.com/?share_code=openrift"
-                    />
-                  }
-                >
-                  {children}
-                </TextLink>
-              ),
-            }}
-          />
-        </p>
-      </section>
-
-      <section className="mb-10">
-        <Heading className="mb-1">{m.marketing_support_party_title()}</Heading>
-        <p className="text-muted-foreground mb-4">{m.marketing_support_party_lead()}</p>
-        <a
-          href={SOCIAL_LINKS.discordInvite}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(buttonVariants(), "gap-2 bg-[#5865F2] text-white [a]:hover:bg-[#4752C4]")}
-        >
-          <SimpleIcon icon={siDiscord} className="size-4" />
-          {m.marketing_support_join_discord()}
-        </a>
-      </section>
-
-      <section className="mb-10">
-        <Heading className="mb-1">{m.marketing_support_gear_title()}</Heading>
-        <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground font-medium italic">
-            {m.marketing_support_gear_soon()}
-          </p>
-          <p className="text-muted-foreground">{m.marketing_support_gear_body()}</p>
-          <p className="text-muted-foreground italic">
-            <Suspense fallback={m.marketing_support_gear_mug()}>
-              <CardText text={m.marketing_support_gear_mug()} interactive={false} />
-            </Suspense>
-          </p>
-        </div>
-      </section>
-
-      <section className="text-muted-foreground mt-auto max-w-prose">
-        <p>{m.marketing_support_footer_p1()}</p>
-        <p className="mt-2 font-medium">{m.marketing_support_footer_p2()}</p>
-        <HeartIcon className="text-primary/40 mx-auto mt-4 size-5" />
-      </section>
-    </div>
+        <section className="text-muted-foreground mt-auto max-w-prose">
+          <p>{m.marketing_support_footer_p1()}</p>
+          <p className="mt-2 font-medium">{m.marketing_support_footer_p2()}</p>
+          <HeartIcon className="text-primary/40 mx-auto mt-4 size-5" />
+        </section>
+      </div>
+    </>
   );
 }

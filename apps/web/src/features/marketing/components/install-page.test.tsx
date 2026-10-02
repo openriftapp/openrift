@@ -111,7 +111,7 @@ describe("InstallPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Get OpenRift on your phone",
     );
-    expect(screen.getByRole("img", { name: "QR code for this page" })).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "QR code for this page" })).toHaveLength(2);
     expect(screen.getByRole("tab", { name: "iPhone" })).toBeInTheDocument();
   });
 });
