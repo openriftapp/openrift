@@ -21,6 +21,13 @@ function coverageNote(result: Record<string, unknown> | null): CoverageNote {
   return { text: `incomplete, ${skipped.toLocaleString()} skipped`, namesSkipped: true };
 }
 
+function sourceRefusal(result: Record<string, unknown>): string | null {
+  if (result.blocked === true) {
+    return "blocked";
+  }
+  return result.backedOff === true ? "backed off" : null;
+}
+
 export function summarizeRunResult(result: Record<string, unknown> | null): string {
   if (result === null) {
     return "";
@@ -34,7 +41,9 @@ export function summarizeRunResult(result: Record<string, unknown> | null): stri
   }
   const budget = counters.filter(([key]) => key === BUDGET_COUNTER);
   const rest = counters.filter(([key]) => key !== BUDGET_COUNTER);
+  const refusal = sourceRefusal(result);
   return [
+    ...(refusal === null ? [] : [refusal]),
     ...(note.text === null ? [] : [note.text]),
     ...[...budget, ...rest]
       .slice(0, SUMMARY_LIMIT)

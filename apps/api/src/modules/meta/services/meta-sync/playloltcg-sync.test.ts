@@ -216,6 +216,14 @@ describe("syncPlayloltcgCatalog", () => {
     expect(missing).toEqual([]);
   });
 
+  it("keeps the blocked request in the run's errors", async () => {
+    const { deps } = fakeDeps({ blockOn: "2026-08-23" });
+
+    const result = await syncPlayloltcgCatalog(deps);
+
+    expect(result.errors).toEqual([expect.stringContaining("WAF blocked the request")]);
+  });
+
   it("splits an overflowing window instead of accepting its first page as the whole of it", async () => {
     const { deps, windows } = fakeDeps({
       rows: { "2026-08-23..2028-08-29": FULL_PAGE },
@@ -451,6 +459,23 @@ describe("processPlayloltcgRechecks", () => {
 
     expect(recheck.blocked).toBe(true);
     expect(recheck.blockedUntil).toBe(sync.blockedUntil);
+  });
+
+  it("moves a blocked event past the cool-down so the next run starts elsewhere", async () => {
+    vi.mocked(readPlayloltcgDetail).mockRejectedValueOnce(
+      new PlayloltcgBlockedError("/xcx/activityShop/info", "HTTP 403: <html>"),
+    );
+    const { deps, rechecks } = fakeDeps({ due: [dueRow({ checkStage: 2 })] });
+
+    const result = await processPlayloltcgRechecks(deps);
+
+    expect(rechecks).toEqual([
+      { activityShopId: 109_991, nextCheckAt: new Date(NOW.getTime() + DAY_MS), checkStage: 2 },
+    ]);
+    expect(new Date(result.blockedUntil ?? 0).getTime()).toBeLessThan(NOW.getTime() + DAY_MS);
+    expect(result.errors).toEqual([
+      "playloltcg WAF blocked the request: /xcx/activityShop/info (HTTP 403: <html>)",
+    ]);
   });
 
   it("backs off once several visits in a row fail", async () => {

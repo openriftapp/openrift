@@ -85,6 +85,14 @@ describe("createPlayloltcgClient", () => {
     expect(client.requests).toBe(2);
   });
 
+  it("names the refused url, status and response body in the block", async () => {
+    const { client } = harness([html, html]);
+
+    await expect(client.post("/xcx/a", {})).rejects.toThrow(
+      "https://source.invalid/xcx/a (HTTP 403: <html>WAF拦截页面</html>)",
+    );
+  });
+
   it("fails every later call fast once blocked, making no request", async () => {
     const { client } = harness([html, html]);
     await expect(client.post("/xcx/a", {})).rejects.toBeInstanceOf(PlayloltcgBlockedError);

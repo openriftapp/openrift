@@ -60,4 +60,16 @@ describe("summarizeRunResult", () => {
   it("says a partial crawl fell short even when it skipped nothing", () => {
     expect(summarizeRunResult({ complete: false, skipped: 0 })).toBe("incomplete · 0 skipped");
   });
+
+  it("leads with a source block, ahead of the coverage warning", () => {
+    expect(summarizeRunResult({ blocked: true, complete: false, requests: 14 })).toBe(
+      "blocked · incomplete · 14 requests",
+    );
+  });
+
+  it("names a back-off after repeated refusals", () => {
+    expect(summarizeRunResult({ blocked: false, backedOff: true, requests: 40 })).toBe(
+      "backed off · 40 requests",
+    );
+  });
 });

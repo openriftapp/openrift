@@ -39,6 +39,7 @@ const ARCHIVE_START = new Date("2025-06-01T00:00:00Z");
 const COOLDOWN_HOURS = 6;
 const HOUR_MS = 60 * 60 * 1000;
 const BACKOFF_MS = 30 * 60 * 1000;
+const BLOCKED_EVENT_DEFER_MS = 24 * HOUR_MS;
 
 const MAX_ERRORS = 50;
 
@@ -139,10 +140,17 @@ export async function playloltcgCoolingDown(
   return typeof until === "string" && new Date(until).getTime() > now.getTime();
 }
 
-function markBlocked(result: PlayloltcgSyncResult, now: Date): void {
+function markBlocked(
+  deps: PlayloltcgSyncDeps,
+  result: PlayloltcgSyncResult,
+  now: Date,
+  error: PlayloltcgBlockedError,
+): void {
+  deps.log.warn({ err: error }, "playloltcg WAF block");
   result.blocked = true;
   result.complete = false;
   result.blockedUntil = cooldownUntil(now);
+  record(result.errors, [error.message]);
 }
 
 /**
@@ -249,7 +257,7 @@ export async function syncPlayloltcgCatalog(
     }
   } catch (error) {
     if (error instanceof PlayloltcgBlockedError) {
-      markBlocked(result, now);
+      markBlocked(deps, result, now, error);
     } else {
       throw error;
     }
@@ -378,8 +386,10 @@ export async function processPlayloltcgRechecks(
     }
   } catch (error) {
     if (error instanceof PlayloltcgBlockedError) {
+      deps.log.warn({ err: error }, "playloltcg WAF block");
       result.blocked = true;
       result.blockedUntil = cooldownUntil(now);
+      record(result.errors, [error.message]);
     } else {
       throw error;
     }
@@ -388,7 +398,10 @@ export async function processPlayloltcgRechecks(
   return result;
 }
 
-/** Catches everything but a block, so one event's failure can't end the pass and starve the rows behind it in the batch. */
+/**
+ * Catches everything but a block, so one event's failure can't starve the rows behind it.
+ * A blocked event moves past the cool-down; left due, every later run starts on it.
+ */
 async function visitContained(
   deps: PlayloltcgSyncDeps,
   row: PlayloltcgRecheckRow,
@@ -400,6 +413,10 @@ async function visitContained(
     return await visitPlayloltcgEvent(deps, row, now, result, deckBudget);
   } catch (error) {
     if (error instanceof PlayloltcgBlockedError) {
+      await deps.repos.playloltcgEvents.setRecheck(row.activityShopId, {
+        nextCheckAt: new Date(now.getTime() + BLOCKED_EVENT_DEFER_MS),
+        checkStage: row.checkStage,
+      });
       throw error;
     }
     deps.log.warn({ err: error, activityShopId: row.activityShopId }, "Recheck visit failed");
@@ -560,7 +577,7 @@ export async function backfillPlayloltcg(
     }
   } catch (error) {
     if (error instanceof PlayloltcgBlockedError) {
-      markBlocked(result, now);
+      markBlocked(deps, result, now, error);
     } else {
       throw error;
     }

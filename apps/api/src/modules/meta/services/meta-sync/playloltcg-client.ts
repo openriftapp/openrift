@@ -20,8 +20,10 @@ const WAF_RETRY_DELAY_MS = 15_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export class PlayloltcgBlockedError extends Error {
-  constructor(url: string) {
-    super(`playloltcg WAF blocked the request: ${url}`);
+  constructor(url: string, response?: string) {
+    super(
+      `playloltcg WAF blocked the request: ${url}${response === undefined ? "" : ` (${response})`}`,
+    );
     this.name = "PlayloltcgBlockedError";
   }
 }
@@ -155,7 +157,7 @@ export function createPlayloltcgClient(options: PlayloltcgClientOptions): Playlo
           continue;
         }
         blocked = true;
-        throw new PlayloltcgBlockedError(url);
+        throw new PlayloltcgBlockedError(url, outcome.error.message);
       }
       if (!outcome.retryable) {
         throw lastError;
@@ -181,7 +183,11 @@ export function createPlayloltcgClient(options: PlayloltcgClientOptions): Playlo
       });
       const text = await response.text();
       if (isWafBlock(response.status, text)) {
-        return { error: new Error(`WAF block for ${url}`), retryable: false, waf: true };
+        return {
+          error: new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`),
+          retryable: false,
+          waf: true,
+        };
       }
       if (!response.ok) {
         const retryable = isRetryableStatus(response.status);
