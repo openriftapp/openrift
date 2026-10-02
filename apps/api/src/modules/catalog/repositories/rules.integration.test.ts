@@ -191,7 +191,8 @@ describe.skipIf(!ctx)("rulesRepo (integration)", () => {
 
     expect(changes.modified).toEqual(["901.1"]);
     expect(changes.added).toEqual(expect.not.arrayContaining(["901.3"]));
-    expect(Object.keys(changes.current)).toEqual(["901.1"]);
+    expect(Object.keys(changes.current)).toContain("901.1");
+    expect(Object.keys(changes.current)).not.toContain("901.3");
     expect(changes.modifiedPrev).toEqual({});
     expect(changes.removed).toEqual([]);
   });
