@@ -1,6 +1,5 @@
 import type { PromoGrouping, PromoSection } from "@/features/cards/lib/promo-groupings";
 import type { ChannelNode } from "@/features/cards/lib/promos-tree";
-import { m } from "@/paraglide/messages.js";
 
 const COMPACT_LEAF_THRESHOLD = 4;
 
@@ -40,19 +39,6 @@ function isCompactBranch(node: ChannelNode): boolean {
 
 function flatSectionAnchor(languagePrefix: string, kind: FlatSectionKind, id: string): string {
   return `${languagePrefix}-${kind}-${id}`;
-}
-
-export function formatLanguageAggregate(
-  languageLabel: string,
-  printingCount: number,
-  cardCount: number,
-): string {
-  const printings = m.promos_aggregate_printings({
-    count: printingCount,
-    language: languageLabel,
-  });
-  const cards = m.common_cards({ count: cardCount });
-  return m.promos_aggregate({ printings, cards });
 }
 
 /**

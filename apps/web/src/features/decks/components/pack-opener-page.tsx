@@ -13,13 +13,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import {
-  PageDescription,
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,7 +80,7 @@ export function PackOpenerPage() {
   if (mainSets.length === 0) {
     return (
       <>
-        <PackOpenerTopBar />
+        <PackOpenerHero />
         <div className={cn(PAGE_PADDING_NO_TOP, "pt-3")}>
           <EmptyState
             className="py-12"
@@ -101,18 +95,8 @@ export function PackOpenerPage() {
 
   return (
     <>
-      <PackOpenerTopBar>
-        <ToggleField label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
-        <ToggleField
-          label={m.packs_toggle_auto_reveal()}
-          checked={autoReveal}
-          onChange={setAutoReveal}
-        />
-      </PackOpenerTopBar>
-      <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
-        <PageDescription>{m.packs_description()}</PageDescription>
-
-        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+      <PackOpenerHero lead={m.packs_hero_lead()}>
+        <div className="mt-3 grid w-full gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
           <SetPickerField
             sets={mainSets}
             value={setSlug}
@@ -137,6 +121,16 @@ export function PackOpenerPage() {
           />
           <OpenAction setSlug={setSlug} language={language} count={count} onOpened={setPacks} />
         </div>
+      </PackOpenerHero>
+      <div className={cn(PAGE_PADDING_NO_TOP, "flex flex-col gap-8 pt-3")}>
+        <div className="flex justify-end gap-2">
+          <ToggleField label={m.packs_toggle_shimmer()} checked={shimmer} onChange={setShimmer} />
+          <ToggleField
+            label={m.packs_toggle_auto_reveal()}
+            checked={autoReveal}
+            onChange={setAutoReveal}
+          />
+        </div>
 
         {packs.length === 1 && packs[0] && (
           <SinglePackResult
@@ -159,18 +153,17 @@ export function PackOpenerPage() {
   );
 }
 
-function PackOpenerTopBar({ children }: { children?: ReactNode }) {
+function PackOpenerHero({ lead, children }: { lead?: string; children?: ReactNode }) {
   return (
-    <PageTopBarSticky width="full">
-      <PageTopBar>
-        <PackagePlusIcon className="mr-2 size-5 shrink-0" />
-        <PageTopBarTitle>
-          {m.packs_title()}
-          <span className="max-sm:hidden"> {m.packs_title_suffix()}</span>
-        </PageTopBarTitle>
-        {children ? <PageTopBarActions>{children}</PageTopBarActions> : null}
-      </PageTopBar>
-    </PageTopBarSticky>
+    <PageHero
+      width="full"
+      eyebrow={m.packs_hero_eyebrow()}
+      title={m.packs_title()}
+      lead={lead}
+      compactTitle
+    >
+      {children}
+    </PageHero>
   );
 }
 

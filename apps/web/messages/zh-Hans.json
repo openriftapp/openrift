@@ -666,12 +666,12 @@
   "hero_stat_unique": "不同卡牌",
   "hero_stat_value": "市价",
   "products_title": "产品",
-  "products_description": "每款官方 Riftbound 产品的完整卡牌列表。准确查看每个入门系列、英雄卡组和 Pre-Rift Kit 中都有哪些卡。",
+  "products_hero_lead": "英雄卡组、Pre-Rift Kit 等 Riftbound 产品的准确卡牌列表。",
+  "products_hero_missing": "知道我们缺少的某个盒子里装了什么吗？",
+  "products_hero_contribute_link": "帮我们把缺失的部分补齐",
   "products_empty_title": "尚未收录任何产品",
-  "products_empty_body": "知道我们缺少的某个盒子里装了什么吗？帮我们把缺失的部分补齐。",
   "products_empty_cta": "贡献一份卡牌列表",
   "products_other_group": "其他产品",
-  "products_add_aria": "将{name}加入收藏",
   "products_add_to_collection": "加入收藏",
   "products_unpriced": "（{count} 张无价格）",
   "products_empty_product": "这个产品是空的。",
@@ -715,12 +715,11 @@
   "products_add_error": "添加失败，部分卡牌可能已被加入。",
   "products_add_pending": "添加中…",
   "promos_title": "宣传卡",
+  "promos_hero_lead": "无法从补充包中抽到的卡牌，按发放渠道分组。",
+  "promos_hero_missing": "发现缺了某张宣传卡，或者有更好的照片？",
+  "promos_languages_heading": "各语言的宣传卡印刷版本",
   "promos_empty": "暂无宣传卡。",
   "promos_language_aria": "语言",
-  "promos_intro_lead": "所有无法从补充包中抽到的卡牌。",
-  "promos_intro_markers": "标记说明一张卡与基础印刷版本有何不同，发行渠道说明它在哪里能拿到。",
-  "promos_intro_contribute": "如果你发现缺少某张宣传卡，或者能帮忙提供我还没有的图片，欢迎",
-  "promos_intro_contribute_link": "提交建议",
   "promos_no_match": "没有符合当前筛选条件的宣传卡。",
   "promos_suggest_one": "提交建议",
   "promos_show_count": "显示 {count} 张宣传卡",
@@ -1051,17 +1050,6 @@
   "cards_filter_unit_types": "类型",
   "cards_filter_unit_variant": "变体",
   "products_count_with_unique": "{cards} · {unique}种不同卡牌",
-  "promos_aggregate_printings": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count}个{language}宣传印刷版本",
-        "countPlural=*": "{count}个{language}宣传印刷版本"
-      }
-    }
-  ],
-  "promos_aggregate": "OpenRift 目前收录了{printings}，共涉及{cards}。",
   "common_all": "全部",
   "contribute_hotspot_jump_to": "跳转到{region}",
   "contribute_hotspot_add": "添加{region}",
@@ -3229,12 +3217,12 @@
   ],
   "packs_card_back_aria": "卡背",
   "packs_title": "开包器",
-  "packs_title_suffix": "模拟",
+  "packs_hero_eyebrow": "补充包模拟",
+  "packs_hero_lead": "每包含 7 张普通、3 张不凡、2 张稀有或史诗、1 张闪卡或展示卡，以及 1 张符文或指示物，按公布的出率抽取。不会有卡牌加入你的收藏。",
   "packs_empty_title": "暂时没有可开的系列",
   "packs_empty_description": "只要某个系列的补充包出率进入卡牌目录，就可以开包。下次发售之后再来看看。",
   "packs_toggle_shimmer": "闪卡光泽",
   "packs_toggle_auto_reveal": "自动翻开",
-  "packs_description": "出率与真实补充包一致。不会有卡牌加入你的收藏。",
   "packs_field_set": "系列",
   "packs_field_language": "语言",
   "packs_field_packs": "包数",
@@ -3431,9 +3419,12 @@
   "decks_local_note": "你尚未登录，因此这个卡组只保存在本设备上。{#link}登录{/link}后即可长期保存，并随处使用。",
   "decks_local_banner": "你的卡组只保存在本设备上。{#link}登录{/link}后即可妥善保存，并在其他设备上使用。",
   "loans_page_title": "借出",
-  "loans_page_description": "你借给朋友的卡牌，以及你从别人那里借来的卡牌。",
+  "loans_page_lead": "借出的卡仍留在你的收藏中，但在你标记归还之前不会计入卡组和交换。",
+  "loans_stat_lent_out": "借出的卡",
+  "loans_stat_borrowed": "借入的卡",
+  "loans_stat_oldest": "最早的借出",
   "loans_empty_title": "目前没有借出的卡牌",
-  "loans_empty_description": "把卡牌借给朋友，OpenRift 会记住它在谁手里。这张卡仍留在你的收藏中，但在你标记归还之前不会计入卡组和交换。要借出一张卡，请在收藏中右键点击它并选择“借给朋友”。",
+  "loans_empty_description": "把卡牌借给朋友，OpenRift 会记住它在谁手里。要借出一张卡，请在收藏中右键点击它并选择“借给朋友”。",
   "loans_empty_cta": "打开我的收藏",
   "loans_group_attention": "需要你处理",
   "loans_group_lent": "已借出",
@@ -3699,6 +3690,7 @@
     }
   ],
   "groups_index_title": "小组",
+  "groups_index_lead": "为你的玩家小团体、常去的卡店或 Discord 交换频道准备的封闭圈子。成员共享心愿单、交换清单和卡册，配对结果会显示谁有你想要的卡。",
   "groups_index_trade_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4184,6 +4176,16 @@
   ],
   "user_profile_updated": "{time}更新",
   "trades_title": "交换",
+  "trades_hero_eyebrow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "你的 {count} 个小组"
+      }
+    }
+  ],
+  "trades_hero_lead": "配对来自成员在小组中共享的心愿单和交换清单。未回复的请求会在 7 天后过期。",
   "trades_view_trades": "查看交换",
   "trades_member_fallback": "成员",
   "trades_this_member": "这位成员",
@@ -4321,7 +4323,7 @@
   "trades_total_count": "共 {count} 张",
   "trades_none_in_your_collections": "你自己的收藏中没有。",
   "trades_available_count": "{count} 张可用",
-  "trades_empty_description": "交换从小组开始：在小组里分享一份心愿单或交换清单，与其他成员的匹配就会出现。",
+  "trades_empty_description": "你还没有加入任何小组。",
   "trades_go_to_groups": "前往小组",
   "trades_section_your_move": "该你行动",
   "trades_your_move_answer": "回复",
@@ -4961,7 +4963,7 @@
   "contribute_page_image_on_file": "已有图片",
   "contribute_page_printing_picker_lead": "先找到这张卡牌，再描述你手上的印刷版本。",
   "designer_page_title": "卡牌设计器",
-  "designer_page_description": "制作你自己的 Riftbound 风格卡牌。填写名称、类型、特性、数值和规则文本，放入你自己的画面，预览会随输入实时呈现。可下载为 PNG 或复制到剪贴板。所有内容都只保留在你的浏览器里。",
+  "designer_page_lead": "不会保存任何内容，连这个浏览器里也不会。刷新会清空卡牌，满意后请下载 PNG 或复制。",
   "designer_form_title": "卡牌详情",
   "designer_form_clear": "清除",
   "designer_field_name": "名称",
@@ -5778,10 +5780,10 @@
   "tournaments_lib_starts_in_tomorrow": "明天",
   "tournaments_lib_starts_in_days": "{days}天后",
   "tier_lists_page_title": "梯度表",
+  "tier_lists_hero_lead": "以链接分享列表、下载为图片，或在直播中现场排名。每个列表最多 {rows} 行、{cards} 张卡。",
   "tier_lists_new": "新建梯度表",
-  "tier_lists_page_description": "给一个系列排名，然后分享链接，或把导出的图片放进视频里。",
   "tier_lists_empty_title": "还没有梯度表",
-  "tier_lists_empty_description": "把卡牌堆进你自己命名的行里，然后以链接分享面板、下载为图片，或在直播中现场排名。",
+  "tier_lists_empty_description": "把卡牌堆进你自己命名的行里。",
   "tier_lists_empty_learn_more": "了解梯度表的用法。",
   "tier_lists_row_summary": [
     {

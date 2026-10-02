@@ -176,6 +176,24 @@ describe("GET /api/v1/promos", () => {
     expect(json.languages).toEqual(["EN", "SC"]);
   });
 
+  it("counts printings and distinct cards per language", async () => {
+    mockDistributionChannelsRepo.listAll.mockResolvedValue([dbChannel]);
+    mockCatalogRepo.channelDistributedPrintings.mockResolvedValue([
+      dbPrinting,
+      { ...dbPrinting, id: "p0000000-0002-4000-a000-000000000002" },
+      { ...dbPrinting, id: "p0000000-0003-4000-a000-000000000003", language: "SC" },
+    ]);
+    mockCatalogRepo.cardsByIds.mockResolvedValue([dbCard]);
+
+    const res = await app.request("/api/v1/promos?language=EN");
+    const json = await readJson(res);
+
+    expect(json.languageCounts).toEqual([
+      { language: "EN", printingCount: 2, cardCount: 1 },
+      { language: "SC", printingCount: 1, cardCount: 1 },
+    ]);
+  });
+
   it("carries only the sets its own printings reference", async () => {
     mockDistributionChannelsRepo.listAll.mockResolvedValue([dbChannel]);
     mockCatalogRepo.channelDistributedPrintings.mockResolvedValue([dbPrinting]);

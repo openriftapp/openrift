@@ -1,4 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
+import { formatRelativeTime } from "@openrift/shared/format-date";
 import type { LoanResponse } from "@openrift/shared/types/api/loan";
 import { getOrientation } from "@openrift/shared/utils";
 import { Link } from "@tanstack/react-router";
@@ -7,12 +8,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
-import {
-  PageDescription,
-  PageTopBar,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero, PageHeroStats } from "@/components/layout/page-hero";
+import type { PageHeroStat } from "@/components/layout/page-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardRow } from "@/components/ui/card-list";
@@ -45,10 +42,12 @@ import {
 import {
   loanCounterpartyLabel,
   loanSection,
+  loanTotals,
   loanStatusLabel,
   outstandingQuantity,
 } from "@/features/groups/lib/loan-derivation";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { DATE_WORDS } from "@/lib/date-words";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -373,18 +372,28 @@ export function LoansPage() {
   lent.sort((a, b) => loanCounterpartyLabel(a).localeCompare(loanCounterpartyLabel(b)));
 
   const empty = data !== undefined && loans.length === 0;
+  const totals = loanTotals(loans);
+  const stats: PageHeroStat[] = [
+    { key: "lent", label: m.loans_stat_lent_out(), value: totals.lentOut },
+    { key: "borrowed", label: m.loans_stat_borrowed(), value: totals.borrowed },
+    ...(totals.oldestLentAt === null
+      ? []
+      : [
+          {
+            key: "oldest",
+            label: m.loans_stat_oldest(),
+            value: formatRelativeTime(totals.oldestLentAt, { words: DATE_WORDS }),
+          },
+        ]),
+  ];
 
   return (
     <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.loans_page_title()}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero title={m.loans_page_title()} lead={m.loans_page_lead()}>
+        {totals.lentOut + totals.borrowed > 0 && <PageHeroStats stats={stats} />}
+      </PageHero>
 
       <div className={cn(PAGE_WIDTH.capped, "px-safe flex flex-col gap-6 pt-3 pb-12")}>
-        <PageDescription>{m.loans_page_description()}</PageDescription>
-
         {empty ? (
           <EmptyState
             className="py-12"

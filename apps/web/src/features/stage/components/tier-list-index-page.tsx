@@ -1,3 +1,4 @@
+import { MAX_TIER_LIST_CARDS, MAX_TIER_ROWS } from "@openrift/shared/contracts/tier-lists";
 import { formatDay } from "@openrift/shared/format-date";
 import type { TierListSummaryResponse } from "@openrift/shared/types/api/tier-list";
 import { Link } from "@tanstack/react-router";
@@ -5,14 +6,7 @@ import { EllipsisVerticalIcon, LayersIcon, PlusIcon, Share2Icon, Trash2Icon } fr
 import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import {
-  PageDescription,
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarPrimaryButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero } from "@/components/layout/page-hero";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +42,7 @@ import { TierCardTile } from "@/features/stage/components/tier-card-tile";
 import { TierListShareDialog } from "@/features/stage/components/tier-list-share-dialog";
 import { useDeleteTierList, useTierLists } from "@/features/stage/hooks/use-tier-lists";
 import { resolveTierRows } from "@/features/stage/lib/tier-list-presentation";
-import { cn, PAGE_PADDING, PAGE_WIDTH } from "@/lib/utils";
+import { cn, PAGE_PADDING_NO_TOP, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
 const PREVIEW_TILE_WIDTH = 40;
@@ -67,21 +61,17 @@ export function TierListIndexPage() {
 
   return (
     <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.tier_lists_page_title()}</PageTopBarTitle>
-          <PageTopBarActions>
-            <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
-              <PlusIcon />
-              {m.tier_lists_new()}
-            </PageTopBarPrimaryButton>
-          </PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero
+        title={m.tier_lists_page_title()}
+        lead={m.tier_lists_hero_lead({ rows: MAX_TIER_ROWS, cards: MAX_TIER_LIST_CARDS })}
+      >
+        <Button className="mt-3" onClick={() => setCreateOpen(true)}>
+          <PlusIcon />
+          {m.tier_lists_new()}
+        </Button>
+      </PageHero>
 
-      <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING, "flex flex-col gap-4 pt-3 pb-6")}>
-        <PageDescription>{m.tier_lists_page_description()}</PageDescription>
-
+      <div className={cn(PAGE_WIDTH.capped, PAGE_PADDING_NO_TOP, "pt-3")}>
         {tierLists.length === 0 ? (
           <EmptyState
             icon={LayersIcon}
@@ -101,7 +91,7 @@ export function TierListIndexPage() {
             </Button>
           </EmptyState>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="grid items-start gap-6 lg:grid-cols-2">
             {tierLists.map((tierList) => (
               <TierListRow key={tierList.id} tierList={tierList} />
             ))}

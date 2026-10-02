@@ -58,3 +58,32 @@ export function loanSection(loan: LoanResponse): LoanSection | null {
   }
   return loan.rejectedAt === null ? "lent" : "attention";
 }
+
+export interface LoanTotals {
+  lentOut: number;
+  borrowed: number;
+  oldestLentAt: string | null;
+}
+
+export function loanTotals(loans: readonly LoanResponse[]): LoanTotals {
+  let lentOut = 0;
+  let borrowed = 0;
+  let oldestLentAt: string | null = null;
+  for (const loan of loans) {
+    const outstanding = outstandingQuantity(loan);
+    if (loan.status !== "active" || outstanding === 0) {
+      continue;
+    }
+    if (loan.role === "borrower") {
+      if (loan.rejectedAt === null) {
+        borrowed += outstanding;
+      }
+      continue;
+    }
+    lentOut += outstanding;
+    if (oldestLentAt === null || loan.createdAt < oldestLentAt) {
+      oldestLentAt = loan.createdAt;
+    }
+  }
+  return { lentOut, borrowed, oldestLentAt };
+}

@@ -4,13 +4,7 @@ import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Heading } from "@/components/heading";
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarPrimaryButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero } from "@/components/layout/page-hero";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
@@ -250,24 +244,19 @@ export function GroupsIndexPage() {
 
   return (
     <>
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.groups_index_title()}</PageTopBarTitle>
-          <PageTopBarActions>
-            <PageTopBarPrimaryButton onClick={() => setCreateOpen(true)}>
-              <PlusIcon className="size-4" />
-              {m.groups_index_new()}
-            </PageTopBarPrimaryButton>
-            <CreateGroupDialog
-              open={createOpen}
-              onOpenChange={setCreateOpen}
-              onCreated={(group) =>
-                setShareWithGroup({ slug: group.slug, name: group.name, navigateOnClose: true })
-              }
-            />
-          </PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero title={m.groups_index_title()} lead={m.groups_index_lead()}>
+        <Button className="mt-3" onClick={() => setCreateOpen(true)}>
+          <PlusIcon />
+          {m.groups_index_new()}
+        </Button>
+        <CreateGroupDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={(group) =>
+            setShareWithGroup({ slug: group.slug, name: group.name, navigateOnClose: true })
+          }
+        />
+      </PageHero>
       <div className={cn(PAGE_WIDTH.capped, "flex flex-col gap-6 pt-3", PAGE_PADDING_NO_TOP)}>
         {data.outgoingRequests.length > 0 && (
           <section className="flex flex-col gap-3">

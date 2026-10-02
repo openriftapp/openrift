@@ -3,18 +3,14 @@ import type {
   ProductSet,
   ProductSummary,
 } from "@openrift/shared/contracts/products";
+import { imageUrl } from "@openrift/shared/image-url";
 import { Link, createLazyFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { CoverBand } from "@/components/cover-band";
 import { Heading } from "@/components/heading";
-import {
-  PageDescription,
-  PageTopBar,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero, PageHeroCardFan } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { CardLink } from "@/components/ui/card-link";
 import { TextLink } from "@/components/ui/text-link";
@@ -91,7 +87,6 @@ function ProductsEmptyState() {
         <CardFanOutline />
       </div>
       <Heading className="mt-2">{m.products_empty_title()}</Heading>
-      <p className="text-muted-foreground max-w-[44ch] text-sm">{m.products_empty_body()}</p>
       <Button className="mt-3" render={<Link to="/contribute" />}>
         {m.products_empty_cta()}
       </Button>
@@ -142,12 +137,13 @@ function ProductGrid({
           {onAdd && (
             <Button
               variant="secondary"
-              size="icon-sm"
+              size="sm"
               className="absolute top-2 right-2 shadow-sm"
-              aria-label={m.products_add_aria({ name: product.name })}
               onClick={() => onAdd(product)}
             >
               <PlusIcon />
+              {m.products_add_to_collection()}
+              <span className="sr-only">: {product.name}</span>
             </Button>
           )}
         </li>
@@ -161,6 +157,11 @@ function ProductsIndexPage() {
   const { products } = data;
   const groups = groupProductsBySet(products);
   const showHeadings = groups.some((group) => group.set !== null);
+  const coverUrls = groups
+    .flatMap((group) => group.products)
+    .flatMap((product) => product.coverCards.slice(0, 1))
+    .slice(0, 3)
+    .map((cover) => imageUrl(cover.imageId, "400w"));
   const { data: session } = useSession();
   const isLoggedIn = Boolean(session?.user);
   // The dialog keeps the last-picked product while closing so the exit
@@ -176,13 +177,20 @@ function ProductsIndexPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageTopBarSticky width="capped">
-        <PageTopBar>
-          <PageTopBarTitle>{m.products_title()}</PageTopBarTitle>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero
+        title={m.products_title()}
+        lead={
+          <>
+            {m.products_hero_lead()} {m.products_hero_missing()}{" "}
+            <TextLink variant="inherit" render={<Link to="/contribute" />}>
+              {m.products_hero_contribute_link()}
+            </TextLink>
+            .
+          </>
+        }
+        aside={<PageHeroCardFan urls={coverUrls} />}
+      />
       <div className={cn(PAGE_WIDTH.capped, "px-safe pt-3 pb-6")}>
-        <PageDescription className="pb-4">{m.products_description()}</PageDescription>
         {products.length === 0 ? (
           <ProductsEmptyState />
         ) : (

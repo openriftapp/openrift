@@ -26,6 +26,13 @@ export const promosListResponseSchema = z.object({
   printings: z.array(catalogPrintingResponseSchema),
   sets: z.array(catalogSetResponseSchema),
   languages: z.array(z.string()).meta({ examples: [["EN", "SC"]] }),
+  languageCounts: z.array(
+    z.object({
+      language: z.string().meta({ examples: ["EN"] }),
+      printingCount: z.number().meta({ examples: [387] }),
+      cardCount: z.number().meta({ examples: [198] }),
+    }),
+  ),
   // Prices are not inlined; read them from the /prices resource.
 });
 

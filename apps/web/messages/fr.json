@@ -666,12 +666,12 @@
   "hero_stat_unique": "uniques",
   "hero_stat_value": "valeur marchande",
   "products_title": "Produits",
-  "products_description": "Listes de cartes complètes pour chaque produit officiel Riftbound. Voyez exactement quelles cartes se trouvent dans chaque set de départ, deck de champion et kit pre-rift.",
+  "products_hero_lead": "Les listes de cartes exactes des decks de champion, kits pre-rift et autres produits Riftbound.",
+  "products_hero_missing": "Vous savez ce qu’il y a dans une boîte qui nous manque ?",
+  "products_hero_contribute_link": "Aidez-nous à combler les lacunes",
   "products_empty_title": "Aucun produit répertorié pour l’instant",
-  "products_empty_body": "Vous savez ce qu’il y a dans une boîte qui nous manque ? Aidez-nous à combler les lacunes.",
   "products_empty_cta": "Proposer une liste de cartes",
   "products_other_group": "Autres produits",
-  "products_add_aria": "Ajouter {name} à une collection",
   "products_add_to_collection": "Ajouter à la collection",
   "products_unpriced": "({count} sans prix)",
   "products_empty_product": "Ce produit est vide.",
@@ -715,12 +715,11 @@
   "products_add_error": "Échec de l’ajout. Certaines cartes ont peut-être été ajoutées.",
   "products_add_pending": "Ajout en cours…",
   "promos_title": "Promos",
+  "promos_hero_lead": "Les cartes que vous ne pouvez pas obtenir dans les boosters, classées selon l’endroit où elles ont été distribuées.",
+  "promos_hero_missing": "Une promo manque ou vous avez une meilleure photo ?",
+  "promos_languages_heading": "Impressions promo par langue",
   "promos_empty": "Aucune promo pour l’instant.",
   "promos_language_aria": "Langue",
-  "promos_intro_lead": "Toutes les cartes que vous ne pouvez pas obtenir dans les boosters.",
-  "promos_intro_markers": "Les marqueurs indiquent en quoi une carte diffère de l’impression de base, les canaux de distribution indiquent où elle était disponible.",
-  "promos_intro_contribute": "Si vous avez repéré une promo manquante ou si vous pouvez fournir une image qui me manque encore, proposez-la",
-  "promos_intro_contribute_link": "ici",
   "promos_no_match": "Aucune promo ne correspond aux filtres actuels.",
   "promos_suggest_one": "Proposez-en une",
   "promos_show_count": "Afficher {count} promos",
@@ -1051,17 +1050,6 @@
   "cards_filter_unit_types": "Type",
   "cards_filter_unit_variant": "Variante",
   "products_count_with_unique": "{cards} · {unique} uniques",
-  "promos_aggregate_printings": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} impression promo en {language}",
-        "countPlural=*": "{count} impressions promo en {language}"
-      }
-    }
-  ],
-  "promos_aggregate": "OpenRift dispose actuellement de données sur {printings} réparties sur {cards}.",
   "common_all": "Tout",
   "contribute_hotspot_jump_to": "Aller à {region}",
   "contribute_hotspot_add": "Ajouter {region}",
@@ -3229,12 +3217,12 @@
   ],
   "packs_card_back_aria": "Dos de carte",
   "packs_title": "Ouvreur de boosters",
-  "packs_title_suffix": "simulateur",
+  "packs_hero_eyebrow": "Simulateur de booster",
+  "packs_hero_lead": "Chaque booster contient 7 Common, 3 Uncommon, 2 Rare ou Epic, une carte foil ou showcase et une rune ou une création, tirées selon les taux publiés. Aucune carte n’est ajoutée à votre collection.",
   "packs_empty_title": "Aucun set disponible à ouvrir pour l'instant",
   "packs_empty_description": "Un set peut être ouvert dès que ses taux de tirage de booster figurent dans le catalogue. Revenez après la prochaine sortie.",
   "packs_toggle_shimmer": "Éclat foil",
   "packs_toggle_auto_reveal": "Révélation auto",
-  "packs_description": "Les taux de tirage correspondent au vrai booster. Aucune carte n'est ajoutée à votre collection.",
   "packs_field_set": "Set",
   "packs_field_language": "Langue",
   "packs_field_packs": "Boosters",
@@ -3431,9 +3419,12 @@
   "decks_local_note": "Vous n'êtes pas connecté, ce deck est donc enregistré uniquement sur cet appareil. {#link}Se connecter{/link} pour le conserver et l'utiliser partout.",
   "decks_local_banner": "Vos decks sont enregistrés uniquement sur cet appareil. {#link}Se connecter{/link} pour les sauvegarder et les utiliser sur vos autres appareils.",
   "loans_page_title": "Prêts",
-  "loans_page_description": "Les cartes que vous avez prêtées à des amis et celles que vous empruntez.",
+  "loans_page_lead": "Les exemplaires prêtés restent dans votre collection mais ne comptent plus pour les decks et les échanges jusqu’à ce que vous les marquiez comme rendus.",
+  "loans_stat_lent_out": "Cartes prêtées",
+  "loans_stat_borrowed": "Empruntées",
+  "loans_stat_oldest": "Plus ancien prêt",
   "loans_empty_title": "Rien de prêté pour le moment",
-  "loans_empty_description": "Prêtez une carte à un ami et OpenRift retient qui l'a. L'exemplaire reste dans votre collection mais cesse de compter pour les decks et les échanges jusqu'à ce que vous le marquiez comme rendu. Pour en prêter une, faites un clic droit dessus dans une collection et choisissez « Prêter à un ami ».",
+  "loans_empty_description": "Prêtez une carte à un ami et OpenRift retient qui l'a. Pour en prêter une, faites un clic droit dessus dans une collection et choisissez « Prêter à un ami ».",
   "loans_empty_cta": "Ouvrir vos collections",
   "loans_group_attention": "Demande votre attention",
   "loans_group_lent": "Prêtées",
@@ -3699,6 +3690,7 @@
     }
   ],
   "groups_index_title": "Groupes",
+  "groups_index_lead": "Un cercle fermé pour votre groupe de jeu, votre boutique locale ou un salon d’échange Discord. Les membres partagent listes de souhaits, listes d’échange et classeurs, et les correspondances montrent qui a les cartes que vous cherchez.",
   "groups_index_trade_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4184,6 +4176,17 @@
   ],
   "user_profile_updated": "Mis à jour {time}",
   "trades_title": "Échanges",
+  "trades_hero_eyebrow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Dans votre groupe",
+        "countPlural=*": "Dans vos {count} groupes"
+      }
+    }
+  ],
+  "trades_hero_lead": "Les correspondances viennent des listes de souhaits et d’échange que les membres partagent dans un groupe. Les demandes sans réponse expirent après 7 jours.",
   "trades_view_trades": "Voir les échanges",
   "trades_member_fallback": "Membre",
   "trades_this_member": "ce membre",
@@ -4321,7 +4324,7 @@
   "trades_total_count": "{count} au total",
   "trades_none_in_your_collections": "Aucun dans vos propres collections.",
   "trades_available_count": "{count} disponibles",
-  "trades_empty_description": "Les échanges commencent dans un groupe : partagez-y une liste de souhaits ou d'échange et les correspondances avec d'autres membres apparaissent.",
+  "trades_empty_description": "Vous ne faites encore partie d’aucun groupe.",
   "trades_go_to_groups": "Aller aux groupes",
   "trades_section_your_move": "À vous de jouer",
   "trades_your_move_answer": "Répondre",
@@ -4961,7 +4964,7 @@
   "contribute_page_image_on_file": "Image disponible",
   "contribute_page_printing_picker_lead": "Trouvez d'abord la carte, puis décrivez la version que vous avez en main.",
   "designer_page_title": "Créateur de cartes",
-  "designer_page_description": "Créez votre propre carte dans le style Riftbound. Renseignez le nom, le type, les domaines, les caractéristiques et le texte de règles, ajoutez votre illustration, et l'aperçu se met à jour au fil de la saisie. Téléchargez-la en PNG ou copiez-la dans le presse-papiers. Tout reste dans votre navigateur.",
+  "designer_page_lead": "Rien n’est enregistré, pas même dans ce navigateur. Un rechargement efface la carte : téléchargez le PNG ou copiez-le dès qu’elle vous plaît.",
   "designer_form_title": "Détails de la carte",
   "designer_form_clear": "Effacer",
   "designer_field_name": "Nom",
@@ -5778,10 +5781,10 @@
   "tournaments_lib_starts_in_tomorrow": "demain",
   "tournaments_lib_starts_in_days": "dans {days} jours",
   "tier_lists_page_title": "Tier lists",
+  "tier_lists_hero_lead": "Partagez une liste par lien, téléchargez-la en image ou classez-la en direct sur votre stream. Une liste contient jusqu’à {rows} rangées et {cards} cartes.",
   "tier_lists_new": "Nouveau tier list",
-  "tier_lists_page_description": "Classez un set, puis partagez le lien ou insérez l'image exportée dans une vidéo.",
   "tier_lists_empty_title": "Pas encore de tier lists",
-  "tier_lists_empty_description": "Empilez des cartes dans des rangées que vous nommez vous-même, puis partagez le tableau par lien, téléchargez-le en image, ou classez-le en direct sur votre stream.",
+  "tier_lists_empty_description": "Empilez des cartes dans des rangées que vous nommez vous-même.",
   "tier_lists_empty_learn_more": "Découvrez comment fonctionnent les tier lists.",
   "tier_lists_row_summary": [
     {

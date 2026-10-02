@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetIdCounter, stubPrinting } from "@/test/factories";
 
-import { buildPromoTree, computeLanguageAggregates } from "./promos-tree";
+import { buildPromoTree } from "./promos-tree";
 
 function stubChannel(
   overrides: Partial<DistributionChannelWithCount> = {},
@@ -99,50 +99,3 @@ describe("buildPromoTree", () => {
     expect(tree[0]!.subtreePrintingIds.size).toBe(0);
   });
 });
-
-describe("computeLanguageAggregates", () => {
-  beforeEach(() => {
-    resetIdCounter();
-  });
-
-  it("reports distinct printing and card counts per language", () => {
-    const channel = stubChannel({ id: "ch" });
-    const card = nextCardId();
-    const enA = stubPrinting({
-      cardId: card,
-      language: "EN",
-      distributionChannels: [linkTo(channel)],
-    });
-    const enB = stubPrinting({
-      cardId: nextCardId(),
-      language: "EN",
-      distributionChannels: [linkTo(channel)],
-    });
-    const de = stubPrinting({
-      cardId: card,
-      language: "DE",
-      distributionChannels: [linkTo(channel)],
-    });
-
-    const aggregates = computeLanguageAggregates([enA, enB, de]);
-
-    expect(aggregates.get("EN")).toEqual({ printingCount: 2, cardCount: 2 });
-    expect(aggregates.get("DE")).toEqual({ printingCount: 1, cardCount: 1 });
-  });
-
-  it("ignores printings with no distribution channels", () => {
-    const channel = stubChannel({ id: "ch" });
-    const listed = stubPrinting({ language: "EN", distributionChannels: [linkTo(channel)] });
-    const orphan = stubPrinting({ language: "EN", distributionChannels: [] });
-
-    const aggregates = computeLanguageAggregates([listed, orphan]);
-
-    expect(aggregates.get("EN")).toEqual({ printingCount: 1, cardCount: 1 });
-  });
-});
-
-let cardCounter = 0;
-function nextCardId(): string {
-  cardCounter++;
-  return `card-${cardCounter}`;
-}

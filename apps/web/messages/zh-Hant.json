@@ -666,12 +666,12 @@
   "hero_stat_unique": "不同卡牌",
   "hero_stat_value": "市價",
   "products_title": "商品",
-  "products_description": "每項 Riftbound 官方商品的完整卡表。清楚看見每個入門組合包、英雄牌組與 Pre-Rift Kit 裡有哪些卡牌。",
+  "products_hero_lead": "英雄牌組、Pre-Rift Kit 等 Riftbound 商品的完整卡表。",
+  "products_hero_missing": "知道我們缺少的某盒商品裡有什麼嗎？",
+  "products_hero_contribute_link": "一起幫我們補齊缺漏",
   "products_empty_title": "尚未收錄任何商品",
-  "products_empty_body": "知道我們缺少的某盒商品裡有什麼嗎？一起幫我們補齊缺漏。",
   "products_empty_cta": "投稿一份卡表",
   "products_other_group": "其他商品",
-  "products_add_aria": "將 {name} 加入收藏",
   "products_add_to_collection": "加入收藏",
   "products_unpriced": "（{count} 張無價格）",
   "products_empty_product": "這項商品沒有內容。",
@@ -715,12 +715,11 @@
   "products_add_error": "加入失敗，部分卡牌可能已經加入。",
   "products_add_pending": "加入中…",
   "promos_title": "特典卡",
+  "promos_hero_lead": "無法從補充包開出的卡牌，依發放管道分組。",
+  "promos_hero_missing": "發現缺少某張特典卡，或有更好的照片？",
+  "promos_languages_heading": "各語言的特典卡印刷版本",
   "promos_empty": "尚無特典卡。",
   "promos_language_aria": "語言",
-  "promos_intro_lead": "所有無法從補充包開出的卡牌。",
-  "promos_intro_markers": "標記說明一張卡與基礎印刷版本有何不同，通路則說明它在哪裡取得。",
-  "promos_intro_contribute": "如果你發現缺少的特典卡，或能提供我還沒有的圖片，歡迎提交",
-  "promos_intro_contribute_link": "這裡",
   "promos_no_match": "沒有特典卡符合目前的篩選條件。",
   "promos_suggest_one": "提交一張",
   "promos_show_count": "顯示 {count} 張特典卡",
@@ -1051,17 +1050,6 @@
   "cards_filter_unit_types": "類型",
   "cards_filter_unit_variant": "異畫",
   "products_count_with_unique": "{cards} · {unique} 種",
-  "promos_aggregate_printings": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} 個{language}宣傳印刷版本",
-        "countPlural=*": "{count} 個{language}宣傳印刷版本"
-      }
-    }
-  ],
-  "promos_aggregate": "OpenRift 目前收錄了 {printings} 的資料，涵蓋 {cards}。",
   "common_all": "全部",
   "contribute_hotspot_jump_to": "跳至 {region}",
   "contribute_hotspot_add": "新增 {region}",
@@ -3229,12 +3217,12 @@
   ],
   "packs_card_back_aria": "卡背",
   "packs_title": "開包器",
-  "packs_title_suffix": "模擬器",
+  "packs_hero_eyebrow": "補充包模擬器",
+  "packs_hero_lead": "每包有 7 張普通、3 張非凡、2 張稀有或史詩、1 張閃卡或展示卡，以及 1 張符文或衍生物，依公布的抽卡率抽出。不會有卡牌加入你的收藏。",
   "packs_empty_title": "目前還沒有可以開的套組",
   "packs_empty_description": "當某個套組的補充包抽卡率進入目錄後，就可以開包。下次發售後再回來看看。",
   "packs_toggle_shimmer": "亮面閃爍",
   "packs_toggle_auto_reveal": "自動翻牌",
-  "packs_description": "抽卡率與實際補充包相同。不會有卡牌加入你的收藏。",
   "packs_field_set": "套組",
   "packs_field_language": "語言",
   "packs_field_packs": "包數",
@@ -3431,9 +3419,12 @@
   "decks_local_note": "你尚未登入，因此這個牌組只儲存在這台裝置上。{#link}登入{/link}即可保存並在任何地方使用。",
   "decks_local_banner": "你的牌組只儲存在這台裝置上。{#link}登入{/link}即可妥善保存，並在你的其他裝置上使用。",
   "loans_page_title": "出借",
-  "loans_page_description": "你借給朋友的卡牌，以及你向別人借來的卡牌。",
+  "loans_page_lead": "出借的卡牌仍留在你的收藏中，但在你標記歸還之前，不會計入牌組與交換。",
+  "loans_stat_lent_out": "出借的卡牌",
+  "loans_stat_borrowed": "借入的卡牌",
+  "loans_stat_oldest": "最早的出借",
   "loans_empty_title": "目前沒有借出任何卡牌",
-  "loans_empty_description": "把卡牌借給朋友，OpenRift 會記住它在誰手上。該張卡牌仍留在你的收藏中，但在你標記歸還之前，不會計入牌組與交換。若要出借，請在收藏中對卡牌按右鍵並選擇「借給朋友」。",
+  "loans_empty_description": "把卡牌借給朋友，OpenRift 會記住它在誰手上。若要出借，請在收藏中對卡牌按右鍵並選擇「借給朋友」。",
   "loans_empty_cta": "開啟你的收藏",
   "loans_group_attention": "需要你處理",
   "loans_group_lent": "已借出",
@@ -3699,6 +3690,7 @@
     }
   ],
   "groups_index_title": "社團",
+  "groups_index_lead": "為你的牌友團、常去店家或 Discord 交換頻道準備的封閉圈子。成員分享願望清單、交換清單與卡冊，配對結果會顯示誰有你想要的卡牌。",
   "groups_index_trade_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4184,6 +4176,16 @@
   ],
   "user_profile_updated": "更新於 {time}",
   "trades_title": "交換",
+  "trades_hero_eyebrow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=*": "你的 {count} 個社團"
+      }
+    }
+  ],
+  "trades_hero_lead": "配對來自成員在社團中分享的願望清單與交換清單。未回覆的請求會在 7 天後失效。",
   "trades_view_trades": "查看交換",
   "trades_member_fallback": "成員",
   "trades_this_member": "這位成員",
@@ -4321,7 +4323,7 @@
   "trades_total_count": "共 {count} 張",
   "trades_none_in_your_collections": "你自己的收藏中沒有這張卡。",
   "trades_available_count": "{count} 張可用",
-  "trades_empty_description": "交換從社團開始：在社團中分享願望清單或交換清單，與其他成員的配對就會出現。",
+  "trades_empty_description": "你還沒有加入任何社團。",
   "trades_go_to_groups": "前往社團",
   "trades_section_your_move": "輪到你了",
   "trades_your_move_answer": "回覆",
@@ -4961,7 +4963,7 @@
   "contribute_page_image_on_file": "已有圖片",
   "contribute_page_printing_picker_lead": "請先找到卡牌，再描述你手上的版本。",
   "designer_page_title": "卡牌設計器",
-  "designer_page_description": "製作你自己的 Riftbound 風格卡牌。填入名稱、類型、流派、數值與規則說明文字，放上你自己的畫作，預覽會隨著你輸入即時算繪。可下載為 PNG 或複製到剪貼簿。所有內容都只留在你的瀏覽器裡。",
+  "designer_page_lead": "不會儲存任何內容，連這個瀏覽器也不會。重新整理會清空卡牌，滿意後請下載 PNG 或複製。",
   "designer_form_title": "卡牌詳細資料",
   "designer_form_clear": "清除",
   "designer_field_name": "名稱",
@@ -5778,10 +5780,10 @@
   "tournaments_lib_starts_in_tomorrow": "明天",
   "tournaments_lib_starts_in_days": "{days} 天後",
   "tier_lists_page_title": "分級表",
+  "tier_lists_hero_lead": "以連結分享清單、下載成圖片，或在直播中即時排名。每份清單最多 {rows} 列、{cards} 張卡牌。",
   "tier_lists_new": "新增分級表",
-  "tier_lists_page_description": "為一個套組排名，然後分享連結，或把匯出的圖片放進影片裡。",
   "tier_lists_empty_title": "還沒有分級表",
-  "tier_lists_empty_description": "把卡牌堆進你自己命名的分級列，然後以連結分享板面、下載成圖片，或在直播中即時排名。",
+  "tier_lists_empty_description": "把卡牌堆進你自己命名的分級列。",
   "tier_lists_empty_learn_more": "了解分級表的運作方式。",
   "tier_lists_row_summary": [
     {

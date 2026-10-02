@@ -666,12 +666,12 @@
   "hero_stat_unique": "einzigartig",
   "hero_stat_value": "Marktwert",
   "products_title": "Produkte",
-  "products_description": "Vollständige Kartenlisten für jedes offizielle Riftbound-Produkt. Sieh genau, welche Karten in jedem Starter-Set, Champion-Deck und Pre-Rift-Kit stecken.",
+  "products_hero_lead": "Genaue Kartenlisten für Champion-Decks, Pre-Rift-Kits und andere Riftbound-Produkte.",
+  "products_hero_missing": "Du weißt, was in einer Box steckt, die uns fehlt?",
+  "products_hero_contribute_link": "Hilf uns, die Lücken zu füllen",
   "products_empty_title": "Noch keine Produkte erfasst",
-  "products_empty_body": "Du weißt, was in einer Box steckt, die uns fehlt? Hilf uns, die Lücken zu füllen.",
   "products_empty_cta": "Kartenliste beitragen",
   "products_other_group": "Weitere Produkte",
-  "products_add_aria": "{name} zu einer Sammlung hinzufügen",
   "products_add_to_collection": "Zur Sammlung hinzufügen",
   "products_unpriced": "({count} ohne Preis)",
   "products_empty_product": "Dieses Produkt ist leer.",
@@ -715,12 +715,11 @@
   "products_add_error": "Hinzufügen fehlgeschlagen. Einige Karten wurden möglicherweise hinzugefügt.",
   "products_add_pending": "Wird hinzugefügt…",
   "promos_title": "Promos",
+  "promos_hero_lead": "Karten, die du nicht aus Booster-Packs ziehen kannst, sortiert danach, wo es sie gab.",
+  "promos_hero_missing": "Dir fehlt eine Promo oder du hast ein besseres Foto?",
+  "promos_languages_heading": "Promo-Drucke nach Sprache",
   "promos_empty": "Noch keine Promos.",
   "promos_language_aria": "Sprache",
-  "promos_intro_lead": "Alle Karten, die du nicht aus Booster-Packs ziehen kannst.",
-  "promos_intro_markers": "Marker sagen, wie sich eine Karte vom Basisdruck unterscheidet, Vertriebskanäle sagen, wo sie erhältlich war.",
-  "promos_intro_contribute": "Wenn dir eine fehlende Promo aufgefallen ist oder du mit einem Bild aushelfen kannst, das mir noch fehlt, mach uns",
-  "promos_intro_contribute_link": "hier einen Vorschlag",
   "promos_no_match": "Keine Promos passen zu den aktuellen Filtern.",
   "promos_suggest_one": "Schlag eine vor",
   "promos_show_count": "{count} Promos anzeigen",
@@ -1051,17 +1050,6 @@
   "cards_filter_unit_types": "Typ",
   "cards_filter_unit_variant": "Variante",
   "products_count_with_unique": "{cards} · {unique} einzigartig",
-  "promos_aggregate_printings": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} Promo-Druck auf {language}",
-        "countPlural=*": "{count} Promo-Drucke auf {language}"
-      }
-    }
-  ],
-  "promos_aggregate": "OpenRift hat derzeit Daten zu {printings} über {cards}.",
   "common_all": "Alle",
   "contribute_hotspot_jump_to": "Springe zu {region}",
   "contribute_hotspot_add": "{region} hinzufügen",
@@ -3229,12 +3217,12 @@
   ],
   "packs_card_back_aria": "Kartenrückseite",
   "packs_title": "Booster-Öffner",
-  "packs_title_suffix": "Simulator",
+  "packs_hero_eyebrow": "Booster-Simulator",
+  "packs_hero_lead": "Jedes Pack enthält 7 Commons, 3 Uncommons, 2 Rares oder Epics, eine Foil- oder Showcase-Karte und eine Rune oder einen Token, gezogen mit den veröffentlichten Ziehraten. Es werden keine Karten zu deiner Sammlung hinzugefügt.",
   "packs_empty_title": "Noch keine Sets zum Öffnen verfügbar",
   "packs_empty_description": "Ein Set lässt sich öffnen, sobald seine Booster-Ziehraten im Katalog stehen. Schau nach dem nächsten Release wieder vorbei.",
   "packs_toggle_shimmer": "Foil-Glanz",
   "packs_toggle_auto_reveal": "Auto-Aufdecken",
-  "packs_description": "Die Ziehraten entsprechen dem echten Booster. Es werden keine Karten zu deiner Sammlung hinzugefügt.",
   "packs_field_set": "Set",
   "packs_field_language": "Sprache",
   "packs_field_packs": "Booster",
@@ -3431,9 +3419,12 @@
   "decks_local_note": "Du bist nicht angemeldet, dieses Deck liegt also nur auf diesem Gerät. {#link}Anmelden{/link}, um es zu behalten und überall zu nutzen.",
   "decks_local_banner": "Deine Decks liegen nur auf diesem Gerät. {#link}Anmelden{/link}, um sie zu sichern und auf deinen anderen Geräten zu nutzen.",
   "loans_page_title": "Verleih",
-  "loans_page_description": "Karten, die du Freunden geliehen hast, und Karten, die du dir geliehen hast.",
+  "loans_page_lead": "Verliehene Exemplare bleiben in deiner Sammlung, zählen aber nicht für Decks und Tausche, bis du sie als zurückgegeben markierst.",
+  "loans_stat_lent_out": "Verliehene Karten",
+  "loans_stat_borrowed": "Geliehen",
+  "loans_stat_oldest": "Ältester Verleih",
   "loans_empty_title": "Gerade ist nichts verliehen",
-  "loans_empty_description": "Leih einem Freund eine Karte und OpenRift merkt sich, wer sie hat. Die Karte bleibt in deiner Sammlung, zählt aber nicht mehr für Decks und Tausche, bis du sie als zurückgegeben markierst. Zum Verleihen klickst du sie in einer Sammlung mit der rechten Maustaste an und wählst „An einen Freund verleihen“.",
+  "loans_empty_description": "Leih einem Freund eine Karte und OpenRift merkt sich, wer sie hat. Zum Verleihen klickst du sie in einer Sammlung mit der rechten Maustaste an und wählst „An einen Freund verleihen“.",
   "loans_empty_cta": "Sammlungen öffnen",
   "loans_group_attention": "Braucht deine Aufmerksamkeit",
   "loans_group_lent": "Verliehen",
@@ -3699,6 +3690,7 @@
     }
   ],
   "groups_index_title": "Gruppen",
+  "groups_index_lead": "Ein geschlossener Kreis für deine Spielrunde, deinen Laden vor Ort oder einen Discord-Tauschkanal. Mitglieder teilen Wunschlisten, Tauschlisten und Ordner, und Treffer zeigen, wer die Karten hat, die du suchst.",
   "groups_index_trade_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4184,6 +4176,17 @@
   ],
   "user_profile_updated": "Aktualisiert {time}",
   "trades_title": "Tauschgeschäfte",
+  "trades_hero_eyebrow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "In deiner Gruppe",
+        "countPlural=*": "In deinen {count} Gruppen"
+      }
+    }
+  ],
+  "trades_hero_lead": "Treffer stammen aus den Wunsch- und Tauschlisten, die Mitglieder in einer Gruppe teilen. Unbeantwortete Anfragen verfallen nach 7 Tagen.",
   "trades_view_trades": "Tauschgeschäfte ansehen",
   "trades_member_fallback": "Mitglied",
   "trades_this_member": "dieses Mitglied",
@@ -4321,7 +4324,7 @@
   "trades_total_count": "{count} gesamt",
   "trades_none_in_your_collections": "Keine in deinen eigenen Sammlungen.",
   "trades_available_count": "{count} verfügbar",
-  "trades_empty_description": "Tauschgeschäfte beginnen in einer Gruppe: Teile dort eine Wunsch- oder Tauschliste, dann tauchen Treffer mit anderen Mitgliedern auf.",
+  "trades_empty_description": "Du bist noch in keiner Gruppe.",
   "trades_go_to_groups": "Zu den Gruppen",
   "trades_section_your_move": "Du bist dran",
   "trades_your_move_answer": "Antworten",
@@ -4961,7 +4964,7 @@
   "contribute_page_image_on_file": "Bild vorhanden",
   "contribute_page_printing_picker_lead": "Such zuerst die Karte und beschreib dann die Version, die du in der Hand hältst.",
   "designer_page_title": "Kartendesigner",
-  "designer_page_description": "Gestalte deine eigene Karte im Riftbound-Stil. Trag Name, Typ, Domänen, Werte und Regeltext ein, füg dein eigenes Artwork hinzu, und die Vorschau wird beim Tippen aufgebaut. Lade sie als PNG herunter oder kopier sie in die Zwischenablage. Alles bleibt in deinem Browser.",
+  "designer_page_lead": "Nichts wird gespeichert, auch nicht in diesem Browser. Neu laden leert die Karte, also lade das PNG herunter oder kopier es, sobald du zufrieden bist.",
   "designer_form_title": "Kartendetails",
   "designer_form_clear": "Leeren",
   "designer_field_name": "Name",
@@ -5778,10 +5781,10 @@
   "tournaments_lib_starts_in_tomorrow": "morgen",
   "tournaments_lib_starts_in_days": "in {days} Tagen",
   "tier_lists_page_title": "Tier-Listen",
+  "tier_lists_hero_lead": "Teile eine Liste als Link, lade sie als Bild herunter oder bewerte sie live im Stream. Eine Liste fasst bis zu {rows} Reihen und {cards} Karten.",
   "tier_lists_new": "Neue Tier-Liste",
-  "tier_lists_page_description": "Bewerte ein Set und teile dann den Link oder setz das exportierte Bild in ein Video.",
   "tier_lists_empty_title": "Noch keine Tier-Listen",
-  "tier_lists_empty_description": "Stapel Karten in Reihen, die du selbst benennst, und teile das Board dann als Link, lade es als Bild herunter oder bewerte es live im Stream.",
+  "tier_lists_empty_description": "Stapel Karten in Reihen, die du selbst benennst.",
   "tier_lists_empty_learn_more": "Erfahre, wie Tier-Listen funktionieren.",
   "tier_lists_row_summary": [
     {

@@ -28,6 +28,7 @@ interface PromoFixture {
   printings: PromoFixturePrinting[];
   sets: { id: string; slug: string }[];
   languages: string[];
+  languageCounts: { language: string; printingCount: number; cardCount: number }[];
 }
 
 async function fetchPromoList(language = "EN"): Promise<PromoFixture> {
@@ -107,7 +108,7 @@ test.describe("promos", () => {
       await expect(page).toHaveURL(/\/promos\/EN$/u, { timeout: 15_000 });
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
       await expect(
-        page.getByText(/All the cards you can.t pull from booster packs\./u),
+        page.getByText(/Cards you can.t pull from booster packs, grouped by where/u),
       ).toBeVisible();
     });
 
@@ -125,7 +126,7 @@ test.describe("promos", () => {
       );
     });
 
-    test("renders the language aggregate line and channel section dividers", async ({ page }) => {
+    test("renders the language counts and channel section dividers", async ({ page }) => {
       const data = await fetchPromoList();
       const enPrintings = data.printings.filter((printing) => printing.language === "EN");
       test.skip(enPrintings.length === 0, "seed has no EN promo printings");
@@ -133,11 +134,14 @@ test.describe("promos", () => {
       await page.goto("/promos");
       await expect(page.getByRole("heading", { level: 1, name: "Promos" })).toBeVisible();
 
-      await expect(
-        page.getByText(
-          /OpenRift currently has data on \d+ English promo printings? across \d+ cards?\./u,
-        ),
-      ).toBeVisible();
+      if (data.languageCounts.length > 1) {
+        const panel = page.getByRole("navigation", { name: "Promo printings by language" });
+        await expect(panel.getByRole("link", { name: /English/u })).toHaveAttribute(
+          "aria-current",
+          "page",
+        );
+        await expect(panel).toContainText(/\d+ printings? · \d+ cards?/u);
+      }
 
       // Channels render as <section id="lang-EN-ch-..."> with a "(N)" count in the divider.
       const firstSection = page.locator("section[id^='lang-EN-ch-']").first();

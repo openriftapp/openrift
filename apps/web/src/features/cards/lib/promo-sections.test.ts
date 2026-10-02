@@ -8,7 +8,6 @@ import {
   collectChannelTocItems,
   collectFlatSectionTocItems,
   flattenChannelSections,
-  formatLanguageAggregate,
 } from "@/features/cards/lib/promo-sections";
 import type { ChannelNode } from "@/features/cards/lib/promos-tree";
 import { resetIdCounter, stubPrinting } from "@/test/factories";
@@ -54,20 +53,6 @@ function stubPrintings(count: number): Printing[] {
 
 beforeEach(() => {
   resetIdCounter();
-});
-
-describe("formatLanguageAggregate", () => {
-  it("uses plural words for multiple printings and cards", () => {
-    expect(formatLanguageAggregate("English", 12, 7)).toBe(
-      "OpenRift currently has data on 12 English promo printings across 7 cards.",
-    );
-  });
-
-  it("uses singular words for a single printing and card", () => {
-    expect(formatLanguageAggregate("German", 1, 1)).toBe(
-      "OpenRift currently has data on 1 German promo printing across 1 card.",
-    );
-  });
 });
 
 describe("collectChannelTocItems", () => {

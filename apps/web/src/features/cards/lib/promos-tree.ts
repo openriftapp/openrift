@@ -8,11 +8,6 @@ export interface ChannelNode {
   localPrintingCount: number;
 }
 
-interface LanguageAggregate {
-  printingCount: number;
-  cardCount: number;
-}
-
 /**
  * Parent counts are the union of descendant printing ids, so a printing
  * linked to multiple channels in the same subtree is only counted once.
@@ -57,35 +52,4 @@ export function buildPromoTree(
     });
   }
   return build(null);
-}
-
-/** Limited to printings that link to at least one distribution channel. */
-export function computeLanguageAggregates(printings: Printing[]): Map<string, LanguageAggregate> {
-  const printingIdsByLang = new Map<string, Set<string>>();
-  const cardIdsByLang = new Map<string, Set<string>>();
-  for (const printing of printings) {
-    if (printing.distributionChannels.length === 0) {
-      continue;
-    }
-    let printingIds = printingIdsByLang.get(printing.language);
-    if (!printingIds) {
-      printingIds = new Set();
-      printingIdsByLang.set(printing.language, printingIds);
-    }
-    printingIds.add(printing.id);
-    let cardIds = cardIdsByLang.get(printing.language);
-    if (!cardIds) {
-      cardIds = new Set();
-      cardIdsByLang.set(printing.language, cardIds);
-    }
-    cardIds.add(printing.cardId);
-  }
-  const out = new Map<string, LanguageAggregate>();
-  for (const [lang, printingIds] of printingIdsByLang) {
-    out.set(lang, {
-      printingCount: printingIds.size,
-      cardCount: cardIdsByLang.get(lang)?.size ?? 0,
-    });
-  }
-  return out;
 }

@@ -29,6 +29,15 @@ export const promosRouter = {
     ]);
 
     const languages = [...new Set(allPrintingRows.map((p) => p.language))].toSorted();
+    const rowsByLanguage = Map.groupBy(allPrintingRows, (p) => p.language);
+    const languageCounts = languages.map((language) => {
+      const rows = rowsByLanguage.get(language) ?? [];
+      return {
+        language,
+        printingCount: rows.length,
+        cardCount: new Set(rows.map((p) => p.cardId)).size,
+      };
+    });
     const printingRows = allPrintingRows.filter((p) => p.language === input.language);
 
     const cardIds = [...new Set(printingRows.map((p) => p.cardId))];
@@ -91,6 +100,6 @@ export const promosRouter = {
       printingCount: rollupPrintings.get(ch.id) ?? 0,
     }));
 
-    return { channels, cards, printings, sets, languages };
+    return { channels, cards, printings, sets, languages, languageCounts };
   }),
 };

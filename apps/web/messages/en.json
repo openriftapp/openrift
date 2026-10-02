@@ -666,12 +666,12 @@
   "hero_stat_unique": "unique",
   "hero_stat_value": "market value",
   "products_title": "Products",
-  "products_description": "Full card lists for every official Riftbound product. See exactly which cards are inside each starter set, champion deck, and pre-rift kit.",
+  "products_hero_lead": "Exact card lists for champion decks, pre-rift kits and other Riftbound products.",
+  "products_hero_missing": "Know what’s inside a box we’re missing?",
+  "products_hero_contribute_link": "Help us fill in the gaps",
   "products_empty_title": "No products catalogued yet",
-  "products_empty_body": "Know what’s inside a box we’re missing? Help us fill in the gaps.",
   "products_empty_cta": "Contribute a card list",
   "products_other_group": "Other products",
-  "products_add_aria": "Add {name} to a collection",
   "products_add_to_collection": "Add to collection",
   "products_unpriced": "({count} unpriced)",
   "products_empty_product": "This product is empty.",
@@ -715,12 +715,11 @@
   "products_add_error": "Adding failed. Some cards may have been added.",
   "products_add_pending": "Adding…",
   "promos_title": "Promos",
+  "promos_hero_lead": "Cards you can’t pull from booster packs, grouped by where they were handed out.",
+  "promos_hero_missing": "Spotted a missing promo or have a better photo?",
+  "promos_languages_heading": "Promo printings by language",
   "promos_empty": "No promos yet.",
   "promos_language_aria": "Language",
-  "promos_intro_lead": "All the cards you can’t pull from booster packs.",
-  "promos_intro_markers": "Markers say how a card differs from the base printing, distribution channels say where it was available.",
-  "promos_intro_contribute": "If you spotted a missing promo or can help out with a picture I don’t have yet, suggest one",
-  "promos_intro_contribute_link": "here",
   "promos_no_match": "No promos match the current filters.",
   "promos_suggest_one": "Suggest one",
   "promos_show_count": "Show {count} promos",
@@ -1051,17 +1050,6 @@
   "cards_filter_unit_types": "Type",
   "cards_filter_unit_variant": "Variant",
   "products_count_with_unique": "{cards} · {unique} unique",
-  "promos_aggregate_printings": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} {language} promo printing",
-        "countPlural=*": "{count} {language} promo printings"
-      }
-    }
-  ],
-  "promos_aggregate": "OpenRift currently has data on {printings} across {cards}.",
   "common_all": "All",
   "contribute_hotspot_jump_to": "Jump to {region}",
   "contribute_hotspot_add": "Add {region}",
@@ -3229,12 +3217,12 @@
   ],
   "packs_card_back_aria": "Card back",
   "packs_title": "Pack opener",
-  "packs_title_suffix": "simulator",
+  "packs_hero_eyebrow": "Booster simulator",
+  "packs_hero_lead": "Each pack holds 7 commons, 3 uncommons, 2 rares or epics, a foil or showcase card and a rune or token, drawn at the published pull rates. Nothing is added to your collection.",
   "packs_empty_title": "No sets are available to open yet",
   "packs_empty_description": "A set can be opened once its booster pull rates are in the catalog. Check back after the next release.",
   "packs_toggle_shimmer": "Foil shimmer",
   "packs_toggle_auto_reveal": "Auto-reveal",
-  "packs_description": "Pull rates match the real booster. No cards are added to your collection.",
   "packs_field_set": "Set",
   "packs_field_language": "Language",
   "packs_field_packs": "Packs",
@@ -3434,9 +3422,12 @@
   "decks_local_note": "You're not signed in, so this deck is saved only on this device. {#link}Sign in{/link} to keep it and use it anywhere.",
   "decks_local_banner": "Your decks are saved only on this device. {#link}Sign in{/link} to keep them safe and use them on your other devices.",
   "loans_page_title": "Lending",
-  "loans_page_description": "Cards you've lent to friends and cards you're borrowing.",
+  "loans_page_lead": "Lent copies stay in your collection but stop counting for decks and trades until you mark them returned.",
+  "loans_stat_lent_out": "Cards lent out",
+  "loans_stat_borrowed": "Borrowed",
+  "loans_stat_oldest": "Oldest loan",
   "loans_empty_title": "Nothing lent out right now",
-  "loans_empty_description": "Lend a card to a friend and OpenRift remembers who has it. The copy stays in your collection but stops counting for decks and trades until you mark it returned. To lend one, right-click it in a collection and choose “Lend to a friend”.",
+  "loans_empty_description": "Lend a card to a friend and OpenRift remembers who has it. To lend one, right-click it in a collection and choose “Lend to a friend”.",
   "loans_empty_cta": "Open your collections",
   "loans_group_attention": "Needs your attention",
   "loans_group_lent": "Lent out",
@@ -3702,6 +3693,7 @@
     }
   ],
   "groups_index_title": "Groups",
+  "groups_index_lead": "A closed circle for your playgroup, your locals or a Discord trade channel. Members share wishlists, tradelists and binders, and matches show who has the cards you want.",
   "groups_index_trade_requests": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -4187,6 +4179,17 @@
   ],
   "user_profile_updated": "Updated {time}",
   "trades_title": "Trades",
+  "trades_hero_eyebrow": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "In your group",
+        "countPlural=*": "Across your {count} groups"
+      }
+    }
+  ],
+  "trades_hero_lead": "Matches come from the wishlists and tradelists members share in a group. Unanswered requests expire after 7 days.",
   "trades_view_trades": "View trades",
   "trades_member_fallback": "Member",
   "trades_this_member": "this member",
@@ -4324,7 +4327,7 @@
   "trades_total_count": "{count} total",
   "trades_none_in_your_collections": "None in your own collections.",
   "trades_available_count": "{count} available",
-  "trades_empty_description": "Trades start in a group: share a wishlist or tradelist there and matches with other members show up.",
+  "trades_empty_description": "You’re not in a group yet.",
   "trades_go_to_groups": "Go to groups",
   "trades_section_your_move": "Your move",
   "trades_your_move_answer": "Answer",
@@ -4964,7 +4967,7 @@
   "contribute_page_image_on_file": "Image on file",
   "contribute_page_printing_picker_lead": "Find the card first, then describe the version you have in hand.",
   "designer_page_title": "Card Designer",
-  "designer_page_description": "Make your own Riftbound-style card. Fill in the name, type, domains, stats, and rules text, drop in your own art, and the preview renders as you type. Download it as a PNG or copy it to the clipboard. Everything stays in your browser.",
+  "designer_page_lead": "Nothing is saved, not even in this browser. A reload clears the card, so download the PNG or copy it once you’re happy with it.",
   "designer_form_title": "Card details",
   "designer_form_clear": "Clear",
   "designer_field_name": "Name",
@@ -5781,10 +5784,10 @@
   "tournaments_lib_starts_in_tomorrow": "tomorrow",
   "tournaments_lib_starts_in_days": "in {days} days",
   "tier_lists_page_title": "Tier lists",
+  "tier_lists_hero_lead": "Share a list as a link, download it as an image, or rank it live on stream. A list holds up to {rows} rows and {cards} cards.",
   "tier_lists_new": "New tier list",
-  "tier_lists_page_description": "Rank a set, then share the link or drop the exported image into a video.",
   "tier_lists_empty_title": "No tier lists yet",
-  "tier_lists_empty_description": "Stack cards into rows you name yourself, then share the board as a link, download it as an image, or rank it live on stream.",
+  "tier_lists_empty_description": "Stack cards into rows you name yourself.",
   "tier_lists_empty_learn_more": "Learn how tier lists work.",
   "tier_lists_row_summary": [
     {

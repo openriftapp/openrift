@@ -26,6 +26,7 @@ interface EnrichedPromoList {
   cards: Record<string, PromosListResponse["cards"][string] & Pick<Card, "upcomingBans">>;
   sets: PromosListResponse["sets"];
   languages: string[];
+  languageCounts: PromosListResponse["languageCounts"];
 }
 
 function enrichPromoList(response: PromosListResponse): EnrichedPromoList {
@@ -41,6 +42,7 @@ function enrichPromoList(response: PromosListResponse): EnrichedPromoList {
     cards,
     sets: response.sets,
     languages: response.languages,
+    languageCounts: response.languageCounts,
   };
 }
 

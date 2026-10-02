@@ -3,13 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { BellIcon, CheckIcon, ChevronRightIcon, ShoppingCartIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
-import {
-  PageTopBar,
-  PageTopBarActions,
-  PageTopBarButton,
-  PageTopBarSticky,
-  PageTopBarTitle,
-} from "@/components/layout/page-top-bar";
+import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { CardLink } from "@/components/ui/card-link";
@@ -169,23 +163,24 @@ export function TradesIndexPage() {
   const index = buildTradesIndex(data?.items ?? []);
   const showGroups = index.groupCount > 1;
   const live = index.yourMove.length + index.waiting.length;
-  const noGroups = groupsData !== undefined && groupsData.items.length === 0;
+  const groupCount = groupsData?.items.length ?? 0;
+  const noGroups = groupsData !== undefined && groupCount === 0;
 
   return (
     <CardDetailOverlayProvider>
-      <PageTopBarSticky width="full">
-        <PageTopBar>
-          <PageTopBarTitle>{m.trades_title()}</PageTopBarTitle>
-          <PageTopBarActions>
-            <PageTopBarButton render={<Link to="/trades/buy" />}>
-              <ShoppingCartIcon />
-              {cartCount > 0
-                ? m.trades_buy_cart_button_count({ count: cartCount })
-                : m.trades_buy_cart_button()}
-            </PageTopBarButton>
-          </PageTopBarActions>
-        </PageTopBar>
-      </PageTopBarSticky>
+      <PageHero
+        width="full"
+        eyebrow={groupCount > 0 ? m.trades_hero_eyebrow({ count: groupCount }) : undefined}
+        title={m.trades_title()}
+        lead={m.trades_hero_lead()}
+      >
+        <Button variant="outline" className="mt-3" render={<Link to="/trades/buy" />}>
+          <ShoppingCartIcon />
+          {cartCount > 0
+            ? m.trades_buy_cart_button_count({ count: cartCount })
+            : m.trades_buy_cart_button()}
+        </Button>
+      </PageHero>
 
       <div className={cn(PAGE_WIDTH.full, "px-safe flex flex-col gap-8 pt-3 pb-12")}>
         {noGroups ? <NoGroupsCallout /> : null}

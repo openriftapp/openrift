@@ -6,6 +6,7 @@ import {
   loanCounterpartyLabel,
   loanSection,
   loanStatusLabel,
+  loanTotals,
   outstandingQuantity,
 } from "./loan-derivation";
 
@@ -131,5 +132,30 @@ describe("borrowedReasonText", () => {
   it("falls back to an unnamed friend when no lender is known yet", () => {
     expect(borrowedReasonText(1, [])).toBe("1 copy is borrowed from a friend");
     expect(borrowedReasonText(2, [])).toBe("2 copies are borrowed from a friend");
+  });
+});
+
+describe("loanTotals", () => {
+  it("sums outstanding copies per side and finds the oldest lent loan", () => {
+    const totals = loanTotals([
+      stubLoan({ id: "a", quantity: 3, returnedQuantity: 1, createdAt: "2026-08-01T00:00:00Z" }),
+      stubLoan({ id: "b", quantity: 1, createdAt: "2026-07-08T00:00:00Z" }),
+      stubLoan({ id: "c", role: "borrower", quantity: 2 }),
+    ]);
+    expect(totals).toEqual({ lentOut: 3, borrowed: 2, oldestLentAt: "2026-07-08T00:00:00Z" });
+  });
+
+  it("ignores closed, fully returned and rejected borrowed loans", () => {
+    const totals = loanTotals([
+      stubLoan({ id: "a", status: "returned", createdAt: "2026-06-01T00:00:00Z" }),
+      stubLoan({ id: "b", quantity: 2, returnedQuantity: 2, createdAt: "2026-06-02T00:00:00Z" }),
+      stubLoan({ id: "c", role: "borrower", rejectedAt: "2026-07-02T00:00:00Z" }),
+    ]);
+    expect(totals).toEqual({ lentOut: 0, borrowed: 0, oldestLentAt: null });
+  });
+
+  it("keeps a lender's rejected loan counted as out", () => {
+    const totals = loanTotals([stubLoan({ rejectedAt: "2026-07-02T00:00:00Z" })]);
+    expect(totals.lentOut).toBe(2);
   });
 });

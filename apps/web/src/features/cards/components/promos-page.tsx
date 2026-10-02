@@ -4,16 +4,13 @@ import { sortCards } from "@openrift/shared/filters-sort";
 import type { Printing } from "@openrift/shared/types/catalog";
 import type { SortDirection, SortOption } from "@openrift/shared/types/search";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { getRouteApi, useLocation } from "@tanstack/react-router";
+import { getRouteApi, Link, useLocation } from "@tanstack/react-router";
 import { PackageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { PageHero } from "@/components/layout/page-hero";
 import { PageToc } from "@/components/layout/page-toc";
-import {
-  PAGE_TOP_BAR_STICKY,
-  PageTopBarHeightContext,
-  useMeasuredHeight,
-} from "@/components/layout/page-top-bar";
+import { TextLink } from "@/components/ui/text-link";
 import { Toggle } from "@/components/ui/toggle";
 import {
   BrowserToolbar,
@@ -21,8 +18,10 @@ import {
 } from "@/features/cards/components/card-browser-filter-scaffold";
 import { CardBrowserLayout } from "@/features/cards/components/card-browser-layout";
 import { PromoSectionsContent } from "@/features/cards/components/promo-sections-content";
-import { PromosIntro } from "@/features/cards/components/promos-intro";
-import { PromosTopBar } from "@/features/cards/components/promos-top-bar";
+import {
+  PromosLanguagePanel,
+  PromosLanguageSelect,
+} from "@/features/cards/components/promos-language-picker";
 import { SelectionDetailOverlays } from "@/features/cards/components/selection-detail-overlays";
 import { SelectionDetailPane } from "@/features/cards/components/selection-detail-pane";
 import { useFilterActions, useFilterValues } from "@/features/cards/hooks/use-card-filters";
@@ -42,7 +41,6 @@ import {
   collectFlatSectionTocItems,
   flattenChannelSections,
 } from "@/features/cards/lib/promo-sections";
-import { computeLanguageAggregates } from "@/features/cards/lib/promos-tree";
 import { publicPromoListQueryOptions } from "@/features/cards/lib/public-promos-queries";
 import { FilterSearchProvider } from "@/features/cards/lib/search-schemas";
 import { useOwnedCount } from "@/features/collections/hooks/use-owned-count";
@@ -108,8 +106,6 @@ function PromosBrowser() {
   // useOwnedCount's useSyncExternalStore has no server snapshot, invalid during
   // SSR, so the call is deferred to OwnedCountBridge, which mounts post-hydration.
   const hydrated = useHydrated();
-  const [topBarSlot, setTopBarSlot] = useState<HTMLDivElement | null>(null);
-  const topBarHeight = useMeasuredHeight(topBarSlot);
   const [ownedCountByPrinting, setOwnedCountByPrinting] = useState<
     Record<string, number> | undefined
   >();
@@ -204,7 +200,7 @@ function PromosBrowser() {
     ? hiddenFilterSections
     : new Set([...hiddenFilterSections, "owned"]);
 
-  const activeAggregate = computeLanguageAggregates(data.printings).get(activeLanguage);
+  const hasLanguageChoice = presentLanguages.length > 1;
 
   const tocItems: PromoTocItem[] = [];
   if (grouping === "channel") {
@@ -242,21 +238,40 @@ function PromosBrowser() {
   };
 
   return (
-    <PageTopBarHeightContext value={topBarHeight}>
+    <>
       {hydrated && <OwnedCountBridge enabled={fetchOwned} onChange={setOwnedCountByPrinting} />}
-      <div ref={setTopBarSlot} className={PAGE_TOP_BAR_STICKY}>
-        <PromosTopBar
-          activeLanguage={activeLanguage}
-          presentLanguages={presentLanguages}
-          languageLabelMap={languageLabelMap}
-        />
-      </div>
+      <PageHero
+        width="full"
+        title={m.promos_title()}
+        lead={
+          <>
+            {m.promos_hero_lead()} {m.promos_hero_missing()}{" "}
+            <TextLink variant="inherit" render={<Link to="/contribute" />}>
+              {m.promos_suggest_one()}
+            </TextLink>
+            .
+          </>
+        }
+        aside={
+          hasLanguageChoice ? (
+            <PromosLanguagePanel
+              activeLanguage={activeLanguage}
+              counts={data.languageCounts}
+              languageLabelMap={languageLabelMap}
+            />
+          ) : undefined
+        }
+      >
+        {hasLanguageChoice && (
+          <PromosLanguageSelect
+            activeLanguage={activeLanguage}
+            presentLanguages={presentLanguages}
+            languageLabelMap={languageLabelMap}
+            className="mt-3 md:hidden"
+          />
+        )}
+      </PageHero>
       <div className={cn(PAGE_PADDING_NO_TOP, "pt-3")}>
-        <PromosIntro
-          languageLabel={languageLabelMap.get(activeLanguage) ?? activeLanguage}
-          aggregate={activeAggregate}
-        />
-
         <CardBrowserFilterProvider
           availableFilters={availableFilters}
           setDisplayLabel={setDisplayLabel}
@@ -328,6 +343,6 @@ function PromosBrowser() {
           </CardBrowserLayout>
         </CardBrowserFilterProvider>
       </div>
-    </PageTopBarHeightContext>
+    </>
   );
 }
