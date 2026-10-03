@@ -21,6 +21,7 @@ import { wellKnownRepo } from "./modules/catalog/repositories/well-known.js";
 import { validateWellKnownSlugs } from "./modules/catalog/services/validate-well-known.js";
 import { createJobScheduler } from "./modules/system/services/job-scheduler.js";
 import { configureRenderPool, shutdownRenderPool } from "./modules/system/services/render-pool.js";
+import { setJobsShuttingDown } from "./modules/system/services/run-job.js";
 
 const env = process.env as Record<string, string | undefined>;
 // In containers, the deploy SHA is written to /app/.build-id by the Dockerfile.
@@ -111,7 +112,13 @@ const SHUTDOWN_DEADLINE_MS = 8000;
 
 const shutdown = gracefulShutdown({
   steps: [
-    { name: "scheduler", run: () => scheduler.stop() },
+    {
+      name: "scheduler",
+      run: () => {
+        setJobsShuttingDown(true);
+        scheduler.stop();
+      },
+    },
     {
       name: "server",
       run: async () => {

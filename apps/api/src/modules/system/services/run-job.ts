@@ -12,6 +12,16 @@ export type JobOutcome<T> =
   | { status: "failed"; message: string }
   | { status: "already_running"; runId: string };
 
+let shuttingDown = false;
+
+/**
+ * Once set, a failing run is only logged: its error is the database closing
+ * under it, and `sweepOrphaned` marks the row failed on the next start.
+ */
+export function setJobsShuttingDown(value: boolean): void {
+  shuttingDown = value;
+}
+
 function captureJobFailure(
   error: unknown,
   scope: { kind: string; trigger: JobTrigger; runId: string },
@@ -124,6 +134,10 @@ async function runJobInner<T>(
   } catch (error) {
     const durationMs = Date.now() - startMs;
     const message = error instanceof Error ? error.message : String(error);
+    if (shuttingDown) {
+      log.warn({ err: error, kind, runId: id, durationMs }, "Job cut short by shutdown");
+      return { status: "failed", message };
+    }
     // Report to Sentry before the row write: a failing `fail()` must not swallow the only signal.
     captureJobFailure(error, { kind, trigger, runId: id });
     await repos.jobRuns.fail(id, { durationMs, errorMessage: message });
@@ -177,6 +191,10 @@ export async function runJobAsync<T>(
         const durationMs = Date.now() - startMs;
         const message = error instanceof Error ? error.message : String(error);
         span.setStatus({ code: SpanStatusCode.ERROR, message });
+        if (shuttingDown) {
+          log.warn({ err: error, kind, runId: id, durationMs }, "Job cut short by shutdown");
+          return;
+        }
         captureJobFailure(error, { kind, trigger, runId: id });
         try {
           await repos.jobRuns.fail(id, { durationMs, errorMessage: message });

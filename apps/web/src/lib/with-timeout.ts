@@ -6,6 +6,10 @@ import { m } from "@/paraglide/messages.js";
 
 const DEFAULT_TIMEOUT_MS = 5000;
 
+export class TimeoutError extends Error {
+  override name = "TimeoutError";
+}
+
 interface WithTimeoutOptions {
   label: string;
   timeoutMs?: number;
@@ -20,7 +24,7 @@ export function withTimeout<T>(promise: Promise<T>, options: WithTimeoutOptions)
     new Promise<T>((_resolve, reject) => {
       setTimeout(() => {
         abortController?.abort();
-        reject(new Error(m.common_timed_out({ label, seconds: timeoutMs / 1000 })));
+        reject(new TimeoutError(m.common_timed_out({ label, seconds: timeoutMs / 1000 })));
       }, timeoutMs);
     }),
   ]);

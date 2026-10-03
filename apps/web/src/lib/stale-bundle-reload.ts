@@ -222,7 +222,12 @@ export function initChunkErrorReloader(): void {
   // No preventDefault(): calling it makes Vite's preload helper resolve the
   // import with `undefined` instead of rethrowing, so this listener would never fire.
   globalThis.addEventListener("vite:preloadError", (event) => {
-    reloadOnce(`vite preload error: ${event.payload.message}`);
+    // Vite types payload as Error, but the helper passes whatever the import rejected with
+    // (undefined included). Drop the guard once Vite types it as unknown.
+    const payload: unknown = event.payload;
+    reloadOnce(
+      `vite preload error: ${payload instanceof Error ? payload.message : String(payload)}`,
+    );
   });
 }
 

@@ -199,6 +199,32 @@ describe("persisting copy writes", () => {
     });
   });
 
+  it("resends a timed-out add with the same client ids and stores the replayed rows", async () => {
+    const collection = await copiesOnServer([]);
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    let calls = 0;
+    respond = (request) => {
+      calls += 1;
+      // oxlint-disable-next-line promise/avoid-new -- a request that never answers, like one lost on the network
+      return calls === 1 ? new Promise<Response>(() => {}) : succeed(request);
+    };
+    const add = pendingInsert(
+      collection,
+      stubCopy({ id: "c1", printingId: "p1", collectionId: "col-1" }),
+    );
+
+    const committed = add.commit();
+    await vi.advanceTimersByTimeAsync(5000);
+    vi.useRealTimers();
+    await committed;
+
+    expect(sent.map((request) => request.body)).toEqual([
+      { copies: [{ id: "c1", printingId: "p1", collectionId: "col-1" }] },
+      { copies: [{ id: "c1", printingId: "p1", collectionId: "col-1" }] },
+    ]);
+    expect(collection.get("c1")?.collectionId).toBe("col-1");
+  });
+
   it("drops a removal of a copy whose add failed", async () => {
     const collection = await copiesOnServer([]);
     respond = fail;

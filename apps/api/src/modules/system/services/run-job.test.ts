@@ -1,8 +1,8 @@
 import type { Logger } from "@openrift/shared/logger";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import { runJob, runJobAsync, runJobOutcome } from "./run-job.js";
+import { runJob, runJobAsync, runJobOutcome, setJobsShuttingDown } from "./run-job.js";
 
 const captureException = vi.fn();
 vi.mock("@sentry/bun", () => ({
@@ -289,5 +289,48 @@ describe("runJobAsync", () => {
       expect(captureException).toHaveBeenCalledWith(writeError, expect.anything());
     });
     expect(captureException).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("during shutdown", () => {
+  let ctx: ReturnType<typeof createMockDeps>;
+
+  beforeEach(() => {
+    ctx = createMockDeps();
+    captureException.mockClear();
+    setJobsShuttingDown(true);
+  });
+
+  afterEach(() => {
+    setJobsShuttingDown(false);
+  });
+
+  it("logs a cut-short cron run without reporting it or writing the row", async () => {
+    const result = await runJob(ctx.deps, "meta.uvsgames_recheck", "cron", async () => {
+      throw new Error("driver has already been destroyed");
+    });
+
+    expect(result).toBeNull();
+    expect(captureException).not.toHaveBeenCalled();
+    expect(ctx.mocks.fail).not.toHaveBeenCalled();
+    expect(ctx.mocks.log.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "meta.uvsgames_recheck", runId: "run-1" }),
+      "Job cut short by shutdown",
+    );
+  });
+
+  it("logs a cut-short background run without reporting it or writing the row", async () => {
+    await runJobAsync(ctx.deps, "k", "admin", async () => {
+      throw new Error("driver has already been destroyed");
+    });
+
+    await vi.waitFor(() => {
+      expect(ctx.mocks.log.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "k", runId: "run-1" }),
+        "Job cut short by shutdown",
+      );
+    });
+    expect(captureException).not.toHaveBeenCalled();
+    expect(ctx.mocks.fail).not.toHaveBeenCalled();
   });
 });

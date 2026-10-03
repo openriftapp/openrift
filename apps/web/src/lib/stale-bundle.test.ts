@@ -542,6 +542,18 @@ describe("initChunkErrorReloader", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  test("reloads on vite:preloadError whose payload is undefined", () => {
+    initChunkErrorReloader();
+
+    const event = new Event("vite:preloadError", { cancelable: true }) as Event & {
+      payload: unknown;
+    };
+    event.payload = undefined;
+    globalThis.dispatchEvent(event);
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
   test("vite:preloadError respects the once-per-session loop guard", () => {
     initChunkErrorReloader();
 

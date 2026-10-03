@@ -5,6 +5,8 @@
 ### Other
 
 - feat(Meta): **Events with results first** — the events list shows only events with standings or decklists unless you pick All events, has its own With decklists button like the archive page, and marks events without decklists with a dash.
+- fix(Collections): **Adds survive a slow connection** — when adding copies takes longer than five seconds, OpenRift sends the add again once instead of showing an error, without creating duplicates.
+- fix(App): **Reload after an update** — a tab left open across an update now reloads itself in every case when it can no longer load parts of the app.
 - fix(Cards): **Clearer promo pages** — the page is titled Riftbound Promos, each language gets its own page title, and the language list shows printing counts that no longer wrap in Chinese.
 
 ## 2026-10-02

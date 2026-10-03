@@ -19,7 +19,7 @@ import { startSyncIfNeeded } from "@/features/collections/lib/collection-cleanup
 import { collectionsKeys, copiesKeys } from "@/features/collections/lib/collections-query-keys";
 import { watchForRefetchRace } from "@/lib/refetch-race";
 import { browserApiOrpcClient } from "@/lib/server-fns/orpc-client";
-import { withTimeout } from "@/lib/with-timeout";
+import { TimeoutError, withTimeout } from "@/lib/with-timeout";
 import { m } from "@/paraglide/messages.js";
 
 export type CopiesCollection = Collection<CopyResponse, string | number>;
@@ -156,6 +156,18 @@ function send<T>(label: string, request: (signal: AbortSignal) => Promise<T>): P
   });
 }
 
+// A timed-out add may have reached the API; resending the same client ids replays the stored rows.
+async function retryOnceOnTimeout<T>(attempt: () => Promise<T>): Promise<T> {
+  try {
+    return await attempt();
+  } catch (error) {
+    if (!(error instanceof TimeoutError)) {
+      throw error;
+    }
+    return await attempt();
+  }
+}
+
 async function inChunks<T>(
   items: readonly T[],
   size: number,
@@ -250,10 +262,12 @@ async function persistInserts(
   const pending = pendingInsertsOf(collection);
   try {
     await inChunks(mutations, MAX_COPIES_PER_ADD, async (chunk) => {
-      const { items } = await send(m.collections_copies_timeout_add(), (signal) =>
-        browserApiOrpcClient(copiesContract).add(
-          { batchId, copies: chunk.map((mutation) => addCopyInput(mutation.modified)) },
-          { signal },
+      const { items } = await retryOnceOnTimeout(() =>
+        send(m.collections_copies_timeout_add(), (signal) =>
+          browserApiOrpcClient(copiesContract).add(
+            { batchId, copies: chunk.map((mutation) => addCopyInput(mutation.modified)) },
+            { signal },
+          ),
         ),
       );
       collection.utils.writeUpsert(items);

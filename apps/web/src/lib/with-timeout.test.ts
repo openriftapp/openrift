@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { withTimeout } from "./with-timeout";
+import { TimeoutError, withTimeout } from "./with-timeout";
 
 describe("withTimeout", () => {
   beforeEach(() => {
@@ -32,6 +32,18 @@ describe("withTimeout", () => {
       "Loading collection timed out after 3s. Check your connection.",
     );
     await vi.advanceTimersByTimeAsync(3000);
+
+    await assertion;
+  });
+
+  it("rejects with a TimeoutError so callers can tell a timeout from a failed request", async () => {
+    // oxlint-disable-next-line promise/avoid-new -- deliberately never-settling promise to test the timeout path
+    const never = new Promise<string>(() => {});
+
+    const assertion = expect(withTimeout(never, { label: "load" })).rejects.toBeInstanceOf(
+      TimeoutError,
+    );
+    await vi.advanceTimersByTimeAsync(5000);
 
     await assertion;
   });
