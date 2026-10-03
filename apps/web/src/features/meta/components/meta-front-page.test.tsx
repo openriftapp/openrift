@@ -11,6 +11,7 @@ const captured = vi.hoisted(() => ({
     totalEvents: 0,
     latestResultDate: null as string | null,
     eventsByTier: { premier: 0, competitive: 0, local: 0 },
+    eventsWithResultsByTier: { premier: 0, competitive: 0, local: 0 },
   },
   activity: [] as MetaActivityItem[],
   search: {} as Record<string, string | string[] | boolean | undefined>,
@@ -232,6 +233,7 @@ beforeEach(() => {
     totalEvents: 9,
     latestResultDate: null,
     eventsByTier: { premier: 4, competitive: 3, local: 2 },
+    eventsWithResultsByTier: { premier: 3, competitive: 2, local: 1 },
   };
   captured.activity = [activityItem()];
   captured.search = {};
@@ -413,6 +415,7 @@ describe("MetaFrontPage", () => {
       totalEvents: 0,
       latestResultDate: null,
       eventsByTier: { premier: 0, competitive: 0, local: 0 },
+      eventsWithResultsByTier: { premier: 0, competitive: 0, local: 0 },
     };
 
     render(<MetaFrontPage />);
@@ -509,30 +512,33 @@ describe("MetaFrontPage", () => {
     expect(screen.getByText("Your contributions")).toBeInTheDocument();
   });
 
-  it("promises the whole archive's tier count, not the era it fetched", () => {
+  it("promises the tier's events with results archive-wide, not the era it fetched", () => {
     captured.events = [event()];
 
     render(<MetaFrontPage />);
 
-    expect(within(section("Premier")).getByRole("link", { name: "Browse all 4" })).toHaveAttribute(
+    expect(within(section("Premier")).getByRole("link", { name: "Browse all 3" })).toHaveAttribute(
       "href",
       "/meta/events",
     );
   });
 
-  it("counts the whole archive on the events link under the community section", () => {
+  it("counts the archive's events with results on the link under the community section", () => {
     captured.events = [event({ tier: "local" })];
 
     render(<MetaFrontPage />);
 
     expect(
-      within(section("Local")).getByRole("link", { name: "Browse all 9 events" }),
+      within(section("Local")).getByRole("link", { name: "Browse all 6 events" }),
     ).toBeInTheDocument();
   });
 
   it("groups the thousands in the archive-wide event count", () => {
     captured.events = [event({ tier: "local" })];
-    captured.counts = { ...captured.counts, totalEvents: 2054 };
+    captured.counts = {
+      ...captured.counts,
+      eventsWithResultsByTier: { premier: 3, competitive: 2, local: 2049 },
+    };
 
     render(<MetaFrontPage />);
 

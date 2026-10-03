@@ -24,6 +24,7 @@ import {
 import { FilterDropdownChip } from "@/features/cards/components/compact-filter-bar";
 import { SearchInput } from "@/features/cards/components/search-input";
 import { useSearchUrlSync } from "@/features/cards/hooks/use-search-url-sync";
+import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-toggle";
 import {
   EVENT_INDEX_GRID,
   MetaEventIndexRow,
@@ -45,15 +46,15 @@ import {
   nextEventSort,
 } from "@/features/meta/lib/meta-events-index";
 import type {
-  MetaEventHoldings,
+  MetaEventIndexHoldings,
   MetaEventIndexSort,
   MetaEventIndexSortDirection,
 } from "@/features/meta/lib/meta-events-search";
 import {
   DEFAULT_EVENT_PAGE_SIZE,
+  eventIndexHoldings,
   eventPageOrder,
   eventPageSlice,
-  META_EVENT_HOLDINGS,
 } from "@/features/meta/lib/meta-events-search";
 import { metaShownLabel } from "@/features/meta/lib/meta-format";
 import { META_PAGE_SIZES, metaPageCount } from "@/features/meta/lib/meta-paging";
@@ -71,7 +72,13 @@ import { m } from "@/paraglide/messages.js";
 
 const routeApi = getRouteApi("/_app/meta_/events");
 
-const ANY_HOLDINGS = "";
+const DEFAULT_HOLDINGS = "";
+
+const DROPDOWN_HOLDINGS = ["all", "upcoming", "resultless"] as const;
+
+type DropdownHoldings = (typeof DROPDOWN_HOLDINGS)[number];
+
+type NarrowedHoldings = DropdownHoldings | "decks";
 
 const EVENT_LIST_ID = "meta-event-list";
 
@@ -82,7 +89,9 @@ export function MetaEventsPage() {
   const order = eventPageOrder(search);
   const sort = order.by;
   const direction = order.dir;
-  const filters = metaEventFilterQuery(search, eras);
+  const holds = eventIndexHoldings(search.holds);
+  const narrowed = narrowedHoldings(search.holds);
+  const filters = metaEventFilterQuery({ ...search, holds }, eras);
   const { data } = useMetaEventPage({ ...filters, ...order, ...eventPageSlice(search) });
   const { data: facets } = useMetaEventFacets(filters);
   const { data: counts } = useMetaCounts();
@@ -117,13 +126,13 @@ export function MetaEventsPage() {
   const { data: dayCounts } = useMetaEventDayCounts({
     ...facetQuery,
     q: search.q,
-    holds: search.holds,
+    holds,
     playersMin: search.playersMin,
     playersMax: search.playersMax,
   });
   // `by` and `dir` are deliberately absent: a re-sort keeps the rows mounted,
   // and with them each thumbnail's record of the source that failed to load.
-  const listKey = `${search.q ?? ""}|${search.holds ?? ""}|${search.playersMin ?? ""}|${search.playersMax ?? ""}|${scopeKey(search)}`;
+  const listKey = `${search.q ?? ""}|${holds ?? ""}|${search.playersMin ?? ""}|${search.playersMax ?? ""}|${scopeKey(search)}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -167,10 +176,17 @@ export function MetaEventsPage() {
               }
               extras={
                 <>
+                  <MetaDecklistsToggle
+                    pressed={narrowed === "decks"}
+                    count={facets.holdings.decks}
+                    onPressedChange={(pressed) =>
+                      setSearchParams({ holds: pressed ? "decks" : undefined })
+                    }
+                  />
                   <HoldingsChip
-                    value={search.holds}
+                    value={narrowed === "decks" ? undefined : narrowed}
                     counts={holdingsCountsFrom(facets)}
-                    onChange={(holds) => setSearchParams({ holds })}
+                    onChange={(next) => setSearchParams({ holds: next })}
                   />
                   <PlayersChip
                     min={search.playersMin}
@@ -180,17 +196,17 @@ export function MetaEventsPage() {
                 </>
               }
               extrasActive={
-                search.holds !== undefined ||
+                narrowed !== undefined ||
                 search.playersMin !== undefined ||
                 search.playersMax !== undefined
               }
               activeChips={[
-                ...(search.holds === undefined
+                ...(narrowed === undefined
                   ? []
                   : [
                       {
                         key: "holds",
-                        label: holdingsItems()[search.holds],
+                        label: holdingsLabel(narrowed),
                         onRemove: () => setSearchParams({ holds: undefined }),
                       },
                     ]),
@@ -251,14 +267,21 @@ export function MetaEventsPage() {
   );
 }
 
-function holdingsItems(): Record<MetaEventHoldings | typeof ANY_HOLDINGS, string> {
+function dropdownHoldingsItems(): Record<DropdownHoldings | typeof DEFAULT_HOLDINGS, string> {
   return {
-    [ANY_HOLDINGS]: m.meta_events_holdings_any(),
-    decks: m.meta_events_holdings_decks(),
-    standings: m.meta_events_holdings_standings(),
+    [DEFAULT_HOLDINGS]: m.meta_events_holdings_standings(),
+    all: m.meta_events_holdings_any(),
     upcoming: m.meta_event_status_upcoming(),
     resultless: m.meta_events_holdings_resultless(),
   };
+}
+
+function holdingsLabel(holds: NarrowedHoldings): string {
+  return holds === "decks" ? m.meta_events_holdings_decks() : dropdownHoldingsItems()[holds];
+}
+
+function narrowedHoldings(holds?: MetaEventIndexHoldings): NarrowedHoldings | undefined {
+  return holds === "standings" ? undefined : holds;
 }
 
 function HoldingsChip({
@@ -266,18 +289,18 @@ function HoldingsChip({
   counts,
   onChange,
 }: {
-  value: MetaEventHoldings | undefined;
-  counts: Map<MetaEventHoldings | "", number>;
-  onChange: (value: MetaEventHoldings | undefined) => void;
+  value: NarrowedHoldings | undefined;
+  counts: Map<MetaEventIndexHoldings | "", number>;
+  onChange: (value: DropdownHoldings | undefined) => void;
 }) {
   return (
     <ScopeSelect
       label={m.meta_events_holdings_aria()}
-      value={value ?? ANY_HOLDINGS}
-      fallback={ANY_HOLDINGS}
-      items={holdingsItems()}
+      value={value ?? DEFAULT_HOLDINGS}
+      fallback={DEFAULT_HOLDINGS}
+      items={dropdownHoldingsItems()}
       counts={counts}
-      onValueChange={(next) => onChange(META_EVENT_HOLDINGS.find((entry) => entry === next))}
+      onValueChange={(next) => onChange(DROPDOWN_HOLDINGS.find((entry) => entry === next))}
     />
   );
 }

@@ -7176,7 +7176,7 @@
   "meta_events_per_page": "{size}개 보기",
   "meta_events_holdings_any": "모든 이벤트",
   "meta_events_holdings_decks": "덱 목록 있음",
-  "meta_events_holdings_standings": "순위 있음",
+  "meta_events_holdings_standings": "결과 있음",
   "meta_events_holdings_resultless": "결과 없음",
   "meta_events_holdings_aria": "아카이브 보유 자료",
   "meta_events_players_label": "플레이어",

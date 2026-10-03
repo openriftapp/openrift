@@ -58,9 +58,15 @@ export function MetaEventIndexRow({ event }: { event: MetaEventSummary }) {
             <span className="text-muted-foreground text-right text-sm tabular-nums">
               {event.playerRowCount}
             </span>
-            <span className="text-muted-foreground text-right text-sm tabular-nums">
-              {event.deckCount}
-            </span>
+            {event.deckCount === 0 ? (
+              <span aria-hidden className="text-muted-foreground/60 text-right text-sm">
+                &mdash;
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-right text-sm tabular-nums">
+                {event.deckCount}
+              </span>
+            )}
             <WinnerCell winners={winners} />
           </>
         ) : (

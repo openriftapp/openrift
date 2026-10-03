@@ -4,6 +4,7 @@ import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
 import { META_EVENTS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import {
+  eventIndexHoldings,
   eventPageOrder,
   eventPageSlice,
   metaEventsSearchSchema,
@@ -63,7 +64,10 @@ export const Route = createFileRoute("/_app/meta_/events")({
       ...publicSetListQueryOptions,
       staleTime: "static",
     });
-    const filters = metaEventFilterQuery(deps, deriveSetEras(sets.sets));
+    const filters = metaEventFilterQuery(
+      { ...deps, holds: eventIndexHoldings(deps.holds) },
+      deriveSetEras(sets.sets),
+    );
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
       context.queryClient.query({

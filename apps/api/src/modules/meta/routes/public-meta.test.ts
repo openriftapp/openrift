@@ -44,7 +44,10 @@ const mockMeta = {
   finishesForPlayer: vi.fn(),
 };
 
-const NO_TIER_COUNTS = { premier: 0, competitive: 0, local: 0 };
+const NO_TIER_COUNTS = {
+  all: { premier: 0, competitive: 0, local: 0 },
+  withResults: { premier: 0, competitive: 0, local: 0 },
+};
 
 const NO_FIELD = {
   withLists: 0,
@@ -1762,11 +1765,15 @@ describe("GET /meta/counts", () => {
   it("reports the archive's own event numbers, which the filters never narrow", async () => {
     mockMeta.playerCountInScope.mockResolvedValue(0);
     mockMeta.deckCountInScope.mockResolvedValue(0);
-    mockMeta.eventTierCounts.mockResolvedValue({ premier: 4, competitive: 31, local: 912 });
+    mockMeta.eventTierCounts.mockResolvedValue({
+      all: { premier: 4, competitive: 31, local: 912 },
+      withResults: { premier: 3, competitive: 20, local: 400 },
+    });
 
     const json = await readJson(await app.request("/api/v1/meta/counts?format=constructed"));
 
     expect(json.eventsByTier).toEqual({ premier: 4, competitive: 31, local: 912 });
+    expect(json.eventsWithResultsByTier).toEqual({ premier: 3, competitive: 20, local: 400 });
     expect(json.totalEvents).toBe(947);
     expect(mockMeta.eventTierCounts).toHaveBeenCalledWith();
   });

@@ -1,7 +1,7 @@
 import type { MetaEventFacetsResponse } from "@openrift/shared/types/api/meta";
 
 import type {
-  MetaEventHoldings,
+  MetaEventIndexHoldings,
   MetaEventIndexSort,
   MetaEventIndexSortDirection,
 } from "@/features/meta/lib/meta-events-search";
@@ -43,12 +43,13 @@ export function facetPresenceFrom(facets: MetaEventFacetsResponse): ScopeFacetPr
   };
 }
 
-/** How many events each holdings choice would show, with everything else applied. */
+/** How many events each holdings choice would show; the empty key is the default, events with results. */
 export function holdingsCountsFrom(
   facets: MetaEventFacetsResponse,
-): Map<MetaEventHoldings | "", number> {
+): Map<MetaEventIndexHoldings | "", number> {
   return new Map([
-    ["", facets.holdings.all],
+    ["", facets.holdings.standings],
+    ["all", facets.holdings.all],
     ["decks", facets.holdings.decks],
     ["standings", facets.holdings.standings],
     ["upcoming", facets.holdings.upcoming],

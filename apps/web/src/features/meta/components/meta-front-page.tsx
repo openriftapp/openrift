@@ -26,6 +26,7 @@ import { MetaArchiveActivity } from "@/features/meta/components/meta-archive-act
 import { MetaArchiveCounts } from "@/features/meta/components/meta-archive-counts";
 import { MetaArchiveSearch } from "@/features/meta/components/meta-archive-search";
 import { MetaContributeBand } from "@/features/meta/components/meta-contribute-band";
+import { MetaDecklistsToggle } from "@/features/meta/components/meta-decklists-toggle";
 import { MetaEventRow } from "@/features/meta/components/meta-event-row";
 import { MetaFrontEventBlock } from "@/features/meta/components/meta-front-event-block";
 import { MetaScopeBar } from "@/features/meta/components/meta-scope-bar";
@@ -312,18 +313,11 @@ export function MetaFrontPage() {
                 }
                 showTier={false}
                 extras={
-                  <Button
-                    type="button"
-                    variant="control"
-                    size="sm"
-                    aria-pressed={search.decks === true}
-                    onClick={() => setDecksOnly(search.decks !== true)}
-                  >
-                    {m.meta_events_holdings_decks()}
-                    <span className="text-muted-foreground text-2xs tabular-nums">
-                      {facets.holdings.decks}
-                    </span>
-                  </Button>
+                  <MetaDecklistsToggle
+                    pressed={search.decks === true}
+                    count={facets.holdings.decks}
+                    onPressedChange={setDecksOnly}
+                  />
                 }
                 extrasActive={search.decks === true}
                 activeChips={
@@ -378,7 +372,7 @@ export function MetaFrontPage() {
                             action={
                               <TierIndexLink
                                 tiers={["premier"]}
-                                count={counts.eventsByTier.premier}
+                                count={counts.eventsWithResultsByTier.premier}
                               />
                             }
                           >
@@ -399,7 +393,7 @@ export function MetaFrontPage() {
                             action={
                               <TierIndexLink
                                 tiers={["competitive"]}
-                                count={counts.eventsByTier.competitive}
+                                count={counts.eventsWithResultsByTier.competitive}
                               />
                             }
                           >
@@ -422,7 +416,12 @@ export function MetaFrontPage() {
                                 className="text-sm font-medium"
                                 render={<Link to="/meta/events" search={UNSCOPED} />}
                               >
-                                {m.meta_front_browse_all_events({ count: counts.totalEvents })}
+                                {m.meta_front_browse_all_events({
+                                  count: Object.values(counts.eventsWithResultsByTier).reduce(
+                                    (sum, count) => sum + count,
+                                    0,
+                                  ),
+                                })}
                               </TextLink>
                             }
                           >

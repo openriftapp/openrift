@@ -7176,7 +7176,7 @@
   "meta_events_per_page": "显示 {size}",
   "meta_events_holdings_any": "全部赛事",
   "meta_events_holdings_decks": "含卡组表",
-  "meta_events_holdings_standings": "含排名",
+  "meta_events_holdings_standings": "有结果",
   "meta_events_holdings_resultless": "无成绩",
   "meta_events_holdings_aria": "档案收录内容",
   "meta_events_players_label": "玩家",

@@ -1,7 +1,7 @@
 import { MAX_FACET_VALUES, metaEventFilterQuerySchema } from "@openrift/shared/contracts/meta";
 import { describe, expect, it } from "vitest";
 
-import { metaEventsSearchSchema } from "./meta-events-search";
+import { eventIndexHoldings, metaEventsSearchSchema } from "./meta-events-search";
 import { deriveSetEras, ERA_CUSTOM, metaEventFilterQuery } from "./meta-scope";
 
 describe("metaEventsSearchSchema", () => {
@@ -61,8 +61,27 @@ describe("metaEventsSearchSchema", () => {
       playersMin: -1,
       holds: "photos",
     };
-    const query = metaEventFilterQuery(metaEventsSearchSchema.parse(hostile), eras);
+    const search = metaEventsSearchSchema.parse(hostile);
+    const query = metaEventFilterQuery(
+      { ...search, holds: eventIndexHoldings(search.holds) },
+      eras,
+    );
 
     expect(metaEventFilterQuerySchema.safeParse(query).success).toBe(true);
+  });
+});
+
+describe("eventIndexHoldings", () => {
+  it("narrows to events with results when the link names no holdings", () => {
+    expect(eventIndexHoldings()).toBe("standings");
+  });
+
+  it("lifts the narrowing when the link asks for every event", () => {
+    expect(eventIndexHoldings("all")).toBeUndefined();
+  });
+
+  it("passes any other holdings through", () => {
+    expect(eventIndexHoldings("decks")).toBe("decks");
+    expect(eventIndexHoldings("resultless")).toBe("resultless");
   });
 });

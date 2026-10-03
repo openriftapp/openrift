@@ -1,5 +1,5 @@
 import type { MetaEventSummary } from "@openrift/shared/types/api/meta";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -84,6 +84,7 @@ vi.mock("@/features/meta/hooks/use-meta", () => ({
       decksWithMainDeck: 0,
       totalEvents: captured.totalEvents,
       eventsByTier: { premier: 0, competitive: 0, local: 0 },
+      eventsWithResultsByTier: { premier: 0, competitive: 0, local: 0 },
     },
   }),
 }));
@@ -190,6 +191,10 @@ function manyEvents(): MetaEventSummary[] {
 }
 
 /** Both the column and card layouts are in the DOM at once (CSS picks between them); reads the first title. */
+function eventList(): HTMLElement {
+  return document.querySelector("#meta-event-list") as HTMLElement;
+}
+
 function rowNames(): string[] {
   return screen.getAllByRole("listitem").map((row) => row.querySelector("p")?.textContent ?? "");
 }
@@ -211,6 +216,24 @@ describe("MetaEventsPage", () => {
       event({ id: "old", name: "City Challenge Lyon", eventDate: "2026-08-09" }),
     ]);
     expect(rowNames()).toEqual(["Regional Qualifier Milan", "City Challenge Lyon"]);
+  });
+
+  it("shows only events with results until the reader asks for more", () => {
+    renderPage([event()]);
+    expect(captured.queries.at(-1)).toMatchObject({ holds: "standings" });
+    expect(captured.facetQueries.at(-1)).toMatchObject({ holds: "standings" });
+  });
+
+  it("drops the holdings narrowing when the reader asks for every event", () => {
+    renderPage([event()], { holds: "all" });
+    expect(captured.queries.at(-1)).not.toHaveProperty("holds");
+  });
+
+  it("writes a pick of every event to the URL", async () => {
+    renderPage([event()]);
+    await userEvent.click(screen.getByLabelText("Archive holdings"));
+    await userEvent.click(await screen.findByRole("option", { name: /^All events/u }));
+    expect(captured.navigated.at(-1)).toMatchObject({ holds: "all" });
   });
 
   it("asks for the newest first until the reader picks another column", () => {
@@ -283,7 +306,13 @@ describe("MetaEventsPage", () => {
   it("collapses the zero columns into one status line", () => {
     renderPage([event({ eventDate: "2026-01-10", playerRowCount: 0, deckCount: 0 })]);
     expect(screen.getByText("No results on file")).toBeDefined();
-    expect(screen.queryByText("0")).toBeNull();
+    expect(within(eventList()).queryByText("0")).toBeNull();
+  });
+
+  it("marks an event with standings but no decklists with a dash, not a zero", () => {
+    renderPage([event({ playerRowCount: 18, deckCount: 0 })]);
+    expect(within(eventList()).queryByText("0")).toBeNull();
+    expect(within(eventList()).getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("keeps its columns aligned when no source named a country", () => {
@@ -394,17 +423,31 @@ describe("MetaEventsPage", () => {
     expect(screen.getByText("1 of 2 archived events")).toBeDefined();
   });
 
-  it("writes the picked holdings to the URL", async () => {
+  it("narrows to events with decklists from its own toggle", async () => {
     renderPage([event()]);
-    await userEvent.click(screen.getByLabelText("Archive holdings"));
-    await userEvent.click(await screen.findByRole("option", { name: /^With decklists/u }));
+    await userEvent.click(screen.getByRole("button", { name: /^With decklists/u }));
     expect(captured.navigated.at(-1)).toMatchObject({ holds: "decks" });
   });
 
-  it("clears the picked holdings back out of the URL", async () => {
+  it("clears the decklists toggle back out of the URL", async () => {
+    renderPage([event()], { holds: "decks" });
+    const toggle = screen.getByRole("button", { name: /^With decklists/u, pressed: true });
+    await userEvent.click(toggle);
+    expect(captured.navigated.at(-1)).toEqual({});
+  });
+
+  it("swaps the decklists toggle for a holding picked in the dropdown", async () => {
     renderPage([event()], { holds: "decks" });
     await userEvent.click(screen.getByLabelText("Archive holdings"));
-    await userEvent.click(await screen.findByRole("option", { name: /^Any events/u }));
+    expect(screen.queryByRole("option", { name: /^With decklists/u })).toBeNull();
+    await userEvent.click(await screen.findByRole("option", { name: /^Upcoming/u }));
+    expect(captured.navigated.at(-1)).toMatchObject({ holds: "upcoming" });
+  });
+
+  it("clears the picked holdings back out of the URL", async () => {
+    renderPage([event()], { holds: "upcoming" });
+    await userEvent.click(screen.getByLabelText("Archive holdings"));
+    await userEvent.click(await screen.findByRole("option", { name: /^With results/u }));
     expect(captured.navigated.at(-1)).toEqual({});
   });
 

@@ -29,6 +29,7 @@ const ORIGINS_FILTER = {
   from: "2025-10-31",
   to: "2026-03-05",
   formats: ["constructed"],
+  holds: "standings" as const,
 };
 
 /** What the page itself asks for when a link names no order. */
@@ -54,6 +55,15 @@ describe("/meta/events loader", () => {
 
     expect(keys).toContainEqual([
       ...metaKeys.eventPage({ ...ORIGINS_FILTER, ...DEFAULT_ORDER, limit: 50, offset: 0 }),
+    ]);
+  });
+
+  it("warms every event, results or not, when a link asks for all of them", async () => {
+    const keys = await warmedKeys({ era: "origins", holds: "all" });
+    const { holds: _holds, ...unnarrowed } = ORIGINS_FILTER;
+
+    expect(keys).toContainEqual([
+      ...metaKeys.eventPage({ ...unnarrowed, ...DEFAULT_ORDER, limit: 50, offset: 0 }),
     ]);
   });
 
@@ -104,7 +114,13 @@ describe("/meta/events loader", () => {
     const keys = await warmedKeys({ era: "all" });
 
     expect(keys).toContainEqual([
-      ...metaKeys.eventPage({ formats: ["constructed"], ...DEFAULT_ORDER, limit: 50, offset: 0 }),
+      ...metaKeys.eventPage({
+        formats: ["constructed"],
+        holds: "standings",
+        ...DEFAULT_ORDER,
+        limit: 50,
+        offset: 0,
+      }),
     ]);
   });
 

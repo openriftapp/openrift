@@ -65,10 +65,11 @@ describe("facetPresenceFrom", () => {
 });
 
 describe("holdingsCountsFrom", () => {
-  it("counts every choice, the unnarrowed one under the empty key", () => {
+  it("counts every choice, the default of events with results under the empty key", () => {
     const counts = holdingsCountsFrom(facets());
 
-    expect(counts.get("")).toBe(12);
+    expect(counts.get("")).toBe(8);
+    expect(counts.get("all")).toBe(12);
     expect(counts.get("decks")).toBe(4);
     expect(counts.get("standings")).toBe(8);
     expect(counts.get("upcoming")).toBe(2);

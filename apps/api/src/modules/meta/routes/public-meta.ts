@@ -422,13 +422,20 @@ export const metaRouter = {
 
   counts: os.counts.handler(async ({ input, context }): Promise<MetaCountsResponse> => {
     const { meta } = context.repos;
-    const [totalPlayers, decksWithMainDeck, eventsByTier, latestResultDate] = await Promise.all([
+    const [totalPlayers, decksWithMainDeck, tierCounts, latestResultDate] = await Promise.all([
       meta.playerCountInScope(input),
       meta.deckCountInScope(input),
       meta.eventTierCounts(),
       meta.latestResultDate(),
     ]);
-    const totalEvents = Object.values(eventsByTier).reduce((sum, count) => sum + count, 0);
-    return { totalPlayers, decksWithMainDeck, totalEvents, latestResultDate, eventsByTier };
+    const totalEvents = Object.values(tierCounts.all).reduce((sum, count) => sum + count, 0);
+    return {
+      totalPlayers,
+      decksWithMainDeck,
+      totalEvents,
+      latestResultDate,
+      eventsByTier: tierCounts.all,
+      eventsWithResultsByTier: tierCounts.withResults,
+    };
   }),
 };

@@ -368,21 +368,24 @@ export const metaDeckDetailResponseSchema = publicDeckDetailResponseSchema.exten
   }),
 });
 
+const metaEventTierCountsSchema = z.object({
+  premier: z.number().int().nonnegative(),
+  competitive: z.number().int().nonnegative(),
+  local: z.number().int().nonnegative(),
+});
+
 /**
  * `decksWithMainDeck` counts full and partial lists alike (a partial list's
- * main deck is complete). `totalEvents`, `latestResultDate` and `eventsByTier` ignore the
- * query's filters.
+ * main deck is complete). `totalEvents`, `latestResultDate` and both tier counts ignore
+ * the query's filters.
  */
 export const metaCountsResponseSchema = z.object({
   totalPlayers: z.number().int().nonnegative(),
   decksWithMainDeck: z.number().int().nonnegative(),
   totalEvents: z.number().int().nonnegative(),
   latestResultDate: isoDate.nullable(),
-  eventsByTier: z.object({
-    premier: z.number().int().nonnegative(),
-    competitive: z.number().int().nonnegative(),
-    local: z.number().int().nonnegative(),
-  }),
+  eventsByTier: metaEventTierCountsSchema,
+  eventsWithResultsByTier: metaEventTierCountsSchema,
 });
 
 const metaLegendEventSchema = z.object({

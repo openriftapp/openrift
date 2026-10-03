@@ -137,17 +137,28 @@ export function metaArchiveRepo(db: Kysely<Database>) {
       return row?.latest ?? null;
     },
 
-    async eventTierCounts(): Promise<MetaEventTierCounts> {
+    async eventTierCounts(): Promise<{
+      all: MetaEventTierCounts;
+      withResults: MetaEventTierCounts;
+    }> {
       const rows = await db
-        .selectFrom("metaEvents")
-        .select((eb) => ["tier", eb.cast<number>(eb.fn.countAll(), "integer").as("count")])
-        .groupBy("tier")
+        .selectFrom("metaEvents as me")
+        .select((eb) => [
+          "me.tier",
+          eb.cast<number>(eb.fn.countAll(), "integer").as("count"),
+          sql<number>`count(*) filter (where exists (
+            select 1 from meta_event_players p where p.meta_event_id = me.id
+          ))::int`.as("withResults"),
+        ])
+        .groupBy("me.tier")
         .execute();
-      const counts: MetaEventTierCounts = { premier: 0, competitive: 0, local: 0 };
+      const all: MetaEventTierCounts = { premier: 0, competitive: 0, local: 0 };
+      const withResults: MetaEventTierCounts = { premier: 0, competitive: 0, local: 0 };
       for (const row of rows) {
-        counts[row.tier as MetaEventTier] = row.count;
+        all[row.tier as MetaEventTier] = row.count;
+        withResults[row.tier as MetaEventTier] = row.withResults;
       }
-      return counts;
+      return { all, withResults };
     },
 
     /**

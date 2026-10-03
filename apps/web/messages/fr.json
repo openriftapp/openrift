@@ -7177,7 +7177,7 @@
   "meta_events_per_page": "Afficher {size}",
   "meta_events_holdings_any": "Tous les événements",
   "meta_events_holdings_decks": "Avec decklists",
-  "meta_events_holdings_standings": "Avec classement",
+  "meta_events_holdings_standings": "Avec résultats",
   "meta_events_holdings_resultless": "Sans résultats",
   "meta_events_holdings_aria": "Contenu des archives",
   "meta_events_players_label": "Joueurs",

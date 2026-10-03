@@ -18,6 +18,11 @@ export type MetaEventIndexSortDirection = "asc" | "desc";
 
 export type MetaEventHoldings = (typeof META_EVENT_HOLDINGS)[number];
 
+/** `all` lifts the index's default of events with results; the API takes no `holds` for it. */
+export const META_EVENT_INDEX_HOLDINGS = [...META_EVENT_HOLDINGS, "all"] as const;
+
+export type MetaEventIndexHoldings = (typeof META_EVENT_INDEX_HOLDINGS)[number];
+
 const DEFAULT_EVENT_SORT: MetaEventIndexSort = "date";
 const DEFAULT_EVENT_DIRECTION: MetaEventIndexSortDirection = "desc";
 
@@ -29,7 +34,7 @@ export const DEFAULT_EVENT_PAGE_SIZE = 50;
  */
 export const metaEventsSearchSchema = metaScopeSearchSchema.extend({
   q: z.string().max(200).optional().catch(undefined),
-  holds: z.enum(META_EVENT_HOLDINGS).optional().catch(undefined),
+  holds: z.enum(META_EVENT_INDEX_HOLDINGS).optional().catch(undefined),
   playersMin: z.number().int().nonnegative().optional().catch(undefined),
   playersMax: z.number().int().nonnegative().optional().catch(undefined),
   by: z.enum(META_EVENT_INDEX_SORTS).optional().catch(undefined),
@@ -42,6 +47,13 @@ export type MetaEventsSearch = z.infer<typeof metaEventsSearchSchema>;
 /** The page of the index a link names, as the API takes it. */
 export function eventPageSlice(search: MetaEventsSearch): { limit: number; offset: number } {
   return metaPageSlice(search.page, search.per ?? DEFAULT_EVENT_PAGE_SIZE);
+}
+
+export function eventIndexHoldings(holds?: MetaEventIndexHoldings): MetaEventHoldings | undefined {
+  if (holds === undefined) {
+    return "standings";
+  }
+  return holds === "all" ? undefined : holds;
 }
 
 /** The order a link names, resolved, so the loader and the page ask for one key. */
