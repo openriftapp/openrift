@@ -21,11 +21,6 @@ vi.mock("@/features/tournaments/components/archive-lists-band", () => ({
   ArchiveListsBand: () => <div>archive-band</div>,
 }));
 
-let metaEnabled = true;
-vi.mock("@/hooks/use-feature-flags", () => ({
-  useFeatureEnabled: () => metaEnabled,
-}));
-
 function detailWith(
   myRoles: TournamentViewerRole[],
   overrides: Partial<TournamentDetailResponse> = {},
@@ -64,26 +59,18 @@ describe("TournamentDeckCheckTab", () => {
   });
 
   it("offers the Meta Archive band to an organizer once the tournament ended", () => {
-    metaEnabled = true;
     render(<TournamentDeckCheckTab detail={detailWith(["organizer"], { status: "completed" })} />);
 
     expect(screen.getByText("archive-band")).toBeInTheDocument();
   });
 
-  it("keeps the band away from judges, running tournaments and a switched-off archive", () => {
-    metaEnabled = true;
+  it("keeps the band away from judges and running tournaments", () => {
     const { rerender } = render(
       <TournamentDeckCheckTab detail={detailWith(["judge"], { status: "completed" })} />,
     );
     expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
 
     rerender(<TournamentDeckCheckTab detail={detailWith(["organizer"])} />);
-    expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
-
-    metaEnabled = false;
-    rerender(
-      <TournamentDeckCheckTab detail={detailWith(["organizer"], { status: "completed" })} />,
-    );
     expect(screen.queryByText("archive-band")).not.toBeInTheDocument();
   });
 });

@@ -23,7 +23,7 @@ function input(overrides: Partial<SitemapInput> = {}): SitemapInput {
   return {
     siteUrl: "https://example.test",
     deployDate: "2026-09-04",
-    flags: { meta: true },
+    flags: {},
     helpArticles: [
       { slug: "getting-started" },
       { slug: "flagged-article", featureFlag: "someFlag" },
@@ -80,11 +80,6 @@ describe("renderSitemapIndex", () => {
     expect(xml).toContain("sitemap-meta-decks.xml</loc><lastmod>2026-08-27</lastmod>");
   });
 
-  it("leaves the archive out while its flag is off", () => {
-    const xml = renderSitemapIndex(input({ flags: {} }));
-    expect(locs(xml)).toEqual(["https://example.test/sitemap-site.xml"]);
-  });
-
   it("numbers the files of a section that outgrows one", () => {
     const xml = renderSitemapIndex(
       input({ data: { ...input().data, metaDecks: entries("deck", SITEMAP_FILE_LIMIT + 1) } }),
@@ -117,9 +112,8 @@ describe("sitemapSectionFiles", () => {
   });
 
   it("drops flag-gated static pages while their flag is off", () => {
-    const [file] = sitemapSectionFiles("site", input({ flags: {} }));
+    const [file] = sitemapSectionFiles("site", input());
     const paths = file!.map((url) => url.path);
-    expect(paths).not.toContain("/meta");
     expect(paths).not.toContain("/developers");
   });
 
@@ -182,7 +176,6 @@ describe("renderSitemapFile", () => {
 
   it("answers null for a file the section does not have", () => {
     expect(renderSitemapFile("meta-events", 1, input())).toBeNull();
-    expect(renderSitemapFile("meta-events", 0, input({ flags: {} }))).toBeNull();
   });
 });
 

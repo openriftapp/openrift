@@ -20,7 +20,6 @@ import {
   effectiveStateLabels,
   effectiveTournamentState,
 } from "@/features/tournaments/lib/tournament-display";
-import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { cn, PAGE_WIDTH } from "@/lib/utils";
 import { m } from "@/paraglide/messages.js";
 
@@ -63,7 +62,6 @@ function MetaItem({
 
 export function TournamentHero({ detail }: { detail: TournamentDetailResponse }) {
   const state = effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status);
-  const metaEnabled = useFeatureEnabled("meta");
 
   return (
     <div className={cn(PAGE_WIDTH.capped, "px-safe pt-4")}>
@@ -112,7 +110,7 @@ export function TournamentHero({ detail }: { detail: TournamentDetailResponse })
                   </TextLink>
                 </MetaItem>
               ) : null}
-              {metaEnabled && detail.metaEventSlug ? (
+              {detail.metaEventSlug ? (
                 <MetaItem icon={ArchiveIcon}>
                   <TextLink
                     variant="inherit"

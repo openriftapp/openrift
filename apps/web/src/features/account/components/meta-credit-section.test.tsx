@@ -14,15 +14,10 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-let metaEnabled = true;
 let visibility: MetaCreditVisibility = "hidden";
 let isPending = false;
 let user: { name?: string | null; riotId?: string | null } | null = null;
 const setVisibility = vi.fn();
-
-vi.mock("@/hooks/use-feature-flags", () => ({
-  useFeatureEnabled: () => metaEnabled,
-}));
 
 vi.mock("@/lib/auth-session", () => ({
   useSession: () => ({ data: user ? { user } : null }),
@@ -35,19 +30,12 @@ vi.mock("@/features/meta/hooks/use-meta-submissions", () => ({
 
 beforeEach(() => {
   setVisibility.mockReset();
-  metaEnabled = true;
   visibility = "hidden";
   isPending = false;
   user = { name: "Riven Fan", riotId: "rivenfan#EUW" };
 });
 
 describe("MetaCreditSection", () => {
-  it("renders nothing while the archive is unlaunched", () => {
-    metaEnabled = false;
-    const { container } = render(<MetaCreditSection />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it("starts on 'don't credit me' and says nothing would be printed", () => {
     render(<MetaCreditSection />);
     expect(screen.getByRole("radio", { name: /Don't credit me/u })).toBeChecked();

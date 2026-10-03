@@ -108,7 +108,7 @@ export function primaryNavItems(): NavItemConfig[] {
     { label: m.nav_decks(), to: "/decks", icon: BookOpenIcon },
     // Only here, not also under Explore: the mobile sheet renders both lists,
     // so an entry in each would show up twice.
-    { label: m.nav_meta(), to: "/meta", icon: TrendingUpIcon, flag: "meta" },
+    { label: m.nav_meta(), to: "/meta", icon: TrendingUpIcon },
     { label: m.nav_groups(), to: "/groups", icon: UsersIcon, lockedKey: "groups", badge: "groups" },
   ];
 }

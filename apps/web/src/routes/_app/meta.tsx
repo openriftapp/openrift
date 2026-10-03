@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { publicSetListQueryOptions } from "@/features/cards/lib/public-sets-queries";
@@ -16,8 +16,6 @@ import {
   metaEventPageQueryOptions,
 } from "@/features/meta/lib/meta-queries";
 import { deriveSetEras, metaEventFilterQuery } from "@/features/meta/lib/meta-scope";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -45,15 +43,6 @@ export const Route = createFileRoute("/_app/meta")({
       description: META_DESCRIPTION,
       path: "/meta",
     }),
-  beforeLoad: async ({ context }) => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "meta")) {
-      throw redirect({ to: "/cards" });
-    }
-  },
   loader: async ({ context, deps }) => {
     const sets = await context.queryClient.query({
       ...publicSetListQueryOptions,

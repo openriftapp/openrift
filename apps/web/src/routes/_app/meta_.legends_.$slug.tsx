@@ -1,6 +1,6 @@
 import { imageUrl } from "@openrift/shared/image-url";
 import type { MetaLegendDetailResponse } from "@openrift/shared/types/api/meta";
-import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,8 +9,6 @@ import { DECK_GRID_LIMIT } from "@/features/meta/lib/meta-deck-grid";
 import { metaLegendSearchSchema } from "@/features/meta/lib/meta-legends-search";
 import { metaDecksQueryOptions, metaLegendQueryOptions } from "@/features/meta/lib/meta-queries";
 import { deriveSetEras, metaScopeQueryFromScope } from "@/features/meta/lib/meta-scope";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead, toAbsoluteUrl } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -56,16 +54,7 @@ export const Route = createFileRoute("/_app/meta_/legends_/$slug")({
     };
   },
   loaderDeps: ({ search }) => search,
-  // beforeLoad combined with a head() reading loaderData collapses the route
-  // context type to `never` in this TanStack Router version; flag check moves here.
   loader: async ({ context, params, deps }): Promise<MetaLegendDetailResponse> => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "meta")) {
-      throw redirect({ to: "/cards" });
-    }
     try {
       const [sets] = await Promise.all([
         context.queryClient.query({ ...publicSetListQueryOptions, staleTime: "static" }),

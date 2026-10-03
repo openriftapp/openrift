@@ -26,10 +26,10 @@ const STATIC_PAGES: StaticPage[] = [
   { path: "/products", priority: "0.7", changefreq: "weekly" },
   { path: "/promos/EN", priority: "0.6", changefreq: "weekly" },
   { path: "/errata", priority: "0.6", changefreq: "weekly" },
-  { path: "/meta", priority: "0.6", changefreq: "weekly", featureFlag: "meta" },
-  { path: "/meta/events", priority: "0.6", changefreq: "weekly", featureFlag: "meta" },
-  { path: "/meta/decks", priority: "0.5", changefreq: "weekly", featureFlag: "meta" },
-  { path: "/meta/legends", priority: "0.5", changefreq: "weekly", featureFlag: "meta" },
+  { path: "/meta", priority: "0.6", changefreq: "weekly" },
+  { path: "/meta/events", priority: "0.6", changefreq: "weekly" },
+  { path: "/meta/decks", priority: "0.5", changefreq: "weekly" },
+  { path: "/meta/legends", priority: "0.5", changefreq: "weekly" },
   { path: "/rules", priority: "0.5", changefreq: "monthly" },
   { path: "/help", priority: "0.4", changefreq: "monthly" },
   { path: "/changelog", priority: "0.3", changefreq: "weekly" },
@@ -126,10 +126,7 @@ function siteUrls({ deployDate, data, flags, helpArticles }: SitemapInput): Site
   return urls;
 }
 
-function metaEventUrls({ data, flags, eras, deployDate }: SitemapInput): SitemapUrl[] {
-  if (flags.meta !== true) {
-    return [];
-  }
+function metaEventUrls({ data, eras, deployDate }: SitemapInput): SitemapUrl[] {
   // Older eras are reachable only via ?era=; the current era is the index default.
   const eraIndexes: SitemapUrl[] = eras.slice(1).map((era) => ({
     path: "/meta/events",
@@ -149,10 +146,7 @@ function metaEventUrls({ data, flags, eras, deployDate }: SitemapInput): Sitemap
   ];
 }
 
-function metaLegendUrls({ data, flags }: SitemapInput): SitemapUrl[] {
-  if (flags.meta !== true) {
-    return [];
-  }
+function metaLegendUrls({ data }: SitemapInput): SitemapUrl[] {
   return data.metaLegends.map((entry) => ({
     path: `/meta/legends/${entry.slug}`,
     lastmod: entry.updatedAt.slice(0, 10),
@@ -161,10 +155,7 @@ function metaLegendUrls({ data, flags }: SitemapInput): SitemapUrl[] {
   }));
 }
 
-function metaPlayerUrls({ data, flags }: SitemapInput): SitemapUrl[] {
-  if (flags.meta !== true) {
-    return [];
-  }
+function metaPlayerUrls({ data }: SitemapInput): SitemapUrl[] {
   return data.metaPlayers.map((entry) => ({
     path: `/meta/players/${entry.slug}`,
     lastmod: entry.updatedAt.slice(0, 10),
@@ -173,10 +164,7 @@ function metaPlayerUrls({ data, flags }: SitemapInput): SitemapUrl[] {
   }));
 }
 
-function metaDeckUrls({ data, flags }: SitemapInput): SitemapUrl[] {
-  if (flags.meta !== true) {
-    return [];
-  }
+function metaDeckUrls({ data }: SitemapInput): SitemapUrl[] {
   return data.metaDecks.map((entry) => ({
     path: `/meta/decks/${entry.slug}`,
     lastmod: entry.updatedAt.slice(0, 10),

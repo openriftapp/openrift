@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { catalogQueryOptions } from "@/features/cards/lib/catalog-query";
@@ -8,8 +8,6 @@ import {
   metaSubmitEventQuery,
 } from "@/features/meta/lib/meta-queries";
 import { parseMetaSubmitSearch } from "@/features/meta/lib/meta-submit-link";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
 import { seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -21,13 +19,6 @@ export const Route = createFileRoute("/_app/_authenticated/meta_/$slug_/submit")
   validateSearch: parseMetaSubmitSearch,
   loaderDeps: ({ search }) => ({ deck: search.deck }),
   loader: async ({ context, deps, params }) => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "meta")) {
-      throw redirect({ to: "/cards" });
-    }
     await Promise.all([
       context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),
       context.queryClient.query({

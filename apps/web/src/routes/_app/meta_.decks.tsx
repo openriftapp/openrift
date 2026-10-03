@@ -1,10 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { META_DECKS_DESCRIPTION } from "@/features/meta/components/meta-copy";
 import { metaDeckSearchSchema } from "@/features/meta/lib/meta-deck-search";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -27,15 +25,6 @@ export const Route = createFileRoute("/_app/meta_/decks")({
         ]),
       ],
     };
-  },
-  beforeLoad: async ({ context }) => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "meta")) {
-      throw redirect({ to: "/cards" });
-    }
   },
   loader: async ({ context }) => {
     await context.queryClient.query({ ...initQueryOptions, staleTime: "static" });

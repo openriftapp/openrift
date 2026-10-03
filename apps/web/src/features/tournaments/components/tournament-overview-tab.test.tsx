@@ -51,12 +51,6 @@ vi.mock("@/features/tournaments/components/champion-plate", () => ({
   ChampionPlate: () => <div data-testid="champion-plate" />,
 }));
 
-let metaEnabled = true;
-
-vi.mock("@/hooks/use-feature-flags", () => ({
-  useFeatureEnabled: (key: string) => key === "meta" && metaEnabled,
-}));
-
 vi.mock("@/lib/auth-session", () => ({
   useRequiredUserId: () => "viewer-1",
 }));
@@ -339,7 +333,6 @@ beforeEach(() => {
   participants = [makeParticipant("a"), makeParticipant("b")];
   participantsForbidden = false;
   runState = makeRunState();
-  metaEnabled = true;
 });
 
 describe("TournamentHero", () => {
@@ -373,17 +366,6 @@ describe("TournamentHero", () => {
       "href",
       "/meta/summoner-skirmish",
     );
-  });
-
-  it("hides the Meta Archive link while the archive is switched off", () => {
-    metaEnabled = false;
-    render(
-      <TournamentHero
-        detail={makeDetail({ uvsgamesEventId: "667904", metaEventSlug: "summoner-skirmish" })}
-      />,
-    );
-
-    expect(screen.queryByRole("link", { name: "Meta Archive" })).not.toBeInTheDocument();
   });
 
   it("shows neither link without a linked event", () => {

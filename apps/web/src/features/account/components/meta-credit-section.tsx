@@ -18,7 +18,6 @@ import {
   metaCreditVisibilityHints,
   metaCreditVisibilityLabels,
 } from "@/features/meta/lib/meta-submission-copy";
-import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { useSession } from "@/lib/auth-session";
 import { m } from "@/paraglide/messages.js";
 
@@ -78,14 +77,9 @@ function CreditPreview({
 // Credit rows are written regardless of this setting; the public read filters
 // on it at render time, so toggling it retroactively (un)credits everything.
 export function MetaCreditSection() {
-  const metaEnabled = useFeatureEnabled("meta");
   const { data: session } = useSession();
   const { data, isPending } = useMetaCreditVisibility();
   const setVisibility = useSetMetaCreditVisibility();
-
-  if (!metaEnabled) {
-    return null;
-  }
 
   const user = session?.user;
   const visibility = data?.visibility ?? "hidden";

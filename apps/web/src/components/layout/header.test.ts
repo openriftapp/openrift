@@ -8,8 +8,8 @@ import {
   visiblePrimaryItems,
 } from "./nav-items";
 
-const flagsOn = { glossary: true, meta: true, "board-states": true };
-const flagsOff = { glossary: false, meta: false, "board-states": false };
+const flagsOn = { glossary: true, "board-states": true };
+const flagsOff = { glossary: false, "board-states": false };
 
 describe("primaryNavItems", () => {
   const visible = (flags: typeof flagsOn, mobile: boolean) =>
@@ -17,18 +17,14 @@ describe("primaryNavItems", () => {
       .filter((item) => navItemVisible(item, { flags, mobile }))
       .map((i) => i.to);
 
-  it("hides the meta archive in both menus while its flag is off", () => {
-    expect(visible(flagsOff, false)).not.toContain("/meta");
-    expect(visible(flagsOff, true)).not.toContain("/meta");
-  });
-
-  it("shows the meta archive in both menus once its flag is on", () => {
-    expect(visible(flagsOn, false)).toContain("/meta");
-    expect(visible(flagsOn, true)).toContain("/meta");
-  });
-
   it("keeps the unflagged entries whatever the flags say", () => {
-    expect(visible(flagsOff, false)).toEqual(["/cards", "/collections", "/decks", "/groups"]);
+    expect(visible(flagsOff, false)).toEqual([
+      "/cards",
+      "/collections",
+      "/decks",
+      "/meta",
+      "/groups",
+    ]);
   });
 });
 

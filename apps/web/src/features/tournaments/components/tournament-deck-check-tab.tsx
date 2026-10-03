@@ -10,13 +10,11 @@ import {
   canManageTournament,
   effectiveTournamentState,
 } from "@/features/tournaments/lib/tournament-display";
-import { useFeatureEnabled } from "@/hooks/use-feature-flags";
 import { m } from "@/paraglide/messages.js";
 
 /** The entrant list comes from a staff-only endpoint; gate on host/organizer/judge here. */
 export function TournamentDeckCheckTab({ detail }: { detail: TournamentDetailResponse }) {
   const canManage = canManageTournament(detail.myRoles);
-  const metaEnabled = useFeatureEnabled("meta");
   if (!canCheckDecks(detail.myRoles)) {
     return (
       <EmptyState
@@ -30,7 +28,7 @@ export function TournamentDeckCheckTab({ detail }: { detail: TournamentDetailRes
     effectiveTournamentState(detail.startsAt, detail.endsAt, detail.status) === "completed";
   return (
     <div className="flex flex-col gap-6">
-      {metaEnabled && canManage && ended && detail.deckSubmission !== "none" ? (
+      {canManage && ended && detail.deckSubmission !== "none" ? (
         <ArchiveListsBand detail={detail} />
       ) : null}
       {canManage && detail.deckSubmission !== "none" ? (

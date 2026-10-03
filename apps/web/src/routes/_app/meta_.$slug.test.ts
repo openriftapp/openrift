@@ -1,4 +1,4 @@
-import { isNotFound, isRedirect } from "@tanstack/react-router";
+import { isNotFound } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { metaKeys } from "@/features/meta/lib/meta-query-keys";
@@ -30,15 +30,11 @@ function loaderDepsFor(search: Record<string, unknown>): Record<string, unknown>
 function runLoader(
   search: Record<string, unknown> = {},
   overrides: {
-    meta?: boolean;
     missing?: boolean;
     cached?: readonly (readonly unknown[])[];
   } = {},
 ) {
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
-    if (options.queryKey[0] === "feature-flags") {
-      return Promise.resolve({ meta: overrides.meta ?? true });
-    }
     if (options.queryKey[0] === "meta") {
       if (overrides.missing === true) {
         return Promise.reject(new Error("NOT_FOUND"));
@@ -141,10 +137,6 @@ describe("/meta/$slug loader", () => {
 
   it("404s an event the archive does not hold", async () => {
     expect(isNotFound(await thrownBy(runLoader({}, { missing: true }).loaded))).toBe(true);
-  });
-
-  it("sends the reader to the catalog while the archive is off", async () => {
-    expect(isRedirect(await thrownBy(runLoader({}, { meta: false }).loaded))).toBe(true);
   });
 });
 

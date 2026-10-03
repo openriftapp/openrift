@@ -64,10 +64,6 @@ const KNOWN_FLAGS: KnownFlag[] = [
     description: "Show the public API docs page (/developers), its footer link, and sitemap entry",
   },
   {
-    key: "meta",
-    description: "Show the meta archive (/meta), its header link, and its sitemap entries",
-  },
-  {
     key: "board-states",
     description: "Show board states (/board-states), their header link, and the editor",
   },

@@ -27,9 +27,6 @@ const SETS = {
 
 function makeContext() {
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
-    if (options.queryKey[0] === "feature-flags") {
-      return Promise.resolve({ meta: true });
-    }
     if (options.queryKey[0] === "sets") {
       return Promise.resolve(SETS);
     }

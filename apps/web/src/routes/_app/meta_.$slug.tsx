@@ -1,5 +1,5 @@
 import type { MetaEventDetail } from "@openrift/shared/types/api/meta";
-import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { NotFoundFallback, RouteErrorFallback } from "@/components/error-message";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,8 +9,6 @@ import {
   metaStandingsSearchSchema,
   standingsPageQuery,
 } from "@/features/meta/lib/meta-standings-search";
-import type { FeatureFlags } from "@/lib/feature-flags";
-import { featureEnabled, featureFlagsQueryOptions } from "@/lib/feature-flags";
 import { initQueryOptions } from "@/lib/init-queries";
 import { breadcrumbJsonLd, seoHead } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-config";
@@ -45,20 +43,9 @@ export const Route = createFileRoute("/_app/meta_/$slug")({
       ],
     };
   },
-  // The flag check lives in the loader, not beforeLoad: a beforeLoad combined
-  // with a head() that reads loaderData collapses the route-context type to
-  // `never` in the current TanStack Router version. Same pattern as
-  // help_.$slug.tsx; the redirect still fires before anything renders.
   // Returns the event alone: loader data is dehydrated beside the query cache,
   // and returning the whole response would ship the standings twice.
   loader: async ({ context, params, deps, location }): Promise<MetaEventDetail> => {
-    const flags = (await context.queryClient.query({
-      ...featureFlagsQueryOptions,
-      staleTime: "static",
-    })) as FeatureFlags;
-    if (!featureEnabled(flags, "meta")) {
-      throw redirect({ to: "/cards" });
-    }
     try {
       const [, detail] = await Promise.all([
         context.queryClient.query({ ...initQueryOptions, staleTime: "static" }),

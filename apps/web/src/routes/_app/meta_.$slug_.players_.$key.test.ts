@@ -1,5 +1,5 @@
 import type { MetaRunRound } from "@openrift/shared/types/api/meta";
-import { isNotFound, isRedirect } from "@tanstack/react-router";
+import { isNotFound } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { metaEvent, metaPhase, metaRow } from "@/test/meta-event-fixtures";
@@ -27,12 +27,9 @@ const ROUND: MetaRunRound = {
 };
 
 function runLoader(
-  overrides: { meta?: boolean; rounds?: MetaRunRound[]; missing?: boolean } = {},
+  overrides: { rounds?: MetaRunRound[]; missing?: boolean } = {},
 ): Promise<unknown> {
   const query = vi.fn((options: { queryKey: readonly unknown[] }) => {
-    if (options.queryKey[0] === "feature-flags") {
-      return Promise.resolve({ meta: overrides.meta ?? true });
-    }
     if (options.queryKey[0] === "meta") {
       // The endpoint 404s a key no standings row answers to; the server
       // function turns that into this error.
@@ -79,9 +76,5 @@ describe("/meta/$slug/players/$key loader", () => {
 
   it("404s a player whose event published standings but no rounds", async () => {
     expect(isNotFound(await thrownBy(runLoader({ rounds: [] })))).toBe(true);
-  });
-
-  it("sends the reader to the catalog while the archive is off", async () => {
-    expect(isRedirect(await thrownBy(runLoader({ meta: false })))).toBe(true);
   });
 });
